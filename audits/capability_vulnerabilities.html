@@ -20,7 +20,7 @@
 </details>
 <div class="tools"><div class="search"><label for="search">Find a current name, former name, or description</label><input id="search" type="search" placeholder="Search capabilities…" autocomplete="off"></div><button id="import">Import review…</button><button id="export">Export draft</button><button id="load">Load project file</button><button id="save" class="primary" disabled>Save</button><input id="import-file" type="file" accept=".json,application/json" aria-label="Import a description review"></div>
 <div class="meta"><span id="count"></span><span id="draft-state" role="status"></span></div>
-<div id="file-state" class="meta" role="status"></div><div id="notice" class="notice" role="alert"></div>
+<div id="file-state" class="meta" role="status"></div><div id="completion" class="meta" role="status"></div><div id="notice" class="notice" role="alert"></div>
 <div class="filters"><div><label for="scope">Show</label><select id="scope"><option value="wording">Wording / provenance review (17)</option><option value="flagged">All flagged descriptions (90)</option><option value="rules">Shared rules phrasing (73)</option><option value="unflagged">No flagged match (417)</option><option value="all">All capabilities (507)</option></select></div><div><label for="status">Decision</label><select id="status"><option value="all">All decisions</option><option value="pending">Awaiting decision</option><option value="rewrite">Rewrite drafted</option><option value="keep">Keep current wording</option></select></div></div>
 <div class="table"><div class="head"><div>Current description &amp; evidence</div><div>Your wording &amp; decision</div></div><div id="rows"></div><div id="empty" hidden>No descriptions match. Try All capabilities or clear the search.</div></div>
 <footer>Open <strong>Capability Descriptions.cmd</strong> in the project folder for direct saving. Save updates <code>audits/capability_vulnerabilities.json</code>. Browser drafts provide a recovery copy; Export draft makes a portable backup. Saving this worksheet does not apply prose changes to the game.</footer>
@@ -33,6 +33,14 @@
 var CapabilityReview=(function(){
  var FORMAT='traffic-and-dragons/capability-review/v1';
  function initial(manifest){return manifest.rows.map(function(r){return {key:r.key,decision:'pending',replacement:r.effect,notes:''};});}
+ function isFlagged(row){return row.level!=='unflagged';}
+ function needsDecision(row,review){return isFlagged(row)&&(!review||(review.decision!=='keep'&&(review.decision!=='rewrite'||!review.replacement.trim())));}
+ function progress(reviews,manifest){
+  var byKey=Object.create(null),required=0,remaining=0;
+  reviews.forEach(function(r){byKey[r.key]=r;});
+  manifest.rows.forEach(function(row){if(isFlagged(row))required++;if(needsDecision(row,byKey[row.key]))remaining++;});
+  return {required:required,addressed:required-remaining,remaining:remaining,optional:manifest.rows.length-required,complete:remaining===0};
+ }
  function pack(reviews,manifest){return JSON.stringify({format:FORMAT,audit:manifest.id,reviews:reviews},null,2);}
  function read(text,manifest){
   var data=JSON.parse(text),seen=Object.create(null);
@@ -40,7 +48,7 @@ var CapabilityReview=(function(){
   data.reviews.forEach(function(r){if(!r||typeof r.key!=='string'||Object.prototype.hasOwnProperty.call(seen,r.key)||['pending','keep','rewrite'].indexOf(r.decision)<0||typeof r.replacement!=='string'||typeof r.notes!=='string'||r.replacement.length>20000||r.notes.length>10000)throw Error('Unknown, duplicate or malformed review row.');seen[r.key]=r;});
   return manifest.rows.map(function(m){var r=seen[m.key];if(!r)throw Error('Missing capability: '+m.key);if(r.decision==='keep'&&r.replacement!==m.effect)throw Error('A kept description must match the current wording: '+m.name);return {key:r.key,decision:r.decision,replacement:r.replacement,notes:r.notes};});
  }
- return {initial:initial,pack:pack,read:read};
+ return {initial:initial,pack:pack,read:read,progress:progress,needsDecision:needsDecision};
 })();
 </script>
 <script>
@@ -54,6 +62,7 @@ function persist(){try{localStorage.setItem(KEY,JSON.stringify({text:pack(),revi
 function make(tag,text,cls){var el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;}
 function update(){var visible=0,decided=0,edits=0,q=$('search').value.toLowerCase().trim(),scope=$('scope').value,status=$('status').value;
  nodes.forEach(function(n,i){var m=manifest.rows[i],r=reviews[i],show=(scope==='all'||scope===m.level||(scope==='flagged'&&m.level!=='unflagged'))&&(status==='all'||r.decision===status)&&(!q||[m.name,m.original,m.effect,r.replacement,r.notes].join(' ').toLowerCase().indexOf(q)>=0);if(n.row.contains(document.activeElement)&&document.activeElement.tagName==='TEXTAREA')show=true;n.redraft.disabled=!connected||busy||redraftBusy;n.row.hidden=!show;if(show)visible++;if(r.decision!=='pending')decided++;if(r.replacement!==m.effect)edits++;n.row.classList.toggle('edited',r.replacement!==m.effect);});
+ var progress=CapabilityReview.progress(reviews,manifest);$('completion').textContent=progress.addressed+'/'+progress.required+' vulnerabilities addressed.';
  $('count').textContent=visible+' shown · '+decided+' of 507 decisions · '+edits+' edited';$('empty').hidden=visible>0;$('save').disabled=!connected||busy;
 }
 function changed(){persist();$('file-state').textContent='Draft changes have not been saved to the project.';update();}

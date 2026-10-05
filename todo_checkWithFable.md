@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-05 · #603 completion counter · Codex: added the owner-requested N/90 vulnerabilities addressed line under the save status. Pure progress calculation excludes unflagged entries and blank flagged rewrites; no saved-review schema or decisions changed. Failing-first logic test and browser save/reload checks prove all 417 unflagged rows may remain pending at 90/90. Existing summary and controls preserved.
+
 - 2026-10-05 · #603 Redraft · Codex: owner-requested per-row Astra rewriting, fixed GPT-6 Astra via local signed-in Codex CLI in an ephemeral read-only temporary workspace. Does not edit engine content. Validation refuses invalid responses; preserves newer browser edits, offers Undo and reports provider failures. One request at a time, three-minute process timeout and verified temporary-directory cleanup bound resources. Live generation and deterministic store/browser guards pass.
 
 - 2026-10-05 · #603 · Codex: owner-requested description audit and editable satellite, local helper route registry and validated fixed-file store. 507 entries screened; 17 wording/provenance flags and 73 common-rules matches, source coverage and secondary-source limitations disclosed. Saves are atomic with revision checks; no gameplay prose or engine algorithms changed. Monotonic resources: one overwritten browser-draft key per audit snapshot, replaced DOM rows/listeners, revoked export URLs, bounded request bodies and cleaned temporary files; no per-turn/campaign accumulation. Test-first store and filter/viewport failures reproduced; browser and mutation guards verified.
