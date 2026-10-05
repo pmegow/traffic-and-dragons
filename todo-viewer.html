@@ -85,11 +85,11 @@
     /* Collapsible top-level (##) sections */
     .sec-wrap{margin:22px 0 0;}
     .sec-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;border-bottom:1px solid var(--brd);padding-bottom:6px;margin-bottom:10px;}
-    .sec-toggle:hover .sec-title{filter:brightness(1.2);}
+    .sec-toggle:hover .sec-title,.sec-toggle:hover .sec-count{filter:brightness(1.2);}
     .sec-arr{font-size:11px;color:var(--acc);transition:transform .15s;flex-shrink:0;}
     .sec-arr.open{transform:rotate(90deg);}
     .sec-title{color:var(--acc);font-size:15px;font-weight:bold;}
-    .sec-count{color:#00ffff;font-size:13px;font-weight:bold;flex-shrink:0;}
+    .sec-count{color:var(--acc);font-size:13px;font-weight:bold;flex-shrink:0;}
     .sec-body{display:none;}
     .sec-body.open{display:block;}
 
@@ -119,7 +119,7 @@
 
 <script>
 var _sections = [];
-var TODO_VIEWER_VERSION = "v0.7";
+var TODO_VIEWER_VERSION = "v0.8";
 // #481 G3 (owner ruling 2026-09-29): TRULY read-only. The viewer used to export TODO.md in place (a no-edit save changed four
 // rows; Renumber rewrote 44 of 45 open numbers) behind a "read-only" label. Every write and edit path is gone — export,
 // renumber, add, edit, delete, complete, restore, the status toggle, drag-reorder; the READ handle stays. All TODO edits go
