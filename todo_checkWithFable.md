@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-05 · #603 decision colors · Codex: owner-requested worksheet tint follows the decision rather than text differences. Rewrite uses the shared accent background; Keep shifts its hue 10% toward zero while preserving saturation/value; pending returns to the ordinary background. Failing-first real-browser regression, rendered before/after screenshots and all 15 browser checks pass. Saved review JSON untouched.
+
 - 2026-10-05 · #603 duration exclusions · Codex: owner-directed audit triage removes 31 duration/turn-timing/effect-ending flags and suppresses timing evidence in three mixed findings. Non-timing concerns retained; 59 active flags. Same audit identity and row keys preserve browser drafts and saved decisions; user review JSON untouched. Failing-first classification and mixed-evidence guards, original-draft round trips and 14 browser checks pass.
 
 - 2026-10-05 · #603 completion counter · Codex: added the owner-requested N/90 vulnerabilities addressed line under the save status. Pure progress calculation excludes unflagged entries and blank flagged rewrites; no saved-review schema or decisions changed. Failing-first logic test and browser save/reload checks prove all 417 unflagged rows may remain pending at 90/90. Existing summary and controls preserved.

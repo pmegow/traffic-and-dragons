@@ -44,6 +44,18 @@ await check('duration findings leave flagged filters but remain available for op
  assert.match(await page.locator('#cap-'+shield+' .reason').textContent(),/excluded/);
  await page.evaluate(()=>{document.getElementById('scope').value='wording';document.getElementById('scope').dispatchEvent(new Event('change'));});
 });
+await check('decision backgrounds cover unchanged rewrites and kept wording with the requested hue',async()=>{
+ const colors=()=>page.evaluate(()=>{function rgb(color){const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.fillStyle=color;ctx.fillRect(0,0,1,1);return [...ctx.getImageData(0,0,1,1).data].slice(0,3);}return {pending:rgb(getComputedStyle(document.getElementById('cap-2')).backgroundColor),rewrite:rgb(getComputedStyle(document.getElementById('cap-0')).backgroundColor),keep:rgb(getComputedStyle(document.getElementById('cap-1')).backgroundColor),reference:rgb(getComputedStyle(document.documentElement).getPropertyValue('--acc-bg').trim())};});
+ function hsv(rgb){const max=Math.max(...rgb),min=Math.min(...rgb),d=max-min;let h=d===0?0:max===rgb[0]?60*((rgb[1]-rgb[2])/d%6):max===rgb[1]?60*((rgb[2]-rgb[0])/d+2):60*((rgb[0]-rgb[1])/d+4);return {h:(h+360)%360,s:max?d/max:0,v:max};}
+ async function decide(i,value){await page.evaluate(({i,value})=>{const el=document.getElementById('cap-'+i+'-decision');el.value=value;el.dispatchEvent(new Event('change'));},{i,value});}
+ try{
+  await decide(0,'rewrite');await page.locator('#cap-1 .keep').click();
+  if(process.env.REVIEW_SCREENSHOT_DIR){await page.setViewportSize({width:1280,height:1700});await page.evaluate(()=>document.getElementById('cap-0').scrollIntoView());await page.screenshot({path:path.join(process.env.REVIEW_SCREENSHOT_DIR,'review-decisions.png')});await page.setViewportSize({width:1280,height:1000});}
+  const c=await colors(),base=hsv(c.reference),keep=hsv(c.keep);assert.deepEqual(c.rewrite,c.reference,'unchanged text with rewrite decision must be tinted');assert.notDeepEqual(c.keep,c.pending,'keep decision must be tinted');assert.equal(keep.v,base.v,'kept wording must retain the same color value');assert.ok(Math.abs(keep.s-base.s)<0.01,'kept wording must retain saturation');assert.ok(Math.abs(keep.h-base.h*0.9)<=2,'keep hue must be 10% closer to zero: '+JSON.stringify({base,keep}));
+  await decide(0,'pending');await decide(1,'pending');const reset=await colors();assert.deepEqual(reset.rewrite,reset.pending);assert.deepEqual(reset.keep,reset.pending);
+  await page.locator('#cap-0-text').fill('A changed draft returned to awaiting decision');await decide(0,'pending');assert.deepEqual((await colors()).rewrite,reset.pending,'pending decision must clear tint even if the text differs');
+ }finally{await decide(0,'pending');await decide(1,'pending');await page.evaluate(()=>window.scrollTo(0,0));}
+});
 await check('editing an awaiting-decision row does not hide the active field',async()=>{
  await page.evaluate(()=>{document.getElementById('status').value='pending';document.getElementById('status').dispatchEvent(new Event('change'));});
  try{await page.locator(first).fill('Still typing');assert.equal(await page.evaluate(()=>document.getElementById('cap-0').hidden),false);}
