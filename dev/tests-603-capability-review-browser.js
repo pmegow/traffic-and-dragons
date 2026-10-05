@@ -1,7 +1,7 @@
 const fs=require('fs'),path=require('path'),os=require('os'),assert=require('assert/strict'),cp=require('child_process');
 const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..'),scratch=fs.mkdtempSync(path.join(os.tmpdir(),'tnd-review-browser-'));
-const files=['audits/capability_vulnerabilities.html','audits/capability_vulnerabilities.json','satellite.css','dev/bible-server.js','dev/bible-editor-version.js','dev/bible-helper-version.js','dev/capability-review-store.js','dev/launch-bible-editor.js'];
+const files=['audits/capability_vulnerabilities.html','audits/capability_vulnerabilities.json','satellite.css','dev/bible-server.js','dev/bible-editor-version.js','dev/bible-helper-version.js','dev/capability-review-store.js','dev/capability-redraft.js','dev/launch-bible-editor.js'];
 let browser,server,failed=0;
 async function check(name,fn){try{await fn();console.log('PASS #603 '+name);}catch(e){failed++;console.error('FAIL #603 '+name+' — '+e.stack);}}
 (async()=>{try{
@@ -23,6 +23,12 @@ browser=await chromium.launch({headless:true});const ctx=await browser.newContex
 page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());page.on('download',()=>downloads++);
 await page.goto(origin+'/audits/capability_vulnerabilities.html');await page.waitForFunction(()=>!document.getElementById('save').disabled);
 const first='#cap-0-text';
+await check('redraft endpoint rejects bad requests without launching Astra',async()=>{
+ for(const [from,v,status] of [['https://example.com',version,403],[origin,'old',409],[origin,version,422]]){
+  const res=await fetch(origin+'/capability-redraft',{method:'POST',headers:{Origin:from,'X-Bible-Helper-Version':v},body:'{}'});assert.equal(res.status,status);
+ }
+ assert.equal((await fetch(origin+'/capability-redraft')).status,405);
+});
 async function save(){await page.locator('#save').click();await page.waitForFunction(()=>document.getElementById('file-state').textContent.startsWith('Saved audits/'));}
 await check('all 507 rows are available and priority findings are the default',async()=>{
  assert.equal(await page.locator('.row').count(),507);assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.row')].filter(r=>!r.hidden).length),17);
@@ -34,6 +40,14 @@ await check('editing an awaiting-decision row does not hide the active field',as
  await page.evaluate(()=>{document.getElementById('status').value='pending';document.getElementById('status').dispatchEvent(new Event('change'));});
  try{await page.locator(first).fill('Still typing');assert.equal(await page.evaluate(()=>document.getElementById('cap-0').hidden),false);}
  finally{await page.evaluate(()=>{document.getElementById('status').value='all';document.getElementById('status').dispatchEvent(new Event('change'));});}
+});
+await check('Astra redraft inserts a recoverable draft, supports undo, and preserves late edits',async()=>{
+ let release,response={ok:true,model:'gpt-6-astra',key:'augury',replacement:'Astra fixture: a fresh omen for the next 30 minutes.'},calls=0,fail=false;
+ await ctx.route('**/capability-redraft',async route=>{calls++;await new Promise(resolve=>release=resolve);return route.fulfill({status:fail?503:200,contentType:'application/json',body:JSON.stringify(fail?{ok:false,output:'Astra unavailable'}:response)});});
+ const before=await page.locator(first).inputValue();await page.locator('#cap-0 .redraft').click();await page.waitForFunction(()=>document.querySelector('#cap-0 .redraft').disabled);assert.equal(calls,1);release();await page.waitForFunction(()=>document.getElementById('cap-0-text').value.startsWith('Astra fixture:'));assert.equal(await page.locator('#cap-0-decision').inputValue(),'rewrite');await page.locator('#cap-0 .undo-redraft').click();assert.equal(await page.locator(first).inputValue(),before);
+ await page.locator('#cap-0 .redraft').click();await page.waitForFunction(()=>document.querySelector('#cap-0 .redraft').disabled);await page.locator(first).fill('Manual edit while Astra works');release();await page.waitForFunction(()=>document.querySelector('#cap-0 .redraft-status').textContent.includes('Your draft changed'));assert.equal(await page.locator(first).inputValue(),'Manual edit while Astra works');
+ fail=true;await page.locator('#cap-0 .redraft').click();await page.waitForFunction(()=>document.querySelector('#cap-0 .redraft').disabled);release();await page.waitForFunction(()=>document.querySelector('#cap-0 .redraft-status').textContent.includes('Redraft failed'));assert.equal(await page.locator(first).inputValue(),'Manual edit while Astra works');
+ fail=false;await page.locator('#cap-0 .redraft').click();await page.waitForFunction(()=>document.querySelector('#cap-0 .redraft').disabled);release();await page.waitForFunction(()=>document.getElementById('cap-0-text').value.startsWith('Astra fixture:'));await page.reload();await page.waitForFunction(()=>!document.getElementById('save').disabled);assert.equal(await page.locator(first).inputValue(),response.replacement);await save();assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).reviews[0].replacement,response.replacement);
 });
 await check('edits survive reload and Save writes the project without a download',async()=>{
  await page.locator(first).fill('Review draft — exact numbers stay 30 minutes.');await page.reload();await page.waitForFunction(()=>!document.getElementById('save').disabled);assert.equal(await page.locator(first).inputValue(),'Review draft — exact numbers stay 30 minutes.');await save();assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).reviews[0].replacement,'Review draft — exact numbers stay 30 minutes.');assert.equal(downloads,0);
