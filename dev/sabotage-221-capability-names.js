@@ -12,7 +12,7 @@ failed+=sabotage.prove({file:'capability-names.html',command:['node',['dev/tests
  {label:'collisions ignore engine name normalization',find:'var key=capBaseName(row.to);',replace:'var key=row.to;',mustFail:'engine-normalized collisions mark both rows'},
  {label:'exports drop unfinished rows',find:'names:list},null,2)',replace:'names:list.filter(function(row){return !!row.to;})},null,2)',mustFail:'draft round trip preserves unfinished'},
  {label:'ready flag bypasses fresh validation',find:'var list=read(text,bible);',replace:'var list=read(text,bible);if(JSON.parse(text).readyToApply)return list;',mustFail:'readiness cannot be forged'},
- {label:'malformed imported names bypass shape validation',find:'typeof row.to!=="string"||',replace:'',mustFail:'bad imports and changed bible cannot discard choices'}
+ {label:'malformed imported names bypass shape validation',find:'||typeof row.to!=="string"',replace:'',mustFail:'bad imports and changed bible cannot discard choices'}
 ]});
 failed+=sabotage.prove({file:'capability-names.html',skip:!chrome.path,command:['node',['dev/tests-221-capability-names-browser.js']],cases:[
  {label:'copy button does not copy the original',find:'updateName(CapabilityNames.titleName(row.from));input.focus();',replace:'input.focus();',mustFail:'middle copy buttons keep one original explicitly'},

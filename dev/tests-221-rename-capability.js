@@ -55,6 +55,7 @@ function load(dir) {
   return ctx;
 }
 
+var BASE_RENAMES = JSON.parse(JSON.stringify(load(ROOT).CAPABILITY_RENAMES));
 var scratches = [];
 function scratch() { var d = mkScratch(); scratches.push(d); return d; }
 
@@ -98,7 +99,7 @@ try {
     pass("the ANCS racial_caps {cap,use} reference was rewritten, `use` untouched");
 
     var renames = ctx.CAPABILITY_RENAMES;
-    if (!renames || renames.length !== 1 || renames[0].from !== SUBJECT || renames[0].to !== TARGET)
+    if (!renames || renames.length !== BASE_RENAMES.length + 1 || JSON.stringify(renames.slice(0,-1)) !== JSON.stringify(BASE_RENAMES) || renames[BASE_RENAMES.length].from !== SUBJECT || renames[BASE_RENAMES.length].to !== TARGET)
       fail("CAPABILITY_RENAMES did not receive the migration entry: " + JSON.stringify(renames));
     pass("CAPABILITY_RENAMES received {from,to} display-cased");
 
@@ -195,7 +196,7 @@ try {
 
     var ctx = load(dir);
     if (!ctx.capabilityLookup(SUBJECT)) fail("the restore did not bring the bible key back");
-    if (ctx.CAPABILITY_RENAMES.length !== 0) fail("a failed rename left a migration entry behind");
+    if (JSON.stringify(ctx.CAPABILITY_RENAMES) !== JSON.stringify(BASE_RENAMES)) fail("a failed rename left a migration entry behind");
     pass("the restore is semantic too: the old key resolves again and no migration entry was left");
   })();
 
@@ -206,8 +207,8 @@ try {
     var r = run(dir, ["Mirror Image", "Split Semblance"]);
     if (r.status !== 0) fail("second rename exited " + r.status + "\n" + r.out);
     var ctx = load(dir);
-    if (ctx.CAPABILITY_RENAMES.length !== 2) fail("CAPABILITY_RENAMES is not append-only: " + JSON.stringify(ctx.CAPABILITY_RENAMES));
-    if (ctx.CAPABILITY_RENAMES[0].from !== SUBJECT || ctx.CAPABILITY_RENAMES[1].from !== "Mirror Image")
+    if (ctx.CAPABILITY_RENAMES.length !== BASE_RENAMES.length + 2 || JSON.stringify(ctx.CAPABILITY_RENAMES.slice(0,-2)) !== JSON.stringify(BASE_RENAMES)) fail("CAPABILITY_RENAMES is not append-only: " + JSON.stringify(ctx.CAPABILITY_RENAMES));
+    if (ctx.CAPABILITY_RENAMES[BASE_RENAMES.length].from !== SUBJECT || ctx.CAPABILITY_RENAMES[BASE_RENAMES.length+1].from !== "Mirror Image")
       fail("CAPABILITY_RENAMES lost its order: " + JSON.stringify(ctx.CAPABILITY_RENAMES));
     pass("a second rename APPENDS to CAPABILITY_RENAMES, preserving the first entry and its order");
     if (!ctx.capabilityLookup("Split Semblance") || !ctx.capabilityLookup(TARGET))

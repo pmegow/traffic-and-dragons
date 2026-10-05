@@ -1,0 +1,2541 @@
+{
+  "format": "traffic-and-dragons/capability-renames-applied/v1",
+  "date": "2026-10-04",
+  "names": [
+    {
+      "from": "a call to arms",
+      "to": "A Call to Arms",
+      "definitionSha256": "c356fed91d8821c407db9a3a19aedd4a958becf8ea97b1b58e091fe6dfaff61b"
+    },
+    {
+      "from": "a natural death",
+      "to": "Set the Scene",
+      "definitionSha256": "44be93f8a1ed8423630f171e3062af8295bdc13c557f0e5c65103117155c675d"
+    },
+    {
+      "from": "absorb elements",
+      "to": "Redirect Element",
+      "definitionSha256": "661cb3196369cba509de7a34f66a7847bea7c59fb6266a0eb297c023a0e83bbc"
+    },
+    {
+      "from": "abyssal fury",
+      "to": "Abyssal Fury",
+      "definitionSha256": "2c077027db76cc1eb04abac52479d6747e237a03bfcab5689b21594c77c4c1d0"
+    },
+    {
+      "from": "accelerated decay",
+      "to": "Accelerate Decay",
+      "definitionSha256": "dfaea643fc6be4631bc3a6ca00443f42c54f8a6767227c936105c19215ccd4de"
+    },
+    {
+      "from": "action surge",
+      "to": "Surge",
+      "definitionSha256": "51e50e894d791ef2dcab7675b08d4eec580f240c24c175e0443d93da01d88104"
+    },
+    {
+      "from": "age",
+      "to": "Age",
+      "definitionSha256": "2b6c1f175d80ff4a3d558cb4c5613743d35dfd526f213ca52862f8580b9fe041"
+    },
+    {
+      "from": "aid",
+      "to": "Aid",
+      "definitionSha256": "fd1c8e326f2fc0ba65e3c63e4b340501a74465a224f5b6ca87ec53a439ee08ce"
+    },
+    {
+      "from": "anchored soul",
+      "to": "Anchored Soul",
+      "definitionSha256": "d849bcbed6d3cc47f0683f91e31407194cd168a929bea0ceb4599af3e0f92eff"
+    },
+    {
+      "from": "angel of death",
+      "to": "Inevitably",
+      "definitionSha256": "61a97231a6cdd393b0992480e75d7a692f718ebc9146bca68254954a30df349a"
+    },
+    {
+      "from": "apex predator",
+      "to": "Apex Predator",
+      "definitionSha256": "67cd4584a6757ea6daa4b9dcf12d2ab344e90870028ca7a8eda26e00f3c48c4a"
+    },
+    {
+      "from": "arcane bolt",
+      "to": "Arcane Bolt",
+      "definitionSha256": "caaa020f9955651305dc65f288f79e24299aaa7043a854e7ed99fefd0aaf3eb3"
+    },
+    {
+      "from": "arcane lock",
+      "to": "Arcane Lock",
+      "definitionSha256": "fed129679ba36421b736737afed9ab3393c0874d4d4548fda74fb8184189f1c1"
+    },
+    {
+      "from": "arcane shield",
+      "to": "Arcane Shield",
+      "definitionSha256": "322048b78598900f4980f03cb5988269c80bf8a57230ddd59e062ba95b11e7ee"
+    },
+    {
+      "from": "arcane sight",
+      "to": "Arcane Sight",
+      "definitionSha256": "6384a401d5f522718e340a1dae8afdd60db1c01683eee60b050d12e98ac1fd54"
+    },
+    {
+      "from": "archmage hand",
+      "to": "Archmage Hand",
+      "definitionSha256": "3039a211a234d50fbe08ab455e6f28a2aa199b7223f91532149aee21264e8a22"
+    },
+    {
+      "from": "army of bone",
+      "to": "Army of Bone",
+      "definitionSha256": "bcd881bd84d758cbfe5c0965f5ea271a53c0b5c229f4d12b5f2516f711e7f228"
+    },
+    {
+      "from": "aspect of the reaper",
+      "to": "Aspect of the Reaper",
+      "definitionSha256": "08e09c45d7bd7ddeb4fc7ff88c835982154b2ca3886c30f07d8c70e3dcd5424a"
+    },
+    {
+      "from": "aspect of the undead",
+      "to": "Aspect of the Undead",
+      "definitionSha256": "f4949507c458b7f086bb27e850c2b455df1b678bca4d4ac43ae9933b3ddc8a1d"
+    },
+    {
+      "from": "astral steed",
+      "to": "Astral Steed",
+      "definitionSha256": "90c542f233c7081ca99c4e4329dcdf5e00b62c1af06abf19f7fe200be1bd7ce0"
+    },
+    {
+      "from": "augury",
+      "to": "Augury",
+      "definitionSha256": "b3aaaa6a1843423199d59c18d9fe27910f727312512f89ef758f1ed8566bd4c8"
+    },
+    {
+      "from": "aura of courage",
+      "to": "Aura of Courage",
+      "definitionSha256": "701c35d55b4a34fac67fef0a1f37af3f01d68d1ed2c83fcd98ef795be80e7cc8"
+    },
+    {
+      "from": "aura of life",
+      "to": "Aura of Life",
+      "definitionSha256": "5f569fde22a7c2d8e98c9527ad613ec831c056bf6f5be061ddab0c54c0e3f089"
+    },
+    {
+      "from": "aura of protection",
+      "to": "Aura of Protection",
+      "definitionSha256": "17f0d37fe57ee71a5bd60740fc92876056ca463c578583de3ee8081f07543e2a"
+    },
+    {
+      "from": "aura of vitality",
+      "to": "Aura of Vitality",
+      "definitionSha256": "2e2c64d5b30e833c7f64eaf81872d83f0a0d5c3b66de3ac73e5246604a81e41d"
+    },
+    {
+      "from": "avalanche of one",
+      "to": "Primal Avalanche",
+      "definitionSha256": "32147f95ba2b54335b3a66a5c23b86876b31b3e423f0037045a319e47c8c55fe"
+    },
+    {
+      "from": "avatar of the totem",
+      "to": "Primal Icon",
+      "definitionSha256": "caf017739e618c6705ea6e01c186532ac5cf33734ea43b23c869e4364234c367"
+    },
+    {
+      "from": "awaken",
+      "to": "Sapient Spark",
+      "definitionSha256": "2cb98c7ff068d2be3379a0f72c5917dbd973f0e4429027969117813ed6047ea8"
+    },
+    {
+      "from": "banishment",
+      "to": "Banish",
+      "definitionSha256": "fc5468eb19ab712d50beaedd44ca7cc56a80c51bbcbc3405476e38bb2332e143"
+    },
+    {
+      "from": "barkskin",
+      "to": "Barkskin",
+      "definitionSha256": "76a523d87a8799b7316a024ef18121469c5e54524aac8052728bb404461cd6e8"
+    },
+    {
+      "from": "battlefield miracle",
+      "to": "Battlefield Miracle",
+      "definitionSha256": "a5ec06066f48c532aa6fa743b275d5e05fd501d58e5f59112d31c045197254ae"
+    },
+    {
+      "from": "beacon of honesty",
+      "to": "Paragon of Honesty",
+      "definitionSha256": "933cab6826668ed69bf96d1ab360cd5a4346043f13cf4755ccbca767e510b1ad"
+    },
+    {
+      "from": "beast spells",
+      "to": "Druid's Voice",
+      "definitionSha256": "39538f70eae43509e73732a4f702715580024599d5049fd8de6c7ab27c15c5c2"
+    },
+    {
+      "from": "bend luck",
+      "to": "Bend Luck",
+      "definitionSha256": "2b7dbc1c8049068e974c8d1ebe33f71544d680c931d4fafbcbb25b4ea7408cb0"
+    },
+    {
+      "from": "bestow curse",
+      "to": "Afflict Curse",
+      "definitionSha256": "92a9c8ad67afbf5808bffa443300bb6a4ec09a1902b1fb1ec35754c0b7f4e592"
+    },
+    {
+      "from": "bigger they are",
+      "to": "Tip the Scales",
+      "definitionSha256": "4bdb7a116409a8aad74162f6a69c8f6251b81d74f699114f1396be6d0b1ddd6a"
+    },
+    {
+      "from": "binding ward",
+      "to": "Ward of Protection",
+      "definitionSha256": "c3ef0bcc00ec389055f15ddb955236b2b2265b8213ec375a4094707e9489c781"
+    },
+    {
+      "from": "blade barrier",
+      "to": "Wall of Blades",
+      "definitionSha256": "3d8101764e5e9637cd563fe23d05161083285230ef6caa2704e9b967fc535b58"
+    },
+    {
+      "from": "blade of corruption",
+      "to": "Blade of Corruption",
+      "definitionSha256": "819c7b96e2c75af23de63203ac3d5e10a78f9ec082196d1867fa6b417db57709"
+    },
+    {
+      "from": "bleed",
+      "to": "Bleed",
+      "definitionSha256": "1a8e555a2f7048b64a01dbbef43f81810fb0992b0ed88b67d71d03c2ee1e342f"
+    },
+    {
+      "from": "bless",
+      "to": "Bless",
+      "definitionSha256": "8ee372f1847dbf9e0968999c7870f8aa1660031ba6375296fa5ce6313981ba78"
+    },
+    {
+      "from": "blight",
+      "to": "Blight",
+      "definitionSha256": "01ee416f357aab9b00b6a4298adbd25881a563f9b6cbce3b0153d3c5f7ef5755"
+    },
+    {
+      "from": "blindness",
+      "to": "Blind",
+      "definitionSha256": "d2193cb43a585b908d8ebed5d9544f1d841b9ebfd597bc1d5f80e3626deedec6"
+    },
+    {
+      "from": "blindsense",
+      "to": "Blindsense",
+      "definitionSha256": "d79e8173ca3e0ca510c680c9f4b953a4680675ab0d749b37a953beec32d46b68"
+    },
+    {
+      "from": "blink",
+      "to": "Blink",
+      "definitionSha256": "e297b05e0dfcfd3284763ffbef5f36fa3ecbd4e04500f1d3a604a3ddf54889c0"
+    },
+    {
+      "from": "blood armour",
+      "to": "Blood Armor",
+      "definitionSha256": "722c811e1d23e561c8c2606780cf4b22ec6f84820a4d3f3fc7a2ec885001b8e4"
+    },
+    {
+      "from": "blood price",
+      "to": "Blood Price",
+      "definitionSha256": "6306606dcdca56b7cdf36cf58e8d7d3c4158b39d28b34f702549fd36cf0aba4a"
+    },
+    {
+      "from": "blood to blood",
+      "to": "Blood for Blood",
+      "definitionSha256": "3c21b445d6206d9fad8dc6d796b497318505747e963755fe89a9a2263eaf080f"
+    },
+    {
+      "from": "blur",
+      "to": "Blur",
+      "definitionSha256": "d00d872cef066aa8a7917e5340f7b88f426d965a799a959a1fcd12045ddf39da"
+    },
+    {
+      "from": "body of magic",
+      "to": "Magical Sustenance",
+      "definitionSha256": "2b1c3eb40b5137cfccc70ca2633d596919158177596f55abe64f8c1ea15bc0df"
+    },
+    {
+      "from": "bonded companion",
+      "to": "Bonded Companion",
+      "definitionSha256": "bd72bede7da00b17ac44b1e5a9998cbadf7fde5193c6d6953b5afa6739a01a9b"
+    },
+    {
+      "from": "bone armor",
+      "to": "Bone Armor",
+      "definitionSha256": "4917e2c8ea2c6735bfc772a297af8091c11df6c8bb6b1bf7deff03ef52ecbb2c"
+    },
+    {
+      "from": "bone dragon",
+      "to": "Bone Dragon",
+      "definitionSha256": "d7e6687b1ecf866437b1e48f5fd481886c085988d54bf7fbbd4f20b3fe9d5ab0"
+    },
+    {
+      "from": "bone golem",
+      "to": "Bone Golem",
+      "definitionSha256": "c0b1b9e5050c4a09f096f1f789d7ef91e0b8b7a5c116c1df71a22a8b28b879e0"
+    },
+    {
+      "from": "bone shards",
+      "to": "Bone Shards",
+      "definitionSha256": "d40f7113c8035d87103338bd02ad4fcfb843013a7c9c1b42d0e4ae917efd9904"
+    },
+    {
+      "from": "bone structure",
+      "to": "Bone Structure",
+      "definitionSha256": "c2dc789cec6287e45f64cc71c10a1c5749be343a30e74cc81a3795e8c9a240da"
+    },
+    {
+      "from": "bone whisper",
+      "to": "Bone Whisper",
+      "definitionSha256": "4907386978905d8b1e79fcb0f9750b42215829202799f5ed76210cfc6fac486c"
+    },
+    {
+      "from": "booming blade",
+      "to": "Booming Blade",
+      "definitionSha256": "fa67c7c7ed00c6cc182f83bbe7a1fbc96c0c66aba76329b6e56a4e7ef4884748"
+    },
+    {
+      "from": "breathe water",
+      "to": "Breathe Water",
+      "definitionSha256": "83af65db63dabcca0423ab17eb9658a0ca7a194f4b5aa3e4e5a356a6d4a11cbd"
+    },
+    {
+      "from": "brutal critical",
+      "to": "Brutal Critical",
+      "definitionSha256": "e6a952c895e3415af38578484791e09cb50e012833539309e31b8f90586d2e96"
+    },
+    {
+      "from": "call lightning",
+      "to": "Call Lightning",
+      "definitionSha256": "1536628a47c60b18feb49333a2f294e6d0cd9c062ad7102d1259d78a15ac6fca"
+    },
+    {
+      "from": "call the bolt",
+      "to": "Lightning Strike",
+      "definitionSha256": "768814ce63dbbf9ebdd3df68b47ce2908843d29ff32419c6541715fc43014e82"
+    },
+    {
+      "from": "call the dawn",
+      "to": "Call the Dawn",
+      "definitionSha256": "c3cb105deff9e8d18b438f90a26650f81eeaba0b551a280c69be7329a65d360a"
+    },
+    {
+      "from": "camouflage",
+      "to": "Camouflage",
+      "definitionSha256": "256456093b5c37b673c16828a06cdec68b6ddb0790bde76e5410abeefa20d125"
+    },
+    {
+      "from": "catastrophic wound",
+      "to": "Catastrophic Wound",
+      "definitionSha256": "a371e060a2deef87a4452376aceb53a81d2a5e86b421bcfef951356cf82ccfe8"
+    },
+    {
+      "from": "cause fear",
+      "to": "Dread",
+      "definitionSha256": "0a85d7b67ecbd7925a0674cee3ac739fab3ad521566500c016128334e2cb9b1a"
+    },
+    {
+      "from": "chain lightning",
+      "to": "Chain Lightning",
+      "definitionSha256": "4bc2dc779ff8e0f4912eaced74cb87edef58a8d4b13fdf68464b64a808599ffe"
+    },
+    {
+      "from": "channel divinity: weight of account",
+      "to": "Weight of Account",
+      "definitionSha256": "95bec6483e7ca0d7f3a299c85e782c6fdbcabbb4b6f7f8f4d245b439155101b8"
+    },
+    {
+      "from": "chaos feeds you",
+      "to": "Chaos Siphon",
+      "definitionSha256": "712236d1a468a4845b79fe742eaf0f42fb62da1e86f06f3175ba6243ace7ab03"
+    },
+    {
+      "from": "charm monster",
+      "to": "Charm Monster",
+      "definitionSha256": "1878a5890aae3987e7ab8f5cb430adb7bbb303d19b79c8b29681106684f869a8"
+    },
+    {
+      "from": "charm person",
+      "to": "Charm Person",
+      "definitionSha256": "063de9a92449db2351ef4f483d058748cb90bc12329c221192f8d305c4842559"
+    },
+    {
+      "from": "charybdis",
+      "to": "Charybdis",
+      "definitionSha256": "d2beef460a86192cc9ae282b6bdcfd0743ff7b5eda5cb29d5cd5ec2002e401b7"
+    },
+    {
+      "from": "chill touch",
+      "to": "Chill Touch",
+      "definitionSha256": "31a3c65a4d09ba347574a7668a203896611a2ebc6b7fd21ce399d431f8ecf219"
+    },
+    {
+      "from": "chromatic orb",
+      "to": "Elemental Orb",
+      "definitionSha256": "cb72cd238ee1452813d55ee252fc9d073d7dee8793cb985ca407c7c590fe7edf"
+    },
+    {
+      "from": "cleanse",
+      "to": "Cleanse",
+      "definitionSha256": "6de4f8751ad9b3d4a1cc300b07ffd6b70836b632cea723bfeb50b8bc68b43e4f"
+    },
+    {
+      "from": "cleansing burn",
+      "to": "Cleansing Burn",
+      "definitionSha256": "229fbc1c3653a38e84ce2d4cdc366667e30fe4b9a67aac5eff333b0cc6645f82"
+    },
+    {
+      "from": "cold reading",
+      "to": "Cold Reading",
+      "definitionSha256": "a7e4c37492c6a5d8b876a612d325e70d9840bfe4ff017ee6d75aa394f15ad8e7"
+    },
+    {
+      "from": "combine undead",
+      "to": "Combine Undead",
+      "definitionSha256": "631bc678ec412de01c28821f8160e7797e886d2ad2c6de8308ff44e307c39456"
+    },
+    {
+      "from": "command",
+      "to": "Command",
+      "definitionSha256": "59a7f5640e6d80dcb7b92930710fc9dcbf19d580dfa9b3aa5096b633d67c59b5"
+    },
+    {
+      "from": "commune with dead",
+      "to": "Commune with Dead",
+      "definitionSha256": "affa99f57fe62c740ebdeda80406bca9f1cc085382a0344c3e68662beca02767"
+    },
+    {
+      "from": "companion of legend",
+      "to": "Legendary Companion",
+      "definitionSha256": "557fa24b3b12fb3fd830061011699a7ee8d4f75df4ed3bd87c83b4bef9a66ca8"
+    },
+    {
+      "from": "comprehend languages",
+      "to": "Comprehend Languages",
+      "definitionSha256": "298fa161f2dce8e4b54f10b16bb12aa21644709dd6853ccbf2ef80154e4be79f"
+    },
+    {
+      "from": "cone of cold",
+      "to": "Cone of Cold",
+      "definitionSha256": "8becb8d4f7886fc02931a3645e363896ff93a3443543a4e451dd05e61430a4a1"
+    },
+    {
+      "from": "confusion",
+      "to": "Confusion",
+      "definitionSha256": "75b26c41ba549fd6a666c3719ab139549b2522aeef379328ab30fbef529e6455"
+    },
+    {
+      "from": "conjure animals",
+      "to": "Summon Animals",
+      "definitionSha256": "b588f6f51fa98850895510bc9079a60a64f56abae1a1852376bc3883f5ec7fbe"
+    },
+    {
+      "from": "conjure barrage",
+      "to": "Barrage",
+      "definitionSha256": "0872cd54da61ce4ee24d717f8a41e43f92455ac1abe3bd84c86733eeb3d37053"
+    },
+    {
+      "from": "conscript undead",
+      "to": "Conscript Undead",
+      "definitionSha256": "743e9c52786801ee25426fd4b286f61f57a94b66c5a868190b7fb9b6ddd2337c"
+    },
+    {
+      "from": "consecrated arms",
+      "to": "Consecrated Arms",
+      "definitionSha256": "fb6cfb0a78fc666efec8cc8d4a80748e699dffdc65b7b387f7e13a44b27388a7"
+    },
+    {
+      "from": "consecrated ground",
+      "to": "Consecrate Ground",
+      "definitionSha256": "70ee1d7f91b609c3c979b0f98c502eaf88d327d67358885c84e2c45e53dffd98"
+    },
+    {
+      "from": "control water",
+      "to": "Control Water",
+      "definitionSha256": "353035f871a18757eb98da370370cd60726731c37de3c0380dd8a43dcbbda3f8"
+    },
+    {
+      "from": "controlled chaos",
+      "to": "Controlled Chaos",
+      "definitionSha256": "075059fbfce433ac639b9b1cb2e2f28b7abe996e240348a355f70a706bc1772f"
+    },
+    {
+      "from": "counter attack",
+      "to": "Counter Attack",
+      "definitionSha256": "218475d1ea58b3054be4f0472511a8fa9b5a452f6765a9cf0811118013faf909"
+    },
+    {
+      "from": "counterspell",
+      "to": "Counterspell",
+      "definitionSha256": "803b985651c0c2b4b2006c2a19be563343133a96ba25a8656d8b66c31a846810"
+    },
+    {
+      "from": "creeping death",
+      "to": "Creeping Death",
+      "definitionSha256": "fe29314c34405d43cd49d8bd62efb7b18f5011139943e086df7e04a263338360"
+    },
+    {
+      "from": "cull the herd",
+      "to": "Cull the Herd",
+      "definitionSha256": "66624f77b543744febcc680fef3eb8c2dcdc0a7dd5bee5d69abcd26e66d06f33"
+    },
+    {
+      "from": "cunning action",
+      "to": "Cunning Action",
+      "definitionSha256": "c1b181f47eff70d56afd5f7fd8e28926e547aa3dabe87b6befb40cd4e10d193f"
+    },
+    {
+      "from": "cure wounds",
+      "to": "Cure Wounds",
+      "definitionSha256": "dca20d17ff114ca2400d081aab7ccad98dbb1cabec94c335b75e06f712393f0a"
+    },
+    {
+      "from": "damn",
+      "to": "Damn",
+      "definitionSha256": "25f35977e3d19b07d39e84172616d10f11cd9c71c1f2c398485b3b82bfa40085"
+    },
+    {
+      "from": "dancing lights",
+      "to": "Dancing Lights",
+      "definitionSha256": "c64bf26438858a012b6560bfd68254c728151d61c0a5a04200c6682e4dd9a06f"
+    },
+    {
+      "from": "dark immunity",
+      "to": "Dark Immunity",
+      "definitionSha256": "f122d09d41a42536d655d4492ece1ea2536e9641abdf00b2c4a314c7ecfcfbdc"
+    },
+    {
+      "from": "darkness",
+      "to": "Darkness",
+      "definitionSha256": "afd873a02ef9b3f000cffb6406e0a85d0585e912daef0be2fa61a3548e63db9f"
+    },
+    {
+      "from": "darkvision",
+      "to": "Darkvision",
+      "definitionSha256": "496d05cf692857cb10691bba2ba404d408c30b414b1a8efec078103623da4897"
+    },
+    {
+      "from": "death sight",
+      "to": "Death Sight",
+      "definitionSha256": "3595c79725e4c745a5a43ef3ed2ef2197fcf3a73b6f99b4f96aeb567b87bf940"
+    },
+    {
+      "from": "death waits",
+      "to": "Defer Death",
+      "definitionSha256": "3a13a225923b03b03b3af7115bbfff4b713b5a2981eaa5d18ccece1b123cfeaf"
+    },
+    {
+      "from": "death walk",
+      "to": "Death Walk",
+      "definitionSha256": "cd3105fca012c8bb176d900bcd71263f985e55964b8ef39c871769aee0814f1c"
+    },
+    {
+      "from": "death ward",
+      "to": "Death Ward",
+      "definitionSha256": "e0faa006936e0f8d191bfb418e1132bc0e58be0f74ca525defec8feb70ab703b"
+    },
+    {
+      "from": "decide the battle",
+      "to": "Decide the Battle",
+      "definitionSha256": "c1f02029df9f9b4e877b252403a3b58f77afb9e5b238e9b00ae2422f1ec72451"
+    },
+    {
+      "from": "destroy undead",
+      "to": "Destroy Undead",
+      "definitionSha256": "0d938c33a61c8fa5d716c2ba19a8de2a47cfeeb6b47287b89043acc313e37fe3"
+    },
+    {
+      "from": "detect magic",
+      "to": "Detect Magic",
+      "definitionSha256": "d67a8329922ea81f09b268607bab65e476f9213a969b36c3eb18d9d6b2097e8d"
+    },
+    {
+      "from": "devil's trap",
+      "to": "Devil's Trap",
+      "definitionSha256": "0ef4236f6998e85683c2c8e7d680f1ffd9fece9f114dfc9ac270688e38d03e43"
+    },
+    {
+      "from": "diamond skin",
+      "to": "Diamond Skin",
+      "definitionSha256": "e38990d683ac6250e8b8a61ecf15dafaef10c5c8c20806e2231d0b8aa4832c25"
+    },
+    {
+      "from": "dire cremation",
+      "to": "Dire Cremation",
+      "definitionSha256": "75e9bc0d940cc38fa4a328090ffa410d726db2207266e9e8989e5c933649d691"
+    },
+    {
+      "from": "dire phylactery",
+      "to": "Dire Phylactery",
+      "definitionSha256": "395732ad7cfa9e9ca64f6e43b7757611f4fa69d51a013b032b703b1a39964723"
+    },
+    {
+      "from": "disciple of life",
+      "to": "Disciple of Life",
+      "definitionSha256": "4c859000b942638b40114fdf52c987087ea3f014b8887967c6cf6698babf3ab5"
+    },
+    {
+      "from": "disguise self",
+      "to": "Disguise Self",
+      "definitionSha256": "93f611b47341b03660a0a2420ce481b132137ef4c77e4d164c4bcbd9cd706ce6"
+    },
+    {
+      "from": "disintegrate",
+      "to": "Disintegrate",
+      "definitionSha256": "21c7c4bd81f8e05e5ac537517d33df9a42c48418cf61f067ec2a0c0e916b6bd2"
+    },
+    {
+      "from": "dispel magic",
+      "to": "Dispel Magic",
+      "definitionSha256": "6f42efcfb669abe3da0e83078d7ef0e9d1acbef0354606324649b23a746bbe5a"
+    },
+    {
+      "from": "divination",
+      "to": "Divination",
+      "definitionSha256": "69eb4e9d81fdedecafb8e9f77399b5b2403ad602c6d8675d1313585c0b662e18"
+    },
+    {
+      "from": "divine intervention",
+      "to": "Divine Intervention",
+      "definitionSha256": "9575876a17ec35d1769cf7cc0a12ccf11f0d3393f9a6ec45a48bb4921ccdf098"
+    },
+    {
+      "from": "divine sense",
+      "to": "Divine Sense",
+      "definitionSha256": "463f9668a40a43fa416edcf2caa1544422ded612c5d98c1c7dab7ddebc17b5ab"
+    },
+    {
+      "from": "divine smite",
+      "to": "Radiant Strike",
+      "definitionSha256": "c0a50086e6b5371fed8de0ec0e495e443bba6865b80a0d58d8a59ccc79d2c17d"
+    },
+    {
+      "from": "divine strike",
+      "to": "Divine Strike",
+      "definitionSha256": "3cfa1b21f719cfb3717bdf6d8e0947683fcda76669c156c312f02f60579014fe"
+    },
+    {
+      "from": "dominate beast",
+      "to": "Dominate Beast",
+      "definitionSha256": "45d16780040a37aa52a654a83c90440c633481bc57f328d1bf33652df5f70fb5"
+    },
+    {
+      "from": "door that opens",
+      "to": "Door That Opens",
+      "definitionSha256": "b4e413591019996c8b0397aefa55df45e4fa552de6a608842b2c88fd492b2470"
+    },
+    {
+      "from": "double attack",
+      "to": "Double Attack",
+      "definitionSha256": "48b81c45d2032ad44ede14403be53144d75ae448b3b1acec05efec7110f8efaf"
+    },
+    {
+      "from": "draconic breath",
+      "to": "Draconic Breath",
+      "definitionSha256": "458596691d630bb26e4294b2a99969da1ae057e65821538c4470207b4c1925a0"
+    },
+    {
+      "from": "drag them back",
+      "to": "Arrest",
+      "definitionSha256": "4312dad3d41f579d77e3caa567f5eef49c18ac25335d43224752a6d6ae8063a0"
+    },
+    {
+      "from": "drain life",
+      "to": "Drain Life",
+      "definitionSha256": "e81ba6b3a1358af79d15072f73f51002ffdfde6fac667879a873e73cc2cdb4e8"
+    },
+    {
+      "from": "druidcraft",
+      "to": "Druidcraft",
+      "definitionSha256": "aa8a001a50d7c56a5488c1e3027b9d73170b16f3f247d9b2b36119e2bafbec33"
+    },
+    {
+      "from": "druidic",
+      "to": "Druidic",
+      "definitionSha256": "79a7be6e819693d064d96649ad977604ebe047cffe4734bd1827dd070660d426"
+    },
+    {
+      "from": "dwarven toughness",
+      "to": "Dwarven Toughness",
+      "definitionSha256": "f2290fea360dfaeef7e968328b88a5fa3d207ef635b3355f2a555dd7cb6fd147"
+    },
+    {
+      "from": "earthquake",
+      "to": "Earthquake",
+      "definitionSha256": "170a76acc1de41b04ce6f5ec0b87a263173e93bb9f625b4c4f62da93358b09f6"
+    },
+    {
+      "from": "eject soul",
+      "to": "Eject Soul",
+      "definitionSha256": "efea52256e8b5a26cf221024303bd5590f1e7f4f75f2ae714b9293ca7f88e6d0"
+    },
+    {
+      "from": "eldritch tendrils",
+      "to": "Eldritch Tendrils",
+      "definitionSha256": "376c4dd476a655e345f3710730ee1e96a828d18899f4119e0ce4ee4798dd4200"
+    },
+    {
+      "from": "elemental resistance",
+      "to": "Elemental Resistance",
+      "definitionSha256": "503e2f802a31d73d274b39c0f295517ef443485295c125263dae974c4c2aaa36"
+    },
+    {
+      "from": "elemental vein",
+      "to": "Elemental Vein",
+      "definitionSha256": "c7698deb2e64406696afb9c148ac31c10bc6330c2a3d9e4dfa9556404143b097"
+    },
+    {
+      "from": "ensnaring strike",
+      "to": "Ensnaring Strike",
+      "definitionSha256": "076cee81b5808ac1d8a5e9566c36980788a5d4fc8b2307d51ccbfb8d66730ce4"
+    },
+    {
+      "from": "entangle",
+      "to": "Entangle",
+      "definitionSha256": "e149c0b854a9aebb66beed725fa58b87fb71b60a7b25ee78fdfa50b388bb3ea6"
+    },
+    {
+      "from": "entropy incarnate",
+      "to": "Entropy Incarnate",
+      "definitionSha256": "b4afff3ff96834d286f137fefd9a53f9225b8fca892f8996e8288645613e2603"
+    },
+    {
+      "from": "escape artist",
+      "to": "Escape Artist",
+      "definitionSha256": "ad02f08730b7fd24556a8609f4c131779a523c52bdf7e46b618f6bc80e9049f4"
+    },
+    {
+      "from": "evasion",
+      "to": "Evasion",
+      "definitionSha256": "26fc3c9dcb00a36e4062e42ae610151b7707a08893814e5d4bc2829df6f4ba6a"
+    },
+    {
+      "from": "expertise",
+      "to": "Expertise",
+      "definitionSha256": "c5ec4aa88d03323135113e11c31bd67556bc94abe19d2857adfef24bf163db1f"
+    },
+    {
+      "from": "expertise — deception",
+      "to": "Expertise — Deception",
+      "definitionSha256": "1c3feb459eee737006e60fc8ef673b1b879bfd639843606a2bafed920451fad5"
+    },
+    {
+      "from": "expertise — stealth",
+      "to": "Expertise — Stealth",
+      "definitionSha256": "15e4cefd716d1bda668892f3e524c54253d85ec7123b50e9c3ab891821c91a3a"
+    },
+    {
+      "from": "exploding corpse",
+      "to": "Exploding Corpse",
+      "definitionSha256": "3951643b184e6502431a3934e9b276a335a1b93169763650133dc494f1e9a919"
+    },
+    {
+      "from": "extra attack",
+      "to": "Extra Attack",
+      "definitionSha256": "d0196b1df2091895846d39ade2664639cd09e5e80ebec4b5ac62f22c060fc505"
+    },
+    {
+      "from": "eye of the storm",
+      "to": "Eye of the Storm",
+      "definitionSha256": "8ccdbae199b5eec9c65f63c841eeb3348f0fc1adf4a93a3ad2fbefb090d8322c"
+    },
+    {
+      "from": "eyes of the dark",
+      "to": "Dark Favor",
+      "definitionSha256": "04e0adc9afbe8a6a912075453626e3963b0fb7ae3a97b02f6b9554ff7b8a1a59"
+    },
+    {
+      "from": "faerie fire",
+      "to": "Faerie Fire",
+      "definitionSha256": "eafacc48b18ea9e4180424c049bf8d5b4aab33875f713f923c623ecc82f3e3ef"
+    },
+    {
+      "from": "false life",
+      "to": "Fleeting Vitality",
+      "definitionSha256": "62111b0dd620f7a6d4abb630d31872ecc91ee864fa401dbef77b390f7b19cff1"
+    },
+    {
+      "from": "fang and focus",
+      "to": "Fang and Focus",
+      "definitionSha256": "ceba3adc2678d4f38bf5d34bfa3c2190a13bb49ae96841bbc7c9fd414bfca888"
+    },
+    {
+      "from": "favored quarry",
+      "to": "Favored Quarry",
+      "definitionSha256": "d25d6566328f3462fadba89603c59e30ca2ac2ab7e3aadf84114cd1aeee58e99"
+    },
+    {
+      "from": "fear",
+      "to": "Fear",
+      "definitionSha256": "f384f7988f50ae7e12708f37ff7c2bf8b8115cf77db708adb00999348b0c1f9b"
+    },
+    {
+      "from": "feather fall",
+      "to": "Feather Fall",
+      "definitionSha256": "5717820c5f421cbafbc7d98a9dc887258aed847046dcf7a06e36ba798e9c56b3"
+    },
+    {
+      "from": "feral instinct",
+      "to": "Feral Instinct",
+      "definitionSha256": "1b8a7ca7fee39311ce8edb51c70b37a708cf0de39033b0e5188dc5f8c778dcb3"
+    },
+    {
+      "from": "fey ancestry",
+      "to": "Fey Ancestry",
+      "definitionSha256": "3b4c6014a31e5618846c9d77757a1e601dc47b10da1d0c0f6657bb54678fda5c"
+    },
+    {
+      "from": "field intelligence",
+      "to": "Field Intelligence",
+      "definitionSha256": "ac676b7f1f3d648e384074cad2db7ca3476b47e1545ebfc098724b083b78c3f5"
+    },
+    {
+      "from": "field of entropy",
+      "to": "Field of Entropy",
+      "definitionSha256": "d595d867542627565d5567de77c73bbda476cb3fb33c582d7b720125e012047f"
+    },
+    {
+      "from": "fighting style",
+      "to": "Fighting Style",
+      "definitionSha256": "74f2864bd826afdeb0d15500eb9a579772c313c6bce6bf2470fd1b80d55ee0cd"
+    },
+    {
+      "from": "find steed",
+      "to": "Find Steed",
+      "definitionSha256": "d8fe2bf54bb37d67eda75fc936e7494a0913c08ff085335af83e336351a6b437"
+    },
+    {
+      "from": "fire bolt",
+      "to": "Fire Bolt",
+      "definitionSha256": "972a4f89f64ef96ad1ae3b3b164fa4b16b0a474353b98a63a66ff0d0f00bcfbd"
+    },
+    {
+      "from": "fire lance",
+      "to": "Fire Lance",
+      "definitionSha256": "9e3acbc4b604612d2becb2c905322c3bf28aec9adf9e4ac4fe9b8c0adc74e4f7"
+    },
+    {
+      "from": "fire resistance",
+      "to": "Fire Resistance",
+      "definitionSha256": "c9c1d046c467fe937b576ae8f7eac3a4d3449f76e6ea9e252a001a1bcc4cc555"
+    },
+    {
+      "from": "fireball",
+      "to": "Fireball",
+      "definitionSha256": "d434f2d52516938fe641d158f22ef791b5f0f480fc967fdba258ad23fb501ca2"
+    },
+    {
+      "from": "firestorm shepherd",
+      "to": "Firestorm Shepherd",
+      "definitionSha256": "dbb691c14e2c3ca7aeb65f38c21fe42689834d84366252e5c61fad30f22bb678"
+    },
+    {
+      "from": "flame strike",
+      "to": "Flame Strike",
+      "definitionSha256": "9f5853768472e348576307455d10a20fcae9104adfec0cf99d928f10e1f73ca3"
+    },
+    {
+      "from": "flamestep",
+      "to": "Flamestep",
+      "definitionSha256": "c8665857751491a0bda2601e947e7d66d6b2a6e21b85613d649e23c89d2f0a02"
+    },
+    {
+      "from": "flash",
+      "to": "Flash",
+      "definitionSha256": "100dc6fd2e7c53cc7b27cfb221185111fa1fb7ef4722289d329b43bd3175f21d"
+    },
+    {
+      "from": "flash flood",
+      "to": "Flash Flood",
+      "definitionSha256": "f9ae9f7c533728dd115f75c31aa420cee358d0fbad931bde642c52bbd028350f"
+    },
+    {
+      "from": "flesh golem",
+      "to": "Flesh Golem",
+      "definitionSha256": "c74d0a1a6e348bc3aa2552e7253502cceae10145db29e0b608c225b4ec53cc66"
+    },
+    {
+      "from": "fletch",
+      "to": "Fletch",
+      "definitionSha256": "980e1e211901bb4483e76ee2ae6b6771159750a4299f8f06313cc8b8be782e92"
+    },
+    {
+      "from": "fly",
+      "to": "Fly",
+      "definitionSha256": "98a2af880d4777fe1d7c250ae6b5b2a874c46cdc22ffb44f8c879528fc83da62"
+    },
+    {
+      "from": "fog bank",
+      "to": "Fog Bank",
+      "definitionSha256": "6f13c17b1e6aadb1b6d04c5f9b32f0bfef0332ed234dd138e94572885eec1137"
+    },
+    {
+      "from": "font of magic",
+      "to": "Font of Magic",
+      "definitionSha256": "59dbfa7974fc28e792397a7235673187fd7ad24e280ade2be31d881887b1dad3"
+    },
+    {
+      "from": "freedom of movement",
+      "to": "Freedom of Movement",
+      "definitionSha256": "31abeca8fb2d84f75d18a81b278e1ce968c1d294167b3f1683d9f87ca16562a5"
+    },
+    {
+      "from": "furious leap",
+      "to": "Furious Leap",
+      "definitionSha256": "4c7f8efd633f4ab1f9f5ead90d09db62ea711235dad7874a697c257350c22d07"
+    },
+    {
+      "from": "gathering rage",
+      "to": "Gathering Rage",
+      "definitionSha256": "e3d66a2fb963d8bce018fa77579272f05991f162e91ae18f49c3b241b79fd888"
+    },
+    {
+      "from": "gemstone warriors",
+      "to": "Gemstone Warriors",
+      "definitionSha256": "a7014779bae716ebf9c07e8bedd5322c4f05bc615489a25e97d0736f59f2019f"
+    },
+    {
+      "from": "giant insect",
+      "to": "Giant Insect",
+      "definitionSha256": "02c1b2fa46f23cb0d1bb9d57c0ca6464703b55909fa778e1ca5f65270df1c60c"
+    },
+    {
+      "from": "globe of invulnerability",
+      "to": "Globe of Invulnerability",
+      "definitionSha256": "a872dea5749a9f38a29f2805e5f682c3e4acdbb5487291e0e593b6e2aed64f81"
+    },
+    {
+      "from": "gnomish cunning",
+      "to": "Gnomish Cunning",
+      "definitionSha256": "7009b35e8b68ab11e6d295cadedaaedea7f86076495cc873b5df8212bf3a2227"
+    },
+    {
+      "from": "grave touch",
+      "to": "Grave Touch",
+      "definitionSha256": "e06c4fdfde0714efd7c58c0f1dcbf11f67dd8d62ef0ba16eba00f511767cc9a8"
+    },
+    {
+      "from": "grease",
+      "to": "Grease",
+      "definitionSha256": "0124d5db53fc047f39855647538cc175770c671ee327ae47ceaba323a55529ba"
+    },
+    {
+      "from": "greater invisibility",
+      "to": "Greater Invisibility",
+      "definitionSha256": "2b73c85d3c4665b4a71c8dc29ff7872f5939468f69e1058f8a4e32301063c174"
+    },
+    {
+      "from": "greater restoration",
+      "to": "Greater Restoration",
+      "definitionSha256": "0216a1e4251be18226c9657045719373be5a0fd2e561f7f8e8efdd9bcaadd95e"
+    },
+    {
+      "from": "greater vessels",
+      "to": "Greater Vessels",
+      "definitionSha256": "4b7137cb087b1b07d83c3046ce97fd3c19e09cf134cf8db8cf61b98d7bb87602"
+    },
+    {
+      "from": "grim harvest",
+      "to": "Grim Harvest",
+      "definitionSha256": "edd0b9ef3bc1b931493b67fce7f691f66fa43387975f55c0cfb118a31cd75c1c"
+    },
+    {
+      "from": "grim totem",
+      "to": "Grim Totem",
+      "definitionSha256": "4ab25c46abd17af543f3973da8837f2b26597647e8710137d35a755a600c81a0"
+    },
+    {
+      "from": "group telepathy",
+      "to": "Group Telepathy",
+      "definitionSha256": "33cfaeacd8da895c6f553ed8412fc7797b07a4295f225209d903dea19286c67a"
+    },
+    {
+      "from": "guardian of faith",
+      "to": "Sentinel",
+      "definitionSha256": "10d134f3f3bb2faf3f3a62cdc82944ed582fed4a0be0554da24943ae13ebfe11"
+    },
+    {
+      "from": "guardian of nature",
+      "to": "Commune with Nature",
+      "definitionSha256": "7e7b5f54861be48e12e56b21dbe9935806afacfc745013b5ca4243d727efe9f9"
+    },
+    {
+      "from": "guidance",
+      "to": "Guidance",
+      "definitionSha256": "2683f9eb28b11aceae9c5b38b6f86577a49ec04dea76c2d827f4ae1eddf3106b"
+    },
+    {
+      "from": "guided strike",
+      "to": "Guided Strike",
+      "definitionSha256": "4f90ff51fc946a781b898f0a083ec5ee32739200bbcf5cdbb7922f67e62ba94a"
+    },
+    {
+      "from": "guiding bolt",
+      "to": "Guiding Bolt",
+      "definitionSha256": "d84082d53fbc5ed1addb748374036e7e1d3b41963ef2aba7a545c08b32e19638"
+    },
+    {
+      "from": "hail of thorns",
+      "to": "Hail of Thorns",
+      "definitionSha256": "6185e921850dae96e57c1ee42b0b7bb37d430bcbd541c3c8b743ec9c64977e97"
+    },
+    {
+      "from": "half made of night",
+      "to": "One With the Night Sky",
+      "definitionSha256": "9d7f4b862a7f5b61f8b31008cc14ac1beea3a3cfc9f585cad2ea8a0ec53cc069"
+    },
+    {
+      "from": "half-fey charm",
+      "to": "Half-Fey Charm",
+      "definitionSha256": "126eb0eb603ff42aa905d09d064b049501a109efed3fbfe1a03992c537a191c3"
+    },
+    {
+      "from": "haunting",
+      "to": "Spectral Binding",
+      "definitionSha256": "ff1d174fc04dc488038e35e2373d42038bd32a0a20a487bea202bc227fa395cd"
+    },
+    {
+      "from": "heal",
+      "to": "Heal",
+      "definitionSha256": "e79edda5c828cc92ca756308cd583b6e447a07ad41ad3c18df7e93890c00c623"
+    },
+    {
+      "from": "healing word",
+      "to": "Healing Word",
+      "definitionSha256": "39cb90520d6f264e4f4b88a9bbd391b84174672f255ee9941c83a7232ac6d158"
+    },
+    {
+      "from": "hellish rebuke",
+      "to": "Hellish Rebuke",
+      "definitionSha256": "7c52b5581f2d3dc6c03fd97982a071f841f8704a575d30279d962929d5e9d6b2"
+    },
+    {
+      "from": "hemorrhage",
+      "to": "Hemorrhage",
+      "definitionSha256": "c5a4de2a758c700ef03183530fd58b74c44707068e3c89e63a4e72ab8ed11535"
+    },
+    {
+      "from": "heroes' feast",
+      "to": "Heroes' Feast",
+      "definitionSha256": "5e3c7d66d214c79ddd5d9533885c5abedc142734f46f7a237a791abd82caef1b"
+    },
+    {
+      "from": "hide from undead",
+      "to": "Hide from Undead",
+      "definitionSha256": "09ba8fb911a7432e54768c8789347c03186027935f372092b9fb77ca97ae365f"
+    },
+    {
+      "from": "hide in plain sight",
+      "to": "Hide in Plain Sight",
+      "definitionSha256": "472613736401b9b251742e742fb8b00dcba90db71618d12b63f6b59cf09db34c"
+    },
+    {
+      "from": "hold monster",
+      "to": "Hold Monster",
+      "definitionSha256": "d0c72274a073190388ff8622f072f5911150fb3c24841cf743416d6921e03de7"
+    },
+    {
+      "from": "hold person",
+      "to": "Hold Person",
+      "definitionSha256": "456c53a7d56d45bde8163d42f59560ab771b3bf68bdf18ccbc530734d9930a38"
+    },
+    {
+      "from": "hold undead",
+      "to": "Hold Undead",
+      "definitionSha256": "613bfaab38373239f499c9fcb293ab701c58d572552fb22063be1507161482ee"
+    },
+    {
+      "from": "hole",
+      "to": "Hole",
+      "definitionSha256": "07cf3acb90a2b888861ffc9be60930732e2ddd2df72bd9dba8d5dd6b29191d56"
+    },
+    {
+      "from": "holy ground",
+      "to": "Holy Ground",
+      "definitionSha256": "0f9a1f9dfc00290d4bed2b8973ba812eeef46180b44a9525a52b1a83b9dc59c3"
+    },
+    {
+      "from": "horrid wilting",
+      "to": "Horrid Wilting",
+      "definitionSha256": "5932348acf25d00ecc610f993ded14c02032413f31415deb763caf1600d51112"
+    },
+    {
+      "from": "hound of ill omen",
+      "to": "Hound of Ill Omen",
+      "definitionSha256": "decf4f85df183ccae7ff94a3d94bcf9bebfd1d4b6a613ba6e3f8f226a6cc6acc"
+    },
+    {
+      "from": "hunter's mark",
+      "to": "Hunter's Mark",
+      "definitionSha256": "e43cf3df96b2703827e017dc5527f81fcd5fe683d88b8a6544d205df93f8d458"
+    },
+    {
+      "from": "ice storm",
+      "to": "Ice Storm",
+      "definitionSha256": "b98d634b974eaaa6d252d10f3ba5cad746a00ef8e7df229d26e90964116c2479"
+    },
+    {
+      "from": "identify",
+      "to": "Identify",
+      "definitionSha256": "3c05a8212df5a4d51c900ef0d22c00a59f7912c11e6e20e0d98c3b769fa9cba4"
+    },
+    {
+      "from": "identify plants and animals",
+      "to": "Identify Plants and Animals",
+      "definitionSha256": "64445c9b349a0353e05e8cb4b4d60f00f30c5870256021df9918d01cd452a453"
+    },
+    {
+      "from": "implant memory",
+      "to": "Implant Memory",
+      "definitionSha256": "38f047a32fbdd275302f34ba1735662a1f4609bbdb4d23827bff9b5c747dffd9"
+    },
+    {
+      "from": "indomitable",
+      "to": "Indomitable",
+      "definitionSha256": "89791f45aefd7726ae0182d73f59fddca7f612ce876d1b35d66e4028e44b8cbe"
+    },
+    {
+      "from": "inflict wounds",
+      "to": "Inflict Wounds",
+      "definitionSha256": "10ed6e18323ae9edfbf785a22664ace79842077bd84b1b61ee844985a0c7f2c4"
+    },
+    {
+      "from": "insect plague",
+      "to": "Insect Plague",
+      "definitionSha256": "50d77cdf5897de4c5fbded92dbac17cd69cc727742bec977b88bc420b799bb7e"
+    },
+    {
+      "from": "intimidating presence",
+      "to": "Intimidating Presence",
+      "definitionSha256": "039b1eb734dc37c7458eef06f7a40e976691f2a5d0b90cb65d9b25011a3d0974"
+    },
+    {
+      "from": "invisibility",
+      "to": "Invisibility",
+      "definitionSha256": "682503643e88840c8a7499841ab8e4d69b53347e4f14c796dcacc72638ac0c11"
+    },
+    {
+      "from": "iron constitution",
+      "to": "Iron Constitution",
+      "definitionSha256": "5609a3e8fa6f7635f763099861f23628fa620600dd7626d7b48983bcd9b68fce"
+    },
+    {
+      "from": "it was their idea",
+      "to": "Suggestion",
+      "definitionSha256": "32cbbe531aec89bc3c34260b73e989c0e2da16f58abede685b3493c0990e9400"
+    },
+    {
+      "from": "judge of the dead",
+      "to": "Judge of the Dead",
+      "definitionSha256": "97b2df39f7431f7caa8778a8610b8800f5439c35d569168e75483af26fefa1c2"
+    },
+    {
+      "from": "judgment's eye",
+      "to": "Judgment's Eye",
+      "definitionSha256": "1871b95906e85eeb4a08b6a33d7e8e2fe30bbe981eb0ba5b6c8d6530f8be86bd"
+    },
+    {
+      "from": "keen senses",
+      "to": "Keen Senses",
+      "definitionSha256": "0ccd5ab13a574f9da9b629a447fc08958aab06ea83dd8306c748ef3bbec151de"
+    },
+    {
+      "from": "kindled heart",
+      "to": "Kindled Heart",
+      "definitionSha256": "d5885ede13b04765afa6b5b4897102a22f8f1a0b0d833a6256a8052a8919409a"
+    },
+    {
+      "from": "kinship of the wild",
+      "to": "Kinship of the Wild",
+      "definitionSha256": "d9a16b5d889d749cc19f324fe2b44b53f666f83f439e95d59e00cded91e60d06"
+    },
+    {
+      "from": "knock",
+      "to": "Knock",
+      "definitionSha256": "c04655d33de771d5381d89d2c3a24e85bb2168b0a5d1b3c6883e4eb49eee5cf5"
+    },
+    {
+      "from": "land's stride",
+      "to": "Land's Stride",
+      "definitionSha256": "7e745928f4085395a8b01cce8bca5cbdf028bb3a7dacb81541937cd4ce6cd450"
+    },
+    {
+      "from": "last one standing",
+      "to": "Last One Standing",
+      "definitionSha256": "0795b91fc8ebe23ca057b1204c4631920f83290e0a9500d512ad47814820369d"
+    },
+    {
+      "from": "lay on hands",
+      "to": "Lay on Hands",
+      "definitionSha256": "7b66d8d79d41243d16485fa0e352ad3d8d4f0339dc875d704db11a5f388a93b2"
+    },
+    {
+      "from": "layout memory",
+      "to": "Layout Memory",
+      "definitionSha256": "3fd8bf422aac70732a4bd316ac435765ef2a9940adbbcb9cd45905a7ae733edc"
+    },
+    {
+      "from": "leap",
+      "to": "Leap",
+      "definitionSha256": "8ee932d4d8367f06f71b8ea0817b6af80543ebf08e5a3898653779ed3287fe98"
+    },
+    {
+      "from": "leave no witness",
+      "to": "Leave No Witness",
+      "definitionSha256": "a6904c7617f299ec204ac30e6f1dfdaaa7cf91ee055e6b7a92a453d87f8de81c"
+    },
+    {
+      "from": "ledger memory",
+      "to": "Ledger Memory",
+      "definitionSha256": "c2b573d3e77cdf3a4573905a0da59462bb75234ce9196ae5f432d55206ca360f"
+    },
+    {
+      "from": "legerdemain",
+      "to": "Legerdemain",
+      "definitionSha256": "a3fbe636c069dcd87a17fee5a73cf295df227079f7804dbaaa4f1f26a16fa060"
+    },
+    {
+      "from": "lesser restoration",
+      "to": "Lesser Restoration",
+      "definitionSha256": "961227b047fd0884ba386ed1c8bd8596ac2e1339d88ccd98a360bbfc73960cbf"
+    },
+    {
+      "from": "lethe's kiss",
+      "to": "Lethe's Kiss",
+      "definitionSha256": "a94ec0043122b6c204df7ed5d1ce8c60c4393166d1ca6b0f6ad72d3cd197dba2"
+    },
+    {
+      "from": "light",
+      "to": "Light",
+      "definitionSha256": "e50d0668a84e7c3ae478401b4e13caa8302d79b4cccf35d9ede7000c2a33311d"
+    },
+    {
+      "from": "light undimmed",
+      "to": "Light Undimmed",
+      "definitionSha256": "6a5b1ced4d8be521c9e1dd09e491d602536b0c029b087bf3374f06179f52014b"
+    },
+    {
+      "from": "lightning arrow",
+      "to": "Lightning Arrow",
+      "definitionSha256": "bbc1b15c97293bd2e62714ea8031a047e5840e38ec305694bdd7dbee5d0264e4"
+    },
+    {
+      "from": "locate creature",
+      "to": "Locate Creature",
+      "definitionSha256": "352afc39363a2548d34afe9f79304664cee27313f518248bee39a13b88f008c9"
+    },
+    {
+      "from": "lockpick",
+      "to": "Lockpick",
+      "definitionSha256": "68d583c7be691f8ec6cf4033e66f030ff256c12bc6e5c89ba152d1fd6e5b7e5c"
+    },
+    {
+      "from": "mage hand",
+      "to": "Mage Hand",
+      "definitionSha256": "70d784893a10034f95dafc4897ff6a4c799528e1127f05f566769f68150e98aa"
+    },
+    {
+      "from": "magic missile",
+      "to": "Magic Missile",
+      "definitionSha256": "cb078ce1cb754b8268f8ad7cb51b9225d4bea365d3ab3bf23fc4d4b6c6d23700"
+    },
+    {
+      "from": "magic weapon",
+      "to": "Magic Weapon",
+      "definitionSha256": "6823668668b55b57a23a87ac43228bb1b57ca4ffd21d943f90979243f193d4f3"
+    },
+    {
+      "from": "mana burn",
+      "to": "Mana Burn",
+      "definitionSha256": "8d5d7bc5522c97f34675b53aad796d0f48197b8660025ba77a0e966ee381f845"
+    },
+    {
+      "from": "mana leech",
+      "to": "Mana Leech",
+      "definitionSha256": "4ee7aeadeaf8ddefa59f70748c59340baad74c733e08ef0b602f8e162fdf70d5"
+    },
+    {
+      "from": "mask of the wild",
+      "to": "Mask of the Wild",
+      "definitionSha256": "6a88e0170325210bd3f18693c2e0d9054cfb58d4fb6e6047a666695c24b738a1"
+    },
+    {
+      "from": "mass charm",
+      "to": "Mass Charm",
+      "definitionSha256": "d950a2e8f2eb474d66628fd9b6d5a486436397cf26b6829e27861b918e72257a"
+    },
+    {
+      "from": "mass cure wounds",
+      "to": "Mass Cure Wounds",
+      "definitionSha256": "f69a179c779babfcab8255fc070b74bf1886a6c0862f46ef2da14a42f0b7636f"
+    },
+    {
+      "from": "master poisoner",
+      "to": "Master Poisoner",
+      "definitionSha256": "ca3ae4d0c560c76fd7de553da2948e13cf7a4d02b3b700630472d8b7ae93cf59"
+    },
+    {
+      "from": "message",
+      "to": "Message",
+      "definitionSha256": "a8ec48fdc113da41a0ad04ce70f4749989f4d557a34daf7fed78f43ddf0b2bdb"
+    },
+    {
+      "from": "metamagic",
+      "to": "Metamagic",
+      "definitionSha256": "78210cebd7599bdd00fc27fd2295ee089bea79694fc9bd8bba86ab9371e2b739"
+    },
+    {
+      "from": "miasma",
+      "to": "Miasma",
+      "definitionSha256": "5b89c891483fb63eea007b494fd9c8723df01874983e9b6fb97d8345b960f370"
+    },
+    {
+      "from": "minor illusion",
+      "to": "Minor Illusion",
+      "definitionSha256": "9a606dfaeafc0fd4a0cd4f36acf9f6f3b1b504ff89805fe3b869ff32df967c5e"
+    },
+    {
+      "from": "minor miracle",
+      "to": "Minor Miracle",
+      "definitionSha256": "27b031f0c485242bb774718dc37abd9b82c7f9c9bc3be09af2b9192e8efc6923"
+    },
+    {
+      "from": "mirror image",
+      "to": "Mirror Image",
+      "definitionSha256": "dde3a76e5c389ac850300acb6257f67840539baa348b582274ab7b6a52913553"
+    },
+    {
+      "from": "misty step",
+      "to": "Misty Step",
+      "definitionSha256": "88c867a883e80af19c84d1d616c2d993d8b1d0cf2474470dc542d0994b1dd04c"
+    },
+    {
+      "from": "moonbeam",
+      "to": "Moonbeam",
+      "definitionSha256": "e19ca3e3384916d6f154c23d461f9fee5d31cd5004fbce5fcfc3d5c85ae309ce"
+    },
+    {
+      "from": "more than mortal",
+      "to": "More Than Mortal",
+      "definitionSha256": "e82c0b7d9b82ce66d971d7ee142f8527e1e349da57448ad465672d6fda75e345"
+    },
+    {
+      "from": "necrotic nova",
+      "to": "Necrotic Nova",
+      "definitionSha256": "2d17702897dd721c03526064180e585959d057be9c1c14dd765bbdfba402eb76"
+    },
+    {
+      "from": "necrotic resilience",
+      "to": "Necrotic Resilience",
+      "definitionSha256": "0c580889640d948596158e861f806f0b47320c35d8fe0c4a986a9c1f4ca7adbf"
+    },
+    {
+      "from": "necrotic resistance",
+      "to": "Necrotic Resistance",
+      "definitionSha256": "dc50900ed793fe6449c1ccd4f35613f3275265f1920cd3dd4e6f81e87df148ee"
+    },
+    {
+      "from": "never caught",
+      "to": "Never Caught",
+      "definitionSha256": "80d460034d142cffc57a9507a2d60e7e8550f421b6aa5fbd3652393a6bae76ca"
+    },
+    {
+      "from": "no light needed",
+      "to": "No Light Needed",
+      "definitionSha256": "5f16ae4914efef4f3cff869f3b0bd67875ebe251e1f316f7dec4f06225c57619"
+    },
+    {
+      "from": "no lock holds",
+      "to": "No Lock Holds",
+      "definitionSha256": "2b2b7e745cf4814274dcf6a06dfc3fc7003af608b63d11c00fca2ae9d1368765"
+    },
+    {
+      "from": "no rest for the wicked",
+      "to": "No Rest for the Wicked",
+      "definitionSha256": "331141a4b11e0d9f8b7aa4ff86d862802f4750e74597c61df3d48c34e520e42c"
+    },
+    {
+      "from": "nowhere soft to land",
+      "to": "Reap the Whirlwind",
+      "definitionSha256": "24eff939aa26a59b277b3e68e93e2dc333bcccea9d9f9ec4f74b1c653291f070"
+    },
+    {
+      "from": "oathlight",
+      "to": "Oathlight",
+      "definitionSha256": "645a0aac0d4270683191af62524bbef4b693f4f0d32d78f2606b33b96f723571"
+    },
+    {
+      "from": "old blood",
+      "to": "Old Blood",
+      "definitionSha256": "e08b8c42316df4c021d2d9bd6c96db95d80af44bb3c0ad977fd9a7483afdb21f"
+    },
+    {
+      "from": "one against many",
+      "to": "One Against Many",
+      "definitionSha256": "acdfd23c9cd97cd2865613f4b9c8dcf1f3bab0035cc77826cdee738a525a20bb"
+    },
+    {
+      "from": "one with the wild",
+      "to": "One with the Wild",
+      "definitionSha256": "22cf02e8bd7ae62cb87e316c4f9ddaf98658d2f7d4c67bff17b7e6931ae96c48"
+    },
+    {
+      "from": "operative's read",
+      "to": "Operative's Read",
+      "definitionSha256": "7e843fa7290c5e791a5d19b946410ed94944367106225d258d4a92afa13c41bb"
+    },
+    {
+      "from": "oubliate",
+      "to": "Oubliate",
+      "definitionSha256": "07b4ed53337ab1fcc5a1da1cd572d8b4a36129585a275a24f0ad938a4fdfd532"
+    },
+    {
+      "from": "overchannel",
+      "to": "Overchannel",
+      "definitionSha256": "b155e345c7a85753df7070772e2d6fd732cd727149d0535ce8722d29486edc88"
+    },
+    {
+      "from": "pack of two",
+      "to": "Pack of Two",
+      "definitionSha256": "b69da19d9e40ec5765a8ef6153dfdc2f932de8b52a22230aac2054310a15c9ee"
+    },
+    {
+      "from": "pass without trace",
+      "to": "Pass Without Trace",
+      "definitionSha256": "7fb818093586297126bb97f65964d288d92496222330d3b0ee757556d061f807"
+    },
+    {
+      "from": "path of the lich",
+      "to": "Path of the Lich",
+      "definitionSha256": "f4e52ea67d25961b997f09f05b80e3a6224f9d0e85753ac6322f48c487df27ec"
+    },
+    {
+      "from": "peak of the body",
+      "to": "Feat of Strength",
+      "definitionSha256": "f67b0f0be924a99a9f37ab6ecce3b977a261071d6d8eef745b63e84c81be8027"
+    },
+    {
+      "from": "penance",
+      "to": "Penance",
+      "definitionSha256": "a6f7c2e37dfedbdd9ca5b66058c74971335908fed8e67b36284d4074bca70a09"
+    },
+    {
+      "from": "phantasmal force",
+      "to": "Phantasmal Force",
+      "definitionSha256": "c5becae8ef3d54366fc1a888edae6b6b13cec91f3e6fbb84a60d8f2c2cbc3806"
+    },
+    {
+      "from": "plant growth",
+      "to": "Plant Growth",
+      "definitionSha256": "75030e971f3d43701aff6523f2dce63334b3b7286426c8a681c7b9a41ebdc304"
+    },
+    {
+      "from": "poison immunity",
+      "to": "Poison Immunity",
+      "definitionSha256": "9f6959d51f0c56f0142f17ac8b577eeee860d6f40beac7c0fb33a7404dc90d06"
+    },
+    {
+      "from": "poison resistance",
+      "to": "Poison Resistance",
+      "definitionSha256": "81aa7d093fcc3c60fa6f892bae148fb03e8801e53c6b18157b2d5c5f4dac71e0"
+    },
+    {
+      "from": "polymorph",
+      "to": "Polymorph",
+      "definitionSha256": "c72b9a51cbfa25c97f01f42a44f9336cbf4b8349726933272e71337ceb65f2c4"
+    },
+    {
+      "from": "possess thrall",
+      "to": "Possess Thrall",
+      "definitionSha256": "1c9e348ff4721fdbacd3be19b37b14d89260c2cbedcad36219d93eda99fa2feb"
+    },
+    {
+      "from": "power strike",
+      "to": "Powerful Strike",
+      "definitionSha256": "98e3672b3c3287ac3085cbdb5a9c59d564b070366f33ef9b4c79356ec8c9b574"
+    },
+    {
+      "from": "presence of the wyrm",
+      "to": "Presence of the Wyrm",
+      "definitionSha256": "3462687694fe9c7ba461a02128a62cb0c1c70935932ef01ab3b5e91d74dce5de"
+    },
+    {
+      "from": "preserve life",
+      "to": "Preserve Life",
+      "definitionSha256": "d8a2eb829952663830512679a98b0057634f53a703f8b2807cea9cfcd33bb171"
+    },
+    {
+      "from": "prestidigitation",
+      "to": "Prestidigitation",
+      "definitionSha256": "c5d62888d75222bc77eae1f2280fc2926f14ed2d1405e5415f47f64e5b55d1e0"
+    },
+    {
+      "from": "produce flame",
+      "to": "Produce Flame",
+      "definitionSha256": "2c3bb7d52b0c929473db73a9bde0639ab643e2767b1deb49aaba2196d886f99b"
+    },
+    {
+      "from": "quills",
+      "to": "Quills",
+      "definitionSha256": "4084379be44576bfd02ede034b43d3cc02e3214543a5b1485bf2472480eef92b"
+    },
+    {
+      "from": "rage",
+      "to": "Rage",
+      "definitionSha256": "8c76feef6272d2452a96bebb25bc49f45986cc3db3c5dd02b72f82b996ae1a4a"
+    },
+    {
+      "from": "rage undying",
+      "to": "Undying Rage",
+      "definitionSha256": "489ef6b34413e83834bd1114880714b944cb53bd6b27545ba2f1c9595f09c3b5"
+    },
+    {
+      "from": "rage without end",
+      "to": "Endless Rage",
+      "definitionSha256": "77e5b3b603b51c6af65c6cca57d082708387ad0ad424341a455c393e1564e201"
+    },
+    {
+      "from": "raise thrall",
+      "to": "Raise Thrall",
+      "definitionSha256": "3f7ce4a8580d08cee2342b4b2851a00b2c24fcb22af93b8bd2368faa8637885e"
+    },
+    {
+      "from": "ray of enfeeblement",
+      "to": "Ray of Enfeeblement",
+      "definitionSha256": "a870e726f403f6e9fd74c6bb85b18bdb2e6fe4ebfda7829a9cc5fc7d72f36607"
+    },
+    {
+      "from": "ray of frost",
+      "to": "Ray of Frost",
+      "definitionSha256": "3dfe94fc6d7e5ddf193210a616c9e78b3c010f30ef91270f298e5996c39c6dfb"
+    },
+    {
+      "from": "ray of sickness",
+      "to": "Ray of Sickness",
+      "definitionSha256": "8183a160a10e9a331305100fbfff866fb0c54f75d7793f76beab69701f374513"
+    },
+    {
+      "from": "read the beast",
+      "to": "Read the Beast",
+      "definitionSha256": "7175f219c6aeed697d7277aa2eff981e805bbcc70b5f209302d931da55e64cc7"
+    },
+    {
+      "from": "read the night",
+      "to": "Read the Night",
+      "definitionSha256": "89c36cc7bac3309dfe8979012c8d4361aef6e33c02ca61f4f132c15ebd96f039"
+    },
+    {
+      "from": "reap the field",
+      "to": "Reap the Field",
+      "definitionSha256": "4c25752cfcee74c671de5c4260cf9ed87f15bbaa1d650f8f28aa784bf8dc67c3"
+    },
+    {
+      "from": "reckless attack",
+      "to": "Reckless Attack",
+      "definitionSha256": "ffedb85974e26aa5787dcd753528d631f86d87d785e4ae14f5364d51814a8894"
+    },
+    {
+      "from": "relentless endurance",
+      "to": "Relentless Endurance",
+      "definitionSha256": "196791b96ff0032df68f684e9550315f96bd20c17930d25f3699f817e30f57ea"
+    },
+    {
+      "from": "resilience",
+      "to": "Resilience",
+      "definitionSha256": "4a2f2a758df585a4a0f1877a2a3d6eae6924f23b9549243e2e83053a1b631398"
+    },
+    {
+      "from": "restore limb",
+      "to": "Restore Limb",
+      "definitionSha256": "b9c343fc106f4f2e1f50a451aea140cb290128e09db60a96cc9b0785ee6b65da"
+    },
+    {
+      "from": "resurrection",
+      "to": "Resurrection",
+      "definitionSha256": "035ac851f1d4fe189ffd2f77e618ab423478d797c9905aec20282d25141c4513"
+    },
+    {
+      "from": "revivify",
+      "to": "Revivify",
+      "definitionSha256": "3cc5a611d9db523895ccd00bbeb269ec689cae29473b20692b9e98ed95fab911"
+    },
+    {
+      "from": "rewrite the odds",
+      "to": "Rewrite the Odds",
+      "definitionSha256": "ea8ddfa6f20a57ba36b1113643306ca5a76e1ba699f0502b72904907e58a9734"
+    },
+    {
+      "from": "ride the wind",
+      "to": "Ride the Wind",
+      "definitionSha256": "d6bd5c796f3d1ea911e6cfeb94a470c0b3294e1c0b11f90cd9a7c830f1de014d"
+    },
+    {
+      "from": "rigor mortis",
+      "to": "Rigor Mortis",
+      "definitionSha256": "4f5337421b7aab1875df770aa2911657ada52c8125232afd2e80d71acb5891b8"
+    },
+    {
+      "from": "ritual working",
+      "to": "Ritual Working",
+      "definitionSha256": "f72f0b784671c74da5be2867f1acdc4689f69322256c3a15918920330fc927f2"
+    },
+    {
+      "from": "root and branch",
+      "to": "Root and Branch",
+      "definitionSha256": "17a881297e3b1832a2721e658c43409f34197c97630a2c5de2374f67226c3dd3"
+    },
+    {
+      "from": "roots of the world",
+      "to": "Roots of the World",
+      "definitionSha256": "d75e08c86a35cc6ecebd840b701f3b0a9d51127ed179b39627ad6ebe15a3bac2"
+    },
+    {
+      "from": "rot",
+      "to": "Rot",
+      "definitionSha256": "d7d8d2b4f8687e6867379226de88525765082f29c8a571de05e2334d7303fc50"
+    },
+    {
+      "from": "ruin",
+      "to": "Ruin",
+      "definitionSha256": "6aee479c6b84db1e23a65ed3aa1c88e85bbc52f9f87ec14994a3f8fe699beee7"
+    },
+    {
+      "from": "rust in the air",
+      "to": "Rust",
+      "definitionSha256": "452aadead4f1792d2623233971586b8784bf8ebbbbb453565cf9cd6df54b2a59"
+    },
+    {
+      "from": "sacred flame",
+      "to": "Sacred Flame",
+      "definitionSha256": "5957b23e16d9575475da38091bb7a163ff4ace290c457eac24a70917d67040ab"
+    },
+    {
+      "from": "saint's vessel",
+      "to": "Saint's Vessel",
+      "definitionSha256": "fad48732b0167127326a45db2b15e8715d49161030c6ec7d242c893098a532c6"
+    },
+    {
+      "from": "sanctuary",
+      "to": "Sanctuary",
+      "definitionSha256": "b09f543899f305cc7b31346394773afa78a27d36a7f27fe42823b6a6d09844f1"
+    },
+    {
+      "from": "sap and stone",
+      "to": "Sap and Stone",
+      "definitionSha256": "f372ad6e8bd5cb9cab094401a86cefeb7bfb29da7c0ffddf430491286a53d9ad"
+    },
+    {
+      "from": "scorching ray",
+      "to": "Scorching Ray",
+      "definitionSha256": "cbba01e6c974870cc087e0ca6e3e9fa90e9e30e6c424eb323d521e8d576782f3"
+    },
+    {
+      "from": "season of wrath",
+      "to": "Season of Wrath",
+      "definitionSha256": "d46ca5b6bf78b0c26aee261f9b9a6331d7322c405557942a7005e44293961f5f"
+    },
+    {
+      "from": "season's champion",
+      "to": "Season's Champion",
+      "definitionSha256": "a8a766ea0fd5cfece98798772971b6656395d20f3a3059e22dc9e5a9556e048c"
+    },
+    {
+      "from": "second skin",
+      "to": "Second Skin",
+      "definitionSha256": "ed38d6942b683846b76f57814d7ae79b8a68d12080f40f916c34db29bcf2b751"
+    },
+    {
+      "from": "see in magical darkness",
+      "to": "See in Magical Darkness",
+      "definitionSha256": "836b3fa1046ac62b0ca578405e0d0247d44fe49631d452c25497c5ae54f3cd14"
+    },
+    {
+      "from": "see invisible",
+      "to": "See Invisible",
+      "definitionSha256": "66a6f6e8562b63ba6e6963a68611b9bec4fe8f6d326abc78079116ac65f0c367"
+    },
+    {
+      "from": "sentence passed",
+      "to": "Sentence Passed",
+      "definitionSha256": "7bf7865d190bc4ea7b4295655a2cf73e6b4e1b67c1129cff3843b32edd62a59a"
+    },
+    {
+      "from": "seventy-two shapes",
+      "to": "Seventy-Two Shapes",
+      "definitionSha256": "fee959c6fae4af54010d61ceda875304d0f06ab82d74662d584298aeca444fee"
+    },
+    {
+      "from": "shackles of bone",
+      "to": "Shackles of Bone",
+      "definitionSha256": "960c41b31c34bba6bfb6859a58d8508c3ce844dae351c9750584ecdf7306b8d8"
+    },
+    {
+      "from": "shadow blade",
+      "to": "Shadow Blade",
+      "definitionSha256": "97c325ba1869a8750130933f146885bb5cf4b8c17d0b4baa83c2025ba64f7e5f"
+    },
+    {
+      "from": "shadow step",
+      "to": "Shadow Step",
+      "definitionSha256": "53632409050ef3f908b1c257d8f7d3518f78999f4468d961ec081745e133f168"
+    },
+    {
+      "from": "shadow walk",
+      "to": "Shadow Walk",
+      "definitionSha256": "1be654b3bf64e202e7d70185d02bb80c91aea47a23c8fb2c8f5737bd35bb2005"
+    },
+    {
+      "from": "shape of the world",
+      "to": "Elemental Shape",
+      "definitionSha256": "90e7c36250a5baa2c0de3b919848c9a18a772d38556dacca280a2f1ab6d790f4"
+    },
+    {
+      "from": "shape shift",
+      "to": "Shape Shift",
+      "definitionSha256": "a440b11c3154c1b63c66445a1c93af5dedcf21162ac2dee09049c323bec208a0"
+    },
+    {
+      "from": "shapes of the ice years",
+      "to": "Ancient Shapes",
+      "definitionSha256": "9314b0f4a189b93b83c8cb9899e0af9e9e9789f33cb2436d7f15240fc4eea580"
+    },
+    {
+      "from": "shared senses",
+      "to": "Shared Senses",
+      "definitionSha256": "1a480cf00784c555a58d9d1c9c33d0223d90c3d58ecebd7acb5f5bc061bd1803"
+    },
+    {
+      "from": "shield",
+      "to": "Shield",
+      "definitionSha256": "75076e591ef548f2108ee589ac35e45d6529b67c431fd5d549a75d2af4146c99"
+    },
+    {
+      "from": "shield of faith",
+      "to": "Shield of Faith",
+      "definitionSha256": "128c1d67dd6bacbf2869642c51c1248c23b83c8d6b46182cf60680f5fdbd5e26"
+    },
+    {
+      "from": "shield the weak",
+      "to": "Shield the Weak",
+      "definitionSha256": "375068b209199dff6b9428664183a1e23f493d7b3332144d04643a705450e1e9"
+    },
+    {
+      "from": "shield wall",
+      "to": "Shield Wall",
+      "definitionSha256": "5272c158e4a21af6c61ccd18a8f16a8cb380f03ba3c720e3caf662f499351e13"
+    },
+    {
+      "from": "shillelagh",
+      "to": "Shillelagh",
+      "definitionSha256": "a839a14cac8efe5139a24136033d8119dd0afe7550e0fd1c1bd0013d668d9178"
+    },
+    {
+      "from": "shrink",
+      "to": "Shrink",
+      "definitionSha256": "c90569692f9139081837a9fe7dddf0af5061dd2f6e9cf405f6745c6c579f95b2"
+    },
+    {
+      "from": "shrug it off",
+      "to": "Shrug It Off",
+      "definitionSha256": "4dd0bcd66277c7a6a8da9006be0ae5aab965957527d9b156106aa43096cadef7"
+    },
+    {
+      "from": "sigil reading",
+      "to": "Sigil Reading",
+      "definitionSha256": "5a7ac9ba1417d841aec88eec4d69a2042492cb86d57af0169ec45f53ba32ce38"
+    },
+    {
+      "from": "silence",
+      "to": "Silence",
+      "definitionSha256": "90305db838e1b623350ec1d39a48a3dfd133813045e523f2b7744da1d7887f22"
+    },
+    {
+      "from": "silent image",
+      "to": "Silent Image",
+      "definitionSha256": "6701975f285a05125289487d69491217d4a56a35e56c1fddecfd24a066f6c691"
+    },
+    {
+      "from": "silent stalker",
+      "to": "Silent Stalker",
+      "definitionSha256": "2db26f716c093f2e51b5668b3dd619ecf48c14eef291fe2231c0eb61fa52908f"
+    },
+    {
+      "from": "siphon life",
+      "to": "Siphon Life",
+      "definitionSha256": "48b3aa7260deee363524a4241794e731f50c830ab93b0e3c1d2b69d5c8c77904"
+    },
+    {
+      "from": "slayer of legends",
+      "to": "Slayer of Legends",
+      "definitionSha256": "6e1b59761ca356a105a9fd4afccad32e830b852d341978c1fd7c7987496057f0"
+    },
+    {
+      "from": "sleep",
+      "to": "Sleep",
+      "definitionSha256": "1a1ae8c7894137d0587cc7df32244f57f0ecf859241058c408d4d9444268da6d"
+    },
+    {
+      "from": "sleep of the dead",
+      "to": "Sleep of the Dead",
+      "definitionSha256": "9138faaada1b6943bb210064ae257af789f08d4bbfc9a85d6c06be01ce56442e"
+    },
+    {
+      "from": "slow",
+      "to": "Slow",
+      "definitionSha256": "fc8a97976e5b0d0b8aacc2fe1b9fa0775f079637f2f726fabb84c59f64e0973a"
+    },
+    {
+      "from": "small size",
+      "to": "Small Size",
+      "definitionSha256": "310c8c470f67b1feae9be383fc6506dcc10a4d1e6d437f275dfe3a4877ea6497"
+    },
+    {
+      "from": "smite",
+      "to": "Smite",
+      "definitionSha256": "c970e1d31665bc0717d99f765c4d454b54b86a2ce462e283ae7589b51505b50d"
+    },
+    {
+      "from": "sneak attack",
+      "to": "Sneak Attack",
+      "definitionSha256": "c93a7d9e40e5012daa67b370b2b10ecdc11df8aff5337b30deb9d721c84d5b29"
+    },
+    {
+      "from": "sorcerous restoration",
+      "to": "Sorcerous Restoration",
+      "definitionSha256": "8ac7c9313584aa16145dce81f691df6a756ccebbd956ad0232c5aebc5fc127eb"
+    },
+    {
+      "from": "soul cage",
+      "to": "Soul Cage",
+      "definitionSha256": "6ed61e423cb45cb822ffbdd21e1ef74b2cd1b99565f2d0e4fb705bdc602d86ce"
+    },
+    {
+      "from": "soul puppet",
+      "to": "Soul Puppet",
+      "definitionSha256": "94a0d11c7921abdc1ba9c0236db9f043d2d9e71b47313db41233c35a6f8cc816"
+    },
+    {
+      "from": "soul steal",
+      "to": "Soul Steal",
+      "definitionSha256": "9637f9d5147f4874767bf6b587657c12b8da639ad21319bae8761f3090aca127"
+    },
+    {
+      "from": "soulfire",
+      "to": "Soulfire",
+      "definitionSha256": "07af1861a8e8bd4d3b160275e85069e6f59e39f16f337f6f0f989f807a09eb5a"
+    },
+    {
+      "from": "sovereign of the night",
+      "to": "Sovereign of the Night",
+      "definitionSha256": "2641f88d5e07721fc8026867578ab2aba37651ea8f5582f36c6e37ce13d26986"
+    },
+    {
+      "from": "spare the dying",
+      "to": "Spare the Dying",
+      "definitionSha256": "705e3f19cce91e1e29a67274b08ee3b26ecce4f654726b9d666588adc220929f"
+    },
+    {
+      "from": "speak with animals",
+      "to": "Speak with Animals",
+      "definitionSha256": "3407157dbb5f7d65ea279c2517f1ce730b4c034db90b21b0d7ba5fdc6c05c79c"
+    },
+    {
+      "from": "speak with dead",
+      "to": "Speak with Dead",
+      "definitionSha256": "f151647eea51131aae979acdade8d80b8f59ffb5ad765cc25c814e5c2c13d3b4"
+    },
+    {
+      "from": "spellblade",
+      "to": "Spellblade",
+      "definitionSha256": "5c015edec351da053fa18f24ddb84a0ff272e915a65ca7f888b9433b69dd3446"
+    },
+    {
+      "from": "spider climb",
+      "to": "Spider Climb",
+      "definitionSha256": "d087bd4d1166278810cbe2918bc8bb68f4c5c13456b1f9a1f4ad0dd0715dd1f3"
+    },
+    {
+      "from": "spike growth",
+      "to": "Spike Growth",
+      "definitionSha256": "65e37a750601321e2de2a70f308c2af13d7a1020e8387608870654f6a3714b61"
+    },
+    {
+      "from": "spirit guardians",
+      "to": "Spirit Guardians",
+      "definitionSha256": "b9fc0fbd1e4cb7533279aa90bf8899b9073978c703db93933b2f8edf63c2f33f"
+    },
+    {
+      "from": "spirit walk",
+      "to": "Spirit Walk",
+      "definitionSha256": "875e371be8d10bbfcd2f3ecbce2160355e7ee1cc467717decc51a0cbed908213"
+    },
+    {
+      "from": "spiritual weapon",
+      "to": "Spiritual Weapon",
+      "definitionSha256": "efd4c3a23bab70cae138f78e6ea29874253052643c33352f13772b0d1478d95b"
+    },
+    {
+      "from": "split weave",
+      "to": "Split Weave",
+      "definitionSha256": "2a553e84ee27d99fd4c5e03aa5763cf2b1665f36eb41d75830974d8f7f4724fc"
+    },
+    {
+      "from": "staggering smite",
+      "to": "Staggering Smite",
+      "definitionSha256": "a39879b098664d374089c44c7bcf6f8fc9eae15c07c79d152b49d4584448dbd5"
+    },
+    {
+      "from": "star fall",
+      "to": "Star Fall",
+      "definitionSha256": "7bee8aa50634c121bf541e3fb5710f887d001216c31e4cc37ca29d000909605f"
+    },
+    {
+      "from": "stolen voice",
+      "to": "Stolen Voice",
+      "definitionSha256": "ad9fc884bb52215b85baa89f9d9b6f72830a9dac23a404b70546ff357e8b604e"
+    },
+    {
+      "from": "stonecunning",
+      "to": "Stonecunning",
+      "definitionSha256": "2b8214e22449d763192f4a65e35b07391435dd3c7a94b9399e369a3c39b85a7c"
+    },
+    {
+      "from": "storm shroud",
+      "to": "Storm Shroud",
+      "definitionSha256": "861a3f09bb90c10e1961b3a5e6e0f523a523621eb096bf30c5189c8d8105afd9"
+    },
+    {
+      "from": "strength of legend",
+      "to": "Strength of Legend",
+      "definitionSha256": "f70c4cef5d3cd79b3931959562868a0ea8d345d00feeeff506644cee2069494a"
+    },
+    {
+      "from": "stunning blow",
+      "to": "Stunning Blow",
+      "definitionSha256": "2aebce77b9af24bde7c788f2557971e0b8ff02ef7f115417e68d3200ff058a17"
+    },
+    {
+      "from": "succor",
+      "to": "Succor",
+      "definitionSha256": "0c21118b05d7f27087d651d687486ab20b3b218425beeb1d4f0f219852d3f46d"
+    },
+    {
+      "from": "summon item",
+      "to": "Summon Item",
+      "definitionSha256": "3988f2b64f1b0d78a25ec2b93bae316c53c4717e8e0e16bce2aacc95af50e582"
+    },
+    {
+      "from": "sunbeam",
+      "to": "Sunbeam",
+      "definitionSha256": "655c1a5a33a02fa26c4d06cc25711eacf38f9e0560f780b81e2ca1e95c820efd"
+    },
+    {
+      "from": "sundering stroke",
+      "to": "Sundering Stroke",
+      "definitionSha256": "eeaa11ed3c16ed2c676c15c86650bc4e0f9212cde0d9b4f43abd417b2c32cbd0"
+    },
+    {
+      "from": "sunlight sensitivity",
+      "to": "Sunlight Sensitivity",
+      "definitionSha256": "d6c6111c701c5b8c0e69edf9efe2399030aad0be1486359b4da3d524dbe0efbe"
+    },
+    {
+      "from": "superior darkvision",
+      "to": "Superior Darkvision",
+      "definitionSha256": "e7e6886557bca90b73898713a56bef25842e49f2946b8d30cddba72be7c8460c"
+    },
+    {
+      "from": "sure shot",
+      "to": "Sure Shot",
+      "definitionSha256": "6ec7cab46769f6513c883d1b05e36c056be8ee634e0ae2616d7990f3f7df19b2"
+    },
+    {
+      "from": "swift quiver",
+      "to": "Swift Quiver",
+      "definitionSha256": "5aaf580e62bebdd6782944c378f8438a934b59f1a1e489e2aa7b22253fb083c4"
+    },
+    {
+      "from": "taunt",
+      "to": "Taunt",
+      "definitionSha256": "8018f325cbf96ef837f487c201444d72e6aed28b135f1485e90d501570836a0d"
+    },
+    {
+      "from": "telekinesis",
+      "to": "Telekinesis",
+      "definitionSha256": "20986c1b7dc46fee79a5d892ac47f13dd69ee204dcfee0f54bd37540084c7432"
+    },
+    {
+      "from": "telepathy",
+      "to": "Telepathy",
+      "definitionSha256": "718e2c5008d6716639952b5298039c7c8e17b3a9725d7121add31272e78ba85e"
+    },
+    {
+      "from": "terrifying frenzy",
+      "to": "Terrifying Frenzy",
+      "definitionSha256": "cfccd081e1d716041e56066ef6b31a76a9bf327675a431f91997f990ebebc10d"
+    },
+    {
+      "from": "terror in the dark",
+      "to": "Terror in the Dark",
+      "definitionSha256": "55d20a8c8e4b582625bd1bf507f6c203fb1ab51d58bf39ee5d01361fce479651"
+    },
+    {
+      "from": "thaumaturgy",
+      "to": "Thaumaturgy",
+      "definitionSha256": "439a4fc176b62990c8ca3559601964cdd08ed4a03fa02bcae126867f91ea36c1"
+    },
+    {
+      "from": "the battlefield is a board",
+      "to": "The Battlefield Is a Board",
+      "definitionSha256": "5b261fa8d8566c66fb03757b3b84a50e14bd03c7e2d4c52247a3fb5beb33224d"
+    },
+    {
+      "from": "the beast beneath",
+      "to": "The Beast Beneath",
+      "definitionSha256": "357643f570f94402110b4579b1218c2ea8e0bb728750292ed0b4744f9bdd0b15"
+    },
+    {
+      "from": "the blade keeps faith",
+      "to": "The Blade Keeps Faith",
+      "definitionSha256": "0fffbdbc332a4265f407c808c6b6a4ceb4718199017b3fbfb37b82c3b3953a6b"
+    },
+    {
+      "from": "the blessing holds",
+      "to": "The Blessing Holds",
+      "definitionSha256": "fdb87222ea24c6dbfe253fc406b98eeb85a7ee7ff952aa49f4c9a56facda496f"
+    },
+    {
+      "from": "the casing eye",
+      "to": "The Casing Eye",
+      "definitionSha256": "97bdf52d4edade7c76f015ddc0b89d140ae939045838d37529242a985ab9d47c"
+    },
+    {
+      "from": "the challenge",
+      "to": "The Challenge",
+      "definitionSha256": "a92b0599de77e850ca7745d30ad4f0125ed32247e0fca661a76f15d07f8ec615"
+    },
+    {
+      "from": "the dark between",
+      "to": "The Dark Between",
+      "definitionSha256": "18b6a99ffa7d3fbe817e65b445d9ceaa384d2c3fd25dc28de8c5b58b0bc820ae"
+    },
+    {
+      "from": "the falling star",
+      "to": "The Falling Star",
+      "definitionSha256": "29ade4c4aa342f645f0e2de95dc50a4027ac44198643861e1337e0eb8fc30a32"
+    },
+    {
+      "from": "the final accounting",
+      "to": "The Final Accounting",
+      "definitionSha256": "8d1ec1b2fa1facec6a9e03cdf0fe858a874e8af0acf9dc0adef1f1819218f171"
+    },
+    {
+      "from": "the first beast",
+      "to": "The First Beast",
+      "definitionSha256": "574d3a5c07b4118f79cbb3ddb4b636d8f4f2599ec200e5bec3856b287af3f1ab"
+    },
+    {
+      "from": "the first blow is the last",
+      "to": "The First Blow Is the Last",
+      "definitionSha256": "cfb2a4ef41d29d907785286e5e1abf59d8240f52c144aab269fd9eda996ea89f"
+    },
+    {
+      "from": "the first fire",
+      "to": "The First Fire",
+      "definitionSha256": "791179270c911d19edfce0a297b6c7b48d3ee8bf97e238696847a2645a33a20c"
+    },
+    {
+      "from": "the gentle hand",
+      "to": "The Gentle Hand",
+      "definitionSha256": "898a11e6055eb20e062470cd97072eab31ba8e98cebfc0ba4475b4dff9e9c8e9"
+    },
+    {
+      "from": "the god of battle attends",
+      "to": "The God of Battle Attends",
+      "definitionSha256": "eae043d7163e1f5955678d66e3475ece756da44578b3bbc7276f5a4274e6c75e"
+    },
+    {
+      "from": "the great spirit's voice",
+      "to": "The Great Spirit's Voice",
+      "definitionSha256": "1d1d9a291045b1a1c7b03314b75d59b065db451921222b27bb30aa69b686539e"
+    },
+    {
+      "from": "the green ash",
+      "to": "The Green Ash",
+      "definitionSha256": "4779a8b45e5e6c573d4384ed24d681db86c01646c83f15a3a544a410998f3cec"
+    },
+    {
+      "from": "the green vow",
+      "to": "The Green Vow",
+      "definitionSha256": "d420e2b82ecc988fd79e500bb0a4d7b0498d71122eaf136acc117e0adfb7b42c"
+    },
+    {
+      "from": "the half-form",
+      "to": "The Half-Form",
+      "definitionSha256": "e26f83eef36fbacfe60c8ae5353b27c9dc7035ff85d5ed7ffc27ad96151c8622"
+    },
+    {
+      "from": "the impossible shot",
+      "to": "The Impossible Shot",
+      "definitionSha256": "d4a59bee74c9765cb4793f2ef4d434f68ea149c161a98df5f2cabf6cdbf4241b"
+    },
+    {
+      "from": "the impossible theft",
+      "to": "The Impossible Theft",
+      "definitionSha256": "a47e55c6cff1df7eacc28c0d0048c818c8588901f4df9a86029b276a3ddcd79f"
+    },
+    {
+      "from": "the inevitable end",
+      "to": "The Inevitable End",
+      "definitionSha256": "136daaa935bb882954a6d4930e9638bfbbb242bca18ef3c1903631e13d096c66"
+    },
+    {
+      "from": "the knee",
+      "to": "The Knee",
+      "definitionSha256": "77c5142e38cf49965af7d695281caad513d63c4a48709c7627586b80fad820dd"
+    },
+    {
+      "from": "the last great hunt",
+      "to": "The Last Great Hunt",
+      "definitionSha256": "bf4255fbd6c909fac3a685c44247c157ff184bc85d704f2ba863d68e008763b3"
+    },
+    {
+      "from": "the last red day",
+      "to": "The Last Red Day",
+      "definitionSha256": "2bb59f9ec93dfa3a4a705219628ebc5a43a0a37f2afe70abdc44dbc01f0c97b6"
+    },
+    {
+      "from": "the law",
+      "to": "The Law",
+      "definitionSha256": "952794a4a3c29378900a2395519c1516c5f5ce4cdc4fe88be9be25473d6dce49"
+    },
+    {
+      "from": "the line holds",
+      "to": "The Line Holds",
+      "definitionSha256": "3a006334a52a6eca1c49ffd32adcfabef1396b5e7555c7375ffe32f70f8b6bab"
+    },
+    {
+      "from": "the long hunt",
+      "to": "The Long Hunt",
+      "definitionSha256": "e98f6e73b8a3ca1efaea707dc1965e703fb263cbbb3c1150654c47d0709cd16e"
+    },
+    {
+      "from": "the long night",
+      "to": "The Long Night",
+      "definitionSha256": "f9401d4dc7750a41d4ea019272da8bbc6c3826441f0cb41bb8ce503b5255e9ee"
+    },
+    {
+      "from": "the missive",
+      "to": "The Missive",
+      "definitionSha256": "5330afbb9439f7fbe80e4ec771c1dc8512a207827b73f8ff2999e3883f06a68d"
+    },
+    {
+      "from": "the moving heavens",
+      "to": "The Moving Heavens",
+      "definitionSha256": "d855b99a3ded034b001c85e421d345fbc8b7045a22ec982efbcb076427784bd6"
+    },
+    {
+      "from": "the named enemy",
+      "to": "The Named Enemy",
+      "definitionSha256": "e73aa18610fc09e55959c60a54f45705f20fd0aa5a40c7ef47d908e4ed417437"
+    },
+    {
+      "from": "the oath",
+      "to": "The Oath",
+      "definitionSha256": "11c0ced103896864bd90ac12bdb7cf1f0005668fae0fe5e72805368cfce9c93a"
+    },
+    {
+      "from": "the old light",
+      "to": "The Old Light",
+      "definitionSha256": "d71f7ab808f638a09484b3821d8c5330adbea9305501e1e14f952de8ff697628"
+    },
+    {
+      "from": "the old switcheroo",
+      "to": "The Old Switcheroo",
+      "definitionSha256": "3431439015f200f094bb6f7597a7dd2b0059e848e21ed3d0465e6f06f9014eb1"
+    },
+    {
+      "from": "the plan holds",
+      "to": "The Plan Holds",
+      "definitionSha256": "773694e0eb3b14ae30b548ee610ef56c5db6426e78e8b76590cbdd9efac24cfb"
+    },
+    {
+      "from": "the progenitor's due",
+      "to": "The Progenitor's Due",
+      "definitionSha256": "7bf140538c7250208a79fec4d0b46d474e36d32aac40262ec1d8e323e5f7221b"
+    },
+    {
+      "from": "the read",
+      "to": "The Read",
+      "definitionSha256": "904edc4fa973679beedb7da1ce9c306b295d164ff6a3299a3839d6398f24f6df"
+    },
+    {
+      "from": "the return",
+      "to": "The Return",
+      "definitionSha256": "34c5e88e9bbfcf2d0f0bc33e929f70675e3748b0521592311fcf5838b18918c9"
+    },
+    {
+      "from": "the shadow half",
+      "to": "The Shadow Half",
+      "definitionSha256": "1c584090efb6264bde67d753de7071259c29d332d0b6012ff6d9dbb03447501c"
+    },
+    {
+      "from": "the shirt off your back",
+      "to": "The Shirt Off Your Back",
+      "definitionSha256": "96af28ac1b663dbd11b1c2acd004fcbc0b85677baa9ca52c0be4f08085b4704b"
+    },
+    {
+      "from": "the sky entire",
+      "to": "The Sky Entire",
+      "definitionSha256": "d388287abfcb0aa88a2ab7e3ed2f9bec0ea3c6f7d88010921152149f7cc0c432"
+    },
+    {
+      "from": "the standing ward",
+      "to": "The Standing Ward",
+      "definitionSha256": "c664ceff47cbe539586ddbbcaef9fe77968d8d989b10baa38ee5b92810be057f"
+    },
+    {
+      "from": "the story runs ahead",
+      "to": "The Story Runs Ahead",
+      "definitionSha256": "a30c8ac3dd88da4ef2d873792ce541bc5c2dc999afdcf35259be38f4242d1459"
+    },
+    {
+      "from": "the telling blow",
+      "to": "The Called Shot",
+      "definitionSha256": "4ca7e8408a868a4e33bce7c6c031ac9d10d3b2f52c2ce58d757b71ddd6c1ae23"
+    },
+    {
+      "from": "the turning move",
+      "to": "The Turning TIde",
+      "definitionSha256": "23d397727c10c1fb01bb6b592e93cb31d8f702c985c62331e8027095635614a2"
+    },
+    {
+      "from": "the unbroken line",
+      "to": "The Unbroken Line",
+      "definitionSha256": "ffd0fda5faad8543095e1022870fc142643b973de80350f26a624a8edd2162e8"
+    },
+    {
+      "from": "the unseen path",
+      "to": "The Unseen Path",
+      "definitionSha256": "0f58de85bf8b78a9a1542709c7c22ce6805679feb45acfc03b5df6782da58b4d"
+    },
+    {
+      "from": "the walking tempest",
+      "to": "The Walking Tempest",
+      "definitionSha256": "4dce4de34d8e8c8f04e198910f15b3bf491bd7d7dde93f809f7492560334640b"
+    },
+    {
+      "from": "the wild run",
+      "to": "The Wild Run",
+      "definitionSha256": "fa39da2bf755b1026d17ebf49863b202773fafc325f5cff22ca2d0d465e46f63"
+    },
+    {
+      "from": "the word",
+      "to": "The Word",
+      "definitionSha256": "c13c0047403092c631ebdc44599bf26e61fb6aa82b5ed9d3d693e6e1055bff22"
+    },
+    {
+      "from": "the yoke",
+      "to": "The Yoke",
+      "definitionSha256": "4058c8f75c0e4bd09a858894aa839c1e89f22688a30b189b97dee49a5da678a8"
+    },
+    {
+      "from": "thorn whip",
+      "to": "Thorn Lash",
+      "definitionSha256": "c6e1652cdc85d67ac3248b3dce1fdf39294ee3427d71978b5f0d9293c9b35965"
+    },
+    {
+      "from": "threat taxonomy",
+      "to": "Threat Taxonomy",
+      "definitionSha256": "09f74968e5d49c96e0403a73291cde0605201115128bb536939250ce9a148e28"
+    },
+    {
+      "from": "three sisters",
+      "to": "Three Sisters",
+      "definitionSha256": "40f1efc22b9dd7e2b88e43437982d4a85c2c9927791a19086651c7880a692e16"
+    },
+    {
+      "from": "thunderwave",
+      "to": "Thunderwave",
+      "definitionSha256": "cff81e88926b5a04e3e6bcab3d8a3c28feeb0fcfed0b09feaaa6aac21a9ea476"
+    },
+    {
+      "from": "tide of shapes",
+      "to": "Tide of Shapes",
+      "definitionSha256": "657e544a90824504642e661a8f88f0fb84969e07ae30d6a92454c0f04628551a"
+    },
+    {
+      "from": "tides of chaos",
+      "to": "Tides of Chaos",
+      "definitionSha256": "4a339c80183ed6f269df6c4263ce7a6f67cde07bac1d05bfd265fe6463edc7eb"
+    },
+    {
+      "from": "toll the dead",
+      "to": "For Whom the Bell Tolls",
+      "definitionSha256": "0dfe7ed939d32292f058ecd98d2a42ca3dc8eaf2b7995d6e1942fa7a0448ecdc"
+    },
+    {
+      "from": "totem aspect",
+      "to": "Totem Aspect",
+      "definitionSha256": "e5b6902600e63138119886c930ed642b28a1579e465cb40fcb67877af6cb723c"
+    },
+    {
+      "from": "totem spirit",
+      "to": "Totem Spirit",
+      "definitionSha256": "c9a71b10168a62f1f41295953c9556ade430dcfb6694d684393a2824456503ea"
+    },
+    {
+      "from": "trackless step",
+      "to": "Trackless Step",
+      "definitionSha256": "0b72b181e6997c6218f7a59f120783ce923824752503ca50ad047555a4c37956"
+    },
+    {
+      "from": "trance",
+      "to": "Trance",
+      "definitionSha256": "6400d127f651c34b4e3d2834888a532836ff084eb95bd9e0d4767f6bc14f44c5"
+    },
+    {
+      "from": "travelling wounds",
+      "to": "Travelling Wounds",
+      "definitionSha256": "c4bb60f85937498e5bbaacc81ced3bc9f14cf35f3275a3908ff5c23ab83f6f59"
+    },
+    {
+      "from": "tree stride",
+      "to": "Arboreal Gate",
+      "definitionSha256": "74b23397362f2174b1a759b1ccee405adb18aa2036be079c923e4fdf91c7c522"
+    },
+    {
+      "from": "turn undead",
+      "to": "Turn Undead",
+      "definitionSha256": "7a70ac6285c2680b2d43fbb138409b11efeb58d7a505b6e486fed78d4385df46"
+    },
+    {
+      "from": "turnabout",
+      "to": "Turnabout",
+      "definitionSha256": "4a20cdd0c76daa9251ac6f217c0a9787317ab1f2ce9f8bcb026b407635036e25"
+    },
+    {
+      "from": "two hearts, one life",
+      "to": "Two Hearts, One Life",
+      "definitionSha256": "ced928249c8f698ecd786f7689dfdcb3c2774cf7b01179a595e583179106bf6b"
+    },
+    {
+      "from": "two totems",
+      "to": "Two Totems",
+      "definitionSha256": "d419a41ff1c18315b3f8d215d1777f408082efa862cff08d0dfa28d14202774a"
+    },
+    {
+      "from": "uncanny dodge",
+      "to": "Uncanny Dodge",
+      "definitionSha256": "a2ed5a02dd3c3e444fb7e6a913e05a60062f226a8f4aa69b6969d3faa3b5d6fe"
+    },
+    {
+      "from": "undead sense",
+      "to": "Undead Sense",
+      "definitionSha256": "57965b774855b6c54189a1d0398171c73d0c61d34c85b846a3cac966a039140a"
+    },
+    {
+      "from": "undead thrall",
+      "to": "Undead Thrall",
+      "definitionSha256": "88815b3f6030f75c9535671f07f33d0950b058f7549c448d24afa528f4d06066"
+    },
+    {
+      "from": "undying green",
+      "to": "Undying Green",
+      "definitionSha256": "4ffcf06c381a2ede3f10bad97eae288d76d0cde3142291a94caa6008e866c4b6"
+    },
+    {
+      "from": "unmoored sense",
+      "to": "Unmoored Sense",
+      "definitionSha256": "f26adc65686e960fcc826c221b484c7f26170bda8c545a3a36437d96789890cd"
+    },
+    {
+      "from": "unraveling",
+      "to": "Unraveling",
+      "definitionSha256": "7a4f859be5e8098bd011e7bc0bbddc0c0f5e264803abcfb06e1ac30e0b26f543"
+    },
+    {
+      "from": "unraveling presence",
+      "to": "Unraveling Presence",
+      "definitionSha256": "2debb8374e2a7d0d8e22c86de6c2909eb1f2d8a216370fb903d67fc11c2a1fc3"
+    },
+    {
+      "from": "unsettling presence",
+      "to": "Unsettling Presence",
+      "definitionSha256": "b1003ecd0eeb0bc3fb02792e86f684e16e210fa10d8061438ae64e95fa73b73b"
+    },
+    {
+      "from": "unstoppable",
+      "to": "Juggernaut",
+      "definitionSha256": "f5986136a0e89ecdc45312fae75b60d3208c96b6608f15478ea13cc669559969"
+    },
+    {
+      "from": "vampiric assault",
+      "to": "Vampiric Assault",
+      "definitionSha256": "e0ac91da5b3e82997dc26844c2fc56492fadfb11467289e22bec3c9cb330aec3"
+    },
+    {
+      "from": "vampiric charm",
+      "to": "Vampiric Charm",
+      "definitionSha256": "047ec52210776636bf18d4b0051eac12e90009b9851a3c33a5e1b925847431d9"
+    },
+    {
+      "from": "vampiric courtesan",
+      "to": "Vampiric Courtesan",
+      "definitionSha256": "73861d9db5275d7f153e5405c716aecffea49e74d01c014921ee506632083926"
+    },
+    {
+      "from": "vampiric touch",
+      "to": "Vampiric Touch",
+      "definitionSha256": "1bc76b84b3038f0c24e82845b27f7864248adb01f16168d1e4d244fcd980a37f"
+    },
+    {
+      "from": "venomous undergrowth",
+      "to": "Venomous Undergrowth",
+      "definitionSha256": "de4c3c17f7c678d2f257d73b83cddb2f71e3db7722e8d73305bc4a5de61d3b5e"
+    },
+    {
+      "from": "ventriloquism",
+      "to": "Ventriloquism",
+      "definitionSha256": "d2d8a32b5252236acf4fba6b0576ff28d6ce14ee4f783b737348dc2831c44810"
+    },
+    {
+      "from": "visitation",
+      "to": "Visitation",
+      "definitionSha256": "bde32665bdfe1b5697a4b7a0f825b6c44bee65991c2b0d919b9a6d0f855c726b"
+    },
+    {
+      "from": "voice of the land",
+      "to": "Voice of the Land",
+      "definitionSha256": "cfcf1d4575439c1b74b70f19ba3f4b41f43b4a8232d469142e695e6317614f90"
+    },
+    {
+      "from": "volley",
+      "to": "Volley",
+      "definitionSha256": "e0dadb9002867735a62dd2b22d3b05953996474605ad9dd7ac4fd9148eb5159f"
+    },
+    {
+      "from": "wall of  thorns",
+      "to": "Wall of  Thorns",
+      "definitionSha256": "3cd3b7c15a8568673d02ed1059db8747ed1ffc1f8fe263c4fe19584ef236664e"
+    },
+    {
+      "from": "wall of fire",
+      "to": "Wall of Fire",
+      "definitionSha256": "6792ac23fb192785e2b562ab18617e9b6c53dd7c2d805f089c0f13139e0837de"
+    },
+    {
+      "from": "wall of force",
+      "to": "Wall of Force",
+      "definitionSha256": "44941c6acb49bfc8969842c6aaf4ecebfacac9f6b0734406241a10eb54b93d30"
+    },
+    {
+      "from": "wall of misdirection",
+      "to": "Wall of Misdirection",
+      "definitionSha256": "690ced708ffac881e883e14cad177d013de218396cd99ddbde342b7f0b5dee13"
+    },
+    {
+      "from": "wall of stone",
+      "to": "Wall of Stone",
+      "definitionSha256": "dc98cec36d03e9017d22b60a99d0587f6bbe72d3ab9a177722ecb0590fc5fbec"
+    },
+    {
+      "from": "wall of thorns",
+      "to": "Wall of Thorns",
+      "definitionSha256": "e698c569eaa04210d478fcf968d1a455506b8fa48ede3e7ac7bb00f9fb299ca9"
+    },
+    {
+      "from": "war priest",
+      "to": "War Priest",
+      "definitionSha256": "ff29eb3e8a07e62576c852b5ff600ce37bf098d206f7ec6eb76d94823617326f"
+    },
+    {
+      "from": "war shape",
+      "to": "War Shape",
+      "definitionSha256": "f85f92f9d8213b588c70c84bc65c16f9a84ffad3cbff02b0ce422f881035ce6f"
+    },
+    {
+      "from": "ward architecture",
+      "to": "Ward Architecture",
+      "definitionSha256": "5065822eeee3f0c729c213415e63b6ac82deba3eb00f18d4b0b0879893da853c"
+    },
+    {
+      "from": "wave of scarabs",
+      "to": "Wave of Scarabs",
+      "definitionSha256": "13bb99967f3646ded3ee5d80dcef28f60689d5ea3517051a82a214d39aa8aaae"
+    },
+    {
+      "from": "weapon bond",
+      "to": "Weapon Bond",
+      "definitionSha256": "dde38f4d67bdbec2305c62615c2f578e9bc06ad862b2da789b3a65ecd678308e"
+    },
+    {
+      "from": "weapon mastery",
+      "to": "Weapon Mastery",
+      "definitionSha256": "333b1e2996fd911ce52c719a449ea9adc836379273be724b6fe5fd3e5af0170a"
+    },
+    {
+      "from": "wear the sky",
+      "to": "Wear the Sky",
+      "definitionSha256": "e58b4199f2bdc8f1ff16008ac940321f5efa67c78e90d870f0b9e981c6a181d9"
+    },
+    {
+      "from": "where lights die",
+      "to": "Where The Light Dies",
+      "definitionSha256": "2d0e593351c18954873ec062bb0004fd27839c69ec105d14adc3df6e93416f8b"
+    },
+    {
+      "from": "whirl of bones",
+      "to": "Whirl of Bones",
+      "definitionSha256": "c2aecfc7a74a791a0ffd17f1a15144b85a8a2fb7da369d322e138eb667d26c64"
+    },
+    {
+      "from": "wild shape",
+      "to": "Wild Shape",
+      "definitionSha256": "7522007924d42561ca84a9f490eff0e64e109f3bc01fd3d7cc3ac9ced96b61e4"
+    },
+    {
+      "from": "wind walk",
+      "to": "Wind Walk",
+      "definitionSha256": "582a3ae3efe77118ee2f4a2a1606c74399f51b827efc10bb600148197c9f5f69"
+    },
+    {
+      "from": "wings",
+      "to": "Wings",
+      "definitionSha256": "96f7bbdb9917f9290189339eb5005fc50180f367c3456ce1c4d51c327d31ecc7"
+    },
+    {
+      "from": "wither",
+      "to": "Wither",
+      "definitionSha256": "1e44dbe3fd929f8b4e5d32dc45ac1c60524c76d48c4ec492d91ce434c1a83402"
+    },
+    {
+      "from": "witnessed once, worked once",
+      "to": "Witnessed Once, Worked Once",
+      "definitionSha256": "4ff9eca833f3af33031add028586c4b34bf4bac75510a724d442c679221f257b"
+    },
+    {
+      "from": "word of the score",
+      "to": "Word of the Score",
+      "definitionSha256": "8b540107589b2f702c762d332be12bb366851684d2519f0a30c032c35e1a66e2"
+    },
+    {
+      "from": "wordless command",
+      "to": "Wordless Command",
+      "definitionSha256": "4026c8870849089d26ad9e64e79f73cdf8dbe8e7833a9e243ace11b474f88a2a"
+    },
+    {
+      "from": "wrath that walks",
+      "to": "Wrath That Walks",
+      "definitionSha256": "e1f5335e8f6db02befd0cf6b4b99459b17ea82d91c3e7626ffbd1554a9eac936"
+    },
+    {
+      "from": "wyrmform",
+      "to": "Wyrmform",
+      "definitionSha256": "4537746607a1ea5f2cbab8227e6d7344fc228197080d18bba21a4213c9a42567"
+    },
+    {
+      "from": "zone of truth",
+      "to": "Zone of Truth",
+      "definitionSha256": "08618f7377bed19170511200e4ae8d40d305a22c9a283d898367ae78ee7a1da3"
+    }
+  ]
+}

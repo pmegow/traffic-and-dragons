@@ -83,8 +83,13 @@ var CapabilityNames=(function(){
     if(!data||data.format!==FORMAT||!Array.isArray(data.names))throw new Error("This is not a capability names file.");
     if(data.names.length!==expected.length)throw new Error("The file does not match this Bible. Keep the file so its choices can be reconciled.");
     data.names.forEach(function(row){
-      if(!row||typeof row.from!=="string"||typeof row.to!=="string"||!Object.prototype.hasOwnProperty.call(bible,row.from)||Object.prototype.hasOwnProperty.call(byName,row.from))throw new Error("The file has an unknown, repeated, or malformed original name.");
-      byName[row.from]=row.to;
+      if(!row||typeof row.from!=="string"||typeof row.to!=="string")throw new Error("The file has an unknown, repeated, or malformed original name.");
+      var key=row.from;
+      if(!Object.prototype.hasOwnProperty.call(bible,key)&&typeof CAPABILITY_RENAMES!=="undefined"){
+        CAPABILITY_RENAMES.some(function(rename){if(capBaseName(rename.from)!==key)return false;key=capBaseName(rename.to);return true;});
+      }
+      if(!Object.prototype.hasOwnProperty.call(bible,key)||Object.prototype.hasOwnProperty.call(byName,key))throw new Error("The file has an unknown, repeated, or malformed original name.");
+      byName[key]=row.to;
     });
     return expected.map(function(row){
       if(!Object.prototype.hasOwnProperty.call(byName,row.from))throw new Error("The file is missing a Bible name: "+row.from);

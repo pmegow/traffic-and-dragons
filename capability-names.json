@@ -1,2034 +1,2034 @@
 {
   "format": "traffic-and-dragons/capability-names/v1",
-  "readyToApply": false,
+  "readyToApply": true,
   "names": [
     {
       "from": "a call to arms",
-      "to": ""
-    },
-    {
-      "from": "a natural death",
-      "to": ""
-    },
-    {
-      "from": "absorb elements",
-      "to": ""
+      "to": "A Call to Arms"
     },
     {
       "from": "abyssal fury",
-      "to": ""
+      "to": "Abyssal Fury"
     },
     {
-      "from": "accelerated decay",
-      "to": ""
+      "from": "accelerate decay",
+      "to": "Accelerate Decay"
     },
     {
-      "from": "action surge",
-      "to": ""
+      "from": "afflict curse",
+      "to": "Afflict Curse"
     },
     {
       "from": "age",
-      "to": ""
+      "to": "Age"
     },
     {
       "from": "aid",
-      "to": ""
+      "to": "Aid"
     },
     {
       "from": "anchored soul",
-      "to": ""
+      "to": "Anchored Soul"
     },
     {
-      "from": "angel of death",
-      "to": ""
+      "from": "ancient shapes",
+      "to": "Ancient Shapes"
     },
     {
       "from": "apex predator",
-      "to": ""
+      "to": "Apex Predator"
+    },
+    {
+      "from": "arboreal gate",
+      "to": "Arboreal Gate"
     },
     {
       "from": "arcane bolt",
-      "to": ""
+      "to": "Arcane Bolt"
     },
     {
       "from": "arcane lock",
-      "to": ""
+      "to": "Arcane Lock"
     },
     {
       "from": "arcane shield",
-      "to": ""
+      "to": "Arcane Shield"
     },
     {
       "from": "arcane sight",
-      "to": ""
+      "to": "Arcane Sight"
     },
     {
       "from": "archmage hand",
-      "to": ""
+      "to": "Archmage Hand"
     },
     {
       "from": "army of bone",
-      "to": ""
+      "to": "Army of Bone"
+    },
+    {
+      "from": "arrest",
+      "to": "Arrest"
     },
     {
       "from": "aspect of the reaper",
-      "to": ""
+      "to": "Aspect of the Reaper"
     },
     {
       "from": "aspect of the undead",
-      "to": ""
+      "to": "Aspect of the Undead"
     },
     {
       "from": "astral steed",
-      "to": ""
+      "to": "Astral Steed"
     },
     {
       "from": "augury",
-      "to": ""
+      "to": "Augury"
     },
     {
       "from": "aura of courage",
-      "to": ""
+      "to": "Aura of Courage"
     },
     {
       "from": "aura of life",
-      "to": ""
+      "to": "Aura of Life"
     },
     {
       "from": "aura of protection",
-      "to": ""
+      "to": "Aura of Protection"
     },
     {
       "from": "aura of vitality",
-      "to": ""
+      "to": "Aura of Vitality"
     },
     {
-      "from": "avalanche of one",
-      "to": ""
-    },
-    {
-      "from": "avatar of the totem",
-      "to": ""
-    },
-    {
-      "from": "awaken",
-      "to": ""
-    },
-    {
-      "from": "banishment",
-      "to": ""
+      "from": "banish",
+      "to": "Banish"
     },
     {
       "from": "barkskin",
-      "to": ""
+      "to": "Barkskin"
+    },
+    {
+      "from": "barrage",
+      "to": "Barrage"
     },
     {
       "from": "battlefield miracle",
-      "to": ""
-    },
-    {
-      "from": "beacon of honesty",
-      "to": ""
-    },
-    {
-      "from": "beast spells",
-      "to": ""
+      "to": "Battlefield Miracle"
     },
     {
       "from": "bend luck",
-      "to": ""
-    },
-    {
-      "from": "bestow curse",
-      "to": ""
-    },
-    {
-      "from": "bigger they are",
-      "to": ""
-    },
-    {
-      "from": "binding ward",
-      "to": ""
-    },
-    {
-      "from": "blade barrier",
-      "to": ""
+      "to": "Bend Luck"
     },
     {
       "from": "blade of corruption",
-      "to": ""
+      "to": "Blade of Corruption"
     },
     {
       "from": "bleed",
-      "to": ""
+      "to": "Bleed"
     },
     {
       "from": "bless",
-      "to": ""
+      "to": "Bless"
     },
     {
       "from": "blight",
-      "to": ""
+      "to": "Blight"
     },
     {
-      "from": "blindness",
-      "to": ""
+      "from": "blind",
+      "to": "Blind"
     },
     {
       "from": "blindsense",
-      "to": ""
+      "to": "Blindsense"
     },
     {
       "from": "blink",
-      "to": ""
+      "to": "Blink"
     },
     {
-      "from": "blood armour",
-      "to": ""
+      "from": "blood armor",
+      "to": "Blood Armor"
+    },
+    {
+      "from": "blood for blood",
+      "to": "Blood for Blood"
     },
     {
       "from": "blood price",
-      "to": ""
-    },
-    {
-      "from": "blood to blood",
-      "to": ""
+      "to": "Blood Price"
     },
     {
       "from": "blur",
-      "to": ""
-    },
-    {
-      "from": "body of magic",
-      "to": ""
+      "to": "Blur"
     },
     {
       "from": "bonded companion",
-      "to": ""
+      "to": "Bonded Companion"
     },
     {
       "from": "bone armor",
-      "to": ""
+      "to": "Bone Armor"
     },
     {
       "from": "bone dragon",
-      "to": ""
+      "to": "Bone Dragon"
     },
     {
       "from": "bone golem",
-      "to": ""
+      "to": "Bone Golem"
     },
     {
       "from": "bone shards",
-      "to": ""
+      "to": "Bone Shards"
     },
     {
       "from": "bone structure",
-      "to": ""
+      "to": "Bone Structure"
     },
     {
       "from": "bone whisper",
-      "to": ""
+      "to": "Bone Whisper"
     },
     {
       "from": "booming blade",
-      "to": ""
+      "to": "Booming Blade"
     },
     {
       "from": "breathe water",
-      "to": ""
+      "to": "Breathe Water"
     },
     {
       "from": "brutal critical",
-      "to": ""
+      "to": "Brutal Critical"
     },
     {
       "from": "call lightning",
-      "to": ""
-    },
-    {
-      "from": "call the bolt",
-      "to": ""
+      "to": "Call Lightning"
     },
     {
       "from": "call the dawn",
-      "to": ""
+      "to": "Call the Dawn"
     },
     {
       "from": "camouflage",
-      "to": ""
+      "to": "Camouflage"
     },
     {
       "from": "catastrophic wound",
-      "to": ""
-    },
-    {
-      "from": "cause fear",
-      "to": ""
+      "to": "Catastrophic Wound"
     },
     {
       "from": "chain lightning",
-      "to": ""
+      "to": "Chain Lightning"
     },
     {
-      "from": "channel divinity: weight of account",
-      "to": ""
-    },
-    {
-      "from": "chaos feeds you",
-      "to": ""
+      "from": "chaos siphon",
+      "to": "Chaos Siphon"
     },
     {
       "from": "charm monster",
-      "to": ""
+      "to": "Charm Monster"
     },
     {
       "from": "charm person",
-      "to": ""
+      "to": "Charm Person"
     },
     {
       "from": "charybdis",
-      "to": ""
+      "to": "Charybdis"
     },
     {
       "from": "chill touch",
-      "to": ""
-    },
-    {
-      "from": "chromatic orb",
-      "to": ""
+      "to": "Chill Touch"
     },
     {
       "from": "cleanse",
-      "to": ""
+      "to": "Cleanse"
     },
     {
       "from": "cleansing burn",
-      "to": ""
+      "to": "Cleansing Burn"
     },
     {
       "from": "cold reading",
-      "to": ""
+      "to": "Cold Reading"
     },
     {
       "from": "combine undead",
-      "to": ""
+      "to": "Combine Undead"
     },
     {
       "from": "command",
-      "to": ""
+      "to": "Command"
     },
     {
       "from": "commune with dead",
-      "to": ""
+      "to": "Commune with Dead"
     },
     {
-      "from": "companion of legend",
-      "to": ""
+      "from": "commune with nature",
+      "to": "Commune with Nature"
     },
     {
       "from": "comprehend languages",
-      "to": ""
+      "to": "Comprehend Languages"
     },
     {
       "from": "cone of cold",
-      "to": ""
+      "to": "Cone of Cold"
     },
     {
       "from": "confusion",
-      "to": ""
-    },
-    {
-      "from": "conjure animals",
-      "to": ""
-    },
-    {
-      "from": "conjure barrage",
-      "to": ""
+      "to": "Confusion"
     },
     {
       "from": "conscript undead",
-      "to": ""
+      "to": "Conscript Undead"
+    },
+    {
+      "from": "consecrate ground",
+      "to": "Consecrate Ground"
     },
     {
       "from": "consecrated arms",
-      "to": ""
-    },
-    {
-      "from": "consecrated ground",
-      "to": ""
+      "to": "Consecrated Arms"
     },
     {
       "from": "control water",
-      "to": ""
+      "to": "Control Water"
     },
     {
       "from": "controlled chaos",
-      "to": ""
+      "to": "Controlled Chaos"
     },
     {
       "from": "counter attack",
-      "to": ""
+      "to": "Counter Attack"
     },
     {
       "from": "counterspell",
-      "to": ""
+      "to": "Counterspell"
     },
     {
       "from": "creeping death",
-      "to": ""
+      "to": "Creeping Death"
     },
     {
       "from": "cull the herd",
-      "to": ""
+      "to": "Cull the Herd"
     },
     {
       "from": "cunning action",
-      "to": ""
+      "to": "Cunning Action"
     },
     {
       "from": "cure wounds",
-      "to": ""
+      "to": "Cure Wounds"
     },
     {
       "from": "damn",
-      "to": ""
+      "to": "Damn"
     },
     {
       "from": "dancing lights",
-      "to": ""
+      "to": "Dancing Lights"
+    },
+    {
+      "from": "dark favor",
+      "to": "Dark Favor"
     },
     {
       "from": "dark immunity",
-      "to": ""
+      "to": "Dark Immunity"
     },
     {
       "from": "darkness",
-      "to": ""
+      "to": "Darkness"
     },
     {
       "from": "darkvision",
-      "to": ""
+      "to": "Darkvision"
     },
     {
       "from": "death sight",
-      "to": ""
-    },
-    {
-      "from": "death waits",
-      "to": ""
+      "to": "Death Sight"
     },
     {
       "from": "death walk",
-      "to": ""
+      "to": "Death Walk"
     },
     {
       "from": "death ward",
-      "to": ""
+      "to": "Death Ward"
     },
     {
       "from": "decide the battle",
-      "to": ""
+      "to": "Decide the Battle"
+    },
+    {
+      "from": "defer death",
+      "to": "Defer Death"
     },
     {
       "from": "destroy undead",
-      "to": ""
+      "to": "Destroy Undead"
     },
     {
       "from": "detect magic",
-      "to": ""
+      "to": "Detect Magic"
     },
     {
       "from": "devil's trap",
-      "to": ""
+      "to": "Devil's Trap"
     },
     {
       "from": "diamond skin",
-      "to": ""
+      "to": "Diamond Skin"
     },
     {
       "from": "dire cremation",
-      "to": ""
+      "to": "Dire Cremation"
     },
     {
       "from": "dire phylactery",
-      "to": ""
+      "to": "Dire Phylactery"
     },
     {
       "from": "disciple of life",
-      "to": ""
+      "to": "Disciple of Life"
     },
     {
       "from": "disguise self",
-      "to": ""
+      "to": "Disguise Self"
     },
     {
       "from": "disintegrate",
-      "to": ""
+      "to": "Disintegrate"
     },
     {
       "from": "dispel magic",
-      "to": ""
+      "to": "Dispel Magic"
     },
     {
       "from": "divination",
-      "to": ""
+      "to": "Divination"
     },
     {
       "from": "divine intervention",
-      "to": ""
+      "to": "Divine Intervention"
     },
     {
       "from": "divine sense",
-      "to": ""
-    },
-    {
-      "from": "divine smite",
-      "to": ""
+      "to": "Divine Sense"
     },
     {
       "from": "divine strike",
-      "to": ""
+      "to": "Divine Strike"
     },
     {
       "from": "dominate beast",
-      "to": ""
+      "to": "Dominate Beast"
     },
     {
       "from": "door that opens",
-      "to": ""
+      "to": "Door That Opens"
     },
     {
       "from": "double attack",
-      "to": ""
+      "to": "Double Attack"
     },
     {
       "from": "draconic breath",
-      "to": ""
-    },
-    {
-      "from": "drag them back",
-      "to": ""
+      "to": "Draconic Breath"
     },
     {
       "from": "drain life",
-      "to": ""
+      "to": "Drain Life"
+    },
+    {
+      "from": "dread",
+      "to": "Dread"
+    },
+    {
+      "from": "druid's voice",
+      "to": "Druid's Voice"
     },
     {
       "from": "druidcraft",
-      "to": ""
+      "to": "Druidcraft"
     },
     {
       "from": "druidic",
-      "to": ""
+      "to": "Druidic"
     },
     {
       "from": "dwarven toughness",
-      "to": ""
+      "to": "Dwarven Toughness"
     },
     {
       "from": "earthquake",
-      "to": ""
+      "to": "Earthquake"
     },
     {
       "from": "eject soul",
-      "to": ""
+      "to": "Eject Soul"
     },
     {
       "from": "eldritch tendrils",
-      "to": ""
+      "to": "Eldritch Tendrils"
+    },
+    {
+      "from": "elemental orb",
+      "to": "Elemental Orb"
     },
     {
       "from": "elemental resistance",
-      "to": ""
+      "to": "Elemental Resistance"
+    },
+    {
+      "from": "elemental shape",
+      "to": "Elemental Shape"
     },
     {
       "from": "elemental vein",
-      "to": ""
+      "to": "Elemental Vein"
+    },
+    {
+      "from": "endless rage",
+      "to": "Endless Rage"
     },
     {
       "from": "ensnaring strike",
-      "to": ""
+      "to": "Ensnaring Strike"
     },
     {
       "from": "entangle",
-      "to": ""
+      "to": "Entangle"
     },
     {
       "from": "entropy incarnate",
-      "to": ""
+      "to": "Entropy Incarnate"
     },
     {
       "from": "escape artist",
-      "to": ""
+      "to": "Escape Artist"
     },
     {
       "from": "evasion",
-      "to": ""
+      "to": "Evasion"
     },
     {
       "from": "expertise",
-      "to": ""
+      "to": "Expertise"
     },
     {
       "from": "expertise — deception",
-      "to": ""
+      "to": "Expertise — Deception"
     },
     {
       "from": "expertise — stealth",
-      "to": ""
+      "to": "Expertise — Stealth"
     },
     {
       "from": "exploding corpse",
-      "to": ""
+      "to": "Exploding Corpse"
     },
     {
       "from": "extra attack",
-      "to": ""
+      "to": "Extra Attack"
     },
     {
       "from": "eye of the storm",
-      "to": ""
-    },
-    {
-      "from": "eyes of the dark",
-      "to": ""
+      "to": "Eye of the Storm"
     },
     {
       "from": "faerie fire",
-      "to": ""
-    },
-    {
-      "from": "false life",
-      "to": ""
+      "to": "Faerie Fire"
     },
     {
       "from": "fang and focus",
-      "to": ""
+      "to": "Fang and Focus"
     },
     {
       "from": "favored quarry",
-      "to": ""
+      "to": "Favored Quarry"
     },
     {
       "from": "fear",
-      "to": ""
+      "to": "Fear"
+    },
+    {
+      "from": "feat of strength",
+      "to": "Feat of Strength"
     },
     {
       "from": "feather fall",
-      "to": ""
+      "to": "Feather Fall"
     },
     {
       "from": "feral instinct",
-      "to": ""
+      "to": "Feral Instinct"
     },
     {
       "from": "fey ancestry",
-      "to": ""
+      "to": "Fey Ancestry"
     },
     {
       "from": "field intelligence",
-      "to": ""
+      "to": "Field Intelligence"
     },
     {
       "from": "field of entropy",
-      "to": ""
+      "to": "Field of Entropy"
     },
     {
       "from": "fighting style",
-      "to": ""
+      "to": "Fighting Style"
     },
     {
       "from": "find steed",
-      "to": ""
+      "to": "Find Steed"
     },
     {
       "from": "fire bolt",
-      "to": ""
+      "to": "Fire Bolt"
     },
     {
       "from": "fire lance",
-      "to": ""
+      "to": "Fire Lance"
     },
     {
       "from": "fire resistance",
-      "to": ""
+      "to": "Fire Resistance"
     },
     {
       "from": "fireball",
-      "to": ""
+      "to": "Fireball"
     },
     {
       "from": "firestorm shepherd",
-      "to": ""
+      "to": "Firestorm Shepherd"
     },
     {
       "from": "flame strike",
-      "to": ""
+      "to": "Flame Strike"
     },
     {
       "from": "flamestep",
-      "to": ""
+      "to": "Flamestep"
     },
     {
       "from": "flash",
-      "to": ""
+      "to": "Flash"
     },
     {
       "from": "flash flood",
-      "to": ""
+      "to": "Flash Flood"
+    },
+    {
+      "from": "fleeting vitality",
+      "to": "Fleeting Vitality"
     },
     {
       "from": "flesh golem",
-      "to": ""
+      "to": "Flesh Golem"
     },
     {
       "from": "fletch",
-      "to": ""
+      "to": "Fletch"
     },
     {
       "from": "fly",
-      "to": ""
+      "to": "Fly"
     },
     {
       "from": "fog bank",
-      "to": ""
+      "to": "Fog Bank"
     },
     {
       "from": "font of magic",
-      "to": ""
+      "to": "Font of Magic"
+    },
+    {
+      "from": "for whom the bell tolls",
+      "to": "For Whom the Bell Tolls"
     },
     {
       "from": "freedom of movement",
-      "to": ""
+      "to": "Freedom of Movement"
     },
     {
       "from": "furious leap",
-      "to": ""
+      "to": "Furious Leap"
     },
     {
       "from": "gathering rage",
-      "to": ""
+      "to": "Gathering Rage"
     },
     {
       "from": "gemstone warriors",
-      "to": ""
+      "to": "Gemstone Warriors"
     },
     {
       "from": "giant insect",
-      "to": ""
+      "to": "Giant Insect"
     },
     {
       "from": "globe of invulnerability",
-      "to": ""
+      "to": "Globe of Invulnerability"
     },
     {
       "from": "gnomish cunning",
-      "to": ""
+      "to": "Gnomish Cunning"
     },
     {
       "from": "grave touch",
-      "to": ""
+      "to": "Grave Touch"
     },
     {
       "from": "grease",
-      "to": ""
+      "to": "Grease"
     },
     {
       "from": "greater invisibility",
-      "to": ""
+      "to": "Greater Invisibility"
     },
     {
       "from": "greater restoration",
-      "to": ""
+      "to": "Greater Restoration"
     },
     {
       "from": "greater vessels",
-      "to": ""
+      "to": "Greater Vessels"
     },
     {
       "from": "grim harvest",
-      "to": ""
+      "to": "Grim Harvest"
     },
     {
       "from": "grim totem",
-      "to": ""
+      "to": "Grim Totem"
     },
     {
       "from": "group telepathy",
-      "to": ""
-    },
-    {
-      "from": "guardian of faith",
-      "to": ""
-    },
-    {
-      "from": "guardian of nature",
-      "to": ""
+      "to": "Group Telepathy"
     },
     {
       "from": "guidance",
-      "to": ""
+      "to": "Guidance"
     },
     {
       "from": "guided strike",
-      "to": ""
+      "to": "Guided Strike"
     },
     {
       "from": "guiding bolt",
-      "to": ""
+      "to": "Guiding Bolt"
     },
     {
       "from": "hail of thorns",
-      "to": ""
-    },
-    {
-      "from": "half made of night",
-      "to": ""
+      "to": "Hail of Thorns"
     },
     {
       "from": "half-fey charm",
-      "to": ""
-    },
-    {
-      "from": "haunting",
-      "to": ""
+      "to": "Half-Fey Charm"
     },
     {
       "from": "heal",
-      "to": ""
+      "to": "Heal"
     },
     {
       "from": "healing word",
-      "to": ""
+      "to": "Healing Word"
     },
     {
       "from": "hellish rebuke",
-      "to": ""
+      "to": "Hellish Rebuke"
     },
     {
       "from": "hemorrhage",
-      "to": ""
+      "to": "Hemorrhage"
     },
     {
       "from": "heroes' feast",
-      "to": ""
+      "to": "Heroes' Feast"
     },
     {
       "from": "hide from undead",
-      "to": ""
+      "to": "Hide from Undead"
     },
     {
       "from": "hide in plain sight",
-      "to": ""
+      "to": "Hide in Plain Sight"
     },
     {
       "from": "hold monster",
-      "to": ""
+      "to": "Hold Monster"
     },
     {
       "from": "hold person",
-      "to": ""
+      "to": "Hold Person"
     },
     {
       "from": "hold undead",
-      "to": ""
+      "to": "Hold Undead"
     },
     {
       "from": "hole",
-      "to": ""
+      "to": "Hole"
     },
     {
       "from": "holy ground",
-      "to": ""
+      "to": "Holy Ground"
     },
     {
       "from": "horrid wilting",
-      "to": ""
+      "to": "Horrid Wilting"
     },
     {
       "from": "hound of ill omen",
-      "to": ""
+      "to": "Hound of Ill Omen"
     },
     {
       "from": "hunter's mark",
-      "to": ""
+      "to": "Hunter's Mark"
     },
     {
       "from": "ice storm",
-      "to": ""
+      "to": "Ice Storm"
     },
     {
       "from": "identify",
-      "to": ""
+      "to": "Identify"
     },
     {
       "from": "identify plants and animals",
-      "to": ""
+      "to": "Identify Plants and Animals"
     },
     {
       "from": "implant memory",
-      "to": ""
+      "to": "Implant Memory"
     },
     {
       "from": "indomitable",
-      "to": ""
+      "to": "Indomitable"
+    },
+    {
+      "from": "inevitably",
+      "to": "Inevitably"
     },
     {
       "from": "inflict wounds",
-      "to": ""
+      "to": "Inflict Wounds"
     },
     {
       "from": "insect plague",
-      "to": ""
+      "to": "Insect Plague"
     },
     {
       "from": "intimidating presence",
-      "to": ""
+      "to": "Intimidating Presence"
     },
     {
       "from": "invisibility",
-      "to": ""
+      "to": "Invisibility"
     },
     {
       "from": "iron constitution",
-      "to": ""
-    },
-    {
-      "from": "it was their idea",
-      "to": ""
+      "to": "Iron Constitution"
     },
     {
       "from": "judge of the dead",
-      "to": ""
+      "to": "Judge of the Dead"
     },
     {
       "from": "judgment's eye",
-      "to": ""
+      "to": "Judgment's Eye"
+    },
+    {
+      "from": "juggernaut",
+      "to": "Juggernaut"
     },
     {
       "from": "keen senses",
-      "to": ""
+      "to": "Keen Senses"
     },
     {
       "from": "kindled heart",
-      "to": ""
+      "to": "Kindled Heart"
     },
     {
       "from": "kinship of the wild",
-      "to": ""
+      "to": "Kinship of the Wild"
     },
     {
       "from": "knock",
-      "to": ""
+      "to": "Knock"
     },
     {
       "from": "land's stride",
-      "to": ""
+      "to": "Land's Stride"
     },
     {
       "from": "last one standing",
-      "to": ""
+      "to": "Last One Standing"
     },
     {
       "from": "lay on hands",
-      "to": ""
+      "to": "Lay on Hands"
     },
     {
       "from": "layout memory",
-      "to": ""
+      "to": "Layout Memory"
     },
     {
       "from": "leap",
-      "to": ""
+      "to": "Leap"
     },
     {
       "from": "leave no witness",
-      "to": ""
+      "to": "Leave No Witness"
     },
     {
       "from": "ledger memory",
-      "to": ""
+      "to": "Ledger Memory"
+    },
+    {
+      "from": "legendary companion",
+      "to": "Legendary Companion"
     },
     {
       "from": "legerdemain",
-      "to": ""
+      "to": "Legerdemain"
     },
     {
       "from": "lesser restoration",
-      "to": ""
+      "to": "Lesser Restoration"
     },
     {
       "from": "lethe's kiss",
-      "to": ""
+      "to": "Lethe's Kiss"
     },
     {
       "from": "light",
-      "to": ""
+      "to": "Light"
     },
     {
       "from": "light undimmed",
-      "to": ""
+      "to": "Light Undimmed"
     },
     {
       "from": "lightning arrow",
-      "to": ""
+      "to": "Lightning Arrow"
+    },
+    {
+      "from": "lightning strike",
+      "to": "Lightning Strike"
     },
     {
       "from": "locate creature",
-      "to": ""
+      "to": "Locate Creature"
     },
     {
       "from": "lockpick",
-      "to": ""
+      "to": "Lockpick"
     },
     {
       "from": "mage hand",
-      "to": ""
+      "to": "Mage Hand"
     },
     {
       "from": "magic missile",
-      "to": ""
+      "to": "Magic Missile"
     },
     {
       "from": "magic weapon",
-      "to": ""
+      "to": "Magic Weapon"
+    },
+    {
+      "from": "magical sustenance",
+      "to": "Magical Sustenance"
     },
     {
       "from": "mana burn",
-      "to": ""
+      "to": "Mana Burn"
     },
     {
       "from": "mana leech",
-      "to": ""
+      "to": "Mana Leech"
     },
     {
       "from": "mask of the wild",
-      "to": ""
+      "to": "Mask of the Wild"
     },
     {
       "from": "mass charm",
-      "to": ""
+      "to": "Mass Charm"
     },
     {
       "from": "mass cure wounds",
-      "to": ""
+      "to": "Mass Cure Wounds"
     },
     {
       "from": "master poisoner",
-      "to": ""
+      "to": "Master Poisoner"
     },
     {
       "from": "message",
-      "to": ""
+      "to": "Message"
     },
     {
       "from": "metamagic",
-      "to": ""
+      "to": "Metamagic"
     },
     {
       "from": "miasma",
-      "to": ""
+      "to": "Miasma"
     },
     {
       "from": "minor illusion",
-      "to": ""
+      "to": "Minor Illusion"
     },
     {
       "from": "minor miracle",
-      "to": ""
+      "to": "Minor Miracle"
     },
     {
       "from": "mirror image",
-      "to": ""
+      "to": "Mirror Image"
     },
     {
       "from": "misty step",
-      "to": ""
+      "to": "Misty Step"
     },
     {
       "from": "moonbeam",
-      "to": ""
+      "to": "Moonbeam"
     },
     {
       "from": "more than mortal",
-      "to": ""
+      "to": "More Than Mortal"
     },
     {
       "from": "necrotic nova",
-      "to": ""
+      "to": "Necrotic Nova"
     },
     {
       "from": "necrotic resilience",
-      "to": ""
+      "to": "Necrotic Resilience"
     },
     {
       "from": "necrotic resistance",
-      "to": ""
+      "to": "Necrotic Resistance"
     },
     {
       "from": "never caught",
-      "to": ""
+      "to": "Never Caught"
     },
     {
       "from": "no light needed",
-      "to": ""
+      "to": "No Light Needed"
     },
     {
       "from": "no lock holds",
-      "to": ""
+      "to": "No Lock Holds"
     },
     {
       "from": "no rest for the wicked",
-      "to": ""
-    },
-    {
-      "from": "nowhere soft to land",
-      "to": ""
+      "to": "No Rest for the Wicked"
     },
     {
       "from": "oathlight",
-      "to": ""
+      "to": "Oathlight"
     },
     {
       "from": "old blood",
-      "to": ""
+      "to": "Old Blood"
     },
     {
       "from": "one against many",
-      "to": ""
+      "to": "One Against Many"
+    },
+    {
+      "from": "one with the night sky",
+      "to": "One With the Night Sky"
     },
     {
       "from": "one with the wild",
-      "to": ""
+      "to": "One with the Wild"
     },
     {
       "from": "operative's read",
-      "to": ""
+      "to": "Operative's Read"
     },
     {
       "from": "oubliate",
-      "to": ""
+      "to": "Oubliate"
     },
     {
       "from": "overchannel",
-      "to": ""
+      "to": "Overchannel"
     },
     {
       "from": "pack of two",
-      "to": ""
+      "to": "Pack of Two"
+    },
+    {
+      "from": "paragon of honesty",
+      "to": "Paragon of Honesty"
     },
     {
       "from": "pass without trace",
-      "to": ""
+      "to": "Pass Without Trace"
     },
     {
       "from": "path of the lich",
-      "to": ""
-    },
-    {
-      "from": "peak of the body",
-      "to": ""
+      "to": "Path of the Lich"
     },
     {
       "from": "penance",
-      "to": ""
+      "to": "Penance"
     },
     {
       "from": "phantasmal force",
-      "to": ""
+      "to": "Phantasmal Force"
     },
     {
       "from": "plant growth",
-      "to": ""
+      "to": "Plant Growth"
     },
     {
       "from": "poison immunity",
-      "to": ""
+      "to": "Poison Immunity"
     },
     {
       "from": "poison resistance",
-      "to": ""
+      "to": "Poison Resistance"
     },
     {
       "from": "polymorph",
-      "to": ""
+      "to": "Polymorph"
     },
     {
       "from": "possess thrall",
-      "to": ""
+      "to": "Possess Thrall"
     },
     {
-      "from": "power strike",
-      "to": ""
+      "from": "powerful strike",
+      "to": "Powerful Strike"
     },
     {
       "from": "presence of the wyrm",
-      "to": ""
+      "to": "Presence of the Wyrm"
     },
     {
       "from": "preserve life",
-      "to": ""
+      "to": "Preserve Life"
     },
     {
       "from": "prestidigitation",
-      "to": ""
+      "to": "Prestidigitation"
+    },
+    {
+      "from": "primal avalanche",
+      "to": "Primal Avalanche"
+    },
+    {
+      "from": "primal icon",
+      "to": "Primal Icon"
     },
     {
       "from": "produce flame",
-      "to": ""
+      "to": "Produce Flame"
     },
     {
       "from": "quills",
-      "to": ""
+      "to": "Quills"
+    },
+    {
+      "from": "radiant strike",
+      "to": "Radiant Strike"
     },
     {
       "from": "rage",
-      "to": ""
-    },
-    {
-      "from": "rage undying",
-      "to": ""
-    },
-    {
-      "from": "rage without end",
-      "to": ""
+      "to": "Rage"
     },
     {
       "from": "raise thrall",
-      "to": ""
+      "to": "Raise Thrall"
     },
     {
       "from": "ray of enfeeblement",
-      "to": ""
+      "to": "Ray of Enfeeblement"
     },
     {
       "from": "ray of frost",
-      "to": ""
+      "to": "Ray of Frost"
     },
     {
       "from": "ray of sickness",
-      "to": ""
+      "to": "Ray of Sickness"
     },
     {
       "from": "read the beast",
-      "to": ""
+      "to": "Read the Beast"
     },
     {
       "from": "read the night",
-      "to": ""
+      "to": "Read the Night"
     },
     {
       "from": "reap the field",
-      "to": ""
+      "to": "Reap the Field"
+    },
+    {
+      "from": "reap the whirlwind",
+      "to": "Reap the Whirlwind"
     },
     {
       "from": "reckless attack",
-      "to": ""
+      "to": "Reckless Attack"
+    },
+    {
+      "from": "redirect element",
+      "to": "Redirect Element"
     },
     {
       "from": "relentless endurance",
-      "to": ""
+      "to": "Relentless Endurance"
     },
     {
       "from": "resilience",
-      "to": ""
+      "to": "Resilience"
     },
     {
       "from": "restore limb",
-      "to": ""
+      "to": "Restore Limb"
     },
     {
       "from": "resurrection",
-      "to": ""
+      "to": "Resurrection"
     },
     {
       "from": "revivify",
-      "to": ""
+      "to": "Revivify"
     },
     {
       "from": "rewrite the odds",
-      "to": ""
+      "to": "Rewrite the Odds"
     },
     {
       "from": "ride the wind",
-      "to": ""
+      "to": "Ride the Wind"
     },
     {
       "from": "rigor mortis",
-      "to": ""
+      "to": "Rigor Mortis"
     },
     {
       "from": "ritual working",
-      "to": ""
+      "to": "Ritual Working"
     },
     {
       "from": "root and branch",
-      "to": ""
+      "to": "Root and Branch"
     },
     {
       "from": "roots of the world",
-      "to": ""
+      "to": "Roots of the World"
     },
     {
       "from": "rot",
-      "to": ""
+      "to": "Rot"
     },
     {
       "from": "ruin",
-      "to": ""
+      "to": "Ruin"
     },
     {
-      "from": "rust in the air",
-      "to": ""
+      "from": "rust",
+      "to": "Rust"
     },
     {
       "from": "sacred flame",
-      "to": ""
+      "to": "Sacred Flame"
     },
     {
       "from": "saint's vessel",
-      "to": ""
+      "to": "Saint's Vessel"
     },
     {
       "from": "sanctuary",
-      "to": ""
+      "to": "Sanctuary"
     },
     {
       "from": "sap and stone",
-      "to": ""
+      "to": "Sap and Stone"
+    },
+    {
+      "from": "sapient spark",
+      "to": "Sapient Spark"
     },
     {
       "from": "scorching ray",
-      "to": ""
+      "to": "Scorching Ray"
     },
     {
       "from": "season of wrath",
-      "to": ""
+      "to": "Season of Wrath"
     },
     {
       "from": "season's champion",
-      "to": ""
+      "to": "Season's Champion"
     },
     {
       "from": "second skin",
-      "to": ""
+      "to": "Second Skin"
     },
     {
       "from": "see in magical darkness",
-      "to": ""
+      "to": "See in Magical Darkness"
     },
     {
       "from": "see invisible",
-      "to": ""
+      "to": "See Invisible"
     },
     {
       "from": "sentence passed",
-      "to": ""
+      "to": "Sentence Passed"
+    },
+    {
+      "from": "sentinel",
+      "to": "Sentinel"
+    },
+    {
+      "from": "set the scene",
+      "to": "Set the Scene"
     },
     {
       "from": "seventy-two shapes",
-      "to": ""
+      "to": "Seventy-Two Shapes"
     },
     {
       "from": "shackles of bone",
-      "to": ""
+      "to": "Shackles of Bone"
     },
     {
       "from": "shadow blade",
-      "to": ""
+      "to": "Shadow Blade"
     },
     {
       "from": "shadow step",
-      "to": ""
+      "to": "Shadow Step"
     },
     {
       "from": "shadow walk",
-      "to": ""
-    },
-    {
-      "from": "shape of the world",
-      "to": ""
+      "to": "Shadow Walk"
     },
     {
       "from": "shape shift",
-      "to": ""
-    },
-    {
-      "from": "shapes of the ice years",
-      "to": ""
+      "to": "Shape Shift"
     },
     {
       "from": "shared senses",
-      "to": ""
+      "to": "Shared Senses"
     },
     {
       "from": "shield",
-      "to": ""
+      "to": "Shield"
     },
     {
       "from": "shield of faith",
-      "to": ""
+      "to": "Shield of Faith"
     },
     {
       "from": "shield the weak",
-      "to": ""
+      "to": "Shield the Weak"
     },
     {
       "from": "shield wall",
-      "to": ""
+      "to": "Shield Wall"
     },
     {
       "from": "shillelagh",
-      "to": ""
+      "to": "Shillelagh"
     },
     {
       "from": "shrink",
-      "to": ""
+      "to": "Shrink"
     },
     {
       "from": "shrug it off",
-      "to": ""
+      "to": "Shrug It Off"
     },
     {
       "from": "sigil reading",
-      "to": ""
+      "to": "Sigil Reading"
     },
     {
       "from": "silence",
-      "to": ""
+      "to": "Silence"
     },
     {
       "from": "silent image",
-      "to": ""
+      "to": "Silent Image"
     },
     {
       "from": "silent stalker",
-      "to": ""
+      "to": "Silent Stalker"
     },
     {
       "from": "siphon life",
-      "to": ""
+      "to": "Siphon Life"
     },
     {
       "from": "slayer of legends",
-      "to": ""
+      "to": "Slayer of Legends"
     },
     {
       "from": "sleep",
-      "to": ""
+      "to": "Sleep"
     },
     {
       "from": "sleep of the dead",
-      "to": ""
+      "to": "Sleep of the Dead"
     },
     {
       "from": "slow",
-      "to": ""
+      "to": "Slow"
     },
     {
       "from": "small size",
-      "to": ""
+      "to": "Small Size"
     },
     {
       "from": "smite",
-      "to": ""
+      "to": "Smite"
     },
     {
       "from": "sneak attack",
-      "to": ""
+      "to": "Sneak Attack"
     },
     {
       "from": "sorcerous restoration",
-      "to": ""
+      "to": "Sorcerous Restoration"
     },
     {
       "from": "soul cage",
-      "to": ""
+      "to": "Soul Cage"
     },
     {
       "from": "soul puppet",
-      "to": ""
+      "to": "Soul Puppet"
     },
     {
       "from": "soul steal",
-      "to": ""
+      "to": "Soul Steal"
     },
     {
       "from": "soulfire",
-      "to": ""
+      "to": "Soulfire"
     },
     {
       "from": "sovereign of the night",
-      "to": ""
+      "to": "Sovereign of the Night"
     },
     {
       "from": "spare the dying",
-      "to": ""
+      "to": "Spare the Dying"
     },
     {
       "from": "speak with animals",
-      "to": ""
+      "to": "Speak with Animals"
     },
     {
       "from": "speak with dead",
-      "to": ""
+      "to": "Speak with Dead"
+    },
+    {
+      "from": "spectral binding",
+      "to": "Spectral Binding"
     },
     {
       "from": "spellblade",
-      "to": ""
+      "to": "Spellblade"
     },
     {
       "from": "spider climb",
-      "to": ""
+      "to": "Spider Climb"
     },
     {
       "from": "spike growth",
-      "to": ""
+      "to": "Spike Growth"
     },
     {
       "from": "spirit guardians",
-      "to": ""
+      "to": "Spirit Guardians"
     },
     {
       "from": "spirit walk",
-      "to": ""
+      "to": "Spirit Walk"
     },
     {
       "from": "spiritual weapon",
-      "to": ""
+      "to": "Spiritual Weapon"
     },
     {
       "from": "split weave",
-      "to": ""
+      "to": "Split Weave"
     },
     {
       "from": "staggering smite",
-      "to": ""
+      "to": "Staggering Smite"
     },
     {
       "from": "star fall",
-      "to": ""
+      "to": "Star Fall"
     },
     {
       "from": "stolen voice",
-      "to": ""
+      "to": "Stolen Voice"
     },
     {
       "from": "stonecunning",
-      "to": ""
+      "to": "Stonecunning"
     },
     {
       "from": "storm shroud",
-      "to": ""
+      "to": "Storm Shroud"
     },
     {
       "from": "strength of legend",
-      "to": ""
+      "to": "Strength of Legend"
     },
     {
       "from": "stunning blow",
-      "to": ""
+      "to": "Stunning Blow"
     },
     {
       "from": "succor",
-      "to": ""
+      "to": "Succor"
+    },
+    {
+      "from": "suggestion",
+      "to": "Suggestion"
+    },
+    {
+      "from": "summon animals",
+      "to": "Summon Animals"
     },
     {
       "from": "summon item",
-      "to": ""
+      "to": "Summon Item"
     },
     {
       "from": "sunbeam",
-      "to": ""
+      "to": "Sunbeam"
     },
     {
       "from": "sundering stroke",
-      "to": ""
+      "to": "Sundering Stroke"
     },
     {
       "from": "sunlight sensitivity",
-      "to": ""
+      "to": "Sunlight Sensitivity"
     },
     {
       "from": "superior darkvision",
-      "to": ""
+      "to": "Superior Darkvision"
     },
     {
       "from": "sure shot",
-      "to": ""
+      "to": "Sure Shot"
+    },
+    {
+      "from": "surge",
+      "to": "Surge"
     },
     {
       "from": "swift quiver",
-      "to": ""
+      "to": "Swift Quiver"
     },
     {
       "from": "taunt",
-      "to": ""
+      "to": "Taunt"
     },
     {
       "from": "telekinesis",
-      "to": ""
+      "to": "Telekinesis"
     },
     {
       "from": "telepathy",
-      "to": ""
+      "to": "Telepathy"
     },
     {
       "from": "terrifying frenzy",
-      "to": ""
+      "to": "Terrifying Frenzy"
     },
     {
       "from": "terror in the dark",
-      "to": ""
+      "to": "Terror in the Dark"
     },
     {
       "from": "thaumaturgy",
-      "to": ""
+      "to": "Thaumaturgy"
     },
     {
       "from": "the battlefield is a board",
-      "to": ""
+      "to": "The Battlefield Is a Board"
     },
     {
       "from": "the beast beneath",
-      "to": ""
+      "to": "The Beast Beneath"
     },
     {
       "from": "the blade keeps faith",
-      "to": ""
+      "to": "The Blade Keeps Faith"
     },
     {
       "from": "the blessing holds",
-      "to": ""
+      "to": "The Blessing Holds"
+    },
+    {
+      "from": "the called shot",
+      "to": "The Called Shot"
     },
     {
       "from": "the casing eye",
-      "to": ""
+      "to": "The Casing Eye"
     },
     {
       "from": "the challenge",
-      "to": ""
+      "to": "The Challenge"
     },
     {
       "from": "the dark between",
-      "to": ""
+      "to": "The Dark Between"
     },
     {
       "from": "the falling star",
-      "to": ""
+      "to": "The Falling Star"
     },
     {
       "from": "the final accounting",
-      "to": ""
+      "to": "The Final Accounting"
     },
     {
       "from": "the first beast",
-      "to": ""
+      "to": "The First Beast"
     },
     {
       "from": "the first blow is the last",
-      "to": ""
+      "to": "The First Blow Is the Last"
     },
     {
       "from": "the first fire",
-      "to": ""
+      "to": "The First Fire"
     },
     {
       "from": "the gentle hand",
-      "to": ""
+      "to": "The Gentle Hand"
     },
     {
       "from": "the god of battle attends",
-      "to": ""
+      "to": "The God of Battle Attends"
     },
     {
       "from": "the great spirit's voice",
-      "to": ""
+      "to": "The Great Spirit's Voice"
     },
     {
       "from": "the green ash",
-      "to": ""
+      "to": "The Green Ash"
     },
     {
       "from": "the green vow",
-      "to": ""
+      "to": "The Green Vow"
     },
     {
       "from": "the half-form",
-      "to": ""
+      "to": "The Half-Form"
     },
     {
       "from": "the impossible shot",
-      "to": ""
+      "to": "The Impossible Shot"
     },
     {
       "from": "the impossible theft",
-      "to": ""
+      "to": "The Impossible Theft"
     },
     {
       "from": "the inevitable end",
-      "to": ""
+      "to": "The Inevitable End"
     },
     {
       "from": "the knee",
-      "to": ""
+      "to": "The Knee"
     },
     {
       "from": "the last great hunt",
-      "to": ""
+      "to": "The Last Great Hunt"
     },
     {
       "from": "the last red day",
-      "to": ""
+      "to": "The Last Red Day"
     },
     {
       "from": "the law",
-      "to": ""
+      "to": "The Law"
     },
     {
       "from": "the line holds",
-      "to": ""
+      "to": "The Line Holds"
     },
     {
       "from": "the long hunt",
-      "to": ""
+      "to": "The Long Hunt"
     },
     {
       "from": "the long night",
-      "to": ""
+      "to": "The Long Night"
     },
     {
       "from": "the missive",
-      "to": ""
+      "to": "The Missive"
     },
     {
       "from": "the moving heavens",
-      "to": ""
+      "to": "The Moving Heavens"
     },
     {
       "from": "the named enemy",
-      "to": ""
+      "to": "The Named Enemy"
     },
     {
       "from": "the oath",
-      "to": ""
+      "to": "The Oath"
     },
     {
       "from": "the old light",
-      "to": ""
+      "to": "The Old Light"
     },
     {
       "from": "the old switcheroo",
-      "to": ""
+      "to": "The Old Switcheroo"
     },
     {
       "from": "the plan holds",
-      "to": ""
+      "to": "The Plan Holds"
     },
     {
       "from": "the progenitor's due",
-      "to": ""
+      "to": "The Progenitor's Due"
     },
     {
       "from": "the read",
-      "to": ""
+      "to": "The Read"
     },
     {
       "from": "the return",
-      "to": ""
+      "to": "The Return"
     },
     {
       "from": "the shadow half",
-      "to": ""
+      "to": "The Shadow Half"
     },
     {
       "from": "the shirt off your back",
-      "to": ""
+      "to": "The Shirt Off Your Back"
     },
     {
       "from": "the sky entire",
-      "to": ""
+      "to": "The Sky Entire"
     },
     {
       "from": "the standing ward",
-      "to": ""
+      "to": "The Standing Ward"
     },
     {
       "from": "the story runs ahead",
-      "to": ""
+      "to": "The Story Runs Ahead"
     },
     {
-      "from": "the telling blow",
-      "to": ""
-    },
-    {
-      "from": "the turning move",
-      "to": ""
+      "from": "the turning tide",
+      "to": "The Turning TIde"
     },
     {
       "from": "the unbroken line",
-      "to": ""
+      "to": "The Unbroken Line"
     },
     {
       "from": "the unseen path",
-      "to": ""
+      "to": "The Unseen Path"
     },
     {
       "from": "the walking tempest",
-      "to": ""
+      "to": "The Walking Tempest"
     },
     {
       "from": "the wild run",
-      "to": ""
+      "to": "The Wild Run"
     },
     {
       "from": "the word",
-      "to": ""
+      "to": "The Word"
     },
     {
       "from": "the yoke",
-      "to": ""
+      "to": "The Yoke"
     },
     {
-      "from": "thorn whip",
-      "to": ""
+      "from": "thorn lash",
+      "to": "Thorn Lash"
     },
     {
       "from": "threat taxonomy",
-      "to": ""
+      "to": "Threat Taxonomy"
     },
     {
       "from": "three sisters",
-      "to": ""
+      "to": "Three Sisters"
     },
     {
       "from": "thunderwave",
-      "to": ""
+      "to": "Thunderwave"
     },
     {
       "from": "tide of shapes",
-      "to": ""
+      "to": "Tide of Shapes"
     },
     {
       "from": "tides of chaos",
-      "to": ""
+      "to": "Tides of Chaos"
     },
     {
-      "from": "toll the dead",
-      "to": ""
+      "from": "tip the scales",
+      "to": "Tip the Scales"
     },
     {
       "from": "totem aspect",
-      "to": ""
+      "to": "Totem Aspect"
     },
     {
       "from": "totem spirit",
-      "to": ""
+      "to": "Totem Spirit"
     },
     {
       "from": "trackless step",
-      "to": ""
+      "to": "Trackless Step"
     },
     {
       "from": "trance",
-      "to": ""
+      "to": "Trance"
     },
     {
       "from": "travelling wounds",
-      "to": ""
-    },
-    {
-      "from": "tree stride",
-      "to": ""
+      "to": "Travelling Wounds"
     },
     {
       "from": "turn undead",
-      "to": ""
+      "to": "Turn Undead"
     },
     {
       "from": "turnabout",
-      "to": ""
+      "to": "Turnabout"
     },
     {
       "from": "two hearts, one life",
-      "to": ""
+      "to": "Two Hearts, One Life"
     },
     {
       "from": "two totems",
-      "to": ""
+      "to": "Two Totems"
     },
     {
       "from": "uncanny dodge",
-      "to": ""
+      "to": "Uncanny Dodge"
     },
     {
       "from": "undead sense",
-      "to": ""
+      "to": "Undead Sense"
     },
     {
       "from": "undead thrall",
-      "to": ""
+      "to": "Undead Thrall"
     },
     {
       "from": "undying green",
-      "to": ""
+      "to": "Undying Green"
+    },
+    {
+      "from": "undying rage",
+      "to": "Undying Rage"
     },
     {
       "from": "unmoored sense",
-      "to": ""
+      "to": "Unmoored Sense"
     },
     {
       "from": "unraveling",
-      "to": ""
+      "to": "Unraveling"
     },
     {
       "from": "unraveling presence",
-      "to": ""
+      "to": "Unraveling Presence"
     },
     {
       "from": "unsettling presence",
-      "to": ""
-    },
-    {
-      "from": "unstoppable",
-      "to": ""
+      "to": "Unsettling Presence"
     },
     {
       "from": "vampiric assault",
-      "to": ""
+      "to": "Vampiric Assault"
     },
     {
       "from": "vampiric charm",
-      "to": ""
+      "to": "Vampiric Charm"
     },
     {
       "from": "vampiric courtesan",
-      "to": ""
+      "to": "Vampiric Courtesan"
     },
     {
       "from": "vampiric touch",
-      "to": ""
+      "to": "Vampiric Touch"
     },
     {
       "from": "venomous undergrowth",
-      "to": ""
+      "to": "Venomous Undergrowth"
     },
     {
       "from": "ventriloquism",
-      "to": ""
+      "to": "Ventriloquism"
     },
     {
       "from": "visitation",
-      "to": ""
+      "to": "Visitation"
     },
     {
       "from": "voice of the land",
-      "to": ""
+      "to": "Voice of the Land"
     },
     {
       "from": "volley",
-      "to": ""
+      "to": "Volley"
     },
     {
       "from": "wall of  thorns",
-      "to": ""
+      "to": "Wall of  Thorns"
+    },
+    {
+      "from": "wall of blades",
+      "to": "Wall of Blades"
     },
     {
       "from": "wall of fire",
-      "to": ""
+      "to": "Wall of Fire"
     },
     {
       "from": "wall of force",
-      "to": ""
+      "to": "Wall of Force"
     },
     {
       "from": "wall of misdirection",
-      "to": ""
+      "to": "Wall of Misdirection"
     },
     {
       "from": "wall of stone",
-      "to": ""
+      "to": "Wall of Stone"
     },
     {
       "from": "wall of thorns",
-      "to": ""
+      "to": "Wall of Thorns"
     },
     {
       "from": "war priest",
-      "to": ""
+      "to": "War Priest"
     },
     {
       "from": "war shape",
-      "to": ""
+      "to": "War Shape"
     },
     {
       "from": "ward architecture",
-      "to": ""
+      "to": "Ward Architecture"
+    },
+    {
+      "from": "ward of protection",
+      "to": "Ward of Protection"
     },
     {
       "from": "wave of scarabs",
-      "to": ""
+      "to": "Wave of Scarabs"
     },
     {
       "from": "weapon bond",
-      "to": ""
+      "to": "Weapon Bond"
     },
     {
       "from": "weapon mastery",
-      "to": ""
+      "to": "Weapon Mastery"
     },
     {
       "from": "wear the sky",
-      "to": ""
+      "to": "Wear the Sky"
     },
     {
-      "from": "where lights die",
-      "to": ""
+      "from": "weight of account",
+      "to": "Weight of Account"
+    },
+    {
+      "from": "where the light dies",
+      "to": "Where The Light Dies"
     },
     {
       "from": "whirl of bones",
-      "to": ""
+      "to": "Whirl of Bones"
     },
     {
       "from": "wild shape",
-      "to": ""
+      "to": "Wild Shape"
     },
     {
       "from": "wind walk",
-      "to": ""
+      "to": "Wind Walk"
     },
     {
       "from": "wings",
-      "to": ""
+      "to": "Wings"
     },
     {
       "from": "wither",
-      "to": ""
+      "to": "Wither"
     },
     {
       "from": "witnessed once, worked once",
-      "to": ""
+      "to": "Witnessed Once, Worked Once"
     },
     {
       "from": "word of the score",
-      "to": ""
+      "to": "Word of the Score"
     },
     {
       "from": "wordless command",
-      "to": ""
+      "to": "Wordless Command"
     },
     {
       "from": "wrath that walks",
-      "to": ""
+      "to": "Wrath That Walks"
     },
     {
       "from": "wyrmform",
-      "to": ""
+      "to": "Wyrmform"
     },
     {
       "from": "zone of truth",
-      "to": ""
+      "to": "Zone of Truth"
     }
   ]
 }

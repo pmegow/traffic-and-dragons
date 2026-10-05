@@ -5,6 +5,7 @@ function createStore(root){
   function rules(){
     const box={},html=fs.readFileSync(path.join(root,'capability-names.html'),'utf8');
     vm.runInNewContext(fs.readFileSync(path.join(root,'capability_bible.js'),'utf8'),box);
+    vm.runInNewContext(fs.readFileSync(path.join(root,'data.js'),'utf8'),box);
     const core=html.match(/<script id="names-core">([\s\S]*?)<\/script>/);if(!core)throw Error('Capability naming rules are unavailable.');
     vm.runInNewContext(core[1],box);return box;
   }

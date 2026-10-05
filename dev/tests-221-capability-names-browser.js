@@ -2,7 +2,7 @@
 const fs=require('fs'),path=require('path'),os=require('os'),assert=require('assert/strict');
 const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..'),scratch=fs.mkdtempSync(path.join(os.tmpdir(),'tnd-names-'));
-for(const file of ['capability-names.html','capability_bible.js'])fs.copyFileSync(path.join(root,file),path.join(scratch,file));
+for(const file of ['capability-names.html','capability_bible.js','data.js'])fs.copyFileSync(path.join(root,file),path.join(scratch,file));
 const store=require('./capability-names-store.js').createStore(scratch);
 let failed=0,downloads=0,refuseSave=false,holdSave=null;
 async function savePage(page){await page.waitForFunction(()=>!document.getElementById('save').disabled);await page.locator('#save').click();await page.waitForFunction(()=>document.getElementById('file-state').textContent.indexOf('Saved capability-names.json')===0);return JSON.parse(store.read().text);}

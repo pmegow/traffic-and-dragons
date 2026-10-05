@@ -90,15 +90,15 @@ var ANCS=[
 // classDef()/classDefs()/classFeaturesAt()/archFeaturesAt()/classXpLevels() (helpers.js).
 // SPELLS/ARCH_SPELLS below remain the CREATION pick pools until #72 C2 lands spell growth.
 var SPELLS={
-  "Sorcerer":{cantrips:["Fire Bolt","Ray of Frost","Mage Hand","Prestidigitation"],1:["Magic Missile","Shield","Thunderwave","Chromatic Orb"],2:["Misty Step","Scorching Ray","Hold Person","Invisibility"],3:["Fireball","Counterspell","Fly"]},
+  "Sorcerer":{cantrips:["Fire Bolt","Ray of Frost","Mage Hand","Prestidigitation"],1:["Magic Missile","Shield","Thunderwave","Elemental Orb"],2:["Misty Step","Scorching Ray","Hold Person","Invisibility"],3:["Fireball","Counterspell","Fly"]},
   "Cleric":{cantrips:["Sacred Flame","Guidance","Spare the Dying","Thaumaturgy"],1:["Healing Word","Bless","Guiding Bolt","Shield of Faith"],2:["Spiritual Weapon","Hold Person","Lesser Restoration"],3:["Spirit Guardians","Revivify","Dispel Magic"]},
-  "Druid":{cantrips:["Produce Flame","Shillelagh","Druidcraft","Thorn Whip"],1:["Entangle","Healing Word","Thunderwave","Faerie Fire"],2:["Moonbeam","Barkskin","Pass Without Trace"],3:["Call Lightning","Conjure Animals","Plant Growth"]},
-  "Ranger":{1:["Hunter's Mark","Cure Wounds","Ensnaring Strike","Hail of Thorns"],2:["Pass Without Trace","Spike Growth","Silence"],3:["Conjure Barrage","Lightning Arrow"]},
-  "Paladin":{1:["Divine Smite","Cure Wounds","Bless","Shield of Faith"],2:["Aid","Magic Weapon","Find Steed"],3:["Revivify","Dispel Magic","Aura of Vitality"]},
-  "Necromancer":{cantrips:["Chill Touch","Toll the Dead","Bone Whisper","Grave Touch"],1:["Inflict Wounds","Ray of Sickness","False Life","Cause Fear","Bleed"],2:["Ray of Enfeeblement","Blindness","Shadow Step","Shackles of Bone","Rot"],3:["Vampiric Touch","Speak with Dead","Wave of Scarabs","Bestow Curse","Miasma","Death Walk"],4:["Rigor Mortis","Possess Thrall","Sleep of the Dead"]}
+  "Druid":{cantrips:["Produce Flame","Shillelagh","Druidcraft","Thorn Lash"],1:["Entangle","Healing Word","Thunderwave","Faerie Fire"],2:["Moonbeam","Barkskin","Pass Without Trace"],3:["Call Lightning","Summon Animals","Plant Growth"]},
+  "Ranger":{1:["Hunter's Mark","Cure Wounds","Ensnaring Strike","Hail of Thorns"],2:["Pass Without Trace","Spike Growth","Silence"],3:["Barrage","Lightning Arrow"]},
+  "Paladin":{1:["Radiant Strike","Cure Wounds","Bless","Shield of Faith"],2:["Aid","Magic Weapon","Find Steed"],3:["Revivify","Dispel Magic","Aura of Vitality"]},
+  "Necromancer":{cantrips:["Chill Touch","For Whom the Bell Tolls","Bone Whisper","Grave Touch"],1:["Inflict Wounds","Ray of Sickness","Fleeting Vitality","Dread","Bleed"],2:["Ray of Enfeeblement","Blind","Shadow Step","Shackles of Bone","Rot"],3:["Vampiric Touch","Speak with Dead","Wave of Scarabs","Afflict Curse","Miasma","Death Walk"],4:["Rigor Mortis","Possess Thrall","Sleep of the Dead"]}
 };
 var ARCH_SPELLS={
-  "eldritchknight":{cantrips:["Fire Bolt","Booming Blade"],1:["Shield","Absorb Elements","Magic Missile"],2:["Misty Step","Mirror Image"]},
+  "eldritchknight":{cantrips:["Fire Bolt","Booming Blade"],1:["Shield","Redirect Element","Magic Missile"],2:["Misty Step","Mirror Image"]},
   "arcanetrickster":{cantrips:["Mage Hand","Minor Illusion","Message"],1:["Charm Person","Silent Image","Disguise Self","Feather Fall"],2:["Invisibility","Shadow Blade","Knock","Darkness","Shadow Step","Mirror Image"],3:["Blink","Lethe's Kiss"],4:["Oubliate"]}
 };
 var STAT_BUMP_LEVELS=[4,8];
@@ -262,7 +262,61 @@ var NAMES={
 // release (a Clear-for-Release concern) once no live save can predate the renames — leaving it
 // in forever would make an old name resolve to a new one for eternity, and a future capability
 // that legitimately reuses a retired name would be silently hijacked by its own history.
-var CAPABILITY_RENAMES=[];
+var CAPABILITY_RENAMES=[
+  {from:"a natural death",to:"Set the Scene"},
+  {from:"absorb elements",to:"Redirect Element"},
+  {from:"accelerated decay",to:"Accelerate Decay"},
+  {from:"action surge",to:"Surge"},
+  {from:"angel of death",to:"Inevitably"},
+  {from:"avalanche of one",to:"Primal Avalanche"},
+  {from:"avatar of the totem",to:"Primal Icon"},
+  {from:"awaken",to:"Sapient Spark"},
+  {from:"banishment",to:"Banish"},
+  {from:"beacon of honesty",to:"Paragon of Honesty"},
+  {from:"beast spells",to:"Druid's Voice"},
+  {from:"bestow curse",to:"Afflict Curse"},
+  {from:"bigger they are",to:"Tip the Scales"},
+  {from:"binding ward",to:"Ward of Protection"},
+  {from:"blade barrier",to:"Wall of Blades"},
+  {from:"blindness",to:"Blind"},
+  {from:"blood armour",to:"Blood Armor"},
+  {from:"blood to blood",to:"Blood for Blood"},
+  {from:"body of magic",to:"Magical Sustenance"},
+  {from:"call the bolt",to:"Lightning Strike"},
+  {from:"cause fear",to:"Dread"},
+  {from:"channel divinity: weight of account",to:"Weight of Account"},
+  {from:"chaos feeds you",to:"Chaos Siphon"},
+  {from:"chromatic orb",to:"Elemental Orb"},
+  {from:"companion of legend",to:"Legendary Companion"},
+  {from:"conjure animals",to:"Summon Animals"},
+  {from:"conjure barrage",to:"Barrage"},
+  {from:"consecrated ground",to:"Consecrate Ground"},
+  {from:"death waits",to:"Defer Death"},
+  {from:"divine smite",to:"Radiant Strike"},
+  {from:"drag them back",to:"Arrest"},
+  {from:"eyes of the dark",to:"Dark Favor"},
+  {from:"false life",to:"Fleeting Vitality"},
+  {from:"guardian of faith",to:"Sentinel"},
+  {from:"guardian of nature",to:"Commune with Nature"},
+  {from:"half made of night",to:"One With the Night Sky"},
+  {from:"haunting",to:"Spectral Binding"},
+  {from:"it was their idea",to:"Suggestion"},
+  {from:"nowhere soft to land",to:"Reap the Whirlwind"},
+  {from:"peak of the body",to:"Feat of Strength"},
+  {from:"power strike",to:"Powerful Strike"},
+  {from:"rage undying",to:"Undying Rage"},
+  {from:"rage without end",to:"Endless Rage"},
+  {from:"rust in the air",to:"Rust"},
+  {from:"shape of the world",to:"Elemental Shape"},
+  {from:"shapes of the ice years",to:"Ancient Shapes"},
+  {from:"the telling blow",to:"The Called Shot"},
+  {from:"the turning move",to:"The Turning TIde"},
+  {from:"thorn whip",to:"Thorn Lash"},
+  {from:"toll the dead",to:"For Whom the Bell Tolls"},
+  {from:"tree stride",to:"Arboreal Gate"},
+  {from:"unstoppable",to:"Juggernaut"},
+  {from:"where lights die",to:"Where The Light Dies"}
+];
 
 // #307 — the authored APP FAQ Table Talk may answer from (plain facts about the interface; the live File-menu
 // outline covers the menu, this covers everything the menu does not reach). Keep each answer to one or two

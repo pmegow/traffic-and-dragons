@@ -43,7 +43,7 @@ var CLASS_BIBLE = {
     ],
     "abilities": [
       {
-        "nm": "Power Strike",
+        "nm": "Powerful Strike",
         "ds": "+d6 bonus damage on a declared attack."
       },
       {
@@ -63,7 +63,7 @@ var CLASS_BIBLE = {
       "2": {
         "features": [
           {
-            "nm": "Action Surge",
+            "nm": "Surge",
             "ds": "one additional action, once per rest."
           }
         ]
@@ -119,7 +119,7 @@ var CLASS_BIBLE = {
       "17": {
         "features": [
           {
-            "nm": "Unstoppable",
+            "nm": "Juggernaut",
             "ds": "While you have hit points nothing takes you out of the fight — no stun, paralysis, restraint, prone, disarm, or forced movement. You can be killed; you cannot be handled."
           }
         ]
@@ -134,7 +134,7 @@ var CLASS_BIBLE = {
           "3": {
             "features": [
               {
-                "nm": "The Telling Blow",
+                "nm": "The Called Shot",
                 "ds": "Your strikes land where they hurt most — wounds you deal are graver than they have any right to be, and foes remember them."
               }
             ]
@@ -142,7 +142,7 @@ var CLASS_BIBLE = {
           "6": {
             "features": [
               {
-                "nm": "Peak of the Body",
+                "nm": "Feat of Strength",
                 "ds": "Any feat of raw athleticism a human could dream of, you can do: leap the chasm, kick down the oak door, carry the ox."
               }
             ]
@@ -205,7 +205,7 @@ var CLASS_BIBLE = {
           "10": {
             "features": [
               {
-                "nm": "The Turning Move",
+                "nm": "The Turning TIde",
                 "ds": "Once per combat, call the moment that turns the fight — trip, disarm, feint, rally — and it succeeds; named foes contest."
               }
             ]
@@ -249,7 +249,7 @@ var CLASS_BIBLE = {
         "spells": {
           "1": [
             "Shield",
-            "Absorb Elements",
+            "Redirect Element",
             "Magic Missile"
           ],
           "2": [
@@ -267,7 +267,7 @@ var CLASS_BIBLE = {
           "4": [
             "Wall of Fire",
             "Ice Storm",
-            "Banishment",
+            "Banish",
             "Greater Invisibility"
           ],
           "cantrips": [
@@ -516,7 +516,7 @@ var CLASS_BIBLE = {
           "14": {
             "features": [
               {
-                "nm": "A Natural Death",
+                "nm": "Set the Scene",
                 "ds": "Your kills wear whatever face you choose — a fall, a fever, a stopped heart; no one reads murder in them unless you want them to."
               }
             ]
@@ -524,7 +524,7 @@ var CLASS_BIBLE = {
           "18": {
             "features": [
               {
-                "nm": "Angel of Death",
+                "nm": "Inevitably",
                 "ds": "Once per day, nothing bars your approach to a target within 150 feet — walls gap, wards seam, guards look away. The kill and the leaving are still yours."
               }
             ]
@@ -612,7 +612,7 @@ var CLASS_BIBLE = {
           "6": {
             "features": [
               {
-                "nm": "It Was Their Idea",
+                "nm": "Suggestion",
                 "ds": "A suggestion you plant is remembered by the target as their own notion, and defended to others as such."
               }
             ]
@@ -703,12 +703,12 @@ var CLASS_BIBLE = {
         "Magic Missile",
         "Shield",
         "Thunderwave",
-        "Chromatic Orb",
+        "Elemental Orb",
         "Silent Image",
         "Sleep",
         "Ventriloquism",
         "Hole",
-        "Absorb Elements",
+        "Redirect Element",
         "Grease"
       ],
       "2": [
@@ -740,7 +740,7 @@ var CLASS_BIBLE = {
         "Ice Storm",
         "Wall of Fire",
         "Greater Invisibility",
-        "Banishment",
+        "Banish",
         "Polymorph",
         "Archmage Hand",
         "Stolen Voice"
@@ -822,7 +822,7 @@ var CLASS_BIBLE = {
       "15": {
         "features": [
           {
-            "nm": "Body of Magic",
+            "nm": "Magical Sustenance",
             "ds": "The flesh is half power now. Magic sustains you where the body fails — you barely need food, sleep, or air; poison and disease find nothing to grip; and you age at a crawl. The frailty remains: what cuts you still cuts."
           }
         ]
@@ -924,7 +924,7 @@ var CLASS_BIBLE = {
           "14": {
             "features": [
               {
-                "nm": "Chaos Feeds You",
+                "nm": "Chaos Siphon",
                 "ds": "Every surge, yours or the world's — wild magic, a miscast, an artifact's tantrum — pours power back into you instead of taking it. Standing in another caster's catastrophe, you are the only one getting stronger."
               }
             ]
@@ -955,7 +955,7 @@ var CLASS_BIBLE = {
           "3": {
             "features": [
               {
-                "nm": "Eyes of the Dark",
+                "nm": "Dark Favor",
                 "ds": "No darkness is dark to you, mundane or magical — and the dark answers small requests: torches gutter, shadows pool and stretch, a corner is always unlit when you need one. Something on the other side of the dark knows your name now."
               }
             ]
@@ -1058,14 +1058,14 @@ var CLASS_BIBLE = {
         "Fletch"
       ],
       "3": [
-        "Conjure Barrage",
+        "Barrage",
         "Lightning Arrow",
         "Breathe Water",
-        "Conjure Animals"
+        "Summon Animals"
       ],
       "4": [
         "Swift Quiver",
-        "Guardian of Nature",
+        "Commune with Nature",
         "Locate Creature",
         "Freedom of Movement"
       ]
@@ -1145,7 +1145,7 @@ var CLASS_BIBLE = {
           "3": {
             "features": [
               {
-                "nm": "Bigger They Are",
+                "nm": "Tip the Scales",
                 "ds": "Your first strike each round against a wounded or oversized foe deals +2d6 — the larger the target, the surer your point finds the seam."
               }
             ]
@@ -1169,7 +1169,7 @@ var CLASS_BIBLE = {
           "14": {
             "features": [
               {
-                "nm": "Nowhere Soft to Land",
+                "nm": "Reap the Whirlwind",
                 "ds": "Numbers stop meaning anything: foes gain no advantage from surrounding or flanking you, their opportunity strikes miss, and when three or more engage you, it's you who has the advantage."
               }
             ]
@@ -1232,7 +1232,7 @@ var CLASS_BIBLE = {
           "18": {
             "features": [
               {
-                "nm": "Companion of Legend",
+                "nm": "Legendary Companion",
                 "ds": "Your companion has grown into something from the old stories — dire-sized, cunning as a person, and known by name in three kingdoms. Enemies plan around it now, not you."
               }
             ]
@@ -1287,7 +1287,7 @@ var CLASS_BIBLE = {
           "18": {
             "features": [
               {
-                "nm": "Where Lights Die",
+                "nm": "Where The Light Dies",
                 "ds": "Night itself takes your side: once per day, drown a battlefield (60ft) in a darkness only you and your allies see through, for a whole scene."
               }
             ]
@@ -1374,7 +1374,7 @@ var CLASS_BIBLE = {
       "11": {
         "features": [
           {
-            "nm": "Rage Without End",
+            "nm": "Endless Rage",
             "ds": "Your rage lasts as long as the fight does, and dropping to 0 HP doesn't end it — you get one more round of fury on your feet before your body files its complaint."
           }
         ]
@@ -1453,7 +1453,7 @@ var CLASS_BIBLE = {
           "20": {
             "features": [
               {
-                "nm": "Avatar of the Totem",
+                "nm": "Primal Icon",
                 "ds": "Once per day, the totem wears YOU: become the spirit made flesh for a scene — a bear the size of a wagon, an eagle that blots the torchlight, a wolf out of the first winter. Your legend and the spirit's are the same story now."
               }
             ]
@@ -1492,7 +1492,7 @@ var CLASS_BIBLE = {
           "14": {
             "features": [
               {
-                "nm": "Rage Undying",
+                "nm": "Undying Rage",
                 "ds": "Frenzy no longer ends while enemies stand and costs no exhaustion after — and the first time each day you'd drop mid-frenzy, you stand back up at 1 HP, with a 100% damage bonus."
               }
             ]
@@ -1500,7 +1500,7 @@ var CLASS_BIBLE = {
           "18": {
             "features": [
               {
-                "nm": "Avalanche of One",
+                "nm": "Primal Avalanche",
                 "ds": "Your charge breaks formations: shield walls scatter, gates crack, cavalry balks. Enemy commanders write their orders around where you might be."
               }
             ]
@@ -1539,7 +1539,7 @@ var CLASS_BIBLE = {
           "10": {
             "features": [
               {
-                "nm": "Call the Bolt",
+                "nm": "Lightning Strike",
                 "ds": "Point at what the sky should hate: once per round, a bolt falls on a foe within 60ft — 3d10 lightning, DEX for half."
               }
             ]
@@ -1590,7 +1590,7 @@ var CLASS_BIBLE = {
     ],
     "abilities": [
       {
-        "nm": "Divine Smite",
+        "nm": "Radiant Strike",
         "ds": "Expend a spell slot to deal +2d8 radiant damage on a hit."
       },
       {
@@ -1614,7 +1614,7 @@ var CLASS_BIBLE = {
     },
     "spells": {
       "1": [
-        "Divine Smite",
+        "Radiant Strike",
         "Cure Wounds",
         "Bless",
         "Shield of Faith"
@@ -1632,7 +1632,7 @@ var CLASS_BIBLE = {
         "Spirit Guardians"
       ],
       "4": [
-        "Banishment",
+        "Banish",
         "Death Ward",
         "Staggering Smite",
         "Aura of Life"
@@ -1729,7 +1729,7 @@ var CLASS_BIBLE = {
           "10": {
             "features": [
               {
-                "nm": "Drag Them Back",
+                "nm": "Arrest",
                 "ds": "The guilty do not get to leave: once per scene, halt a fleeing foe where it stands — teleport, wings, or terror avail it nothing for one full round."
               }
             ]
@@ -1768,7 +1768,7 @@ var CLASS_BIBLE = {
           "3": {
             "features": [
               {
-                "nm": "Beacon of Honesty",
+                "nm": "Paragon of Honesty",
                 "ds": "Your presence is an oath others lean on: allies who can see you cannot be charmed or made afraid — and your word, once given, is impossible for you to break, and everyone can feel that it is."
               }
             ]
@@ -1784,7 +1784,7 @@ var CLASS_BIBLE = {
           "10": {
             "features": [
               {
-                "nm": "Consecrated Ground",
+                "nm": "Consecrate Ground",
                 "ds": "Where you plant your feet becomes holy for the scene: undead and fiends must fight their own nature to come within 10ft, and the dying inside it do not slip away."
               }
             ]
@@ -1940,7 +1940,7 @@ var CLASS_BIBLE = {
       "4": [
         "Divination",
         "Death Ward",
-        "Guardian of Faith",
+        "Sentinel",
         "Freedom of Movement",
         "Holy Ground"
       ],
@@ -2001,7 +2001,7 @@ var CLASS_BIBLE = {
       "11": {
         "features": [
           {
-            "nm": "Consecrated Ground",
+            "nm": "Consecrate Ground",
             "ds": "A night's rite makes a place yours: nothing unholy crosses the threshold uninvited, and anyone who sleeps inside wakes as though they had rested a week. You hold one consecrated place at a time — raising a new one lets the old go quiet."
           }
         ]
@@ -2017,7 +2017,7 @@ var CLASS_BIBLE = {
       "15": {
         "features": [
           {
-            "nm": "Death Waits",
+            "nm": "Defer Death",
             "ds": "Once per rest, when you or anyone you can see drops, death is told to wait: they stand at 1 hit point instead of falling. The same creature cannot be spared twice in one day — the second time, the god is not listening."
           }
         ]
@@ -2258,7 +2258,7 @@ var CLASS_BIBLE = {
       ],
       "3": [
         "Call Lightning",
-        "Conjure Animals",
+        "Summon Animals",
         "Plant Growth",
         "Venomous Undergrowth"
       ],
@@ -2270,9 +2270,9 @@ var CLASS_BIBLE = {
       ],
       "5": [
         "Insect Plague",
-        "Tree Stride",
+        "Arboreal Gate",
         "Wall of Stone",
-        "Awaken",
+        "Sapient Spark",
         "Wall of Thorns"
       ],
       "6": [
@@ -2285,7 +2285,7 @@ var CLASS_BIBLE = {
         "Produce Flame",
         "Shillelagh",
         "Druidcraft",
-        "Thorn Whip",
+        "Thorn Lash",
         "Quills"
       ]
     },
@@ -2317,7 +2317,7 @@ var CLASS_BIBLE = {
       "9": {
         "features": [
           {
-            "nm": "Beast Spells",
+            "nm": "Druid's Voice",
             "ds": "cast druid spells while in Wild Shape."
           }
         ]
@@ -2349,7 +2349,7 @@ var CLASS_BIBLE = {
       "17": {
         "features": [
           {
-            "nm": "Shape of the World",
+            "nm": "Elemental Shape",
             "ds": "Your Wild Shape reaches past flesh: elemental bodies — living flame, stone, water, wind — once per day each. The beasts were practice."
           }
         ]
@@ -2388,7 +2388,7 @@ var CLASS_BIBLE = {
           "14": {
             "features": [
               {
-                "nm": "Half Made of Night",
+                "nm": "One With the Night Sky",
                 "ds": "Starlight thins you: blades and arrows dim as they land (resistance to nonmagical weapons), you no longer need sleep or breath — you keep watch the way the stars do — and moonlight and starlight bear your weight as solid ground."
               }
             ]
@@ -2435,7 +2435,7 @@ var CLASS_BIBLE = {
           "10": {
             "features": [
               {
-                "nm": "Shapes of the Ice Years",
+                "nm": "Ancient Shapes",
                 "ds": "The moon shows you older beasts: forms long extinct — cave bears the size of carts, wolves from the first winters. Your shapes now frighten as they fight."
               }
             ]
@@ -2568,8 +2568,8 @@ var CLASS_BIBLE = {
       "1": [
         "Inflict Wounds",
         "Ray of Sickness",
-        "False Life",
-        "Cause Fear",
+        "Fleeting Vitality",
+        "Dread",
         "Bleed",
         "Eldritch Tendrils",
         "Hide from Undead",
@@ -2578,11 +2578,11 @@ var CLASS_BIBLE = {
       ],
       "2": [
         "Ray of Enfeeblement",
-        "Blindness",
+        "Blind",
         "Shadow Step",
         "Shackles of Bone",
         "Rot",
-        "Blood Armour",
+        "Blood Armor",
         "Conscript Undead",
         "Hemorrhage",
         "Hold Undead",
@@ -2593,7 +2593,7 @@ var CLASS_BIBLE = {
         "Vampiric Touch",
         "Speak with Dead",
         "Wave of Scarabs",
-        "Bestow Curse",
+        "Afflict Curse",
         "Death Walk",
         "Age",
         "Blade of Corruption",
@@ -2601,7 +2601,7 @@ var CLASS_BIBLE = {
         "Devil's Trap",
         "Dire Cremation",
         "Grim Totem",
-        "Haunting",
+        "Spectral Binding",
         "Rigor Mortis",
         "Whirl of Bones"
       ],
@@ -2617,7 +2617,7 @@ var CLASS_BIBLE = {
         "Three Sisters",
         "Travelling Wounds",
         "Vampiric Courtesan",
-        "Blood to Blood"
+        "Blood for Blood"
       ],
       "5": [
         "Catastrophic Wound",
@@ -2634,7 +2634,7 @@ var CLASS_BIBLE = {
       ],
       "cantrips": [
         "Chill Touch",
-        "Toll the Dead",
+        "For Whom the Bell Tolls",
         "Bone Whisper",
         "Grave Touch",
         "Mage Hand",
@@ -2771,7 +2771,7 @@ var CLASS_BIBLE = {
           "3": {
             "features": [
               {
-                "nm": "Accelerated Decay",
+                "nm": "Accelerate Decay",
                 "ds": "By intention: your touch rots living flesh: 2d8 necrotic and the target ages 1d10 years (CON save halves the damage and refuses the years). What you rot stays rotted -- wounds you deal cannot be magically healed until the next dawn."
               }
             ]
@@ -2779,7 +2779,7 @@ var CLASS_BIBLE = {
           "6": {
             "features": [
               {
-                "nm": "Rust in the Air",
+                "nm": "Rust",
                 "ds": "your decay no longer needs touch -- corrode objects at 30ft. Once per round when a nonmagical weapon or projectile strikes you, it decays mid-blow: damage halved, the weapon ruined."
               }
             ]

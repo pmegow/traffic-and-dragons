@@ -375,9 +375,9 @@ function runEngineTests(R){
     if(menuTierHidesDev({isAdmin:false})!==true)return "a beta tester sees operator rows";
     return menuTierHidesDev({username:"old-server"})===true?true:"a payload without the field must read as non-admin (the safe direction for a tester's screen)";
   });
-  t("#221: CAPABILITY_RENAMES migrates saved spell AND ability names on the player and every companion sheet — base-name match, suffix kept, strangers untouched, table empty by default",function(){
+  t("#221: CAPABILITY_RENAMES migrates saved spell AND ability names on the player and every companion sheet — base-name match, suffix kept, strangers untouched, shipped destinations resolve",function(){
     if(typeof CAPABILITY_RENAMES==="undefined"||!Array.isArray(CAPABILITY_RENAMES))return "CAPABILITY_RENAMES table missing from data.js";
-    if(CAPABILITY_RENAMES.length)return "the shipped table must be EMPTY until a rename ships (transitional by construction): "+JSON.stringify(CAPABILITY_RENAMES);
+    for(var ri=0;ri<CAPABILITY_RENAMES.length;ri++){if(!capabilityLookup(CAPABILITY_RENAMES[ri].to))return "shipped rename destination missing: "+CAPABILITY_RENAMES[ri].to;}
     makeWorld();
     worldState.character.spells=[{nm:"Misty Step",lvl:2,used:false},{nm:"Fire Bolt",lvl:0,used:true}];
     worldState.character.abilities=[{nm:"misty step (1/day)",ds:"racial"}];
@@ -446,13 +446,13 @@ function runEngineTests(R){
   });
   t("[SPELL_DEF:] magical=no sets isMagical false",function(){makeWorld();applyMuts("[SPELL_DEF:Mundane Trick|effect=sleight of hand|magical=no]");var e=capabilityLookup("Mundane Trick");return e&&e.isMagical===false?true:"isMagical not false: "+JSON.stringify(e);});
   t("cleanTxt strips [SPELL_DEF:] from displayed prose",function(){return eq(cleanTxt("You weave a new working, and the air chills. [SPELL_DEF:Frost Lance|range=60ft|effect=ice]"),"You weave a new working, and the air chills.");});
-  t("capability_bible: martial ability resolves and is isMagical:false",function(){var e=capabilityLookup("Power Strike");return e&&e.kind==="ability"&&e.isMagical===false?true:"bad: "+JSON.stringify(e);});
+  t("capability_bible: martial ability resolves and is isMagical:false",function(){var e=capabilityLookup("Powerful Strike");return e&&e.kind==="ability"&&e.isMagical===false?true:"bad: "+JSON.stringify(e);});
   t("capability_bible: arcane ability is isMagical:true",function(){var e=capabilityLookup("Arcane Bolt");return e&&e.isMagical===true?true:"arcane bolt not magical";});
   t("CAPABILITY_BIBLE holds both kinds (spells + abilities merged, v1.222)",function(){var sp=0,ab=0;for(var k in CAPABILITY_BIBLE){if(CAPABILITY_BIBLE[k].kind==="spell")sp++;else if(CAPABILITY_BIBLE[k].kind==="ability")ab++;}return sp>=15&&ab>=15?true:"unexpected split sp="+sp+" ab="+ab;});
   t("full spell coverage — every SPELLS/ARCH_SPELLS entry has a bible key (v1.225)",function(){function base(s){return String(s).replace(/\s*\(.*\)/,"").toLowerCase().trim();}var miss=[];function scan(SRC){for(var cls in SRC)for(var t in SRC[cls])SRC[cls][t].forEach(function(s){var b=base(s);if(!CAPABILITY_BIBLE[b])miss.push(b);});}scan(SPELLS);scan(ARCH_SPELLS);return miss.length?"uncovered ("+miss.length+"): "+miss.slice(0,8).join(", "):true;});
   t("every entry has a non-empty category list drawn from the tradition vocabulary (v1.223; +racial v1.226)",function(){var vocab={arcane:1,divine:1,primal:1,necromantic:1,martial:1,racial:1},bad=[];for(var k in CAPABILITY_BIBLE){var c=CAPABILITY_BIBLE[k].category;if(!c||!c.length||c.some(function(x){return !vocab[x];}))bad.push(k);}return bad.length?"bad category: "+bad.join(", "):true;});
   t("Turn Undead is both divine and necromantic (multi-tradition)",function(){var c=capabilityLookup("turn undead").category;return c.indexOf("divine")>=0&&c.indexOf("necromantic")>=0?true:"got "+JSON.stringify(c);});
-  t("capabilitiesByCategory('divine') gates the cleric menu (incl Turn Undead, excl martial)",function(){var d=capabilitiesByCategory("divine").map(function(x){return x.name;});return d.indexOf("turn undead")>=0&&d.indexOf("sacred flame")>=0&&d.indexOf("power strike")<0?true:"divine menu wrong: "+d.join(", ");});
+  t("capabilitiesByCategory('divine') gates the cleric menu (incl Turn Undead, excl martial)",function(){var d=capabilitiesByCategory("divine").map(function(x){return x.name;});return d.indexOf("turn undead")>=0&&d.indexOf("sacred flame")>=0&&d.indexOf("powerful strike")<0?true:"divine menu wrong: "+d.join(", ");});
   t("martial menu is exclusive of every caster tradition (Fable f82)",function(){var magic={arcane:1,divine:1,primal:1,necromantic:1},bad=[];for(var k in CAPABILITY_BIBLE){var c=CAPABILITY_BIBLE[k].category||[];if(c.indexOf("martial")>=0&&c.some(function(x){return magic[x];}))bad.push(k);}return bad.length?"caster tradition leaked into martial menu: "+bad.join(", "):true;});
   t("class-bible coverage — every class ability, level feature and archetype feature resolves via capabilityLookup (#339, v1.822)",function(){var miss=[];function scan(owner,obj){(obj.abilities||[]).forEach(function(a){if(!capabilityLookup(a.nm))miss.push(owner+":"+a.nm);});Object.keys(obj.levels||{}).forEach(function(l){(obj.levels[l].features||[]).forEach(function(f){if(!capabilityLookup(f.nm))miss.push(owner+":"+f.nm+"@"+l);});});}Object.keys(CLASS_BIBLE).forEach(function(k){var c=CLASS_BIBLE[k];scan(k,c);(c.archetypes||[]).forEach(function(a){scan(k+"/"+(a.nm||a.id),a);});});return miss.length?miss.length+" class-bible feature(s) have no capability entry — the GM gets no canon for them: "+miss.slice(0,8).join(", ")+(miss.length>8?" …":""):true;});
   t("racial coverage — every ANCS racial_caps key resolves in the bible (single-source guard, v1.226)",function(){function base(s){return String(s).replace(/\s*\(.*\)/,"").toLowerCase().trim();}var miss=[];function chk(list){if(!list)return;list.forEach(function(it){var nm=typeof it==="string"?it:it.cap;if(!CAPABILITY_BIBLE[base(nm)])miss.push(nm);});}ANCS.forEach(function(a){chk(a.racial_caps);(a.subraces||[]).forEach(function(s){chk(s.racial_caps);(s.lineages||[]).forEach(function(l){chk(l.racial_caps);});});});return miss.length?"racial_caps with no bible entry: "+miss.join(", "):true;});
@@ -465,10 +465,10 @@ function runEngineTests(R){
   t("injection line is labeled + complete — a no-duration ability still states duration: N/A",function(){makeWorld();worldState.character.abilities=[{nm:"Death Sight",ds:"x"}];var b=buildAbilityBibleBlock();return /Death Sight —/.test(b)&&/duration: N\/A/.test(b)&&/damage: N\/A/.test(b)?true:"incomplete line: "+b.slice(0,200);});
   t("capabilityLookup resolves an ability-that-is-a-spell via capcapability_bible (no dup canon)",function(){var e=capabilityLookup("Sacred Flame");return e&&e.kind==="spell"?true:"Sacred Flame should resolve as the spell entry, got "+JSON.stringify(e&&e.kind);});
   t("capabilityLookup falls back to capability_bible for a pure ability",function(){var e=capabilityLookup("Trackless Step");return e&&e.kind==="ability"?true:"trackless step not resolved as ability";});
-  t("buildAbilityBibleBlock renders canon for known abilities, skips unknowns",function(){makeWorld();worldState.character.abilities=[{nm:"Power Strike",ds:"x"},{nm:"Totally Fake Ability",ds:"y"}];var b=buildAbilityBibleBlock();if(b.indexOf("CANONICAL ABILITY RULES")<0)return "header missing";if(b.indexOf("Totally Fake Ability")>=0)return "unknown ability leaked";return b.indexOf("- Power Strike")>=0?true:"power strike canon missing";});
-  t("ability canon lands in VOLATILE, never stable",function(){makeWorld();worldState.character.abilities=[{nm:"Power Strike",ds:"x"}];var s=buildSysPrompt();if(s.stable.indexOf("CANONICAL ABILITY RULES")>=0)return "ability canon leaked into stable";return s.volatile.indexOf("CANONICAL ABILITY RULES")>=0?true:"ability canon missing from volatile";});
+  t("buildAbilityBibleBlock renders canon for known abilities, skips unknowns",function(){makeWorld();worldState.character.abilities=[{nm:"Powerful Strike",ds:"x"},{nm:"Totally Fake Ability",ds:"y"}];var b=buildAbilityBibleBlock();if(b.indexOf("CANONICAL ABILITY RULES")<0)return "header missing";if(b.indexOf("Totally Fake Ability")>=0)return "unknown ability leaked";return b.indexOf("- Powerful Strike")>=0?true:"powerful strike canon missing";});
+  t("ability canon lands in VOLATILE, never stable",function(){makeWorld();worldState.character.abilities=[{nm:"Powerful Strike",ds:"x"}];var s=buildSysPrompt();if(s.stable.indexOf("CANONICAL ABILITY RULES")>=0)return "ability canon leaked into stable";return s.volatile.indexOf("CANONICAL ABILITY RULES")>=0?true:"ability canon missing from volatile";});
   t("bibleCardHTML (shared render) shows name, fields, and the magical badge",function(){var h=bibleCardHTML("Message",capabilityLookup("message"));return h.indexOf("Message")>=0&&h.indexOf("magical")>=0&&h.indexOf("120ft")>=0?true:"card missing bits";});
-  t("bibleCardHTML marks a mundane ability as mundane, not magical",function(){var h=bibleCardHTML("Power Strike",capabilityLookup("power strike"));return h.indexOf("mundane")>=0&&h.indexOf("&#10022; magical")<0?true:"mundane badge wrong";});
+  t("bibleCardHTML marks a mundane ability as mundane, not magical",function(){var h=bibleCardHTML("Powerful Strike",capabilityLookup("powerful strike"));return h.indexOf("mundane")>=0&&h.indexOf("&#10022; magical")<0?true:"mundane badge wrong";});
   t("bibleCardHTML handles a null entry gracefully",function(){return bibleCardHTML("Unknown",null).indexOf("No canonical entry")>=0?true:"null card not handled";});
   t("bibleCardHTML escapes an apostrophe name (no attr break)",function(){var h=bibleCardHTML("Hunter's Mark",capabilityLookup("Hunter's Mark"));return h.indexOf("Hunter&#39;s Mark")>=0?true:"apostrophe not escaped";});
 
@@ -1354,7 +1354,7 @@ function runEngineTests(R){
     return body.indexOf("questBearingText(")>=0&&body.indexOf("qp-bearing")>=0?true:"the quest panel does not render the bearing";
   });
   t("#320 the archetype pick grants ONLY the archetype's own bench (third casters), never the class list — a Sorcerer choosing Shadow Magic at L3 keeps exactly the spells they chose (the Iron Meridian Prestidigitation report, 2026-09-03); an Arcane Trickster still gets theirs and keeps a racial spell",function(){
-    makeWorld();var c=worldState.character;c.cls="Sorcerer";c.level=3;c.spells=[{nm:"Fire Bolt",lvl:0,used:false},{nm:"Mage Hand",lvl:0,used:false},{nm:"Thunderwave",lvl:1,used:false},{nm:"Chromatic Orb",lvl:1,used:false}];
+    makeWorld();var c=worldState.character;c.cls="Sorcerer";c.level=3;c.spells=[{nm:"Fire Bolt",lvl:0,used:false},{nm:"Mage Hand",lvl:0,used:false},{nm:"Thunderwave",lvl:1,used:false},{nm:"Elemental Orb",lvl:1,used:false}];
     var added=archetypeSpellGrant(c,"shadow");
     if(added.length||c.spells.length!==4)return "class bench dumped on the sorcerer: "+JSON.stringify(c.spells.map(function(s){return s.nm;}));
     c.cls="Rogue";c.spells=[{nm:"Dancing Lights",lvl:0,used:false,racial:true}];added=archetypeSpellGrant(c,"arcanetrickster");
@@ -2976,8 +2976,8 @@ function runEngineTests(R){
     }
     if(miss.length)return miss.join(" | ");
     if(as.levels["20"].features[0].nm!=="The Inevitable End")return "capstone drifted: "+as.levels["20"].features[0].nm;
-    var aod=capabilityLookup("Angel of Death");
-    return aod&&aod.range==="150ft"?true:"Angel of Death must carry the 150ft limit (the end-run guard), got "+JSON.stringify(aod&&aod.range);
+    var aod=capabilityLookup("Inevitably");
+    return aod&&aod.range==="150ft"?true:"Inevitably must carry the 150ft limit (the end-run guard), got "+JSON.stringify(aod&&aod.range);
   });
   t("the Thief is authored end-to-end: six rows, every feature carries injectable canon, all martial",function(){
     // Third authored archetype (v1.475, slate approved 2026-07-28): spine verb THE TAKE.
@@ -3061,7 +3061,7 @@ function runEngineTests(R){
     // Extra Attack / Indomitable(x2) leave the ladder entirely (the attack upgrade returns at L11
     // as Double Attack). L15/L17 stay blank — not specified, and a blank is a fill-phase slot,
     // not an error. All martial/mundane: a Warrior's chassis is craft, never magic.
-    var want={"2":"Action Surge","5":"Stunning Blow","7":"Resilience","9":"Taunt","11":"Double Attack","13":"Counter Attack","15":"Iron Constitution","17":"Unstoppable"};
+    var want={"2":"Surge","5":"Stunning Blow","7":"Resilience","9":"Taunt","11":"Double Attack","13":"Counter Attack","15":"Iron Constitution","17":"Juggernaut"};
     var L=CLASS_BIBLE.Warrior.levels,miss=[],lv;
     for(lv in want){
       var fs=L[lv]&&L[lv].features;
@@ -3090,10 +3090,10 @@ function runEngineTests(R){
     if(!/CON/i.test(sb.save))return "Stunning Blow lost its CON save: "+sb.save;
     if(!/forgo|instead|rather than/i.test(sb.effect))return "Stunning Blow lost the damage-for-stun trade";
     if(!/per target|only once|once per/i.test(sb.cost+" "+sb.effect))return "Stunning Blow lost its once-per-target limit";
-    // Unstoppable must be BOUNDED by having hit points, else it reads as immunity even while downed.
-    var un=capabilityLookup("Unstoppable");
-    if(!/hit points|while you stand|conscious/i.test(un.effect))return "Unstoppable is unbounded — it must depend on still having HP: "+un.effect.slice(0,100);
-    if(!/stun/i.test(un.effect)||!/prone/i.test(un.effect))return "Unstoppable lost its control-effect list";
+    // Juggernaut must be BOUNDED by having hit points, else it reads as immunity even while downed.
+    var un=capabilityLookup("Juggernaut");
+    if(!/hit points|while you stand|conscious/i.test(un.effect))return "Juggernaut is unbounded — it must depend on still having HP: "+un.effect.slice(0,100);
+    if(!/stun/i.test(un.effect)||!/prone/i.test(un.effect))return "Juggernaut lost its control-effect list";
     // Taunt must be BOUNDED. An unbounded forced-target is unenforceable and would read as broken.
     var tt=capabilityLookup("Taunt");
     if(/permanent|always on|indefinit/i.test(tt.duration))return "Taunt duration is unbounded: "+tt.duration;
@@ -7135,7 +7135,7 @@ function runEngineTests(R){
     if(c.hp!==14+9*4)return "hp "+c.hp+" want "+(14+36);
     var has=function(nm){for(var i=0;i<c.abilities.length;i++)if(c.abilities[i].nm===nm)return true;return false;};
     /* C6 ②: features arrive NAMED from the bible level rows, not as "LvN" string blobs */
-    if(!has("Action Surge"))return "L2 feature (Action Surge) skipped by the jump";
+    if(!has("Surge"))return "L2 feature (Surge) skipped by the jump";
     return has("Stunning Blow")?true:"L5 feature (Stunning Blow) missing";
   });
   // ── level-up gain toasts (owner request 2026-08-24: "I had to go into his sheet to see what
@@ -7145,11 +7145,11 @@ function runEngineTests(R){
   t("player level-up toasts the level AND each gained ability by name",function(){
     makeWorld();
     __toasts.length=0;
-    worldState.character.xp=CLASS_XP_LEVELS[4];checkLevelUp({land:true});/* 1 → 5: crosses L2 (Action Surge) + L5 (Stunning Blow) */
+    worldState.character.xp=CLASS_XP_LEVELS[4];checkLevelUp({land:true});/* 1 → 5: crosses L2 (Surge) + L5 (Stunning Blow) */
     var all=__toasts.join(" ¦ ");
     if(all.indexOf("reached level 5")<0)return "no level toast: "+all;
     if(all.indexOf(worldState.character.name)<0)return "toast does not name the character: "+all;
-    if(all.indexOf("Action Surge")<0||all.indexOf("Stunning Blow")<0)return "gained abilities not toasted by name: "+all;
+    if(all.indexOf("Surge")<0||all.indexOf("Stunning Blow")<0)return "gained abilities not toasted by name: "+all;
     __toasts.length=0;
     worldState.character.xp=CLASS_XP_LEVELS[5];checkLevelUp({land:true});/* 5 → 6: no Warrior class row at 6 (rows are 2/5/7/9/...), no archetype committed — level toast only */
     all=__toasts.join(" ¦ ");
@@ -7164,7 +7164,7 @@ function runEngineTests(R){
     cs.xp=CLASS_XP_LEVELS[4];checkCompanionLevelUp(cs,{land:true});/* #349: mechanics test — land explicitly */
     var all=__toasts.join(" ¦ ");
     if(all.indexOf("Bram reached level 5")<0)return "companion level toast lost: "+all;
-    if(all.indexOf("Action Surge")<0||all.indexOf("Stunning Blow")<0)return "companion gained abilities not toasted: "+all;
+    if(all.indexOf("Surge")<0||all.indexOf("Stunning Blow")<0)return "companion gained abilities not toasted: "+all;
     return all.indexOf("Bram gained")>=0?true:"companion ability toast does not name the companion: "+all;
   });
   t("quest block: all-objectives-done quest gets the close-or-extend instruction",function(){
@@ -9934,7 +9934,7 @@ function runEngineTests(R){
   // ── #234 — the wall's POST-SWEEP channel (JP0-2, joint review 2026-08-27) ─────────────
   // Without it the "active crises ARE quests" line demands re-registration of the threads the
   // wall just closed, the blocked |active re-creation is silent to the GM, and the story keeps
-  // running on untracked quests — the green-indicators blindness #231 exists to end. NOT the
+  // running on untracked quests — the green-indicators blind #231 exists to end. NOT the
   // #229 wording: these were closed by the ARC, not dropped by the player.
   section("#234 — the wall's post-sweep channel");
   t("#234: the sweep arms recentWallSweep with the arc and every walled title",function(){
@@ -10905,11 +10905,11 @@ function runEngineTests(R){
   t("#343 rule ⑧ (t2418): a leading cast of an INVENTED spell-shaped name rejects (nobody owns it, no bible entry); delegated casting passes when the named companion owns it and rejects when they do not; casting verbs in their plain-English sense pass; Table Talk feeds the companions' own spells and abilities",function(){
     __gateWorld();
     worldState.npcs=[{name:"Morwen Zethran",partyMember:true,status:"steady",charSheet:{name:"Morwen Zethran",cls:"Rogue",level:11,hp:70,maxHp:70,stats:{},abilities:[{nm:"Ward Architecture"}],spells:[{nm:"Silence",lvl:2,used:false},{nm:"Arcane Lock",lvl:2,used:false}],inventory:[]}},
-                    {name:"Daeris",partyMember:true,status:"steady",charSheet:{name:"Daeris",cls:"Cleric",level:11,hp:60,maxHp:60,stats:{},abilities:[{nm:"Binding Ward"},{nm:"Consecrated Ground"}],spells:[{nm:"Sacred Flame",lvl:0,used:false}],inventory:[]}}];
+                    {name:"Daeris",partyMember:true,status:"steady",charSheet:{name:"Daeris",cls:"Cleric",level:11,hp:60,maxHp:60,stats:{},abilities:[{nm:"Ward of Protection"},{nm:"Consecrate Ground"}],spells:[{nm:"Sacred Flame",lvl:0,used:false}],inventory:[]}}];
     var man=buildSceneManifest();
-    if(!man.partyCaps||!man.partyCaps.Daeris||man.partyCaps.Daeris.indexOf("binding ward")<0)return "manifest lacks Daeris's caps: "+JSON.stringify(man.partyCaps);
+    if(!man.partyCaps||!man.partyCaps.Daeris||man.partyCaps.Daeris.indexOf("ward of protection")<0)return "manifest lacks Daeris's caps: "+JSON.stringify(man.partyCaps);
     var b1=validateSuggestion("Cast an ambush ward and hide in the shadows.",man);if(!b1||b1.rule!=="unknown-capability")return "the exact t2418 button passed: "+JSON.stringify(b1);
-    var ok1=validateSuggestion("Have Daeris set a Binding Ward on the grate.",man);if(ok1)return "Daeris's own Binding Ward was rejected: "+JSON.stringify(ok1);
+    var ok1=validateSuggestion("Have Daeris set a Ward of Protection on the grate.",man);if(ok1)return "Daeris's own Ward of Protection was rejected: "+JSON.stringify(ok1);
     var ok2=validateSuggestion("Have Morwen cast Silence over the cellar door.",man);if(ok2)return "Morwen's own Silence was rejected: "+JSON.stringify(ok2);
     var b2=validateSuggestion("Have Daeris cast a Fire Bolt at the grate.",man);if(!b2||b2.rule!=="unowned-capability")return "Daeris casting a bible spell she lacks passed: "+JSON.stringify(b2);
     var b3=validateSuggestion("Have Morwen weave a shadow glyph across the stairs.",man);if(!b3||b3.rule!=="unknown-capability")return "Morwen working an invented glyph passed: "+JSON.stringify(b3);
@@ -10920,7 +10920,7 @@ function runEngineTests(R){
     if(out[0]==="Cast an ambush ward and hide in the shadows."||validateSuggestion(out[0],man)!==null)return "replacement button: "+JSON.stringify(out);
     /* Table Talk sees the party's sheets */
     var p=buildTableTalkPrompt("who can cast silence?");
-    if(!/Companion sheets/.test(p)||!/Morwen Zethran: spells Silence, Arcane Lock/.test(p)||!/Daeris: spells Sacred Flame \| abilities Binding Ward, Consecrated Ground/.test(p))return "Table Talk does not carry the companion sheets: "+p.slice(p.indexOf("Party:"),p.indexOf("Party:")+300);
+    if(!/Companion sheets/.test(p)||!/Morwen Zethran: spells Silence, Arcane Lock/.test(p)||!/Daeris: spells Sacred Flame \| abilities Ward of Protection, Consecrate Ground/.test(p))return "Table Talk does not carry the companion sheets: "+p.slice(p.indexOf("Party:"),p.indexOf("Party:")+300);
     return true;
   });
   t("#342 rule ⑦ (t2418): a leading travel verb aimed at the CURRENT world location rejects as already-here — sublocated or not, by name or merged alias; leaving the sub by its own name passes; the same button from another town passes as real travel",function(){
@@ -29151,14 +29151,14 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(cs.level!==18)return "level "+cs.level;
     if(cs.archetype!=="assassin")return "the engine picks the archetype the sheet describes (Infiltrator → Assassin's 'Infiltration'): "+cs.archetype;
     if(cs.archetypeNm!=="Infiltrator")return "the sheet's own archetype name stays as display: "+cs.archetypeNm;
-    return count487(cs,"Angel of Death")===1?true:"the level-18 archetype row lands: "+names487(cs).join(", ");
+    return count487(cs,"Inevitably")===1?true:"the level-18 archetype row lands: "+names487(cs).join(", ");
   });
   t("#487 the rows a sheet missed are granted once: 3, 6, 10 and 14 arrive with the pick, and a second heal changes nothing",function(){
-    makeWorld();var cs=c487(),want=["The First Blow Is the Last","Master Poisoner","Sure Shot","A Natural Death"],i;
+    makeWorld();var cs=c487(),want=["The First Blow Is the Last","Master Poisoner","Sure Shot","Set the Scene"],i;
     worldState.character.abilities=classDef("Warrior").abilities.map(function(x){return {nm:x.nm,ds:x.ds};});/* a hero as the wizard makes one: nothing owed */
     if(healAbilitySheets()!==1)return "one sheet healed";
     for(i=0;i<want.length;i++){if(count487(cs,want[i])!==1)return want[i]+" ×"+count487(cs,want[i])+": "+names487(cs).join(", ");}
-    if(count487(cs,"Angel of Death")!==0)return "a row above the sheet's level is not granted early";
+    if(count487(cs,"Inevitably")!==0)return "a row above the sheet's level is not granted early";
     var snap=JSON.stringify(cs);
     if(healAbilitySheets()!==0)return "a healed sheet heals to nothing";
     return JSON.stringify(cs)===snap?true:"the second heal changed the sheet";
@@ -29182,7 +29182,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     c.cls="Rogue";c.level=19;c.xp=CLASS_XP_LEVELS[18];c.archetype="arcanetrickster";c.archetypeNm="Arcane Trickster";
     c.abilities=[{nm:"Arcane Trickster",ds:"Illusion and enchantment spells."},{nm:"Never Caught",ds:archFeaturesAt("Rogue","arcanetrickster",14)[0].ds,gained:2415},{nm:"The Story Runs Ahead",ds:archFeaturesAt("Rogue","arcanetrickster",18)[0].ds,gained:50}];
     healAbilitySheets();
-    var want=["The Old Switcheroo","It Was Their Idea","Seventy-Two Shapes","Never Caught","The Story Runs Ahead"],i;
+    var want=["The Old Switcheroo","Suggestion","Seventy-Two Shapes","Never Caught","The Story Runs Ahead"],i;
     for(i=0;i<want.length;i++){if(count487(c,want[i])!==1)return want[i]+" ×"+count487(c,want[i]);}
     makeWorld();c=worldState.character;c.cls="Rogue";c.level=6;c.archetype="";c.archetypeNm="";c.abilities=[];
     healAbilitySheets();

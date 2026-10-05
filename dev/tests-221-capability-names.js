@@ -90,6 +90,6 @@ check('usage resolves real class spell pools and nested racial grants', () => {
   assert.ok(result['faerie fire'].users.includes('Half-Elven (Drow)'));
   assert.ok(result['totem spirit'].users.includes('Primal (Totemborn)'));
   assert.ok(result['booming blade'].users.includes('Warrior (Eldritch Knight)'));
-  assert.ok(result['action surge'].users.includes('Warrior'));
+  assert.ok(result['surge'].users.includes('Warrior'));
 });
 process.exitCode = failures ? 1 : 0;
