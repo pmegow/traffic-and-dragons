@@ -13,7 +13,7 @@ const root = path.resolve(__dirname, '..');
     await ctx.route('**/*', async route => {
       const u = new URL(route.request().url()); if (u.hostname !== 'todo.test') return route.abort();
       const f = path.resolve(root, '.' + decodeURIComponent(u.pathname)); if (!f.startsWith(root + path.sep)) return route.abort();
-      try { return route.fulfill({ status: 200, contentType: f.endsWith('.html') ? 'text/html' : 'text/plain', body: fs.readFileSync(f) }); } catch (e) { return route.fulfill({ status: 404, body: 'Not found' }); }
+      try { return route.fulfill({ status: 200, contentType: f.endsWith('.html') ? 'text/html' : f.endsWith('.css') ? 'text/css' : 'text/plain', body: fs.readFileSync(f) }); } catch (e) { return route.fulfill({ status: 404, body: 'Not found' }); }
     });
     const page = await ctx.newPage(); page.on('pageerror', e => errors.push(e.message));
     await page.goto('http://todo.test/todo-viewer.html');
@@ -30,6 +30,28 @@ const root = path.resolve(__dirname, '..');
       assert.deepEqual(errors, []);
       console.log('PASS #481 G3 the live TODO.md renders read-only in a real browser (' + s.rows + ' rows, only Select / Refresh / Reset)');
     } catch (e) { failed++; console.error('FAIL #481 G3 the live TODO.md renders read-only in a real browser — ' + e.message); }
+    if (process.env.TODO_SCREENSHOT) await page.screenshot({ path: process.env.TODO_SCREENSHOT });
+    try {
+      const counts = () => Array.from(document.querySelectorAll('.sec-wrap')).map(g => ({
+        title: g.querySelector('.sec-title').textContent,
+        count: g.querySelector('.sec-count')?.textContent || '',
+        rows: g.querySelectorAll('tbody tr').length,
+        tables: g.querySelectorAll('table').length
+      }));
+      const live = await page.evaluate(counts);
+      for (const g of live) assert.equal(g.count, g.tables ? '(' + g.rows + ')' : '', 'category row count: ' + g.title);
+      const fixture = ['# Test', '## Tasks', '| # | Task | Status |', '|---|---|---|', '| 1 | Wrapped', 'task | ○ |', '<!-- completed -->', '| # | Task | Status |', '|---|---|---|', '| 2 | Archived | ✅ |', '<!-- /completed -->', '', '### More tasks', '| # | Task | Status |', '|---|---|---|', '| 3 | Another | ○ |', '', '## Empty', '| # | Task | Status |', '|---|---|---|', '', '## Prose', 'No rows.', '', '## Release', '| Item | Action |', '|---|---|', '| First | Remove |', '| Second | Keep |'].join('\n');
+      await page.evaluate(t => __todoViewerTest.loadText(t), fixture);
+      const expected = [ ['Tasks', '(3)'], ['Empty', '(0)'], ['Prose', ''], ['Release', '(2)'] ];
+      assert.deepEqual((await page.evaluate(counts)).map(g => [g.title, g.count]), expected, 'category row count: wrapped, completed, multiple and ordinary tables');
+      await page.evaluate(() => { document.querySelector('.sec-toggle').click(); document.querySelector('.completed-toggle').click(); document.querySelector('.task-arr').click(); });
+      assert.deepEqual((await page.evaluate(counts)).map(g => [g.title, g.count]), expected, 'category row count changes on expansion');
+      await page.evaluate(t => __todoViewerTest.loadText(t.replace('| 3 | Another | ○ |', '')), fixture);
+      assert.equal((await page.evaluate(counts))[0].count, '(2)', 'category row count stale after reload');
+      assert.deepEqual(errors, []);
+      console.log('PASS category row counts: live TODO, wrapped/completed/multiple/empty/ordinary tables, expansion and reload');
+    } catch (e) { failed++; console.error('FAIL category row counts — ' + e.message); }
+
   } finally { await browser.close(); }
   process.exitCode = failed ? 1 : 0;
 })().catch(e => { console.error(e); process.exitCode = 1; });

@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-04 · #602 · Codex: read-only TODO viewer v0.7 adds cyan category row counts derived from rendered table bodies, recalculated on refresh/expansion. Browser regression covers wrapped/completed/multiple/empty/ordinary tables and reload; shared stylesheet MIME corrected in browser fixture for visual verification.
+
 - 2026-10-04 · Astra triage · Opus 5.5, docs only, on the owner's instruction: of Astra's 33-row verification (audits/VERIFY_ASTRA.html), the 17 PASS rows close and archive; FAIL #518 #577 #581 #591 go back to ○ with the reproduced case and Astra's proposed correction (all five failures reproduced again on a873e2e3 with her probes); PARTIAL reviewed — #575 and #576 → ◉ (own scope passes; Dagger belongs to #518, Arrow x39 to #578), #578 → ◐ (the Arrow x39 bundle defect is its own). FIELD CHECK rows untouched (owner). #72b re-pointed at tag archive/72-test-mode-latch. Skim: confirm the #575/#576/#578 attributions.
 
 - 2026-10-03 · #600 bell level · Codex: owner confirmed playback and requested a slightly louder mix. v1.1141 raises only the bell catalog gain 0.65 → 0.78 (+1.58 dB); original audio, cosine envelope and narration duck factor preserved. Existing playback/duck assertions updated and proven red at the old level.

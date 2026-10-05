@@ -34,7 +34,10 @@ failed += sabotage.prove({ file: "todo-viewer.html", skip: !chrome.path, command
     mustFail: "a row no longer expands" },
   { label: "the seam parses but never renders",
     find: "parse(String(text || \"\")); renderPage(); }", replace: "parse(String(text || \"\")); }",
-    mustFail: "the live TODO.md rendered only" }
+    mustFail: "the live TODO.md rendered only" },
+  { label: "category headings lose their counts",
+    find: "        tog.appendChild(count);", replace: "        /* omit count */",
+    mustFail: "FAIL category row counts" }
 ]});
-if (!chrome.path && !failed) { verdict.reportSkip("sabotage-481-g3-todo-viewer.js", 4, chrome.why); process.exit(verdict.SKIP_EXIT); }
+if (!chrome.path && !failed) { verdict.reportSkip("sabotage-481-g3-todo-viewer.js", 5, chrome.why); process.exit(verdict.SKIP_EXIT); }
 process.exit(failed ? 1 : 0);

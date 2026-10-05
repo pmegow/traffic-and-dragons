@@ -89,6 +89,7 @@
     .sec-arr{font-size:11px;color:var(--acc);transition:transform .15s;flex-shrink:0;}
     .sec-arr.open{transform:rotate(90deg);}
     .sec-title{color:var(--acc);font-size:15px;font-weight:bold;}
+    .sec-count{color:#00ffff;font-size:13px;font-weight:bold;flex-shrink:0;}
     .sec-body{display:none;}
     .sec-body.open{display:block;}
 
@@ -118,9 +119,7 @@
 
 <script>
 var _sections = [];
-var TODO_VIEWER_VERSION = "v0.6";  // bump on every todo-viewer change (satellite versioning,
-                                   // the BP_DESIGNER_VERSION precedent — this page is NOT in
-                                   // the SW app shell, so APP_VERSION/CACHE stay put for it)
+var TODO_VIEWER_VERSION = "v0.7";
 // #481 G3 (owner ruling 2026-09-29): TRULY read-only. The viewer used to export TODO.md in place (a no-edit save changed four
 // rows; Renumber rewrote 44 of 45 open numbers) behind a "read-only" label. Every write and edit path is gone — export,
 // renumber, add, edit, delete, complete, restore, the status toggle, drag-reorder; the READ handle stays. All TODO edits go
@@ -434,6 +433,13 @@ function wireSectionToggles() {
   var toggles = document.querySelectorAll(".sec-toggle");
   for (var i = 0; i < toggles.length; i++) {
     (function(tog) {
+      var body = tog.nextElementSibling;
+      if (body.querySelector("table")) {
+        var count = document.createElement("span");
+        count.className = "sec-count";
+        count.textContent = "(" + body.querySelectorAll("tbody tr").length + ")";
+        tog.appendChild(count);
+      }
       tog.addEventListener("click", function() {
         var title = tog.getAttribute("data-sectitle");
         var curOpen = (title in _secOpen) ? _secOpen[title] : secDefaultOpen(title);
