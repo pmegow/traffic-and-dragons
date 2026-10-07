@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Production Schedule — Opus</title>
+<link rel="stylesheet" href="../satellite.css">
+<style>
+body{margin:0;line-height:1.65;font-size:16px}
+main{max-width:1120px;margin:auto;padding:48px 32px 80px}
+header{padding-bottom:28px;border-bottom:1px solid var(--brd2)}
+h1{font-size:clamp(28px,4.6vw,44px);line-height:1.15;max-width:880px;margin:12px 0 18px;color:var(--t0)}
+h2{font-size:24px;line-height:1.3;margin:6px 0 16px;color:var(--t0)}
+h3{font-size:16px;color:var(--acc);margin:30px 0 4px}
+p{margin:8px 0 14px;color:var(--t1);max-width:940px}
+strong{color:var(--t0)}
+.eyebrow{font-family:var(--font-mono);font-size:12px;color:var(--acc);letter-spacing:.07em;text-transform:uppercase}
+.lead{font-size:19px;color:var(--t0);max-width:900px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:26px 0 8px}
+.stat{background:var(--bg1);border-radius:var(--rl);padding:14px 16px}
+.stat .k{font-family:var(--font-mono);font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.06em}
+.stat .v{font-size:21px;color:var(--t0);margin:4px 0 2px;line-height:1.25}
+.stat .s{font-size:13px;color:var(--t1)}
+.stat.beta .v{color:var(--gold)}
+nav{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:20px}
+nav a{font-size:14px}
+section{padding:34px 0;border-bottom:1px solid var(--brd2);scroll-margin-top:16px}
+.wrap{overflow-x:auto;margin:14px 0 6px}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px 9px 0;border-bottom:1px solid var(--brd);font-size:14px}
+th{color:var(--acc);font-family:var(--font-mono);font-size:11.5px;font-weight:normal;text-transform:uppercase;letter-spacing:.04em}
+td{color:var(--t1)}
+td.n,th.n{text-align:right;padding-right:16px;white-space:nowrap}
+td.id{font-family:var(--font-mono);color:var(--t0);white-space:nowrap}
+.day td:first-child{width:92px;white-space:nowrap;color:var(--t0)}
+.day td:nth-child(2){width:34px;text-align:right;padding-right:16px;font-family:var(--font-mono)}
+.day td:last-child{width:150px;font-family:var(--font-mono);font-size:12.5px}
+.day tr.rev td{color:var(--t2)}
+.day tr.buf td{color:var(--t2);font-style:italic}
+.day tr.go td{color:var(--gold)}
+.exit{font-size:14px;border-left:2px solid var(--brd2);padding-left:14px;color:var(--t1);margin:6px 0 4px}
+.wk{font-size:13px;color:var(--t2);font-family:var(--font-mono);margin:0 0 8px}
+ol.chains{padding-left:20px;margin:10px 0}
+ol.chains li{margin:9px 0;color:var(--t1)}
+ol.chains b{color:var(--t0);font-weight:normal}
+.arrow{color:var(--acc);padding:0 4px}
+ul li,ol li{color:var(--t1);margin:7px 0}
+.tot td{color:var(--t0);border-top:1px solid var(--brd2)}
+/* timeline */
+.gantt{display:grid;grid-template-columns:minmax(230px,1.6fr) repeat(14,minmax(30px,1fr)) minmax(92px,1.3fr);min-width:900px;font-size:12.5px}
+.gantt div{padding:5px 0;border-bottom:1px solid var(--brd)}
+.gantt .lbl{color:var(--t1);padding-right:10px}
+.gantt .hd{font-family:var(--font-mono);font-size:11px;color:var(--t2);text-align:center}
+.gantt .hd.beta{color:var(--gold)}
+.gantt .c{position:relative}
+.gantt .c.on::after{content:"";position:absolute;left:2px;right:2px;top:6px;bottom:6px;border-radius:3px;background:var(--kc)}
+.gantt .c.b8{box-shadow:inset 1px 0 0 var(--gold),inset -1px 0 0 var(--gold)}
+.gantt .p3{color:var(--t1);font-size:11.5px;padding-left:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--t1);margin:12px 0 0}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--kc);margin-right:6px;vertical-align:-1px}
+.k-drift{--kc:var(--acc)}.k-fable{--kc:var(--blue)}.k-owner{--kc:var(--gold)}.k-off{--kc:var(--grn)}.k-release{--kc:var(--warn)}.k-feed{--kc:var(--t2)}
+footer{padding-top:26px;font-size:13px;color:var(--t1)}
+footer p{font-size:13px}
+@media(max-width:760px){main{padding:28px 16px 48px}.stats{grid-template-columns:1fr 1fr}h2{font-size:21px}.lead{font-size:17px}}
+</style></head>
+<body><main>
+
+<header>
+<div class="eyebrow">Production schedule · Opus 5.5 · drafted Wed 7 Oct 2026 at v1.1162 · one of two drafts, for comparison with Astra's</div>
+<h1>The beta can open on 2 December. Clearing the whole TODO takes until spring.</h1>
+<p class="lead">The open TODO holds about 435–515 hours of work at this project's real cost per row. Eight weeks of 22 hours is 176 hours, so the whole list cannot clear in eight weeks. The beta-critical part can: about 150 planned hours from the 8 October Fable reset open the beta on Wednesday 2 December. A six-week hardening phase follows. Networked co-op (#1) and the work it depends on finish between mid-April and late May 2027. The date firms up after the co-op isolation spike in February.</p>
+<div class="stats">
+<div class="stat beta"><div class="k">Beta opens</div><div class="v">Wed 2 Dec 2026</div><div class="s">end of week 8</div></div>
+<div class="stat"><div class="k">Hardening done</div><div class="v">Wed 13 Jan 2027</div><div class="s">end of week 14</div></div>
+<div class="stat"><div class="k">Everything cleared</div><div class="v">mid-Apr → late May 2027</div><div class="s">weeks 27–33; the co-op spike sets it</div></div>
+<div class="stat"><div class="k">Scope</div><div class="v">≈ 435–515 h</div><div class="s">57 TODO entries · capacity 22 h a week</div></div>
+</div>
+<nav>
+<a href="#verdict">01 Why eight weeks is not enough</a>
+<a href="#assumptions">02 Assumptions</a>
+<a href="#deps">03 Dependencies</a>
+<a href="#timeline">04 Timeline</a>
+<a href="#phase1">05 Phase 1, day by day</a>
+<a href="#phase2">06 Phase 2</a>
+<a href="#phase3">07 Phase 3</a>
+<a href="#ledger">08 Every open row</a>
+<a href="#decisions">09 Owner decisions</a>
+<a href="#risks">10 Risks and the cut order</a>
+</nav>
+</header>
+
+<section id="verdict">
+<div class="eyebrow">01</div>
+<h2>Why eight weeks is not enough</h2>
+<p>The work splits into three phases. Only the first fits in eight weeks.</p>
+<div class="wrap"><table>
+<tr><th>Phase</th><th>What it holds</th><th class="n">Work (h)</th><th class="n">Rate (h/week)</th><th>Weeks</th></tr>
+<tr><td>1 · Beta</td><td>#599 inventory rows and the counter rows behind it, the identity redesign, places in the memory TOC, endings, the subscriber riders, the first-impression content, device checks, release hygiene, a release candidate</td><td class="n">≈ 150</td><td class="n">20</td><td>W1–W8 · 8 Oct – 2 Dec</td></tr>
+<tr><td>2 · Hardening</td><td>Reserved words, hero epithets, voice structure, accumulators, proof gaps, the GM's tastes, remaining review leads</td><td class="n">≈ 78</td><td class="n">14 (+6 for tester reports)</td><td>W9–W14 · 3 Dec – 13 Jan</td></tr>
+<tr><td>3 · v1.0</td><td>The BYOK-elimination design, stable entity IDs (#202), networked co-op (#1), the commercial Clear-for-Release rows</td><td class="n">≈ 206–286</td><td class="n">16 (+4 for tester reports)</td><td>W15–W33 · 14 Jan – late May</td></tr>
+<tr class="tot"><td>Total</td><td></td><td class="n">≈ 435–515</td><td class="n"></td><td>27–33 weeks</td></tr>
+</table></div>
+<p>Even without co-op, stable IDs and the BYOK removal, the list is about 230 hours: 30% more than eight weeks holds. The largest unknown is #1. Its own design record says calendar estimates wait for the isolation spike. This plan books that spike for weeks 18–19 and re-plans Phase 3 from its measurement.</p>
+</section>
+
+<section id="assumptions">
+<div class="eyebrow">02</div>
+<h2>Assumptions</h2>
+<ul>
+<li><strong>Capacity.</strong> 2 hours each weekday and 6 hours each weekend day: 22 hours a week, 176 in eight weeks. Hours are owner-attended session hours in one lane. A parallel lane is a lever (section 10), not planned capacity.</li>
+<li><strong>Weeks run Thursday to Wednesday</strong>, aligned to the Fable reset (Thursdays about 19:00 Pacific). Each Thursday's 2 hours is the review: the /thursday ladder before the reset, then triage of what it found into the coming week.</li>
+<li><strong>Estimates use the Effort column times this project's observed overhead.</strong> For drift-surface rows: S ≈ 1.5 h, M ≈ 4–8 h, L ≈ 14–26 h, XL 25 h and up. The overhead is the critical pre-review, the failing test first, the sabotage proof, one independent review per batch and the owner's check on a pre-change save. Off-drift rows run about 1.3× their Effort. Owner-only rows count the owner's time.</li>
+<li><strong>Why the overhead is real:</strong> #504 (S) failed two independent reviews. #518 (S) took three builds and a failed verification. #437 (M) has been open since 24 September.</li>
+<li><strong>Fable budget:</strong> one drift-heavy item per Fable week. Astra counts as Fable tier (owner ruling, 4 October). When the budget runs out mid-batch, the drift policy's stop rule applies, and that week falls back to owner checks and off-Fable rows.</li>
+<li><strong>In flight today:</strong> another session holds uncommitted work on review lead (10) of #527 (a growth tag for a companion named only in a [SAY:] tag). The plan assumes it lands before week 1; it is what unblocks #437.</li>
+<li><strong>Scope:</strong> the Feature backlog, the Known issues and the Clear-for-Release rows. Long-term goals (L1–L8) and the Just-in-case rows wait on their own triggers and are excluded. One exception: #22b's cheap half (one trust-fence sentence plus length caps on imported fields) is recommended before outside testers arrive.</li>
+<li><strong>"Beta" means invited testers on the subscription path with manual entitlements</strong> (the #288 era). Already in place: the sign-in-first boot, the metered gateway, the beta menu tier (#289), <a href="beta-guide.html">beta-guide.html</a> and the <a href="add_beta_tester.html">tester runbook</a>.</li>
+<li><strong>Holidays are flagged, not removed:</strong> Thanksgiving is week 8's Thursday. Christmas and New Year fall in weeks 12–13, which carry owner-paced work.</li>
+</ul>
+</section>
+
+<section id="deps">
+<div class="eyebrow">03</div>
+<h2>Dependencies that set the order</h2>
+<ol class="chains">
+<li><b>Counter chain.</b> #599 inventory rows <span class="arrow">→</span> #517, #518, #577, #578, #581, #591 and review leads 13, 24, 27. The 3 October ruling forbids more point fixes on the counter before #599. Four of these rows name #599's row shape as their remedy.</li>
+<li><b>One cache reset.</b> #599 renames [WORN:] to [EQUIPPED:] and re-baselines the STATE TAGS doc. #420 (the duplicated MANA rule) and #22b's trust-fence sentence are also stable-prompt edits. They ride the same deploy as separate A/B'd commits, so the prompt cache resets once instead of three times.</li>
+<li><b>Identity chain.</b> The second review round of branch <code>claude/532-538-voice-hero</code> <span class="arrow">→</span> land #532, #538, #539 and rebase #543's shared helpers <span class="arrow">→</span> #534's one boundary for every write that names a person <span class="arrow">→</span> #504, #530, #531, #544 and leads 3, 4, 7, 20. #538's rework changes the name resolver that #534 redesigns, so it lands first.</li>
+<li><b>Stores after identity.</b> #534 and #599 <span class="arrow">→</span> #545 (null-prototype stores) <span class="arrow">→</span> #536, #540, #541. All three touch the name-keyed stores. Running #545 alongside them would rebase the same lines twice.</li>
+<li><b>Hero names.</b> #538 <span class="arrow">→</span> #542 hero epithets, per its own row.</li>
+<li><b>Motivation.</b> Lead (10) of #527, in flight <span class="arrow">→</span> #437 to ready-to-test <span class="arrow">→</span> the owner sees a purpose settled in play.</li>
+<li><b>Places.</b> #464 makes the map the store of record <span class="arrow">→</span> leads 6, 17, 18, 19 fall out of the same pass.</li>
+<li><b>First impression.</b> #446 Riverlight rewrite <span class="arrow">→</span> a first-time-player playtest. #447 notes (owner) <span class="arrow">→</span> #447 card slot (the slot is built once a note exists).</li>
+<li><b>Subscriber path.</b> The FAL_API_KEY Fly secret (10 minutes, week 1) makes renders work for keyless testers now. #288's STT rider follows in week 6.</li>
+<li><b>Voice structure.</b> #466 ruling <span class="arrow">→</span> #418 one schedule-and-retire helper <span class="arrow">→</span> #404 ① and ③ <span class="arrow">→</span> #404 ②. #419 needs a phone.</li>
+<li><b>Real-world checks.</b> #19, #410, #474 need a car and a phone: one device day. #434 and #552 need one Village session. #596 needs a real absence (the holidays supply one). #595 needs eight residents in the library.</li>
+<li><b>Testing accounts.</b> #451 second account <span class="arrow">→</span> the non-admin walkthrough of the release candidate <span class="arrow">→</span> every co-op test later.</li>
+<li><b>Render lesson.</b> #397's rewrite must land inside #400's render engine, and #400 is parked. The owner's lesson can happen now; the rewrite waits for #400 (decision 10).</li>
+<li><b>v1.0 chain.</b> The deferred BYOK-elimination design conversation <span class="arrow">→</span> #202 stable IDs (standing ruling: they land at the server-canonical moment) <span class="arrow">→</span> #1: enjoyment test with four friends, then the isolation spike, then the build. The client-key Clear-for-Release row closes with it.</li>
+</ol>
+</section>
+
+<section id="timeline">
+<div class="eyebrow">04</div>
+<h2>Timeline at a glance</h2>
+<div class="wrap"><div class="gantt" id="gantt"></div></div>
+<noscript><p>The timeline needs JavaScript; sections 05–07 hold the same plan as text.</p></noscript>
+<div class="legend"><span class="k-drift">Fable · drift surface</span><span class="k-fable">Fable · server and off-drift</span><span class="k-owner">Owner (content, devices, play checks)</span><span class="k-off">Off-Fable (Opus, Codex, Any)</span><span class="k-release">Release work</span><span class="k-feed">Tester reports</span></div>
+</section>
+
+<section id="phase1">
+<div class="eyebrow">05</div>
+<h2>Phase 1 · Beta · day by day</h2>
+<p>Every week runs Thursday to Wednesday at 22 hours. Grey rows are the Thursday review; italic rows are buffer.</p>
+
+<h3>Week 1 · Inventory rows (#599): the whole Fable week, per the 3 October ruling</h3>
+<p class="wk">Thu 8 Oct – Wed 14 Oct · 22 h · Fable heavy</p>
+<div class="wrap"><table class="day">
+<tr class="rev"><td>Thu 8 Oct</td><td>2</td><td>/thursday ladder before the reset, including the second review round of <code>claude/532-538-voice-hero</code> (marked for this Thursday). Set the FAL_API_KEY Fly secret (#288, 10 min). Move #602 to the archive.</td><td>288 532 538 539 602</td></tr>
+<tr><td>Fri 9</td><td>2</td><td>#599 design record: rows <code>{name, qty, equipped}</code>, the idempotent load migration, [WORN:] kept for one release beside [EQUIPPED:], the server's library reader. Export every owner save before the one-way migration.</td><td>599</td></tr>
+<tr><td>Sat 10</td><td>6</td><td>#599 build: state shape and migration; the pairing normalizers retired; failing tests first.</td><td>599</td></tr>
+<tr><td>Sun 11</td><td>6</td><td>#599 build: the item tag handlers (counts, companion items, EQUIPPED), the STATE TAGS doc, the panel, sheet and counter renderers.</td><td>599</td></tr>
+<tr><td>Mon 12</td><td>2</td><td>#599: the character editor, the library .char, exports.</td><td>599</td></tr>
+<tr><td>Tue 13</td><td>2</td><td>#599: the 224 engine-test sites; sabotage batteries re-anchored.</td><td>599</td></tr>
+<tr><td>Wed 14</td><td>2</td><td>#599 suite green. Owner: the second GitHub account on its own browser profile, left out of ADMIN_USER_IDS (30 min).</td><td>599 451</td></tr>
+</table></div>
+<p class="exit">Exit: #599 built and green locally, not yet pushed. Renders work for keyless testers.</p>
+
+<h3>Week 2 · #599 lands; the counter rows close on the new shape</h3>
+<p class="wk">Thu 15 Oct – Wed 21 Oct · 22 h · Fable heavy</p>
+<div class="wrap"><table class="day">
+<tr class="rev"><td>Thu 15</td><td>2</td><td>Thursday review (#599 inside the weekly commit review).</td><td></td></tr>
+<tr><td>Fri 16</td><td>2</td><td>#599 independent review: the one review for this batch.</td><td>599</td></tr>
+<tr><td>Sat 17</td><td>6</td><td>#599 review fixes. Owner check on the latest pre-change Village save through a reload. Server library reader: restore-drill rehearsal, snapshot, deploy. Push. Then the stable-prompt window: #420 and #22b's trust-fence sentence, each its own A/B'd commit, on the same cache reset.</td><td>599 420 22b</td></tr>
+<tr><td>Sun 18</td><td>6</td><td>The counter on rows: #518 as one explicit transfer committed on both sides; #578 reads a ware once ("Arrow x20"); #517's remainder; #591 retires a want only on an identified sale; #581 gets a stash-journal key that survives a rekey.</td><td>517 518 578 581 591</td></tr>
+<tr><td>Mon 19</td><td>2</td><td>#577's queued Fable skim, redone against the row shape. Review leads 24 (Shop during combat), 13 (shop-keeper latch), 27 (stash marks on the old id).</td><td>577 527</td></tr>
+<tr><td>Tue 20</td><td>2</td><td>Owner: a counter walk in the Village (sell and buy, a wanted offer, the chest, a gift). #589: Replace from library on "(Ammut)".</td><td>589</td></tr>
+<tr><td>Wed 21</td><td>2</td><td>#543 play check (replace a voiced companion; she keeps her voice) and its Fable skim.</td><td>543</td></tr>
+</table></div>
+<p class="exit">Exit: #599 and the six counter rows at ready-to-test or closed. The 3 October counter ruling is fulfilled.</p>
+
+<h3>Week 3 · Identity I: land the hero branch, redesign the answer path</h3>
+<p class="wk">Thu 22 Oct – Wed 28 Oct · 22 h · Fable heavy</p>
+<div class="wrap"><table class="day">
+<tr class="rev"><td>Thu 22</td><td>2</td><td>Thursday review.</td><td></td></tr>
+<tr><td>Fri 23</td><td>2</td><td>Land <code>claude/532-538-voice-hero</code>: the range sweep, push, live check. Rebase #543's shared helpers to one copy.</td><td>532 538 539 543</td></tr>
+<tr><td>Sat 24</td><td>6</td><td>#534 design record and critical pre-review: one boundary for every write that names a person; a provisional keeps the name it was called by; "same" and "another" are explicit answers; fork or ask, never fold. Test plan, fuzzer generator, red tests.</td><td>534</td></tr>
+<tr><td>Sun 25</td><td>6</td><td>#534 build: [NPC:], notes, deaths, merges and scene refs routed through the boundary.</td><td>534</td></tr>
+<tr><td>Mon 26</td><td>2</td><td>#530: the "another person" answer lands.</td><td>530</td></tr>
+<tr><td>Tue 27</td><td>2</td><td>#531: the three death-by-title seams (reported death, scene ref, combat presence).</td><td>531</td></tr>
+<tr><td>Wed 28</td><td>2</td><td>#544: an alias onto a recorded name becomes a merge proposal; a sheet that changes hands takes the survivor's name.</td><td>544</td></tr>
+</table></div>
+
+<h3>Week 4 · Identity II: prove it, review it, ship it</h3>
+<p class="wk">Thu 29 Oct – Wed 4 Nov · 22 h · Fable heavy</p>
+<div class="wrap"><table class="day">
+<tr class="rev"><td>Thu 29</td><td>2</td><td>Thursday review.</td><td></td></tr>
+<tr><td>Fri 30</td><td>2</td><td>Fuzzer with a sound generator over the boundary.</td><td>534</td></tr>
+<tr><td>Sat 31</td><td>6</td><td>#504 rebuilt on the boundary. Review leads 3, 4, 7, 20. A live model answers the name-collision note in a scripted throwaway campaign (no save has ever held a provisional).</td><td>504 527</td></tr>
+<tr><td>Sun 1 Nov</td><td>6</td><td>Independent review of the identity batch; fixes.</td><td>534</td></tr>
+<tr><td>Mon 2</td><td>2</td><td>Verification: stable-half byte identity; prompt and mutation diff on three real transcripts.</td><td>534</td></tr>
+<tr><td>Tue 3</td><td>2</td><td>Push; owner spot check.</td><td>534</td></tr>
+<tr class="buf"><td>Wed 4</td><td>2</td><td>Buffer. The two-failures rule lives here: a second failed review stops the batch, it moves to Phase 2 (cut 2 in section 10) and week 5 proceeds.</td><td></td></tr>
+</table></div>
+<p class="exit">Exit: #534, #504, #530, #531, #544 shipped, or parked by the two-failures rule with #531's death seams kept.</p>
+
+<h3>Week 5 · Memory: places in the TOC; endings</h3>
+<p class="wk">Thu 5 Nov – Wed 11 Nov · 22 h · Fable heavy</p>
+<div class="wrap"><table class="day">
+<tr class="rev"><td>Thu 5</td><td>2</td><td>Thursday review.</td><td></td></tr>
+<tr><td>Fri 6</td><td>2</td><td>#464 critical review; red-first test: a place filed through <code>fileSubLocation</code> appears in the TOC.</td><td>464</td></tr>
+<tr><td>Sat 7</td><td>6</td><td>#464: the map is the store of record, the TOC derives from its nodes, <code>locMerge</code> pays once. Review leads 6, 17, 18, 19.</td><td>464 527</td></tr>
+<tr><td>Sun 8</td><td>6</td><td>#464 verification (prompt diff, stable half): 2 h. #525 rework: 4 h — second person, the RECORD line, a load repair that runs once for accented and titled names.</td><td>464 525</td></tr>
+<tr><td>Mon 9</td><td>2</td><td>#525: endings in non-Latin scripts, trailing quotes, shared surnames.</td><td>525</td></tr>
+<tr><td>Tue 10</td><td>2</td><td>Independent review of #464 and #525 as one batch.</td><td>464 525</td></tr>
+<tr><td>Wed 11</td><td>2</td><td>Review fixes; push. #437 to ready-to-test once lead (10) is in.</td><td>464 525 437</td></tr>
+</table></div>
+
+<h3>Week 6 · The subscriber's path and the first impression</h3>
+<p class="wk">Thu 12 Nov – Wed 18 Nov · 22 h · Fable on the server, owner on content</p>
+<div class="wrap"><table class="day">
+<tr class="rev"><td>Thu 12</td><td>2</td><td>Thursday review.</td><td></td></tr>
+<tr><td>Fri 13</td><td>2</td><td>#288 STT rider design: a server transcription route, entitlement, a metered kind, the client seam beside <code>falViaServer</code>.</td><td>288</td></tr>
+<tr><td>Sat 14</td><td>6</td><td>#288 build, client and server, batteries; owner-approved Fly deploy.</td><td>288</td></tr>
+<tr><td>Sun 15</td><td>6</td><td>#446 Riverlight rewrite (owner's content; Claude edits in the Blueprint Designer): one private causal account, arrival, evidence, confrontation, the other rooms as clue routes, the "five arcs" line fixed.</td><td>446</td></tr>
+<tr><td>Mon 16</td><td>2</td><td>#447: the owner writes the "In this story" notes for The Coffered God, The Iron Meridian and any other blueprint with an exceptional rule.</td><td>447</td></tr>
+<tr><td>Tue 17</td><td>2</td><td>#447: the note slot on the Home cards and the Quick Start hero menu (thin shell, off-Fable).</td><td>447</td></tr>
+<tr><td>Wed 18</td><td>2</td><td>#446 first-time-player playtest with a stated session target. The owner recruits the player.</td><td>446</td></tr>
+</table></div>
+
+<h3>Week 7 · Devices, the Village, release hygiene</h3>
+<p class="wk">Thu 19 Nov – Wed 25 Nov · 22 h · owner heavy, Fable light</p>
+<div class="wrap"><table class="day">
+<tr class="rev"><td>Thu 19</td><td>2</td><td>Thursday review.</td><td></td></tr>
+<tr><td>Fri 20</td><td>2</td><td>Clear for Release: the developer-facing diagnostic toasts move behind the admin tier for the beta. Every record stays; the drift health modal shows each class. The two player-facing "withheld" toasts stay.</td><td>release</td></tr>
+<tr><td>Sat 21</td><td>6</td><td>Device and car day, 4 h: #19 through CarPlay (the native voice for one turn; a wired link), #410 spoken pause and resume, #474's five checks, the Report-bug crumbs. Village session, 2 h: #434's steps for Nyla, #552's persona export, then listen.</td><td>19 410 474 434 552</td></tr>
+<tr><td>Sun 22</td><td>6</td><td>Clear for Release: the starting-XP tester override hidden for non-admins; Re-roll per decision 5; the two licensed blueprints blocked from the served site (they are tracked in <code>samples/</code> and Pages serves the repo root). #19 follow-up if Saturday found a cause (3 h held), else review leads.</td><td>release 19</td></tr>
+<tr><td>Mon 23</td><td>2</td><td>Review leads that crash or show: 22 (<code>relevelOnLoad</code> throws), 28 (<code>[HP:+0]</code>), 16 (the colon cut), 12 (ARC_CONTINUE advice).</td><td>527</td></tr>
+<tr><td>Tue 24</td><td>2</td><td>Review lead 21 (a render job keyed on the hero's name). Owner: #595, the eight-resident Car Mode listen.</td><td>527 595</td></tr>
+<tr class="buf"><td>Wed 25</td><td>2</td><td>Buffer (Thanksgiving eve).</td><td></td></tr>
+</table></div>
+
+<h3>Week 8 · Release candidate; the beta opens</h3>
+<p class="wk">Thu 26 Nov – Wed 2 Dec · 22 h · release</p>
+<div class="wrap"><table class="day">
+<tr class="rev"><td>Thu 26</td><td>2</td><td>Thursday review. Thanksgiving: it may slide to Friday.</td><td></td></tr>
+<tr><td>Fri 27</td><td>2</td><td>Scope freeze. Release-candidate gate: the full suite, <code>run-sabotage-diff</code> over the range, the four diff-replay baselines.</td><td>release</td></tr>
+<tr><td>Sat 28</td><td>6</td><td>/playtest on the standard campaign (gemini-3.7-flash) and its audit: 3 h. Second-account walkthrough as a non-admin: sign-in boot, Quick Start Riverlight, the counter, Car Mode, the Village: 3 h.</td><td>release 451</td></tr>
+<tr><td>Sun 29</td><td>6</td><td>Fix beta blockers only. Everything else files to Phase 2.</td><td>release</td></tr>
+<tr><td>Mon 30</td><td>2</td><td>Refresh beta-guide.html ("equipped", Riverlight, direct Bluetooth rather than CarPlay). Test the bug-report path end to end.</td><td>release</td></tr>
+<tr><td>Tue 1 Dec</td><td>2</td><td>Grant the first entitlements (admin console, runbook). Invitations out.</td><td>release</td></tr>
+<tr class="go"><td>Wed 2 Dec</td><td>2</td><td><strong>Beta opens.</strong> Remaining time is buffer.</td><td></td></tr>
+</table></div>
+</section>
+
+<section id="phase2">
+<div class="eyebrow">06</div>
+<h2>Phase 2 · Hardening · week by week</h2>
+<p>Each week: 2 h Thursday review, 6 h for tester reports (/bugs sync, triage, fixes), 14 h planned.</p>
+<div class="wrap"><table>
+<tr><th>Week</th><th>Dates</th><th>Planned work</th><th>Rows</th></tr>
+<tr><td>W9</td><td>3 – 9 Dec</td><td>The beta's first week: daily report triage. #545 design and critical review: name-keyed stores with no prototype, bibles read by own property, no text refused, the reviewer's census as the oracle.</td><td class="id">545</td></tr>
+<tr><td>W10</td><td>10 – 16 Dec</td><td>#545 build and independent review; #536, #540, #541 close with it. #542 hero epithets begins.</td><td class="id">545 536 540 541 542</td></tr>
+<tr><td>W11</td><td>17 – 23 Dec</td><td>#542 finishes. #466 ruling, then the real TTS ladder documented and pinned. #418: one schedule-and-retire helper. #404 ①: provider names move into the table entries. #419 build.</td><td class="id">542 466 418 404 419</td></tr>
+<tr><td>W12</td><td>24 – 30 Dec</td><td>Christmas week. #404 ② (catalogs as ids only, or IndexedDB) and ③ (residues). #465: measure on the Runelords save, then the latch sweep. #528 proof gaps, part 1 (adding tests is off-Fable work).</td><td class="id">404 465 528</td></tr>
+<tr><td>W13</td><td>31 Dec – 6 Jan</td><td>New Year. #528 part 2. Remaining review leads: 2, 5, 8, 9, 11, 14, 15, and 23 by ruling. #596's return greeting after the holiday absence. Phone check for #419 and #466.</td><td class="id">528 527 596</td></tr>
+<tr><td>W14</td><td>7 – 13 Jan</td><td>#331: the owner's sketch, then the disposition_lab blind test, then the build if the lab passes. #593 ruling and build. #397 composition lesson, notes into audits/.</td><td class="id">331 593 397</td></tr>
+</table></div>
+<p class="exit">Exit: every Known issue closed or ready-to-test. The only open features are #1, #202, #397's rewrite and the commercial Clear-for-Release rows.</p>
+</section>
+
+<section id="phase3">
+<div class="eyebrow">07</div>
+<h2>Phase 3 · v1.0</h2>
+<p>Each week: 2 h review, 4 h for tester reports, 16 h planned. Weeks 20 onward are provisional until the spike.</p>
+<div class="wrap"><table>
+<tr><th>Weeks</th><th>Dates</th><th>Work</th><th class="n">Hours</th></tr>
+<tr><td>W15</td><td>14 – 20 Jan</td><td>The deferred BYOK-elimination design conversation. #1's six open decisions from §12 and the implementation brief. #1 enjoyment test: four friends, hot-seat, one evening (the design record's first gate). #331 spill if any.</td><td class="n">11</td></tr>
+<tr><td>W16–W17</td><td>21 Jan – 3 Feb</td><td>#202 stable IDs: the pointer table, a migration plan for mature saves (thousands of name-keyed references), the build, an independent review.</td><td class="n">30</td></tr>
+<tr><td>W18–W19</td><td>4 – 17 Feb</td><td>#1 isolation spike in an isolated commit: per-room isolation of engine globals, 13 <code>callGM</code> sites per turn, cache economics. A measured estimate, then re-plan this table.</td><td class="n">25</td></tr>
+<tr><td>W20–W30±</td><td>18 Feb – early May</td><td>#1 build in stages (Method B, authoritative server rooms): account-backed seats, the live channel, shared-cost metering, recovery, client skew, mobile. Tested with the #451 account.</td><td class="n">120–200</td></tr>
+<tr><td>Last 1–2</td><td>mid-Apr – late May</td><td>Commercial Clear-for-Release: client key entry removed and every call server-side; rename tables purged; licensed fixtures removed from the repo; diagnostic toasts stripped; Re-roll's final call. #397's rewrite if #400 is un-parked.</td><td class="n">≈ 20</td></tr>
+</table></div>
+<p class="exit">Finish: mid-April 2027 if co-op is 120 hours, late May if it is 200.</p>
+</section>
+
+<section id="ledger">
+<div class="eyebrow">08</div>
+<h2>Every open row</h2>
+<p>Hours include review and verification. "In cluster" means the hours sit in the named parent row's estimate. Beta column: <strong>Must</strong> gates the beta; <strong>Should</strong> is planned before it but can be cut (section 10); <strong>After</strong> is Phase 2; <strong>v1.0</strong> is Phase 3.</p>
+<h3>Feature backlog (23)</h3>
+<div class="wrap"><table>
+<tr><th>#</th><th>Item</th><th>Tier</th><th class="n">Hours</th><th>When</th><th>Depends on</th><th>Beta</th></tr>
+<tr><td class="id">599</td><td>Inventory as rows; "worn" becomes "equipped"</td><td>Fable · drift</td><td class="n">25.5</td><td>W1–W2</td><td>design record; saves exported</td><td>Must</td></tr>
+<tr><td class="id">288</td><td>Subscriber riders: the FAL secret, the STT route</td><td>Fable</td><td class="n">8.25</td><td>W1 Thu; W6</td><td>—</td><td>Must</td></tr>
+<tr><td class="id">446</td><td>Riverlight: one mystery, a shorter path</td><td>Owner content</td><td class="n">8</td><td>W6</td><td>a first-time player</td><td>Must</td></tr>
+<tr><td class="id">447</td><td>House-rule notes on cards and the hero menu</td><td>Owner + Any</td><td class="n">4</td><td>W6</td><td>the notes</td><td>Must</td></tr>
+<tr><td class="id">451</td><td>A second account</td><td>Owner</td><td class="n">0.5</td><td>W1 Wed</td><td>—</td><td>Must</td></tr>
+<tr><td class="id">464</td><td>Sub-locations reach the memory TOC</td><td>Fable · drift</td><td class="n">10</td><td>W5</td><td>—</td><td>Should</td></tr>
+<tr><td class="id">420</td><td>One MANA rule in the STATE TAGS doc</td><td>Fable · drift</td><td class="n">1</td><td>W2 Sat</td><td>#599's re-baseline</td><td>Should</td></tr>
+<tr><td class="id">437</td><td>Motivation lifecycle</td><td>Fable · drift</td><td class="n">0.5</td><td>W5 Wed; seen in play</td><td>#527 lead 10 (in flight)</td><td>Should</td></tr>
+<tr><td class="id">19</td><td>CarPlay stutter</td><td>Owner · device</td><td class="n">2 (+3)</td><td>W7</td><td>a car</td><td>Should</td></tr>
+<tr><td class="id">410</td><td>Spoken pause in Car Mode</td><td>Owner · device</td><td class="n">0.5</td><td>W7 Sat</td><td>a car</td><td>Should</td></tr>
+<tr><td class="id">474</td><td>Five voice and audio phone checks</td><td>Owner · device</td><td class="n">1</td><td>W7 Sat</td><td>a phone</td><td>Should</td></tr>
+<tr><td class="id">434</td><td>Nyla's register (owner's steps)</td><td>Owner</td><td class="n">1.5</td><td>W7 Sat</td><td>—</td><td>Should</td></tr>
+<tr><td class="id">552</td><td>Portable persona (owner check)</td><td>Owner</td><td class="n">1</td><td>W7 Sat</td><td>—</td><td>Should</td></tr>
+<tr><td class="id">602</td><td>TODO viewer row counts (done; archive move)</td><td>Any</td><td class="n">0.25</td><td>W1 Thu</td><td>—</td><td>—</td></tr>
+<tr><td class="id">466</td><td>Cloud TTS fallback ladder</td><td>Opus</td><td class="n">1.5</td><td>W11</td><td>ruling</td><td>After</td></tr>
+<tr><td class="id">418</td><td>One schedule-and-retire helper in tts.js</td><td>Opus</td><td class="n">4</td><td>W11</td><td>#466</td><td>After</td></tr>
+<tr><td class="id">404</td><td>Voice pipeline structure and resources</td><td>Fable / off-Fable</td><td class="n">10</td><td>W11–W12</td><td>#418</td><td>After</td></tr>
+<tr><td class="id">419</td><td>STT's own AudioContext</td><td>Opus + phone</td><td class="n">1.5</td><td>W11; phone W13</td><td>—</td><td>After</td></tr>
+<tr><td class="id">465</td><td>Caps for latch maps, node lists, edges</td><td>Fable · drift</td><td class="n">5</td><td>W12</td><td>measure first</td><td>After</td></tr>
+<tr><td class="id">331</td><td>A GM with tastes</td><td>Fable · drift</td><td class="n">13.5</td><td>W14</td><td>owner's sketch</td><td>After</td></tr>
+<tr><td class="id">397</td><td>The composition lesson; the brief rewrite</td><td>Owner → Fable</td><td class="n">1.5 now</td><td>W14; rewrite with #400</td><td>#400 (parked)</td><td>After</td></tr>
+<tr><td class="id">202</td><td>Stable entity IDs</td><td>Fable · drift</td><td class="n">30</td><td>W16–W17</td><td>BYOK conversation</td><td>v1.0</td></tr>
+<tr><td class="id">1</td><td>Networked co-op</td><td>Fable</td><td class="n">145–225</td><td>W15–W30±</td><td>#202, #451, enjoyment test, spike</td><td>v1.0</td></tr>
+</table></div>
+
+<h3>Known issues (27)</h3>
+<div class="wrap"><table>
+<tr><th>#</th><th>Item</th><th>Tier</th><th class="n">Hours</th><th>When</th><th>Depends on</th><th>Beta</th></tr>
+<tr><td class="id">517</td><td>Counter arithmetic, remainder</td><td>Fable · drift</td><td class="n">in counter 10</td><td>W2 Sun</td><td>#599</td><td>Must</td></tr>
+<tr><td class="id">518</td><td>Counted item moves</td><td>Fable · drift</td><td class="n">in counter</td><td>W2 Sun</td><td>#599</td><td>Must</td></tr>
+<tr><td class="id">577</td><td>One wanted offer pays once (skim)</td><td>Fable</td><td class="n">in counter</td><td>W2 Mon</td><td>#599</td><td>Must</td></tr>
+<tr><td class="id">578</td><td>Bundled wares ("Arrow x20 x20")</td><td>Fable · drift</td><td class="n">in counter</td><td>W2 Sun</td><td>#599</td><td>Must</td></tr>
+<tr><td class="id">581</td><td>Stash replay after a rekey</td><td>Fable · drift</td><td class="n">in counter</td><td>W2 Sun</td><td>#599</td><td>Must</td></tr>
+<tr><td class="id">591</td><td>A discard retires a want</td><td>Fable · drift</td><td class="n">in counter</td><td>W2 Sun</td><td>#599</td><td>Must</td></tr>
+<tr><td class="id">532</td><td>A merge keeps the voice</td><td>Fable</td><td class="n">2 (with 538, 539)</td><td>W1 Thu; W3 Fri</td><td>review round</td><td>Should</td></tr>
+<tr><td class="id">538</td><td>The hero filed as an NPC</td><td>Fable · drift</td><td class="n">with 532</td><td>W3 Fri</td><td>review round</td><td>Should</td></tr>
+<tr><td class="id">539</td><td>Direction and speed survive a new sheet</td><td>Fable</td><td class="n">with 532</td><td>W3 Fri</td><td>review round</td><td>Should</td></tr>
+<tr><td class="id">543</td><td>Voice settings across a sheet swap</td><td>Owner + Fable skim</td><td class="n">1.5</td><td>W2 Wed</td><td>rebase in W3</td><td>Should</td></tr>
+<tr><td class="id">534</td><td>The name-collision answer path, redesigned</td><td>Fable · drift</td><td class="n">26 (cluster 34)</td><td>W3–W4</td><td>#538 landed</td><td>Should</td></tr>
+<tr><td class="id">504</td><td>Titled relatives</td><td>Fable · drift</td><td class="n">3</td><td>W4 Sat</td><td>#534</td><td>Should</td></tr>
+<tr><td class="id">530</td><td>The "another person" answer</td><td>Fable · drift</td><td class="n">in cluster</td><td>W3 Mon</td><td>#534</td><td>Should</td></tr>
+<tr><td class="id">531</td><td>A death named by title</td><td>Fable · drift</td><td class="n">in cluster</td><td>W3 Tue</td><td>#534</td><td>Should (kept if cut)</td></tr>
+<tr><td class="id">544</td><td>One person, two names after a reveal</td><td>Fable · drift</td><td class="n">3</td><td>W3 Wed</td><td>#534</td><td>Should</td></tr>
+<tr><td class="id">525</td><td>The ending's voice</td><td>Fable · drift</td><td class="n">8</td><td>W5</td><td>—</td><td>Should (cut 1)</td></tr>
+<tr><td class="id">527</td><td>28 review leads</td><td>Mixed</td><td class="n">18</td><td>W2, W4, W5, W7, W13</td><td>lead 10 in flight</td><td>Mixed</td></tr>
+<tr><td class="id">589</td><td>Library slug (owner check)</td><td>Owner</td><td class="n">0.25</td><td>W2 Tue</td><td>—</td><td>Should</td></tr>
+<tr><td class="id">595</td><td>Eight-resident Car Mode listen</td><td>Owner</td><td class="n">1</td><td>W7 Tue</td><td>8 residents in the library</td><td>Should</td></tr>
+<tr><td class="id">545</td><td>Name-keyed stores with no prototype</td><td>Fable · drift</td><td class="n">16</td><td>W9–W10</td><td>#534, #599</td><td>After</td></tr>
+<tr><td class="id">536</td><td>Reserved words in tags</td><td>Fable</td><td class="n">in #545</td><td>W10</td><td>#545</td><td>After</td></tr>
+<tr><td class="id">540</td><td>Reserved words via extraction and blueprints</td><td>Fable</td><td class="n">in #545</td><td>W10</td><td>#545</td><td>After</td></tr>
+<tr><td class="id">541</td><td>A hero named a reserved word</td><td>Fable</td><td class="n">in #545</td><td>W10</td><td>#545</td><td>After</td></tr>
+<tr><td class="id">542</td><td>The hero's epithets</td><td>Fable · drift</td><td class="n">5</td><td>W10–W11</td><td>#538</td><td>After</td></tr>
+<tr><td class="id">528</td><td>Proof gaps (tests only)</td><td>Any</td><td class="n">10</td><td>W12–W13</td><td>—</td><td>After</td></tr>
+<tr><td class="id">596</td><td>Return greeting after a real absence</td><td>Owner</td><td class="n">1</td><td>W13</td><td>a real absence</td><td>After</td></tr>
+<tr><td class="id">593</td><td>A resident's relation and the [NPC:] tag</td><td>Fable · drift</td><td class="n">2.75</td><td>W14</td><td>ruling</td><td>After</td></tr>
+</table></div>
+
+<h3>Clear for Release (7), plus one recommended addition</h3>
+<div class="wrap"><table>
+<tr><th>Item</th><th>For the beta</th><th>At v1.0</th><th class="n">Hours</th><th>When</th></tr>
+<tr><td>Starting-XP tester override</td><td>Hidden for non-admins</td><td>Removed</td><td class="n">1</td><td>W7 Sun</td></tr>
+<tr><td>Licensed-IP blueprints</td><td>Blocked from the served site</td><td>Removed from the repo</td><td class="n">1 + 1</td><td>W7 Sun; Phase 3</td></tr>
+<tr><td>Engine diagnostic toasts</td><td>Behind the admin tier; records kept</td><td>Stripped</td><td class="n">2 + 2</td><td>W7 Fri; Phase 3</td></tr>
+<tr><td>Re-roll button</td><td>Per decision 5</td><td>Final call</td><td class="n">0.5</td><td>W7 Sun</td></tr>
+<tr><td>Client-side keys</td><td>Kept behind the BYOK disclosure</td><td>Removed; all calls server-side</td><td class="n">15</td><td>Phase 3</td></tr>
+<tr><td>ANCESTRY_RENAMES, CAPABILITY_RENAMES</td><td>Kept (the owner's saves predate them)</td><td>Purged</td><td class="n">2</td><td>Phase 3</td></tr>
+<tr><td>#22b's cheap half (Just-in-case row)</td><td>One trust-fence sentence; length caps on imported fields</td><td>Schema review if sharing ships</td><td class="n">1</td><td>W2 Sat</td></tr>
+</table></div>
+</section>
+
+<section id="decisions">
+<div class="eyebrow">09</div>
+<h2>Owner decisions, and when each is needed</h2>
+<div class="wrap"><table>
+<tr><th>#</th><th>Decision</th><th>Recommendation</th><th>Needed by</th></tr>
+<tr><td>1</td><td>A beta scope freeze: from week 1, a Thursday finding enters Phase 1 only if it blocks the beta</td><td>Yes. About 120 row numbers were issued between 29 Sep and 4 Oct, many of them splits of the #481 audit; at that rate Phase 1 never ends.</td><td>Thu 8 Oct</td></tr>
+<tr><td>2</td><td>#545 reserved words after the beta</td><td>Yes. It needs a player to type the words. None occurs in 277 MB of real play.</td><td>Thu 8 Oct</td></tr>
+<tr><td>3</td><td>#22b's cheap half before outside testers</td><td>Yes; it rides week 2's cache reset.</td><td>Sat 17 Oct</td></tr>
+<tr><td>4</td><td>Licensed blueprints blocked from the served site before invitations</td><td>Yes. They are tracked and Pages serves the repo root.</td><td>Sun 22 Nov</td></tr>
+<tr><td>5</td><td>Re-roll for the beta</td><td>Keep it visible, as the #289 checklist suggests; decide at v1.0 with tester usage.</td><td>Sun 22 Nov</td></tr>
+<tr><td>6</td><td>#19: if the car day finds no cause, the beta says "direct Bluetooth, not CarPlay"</td><td>Yes.</td><td>Sat 21 Nov</td></tr>
+<tr><td>7</td><td>#466: (a) document the real ladder, or (b) let one cloud voice fall to another</td><td>(a), the row's own recommendation.</td><td>Thu 17 Dec</td></tr>
+<tr><td>8</td><td>#593: a resident's relation is protected, damped or free</td><td>Owner's call; the W1 downgrade guard is the precedent.</td><td>Thu 7 Jan</td></tr>
+<tr><td>9</td><td>#331: the five sketch questions at the end of the proposal</td><td>Owner's sketch.</td><td>Thu 7 Jan</td></tr>
+<tr><td>10</td><td>#397: wait for #400, or land the staging rewrite in today's prompt writer</td><td>Wait; the row says never land it twice.</td><td>Thu 7 Jan</td></tr>
+<tr><td>11</td><td>Open the BYOK-elimination conversation and pull #202 forward to week 16</td><td>Yes. Co-op cannot be estimated without them.</td><td>Thu 14 Jan</td></tr>
+<tr><td>12</td><td>The cut order in section 10</td><td>Approve it now so a slip has a known answer.</td><td>Thu 8 Oct</td></tr>
+</table></div>
+</section>
+
+<section id="risks">
+<div class="eyebrow">10</div>
+<h2>Risks, the cut order, and levers</h2>
+<h3>Risks</h3>
+<div class="wrap"><table>
+<tr><th>Risk</th><th>Effect</th><th>Response</th></tr>
+<tr><td>The identity redesign fails review again</td><td>Two earlier builds of this path failed independent review</td><td>Week 4's Wednesday buffer; cut 2. No owner save has the shape (none of 208 names).</td></tr>
+<tr><td>#599 overruns</td><td>About 70 engine sites, 224 test sites, ~585 satellite and tool sites, plus the server reader</td><td>It owns week 1 and half of week 2. Overflow pushes the counter rows to week 3's Friday.</td></tr>
+<tr><td>Inflow from the Thursday reviews</td><td>New defects outpace the plan</td><td>Decision 1; Thursday triage; Phase 2 reserves 6 h a week for tester reports.</td></tr>
+<tr><td>Fable budget spent mid-week</td><td>Drift work must stop by policy</td><td>That week shifts to owner checks and off-Fable rows (#447's slot, release hygiene, #528's tests).</td></tr>
+<tr><td>No first-time player on 18 Nov</td><td>#446 unverified</td><td>Move the playtest to week 7's Tuesday.</td></tr>
+<tr><td>Beta running cost</td><td>gemini-3.7-flash rates double on 1 Jan 2027 (#220); the operator pays testers' turns</td><td>Size the first tester group to the January rate.</td></tr>
+<tr><td>Holidays</td><td>Thanksgiving in week 8; Christmas and New Year in weeks 12–13</td><td>Week 8 carries buffer; weeks 12–13 hold owner-paced work.</td></tr>
+<tr><td>Server deploys</td><td>Each needs the owner's approval and a rehearsal (the #589 precedent)</td><td>Booked on weekend days: week 2 (#599's reader) and week 6 (#288's STT route).</td></tr>
+</table></div>
+<h3>Cut order if Phase 1 slips</h3>
+<ol>
+<li><strong>Cut 1: #525's ending voice moves to Phase 2</strong> (frees 8 h). Testers rarely finish a campaign in the first weeks.</li>
+<li><strong>Cut 2: the identity cluster moves to Phase 2, except #531's death seams</strong> (frees about 26 h). A wrong death is the one case worth keeping; no save has the shape.</li>
+<li><strong>Cut 3: #19's follow-up</strong> (frees 3 h). The beta guide says use direct Bluetooth.</li>
+<li><strong>Cut 4: #447's card slot</strong> (frees 2 h). The notes go into the beta guide instead.</li>
+<li><strong>Cut 5: #464 moves to Phase 2</strong> (frees 10 h). Last, because a missing place degrades every campaign's TOC.</li>
+</ol>
+<h3>Levers</h3>
+<ul>
+<li><strong>A second lane.</strong> Off-Fable rows (#447's slot, #528, #418, #419, #404 ②, release hygiene) can run in a parallel worktree while Fable holds the drift item. That could pull Phase 2 in by about two weeks. The cost is the merge tax: version-number collisions and SUITES conflicts.</li>
+<li><strong>#331 after v1.0</strong> if hardening runs long; nothing depends on it.</li>
+</ul>
+</section>
+
+<footer>
+<p><strong>Sources:</strong> TODO.md at 34524c57 plus the working tree of 7 Oct (another session's uncommitted #437 and lead-10 work noted, not counted as landed); DOC/TODO_ARCHIVE.md for #597, #598, #400, #461 and #423; todo_checkWithFable.md (pending entry 37); the remote-player design record (§12, §15) for #1's gates; git history for the inflow and commit cadence; the owner's standing rulings in CLAUDE.md and session memory (counter order, drift policy, Fable reset, one independent review per batch).</p>
+<p><strong>Not verified here:</strong> the Fable and Astra weekly budgets in hours; whether the library holds eight residents (#595); the co-op estimate, which its own design record defers to the spike.</p>
+</footer>
+
+</main>
+<script>
+(function(){
+  var W=14, BETA=8;
+  var rows=[
+    ["Inventory rows #599","drift",[1,2]],
+    ["Counter rows #517 #518 #577 #578 #581 #591","drift",[2]],
+    ["Stable-prompt window #420, #22b sentence","drift",[2]],
+    ["Hero and voice branch #532 #538 #539 #543","drift",[1,3]],
+    ["Identity redesign #534 (#504 #530 #531 #544)","drift",[3,4]],
+    ["Places in the TOC #464","drift",[5]],
+    ["Ending voice #525","drift",[5]],
+    ["Review leads #527","drift",[2,4,5,7,13]],
+    ["Subscriber riders #288","fable",[1,6]],
+    ["Riverlight and house rules #446 #447","owner",[6]],
+    ["Devices, car, Village checks","owner",[7]],
+    ["Release hygiene","release",[7]],
+    ["Release candidate, beta opens","release",[8]],
+    ["Tester reports","feed",[9,10,11,12,13,14]],
+    ["Reserved words #545 (#536 #540 #541)","drift",[9,10]],
+    ["Hero epithets #542","drift",[10,11]],
+    ["Voice structure #466 #418 #404 #419","off",[11,12]],
+    ["Accumulators #465","drift",[12]],
+    ["Proof gaps #528","off",[12,13]],
+    ["Return greeting #596","owner",[13]],
+    ["GM tastes #331, #593, #397 lesson","drift",[14]],
+    ["v1.0: BYOK design, #202, #1 co-op","fable","p3"]
+  ];
+  var g=document.getElementById("gantt"), h=[];
+  h.push('<div class="hd"></div>');
+  for(var w=1;w<=W;w++) h.push('<div class="hd'+(w===BETA?' beta':'')+'">W'+w+(w===BETA?' β':'')+'</div>');
+  h.push('<div class="hd">W15 → 33</div>');
+  rows.forEach(function(r){
+    h.push('<div class="lbl">'+r[0]+'</div>');
+    for(var w=1;w<=W;w++){
+      var on=r[2]!=="p3"&&r[2].indexOf(w)>=0;
+      h.push('<div class="c'+(on?' on k-'+r[1]:'')+(w===BETA?' b8':'')+'"></div>');
+    }
+    h.push(r[2]==="p3"?'<div class="c on k-'+r[1]+'"></div>':'<div class="p3"></div>');
+  });
+  g.innerHTML=h.join("");
+})();
+</script>
+</body></html>
