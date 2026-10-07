@@ -7,7 +7,7 @@ process.exit(sabotage.prove({
   cases: [{
     label: "Stolen voice leaks back into the martial menu",
     mustFail: "martial menu is exclusive of every caster tradition",
-    find: 'category:["arcane"],range:"self",targets:"self",duration:"4 hours or until dismissed"',
-    replace: 'category:["arcane","martial"],range:"self",targets:"self",duration:"4 hours or until dismissed"'
+    find: 'category:["arcane"],range:"target (distance unspecified)",targets:"1 creature whose voice is stolen",duration:"4 hours or until dismissed"',
+    replace: 'category:["arcane","martial"],range:"target (distance unspecified)",targets:"1 creature whose voice is stolen",duration:"4 hours or until dismissed"'
   }]
 }));

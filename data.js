@@ -263,6 +263,8 @@ var NAMES={
 // in forever would make an old name resolve to a new one for eternity, and a future capability
 // that legitimately reuses a retired name would be silently hijacked by its own history.
 var CAPABILITY_RENAMES=[
+  {from:"wall of  thorns",to:"Wall of Thorns",replaces:"wall of thorns"},
+  {from:"the turning tide",to:"The Turning Tide"},
   {from:"a natural death",to:"Set the Scene"},
   {from:"absorb elements",to:"Redirect Element"},
   {from:"accelerated decay",to:"Accelerate Decay"},
@@ -310,7 +312,7 @@ var CAPABILITY_RENAMES=[
   {from:"shape of the world",to:"Elemental Shape"},
   {from:"shapes of the ice years",to:"Ancient Shapes"},
   {from:"the telling blow",to:"The Called Shot"},
-  {from:"the turning move",to:"The Turning TIde"},
+  {from:"the turning move",to:"The Turning Tide"},
   {from:"thorn whip",to:"Thorn Lash"},
   {from:"toll the dead",to:"For Whom the Bell Tolls"},
   {from:"tree stride",to:"Arboreal Gate"},

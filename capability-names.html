@@ -81,15 +81,24 @@ var CapabilityNames=(function(){
   function read(text,bible){
     var data=JSON.parse(text),expected=rows(bible),byName=Object.create(null);
     if(!data||data.format!==FORMAT||!Array.isArray(data.names))throw new Error("This is not a capability names file.");
+    var originals=Object.create(null),retired=Object.create(null);
+    data.names.forEach(function(row){
+      if(!row||typeof row.from!=="string"||typeof row.to!=="string"||Object.prototype.hasOwnProperty.call(originals,row.from))throw new Error("The file has an unknown, repeated, or malformed original name.");
+      originals[row.from]=true;
+    });
+    // A declared consolidation keeps the surviving original's choice in older drafts.
+    if(typeof CAPABILITY_RENAMES!=="undefined")CAPABILITY_RENAMES.forEach(function(rename){
+      if(rename.replaces&&originals[capBaseName(rename.from)])retired[rename.replaces]=true;
+    });
+    data.names=data.names.filter(function(row){return !retired[row.from];});
     if(data.names.length!==expected.length)throw new Error("The file does not match this Bible. Keep the file so its choices can be reconciled.");
     data.names.forEach(function(row){
-      if(!row||typeof row.from!=="string"||typeof row.to!=="string")throw new Error("The file has an unknown, repeated, or malformed original name.");
-      var key=row.from;
+      var key=row.from,value=row.to;
       if(!Object.prototype.hasOwnProperty.call(bible,key)&&typeof CAPABILITY_RENAMES!=="undefined"){
-        CAPABILITY_RENAMES.some(function(rename){if(capBaseName(rename.from)!==key)return false;key=capBaseName(rename.to);return true;});
+        CAPABILITY_RENAMES.some(function(rename){if(capBaseName(rename.from)!==key)return false;if(capBaseName(value)===key)value=rename.to;key=capBaseName(rename.to);return true;});
       }
       if(!Object.prototype.hasOwnProperty.call(bible,key)||Object.prototype.hasOwnProperty.call(byName,key))throw new Error("The file has an unknown, repeated, or malformed original name.");
-      byName[key]=row.to;
+      byName[key]=value;
     });
     return expected.map(function(row){
       if(!Object.prototype.hasOwnProperty.call(byName,row.from))throw new Error("The file is missing a Bible name: "+row.from);

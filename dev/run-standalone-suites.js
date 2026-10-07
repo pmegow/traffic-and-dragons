@@ -49,6 +49,7 @@ var SUITES = [
   "dev/tests-234-stt-upload-generation.js",
   "dev/tests-287-stt-autosend.js",
   "dev/tests-603-capability-renames.js",
+  "dev/tests-603-capability-application.js",
   "dev/tests-221-rename-capability.js",
   "dev/tests-221-capability-names.js",
   "dev/tests-221-names-store.js",

@@ -205,7 +205,7 @@ var CLASS_BIBLE = {
           "10": {
             "features": [
               {
-                "nm": "The Turning TIde",
+                "nm": "The Turning Tide",
                 "ds": "Once per combat, call the moment that turns the fight — trip, disarm, feint, rally — and it succeeds; named foes contest."
               }
             ]
@@ -375,7 +375,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Uncanny Dodge",
-            "ds": "halve an attack's damage as reaction."
+            "ds": "If an attack hits you and you can see the attacker, you may spend your reaction to take half the damage from that attack. You have one reaction per round."
           }
         ]
       },
@@ -423,7 +423,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Summon Item",
-            "ds": "Teleports a small item to the hand of the rogue.  Works on any item within 30 feet if the rogue knows it's location.  Does NOT require line of sight."
+            "ds": "Summon Item — Teleports a small item to the hand of the rogue. Works on any item within 30 feet if the rogue knows its location. Does NOT require line of sight.  The Rogue must be aware of the item they're summoning, ex: \"I summon the ring from the safe\" works, but \"I summon whatever is in the safe\" does not."
           }
         ]
       }
@@ -1083,7 +1083,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Extra Attack",
-            "ds": "attack twice per action."
+            "ds": "Each attack action you take grants two attacks."
           }
         ]
       },
@@ -1351,7 +1351,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Extra Attack",
-            "ds": "attack twice per action."
+            "ds": "Each attack action you take grants two attacks."
           }
         ]
       },
@@ -1564,7 +1564,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "The Walking Tempest",
-                "ds": "Once per day, stop pretending to be a person: become the storm outright for a scene — a moving column of wind, frost, and lightning that armies cannot hold and arrows cannot find.  \"Chain Lightning\" and \"Thunder Wave\" auto cast, all attacks are enhanced with triple strength \"Booming Blade\"."
+                "ds": "Stop pretending to be a person: become the storm outright for a scene — a moving column of wind, frost and lightning that armies cannot hold and arrows cannot find. Chain Lightning and Thunderwave cast themselves each round, and every blow carries Booming Blade at triple strength."
               }
             ]
           }
@@ -1591,11 +1591,11 @@ var CLASS_BIBLE = {
     "abilities": [
       {
         "nm": "Radiant Strike",
-        "ds": "Expend a spell slot to deal +2d8 radiant damage on a hit."
+        "ds": "Your next melee hit expends a slot to deal +2d8 radiant (more with a higher slot; +1d8 extra against undead or fiends)."
       },
       {
         "nm": "Lay on Hands",
-        "ds": "Pool of 5xLevel HP. Touch to heal or cure disease/poison."
+        "ds": "Draw from a healing pool of 5 × your level: touch to restore HP, or spend 5 points to cure one disease or neutralize one poison. Cannot harm undead."
       },
       {
         "nm": "Divine Sense",
@@ -1651,7 +1651,7 @@ var CLASS_BIBLE = {
         "features": [
           {
             "nm": "Extra Attack",
-            "ds": "attack twice per action."
+            "ds": "Each attack action you take grants two attacks."
           }
         ]
       },
@@ -1891,7 +1891,7 @@ var CLASS_BIBLE = {
     "abilities": [
       {
         "nm": "Sacred Flame",
-        "ds": "Radiant damage cantrip. DEX save or take d8 radiant."
+        "ds": "Radiant light falls on a creature you can see; it makes a DEX save or takes 1d8 radiant.  Cover is ignored."
       },
       {
         "nm": "Turn Undead",
@@ -2222,11 +2222,11 @@ var CLASS_BIBLE = {
       },
       {
         "nm": "Druidic",
-        "ds": "Secret language of druids. Leave hidden messages in nature."
+        "ds": "You speak Druidic fluently, sharing a private tongue with other druids."
       },
       {
         "nm": "Identify Plants and Animals",
-        "ds": "Accurately identify plants and animals including alchemical uses (plants) and abilities / behavior (animals)"
+        "ds": "Accurately identify and describe a plant or animal in the druid's line of sight. Includes alchemical uses as well as animal abilities and behaviors."
       }
     ],
     "skillSeeds": [
@@ -2843,7 +2843,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "Soul Puppet",
-                "ds": "pour a bound soul into a fresh corpse: the dead walks again with its own memories and skills intact -- a thinking servant, not a shambler. It knows exactly what it owes you."
+                "ds": "Pour a bound soul into a fresh corpse: the dead creature walks again with its own memories and skills intact — a thinking servant, not a shambler. It knows exactly what it owes you."
               }
             ]
           },

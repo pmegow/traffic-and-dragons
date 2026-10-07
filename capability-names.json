@@ -1919,8 +1919,8 @@
       "to": "Volley"
     },
     {
-      "from": "wall of  thorns",
-      "to": "Wall of  Thorns"
+      "from": "wall of thorns",
+      "to": "Wall of Thorns"
     },
     {
       "from": "wall of blades",
@@ -1941,10 +1941,6 @@
     {
       "from": "wall of stone",
       "to": "Wall of Stone"
-    },
-    {
-      "from": "wall of thorns",
-      "to": "Wall of Thorns"
     },
     {
       "from": "war priest",
