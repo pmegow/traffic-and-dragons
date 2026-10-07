@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-06",
+  "scope": "Draft worksheet only; game application remains a separate step.",
+  "active": 506,
+  "retiredKey": "wall of thorns",
+  "retainedKey": "wall of  thorns",
+  "resolutions": [
+    {
+      "key": "augury",
+      "status": "resolved",
+      "text": "Replaced Weal/Woe labels with ordinary favorable/unfavorable outcomes; the existing timing and result categories are preserved."
+    },
+    {
+      "key": "druidic",
+      "status": "resolved",
+      "text": "Rephrased the short definition without the previously matched six-word sequence; fluency and secrecy remain."
+    },
+    {
+      "key": "commune with nature",
+      "status": "resolved",
+      "text": "Draft mechanics now match the chosen +3d8 Fauna damage and Flora STR save. The saved rewrite retains the rooted caster and restraint."
+    },
+    {
+      "key": "dancing lights",
+      "status": "resolved",
+      "text": "Draft target count now matches the chosen six lights. The combined glowing-form option is preserved as selected."
+    },
+    {
+      "key": "flame strike",
+      "status": "resolved",
+      "text": "Draft area now uses the explicitly chosen 10-foot diameter, retaining the existing 40-foot height."
+    },
+    {
+      "key": "hide from undead",
+      "status": "resolved",
+      "text": "Qualified detection by undead intelligence and the existing WIS save; the opening no longer contradicts the exception."
+    },
+    {
+      "key": "silence",
+      "status": "resolved",
+      "text": "Made the existing 20-foot radius explicit and retained the chosen protection from all sonic attacks."
+    },
+    {
+      "key": "wall of  thorns",
+      "status": "resolved",
+      "text": "Retained this reviewed 2d6/STR version; removed the later 7d8/DEX version from the active worksheet. Draft targets now describe the wall instead of self. Stable keys and archived content remain for recovery."
+    },
+    {
+      "key": "wall of thorns",
+      "status": "resolved",
+      "text": "Removed this later 7d8/DEX version from the active worksheet at the owner’s request; the earlier 2d6/STR version remains."
+    },
+    {
+      "key": "extra attack",
+      "status": "open",
+      "text": "Still needs an owner choice: which action grants the extra attack, and whether it stacks with Double Attack."
+    },
+    {
+      "key": "inflict wounds",
+      "status": "open",
+      "text": "Still needs an owner choice: how long the unused melee damage charge lasts. The rewrite says next successful melee attack; no expiry is specified."
+    },
+    {
+      "key": "sleep",
+      "status": "open",
+      "text": "Still needs an owner choice: lowest remaining HP first (the targets field) or least wounded first (the description)."
+    }
+  ],
+  "proofreading": [
+    "Thorn Lash: same size as the caster or smaller",
+    "Hunter’s Mark: reassigns the mark",
+    "Soul Puppet: the dead creature walks"
+  ]
+}

@@ -5,8 +5,8 @@
     {
       "key": "augury",
       "decision": "rewrite",
-      "replacement": "Choose a specific course of action intended for the next 30 minutes, then cast tokens or bones. The omen indicates good results (Weal), bad results (Woe), or both (Weal and Woe); no omen means no strong result either way. It provides no details or explanation. Casting again before a rest risks a random false reading.",
-      "notes": "Second pass 2026-10-06 — Remaining descriptive overlap: The rewrite still uses Weal/Woe and their combined omen categories. The sentences are rephrased, but that was the original descriptive concern. Keep deliberately with an attribution decision, or replace the presentation if independence is the goal. Timing is excluded."
+      "replacement": "Choose a specific course of action intended for the next 30 minutes, then cast tokens or bones. The omen indicates favorable results, unfavorable results, or a mixture of both; no omen means no strong result either way. It provides no details or explanation. Casting again before a rest risks a random false reading.",
+      "notes": "Follow-up 2026-10-06 — RESOLVED: Replaced Weal/Woe labels with ordinary favorable/unfavorable outcomes; the existing timing and result categories are preserved.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Remaining descriptive overlap: The rewrite still uses Weal/Woe and their combined omen categories. The sentences are rephrased, but that was the original descriptive concern. Keep deliberately with an attribution decision, or replace the presentation if independence is the goal. Timing is excluded."
     },
     {
       "key": "charm person",
@@ -18,7 +18,7 @@
       "key": "commune with nature",
       "decision": "rewrite",
       "replacement": "Flora or Fauna:  Choose how nature transforms you. \n\nFauna: Take an animal form to increase your speed by 10ft, gain advantage on STR-based attacks, and deal an extra 3d8 force damage on melee hits; or...\n\nFlora: Take a rooted form that creates grasping roots extending 15ft around you.  Ensnares enemies (save vs. STR), grants allies within that area advantage against fear, and lets your ranged attacks ignore cover.  Caster is rooted in place for the duration.",
-      "notes": "Second pass 2026-10-06 — Reference conflict: The chosen Fauna rewrite deals +3d8 force, but the dice field still says +1d6. Flora adds a STR save, restraint and a rooted caster, while the save field is N/A. Preserve the rewrite choice and reconcile these reference fields when implementing."
+      "notes": "Follow-up 2026-10-06 — RESOLVED: Draft mechanics now match the chosen +3d8 Fauna damage and Flora STR save. The saved rewrite retains the rooted caster and restraint.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Reference conflict: The chosen Fauna rewrite deals +3d8 force, but the dice field still says +1d6. Flora adds a STR save, restraint and a rooted caster, while the save field is N/A. Preserve the rewrite choice and reconcile these reference fields when implementing."
     },
     {
       "key": "comprehend languages",
@@ -30,7 +30,7 @@
       "key": "dancing lights",
       "decision": "rewrite",
       "replacement": "Create up to six fist-sized points of light (or combine them into one vaguely humanoid glow) within range and move them as a bonus action; each sheds dim light in a 10ft radius.",
-      "notes": "Second pass 2026-10-06 — Reference conflict: The rewrite creates up to six lights; the targets field still allows four. The humanoid-combination option also remains, although the original torch-sized-light wording is gone."
+      "notes": "Follow-up 2026-10-06 — RESOLVED: Draft target count now matches the chosen six lights. The combined glowing-form option is preserved as selected.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Reference conflict: The rewrite creates up to six lights; the targets field still allows four. The humanoid-combination option also remains, although the original torch-sized-light wording is gone."
     },
     {
       "key": "divination",
@@ -41,14 +41,14 @@
     {
       "key": "druidic",
       "decision": "rewrite",
-      "replacement": "You are fluent in 'Druidic', the secret language of druids.",
-      "notes": "Second pass 2026-10-06 — Remaining phrase overlap: The revised sentence still contains the six-word sequence Druidic, the secret language of druids in both SRDs. This is a short definition, not evidence by itself of infringement. Record a deliberate keep/attribution decision or rephrase if desired."
+      "replacement": "You speak Druidic fluently, sharing a private tongue with other druids.",
+      "notes": "Follow-up 2026-10-06 — RESOLVED: Rephrased the short definition without the previously matched six-word sequence; fluency and secrecy remain.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Remaining phrase overlap: The revised sentence still contains the six-word sequence Druidic, the secret language of druids in both SRDs. This is a short definition, not evidence by itself of infringement. Record a deliberate keep/attribution decision or rephrase if desired."
     },
     {
       "key": "flame strike",
       "decision": "rewrite",
       "replacement": "A 10' diameter pillar of holy fire crashes down from above; each creature in it makes a DEX save against 4d6 fire + 4d6 radiant (half on a success).",
-      "notes": "Second pass 2026-10-06 — Reference conflict: The rewrite specifies a 10-foot diameter, while the targets field specifies a 10-foot radius and 40-foot height. Choose the intended footprint before implementation; these are different areas."
+      "notes": "Follow-up 2026-10-06 — RESOLVED: Draft area now uses the explicitly chosen 10-foot diameter, retaining the existing 40-foot height.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Reference conflict: The rewrite specifies a 10-foot diameter, while the targets field specifies a 10-foot radius and 40-foot height. Choose the intended footprint before implementation; these are different areas."
     },
     {
       "key": "for whom the bell tolls",
@@ -65,8 +65,8 @@
     {
       "key": "hide from undead",
       "decision": "rewrite",
-      "replacement": "Warded creatures are completely undetectable to the undead. Mindless undead are utterly blind to you; intelligent ones save or lose you. The ward breaks on any warded creature that attacks.",
-      "notes": "Second pass 2026-10-06 — Internal contradiction: The opening promises complete undetectability, but the next sentence allows intelligent undead a save. Qualify the opening so it does not overrule that exception. The original sensory wording is removed; remaining parallels mostly describe the same rules."
+      "replacement": "Mindless undead cannot detect warded creatures. Intelligent undead must succeed on a WIS save to detect them. A warded creature loses this protection if it attacks.",
+      "notes": "Follow-up 2026-10-06 — RESOLVED: Qualified detection by undead intelligence and the existing WIS save; the opening no longer contradicts the exception.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Internal contradiction: The opening promises complete undetectability, but the next sentence allows intelligent undead a save. Qualify the opening so it does not overrule that exception. The original sensory wording is removed; remaining parallels mostly describe the same rules."
     },
     {
       "key": "identify",
@@ -95,8 +95,8 @@
     {
       "key": "silence",
       "decision": "rewrite",
-      "replacement": "Create a 20ft sphere of absolute silence. Creatures inside cannot cast spells with verbal components; all sonic attacks including thunder damage are negated there.",
-      "notes": "Second pass 2026-10-06 — Rule clarification: The rewrite says a 20ft sphere without specifying radius or diameter; the targets field says 20ft radius. It also expands negation from thunder damage to all sonic attacks. Preserve the choice, but make the intended area and scope explicit."
+      "replacement": "Create a 20ft-radius sphere of absolute silence. Creatures inside cannot cast spells with verbal components; all sonic attacks, including thunder damage, are negated there.",
+      "notes": "Follow-up 2026-10-06 — RESOLVED: Made the existing 20-foot radius explicit and retained the chosen protection from all sonic attacks.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Rule clarification: The rewrite says a 20ft sphere without specifying radius or diameter; the targets field says 20ft radius. It also expands negation from thunder damage to all sonic attacks. Preserve the choice, but make the intended area and scope explicit."
     },
     {
       "key": "speak with animals",
@@ -222,7 +222,7 @@
       "key": "extra attack",
       "decision": "rewrite",
       "replacement": "One extra attack per round.",
-      "notes": "Second pass 2026-10-06 — Rule clarification: One extra attack per round does not say which action grants it or whether it stacks with Double Attack. The previous wording tied two attacks to taking the attack action. This is a rules change to confirm, not a spelling correction."
+      "notes": "Follow-up 2026-10-06 — OPEN: Still needs an owner choice: which action grants the extra attack, and whether it stacks with Double Attack.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Rule clarification: One extra attack per round does not say which action grants it or whether it stacks with Double Attack. The previous wording tied two attacks to taking the attack action. This is a rules change to confirm, not a spelling correction."
     },
     {
       "key": "faerie fire",
@@ -323,7 +323,7 @@
     {
       "key": "hunter's mark",
       "decision": "rewrite",
-      "replacement": "Mark one creature you can see. Your weapon attacks against THAT target deal +1d6 damage, and you have advantage to track it. EXCLUSIVE: only one Hunter's Mark can exist at a time — casting it reassigns to the new target. The mark fades upon the target's death.",
+      "replacement": "Mark one creature you can see. Your weapon attacks against THAT target deal +1d6 damage, and you have advantage to track it. EXCLUSIVE: only one Hunter's Mark can exist at a time — casting it reassigns the mark to the new target. The mark fades upon the target's death.",
       "notes": ""
     },
     {
@@ -336,7 +336,7 @@
       "key": "inflict wounds",
       "decision": "rewrite",
       "replacement": "Your next successful melee attack causes an additional 3d10 necrotic damage.",
-      "notes": "Second pass 2026-10-06 — Rule clarification: The rewrite adds damage to the next successful melee attack rather than making an immediate melee spell attack. Its duration is still instantaneous. Specify how long the charge lasts and whether it applies to weapon attacks before implementation."
+      "notes": "Follow-up 2026-10-06 — OPEN: Still needs an owner choice: how long the unused melee damage charge lasts. The rewrite says next successful melee attack; no expiry is specified.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Rule clarification: The rewrite adds damage to the next successful melee attack rather than making an immediate melee spell attack. Its duration is still instantaneous. Specify how long the charge lasts and whether it applies to weapon attacks before implementation."
     },
     {
       "key": "intimidating presence",
@@ -521,7 +521,7 @@
     {
       "key": "thorn lash",
       "decision": "rewrite",
-      "replacement": "A vine lashes out (melee spell attack at range); 1d6 piercing and, if the target is equal in size or smaller to the caster, you pull it up to 10ft toward you.",
+      "replacement": "A vine lashes out (melee spell attack at range); 1d6 piercing and, if the target is the same size as the caster or smaller, you pull it up to 10ft toward you.",
       "notes": ""
     },
     {
@@ -540,7 +540,7 @@
       "key": "wall of  thorns",
       "decision": "rewrite",
       "replacement": "Raise a dense barrier of sharp, thorn-covered vines, up to 20 feet in length, 10 feet in height and 3 feet thick. An opponent can break through by succeeding on a STR saving throw; failure leaves them restrained until they succeed on the save or are released. Contact with the vines deals 2d6 damage, which the saving throw does not reduce.",
-      "notes": "Second pass 2026-10-06 — Duplicate name: There is another capability keyed wall of thorns (one space). This two-space entry is 2d6/STR/4 hours; the other is 7d8/DEX/concentration. They must remain separate until you choose which to keep or give them distinct names. Removing the extra space would create a collision. This entry also targets self despite describing a wall at range."
+      "notes": "Follow-up 2026-10-06 — RESOLVED: Retained this reviewed 2d6/STR version; removed the later 7d8/DEX version from the active worksheet. Draft targets now describe the wall instead of self. Stable keys and archived content remain for recovery.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Duplicate name: There is another capability keyed wall of thorns (one space). This two-space entry is 2d6/STR/4 hours; the other is 7d8/DEX/concentration. They must remain separate until you choose which to keep or give them distinct names. Removing the extra space would create a collision. This entry also targets self despite describing a wall at range."
     },
     {
       "key": "abyssal fury",
@@ -2160,7 +2160,7 @@
       "key": "sleep",
       "decision": "pending",
       "replacement": "Roll 5d8: that many hit points of creatures fall unconscious, starting with the least wounded and working up until the pool runs out. Undead and creatures immune to charm are unaffected; damage or a hard shake wakes a sleeper.",
-      "notes": "Second pass 2026-10-06 — Internal contradiction: The effect starts with the least wounded, while the targets field says weakest first and the HP-pool rule depends on remaining hit points. Specify the intended order; do not silently swap these meanings."
+      "notes": "Follow-up 2026-10-06 — OPEN: Still needs an owner choice: lowest remaining HP first (the targets field) or least wounded first (the description).\n\nPrevious note (history):\nSecond pass 2026-10-06 — Internal contradiction: The effect starts with the least wounded, while the targets field says weakest first and the HP-pool rule depends on remaining hit points. Specify the intended order; do not silently swap these meanings."
     },
     {
       "key": "sleep of the dead",
@@ -2194,8 +2194,8 @@
     },
     {
       "key": "soul puppet",
-      "decision": "pending",
-      "replacement": "Pour a bound soul into a fresh corpse: the dead walks again with its own memories and skills intact — a thinking servant, not a shambler. It knows exactly what it owes you.",
+      "decision": "rewrite",
+      "replacement": "Pour a bound soul into a fresh corpse: the dead creature walks again with its own memories and skills intact — a thinking servant, not a shambler. It knows exactly what it owes you.",
       "notes": ""
     },
     {
@@ -2916,7 +2916,7 @@
       "key": "wall of thorns",
       "decision": "pending",
       "replacement": "A rampart of tangled, finger-thick briars. Creatures in its space when it grows save DEX against 7d8 piercing; forcing a way through costs quarter speed and the same 7d8 again. It blocks sight.",
-      "notes": "Second pass 2026-10-06 — Duplicate name: A separate two-space wall of  thorns entry has different damage, saves and duration. Decide whether these are two distinct abilities or which definition is authoritative before merging or renaming."
+      "notes": "Follow-up 2026-10-06 — RESOLVED: Removed this later 7d8/DEX version from the active worksheet at the owner’s request; the earlier 2d6/STR version remains.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Duplicate name: A separate two-space wall of  thorns entry has different damage, saves and duration. Decide whether these are two distinct abilities or which definition is authoritative before merging or renaming."
     },
     {
       "key": "war priest",

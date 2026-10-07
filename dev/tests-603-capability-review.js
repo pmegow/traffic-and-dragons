@@ -4,13 +4,21 @@ try{
 const html=fs.readFileSync(path.join(root,'audits/capability_vulnerabilities.html'),'utf8'),manifest=JSON.parse(html.match(/<script id="audit-data" type="application\/json">([\s\S]*?)<\/script>/)[1]),box={};
 require('vm').runInNewContext(html.match(/<script id="review-core">([\s\S]*?)<\/script>/)[1],box);
 const core=box.CapabilityReview,reviews=core.initial(manifest);
+const retained=manifest.rows.find(r=>r.key==='wall of  thorns'),retired=manifest.rows.find(r=>r.key==='wall of thorns');
+assert.equal(core.isActive(retained),true,'keep the earlier reviewed 2d6/STR entry');
+assert.equal(core.isActive(retired),false,'remove the later 7d8/DEX entry from active review');
+assert.equal(manifest.rows.filter(core.isActive).length,506);
+const retirementRoundTrip=core.read(core.pack(reviews,manifest),manifest);
+assert.equal(retirementRoundTrip.length,507,'retain archived row data for existing browser drafts');
+assert.equal(core.progress(retirementRoundTrip,manifest).optional,447,'retired entries must not count as optional');
+
 const durationKeys=['a call to arms','aura of life','bleed','blind','booming blade','chill touch','confusion','cunning action','divine sense','dominate beast','dread','fear','flash','fleeting vitality','grave touch','guidance','guiding bolt','hold person','ice storm','intimidating presence','moonbeam','ray of frost','ray of sickness','reckless attack','rot','shield','shield wall','slow','staggering smite','the wild run','turn undead'];
 for(const key of durationKeys){const row=manifest.rows.find(r=>r.key===key);assert.equal(row.level,'unflagged','duration flag remains: '+key);assert.equal(row.evidence.length,0);assert.ok(row.excludedEvidence.length>0,'excluded evidence must remain traceable');}
 for(const key of ['augury','charm person','comprehend languages','invisibility','redirect element','shadow blade'])assert.notEqual(manifest.rows.find(r=>r.key===key).level,'unflagged','non-duration concern was removed: '+key);
 for(const key of ['charm person','invisibility'])assert.ok(!manifest.rows.find(r=>r.key===key).evidence.some(e=>/until/.test(e.phrase)),'timing evidence remains in mixed finding: '+key);
 const prior=fs.readFileSync(path.join(root,'audits/capability_vulnerabilities.json'),'utf8');assert.equal(core.pack(core.read(prior,manifest),manifest),JSON.stringify(JSON.parse(prior),null,2),'existing saved decisions must survive reclassification unchanged');
 
-assert.equal(core.progress(reviews,manifest).required,59);assert.equal(core.progress(reviews,manifest).optional,448);
+assert.equal(core.progress(reviews,manifest).required,59);assert.equal(core.progress(reviews,manifest).optional,447);
 reviews.forEach((r,i)=>{if(manifest.rows[i].level!=='unflagged')r.decision='keep';});
 assert.equal(core.progress(reviews,manifest).complete,true,'untouched unflagged entries must not block completion');
 assert.equal(reviews.filter(r=>r.decision==='pending').length,448,'completion must not silently approve optional entries');

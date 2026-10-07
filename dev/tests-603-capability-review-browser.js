@@ -30,17 +30,24 @@ await check('redraft endpoint rejects bad requests without launching Astra',asyn
  assert.equal((await fetch(origin+'/capability-redraft')).status,405);
 });
 async function save(){await page.locator('#save').click();await page.waitForFunction(()=>document.getElementById('file-state').textContent.startsWith('Saved audits/'));}
-await check('all 507 rows are available and priority findings are the default',async()=>{
- assert.equal(await page.locator('.row').count(),507);assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.row')].filter(r=>!r.hidden).length),17);
+await check('all 506 active rows are available and priority findings are the default',async()=>{
+ assert.equal(await page.locator('.row').count(),506);assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.row')].filter(r=>!r.hidden).length),17);
  await page.evaluate(()=>{document.getElementById('scope').value='all';document.getElementById('scope').dispatchEvent(new Event('change'));});await page.locator('#search').fill('guardian of nature');assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.row')].filter(r=>!r.hidden).length),1);assert.match(await page.locator('#count').textContent(),/1 shown/);
  await page.locator('#search').fill('');await page.evaluate(()=>{document.getElementById('scope').value='wording';document.getElementById('scope').dispatchEvent(new Event('change'));});
  if(process.env.REVIEW_SCREENSHOT_DIR){fs.mkdirSync(process.env.REVIEW_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.REVIEW_SCREENSHOT_DIR,'review-desktop.png')});}
+});
+await check('removed duplicate stays absent after reload and later rows keep their own decisions',async()=>{
+ const removed=manifest.rows.findIndex(r=>r.key==='wall of thorns'),kept=manifest.rows.findIndex(r=>r.key==='wall of  thorns'),last=manifest.rows.length-1;
+ assert.equal(await page.locator('#cap-'+removed).count(),0);assert.equal(await page.locator('#cap-'+kept).count(),1);
+ await page.evaluate(()=>{document.getElementById('scope').value='all';document.getElementById('scope').dispatchEvent(new Event('change'));});await page.locator('#search').fill('wall of thorns');assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.row')].filter(r=>!r.hidden).length),1);
+ await page.locator('#search').fill('');await page.locator('#cap-'+last+' .keep').click();assert.equal(await page.evaluate(i=>document.getElementById('cap-'+i).getAttribute('data-decision'),last),'keep');await page.reload();await page.waitForFunction(()=>!document.getElementById('save').disabled);assert.equal(await page.locator('#cap-'+removed).count(),0);assert.equal(await page.locator('#cap-'+last+'-decision').inputValue(),'keep');
+ await page.evaluate(i=>{const el=document.getElementById('cap-'+i+'-decision');el.value='pending';el.dispatchEvent(new Event('change'));window.scrollTo(0,0);},last);
 });
 await check('duration findings leave flagged filters but remain available for optional editing',async()=>{
  const shield=manifest.rows.findIndex(r=>r.key==='shield');
  await page.evaluate(()=>{document.getElementById('scope').value='flagged';document.getElementById('scope').dispatchEvent(new Event('change'));});assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.row')].filter(r=>!r.hidden).length),59);assert.equal(await page.evaluate(i=>document.getElementById('cap-'+i).hidden,shield),true);
  assert.match(await page.locator('#scope').textContent(),/All flagged descriptions \(59\)/);
- await page.evaluate(()=>{document.getElementById('scope').value='unflagged';document.getElementById('scope').dispatchEvent(new Event('change'));});assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.row')].filter(r=>!r.hidden).length),448);assert.equal(await page.evaluate(i=>document.getElementById('cap-'+i).hidden,shield),false);
+ await page.evaluate(()=>{document.getElementById('scope').value='unflagged';document.getElementById('scope').dispatchEvent(new Event('change'));});assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.row')].filter(r=>!r.hidden).length),447);assert.equal(await page.evaluate(i=>document.getElementById('cap-'+i).hidden,shield),false);
  assert.match(await page.locator('#cap-'+shield+' .reason').textContent(),/excluded/);
  await page.evaluate(()=>{document.getElementById('scope').value='wording';document.getElementById('scope').dispatchEvent(new Event('change'));});
 });
@@ -91,7 +98,7 @@ await check('long literal edits fit a narrow viewport and remain text',async()=>
 await check('vulnerability progress ignores optional rows and survives save/reload',async()=>{
  const review={format:'traffic-and-dragons/capability-review/v1',audit:manifest.id,reviews:manifest.rows.map((r,i)=>({key:r.key,decision:i<6?'rewrite':'pending',replacement:i<6?'Reviewed wording: '+r.effect:r.effect,notes:''}))};
  const imported=path.join(scratch,'completion.json');fs.writeFileSync(imported,JSON.stringify(review));await page.locator('#import-file').setInputFiles(imported);await page.waitForFunction(()=>document.getElementById('completion').textContent==='6/59 vulnerabilities addressed.');
- assert.match(await page.locator('#count').textContent(),/6 of 507 decisions/);
+ assert.match(await page.locator('#count').textContent(),/6 of 506 decisions/);
  await page.evaluate(()=>{document.getElementById('scope').value='flagged';document.getElementById('scope').dispatchEvent(new Event('change'));window.scrollTo(0,0);});
  for(const width of [1280,320]){await page.setViewportSize({width,height:900});const size=await page.evaluate(()=>({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,saveBottom:document.getElementById('file-state').getBoundingClientRect().bottom,progressTop:document.getElementById('completion').getBoundingClientRect().top}));assert.ok(size.scroll<=size.width);assert.ok(size.progressTop>=size.saveBottom,JSON.stringify(size));if(process.env.REVIEW_SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.REVIEW_SCREENSHOT_DIR,'review-completion-'+width+'.png')});}
  await page.setViewportSize({width:1280,height:1000});review.reviews.forEach((r,i)=>{if(manifest.rows[i].level!=='unflagged'){r.decision='keep';r.replacement=manifest.rows[i].effect;}});fs.writeFileSync(imported,JSON.stringify(review));await page.locator('#import-file').setInputFiles(imported);await page.waitForFunction(()=>document.getElementById('completion').textContent==='59/59 vulnerabilities addressed.');await save();
