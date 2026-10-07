@@ -426,8 +426,9 @@ function motivationSettle(cs,how,turn,camp){
   var rec=campStampOn({text:was,how:h,turn:turn},camp);/* #481 C8 */
   cs.motivationHistory.push(rec);cs.motivation="";return rec;
 }
+function motivationBirthText(text){return String(text||"").trim().slice(0,200);}
 function motivationBirth(cs,text,turn,camp){
-  if(!cs)return null;var t=String(text||"").trim().slice(0,200);if(!t)return null;
+  if(!cs)return null;var t=motivationBirthText(text);if(!t)return null;
   var hits=(typeof wordListScan==="function"&&typeof LABEL_RE!=="undefined")?wordListScan(t,LABEL_RE):[];
   if(hits.length)return {refused:hits};
   var was=(typeof cs.motivation==="string")?cs.motivation.trim():"";if(was&&was.toLowerCase()===t.toLowerCase())return null;

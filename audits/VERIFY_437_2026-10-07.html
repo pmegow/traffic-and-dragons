@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TODO 437 verification — 7 October 2026</title>
+<style>body{max-width:1000px;margin:40px auto;padding:0 22px;background:#111419;color:#ddd;font:17px/1.55 system-ui}h1,h2{color:#e4bd73}table{border-collapse:collapse;width:100%}th,td{padding:12px;text-align:left;border-bottom:1px solid #45505e;vertical-align:top}code{overflow-wrap:anywhere}a{color:#b8cde2}.open{color:#efba64}img{max-width:100%}</style>
+<h1>TODO #437: two fixes verified; row remains open</h1>
+<p>7 October 2026 · v1.1162 · character editor v0.2</p>
+<p>The summary replay and editor retirement fixes pass. Independent Astra review found an existing blocker in #527 lead (10), so #437 is partially complete and was not archived.</p>
+<h2>Mechanisms and changes</h2>
+<p>The summarizer previously applied a reason for settling purpose A to whatever purpose happened to stand when its response arrived. After a live A → B transition, that could retire B. Extraction now names the exact settled purpose and retains campaign, sheet, purpose and history evidence from before the asynchronous request. Already-applied settlements are no-ops; stale or ambiguous evidence is refused visibly. Archived births cannot be replayed. Successful changes advance only the request's local expected state, allowing separate settlement and birth entries without changing the original evidence.</p>
+<p>The character editor previously exposed only the motivation text box; emptying it lost the reason and lifecycle history. Its explicit <em>Settle motivation…</em> action requires a reason, calls the shared lifecycle helper, preserves the old purpose in editable portable history, and shows the settled status. Cancellation and stale dialogs cannot retire a different purpose. Save remains the persistence boundary.</p>
+<h2>Full-row review</h2>
+<table><tr><th>Requirement</th><th>Result</th></tr>
+<tr><td>GM tag retires a fulfilled purpose and records its reason</td><td class="open">OPEN for SAY-only speaker evidence. Normal named narration passes. See blocker below.</td></tr>
+<tr><td>Summary fallback; no replay or wrong-purpose retirement</td><td>PASS: exact purpose reference, archived replay, async sheet/campaign/history changes, ambiguous text, case and truncation boundaries, and split settlement/birth entries.</td></tr>
+<tr><td>Explicit character-editor retirement</td><td>PASS: reason validation, cancellation, history, immediate status refresh, repeat settlements, optional campaign, stale-dialog refusal and file/library payload round trips.</td></tr>
+<tr><td>New purpose comes from the story and produces a toast</td><td>PASS for supported live tag evidence and summary fallback; SAY-only tag path shares the open blocker. No automatic manufactured purpose.</td></tr>
+<tr><td>Closed-purpose prompt, sheet and ending</td><td>PASS: none-standing status and settlement reason remain represented. Portable history survives JSON character export/import.</td></tr>
+<tr><td>Backstories preserved; existing campaign runs out unchanged</td><td>PASS: in-memory real-save lifecycle check preserved backstories and skeleton. No campaign or library save was written.</td></tr>
+<tr><td>Current saved Daeris</td><td>Local Village turn 279 already has no standing motivation and retains the Necrotic Dungeon turn 49 settlement. This is evidence about the local save, not a live cloud-library query.</td></tr>
+</table>
+<h2>Remaining blocker: #527 lead (10)</h2>
+<p>The growth handler strips SAY tags before checking whether a companion is on screen. A companion named only by the speaker tag is recognized as present elsewhere but rejected here as “not on screen,” with only a console warning. Independent review reproduced both settlement and birth failures.</p>
+<pre><code>[SAY:Daeris]"He is safe. My search is finished."
+[COMPANION_GROWTH:Daeris|motivation|settled: her brother returned safely]</code></pre>
+<p>The old motivation remains and no settlement history is written. The corresponding SAY-only new-purpose tag also fails. The shared presence guard in tag_table.js was outside these two fixes and was not changed. This prevents closing #437.</p>
+<h2>Verification</h2>
+<ul>
+<li>Full gate: <code>node dev/run-tests.js</code> — ALL GREEN, 2,657 engine assertions and 102 standalone verifier suites.</li>
+<li>Focused lifecycle section: 17 assertions; six asynchronous summarize scenarios with a stub provider, no paid requests.</li>
+<li>32 named lifecycle mutations and five editor mutations caught; scratch mutation sources restored byte-identically.</li>
+<li>Real Chrome editor regression suite and existing #481 F10 editor suite pass. Desktop and 390 × 844 mobile renders inspected.</li>
+<li>Gameplay stable and volatile prompts byte-identical before/after on local Necrotic Dungeon turn 35, Village turn 279 and Long Walk turn 146 saves. Independent implementation check also covered Village turn 254.</li>
+<li>Extraction prompt changes isolated to the companion-purpose evidence block and settledPurpose schema field. Independent comparison: +1,565 characters on the Village fixtures and +1,392 on Necrotic Dungeon; removing those additions restores baseline bytes.</li>
+<li>Real-save mutation exercise: retire Daeris's purpose, verify closed prompt and ending, export/import history, then birth a new purpose. Original save bytes, backstories and campaign skeleton unchanged.</li>
+<li>Initial failures: missing editor action and stale history status reproduced before their fixes. First full gate found the new browser mutation battery lacked the explicit dev/cdp-browser.js wiring marker; corrected and the full gate rerun green.</li>
+</ul>
+<h2>Review and resource bounds</h2>
+<p>Astra performed critical pre-review before memory changes: avoid retiring an unrelated purpose, replaying historic transitions, losing async provenance, or changing gameplay prompt/cache behavior. A separate Astra reviewed the entire row and approved both fixes while withholding closure because of #527 lead (10). Ambiguity is refused visibly rather than guessed.</p>
+<p>Request snapshots are transient per extraction; only five history entries per companion are injected into its prompt. History grows only for actual lifecycle events, not replays, and remains portable. Editor dialogs are created fresh and removed after cancellation or completion; no timers, persistent listeners, remote writes or background resources were introduced.</p>
+<h2>Rendered evidence</h2>
+<p>Before: no explicit lifecycle settlement action.</p><img src="437-editor-before.png" alt="Original character editor without a settlement action">
+<p>After: explicit settlement action, reason and optional campaign.</p><img src="437-editor-dialog.png" alt="Desktop settlement dialog">
+<p>Mobile.</p><img src="437-editor-mobile.png" alt="Settlement dialog at 390 by 844 pixels">
+</html>

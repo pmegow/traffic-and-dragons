@@ -27615,14 +27615,104 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#437 belt: the extractor's motivationChanges settle and birth through the same helpers — companions only (the hero and a stranger are dropped loudly, a paperwork purpose is refused loudly, every filing toasts) — and the extraction schema names the field with its ONLY-if guards",function(){
     __mlWorld();var d=findCompanionChar("Daeris"),f=findCompanionChar("Frizwick"),c=worldState.character;c.motivation="To prove yourself worthy of something lost";
     var warns=[],_w=console.warn,tl=[],_st=showToast;console.warn=function(m){warns.push(String(m));};showToast=function(m){tl.push(String(m));};
-    try{applySummaryExtract({chapterSummary:"",motivationChanges:[{name:"Daeris",settled:"the one she hunted was found and the debt paid"},{name:"Frizwick",now:"To find a place where leaving costs nothing vital."},{name:"Ammut",settled:"x"},{name:"Nobody",now:"y"},{name:"Frizwick",now:"To audit every ledger in the Holding."}]},null);}finally{console.warn=_w;showToast=_st;}
+    try{applySummaryExtract({chapterSummary:"",motivationChanges:[{name:"Daeris",settledPurpose:d.motivation,settled:"the one she hunted was found and the debt paid"},{name:"Frizwick",now:"To find a place where leaving costs nothing vital."},{name:"Ammut",settled:"x"},{name:"Nobody",now:"y"},{name:"Frizwick",now:"To audit every ledger in the Holding."}]},null);}finally{console.warn=_w;showToast=_st;}
     if(d.motivation!==""||!d.motivationHistory||d.motivationHistory.length!==1)return "Daeris not settled by the belt: "+JSON.stringify(d.motivation);
     if(f.motivation!=="To find a place where leaving costs nothing vital.")return "Frizwick's purpose not born by the belt: "+JSON.stringify(f.motivation);
     if(c.motivation!=="To prove yourself worthy of something lost")return "the hero's purpose is the player's — the belt must not touch it";
-    if(!warns.some(function(w){return /Ammut/.test(w);})||!warns.some(function(w){return /Nobody/.test(w);})||!warns.some(function(w){return /ledger/.test(w);}))return "drops and refusals must be loud: "+JSON.stringify(warns);
+    if(!warns.some(function(w){return /Ammut/.test(w)&&/not a living companion/.test(w);})||!warns.some(function(w){return /Nobody/.test(w);})||!warns.some(function(w){return /ledger/.test(w);}))return "drops and refusals must be loud: "+JSON.stringify(warns);
     if(tl.length<2)return "every filing toasts (#347): "+JSON.stringify(tl);
     var p=buildExtractPrompt("desc",[],"raw","txt",null);if(p.indexOf('"motivationChanges"')<0||!/"settled"/.test(p)||!/ONLY if/.test(p))return "the extraction schema must name motivationChanges with the settled/now fields and the ONLY-if guards";
     return true;
+  });
+  t("#437 replay: an archived settlement cannot retire the later tagged purpose or produce duplicate history, moments or toasts",function(){
+    __mlWorld();var d=findCompanionChar("Daeris"),a="Find her missing brother.",b="Protect the village from raiders.",tl=[],_st=showToast;showToast=function(m){if(/^★ Daeris/.test(m))tl.push(m);};
+    try{
+      d.motivation=a;
+      applyMuts("Daeris embraces her brother. [COMPANION_GROWTH:Daeris|motivation|settled: her brother returned safely]");
+      applyMuts("Daeris swears to defend the village. [COMPANION_GROWTH:Daeris|motivation|"+b+"]");
+      var before=JSON.stringify(d),n=tl.length;
+      applySummaryExtract({motivationChanges:[{name:"Daeris",settledPurpose:a,settled:"her brother returned safely",now:b}]});
+      if(JSON.stringify(d)!==before||tl.length!==n)return "paired replay changed the sheet or toasted: "+JSON.stringify(d)+" / "+JSON.stringify(tl);
+      applySummaryExtract({motivationChanges:[{name:"Daeris",settledPurpose:a,settled:"her brother returned safely"}]});
+      return JSON.stringify(d)===before&&tl.length===n?true:"settled-only replay retired B";
+    }finally{showToast=_st;}
+  });
+  t("#437 reference: missing, wrong and malformed settlement references refuse loudly without touching a standing purpose",function(){
+    __mlWorld();var d=findCompanionChar("Daeris"),before=JSON.stringify(d),warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{
+      var bad=[{name:"Daeris",settled:"her brother returned safely",now:"Protect the village."},{name:"Daeris",settledPurpose:"A different purpose",settled:"finished"},{name:"Daeris",settledPurpose:[d.motivation],settled:"finished"},{name:["Daeris"],settledPurpose:d.motivation,settled:"finished"}];
+      for(var i=0;i<bad.length;i++)applySummaryExtract({motivationChanges:[bad[i]]});
+      return JSON.stringify(d)===before&&warns.length===bad.length?true:"unsafe settlement or silent refusal: "+JSON.stringify(d)+" / "+JSON.stringify(warns);
+    }finally{console.warn=_w;}
+  });
+  t("#437 fallback: exact standing reference settles once, births once, and an already tagged settlement still permits an untagged birth",function(){
+    __mlWorld();var d=findCompanionChar("Daeris"),a=d.motivation,b="Protect the village from raiders.",tl=[],_st=showToast;showToast=function(m){if(/^★ Daeris/.test(m))tl.push(m);};
+    try{
+      var ex={motivationChanges:[{name:"Daeris",settledPurpose:a,settled:"her search ended",now:b}]};applySummaryExtract(ex);
+      if(d.motivation!==b||d.motivationHistory.length!==1||tl.length!==2)return "untagged transition did not file both halves once";
+      var before=JSON.stringify(d);applySummaryExtract(ex);if(JSON.stringify(d)!==before||tl.length!==2)return "fallback retry duplicates a transition";
+      __mlWorld();d=findCompanionChar("Daeris");motivationSettle(d,"her search ended",40);tl=[];
+      applySummaryExtract(ex);return d.motivation===b&&d.motivationHistory.length===1&&tl.length===1?true:"tagged settlement lost untagged birth";
+    }finally{showToast=_st;}
+  });
+  t("#437 snapshot: extraction cannot act on a changed sheet, even when the standing text returns to the same value",function(){
+    __mlWorld();if(typeof summaryMotivationTable!=="function")return "snapshot builder missing";
+    var d=findCompanionChar("Daeris"),a=d.motivation,table=summaryMotivationTable(),warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{
+      motivationSettle(d,"her search ended",40);motivationBirth(d,a,41);var before=JSON.stringify(d);
+      applySummaryExtract({motivationChanges:[{name:"Daeris",settledPurpose:a,settled:"her search ended"}]},null,table);
+      if(JSON.stringify(d)!==before||!warns.some(function(m){return /changed/.test(m);}))return "same-text rebirth accepted stale settlement";
+      __mlWorld();d=findCompanionChar("Frizwick");table=summaryMotivationTable();motivationBirth(d,"Protect her friends.",41);motivationSettle(d,"they were safe",42);before=JSON.stringify(d);
+      applySummaryExtract({motivationChanges:[{name:"Frizwick",now:"Find a home."}]},null,table);
+      return JSON.stringify(d)===before?true:"stale birth resurrected after later settlement";
+    }finally{console.warn=_w;}
+  });
+  t("#437 ambiguity: a standing purpose with the same text as closed history cannot be settled by an old story",function(){
+    __mlWorld();var d=findCompanionChar("Daeris"),a="Protect her brother.";d.motivation=a;motivationSettle(d,"he reached safety",39);motivationBirth(d,a,40);
+    var before=JSON.stringify(d),warns=[],_w=console.warn;console.warn=function(m){warns.push(String(m));};
+    try{applySummaryExtract({motivationChanges:[{name:"Daeris",settledPurpose:a,settled:"he reached safety"}]});}
+    finally{console.warn=_w;}
+    return JSON.stringify(d)===before&&warns.some(function(m){return /ambiguous/.test(m);})?true:"same-text old settlement cleared the reborn purpose";
+  });
+  t("#437 retired birth: paired and now-only summary replays cannot resurrect an already retired purpose, while a live tag may",function(){
+    __mlWorld();var d=findCompanionChar("Daeris"),a=d.motivation,b="Protect the village.",tl=[],_st=showToast;showToast=function(m){tl.push(String(m));};
+    try{
+      motivationSettle(d,"her search ended",39);motivationBirth(d,b,40);motivationSettle(d,"the raiders fled",41);
+      var before=JSON.stringify(d);
+      applySummaryExtract({motivationChanges:[{name:"Daeris",settledPurpose:a,settled:"her search ended",now:b}]});
+      applySummaryExtract({motivationChanges:[{name:"Daeris",now:b.toLowerCase()}]});
+      if(JSON.stringify(d)!==before||tl.length!==2||!tl.every(function(m){return /not filed/.test(m);}))return "retired purpose resurrected or refusal invisible: "+JSON.stringify(d)+" / "+JSON.stringify(tl);
+      applyMuts("Daeris takes up her shield again. [COMPANION_GROWTH:Daeris|motivation|"+b+"]");
+      return d.motivation===b?true:"intentional live-tag rebirth must still work";
+    }finally{showToast=_st;}
+  });
+  t("#437 split fallback: separate settlement and birth entries apply in sequence without mutating the request snapshot",function(){
+    __mlWorld();var d=findCompanionChar("Daeris"),a=d.motivation,b="Protect the village.",table=summaryMotivationTable(),history=table.rows[0].history,standing=table.rows[0].standing;
+    applySummaryExtract({motivationChanges:[{name:"Daeris",settledPurpose:a,settled:"her search ended"},{name:"Daeris",now:b}]},null,table);
+    if(d.motivation!==b||d.motivationHistory.length!==1)return "a valid split fallback lost its birth";
+    return table.rows[0].history===history&&table.rows[0].standing===standing?true:"application changed the immutable request evidence";
+  });
+  t("#437 boundary: fallback compares the 200-character value that birth would actually store, including a trailing-space cut",function(){
+    for(var n=199;n<=200;n++){
+      __mlWorld();var d=findCompanionChar("Daeris"),b="Protect ";while(b.length<n)b+="x";b=b.slice(0,n);if(n===199)b+=" ";d.motivation=b;
+      motivationSettle(d,"the village was safe",39);var before=JSON.stringify(d);
+      applySummaryExtract({motivationChanges:[{name:"Daeris",now:b+" and then rest."}]});
+      if(JSON.stringify(d)!==before)return "truncated archived purpose resurrected at length "+n;
+    }
+    return true;
+  });
+  t("#437 case identity: an exact standing reference cannot settle a case-varied rebirth of an archived purpose",function(){
+    __mlWorld();var d=findCompanionChar("Daeris");d.motivation="Protect her brother.";motivationSettle(d,"he reached safety",39);motivationBirth(d,"protect her brother.",40);var before=JSON.stringify(d);
+    applySummaryExtract({motivationChanges:[{name:"Daeris",settledPurpose:"protect her brother.",settled:"he reached safety"}]});
+    return JSON.stringify(d)===before?true:"case-varied old settlement cleared the reborn purpose";
+  });
+  t("#437 context: extractor receives standing and archived purposes with exact settlement-reference instructions before the schema",function(){
+    __mlWorld();if(typeof summaryMotivationTable!=="function")return "snapshot builder missing";
+    var d=findCompanionChar("Daeris"),a=d.motivation;motivationSettle(d,"her search ended",40);motivationBirth(d,"Protect the village.",41);
+    var p=buildExtractPrompt("desc",[],"raw","txt",null,summaryMotivationTable());
+    if(p.indexOf('"settledPurpose"')<0||p.indexOf(a)<0||p.indexOf("Protect the village.")<0||p.indexOf("her search ended")<0)return "missing motivation references in extraction prompt";
+    if(!/already applied/i.test(p)||!(/exact/i.test(p)))return "prompt lacks replay/reference instruction";
+    return p.indexOf("COMPANION PURPOSES")<p.indexOf("SESSION:")?true:"context must precede session/schema";
   });
   t("#437 generator: the freeform skeleton prompt carries the no-books rule (a settled debt in the record is closed history) and the reviewer carries a REGISTER dimension in both the bare and the character-bearing forms",function(){
     makeWorld();var h=worldState.character;h.coreMemories=[{text:"Ammut told Daeris her debts were paid and she belonged.",turn:1264,kind:"bond",who:"Daeris",camp:"Rise of the Runelords"}];

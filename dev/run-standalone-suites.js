@@ -56,6 +56,7 @@ var SUITES = [
   "dev/tests-306-harness-picker.js",
   "dev/tests-playtest-server-mode.js",/* a signed-in playtest never wipes storage, starts only a harness-named campaign, and deletes only that one (owner 2026-09-30) */
   "dev/tests-250-browser-io.js",
+  "dev/tests-437-summary.js",
   "dev/tests-438-folder-rename.js",
   "dev/tests-481-f1-campaign-folders.js",
   "dev/tests-439-designer-incoming.js",

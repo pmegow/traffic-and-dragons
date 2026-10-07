@@ -103,6 +103,8 @@ jobs:
       # Chrome check (check-enforcement.js browserSuiteProblems) — the three below had landed gating nothing.
       - name: Home page tab return in a real browser (#481 F4)
         run: node dev/tests-481-f4-home-return.js
+      - name: Motivation settlement in the character editor (#437)
+        run: node dev/tests-437-editor-browser.js
       - name: Character editor signed out in a real browser (#481 F10)
         run: node dev/tests-481-f10-editor-browser.js
       - name: TODO viewer read-only in a real browser (#481 G3)

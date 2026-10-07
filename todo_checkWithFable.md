@@ -573,3 +573,4 @@ zero 2026-07-27 and again 2026-07-30.
 - 2026-10-07 · #527(25) · Codex, owner-requested non-drift sweep: presentation-only `abilityGroup` honors existing racial provenance; no grants, state writes, prompt or memory changes. Engine failure reproduced first; both shared renderers covered.
 
 - 2026-10-07 · #528 · Codex, tests/tooling only: real portrait ingress and stale scene Portrait action exercised; eight caller mutations and six render-job mutations caught in scratch copies. No protected runtime edits. Remaining proof gaps stay open.
+- 2026-10-07 · #437 · Codex: character-editor DOM action over the existing motivationSettle helper, lifecycle/browser proofs and shipping markers; protected summary changes implemented by Astra and independently reviewed by a second Astra. Both fixes approved; full row remains open for #527 lead (10). Receipt: audits/VERIFY_437_2026-10-07.html.

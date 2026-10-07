@@ -41,6 +41,13 @@ main{max-width:1100px;margin:0 auto;padding:16px;display:grid;grid-template-colu
 @media(max-width:820px){main{grid-template-columns:1fr;}}
 section{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--rl);padding:12px 14px;}
 section.wide{grid-column:1/-1;}
+dialog.settlement{width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;background:var(--bg1);color:var(--t0);border:1px solid var(--brd2);border-radius:var(--rl);padding:20px;}
+dialog.settlement::backdrop{background:rgba(0,0,0,.75);}
+dialog.settlement h2{margin:0 0 12px;font-size:18px;}
+dialog.settlement label{display:block;margin:14px 0 5px;color:var(--t1);}
+dialog.settlement p{overflow-wrap:anywhere;}
+dialog.settlement .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+#motivation-error{color:var(--warn);min-height:18px;}
 section h2{margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);display:flex;justify-content:space-between;align-items:center;}
 section h2 .derived{font-size:11px;letter-spacing:0;text-transform:none;color:var(--t1);}
 .row{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;margin:5px 0;}
@@ -97,7 +104,7 @@ table.list td.x button:hover{color:var(--dng);}
 <script src="storage-adapter.js"></script>
 <script>
 (function(){
-  var CE_VERSION="v0.1", CE_DRAFT_K="tnd_ce_draft_v1";
+  var CE_VERSION="v0.2", CE_DRAFT_K="tnd_ce_draft_v1";
   var ch=null, dirty=false, _draftT=null;
   function $(id){return document.getElementById(id);}
   function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -121,7 +128,7 @@ table.list td.x button:hover{color:var(--dng);}
     var c={name:"",gender:"M",age:"",appear:"",mark:"",backstory:"",ancestry:"human",subrace:"",subraceNm:"",heritageVariant:"",
       cls:"Warrior",stats:{str:10,dex:10,con:10,int:10,wis:10,cha:10},hp:10,maxHp:10,coin:1000,inventory:[],level:1,xp:0,
       abilities:[],spells:[],mana:undefined,archetype:"",archetypeNm:"",statedAlignment:"True Neutral",actualAlignment:"True Neutral",alignLaw:0,alignGood:0,
-      deity:"",trait:"",flaw:"",motivation:"",manner:"",voiceLines:[],languages:[{name:"Common",broken:false}],skills:(typeof initSkills==="function")?initSkills():{},
+      deity:"",trait:"",flaw:"",motivation:"",motivationHistory:[],manner:"",voiceLines:[],languages:[{name:"Common",broken:false}],skills:(typeof initSkills==="function")?initSkills():{},
       conditions:[],relationships:[],saveModifiers:[],portrait:null,storyBeats:[],coreMemories:[],partyMember:true};
     delete c.mana;return c;
   }
@@ -129,7 +136,7 @@ table.list td.x button:hover{color:var(--dng);}
   function healChar(c){
     if(!c.skills)c.skills=(typeof initSkills==="function")?initSkills():{};
     if(typeof initSkills==="function"){var base=initSkills(),k;for(k in base)if(c.skills[k]==null)c.skills[k]=0;}
-    ["inventory","abilities","spells","languages","conditions","relationships","saveModifiers","storyBeats","coreMemories"].forEach(function(k){if(!Array.isArray(c[k]))c[k]=[];});
+    ["inventory","abilities","spells","languages","conditions","relationships","saveModifiers","storyBeats","coreMemories","motivationHistory"].forEach(function(k){if(!Array.isArray(c[k]))c[k]=[];});
     if(!c.stats)c.stats={};STAT_IDS.forEach(function(s){if(typeof c.stats[s]!=="number")c.stats[s]=10;});
     if(c.portrait===undefined)c.portrait=null;
     if(typeof migrateAncestryNames==="function")migrateAncestryNames(c);
@@ -154,7 +161,7 @@ table.list td.x button:hover{color:var(--dng);}
       {k:"ancestry",l:"Ancestry",t:"select",opts:ancOpts},
       {k:"subrace",l:"Subrace id",t:"text"},{k:"subraceNm",l:"Subrace name",t:"text"},{k:"heritageVariant",l:"Heritage variant",t:"text"},
       {k:"appear",l:"Appearance",t:"textarea"},{k:"mark",l:"Distinguishing mark",t:"text"},{k:"backstory",l:"Backstory",t:"textarea"},
-      {k:"trait",l:"Trait",t:"text"},{k:"flaw",l:"Flaw",t:"text"},{k:"motivation",l:"Motivation",t:"text"},{k:"deity",l:"Deity",t:"text"},
+      {k:"trait",l:"Trait",t:"text"},{k:"flaw",l:"Flaw",t:"text"},{k:"motivation",l:"Motivation",t:"text",action:{label:"Settle motivation…",run:showMotivationSettlement,enabled:function(){return !!String(ch.motivation||"").trim();}},note:function(){var line=motivationSettledLine(ch);return line?"None standing — "+line:"When this purpose ends, settle it to keep its history and record why.";}},{k:"deity",l:"Deity",t:"text"},
       {k:"manner",l:"Manner of speaking",t:"text"}/* #552: one line on how they talk; served beside the voice lines */
     ],
     build:[
@@ -179,6 +186,7 @@ table.list td.x button:hover{color:var(--dng);}
     {k:"relationships",title:"Relationships",cols:[{k:"entity",l:"Who",w:"30%"},{k:"bond",l:"Bond (durable)"},{k:"dynamic",l:"Dynamic (current)"}],blank:function(){return {entity:"",bond:"",dynamic:""};},hint:"W7 axes: bond is the durable fact (kin, oath, enmity); dynamic is today's posture. Turn stamps are set by the game."},
     {k:"saveModifiers",title:"Save modifiers",cols:[{k:"source",l:"Source",w:"40%"},{k:"type",l:"Save",w:"30%"},{k:"amount",l:"Amount",t:"num",w:"70px"}],blank:function(){return {source:"",type:"",amount:1};}},
     {k:"storyBeats",title:"Story beats",cols:[{k:"text",l:"Beat"},{k:"turn",l:"Turn",t:"num",w:"70px"}],blank:function(){return {text:"",turn:0};}},
+    {k:"motivationHistory",title:"Motivation history",cols:[{k:"text",l:"Former purpose"},{k:"how",l:"How it ended"},{k:"camp",l:"Campaign",w:"110px"},{k:"turn",l:"Turn",t:"num",w:"64px"}],blank:function(){return {text:"",how:"",camp:"",turn:0};},hint:"Settled purposes travel with the character. Turn 0 means no turn was recorded."},
     {k:"voiceLines",title:"Voice lines (verbatim, carried between campaigns)",cols:[{k:"text",l:"Line"},{k:"camp",l:"Campaign",w:"110px"},{k:"turn",l:"Turn",t:"num",w:"64px"}],blank:function(){return {text:"",camp:"",turn:0};},hint:"#552: what this character actually said in play — a sample is a pointer, a description gets averaged. Captured at Save to library; edit freely."},
     {k:"coreMemories",title:"Defining moments",cols:[{k:"text",l:"Moment"},{k:"kind",l:"Kind",w:"90px"},{k:"who",l:"Who",w:"110px"},{k:"camp",l:"Campaign",w:"110px"},{k:"turn",l:"Turn",t:"num",w:"64px"}],blank:function(){return {text:"",turn:0,kind:"authored",who:"",camp:""};},hint:"Portable across campaigns (#63): a foreign campaign stamp renders as an earlier adventure."}
   ];
@@ -187,12 +195,37 @@ table.list td.x button:hover{color:var(--dng);}
   function optsOf(f){return typeof f.opts==="function"?f.opts():f.opts;}
   function fieldHtml(f){
     var v=ch[f.k],id="f-"+f.k,h="<div class='row'><label for='"+id+"'>"+esc(f.l)+(f.req?" *":"")+"</label>";
+    h+="<div>";
     if(f.t==="select"){h+="<select id='"+id+"' data-k='"+f.k+"'>";optsOf(f).forEach(function(o){h+="<option value='"+esc(o.v)+"'"+(String(v)===String(o.v)?" selected":"")+">"+esc(o.l)+"</option>";});h+="</select>";}
     else if(f.t==="textarea")h+="<textarea id='"+id+"' data-k='"+f.k+"'>"+esc(v)+"</textarea>";
     else if(f.t==="bool")h+="<input type='checkbox' id='"+id+"' data-k='"+f.k+"'"+(v?" checked":"")+"/>";
     else if(f.t==="num")h+="<input type='number' id='"+id+"' data-k='"+f.k+"' value='"+(v==null?"":esc(v))+"'"+(f.min!=null?" min='"+f.min+"'":"")+(f.max!=null?" max='"+f.max+"'":"")+"/>";
     else h+="<input type='text' id='"+id+"' data-k='"+f.k+"' value='"+esc(v)+"'/>";
-    return h+"</div>";
+    if(f.action)h+="<button type='button' class='b add' data-field-action='"+f.k+"'"+(f.action.enabled()?"":" disabled")+">"+esc(f.action.label)+"</button>";
+    if(f.note)h+="<div class='hint' data-field-note='"+f.k+"'>"+esc(f.note())+"</div>";
+    return h+"</div></div>";
+  }
+  function fieldByKey(k){var found=null;FIELDS.identity.concat(FIELDS.build).forEach(function(f){if(f.k===k)found=f;});return found;}
+  function syncFieldActions(){
+    $("main").querySelectorAll("[data-field-action]").forEach(function(el){var f=fieldByKey(el.getAttribute("data-field-action"));el.disabled=!f.action.enabled();});
+    $("main").querySelectorAll("[data-field-note]").forEach(function(el){el.textContent=fieldByKey(el.getAttribute("data-field-note")).note();});
+  }
+  function showMotivationSettlement(){
+    if(!ch||!String(ch.motivation||"").trim())return;
+    var target=ch,purpose=ch.motivation,old=$("motivation-settlement");if(old){old.close();old.remove();}
+    var dialog=document.createElement("dialog");dialog.id="motivation-settlement";dialog.className="settlement";dialog.setAttribute("aria-labelledby","motivation-title");
+    dialog.innerHTML="<form><h2 id='motivation-title'>Settle motivation</h2><p>"+esc(purpose)+"</p><p class='hint'>Keep this purpose in the character’s history and leave no purpose standing.</p><label for='motivation-how'>How did it end?</label><textarea id='motivation-how' maxlength='200' required></textarea><label for='motivation-camp'>Campaign (optional)</label><input type='text' id='motivation-camp'/><p id='motivation-error' role='alert'></p><div class='actions'><button type='button' class='b' id='motivation-cancel'>Cancel</button><button type='submit' class='b p'>Settle motivation</button></div></form>";
+    document.body.appendChild(dialog);
+    function close(){dialog.close();dialog.remove();var opener=$("main").querySelector("[data-field-action='motivation']");if(opener&&!opener.disabled)opener.focus();else if($("f-motivation"))$("f-motivation").focus();}
+    dialog.addEventListener("cancel",function(e){e.preventDefault();close();});$("motivation-cancel").addEventListener("click",close);
+    dialog.querySelector("form").addEventListener("submit",function(e){
+      e.preventDefault();var reason=$("motivation-how").value.trim(),camp=$("motivation-camp").value.trim(),err=$("motivation-error");
+      if(ch!==target||ch.motivation!==purpose){err.textContent="The character or motivation changed. Cancel and open settlement again.";return;}
+      if(!reason){err.textContent="Describe how the purpose ended before settling it.";$("motivation-how").focus();return;}
+      var rec=motivationSettle(ch,reason,0,camp);if(!rec){err.textContent="There is no standing motivation to settle.";return;}
+      markDirty();render();setStatus("Purpose settled — "+rec.how+". Save the character to keep this change.","ok");close();
+    });
+    dialog.showModal();$("motivation-how").focus();
   }
   function statsHtml(){
     var h="<div class='stats'>";STAT_IDS.forEach(function(s){var v=ch.stats[s];h+="<div class='stat'><label>"+s.toUpperCase()+"</label><input type='number' data-stat='"+s+"' value='"+v+"' min='1' max='30'/><div class='mod'>"+(typeof smod==="function"?(smod(v)>=0?"+":"")+smod(v):"")+"</div></div>";});
@@ -237,21 +270,22 @@ table.list td.x button:hover{color:var(--dng);}
   function wire(){
     var m=$("main");
     m.querySelectorAll("[data-k]").forEach(function(el){
-      var k=el.getAttribute("data-k"),f=null;FIELDS.identity.concat(FIELDS.build).forEach(function(x){if(x.k===k)f=x;});
+      var k=el.getAttribute("data-k"),f=fieldByKey(k);
       el.addEventListener("change",function(){
         var v=el.type==="checkbox"?el.checked:el.value;
         if(f.t==="num"){if(v===""&&f.opt){delete ch[k];}else{v=Number(v);if(isNaN(v))v=0;if(f.min!=null&&v<f.min)v=f.min;if(f.max!=null&&v>f.max)v=f.max;ch[k]=v;}}
         else ch[k]=v;
         if(f.onchange)f.onchange(v);
-        markDirty();if(f.t==="select"||f.t==="num")render();
+        markDirty();if(f.t==="select"||f.t==="num")render();else syncFieldActions();
       });
     });
+    m.querySelectorAll("[data-field-action]").forEach(function(el){el.addEventListener("click",function(){fieldByKey(el.getAttribute("data-field-action")).action.run();});});
     m.querySelectorAll("[data-stat]").forEach(function(el){el.addEventListener("change",function(){var v=Number(el.value)||10;ch.stats[el.getAttribute("data-stat")]=Math.max(1,Math.min(30,v));markDirty();render();});});
     m.querySelectorAll("[data-skill]").forEach(function(el){el.addEventListener("change",function(){ch.skills[el.getAttribute("data-skill")]=Math.max(0,Number(el.value)||0);markDirty();render();});});
     m.querySelectorAll("[data-list]").forEach(function(el){el.addEventListener("change",function(){
       var L=LISTS.filter(function(x){return x.k===el.getAttribute("data-list");})[0],i=Number(el.getAttribute("data-i")),c=el.getAttribute("data-c"),col=L.cols.filter(function(x){return x.k===c;})[0];
       var v=el.type==="checkbox"?el.checked:(col.t==="num"?Number(el.value)||0:el.value);
-      if(L.scalar)ch[L.k][i]=v;else ch[L.k][i][c]=v;markDirty();if(L.check)render();
+      if(L.scalar)ch[L.k][i]=v;else ch[L.k][i][c]=v;markDirty();if(L.check)render();else syncFieldActions();
     });});
     m.querySelectorAll("[data-del]").forEach(function(el){el.addEventListener("click",function(){ch[el.getAttribute("data-del")].splice(Number(el.getAttribute("data-i")),1);markDirty();render();});});
     m.querySelectorAll("[data-add]").forEach(function(el){el.addEventListener("click",function(){var L=LISTS.filter(function(x){return x.k===el.getAttribute("data-add");})[0];ch[L.k].push(L.blank());markDirty();render();});});

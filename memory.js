@@ -2295,7 +2295,53 @@ function canonContradictionScan(){
     }
   }
 }
-function applySummaryExtract(extracted,identityTable){
+// A request owns immutable purpose evidence; sheet/campaign references reject results from a replaced world.
+function summaryMotivationRow(name,cs){
+  var history=JSON.stringify(Array.isArray(cs.motivationHistory)?cs.motivationHistory:[]);
+  return {name:name,sheet:cs,standing:typeof cs.motivation==="string"?cs.motivation.trim():"",history:history,closed:JSON.parse(history)};
+}
+// Only this extraction's successful writes advance its local expectation; request evidence stays immutable.
+function summaryMotivationAdvance(table,cs){
+  for(var i=0;i<table.rows.length;i++)if(table.rows[i].sheet===cs){table.rows[i]=summaryMotivationRow(table.rows[i].name,cs);return;}
+}
+function summaryMotivationTable(){
+  var rows=[],ns=worldState.npcs||[],i,n,cs;
+  for(i=0;i<ns.length;i++){
+    n=ns[i];if(!n||typeof n.name!=="string"||memoryNpcIsPlayer(n.name))continue;
+    cs=typeof findCompanionChar==="function"?findCompanionChar(n.name):null;if(!cs)continue;
+    rows.push(summaryMotivationRow(resolveNpcName(n.name),cs));
+  }
+  return {world:worldState,campId:worldState.campId,campName:worldState.campName,rows:rows};
+}
+function buildSummaryMotivationBlock(table){
+  var rows=table.rows||[],out=[],i,r;
+  for(i=0;i<rows.length;i++){
+    r=rows[i];out.push(JSON.stringify({name:r.name,standing:r.standing,alreadyApplied:r.closed.slice(-5)}));
+  }
+  return out.length?"\nCOMPANION PURPOSES — authoritative current state and recent already applied settlements. A closed purpose is history, never a reason to retire another standing purpose. Report ONLY changes witnessed in SESSION. For a settlement copy the EXACT purpose text into settledPurpose; do not infer it from the reason. If that same text is both standing and archived, omit the ambiguous settlement. Already applied transitions need no replay. A new purpose may be reported after an already applied settlement ONLY when none stands. Never propose an archived purpose again; an intentional renewal needs the live story tag.\n"+out.join("\n")+"\n":"";
+}
+function summaryMotivationKey(text){return typeof text==="string"?text.trim().toLowerCase():"";}
+function summaryMotivationGuard(change,cs,name,table){
+  var row=null,i;
+  for(i=0;i<table.rows.length;i++)if(table.rows[i].name===name&&table.rows[i].sheet===cs){row=table.rows[i];break;}
+  if(table.world!==worldState||table.campId!==worldState.campId||table.campName!==worldState.campName||!row)return {refused:"companion or campaign changed since extraction began"};
+  var standing=typeof cs.motivation==="string"?cs.motivation.trim():"",history=JSON.stringify(Array.isArray(cs.motivationHistory)?cs.motivationHistory:[]);
+  if(row.standing!==standing||row.history!==history)return {refused:"purpose or history changed since extraction began"};
+  var proposed=typeof change.now==="string"?summaryMotivationKey(motivationBirthText(change.now)):"";
+  if(proposed)for(i=0;i<row.closed.length;i++)if(row.closed[i]&&typeof row.closed[i].text==="string"&&summaryMotivationKey(row.closed[i].text)===proposed)return {refused:"new purpose repeats an already archived purpose; only an explicit live change can renew it"};
+  if(typeof change.settled!=="string"||!change.settled.trim())return {settle:false};
+  var purpose=typeof change.settledPurpose==="string"?change.settledPurpose.trim():"";
+  if(!purpose)return {refused:"settlement has no exact settledPurpose reference"};
+  var archived=false;
+  for(i=0;i<row.closed.length;i++)if(row.closed[i]&&summaryMotivationKey(row.closed[i].text)===summaryMotivationKey(purpose)){archived=true;break;}
+  if(purpose===standing&&archived)return {refused:"settledPurpose is ambiguous: identical standing and archived purposes"};
+  if(purpose===standing)return {settle:true};
+  if(archived)return {settle:false};
+  return {refused:"settledPurpose matches neither the standing purpose nor its history"};
+}
+function applySummaryExtract(extracted,identityTable,motivationTable){
+  var _mt=motivationTable||summaryMotivationTable();
+  motivationTable={world:_mt.world,campId:_mt.campId,campName:_mt.campName,rows:_mt.rows.slice()};
   /* #168R2 (entry-13 review): the extractor may return prose tiers as ARRAYS; _w6SummaryTexts validates only
      strings, so an array-valued chapterSummary skipped identity validation entirely and filed the raw t1644
      contradiction into chapters + eventHistory — the exact class W6 shipped to close, back through a type
@@ -2381,14 +2427,16 @@ function applySummaryExtract(extracted,identityTable){
     if(typeof _at.outfit==="string"&&_at.outfit.trim())outfitSet(_atCs,_at.outfit,worldState.turn);}}
   /* #437: motivation belt — companions ONLY (the hero's purpose is the player's); the same helpers as the live tag,
      the same paperwork refusal; every filing toasts (#347). A change the GM already tagged is a no-op here. */
-  if(Array.isArray(extracted.motivationChanges)&&typeof motivationSettle==="function"){for(i=0;i<extracted.motivationChanges.length;i++){var _mc=extracted.motivationChanges[i];if(!_mc||!_mc.name)continue;var _mcN=resolveNpcName(_mc.name),_mcCs=(!memoryNpcIsPlayer(_mcN)&&typeof findCompanionChar==="function")?findCompanionChar(_mcN):null;
+  if(Array.isArray(extracted.motivationChanges)&&typeof motivationSettle==="function"){for(i=0;i<extracted.motivationChanges.length;i++){var _mc=extracted.motivationChanges[i];if(!_mc||typeof _mc.name!=="string"||!_mc.name.trim()){if(typeof console!=="undefined")console.warn("[motivation] extractor supplied an invalid companion name; dropped (#437)");continue;}var _mcN=resolveNpcName(_mc.name),_mcCs=(!memoryNpcIsPlayer(_mcN)&&typeof findCompanionChar==="function")?findCompanionChar(_mcN):null;
     if(!_mcCs){if(typeof console!=="undefined")console.warn("[motivation] extractor named '"+_mc.name+"' — not a living companion (the hero's purpose is the player's); dropped (#437)");continue;}
-    if(typeof _mc.settled==="string"&&_mc.settled.trim()){var _ms=motivationSettle(_mcCs,_mc.settled,worldState.turn);if(_ms){if(typeof fileCoreMemory==="function")fileCoreMemory("growth",_mcCs.name,_mcCs.name+"'s purpose was settled: "+_ms.how);if(typeof showToast==="function")showToast("★ "+_mcCs.name+" — purpose settled: "+_ms.how);}}
+    var _mg=summaryMotivationGuard(_mc,_mcCs,_mcN,motivationTable);
+    if(_mg.refused){if(typeof console!=="undefined")console.warn("[motivation] "+_mcCs.name+": "+_mg.refused+"; change dropped (#437): "+JSON.stringify(_mc));if(typeof showToast==="function")showToast("⚠ "+_mcCs.name+" — purpose change not filed: "+_mg.refused);continue;}
+    if(_mg.settle){var _ms=motivationSettle(_mcCs,_mc.settled,worldState.turn);if(_ms){summaryMotivationAdvance(motivationTable,_mcCs);if(typeof fileCoreMemory==="function")fileCoreMemory("growth",_mcCs.name,_mcCs.name+"'s purpose was settled: "+_ms.how);if(typeof showToast==="function")showToast("★ "+_mcCs.name+" — purpose settled: "+_ms.how);}}
     /* #515: the belt is a FALLBACK — it births only when no purpose stands (a change the GM tagged this window is already on
        the sheet, and the extractor's paraphrase of it is not a second purpose), and filler is never a purpose. */
     if(typeof _mc.now==="string"&&/^(none|n\/a|na|unknown|unchanged|same|—|-)$/i.test(_mc.now.trim())){if(typeof console!=="undefined")console.warn("[motivation] extractor wrote filler for "+_mcCs.name+" (\""+_mc.now.trim()+"\"); nothing filed (#515)");continue;}
     if(typeof _mc.now==="string"&&_mc.now.trim()&&typeof _mcCs.motivation==="string"&&_mcCs.motivation.trim()){if(typeof console!=="undefined")console.warn("[motivation] a purpose stands for "+_mcCs.name+" — the extractor's \""+_mc.now.trim().slice(0,80)+"\" is ignored; only the GM's tag changes a standing purpose (#515)");continue;}
-    if(typeof _mc.now==="string"&&_mc.now.trim()){var _mb=motivationBirth(_mcCs,_mc.now,worldState.turn);if(_mb&&_mb.refused){if(typeof console!=="undefined")console.warn("[motivation] extractor's new purpose for "+_mcCs.name+" refused — paperwork words ("+_mb.refused.join(", ")+"); this world keeps no books (#437)");}else if(_mb){if(typeof fileCoreMemory==="function")fileCoreMemory("growth",_mcCs.name,_mcCs.name+" now seeks: "+_mb.now);if(typeof showToast==="function")showToast("★ "+_mcCs.name+" now seeks: "+_mb.now);}}}}
+    if(typeof _mc.now==="string"&&_mc.now.trim()){var _mb=motivationBirth(_mcCs,_mc.now,worldState.turn);if(_mb&&_mb.refused){if(typeof console!=="undefined")console.warn("[motivation] extractor's new purpose for "+_mcCs.name+" refused — paperwork words ("+_mb.refused.join(", ")+"); this world keeps no books (#437)");}else if(_mb){summaryMotivationAdvance(motivationTable,_mcCs);if(typeof fileCoreMemory==="function")fileCoreMemory("growth",_mcCs.name,_mcCs.name+" now seeks: "+_mb.now);if(typeof showToast==="function")showToast("★ "+_mcCs.name+" now seeks: "+_mb.now);}}}}
   if(Array.isArray(extracted.loreDiscovered)){for(i=0;i<extracted.loreDiscovered.length;i++)fileLore(extracted.loreDiscovered[i]);}
   if(Array.isArray(extracted.decisionsMade)){for(i=0;i<extracted.decisionsMade.length;i++)fileDecision(worldState.turn,extracted.decisionsMade[i]);}
   // #128: the deterministic variant scan runs every summarize — after npcUpdates above, so keys
@@ -2450,15 +2498,16 @@ function extractorRespHasJson(resp){return String(resp||"").indexOf("{")>=0;}
 // the schema + JSON directive sit LAST (end-of-prompt position is load-bearing, audit #2 — the
 // discipline already applied at campaign_generator.js and blueprint-designer.html), and the
 // SESSION block is the note-stripped text while RECORDED FACTS detects on the raw window.
-function buildExtractPrompt(chapterDesc,pend,sessRaw,sessStripped,identityTable){
+function buildExtractPrompt(chapterDesc,pend,sessRaw,sessStripped,identityTable,motivationTable){
   var p="Extract structured data from this RPG session.\n";
   if(typeof buildSceneRefBlock==="function")p+="\n"+buildSceneRefBlock();/* #168: exact handles/exclusions survive the transcript's summarize boundary */
   if(pend.length)p+="\nANTICIPATED EVENTS currently on file — if this session shows one has already happened, failed, or become moot, copy its EXACT text into resolvedEvents:\n- "+pend.join("\n- ")+"\n";
   p+=buildRecordedFactsBlock(sessRaw);/* #57 leg A serve-side — "" when no known NPC appears in the window */
   if(typeof buildSummaryIdentityBlock==="function")p+="\n"+buildSummaryIdentityBlock(identityTable&&identityTable.rows?identityTable:summaryIdentityTable(sessRaw));
+  p+=buildSummaryMotivationBlock(motivationTable||summaryMotivationTable());
   p+="\nSESSION:\n"+sessStripped;
   p+="\nREFERENTIAL SCHEMA OVERRIDE: npcDeaths MUST be objects shaped [{\"name\":\"exact on-file NPC name\",\"handle\":\"scene handle\",\"sourceTurn\":0,\"canonTxnId\":\"stable id if one exists\"}], never bare strings. Cite only prior engine-authoritative SCENE REFERENTS. If the victim is anonymous, omit npcDeaths rather than substituting a known name. A death-like chapter sentence without a matching cited npcDeaths object is rejected as a whole.\n";
-  p+="\nOutput ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"how this NPC regards the PLAYER in 2-4 words -- their standing DISPOSITION (e.g. 'wary, testing' or 'openly loyal'), NOT their momentary mood, which the engine tracks separately\",\"knowledgeGained\":{\"fact\":\"\",\"kind\":\"durable = standing truth about the person or world (secrets, history, learned facts, commitments); scene = true only in that moment (where they stood, what they were doing) -- scene facts are filed as dated history, never as permanent knowledge\"}}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}],\"npcDeaths\":[{\"name\":\"exact on-file NPC name\",\"handle\":\"scene handle\",\"sourceTurn\":0,\"canonTxnId\":\"stable id if one exists\"}],\"attire\":[{\"name\":\"\",\"donned\":[\"exact inventory names put ON this session\"],\"doffed\":[\"exact inventory names taken OFF\"],\"outfit\":\"what they wear beneath or instead of gear, one line, ONLY if it changed this session (stripped for a bath, a borrowed robe, back in road clothes)\"}],\"motivationChanges\":[{\"name\":\"party member\",\"settled\":\"how their STANDING motivation was fulfilled this session, ONLY if it was fulfilled on screen\",\"now\":\"a NEW purpose the session gave them, one sentence, ONLY if one was born on screen -- never a debt, ledger, contract or paperwork purpose\"}]}\n";/* #388: the attire belt — the GM tags changes live; the extractor catches the ones it narrated without tagging */
+  p+="\nOutput ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"how this NPC regards the PLAYER in 2-4 words -- their standing DISPOSITION (e.g. 'wary, testing' or 'openly loyal'), NOT their momentary mood, which the engine tracks separately\",\"knowledgeGained\":{\"fact\":\"\",\"kind\":\"durable = standing truth about the person or world (secrets, history, learned facts, commitments); scene = true only in that moment (where they stood, what they were doing) -- scene facts are filed as dated history, never as permanent knowledge\"}}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}],\"npcDeaths\":[{\"name\":\"exact on-file NPC name\",\"handle\":\"scene handle\",\"sourceTurn\":0,\"canonTxnId\":\"stable id if one exists\"}],\"attire\":[{\"name\":\"\",\"donned\":[\"exact inventory names put ON this session\"],\"doffed\":[\"exact inventory names taken OFF\"],\"outfit\":\"what they wear beneath or instead of gear, one line, ONLY if it changed this session (stripped for a bath, a borrowed robe, back in road clothes)\"}],\"motivationChanges\":[{\"name\":\"party member\",\"settledPurpose\":\"EXACT text of the purpose fulfilled, copied from COMPANION PURPOSES; required with settled\",\"settled\":\"how their STANDING motivation was fulfilled this session, ONLY if it was fulfilled on screen\",\"now\":\"a NEW purpose the session gave them, one sentence, ONLY if one was born on screen -- never a debt, ledger, contract or paperwork purpose\"}]}\n";/* #388: the attire belt — the GM tags changes live; the extractor catches the ones it narrated without tagging */
   return p;
 }
 /* B38 (2026-09-21): the extractor's two SHAPES. The window builder is the old inline composition made a function — the
@@ -2712,10 +2761,11 @@ async function summarize(){
        reframed, shortened shape; while a refusal strike stands the reframed shape goes first (one call, not a doomed
        pair); a reframed failure is the one that counts. */
     var _shape=extractShapeForFailure(worldState.summaryFailure),_reframed=_shape==="reframed",_withheld=null;
+    var _motivationTable=summaryMotivationTable();
     function _extractCall(shape,elide){
       var win=buildExtractWindow(shape==="reframed"?EXTRACT_REFRAME_CAPS:EXTRACT_WINDOW_CAPS,elide);
       var it=typeof summaryIdentityTable==="function"?summaryIdentityTable(win.raw):null;
-      var p=buildExtractPrompt(_chapterDesc,_pend,win.raw,win.txt,it);
+      var p=buildExtractPrompt(_chapterDesc,_pend,win.raw,win.txt,it,_motivationTable);
       return {prompt:shape==="reframed"?extractRefusalFraming()+p:p,identityTable:it};
     }
     var _ec=_extractCall(_shape),_identityTable=_ec.identityTable,resp;
@@ -2741,7 +2791,7 @@ async function summarize(){
     await chapterRegisterGuard(extracted,worldState.turn);/* #372 ①: a register word in the chapter is re-asked ONCE before anything files */
     _deferSnap=(worldState&&Array.isArray(worldState.recordDeferred))?worldState.recordDeferred.slice():[];
     await recordRegisterGuard(extracted,worldState.turn);/* #459 ③: a knowledge or lore line in the register is re-asked ONCE, else dropped — never filed */
-    var _exStats=applySummaryExtract(extracted,_identityTable);
+    var _exStats=applySummaryExtract(extracted,_identityTable,_motivationTable);
     _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":"")+(_withheld?" ("+_withheld.withheld+" of "+_withheld.total+" exchanges withheld by the provider's content filter — extracted around them; B38)":_reframed?" (extracted in the reframed, shortened shape after the provider blocked the full window — B38)":""));
     compileEraIfDue();/* #148 Phase 2 — fire-and-forget: era maintenance must never delay the turn; failures are loud inside and retry on a later cycle */
   }catch(e){
