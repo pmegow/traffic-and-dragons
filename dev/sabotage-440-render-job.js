@@ -5,6 +5,7 @@ process.exit(sabotage.prove({
   file:"game.js",
   command:["node",["dev/tests-440-render-job.js"]],
   cases:[
+    { label:"#528 stale Portrait action loses its guard", mustFail:"portrait action: a current scene applies", find:'      if(!_renderJobLive(_job)){showToast("This scene belongs to "+(_job.campName||"another campaign")+", which is no longer loaded — the portrait was not changed.");return;}', replace:"" },
     { label:"#440: the check after the prompt writer is gone",
       mustFail:"prompt boundary: the writer answers after a campaign switch",
       find:'    if(!_renderJobLive(_job)){if(th&&th.parentNode)th.remove();_renderJobDrop(_job,"the scene prompt");return;}',

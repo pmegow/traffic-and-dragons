@@ -102,6 +102,22 @@ t("the Save pointer stamps the turn the render STARTED on (turn 10), not the tur
     return null;
   });
 });
+t("portrait action: a current scene applies, but a campaign switch refuses before fetching or writing", function () {
+  fresh("camp_A","Alpha");callGM=function(){return Promise.resolve("A moonlit vault.");};falAvailable=function(){return true;};
+  renderModel=RENDER_MODELS.filter(function(m){return !m.slow;})[0].id;
+  falFetch=function(){return Promise.resolve({ok:true,json:function(){return Promise.resolve({images:[{url:"https://img.test/scene.png"}]});}});};
+  var reads=0,writes=0,button;
+  global.fetch=function(){reads++;return Promise.resolve({blob:function(){return Promise.resolve("BLOB");}});};
+  global.FileReader=function(){this.readAsDataURL=function(){this.onload({target:{result:"data:image/png;base64,fixture"}});};};
+  compressPortrait=function(data,done){done(data);};storageAdapter.markPortraitDirty=function(){writes++;};
+  return doRender().then(function(){button=findBtn(renderOut()[0],"⧉ Portrait");if(!button)throw Error("fixture: Portrait button missing");button.listeners.click[0]();return tick();}).then(function(){
+    if(reads!==1||writes!==1||worldState.character.portrait!=="data:image/png;base64,fixture")return "the live scene did not apply";
+    fresh("camp_B","Beta");worldState.character.portrait="original portrait";button.listeners.click[0]();return tick().then(function(){
+      if(reads!==1||writes!==1||worldState.character.portrait!=="original portrait")return "a stale Portrait action fetched or overwrote the new campaign's portrait";
+      return toasts.some(function(x){return /portrait was not changed/.test(x);})?null:"the refusal was not visible";
+    });
+  });
+});
 
 chain.then(function () {
   console.log("#440 RENDER JOB: " + fails.length + " failed, " + pass + " passed");

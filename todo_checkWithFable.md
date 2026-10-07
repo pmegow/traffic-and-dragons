@@ -571,3 +571,5 @@ zero 2026-07-27 and again 2026-07-30.
 - 2026-10-02 · #549 · Codex, docs only: owner-requested project leadership review, five strengths/five improvements and game progress. Sources and uncertainty stated; no engine changes or new engineering assignments. Report: audits/Performance_Review_2026_10_2_Astra.html.
 
 - 2026-10-07 · #527(25) · Codex, owner-requested non-drift sweep: presentation-only `abilityGroup` honors existing racial provenance; no grants, state writes, prompt or memory changes. Engine failure reproduced first; both shared renderers covered.
+
+- 2026-10-07 · #528 · Codex, tests/tooling only: real portrait ingress and stale scene Portrait action exercised; eight caller mutations and six render-job mutations caught in scratch copies. No protected runtime edits. Remaining proof gaps stay open.
