@@ -52,23 +52,41 @@
     },
     {
       "key": "extra attack",
-      "status": "open",
-      "text": "Still needs an owner choice: which action grants the extra attack, and whether it stacks with Double Attack."
+      "status": "resolved",
+      "text": "Latest owner save specifies two attacks for each attack action. This states the total rather than adding another attack; no further attack is granted by this wording."
     },
     {
       "key": "inflict wounds",
-      "status": "open",
-      "text": "Still needs an owner choice: how long the unused melee damage charge lasts. The rewrite says next successful melee attack; no expiry is specified."
+      "status": "resolved",
+      "text": "Latest owner save ends the spell after a successful attack or at the resolution of combat. The unused charge no longer has an unspecified expiry."
     },
     {
       "key": "sleep",
-      "status": "open",
-      "text": "Still needs an owner choice: lowest remaining HP first (the targets field) or least wounded first (the description)."
+      "status": "resolved",
+      "text": "Latest owner save explicitly starts with the creature with the lowest remaining hit points and works upward."
     }
   ],
   "proofreading": [
     "Thorn Lash: same size as the caster or smaller",
     "Hunter’s Mark: reassigns the mark",
     "Soul Puppet: the dead creature walks"
-  ]
+  ],
+  "latestOwnerSave": {
+    "inputSha256": "a7e6030b737b01dffa1f919cced71e0803bc9772a20fe5e27826b4d5147a3dd1",
+    "proofreadSha256": "c4a97143200e5c74558e084cc7dfa6a9d6eadf6293dd064b32110a49eff6b652",
+    "corrections": [
+      {
+        "key": "inflict wounds",
+        "from": "fades at after",
+        "to": "fades after"
+      },
+      {
+        "key": "sleep",
+        "from": "remaining hitpoints",
+        "to": "remaining hit points"
+      }
+    ],
+    "resolved": 12,
+    "open": 0
+  }
 }

@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-06 · #603 latest save · Codex: verified the new owner save answers the last three note questions. Corrected “at after” and “hitpoints,” reconciled draft duration/target fields, and marked all 12 follow-up notes resolved while preserving note history. Atomic revision-checked save and backup protect the owner’s revisions; game definitions remain untouched.
+
 - 2026-10-06 · #603 note follow-up · Codex: retained the reviewed 2d6/STR Wall of Thorns and removed the later 7d8/DEX version from the active worksheet. Saved row stays archived for existing draft compatibility; uniform active-row predicate controls rendering and progress. Draft mechanics follow explicit saved rewrites, nine notes resolved, three ambiguous rule decisions left open. No game definitions changed. Failing-first retirement guard, full-record round trip and post-retirement row-index browser regression cover data loss and misbinding.
 
 - 2026-10-06 · #603 second pass · Codex: owner-requested proofreading of all 507 saved descriptions, 30 corrections across 25 descriptions plus one display-name capitalization. Atomic revision-checked save preserves all numeric mechanics and unrelated prose; 59/59 decisions stay complete. Twelve follow-up notes and a source-linked receipt retain unresolved design/provenance choices without resetting duration exclusions. No game definitions or runtime resource behavior changed.

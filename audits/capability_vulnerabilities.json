@@ -221,8 +221,8 @@
     {
       "key": "extra attack",
       "decision": "rewrite",
-      "replacement": "One extra attack per round.",
-      "notes": "Follow-up 2026-10-06 — OPEN: Still needs an owner choice: which action grants the extra attack, and whether it stacks with Double Attack.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Rule clarification: One extra attack per round does not say which action grants it or whether it stacks with Double Attack. The previous wording tied two attacks to taking the attack action. This is a rules change to confirm, not a spelling correction."
+      "replacement": "Each attack action you take grants two attacks.",
+      "notes": "Follow-up 2026-10-06 — RESOLVED from latest owner save: Latest owner save specifies two attacks for each attack action. This states the total rather than adding another attack; no further attack is granted by this wording.\n\nPrevious note (history):\nFollow-up 2026-10-06 — OPEN: Still needs an owner choice: which action grants the extra attack, and whether it stacks with Double Attack.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Rule clarification: One extra attack per round does not say which action grants it or whether it stacks with Double Attack. The previous wording tied two attacks to taking the attack action. This is a rules change to confirm, not a spelling correction."
     },
     {
       "key": "faerie fire",
@@ -335,8 +335,8 @@
     {
       "key": "inflict wounds",
       "decision": "rewrite",
-      "replacement": "Your next successful melee attack causes an additional 3d10 necrotic damage.",
-      "notes": "Follow-up 2026-10-06 — OPEN: Still needs an owner choice: how long the unused melee damage charge lasts. The rewrite says next successful melee attack; no expiry is specified.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Rule clarification: The rewrite adds damage to the next successful melee attack rather than making an immediate melee spell attack. Its duration is still instantaneous. Specify how long the charge lasts and whether it applies to weapon attacks before implementation."
+      "replacement": "Your next successful melee attack causes an additional 3d10 necrotic damage.  The spell fades after a successful attack or the resolution of combat.",
+      "notes": "Follow-up 2026-10-06 — RESOLVED from latest owner save: Latest owner save ends the spell after a successful attack or at the resolution of combat. The unused charge no longer has an unspecified expiry.\n\nPrevious note (history):\nFollow-up 2026-10-06 — OPEN: Still needs an owner choice: how long the unused melee damage charge lasts. The rewrite says next successful melee attack; no expiry is specified.\n\nPrevious note (history):\nSecond pass 2026-10-06 — Rule clarification: The rewrite adds damage to the next successful melee attack rather than making an immediate melee spell attack. Its duration is still instantaneous. Specify how long the charge lasts and whether it applies to weapon attacks before implementation."
     },
     {
       "key": "intimidating presence",
@@ -2158,9 +2158,9 @@
     },
     {
       "key": "sleep",
-      "decision": "pending",
-      "replacement": "Roll 5d8: that many hit points of creatures fall unconscious, starting with the least wounded and working up until the pool runs out. Undead and creatures immune to charm are unaffected; damage or a hard shake wakes a sleeper.",
-      "notes": "Follow-up 2026-10-06 — OPEN: Still needs an owner choice: lowest remaining HP first (the targets field) or least wounded first (the description).\n\nPrevious note (history):\nSecond pass 2026-10-06 — Internal contradiction: The effect starts with the least wounded, while the targets field says weakest first and the HP-pool rule depends on remaining hit points. Specify the intended order; do not silently swap these meanings."
+      "decision": "rewrite",
+      "replacement": "Roll 5d8: that many hit points of creatures fall unconscious, starting with the creature with the lowest remaining hit points and working up until the pool runs out. Undead and creatures immune to charm are unaffected; damage or a hard shake wakes a sleeper.",
+      "notes": "Follow-up 2026-10-06 — RESOLVED from latest owner save: Latest owner save explicitly starts with the creature with the lowest remaining hit points and works upward.\n\nPrevious note (history):\nFollow-up 2026-10-06 — OPEN: Still needs an owner choice: lowest remaining HP first (the targets field) or least wounded first (the description).\n\nPrevious note (history):\nSecond pass 2026-10-06 — Internal contradiction: The effect starts with the least wounded, while the targets field says weakest first and the HP-pool rule depends on remaining hit points. Specify the intended order; do not silently swap these meanings."
     },
     {
       "key": "sleep of the dead",
