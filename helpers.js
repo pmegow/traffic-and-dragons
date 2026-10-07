@@ -333,6 +333,23 @@ function parseSuggestTag(body){var out=[],parts=String(body||"").split("|"),i;fo
 // is the ceiling — a companion never leaves over a want. The pure half lives here.
 // kind is "peaceful" or "violent" (owner 2026-09-04: no shared stem, so no substring can ever misfile one as the other).
 function agendaKindOf(k){k=String(k||"").toLowerCase();if(/peace|non/.test(k))return "peaceful";return /viol|blood|kill|avenge|slay/.test(k)?"violent":"peaceful";}
+/* Growth needs evidence from THIS reply, not its own tag or a stored presence record. SAY is the
+   same attribution read by derivePresenceFromResponse; an end-node cast omission cannot erase speech.
+   Prose short names must be whole words and unique on the roster, never an article or a shared prefix. */
+function companionGrowthOnScreen(text,cs){
+  var re=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g,m;
+  while((m=re.exec(String(text||""))))if(findCompanionChar(m[1].trim())===cs)return true;
+  var name=String(cs.name||""),prose=String(text||"").replace(/\[[^\]]*\]/g,""),first=name.split(" ")[0];
+  function named(n){return !!n&&new RegExp("(^|[^a-z0-9])"+n.replace(/[.*+?^{}()|[\]\\$]/g,"\\$&")+"(?=$|[^a-z0-9])","i").test(prose);}
+  if(named(name))return true;
+  if(!first||/^(the|a|an)$/i.test(first)||!named(first))return false;
+  var candidates={},npcs=worldState.npcs||[],i,k;
+  function take(n){if(String(n||"").split(" ")[0].toLowerCase()===first.toLowerCase())candidates[String(n).toLowerCase()]=1;}
+  take(worldState.character&&worldState.character.name);
+  for(i=0;i<npcs.length;i++)take(npcs[i].name);
+  for(k in (memory.npcs||{}))take(k);
+  return Object.keys(candidates).length===1;
+}
 // #370 (owner ruling 2026-09-07): a flaw is malleable. companionGrow rewrites the sheet's flaw when the GM files
 // [COMPANION_GROWTH:Name|the flaw|what replaced it]; the old flaw must be the one on the sheet (a shared content
 // word), the old text is kept in growth[], and the caller files the defining moment and toasts. Null = refused.

@@ -27569,6 +27569,55 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     }finally{showToast=_st;console.warn=_w;}
     return true;
   });
+  t("#527 SAY growth: settlement, birth and flaw accept same-response canonical speakers, aliases and mood without a prose name",function(){
+    var forms=[{name:"Daeris",axis:"motivation",value:"settled: her brother returned safely",field:"motivation",want:""},{name:"Frizwick",axis:"motivation",value:"To protect the people who sheltered her",field:"motivation",want:"To protect the people who sheltered her"},{name:"Frizwick",axis:"hides",value:"Stands in front when it counts",field:"flaw",want:"Stands in front when it counts"}];
+    var speakers=["canonical","case","alias"],i,j;
+    for(i=0;i<forms.length;i++)for(j=0;j<speakers.length;j++){
+      __mlWorld();var f=forms[i],cs=findCompanionChar(f.name);memory.npcs[f.name]={aliases:["The Wanderer"],events:[],knowledge:[]};
+      var speaker=j===0?f.name:j===1?f.name.toUpperCase():"The Wanderer";
+      var R=applyMuts('[SAY:'+speaker+'|quiet] "It is over. I choose what comes next." [COMPANION_GROWTH:'+f.name+'|'+f.axis+'|'+f.value+']');
+      if(cs[f.field]!==f.want)return "SAY-only "+f.axis+" "+speakers[j]+" did not land: "+JSON.stringify(R.muts);
+      if(!R.muts.some(function(m){return m.indexOf(f.name)===0&&!mutLineWarns(m);}))return "missing success receipt";
+      if(!(cs.coreMemories||[]).some(function(m){return m.kind==="growth";}))return "missing defining moment";
+      if(i===0&&(!cs.motivationHistory||cs.motivationHistory.length!==1||cs.motivationHistory[0].how!=="her brother returned safely"))return "settlement history missing";
+      if(i===2&&(!cs.growth||cs.growth.length!==1))return "flaw history missing";
+    }
+    __mlWorld();var d=findCompanionChar("Daeris");applyMuts('[SCENE_CAST:Ammut, Frizwick] [SAY:Daeris] "I can let it go." [COMPANION_GROWTH:Daeris|motivation|settled: her brother returned safely]');
+    if(d.motivation!=="")return "end-node cast omission erased speech that happened in this reply";
+    return true;
+  });
+  t("#527 SAY refusal: wrong speaker, no evidence, metadata-only, dead and ambiguous speaker never grow and expose a warning reason",function(){
+    var cases=[{text:'[SAY:Frizwick] "It is over."',why:"not on screen"},{text:'The vault is silent.',why:"not on screen"},{text:'[SCENE_CAST:Daeris] [NPC_NOTE:Daeris|remembered]',why:"not on screen"},{text:'[SAY:Daeris] "It is over."',dead:true,why:"dead"},{text:'[SAY:Morwen] "It is over."',ambiguous:true,why:"not on screen"}],i;
+    for(i=0;i<cases.length;i++){
+      __mlWorld();var c=cases[i],nm=c.ambiguous?"Morwen Zethran":"Daeris",n=worldState.npcs[0];
+      if(c.ambiguous){n.name=nm;n.charSheet.name=nm;memory.npcs[nm]={};memory.npcs["Morwen Vale"]={};}
+      if(c.dead)n.dead={turn:1};
+      var cs=n.charSheet,before=JSON.stringify(cs),R=applyMuts(c.text+' [COMPANION_GROWTH:'+nm+'|motivation|settled: her brother returned safely]');
+      if(JSON.stringify(cs)!==before)return "refused case mutated sheet: "+i;
+      if(!R.muts.some(function(m){return mutLineWarns(m)&&m.indexOf(nm)>=0&&m.indexOf(c.why)>=0;}))return "missing visible refusal "+i+": "+JSON.stringify(R.muts);
+    }
+    return true;
+  });
+  t("#527 prose evidence: substrings, articles, ambiguous first names, old speech and empty SAY cannot authorize growth",function(){
+    var cases=[{name:"Ann",text:"Anna smiles."},{name:"The Entity",text:"The room is quiet."},{name:"Morwen Zethran",text:"Morwen smiles.",other:"Morwen Vale"},{name:"Morwen Zethran",text:"Morwen smiles.",hero:"Morwen"},{name:"Daeris",text:'[SAY:|quiet] "It is over."'},{name:"Daeris",text:"The room is quiet.",prior:true}],i;
+    for(i=0;i<cases.length;i++){
+      __mlWorld();var c=cases[i],n=worldState.npcs[0];n.name=c.name;n.charSheet.name=c.name;
+      if(c.other)worldState.npcs.push({name:c.other,partyMember:false});
+      if(c.hero)worldState.character.name=c.hero;
+      if(c.prior){worldState.transcript.push({role:"assistant",text:'[SAY:Daeris] "It is over."',turn:39,sp:{s:{0:"Daeris"}}});memory.npcs.Daeris={lastSeenTurn:40,lastSeenAt:currentNodeKey()};}
+      var before=JSON.stringify(n.charSheet),R=applyMuts(c.text+' [COMPANION_GROWTH:'+c.name+'|motivation|settled: her brother returned safely]');
+      if(JSON.stringify(n.charSheet)!==before||!R.muts.some(function(m){return mutLineWarns(m)&&m.indexOf("not on screen")>=0;}))return "false evidence "+i+": "+JSON.stringify(R.muts);
+    }
+    __mlWorld();var d=findCompanionChar("Daeris");memory.npcs.Daeris={dead:{turn:1}};var R=applyMuts('[SAY:Daeris] "It is over." [COMPANION_GROWTH:Daeris|motivation|settled: her brother returned safely]');
+    if(!d.motivation||!R.muts.some(function(m){return mutLineWarns(m)&&m.indexOf("dead")>=0;}))return "memory-only death was ignored";
+    return true;
+  });
+  t("#527 growth refusals: unknown companion, stale flaw and unchanged purpose each expose the reason",function(){
+    __mlWorld();var cases=[{tag:'Zed|motivation|settled: done',prose:'Zed smiles.',why:'no companion'},{tag:'Frizwick|fears horses|Faces danger',prose:'Frizwick smiles.',why:'flaw'},{tag:'Daeris|motivation|Find the original creditor and close the account properly.',prose:'Daeris smiles.',why:'paperwork'},{tag:'Frizwick|motivation|To protect her friends',prose:'Frizwick smiles.',why:'unchanged'}];
+    findCompanionChar("Frizwick").motivation="To protect her friends";
+    for(var i=0;i<cases.length;i++){var c=cases[i],R=applyMuts(c.prose+' [COMPANION_GROWTH:'+c.tag+']');if(!R.muts.some(function(m){return mutLineWarns(m)&&m.indexOf(c.why)>=0;}))return "missing refusal "+c.why+": "+JSON.stringify(R.muts);}
+    return true;
+  });
   t("#437 prompt: PARTY HISTORIES serves 'motivation — none standing (settled in <campaign>: how)' for a settled purpose, the standing text otherwise, and nothing for a sheet that never had one; the line lives in the stable half and never repeats the old words; the ending's companion line says the purpose was settled; the sheet renders it",function(){
     __mlWorld();var d=findCompanionChar("Daeris");
     var before=buildSysPrompt();

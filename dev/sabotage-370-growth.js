@@ -7,9 +7,9 @@ var rc1 = sabotage.prove({
   command: ["node", ["dev/run-tests.js", "#370"]],
   cases: [
     { label: "the on-screen check is dropped — growth lands for a companion the prose never names",
-      find: 'if(gprose.indexOf(gname)<0&&gprose.indexOf(gname.split(" ")[0])<0){', replace: 'if(false){' },
+      find: 'if(!companionGrowthOnScreen(text,gcs)){', replace: 'if(false){', mustFail: "#370 growth: [COMPANION_GROWTH:Name|flaw|replacement]" },
     { label: "the growth toast is dropped (#347: every filing toasts)",
-      find: 'if(typeof showToast==="function")showToast("\\u2605 "+gname+" outgrows a flaw: "+gres.now);', replace: '' }
+      find: 'if(typeof showToast==="function")showToast("\\u2605 "+gname+" outgrows a flaw: "+gres.now);', replace: '', mustFail: "#370 growth: [COMPANION_GROWTH:Name|flaw|replacement]" }
   ]
 });
 var rc2 = sabotage.prove({
@@ -17,7 +17,7 @@ var rc2 = sabotage.prove({
   command: ["node", ["dev/run-tests.js", "#370"]],
   cases: [
     { label: "the flaw match is dropped — any stated flaw rewrites the sheet",
-      find: 'if(!ok)return null;var now=', replace: 'var now=' }
+      find: 'if(!ok)return null;var now=', replace: 'var now=', mustFail: "#370 growth: [COMPANION_GROWTH:Name|flaw|replacement]" }
   ]
 });
 process.exit(rc1 || rc2);

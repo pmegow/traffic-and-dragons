@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>437 / 527(10): SAY growth verification</title>
+<style>body{max-width:960px;margin:40px auto;padding:0 24px;background:#111419;color:#ddd;font:17px/1.55 system-ui}h1,h2{color:#e4bd73}a{color:#b8cde2}td,th{padding:12px;text-align:left;border-bottom:1px solid #45505e}table{border-collapse:collapse;width:100%}code{overflow-wrap:anywhere}</style>
+<h1>SAY-only companion growth</h1><p>7 October 2026 · v1.1163 · follow-up to <a href="VERIFY_437_2026-10-07.html">the two #437 fixes</a>.</p>
+<h2>Cause and correction</h2><p>COMPANION_GROWTH stripped every bracketed tag before looking for the companion's name. This erased SAY attribution, so speech identified only by its speaker tag could not settle a purpose, birth a new one, or change a flaw. Early refusals appeared only on the console.</p>
+<p>The shared companionGrowthOnScreen predicate accepts a speaker in this reply when the existing canonical companion resolver identifies the same sheet, with aliases, case variations and optional mood supported. An end-of-reply cast omission does not erase dialogue that happened earlier in the response. Growth's own tag, other metadata and stored presence cannot authorize a change.</p>
+<p>The prose fallback uses word boundaries and permits a first name only when it is unique among the hero and recorded NPC names; articles and shared first names are not evidence. Dead companions receive no growth. Every rejected growth produces a visible warning line naming the reason. The tag vocabulary and prompt text are unchanged.</p>
+<h2>Failure-first evidence</h2><p>Three new tests failed before implementation: SAY-only settlement produced only a presence receipt; wrong-speaker refusal lacked a warning; unknown-companion refusal produced no mutation receipt. An independent in-memory replay on the Necrotic Dungeon turn 35 save also failed: Daeris spoke the settlement but retained her creditor motivation. All now pass.</p>
+<h2>Independent full-row review</h2><table><tr><th>#437 requirement</th><th>Final result</th></tr>
+<tr><td>Live settlement and new-purpose tags</td><td>PASS, including SAY-only speech, aliases, optional mood, correct history, defining moments and success toasts.</td></tr>
+<tr><td>Summary fallback does not retire the wrong purpose or replay history</td><td>PASS: earlier exact-purpose and asynchronous snapshot guards remain covered; all six asynchronous summary scenarios pass.</td></tr>
+<tr><td>Editor retirement with preserved history</td><td>PASS: real Chrome settlement, cancellation, reason validation, history/status refresh, stale-dialog refusal and portable payload checks.</td></tr>
+<tr><td>None-standing prompt, sheet, ending and generator discipline</td><td>PASS: lifecycle section and real-save replay preserve closed-purpose representation and existing generator guards.</td></tr>
+<tr><td>Backstories and campaign preserved</td><td>PASS: real-save mutation exercise changes only in-memory state; source bytes, companion backstories and campaign skeleton remain unchanged.</td></tr></table>
+<p>A separate Astra reviewer approved the final implementation and full row with no unresolved blocker. During review, the hero was found missing from the first-name uniqueness census; this was corrected and tested before approval. #527 lead (10) is resolved. Other #527 leads retain their existing statuses.</p>
+<h2>Verification</h2><ul>
+<li>21 focused #437 lifecycle assertions pass, including the four added SAY-growth/refusal/prose tests.</li>
+<li>13/13 new named mutations plus 3/3 existing flaw-growth mutations caught; scratch source restoration byte-identical. All 2,479 retained mutation targets remain applicable. The first full gate caught an obsolete target in the old #370 battery; it was updated to the equivalent new guard and reproven with named test attribution.</li>
+<li>Six async summary tests and the real Chrome editor regression suite pass.</li>
+<li>Independent parser probes cover wrong/empty speaker, metadata-only, cast-only, prior-turn-only, ambiguous name and dead-companion refusals.</li>
+<li>Stable and volatile gameplay prompt bytes unchanged against 34524c57 on Necrotic Dungeon turn 35, Village turn 279 and Long Walk turn 146.</li>
+<li>Real-save SAY settlement → portable history round trip → SAY birth passes, with expected prompt/ending and success toasts. No local or cloud save was written; no paid model call was made.</li>
+<li id="full-gate">Full mandatory gate ALL GREEN: 2,661 engine assertions and 102 standalone verifier suites.</li>
+</ul>
+<h2>Critical review and resources</h2><p>Astra reviewed the design before protected edits: preserve identity binding, prevent metadata from authorizing its own write, distinguish same-response speech from final-node presence, keep refusals visible and keep gameplay prompt/cache content unchanged. Independent post-review verified these boundaries. Evidence scans and candidate maps are transient per growth evaluation. No persistent arrays, timers, background work or save-schema fields were added.</p>
+</html>

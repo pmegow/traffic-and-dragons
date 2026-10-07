@@ -459,10 +459,12 @@ var TAG_TABLE=[
   if(worldState.agendaBirth&&worldState.agendaBirth.name===nm)delete worldState.agendaBirth;}}},
 /* #370 growth: a flaw outgrown ON SCREEN — the sheet's flaw is rewritten, the old one kept in growth[], a defining
    moment filed, one toast (#347's every-filing-toasts rule). Refused when the companion is not named in the prose of the
-   same response, when the stated flaw is not the sheet's, or when nothing changes. The engine never asks for it. */
-{t:"COMPANION_GROWTH",apply:function(text,R){var gs=text.match(/\[COMPANION_GROWTH:([^|\]]+)\|([^|\]]+)\|([^\]]+)\]/g)||[],gi;for(gi=0;gi<gs.length;gi++){var gm=gs[gi].match(/\[COMPANION_GROWTH:([^|\]]+)\|([^|\]]+)\|([^\]]+)\]/);if(!gm)continue;var gnm=resolveNpcName(gm[1].trim()),gcs=findCompanionChar(gnm);
-  if(!gcs){if(typeof console!=="undefined")console.warn("[growth] [COMPANION_GROWTH:"+gm[1].trim()+"] — no companion sheet by that name; ignored (#370)");continue;}
-  var gname=gcs.name||gnm,gprose=String(text).replace(/\[[^\]]*\]/g,"");if(gprose.indexOf(gname)<0&&gprose.indexOf(gname.split(" ")[0])<0){if(typeof console!=="undefined")console.warn("[growth] refused — "+gname+" is not on screen in this response (#370)");continue;}
+   same response or attributed a SAY line, when the stated flaw is not the sheet's, or when nothing changes. The engine never asks for it. */
+{t:"COMPANION_GROWTH",apply:function(text,R){var gs=text.match(/\[COMPANION_GROWTH:([^|\]]+)\|([^|\]]+)\|([^\]]+)\]/g)||[],gi;for(gi=0;gi<gs.length;gi++){var gm=gs[gi].match(/\[COMPANION_GROWTH:([^|\]]+)\|([^|\]]+)\|([^\]]+)\]/);if(!gm)continue;var gnm=resolveNpcName(gm[1].trim()),gnpc=findCompanionNpc(gnm),gcs=gnpc?gnpc.charSheet:null;
+  if(!gcs){if(typeof console!=="undefined")console.warn("[growth] [COMPANION_GROWTH:"+gm[1].trim()+"] — no companion sheet by that name; ignored (#370)");R.muts.push("⚠ [COMPANION_GROWTH:] "+gm[1].trim()+" — no companion sheet by that name (ignored)");continue;}
+  var gname=gcs.name||gnm;
+  if(npcIsDead(gnpc)||(memory.npcs&&memory.npcs[gnm]&&memory.npcs[gnm].dead)){if(typeof console!=="undefined")console.warn("[growth] refused — "+gname+" is dead");R.muts.push("⚠ "+gname+": growth refused — companion is dead");continue;}
+  if(!companionGrowthOnScreen(text,gcs)){if(typeof console!=="undefined")console.warn("[growth] refused — "+gname+" is not on screen in this response (#370)");R.muts.push("⚠ "+gname+": growth refused — not on screen in this response");continue;}
   if(/^motivation$/i.test(gm[2].trim())){/* #437: the motivation axis — settle or birth; the flaw path below is untouched */
     var mv=gm[3].trim(),mCamp=worldState.campName||"";
     if(MOTIVATION_SETTLED_RE.test(mv)){var mHow=mv.replace(MOTIVATION_SETTLED_RE,"").trim()||"settled";var ms=motivationSettle(gcs,mHow,R.turn,mCamp);
@@ -471,10 +473,10 @@ var TAG_TABLE=[
       if(typeof showToast==="function")showToast("★ "+gname+" — purpose settled: "+ms.how);continue;}
     var mb=motivationBirth(gcs,mv,R.turn,mCamp);
     if(mb&&mb.refused){if(typeof console!=="undefined")console.warn("[growth] "+gname+"'s new purpose refused — paperwork words ("+mb.refused.join(", ")+"); this world keeps no books (#437)");R.muts.push("⚠ "+gname+"'s new purpose refused — a paperwork purpose ("+mb.refused.join(", ")+")");continue;}
-    if(!mb){if(typeof console!=="undefined")console.warn("[growth] "+gname+"'s purpose unchanged — empty or the same text (#437)");continue;}
+    if(!mb){if(typeof console!=="undefined")console.warn("[growth] "+gname+"'s purpose unchanged — empty or the same text (#437)");R.muts.push("⚠ "+gname+": purpose unchanged — empty or the same text");continue;}
     R.muts.push(gname+" now seeks: "+mb.now+(mb.replaced?" (replacing: "+mb.replaced+")":""));if(typeof fileCoreMemory==="function")fileCoreMemory("growth",gname,gname+" now seeks: "+mb.now);
     if(typeof showToast==="function")showToast("★ "+gname+" now seeks: "+mb.now);continue;}
-  var gres=companionGrow(gcs,gm[2],gm[3],R.turn);if(!gres){if(typeof console!=="undefined")console.warn("[growth] refused — '"+gm[2].trim()+"' is not "+gname+"'s flaw as written, or nothing changed (#370)");continue;}
+  var gres=companionGrow(gcs,gm[2],gm[3],R.turn);if(!gres){if(typeof console!=="undefined")console.warn("[growth] refused — '"+gm[2].trim()+"' is not "+gname+"'s flaw as written, or nothing changed (#370)");R.muts.push("⚠ "+gname+": growth refused — the stated flaw does not match the sheet, or nothing changed");continue;}
   R.muts.push(gname+" outgrows a flaw: "+gres.old+" \u2192 "+gres.now);if(typeof fileCoreMemory==="function")fileCoreMemory("growth",gname,gname+" outgrew \""+gres.old+"\": "+gres.now);
   if(typeof showToast==="function")showToast("\u2605 "+gname+" outgrows a flaw: "+gres.now);}}},
 {t:"COMPANION_AGENDA_DONE",apply:function(text,R){var ts=text.match(/\[COMPANION_AGENDA_DONE:([^|\]]+)(?:\|([^\]]*))?\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[COMPANION_AGENDA_DONE:([^|\]]+)(?:\|([^\]]*))?\]/);if(!m)continue;var nm=resolveNpcName(m[1].trim()),cs=findCompanionChar(nm);if(!cs){if(typeof console!=="undefined")console.warn("[agenda] [COMPANION_AGENDA_DONE:"+nm+"] — no companion sheet by that name; ignored (#136③)");R.muts.push("⚠ [COMPANION_AGENDA_DONE:] "+nm+" — no companion by that name (dropped)");continue;}
