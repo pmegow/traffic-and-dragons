@@ -1,0 +1,1070 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Astra production schedule for Traffic and Dragons: capacity, dependencies, beta gates and a complete TODO crosswalk."><title>Production Schedule · Astra · Traffic and Dragons</title><style>
+:root{color-scheme:dark;--bg:#151817;--surface:#1d2220;--line:#39433d;--ink:#f0eee5;--muted:#b7c0b7;--amber:#e4b777;--green:#a1c6ae}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:24px}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1200px;margin:auto;padding:54px 34px 70px}a{color:var(--amber);text-underline-offset:3px}h1,h2,h3,p{margin-top:0}h1{font-size:clamp(36px,5vw,64px);font-weight:650;line-height:1.06;letter-spacing:-2px;max-width:900px;margin-bottom:24px}h2{font-size:28px;line-height:1.2;margin-bottom:22px;letter-spacing:-.6px}h3{font-size:19px;margin-bottom:12px}.eyebrow{color:var(--amber);font-size:12px;letter-spacing:2.2px;text-transform:uppercase;font-weight:650}.intro{font-size:20px;max-width:950px;color:var(--muted)}.meta,.muted,small{color:var(--muted)}small{font-size:13px}.hero{padding-bottom:28px;border-bottom:1px solid var(--line)}nav{display:flex;gap:12px 25px;flex-wrap:wrap;padding:20px 0}nav a{font-size:14px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin:28px 0}.metric{border-top:2px solid var(--amber);padding-top:15px}.metric strong{display:block;font-size:32px;line-height:1.2;letter-spacing:-1px}.metric span{display:block;color:var(--muted);font-size:13px;margin-top:7px}section{margin-top:54px}.callout{background:var(--surface);border-left:3px solid var(--amber);padding:22px 26px;margin:24px 0}.callout p:last-child{margin-bottom:0}.tw{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;vertical-align:top;padding:13px 14px;border-bottom:1px solid var(--line)}th{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);background:var(--surface)}td:first-child{font-weight:550}ul,ol{padding-left:23px}li{margin:8px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}.chain{padding:20px;background:var(--surface);font-size:15px}.chain strong{color:var(--amber)}.week{margin:16px 0;border:1px solid var(--line)}summary{cursor:pointer;padding:18px 20px;display:flex;align-items:baseline;justify-content:space-between;gap:12px}summary:focus-visible,a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--amber);outline-offset:4px}.week-body{padding:0 20px 22px}.week h3{margin:0}.week .date{font-size:13px;color:var(--muted)}.week-items{padding-left:20px}.capacity{height:6px;background:var(--line);margin:0 20px 15px}.capacity span{display:block;height:100%;background:var(--amber)}.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}.day{background:var(--surface);padding:10px;font-size:12px;min-width:0}.day b{display:block;font-size:13px}.day p{margin:5px 0}.day .reserve{color:var(--green)}.pkg{padding:25px 0;border-top:1px solid var(--line);scroll-margin-top:20px}.pkg-head{display:flex;gap:20px;justify-content:space-between}.pkg-head h3{font-size:21px}.pkg-meta{font-size:13px;color:var(--muted);margin-bottom:12px}.pkg p{max-width:1050px}.pkg .gate{color:var(--green)}.filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0}button,input{font:inherit;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink);padding:8px 12px}button{cursor:pointer}input{max-width:100%;width:350px}button:hover{border-color:var(--amber)}.fine{font-size:13px;color:var(--muted)}.print-only{display:none}.tagline{font-size:14px;color:var(--green)}footer{margin-top:60px;padding-top:24px;border-top:1px solid var(--line)}.src{overflow-wrap:anywhere}.number{white-space:nowrap}.legend{display:flex;gap:25px;font-size:13px;color:var(--muted)}.swatch{display:inline-block;width:11px;height:11px;margin-right:7px;background:var(--amber)}.swatch.reserve{background:var(--line)}
+@media(max-width:700px){main{padding:30px 18px 45px}.metrics{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.days{grid-template-columns:1fr 1fr}summary{display:block}summary>span{display:block}.pkg-head{display:block}h1{letter-spacing:-1px}.intro{font-size:18px}th,td{padding:10px}section{margin-top:38px}}
+@media print{:root{--bg:white;--surface:#f3f3f0;--line:#bbb;--ink:#171b18;--muted:#465148;--amber:#735022;--green:#31523e;color-scheme:light}body{font-size:11px}main{padding:0;max-width:none}h1{font-size:34px}h2{font-size:22px}.intro{font-size:14px}.metrics{gap:14px}.metric strong{font-size:25px}nav,.filters,button{display:none}.pkg,.week{break-inside:avoid}section{margin-top:26px}a{color:inherit}.tw{overflow:visible}table{font-size:10px}.days{grid-template-columns:repeat(7,1fr)}.day{font-size:9px}summary{padding:10px}.week-body{display:block!important}.print-only{display:block}.capacity{print-color-adjust:exact}footer{font-size:10px}}
+</style></head><body><main>
+<header class="hero"><p class="eyebrow">Traffic and Dragons / Production planning / Astra</p><h1>A credible path to beta.<br>A complete path through the backlog.</h1><p class="intro">Eight weeks is not enough to clear the current features and known issues. Plan a <strong>17-week invitation beta</strong>, then finish the full active backlog in <strong>34 weeks</strong>, conditional on the design and hardware gates below.</p><p class="meta">Prepared October 7, 2026 · Proposal for comparison with Claude · Start Thursday, October 8 · America/Los_Angeles</p></header>
+<nav aria-label="Sections"><a href="#capacity">Capacity</a><a href="#scope">Scope &amp; estimates</a><a href="#dependencies">Dependencies</a><a href="#calendar">Weekly schedule</a><a href="#packages">Work packages</a><a href="#crosswalk">Every TODO row</a><a href="#gates">Decisions &amp; release gates</a><a href="#compare">Compare with Claude</a></nav>
+<div class="metrics"><div class="metric"><strong>22 h</strong><span>Weekly capacity: 5 × 2 h + 2 × 6 h</span></div><div class="metric"><strong>176 h</strong><span>Eight-week ceiling · ends Dec 2, 2026</span></div><div class="metric"><strong>Feb 3</strong><span>2027 · W17 beta target · 374 h capacity</span></div><div class="metric"><strong>Jun 2</strong><span>2027 · W34 active-backlog target · 748 h capacity</span></div></div>
+<div class="callout"><p><strong>Recommendation:</strong> preserve the inventory-first decision, repair and verify the known issues, then open a solo / hot-seat beta. Finish remote co-op, stable IDs, GM disposition and the composition rewrite afterwards. This is an explicit scope split: the beta does <em>not</em> clear all feature rows.</p><p>The requested full-clearance plan is the entire 34-week schedule. “Complete” means the 48 unfinished rows in <em>Feature backlog</em> and <em>Known issues</em>; it does not mean every open-ended long-term goal. The already-complete #602 is counted separately. No TODO status is changed by this proposal.</p></div>
+<section id="capacity"><p class="eyebrow">01 / The working budget</p><h2>One person’s time, including review and play.</h2><div class="grid"><div><p>Assumption: the stated hours are the total owner-led, AI-assisted working budget. Design, coding supervision, test investigation, independent-review coordination, writing, deployment and owner acceptance all consume it. There is no hidden second engineer, free weekend playtest or assumed agent speed multiplier.</p><p>Weeks run Thursday–Wednesday to respect #599’s October 8 reset. The calendar reserves <strong>18 hours for planned work + 4 hours for rework</strong>. Saturday provides 6 uninterrupted hours; Sunday has 4 planned hours and 2 reserve; Wednesday’s 2 hours are reserve. Other weekdays carry 2 planned hours each.</p></div><div><p><strong>First 8 weeks:</strong> 144 planned + 32 reserve = 176 h. That reaches the inventory/trade work, live account checks, held voice branch, identity boundary, epithets and store hardening, followed by ending work and lead triage; it does not reach release acceptance or networked play.</p><p><strong>Beta:</strong> 306 planned + 68 reserve = 374 h over 17 weeks.<br><strong>Full plan:</strong> 606 planned + 142 reserve = 748 h over 34 weeks. The final week has an additional 6 h of unused planned capacity included in that reserve total.</p></div></div><p class="fine">Reserve is for failed reviews, newly reproduced defects, hardware retests and scope reconciliation—not extra feature commitments. Holidays, vacation and unavailable weekends have not been deducted because none were supplied. Each lost 22 hours adds about one calendar week; Thanksgiving and year-end availability deserve an early check. Unattended test runtime can overlap other work, but test failures and result review cannot.</p></section>
+<section id="scope"><p class="eyebrow">02 / Scope and confidence</p><h2>Bottom-up effort, with uncertainty left visible.</h2><div class="tw"><table><thead><tr><th>Deliverable</th><th>Planned hours</th><th>Work-only estimate range</th><th>Calendar target</th></tr></thead><tbody>
+<tr><td>Solo / hot-seat invitation beta</td><td>306 h</td><td>219–476 h</td><td>W17 · Feb 3, 2027</td></tr>
+<tr><td>Additional active features + final handoff</td><td>300 h</td><td>208–486 h</td><td>W18–34 · Jun 2, 2027</td></tr>
+<tr><td>Entire proposed plan</td><td>606 h</td><td>427–962 h</td><td>34 weeks at the base estimate</td></tr>
+</tbody></table></div><p>The ranges are judgment-based estimates of <em>remaining</em> effort, not measured velocity or statistical confidence intervals. They already include ordinary testing/review. The weekly reserve is extra protection; it is not added to these ranges twice. At 18 planned hours/week, the full work range corresponds to roughly <strong>24–54 weeks</strong>. Use 34 weeks as a planning baseline, not a release promise.</p><ul><li><strong>Remote co-op is the largest uncertainty:</strong> AA–AG reserve 216 planned hours. The design record explicitly postpones defensible delivery estimates until isolation evidence exists. Reforecast at AB; the remaining dates are provisional.</li><li><strong>#599 is larger than its “one Fable week” queue slot:</strong> 34 execution hours plus the 4-hour baseline spans three calendar weeks at this human-time budget. Its ~70 engine and ~585 satellite/tool references and cross-repo migration justify more than one 22-hour week.</li><li><strong>Umbrellas are not small tasks:</strong> #527 receives 12 hours of adjudication and a 32-hour repair allowance, with shared fixes credited elsewhere. #528 gets 18 hours for the remaining proof gaps. Neither is treated as a single “M” patch.</li><li><strong>Built means less implementation, not zero effort:</strong> #410, #434, #543, #552, #577 and #589 retain live acceptance/review time. Held branches #504/#525/#532/#538/#539 are not assumed landed.</li><li><strong>No double-counting:</strong> #534 covers #504/#530/#531 plus #544; #545 covers #536/#540/#541. Economy rows share C. #597/#598 and the portrait portion of #528 are credited as done.</li></ul></section>
+<section id="dependencies"><p class="eyebrow">03 / Why this order</p><h2>Fix the shared mechanisms before their dependents.</h2><div class="grid"><div class="chain"><strong>Inventory → trade → provenance</strong><p>#599 → #518/#517/#578/#591 + #577 acceptance → #581 → live import/library checks. Row quantities cannot by themselves identify a transfer or a paid sale; C adds that transaction evidence.</p></div><div class="chain"><strong>Identity → every write path → migration</strong><p>#532/#538/#539 review → #534 (+#504/#530/#531/#544) → #542 → #545 (+#536/#540/#541). Later #202 arrives with server authority, retaining the name resolver.</p></div><div class="chain"><strong>Voice resources → device truth</strong><p>#404 + reopened #418/#419 → #466 policy → #19/#410/#474/#595. Persona refresh precedes full-room listening. #596’s elapsed absence begins early and is checked later.</p></div><div class="chain"><strong>Authority → funding → real group play</strong><p>#451 + #288 → #1 decisions/isolation → #202 canonical schema → room authorization/recovery + triggered #22b → fractional shared funding → co-op UX/progression → real multiplayer pilot.</p></div></div><p>Other gating links: owner story/rule notes → #446/#447 UI and fresh-player test; owner sketch → #331; owner composition lesson <em>and reopening #400</em> → #397. The original render brief says to land the composition rewrite inside the new render engine, so the schedule includes its minimum prerequisite explicitly.</p><p class="fine">The work is resource-constrained: one 22-hour budget, so even independent packages are mostly sequential. The arrows are technical/acceptance dependencies; the calendar also uses serialization to avoid competing edits on protected files.</p></section>
+<section id="calendar"><p class="eyebrow">04 / The calendar</p><h2>34 weeks, with daily hours accounted for.</h2><p>Open a week for its seven daily work blocks. Package letters link to scope, dependencies and the exact closing evidence. Daily assignments are scheduling allocations, not a claim that an unfinished migration can safely ship mid-block.</p><div class="filters"><button id="expand" type="button">Expand all weeks</button><button id="collapse" type="button">Collapse all weeks</button><button id="print" type="button">Print / save PDF</button></div><div class="legend"><span><i class="swatch"></i>Planned work</span><span><i class="swatch reserve"></i>Rework / unused capacity</span></div>
+<details class="week" id="week-1" open><summary><span><strong>Week 01</strong> <span class="date">Oct 8, 2026 – Oct 14, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-A">A</a> · Baseline, decisions and migration rehearsal <strong>— 4 h</strong></li>
+<li><a href="#pkg-B">B</a> · Structured inventory and equipped migration <strong>— 14 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Oct 08</b><span>2 h available</span>
+<p><a href="#pkg-A">A</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Oct 09</b><span>2 h available</span>
+<p><a href="#pkg-A">A</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Oct 10</b><span>6 h available</span>
+<p><a href="#pkg-B">B</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Oct 11</b><span>6 h available</span>
+<p><a href="#pkg-B">B</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Oct 12</b><span>2 h available</span>
+<p><a href="#pkg-B">B</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Oct 13</b><span>2 h available</span>
+<p><a href="#pkg-B">B</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Oct 14</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: A — Baseline, decisions and migration rehearsal.</p></div></details>
+<details class="week" id="week-2"><summary><span><strong>Week 02</strong> <span class="date">Oct 15, 2026 – Oct 21, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-B">B</a> · Structured inventory and equipped migration <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Oct 15</b><span>2 h available</span>
+<p><a href="#pkg-B">B</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Oct 16</b><span>2 h available</span>
+<p><a href="#pkg-B">B</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Oct 17</b><span>6 h available</span>
+<p><a href="#pkg-B">B</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Oct 18</b><span>6 h available</span>
+<p><a href="#pkg-B">B</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Oct 19</b><span>2 h available</span>
+<p><a href="#pkg-B">B</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Oct 20</b><span>2 h available</span>
+<p><a href="#pkg-B">B</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Oct 21</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Continue the active package; do not close its TODO rows before its acceptance passes..</p></div></details>
+<details class="week" id="week-3"><summary><span><strong>Week 03</strong> <span class="date">Oct 22, 2026 – Oct 28, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-B">B</a> · Structured inventory and equipped migration <strong>— 2 h</strong></li>
+<li><a href="#pkg-C">C</a> · Trade quantities, bundles and paid-sale identity <strong>— 14 h</strong></li>
+<li><a href="#pkg-D">D</a> · Stash provenance survives import and rekey <strong>— 2 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Oct 22</b><span>2 h available</span>
+<p><a href="#pkg-B">B</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Oct 23</b><span>2 h available</span>
+<p><a href="#pkg-C">C</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Oct 24</b><span>6 h available</span>
+<p><a href="#pkg-C">C</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Oct 25</b><span>6 h available</span>
+<p><a href="#pkg-C">C</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Oct 26</b><span>2 h available</span>
+<p><a href="#pkg-C">C</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Oct 27</b><span>2 h available</span>
+<p><a href="#pkg-D">D</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Oct 28</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: B — Structured inventory and equipped migration; C — Trade quantities, bundles and paid-sale identity.</p></div></details>
+<details class="week" id="week-4"><summary><span><strong>Week 04</strong> <span class="date">Oct 29, 2026 – Nov 4, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-D">D</a> · Stash provenance survives import and rekey <strong>— 6 h</strong></li>
+<li><a href="#pkg-E">E</a> · Second-account and deployed-library acceptance <strong>— 6 h</strong></li>
+<li><a href="#pkg-F">F</a> · Review and land the held voice/hero branch <strong>— 6 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Oct 29</b><span>2 h available</span>
+<p><a href="#pkg-D">D</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Oct 30</b><span>2 h available</span>
+<p><a href="#pkg-D">D</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Oct 31</b><span>6 h available</span>
+<p><a href="#pkg-D">D</a> · 2 h</p>
+<p><a href="#pkg-E">E</a> · 4 h</p>
+</div>
+<div class="day"><b>Sun Nov 01</b><span>6 h available</span>
+<p><a href="#pkg-E">E</a> · 2 h</p>
+<p><a href="#pkg-F">F</a> · 2 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Nov 02</b><span>2 h available</span>
+<p><a href="#pkg-F">F</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Nov 03</b><span>2 h available</span>
+<p><a href="#pkg-F">F</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Nov 04</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: D — Stash provenance survives import and rekey; E — Second-account and deployed-library acceptance.</p></div></details>
+<details class="week" id="week-5"><summary><span><strong>Week 05</strong> <span class="date">Nov 5, 2026 – Nov 11, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-F">F</a> · Review and land the held voice/hero branch <strong>— 2 h</strong></li>
+<li><a href="#pkg-G">G</a> · One identity-write boundary <strong>— 16 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Nov 05</b><span>2 h available</span>
+<p><a href="#pkg-F">F</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Nov 06</b><span>2 h available</span>
+<p><a href="#pkg-G">G</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Nov 07</b><span>6 h available</span>
+<p><a href="#pkg-G">G</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Nov 08</b><span>6 h available</span>
+<p><a href="#pkg-G">G</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Nov 09</b><span>2 h available</span>
+<p><a href="#pkg-G">G</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Nov 10</b><span>2 h available</span>
+<p><a href="#pkg-G">G</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Nov 11</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: F — Review and land the held voice/hero branch.</p></div></details>
+<details class="week" id="week-6"><summary><span><strong>Week 06</strong> <span class="date">Nov 12, 2026 – Nov 18, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-G">G</a> · One identity-write boundary <strong>— 10 h</strong></li>
+<li><a href="#pkg-H">H</a> · Hero epithets through every entry path <strong>— 8 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Nov 12</b><span>2 h available</span>
+<p><a href="#pkg-G">G</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Nov 13</b><span>2 h available</span>
+<p><a href="#pkg-G">G</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Nov 14</b><span>6 h available</span>
+<p><a href="#pkg-G">G</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Nov 15</b><span>6 h available</span>
+<p><a href="#pkg-H">H</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Nov 16</b><span>2 h available</span>
+<p><a href="#pkg-H">H</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Nov 17</b><span>2 h available</span>
+<p><a href="#pkg-H">H</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Nov 18</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: G — One identity-write boundary; H — Hero epithets through every entry path.</p></div></details>
+<details class="week" id="week-7"><summary><span><strong>Week 07</strong> <span class="date">Nov 19, 2026 – Nov 25, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-I">I</a> · Prototype-safe name stores <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Nov 19</b><span>2 h available</span>
+<p><a href="#pkg-I">I</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Nov 20</b><span>2 h available</span>
+<p><a href="#pkg-I">I</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Nov 21</b><span>6 h available</span>
+<p><a href="#pkg-I">I</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Nov 22</b><span>6 h available</span>
+<p><a href="#pkg-I">I</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Nov 23</b><span>2 h available</span>
+<p><a href="#pkg-I">I</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Nov 24</b><span>2 h available</span>
+<p><a href="#pkg-I">I</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Nov 25</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: I — Prototype-safe name stores.</p></div></details>
+<details class="week" id="week-8" open><summary><span><strong>Week 08</strong> <span class="date">Nov 26, 2026 – Dec 2, 2026</span> · Eight-week checkpoint</span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-J">J</a> · Ending perspective and portable memories <strong>— 10 h</strong></li>
+<li><a href="#pkg-K">K</a> · Adjudicate every remaining review lead <strong>— 8 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Nov 26</b><span>2 h available</span>
+<p><a href="#pkg-J">J</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Nov 27</b><span>2 h available</span>
+<p><a href="#pkg-J">J</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Nov 28</b><span>6 h available</span>
+<p><a href="#pkg-J">J</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Nov 29</b><span>6 h available</span>
+<p><a href="#pkg-K">K</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Nov 30</b><span>2 h available</span>
+<p><a href="#pkg-K">K</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Dec 01</b><span>2 h available</span>
+<p><a href="#pkg-K">K</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Dec 02</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: J — Ending perspective and portable memories.</p></div></details>
+<details class="week" id="week-9"><summary><span><strong>Week 09</strong> <span class="date">Dec 3, 2026 – Dec 9, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-K">K</a> · Adjudicate every remaining review lead <strong>— 4 h</strong></li>
+<li><a href="#pkg-L">L</a> · Repair confirmed residual leads and resident relations <strong>— 14 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Dec 03</b><span>2 h available</span>
+<p><a href="#pkg-K">K</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Dec 04</b><span>2 h available</span>
+<p><a href="#pkg-K">K</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Dec 05</b><span>6 h available</span>
+<p><a href="#pkg-L">L</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Dec 06</b><span>6 h available</span>
+<p><a href="#pkg-L">L</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Dec 07</b><span>2 h available</span>
+<p><a href="#pkg-L">L</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Dec 08</b><span>2 h available</span>
+<p><a href="#pkg-L">L</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Dec 09</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: K — Adjudicate every remaining review lead.</p></div></details>
+<details class="week" id="week-10"><summary><span><strong>Week 10</strong> <span class="date">Dec 10, 2026 – Dec 16, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-L">L</a> · Repair confirmed residual leads and resident relations <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Dec 10</b><span>2 h available</span>
+<p><a href="#pkg-L">L</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Dec 11</b><span>2 h available</span>
+<p><a href="#pkg-L">L</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Dec 12</b><span>6 h available</span>
+<p><a href="#pkg-L">L</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Dec 13</b><span>6 h available</span>
+<p><a href="#pkg-L">L</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Dec 14</b><span>2 h available</span>
+<p><a href="#pkg-L">L</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Dec 15</b><span>2 h available</span>
+<p><a href="#pkg-L">L</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Dec 16</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: L — Repair confirmed residual leads and resident relations.</p></div></details>
+<details class="week" id="week-11"><summary><span><strong>Week 11</strong> <span class="date">Dec 17, 2026 – Dec 23, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-M">M</a> · Close the outstanding proof gaps <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Dec 17</b><span>2 h available</span>
+<p><a href="#pkg-M">M</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Dec 18</b><span>2 h available</span>
+<p><a href="#pkg-M">M</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Dec 19</b><span>6 h available</span>
+<p><a href="#pkg-M">M</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Dec 20</b><span>6 h available</span>
+<p><a href="#pkg-M">M</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Dec 21</b><span>2 h available</span>
+<p><a href="#pkg-M">M</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Dec 22</b><span>2 h available</span>
+<p><a href="#pkg-M">M</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Dec 23</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: M — Close the outstanding proof gaps.</p></div></details>
+<details class="week" id="week-12"><summary><span><strong>Week 12</strong> <span class="date">Dec 24, 2026 – Dec 30, 2026</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-N">N</a> · One location reader for map and memory <strong>— 10 h</strong></li>
+<li><a href="#pkg-O">O</a> · Measure and bound campaign accumulators <strong>— 6 h</strong></li>
+<li><a href="#pkg-P">P</a> · Portable persona and resident acceptance <strong>— 2 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Dec 24</b><span>2 h available</span>
+<p><a href="#pkg-N">N</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Dec 25</b><span>2 h available</span>
+<p><a href="#pkg-N">N</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Dec 26</b><span>6 h available</span>
+<p><a href="#pkg-N">N</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Dec 27</b><span>6 h available</span>
+<p><a href="#pkg-O">O</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Dec 28</b><span>2 h available</span>
+<p><a href="#pkg-O">O</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Dec 29</b><span>2 h available</span>
+<p><a href="#pkg-P">P</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Dec 30</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: N — One location reader for map and memory; O — Measure and bound campaign accumulators.</p></div></details>
+<details class="week" id="week-13"><summary><span><strong>Week 13</strong> <span class="date">Dec 31, 2026 – Jan 6, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-P">P</a> · Portable persona and resident acceptance <strong>— 4 h</strong></li>
+<li><a href="#pkg-Q">Q</a> · Voice resource and provider cleanup <strong>— 14 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Dec 31</b><span>2 h available</span>
+<p><a href="#pkg-P">P</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Jan 01</b><span>2 h available</span>
+<p><a href="#pkg-P">P</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Jan 02</b><span>6 h available</span>
+<p><a href="#pkg-Q">Q</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Jan 03</b><span>6 h available</span>
+<p><a href="#pkg-Q">Q</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Jan 04</b><span>2 h available</span>
+<p><a href="#pkg-Q">Q</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Jan 05</b><span>2 h available</span>
+<p><a href="#pkg-Q">Q</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Jan 06</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: P — Portable persona and resident acceptance.</p></div></details>
+<details class="week" id="week-14"><summary><span><strong>Week 14</strong> <span class="date">Jan 7, 2027 – Jan 13, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-Q">Q</a> · Voice resource and provider cleanup <strong>— 2 h</strong></li>
+<li><a href="#pkg-R">R</a> · Make the fallback policy explicit <strong>— 4 h</strong></li>
+<li><a href="#pkg-S">S</a> · Car, phone and Village field sessions <strong>— 12 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Jan 07</b><span>2 h available</span>
+<p><a href="#pkg-Q">Q</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Jan 08</b><span>2 h available</span>
+<p><a href="#pkg-R">R</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Jan 09</b><span>6 h available</span>
+<p><a href="#pkg-R">R</a> · 2 h</p>
+<p><a href="#pkg-S">S</a> · 4 h</p>
+</div>
+<div class="day"><b>Sun Jan 10</b><span>6 h available</span>
+<p><a href="#pkg-S">S</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Jan 11</b><span>2 h available</span>
+<p><a href="#pkg-S">S</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Jan 12</b><span>2 h available</span>
+<p><a href="#pkg-S">S</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Jan 13</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Q — Voice resource and provider cleanup; R — Make the fallback policy explicit; S — Car, phone and Village field sessions.</p></div></details>
+<details class="week" id="week-15"><summary><span><strong>Week 15</strong> <span class="date">Jan 14, 2027 – Jan 20, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-T">T</a> · Finish keyless subscription riders <strong>— 16 h</strong></li>
+<li><a href="#pkg-U">U</a> · Taster story and house-rule previews <strong>— 2 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Jan 14</b><span>2 h available</span>
+<p><a href="#pkg-T">T</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Jan 15</b><span>2 h available</span>
+<p><a href="#pkg-T">T</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Jan 16</b><span>6 h available</span>
+<p><a href="#pkg-T">T</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Jan 17</b><span>6 h available</span>
+<p><a href="#pkg-T">T</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Jan 18</b><span>2 h available</span>
+<p><a href="#pkg-T">T</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Jan 19</b><span>2 h available</span>
+<p><a href="#pkg-U">U</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Jan 20</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: T — Finish keyless subscription riders.</p></div></details>
+<details class="week" id="week-16"><summary><span><strong>Week 16</strong> <span class="date">Jan 21, 2027 – Jan 27, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-U">U</a> · Taster story and house-rule previews <strong>— 12 h</strong></li>
+<li><a href="#pkg-V">V</a> · Beta release checklist and player guide <strong>— 6 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Jan 21</b><span>2 h available</span>
+<p><a href="#pkg-U">U</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Jan 22</b><span>2 h available</span>
+<p><a href="#pkg-U">U</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Jan 23</b><span>6 h available</span>
+<p><a href="#pkg-U">U</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Jan 24</b><span>6 h available</span>
+<p><a href="#pkg-U">U</a> · 2 h</p>
+<p><a href="#pkg-V">V</a> · 2 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Jan 25</b><span>2 h available</span>
+<p><a href="#pkg-V">V</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Jan 26</b><span>2 h available</span>
+<p><a href="#pkg-V">V</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Jan 27</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: U — Taster story and house-rule previews.</p></div></details>
+<details class="week" id="week-17" open><summary><span><strong>Week 17</strong> <span class="date">Jan 28, 2027 – Feb 3, 2027</span> · Invitation-beta gate</span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-V">V</a> · Beta release checklist and player guide <strong>— 4 h</strong></li>
+<li><a href="#pkg-W">W</a> · Independent release candidate and beta go/no-go <strong>— 14 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Jan 28</b><span>2 h available</span>
+<p><a href="#pkg-V">V</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Jan 29</b><span>2 h available</span>
+<p><a href="#pkg-V">V</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Jan 30</b><span>6 h available</span>
+<p><a href="#pkg-W">W</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Jan 31</b><span>6 h available</span>
+<p><a href="#pkg-W">W</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Feb 01</b><span>2 h available</span>
+<p><a href="#pkg-W">W</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Feb 02</b><span>2 h available</span>
+<p><a href="#pkg-W">W</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Feb 03</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: V — Beta release checklist and player guide; W — Independent release candidate and beta go/no-go.</p></div></details>
+<details class="week" id="week-18"><summary><span><strong>Week 18</strong> <span class="date">Feb 4, 2027 – Feb 10, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-X">X</a> · GM disposition dials <strong>— 12 h</strong></li>
+<li><a href="#pkg-Y">Y</a> · Frozen mana-rule cleanup <strong>— 4 h</strong></li>
+<li><a href="#pkg-Z">Z</a> · Composition lesson and its parked render prerequisite <strong>— 2 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Feb 04</b><span>2 h available</span>
+<p><a href="#pkg-X">X</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Feb 05</b><span>2 h available</span>
+<p><a href="#pkg-X">X</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Feb 06</b><span>6 h available</span>
+<p><a href="#pkg-X">X</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Feb 07</b><span>6 h available</span>
+<p><a href="#pkg-X">X</a> · 2 h</p>
+<p><a href="#pkg-Y">Y</a> · 2 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Feb 08</b><span>2 h available</span>
+<p><a href="#pkg-Y">Y</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Feb 09</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Feb 10</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: X — GM disposition dials; Y — Frozen mana-rule cleanup.</p></div></details>
+<details class="week" id="week-19"><summary><span><strong>Week 19</strong> <span class="date">Feb 11, 2027 – Feb 17, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-Z">Z</a> · Composition lesson and its parked render prerequisite <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Feb 11</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Feb 12</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Feb 13</b><span>6 h available</span>
+<p><a href="#pkg-Z">Z</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Feb 14</b><span>6 h available</span>
+<p><a href="#pkg-Z">Z</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Feb 15</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Feb 16</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Feb 17</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Continue the active package; do not close its TODO rows before its acceptance passes..</p></div></details>
+<details class="week" id="week-20"><summary><span><strong>Week 20</strong> <span class="date">Feb 18, 2027 – Feb 24, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-Z">Z</a> · Composition lesson and its parked render prerequisite <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Feb 18</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Feb 19</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Feb 20</b><span>6 h available</span>
+<p><a href="#pkg-Z">Z</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Feb 21</b><span>6 h available</span>
+<p><a href="#pkg-Z">Z</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Feb 22</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Feb 23</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Feb 24</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Continue the active package; do not close its TODO rows before its acceptance passes..</p></div></details>
+<details class="week" id="week-21"><summary><span><strong>Week 21</strong> <span class="date">Feb 25, 2027 – Mar 3, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-Z">Z</a> · Composition lesson and its parked render prerequisite <strong>— 6 h</strong></li>
+<li><a href="#pkg-AA">AA</a> · Remote-play decisions and isolation spike brief <strong>— 12 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Feb 25</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Feb 26</b><span>2 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Feb 27</b><span>6 h available</span>
+<p><a href="#pkg-Z">Z</a> · 2 h</p>
+<p><a href="#pkg-AA">AA</a> · 4 h</p>
+</div>
+<div class="day"><b>Sun Feb 28</b><span>6 h available</span>
+<p><a href="#pkg-AA">AA</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Mar 01</b><span>2 h available</span>
+<p><a href="#pkg-AA">AA</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Mar 02</b><span>2 h available</span>
+<p><a href="#pkg-AA">AA</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Mar 03</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Z — Composition lesson and its parked render prerequisite; AA — Remote-play decisions and isolation spike brief.</p></div></details>
+<details class="week" id="week-22"><summary><span><strong>Week 22</strong> <span class="date">Mar 4, 2027 – Mar 10, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AB">AB</a> · Isolate the engine and prove server/browser parity <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Mar 04</b><span>2 h available</span>
+<p><a href="#pkg-AB">AB</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Mar 05</b><span>2 h available</span>
+<p><a href="#pkg-AB">AB</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Mar 06</b><span>6 h available</span>
+<p><a href="#pkg-AB">AB</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Mar 07</b><span>6 h available</span>
+<p><a href="#pkg-AB">AB</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Mar 08</b><span>2 h available</span>
+<p><a href="#pkg-AB">AB</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Mar 09</b><span>2 h available</span>
+<p><a href="#pkg-AB">AB</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Mar 10</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Continue the active package; do not close its TODO rows before its acceptance passes..</p></div></details>
+<details class="week" id="week-23"><summary><span><strong>Week 23</strong> <span class="date">Mar 11, 2027 – Mar 17, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AB">AB</a> · Isolate the engine and prove server/browser parity <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Mar 11</b><span>2 h available</span>
+<p><a href="#pkg-AB">AB</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Mar 12</b><span>2 h available</span>
+<p><a href="#pkg-AB">AB</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Mar 13</b><span>6 h available</span>
+<p><a href="#pkg-AB">AB</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Mar 14</b><span>6 h available</span>
+<p><a href="#pkg-AB">AB</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Mar 15</b><span>2 h available</span>
+<p><a href="#pkg-AB">AB</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Mar 16</b><span>2 h available</span>
+<p><a href="#pkg-AB">AB</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Mar 17</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: AB — Isolate the engine and prove server/browser parity.</p></div></details>
+<details class="week" id="week-24"><summary><span><strong>Week 24</strong> <span class="date">Mar 18, 2027 – Mar 24, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AC">AC</a> · Stable entity IDs at the canonical schema cutover <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Mar 18</b><span>2 h available</span>
+<p><a href="#pkg-AC">AC</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Mar 19</b><span>2 h available</span>
+<p><a href="#pkg-AC">AC</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Mar 20</b><span>6 h available</span>
+<p><a href="#pkg-AC">AC</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Mar 21</b><span>6 h available</span>
+<p><a href="#pkg-AC">AC</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Mar 22</b><span>2 h available</span>
+<p><a href="#pkg-AC">AC</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Mar 23</b><span>2 h available</span>
+<p><a href="#pkg-AC">AC</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Mar 24</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Continue the active package; do not close its TODO rows before its acceptance passes..</p></div></details>
+<details class="week" id="week-25"><summary><span><strong>Week 25</strong> <span class="date">Mar 25, 2027 – Mar 31, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AC">AC</a> · Stable entity IDs at the canonical schema cutover <strong>— 10 h</strong></li>
+<li><a href="#pkg-AD">AD</a> · Durable room authority, membership and recovery <strong>— 8 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Mar 25</b><span>2 h available</span>
+<p><a href="#pkg-AC">AC</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Mar 26</b><span>2 h available</span>
+<p><a href="#pkg-AC">AC</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Mar 27</b><span>6 h available</span>
+<p><a href="#pkg-AC">AC</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Mar 28</b><span>6 h available</span>
+<p><a href="#pkg-AD">AD</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Mar 29</b><span>2 h available</span>
+<p><a href="#pkg-AD">AD</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Mar 30</b><span>2 h available</span>
+<p><a href="#pkg-AD">AD</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Mar 31</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: AC — Stable entity IDs at the canonical schema cutover.</p></div></details>
+<details class="week" id="week-26"><summary><span><strong>Week 26</strong> <span class="date">Apr 1, 2027 – Apr 7, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AD">AD</a> · Durable room authority, membership and recovery <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Apr 01</b><span>2 h available</span>
+<p><a href="#pkg-AD">AD</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Apr 02</b><span>2 h available</span>
+<p><a href="#pkg-AD">AD</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Apr 03</b><span>6 h available</span>
+<p><a href="#pkg-AD">AD</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Apr 04</b><span>6 h available</span>
+<p><a href="#pkg-AD">AD</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Apr 05</b><span>2 h available</span>
+<p><a href="#pkg-AD">AD</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Apr 06</b><span>2 h available</span>
+<p><a href="#pkg-AD">AD</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Apr 07</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Continue the active package; do not close its TODO rows before its acceptance passes..</p></div></details>
+<details class="week" id="week-27"><summary><span><strong>Week 27</strong> <span class="date">Apr 8, 2027 – Apr 14, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AD">AD</a> · Durable room authority, membership and recovery <strong>— 14 h</strong></li>
+<li><a href="#pkg-AE">AE</a> · Shared funding and complete cost accounting <strong>— 4 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Apr 08</b><span>2 h available</span>
+<p><a href="#pkg-AD">AD</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Apr 09</b><span>2 h available</span>
+<p><a href="#pkg-AD">AD</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Apr 10</b><span>6 h available</span>
+<p><a href="#pkg-AD">AD</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Apr 11</b><span>6 h available</span>
+<p><a href="#pkg-AD">AD</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Apr 12</b><span>2 h available</span>
+<p><a href="#pkg-AE">AE</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Apr 13</b><span>2 h available</span>
+<p><a href="#pkg-AE">AE</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Apr 14</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: AD — Durable room authority, membership and recovery.</p></div></details>
+<details class="week" id="week-28"><summary><span><strong>Week 28</strong> <span class="date">Apr 15, 2027 – Apr 21, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AE">AE</a> · Shared funding and complete cost accounting <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Apr 15</b><span>2 h available</span>
+<p><a href="#pkg-AE">AE</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Apr 16</b><span>2 h available</span>
+<p><a href="#pkg-AE">AE</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Apr 17</b><span>6 h available</span>
+<p><a href="#pkg-AE">AE</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Apr 18</b><span>6 h available</span>
+<p><a href="#pkg-AE">AE</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Apr 19</b><span>2 h available</span>
+<p><a href="#pkg-AE">AE</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Apr 20</b><span>2 h available</span>
+<p><a href="#pkg-AE">AE</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Apr 21</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Continue the active package; do not close its TODO rows before its acceptance passes..</p></div></details>
+<details class="week" id="week-29"><summary><span><strong>Week 29</strong> <span class="date">Apr 22, 2027 – Apr 28, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AE">AE</a> · Shared funding and complete cost accounting <strong>— 14 h</strong></li>
+<li><a href="#pkg-AF">AF</a> · Co-op interface, consent, split party and progression <strong>— 4 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Apr 22</b><span>2 h available</span>
+<p><a href="#pkg-AE">AE</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Apr 23</b><span>2 h available</span>
+<p><a href="#pkg-AE">AE</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat Apr 24</b><span>6 h available</span>
+<p><a href="#pkg-AE">AE</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun Apr 25</b><span>6 h available</span>
+<p><a href="#pkg-AE">AE</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon Apr 26</b><span>2 h available</span>
+<p><a href="#pkg-AF">AF</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue Apr 27</b><span>2 h available</span>
+<p><a href="#pkg-AF">AF</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed Apr 28</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: AE — Shared funding and complete cost accounting.</p></div></details>
+<details class="week" id="week-30"><summary><span><strong>Week 30</strong> <span class="date">Apr 29, 2027 – May 5, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AF">AF</a> · Co-op interface, consent, split party and progression <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu Apr 29</b><span>2 h available</span>
+<p><a href="#pkg-AF">AF</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri Apr 30</b><span>2 h available</span>
+<p><a href="#pkg-AF">AF</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat May 01</b><span>6 h available</span>
+<p><a href="#pkg-AF">AF</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun May 02</b><span>6 h available</span>
+<p><a href="#pkg-AF">AF</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon May 03</b><span>2 h available</span>
+<p><a href="#pkg-AF">AF</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue May 04</b><span>2 h available</span>
+<p><a href="#pkg-AF">AF</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed May 05</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Continue the active package; do not close its TODO rows before its acceptance passes..</p></div></details>
+<details class="week" id="week-31"><summary><span><strong>Week 31</strong> <span class="date">May 6, 2027 – May 12, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AF">AF</a> · Co-op interface, consent, split party and progression <strong>— 10 h</strong></li>
+<li><a href="#pkg-AG">AG</a> · Multiplayer pilot and failure-matrix acceptance <strong>— 8 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu May 06</b><span>2 h available</span>
+<p><a href="#pkg-AF">AF</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri May 07</b><span>2 h available</span>
+<p><a href="#pkg-AF">AF</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat May 08</b><span>6 h available</span>
+<p><a href="#pkg-AF">AF</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun May 09</b><span>6 h available</span>
+<p><a href="#pkg-AG">AG</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon May 10</b><span>2 h available</span>
+<p><a href="#pkg-AG">AG</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue May 11</b><span>2 h available</span>
+<p><a href="#pkg-AG">AG</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed May 12</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: AF — Co-op interface, consent, split party and progression.</p></div></details>
+<details class="week" id="week-32"><summary><span><strong>Week 32</strong> <span class="date">May 13, 2027 – May 19, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AG">AG</a> · Multiplayer pilot and failure-matrix acceptance <strong>— 18 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu May 13</b><span>2 h available</span>
+<p><a href="#pkg-AG">AG</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri May 14</b><span>2 h available</span>
+<p><a href="#pkg-AG">AG</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat May 15</b><span>6 h available</span>
+<p><a href="#pkg-AG">AG</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun May 16</b><span>6 h available</span>
+<p><a href="#pkg-AG">AG</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon May 17</b><span>2 h available</span>
+<p><a href="#pkg-AG">AG</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue May 18</b><span>2 h available</span>
+<p><a href="#pkg-AG">AG</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed May 19</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: Continue the active package; do not close its TODO rows before its acceptance passes..</p></div></details>
+<details class="week" id="week-33"><summary><span><strong>Week 33</strong> <span class="date">May 20, 2027 – May 26, 2027</span></span><span class="date">18 h work / 4 h reserve</span></summary><div class="capacity" aria-label="18 of 22 hours planned"><span style="width:81.82%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AG">AG</a> · Multiplayer pilot and failure-matrix acceptance <strong>— 6 h</strong></li>
+<li><a href="#pkg-AH">AH</a> · Accept and document the existing ambience slice <strong>— 12 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu May 20</b><span>2 h available</span>
+<p><a href="#pkg-AG">AG</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri May 21</b><span>2 h available</span>
+<p><a href="#pkg-AG">AG</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat May 22</b><span>6 h available</span>
+<p><a href="#pkg-AG">AG</a> · 2 h</p>
+<p><a href="#pkg-AH">AH</a> · 4 h</p>
+</div>
+<div class="day"><b>Sun May 23</b><span>6 h available</span>
+<p><a href="#pkg-AH">AH</a> · 4 h</p>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Mon May 24</b><span>2 h available</span>
+<p><a href="#pkg-AH">AH</a> · 2 h</p>
+</div>
+<div class="day"><b>Tue May 25</b><span>2 h available</span>
+<p><a href="#pkg-AH">AH</a> · 2 h</p>
+</div>
+<div class="day"><b>Wed May 26</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: AG — Multiplayer pilot and failure-matrix acceptance; AH — Accept and document the existing ambience slice.</p></div></details>
+<details class="week" id="week-34" open><summary><span><strong>Week 34</strong> <span class="date">May 27, 2027 – Jun 2, 2027</span> · Active-backlog completion gate</span><span class="date">12 h work / 10 h reserve</span></summary><div class="capacity" aria-label="12 of 22 hours planned"><span style="width:54.55%"></span></div><div class="week-body"><ul class="week-items">
+<li><a href="#pkg-AI">AI</a> · Final active-backlog audit and release handoff <strong>— 12 h</strong></li>
+</ul><div class="days">
+<div class="day"><b>Thu May 27</b><span>2 h available</span>
+<p><a href="#pkg-AI">AI</a> · 2 h</p>
+</div>
+<div class="day"><b>Fri May 28</b><span>2 h available</span>
+<p><a href="#pkg-AI">AI</a> · 2 h</p>
+</div>
+<div class="day"><b>Sat May 29</b><span>6 h available</span>
+<p><a href="#pkg-AI">AI</a> · 6 h</p>
+</div>
+<div class="day"><b>Sun May 30</b><span>6 h available</span>
+<p><a href="#pkg-AI">AI</a> · 2 h</p>
+<p class="reserve">Reserve · 4 h</p>
+</div>
+<div class="day"><b>Mon May 31</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Tue Jun 01</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+<div class="day"><b>Wed Jun 02</b><span>2 h available</span>
+<p class="reserve">Reserve · 2 h</p>
+</div>
+</div><p class="fine" style="margin-top:16px">Exit evidence due: AI — Final active-backlog audit and release handoff.</p></div></details>
+</section><section id="packages"><p class="eyebrow">05 / Work and closing evidence</p><h2>Each estimate includes getting it accepted.</h2><p>Normal gates are budgeted inside each package: diagnosis and failing assertion first, focused build, named mutation proof, full suite, prompt/corpus comparison where protected, independent review where required, owner/device checks, commit and deployment receipt. The four-hour weekly reserve covers unplanned rework.</p>
+<article class="pkg" id="pkg-A"><div class="pkg-head"><h3>A / Baseline, decisions and migration rehearsal</h3><strong class="number">4 h · W1</strong></div><p class="pkg-meta">#599 · Owner + Astra/Fable · Range 3–6 h · Dependencies: None</p><p>Freeze the scope and save corpus; export mature saves; inventory the server/library migration paths. Book owner and independent-review sessions. Start the real-absence Village check now, with a campaign excursion before its later return test.</p><p class="gate"><strong>Done when:</strong> Saved rollback copy, migration design and test matrix; decisions assigned for #593, #466 and deferred audio work. This schedule does not itself lift a standing deferral.</p></article>
+<article class="pkg" id="pkg-B"><div class="pkg-head"><h3>B / Structured inventory and equipped migration</h3><strong class="number">34 h · W1–3</strong></div><p class="pkg-meta">#599 · Astra/Fable + independent reviewer · Range 26–50 h · Dependencies: <a href="#pkg-A">A</a></p><p>Migrate strings to {name, qty, equipped} through engine, companions, library server, exports, editor and tooling; accept the old WORN spelling for one release. Reserve the first development block for this owner-prioritized work.</p><p class="gate"><strong>Done when:</strong> Mature and legacy save import is idempotent; exports and server library round-trip; equipped items survive; no unit loss. Independent review, exact failure tests, prompt/replay checks and migration restore rehearsal pass.</p></article>
+<article class="pkg" id="pkg-C"><div class="pkg-head"><h3>C / Trade quantities, bundles and paid-sale identity</h3><strong class="number">14 h · W3</strong></div><p class="pkg-meta">#517, #518, #577, #578, #591 · Astra/Fable + owner · Range 10–22 h · Dependencies: <a href="#pkg-B">B</a></p><p>Normalize bundle names once; make a transfer identify its source and destination; retire wants only from an identified paid sale. Recheck the already-built #577 allowance. Structured rows alone do not prove that two same-name events form a transfer.</p><p class="gate"><strong>Done when:</strong> Arrow x20 buys exactly 20; per-five offer works; empty-companion take spends no coin; independent dagger loot survives a throw; unrelated 1 cp plus ring discard leaves the want open. Three decorated names cannot collect three offers.</p></article>
+<article class="pkg" id="pkg-D"><div class="pkg-head"><h3>D / Stash provenance survives import and rekey</h3><strong class="number">8 h · W3–4</strong></div><p class="pkg-meta">#581, #527 · Astra/Fable · Range 6–12 h · Dependencies: <a href="#pkg-B">B</a>, <a href="#pkg-C">C</a></p><p>Use a stable journal-origin key on stash moves and carried sheet marks; migrate old marks once. Closes #527(27) here, without charging it again in the lead-repair allowance.</p><p class="gate"><strong>Done when:</strong> Stow 1 of 5, export x4, rekey/import and refresh still gives x4; repeat refresh is a no-op. Test actual import and library adoption, with pack/chest conservation.</p></article>
+<article class="pkg" id="pkg-E"><div class="pkg-head"><h3>E / Second-account and deployed-library acceptance</h3><strong class="number">6 h · W4</strong></div><p class="pkg-meta">#451, #589 · Owner + engineer · Range 4–8 h · Dependencies: <a href="#pkg-D">D</a></p><p>Create the owner-controlled non-admin second account in a separate profile; verify deployed ownership, admin gating and library replace/update. #423 is already deployed and archived; this is the outstanding live acceptance.</p><p class="gate"><strong>Done when:</strong> Import A’s save into B and sync: A unchanged, B gets its own campaign. Punctuation/accent library names find the existing copy. Record deployed versions and receipts; reserve account setup time inside this budget.</p></article>
+<article class="pkg" id="pkg-F"><div class="pkg-head"><h3>F / Review and land the held voice/hero branch</h3><strong class="number">8 h · W4–5</strong></div><p class="pkg-meta">#532, #538, #539, #543 · Astra/Fable + independent reviewer + owner · Range 6–14 h · Dependencies: <a href="#pkg-E">E</a></p><p>Rebase and inspect the held 532–538 work against current master; reconcile the already-shipped #543 helpers. Complete the second review and range sabotage sweep, then audible library-replacement acceptance.</p><p class="gate"><strong>Done when:</strong> Merge and regenerated sheets preserve voice/direction/speed; hero cannot become an NPC through note/pronoun/merge; library refresh and fallen rejoin preserve the ruled voice fields. No assumption that a green held branch is shipped.</p></article>
+<article class="pkg" id="pkg-G"><div class="pkg-head"><h3>G / One identity-write boundary</h3><strong class="number">26 h · W5–6</strong></div><p class="pkg-meta">#534, #504, #530, #531, #544 · Astra/Fable + independent reviewer · Range 20–40 h · Dependencies: <a href="#pkg-F">F</a></p><p>Redesign the collision answer path at one boundary, covering aliases, reveal merges, scene handles, death and sheet renaming. Keep the held #504 implementation as evidence, not a patch to merge blindly.</p><p class="gate"><strong>Done when:</strong> Queen Underbough cannot become or kill the princess; “different person” lands with scene refs active; alias reveal cannot leave two identities/voices. Real GM answer, sound-generator fuzzing and independent review pass.</p></article>
+<article class="pkg" id="pkg-H"><div class="pkg-head"><h3>H / Hero epithets through every entry path</h3><strong class="number">8 h · W6</strong></div><p class="pkg-meta">#542 · Astra/Fable · Range 6–14 h · Dependencies: <a href="#pkg-F">F</a>, <a href="#pkg-G">G</a></p><p>Apply the hero-name contract to import, library swap, blueprint seeding, same-reply awards and graph links, after #538 and the shared boundary.</p><p class="gate"><strong>Done when:</strong> Name/epithet collisions cannot suppress an NPC or give two people the same authority; every hero alias reaches the same graph node.</p></article>
+<article class="pkg" id="pkg-I"><div class="pkg-head"><h3>I / Prototype-safe name stores</h3><strong class="number">18 h · W7</strong></div><p class="pkg-meta">#545, #536, #540, #541 · Astra/Fable + independent reviewer · Range 14–28 h · Dependencies: <a href="#pkg-G">G</a>, <a href="#pkg-H">H</a></p><p>Harden store creation and save inflation; use own-property reads for static registries. Audit the existing census and non-tag ingress, including blueprint library and summarizer extraction. No reply-text blacklist.</p><p class="gate"><strong>Done when:</strong> constructor and __proto__ work as ordinary names through tags, saves, extracts and blueprints without prototype writes or crashes; Constructor arc completes; malformed motivation list fails visibly. Independent review passes.</p></article>
+<article class="pkg" id="pkg-J"><div class="pkg-head"><h3>J / Ending perspective and portable memories</h3><strong class="number">10 h · W8</strong></div><p class="pkg-meta">#525 · Astra/Fable + independent reviewer · Range 8–16 h · Dependencies: <a href="#pkg-G">G</a></p><p>Redesign the twice-held ending patch. Keep second-person narration and the chosen prose voice; record a correctly attributed third-person moment. Repair legacy endings idempotently.</p><p class="gate"><strong>Done when:</strong> José, Mr. Fox, shared surnames, Arabic/Hebrew/Hindi and trailing quotes survive; RECORD variants do not leak; companions do not inherit the hero’s first-person identity; repeated load adds no prefix.</p></article>
+<article class="pkg" id="pkg-K"><div class="pkg-head"><h3>K / Adjudicate every remaining review lead</h3><strong class="number">12 h · W8–9</strong></div><p class="pkg-meta">#527 · Astra/Fable + owner rulings · Range 8–18 h · Dependencies: <a href="#pkg-C">C</a>, <a href="#pkg-D">D</a>, <a href="#pkg-G">G</a>, <a href="#pkg-I">I</a>, <a href="#pkg-J">J</a></p><p>Hand-check all 28 numbered leads and maintain a disposition matrix. (1) is already #529, (10) and (25) fixed, (26) is #591; (27) closes in D. Route location leads into N, persona/presence into M or P, and confirmed residuals into L.</p><p class="gate"><strong>Done when:</strong> Every lead has a reproduction, an existing-fix receipt, or an explicit no-action rationale. No blanket closure; ruling-dependent capability duplication and resident relations have an owner decision.</p></article>
+<article class="pkg" id="pkg-L"><div class="pkg-head"><h3>L / Repair confirmed residual leads and resident relations</h3><strong class="number">32 h · W9–10</strong></div><p class="pkg-meta">#527, #593 · Astra/Fable + owner · Range 20–48 h · Dependencies: <a href="#pkg-K">K</a></p><p>Allowance for remaining confirmed leads: cast binding, presence, note priority, shop timing/combat, travel, receipts, null sheet entries and other adjudicated cases, plus the ruled #593 relation policy. #437/#527(10) closed during this planning session and is credited as done; retain its regression, do not rebuild it. Do not repeat D/N/P work.</p><p class="gate"><strong>Done when:</strong> All confirmed leads have regression and named mutation evidence; resident relation behavior matches the owner ruling. If more work is found than this allowance, reforecast rather than declare closure. Unused allowance returns to reserve.</p></article>
+<article class="pkg" id="pkg-M"><div class="pkg-head"><h3>M / Close the outstanding proof gaps</h3><strong class="number">18 h · W11</strong></div><p class="pkg-meta">#528 · Astra/Fable · Range 12–28 h · Dependencies: <a href="#pkg-L">L</a></p><p>Guard each surviving #528 line at the real entry path; the portrait-boundary work already completed on October 7 is credited. Add integration assertions for load hooks, tag blocks, queue/refusal receipts and level-up paths.</p><p class="gate"><strong>Done when:</strong> Each named surviving mutation causes its intended test to fail; no zero-section or unrelated-red proof. One traceable matrix covers the full row, including clauses retired by B–L.</p></article>
+<article class="pkg" id="pkg-N"><div class="pkg-head"><h3>N / One location reader for map and memory</h3><strong class="number">10 h · W12</strong></div><p class="pkg-meta">#464, #527 · Astra/Fable · Range 8–16 h · Dependencies: <a href="#pkg-K">K</a>, <a href="#pkg-M">M</a></p><p>Derive the location TOC from canonical map nodes; reconcile notes/visited data and same-reply sublocation state. Fold in adjudicated #527(17–19) where they share this boundary.</p><p class="gate"><strong>Done when:</strong> fileSubLocation-only places reach the TOC; case variants preserve description and make no twin; hours and keeper tags use current reply state. Prompt diffs on repaired and legacy maps are explained.</p></article>
+<article class="pkg" id="pkg-O"><div class="pkg-head"><h3>O / Measure and bound campaign accumulators</h3><strong class="number">6 h · W12</strong></div><p class="pkg-meta">#465 · Astra/Fable · Range 4–10 h · Dependencies: <a href="#pkg-N">N</a></p><p>Measure the mature save first; then retire expired latch/index entries where evidence warrants. Keep archives and historical records under the existing no-cap ruling.</p><p class="gate"><strong>Done when:</strong> Before/after sizes and a duration check; bounded indexes cannot delete canon. A measurement-supported no-change disposition is acceptable; an arbitrary archive trim is not.</p></article>
+<article class="pkg" id="pkg-P"><div class="pkg-head"><h3>P / Portable persona and resident acceptance</h3><strong class="number">6 h · W12–13</strong></div><p class="pkg-meta">#434, #552, #527 · Owner + Astra/Fable · Range 4–8 h · Dependencies: <a href="#pkg-F">F</a>, <a href="#pkg-L">L</a>, <a href="#pkg-N">N</a></p><p>Owner edits Nyla’s intended trait/flaw/motivation and manner; prepare and load the safe resident-reset copy; export known speech from its original campaign and refresh from library.</p><p class="gate"><strong>Done when:</strong> Voice lines belong to the right speaker; present residents use sheet persona, absent residents stay absent; talk/listen in the Village after real library export and refresh. Existing mechanics need acceptance, not a rebuild.</p></article>
+<article class="pkg" id="pkg-Q"><div class="pkg-head"><h3>Q / Voice resource and provider cleanup</h3><strong class="number">16 h · W13–14</strong></div><p class="pkg-meta">#404, #418, #419 · Astra/Fable + owner phone · Range 12–26 h · Dependencies: <a href="#pkg-F">F</a></p><p>Move provider behavior into entries; trim or relocate saved catalogs; retire timer/abort residues; extract scheduleDecoded; resolve the VAD AudioContext ownership on device. #418/#419 need their deferrals lifted before implementation.</p><p class="gate"><strong>Done when:</strong> Additional provider requires an entry; quota failure is exercised with large catalogs; repeated reads/cancel/background do not accumulate buffers or contexts. Native and cloud mic paths pass on the actual phone.</p></article>
+<article class="pkg" id="pkg-R"><div class="pkg-head"><h3>R / Make the fallback policy explicit</h3><strong class="number">4 h · W14</strong></div><p class="pkg-meta">#466 · Owner + engineer · Range 2–8 h · Dependencies: <a href="#pkg-Q">Q</a></p><p>Recommended ruling is the documented primary → server → Piper → native ladder. This estimate uses that choice and updates behavior pins. Cross-cloud billing consent is a scope increase, not an assumed requirement.</p><p class="gate"><strong>Done when:</strong> Fault each rung before and during narration; all reachable handoffs follow the documented policy without silent cross-provider billing. Owner selects the policy before code.</p></article>
+<article class="pkg" id="pkg-S"><div class="pkg-head"><h3>S / Car, phone and Village field sessions</h3><strong class="number">12 h · W14</strong></div><p class="pkg-meta">#19, #410, #474, #595, #596 · Owner + engineer · Range 8–20 h · Dependencies: <a href="#pkg-P">P</a>, <a href="#pkg-Q">Q</a>, <a href="#pkg-R">R</a></p><p>Diagnose CarPlay with native voice and wired/wireless comparison, then fix and retest the responsible path. Run all five Lane F checks, pause/resume, an eight-resident room and the return after the absence started in A.</p><p class="gate"><strong>Done when:</strong> Use the iPhone 12 Pro Max Safari/home-screen and actual car route; attach audio-session crumbs. No doubled speech, correct voices, correct mic/background behavior; one grounded return greeting, no repeat after reload. Bluetooth workaround alone does not close #19.</p></article>
+<article class="pkg" id="pkg-T"><div class="pkg-head"><h3>T / Finish keyless subscription riders</h3><strong class="number">16 h · W15</strong></div><p class="pkg-meta">#288 · Astra/Fable + operator · Range 10–24 h · Dependencies: <a href="#pkg-E">E</a></p><p>Route STT transcription through the authenticated gateway and verify the operator FAL_API_KEY deployment. Exercise a fresh keyless account, entitlement/quota errors, cancellation and recording limits. Credit already-live OAuth and fal proxy work.</p><p class="gate"><strong>Done when:</strong> A non-admin with no personal keys can play, dictate and render; charge/refusal attribution is correct. Deployment evidence, server tests and client tests agree. Billing checkout is not required for the manually entitled beta.</p></article>
+<article class="pkg" id="pkg-U"><div class="pkg-head"><h3>U / Taster story and house-rule previews</h3><strong class="number">14 h · W15–16</strong></div><p class="pkg-meta">#446, #447 · Owner author + UI engineer + fresh tester · Range 10–22 h · Dependencies: <a href="#pkg-T">T</a></p><p>Owner provides Riverlight’s single causal account, short spine and spoiler-safe exceptional-rule notes. Build the card/hero-selection slot after notes exist; run a fresh-player taster to payoff.</p><p class="gate"><strong>Done when:</strong> One coherent mystery, independent clue routes and a tested session target; hero choice shows applicable house rules. Authoring, UI and playtesting all count against these 14 hours.</p></article>
+<article class="pkg" id="pkg-V"><div class="pkg-head"><h3>V / Beta release checklist and player guide</h3><strong class="number">10 h · W16–17</strong></div><p class="pkg-meta">L6 · Owner + engineer · Range 8–16 h · Dependencies: <a href="#pkg-M">M</a>, <a href="#pkg-S">S</a>, <a href="#pkg-T">T</a>, <a href="#pkg-U">U</a></p><p>Resolve every Clear for Release row for an invitation-only, manually entitled beta: reroll decision; hide tester XP; original shipped fixtures; supported keyless routes; diagnostic presentation; compatibility support policy. Write/update a short player guide and operator rollback notes.</p><p class="gate"><strong>Done when:</strong> Fresh account to first adventure works; build/version and support instructions visible; no dev-only menu exposure. Keep compatibility migrations while supported saves need them; record removal criteria. Preserve the two ruled reward-withheld toasts.</p></article>
+<article class="pkg" id="pkg-W"><div class="pkg-head"><h3>W / Independent release candidate and beta go/no-go</h3><strong class="number">14 h · W17</strong></div><p class="pkg-meta">Release gate · Owner + independent reviewer + testers · Range 10–22 h · Dependencies: <a href="#pkg-B">B</a>, <a href="#pkg-C">C</a>, <a href="#pkg-D">D</a>, <a href="#pkg-E">E</a>, <a href="#pkg-F">F</a>, <a href="#pkg-G">G</a>, <a href="#pkg-H">H</a>, <a href="#pkg-I">I</a>, <a href="#pkg-J">J</a>, <a href="#pkg-K">K</a>, <a href="#pkg-L">L</a>, <a href="#pkg-M">M</a>, <a href="#pkg-N">N</a>, <a href="#pkg-O">O</a>, <a href="#pkg-P">P</a>, <a href="#pkg-Q">Q</a>, <a href="#pkg-R">R</a>, <a href="#pkg-S">S</a>, <a href="#pkg-T">T</a>, <a href="#pkg-U">U</a>, <a href="#pkg-V">V</a></p><p>Feature freeze, mature-save restore, desktop/mobile/Car Mode/hot-seat regression, real-model play, deployment checks and issue reconciliation. Repeat targeted acceptance after any repair; use weekly reserve for surprises.</p><p class="gate"><strong>Done when:</strong> All known-issue rows have evidence-backed dispositions, all built-but-unaccepted rows pass, no blocking save/identity/economy defect, two fresh-player sessions reach a stopping point. Beta opens only on passing evidence.</p></article>
+<article class="pkg" id="pkg-X"><div class="pkg-head"><h3>X / GM disposition dials</h3><strong class="number">12 h · W18</strong></div><p class="pkg-meta">#331 · Owner + Astra/Fable · Range 8–20 h · Dependencies: <a href="#pkg-W">W</a></p><p>Resolve the owner’s five sketch questions; use the disposition lab and blind judgments before adding the stable prompt paragraph. Default all-middle behavior stays byte-identical.</p><p class="gate"><strong>Done when:</strong> Owner accepts the behavior; tone/voice precedence is explicit, mechanics stay unchanged, prompt-cache and real-model checks pass. Still requires the owner sketch; planning is not build approval.</p></article>
+<article class="pkg" id="pkg-Y"><div class="pkg-head"><h3>Y / Frozen mana-rule cleanup</h3><strong class="number">4 h · W18</strong></div><p class="pkg-meta">#420 · Astra/Fable · Range 2–6 h · Dependencies: <a href="#pkg-W">W</a></p><p>Lift the standing deferral, dedupe in a standalone A/B commit, and deliberately rebaseline the golden prompt.</p><p class="gate"><strong>Done when:</strong> Cast cost and cantrip cases remain correct; frozen prompt diff contains only the intended wording change.</p></article>
+<article class="pkg" id="pkg-Z"><div class="pkg-head"><h3>Z / Composition lesson and its parked render prerequisite</h3><strong class="number">44 h · W18–21</strong></div><p class="pkg-meta">#397 · Owner + Astra/Fable + engineer · Range 30–68 h · Dependencies: <a href="#pkg-W">W</a></p><p>Reopen #400 explicitly. Deliver its minimum #397 dependency: engine split/input contract, dev render-lab seam, staging/detail passes and text identity contract; take the owner’s composition lesson and rewrite the staging brief there. Turnaround images and player studio are excluded parked #400 options.</p><p class="gate"><strong>Done when:</strong> Thin game caller, repinned tests, altar/gate fixtures and three-render A/B accepted by the owner. #397 can close without silently authorizing every optional #400 phase; if #400 stays parked, #397 stays open.</p></article>
+<article class="pkg" id="pkg-AA"><div class="pkg-head"><h3>AA / Remote-play decisions and isolation spike brief</h3><strong class="number">12 h · W21</strong></div><p class="pkg-meta">#1 · Owner + Astra/Fable · Range 8–20 h · Dependencies: <a href="#pkg-E">E</a>, <a href="#pkg-G">G</a>, <a href="#pkg-I">I</a>, <a href="#pkg-W">W</a></p><p>Resolve outstanding research decisions: origins/auth, room roles and hybrid seats, mobile background behavior, dice/progression, diagnostics, budgets/refunds and demand. B remains the destination; no automatic A detour. Plan the social-loop trial and isolation spike.</p><p class="gate"><strong>Done when:</strong> Ratified implementation brief and acceptance envelope. This is a discovery budget: the research explicitly says there is no defensible delivery estimate before isolation evidence.</p></article>
+<article class="pkg" id="pkg-AB"><div class="pkg-head"><h3>AB / Isolate the engine and prove server/browser parity</h3><strong class="number">36 h · W22–23</strong></div><p class="pkg-meta">#1 · Astra/Fable + independent reviewer · Range 24–60 h · Dependencies: <a href="#pkg-AA">AA</a></p><p>Remove per-room dependence on shared engine globals at one boundary; enumerate all GM/maintenance call sites; prove reject/accept/reload, candidate isolation and browser/server parity before authoritative rooms.</p><p class="gate"><strong>Done when:</strong> Rejected candidates leave no live/save/cloud mutation; mature corpus and frozen prompts agree; independent review passes. Re-estimate AC–AG from this evidence before committing dates.</p></article>
+<article class="pkg" id="pkg-AC"><div class="pkg-head"><h3>AC / Stable entity IDs at the canonical schema cutover</h3><strong class="number">28 h · W24–25</strong></div><p class="pkg-meta">#202, #1 · Astra/Fable + independent reviewer · Range 20–46 h · Dependencies: <a href="#pkg-AB">AB</a>, <a href="#pkg-G">G</a>, <a href="#pkg-I">I</a></p><p>Introduce the ratified name-pointer table alongside the server-canonical schema. Preserve name resolution at the tag boundary; migrate all memory/RAG/alias/relationship edges with versioned exports.</p><p class="gate"><strong>Done when:</strong> Duplicate display names, rename, merge, legacy thousands-of-references migration and recovery preserve identity. #202 is not pulled forward as an isolated refactor.</p></article>
+<article class="pkg" id="pkg-AD"><div class="pkg-head"><h3>AD / Durable room authority, membership and recovery</h3><strong class="number">40 h · W25–27</strong></div><p class="pkg-meta">#1, #22b · Astra/Fable + server engineer + reviewer · Range 28–64 h · Dependencies: <a href="#pkg-AC">AC</a>, <a href="#pkg-T">T</a></p><p>Account-backed seats, canonical command/event commit, authorization, per-room isolation, leases/reconnect, client skew and export/restore. Remote character exchange triggers #22b: validate/cap imports and hostile-content boundaries.</p><p class="gate"><strong>Done when:</strong> Forged IDs, stale leases, fifth-seat race, revoked invites, incompatible clients and oversized/unsafe imports fail safely. Crash matrix gives no duplicate commit; read/export remains after writes are disabled.</p></article>
+<article class="pkg" id="pkg-AE"><div class="pkg-head"><h3>AE / Shared funding and complete cost accounting</h3><strong class="number">36 h · W27–29</strong></div><p class="pkg-meta">#1 · Astra/Fable + server engineer + owner · Range 24–60 h · Dependencies: <a href="#pkg-AD">AD</a>, <a href="#pkg-T">T</a></p><p>Replace whole-turn-only assumptions with atomic reservations and fractional settlement across all paid routes. Equal participating-player shares, explicit ceilings and no silent host subsidy are existing decisions.</p><p class="gate"><strong>Done when:</strong> One through four players, fractional thirds, exhausted balances, concurrent solo/room work, uncertain retries and duplicate refunds settle exactly once. Missing budget configuration disables dispatch.</p></article>
+<article class="pkg" id="pkg-AF"><div class="pkg-head"><h3>AF / Co-op interface, consent, split party and progression</h3><strong class="number">32 h · W29–31</strong></div><p class="pkg-meta">#1 · Astra/Fable + UI engineer + owner · Range 24–52 h · Dependencies: <a href="#pkg-AD">AD</a>, <a href="#pkg-AE">AE</a></p><p>Two-to-four-human seats, declarations/readiness, host/guest rights, mobile recovery, hot-seat hybrids, split-party behavior and agreed dice/progression scope. Campaign play requires each player’s choice authority, not host auto-picks.</p><p class="gate"><strong>Done when:</strong> Each committed turn matches actors’ consent; repeated commands are idempotent; interruption/rejoin cannot lose a draft or appropriate another PC. Keyboard and small-screen flows work.</p></article>
+<article class="pkg" id="pkg-AG"><div class="pkg-head"><h3>AG / Multiplayer pilot and failure-matrix acceptance</h3><strong class="number">32 h · W31–33</strong></div><p class="pkg-meta">#1, #202 · Owner + independent reviewer + two real groups · Range 24–52 h · Dependencies: <a href="#pkg-AB">AB</a>, <a href="#pkg-AC">AC</a>, <a href="#pkg-AD">AD</a>, <a href="#pkg-AE">AE</a>, <a href="#pkg-AF">AF</a></p><p>Run the research §12 gates: real-GM sessions, two four-person groups, long-session resource/cost soak, 100 reconnects, privacy canaries, crash/retry matrix and rollback. Test the declared capacity envelope; no market-validation claim.</p><p class="gate"><strong>Done when:</strong> All authority, privacy, parity, funding and recovery gates pass; participants choose to return under the agreed pilot criterion. A fixed-level technical demo alone cannot close campaign multiplayer.</p></article>
+<article class="pkg" id="pkg-AH"><div class="pkg-head"><h3>AH / Accept and document the existing ambience slice</h3><strong class="number">12 h · W33</strong></div><p class="pkg-meta">L1, L7 · Owner + audio engineer · Range 8–18 h · Dependencies: <a href="#pkg-S">S</a>, <a href="#pkg-AG">AG</a></p><p>Listen to the pending prepared loops/four accent sets; approve mixes; verify general ambience on phone/background and record provenance. Finish a bounded polish slice only.</p><p class="gate"><strong>Done when:</strong> Accepted loops/mixes and clean background behavior. L1/L7 remain open for bulk import, multiple continuous roles, weather/activity producers, cued effects and music; none is silently called complete.</p></article>
+<article class="pkg" id="pkg-AI"><div class="pkg-head"><h3>AI / Final active-backlog audit and release handoff</h3><strong class="number">12 h · W34</strong></div><p class="pkg-meta">L5, L6 · Owner + independent reviewer · Range 8–20 h · Dependencies: <a href="#pkg-X">X</a>, <a href="#pkg-Y">Y</a>, <a href="#pkg-Z">Z</a>, <a href="#pkg-AG">AG</a>, <a href="#pkg-AH">AH</a></p><p>Reconcile every active feature and known issue against evidence; update player/network instructions and technical handoff; repeat restore and cross-device smoke checks after the final candidate.</p><p class="gate"><strong>Done when:</strong> All 48 active Feature/Known issue rows close only on their individual acceptance. L5/L6 get a release-stage update; studio diligence, monetization and the full long-term audio program remain separately scoped.</p></article>
+</section>
+<section id="crosswalk"><p class="eyebrow">06 / Source-of-truth coverage</p><h2>Every numbered row has a disposition.</h2><p>48 active rows map to the schedule; #602 is complete. All 8 long-term goals and 6 trigger/watch rows are listed as well. The status excerpts below are a planning snapshot, not fresh acceptance results.</p><div class="filters"><label for="search">Find an issue</label><input id="search" type="search" placeholder="e.g. 599, identity, L7" aria-describedby="match-count"><span id="match-count" aria-live="polite"></span></div><div class="tw"><table id="coverage"><thead><tr><th>Row / section</th><th>Task &amp; snapshot</th><th>Scheduled disposition</th></tr></thead><tbody>
+<tr data-search="602 TODO viewer category row counts. Show the number of rows beside each category heading. Feature backlog"><td>602<br><small>Feature backlog</small></td><td>TODO viewer category row counts. Show the number of rows beside each category heading.<br><small>✅ Built 2026-10-04, viewer v0.8 / v1.1150. Counts use the category heading color and matching hover brightness (owner clarification). Counts all table body rows, including…</small></td><td>No active build<p class="fine">Already complete in TODO; zero new feature hours. Archive hygiene may be handled in the final reconciliation, not rebuilt.</p></td></tr>
+<tr data-search="1 Multiplayer — 2-4 player co-op, alternating turns, shared world state but per-player character. Split-party supported. Family car-trip activity. Feature backlog"><td>1<br><small>Feature backlog</small></td><td>Multiplayer — 2-4 player co-op, alternating turns, shared world state but per-player character. Split-party supported. Family car-trip activity.<br><small>○ HOT-SEAT MULTIPLAYER COMPLETE (user, 2026-07-20 — &quot;it works&quot;): phases P1–P5 shipped v1.351–v1.362 (PC toggle + playerCount(), the spotlight pointer, the sub-turn round queue,…</small></td><td><a href="#pkg-AA">AA / W21</a> · <a href="#pkg-AB">AB / W22–23</a> · <a href="#pkg-AC">AC / W24–25</a> · <a href="#pkg-AD">AD / W25–27</a> · <a href="#pkg-AE">AE / W27–29</a> · <a href="#pkg-AF">AF / W29–31</a> · <a href="#pkg-AG">AG / W31–33</a></td></tr>
+<tr data-search="19 bluetooth isn&#x27;t getting picked up in the car Feature backlog"><td>19<br><small>Feature backlog</small></td><td>bluetooth isn&#x27;t getting picked up in the car<br><small>◐ Car Mode verified by the owner 2026-09-23 on v1.974 on a Bluetooth HEADSET (&quot;Mic permission comes up immediately. Voice is great. Car mode is working well.&quot;); in the car, direct…</small></td><td><a href="#pkg-S">S / W14</a></td></tr>
+<tr data-search="202 Stable entity IDs — the pointer table that ends name-keyed NPC storage (split from #128; the deliberately-deferred long-term half). TLDR: display names are still the storage key for every NPC memory tier, which is WHY fragmentation (#128) had to be drained by a scanner instead of being impossible. Ratified target shape (owner design 2026-08-03): a pointer table — name keys become POINTERS to a stable numeric ID that owns the data (&quot;hemlock&quot;→12345, &quot;sheriff_hemlock&quot;→12345, 12345→{…}), so a merge… Feature backlog"><td>202<br><small>Feature backlog</small></td><td>Stable entity IDs — the pointer table that ends name-keyed NPC storage (split from #128; the deliberately-deferred long-term half). TLDR: display names are still the…<br><small>○ Open — deferred to the server-canonical schema moment by standing ruling; pulling it forward is an owner re-ruling</small></td><td><a href="#pkg-AC">AC / W24–25</a> · <a href="#pkg-AG">AG / W31–33</a></td></tr>
+<tr data-search="288 The subscription front end — accounts, the LLM gateway, and the sign-in-first boot (SERVER_ARCHITECTURE §3/§4/§5.2 build begins; owner rulings 2026-08-30: gateway first · in-app UX now, landing page later · GitHub+Google · manual entitlement before billing). TLDR: a player can now sign in instead of pasting an API key — GM turns route through the operator&#x27;s server, which meters usage and enforces the subscription; BYOK survives as the fold-out path and the explicit opt-out. Server (repo commits… Feature backlog"><td>288<br><small>Feature backlog</small></td><td>The subscription front end — accounts, the LLM gateway, and the sign-in-first boot (SERVER_ARCHITECTURE §3/§4/§5.2 build begins; owner rulings 2026-08-30: gateway first…<br><small>◐ OPEN — remaining: the STT transcription rider (§3.7) and the FAL_API_KEY Fly secret. Shipped so far: LIVE 2026-08-30 — client v1.753, server deployed, secrets set, owner…</small></td><td><a href="#pkg-T">T / W15</a></td></tr>
+<tr data-search="331 A GM with tastes — disposition dials rendered as one stable-half paragraph (review B9; owner: “will 100% happen, I want to sketch it out first”). TLDR: the prose voices are style, not disposition; three or four dials at campaign start (merciful ↔ ruthless; slow-burn ↔ pulp; grim ↔ wry) as a short loud directive — the kind the sweep showed holds. Prototype in the author-voice-lab pattern; the owner judges. Parked for the owner&#x27;s sketch — do not build unasked. Feature backlog"><td>331<br><small>Feature backlog</small></td><td>A GM with tastes — disposition dials rendered as one stable-half paragraph (review B9; owner: “will 100% happen, I want to sketch it out first”). TLDR: the prose voices…<br><small>○ Design doc drafted 2026-09-15 for the sketch: DOC/Proposal_331_gm_with_tastes.html — three dials (consequence · pace · register), five stops with a SILENT middle (all-middle =…</small></td><td><a href="#pkg-X">X / W18</a></td></tr>
+<tr data-search="397 Give Claude a quick lesson in laying out a painting (owner, 2026-09-10, the altar render: &quot;at least Silas is looking in the right general direction&quot;). TLDR: the prompt-writer&#x27;s staging brief has grown clause by clause (#209 eye-lines, body orientation, faces optional, staging geometry and view angles; #390 movement; #390b a described face is a shown face), and the hero now behaves — but the SECOND figure keeps going her own way (the gate: profile, three painters; the altar: Nyla crouched in… Feature backlog"><td>397<br><small>Feature backlog</small></td><td>Give Claude a quick lesson in laying out a painting (owner, 2026-09-10, the altar render: &quot;at least Silas is looking in the right general direction&quot;). TLDR: the…<br><small>◐ Profile wording removed v1.894 (owner request, 2026-09-11): deleted the profile alternative in the pose requirement and the full-profile view-angle example. Camera-facing…</small></td><td><a href="#pkg-Z">Z / W18–21</a><p class="fine">Conditional on reopening parked #400; Z budgets the minimum engine/lab prerequisite.</p></td></tr>
+<tr data-search="404 Voice pipeline structure and resources (Fable review 2026-09-11, Briefs B, C, E). TLDR: three follow-ups the review affirmed as real but not ride-along. ① Provider-name conditionals off the table: _voiceKey, _voiceCommit (the Gemini key routing — its OpenAI half left with #467 — and the {inworld,speechify} write), csVoiceControlHtml&#x27;s {speechify,piper} options map (a slot with any other provider throws), game.js&#x27;s providers.speechify writer and the ui-voice-settings Inworld hint each name a… Feature backlog"><td>404<br><small>Feature backlog</small></td><td>Voice pipeline structure and resources (Fable review 2026-09-11, Briefs B, C, E). TLDR: three follow-ups the review affirmed as real but not ride-along. ① Provider-name…<br><small>○ Filed 2026-09-11.</small></td><td><a href="#pkg-Q">Q / W13–14</a></td></tr>
+<tr data-search="410 A spoken pause and resume for Car Mode (owner ruling 2026-09-14, from the blacksmith-audio review). TLDR: ruling 1 on the audio proposal (&quot;stop silences everything&quot;) assumed a spoken stop that did not exist — the vocabulary was pick / repeat / wrap-up / recap / roll / never mind — and the owner rejected &quot;stop&quot; as too common a word. Built: parseCarCommand hears pause / GM pause and resume / unpause / GM resume / GM continue as whole utterances (bare &quot;continue&quot; stays an action); the pure… Feature backlog"><td>410<br><small>Feature backlog</small></td><td>A spoken pause and resume for Car Mode (owner ruling 2026-09-14, from the blacksmith-audio review). TLDR: ruling 1 on the audio proposal (&quot;stop silences everything&quot;)…<br><small>◉ Built v1.924. Needs a real car session: say &quot;pause&quot; with the mic open (status &quot;Paused — say resume, or tap&quot;, mic stays closed across a turn), &quot;resume&quot; reopens it, a tap releases…</small></td><td><a href="#pkg-S">S / W14</a></td></tr>
+<tr data-search="418 Extract the three-copy audio schedule-and-retire block in tts.js (audit F9, deferred 2026-09-17). TLDR: the server, cloud and Piper read loops each carry the same createBufferSource / onended / buffer = null / _sources splice block — the retention-critical code has three landing sites and the tests compensate by asserting on function source text. One scheduleDecoded(ctx,buf,…) helper; the _speakerTest.*Src pins move to the helper. Feature backlog"><td>418<br><small>Feature backlog</small></td><td>Extract the three-copy audio schedule-and-retire block in tts.js (audit F9, deferred 2026-09-17). TLDR: the server, cloud and Piper read loops each carry the same…<br><small>○ deferred by the owner 2026-09-17.</small></td><td><a href="#pkg-Q">Q / W13–14</a><p class="fine">Owner deferred this work; calendar assumes a deliberate reopening before its package.</p></td></tr>
+<tr data-search="419 stt.js builds a third AudioContext for VAD and never closes it (audit F4, deferred 2026-09-17). TLDR: sound.js, tts.js (pinned to 22,050 Hz) and stt.js each construct a context; the ambience slice reuses Sound.context(), stt.js does not, on the platform with the tightest budget (iOS Safari). Either reuse Sound.context() for the analyser or document why the mic analyser needs its own rate — device-only verification. Feature backlog"><td>419<br><small>Feature backlog</small></td><td>stt.js builds a third AudioContext for VAD and never closes it (audit F4, deferred 2026-09-17). TLDR: sound.js, tts.js (pinned to 22,050 Hz) and stt.js each construct a…<br><small>○ deferred by the owner 2026-09-17 (cannot be verified headless).</small></td><td><a href="#pkg-Q">Q / W13–14</a><p class="fine">Owner deferred this work; calendar assumes a deliberate reopening before its package.</p></td></tr>
+<tr data-search="420 Dedupe the &quot;never emit [MANA:] for a cast&quot; rule in the frozen STATE TAGS doc (audit A14, deferred 2026-09-17). TLDR: the SPELL_USED and MANA doc lines state the same rule with the same double-charge justification on adjacent lines of the cached stable half (~300 chars twice), with a third partial repeat on the cantrip line. A wording change to the stable prompt: its own A/B&#x27;d commit, golden re-baselined. Feature backlog"><td>420<br><small>Feature backlog</small></td><td>Dedupe the &quot;never emit [MANA:] for a cast&quot; rule in the frozen STATE TAGS doc (audit A14, deferred 2026-09-17). TLDR: the SPELL_USED and MANA doc lines state the same…<br><small>○ deferred by the owner 2026-09-17.</small></td><td><a href="#pkg-Y">Y / W18</a><p class="fine">Owner deferred this work; calendar assumes a deliberate reopening before its package.</p></td></tr>
+<tr data-search="434 A present resident&#x27;s personality never reaches the GM — village Nyla is &quot;practically a housewife&quot; (owner 2026-09-22: campaign Nyla is &quot;foulmouthed and nearly feral&quot;). TLDR: her sheet still carries who she is (trait &quot;speaks in hushed, guarded murmurs, constantly tracking nearby exits&quot;, flaw &quot;easily cowed by displays of overwhelming violence and divine authority&quot;, the gaunt bruised look, the motivation), but a present RESIDENT&#x27;s roster entry is one line — Nyla Lorrath (mood: busy sorting dried… Feature backlog"><td>434<br><small>Feature backlog</small></td><td>A present resident&#x27;s personality never reaches the GM — village Nyla is &quot;practically a housewife&quot; (owner 2026-09-22: campaign Nyla is &quot;foulmouthed and nearly feral&quot;).…<br><small>◉ v1.971 shipped the serving. What to do (owner, plain; written 2026-10-02 after &quot;explains why, not what&quot;): at t254 her sheet still says *hushed, guarded murmurs* and her Village…</small></td><td><a href="#pkg-P">P / W12–13</a></td></tr>
+<tr data-search="446 Content: give the Riverlight taster one clear mystery and a shorter path to its payoff (Astra review 2026-09-24, C1). TLDR: the default Quick Start adventure has three acts and eight arcs with competing accounts of what midnight accomplishes and whose guilt must be proved (Act Two says the forgery is meant to be found to frame a guest, Act Three returns to the false treaty being sealed; Devrin commissions, the Masked Forger scribes; the closing rule still says &quot;five arcs&quot;). Remedy (owner&#x27;s… Feature backlog"><td>446<br><small>Feature backlog</small></td><td>Content: give the Riverlight taster one clear mystery and a shorter path to its payoff (Astra review 2026-09-24, C1). TLDR: the default Quick Start adventure has three…<br><small>○ Filed 2026-09-24 (Astra review) — the owner&#x27;s content; not built unasked.</small></td><td><a href="#pkg-U">U / W15–16</a></td></tr>
+<tr data-search="447 Content: preview house rules that change how a chosen hero can play (Astra review 2026-09-24, C2). TLDR: The Coffered God makes every use of magic cost body, memory or years; The Iron Meridian makes a faction operative&#x27;s read of a forged tag automatic detection — and the Home cards and the Quick Start hero menu show neither, so a player picks a spellcaster or plans a forgery-led escape uninformed. Remedy: one short, spoiler-safe &quot;In this story&quot; note per blueprint with an exceptional rule… Feature backlog"><td>447<br><small>Feature backlog</small></td><td>Content: preview house rules that change how a chosen hero can play (Astra review 2026-09-24, C2). TLDR: The Coffered God makes every use of magic cost body, memory or…<br><small>○ Filed 2026-09-24 (Astra review) — the notes are the owner&#x27;s content; the card slot can be built once a note exists.</small></td><td><a href="#pkg-U">U / W15–16</a></td></tr>
+<tr data-search="451 A second account, for testing what one account cannot see (owner 2026-09-24). TLDR: several rows can only be verified live with two signed-in accounts — #423&#x27;s cross-account overwrite (import a friend&#x27;s .tnd on the second account, sync, confirm the sender&#x27;s row is untouched and the importer&#x27;s campaign lands under a new id), the operator console&#x27;s per-account actions (#292), the shared character/blueprint libraries, and every future multiplayer step (#1). What the owner does: a second GitHub… Feature backlog"><td>451<br><small>Feature backlog</small></td><td>A second account, for testing what one account cannot see (owner 2026-09-24). TLDR: several rows can only be verified live with two signed-in accounts — #423&#x27;s…<br><small>○ Filed 2026-09-24.</small></td><td><a href="#pkg-E">E / W4</a></td></tr>
+<tr data-search="464 Sub-locations never reach the GM&#x27;s memory TOC — memory.locations and memory.map.nodes are parallel stores synced by hand (audit C6, 2026-09-18, medium; left without a home by the #416 sweep). TLDR: only fileLocation writes both stores; fileSubLocation, fileLocationState, the wares world-node minter and PARTY_SPLIT write the map only, and memoryTOC iterates memory.locations, so a tavern the party has visited twenty times is absent from VISITED / KNOWN OF unless it arrived as a world node.… Feature backlog"><td>464<br><small>Feature backlog</small></td><td>Sub-locations never reach the GM&#x27;s memory TOC — memory.locations and memory.map.nodes are parallel stores synced by hand (audit C6, 2026-09-18, medium; left without a…<br><small>○</small></td><td><a href="#pkg-N">N / W12</a></td></tr>
+<tr data-search="465 Cap the nudge latch maps, node NPC lists and map edges — the C13 remainder the archives ruling did not cover (audit C13, 2026-09-18; #416 sweep). TLDR: the owner ruled 2026-09-17 that memory.archive.* stays uncapped, which closes most of C13. Still uncapped and outside that ruling: eight nudge latch maps (mergeHintNudged, pendingMergeHints, provisionalNudged, recurringNameNudged, canonContraNudged, deathEvidenceNudged, locDescNudged, relAxisReviewFired), plotArmor, relBondReceipts,… Feature backlog"><td>465<br><small>Feature backlog</small></td><td>Cap the nudge latch maps, node NPC lists and map edges — the C13 remainder the archives ruling did not cover (audit C13, 2026-09-18; #416 sweep). TLDR: the owner ruled…<br><small>○</small></td><td><a href="#pkg-O">O / W12</a></td></tr>
+<tr data-search="466 The cloud TTS rungs can never be fallback targets, and the mid-read handoff hardcodes Piper instead of walking the ladder (audit F10 second half, 2026-09-18, low; the pin half shipped in #416 lane F). TLDR: every cloud tier&#x27;s available() is true only while that tier is the selected primary (_geminiTtsOk reads only its own toggle, which Save sets only while Gemini is primary — the OpenAI coupling left with #467; the generic voice adapters answer &quot;Model is not selected&quot;), so a fall from any cloud… Feature backlog"><td>466<br><small>Feature backlog</small></td><td>The cloud TTS rungs can never be fallback targets, and the mid-read handoff hardcodes Piper instead of walking the ladder (audit F10 second half, 2026-09-18, low; the…<br><small>○ owner ruling owed: (a) document-only or (b) cross-cloud fallback</small></td><td><a href="#pkg-R">R / W14</a></td></tr>
+<tr data-search="474 Lane F device checks owed (split from #416, owner 2026-09-27). TLDR: the 2026-09-18 audit&#x27;s voice/audio lane (F1–F3, F5, F7, F8, F10 pin half, F11–F13, merged v1.951) shipped with five behaviours only a phone can prove; everything else in #416 is closed. Check on the device: ① say &quot;pause&quot; → tap × → ambience resumes with no reload; ② cancel mid mic-permission prompt → the mic never lights and ambience returns at once; ③ the iPhone confirm loop still sends through tap; ④ ambience returns after… Feature backlog"><td>474<br><small>Feature backlog</small></td><td>Lane F device checks owed (split from #416, owner 2026-09-27). TLDR: the 2026-09-18 audit&#x27;s voice/audio lane (F1–F3, F5, F7, F8, F10 pin half, F11–F13, merged v1.951)…<br><small>○</small></td><td><a href="#pkg-S">S / W14</a></td></tr>
+<tr data-search="552 A portable persona: a character keeps their personality between campaigns (owner 2026-10-02: &quot;I&#x27;m less concerned about getting Nyla back than I am developing a system to keep a personality between campaigns&quot;). TLDR: the library carries a sheet of DESCRIPTIONS (trait, flaw, motivation, look) and those travel; the REGISTER — how a character actually talks and acts — lives only in the source campaign&#x27;s memory.npcs record (attitude, events, the GM&#x27;s quoted lines) and never leaves it, so the next… Feature backlog"><td>552<br><small>Feature backlog</small></td><td>A portable persona: a character keeps their personality between campaigns (owner 2026-10-02: &quot;I&#x27;m less concerned about getting Nyla back than I am developing a system to…<br><small>◉ Built v1.1116 (2026-10-02, owner go: &quot;build #552&quot;). The sheet carries voiceLines[{text,turn,camp}] and manner (v10 defaults in ensureV10Arrays; voiceLines rides…</small></td><td><a href="#pkg-P">P / W12–13</a></td></tr>
+<tr data-search="599 The inventory becomes a list of rows — {name, qty, equipped} — and &quot;worn&quot; is renamed &quot;equipped&quot; everywhere (owner ruling 2026-10-03: &quot;we should have been handling inventory like this all along&quot;; third of three, the most important). TLDR: the pack is [&quot;Torch x3&quot;, &quot;Rope&quot;]; a count is a suffix on a string, so &quot;what left the pack&quot; is reconstructed after the fact by name-matching through five normalizers (_qtyParse, _invNorm, _invBase, itemPairKey, stashKey) and the ilHits/ilMiss/igHits pairing.… Feature backlog"><td>599<br><small>Feature backlog</small></td><td>The inventory becomes a list of rows — {name, qty, equipped} — and &quot;worn&quot; is renamed &quot;equipped&quot; everywhere (owner ruling 2026-10-03: &quot;we should have been handling…<br><small>○ Filed 2026-10-03. First of the three (owner: &quot;swap it&quot;, 2026-10-03): the whole Fable week from the 2026-10-08 reset — design record before code, saves exported before the…</small></td><td><a href="#pkg-A">A / W1</a> · <a href="#pkg-B">B / W1–3</a></td></tr>
+<tr data-search="504 Same-sex relatives under a bare title still merge: &quot;Queen Underbough&quot; lands on &quot;Wilhelmina Underbough&quot; when her record states no rank (the residue of #503; needs a ruling). TLDR: #503 keeps two names apart only when one contradicts the other. A mother and daughter, or a father and son, give no contradiction: the title is dropped, the surname matches the one relative on file, and the tags are filed on her. The same shape is right most of the time for one person (&quot;Sheriff Hemlock&quot; is &quot;Belor… Known issues"><td>504<br><small>Known issues</small></td><td>Same-sex relatives under a bare title still merge: &quot;Queen Underbough&quot; lands on &quot;Wilhelmina Underbough&quot; when her record states no rank (the residue of #503; needs a…<br><small>◐ Ruled 2026-10-01: (b), ask the GM. Built on a branch and held (2026-10-02). The build files the name provisionally and asks through the name-collision note. Two independent…</small></td><td><a href="#pkg-G">G / W5–6</a></td></tr>
+<tr data-search="517 The counter&#x27;s arithmetic: a sale bundled with a purchase gives the sold items away, and several coin and count shapes pay the wrong amount (Thursday review 2026-10-01). TLDR: marking two whistles to sell (6 sp) and a rope to buy (1 gp) charges 1 gp, the same as the rope alone, so the whistles go for nothing. Reviewers also found: a want paid once per matching pack row (&quot;Warded ring&quot;, &quot;Warded ring — taken from the crypt&quot;, &quot;Warded ring (cracked)&quot; each pay the 40 gp); [GOLD:-3 coppers] read as 3… Known issues"><td>517<br><small>Known issues</small></td><td>The counter&#x27;s arithmetic: a sale bundled with a purchase gives the sold items away, and several coin and count shapes pay the wrong amount (Thursday review 2026-10-01).…<br><small>◐ Rechecked 2026-10-03 on v1.1123 (4f46eb77): partially fixed; not archived. Mixed trade now nets 0 gp; plural coppers parse as cp and are visibly REFUSED without changing gold…</small></td><td><a href="#pkg-C">C / W3</a></td></tr>
+<tr data-search="518 Item moves with a count, and gifts at home, move the wrong number of units (Thursday review 2026-10-01; #481 A2, D1, D2). TLDR: [ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3] with one torch held gives Bram three. [COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3] with Bram holding none says &quot;Nothing moved&quot; but the hero keeps two. A gift at home of a potion held both in the pack and the chest takes one from each, destroying one with no warning. A hero who loots a Dagger in the… Known issues"><td>518<br><small>Known issues</small></td><td>Item moves with a count, and gifts at home, move the wrong number of units (Thursday review 2026-10-01; #481 A2, D1, D2). TLDR: [ITEM_LOST:Torch…<br><small>○ FAILED — Astra&#x27;s verification of 2026-10-03 (VERIFY_ASTRA), reproduced on a873e2e3 2026-10-04; back to not started. Same-name loot and an unrelated companion throw still pair…</small></td><td><a href="#pkg-C">C / W3</a></td></tr>
+<tr data-search="525 The Princess&#x27;s ending was written in the hero&#x27;s first person with game words (&quot;level one&quot;, &quot;nineteen levels&quot;, &quot;the narrator&quot;) and modern idiom (needs a ruling; Thursday read). TLDR: DENOUEMENT_SYS says &quot;no meta commentary&quot; but names no person and hands the model &quot;level N&quot;. The Long Walk&#x27;s ending was third person; The Princess&#x27;s read as the hero talking about his character sheet. The question: should the denouement prompt pin a person (third, or second like the game), and stop passing level… Known issues"><td>525<br><small>Known issues</small></td><td>The Princess&#x27;s ending was written in the hero&#x27;s first person with game words (&quot;level one&quot;, &quot;nineteen levels&quot;, &quot;the narrator&quot;) and modern idiom (needs a ruling; Thursday…<br><small>◐ Ruled twice on 2026-10-01; built on a branch and held (2026-10-02). The first ruling (&quot;second person, no game words&quot;) stood on a wrong reading: The Princess ran the Matt…</small></td><td><a href="#pkg-J">J / W8</a></td></tr>
+<tr data-search="527 Review leads: smaller defects the 2026-10-01 reviewers reproduced on a clean copy of master; each needs a hand check before it becomes its own row. TLDR: low-severity findings from the five-part review of the week&#x27;s commits, one line each, kept here so none is lost. (1) Now #529. (2) A sheeted NPC outside the presence gate loses the &quot;toward you&quot; attitude line (#460&#x27;s sheetTraitLeads reads absent NPCs too). (3) [SCENE_CAST:Silas, Gazz the smith] cannot bind &quot;Gazz Quickfuse&quot;, so a real speaker is… Known issues"><td>527<br><small>Known issues</small></td><td>Review leads: smaller defects the 2026-10-01 reviewers reproduced on a clean copy of master; each needs a hand check before it becomes its own row. TLDR: low-severity…<br><small>◐ 2026-10-07, v1.1161: lead (25) confirmed and fixed: the shared sheet/panel grouping now honors the existing racial: true grant flag, keeping unprefixed racial capabilities under…</small></td><td><a href="#pkg-D">D / W3–4</a> · <a href="#pkg-K">K / W8–9</a> · <a href="#pkg-L">L / W9–10</a> · <a href="#pkg-N">N / W12</a> · <a href="#pkg-P">P / W12–13</a></td></tr>
+<tr data-search="528 Proof gaps: behaviour the week&#x27;s commit messages state that no test pins (Thursday review 2026-10-01). TLDR: each line was found by a reviewer mutating the shipped code in memory and seeing the whole suite stay green. None is a false sabotage claim; all 91 tag_table.js battery clauses of the week are real. c51d052 (A4): every test writes inline tags, never a tag block; dropping e.world from the final fileSubLocation survives, and the 1,323-reply census has no script. 313b621 (B4): no test has a… Known issues"><td>528<br><small>Known issues</small></td><td>Proof gaps: behaviour the week&#x27;s commit messages state that no test pins (Thursday review 2026-10-01). TLDR: each line was found by a reviewer mutating the shipped code…<br><small>◐ 2026-10-07: portrait proof gaps closed; remaining gaps stay open. The real save-import, hero/companion library-adoption, character-preview and quick-start paths reject a crafted…</small></td><td><a href="#pkg-M">M / W11</a></td></tr>
+<tr data-search="530 The &quot;different person&quot; answer to a name-collision note never lands while scene refs are active (latent; found building #504). TLDR: when a new person shares a known person&#x27;s name, the engine files them provisionally and asks the GM: the same person, or another? &quot;The same&quot; works. &quot;Another&quot; is the tag [MERGE:npc|&lt;new name&gt;|&lt;provisional&gt;], which the note itself asks for. It is thrown away every time with a console line only, and the note asks again every five turns, for good. Mechanism:… Known issues"><td>530<br><small>Known issues</small></td><td>The &quot;different person&quot; answer to a name-collision note never lands while scene refs are active (latent; found building #504). TLDR: when a new person shares a known…<br><small>○ Filed. Reproduced on master. Verification 2026-10-02: No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without…</small></td><td><a href="#pkg-G">G / W5–6</a></td></tr>
+<tr data-search="531 A death that names a relative by title lands on the person who shares the surname (found building #504). TLDR: #504 is about &quot;Queen Underbough&quot; landing on the princess. For most tags that is a wrong mood. For a death tag it is a wrong death, and one tag is enough: [NPC_DEATH_REPORTED:Queen Underbough|fever|Elderwood] records &quot;Wilhelmina Underbough: dead AS REPORTED&quot;. Reproduced on master, three seams: (1) the reported death above. (2) A scene handle bound by title, [SCENE_REF:queen|Queen… Known issues"><td>531<br><small>Known issues</small></td><td>A death that names a relative by title lands on the person who shares the surname (found building #504). TLDR: #504 is about &quot;Queen Underbough&quot; landing on the princess.…<br><small>○ Filed. Reproduced on master (three probes through the real engine). Verification 2026-10-02: No independent acceptance run for this row; current tracker does not claim a landed…</small></td><td><a href="#pkg-G">G / W5–6</a></td></tr>
+<tr data-search="532 A merge drops the voice a character was pinned with (found building #504). TLDR: a character without a sheet gets a voice on their first spoken line, pinned on their roster row. When that row is merged into a record that has no voice yet, the pin is not carried, so the same person speaks in another voice afterwards (&quot;the hooded man&quot; spoke; the GM confirms he is Aldern Foxglove; Aldern&#x27;s next line is in a new voice). Mechanism: the NPC_MERGE fold (tag_table.js) carries status, relation,… Known issues"><td>532<br><small>Known issues</small></td><td>A merge drops the voice a character was pinned with (found building #504). TLDR: a character without a sheet gets a voice on their first spoken line, pinned on their…<br><small>◐ Built, not pushed. On branch claude/532-538-voice-hero (v1.1112, reworked v1.1115 after an independent review; a better build than 9df0d386). Full suite and battery green. A…</small></td><td><a href="#pkg-F">F / W4–5</a></td></tr>
+<tr data-search="534 The name-collision answer path needs a redesign before #504 can ship (two independent reviews, 2026-10-02). TLDR: #504 was built, then reviewed twice. The first review found three regressions and a live crash; the fixes for those were reviewed again and had introduced new ways for a newcomer&#x27;s data to land on an established person. The cause is not one bug: identity is inferred from the shape of a name at several places (the [NPC:] handler, the merge gate, the merge handler, the resolver every… Known issues"><td>534<br><small>Known issues</small></td><td>The name-collision answer path needs a redesign before #504 can ship (two independent reviews, 2026-10-02). TLDR: #504 was built, then reviewed twice. The first review…<br><small>○ Filed. The first build is on branch claude/504-titled-relative. Verification 2026-10-02: No independent acceptance run for this row; current tracker does not claim a landed…</small></td><td><a href="#pkg-G">G / W5–6</a></td></tr>
+<tr data-search="536 A tag whose operand is one of JavaScript&#x27;s built-in object keys crashes handlers, and __proto__ poisons every record for the session (found by the #504 review; the wider class behind #533). TLDR: the engine files people, places and items in plain objects keyed by what the GM writes. A name that is exactly constructor, __proto__, toString and the like reads or writes the object machinery instead of a record. Worst case, one tag: [NPC:__proto__|dead|enemy] sets a death stamp that every NPC then… Known issues"><td>536<br><small>Known issues</small></td><td>A tag whose operand is one of JavaScript&#x27;s built-in object keys crashes handlers, and __proto__ poisons every record for the session (found by the #504 review; the wider…<br><small>◐ First build held (2026-10-02). It filtered the reply&#x27;s text (branch claude/536-reserved-words); an independent review showed that is the wrong layer. Record:…</small></td><td><a href="#pkg-I">I / W7</a></td></tr>
+<tr data-search="538 Three tags file the hero as an NPC (found by the #504 review). TLDR: [NPC:&lt;hero&gt;|…] is refused (&quot;player identity belongs to the character sheet&quot;), and so is a reported death. But [NPC_NOTE:&lt;hero&gt;|…] makes a memory record under the hero&#x27;s name, [NPC_PRONOUN:&lt;hero&gt;|she/her] makes a roster row and a memory record, and without scene refs [NPC_MERGE:&lt;hero&gt;|Bram] folds Bram into a roster row named like the hero. A hero filed as an NPC shows up in the roster the GM reads and can be resolved to by… Known issues"><td>538<br><small>Known issues</small></td><td>Three tags file the hero as an NPC (found by the #504 review). TLDR: [NPC:&lt;hero&gt;|…] is refused (&quot;player identity belongs to the character sheet&quot;), and so is a reported…<br><small>◐ Built, not pushed. On branch claude/532-538-voice-hero (v1.1114, reworked v1.1116 after an independent review; the rework changes the name resolver). Full suite and battery…</small></td><td><a href="#pkg-F">F / W4–5</a></td></tr>
+<tr data-search="539 A character&#x27;s delivery direction and speed are lost when their sheet is made or regenerated (found building #532). TLDR: a direction or a speed set on a character&#x27;s card sits on the roster row while they have no sheet. When the sheet is made, the setting stays behind on the row, where nothing reads it. Regenerating a sheet drops the earlier sheet&#x27;s settings the same way. Six sheets in your saves carry such a setting. Mechanism: inheritVoicePins (game.js) walks the voice slot table only; the… Known issues"><td>539<br><small>Known issues</small></td><td>A character&#x27;s delivery direction and speed are lost when their sheet is made or regenerated (found building #532). TLDR: a direction or a speed set on a character&#x27;s card…<br><small>◐ Built, not pushed. On branch claude/532-538-voice-hero (v1.1113); it lands with #532. Verification 2026-10-02: Held/unfinished branch work per current tracker; this pass…</small></td><td><a href="#pkg-F">F / W4–5</a></td></tr>
+<tr data-search="540 The reserved words of #536 also arrive without a tag: through the summary&#x27;s extraction and through a blueprint (found building #536). TLDR: an NPC update named __proto__ in the summary&#x27;s extraction writes its fields on Object.prototype. A blueprint whose starting place is constructor breaks the prompt from the first turn. A first build is held with #536 on the same branch; the review found a name written as a one-element list passes its check, and that the My Library path never validates a… Known issues"><td>540<br><small>Known issues</small></td><td>The reserved words of #536 also arrive without a tag: through the summary&#x27;s extraction and through a blueprint (found building #536). TLDR: an NPC update named __proto__…<br><small>◐ First build held with #536. Covered by the redesign, #545. Verification 2026-10-02: Held/unfinished branch work per current tracker; this pass verifies the shared checkout, not…</small></td><td><a href="#pkg-I">I / W7</a></td></tr>
+<tr data-search="541 A hero or a library character can be named a reserved word (found building #540). TLDR: the creation wizard, the character editor and the character library accept a name such as &quot;constructor&quot;. Probed: nothing breaks at the start. Whether anything breaks later depends on #545; this row closes with it. Known issues"><td>541<br><small>Known issues</small></td><td>A hero or a library character can be named a reserved word (found building #540). TLDR: the creation wizard, the character editor and the character library accept a name…<br><small>○ Filed. Probed through the real engine. Verification 2026-10-02: No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained…</small></td><td><a href="#pkg-I">I / W7</a></td></tr>
+<tr data-search="542 The hero&#x27;s epithets: the remaining ways an epithet and an NPC&#x27;s name can meet (from the independent review of #538). TLDR: #538 stops a tag from giving the hero an NPC&#x27;s name, or an NPC the hero&#x27;s. The review found smaller ways the two can still meet. None is live: no hero in your 48 save files holds any epithet. (1) An epithet can arrive without a tag: a library copy of a hero carries its epithets, and a hero swap turns the companion&#x27;s titles into the hero&#x27;s. If one equals an NPC&#x27;s name, that… Known issues"><td>542<br><small>Known issues</small></td><td>The hero&#x27;s epithets: the remaining ways an epithet and an NPC&#x27;s name can meet (from the independent review of #538). TLDR: #538 stops a tag from giving the hero an NPC&#x27;s…<br><small>○ Filed. Each case reproduced through the real engine. Build it after #538 lands. Verification 2026-10-02: No independent acceptance run for this row; current tracker does not…</small></td><td><a href="#pkg-H">H / W6</a></td></tr>
+<tr data-search="543 Replace from library, the Village&#x27;s refresh and a fallen companion&#x27;s rejoin drop the voice settings (from the independent review of #532). TLDR: three places swap in a whole sheet with no voice handoff. Probed: after the Village&#x27;s refresh a resident&#x27;s sheet held no voice setting at all; after &quot;Replace from library&quot; a companion lost her Speechify actor, direction and speed, and the hero&#x27;s voices were assigned again. A fallen companion who rejoins loses what was set on his card while he was down.… Known issues"><td>543<br><small>Known issues</small></td><td>Replace from library, the Village&#x27;s refresh and a fallen companion&#x27;s rejoin drop the voice settings (from the independent review of #532). TLDR: three places swap in a…<br><small>◉ Built 2026-10-02 by Opus 5.5 on the owner&#x27;s instruction (v1.1112). Both adopters keep a voice field the copy lacks through voicePinsFill (helpers.js), before the hero&#x27;s cast. A…</small></td><td><a href="#pkg-F">F / W4–5</a></td></tr>
+<tr data-search="544 After a reveal one person can keep two names (from the independent review of #532). TLDR: (1) The GM may write a reveal as an alias, [NPC_ALIAS:Aldern Foxglove|the hooded man], while &quot;the hooded man&quot; already has a record. The summary says the alias landed, but nothing is folded: both records stay, the old name still resolves to its own record, and the two keep two voices. (2) A merge hands a companion&#x27;s sheet to the survivor without renaming it, so the roster says &quot;Aldern Foxglove&quot; and the… Known issues"><td>544<br><small>Known issues</small></td><td>After a reveal one person can keep two names (from the independent review of #532). TLDR: (1) The GM may write a reveal as an alias, [NPC_ALIAS:Aldern Foxglove|the…<br><small>○ Filed. Reproduced through the real engine. Verification 2026-10-02: No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained…</small></td><td><a href="#pkg-G">G / W5–6</a></td></tr>
+<tr data-search="545 Redesign: make the name-keyed stores immune to JavaScript&#x27;s built-in object keys (covers #536, #540, #541). TLDR: the first build filtered the reply&#x27;s text and was held. Each handler reads a reply its own way, so a text filter either misses a shape or refuses ordinary prose. The fix belongs in the stores. Direction (from the review; not built): (1) a name-keyed store has no prototype, at creation and again where a save is inflated, so constructor and __proto__ are ordinary keys and a person may… Known issues"><td>545<br><small>Known issues</small></td><td>Redesign: make the name-keyed stores immune to JavaScript&#x27;s built-in object keys (covers #536, #540, #541). TLDR: the first build filtered the reply&#x27;s text and was held.…<br><small>○ Filed. No urgency. Verification 2026-10-02: No independent acceptance run for this row; current tracker does not claim a landed complete fix. Retained without guessing.…</small></td><td><a href="#pkg-I">I / W7</a></td></tr>
+<tr data-search="577 Audit #481 D4 — A met &quot;wanted&quot; offer is never retired — the counter pays full price again and again (medium, drift hole · ruled; split out of the #481 umbrella 2026-10-02 at the owner&#x27;s ask). TLDR: After a keeper buys the thing they wanted, the GM is still told they want it, and the counter keeps paying full price for every further copy. Fix A sale of a wanted item in that shop retires the row, whether through the counter or a GM-closed sale. Wants expire on the clock, like wares. Ruled… Known issues"><td>577<br><small>Known issues</small></td><td>Audit #481 D4 — A met &quot;wanted&quot; offer is never retired — the counter pays full price again and again (medium, drift hole · ruled; split out of the #481 umbrella…<br><small>◉ Built 2026-10-04 (v1.1146; Opus 5.5 on the owner&#x27;s go, queued for a Fable skim — todo_checkWithFable.md entry 37). One allowance per wanted offer governs the whole trade: the…</small></td><td><a href="#pkg-C">C / W3</a></td></tr>
+<tr data-search="578 Audit #481 D5 — Prices in silver or copper are invisible to the economy, and [GOLD:] ignores its unit (medium, wrong outcome; split out of the #481 umbrella 2026-10-02 at the owner&#x27;s ask). TLDR: Village goods priced in silver or copper can&#x27;t be bought or sold at the counter, &quot;1 gp per 20&quot; reads as 1 gp each, and a [GOLD:-25 cp] would charge 25 gold. Fix One parseCoin(str) that understands gp/sp/cp and &quot;per N&quot; / &quot;each&quot;, used by itemValueGp , the GOLD handler, price pinning, the price-band… Known issues"><td>578<br><small>Known issues</small></td><td>Audit #481 D5 — Prices in silver or copper are invisible to the economy, and [GOLD:] ignores its unit (medium, wrong outcome; split out of the #481 umbrella 2026-10-02…<br><small>◐ Review 2026-10-04 (Opus 5.5) of Astra&#x27;s PARTIAL (VERIFY_ASTRA): copper accounting and the one coin parser pass (plural coppers, mixed sale and buy, bundle and compound forms —…</small></td><td><a href="#pkg-C">C / W3</a></td></tr>
+<tr data-search="581 Audit #481 D9 — A library refresh duplicates items you stashed in the village (medium, latent · ruled; split out of the #481 umbrella 2026-10-02 at the owner&#x27;s ask). TLDR: Put something in your house chest; the next time the village refreshes your hero from a newer library copy, the item is back in your pack and still in the chest. Fix Ruled 2026-09-29: re-apply this village&#x27;s stash moves made since heroLibraryAt to the refreshed sheet. Evidence A HEAD repro: after a placement,… Known issues"><td>581<br><small>Known issues</small></td><td>Audit #481 D9 — A library refresh duplicates items you stashed in the village (medium, latent · ruled; split out of the #481 umbrella 2026-10-02 at the owner&#x27;s ask).…<br><small>○ FAILED — Astra&#x27;s verification of 2026-10-03 (VERIFY_ASTRA), reproduced on a873e2e3 2026-10-04; back to not started. A library refresh after a campaign rekey replays a stash…</small></td><td><a href="#pkg-D">D / W3–4</a></td></tr>
+<tr data-search="589 Audit #481 F5 — The server and the client build library slugs differently (medium, silent overwrite; split out of the #481 umbrella 2026-10-02 at the owner&#x27;s ask). TLDR: Names that begin and end with an accent or a bracket are never found by &quot;Replace / Update from library&quot;, and exporting them overwrites the library copy without the usual confirm. Fix One slug function shared by both ends, vendored like blueprint-edition.cjs . On the server, add the g flag plus a collision-aware migration of… Known issues"><td>589<br><small>Known issues</small></td><td>Audit #481 F5 — The server and the client build library slugs differently (medium, silent overwrite; split out of the #481 umbrella 2026-10-02 at the owner&#x27;s ask). TLDR:…<br><small>◉ both halves shipped, owner check pending — v1.1075: library-slug.js is the ONE slug (both edge underscores trimmed; the blueprint id keeps the designer&#x27;s 120-character cut); the…</small></td><td><a href="#pkg-E">E / W4</a></td></tr>
+<tr data-search="591 Discarding or consuming a wanted item retires the keeper&#x27;s offer without a sale (graduated from #527 lead 26). The retirement follows ITEM_LOST in a shop without requiring a paid sale. Synthetic Village, Silas, t5: throw away Carved whistle with a 3 gp want; gold changes by 0, wanted becomes empty, receipt says Want met. A later real sale loses its offer. Remedy belongs to the trade transaction, with a no-sale negative test. Known issues"><td>591<br><small>Known issues</small></td><td>Discarding or consuming a wanted item retires the keeper&#x27;s offer without a sale (graduated from #527 lead 26). The retirement follows ITEM_LOST in a shop without…<br><small>○ FAILED — Astra&#x27;s verification of 2026-10-03 (VERIFY_ASTRA), reproduced on a873e2e3 2026-10-04; back to not started. Unrelated coin in the same reply still turns a discard into a…</small></td><td><a href="#pkg-C">C / W3</a></td></tr>
+<tr data-search="593 A [NPC:] tag can downgrade a Village resident&#x27;s relation (open note on #6 since v1.915, split out 2026-10-03). TLDR: residents are library characters who live here as allies; a GM reply that writes [NPC:Nyla|wary|hostile] in a moment of friction rewrites the stored relation like any NPC&#x27;s, and the Village has no rule that a resident&#x27;s standing with the player moves only through play that earns it. Where: the NPC handler in tag_table.js (the relation-only form [NPC:Name||rel] and the full form);… Known issues"><td>593<br><small>Known issues</small></td><td>A [NPC:] tag can downgrade a Village resident&#x27;s relation (open note on #6 since v1.915, split out 2026-10-03). TLDR: residents are library characters who live here as…<br><small>○ Filed from the #6 open notes; not reproduced in play yet — the owner reports the Village working by and large (2026-10-03).</small></td><td><a href="#pkg-L">L / W9–10</a></td></tr>
+<tr data-search="595 Play check — the eight-resident Car Mode full-room listening test (from the #6 live checklist, split out 2026-10-03). TLDR: with eight residents in the library, sit in one room of the Village in Car Mode and listen: residents present in the node speak in their own voices, the ELSEWHERE rule keeps the absent ones silent (#554), the exchange between two present residents reads as two people, and nothing is spoken twice. Record §E and §I: RECORD_6_village_design.md. Known issues"><td>595<br><small>Known issues</small></td><td>Play check — the eight-resident Car Mode full-room listening test (from the #6 live checklist, split out 2026-10-03). TLDR: with eight residents in the library, sit in…<br><small>○ Owed since v1.913; never run with a full room.</small></td><td><a href="#pkg-S">S / W14</a></td></tr>
+<tr data-search="596 Play check — the return greeting after a real absence (from the #6 live checklist, split out 2026-10-03). TLDR: leave the Village for a real stretch (another campaign, days of the clock), come back as the same hero, and read the first turn: one greeting, one fact from the hero&#x27;s own record, one engine-chosen change in the village, said once and not again on the next turn or the next reload. Mechanism: villageReturnObserve + buildReturnNote (v1.914, record §C). Known issues"><td>596<br><small>Known issues</small></td><td>Play check — the return greeting after a real absence (from the #6 live checklist, split out 2026-10-03). TLDR: leave the Village for a real stretch (another campaign,…<br><small>○ Owed since v1.914; the owner&#x27;s returns so far have been short.</small></td><td><a href="#pkg-S">S / W14</a></td></tr>
+<tr data-search="L1 Real audio — recorded ambience, not synthesis (the ASSETS). Tavern room tone, wind through the peaks, waves against a dock, a murder of crows. This is the *atmosphere* content half; the system that houses and plays it — plus the action-sound earcons — is L7 (Audio Library). The synthesized earcons that shipped as a placeholder sell UI feedback fine but will never sell atmosphere; recorded audio is what fills that gap. Long term goals"><td>L1<br><small>Long term goals</small></td><td>Real audio — recorded ambience, not synthesis (the ASSETS). Tavern room tone, wind through the peaks, waves against a dock, a murder of crows. This is the *atmosphere*…<br><small>◐ Owner approved the prepared forge fire and clean looping (v1, Unity-derived). v1.932 (2026-09-15): the forge fire is now CC0 — smithy-fire-v2.mp3 cut from Nox_Sound&#x27;s free…</small></td><td><a href="#pkg-AH">AH / W33</a><p class="fine">AH accepts the existing asset slice only. Remaining sourcing/production stays long term; no invented full-catalog endpoint.</p></td></tr>
+<tr data-search="L2 COMMERCIAL blueprint catalog — premium campaign packs as a subscription perk or one-off purchases: entitlement checks, purchase flow, paid-tier gating. Only the commercial half lives here (split 2026-07-18, user call): the *alpha starter set* went BACK to the backlog as #44①, because testers need content to choose from long before anyone needs a checkout. Long term goals"><td>L2<br><small>Long term goals</small></td><td>COMMERCIAL blueprint catalog — premium campaign packs as a subscription perk or one-off purchases: entitlement checks, purchase flow, paid-tier gating. Only the…<br><small>The business model (L3) — it defines what an entitlement even is</small></td><td>No active build<p class="fine">Commercial catalog / payments excluded from the invitation beta and active-feature clearance; follows L3 business decisions.</p></td></tr>
+<tr data-search="L3 The commercial shape itself — subscription vs one-off vs sale. Long term goals"><td>L3<br><small>Long term goals</small></td><td>The commercial shape itself — subscription vs one-off vs sale.<br><small>A decision</small></td><td>No active build<p class="fine">Product/pricing decision remains open. The proposed beta uses existing manual entitlement; AA resolves only the room-funding decisions required by #1.</p></td></tr>
+<tr data-search="L4 Make it sellable to a studio — the diligence surface, not a feature. Long term goals"><td>L4<br><small>Long term goals</small></td><td>Make it sellable to a studio — the diligence surface, not a feature.<br><small>Nothing — this is hygiene, done continuously</small></td><td>No active build<p class="fine">Ongoing diligence, not a finishable feature. Reviews, provenance and release receipts contribute continuously.</p></td></tr>
+<tr data-search="L5 Game document — TECHNICAL. The design/architecture document: how the anti-drift stack actually works (tag table, memory tiers, prompt construction + the stable/volatile cache split, RAG, blueprint/skeleton lifecycle), the schemas, and above all the WHY behind each decision. Audience: a developer inheriting the codebase, or a studio&#x27;s technical due diligence (feeds L4). Glossary (DOC_technical_terms.html, #24) is its appendix. Long term goals"><td>L5<br><small>Long term goals</small></td><td>Game document — TECHNICAL. The design/architecture document: how the anti-drift stack actually works (tag table, memory tiers, prompt construction + the stable/volatile…<br><small>The ARCHITECTURE settling — a lower bar than the feature set, so this one is writable earlier than L6</small></td><td><a href="#pkg-AI">AI / W34</a><p class="fine">AI updates the technical handoff after the canonical/network architecture lands; a full studio diligence document is separate scope.</p></td></tr>
+<tr data-search="L6 Game document — PLAYER. The manual a player reads: character creation, what a turn is, suggested actions, the sheet and party panel, quests and companions, voice/Car Mode, hot-seat multiplayer. Plain language throughout — the state tags and memory machinery must stay invisible here; this explains the GAME, never the engine. Long term goals"><td>L6<br><small>Long term goals</small></td><td>Game document — PLAYER. The manual a player reads: character creation, what a turn is, suggested actions, the sheet and party panel, quests and companions, voice/Car…<br><small>Staged, NOT one end-of-development drop (user call 2026-07-18) — see the two stages opposite</small></td><td><a href="#pkg-V">V / W16–17</a> · <a href="#pkg-AI">AI / W34</a><p class="fine">V delivers a beta player guide; AI updates it for remote play. Future release editions remain staged work.</p></td></tr>
+<tr data-search="L8 The agentic GM exploration — is the single-round-trip box too small? (owner musing 2026-08-22, filed at their request). The question: instead of rebuilding the prompt every turn, should the GM be a semi-persistent AGENT with a personality, handed TOOLS (bibles, blueprints, clock, character sheets) it calls itself? The reframe from the discussion that filed this: we already built that agent — the tags ARE its tool interface ([TIME_ADVANCE:] = advance_clock(), applyMuts = the tool executor); ours… Long term goals"><td>L8<br><small>Long term goals</small></td><td>The agentic GM exploration — is the single-round-trip box too small? (owner musing 2026-08-22, filed at their request). The question: instead of rebuilding the prompt…<br><small>Anchored to the server-side subscription moment (the deferred BYOK-elimination design conversation — same revisit point as #202 stable IDs): server-side GM calls are where an…</small></td><td>No active build<p class="fine">Exploration, not implementation intent. Revisit with server-side design; no agentic GM rewrite included.</p></td></tr>
+<tr data-search="L7 Audio Library — design and implement (the SYSTEM). A real audio system for the game: the infrastructure to house, manage, and play sound, plus the produced assets that fill it. Absorbs the two audio backlog items moved here 2026-07-20 — action sounds / earcons (old #7) and ambient environment sound (old #13). ⚙ A synthesized placeholder (sound.js) is live for UI feedback; the owner&#x27;s verdict on synthesis — *&quot;a little 8bit, not really the feel we&#x27;re going for&quot;* — sends the destination to real… Long term goals"><td>L7<br><small>Long term goals</small></td><td>Audio Library — design and implement (the SYSTEM). A real audio system for the game: the infrastructure to house, manage, and play sound, plus the produced assets that…<br><small>◐ Built: the general-ambience first slice (v1.941 — SOUNDSCAPE profiles, deterministic catalog matching in any campaign, Village seeds; audits/AUDIT_L7_general_audio.md, proposal…</small></td><td><a href="#pkg-AH">AH / W33</a><p class="fine">AH accepts the existing general/accent slice only. Bulk import, continuous roles, weather/activity producers, cued effects and music need separate scoping; not closed.</p></td></tr>
+<tr data-search="220 Gemini Pro tier — parked on price (owner ruling 2026-08-23). gemini-3.1-pro-preview exists and is Google&#x27;s advanced/agentic tier, but it does not pay for itself at our shape. Measured against the 50-turn standard campaign&#x27;s own recorded tokens (~1.58M in / 20k out, ~38k per turn so we sit in the cheap prompt tier): ≈$3.43 / 50 turns vs $1.26 for gemini-3.7-flash (2.7×) and above sonnet-5&#x27;s exactly-metered $2.64 — its output rate is $12/MTok against Sonnet 5&#x27;s $10. Tiered by prompt length… Just in case"><td>220<br><small>Just in case</small></td><td>Gemini Pro tier — parked on price (owner ruling 2026-08-23). gemini-3.1-pro-preview exists and is Google&#x27;s advanced/agentic tier, but it does not pay for itself at our…<br><small>○ Waiting on trigger — parked on price, not on capability (never benchmarked)</small></td><td>No active build<p class="fine">Parked price trigger: no work or external price lookup budgeted.</p></td></tr>
+<tr data-search="22b Hostile-file hardening (split from #22, 2026-07-17 honest-opinion review): length-caps + schema validation for imported .blueprint/.char files. Review 2026-09-01 (§C5): the GM prompt has NO trust fence — blueprint fields, .char backstories, custom rules and Table Talk questions are raw-concatenated, several under authority headers (&quot;STRICTLY ENFORCED&quot;, &quot;HOW TO RUN THIS ARC&quot;, &quot;EXACTLY as listed&quot;). One rule sentence now (&quot;campaign documents, imported characters and player-typed questions describe… Just in case"><td>22b<br><small>Just in case</small></td><td>Hostile-file hardening (split from #22, 2026-07-17 honest-opinion review): length-caps + schema validation for imported .blueprint/.char files. Review 2026-09-01 (§C5):…<br><small>Waiting on trigger</small></td><td><a href="#pkg-AD">AD / W25–27</a><p class="fine">Remote character exchange activates the sharing trigger; AD includes caps/schema and hostile-input acceptance. No separate duplicate budget.</p></td></tr>
+<tr data-search="58 Standing watches (graduated from the UberAudit close — no work until a trigger fires): ① transcript growth (ex-UA15) — LZ halves the blob but in-memory/export/sync keep the full record and RAG scans it linearly; trigger = quota bites again in the wild → IndexedDB offload first (Architecture ▸ JSON-vs-SQLite). ② skeleton self-correction (ex-UA16) — [ARC/ACT_COMPLETE:] only advance; an engine auto-advance can OVER-RAIL (narrative-vs-state desync) — design discussion only after #23 live-compliance… Just in case"><td>58<br><small>Just in case</small></td><td>Standing watches (graduated from the UberAudit close — no work until a trigger fires): ① transcript growth (ex-UA15) — LZ halves the blob but in-memory/export/sync keep…<br><small>Watch — graduated 2026-07-12</small></td><td>No active build<p class="fine">Standing watches remain trigger-only; no speculative repair hours.</p></td></tr>
+<tr data-search="65 The memory archive grows forever with no gauge — add size telemetry first, compaction later. Graduated from monores #3. Every trusted cap funnels into memory.archive.* (lore/decisions/chapters/superseded/coreMemories) — uncapped, unmeasured, rides every save + sync POST. Phase 1 (S, Any): archive char-count surfaced in the Usage modal / mem status line. Phase 2 (M, ⛨ Fable — storage boundary): compaction story (LZ-at-rest like the transcript, and/or export-and-trim), only if telemetry shows… Just in case"><td>65<br><small>Just in case</small></td><td>The memory archive grows forever with no gauge — add size telemetry first, compaction later. Graduated from monores #3. Every trusted cap funnels into memory.archive.*…<br><small>◐ Telemetry expanded v1.721 (2026-08-28, joint review Sol P2-03): the #17 Drift health modal now reports UTF-8 JSON bytes + counts for transcript, live quests, roster, NPC memory,…</small></td><td>No active build<p class="fine">Telemetry already exists. Compaction stays deferred until field numbers justify it; #465 does not override the archive ruling.</p></td></tr>
+<tr data-search="72b An unmerged #72 local-server commit is parked on an archive tag — decide its fate when #72 server work resumes. TLDR: commit 6ba16f5 (tag archive/72-test-mode-latch, local + origin — the branch claude/wizardly-mayer-df87c6 was retired into it in the 2026-10-04 clutter pass) is genuinely absent from master, but its server half is already deployed; the tag is pushed and gc-safe, so nothing rots while parked. Options: cherry-pick, keep parked, or abandon. It was deliberately spared in the… Just in case"><td>72b<br><small>Just in case</small></td><td>An unmerged #72 local-server commit is parked on an archive tag — decide its fate when #72 server work resumes. TLDR: commit 6ba16f5 (tag archive/72-test-mode-latch,…<br><small>Parked — gc-safe, waiting on trigger</small></td><td>No active build<p class="fine">Archived local-server work stays parked unless #72 work resumes; not a multiplayer dependency by default.</p></td></tr>
+<tr data-search="276 Joint-review WATCHES &amp; RECORDS (no build). ① Thread-vs-row granularity (f9): the wall polices quest rows, not retitled THREADS — deliberately gated on the first armed campaign’s wall data, now countable via the #256 by field; revisit when a campaign closes with wall activity. ② Fast-arc zero-runway is DELIBERATE (owner ruling 2026-08-28, f4/f10) — short arc, short leash; the sweep itself is loud. ③ #262 residue: the accept-then-heal double-pay window (claim accepted BEFORE the GM’s settling… Just in case"><td>276<br><small>Just in case</small></td><td>Joint-review WATCHES &amp; RECORDS (no build). ① Thread-vs-row granularity (f9): the wall polices quest rows, not retitled THREADS — deliberately gated on the first armed…<br><small>○ Recorded 2026-08-28; ⑥⑦ added 2026-08-29 (#282).</small></td><td>No active build<p class="fine">Watch records and standing rulings remain in force. No build without their field trigger.</p></td></tr>
+</tbody></table></div></section>
+<section id="gates"><p class="eyebrow">07 / Decisions and release controls</p><h2>Dates depend on evidence, not just elapsed weeks.</h2><div class="tw"><table><thead><tr><th>When</th><th>Owner / external input</th><th>If unavailable</th></tr></thead><tbody>
+<tr><td>W1 baseline</td><td>Confirm the invitation-beta split, 22-hour total budget, planned absences and #599 design. Book an independent Astra/Fable reviewer; start the Village absence scenario.</td><td>Keep planning assumptions visible; do not count unapproved scope as complete.</td></tr>
+<tr><td>Before E</td><td>Second non-admin account, separate profile and live deployment access.</td><td>Local tests do not close #451/#589. Use the scheduled reserve or move the dependent gates.</td></tr>
+<tr><td>Before L / Q / R</td><td>#593 relation ruling; any #527 capability ruling; reopen #418/#419; choose #466 fallback policy.</td><td>Work on independent proof gaps/content. Unresolved rows stay open and move the beta gate if required.</td></tr>
+<tr><td>Before S / U</td><td>Actual iPhone/car/CarPlay route, owner listening time, eight residents, real absence, Riverlight text and house-rule notes, fresh tester.</td><td>No headless substitute for hardware or owner acceptance. A persistent CarPlay failure remains open; documenting Bluetooth can support a narrower beta only by explicit scope exception.</td></tr>
+<tr><td>W17 release candidate</td><td>Independent review, deployed version checks, fresh account sessions, accepted release checklist and backup/restore evidence.</td><td>Freeze features and spend reserve on blockers; move the date rather than soften a failing guard.</td></tr>
+<tr><td>Before X / Y / Z</td><td>#331 owner sketch; lift #420 deferral; owner composition lesson and explicit reopening of #400’s minimum prerequisite.</td><td>Move independent remote discovery earlier. #331/#397/#420 remain open if their decisions stay parked.</td></tr>
+<tr><td>AA → AB → AC</td><td>Remote product/auth/cost/progression decisions, isolation evidence and reviewed migration. #202 remains coupled to server authority.</td><td>Re-estimate the network work from the spike. Retain the solo beta; do not promise the June date unconditionally.</td></tr>
+<tr><td>AG pilot</td><td>Two real four-person groups and agreed test envelope; participant time is an external dependency, owner facilitation is included.</td><td>Do not replace real group acceptance with eight synthetic accounts. Move the completion gate.</td></tr>
+</tbody></table></div><h3 style="margin-top:28px">Clear for Release: all seven source rows receive a decision</h3><ol><li><strong>Re-roll:</strong> explicitly retain as a player feature or hide it; verify the chosen public surface.</li><li><strong>Starting XP override:</strong> hide/remove the tester control for beta players.</li><li><strong>Licensed-IP fixtures:</strong> keep the distributed beta package and visible catalog on original content; resolve the commercial-release cleanup separately if private development copies remain.</li><li><strong>Client keys:</strong> T proves the required keyless LLM/STT/render paths. V inventories every optional TTS/provider route; personal-key-only options stay outside the supported beta path or are hidden. Full BYOK elimination across all providers remains a commercial-release gate, not an uncosted promise inside #288.</li><li><strong>Ancestry migration:</strong> remove only after a supported-save census proves it safe; otherwise document continued support and the exit criterion.</li><li><strong>Capability migration:</strong> use the same evidence-based retirement policy; never delete compatibility just to empty a checklist.</li><li><strong>Diagnostic toasts:</strong> remove developer chatter while preserving records/health visibility. Keep “Completion withheld…” and “Quest/reward tags withheld…” exactly as ruled.</li></ol><p class="fine">This is an invitation-beta and active-backlog schedule, not a paid-launch commitment. Paid billing, the full commercial catalog, complete BYOK retirement and broader commercial policy work need their own scope after L3. Recording an explicit beta disposition is not claiming those commercial gates are completed.</p></section>
+<section id="compare"><p class="eyebrow">08 / Make the two schedules comparable</p><h2>Compare assumptions before comparing dates.</h2><div class="tw"><table><thead><tr><th>Question for Claude’s schedule</th><th>Astra’s answer</th></tr></thead><tbody>
+<tr><td>What is “done”?</td><td>48 active feature/known-issue rows; not every long-term aspiration. Beta milestone excludes remote co-op, stable IDs, GM dials, composition rewrite and deferred mana wording.</td></tr>
+<tr><td>Whose hours count?</td><td>One owner-led budget: 22 h/week including design, review, content and play. No unpriced parallel labor.</td></tr>
+<tr><td>What is the base workload?</td><td>306 h to beta, 606 h for the full plan; 68 / 142 h additional reserve respectively.</td></tr>
+<tr><td>What is credited as already done?</td><td>#597/#598; hot-seat portion of #1; deployed #423; live OAuth/fal proxy; #528 portraits; #527(10)/(25) and #437; built portions of all ◉ rows.</td></tr>
+<tr><td>What hidden prerequisites are priced?</td><td>#400’s minimum render-engine/lab prerequisite for #397; triggered #22b for remote exchange; per-room engine isolation, canonical IDs and fractional funding for #1.</td></tr>
+<tr><td>What gates can still move dates?</td><td>Held-branch review, #527 repair volume, CarPlay hardware diagnosis, owner content/decisions, network isolation findings and real group availability.</td></tr>
+<tr><td>What could shorten it?</td><td>Actual package acceptance below these estimates; no-change dispositions justified by evidence; reduced feature scope explicitly approved. Defer remote co-op for beta, as recommended. AI-generated code volume alone does not remove review/device work.</td></tr>
+<tr><td>What happens after the first two weeks?</td><td>Compare actual accepted work with B’s estimate, keep a remaining-hours ledger, then reforecast every Wednesday. Reforecast again after K and AB. Consume reserve explicitly; never borrow silently from the next gate.</td></tr>
+</tbody></table></div></section>
+<footer><p><strong>Source and reproducibility.</strong> Read-only planning review of <a href="../TODO.md">TODO.md</a>, <a href="../AGENTS.md">AGENTS.md</a>, <a href="../CLAUDE.md">CLAUDE.md</a>, <a href="TODO_ARCHIVE.md">TODO archive</a> (#397’s #400 dependency, #423, #597, #598), <a href="Research/remote_player_exploration.html#acceptance">remote-play delivery and acceptance</a>, and <a href="../todo_checkWithFable.md">review queue context</a>. Estimates are Astra’s planning judgment; no new implementation, model trial, deployment or field acceptance was performed for this document.</p><p class="fine">Snapshot: October 7, 2026. Initial Git HEAD: 34524c57; pre-delivery HEAD: ec45b1e4. #437/SAY-growth closed and moved to the archive during this planning session (v1.1163); the final snapshot credits that completed work and #527(10), rather than scheduling them again. Another schedule was present by final inspection; its contents were not read or used to make this independent estimate. This document uses the captured TODO bytes, including the day’s completed portrait and racial-grouping updates. If concurrent work closes a row, reduce its remaining estimate at the next replan rather than repeat the work.</p><p class="fine src">TODO snapshot SHA-256: a7eb65c0b91f7937e6de93c9ec6f8e4d4ca3eee22af6645fbc2b65370312d144<br>Planning document version 1.0 · Thursday–Wednesday weeks · No holidays deducted · No game-version bump: documentation only.</p></footer></main>
+<script>
+(function(){
+  var weeks=document.querySelectorAll('details.week');
+  function expand(value){for(var i=0;i<weeks.length;i++)weeks[i].open=value;}
+  document.getElementById('expand').onclick=function(){expand(true);};
+  document.getElementById('collapse').onclick=function(){expand(false);};
+  document.getElementById('print').onclick=function(){expand(true);window.print();};
+  window.addEventListener('beforeprint',function(){expand(true);});
+  var input=document.getElementById('search'), rows=document.querySelectorAll('#coverage tbody tr'), counter=document.getElementById('match-count');
+  input.oninput=function(){var q=input.value.toLowerCase().replace(/^#/,'').trim(),n=0;for(var i=0;i<rows.length;i++){var yes=rows[i].getAttribute('data-search').toLowerCase().indexOf(q)!==-1;rows[i].hidden=!yes;if(yes)n++;}counter.textContent=n+' of '+rows.length+' rows';};
+  input.oninput();
+})();
+</script></body></html>
