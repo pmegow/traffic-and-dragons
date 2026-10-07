@@ -29819,4 +29819,14 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#527 racial ability presentation");
+  t("racial capability flags group under Racial without a name prefix",function(){
+    var c={cls:"Rogue",abilities:[{nm:"Darkvision",racial:true},{nm:"Sneak Attack"},{nm:"Borrowed Sight",racial:false}]},before=JSON.stringify(c);
+    if(abilityGroup(c,c.abilities[0])!=="racial")return "racial:true Darkvision was classified as "+abilityGroup(c,c.abilities[0]);
+    if(abilityGroups(c).map(function(g){return g.key+":"+g.items.join(",");}).join("|")!=="racial:0|class:1|story:2")return "sections lost their order or provenance";
+    if(abilityGroup(c,{nm:"Custom Heritage",racial:true})!=="racial")return "an explicitly racial custom ability lost its source";
+    if(abilityGroup(c,{nm:"Darkvision"})!=="story")return "a capability name alone is not evidence of racial provenance";
+    return JSON.stringify(c)===before?true:"rendering mutated the sheet";
+  });
+
 }

@@ -7,6 +7,7 @@ var CMD = ["node", ["dev/tests-489-ability-sections.js"]];
 var code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 prove("helpers.js", [
+  { label: "racial capability flags are ignored", find: '  if(ab&&ab.racial===true)return "racial";', replace: "", mustFail: "racial capability flags reach both sheet and panel headings" },
   { label: "the racial prefix is no longer a group (everything racial reads as story)",
     find: "  if(/^\\s*\\[racial\\]/i.test(p.nm))return \"racial\";\n", replace: "",
     mustFail: "each ability falls under one heading" },

@@ -135,5 +135,14 @@ test("the panel: the newest ability is the one highlighted, whatever group it la
   assert(/getElementById\("ab-list"\)\.innerHTML=abPanelHTML\(c,hl\)/.test(up), "updateAbPanel does not paint through abPanelHTML");
 });
 
+test("racial capability flags reach both sheet and panel headings", function () {
+  var c=hero();c.abilities=[{nm:"Darkvision",ds:"See in darkness.",racial:true},{nm:"Sneak Attack",ds:"Class feature."},{nm:"Borrowed Sight",ds:"Story gift."}];
+  for(var html of [csSheetSections(c,""),abPanelHTML(c,false)]){
+    assert(html.indexOf('data-grp="racial"')>=0,"racial:true capability has no Racial heading");
+    assert(html.indexOf('data-grp="racial"')<html.indexOf('Darkvision'),"Darkvision precedes its heading");
+    assert(html.indexOf('Darkvision')<html.indexOf('data-grp="class"'),"Darkvision was placed below Class");
+  }
+});
+
 if (failed) { console.error("#489 ability sections: " + failed + " FAILED"); process.exit(1); }
 console.log("#489 ability sections: all green");

@@ -569,3 +569,5 @@ zero 2026-07-27 and again 2026-07-30.
 - 2026-10-02 · #547 · Codex, owner explicitly approved game.js: lossless authoring normalization and complete-sentence revision before publishing. Runtime caps and prompt data remain unchanged. Shared field registry, original-text download, stale/cancel/failure retention; full pre-review and proof in audits/AUDIT_547_blueprint_prose.md.
 
 - 2026-10-02 · #549 · Codex, docs only: owner-requested project leadership review, five strengths/five improvements and game progress. Sources and uncertainty stated; no engine changes or new engineering assignments. Report: audits/Performance_Review_2026_10_2_Astra.html.
+
+- 2026-10-07 · #527(25) · Codex, owner-requested non-drift sweep: presentation-only `abilityGroup` honors existing racial provenance; no grants, state writes, prompt or memory changes. Engine failure reproduced first; both shared renderers covered.

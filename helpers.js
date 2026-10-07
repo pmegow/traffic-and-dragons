@@ -1330,6 +1330,7 @@ function abilityGrant(c,row,turn){
 // #489: which section of the sheet an ability belongs under. Derived at render — no schema field.
 function abilityGroup(c,ab){
   var p=abilityParts(ab);
+  if(ab&&ab.racial===true)return "racial";
   if(/^\s*\[racial\]/i.test(p.nm))return "racial";
   var row=abilityBibleRow(c,p.nm);
   return row?row.group:"story";
