@@ -1,0 +1,1219 @@
+{
+  "date": "2026-10-06",
+  "audit": "capability-wording-2026-10-04-v1",
+  "inputSha256": "1ec206366d2da989508c3018dd496f72abc7f8524e4e00119b84d9068160acc8",
+  "outputSha256": "cd357136fecfeb7b0479e38a8f4593ad810b4b31d76acad3bf59f3ea1dbe9693",
+  "scope": "Read all 507 saved descriptions; proofread without changing numeric mechanics; re-screen against SRD 5.1 and 5.2.1; preserve duration exclusions and existing decisions except corrected text becomes rewrite.",
+  "counts": {
+    "rows": 507,
+    "flagged": 59,
+    "addressed": 59,
+    "corrections": 30,
+    "correctedDescriptions": 25,
+    "followUpNotes": 12,
+    "rawPhraseMatches": 61
+  },
+  "sources": [
+    {
+      "version": "5.1",
+      "pdfSha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0",
+      "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf"
+    },
+    {
+      "version": "5.2.1",
+      "pdfSha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf"
+    }
+  ],
+  "displayCorrection": {
+    "key": "the turning tide",
+    "before": "The Turning TIde",
+    "after": "The Turning Tide"
+  },
+  "corrections": [
+    {
+      "key": "commune with nature",
+      "from": "save vs str",
+      "to": "save vs. STR"
+    },
+    {
+      "key": "dancing lights",
+      "from": "points of lights",
+      "to": "points of light"
+    },
+    {
+      "key": "druidic",
+      "from": "language of Druids",
+      "to": "language of druids"
+    },
+    {
+      "key": "for whom the bell tolls",
+      "from": "Make a WIS save or takes",
+      "to": "The target must make a WIS save or take"
+    },
+    {
+      "key": "hide from undead",
+      "from": "The warded is",
+      "to": "Warded creatures are"
+    },
+    {
+      "key": "mask of the wild",
+      "from": "natural phenomena provides",
+      "to": "natural phenomenon provides"
+    },
+    {
+      "key": "silence",
+      "from": "absolutely silence",
+      "to": "absolute silence"
+    },
+    {
+      "key": "silence",
+      "from": "components, all",
+      "to": "components; all"
+    },
+    {
+      "key": "speak with animals",
+      "from": "Cmmunicate",
+      "to": "Communicate"
+    },
+    {
+      "key": "inflict wounds",
+      "from": "causes and additional",
+      "to": "causes an additional"
+    },
+    {
+      "key": "stolen voice",
+      "from": "the targets voice",
+      "to": "the target's voice"
+    },
+    {
+      "key": "aspect of the reaper",
+      "from": "Castor manifests",
+      "to": "The caster manifests"
+    },
+    {
+      "key": "diamond skin",
+      "from": "The Target's",
+      "to": "The target's"
+    },
+    {
+      "key": "disguise self",
+      "from": "an investigation check",
+      "to": "an Investigation check"
+    },
+    {
+      "key": "flash flood",
+      "from": "the Caster's outstretch hands",
+      "to": "the caster's outstretched hands"
+    },
+    {
+      "key": "flash flood",
+      "from": "a strength save",
+      "to": "a STR save"
+    },
+    {
+      "key": "fletch",
+      "from": "etherial",
+      "to": "ethereal"
+    },
+    {
+      "key": "holy ground",
+      "from": "concecrated",
+      "to": "consecrated"
+    },
+    {
+      "key": "identify plants and animals",
+      "from": "the Druid's line of site",
+      "to": "the druid's line of sight"
+    },
+    {
+      "key": "minor illusion",
+      "from": "an investigation check",
+      "to": "an Investigation check"
+    },
+    {
+      "key": "shape shift",
+      "from": "The castors takes",
+      "to": "The caster takes"
+    },
+    {
+      "key": "shape shift",
+      "from": "thier previous form",
+      "to": "their previous form"
+    },
+    {
+      "key": "silent image",
+      "from": "an investigation check",
+      "to": "an Investigation check"
+    },
+    {
+      "key": "summon item",
+      "from": "knows it's location",
+      "to": "knows its location"
+    },
+    {
+      "key": "three sisters",
+      "from": "simulaneously",
+      "to": "simultaneously"
+    },
+    {
+      "key": "venomous undergrowth",
+      "from": "ensaring",
+      "to": "ensnaring"
+    },
+    {
+      "key": "venomous undergrowth",
+      "from": "Saving Throw vs poison",
+      "to": "Saving throw vs. poison"
+    },
+    {
+      "key": "the walking tempest",
+      "from": "Thunder Wave",
+      "to": "Thunderwave"
+    },
+    {
+      "key": "shield",
+      "from": "targeted by magic missile",
+      "to": "targeted by Magic Missile"
+    },
+    {
+      "key": "shield",
+      "from": "negates magic missile",
+      "to": "negates Magic Missile"
+    }
+  ],
+  "findings": [
+    {
+      "key": "commune with nature",
+      "type": "Reference conflict",
+      "text": "The chosen Fauna rewrite deals +3d8 force, but the dice field still says +1d6. Flora adds a STR save, restraint and a rooted caster, while the save field is N/A. Preserve the rewrite choice and reconcile these reference fields when implementing."
+    },
+    {
+      "key": "dancing lights",
+      "type": "Reference conflict",
+      "text": "The rewrite creates up to six lights; the targets field still allows four. The humanoid-combination option also remains, although the original torch-sized-light wording is gone."
+    },
+    {
+      "key": "flame strike",
+      "type": "Reference conflict",
+      "text": "The rewrite specifies a 10-foot diameter, while the targets field specifies a 10-foot radius and 40-foot height. Choose the intended footprint before implementation; these are different areas."
+    },
+    {
+      "key": "inflict wounds",
+      "type": "Rule clarification",
+      "text": "The rewrite adds damage to the next successful melee attack rather than making an immediate melee spell attack. Its duration is still instantaneous. Specify how long the charge lasts and whether it applies to weapon attacks before implementation."
+    },
+    {
+      "key": "extra attack",
+      "type": "Rule clarification",
+      "text": "One extra attack per round does not say which action grants it or whether it stacks with Double Attack. The previous wording tied two attacks to taking the attack action. This is a rules change to confirm, not a spelling correction."
+    },
+    {
+      "key": "silence",
+      "type": "Rule clarification",
+      "text": "The rewrite says a 20ft sphere without specifying radius or diameter; the targets field says 20ft radius. It also expands negation from thunder damage to all sonic attacks. Preserve the choice, but make the intended area and scope explicit."
+    },
+    {
+      "key": "hide from undead",
+      "type": "Internal contradiction",
+      "text": "The opening promises complete undetectability, but the next sentence allows intelligent undead a save. Qualify the opening so it does not overrule that exception. The original sensory wording is removed; remaining parallels mostly describe the same rules."
+    },
+    {
+      "key": "wall of  thorns",
+      "type": "Duplicate name",
+      "text": "There is another capability keyed wall of thorns (one space). This two-space entry is 2d6/STR/4 hours; the other is 7d8/DEX/concentration. They must remain separate until you choose which to keep or give them distinct names. Removing the extra space would create a collision. This entry also targets self despite describing a wall at range."
+    },
+    {
+      "key": "wall of thorns",
+      "type": "Duplicate name",
+      "text": "A separate two-space wall of  thorns entry has different damage, saves and duration. Decide whether these are two distinct abilities or which definition is authoritative before merging or renaming."
+    },
+    {
+      "key": "sleep",
+      "type": "Internal contradiction",
+      "text": "The effect starts with the least wounded, while the targets field says weakest first and the HP-pool rule depends on remaining hit points. Specify the intended order; do not silently swap these meanings."
+    },
+    {
+      "key": "augury",
+      "type": "Remaining descriptive overlap",
+      "text": "The rewrite still uses Weal/Woe and their combined omen categories. The sentences are rephrased, but that was the original descriptive concern. Keep deliberately with an attribution decision, or replace the presentation if independence is the goal. Timing is excluded."
+    },
+    {
+      "key": "druidic",
+      "type": "Remaining phrase overlap",
+      "text": "The revised sentence still contains the six-word sequence Druidic, the secret language of druids in both SRDs. This is a short definition, not evidence by itself of infringement. Record a deliberate keep/attribution decision or rephrase if desired."
+    }
+  ],
+  "matches": [
+    {
+      "key": "charm person",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=118",
+          "page": 118,
+          "words": 6,
+          "phrase": "lasts for the spell s duration"
+        }
+      ]
+    },
+    {
+      "key": "druidic",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=19",
+          "page": 19,
+          "words": 6,
+          "phrase": "druidic the secret language of druids"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=42",
+          "page": 42,
+          "words": 6,
+          "phrase": "druidic the secret language of druids"
+        }
+      ]
+    },
+    {
+      "key": "flame strike",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=132",
+          "page": 132,
+          "words": 6,
+          "phrase": "down from above each creature in"
+        }
+      ]
+    },
+    {
+      "key": "a call to arms",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=218",
+          "page": 218,
+          "words": 6,
+          "phrase": "you for as long as you"
+        }
+      ]
+    },
+    {
+      "key": "aura of life",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=222",
+          "page": 222,
+          "words": 7,
+          "phrase": "that starts its turn in the aura"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=315",
+          "page": 315,
+          "words": 7,
+          "phrase": "that starts its turn in the aura"
+        }
+      ]
+    },
+    {
+      "key": "bleed",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=66",
+          "page": 66,
+          "words": 8,
+          "phrase": "at the start of each of its turns"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=112",
+          "page": 112,
+          "words": 8,
+          "phrase": "at the start of each of its turns"
+        }
+      ]
+    },
+    {
+      "key": "blind",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=122",
+          "page": 122,
+          "words": 8,
+          "phrase": "at the end of each of its turns"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=63",
+          "page": 63,
+          "words": 10,
+          "phrase": "the save at the end of each of its turns"
+        }
+      ]
+    },
+    {
+      "key": "booming blade",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=152",
+          "page": 152,
+          "words": 7,
+          "phrase": "before the end of your next turn"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=48",
+          "page": 48,
+          "words": 7,
+          "phrase": "before the end of your next turn"
+        }
+      ]
+    },
+    {
+      "key": "chill touch",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=91",
+          "page": 91,
+          "words": 7,
+          "phrase": "until the start of your next turn"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=10",
+          "page": 10,
+          "words": 7,
+          "phrase": "until the start of your next turn"
+        }
+      ]
+    },
+    {
+      "key": "confusion",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=122",
+          "page": 122,
+          "words": 8,
+          "phrase": "at the end of each of its turns"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=63",
+          "page": 63,
+          "words": 10,
+          "phrase": "the save at the end of each of its turns"
+        }
+      ]
+    },
+    {
+      "key": "cunning action",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=9",
+          "page": 9,
+          "words": 9,
+          "phrase": "as a bonus action on each of your turns"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=121",
+          "page": 121,
+          "words": 9,
+          "phrase": "as a bonus action on each of your turns"
+        }
+      ]
+    },
+    {
+      "key": "cure wounds",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=122",
+          "page": 122,
+          "words": 6,
+          "phrase": "no effect on undead or constructs"
+        }
+      ]
+    },
+    {
+      "key": "divine sense",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=10",
+          "page": 10,
+          "words": 7,
+          "phrase": "until the end of your next turn"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=29",
+          "page": 29,
+          "words": 7,
+          "phrase": "until the end of your next turn"
+        }
+      ]
+    },
+    {
+      "key": "dominate beast",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=140",
+          "page": 140,
+          "words": 6,
+          "phrase": "each time it takes damage it"
+        }
+      ]
+    },
+    {
+      "key": "dread",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=122",
+          "page": 122,
+          "words": 8,
+          "phrase": "at the end of each of its turns"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=63",
+          "page": 63,
+          "words": 10,
+          "phrase": "the save at the end of each of its turns"
+        }
+      ]
+    },
+    {
+      "key": "elemental orb",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=115",
+          "page": 115,
+          "words": 6,
+          "phrase": "acid cold fire lightning poison or"
+        }
+      ]
+    },
+    {
+      "key": "expertise",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=218",
+          "page": 218,
+          "words": 6,
+          "phrase": "double your proficiency bonus on checks"
+        }
+      ]
+    },
+    {
+      "key": "faerie fire",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=162",
+          "page": 162,
+          "words": 6,
+          "phrase": "against it have advantage and it"
+        }
+      ]
+    },
+    {
+      "key": "fear",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=122",
+          "page": 122,
+          "words": 8,
+          "phrase": "at the end of each of its turns"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=63",
+          "page": 63,
+          "words": 10,
+          "phrase": "the save at the end of each of its turns"
+        }
+      ]
+    },
+    {
+      "key": "feather fall",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=235",
+          "page": 235,
+          "words": 6,
+          "phrase": "per round and take no damage"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=238",
+          "page": 238,
+          "words": 6,
+          "phrase": "per round and take no damage"
+        }
+      ]
+    },
+    {
+      "key": "fey ancestry",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=4",
+          "page": 4,
+          "words": 9,
+          "phrase": "advantage on saving throws against being charmed and magic"
+        }
+      ]
+    },
+    {
+      "key": "flash",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=130",
+          "page": 130,
+          "words": 7,
+          "phrase": "until the end of its next turn"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=63",
+          "page": 63,
+          "words": 7,
+          "phrase": "until the end of its next turn"
+        }
+      ]
+    },
+    {
+      "key": "fleeting vitality",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=142",
+          "page": 142,
+          "words": 9,
+          "phrase": "gain 1d4 4 temporary hit points for the duration"
+        }
+      ]
+    },
+    {
+      "key": "fly",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=146",
+          "page": 146,
+          "words": 7,
+          "phrase": "the target gains a flying speed of"
+        }
+      ]
+    },
+    {
+      "key": "globe of invulnerability",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=136",
+          "page": 136,
+          "words": 6,
+          "phrase": "5 or lower cast from outside"
+        }
+      ]
+    },
+    {
+      "key": "gnomish cunning",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=315",
+          "page": 315,
+          "words": 10,
+          "phrase": "advantage on intelligence wisdom and charisma saving throws against magic"
+        }
+      ]
+    },
+    {
+      "key": "grave touch",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=90",
+          "page": 90,
+          "words": 7,
+          "phrase": "has disadvantage on its next attack roll"
+        }
+      ]
+    },
+    {
+      "key": "grease",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=140",
+          "page": 140,
+          "words": 6,
+          "phrase": "a creature in the area when"
+        }
+      ]
+    },
+    {
+      "key": "guidance",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=151",
+          "page": 151,
+          "words": 7,
+          "phrase": "once before the spell ends the target"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=113",
+          "page": 113,
+          "words": 9,
+          "phrase": "before the spell ends the target adds 1d4 to"
+        }
+      ]
+    },
+    {
+      "key": "guiding bolt",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=152",
+          "page": 152,
+          "words": 10,
+          "phrase": "target before the end of your next turn has advantage"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=138",
+          "page": 138,
+          "words": 9,
+          "phrase": "before the end of your next turn has advantage"
+        }
+      ]
+    },
+    {
+      "key": "healing word",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=122",
+          "page": 122,
+          "words": 6,
+          "phrase": "no effect on undead or constructs"
+        }
+      ]
+    },
+    {
+      "key": "hold person",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=240",
+          "page": 240,
+          "words": 14,
+          "phrase": "at the end of each of its turns ending the effect on a success"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=242",
+          "page": 242,
+          "words": 17,
+          "phrase": "repeats the save at the end of each of its turns ending the effect on a success"
+        }
+      ]
+    },
+    {
+      "key": "hunter's mark",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=141",
+          "page": 141,
+          "words": 6,
+          "phrase": "mark one creature you can see"
+        }
+      ]
+    },
+    {
+      "key": "ice storm",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=155",
+          "page": 155,
+          "words": 9,
+          "phrase": "difficult terrain until the end of your next turn"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=141",
+          "page": 141,
+          "words": 8,
+          "phrase": "terrain until the end of your next turn"
+        }
+      ]
+    },
+    {
+      "key": "intimidating presence",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=141",
+          "page": 141,
+          "words": 6,
+          "phrase": "it can no longer see you"
+        }
+      ]
+    },
+    {
+      "key": "invisibility",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=305",
+          "page": 305,
+          "words": 8,
+          "phrase": "invisible until it attacks casts a spell or"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=230",
+          "page": 230,
+          "words": 6,
+          "phrase": "anything it is wearing or carrying"
+        }
+      ]
+    },
+    {
+      "key": "keen senses",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=340",
+          "page": 340,
+          "words": 9,
+          "phrase": "perception checks that rely on sight hearing or smell"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=11",
+          "page": 11,
+          "words": 6,
+          "phrase": "perception checks that rely on sight"
+        }
+      ]
+    },
+    {
+      "key": "lay on hands",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=31",
+          "page": 31,
+          "words": 6,
+          "phrase": "one disease or neutralize one poison"
+        }
+      ]
+    },
+    {
+      "key": "magic weapon",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=162",
+          "page": 162,
+          "words": 6,
+          "phrase": "weapon becomes a magic weapon with"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=147",
+          "page": 147,
+          "words": 6,
+          "phrase": "weapon becomes a magic weapon with"
+        }
+      ]
+    },
+    {
+      "key": "mass cure wounds",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=163",
+          "page": 163,
+          "words": 7,
+          "phrase": "up to six creatures of your choice"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=148",
+          "page": 148,
+          "words": 7,
+          "phrase": "up to six creatures of your choice"
+        }
+      ]
+    },
+    {
+      "key": "misty step",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=148",
+          "page": 148,
+          "words": 6,
+          "phrase": "an unoccupied space you can see"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=85",
+          "page": 85,
+          "words": 7,
+          "phrase": "to an unoccupied space you can see"
+        }
+      ]
+    },
+    {
+      "key": "moonbeam",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=171",
+          "page": 171,
+          "words": 6,
+          "phrase": "it or starts its turn there"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=155",
+          "page": 155,
+          "words": 6,
+          "phrase": "it or starts its turn there"
+        }
+      ]
+    },
+    {
+      "key": "poison resistance",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=3",
+          "page": 3,
+          "words": 7,
+          "phrase": "advantage on saving throws against poison and"
+        }
+      ]
+    },
+    {
+      "key": "ray of enfeeblement",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=174",
+          "page": 174,
+          "words": 7,
+          "phrase": "the target deals only half damage with"
+        }
+      ]
+    },
+    {
+      "key": "ray of frost",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=91",
+          "page": 91,
+          "words": 7,
+          "phrase": "until the start of your next turn"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=10",
+          "page": 10,
+          "words": 7,
+          "phrase": "until the start of your next turn"
+        }
+      ]
+    },
+    {
+      "key": "ray of sickness",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=10",
+          "page": 10,
+          "words": 7,
+          "phrase": "until the end of your next turn"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=29",
+          "page": 29,
+          "words": 7,
+          "phrase": "until the end of your next turn"
+        }
+      ]
+    },
+    {
+      "key": "reckless attack",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=9",
+          "page": 9,
+          "words": 8,
+          "phrase": "against you have advantage until your next turn"
+        }
+      ]
+    },
+    {
+      "key": "redirect element",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=150",
+          "page": 150,
+          "words": 7,
+          "phrase": "acid cold fire lightning or thunder damage"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=136",
+          "page": 136,
+          "words": 7,
+          "phrase": "acid cold fire lightning or thunder damage"
+        }
+      ]
+    },
+    {
+      "key": "rot",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=66",
+          "page": 66,
+          "words": 8,
+          "phrase": "at the start of each of its turns"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=112",
+          "page": 112,
+          "words": 8,
+          "phrase": "at the start of each of its turns"
+        }
+      ]
+    },
+    {
+      "key": "sacred flame",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=139",
+          "page": 139,
+          "words": 6,
+          "phrase": "on a creature you can see"
+        }
+      ]
+    },
+    {
+      "key": "shadow step",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=49",
+          "page": 49,
+          "words": 7,
+          "phrase": "an area of dim light or darkness"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=74",
+          "page": 74,
+          "words": 7,
+          "phrase": "an area of dim light or darkness"
+        }
+      ]
+    },
+    {
+      "key": "shield",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=91",
+          "page": 91,
+          "words": 7,
+          "phrase": "until the start of your next turn"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=10",
+          "page": 10,
+          "words": 7,
+          "phrase": "until the start of your next turn"
+        }
+      ]
+    },
+    {
+      "key": "shield wall",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=91",
+          "page": 91,
+          "words": 7,
+          "phrase": "until the start of your next turn"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=10",
+          "page": 10,
+          "words": 7,
+          "phrase": "until the start of your next turn"
+        }
+      ]
+    },
+    {
+      "key": "slow",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=122",
+          "page": 122,
+          "words": 8,
+          "phrase": "at the end of each of its turns"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=63",
+          "page": 63,
+          "words": 10,
+          "phrase": "the save at the end of each of its turns"
+        }
+      ]
+    },
+    {
+      "key": "smite",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=227",
+          "page": 227,
+          "words": 6,
+          "phrase": "a creature you can see and"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=117",
+          "page": 117,
+          "words": 6,
+          "phrase": "a creature you can see and"
+        }
+      ]
+    },
+    {
+      "key": "spare the dying",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=122",
+          "page": 122,
+          "words": 6,
+          "phrase": "no effect on undead or constructs"
+        }
+      ]
+    },
+    {
+      "key": "staggering smite",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=130",
+          "page": 130,
+          "words": 7,
+          "phrase": "until the end of its next turn"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=63",
+          "page": 63,
+          "words": 7,
+          "phrase": "until the end of its next turn"
+        }
+      ]
+    },
+    {
+      "key": "stolen voice",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=288",
+          "page": 288,
+          "words": 7,
+          "phrase": "of the target and the target is"
+        }
+      ]
+    },
+    {
+      "key": "the line holds",
+      "matches": [
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=31",
+          "page": 31,
+          "words": 6,
+          "phrase": "who can see or hear you"
+        }
+      ]
+    },
+    {
+      "key": "the wild run",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=114",
+          "page": 114,
+          "words": 6,
+          "phrase": "for the duration of the spell"
+        }
+      ]
+    },
+    {
+      "key": "turn undead",
+      "matches": [
+        {
+          "source": "SRD 5.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf#page=33",
+          "page": 33,
+          "words": 8,
+          "phrase": "for 1 minute or until it takes damage"
+        },
+        {
+          "source": "SRD 5.2.1",
+          "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf#page=55",
+          "page": 55,
+          "words": 7,
+          "phrase": "for 1 minute or until it takes"
+        }
+      ]
+    }
+  ]
+}

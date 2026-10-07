@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-06 · #603 second pass · Codex: owner-requested proofreading of all 507 saved descriptions, 30 corrections across 25 descriptions plus one display-name capitalization. Atomic revision-checked save preserves all numeric mechanics and unrelated prose; 59/59 decisions stay complete. Twelve follow-up notes and a source-linked receipt retain unresolved design/provenance choices without resetting duration exclusions. No game definitions or runtime resource behavior changed.
+
 - 2026-10-05 · #603 decision colors · Codex: owner-requested worksheet tint follows the decision rather than text differences. Rewrite uses the shared accent background; Keep shifts its hue 10% toward zero while preserving saturation/value; pending returns to the ordinary background. Failing-first real-browser regression, rendered before/after screenshots and all 15 browser checks pass. Saved review JSON untouched.
 
 - 2026-10-05 · #603 duration exclusions · Codex: owner-directed audit triage removes 31 duration/turn-timing/effect-ending flags and suppresses timing evidence in three mixed findings. Non-timing concerns retained; 59 active flags. Same audit identity and row keys preserve browser drafts and saved decisions; user review JSON untouched. Failing-first classification and mixed-evidence guards, original-draft round trips and 14 browser checks pass.
