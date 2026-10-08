@@ -130,3 +130,5 @@ Two-tier location graph stored in `memory.map`: `{nodes:{}, edges:[], lastArriva
 - **`sheetRegisterReport`:** also lists ability and item NAMES that carry the register.
 - **`dev/register-scrub.js`:** walks `worldState.questLog` and the archived `memory.quests` (it walked `worldState.quests`, which does not exist). On Necrotic t35 it lists 99 lines, 4 of them quest objectives (was 91 and zero).
 - **Proof:** `dev/sabotage-481-c9-own-words.js` (7 clauses).
+
+**Ending ownership (#525):** portable ending moments retain the hero recorded in `who`, regardless of the current hero or sheet holder. `healEndingMoments` repairs only ending text at world migration and before the system, engine-note and denouement prompt boundaries, including sheets adopted during a session and archived moments. The exact ownership prefix is idempotent and excluded from held-past and motif word matching. The external library copy is never edited by this repair. Legacy fate lines without a recorded subject are left unchanged; newly stamped fates use the shared name boundary and conservative known-namesake check.

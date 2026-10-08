@@ -1019,7 +1019,7 @@ function pastRaisedByHero(action,userTurns,memberNames,priorMoments){
   var texts=[String(action||"")].concat((PAST_RAISED_TURNS>0?(userTurns||[]).slice(-PAST_RAISED_TURNS):[]).map(function(t){return String(t||"");})),i,j,k;/* slice(-0) is slice(0): a zero window must mean none */
   var ex={},nameForms=[];(memberNames||[]).forEach(function(n){Array.prototype.push.apply(nameForms,momentNameForms(n,3));String(n||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex[p]=1;});});
   var recordWords={};
-  for(i=0;i<(priorMoments||[]).length;i++){var mo=priorMoments[i];if(!mo||!mo.text)continue;var ex2={},w2;for(w2 in ex)ex2[w2]=1;String(mo.who||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex2[p]=1;});var mw=pastWords(mo.text,ex2);for(k in mw)recordWords[k]=1;}
+  for(i=0;i<(priorMoments||[]).length;i++){var mo=priorMoments[i];if(!mo||!mo.text)continue;var ex2={},w2;for(w2 in ex)ex2[w2]=1;String(mo.who||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex2[p]=1;});var mw=pastWords(endingMomentBody(mo),ex2);for(k in mw)recordWords[k]=1;}
   for(i=0;i<texts.length;i++){
     var t=texts[i];if(!t)continue;var low=t.toLowerCase(),lw=low.replace(/[\u2019']s\b/g,"").split(/[^a-z]+/);
     var named=false;for(j=0;j<nameForms.length&&!named;j++)if(new RegExp("(^|[^a-z0-9])"+nameForms[j].replace(/[.*+?^{}$()|[\]\\]/g,"\\$&")+"([^a-z0-9]|$)","i").test(low))named=true;
@@ -1051,7 +1051,7 @@ function momentEchoWords(text,moments,exempt){
   var lineWords=motifWords(text,ex);
   for(j=0;j<(moments||[]).length;j++){
     var mo=moments[j];if(!mo||!mo.text)continue;
-    var mw=motifWords(mo.text,ex.concat([mo.who||""])),shared=0;
+    var mw=motifWords(endingMomentBody(mo),ex.concat([mo.who||""])),shared=0;
       var strong=false;for(k in mw)if(lineWords[k]){shared++;if(k.length>=MOTIF_STRONG_MIN)strong=true;}
       if(shared>=MOTIF_MIN_WORDS&&strong&&(!best||shared>best.words))best={who:mo.who||"",gist:String(mo.text).slice(0,MOTIF_GIST_CHARS),words:shared,camp:mo.camp||null};/* #481 C9: the note names the campaign */
   }
@@ -2038,6 +2038,37 @@ function _itemServe(ov,base){
 // "Nolan Grimtide's raider" is not Nolan Grimtide. Epithets still match ("Kresh the Tall" ⊃ Kresh).
 // #300: the companions who can actually intervene — living, in the party, and NOT split away.
 function presentCompanions(){var a=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];return a.filter(function(n){return !(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location);});}
+
+/* Ending prose belongs to the addressed hero; its portable record must name that same person on every witness's sheet. */
+function endingWordChar(c){return !!c&&!/[\s\u0000-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u00bf\u0609-\u060d\u061b\u061d-\u061f\u066a-\u066d\u0964-\u0965\u2000-\u200b\u200e-\u206f\u2e00-\u2e7f\u3000-\u303f\uff00-\uff65]/.test(c);}
+function endingHasToken(text,word){var t=String(text||""),w=String(word||""),i=-1;if(!w)return false;while((i=t.indexOf(w,i+1))>=0)if(!endingWordChar(t.charAt(i-1))&&!endingWordChar(t.charAt(i+w.length)))return true;return false;}
+var ENDING_NAME_TITLES={the:1,a:1,an:1,mr:1,mrs:1,ms:1,miss:1,dr:1,st:1,sir:1,ser:1,lady:1,lord:1,dame:1,master:1,mistress:1,captain:1,father:1,mother:1,brother:1,sister:1,king:1,queen:1,prince:1,princess:1};
+function endingNameToken(who){var name=String(who||"").trim(),i=0,start,w;while(i<name.length){while(i<name.length&&!endingWordChar(name.charAt(i)))i++;start=i;while(i<name.length&&endingWordChar(name.charAt(i)))i++;w=name.slice(start,i);if(w&&ENDING_NAME_TITLES[w.toLowerCase()]!==1)return w;}return name;}
+function textNamesPerson(text,who,people){var w=String(who||"").trim(),first=endingNameToken(w),i,other;if(!w)return false;if(w!==first&&endingHasToken(text,w))return true;if(!first||!endingHasToken(text,first))return false;for(i=0;i<(people||[]).length;i++){other=String(people[i]||"").trim();if(other!==w&&endingNameToken(other)===first&&endingHasToken(text,other))return false;}return true;}
+function endingPeople(ws){var out=[],i;if(ws&&ws.character&&ws.character.name)out.push(ws.character.name);for(i=0;i<((ws&&ws.npcs)||[]).length;i++)if(ws.npcs[i]&&ws.npcs[i].name)out.push(ws.npcs[i].name);return out;}
+function endingMomentText(who,text,people){var t=String(text==null?"":text).trim(),w=String(who||"").trim(),prefix=w+"'s ending: ";if(!w||!t||t.indexOf(prefix)===0)return t;return textNamesPerson(t,w,people)?t:prefix+t;}
+function endingMomentBody(m){var t=String((m&&m.text)||""),prefix=String((m&&m.who)||"").trim()+"'s ending: ";return m&&m.kind==="ending"&&t.indexOf(prefix)===0?t.slice(prefix.length):t;}
+function healEndingMoments(ws,mem){if(!ws)return 0;var sheets=[ws.character],people=endingPeople(ws),count=0,i;for(i=0;i<(ws.npcs||[]).length;i++)if(ws.npcs[i]&&ws.npcs[i].charSheet)sheets.push(ws.npcs[i].charSheet);function heal(list){if(!Array.isArray(list))return;for(var j=0;j<list.length;j++){var m=list[j];if(!m||m.kind!=="ending"||!m.who||typeof m.text!=="string")continue;var t=endingMomentText(m.who,m.text,people);if(t!==m.text){m.text=t;count++;}}}for(i=0;i<sheets.length;i++)if(sheets[i])heal(sheets[i].coreMemories);if(mem&&mem.archive)heal(mem.archive.coreMemories);return count;}
+var ENDING_WRAPPERS=[["**","**"],["__","__"],["*","*"],["_","_"],["\x60","\x60"],["[","]"],["(",")"],["<",">"],["\"","\""],["'","'"],["\u201c","\u201d"],["\u2018","\u2019"]];
+function endingStripWrappers(text){var s=String(text||"").trim(),pairs=ENDING_WRAPPERS,i,changed=true;while(changed){changed=false;for(i=0;i<pairs.length;i++){var a=pairs[i][0],b=pairs[i][1];if(s.length>=a.length+b.length&&s.slice(0,a.length)===a&&s.slice(-b.length)===b){s=s.slice(a.length,-b.length).trim();changed=true;break;}}}return s;}
+function endingRecordComplete(text){return /[.!?\u037e\u061f\u0964\u0965\u104a\u104b\u1362\u3002\uff01\uff1f]["'\u201d\u2019)\]]*$/.test(String(text||"").trim());}
+function endingRuleLine(text){return /^[\s\-\u2014\u2013*_=#\x60]*$/.test(String(text||""));}
+function endingRecordLine(line){
+  var s=endingStripWrappers(line),stack=[],i,p,found;
+  s=endingStripWrappers(s.replace(/^(?:(?:#{1,6}|>)\s*|[-+*]\s+|\d+[.)]\s*)/,""));
+  while(s.slice(0,6)!=="RECORD"){
+    found=false;
+    for(i=0;i<ENDING_WRAPPERS.length;i++){p=ENDING_WRAPPERS[i];if(s.slice(0,p[0].length)===p[0]){stack.push(p[1]);s=s.slice(p[0].length).trim();found=true;break;}}
+    if(!found)return null;
+  }
+  if(endingWordChar(s.charAt(6)))return null;
+  s=s.slice(6).trim();
+  while(stack.length){p=stack.pop();if(s.slice(0,p.length)!==p)s=s.replace(/^[:\uff1a=\-\u2014\u2013.,;!?\/|]\s*/,"");if(s.slice(0,p.length)!==p)return null;s=s.slice(p.length).trim();}
+  s=s.replace(/^\([^)]*\)(?=\s*[:\uff1a=\-\u2014\u2013])\s*/,"").replace(/^(?:LINE\s*)?[:\uff1a=\-\u2014\u2013.,;!?\/|]?\s*/,"");
+  return endingStripWrappers(s);
+}
+function denouementSplit(text){var lines=String(text==null?"":text).replace(/\r\n?/g,"\n").split("\n"),prose=[],record="",i,j,r;for(i=0;i<lines.length;i++){r=endingRecordLine(lines[i]);if(r===null){prose.push(lines[i]);continue;}if(!r){j=i+1;while(j<lines.length&&endingRuleLine(lines[j]))j++;if(j<lines.length&&endingRecordLine(lines[j])===null&&!/^\s*(?:THE END|\*The End\.\*)\s*$/.test(lines[j])){r=lines[j].trim();i=j;while(i+1<lines.length&&lines[i+1].trim()&&!endingRecordComplete(r)&&endingRecordLine(lines[i+1])===null&&!/^\s*THE END\s*$/.test(lines[i+1]))r+=" "+lines[++i].trim();}}if(r)record=endingStripWrappers(r);}while(prose.length&&endingRuleLine(prose[prose.length-1]))prose.pop();while(prose.length&&endingRuleLine(prose[0]))prose.shift();return {prose:prose.join("\n").replace(/\n(?:[ \t]*\n){2,}/g,"\n\n").trim(),record:record};}
+
 // #325 (owner ruling 2026-09-03): when the authored spine's LAST act closes, the ending is OFFERED,
 // never forced — a modal decides, "play on" snoozes it. Pure. (#364 moved the offer to the File menu
 // and the quest journal; audit E16 deleted the orphaned endingOfferText copy of its wording.)

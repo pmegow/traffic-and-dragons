@@ -1772,11 +1772,12 @@ function closeCampaign(){
 /* #6 G1: fates are stamped at the ending — on the hero and every living party companion: the campaign, the cause, the
    denouement sentence that names them, the open quest titles. Rides the sheet into the library; the Hall reads it. A kind
    that never closes (the village) never stamps. */
-function stampCampaignFates(text){
+function stampCampaignFates(text,record){
   if(!worldState||(typeof kindDef==="function"&&!kindDef().closable))return 0;
   var t=String(text||"").replace(/\s+/g," "),sent=t.match(/[^.!?]+[.!?]+/g)||[t],camp=worldState.campName||"",cause=(worldState.ended&&worldState.ended.cause)||"",turn=worldState.turn;
   var open=(worldState.questLog||[]).filter(function(q){return q&&q.title&&q.status!=="completed"&&q.status!=="failed";}).map(function(q){return q.title;});
-  function line(name){var first=String(name||"").split(/\s+/)[0],i;if(!first)return "";for(i=0;i<sent.length;i++)if(sent[i].indexOf(first)>=0)return sent[i].trim();return "";}
+  var people=endingPeople(worldState),hero=worldState.character&&worldState.character.name;
+  function line(name){var i;for(i=0;i<sent.length;i++)if(textNamesPerson(sent[i],name,people))return endingMomentText(hero,sent[i].trim(),people);return name===hero?endingMomentText(hero,record||"",people):"";}
   var n=0;function stamp(sheet){if(!sheet||!sheet.name)return;sheet.fate={campaign:camp,turn:turn,cause:cause,line:line(sheet.name),unresolved:open.slice(0,3)};n++;}
   stamp(worldState.character);var comps=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],j;for(j=0;j<comps.length;j++)stamp(comps[j].charSheet||comps[j]);
   return n;
@@ -4089,7 +4090,7 @@ async function campaignDenouement(){
   busy=true;
   try{
     var text=await callGM(buildDenouementPrompt(),denouementSys(),1500,null,{kind:"other",noHistory:true});/* #325: the living-hero variant when the spine ended the tale */
-    fileDenouement(String(text||"").trim());
+    text=fileDenouement(String(text||"").trim());
     if(typeof addMsg==="function"){var _df=denouementFrame(text);addMsg("narrator",_df.html,_df.opts);}
     if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(worldState.ended&&worldState.ended.cause);
   }catch(e){console.warn("[denouement] not written yet — will retry at next boot:",e&&e.message);if(typeof showToast==="function")showToast("The denouement could not be written yet — it will be tried again next time");}
@@ -4118,17 +4119,20 @@ function endingDecide(choice,closing){
    paragraph renderer, the replay text, the turn (the live render path composes from world state, so a Render here
    paints the ending's place and party like the topbar button) and the clock stamp. Pure; the DOM call is one line. */
 function denouementFrame(text){
-  var t=String(text||"").trim();
+  var t=denouementSplit(text).prose;
   return {html:"<p>"+escProse(t)+"</p>",opts:{replayText:t,turn:worldState?worldState.turn:null,ck:(typeof clockNow==="function")?clockNow():null}};
 }
 function fileDenouement(text){
   if(!worldState)return;
-  var t=String(text||"").trim();if(!t)return;
+  var parts=denouementSplit(text),t=parts.prose;if(!t)throw new Error("The ending contained no prose; the denouement is still owed");
+  var paras=t.split(/\n\s*\n/),complete=endingRecordComplete(parts.record),record=complete?parts.record:String(paras[paras.length-1]||"").trim();
+  if(!complete)console.warn("[denouement] "+(parts.record?"RECORD has no complete sentence ending":"no RECORD line")+" — the closing paragraph is attributed to its hero");
+  record=endingMomentText(worldState.character&&worldState.character.name,record,endingPeople(worldState));
   if(typeof logTranscript==="function")logTranscript("gm",t,t,undefined,{denouement:true});
-  if(typeof stampCampaignFates==="function")stampCampaignFates(t);/* #6 G1: the fates ride the sheets into the library */
+  if(typeof stampCampaignFates==="function")stampCampaignFates(t,record);/* #6 G1: the fates ride the sheets into the library */
   if(memory){if(!memory.chapters)memory.chapters=[];memory.chapters.push({turn:worldState.turn,summary:"DENOUEMENT: "+t.slice(0,600)});}
   /* #367: the closing paragraph names what the tale changed in the hero — filed as a defining moment, so a legacy hero carries it into the next campaign */
-  var _paras=t.split(/\n\s*\n/),_lastP=String(_paras[_paras.length-1]||"").trim();if(_lastP&&typeof fileCoreMemory==="function")fileCoreMemory("ending",worldState.character&&worldState.character.name,_lastP.slice(0,240));
+  if(record&&typeof fileCoreMemory==="function")fileCoreMemory("ending",worldState.character&&worldState.character.name,record);
   delete worldState.denouementOwed;
   if(!worldState.ended)worldState.ended={turn:worldState.turn,cause:"the story closed",at:Date.now()};
   if(typeof saveAll==="function")saveAll();
@@ -4136,6 +4140,7 @@ function fileDenouement(text){
      gone", but the story save was a menu item nobody reaches at the end (The Long Walk: finished, nothing on the home
      page). Signed in → save the story now; signed out → nothing, the menu item remains. */
   if(typeof saveNarrativeMemento==="function"&&typeof storageAdapter!=="undefined"&&storageAdapter&&typeof storageAdapter.hasToken==="function"&&storageAdapter.hasToken())saveNarrativeMemento();
+  return t;
 }
 // #300 multiplayer — death is personal. A fallen PC companion is parked with its sheet; the party
 // continues; at the next camp they rejoin whole.

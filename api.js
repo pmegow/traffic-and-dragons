@@ -856,11 +856,12 @@ function buildLayoutNote(){
 }
 // #301: the DENOUEMENT — the campaign's closing chapter, asked of the GM when the fourth death lands or the
 // player walks onward. Drawn from what the campaign actually recorded; written in the campaign's voice.
-var DENOUEMENT_SYS="You are the Game Master closing a FINISHED campaign. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. End on the world going on without the hero. Close with one short paragraph naming what the tale changed in the hero, or refused to change — drawn ONLY from the DEFINING MOMENTS and the hero's recorded trait, flaw and motivation below; where the sheet records none, name what the moments show, and invent no failing the record never played.";
+var DENOUEMENT_SYS="You are the Game Master closing a FINISHED campaign. Write its denouement: prose only, no tags, no headings, no discussion of these instructions, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. End on the world going on without the hero. Close with one short paragraph naming what the tale changed in the hero, or refused to change — drawn ONLY from the DEFINING MOMENTS and the hero's recorded trait, flaw and motivation below; where the sheet records none, name what the moments show, and invent no failing the record never played. Write the narration in the second person, addressing the hero as you/your, never as the hero speaking I. The campaign VOICE decides the register, including game words and modern idiom when that voice calls for them. After the prose, write one hidden line: RECORD: <one complete third-person sentence naming the hero, at most 240 characters, recording what the ending established>. The RECORD line is bookkeeping, not part of the narration.";
 // #325: the spine's own ending — the hero LIVES. Same denouement, a different last line.
-var DENOUEMENT_SYS_TOLD="You are the Game Master closing a FINISHED campaign whose authored tale has been told to its last act. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. The hero lives: end on the hero and the world they made, the story's threads at rest. Close with one short paragraph naming what the tale changed in the hero, or refused to change — drawn ONLY from the DEFINING MOMENTS and the hero's recorded trait, flaw and motivation below; where the sheet records none, name what the moments show, and invent no failing the record never played.";
+var DENOUEMENT_SYS_TOLD="You are the Game Master closing a FINISHED campaign whose authored tale has been told to its last act. Write its denouement: prose only, no tags, no headings, no discussion of these instructions, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. The hero lives: end on the hero and the world they made, the story's threads at rest. Close with one short paragraph naming what the tale changed in the hero, or refused to change — drawn ONLY from the DEFINING MOMENTS and the hero's recorded trait, flaw and motivation below; where the sheet records none, name what the moments show, and invent no failing the record never played. Write the narration in the second person, addressing the hero as you/your, never as the hero speaking I. The campaign VOICE decides the register, including game words and modern idiom when that voice calls for them. After the prose, write one hidden line: RECORD: <one complete third-person sentence naming the hero, at most 240 characters, recording what the ending established>. The RECORD line is bookkeeping, not part of the narration.";
 function denouementSys(){return (worldState&&worldState.ended&&worldState.ended.spine)?DENOUEMENT_SYS_TOLD:DENOUEMENT_SYS;}
 function buildDenouementPrompt(){
+  healEndingMoments(worldState,memory);
   var c=worldState.character,lines=[],i;
   lines.push("CAMPAIGN: "+(worldState.campName||"")+" — hero "+c.name+", "+c.cls+" level "+c.level+".");
   /* #394: the hero's own sheet reaches the ending (companions already had theirs, #367). The Long Walk t146: no
@@ -878,8 +879,8 @@ function buildDenouementPrompt(){
   var cb=buildDenouementCompanions();if(cb)lines.push(cb);
   var pb=buildDenouementPending();if(pb)lines.push(pb);
   var d=worldState.deaths||[];if(d.length||worldState.ended){lines.push("DEATHS:");for(i=0;i<d.length;i++)lines.push("- t"+d[i].turn+": "+(d[i].cause||"slain"));if(worldState.ended)lines.push("- t"+worldState.ended.turn+": "+(worldState.ended.cause||"slain")+" — the last.");}
-  var pa=(typeof AUTHORS!=="undefined"&&worldState.proseAuthor)?AUTHORS.filter(function(a){return a.id===worldState.proseAuthor;})[0]:null;
-  if(pa&&pa.vc)lines.push("VOICE: "+pa.vc);
+  var paId=worldState.proseAuthor!=null?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:""),pa=(typeof AUTHORS!=="undefined"&&paId)?AUTHORS.filter(function(a){return a.id===paId;})[0]:null;
+  lines.push("VOICE: "+((pa&&pa.vc)||"Write clean, readable prose."));
   lines.push("Write the denouement now.");
   return lines.join("\n");
 }
@@ -2363,6 +2364,7 @@ function noteLogCommit(){
 }
 function noteLogDiscard(){_notesBuilt=null;}
 function buildEngineNotes(){
+  healEndingMoments(worldState,memory);
   var out=[],names=[],dropped=[],chars=ENGINE_NOTES_PROTOCOL.length+2,i;
   for(i=0;i<NOTE_BUILDERS.length;i++){
     var fn=NOTE_BUILDERS[i],name=noteBuilderName(fn)||("#"+i),row=NOTE_SHAPES[name]||{};
@@ -2387,6 +2389,7 @@ function buildEngineNotes(){
   return txt;
 }
 function buildSysPrompt(){
+  healEndingMoments(worldState,memory);
   if(typeof sceneRefsEnsure==="function")sceneRefsEnsure();/* #168: gameplay activates referential protection before the response that may need it */
   relationshipMigrateWorld();/* #168 W7: every prompt reader consumes the normalized two-axis schema. */
   var c=worldState.character,w=worldState.world,tone=worldState.tone||{};

@@ -7,10 +7,10 @@ var rc1 = sabotage.prove({
   command: ["node", ["dev/run-tests.js", "class bible"]],
   cases: [
     { label: "the hero's sheet no longer reaches the ending (the HERO line is dropped)",
-      find: '  lines.push("HERO: "+c.name+" — "+(_hb.length?_hb.join("; "):"the sheet records no trait, flaw or motivation; judge the hero only by the DEFINING MOMENTS below"));', replace: '' },
+      find: '  lines.push("HERO: "+c.name+" — "+(_hb.length?_hb.join("; "):"the sheet records no trait, flaw or motivation; judge the hero only by the DEFINING MOMENTS below"));', replace: '', mustFail: "#394 the ending judges the hero from the record" },
     { label: "the closing verdict loses its source in the told variant",
-      find: 'told to its last act. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. The hero lives: end on the hero and the world they made, the story\'s threads at rest. Close with one short paragraph naming what the tale changed in the hero, or refused to change — drawn ONLY from the DEFINING MOMENTS and the hero\'s recorded trait, flaw and motivation below; where the sheet records none, name what the moments show, and invent no failing the record never played.',
-      replace: 'told to its last act. Write its denouement: prose only, no tags, no headings, no meta commentary, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. The hero lives: end on the hero and the world they made, the story\'s threads at rest. Close with one short paragraph naming what the tale changed in the hero, or refused to change.' }
+      find: 'told to its last act. Write its denouement: prose only, no tags, no headings, no discussion of these instructions, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. The hero lives: end on the hero and the world they made, the story\'s threads at rest. Close with one short paragraph naming what the tale changed in the hero, or refused to change — drawn ONLY from the DEFINING MOMENTS and the hero\'s recorded trait, flaw and motivation below; where the sheet records none, name what the moments show, and invent no failing the record never played.',
+      replace: 'told to its last act. Write its denouement: prose only, no tags, no headings, no discussion of these instructions, 300-500 words. Honour every recorded fact below; invent nothing that contradicts them; leave the unfinished threads unfinished, named. The hero lives: end on the hero and the world they made, the story\'s threads at rest. Close with one short paragraph naming what the tale changed in the hero, or refused to change.', mustFail: "#394 the ending judges the hero from the record" }
   ]
 });
 var rc2 = sabotage.prove({
@@ -18,9 +18,9 @@ var rc2 = sabotage.prove({
   command: ["node", ["dev/run-tests.js", "class bible"]],
   cases: [
     { label: "the ending no longer saves the memento when signed in",
-      find: '&&storageAdapter.hasToken())saveNarrativeMemento();', replace: '&&storageAdapter.hasToken()){}' },
+      find: '&&storageAdapter.hasToken())saveNarrativeMemento();', replace: '&&storageAdapter.hasToken()){}', mustFail: "#394 the ending judges the hero from the record" },
     { label: "the ending saves the memento even when signed out (a failing toast at every ending)",
-      find: '&&typeof storageAdapter.hasToken==="function"&&storageAdapter.hasToken())saveNarrativeMemento();', replace: ')saveNarrativeMemento();' }
+      find: '&&typeof storageAdapter.hasToken==="function"&&storageAdapter.hasToken())saveNarrativeMemento();', replace: ')saveNarrativeMemento();', mustFail: "#394 the ending judges the hero from the record" }
   ]
 });
 process.exit(rc1 || rc2);
