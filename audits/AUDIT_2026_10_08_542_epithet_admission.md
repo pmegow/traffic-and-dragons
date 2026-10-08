@@ -44,3 +44,9 @@ The root full hook exposed the retained #527(4) Bone-boy fixture: both hero and 
 Root's final read-only prompt capture: all three standard campaigns' stable and volatile halves byte-identical to baseline5751f292, source hashes unchanged (TEMP tnd-next-ten-prompts-after542). Full release gate remains root-owned.
 
 Final proof rerun: 25/25 new named clauses caught, including the exact Bone-boy predicate regression; all sources restored byte-identically. Retained hero-cast battery: 4/4 caught. Total retained clauses executed: 127. Runtime and review work paused for root shipping.
+
+## Retained blueprint-secret proof repaired after remote CI
+
+The b154db6b remote CI range sweep reported one missed mutation in sabotage-333-secrets: secret-only seed lost. Its test had already imported the NPC with ordinary notes and the secret, then cleared the notes and imported the same NPC again. Identity admission correctly refuses that duplicate, so the original secret survived and falsely vouched for the sabotaged seeding path.
+
+The test now resets the world before its secret-only import. Independent Astra reproduced all four combinations: production passes both old and corrected fixtures; the exact secret-and-notes mutant passes the old fixture but fails the corrected one. The assertion and named mutation are unchanged. This is a strengthened verification fixture, not a runtime repair or a rebaseline.

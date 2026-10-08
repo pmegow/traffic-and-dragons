@@ -5692,7 +5692,7 @@ function runEngineTests(R){
     worldState.skeleton.acts[2].status="active";return memoryNpcDetail("Lyle").indexOf("OTHER_SECRET")>=0?true:"merged secret never unlocked";
   });
   t("#333 secret-only NPC seeds and long ordinary dossiers still deliver the unlocked secret",function(){
-    var bp=secretFixture();bp.npcs[0].notes="";applyBlueprint(bp);worldState.skeleton.acts[2].status="active";
+    var bp=secretFixture();bp.npcs[0].notes="";makeWorld();applyBlueprint(bp);worldState.skeleton.acts[2].status="active";
     fileNpcAuthored(memory.npcs.Lyle,new Array(3001).join("x"));
     return memoryNpcDetail("Lyle").indexOf("TWIST_SENTINEL")>=0?true:"secret-only seed lost or authored budget starved secret";
   });
