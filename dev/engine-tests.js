@@ -30843,4 +30843,29 @@ t("#527(15) composed STYLE permits served lived detail and confines record parti
 t("#527(15) outsider correction is scoped while the held-past rule still binds everyone until raised or Hall",function(){memory52715();worldState.motifPing={speaker:"Nyla",who:"Daeris",gist:"private record",camp:"The Necrotic Dungeon"};var n=buildMotifNudge(),held=buildCoreMemoryBlock();if(n.indexOf("Bystanders must let it rest now")<0||n.indexOf("if a bystander must touch it")<0)return "correction still restricts everyone";if(held.indexOf("from anyone")<0||held.indexOf("necrotic tether")>=0)return "held-past boundary changed";lastAction="Ask Daeris about the Reach.";if(buildCoreMemoryBlock().indexOf("necrotic tether")<0)return "raised memory missing";lastAction="Look around.";worldState.world.sublocation="the Village Hall";memory.map.nodes[villageHallKey()]={firstVisit:1,visits:1,parent:"The Village",npcs:[],items:[]};if(buildCoreMemoryBlock().indexOf("necrotic tether")<0)return "Hall memory missing";return true;});
 t("#527(15) own speaker stays exempt and current memories remain available",function(){memory52715();var m=worldState.npcs[0].charSheet.coreMemories[0];m.camp=worldState.campName;var body="The necrotic tether to the Reach engines was extinguished.";if(detectMomentRetelling("[SAY:Daeris]"+body,[m],["Ammut","Daeris"]))return "own telling fired";if(!detectMomentRetelling("[SAY:Nyla]"+body,[m],["Ammut","Daeris"]))return "outsider retelling escaped";if(buildCoreMemoryBlock().indexOf(body)<0)return "current memory withheld";return true;});
 
+  section("#527(17) new sublocation case variants retain description");
+  function place52717(){makeWorld();delete worldState.kind;worldState.world.location="Ashfen";worldState.world.sublocation=null;memory.map={nodes:{Ashfen:{firstVisit:1,visits:1,parent:null,description:"A town.",items:[],npcs:[]}},edges:[],lastArrivalFrom:null};}
+  t("#527(17) fresh smithy case variants keep one described node through mixed tag shapes and revisits",function(){
+    var names=["the smithy","The Smithy"],i,j,k,sep,raw,keys,node,key,r;
+    for(i=0;i<2;i++)for(j=0;j<2;j++)for(k=0;k<2;k++){
+      place52717();sep=j?" You cross the threshold. ":"";
+      raw="[SUBLOCATION:"+names[i]+"]"+(k?"[LOCATION_DESC:A forge with a north door.]":"")+sep+"[SUBLOCATION:"+names[1-i]+"]"+(k?"":"[LOCATION_DESC:A forge with a north door.]");
+      quiet(function(){applyMuts(raw);});keys=Object.keys(memory.map.nodes).filter(function(x){return memory.map.nodes[x].parent==="Ashfen";});
+      if(keys.length!==1)return "case/block/description "+[i,j,k]+" minted twins: "+keys;
+      key=keys[0];node=memory.map.nodes[key];if(node.description!=="A forge with a north door.")return "case/block/description "+[i,j,k]+" lost description: "+node.description;
+      if(locResolve(currentNodeKey())!==key)return "party pointer misses canonical child";
+      worldState.turn++;quiet(function(){applyMuts("[LOCATION_HOURS:8-18][LOCATION_DESC:A replacement that must not overwrite.]");});
+      if(Object.keys(memory.map.nodes).length!==2||node.description!=="A forge with a north door.")return "next-turn hours minted twin or lost description";
+      for(var n=0;n<6;n++){worldState.turn++;quiet(function(){applyMuts("[SUBLOCATION_LEAVE] You return. [SUBLOCATION:"+names[n%2]+"] [LOCATION_DESC:A replacement that must not overwrite.] [LOCATION_STATE:The coals glow.]");});if(Object.keys(memory.map.nodes).length!==2||node.description!=="A forge with a north door."||locResolve(currentNodeKey())!==key)return "revisit minted twin or lost immutable description";}
+      if(buildGeoBlock().indexOf("A forge with a north door.")<0)return "described smithy missing from composed geo block";
+    }return true;
+  });
+  t("#527(17) same smithy leaf under distinct worlds keeps its own description",function(){
+    place52717();quiet(function(){applyMuts("[SUBLOCATION:the smithy][SUBLOCATION:The Smithy][LOCATION_DESC:Ashfen forge with a north door.]");});
+    quiet(function(){applyMuts("[SUBLOCATION_LEAVE] You travel. [LOCATION:Brightwater] [SUBLOCATION:The Smithy][SUBLOCATION:the smithy][LOCATION_DESC:Brightwater forge with a south door.]");});
+    var a=resolvePlaceName("The Smithy","Ashfen"),b=resolvePlaceName("the smithy","Brightwater");if(!a||!b||a.key===b.key)return "parent scopes fused";
+    if(memory.map.nodes[a.key].description!=="Ashfen forge with a north door."||memory.map.nodes[b.key].description!=="Brightwater forge with a south door.")return "description crossed parent scope";
+    var children=Object.keys(memory.map.nodes).filter(function(x){return memory.map.nodes[x].parent;});return children.length===2?true:"world-scoped children count "+children.length;
+  });
+
 }
