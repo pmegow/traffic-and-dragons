@@ -1591,7 +1591,7 @@ function buildMergeConfirmNudge(){
   if(!q||!q.length)return"";
   var h=null;
   while(q.length){var c=q.shift();
-    if(resolveNpcName(c.canonical)!==resolveNpcName(c.duplicate)&&memory.npcs[c.canonical]&&memory.npcs[c.duplicate]){h=c;break;}
+    if(resolveNpcName(c.canonical)!==resolveNpcName(c.duplicate)&&(memory.npcs[c.canonical]||wsNpcByName(c.canonical))&&(memory.npcs[c.duplicate]||wsNpcByName(c.duplicate))){h=c;break;}
   }
   if(!q.length)delete worldState.pendingMergeHints;
   if(!h)return"";

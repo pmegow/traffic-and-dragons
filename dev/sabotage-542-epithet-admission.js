@@ -24,7 +24,7 @@ if(!code)code=sabotage.prove({
     },
     {
       "label": "ignore saved alias competition",
-      "find": "var owner=identityAliasOwner(canonical),claims=identityNameClaims(alias,[owner]),i;",
+      "find": "var owner=identityAliasOwner(canonical),claims=identityNameClaims(alias,mergeOwner?[owner,mergeOwner]:[owner]),i;",
       "replace": "var owner=identityAliasOwner(canonical),claims=[],i;",
       "mustFail": "reply preflight"
     },

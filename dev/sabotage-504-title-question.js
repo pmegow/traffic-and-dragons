@@ -150,7 +150,7 @@ prove("tag_table.js", [
     find: "if(_mgAns.kind===\"new\"&&memory.npcs[mgCanon])memory.npcs[mgCanon].titleSettled=R.turn;", replace: "",
     mustFail: EXTRACT },
   { label: "the alias handler creates a record under an existing alias (the alias-shadow class)",
-    find: "  var _alOwn=(typeof npcExactKey===\"function\")?npcExactKey(alCanon,2):null;", replace: "  var _alOwn=null;",
+    find: "_alOwn=_alHero?null:_alRef.key;", replace: "_alOwn=null;",
     mustFail: FUZZ },
   { label: "an alias that is another record's name is registered (one alias on two records)",
     find: "  if(_alHas&&_alHas!==alCanon){", replace: "  if(false){",
@@ -165,19 +165,16 @@ prove("tag_table.js", [
     find: "if(typeof memoryNpcIsPlayer===\"function\"&&memoryNpcIsPlayer(pname)){if(typeof console!==\"undefined\")console.warn(\"[tags] NPC_PRONOUN for the player", replace: "if(false){if(typeof console!==\"undefined\")console.warn(\"[tags] NPC_PRONOUN for the player",
     mustFail: FUZZ },
   { label: "a plain merge is folded on the state the gate never saw (an earlier tag of the reply changed what the operands name)",
-    find: "  if((_mgAns.kind===\"plain\"||_mgAns.kind===\"other\")&&worldState.sceneRefs&&typeof w2MergeAllowed===\"function\"&&!w2MergeAllowed(mgCanon,mgDupe,_mgTag)){", replace: "  if(false){",
+    find: "  if((_mgAns.kind===\"plain\"||_mgAns.kind===\"other\")&&typeof w2MergeAllowed===\"function\"&&!w2MergeAllowed(mgCanon,mgDupe,_mgTag)){", replace: "  if(false){",
     mustFail: FUZZ },
   { label: "a provisional into another established person is folded on the state the gate never saw (a same-reply alias)",
-    find: "  if((_mgAns.kind===\"plain\"||_mgAns.kind===\"other\")&&worldState.sceneRefs", replace: "  if((_mgAns.kind===\"plain\")&&worldState.sceneRefs",
+    find: "  if((_mgAns.kind===\"plain\"||_mgAns.kind===\"other\")&&typeof w2MergeAllowed", replace: "  if((_mgAns.kind===\"plain\")&&typeof w2MergeAllowed",
     mustFail: FUZZ },
   { label: "the hero's name is registered as an NPC's alias",
     find: "  if(typeof memoryNpcIsPlayer===\"function\"&&memoryNpcIsPlayer(alAlias)&&!memoryNpcIsPlayer(alCanon)){", replace: "  if(false){",
     mustFail: FUZZ },
   { label: "a ° filing key is registered as an alias, or made a canonical after its fold",
     find: "  if(/ °t\\d+$/.test(alAlias)||(/ °t\\d+$/.test(alCanon)&&!memory.npcs[alCanon])){", replace: "  if(false){",
-    mustFail: FUZZ },
-  { label: "the alias handler reads a folded ° canonical as a fresh name (a zombie record)",
-    find: "if(!_alOwn&&typeof npcFormerKey===\"function\"){var _alF=npcFormerKey(alCanon);if(_alF&&_alF!==alCanon)_alOwn=_alF;}", replace: "",
     mustFail: FUZZ },
   { label: "a record becomes its own alias",
     find: "  if(alCanon===alAlias){if(typeof console!==\"undefined\")console.warn(\"[identity] [NPC_ALIAS:\"+alCanon+\"|\"+alAlias+\"] ignored", replace: "  if(false){if(typeof console!==\"undefined\")console.warn(\"[identity] [NPC_ALIAS:\"+alCanon+\"|\"+alAlias+\"] ignored",
@@ -188,4 +185,5 @@ prove("api.js", [
     find: "  if(_tqBefore&&typeof npcStampTitleQuestions===\"function\")npcStampTitleQuestions(_tqBefore,R);\n", replace: "",
     mustFail: REPRO }
 ]);
+prove("identity.js",[{label:"the alias handler reads a folded ° canonical as a fresh name (a zombie record)",find:'if(!key){var former=npcFormerKey(name);if(former&&former!==name)key=former;}',replace:'',mustFail:FUZZ}]);
 process.exit(code);

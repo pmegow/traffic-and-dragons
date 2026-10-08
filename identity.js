@@ -76,16 +76,43 @@ function identitySheetAliasKey(name){
   for(i=0;i<ns.length;i++){var n=ns[i];if(!n||identityNpcOwner(n.name)!==claims[0].id)continue;var al=identityAliasList(n.aliases).concat(identityAliasList(n.charSheet&&n.charSheet.aliases));for(j=0;j<al.length;j++)if(al[j]===name)return n.name;}
   return null;
 }
-function identityAliasOwner(name){if(memoryNpcIsPlayer(name))return "@player";return identityNpcOwner(npcExactKey(name,2)||npcFormerKey(name)||name);}
+/* Alias operands state exact ownership; never infer it from name tokens. */
+function npcAliasMemoryKey(name){
+  var mem=memory.npcs||{},keys=Object.keys(mem),i,al,f=_npcFold(name);
+  if(Object.prototype.hasOwnProperty.call(mem,name))return name;
+  for(i=0;i<keys.length;i++){al=identityAliasList(mem[keys[i]]&&mem[keys[i]].aliases);if(al.indexOf(name)>=0)return keys[i];}
+  for(i=0;i<keys.length;i++)if(_npcFold(keys[i])===f)return keys[i];
+  for(i=0;i<keys.length;i++){al=identityAliasList(mem[keys[i]]&&mem[keys[i]].aliases);if(al.some(function(v){return _npcFold(v)===f;}))return keys[i];}
+  return null;
+}
+function npcAliasOperand(name){
+  if(memoryNpcIsPlayer(name))return {kind:"hero",key:worldState.character&&worldState.character.name};
+  var claims=identityNameClaims(name),primaries=claims.filter(function(c){return c.primary;}),key;
+  if(primaries.length===1)return {kind:"known",key:primaries[0].name};
+  if(claims.length>1)return {kind:"ambiguous",key:null};
+  key=npcAliasMemoryKey(name)||identitySheetAliasKey(name);if(!key){var former=npcFormerKey(name);if(former&&former!==name)key=former;}if(key&&memoryNpcIsPlayer(key))return {kind:"hero",key:worldState.character&&worldState.character.name};if(!key){var row=wsNpcByName(name);key=row&&row.name;}
+  return key?{kind:"known",key:key}:{kind:"new",key:null};
+}
+function npcAliasWriteIssue(ref){
+  var layers=[],row,i,why;if(ref.kind==="hero")layers=[worldState.character];
+  else if(ref.kind==="known"){row=wsNpcByName(ref.key);layers=[memory.npcs&&memory.npcs[ref.key],row,row&&row.charSheet];}
+  for(i=0;i<layers.length;i++)if(layers[i]){why=identityAliasShapeIssue(layers[i].aliases);if(why)return "'"+ref.key+"': "+why;}
+  return "";
+}
+function identityAliasOwner(name){var ref=npcAliasOperand(name);if(ref.kind==="hero")return "@player";return identityNpcOwner(ref.key||npcFormerKey(name)||name);}
 function identityResponseClaims(text){
   var out=[],m,re=/\[NPC:([^|\]]+)\|/g;
   while((m=re.exec(text)))out.push({name:m[1].trim(),owner:identityNpcOwner(m[1]),kind:"name"});
   re=/\[(?:NPC_ALIAS:|ALIAS:\s*npc\s*\|)([^|\]]+)\|([^\]]+)\]/gi;
-  while((m=re.exec(text)))out.push({name:m[2].trim(),owner:identityAliasOwner(m[1].trim()),kind:"alias"});
+  while((m=re.exec(text)))out.push({name:m[2].trim(),canonical:m[1].trim(),owner:identityAliasOwner(m[1].trim()),kind:"alias"});
   return out;
 }
-function identityAliasIssue(canonical,alias,planned){
-  var owner=identityAliasOwner(canonical),claims=identityNameClaims(alias,[owner]),i;
+/* Planned introductions are response-local: no proposal exists until its records do. */
+function identityDeferredAliasPlan(claims){var out=[],i,j,c,d,ref;for(i=0;i<claims.length;i++)if(claims[i].kind==="alias"){c=claims[i];ref=npcAliasOperand(c.canonical);if(ref.kind==="hero"||ref.kind==="ambiguous")continue;d=npcAliasOperand(c.name);if(d.kind!=="known")continue;if(ref.kind==="known"){if(ref.key!==d.key)out.push({canonical:ref.key,duplicate:d.key,alias:c.name,attempted:false});continue;}for(j=0;j<claims.length;j++)if(claims[j].kind==="name"&&identityNameFold(claims[j].name)===identityNameFold(c.canonical)){out.push({canonical:c.canonical,duplicate:d.key,alias:c.name,attempted:false});break;}}return out;}
+function identityDeferredAliasMatch(R,canonical,duplicate){var rows=R&&R.aliasDeferred||[],i,c=identityNameFold(canonical),d=identityNameFold(duplicate);for(i=0;i<rows.length;i++)if(identityNameFold(rows[i].canonical)===c&&identityNameFold(rows[i].duplicate)===d||identityNameFold(rows[i].canonical)===d&&identityNameFold(rows[i].duplicate)===c)return rows[i];return null;}
+function identityFinishAliasProposals(R){var rows=R.aliasDeferred||[],i,c,d,why;for(i=0;i<rows.length;i++){var p=rows[i];if(!p.attempted)continue;c=npcAliasOperand(p.canonical);d=npcAliasOperand(p.alias);why=c.kind!=="known"||d.kind!=="known"?"planned NPC introduction did not produce two known records":c.key===d.key?"planned names identify one record":npcAliasWriteIssue(c)||npcAliasWriteIssue(d)||identityAliasIssue(c.key,p.alias,R.aliasClaims,identityNpcOwner(d.key));if(why){identityAdmissionWarn(why,R);continue;}if(w2MergePropose(c.key,d.key,"NPC_MERGE",R))R.muts.push("⚠ NPC alias merge proposed, not applied: '"+d.key+"' into "+c.key+" needs exact confirmation");}}
+function identityAliasIssue(canonical,alias,planned,mergeOwner){
+  var owner=identityAliasOwner(canonical),claims=identityNameClaims(alias,mergeOwner?[owner,mergeOwner]:[owner]),i;
   if(claims.length)return "'"+alias+"' already identifies "+claims.map(function(c){return c.name;}).join(", ");
   for(i=0;i<(planned||[]).length;i++)if(identityNameFold(planned[i].name)===identityNameFold(alias)&&planned[i].owner!==owner&&(planned[i].kind!=="name"||owner==="@player"))return "'"+alias+"' has competing character claims in this reply";
   return "";
@@ -1580,8 +1607,15 @@ function _w2ResolveConflicts(subject,handle){var q=worldState&&worldState.identi
    refusal is the same with or without scene refs. A provisional into some OTHER record on file is a merge like any other:
    a proposal first, carrying the two record KEYS so the confirmation note can put it to the GM (a raw operand was
    discarded there). A plain merge keeps the exact-pair rule. */
-function w2MergeAllowed(canonical,duplicate,tag){if(!worldState||!worldState.sceneRefs)return true;var ans=npcMergeAnswer(tag||"NPC_MERGE",canonical,duplicate);if(ans.kind!=="plain"&&ans.kind!=="other")return true;var a=worldState.mergeConfirmArmed;return !!(a&&a.turn===worldState.turn&&a.canonical===ans.canon&&a.duplicate===ans.dupe);}
-function w2MergePropose(canonical,duplicate,tag){var ans=npcMergeAnswer(tag||"NPC_MERGE",canonical,duplicate);if(typeof _queueMergeHint==="function")_queueMergeHint(ans.canon,ans.dupe);if(typeof console!=="undefined")console.warn("[identity] merge proposed, not applied: "+ans.dupe+" -> "+ans.canon+" (awaiting exact-pair confirmation)");}
+function w2MergePairKnown(canonical,duplicate){
+  function pair(a,b){return a===canonical&&b===duplicate||a===duplicate&&b===canonical;}
+  var q=worldState.pendingMergeHints||[],i,a=worldState.mergeConfirmArmed,n=worldState.mergeHintNudged||{};
+  for(i=0;i<q.length;i++)if(pair(q[i].canonical,q[i].duplicate))return true;
+  return !!(a&&pair(a.canonical,a.duplicate)||Object.prototype.hasOwnProperty.call(n,canonical+"|"+duplicate)||Object.prototype.hasOwnProperty.call(n,duplicate+"|"+canonical));
+}
+function w2MergeArmed(canonical,duplicate){var a=worldState.mergeConfirmArmed;return !!(a&&a.turn===worldState.turn&&a.canonical===canonical&&a.duplicate===duplicate);}
+function w2MergeAllowed(canonical,duplicate,tag){if(!worldState)return true;var ans=npcMergeAnswer(tag||"NPC_MERGE",canonical,duplicate);if(ans.kind!=="plain"&&ans.kind!=="other")return true;if(!worldState.sceneRefs&&!w2MergePairKnown(ans.canon,ans.dupe))return true;return w2MergeArmed(ans.canon,ans.dupe);}
+function w2MergePropose(canonical,duplicate,tag,R){var ans=npcMergeAnswer(tag||"NPC_MERGE",canonical,duplicate);if(ans.kind==="refused"||!(memory.npcs[ans.canon]||wsNpcByName(ans.canon))||!(memory.npcs[ans.dupe]||wsNpcByName(ans.dupe))){var why="merge proposal requires two known NPC records";if(typeof console!=="undefined")console.warn("[identity] "+why+": "+canonical+" / "+duplicate);if(R)R.muts.push("⚠ "+why);return false;}if(typeof _queueMergeHint==="function")_queueMergeHint(ans.canon,ans.dupe);if(typeof console!=="undefined")console.warn("[identity] merge proposed, not applied: "+ans.dupe+" -> "+ans.canon+" (awaiting exact-pair confirmation)");return true;}
 function _w2TxnFind(id){var a=worldState&&worldState.canonTxns||[],i;for(i=0;i<a.length;i++)if(a[i].id===id)return a[i];return null;}
 function _w2TxnMetaSame(r,m){return r.claim===m.claim&&r.subject===m.subject&&r.evidence===m.evidence&&r.quest===m.quest;}
 function _w2Compact(v){return String(v==null?"":v).replace(/\s+/g," ").trim().toLowerCase();}

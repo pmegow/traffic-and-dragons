@@ -113,7 +113,7 @@ rc|=sabotage.prove({
       replace:"if(typeof guestbookRekeyName===\"function\")"},
     {label:"NPC merge discards outgoing relationships when both records already have sheets",
     mustFail:"W7 NPC merge preserves outgoing relationship rows from both populated ",
-      find:"if(_mgDupN.charSheet&&_mgCanN.charSheet)relationshipMergeSheets(_mgCanN.charSheet,_mgDupN.charSheet,mgCanon,mgDupe);else if(_mgDupN.charSheet&&!_mgCanN.charSheet)_mgCanN.charSheet=_mgDupN.charSheet;",
+      find:"if(_mgDupN.charSheet&&_mgCanN.charSheet)relationshipMergeSheets(_mgCanN.charSheet,_mgDupN.charSheet,mgCanon,mgDupe);else if(_mgDupN.charSheet&&!_mgCanN.charSheet){_mgCanN.charSheet=_mgDupN.charSheet;_mgCanN.charSheet.name=mgCanon;}",
       replace:"if(_mgDupN.charSheet&&!_mgCanN.charSheet)_mgCanN.charSheet=_mgDupN.charSheet;"}
   ]
 });

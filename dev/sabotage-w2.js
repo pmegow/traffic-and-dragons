@@ -44,8 +44,8 @@ rc|=sabotage.prove({
       replace:"if(name===\"XP\")return tag;"},
     {label:"proposal-free NPC merges become destructive again",
     mustFail:"W2 direct merges are proposals first; a delivered exact confirmation a",
-      find:"function w2MergeAllowed(canonical,duplicate,tag){if(!worldState||!worldState.sceneRefs)return true;",
-      replace:"function w2MergeAllowed(canonical,duplicate,tag){return true;if(!worldState||!worldState.sceneRefs)return true;"}
+      find:"function w2MergeAllowed(canonical,duplicate,tag){if(!worldState)return true;",
+      replace:"function w2MergeAllowed(canonical,duplicate,tag){return true;if(!worldState)return true;"}
   ]
 });
 
