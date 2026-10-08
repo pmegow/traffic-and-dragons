@@ -27068,6 +27068,39 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#527 role cast identity");
+  function roleCast527(names){
+    makeWorld();worldState.character.name="Silas";worldState.turn=20;memory.npcs={};worldState.npcs=[];
+    (names||["Gazz Quickfuse"]).forEach(function(n){worldState.npcs.push({name:n,rel:"neutral",status:"waiting"});memory.npcs[n]={attitude:"neutral",knowledge:[],events:[],aliases:[],lastSeenAt:"Far Town",lastSeenTurn:1};});
+    fileLocation("Ashfen","A quiet village.",20);worldState.world.location="Ashfen";worldState.world.sublocation=null;delete worldState.sceneRefs;sceneRefsEnsure();
+  }
+  t("#527 role cast binds presence and canonical speech without repeated cast correction",function(){
+    roleCast527();var before=Object.keys(memory.npcs).join();
+    for(var i=0;i<2;i++){worldState.turn++;applyMuts("[SCENE_CAST:Silas, Gazz the smith][SAY:Gazz Quickfuse]Welcome.");
+      if(!scenePresentNow("Gazz Quickfuse"))return "role cast left canonical speaker absent";
+      if(worldState.castLast.names.indexOf("Gazz Quickfuse")<0||worldState.castLast.names.indexOf("Gazz the smith")>=0)return "canonical cast retained occupation spelling";
+      if(worldState.castSpeakerPing||buildCastSpeakerNote())return "role cast rearmed CAST CHECK";}
+    if(Object.keys(memory.npcs).join()!==before||memory.npcs["Gazz Quickfuse"].aliases.length)return "cast minted identity or alias";
+    return resolveNpcName("Gazz the smith")==="Gazz the smith"?true:"general identity resolver broadened";
+  });
+  t("#527 role cast alone and companion omission use the same identity",function(){
+    roleCast527();worldState.npcs[0].partyMember=true;applyMuts("[SCENE_CAST:Gazz the blacksmith]");
+    if(!scenePresentNow("Gazz Quickfuse"))return "cast alone failed presence";
+    return castOmittedCompanions({castSet:sceneCastSet("[SCENE_CAST:Gazz the smith]")})===null?true:"role-named companion falsely omitted";
+  });
+  t("#527 role cast preserves ambiguity exact names aliases surnames and hero boundaries",function(){
+    roleCast527(["Gazz Quickfuse","Gazz Copper"]);applyMuts("[SCENE_CAST:Gazz the smith][SAY:Gazz Quickfuse]Hello.");
+    if(scenePresentNow("Gazz Quickfuse")||scenePresentNow("Gazz Copper"))return "ambiguous prefix selected a person";
+    roleCast527(["Gazz Quickfuse","Gazz the smith","Gazz Smith"]);applyMuts("[SCENE_CAST:Gazz the smith]");
+    if(!scenePresentNow("Gazz the smith")||scenePresentNow("Gazz Quickfuse"))return "exact role-named record lost";
+    applyMuts("[SCENE_CAST:Gazz Smith]");if(!scenePresentNow("Gazz Smith"))return "true surname lost";
+    roleCast527();memory.npcs["Gazz Quickfuse"].aliases=["Spark the smith"];applyMuts("[SCENE_CAST:Spark the smith]");if(!scenePresentNow("Gazz Quickfuse"))return "registered alias lost";
+    roleCast527(["Gazz Quickfuse","Mira Copper"]);memory.npcs["Mira Copper"].aliases=["Gazz the smith"];applyMuts("[SCENE_CAST:Gazz the smith][SAY:Mira Copper]Hello.");if(!scenePresentNow("Mira Copper")||scenePresentNow("Gazz Quickfuse")||worldState.castSpeakerPing)return "registered role alias lost precedence";
+    roleCast527();worldState.character.name="Gazz";applyMuts("[SCENE_CAST:Gazz the smith]");if(scenePresentNow("Gazz Quickfuse"))return "hero prefix selected NPC";
+    roleCast527(["Old Maud"]);applyMuts("[SCENE_CAST:old the smith, the the smith]");if(scenePresentNow("Old Maud"))return "generic prefix selected NPC";
+    roleCast527();worldState.npcs[0].dead=true;applyMuts("[SCENE_CAST:Gazz the smith]");return scenePresentNow("Gazz Quickfuse")?"dead NPC admitted":true;
+  });
+
   section("#527 hero cast identity");
   function heroCast527(){
     makeWorld();worldState.character.name="Ammut";worldState.character.aliases=["Bone-boy"];worldState.turn=20;

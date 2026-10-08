@@ -1042,6 +1042,17 @@ function presenceObserve(name,channel,atKey){/* #481 B1: atKey = where it was ob
 /* #481 B1 (audit 2026-09-29, Fable-approved): the reply's cast — every non-none [SCENE_CAST:] name, raw (resolved at the
    check, after this reply's aliases and merges have landed). null = no cast: [SCENE_CAST:none] and a reply without one both
    leave presence to the speakers, as before. */
+/* Cast descriptions may append an occupation; this is observation shorthand, never an alias or merge.
+   Only a distinctive prefix resolving to one living roster identity can supply that observation. */
+var SCENE_CAST_ROLES=npcWordTable({smith:1,blacksmith:1});
+function resolveSceneCastName(name){
+  var raw=String(name||"").trim(),canon=resolveNpcName(raw);
+  if(memoryNpcIsPlayer(raw)||wsNpcByName(canon)||(memory.npcs&&memory.npcs[canon]))return canon;
+  var m=/^(.+?)\s+the\s+(\S+)$/i.exec(raw);
+  if(!m||!SCENE_CAST_ROLES[m[2].toLowerCase()]||!npcCoreTokens(m[1]).length||memoryNpcIsPlayer(m[1]))return canon;
+  var key=resolveNpcName(m[1]),n=wsNpcByName(key);
+  return n&&!npcIsDead(n)?key:canon;
+}
 function sceneCastSet(text){
   var re=/\[SCENE_CAST:([^\]]*)\]/g,m,set=null,i;
   while((m=re.exec(String(text==null?"":text)))!==null){var p=m[1].trim();if(!p||/^none$/i.test(p))continue;if(!set)set={};
@@ -1053,7 +1064,7 @@ function sceneCastSet(text){
    else). The GM decides whether they stayed behind; the engine never splits on its own. */
 function castOmittedCompanions(R){
   if(!R||!R.castSet||!worldState)return null;
-  var cast={},k,i,names=[],set={},npcs=worldState.npcs||[];for(k in R.castSet)cast[resolveNpcName(k)]=1;
+  var cast={},k,i,names=[],set={},npcs=worldState.npcs||[];for(k in R.castSet)cast[resolveSceneCastName(k)]=1;
   for(i=0;i<npcs.length;i++){var n=npcs[i];if(!n||!n.partyMember)continue;if(typeof npcIsDead==="function"&&npcIsDead(n))continue;
     if(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location)continue;if(cast[resolveNpcName(n.name)])continue;names.push(n.name);set[n.name]=1;}
   return names.length?{names:names,set:set}:null;
@@ -1098,7 +1109,7 @@ function derivePresenceFromResponse(text,R){
      behind shutters, across the gravel (t198/t206/t208/t213/t218 in the Village). They get NO node presence: no lastSeenAt,
      no guestbook stamp, no frame observation. The transcript speech record is untouched, so the death gate still sees the
      line. Party members are B2's (the hero is never withheld). A combatant is seen at the fight's own place (A4). */
-  var castCanon=null,ck;if(R&&R.castSet){castCanon={};for(ck in R.castSet)castCanon[resolveNpcName(ck)]=1;
+  var castCanon=null,ck;if(R&&R.castSet){castCanon={};for(ck in R.castSet)castCanon[resolveSceneCastName(ck)]=1;
     worldState.castLast={turn:(R.turn!=null)?R.turn:worldState.turn,node:locResolve(currentNodeKey()),names:Object.keys(castCanon)};/* #481 B4: the latest non-none cast, where the reply ends — scenePresentNow reads it */}
   /* #514 (owner ruling 2026-10-01: "none" clears the room): a none-only cast IS a cast — the whole party and no one else, as
      the doc tells the GM. It used to change nothing, so someone named in an earlier cast stayed "in the scene" for as long as
@@ -1129,7 +1140,7 @@ function derivePresenceFromResponse(text,R){
   while((m=re.exec(text))){
     castSeen=true;
     var payload=m[1].trim();
-    if(/^none$/i.test(payload))castNone=true;else{var parts=payload.split(/[|,]/);for(i=0;i<parts.length;i++)take(parts[i],"cast");}
+    if(/^none$/i.test(payload))castNone=true;else{var parts=payload.split(/[|,]/);for(i=0;i<parts.length;i++)take(resolveSceneCastName(parts[i]),"cast");}
   }
   if(castSeen){/* [SCENE_CAST:none] included — the sentinel makes NON-ANSWER measurable (layer 4) */
     if(!worldState.castAsk)worldState.castAsk={};
