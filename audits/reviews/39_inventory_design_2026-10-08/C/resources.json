@@ -1,0 +1,12 @@
+{
+  "iterations": 1000,
+  "milliseconds": 2.4623,
+  "initialRows": 3,
+  "finalRows": 3,
+  "bytesMin": 124,
+  "bytesMax": 124,
+  "arrayReferenceReplacements": 1000,
+  "rowDeepEquality": true,
+  "oldReferencesRetainedByProbe": 0,
+  "kind": "reference-model-only; not shipping invHealSheet"
+}

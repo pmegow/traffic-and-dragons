@@ -1,0 +1,191 @@
+PASS legacy census ordinary strings
+PASS legacy census equipped membership
+PASS legacy census authorized worn pack order
+PASS legacy census empty carried list
+FAIL legacy census unreadable input: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\4 (every save)
+  saves 0 · sheets 0 · items 0 · counted (x2+) 0 · largest count 0
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+  - unreadable: C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\4\fixture.tnd (Expected property name or '}' in JSON at position 1 (line 1 column 2))
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census missing world: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\5 (every save)
+  saves 0 · sheets 0 · items 0 · counted (x2+) 0 · largest count 0
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+  - no worldState: C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\5\fixture.tnd
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census malformed world: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\6 (every save)
+  saves 1 · sheets 0 · items 0 · counted (x2+) 0 · largest count 0
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census nonarray inventory: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\7 (every save)
+  saves 1 · sheets 0 · items 0 · counted (x2+) 0 · largest count 0
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+  - 7 · hero Fixture: inventory is not an array
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census unsupported row: missing diagnostic unsupported non-string inventory entry
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\8 (every save)
+  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 0
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 1
+  - 8 · hero Fixture: units for 'rope' 0 -> 2
+CENSUS FAILED — the migration would change what the GM reads or lose units
+
+FAIL legacy census unsupported mixed: missing diagnostic unsupported non-string inventory entry
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\9 (every save)
+  saves 1 · sheets 1 · items 2 · counted (x2+) 0 · largest count 1
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 1
+  - 9 · hero Fixture: units for 'torch' 0 -> 2
+CENSUS FAILED — the migration would change what the GM reads or lose units
+
+FAIL legacy census junk entry: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\10 (every save)
+  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 0
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 1 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+  - 10 · hero Fixture: junk entry null would move to inventoryJunk
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census blank entry: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\11 (every save)
+  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 0
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 1 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+  - 11 · hero Fixture: junk entry " " would move to inventoryJunk
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census malformed roster: missing diagnostic npcs is not an array
+C:\Projects\traffic-and-dragons\dev\census-inventory-rows.js:70
+  (ws.npcs || []).forEach(function (n) { if (n && n.charSheet) sheets.push({ who: n.name, s: n.charSheet }); });
+                  ^
+
+TypeError: (ws.npcs || []).forEach is not a function
+    at C:\Projects\traffic-and-dragons\dev\census-inventory-rows.js:70:19
+    at Array.forEach (<anonymous>)
+    at Object.<anonymous> (C:\Projects\traffic-and-dragons\dev\census-inventory-rows.js:65:15)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+
+Node.js v22.17.0
+
+FAIL legacy census malformed worn: missing diagnostic worn is not an array
+C:\Projects\traffic-and-dragons\dev\census-inventory-rows.js:88
+    var worn = (s.worn || []).filter(function (x) { return !!x; });
+                              ^
+
+TypeError: (s.worn || []).filter is not a function
+    at C:\Projects\traffic-and-dragons\dev\census-inventory-rows.js:88:31
+    at Array.forEach (<anonymous>)
+    at C:\Projects\traffic-and-dragons\dev\census-inventory-rows.js:72:10
+    at Array.forEach (<anonymous>)
+    at Object.<anonymous> (C:\Projects\traffic-and-dragons\dev\census-inventory-rows.js:65:15)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+
+Node.js v22.17.0
+
+FAIL legacy census invalid worn entry: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\14 (every save)
+  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 1
+  equipped lines 1 (1 names) · order changes 1 · worn with no carried item 1
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+  - 14 · hero Fixture: worn '7' matches no carried item (dropped, loudly)
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census unmatched worn: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\15 (every save)
+  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 1
+  equipped lines 1 (1 names) · order changes 1 · worn with no carried item 1
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+  - 15 · hero Fixture: worn 'Hat' matches no carried item (dropped, loudly)
+CENSUS OK — lossless, and every row prints back as its old string
+
+PASS legacy census grammar split
+FAIL legacy census unsafe units: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\17 (every save)
+  saves 1 · sheets 1 · items 1 · counted (x2+) 1 · largest count 9007199254740992
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census infinite units: missing diagnostic safe positive integer
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\18 (every save)
+  saves 1 · sheets 1 · items 1 · counted (x2+) 1 · largest count Infinity
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 1 · units lost or gained 0
+  - 18 · hero Fixture: 'Arrow x9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' prints back as 'Arrow xInfinity'
+CENSUS FAILED — the migration would change what the GM reads or lose units
+
+FAIL legacy census duplicate text change: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\19 (every save)
+  saves 1 · sheets 1 · items 2 · counted (x2+) 0 · largest count 1
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 1 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+  - 19 · hero Fixture: 1 entry folds into an existing row
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census whitespace text change: missing diagnostic inventory text/order changed
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\20 (every save)
+  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 1
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 1 · units lost or gained 0
+  - 20 · hero Fixture: ' Rope ' prints back as 'Rope'
+CENSUS FAILED — the migration would change what the GM reads or lose units
+
+FAIL legacy census zero usable corpus: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\21 (every save)
+  saves 0 · sheets 0 · items 0 · counted (x2+) 0 · largest count 0
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census only skipped inventory: expected exit 1, got 0
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\22 (every save)
+  saves 1 · sheets 0 · items 0 · counted (x2+) 0 · largest count 0
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+CENSUS OK — lossless, and every row prints back as its old string
+
+FAIL legacy census reports skipped inventory: missing diagnostic skipped missing inventory 1
+legacy census CLI: 5 passed, 19 failed
+#599 inventory-rows census — C:\Users\hannu\AppData\Local\Temp\tnd-599-census-test-zBmRKJ\23 (every save)
+  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 1
+  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0
+  folds 0 · junk 0 · grammar splits 0
+  rows printing back differently 0 · units lost or gained 0
+CENSUS OK — lossless, and every row prints back as its old string

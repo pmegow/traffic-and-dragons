@@ -1,0 +1,3009 @@
+[
+  {
+    "name": "loadState 10",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "621082c3b80c4b577540d970eed3620de9d2b73b4c456ef0cd9dac80a3e35241",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "621082c3b80c4b577540d970eed3620de9d2b73b4c456ef0cd9dac80a3e35241",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "importSaveData 10",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "6a74dc81c108f2ea9f6c5f6ffe5c0c3c94664aa1ea7d63b083b0ec30aaba53d5",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "6a74dc81c108f2ea9f6c5f6ffe5c0c3c94664aa1ea7d63b083b0ec30aaba53d5",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": 10,
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "checkpointRestore world 10",
+    "return": {
+      "held": true,
+      "restored": {
+        "ok": true,
+        "turn": 5,
+        "camp": "camp",
+        "respawn": 1
+      }
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "5409ef2dffc4eb59fcc599dcd78189be0091e14a4c4723b1071ae8e7bbc76b19",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "toast",
+        "★ Defining moment: Incoming died — and woke again at camp (turn 5; respawn 1 of 3)."
+      ]
+    ]
+  },
+  {
+    "name": "cloud apply 10",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "b17a6b797b5cef88a96418556bf842fcd72e1e0b38bfc001ebd89986d10bbef2",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "b17a6b797b5cef88a96418556bf842fcd72e1e0b38bfc001ebd89986d10bbef2",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "library hero sheet 10",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "7edf17255863f66de069b868e6f28f355580ed9516ad5a363bac324b25d83534",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "sheetVer": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "char envelope 10",
+    "return": {
+      "preview": true
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "loadState 11",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "3d170e1915c53a80542d82195871a4a2d875cbb9fe1089585ea2d9a20140fa8f",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "3d170e1915c53a80542d82195871a4a2d875cbb9fe1089585ea2d9a20140fa8f",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 11,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "importSaveData 11",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "3d170e1915c53a80542d82195871a4a2d875cbb9fe1089585ea2d9a20140fa8f",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "3d170e1915c53a80542d82195871a4a2d875cbb9fe1089585ea2d9a20140fa8f",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": 11,
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "checkpointRestore world 11",
+    "return": {
+      "held": true,
+      "restored": {
+        "ok": true,
+        "turn": 5,
+        "camp": "camp",
+        "respawn": 1
+      }
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "0133c8db7ff16837fc05c3926f12ed27db7bf15f27b3963c8a626cc0671f69e9",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 11,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "toast",
+        "★ Defining moment: Incoming died — and woke again at camp (turn 5; respawn 1 of 3)."
+      ]
+    ]
+  },
+  {
+    "name": "cloud apply 11",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "6d89a815853c558f130c0042fa894691ff6156fbec8f465d5d49c792c2fdc4cd",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "6d89a815853c558f130c0042fa894691ff6156fbec8f465d5d49c792c2fdc4cd",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 11,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "library hero sheet 11",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "a86520f29623c437bb38ee6149e20215d4e6477d0e8a88f895336a1832f3b31f",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "sheetVer": 11,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "char envelope 11",
+    "return": {
+      "preview": true
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "loadState undefined",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "0d186306e9bee83ea74a51a9e77352bb7122db814079f3307e0a8996fcb2fab4",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "0d186306e9bee83ea74a51a9e77352bb7122db814079f3307e0a8996fcb2fab4",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "importSaveData undefined",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "0d186306e9bee83ea74a51a9e77352bb7122db814079f3307e0a8996fcb2fab4",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "0d186306e9bee83ea74a51a9e77352bb7122db814079f3307e0a8996fcb2fab4",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "checkpointRestore world undefined",
+    "return": {
+      "held": true,
+      "restored": {
+        "ok": true,
+        "turn": 5,
+        "camp": "camp",
+        "respawn": 1
+      }
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "9fb3de72ca859fb1a9e79d745b29f6f2783badcc84b711823c94891ad9f1dbd2",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "toast",
+        "★ Defining moment: Incoming died — and woke again at camp (turn 5; respawn 1 of 3)."
+      ]
+    ]
+  },
+  {
+    "name": "cloud apply undefined",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "0d9bda56a7a8b01f7c60bcda36487efbdf0b9a1a57a5ee3e204675d5565fb495",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "0d9bda56a7a8b01f7c60bcda36487efbdf0b9a1a57a5ee3e204675d5565fb495",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "library hero sheet undefined",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "8df1cc5336c044d0a3240d88fa643c9b0429a6e0401e057fc1b2b380b26d26e2",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "char envelope undefined",
+    "return": {
+      "preview": true
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "loadState future",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "00bf0e31c5a2fb48dda1cab073b00abd3b5b644ee0f1f193509b7565c7cb05ae",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "00bf0e31c5a2fb48dda1cab073b00abd3b5b644ee0f1f193509b7565c7cb05ae",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": "future",
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "importSaveData future",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "00bf0e31c5a2fb48dda1cab073b00abd3b5b644ee0f1f193509b7565c7cb05ae",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "00bf0e31c5a2fb48dda1cab073b00abd3b5b644ee0f1f193509b7565c7cb05ae",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": "future",
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "checkpointRestore world future",
+    "return": {
+      "held": true,
+      "restored": {
+        "ok": true,
+        "turn": 5,
+        "camp": "camp",
+        "respawn": 1
+      }
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "94382d00b2e9ea8f26c7d307698b9920ab34f22af3339cb54ff7492182992daa",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": "future",
+    "writes": [],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "toast",
+        "★ Defining moment: Incoming died — and woke again at camp (turn 5; respawn 1 of 3)."
+      ]
+    ]
+  },
+  {
+    "name": "cloud apply future",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "d640c352e97a639a889c407b6c8f2e676f9325f7e57d8847aec7fb94cf051331",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "d640c352e97a639a889c407b6c8f2e676f9325f7e57d8847aec7fb94cf051331",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": "future",
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "library hero sheet future",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "b17edc9e10e64ba190c29b0997526572572e724ce820711b0d4f841010fe7ec4",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "sheetVer": "future",
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "char envelope future",
+    "return": {
+      "preview": true
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "loadState null",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "96137b9907c86d4861783f9d9d60f55caa38829429a55409f57086ee1f568f6d",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "96137b9907c86d4861783f9d9d60f55caa38829429a55409f57086ee1f568f6d",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": null,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "importSaveData null",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "12511a91b6ffe777f9b2af1d660a17a9de0473cdea8f2da92158ab361836bf7f",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "12511a91b6ffe777f9b2af1d660a17a9de0473cdea8f2da92158ab361836bf7f",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": null,
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "checkpointRestore world null",
+    "return": {
+      "held": true,
+      "restored": {
+        "ok": true,
+        "turn": 5,
+        "camp": "camp",
+        "respawn": 1
+      }
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "512327bcbe831e610c059f0d6fe1eaa516feb92c940d25f497fbb7053771045f",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": null,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "toast",
+        "★ Defining moment: Incoming died — and woke again at camp (turn 5; respawn 1 of 3)."
+      ]
+    ]
+  },
+  {
+    "name": "cloud apply null",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "12511a91b6ffe777f9b2af1d660a17a9de0473cdea8f2da92158ab361836bf7f",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "12511a91b6ffe777f9b2af1d660a17a9de0473cdea8f2da92158ab361836bf7f",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": null,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "library hero sheet null",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "5f1f72808d4d4747734626b2f0e5a4358829fb6226f411aa62d650a73e88918c",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "sheetVer": null,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "char envelope null",
+    "return": {
+      "preview": true
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "checkpoint future outer v",
+    "return": {
+      "held": false,
+      "restored": {
+        "ok": false,
+        "reason": "that camp was written by a newer version of the game (snapshot v2, this build reads v1)"
+      }
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "warn",
+        "[checkpoint] camp REFUSED — that camp was written by a newer version of the game (snapshot v2, this build reads v1); nothing is held (audit D1/D9)"
+      ],
+      [
+        "warn",
+        "[checkpoint] restore REFUSED — that camp was written by a newer version of the game (snapshot v2, this build reads v1); the live campaign is untouched (audit D1/D9)"
+      ]
+    ]
+  },
+  {
+    "name": "nested future hero old world",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "456de605a276ea75b08aa49b14ee7d4a9c3615c8143a432cb3e54cc00f4157f3",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "456de605a276ea75b08aa49b14ee7d4a9c3615c8143a432cb3e54cc00f4157f3",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "sheetVer": 11,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "library companion future",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "e876a811e01e956e96c29dff914dbde0f0b50c2e22d5d6892f6c23f62473fb0c",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "Village future",
+    "return": {
+      "added": 1,
+      "skipped": []
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "647c82625422ad0d6390dba42ccf643db93530af5b636333a67ba0842fbd9924",
+      "mem": "95de94203b1be4eb37d9f0251627b222174df54eba7db85e79d4e5c13ca1f27b",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "fallen future",
+    "return": 1,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "c8a15c645174a4b6f725748864e4f51c1f88c9e3aac68df2db028ef468ffcace",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "toast",
+        "★ Defining moment: Bram fell and returned to the party at camp."
+      ],
+      [
+        "toast",
+        "⛺ 1 fallen companion rejoin at camp"
+      ]
+    ]
+  },
+  {
+    "name": "portable future",
+    "return": {
+      "sheetVer": 11
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "switch future slot",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "9f99411a4c1bd35bfe4ac9b172eeba3c02ddd8a69c067590aaf5f0843fb09113",
+      "mem": "9677b8f2b988ec77b7e894127c098e6b3a7409fe5585e0e74c329464706348fb",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "next",
+      "live": "9f99411a4c1bd35bfe4ac9b172eeba3c02ddd8a69c067590aaf5f0843fb09113",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": 11,
+    "writes": [
+      [
+        "del",
+        "tnd_camp_next_ws"
+      ],
+      [
+        "del",
+        "tnd_camp_next_sl"
+      ],
+      [
+        "del",
+        "tnd_camp_next_mem"
+      ],
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "char future nested",
+    "return": {
+      "preview": true,
+      "sheetVer": 11
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "pending future",
+    "return": {
+      "count": 1,
+      "sheetVer": 11
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "toast",
+        "Bram added as companion."
+      ]
+    ]
+  },
+  {
+    "name": "import companion future",
+    "return": {
+      "count": 1,
+      "sheetVer": 11
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "1cd6df10c1ffeec3877d5f6a031438a4800e5015edac910b7aafd9f5b867064c",
+      "mem": "6241958851fa81432bafe4c9fdc60f8d132b87d967cd7b2542cf34d6304a39d5",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "1cd6df10c1ffeec3877d5f6a031438a4800e5015edac910b7aafd9f5b867064c",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "toast",
+        "Bram added as companion."
+      ],
+      [
+        "sendAction intercepted"
+      ]
+    ]
+  },
+  {
+    "name": "SIM pre-gate import 10",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "63f82ab1085d86ff637c318d40cf40d7a5c55ec83b41f65cf5ba9300f0995923",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "63f82ab1085d86ff637c318d40cf40d7a5c55ec83b41f65cf5ba9300f0995923",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": 10,
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "SIM pre-gate import 11",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "c231d21241bd21ebaefc25efe9c3cb9364c90697e7b6f1cf549316b87f333da6",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "c231d21241bd21ebaefc25efe9c3cb9364c90697e7b6f1cf549316b87f333da6",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": 11,
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "SIM gate-only import 10",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "63f82ab1085d86ff637c318d40cf40d7a5c55ec83b41f65cf5ba9300f0995923",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "63f82ab1085d86ff637c318d40cf40d7a5c55ec83b41f65cf5ba9300f0995923",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": 10,
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "SIM gate-only import 11",
+    "return": false,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "simulated refusal",
+        "newer world"
+      ]
+    ]
+  },
+  {
+    "name": "SIM future-row import 10",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "78499d9ed6ef97595344e15c0bd61dbf2047dafb72b2125d62e3966d57547866",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "78499d9ed6ef97595344e15c0bd61dbf2047dafb72b2125d62e3966d57547866",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": 10,
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "SIM future-row import 11",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "f507ff60a0fdd85f521f3d31903ebd4f7f17d34bc1a18cf012bac80378b80ce5",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "f507ff60a0fdd85f521f3d31903ebd4f7f17d34bc1a18cf012bac80378b80ce5",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": 11,
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "SIM late gate inside loadState cloud future",
+    "return": true,
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "d315e4f1c25f81f6717f8669e285b353d58a34a18b39b1c01d197443bbb67f77",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 0,
+    "events": [
+      [
+        "simulated refusal",
+        "newer world"
+      ]
+    ]
+  },
+  {
+    "name": "SIM world-only gate nested future",
+    "return": {
+      "id": "old",
+      "reminted": false,
+      "fileId": "old"
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "5e387ced67f91f92bf36a4ab1530f416950978a09c9c383b1d5ea606a0050eb2",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "5e387ced67f91f92bf36a4ab1530f416950978a09c9c383b1d5ea606a0050eb2",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camp_old_mem",
+        "tnd_camp_old_sl",
+        "tnd_camp_old_ws",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": false,
+    "ver": 10,
+    "sheetVer": 11,
+    "writes": [
+      [
+        "set",
+        "tnd_camp_old_ws"
+      ],
+      [
+        "set",
+        "tnd_camp_old_sl"
+      ],
+      [
+        "set",
+        "tnd_camp_old_mem"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Incoming"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ]
+    ]
+  },
+  {
+    "name": "SIM early gate source retry",
+    "return": {
+      "rejected": true,
+      "unchanged": true,
+      "acceptedAfterUpdate": true
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  }
+]

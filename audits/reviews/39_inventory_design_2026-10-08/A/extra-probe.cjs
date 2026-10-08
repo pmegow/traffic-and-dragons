@@ -1,0 +1,18 @@
+const fs=require('fs'),path=require('path'),crypto=require('crypto'),cp=require('child_process');
+const root='C:/Projects/traffic-and-dragons',out=__dirname;const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+const files=cp.execFileSync('git',['ls-files'],{cwd:root,encoding:'utf8'}).trim().split('\n').filter(f=>/\.(js|html|md)$/.test(f));
+const hashes=Object.fromEntries(files.map(f=>[f,hash(fs.readFileSync(path.join(root,f)))]));fs.writeFileSync(path.join(out,'source-hashes-before.json'),JSON.stringify(hashes,null,2));
+const log=console.log.bind(console);let writes=[],events=[],sync=0,db={};global.localStorage={getItem:k=>db[k]??null,setItem:(k,v)=>{db[k]=String(v);writes.push(['set',k]);},removeItem:k=>{delete db[k];writes.push(['del',k]);},key:i=>Object.keys(db)[i],get length(){return Object.keys(db).length}};global.fetch=()=>{throw Error('NETWORK FORBIDDEN')};
+const e=require(root+'/dev/load-engine.js');e.loadEngine();(0,eval)(fs.readFileSync(root+'/ui-browsers.js','utf8'));(0,eval)(fs.readFileSync(root+'/ui-campaigns.js','utf8'));
+global.document={getElementById:id=>id==='char-screen'?{style:{display:'none'}}:null};global.showToast=s=>events.push(['toast',s]);console.warn=(...x)=>events.push(['warn',...x.map(String)]);console.error=(...x)=>events.push(['error',...x.map(String)]);console.info=(...x)=>events.push(['info',...x.map(String)]);
+for(const k of ['syncUI','restoreCheckpointHolder','_applyLoadedCampaign','audioScenePublish'])global[k]=()=>{};
+const sa={syncToServer:()=>sync++,resetSyncState:()=>{},clearFlushDirty:()=>{},adoptServerTurn:()=>{},isServerMode:()=>false};global.storageAdapter=sa;
+function reset(){db={};writes=[];events=[];sync=0;e.makeTestWorld({campId:'old'});setActiveCampId('old');saveCore();saveMem();setCampMeta([{id:'old',name:'Old'}]);writes=[];events=[];sync=0;}
+function state(){return {ws:hash(JSON.stringify(worldState)),mem:hash(JSON.stringify(memory)),sl:hash(JSON.stringify(sessionLog)),id:getActiveCampId(),live:db[WSK]?hash(db[WSK]):null,keys:Object.keys(db).sort()};}
+const cases=[];
+function run(name,make,fn){reset();let input=make(),src=hash(JSON.stringify(input)),before=state(),ret,err;try{ret=fn(input);}catch(x){err=x.message;}cases.push({name,return:ret,error:err,before,after:state(),sourceUnchanged:src===hash(JSON.stringify(input)),ver:worldState&&worldState.ver,sheetVer:worldState&&worldState.character&&worldState.character.sheetVer,writes:JSON.parse(JSON.stringify(writes)),syncAttempts:sync,events:JSON.parse(JSON.stringify(events))});}
+
+run('pre-gate row read/write',()=>({name:'Torch',qty:3,equipped:true}),row=>{let inv=[row];let rendered=inv.join(', ');addInventoryItem(inv,'Torch');return {rendered,inventory:inv};});
+run('SIM rejection then saveAll',()=>({ver:11}),x=>{let rejected=x.ver>10;saveAll();return {rejected,syncAttempts:sync,retainedVersion:worldState.ver};});
+run('char envelope future lost before bare adoption',()=>({ver:11,type:'character',character:JSON.parse(JSON.stringify(worldState.character))}),x=>{let preview;global.showCharImportPreview=c=>preview=c;global.FileReader=class{readAsText(){this.onload({target:{result:JSON.stringify(x)}})}};importCharacterFile({target:{files:[{}],value:'x'}});const portable=portableSheet(preview);const adopted=adoptLibraryHero(portable,10);return {adopted:!!adopted,sheetVer:adopted&&adopted.sheetVer,envelopeOnSheet:Object.hasOwn(adopted,'ver')};});
+fs.writeFileSync(path.join(out,'extra-probes.json'),JSON.stringify(cases,null,2));log(cases.map(c=>({name:c.name,result:c.return,error:c.error,writes:c.writes.length,sync:c.syncAttempts})));

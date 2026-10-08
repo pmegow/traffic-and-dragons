@@ -1,0 +1,27 @@
+PASS legacy census ordinary strings
+PASS legacy census unit conservation
+PASS legacy census equipped membership
+PASS legacy census authorized worn pack order
+PASS legacy census empty carried list
+PASS legacy census unreadable input
+PASS legacy census missing world
+PASS legacy census malformed world
+PASS legacy census nonarray inventory
+PASS legacy census unsupported row
+PASS legacy census unsupported mixed
+PASS legacy census junk entry
+PASS legacy census blank entry
+PASS legacy census malformed roster
+PASS legacy census malformed worn
+PASS legacy census invalid worn entry
+PASS legacy census unmatched worn
+PASS legacy census grammar split
+PASS legacy census aggregate overflow
+PASS legacy census unsafe units
+PASS legacy census infinite units
+PASS legacy census duplicate text change
+PASS legacy census whitespace text change
+PASS legacy census zero usable corpus
+PASS legacy census only skipped inventory
+PASS legacy census reports skipped inventory
+legacy census CLI: 26 passed, 0 failed

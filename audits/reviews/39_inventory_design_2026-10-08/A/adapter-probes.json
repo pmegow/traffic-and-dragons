@@ -1,0 +1,156 @@
+[
+  {
+    "version": 10,
+    "worldVersion": 10,
+    "turn": 6,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Tess"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ],
+      [
+        "load callback",
+        true
+      ],
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Tess"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t6 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ],
+      [
+        "warn",
+        "[storage] sync failed (1 consecutive): addMsg is not defined"
+      ]
+    ],
+    "requests": [
+      {
+        "url": "https://fixture.invalid/api/campaigns/old",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "sourceUnchanged": false
+  },
+  {
+    "version": 11,
+    "worldVersion": 11,
+    "turn": 6,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_active_v1"
+      ],
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "events": [
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Tess"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ],
+      [
+        "load callback",
+        true
+      ],
+      [
+        "info",
+        "[migrate] #101: spell labels stripped to bible bare names on Tess"
+      ],
+      [
+        "info",
+        "[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)"
+      ],
+      [
+        "info",
+        "[presence] #194 epoch set at t6 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)"
+      ],
+      [
+        "warn",
+        "[storage] sync failed (1 consecutive): addMsg is not defined"
+      ]
+    ],
+    "requests": [
+      {
+        "url": "https://fixture.invalid/api/campaigns/old",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "sourceUnchanged": false
+  }
+]

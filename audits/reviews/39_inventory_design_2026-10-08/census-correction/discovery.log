@@ -1,0 +1,4 @@
+run-sabotage-diff: 1 battery(ies) target changed files — sabotage-599-legacy-census.js
+run-sabotage-diff: 1 at a time (--jobs=N or SABOTAGE_JOBS=N to change)
+run-sabotage-diff: all due batteries green
+PASS unchanged diff scanner selects new battery for checker-only diff; all four original-source clauses captured and applicable.

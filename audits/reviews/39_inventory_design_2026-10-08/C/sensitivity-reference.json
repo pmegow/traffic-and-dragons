@@ -1,0 +1,135 @@
+[
+  {
+    "id": "baseline",
+    "observed": [
+      {
+        "name": "Axe",
+        "qty": 1,
+        "equipped": true
+      },
+      {
+        "name": "Shield",
+        "qty": 1,
+        "equipped": true
+      },
+      {
+        "name": "Torch",
+        "qty": 3,
+        "equipped": false
+      }
+    ],
+    "existingCensusUnitTextWouldAccept": true,
+    "proposedEquippedSetWouldAccept": true,
+    "referenceIdempotent": true,
+    "referenceUnknownFieldPreserved": null,
+    "approvedEquippedOutput": "Axe, Shield"
+  },
+  {
+    "id": "drop-equipped-only",
+    "observed": [
+      {
+        "name": "Axe",
+        "qty": 1,
+        "equipped": false
+      },
+      {
+        "name": "Shield",
+        "qty": 1,
+        "equipped": false
+      },
+      {
+        "name": "Torch",
+        "qty": 3,
+        "equipped": false
+      }
+    ],
+    "existingCensusUnitTextWouldAccept": true,
+    "proposedEquippedSetWouldAccept": false,
+    "referenceIdempotent": true,
+    "referenceUnknownFieldPreserved": null,
+    "approvedEquippedOutput": ""
+  },
+  {
+    "id": "reorder-inventory",
+    "observed": [
+      {
+        "name": "Torch",
+        "qty": 3,
+        "equipped": false
+      },
+      {
+        "name": "Shield",
+        "qty": 1,
+        "equipped": true
+      },
+      {
+        "name": "Axe",
+        "qty": 1,
+        "equipped": true
+      }
+    ],
+    "existingCensusUnitTextWouldAccept": false,
+    "proposedEquippedSetWouldAccept": true,
+    "referenceIdempotent": true,
+    "referenceUnknownFieldPreserved": null,
+    "approvedEquippedOutput": "Shield, Axe"
+  },
+  {
+    "id": "equipped-output-pack-order",
+    "observed": [
+      {
+        "name": "Axe",
+        "qty": 1,
+        "equipped": true
+      },
+      {
+        "name": "Shield",
+        "qty": 1,
+        "equipped": true
+      },
+      {
+        "name": "Torch",
+        "qty": 3,
+        "equipped": false
+      }
+    ],
+    "existingCensusUnitTextWouldAccept": true,
+    "proposedEquippedSetWouldAccept": true,
+    "referenceIdempotent": true,
+    "referenceUnknownFieldPreserved": null,
+    "approvedEquippedOutput": "Axe, Shield"
+  },
+  {
+    "id": "unknown-field-drop",
+    "observed": [
+      {
+        "name": "Axe",
+        "qty": 1,
+        "equipped": true
+      }
+    ],
+    "existingCensusUnitTextWouldAccept": null,
+    "proposedEquippedSetWouldAccept": null,
+    "referenceIdempotent": true,
+    "referenceUnknownFieldPreserved": false,
+    "approvedEquippedOutput": "Axe"
+  },
+  {
+    "id": "typeof-string-reader",
+    "observedSnapshot": {},
+    "expectedRows": 3,
+    "observedEntries": 0,
+    "existingBehavior": "skips all rows",
+    "proposedStaticGate": "not implemented"
+  },
+  {
+    "id": "skip-admission-heal",
+    "observedInventory": [
+      "Axe",
+      "Shield",
+      "Torch x3"
+    ],
+    "inventoryHealExists": "undefined",
+    "existingBehavior": "current relationship adapter retains strings; row heal is proposed only"
+  }
+]

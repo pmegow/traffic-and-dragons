@@ -1,0 +1,143 @@
+{
+  "titleCases": [
+    {
+      "title": "derived cleanTxt strip regex is byte-identical to the frozen literal",
+      "matched": "DIFF dev/golden/tag-table-strip.golden",
+      "renamed": ""
+    },
+    {
+      "title": "derived STATE TAGS doc block frozen (the money-tested prompt text, byte-level)",
+      "matched": "DIFF dev/golden/tag-table-doc.golden",
+      "renamed": ""
+    }
+  ],
+  "replays": [
+    {
+      "file": "dev/corpus_playtest_v1238.json.endstate.json",
+      "fields": [
+        {
+          "path": "root.ws.character.inventory",
+          "value": [
+            "Short blade",
+            "Short blade (backup)",
+            "Leather armor",
+            "Lockpicks",
+            "Smoke powder",
+            "Travel rations (3 days)",
+            "First aid kit"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "dev/corpus_playtest_v1258.json.endstate.json",
+      "fields": [
+        {
+          "path": "root.ws.character.inventory",
+          "value": [
+            "Short blade",
+            "Short blade (backup)",
+            "Leather armor",
+            "Lockpicks",
+            "Smoke powder",
+            "Travel rations (3 days)",
+            "First aid kit",
+            "Smoked Ham",
+            "Physician's Ledger",
+            "Oakhallow's Letter"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "dev/corpus_playtest_v1271.json.endstate.json",
+      "fields": [
+        {
+          "path": "root.ws.character.inventory",
+          "value": [
+            "Short blade",
+            "Short blade (backup)",
+            "Leather armor",
+            "Lockpicks",
+            "Smoke powder",
+            "Travel rations (3 days)",
+            "First aid kit"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "dev/corpus_playtest_v1276.json.endstate.json",
+      "fields": [
+        {
+          "path": "root.ws.character.inventory",
+          "value": [
+            "Short blade",
+            "Short blade (backup)",
+            "Leather armor",
+            "Lockpicks",
+            "Smoke powder",
+            "Travel rations (3 days)",
+            "First aid kit",
+            "Travel rations x2",
+            "Boot knife (whalebone handle)"
+          ]
+        }
+      ]
+    }
+  ],
+  "healOrder": {
+    "calls": 4,
+    "inventoryLine": "Inventory: HEAL_SENTINEL"
+  },
+  "projectionChecker": "scratch model only; §8.2 gate 8 not implemented",
+  "projection": [
+    {
+      "name": "allowed equipped pack-order",
+      "observed": true,
+      "expected": true
+    },
+    {
+      "name": "drop equipped",
+      "observed": false,
+      "expected": false
+    },
+    {
+      "name": "reorder inventory",
+      "observed": false,
+      "expected": false
+    },
+    {
+      "name": "unexpected other byte",
+      "observed": false,
+      "expected": false
+    }
+  ],
+  "dictionaries": {
+    "__proto__": {
+      "nullPrototype": true,
+      "own": true,
+      "json": "{\"__proto__\":{\"qty\":1}}"
+    },
+    "constructor": {
+      "nullPrototype": true,
+      "own": true,
+      "json": "{\"constructor\":{\"qty\":1}}"
+    },
+    "toString": {
+      "nullPrototype": true,
+      "own": true,
+      "json": "{\"toString\":{\"qty\":1}}"
+    }
+  },
+  "shallow": {
+    "kind": "reference illustration only; invRemove not implemented",
+    "liveQtyAfterCopyMutation": 2,
+    "simSharesRow": true,
+    "sourceSites": [
+      "game.js:380",
+      "tag_table.js:540",
+      "game.js:4394"
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "name": "junk-only",
+    "exit": 0,
+    "output": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\junk-only (every save)\n  saves 1 · sheets 1 · items 3 · counted (x2+) 0 · largest count 0\n  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0\n  folds 0 · junk 3 · grammar splits 0\n  rows printing back differently 0 · units lost or gained 0\n  - junk-only · hero undefined: junk entry null would move to inventoryJunk\n  - junk-only · hero undefined: junk entry 7 would move to inventoryJunk\n  - junk-only · hero undefined: junk entry {} would move to inventoryJunk\nCENSUS OK — lossless, and every row prints back as its old string\n"
+  },
+  {
+    "name": "unmatched-worn",
+    "exit": 0,
+    "output": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\unmatched-worn (every save)\n  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 1\n  equipped lines 1 (1 names) · order changes 1 · worn with no carried item 1\n  folds 0 · junk 0 · grammar splits 0\n  rows printing back differently 0 · units lost or gained 0\n  - unmatched-worn · hero undefined: worn 'Hat' matches no carried item (dropped, loudly)\nCENSUS OK — lossless, and every row prints back as its old string\n"
+  },
+  {
+    "name": "duplicate-fold",
+    "exit": 0,
+    "output": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\duplicate-fold (every save)\n  saves 1 · sheets 1 · items 2 · counted (x2+) 0 · largest count 1\n  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0\n  folds 1 · junk 0 · grammar splits 0\n  rows printing back differently 0 · units lost or gained 0\n  - duplicate-fold · hero undefined: 1 entry folds into an existing row\nCENSUS OK — lossless, and every row prints back as its old string\n"
+  },
+  {
+    "name": "nonarray",
+    "exit": 0,
+    "output": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\nonarray (every save)\n  saves 1 · sheets 0 · items 0 · counted (x2+) 0 · largest count 0\n  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0\n  folds 0 · junk 0 · grammar splits 0\n  rows printing back differently 0 · units lost or gained 0\n  - nonarray · hero undefined: inventory is not an array\nCENSUS OK — lossless, and every row prints back as its old string\n"
+  },
+  {
+    "name": "no-world",
+    "exit": 0,
+    "output": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\no-world (every save)\n  saves 0 · sheets 0 · items 0 · counted (x2+) 0 · largest count 0\n  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0\n  folds 0 · junk 0 · grammar splits 0\n  rows printing back differently 0 · units lost or gained 0\n  - no worldState: C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\no-world\\fixture.tnd\nCENSUS OK — lossless, and every row prints back as its old string\n"
+  },
+  {
+    "name": "rows",
+    "exit": 1,
+    "output": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\rows (every save)\n  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 0\n  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0\n  folds 0 · junk 0 · grammar splits 0\n  rows printing back differently 0 · units lost or gained 1\n  - rows · hero undefined: units for 'rope' 0 -> 2\nCENSUS FAILED — the migration would change what the GM reads or lose units\n"
+  },
+  {
+    "name": "x0",
+    "exit": 1,
+    "output": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\x0 (every save)\n  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 1\n  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0\n  folds 0 · junk 0 · grammar splits 1\n  rows printing back differently 0 · units lost or gained 2\n  - x0 · hero undefined: count grammars disagree on 'Arrow x0' (0 today, 1 in rows)\n  - x0 · hero undefined: units for 'arrow' 0 -> 1\nCENSUS FAILED — the migration would change what the GM reads or lose units\n"
+  },
+  {
+    "name": "x01",
+    "exit": 0,
+    "output": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\x01 (every save)\n  saves 1 · sheets 1 · items 1 · counted (x2+) 0 · largest count 1\n  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0\n  folds 0 · junk 0 · grammar splits 0\n  rows printing back differently 0 · units lost or gained 0\nCENSUS OK — lossless, and every row prints back as its old string\n"
+  },
+  {
+    "name": "unreadable",
+    "exit": 0,
+    "output": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\unreadable (every save)\n  saves 0 · sheets 0 · items 0 · counted (x2+) 0 · largest count 0\n  equipped lines 0 (0 names) · order changes 0 · worn with no carried item 0\n  folds 0 · junk 0 · grammar splits 0\n  rows printing back differently 0 · units lost or gained 0\n  - unreadable: C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-entry39-B\\synthetic\\unreadable\\fixture.tnd (Expected property name or '}' in JSON at position 1 (line 1 column 2))\nCENSUS OK — lossless, and every row prints back as its old string\n"
+  }
+]

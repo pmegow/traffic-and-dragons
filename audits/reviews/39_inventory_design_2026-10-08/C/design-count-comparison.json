@@ -1,0 +1,220 @@
+{
+  "literalDotInventoryCounts": {
+    "engine": {
+      "files": 12,
+      "lines": 76
+    },
+    "engineTests": {
+      "files": 1,
+      "lines": 267
+    },
+    "satellitesAndDev": {
+      "files": 27,
+      "lines": 74
+    }
+  },
+  "testFunctionCount": 2808,
+  "testBlocksMentioningInventoryOrWorn": 296,
+  "detail": [
+    {
+      "file": "DOC/Research/DOC_inventory_reorganization.html",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "DOC/Research/Drift_risks_FABLE.html",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "DOC/panel/reviews/village/village_players_review.html",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "api.js",
+      "group": "engine",
+      "lines": 8
+    },
+    {
+      "file": "audits/Fable_Review_2025_08_27.html",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "audits/audit_fable_2026_09_18.html",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "dev/census-inventory-rows.js",
+      "group": "satellitesAndDev",
+      "lines": 2
+    },
+    {
+      "file": "dev/engine-tests.js",
+      "group": "engineTests",
+      "lines": 267
+    },
+    {
+      "file": "dev/item-bible-coverage.js",
+      "group": "satellitesAndDev",
+      "lines": 2
+    },
+    {
+      "file": "dev/playtest-harness.js",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "dev/qa-407-shop.js",
+      "group": "satellitesAndDev",
+      "lines": 2
+    },
+    {
+      "file": "dev/qa-481-d5-d7-counter.js",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "dev/qa-6-stash.js",
+      "group": "satellitesAndDev",
+      "lines": 2
+    },
+    {
+      "file": "dev/repair-t1782-blackout.js",
+      "group": "satellitesAndDev",
+      "lines": 2
+    },
+    {
+      "file": "dev/repair-t1788-bundle.js",
+      "group": "satellitesAndDev",
+      "lines": 6
+    },
+    {
+      "file": "dev/sabotage-429-inventory-drop.js",
+      "group": "satellitesAndDev",
+      "lines": 2
+    },
+    {
+      "file": "dev/sabotage-481-d1-d9-move-record.js",
+      "group": "satellitesAndDev",
+      "lines": 2
+    },
+    {
+      "file": "dev/sabotage-481-d3-quantities.js",
+      "group": "satellitesAndDev",
+      "lines": 4
+    },
+    {
+      "file": "dev/sabotage-492-buy-button.js",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "dev/sabotage-510-withheld-sale.js",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "dev/sabotage-81b-item-canon-travels.js",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "dev/sabotage-drift-hardening.js",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "dev/sabotage-quartet-ledger.js",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "dev/sabotage-w2.js",
+      "group": "satellitesAndDev",
+      "lines": 2
+    },
+    {
+      "file": "dev/tests-23-ui.js",
+      "group": "satellitesAndDev",
+      "lines": 1
+    },
+    {
+      "file": "dev/tests-429-inventory-drop.js",
+      "group": "satellitesAndDev",
+      "lines": 26
+    },
+    {
+      "file": "dev/tests-501-shop-button-browser.js",
+      "group": "satellitesAndDev",
+      "lines": 2
+    },
+    {
+      "file": "dev/tests-581-stash-persistence.js",
+      "group": "satellitesAndDev",
+      "lines": 4
+    },
+    {
+      "file": "dev/tests-audit-ui.js",
+      "group": "satellitesAndDev",
+      "lines": 3
+    },
+    {
+      "file": "game.js",
+      "group": "engine",
+      "lines": 23
+    },
+    {
+      "file": "helpers.js",
+      "group": "engine",
+      "lines": 8
+    },
+    {
+      "file": "memory.js",
+      "group": "engine",
+      "lines": 1
+    },
+    {
+      "file": "state.js",
+      "group": "engine",
+      "lines": 4
+    },
+    {
+      "file": "table-talk.js",
+      "group": "engine",
+      "lines": 4
+    },
+    {
+      "file": "tag_table.js",
+      "group": "engine",
+      "lines": 13
+    },
+    {
+      "file": "ui-browsers.js",
+      "group": "engine",
+      "lines": 1
+    },
+    {
+      "file": "ui-modals.js",
+      "group": "engine",
+      "lines": 2
+    },
+    {
+      "file": "ui-panels.js",
+      "group": "engine",
+      "lines": 1
+    },
+    {
+      "file": "ui-portrait.js",
+      "group": "engine",
+      "lines": 1
+    },
+    {
+      "file": "ui-sheets.js",
+      "group": "engine",
+      "lines": 10
+    }
+  ]
+}

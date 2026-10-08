@@ -1,0 +1,51 @@
+{
+  "start": "2026-10-08T23:28:33.908Z",
+  "end": "2026-10-08T23:28:36.941Z",
+  "baseline": "8715997f6ce1837c032867d4de8477d718dc5b64",
+  "immutable": true,
+  "inputFiles": 120,
+  "runs": [
+    {
+      "name": "latest",
+      "exit": 0,
+      "ms": 185,
+      "summary": [
+        "  saves 10 · sheets 45 · items 1102 · counted (x2+) 176 · largest count 30",
+        "  equipped lines 13 (23 names) · order changes 4 · worn with no carried item 0",
+        "  folds 0 · junk 0 · grammar splits 0",
+        "  rows printing back differently 0 · units lost or gained 0",
+        "  skipped missing inventory 0 · usable legacy sheets 45 · equipped mismatches 0 · invalid diagnostics 0",
+        "CENSUS OK — selected legacy strings preserve exact text/order, units and equipped membership; row inputs are unsupported",
+        ""
+      ]
+    },
+    {
+      "name": "all",
+      "exit": 0,
+      "ms": 810,
+      "summary": [
+        "  saves 77 · sheets 507 · items 11490 · counted (x2+) 1887 · largest count 34",
+        "  equipped lines 56 (137 names) · order changes 29 · worn with no carried item 0",
+        "  folds 0 · junk 0 · grammar splits 0",
+        "  rows printing back differently 0 · units lost or gained 0",
+        "  skipped missing inventory 0 · usable legacy sheets 507 · equipped mismatches 0 · invalid diagnostics 0",
+        "CENSUS OK — selected legacy strings preserve exact text/order, units and equipped membership; row inputs are unsupported",
+        ""
+      ]
+    },
+    {
+      "name": "testRuns",
+      "exit": 0,
+      "ms": 419,
+      "summary": [
+        "  saves 43 · sheets 125 · items 3638 · counted (x2+) 873 · largest count 14",
+        "  equipped lines 1 (1 names) · order changes 0 · worn with no carried item 0",
+        "  folds 0 · junk 0 · grammar splits 0",
+        "  rows printing back differently 0 · units lost or gained 0",
+        "  skipped missing inventory 0 · usable legacy sheets 125 · equipped mismatches 0 · invalid diagnostics 0",
+        "CENSUS OK — selected legacy strings preserve exact text/order, units and equipped membership; row inputs are unsupported",
+        ""
+      ]
+    }
+  ]
+}

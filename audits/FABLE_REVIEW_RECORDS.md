@@ -2519,3 +2519,18 @@ former `personDrift` latch context; that superseded question is not a third live
 
 ---
 
+## Entry 39 — #599 inventory rows and equipped (reviewed 2026-10-08)
+
+### Original filing (verbatim)
+
+**39 · #599 design record, inventory rows and "equipped" (Opus 5.5 draft, 2026-10-08; no code).** Tier Fable: the record is the drift decree's critical review before code, for a change to every item write path, the STATE TAGS doc and the save shape. [DOC/DESIGN_599_inventory_rows.md](DOC/DESIGN_599_inventory_rows.md). Evidence: `dev/census-inventory-rows.js`, a dry run of the proposed migration over all 77 owner saves: 11,490 items, no unit lost, every row printing back byte-identical. **Probe first:** (a) §5.4, the version-skew hazard and the recommended gate one release ahead; is the gate enough, and does any load path escape it, including checkpoints, .char imports and blueprints; (b) §5.2, `invRows`, as the only reader of every stored shape: idempotence, mixed arrays from a stale device, junk handling; (c) §2.2, whether adopting the pack's rule as THE item key changes any match a player relies on (the chest, wants, pair keys, consumable latches); (d) §7, the claim that rows do not close #518's same-name transfer case; (e) §4, any reader of `.inventory` the map missed, above all silent `typeof … === "string"` guards; (f) §8.2, whether the gates would catch a migration that drops `equipped` or reorders rows in the prompt. The owner ruled all ten decisions in §9 on 2026-10-08; review against the rulings.
+
+### Astra adjudication
+
+**REVIEW COMPLETE — direction affirmed; remaining engineering contracts must be resolved before implementation.** All ten owner decisions in design §9 remain verbatim. The row architecture, single item key/module, whole-row equipment flag, permanent WORN alias and gate-first release are affirmed. #599 stays in progress; this review implements no runtime gate, inventory rows, migration or rollout. #518 remains separately open.
+
+The review confirmed admission must precede live-key writes and sheet/envelope extraction; idempotence alone missed unknown-field and nonfinite-quantity loss; mutable rows require detached transaction/snapshot copies; key unification intentionally changes some matches; reader/writer and proof maps needed expansion; and server inventory-schema opacity is narrower than never parsing JSON. Design §11 records the contracts still required before implementation, including malformed versions, numeric/coercion/conflict policies and diagnostic ownership.
+
+The current legacy census could report success after every equipped flag was erased, and with incomplete or unsupported input. Its DEV-only correction was written failing-first, independently reviewed, and limits the checker to legacy strings. Twenty-six synthetic checks and four named scratch mutations verify input rejection, equipment membership, order and units. The 77 owner saves retain 11,490 entries; all 120 owner/test save hashes remain unchanged. General object-row migration and cross-device gate behavior remain unimplemented and unverified.
+
+Full findings, remedies, affirmed boundaries, accepted limits, per-brief tool/time receipts and evidence-quality notes: [Astra review](AUDIT_FABLE_2026_10_08_39_inventory_design.md), [curated evidence](reviews/39_inventory_design_2026-10-08/README.md), and [revised design](../DOC/DESIGN_599_inventory_rows.md). Evidence gathering used three independent briefs; Astra alone adjudicated under AGENTS.md eligibility. Tokens were unavailable and not estimated.

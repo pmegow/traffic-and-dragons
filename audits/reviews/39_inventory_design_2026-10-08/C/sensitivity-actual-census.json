@@ -1,0 +1,20 @@
+[
+  {
+    "id": "baseline",
+    "status": 0,
+    "stdout": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\entry39-evidence-c-20261008\\fixtures (latest save per campaign)\n  saves 1 · sheets 1 · items 3 · counted (x2+) 1 · largest count 3\n  equipped lines 1 (2 names) · order changes 1 · worn with no carried item 0\n  folds 0 · junk 0 · grammar splits 0\n  rows printing back differently 0 · units lost or gained 0\nCENSUS OK — lossless, and every row prints back as its old string\n",
+    "stderr": ""
+  },
+  {
+    "id": "drop-equipped-only",
+    "status": 0,
+    "stdout": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\entry39-evidence-c-20261008\\fixtures (latest save per campaign)\n  saves 1 · sheets 1 · items 3 · counted (x2+) 1 · largest count 3\n  equipped lines 1 (2 names) · order changes 1 · worn with no carried item 0\n  folds 0 · junk 0 · grammar splits 0\n  rows printing back differently 0 · units lost or gained 0\nCENSUS OK — lossless, and every row prints back as its old string\n",
+    "stderr": ""
+  },
+  {
+    "id": "reorder-inventory",
+    "status": 1,
+    "stdout": "#599 inventory-rows census — C:\\Users\\hannu\\AppData\\Local\\Temp\\entry39-evidence-c-20261008\\fixtures (latest save per campaign)\n  saves 1 · sheets 1 · items 3 · counted (x2+) 1 · largest count 3\n  equipped lines 1 (2 names) · order changes 0 · worn with no carried item 0\n  folds 0 · junk 0 · grammar splits 0\n  rows printing back differently 2 · units lost or gained 0\n  - fixtures · hero Synthetic: 'Axe' prints back as 'Torch x3'\n  - fixtures · hero Synthetic: 'Torch x3' prints back as 'Axe'\nCENSUS FAILED — the migration would change what the GM reads or lose units\n",
+    "stderr": ""
+  }
+]

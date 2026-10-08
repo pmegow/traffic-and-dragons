@@ -1,0 +1,79 @@
+{
+  "baseline": "8715997f6ce1837c032867d4de8477d718dc5b64",
+  "tree": "3aa32e6c4cb53220ca3efb46eee03d3400829474",
+  "utcStart": "2026-10-08T23:08:35Z",
+  "utcEnd": "2026-10-08T23:18:32.589Z",
+  "wallSeconds": 597.589,
+  "inputFiles": 120,
+  "immutable": true,
+  "sourceFiles": [
+    {
+      "file": "AGENTS.md",
+      "identical": true
+    },
+    {
+      "file": "CLAUDE.md",
+      "identical": true
+    },
+    {
+      "file": "todo_checkWithFable.md",
+      "identical": true
+    },
+    {
+      "file": "DOC/DESIGN_599_inventory_rows.md",
+      "identical": true
+    },
+    {
+      "file": "DOC/contracts/items.md",
+      "identical": true
+    },
+    {
+      "file": "DOC/contracts/tags.md",
+      "identical": true
+    },
+    {
+      "file": "DOC/contracts/sync.md",
+      "identical": true
+    },
+    {
+      "file": "dev/census-inventory-rows.js",
+      "identical": true
+    },
+    {
+      "file": "api.js",
+      "identical": true
+    },
+    {
+      "file": "helpers.js",
+      "identical": true
+    },
+    {
+      "file": "memory.js",
+      "identical": true
+    },
+    {
+      "file": "identity.js",
+      "identical": true
+    },
+    {
+      "file": "game.js",
+      "identical": true
+    },
+    {
+      "file": "dev/load-engine.js",
+      "identical": true
+    }
+  ],
+  "referenceCases": 43,
+  "identityPairs": 20,
+  "consumableCases": 3,
+  "ambiguousCase": 1,
+  "tagCases": 10,
+  "syntheticCensusCases": 9,
+  "roundtripIterations": 1000,
+  "fieldModes": 3,
+  "skips": 0,
+  "toolCalls": "16 functions.exec invocations through final capture (16 exec_command calls plus one clock call); one prior collaboration evidence message and two final handoff messages.",
+  "tokens": "UNAVAILABLE",
+  "scopeExpansion": "None; nine synthetic census fixtures establish requested exit-status meaning. TEMP harness syntax/path bookkeeping corrections did not alter committed code."
+}

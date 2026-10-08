@@ -1,0 +1,147 @@
+[
+  {
+    "name": "pre-gate row read/write",
+    "return": {
+      "rendered": "[object Object]",
+      "inventory": [
+        {
+          "name": "Torch",
+          "qty": 3,
+          "equipped": true
+        },
+        "Torch"
+      ]
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  },
+  {
+    "name": "SIM rejection then saveAll",
+    "return": {
+      "rejected": true,
+      "syncAttempts": 1,
+      "retainedVersion": 10
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [
+      [
+        "set",
+        "tnd_core_v10"
+      ],
+      [
+        "set",
+        "tnd_sess_v10"
+      ],
+      [
+        "set",
+        "tnd_mem_v10"
+      ],
+      [
+        "set",
+        "tnd_camps_v1"
+      ]
+    ],
+    "syncAttempts": 1,
+    "events": []
+  },
+  {
+    "name": "char envelope future lost before bare adoption",
+    "return": {
+      "adopted": true,
+      "envelopeOnSheet": false
+    },
+    "before": {
+      "ws": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "after": {
+      "ws": "8df1cc5336c044d0a3240d88fa643c9b0429a6e0401e057fc1b2b380b26d26e2",
+      "mem": "048d4752d6f0bde01fbd4f644a95fd6d9bce64c15bbb2de4c197d6942132d553",
+      "sl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "id": "old",
+      "live": "ea92455908e686cef4f60bff97db50257c64fef0ff9cdb0ef27c6eef82be0167",
+      "keys": [
+        "tnd_active_v1",
+        "tnd_camps_v1",
+        "tnd_core_v10",
+        "tnd_mem_v10",
+        "tnd_sess_v10"
+      ]
+    },
+    "sourceUnchanged": true,
+    "ver": 10,
+    "writes": [],
+    "syncAttempts": 0,
+    "events": []
+  }
+]

@@ -1,0 +1,235 @@
+{
+  "results": [
+    {
+      "name": "Arrow x0",
+      "parse": {
+        "base": "Arrow x0",
+        "n": 1
+      },
+      "gain": {
+        "inventory": [
+          "Arrow x2"
+        ],
+        "receipts": [
+          "⚠ DUPLICATE ITEM: player sheet already had uncounted 'Arrow'; grant stacked, verify acquisition/rename",
+          "+Arrow x0"
+        ]
+      },
+      "loss": {
+        "inventory": [
+          "Arrow"
+        ],
+        "receipts": [
+          "-Arrow x0"
+        ]
+      }
+    },
+    {
+      "name": "Arrow x01",
+      "parse": {
+        "base": "Arrow x01",
+        "n": 1
+      },
+      "gain": {
+        "inventory": [
+          "Arrow x2"
+        ],
+        "receipts": [
+          "⚠ DUPLICATE ITEM: player sheet already had uncounted 'Arrow'; grant stacked, verify acquisition/rename",
+          "+Arrow x01"
+        ]
+      },
+      "loss": {
+        "inventory": [
+          "Arrow"
+        ],
+        "receipts": [
+          "-Arrow x01"
+        ]
+      }
+    },
+    {
+      "name": "Arrow x999",
+      "parse": {
+        "base": "Arrow",
+        "n": 999
+      },
+      "gain": {
+        "inventory": [
+          "Arrow x1000"
+        ],
+        "receipts": [
+          "+Arrow x999"
+        ]
+      },
+      "loss": {
+        "inventory": [
+          "Arrow"
+        ],
+        "receipts": [
+          "-Arrow x999"
+        ]
+      }
+    },
+    {
+      "name": "Arrow x1000",
+      "parse": {
+        "base": "Arrow",
+        "n": 999,
+        "clamped": true
+      },
+      "gain": {
+        "inventory": [
+          "Arrow x1000"
+        ],
+        "receipts": [
+          "+Arrow x999 (⚠ count clamped to 999)"
+        ]
+      },
+      "loss": {
+        "inventory": [
+          "Arrow"
+        ],
+        "receipts": [
+          "-Arrow x999 (⚠ count clamped to 999)"
+        ]
+      }
+    },
+    {
+      "name": "Arrow x3   ",
+      "parse": {
+        "base": "Arrow",
+        "n": 3
+      },
+      "gain": {
+        "inventory": [
+          "Arrow x4"
+        ],
+        "receipts": [
+          "+Arrow x3"
+        ]
+      },
+      "loss": {
+        "inventory": [
+          "Arrow"
+        ],
+        "receipts": [
+          "-Arrow x3"
+        ]
+      }
+    },
+    {
+      "name": "Modelx3",
+      "parse": {
+        "base": "Modelx3",
+        "n": 1
+      },
+      "gain": {
+        "inventory": [
+          "Arrow",
+          "Modelx3"
+        ],
+        "receipts": [
+          "+Modelx3"
+        ]
+      },
+      "loss": {
+        "inventory": [
+          "Arrow"
+        ],
+        "receipts": [
+          "-Modelx3"
+        ]
+      }
+    },
+    {
+      "name": "__proto__",
+      "parse": {
+        "base": "__proto__",
+        "n": 1
+      },
+      "gain": {
+        "inventory": [
+          "Arrow",
+          "__proto__"
+        ],
+        "receipts": [
+          "+__proto__"
+        ]
+      },
+      "loss": {
+        "inventory": [
+          "Arrow"
+        ],
+        "receipts": [
+          "-__proto__"
+        ]
+      }
+    },
+    {
+      "name": "constructor",
+      "parse": {
+        "base": "constructor",
+        "n": 1
+      },
+      "gain": {
+        "inventory": [
+          "Arrow",
+          "constructor"
+        ],
+        "receipts": [
+          "+constructor"
+        ]
+      },
+      "loss": {
+        "inventory": [
+          "Arrow"
+        ],
+        "receipts": [
+          "-constructor"
+        ]
+      }
+    },
+    {
+      "name": "toString",
+      "parse": {
+        "base": "toString",
+        "n": 1
+      },
+      "gain": {
+        "inventory": [
+          "Arrow",
+          "toString"
+        ],
+        "receipts": [
+          "+toString"
+        ]
+      },
+      "loss": {
+        "inventory": [
+          "Arrow"
+        ],
+        "receipts": [
+          "-toString"
+        ]
+      }
+    },
+    {
+      "name": "equipped rename",
+      "inventory": [
+        "Tower shield x2",
+        "Rope"
+      ],
+      "worn": [
+        "Tower shield"
+      ],
+      "receipts": [
+        "Shield → Tower shield"
+      ]
+    }
+  ],
+  "warnings": [
+    "[items] DUPLICATE ITEM: player sheet already had uncounted 'Arrow'; grant stacked, verify acquisition/rename",
+    "[items] DUPLICATE ITEM: player sheet already had uncounted 'Arrow'; grant stacked, verify acquisition/rename"
+  ]
+}

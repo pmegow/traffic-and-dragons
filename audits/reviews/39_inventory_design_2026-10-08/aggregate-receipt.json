@@ -1,0 +1,36 @@
+{
+  "baseline": "8715997f6ce1837c032867d4de8477d718dc5b64",
+  "ownerSaveFiles": 77,
+  "testRunSaveFiles": 43,
+  "sourceSaveHashesUnchanged": 120,
+  "modes": [
+    {
+      "mode": "latest",
+      "saves": 10,
+      "sheets": 45,
+      "entries": 1102,
+      "equippedLines": 13,
+      "equippedOrderChanges": 4
+    },
+    {
+      "mode": "all-owner",
+      "saves": 77,
+      "sheets": 507,
+      "entries": 11490,
+      "equippedLines": 56,
+      "equippedOrderChanges": 29
+    },
+    {
+      "mode": "test-runs",
+      "saves": 43,
+      "sheets": 125,
+      "entries": 3638,
+      "equippedLines": 1,
+      "equippedOrderChanges": 0
+    }
+  ],
+  "privateManifests": "retained in TEMP only",
+  "ARecordedWallSeconds": -24672.9420295,
+  "ACorrectedWallSeconds": 526.6329174,
+  "ACorrection": "UTC ISO endpoints; initial documentation read preceded start. Original metric preserved in A/metrics.json."
+}

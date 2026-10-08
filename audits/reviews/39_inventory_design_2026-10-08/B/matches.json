@@ -1,0 +1,2899 @@
+{
+  "pairs": [
+    {
+      "label": "plural",
+      "a": "Wolf pelt",
+      "b": "Wolf pelts",
+      "keys": {
+        "inv": [
+          "wolf pelt",
+          "wolf pelt"
+        ],
+        "qty": [
+          {
+            "base": "Wolf pelt",
+            "n": 1
+          },
+          {
+            "base": "Wolf pelts",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "wolf pelt",
+          "wolf pelt"
+        ],
+        "stash": [
+          "wolf pelt",
+          "wolf pelt"
+        ],
+        "bible": [
+          "wolf pelt",
+          "wolf pelts"
+        ],
+        "proposedRaw": [
+          "wolf pelt",
+          "wolf pelt"
+        ],
+        "proposedPack": [
+          "wolf pelt",
+          "wolf pelt"
+        ],
+        "proposedBase": [
+          "wolf pelt",
+          "wolf pelt"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Wolf pelt x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Wolf pelt"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Wolf pelts → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Wolf pelt"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|wolf pelt": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Wolf pelt",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": false,
+            "sellCp": null,
+            "want": null
+          }
+        ]
+      },
+      "want": {
+        "matched": false,
+        "remaining": [
+          {
+            "item": "Wolf pelts",
+            "offer": "1 gp",
+            "cp": 100,
+            "by": "Mara",
+            "min": 0
+          }
+        ]
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Wolf pelt",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Wolf pelt",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Wolf pelt",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Wolf pelts",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Wolf pelt",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "case",
+      "a": "Torch",
+      "b": "TORCH",
+      "keys": {
+        "inv": [
+          "torch",
+          "torch"
+        ],
+        "qty": [
+          {
+            "base": "Torch",
+            "n": 1
+          },
+          {
+            "base": "TORCH",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "torch",
+          "torch"
+        ],
+        "stash": [
+          "torch",
+          "torch"
+        ],
+        "bible": [
+          "torch",
+          "torch"
+        ],
+        "proposedRaw": [
+          "torch",
+          "torch"
+        ],
+        "proposedPack": [
+          "torch",
+          "torch"
+        ],
+        "proposedBase": [
+          "torch",
+          "torch"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Torch x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Torch"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "TORCH → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Torch"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|torch": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Torch",
+            "qty": 1,
+            "worn": false,
+            "canonCp": 1,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "torch",
+              "item": "TORCH",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Torch",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Torch",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": true,
+        "after": [
+          {
+            "name": "Torch",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Torch",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "natural s",
+      "a": "Chaos",
+      "b": "Chao",
+      "keys": {
+        "inv": [
+          "chao",
+          "chao"
+        ],
+        "qty": [
+          {
+            "base": "Chaos",
+            "n": 1
+          },
+          {
+            "base": "Chao",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "chao",
+          "chao"
+        ],
+        "stash": [
+          "chao",
+          "chao"
+        ],
+        "bible": [
+          "chaos",
+          "chao"
+        ],
+        "proposedRaw": [
+          "chao",
+          "chao"
+        ],
+        "proposedPack": [
+          "chao",
+          "chao"
+        ],
+        "proposedBase": [
+          "chao",
+          "chao"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Chaos x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Chaos"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Chao → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Chaos"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|chao": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Chaos",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": false,
+            "sellCp": null,
+            "want": null
+          }
+        ]
+      },
+      "want": {
+        "matched": false,
+        "remaining": [
+          {
+            "item": "Chao",
+            "offer": "1 gp",
+            "cp": 100,
+            "by": "Mara",
+            "min": 0
+          }
+        ]
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Chaos",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Chaos",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Chaos",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Chao",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Chaos",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "es plural",
+      "a": "Glass",
+      "b": "Glasses",
+      "keys": {
+        "inv": [
+          "glas",
+          "glasse"
+        ],
+        "qty": [
+          {
+            "base": "Glass",
+            "n": 1
+          },
+          {
+            "base": "Glasses",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "glas",
+          "glasse"
+        ],
+        "stash": [
+          "glas",
+          "glasse"
+        ],
+        "bible": [
+          "glass",
+          "glasses"
+        ],
+        "proposedRaw": [
+          "glas",
+          "glasse"
+        ],
+        "proposedPack": [
+          "glas",
+          "glasse"
+        ],
+        "proposedBase": [
+          "glas",
+          "glasse"
+        ]
+      },
+      "add": {
+        "folded": false,
+        "after": [
+          "Glass",
+          "Glasses"
+        ]
+      },
+      "remove": {
+        "ok": false,
+        "after": [
+          "Glass"
+        ],
+        "last": null
+      },
+      "rename": {
+        "ok": false,
+        "after": [
+          "Glass",
+          "Sentinel"
+        ],
+        "receipts": [
+          "⚠ RENAME refused: no 'Glasses' on the player sheet"
+        ]
+      },
+      "worn": {
+        "ok": false,
+        "reason": "not carried"
+      },
+      "pairConsumed": false,
+      "latch": {
+        "matched": false,
+        "state": null
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Glass",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": false,
+            "sellCp": null,
+            "want": null
+          }
+        ]
+      },
+      "want": {
+        "matched": false,
+        "remaining": [
+          {
+            "item": "Glasses",
+            "offer": "1 gp",
+            "cp": 100,
+            "by": "Mara",
+            "min": 0
+          }
+        ]
+      },
+      "chest": {
+        "result": null,
+        "after": [
+          {
+            "name": "Glass",
+            "qty": 2,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Glass",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Glasses",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Glass",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Glasses",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "dash variant",
+      "a": "Iron‑Key",
+      "b": "iron-key",
+      "keys": {
+        "inv": [
+          "iron-key",
+          "iron-key"
+        ],
+        "qty": [
+          {
+            "base": "Iron‑Key",
+            "n": 1
+          },
+          {
+            "base": "iron-key",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "iron-key",
+          "iron-key"
+        ],
+        "stash": [
+          "iron-key",
+          "iron-key"
+        ],
+        "bible": [
+          "iron‑key",
+          "iron-key"
+        ],
+        "proposedRaw": [
+          "iron-key",
+          "iron-key"
+        ],
+        "proposedPack": [
+          "iron-key",
+          "iron-key"
+        ],
+        "proposedBase": [
+          "iron-key",
+          "iron-key"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Iron‑Key x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Iron‑Key"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "iron-key → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Iron‑Key"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|iron-key": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Iron‑Key",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": false,
+            "sellCp": null,
+            "want": null
+          }
+        ]
+      },
+      "want": {
+        "matched": false,
+        "remaining": [
+          {
+            "item": "iron-key",
+            "offer": "1 gp",
+            "cp": 100,
+            "by": "Mara",
+            "min": 0
+          }
+        ]
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Iron‑Key",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Iron‑Key",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Iron‑Key",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "iron-key",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Iron‑Key",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "dash spacing",
+      "a": "Iron - Key",
+      "b": "iron-key",
+      "keys": {
+        "inv": [
+          "iron-key",
+          "iron-key"
+        ],
+        "qty": [
+          {
+            "base": "Iron - Key",
+            "n": 1
+          },
+          {
+            "base": "iron-key",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "iron",
+          "iron-key"
+        ],
+        "stash": [
+          "iron-key",
+          "iron-key"
+        ],
+        "bible": [
+          "iron",
+          "iron-key"
+        ],
+        "proposedRaw": [
+          "iron-key",
+          "iron-key"
+        ],
+        "proposedPack": [
+          "iron-key",
+          "iron-key"
+        ],
+        "proposedBase": [
+          "iron",
+          "iron-key"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Iron - Key x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Iron - Key"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "iron-key → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Iron - Key"
+      },
+      "pairConsumed": false,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|iron-key": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Iron - Key",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": false,
+            "sellCp": null,
+            "want": null
+          }
+        ]
+      },
+      "want": {
+        "matched": false,
+        "remaining": [
+          {
+            "item": "iron-key",
+            "offer": "1 gp",
+            "cp": 100,
+            "by": "Mara",
+            "min": 0
+          }
+        ]
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Iron - Key",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Iron - Key",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Iron - Key",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "iron-key",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Iron - Key",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "spaces",
+      "a": "Silver  ring",
+      "b": "silver ring",
+      "keys": {
+        "inv": [
+          "silver ring",
+          "silver ring"
+        ],
+        "qty": [
+          {
+            "base": "Silver  ring",
+            "n": 1
+          },
+          {
+            "base": "silver ring",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "silver ring",
+          "silver ring"
+        ],
+        "stash": [
+          "silver ring",
+          "silver ring"
+        ],
+        "bible": [
+          "silver ring",
+          "silver ring"
+        ],
+        "proposedRaw": [
+          "silver ring",
+          "silver ring"
+        ],
+        "proposedPack": [
+          "silver ring",
+          "silver ring"
+        ],
+        "proposedBase": [
+          "silver ring",
+          "silver ring"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Silver  ring x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Silver  ring"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "silver ring → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Silver  ring"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|silver ring": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Silver  ring",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "silver ring",
+              "item": "silver ring",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Silver  ring",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Silver  ring",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Silver  ring",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "silver ring",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Silver  ring",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "provenance/base",
+      "a": "Rope (spare)",
+      "b": "Rope",
+      "keys": {
+        "inv": [
+          "rope (spare)",
+          "rope"
+        ],
+        "qty": [
+          {
+            "base": "Rope (spare)",
+            "n": 1
+          },
+          {
+            "base": "Rope",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "rope",
+          "rope"
+        ],
+        "stash": [
+          "rope (spare)",
+          "rope"
+        ],
+        "bible": [
+          "rope",
+          "rope"
+        ],
+        "proposedRaw": [
+          "rope (spare)",
+          "rope"
+        ],
+        "proposedPack": [
+          "rope (spare)",
+          "rope"
+        ],
+        "proposedBase": [
+          "rope",
+          "rope"
+        ]
+      },
+      "add": {
+        "folded": false,
+        "after": [
+          "Rope (spare)",
+          "Rope"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Rope (spare)"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Rope → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": false,
+        "reason": "not carried"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": false,
+        "state": null
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Rope (spare)",
+            "qty": 1,
+            "worn": false,
+            "canonCp": 100,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "rope",
+              "item": "Rope",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": null,
+        "after": [
+          {
+            "name": "Rope (spare)",
+            "qty": 2,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Rope (spare)",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Rope",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Rope (spare)",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Rope",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "different provenance",
+      "a": "Rope (from Ada)",
+      "b": "Rope (from Bea)",
+      "keys": {
+        "inv": [
+          "rope (from ada)",
+          "rope (from bea)"
+        ],
+        "qty": [
+          {
+            "base": "Rope (from Ada)",
+            "n": 1
+          },
+          {
+            "base": "Rope (from Bea)",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "rope",
+          "rope"
+        ],
+        "stash": [
+          "rope (from ada)",
+          "rope (from bea)"
+        ],
+        "bible": [
+          "rope",
+          "rope"
+        ],
+        "proposedRaw": [
+          "rope (from ada)",
+          "rope (from bea)"
+        ],
+        "proposedPack": [
+          "rope (from ada)",
+          "rope (from bea)"
+        ],
+        "proposedBase": [
+          "rope",
+          "rope"
+        ]
+      },
+      "add": {
+        "folded": false,
+        "after": [
+          "Rope (from Ada)",
+          "Rope (from Bea)"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Rope (from Ada)"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Rope (from Bea) → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": false,
+        "reason": "not carried"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": false,
+        "state": null
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Rope (from Ada)",
+            "qty": 1,
+            "worn": false,
+            "canonCp": 100,
+            "wanted": false,
+            "sellCp": 50,
+            "want": null
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": null,
+        "after": [
+          {
+            "name": "Rope (from Ada)",
+            "qty": 2,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Rope (from Ada)",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Rope (from Bea)",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Rope (from Ada)",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Rope (from Bea)",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "dash provenance",
+      "a": "Rope — from Ada",
+      "b": "Rope",
+      "keys": {
+        "inv": [
+          "rope-from ada",
+          "rope"
+        ],
+        "qty": [
+          {
+            "base": "Rope — from Ada",
+            "n": 1
+          },
+          {
+            "base": "Rope",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "rope",
+          "rope"
+        ],
+        "stash": [
+          "rope-from ada",
+          "rope"
+        ],
+        "bible": [
+          "rope",
+          "rope"
+        ],
+        "proposedRaw": [
+          "rope-from ada",
+          "rope"
+        ],
+        "proposedPack": [
+          "rope-from ada",
+          "rope"
+        ],
+        "proposedBase": [
+          "rope",
+          "rope"
+        ]
+      },
+      "add": {
+        "folded": false,
+        "after": [
+          "Rope — from Ada",
+          "Rope"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Rope — from Ada"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Rope → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": false,
+        "reason": "not carried"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": false,
+        "state": null
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Rope — from Ada",
+            "qty": 1,
+            "worn": false,
+            "canonCp": 100,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "rope",
+              "item": "Rope",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": null,
+        "after": [
+          {
+            "name": "Rope — from Ada",
+            "qty": 2,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Rope — from Ada",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Rope",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Rope — from Ada",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Rope",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "count",
+      "a": "Arrow x2",
+      "b": "Arrow",
+      "keys": {
+        "inv": [
+          "arrow",
+          "arrow"
+        ],
+        "qty": [
+          {
+            "base": "Arrow",
+            "n": 2
+          },
+          {
+            "base": "Arrow",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "arrow",
+          "arrow"
+        ],
+        "stash": [
+          "arrow",
+          "arrow"
+        ],
+        "bible": [
+          "arrow",
+          "arrow"
+        ],
+        "proposedRaw": [
+          "arrow x2",
+          "arrow"
+        ],
+        "proposedPack": [
+          "arrow",
+          "arrow"
+        ],
+        "proposedBase": [
+          "arrow",
+          "arrow"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Arrow x3"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [
+          "Arrow"
+        ],
+        "last": "Arrow"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item x2",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Arrow → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Arrow"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|arrow": 2
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Arrow",
+            "qty": 2,
+            "worn": false,
+            "canonCp": 5,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "arrow",
+              "item": "Arrow",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Arrow x2",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Arrow x2",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Arrow x2",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Arrow",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Arrow x2",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "x0 literal",
+      "a": "Model x0",
+      "b": "Model",
+      "keys": {
+        "inv": [
+          "model",
+          "model"
+        ],
+        "qty": [
+          {
+            "base": "Model x0",
+            "n": 1
+          },
+          {
+            "base": "Model",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "model",
+          "model"
+        ],
+        "stash": [
+          "model",
+          "model"
+        ],
+        "bible": [
+          "model",
+          "model"
+        ],
+        "proposedRaw": [
+          "model x0",
+          "model"
+        ],
+        "proposedPack": [
+          "model x0",
+          "model"
+        ],
+        "proposedBase": [
+          "model",
+          "model"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Model x1"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Model"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Model → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Model"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|model": 0
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Model",
+            "qty": 0,
+            "worn": false,
+            "canonCp": null,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "model",
+              "item": "Model",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Model x0",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Model x0",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Model x0",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Model",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Model x0",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "x01 literal",
+      "a": "Model x01",
+      "b": "Model",
+      "keys": {
+        "inv": [
+          "model",
+          "model"
+        ],
+        "qty": [
+          {
+            "base": "Model x01",
+            "n": 1
+          },
+          {
+            "base": "Model",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "model",
+          "model"
+        ],
+        "stash": [
+          "model",
+          "model"
+        ],
+        "bible": [
+          "model",
+          "model"
+        ],
+        "proposedRaw": [
+          "model x01",
+          "model"
+        ],
+        "proposedPack": [
+          "model x01",
+          "model"
+        ],
+        "proposedBase": [
+          "model",
+          "model"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Model x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Model"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Model → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Model"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|model": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Model",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "model",
+              "item": "Model",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Model x01",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Model x01",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Model x01",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Model",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Model x01",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "x1000",
+      "a": "Arrow x1000",
+      "b": "Arrow",
+      "keys": {
+        "inv": [
+          "arrow",
+          "arrow"
+        ],
+        "qty": [
+          {
+            "base": "Arrow",
+            "n": 999,
+            "clamped": true
+          },
+          {
+            "base": "Arrow",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "arrow",
+          "arrow"
+        ],
+        "stash": [
+          "arrow",
+          "arrow"
+        ],
+        "bible": [
+          "arrow",
+          "arrow"
+        ],
+        "proposedRaw": [
+          "arrow x1000",
+          "arrow"
+        ],
+        "proposedPack": [
+          "arrow",
+          "arrow"
+        ],
+        "proposedBase": [
+          "arrow",
+          "arrow"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Arrow x1001"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [
+          "Arrow x999"
+        ],
+        "last": "Arrow"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item x1000",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Arrow → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Arrow"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|arrow": 1000
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Arrow",
+            "qty": 1000,
+            "worn": false,
+            "canonCp": 5,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "arrow",
+              "item": "Arrow",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Arrow x1000",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Arrow x1000",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Arrow x1000",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Arrow",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Arrow x1000",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "suffix no space",
+      "a": "Modelx3",
+      "b": "Model",
+      "keys": {
+        "inv": [
+          "model",
+          "model"
+        ],
+        "qty": [
+          {
+            "base": "Modelx3",
+            "n": 1
+          },
+          {
+            "base": "Model",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "model",
+          "model"
+        ],
+        "stash": [
+          "model",
+          "model"
+        ],
+        "bible": [
+          "modelx3",
+          "model"
+        ],
+        "proposedRaw": [
+          "modelx3",
+          "model"
+        ],
+        "proposedPack": [
+          "modelx3",
+          "model"
+        ],
+        "proposedBase": [
+          "modelx3",
+          "model"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Model x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Model"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Model → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Model"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|model": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Model",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "model",
+              "item": "Model",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": false,
+        "remaining": [
+          {
+            "item": "Model",
+            "offer": "1 gp",
+            "cp": 100,
+            "by": "Mara",
+            "min": 0
+          }
+        ]
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Modelx3",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Modelx3",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Modelx3",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Model",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Modelx3",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "__proto__",
+      "a": "__proto__",
+      "b": "__PROTO__",
+      "keys": {
+        "inv": [
+          "__proto__",
+          "__proto__"
+        ],
+        "qty": [
+          {
+            "base": "__proto__",
+            "n": 1
+          },
+          {
+            "base": "__PROTO__",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "__proto__",
+          "__proto__"
+        ],
+        "stash": [
+          "__proto__",
+          "__proto__"
+        ],
+        "bible": [
+          "__proto__",
+          "__proto__"
+        ],
+        "proposedRaw": [
+          "__proto__",
+          "__proto__"
+        ],
+        "proposedPack": [
+          "__proto__",
+          "__proto__"
+        ],
+        "proposedBase": [
+          "__proto__",
+          "__proto__"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "__proto__ x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "__proto__"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "__PROTO__ → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "__proto__"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|__proto__": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "__proto__",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "__proto__",
+              "item": "__PROTO__",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "__proto__",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "__proto__",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": true,
+        "after": [
+          {
+            "name": "__proto__",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "__proto__",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "constructor",
+      "a": "constructor",
+      "b": "Constructor",
+      "keys": {
+        "inv": [
+          "constructor",
+          "constructor"
+        ],
+        "qty": [
+          {
+            "base": "constructor",
+            "n": 1
+          },
+          {
+            "base": "Constructor",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "constructor",
+          "constructor"
+        ],
+        "stash": [
+          "constructor",
+          "constructor"
+        ],
+        "bible": [
+          "constructor",
+          "constructor"
+        ],
+        "proposedRaw": [
+          "constructor",
+          "constructor"
+        ],
+        "proposedPack": [
+          "constructor",
+          "constructor"
+        ],
+        "proposedBase": [
+          "constructor",
+          "constructor"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "constructor x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "constructor"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Constructor → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "constructor"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|constructor": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "constructor",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "constructor",
+              "item": "Constructor",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "constructor",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "constructor",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": true,
+        "after": [
+          {
+            "name": "constructor",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "constructor",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "toString",
+      "a": "toString",
+      "b": "tostring",
+      "keys": {
+        "inv": [
+          "tostring",
+          "tostring"
+        ],
+        "qty": [
+          {
+            "base": "toString",
+            "n": 1
+          },
+          {
+            "base": "tostring",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "tostring",
+          "tostring"
+        ],
+        "stash": [
+          "tostring",
+          "tostring"
+        ],
+        "bible": [
+          "tostring",
+          "tostring"
+        ],
+        "proposedRaw": [
+          "tostring",
+          "tostring"
+        ],
+        "proposedPack": [
+          "tostring",
+          "tostring"
+        ],
+        "proposedBase": [
+          "tostring",
+          "tostring"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "toString x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "toString"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "tostring → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "toString"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|tostring": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "toString",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "tostring",
+              "item": "tostring",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "toString",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "toString",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": true,
+        "after": [
+          {
+            "name": "toString",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "toString",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "different",
+      "a": "Sword",
+      "b": "Shield",
+      "keys": {
+        "inv": [
+          "sword",
+          "shield"
+        ],
+        "qty": [
+          {
+            "base": "Sword",
+            "n": 1
+          },
+          {
+            "base": "Shield",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "sword",
+          "shield"
+        ],
+        "stash": [
+          "sword",
+          "shield"
+        ],
+        "bible": [
+          "sword",
+          "shield"
+        ],
+        "proposedRaw": [
+          "sword",
+          "shield"
+        ],
+        "proposedPack": [
+          "sword",
+          "shield"
+        ],
+        "proposedBase": [
+          "sword",
+          "shield"
+        ]
+      },
+      "add": {
+        "folded": false,
+        "after": [
+          "Sword",
+          "Shield"
+        ]
+      },
+      "remove": {
+        "ok": false,
+        "after": [
+          "Sword"
+        ],
+        "last": null
+      },
+      "rename": {
+        "ok": false,
+        "after": [
+          "Sword",
+          "Sentinel"
+        ],
+        "receipts": [
+          "⚠ RENAME refused: no 'Shield' on the player sheet"
+        ]
+      },
+      "worn": {
+        "ok": false,
+        "reason": "not carried"
+      },
+      "pairConsumed": false,
+      "latch": {
+        "matched": false,
+        "state": null
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Sword",
+            "qty": 1,
+            "worn": false,
+            "canonCp": null,
+            "wanted": false,
+            "sellCp": null,
+            "want": null
+          }
+        ]
+      },
+      "want": {
+        "matched": false,
+        "remaining": [
+          {
+            "item": "Shield",
+            "offer": "1 gp",
+            "cp": 100,
+            "by": "Mara",
+            "min": 0
+          }
+        ]
+      },
+      "chest": {
+        "result": null,
+        "after": [
+          {
+            "name": "Sword",
+            "qty": 2,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Sword",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Shield",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Sword",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Shield",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      }
+    },
+    {
+      "label": "trailing space",
+      "a": "Torch   ",
+      "b": "Torch",
+      "keys": {
+        "inv": [
+          "torch",
+          "torch"
+        ],
+        "qty": [
+          {
+            "base": "Torch",
+            "n": 1
+          },
+          {
+            "base": "Torch",
+            "n": 1
+          }
+        ],
+        "pair": [
+          "torch",
+          "torch"
+        ],
+        "stash": [
+          "torch",
+          "torch"
+        ],
+        "bible": [
+          "torch",
+          "torch"
+        ],
+        "proposedRaw": [
+          "torch",
+          "torch"
+        ],
+        "proposedPack": [
+          "torch",
+          "torch"
+        ],
+        "proposedBase": [
+          "torch",
+          "torch"
+        ]
+      },
+      "add": {
+        "folded": true,
+        "after": [
+          "Torch x2"
+        ]
+      },
+      "remove": {
+        "ok": true,
+        "after": [],
+        "last": "Torch"
+      },
+      "rename": {
+        "ok": true,
+        "after": [
+          "Renamed item",
+          "Sentinel"
+        ],
+        "receipts": [
+          "Torch → Renamed item"
+        ]
+      },
+      "worn": {
+        "ok": true,
+        "item": "Torch"
+      },
+      "pairConsumed": true,
+      "latch": {
+        "matched": true,
+        "state": {
+          "|torch": 1
+        }
+      },
+      "catalog": {
+        "ok": true,
+        "sell": [
+          {
+            "name": "Torch",
+            "qty": 1,
+            "worn": false,
+            "canonCp": 1,
+            "wanted": true,
+            "sellCp": 100,
+            "want": {
+              "key": "torch",
+              "item": "Torch",
+              "by": "Mara"
+            },
+            "offer": "1 gp"
+          }
+        ]
+      },
+      "want": {
+        "matched": true,
+        "remaining": []
+      },
+      "chest": {
+        "result": {
+          "taken": true,
+          "name": "Torch   ",
+          "n": 1,
+          "key": "Ashfen|Shop"
+        },
+        "after": [
+          {
+            "name": "Torch   ",
+            "qty": 1,
+            "taken": false
+          }
+        ]
+      },
+      "placeFold": {
+        "folded": false,
+        "after": [
+          {
+            "name": "Torch   ",
+            "qty": 2,
+            "taken": false
+          },
+          {
+            "name": "Torch",
+            "qty": 3,
+            "taken": false
+          }
+        ]
+      },
+      "legacyChestFold": {
+        "healed": 1,
+        "after": [
+          {
+            "name": "Torch",
+            "qty": 5,
+            "taken": false
+          }
+        ]
+      }
+    }
+  ],
+  "consumables": [
+    {
+      "a": "Healing potion",
+      "b": "Healing potions",
+      "stamped": true,
+      "kept": {
+        "|healing potion": 1
+      },
+      "checks": []
+    },
+    {
+      "a": "Healing potion (from Ada)",
+      "b": "Healing potion (from Bea)",
+      "stamped": false,
+      "kept": null,
+      "checks": [
+        {
+          "who": null,
+          "item": "Healing potion (from Ada)",
+          "key": "|healing potion (from ada)"
+        }
+      ]
+    },
+    {
+      "a": "Healing potion",
+      "b": "Healing potion x2",
+      "stamped": true,
+      "kept": {
+        "|healing potion": 1
+      },
+      "checks": []
+    }
+  ],
+  "ambiguous": {
+    "before": [
+      "Rope (from Ada)",
+      "Rope (from Bea)"
+    ],
+    "remove": false,
+    "miss": {
+      "why": "ambiguous",
+      "names": [
+        "Rope (from Ada)",
+        "Rope (from Bea)"
+      ]
+    },
+    "rename": true,
+    "after": [
+      "Cord",
+      "Rope (from Bea)"
+    ],
+    "receipts": [
+      "Rope → Cord"
+    ]
+  },
+  "warnings": [
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[items] RENAME refused: no 'Glasses' on the player sheet",
+    "[attire] WORN: 'Glasses' is not in Tess's inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)",
+    "[ITEM_KEPT] no inventory entry matches 'Glasses' — latch not written",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[attire] WORN: 'Rope' is not in Tess's inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)",
+    "[ITEM_KEPT] no inventory entry matches 'Rope' — latch not written",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[attire] WORN: 'Rope (from Bea)' is not in Tess's inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)",
+    "[ITEM_KEPT] no inventory entry matches 'Rope (from Bea)' — latch not written",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[attire] WORN: 'Rope' is not in Tess's inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)",
+    "[ITEM_KEPT] no inventory entry matches 'Rope' — latch not written",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[items] RENAME refused: no 'Shield' on the player sheet",
+    "[attire] WORN: 'Shield' is not in Tess's inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)",
+    "[ITEM_KEPT] no inventory entry matches 'Shield' — latch not written",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[stash] healed 1 legacy '…xN' stash row(s) into base-name rows with counts (#481 D2)",
+    "[ITEM_KEPT] no inventory entry matches 'Healing potion (from Bea)' — latch not written"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "baseline": "8715997f6ce1837c032867d4de8477d718dc5b64",
+  "tree": "3aa32e6c4cb53220ca3efb46eee03d3400829474",
+  "utcStart": "2026-10-08T23:08:54.312Z",
+  "utcEnd": "2026-10-08T23:19:41.041Z",
+  "wallSeconds": 646.729,
+  "execCommandCalls": 22,
+  "functionsExecWrappers": 22,
+  "collaborationCallsIncludingDelivery": 6,
+  "totalToolInvocationsIncludingWrappersAndDelivery": 50,
+  "tokens": "UNAVAILABLE",
+  "cases": {
+    "realEngine518AndControls": 9,
+    "censusBaselineAndMutants": 3,
+    "referenceSensitivity": 7,
+    "scratchProjection": 4,
+    "frozenGoldenAssertions": 5,
+    "normalizationIterations": 1000,
+    "replayBaselineStructures": 4
+  },
+  "sites": {
+    "initialRgMatchingLines": 1424,
+    "expandedSiteLines": 2077,
+    "files": 147,
+    "functionBodies": 107,
+    "functionAliasAddedLines": 136,
+    "manualOpaqueRanges": 9,
+    "scope": "Mechanical superset; completeness for arbitrary dynamic aliases UNDETERMINED"
+  },
+  "sourcesHashed": 1466,
+  "sourceHashesUnchanged": true,
+  "changedSources": [],
+  "status": "?? website/art/trafficAndDragons_close.png",
+  "skips": [
+    "No full suite: focused evidence brief prohibits broad runs",
+    "No browser visual probes: no implementation/layout change",
+    "No live GM/cloud calls or personal-save reads/writes",
+    "No rebaseline or #599 implemented gate execution: code does not exist",
+    "No heap/GC measurement; only retained-reference and byte counts",
+    "No source mutation: census mutants and checker models only in TEMP"
+  ],
+  "scopeExpansion": [
+    "Trace local aliases beyond requested lexical query",
+    "Include whole-sheet merge archives, detached snapshots and mpFallen rejoin",
+    "Read #545 own-field/dictionary boundary after design baseline"
+  ],
+  "failures": [
+    "Sandbox git status could not resolve work tree; escalated read-only call succeeded",
+    "Unquoted PowerShell HEAD^{tree} expanded incorrectly; quoted revision succeeded",
+    "First infrastructure probe ENOENT for corpus_playtest_v1238.endstate.json; corrected scratch to corpus_playtest_v1238.json.endstate.json"
+  ]
+}

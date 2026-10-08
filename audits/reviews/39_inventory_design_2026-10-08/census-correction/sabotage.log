@@ -1,0 +1,8 @@
+
+  sabotage — census-inventory-rows.js
+   ✓ caught      erased equipped membership is rejected
+   ✓ caught      reordered carried rows are rejected
+   ✓ caught      skipped unsupported mixed input is rejected
+   ✓ caught      lost units are rejected
+   ✓ file restored byte-identical
+   4/4 clauses proven

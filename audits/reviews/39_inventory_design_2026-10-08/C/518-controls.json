@@ -1,0 +1,453 @@
+[
+  {
+    "id": "518-exact-independent-loot-untracked-throw",
+    "input": "You loot a dagger. [ITEM_GAINED:Dagger] Bram throws his dagger. [COMPANION_ITEM_LOST:Bram|Dagger]",
+    "prose": "You loot a dagger.  Bram throws his dagger.",
+    "before": {
+      "hero": {},
+      "companion": {},
+      "chest": []
+    },
+    "after": {
+      "hero": {},
+      "companion": {},
+      "chest": []
+    },
+    "R": {
+      "muts": [
+        "+Dagger",
+        "⚠ Nothing moved — 'Dagger' is not on Bram's sheet"
+      ],
+      "turn": 5,
+      "aliasClaims": [],
+      "aliasDeferred": [],
+      "departKey": "Ashfen",
+      "places": {
+        "states": [
+          {
+            "off": -1,
+            "world": "Ashfen",
+            "sub": null,
+            "key": "Ashfen"
+          }
+        ],
+        "events": []
+      },
+      "castSet": null,
+      "errors": [],
+      "igHits": {
+        "dagger": []
+      },
+      "audioCandidates": []
+    },
+    "warnings": [
+      "[tags] COMPANION_ITEM_LOST: 'Dagger' not in Bram's inventory — no receipt (#136⑤)"
+    ],
+    "error": null
+  },
+  {
+    "id": "negative-unrelated-item-name",
+    "input": "You loot a dagger. [ITEM_GAINED:Dagger] Bram throws his spear. [COMPANION_ITEM_LOST:Bram|Spear]",
+    "prose": "You loot a dagger.  Bram throws his spear.",
+    "before": {
+      "hero": {},
+      "companion": {},
+      "chest": []
+    },
+    "after": {
+      "hero": {
+        "Dagger": 1
+      },
+      "companion": {},
+      "chest": []
+    },
+    "R": {
+      "muts": [
+        "+Dagger"
+      ],
+      "turn": 5,
+      "aliasClaims": [],
+      "aliasDeferred": [],
+      "departKey": "Ashfen",
+      "places": {
+        "states": [
+          {
+            "off": -1,
+            "world": "Ashfen",
+            "sub": null,
+            "key": "Ashfen"
+          }
+        ],
+        "events": []
+      },
+      "castSet": null,
+      "errors": [],
+      "igHits": {
+        "dagger": [
+          "Dagger"
+        ]
+      },
+      "audioCandidates": []
+    },
+    "warnings": [
+      "[tags] COMPANION_ITEM_LOST: 'Spear' not in Bram's inventory — no receipt (#136⑤)"
+    ],
+    "error": null
+  },
+  {
+    "id": "control-genuine-take-missing",
+    "input": "Bram gives you his dagger. [ITEM_GAINED:Dagger] [COMPANION_ITEM_LOST:Bram|Dagger]",
+    "prose": "Bram gives you his dagger.",
+    "before": {
+      "hero": {},
+      "companion": {},
+      "chest": []
+    },
+    "after": {
+      "hero": {},
+      "companion": {},
+      "chest": []
+    },
+    "R": {
+      "muts": [
+        "+Dagger",
+        "⚠ Nothing moved — 'Dagger' is not on Bram's sheet"
+      ],
+      "turn": 5,
+      "aliasClaims": [],
+      "aliasDeferred": [],
+      "departKey": "Ashfen",
+      "places": {
+        "states": [
+          {
+            "off": -1,
+            "world": "Ashfen",
+            "sub": null,
+            "key": "Ashfen"
+          }
+        ],
+        "events": []
+      },
+      "castSet": null,
+      "errors": [],
+      "igHits": {
+        "dagger": []
+      },
+      "audioCandidates": []
+    },
+    "warnings": [
+      "[tags] COMPANION_ITEM_LOST: 'Dagger' not in Bram's inventory — no receipt (#136⑤)"
+    ],
+    "error": null
+  },
+  {
+    "id": "control-gift-cap",
+    "input": "You give Bram your torches. [ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3]",
+    "prose": "You give Bram your torches.",
+    "before": {
+      "hero": {
+        "Torch": 1
+      },
+      "companion": {},
+      "chest": []
+    },
+    "after": {
+      "hero": {},
+      "companion": {
+        "Torch": 1
+      },
+      "chest": []
+    },
+    "R": {
+      "muts": [
+        "-Torch",
+        "⚠ Gift of Torch x3 cut to one — the pack held 1 (#518)",
+        "Bram: +Torch"
+      ],
+      "turn": 5,
+      "aliasClaims": [],
+      "aliasDeferred": [],
+      "departKey": "Ashfen",
+      "places": {
+        "states": [
+          {
+            "off": -1,
+            "world": "Ashfen",
+            "sub": null,
+            "key": "Ashfen"
+          }
+        ],
+        "events": []
+      },
+      "castSet": null,
+      "errors": [],
+      "ilHits": {
+        "torch": [
+          "Torch"
+        ]
+      },
+      "audioCandidates": []
+    },
+    "warnings": [],
+    "error": null
+  },
+  {
+    "id": "control-gift-full",
+    "input": "You give Bram three torches. [ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3]",
+    "prose": "You give Bram three torches.",
+    "before": {
+      "hero": {
+        "Torch": 3
+      },
+      "companion": {},
+      "chest": []
+    },
+    "after": {
+      "hero": {},
+      "companion": {
+        "Torch": 3
+      },
+      "chest": []
+    },
+    "R": {
+      "muts": [
+        "-Torch x3",
+        "Bram: +Torch x3"
+      ],
+      "turn": 5,
+      "aliasClaims": [],
+      "aliasDeferred": [],
+      "departKey": "Ashfen",
+      "places": {
+        "states": [
+          {
+            "off": -1,
+            "world": "Ashfen",
+            "sub": null,
+            "key": "Ashfen"
+          }
+        ],
+        "events": []
+      },
+      "castSet": null,
+      "errors": [],
+      "ilHits": {
+        "torch": [
+          "Torch",
+          "Torch",
+          "Torch"
+        ]
+      },
+      "audioCandidates": []
+    },
+    "warnings": [],
+    "error": null
+  },
+  {
+    "id": "control-unpaired-gain",
+    "input": "Bram finds two torches. [COMPANION_ITEM_GAINED:Bram|Torch x2]",
+    "prose": "Bram finds two torches.",
+    "before": {
+      "hero": {},
+      "companion": {},
+      "chest": []
+    },
+    "after": {
+      "hero": {},
+      "companion": {
+        "Torch": 2
+      },
+      "chest": []
+    },
+    "R": {
+      "muts": [
+        "Bram: +Torch x2"
+      ],
+      "turn": 5,
+      "aliasClaims": [],
+      "aliasDeferred": [],
+      "departKey": "Ashfen",
+      "places": {
+        "states": [
+          {
+            "off": -1,
+            "world": "Ashfen",
+            "sub": null,
+            "key": "Ashfen"
+          }
+        ],
+        "events": []
+      },
+      "castSet": null,
+      "errors": [],
+      "audioCandidates": []
+    },
+    "warnings": [],
+    "error": null
+  },
+  {
+    "id": "control-take-cap",
+    "input": "Bram gives you his torches. [COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3]",
+    "prose": "Bram gives you his torches.",
+    "before": {
+      "hero": {},
+      "companion": {
+        "Torch": 1
+      },
+      "chest": []
+    },
+    "after": {
+      "hero": {
+        "Torch": 1
+      },
+      "companion": {},
+      "chest": []
+    },
+    "R": {
+      "muts": [
+        "+Torch x3",
+        "Bram: -Torch",
+        "⚠ Take of Torch x3 cut to one — Bram held 1 (#518)"
+      ],
+      "turn": 5,
+      "aliasClaims": [],
+      "aliasDeferred": [],
+      "departKey": "Ashfen",
+      "places": {
+        "states": [
+          {
+            "off": -1,
+            "world": "Ashfen",
+            "sub": null,
+            "key": "Ashfen"
+          }
+        ],
+        "events": []
+      },
+      "castSet": null,
+      "errors": [],
+      "igHits": {
+        "torch": [
+          "Torch"
+        ]
+      },
+      "audioCandidates": []
+    },
+    "warnings": [],
+    "error": null
+  },
+  {
+    "id": "control-take-empty",
+    "input": "Bram gives you his torches. [COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3]",
+    "prose": "Bram gives you his torches.",
+    "before": {
+      "hero": {},
+      "companion": {},
+      "chest": []
+    },
+    "after": {
+      "hero": {},
+      "companion": {},
+      "chest": []
+    },
+    "R": {
+      "muts": [
+        "+Torch x3",
+        "⚠ Nothing moved — 'Torch x3' is not on Bram's sheet"
+      ],
+      "turn": 5,
+      "aliasClaims": [],
+      "aliasDeferred": [],
+      "departKey": "Ashfen",
+      "places": {
+        "states": [
+          {
+            "off": -1,
+            "world": "Ashfen",
+            "sub": null,
+            "key": "Ashfen"
+          }
+        ],
+        "events": []
+      },
+      "castSet": null,
+      "errors": [],
+      "igHits": {
+        "torch": []
+      },
+      "audioCandidates": []
+    },
+    "warnings": [
+      "[tags] COMPANION_ITEM_LOST: 'Torch x3' not in Bram's inventory — no receipt (#136⑤)"
+    ],
+    "error": null
+  },
+  {
+    "id": "control-gift-at-home",
+    "input": "You give Bram your potion. [ITEM_LOST:Healing potion][COMPANION_ITEM_GAINED:Bram|Healing potion]",
+    "prose": "You give Bram your potion.",
+    "before": {
+      "hero": {
+        "Healing potion": 1
+      },
+      "companion": {},
+      "chest": [
+        {
+          "name": "Healing potion",
+          "placed": 1,
+          "taken": false,
+          "qty": 1,
+          "by": "Silas",
+          "min": 0
+        }
+      ]
+    },
+    "after": {
+      "hero": {},
+      "companion": {
+        "Healing potion": 1
+      },
+      "chest": [
+        {
+          "name": "Healing potion",
+          "placed": 1,
+          "taken": false,
+          "qty": 1,
+          "by": "Silas",
+          "min": 0
+        }
+      ]
+    },
+    "R": {
+      "muts": [
+        "-Healing potion",
+        "Bram: +Healing potion"
+      ],
+      "turn": 5,
+      "aliasClaims": [],
+      "aliasDeferred": [],
+      "departKey": "The Village|Silas's house",
+      "places": {
+        "states": [
+          {
+            "off": -1,
+            "world": "The Village",
+            "sub": "Silas's house",
+            "key": "The Village|Silas's house"
+          }
+        ],
+        "events": []
+      },
+      "castSet": null,
+      "errors": [],
+      "ilHits": {
+        "healing potion": [
+          "Healing potion"
+        ]
+      },
+      "audioCandidates": []
+    },
+    "warnings": [],
+    "error": null
+  }
+]

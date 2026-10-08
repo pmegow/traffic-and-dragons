@@ -1,0 +1,30 @@
+{
+  "startUtc": "2026-10-08T23:08:26.4250531Z",
+  "baseline": "8715997f6ce1837c032867d4de8477d718dc5b64",
+  "wallSeconds": -24672.9420295,
+  "tree": "3aa32e6c4cb53220ca3efb46eee03d3400829474",
+  "endUtc": "2026-10-08T23:17:13.0579705Z",
+  "execToolCalls": 24,
+  "result": {
+    "observations": 54,
+    "actualObservations": 44,
+    "simulations": 10,
+    "assertions": 73,
+    "passed": 73,
+    "failed": 0,
+    "sourceFilesUnchanged": 1014,
+    "serverHashes": {
+      "index.js": "5562cea6ff4d8bd81e81f41b1d3c7fb789ebb89ced7c917c700a36b97d121f68",
+      "db.js": "ceee617b3ebed85c509f709f081e508b1f7be439cc6ae20d80b04d9aa8466a97"
+    }
+  },
+  "tokens": "UNAVAILABLE",
+  "skips": [
+    "No live server/provider calls",
+    "No personal-save corpus",
+    "No browser SW/update drill",
+    "Source-only doors explicitly marked"
+  ],
+  "scopeExpansion": "none",
+  "sourceUnchanged": true
+}
