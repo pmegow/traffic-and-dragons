@@ -1007,14 +1007,22 @@ function motifWords(text,exempt){
 var PAST_RAISED_TURNS=2,PAST_WORD_MIN=5;
 var PAST_CUE_RE=/\b(remember|recall|back then|back when|before (we|you|this|all this)|(your|her|his|their|my|our) (past|old life|old days|story|tale|earlier|last) ?(adventure|life|days|campaign)?|the old days|what happened (to|with|back|before|in)|tell (me|us) (about|of)|how did you|when you were|used to|earlier adventure|first met|how (did |do )?(you|they|he|she|we)( two| both| all)? (first )?(meet|met))\b/i;/* #481 C6: how people met is the past (t92) */
 function pastWords(text,ex){var out={};String(text||"").toLowerCase().replace(/[\u2019']s\b/g,"").split(/[^a-z]+/).forEach(function(w){if(w.length>=PAST_WORD_MIN&&!MOTIF_STOP[w]&&!ex[w])out[w]=1;});return out;}
+// Full names always identify their owner; an article or title alone never does. The readers retain their own short-name floor.
+function momentNameForms(name,minFirst){
+  var full=String(name||"").trim().toLowerCase().replace(/\s+/g," "),first=full.split(" ")[0],forms=[];
+  if(!full||!npcCoreTokens(full).length)return forms;
+  if(full!==first||full.length>=(minFirst||1))forms.push(full);
+  if(first&&first!==full&&first.length>=(minFirst||1)&&npcCoreTokens(first).length)forms.push(first);
+  return forms;
+}
 function pastRaisedByHero(action,userTurns,memberNames,priorMoments){
   var texts=[String(action||"")].concat((PAST_RAISED_TURNS>0?(userTurns||[]).slice(-PAST_RAISED_TURNS):[]).map(function(t){return String(t||"");})),i,j,k;/* slice(-0) is slice(0): a zero window must mean none */
-  var ex={},firsts=[];(memberNames||[]).forEach(function(n){String(n||"").toLowerCase().split(/[^a-z]+/).forEach(function(p,ix){if(p)ex[p]=1;if(ix===0&&p.length>2)firsts.push(p);});});
+  var ex={},nameForms=[];(memberNames||[]).forEach(function(n){Array.prototype.push.apply(nameForms,momentNameForms(n,3));String(n||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex[p]=1;});});
   var recordWords={};
   for(i=0;i<(priorMoments||[]).length;i++){var mo=priorMoments[i];if(!mo||!mo.text)continue;var ex2={},w2;for(w2 in ex)ex2[w2]=1;String(mo.who||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex2[p]=1;});var mw=pastWords(mo.text,ex2);for(k in mw)recordWords[k]=1;}
   for(i=0;i<texts.length;i++){
     var t=texts[i];if(!t)continue;var low=t.toLowerCase(),lw=low.replace(/[\u2019']s\b/g,"").split(/[^a-z]+/);
-    var named=false;for(j=0;j<firsts.length&&!named;j++)if(lw.indexOf(firsts[j])>=0)named=true;
+    var named=false;for(j=0;j<nameForms.length&&!named;j++)if(new RegExp("(^|[^a-z0-9])"+nameForms[j].replace(/[.*+?^{}$()|[\]\\]/g,"\\$&")+"([^a-z0-9]|$)","i").test(low))named=true;
     var cued=PAST_CUE_RE.test(low),hits=0,seenW={};
     for(j=0;j<lw.length;j++)if(lw[j].length>=PAST_WORD_MIN&&recordWords[lw[j]]&&!seenW[lw[j]]){seenW[lw[j]]=1;hits++;}
     if((named&&(cued||hits>=1))||hits>=2||(cued&&/\b(my|our)\b/.test(low)))return true;
@@ -1023,14 +1031,13 @@ function pastRaisedByHero(action,userTurns,memberNames,priorMoments){
 }
 function detectMomentRetelling(raw,moments,exempt){
   raw=String(raw||"");if(!raw||!moments||!moments.length)return null;
-  var ex=(exempt||[]).map(function(n){return String(n||"");}),exl=ex.map(function(n){return n.toLowerCase();}),i,j,best=null;
+  var ex=(exempt||[]).map(function(n){return String(n||"");}),exl=ex.map(function(n){return momentNameForms(n);}),i,j,best=null;
   var re=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]([^\[]*)/g,m,segs=[];
   while((m=re.exec(raw))){var sp=m[1].trim();if(sp)segs.push({speaker:sp,text:m[2]});}
   if(!segs.length)return null;
-  function firstOf(n){return n.split(/\s+/)[0];}
   for(i=0;i<segs.length;i++){
-    var s=segs[i],spl=s.speaker.toLowerCase(),own=false;
-    for(j=0;j<exl.length&&!own;j++)if(exl[j]&&(exl[j]===spl||firstOf(exl[j])===firstOf(spl)))own=true;
+    var s=segs[i],spl=momentNameForms(s.speaker),own=false;
+    for(j=0;j<exl.length&&!own;j++)for(var ni=0;ni<exl[j].length&&!own;ni++)if(spl.indexOf(exl[j][ni])>=0)own=true;
     if(own)continue;/* the party's own telling is theirs to give */
     var hit=momentEchoWords(s.text,moments,ex.concat([s.speaker]));
     if(hit&&(!best||hit.words>best.words))best={speaker:s.speaker,who:hit.who,gist:hit.gist,words:hit.words,camp:hit.camp||null};

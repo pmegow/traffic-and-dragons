@@ -26917,6 +26917,45 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#527 meaningful moment names");
+  t("#527 ordinary articles do not raise The Entity's past; full names and real past questions do",function(){
+    var names=["The Entity"],moments=[{who:"The Entity",text:"The Entity shattered the obsidian conduit beneath Blackwater."}];
+    if(pastRaisedByHero("Ask the innkeeper about the conduit.",[],names,moments))return "ordinary the plus one record word raised the past";
+    if(pastRaisedByHero("Tell me about the soup.",[],names,moments))return "ordinary the plus past cue raised the past";
+    if(!pastRaisedByHero("Ask The Entity about the conduit.",[],names,moments))return "full The Entity did not raise its record";
+    if(!pastRaisedByHero("Tell me about The Entity.",[],names,moments))return "full The Entity plus cue did not raise the past";
+    if(!pastRaisedByHero("What became of the obsidian conduit?",[],names,moments))return "two record words no longer raise past";
+    if(!pastRaisedByHero("I recall my old days.",[],names,moments))return "hero own past no longer raises";
+    if(pastRaisedByHero("Ask The Entity about the weather.",[],names,moments))return "name alone raised past";
+    return true;
+  });
+  t("#527 The innkeeper is not The Entity: an outsider's retelling is caught and the member's own is exempt",function(){
+    var moments=[{who:"The Entity",text:"The Entity shattered the obsidian conduit beneath Blackwater."}],line="I shattered the obsidian conduit beneath Blackwater.",ex=["The Entity"];
+    var hit=detectMomentRetelling("[SAY:The innkeeper]"+line,moments,ex);
+    if(!hit||hit.speaker!=="The innkeeper"||hit.who!=="The Entity")return "article exempted outsider's retelling: "+JSON.stringify(hit);
+    if(detectMomentRetelling("[SAY:The Entity]"+line,moments,ex))return "member's full name lost exemption";
+    if(detectMomentRetelling("[SAY:The innkeeper]The weather looks fine.",moments,ex))return "fresh line flagged";
+    return true;
+  });
+  t("#527 meaningful first names retain recall and self-telling; a shared title does neither",function(){
+    var moments=[{who:"Morwen Zethran",text:"Morwen shattered the obsidian conduit beneath Blackwater."}];
+    if(!pastRaisedByHero("Ask Morwen about the conduit.",[],["Morwen Zethran"],moments))return "ordinary first name lost recall";
+    if(detectMomentRetelling("[SAY:Morwen]I shattered the obsidian conduit beneath Blackwater.",moments,["Morwen Zethran"]))return "ordinary first name lost exemption";
+    if(pastRaisedByHero("Tell me about Sir Bartram.",[],["Sir Aldren"],moments))return "shared title raised another person's past";
+    if(!detectMomentRetelling("[SAY:Sir Bartram]I shattered the obsidian conduit beneath Blackwater.",moments,["Sir Aldren"]))return "shared title exempted outsider";
+    if(!pastRaisedByHero("Ask Sir Aldren about the conduit.",[],["Sir Aldren"],moments))return "full titled name lost recall";
+    if(!pastRaisedByHero("Pour the tea.",["Ask Morwen about the conduit."],["Morwen Zethran"],moments))return "recent user raise lost";
+    if(detectMomentRetelling("[SAY:Al]I shattered the obsidian conduit beneath Blackwater.",moments,["Al Voss"]))return "short given name lost self-telling";
+    if(pastRaisedByHero("Ask Al about the conduit.",[],["Al Voss"],moments))return "recall shortened its existing three-letter floor";
+    if(pastRaisedByHero("Ask Nonentity about the conduit.",[],["Entity"],moments))return "name matched inside an unrelated word";
+    if(pastRaisedByHero("Ask Al about the conduit.",[],["Al"],moments))return "single short name changed recall floor";
+    if(!pastRaisedByHero("Ask The [Entity] about the conduit.",[],["The [Entity]"],moments))return "punctuated full name lost recall";
+    if(pastRaisedByHero("Tell me about the soup.",[],["The"],moments))return "generic-only name raised past";
+    if(!pastRaisedByHero("Recall Li Morn.",[],["Li Morn"],moments))return "full short-given name lost recall";
+    if(detectMomentRetelling("[SAY:Al]I shattered the obsidian conduit beneath Blackwater.",moments,["Al"]))return "single short given name lost self-telling";
+    return true;
+  });
+
   section("#527 hero cast identity");
   function heroCast527(){
     makeWorld();worldState.character.name="Ammut";worldState.character.aliases=["Bone-boy"];worldState.turn=20;
