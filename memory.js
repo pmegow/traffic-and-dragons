@@ -2088,15 +2088,18 @@ function memoryTOC(opts){
   return lines.join("\n");
 }
 function memoryNpcDetail(name){if(memoryNpcIsPlayer(name))return"";var n=memory.npcs[name];if(!n)return"";var akaStr=n.aliases&&n.aliases.length?" (aka: "+n.aliases.join(", ")+")":"";var lines=[name+akaStr+(n.pronouns?" ["+n.pronouns+"]":"")+(n.dead?" — DECEASED"+(typeof n.dead==="number"?" (died t"+n.dead+")":""):"")+((n.attitude&&!(typeof sheetTraitLeads==="function"&&sheetTraitLeads(name)))?" — toward you: "+n.attitude:"")/* #460 ①: the sheet plays a traited resident; the summariser's attitude is omitted */],i;var _dWs=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(_dWs&&_dWs.partyMember&&_dWs.charSheet&&_dWs.charSheet.splitLoc){lines.push("  Currently: AWAY from the party at "+_dWs.charSheet.splitLoc.location+(_dWs.charSheet.splitLoc.sublocation?" ("+_dWs.charSheet.splitLoc.sublocation+")":"")+" — this line is authoritative; any position or activity claim below that contradicts it is STALE history.");}/* #144B: the zero-false-positive counter to legacy stale-posture Knows lines — a pure ADDITION, never suppression (a misclassifying suppressor would hide TRUE canon, the rebuttal-round objection) *//* v1.372: attitude is summarizer-owned and may be legitimately empty — don't render a dangling separator. v1.382: LABELLED — this is disposition toward the PLAYER, a different measurement from npc.status ("mood:" in the roster). Unlabelled, the two read as rival claims about one thing; labelled, they are complementary and the model has nothing to adjudicate. *//* B3: the detail block must carry the death — it fires on any mention */var _secret=npcSecretText(n);if(_secret)lines.push("  "+_secret);var _auth=npcAuthoredText(n);if(_auth)lines.push("  Authored guidance (play outcomes are recorded separately): "+(_auth.length>2000?_auth.slice(0,2000)+" …[truncated]":_auth));if(n.knowledge.length){var _knArr=n.knowledge.slice(),_knDrop=0;var _kn=_knArr.join("; ");while(_kn.length>2000&&_knArr.length>1){_knArr.shift();_knDrop++;_kn=_knArr.join("; ");}/* #144A: shed OLDEST whole facts under the budget — the old head-keep slice(0,2000) cut the NEWEST tail, so stale claims survived while fresh facts vanished (Sol R1) */if(_knDrop)_kn="("+_knDrop+" older facts not shown) "+_kn;if(_kn.length>2000)_kn=_kn.slice(0,2000)+" …[truncated]";/* P8 backstop: one verbose blueprint bio must not blow up the volatile prompt */lines.push("  Knows: "+_kn);}if(n.events.length){var ev=[];for(i=0;i<n.events.length;i++)ev.push("[T"+n.events[i].turn+"] "+n.events[i].note);lines.push("  History: "+ev.join("; "));}var _feW=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(n.firstEncounter&&!(_feW&&(_feW.resident||typeof _feW.libraryAt==="number")))lines.push("  First met: "+((typeof snippetAtSentence==="function")?snippetAtSentence(n.firstEncounter):n.firstEncounter));/* #481 C11: an imported resident was never met here; the line is a sentence */return lines.join("\n");}
-function npcLinkUpsert(nameA, nameB, rel){
+function npcGraphRefuse(reason,R){if(typeof console!=="undefined")console.warn("[npc graph] "+reason);if(R)R.muts.push("⚠ NPC graph REFUSED: "+reason);return false;}
+function npcLinkUpsert(nameA, nameB, rel,R){
+  nameA=personEntityKey(nameA);nameB=personEntityKey(nameB);
+  if(nameA===nameB)return npcGraphRefuse("a character cannot link to themself: "+nameA,R);
   if(!memory.npcGraph)memory.npcGraph={edges:[]};
   var edges=memory.npcGraph.edges,i;
   for(i=0;i<edges.length;i++){
     if((edges[i].a===nameA&&edges[i].b===nameB)||(edges[i].a===nameB&&edges[i].b===nameA)){
-      edges[i].rel=rel;edges[i].turn=worldState.turn;return;
+      edges[i].rel=rel;edges[i].turn=worldState.turn;return {a:nameA,b:nameB};
     }
   }
-  edges.push({a:nameA,b:nameB,rel:rel,turn:worldState.turn});
+  edges.push({a:nameA,b:nameB,rel:rel,turn:worldState.turn});return {a:nameA,b:nameB};
 }
 function buildNpcGraph(){
   if(!memory.npcGraph)memory.npcGraph={edges:[]};
@@ -2170,17 +2173,20 @@ function factionUpsert(name,desc){
   if(!memory.npcGraph.factions[name])memory.npcGraph.factions[name]={desc:desc||"",turn:turn};
   else if(desc)memory.npcGraph.factions[name].desc=desc;
 }
-function npcFactionSet(npcName,factionName,role){
+function npcFactionSet(npcName,factionName,role,R){
+  npcName=personEntityKey(npcName);
+  if(memoryNpcIsPlayer(npcName))return npcGraphRefuse("NPC_FACTION cannot assign the player to an NPC faction: "+npcName,R);
   if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
   if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};
   var turn=worldState?worldState.turn:0;
   if(!memory.npcGraph.npcFactions[npcName])memory.npcGraph.npcFactions[npcName]=[];
   var entries=memory.npcGraph.npcFactions[npcName],i;
-  for(i=0;i<entries.length;i++){if(entries[i].faction===factionName){entries[i].role=role||entries[i].role;entries[i].turn=turn;return;}}
+  for(i=0;i<entries.length;i++){if(entries[i].faction===factionName){entries[i].role=role||entries[i].role;entries[i].turn=turn;return true;}}
   entries.push({faction:factionName,role:role||"",turn:turn});
   // Auto-register faction if not known
   if(!memory.npcGraph.factions)memory.npcGraph.factions={};
   if(!memory.npcGraph.factions[factionName])memory.npcGraph.factions[factionName]={desc:"",turn:turn};
+  return true;
 }
 function factionLinkUpsert(facA,facB,rel){
   if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};

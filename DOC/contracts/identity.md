@@ -56,6 +56,8 @@ Explicit dynamic writes commit only dynamic. New bonds commit directly; replacin
 
 ---
 
+**Hero endpoints and relationship writes (#538).** `personEntityKey` gives a recognized current-hero name, alias or `player` spelling the exact sheet name; other names use the existing NPC resolver. `relationshipEntityKey` delegates to it. `npcLinkUpsert` uses those canonical endpoints and refuses self-links before allocating a graph; legitimate NPC↔player links remain valid. `npcFactionSet` is NPC-only and refuses the hero before creating membership or an unknown faction. Both return honest results so tag receipts cannot claim success after refusal. `relationshipWriteTarget` is the shared admission boundary for explicit and legacy relationship tags: a supplied companion owner cannot be the hero or a shadow hero-named sheet, and a canonical self-edge is refused before migration or queue creation. Companion→hero relationships remain valid; the boundary follows the current hero after a swap. No saved identity records are deleted or repaired by these refusals. Tests: `#538 hero graph and relationship boundaries`; mutation battery `dev/sabotage-538-hero-edges.js`.
+
 ## 21. NPC alias system
 
 `resolveNpcName(name)` in `memory.js` resolves aliases to canonical name before any storage op. All NPC-keyed tags resolve aliases: `NPC`, `NPC_PRONOUN`, `NPC_NOTE`, `PARTY_MEMBER`, `RELATIONSHIP`, `RELATIONSHIP_REMOVED`. NPC list in system prompt shows `Name [aka: alias1, alias2]`.

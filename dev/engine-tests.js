@@ -27068,6 +27068,62 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#538 hero graph and relationship boundaries");
+  function heroEdges538(){
+    makeWorld();worldState.character.name="Tess";worldState.character.aliases=["Ashen One"];
+    var sheet=JSON.parse(JSON.stringify(worldState.character));sheet.name="Bram";sheet.aliases=[];sheet.relationships=[];
+    worldState.npcs=[{name:"Bram",partyMember:true,charSheet:sheet}];memory.npcs={Bram:{aliases:["Bram the Bold"],knowledge:[],events:[]}};
+  }
+  t("#538 graph writers canonicalize hero endpoints and reject normalized self links before allocation",function(){
+    var forms=["Tess","TESS","player","Ashen One"],i;
+    for(i=0;i<forms.length;i++){
+      heroEdges538();applyMuts("[NPC_LINK:"+forms[i]+"|Bram|ally]");var e=memory.npcGraph.edges;
+      if(e.length!==1||e[0].a!=="Tess"||e[0].b!=="Bram")return "noncanonical graph endpoint: "+forms[i];
+      npcLinkUpsert("Bram the Bold",forms[i],"trusted");if(e.length!==1||e[0].rel!=="trusted")return "direct writer bypasses canonicalization";
+      delete memory.npcGraph;var r=applyMuts("[NPC_LINK:"+forms[i]+"|Tess|self]");if(memory.npcGraph)return "self link allocated graph: "+forms[i];
+      if(!(r.muts||[]).some(function(x){return /REFUSED/.test(x);})||(r.muts||[]).some(function(x){return /^Link:/.test(x);}))return "self link receipt untruthful";
+      npcLinkUpsert(forms[i],"Tess","self");if(memory.npcGraph)return "direct self link allocated graph";
+    }
+    return true;
+  });
+  t("#538 NPC-only faction writer refuses hero before membership or faction registration",function(){
+    var forms=["Tess"," tess ","player","Ashen One"],i;
+    for(i=0;i<forms.length;i++){heroEdges538();delete memory.npcGraph;var r=applyMuts("[NPC_FACTION:"+forms[i]+"|Watch|captain]");
+      if(memory.npcGraph)return "hero faction allocated graph: "+forms[i];
+      if(!(r.muts||[]).some(function(x){return /REFUSED/.test(x);})||(r.muts||[]).some(function(x){return /\[captain\]/.test(x);}))return "hero faction refusal invisible or success falsely reported";
+      npcFactionSet(forms[i],"Watch","captain");if(memory.npcGraph)return "direct faction writer admitted hero";
+    }
+    npcFactionSet("Bram the Bold","Watch","guard");return memory.npcGraph.npcFactions.Bram&&memory.npcGraph.factions.Watch?true:"ordinary NPC faction lost";
+  });
+  t("#538 hero self relationships and legacy removals refuse before sheet migration or proposal queues",function(){
+    var tags=["RELATIONSHIP_BOND:player|Spouse","RELATIONSHIP_DYNAMIC:TESS|warm","RELATIONSHIP:Ashen One|Family","RELATIONSHIP_REMOVED:player","RELATIONSHIP_BOND_REMOVED:Tess","RELATIONSHIP_DYNAMIC_REMOVED:Ashen One","RELATIONSHIP_PAIR_REMOVED:TESS"],i;
+    for(i=0;i<tags.length;i++){heroEdges538();worldState.character.relationships=[{entity:"Bram",relationship:"old ally"}];var before=JSON.stringify(worldState.character),r=applyMuts("["+tags[i]+"]");
+      if(JSON.stringify(worldState.character)!==before||worldState.relAxisChoices||worldState.relBondChanges)return "self tag mutated sheet or queued proposal: "+tags[i];
+      if(!(r.muts||[]).some(function(x){return /REFUSED/.test(x);}))return "self relationship refusal invisible";
+    }
+    heroEdges538();var out={muts:[]};relationshipWrite(null,"player","bond","Spouse",out);relationshipLegacyProposal(null,"Ashen One","","legacy-remove",out);
+    return !worldState.character.relationships.length&&!worldState.relAxisChoices?true:"direct relationship writer bypassed self boundary";
+  });
+  t("#538 companion owner cannot be hero or shadow sheet while real companion to hero stays valid",function(){
+    var forms=["Tess","TESS","player","Ashen One"],i;
+    for(i=0;i<forms.length;i++){heroEdges538();var shadow={name:forms[i],relationships:[]};worldState.npcs.push({name:forms[i],partyMember:true,charSheet:shadow});var before=JSON.stringify(worldState.character);
+      var r=applyMuts("[COMPANION_RELATIONSHIP_BOND:"+forms[i]+"|Bram|Brother][COMPANION_RELATIONSHIP:"+forms[i]+"|Bram|Family][COMPANION_RELATIONSHIP_REMOVED:"+forms[i]+"|Bram]");
+      if(shadow.relationships.length||JSON.stringify(worldState.character)!==before||worldState.relAxisChoices||worldState.relBondChanges)return "hero owner reached a sheet or queue: "+forms[i];
+      if(!(r.muts||[]).some(function(x){return /REFUSED/.test(x);}))return "hero owner refusal invisible";
+    }
+    heroEdges538();applyMuts("[COMPANION_RELATIONSHIP_BOND:Bram|Ashen One|Friend]");var rows=worldState.npcs[0].charSheet.relationships;
+    if(rows.length!==1||rows[0].entity!=="Tess"||rows[0].bond!=="Friend")return "legitimate companion-to-hero edge lost";
+    var snap=JSON.stringify(rows);applyMuts("[COMPANION_RELATIONSHIP_DYNAMIC:Bram|Bram the Bold|warm]");return JSON.stringify(rows)===snap?true:"companion self edge admitted";
+  });
+  t("#538 actual hero swap moves the NPC-only boundary and preserves ordinary relationship confirmation",function(){
+    heroEdges538();if(!swapPlayerCharacter("Bram").ok)return "swap fixture failed";
+    applyMuts("[NPC_FACTION:Tess|Watch|scout][NPC_LINK:player|Tess|friend][RELATIONSHIP_BOND:Tess|Ally]");
+    if(!memory.npcGraph.npcFactions.Tess||worldState.character.relationships[0].entity!=="Tess")return "old hero stayed protected as player";
+    var before=JSON.stringify(memory.npcGraph);applyMuts("[NPC_FACTION:Bram|Forbidden|leader]");if(JSON.stringify(memory.npcGraph)!==before)return "new hero not protected";
+    applyMuts("[RELATIONSHIP_BOND:Tess|Family]");if(worldState.character.relationships[0].bond!=="Ally")return "bond replaced without confirmation";
+    worldState.turn++;applyMuts("[RELATIONSHIP_BOND:Tess|Family]");return worldState.character.relationships[0].bond==="Family"?true:"valid later confirmation lost";
+  });
+
   section("#527 role cast identity");
   function roleCast527(names){
     makeWorld();worldState.character.name="Silas";worldState.turn=20;memory.npcs={};worldState.npcs=[];

@@ -509,7 +509,18 @@ function resolveEntity(domain,name){
 // a passing scene can never overwrite a marriage, oath, kinship, or enmity by accident.
 var REL_AXIS_CHOICE_CAP=8,REL_BOND_CHANGE_CAP=8,REL_NOTE_COOLDOWN=3,REL_VALUE_MAX=240;
 function relationshipOwnerKey(who){return who?resolveNpcName(String(who).trim()):"@player";}
-function relationshipEntityKey(entity){var raw=String(entity||"").trim();if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(raw)&&worldState&&worldState.character)return worldState.character.name;return resolveNpcName(raw);}
+function personEntityKey(entity){var raw=String(entity||"").trim();if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(raw)&&worldState&&worldState.character)return worldState.character.name;return resolveNpcName(raw);}
+function relationshipEntityKey(entity){return personEntityKey(entity);}
+/* Validate directed writes before migration can touch a sheet or create review queues. */
+function relationshipWriteTarget(who,entity,R){
+  var ent=personEntityKey(entity),owner=who?personEntityKey(who):(worldState&&worldState.character&&worldState.character.name),why="";
+  if(who&&memoryNpcIsPlayer(owner))why="a companion relationship owner cannot be the player";
+  else if(owner===ent)why="a character cannot have a relationship with themself";
+  var sheet=why?null:relationshipSheet(who);
+  if(!why&&!sheet)why="no character sheet for '"+(who||"player")+"'";
+  if(why){_relationshipWarn(why+" — relationship tag refused");if(R)R.muts.push("⚠ Relationship REFUSED: "+why);return null;}
+  return {sheet:sheet,entity:ent};
+}
 function relationshipEdgeKey(who,entity){return relationshipOwnerKey(who)+"\u001f"+relationshipEntityKey(entity);}
 function relationshipSheet(who){
   if(!worldState)return null;
@@ -636,8 +647,8 @@ function _relationshipCommitBond(who,row,next,R,pair){
   if(typeof bondToast==="function")bondToast(who,row.entity,next||null,next?"updated":"ended");
 }
 function relationshipWrite(who,entity,axis,value,R){
-  var sheet=relationshipSheet(who),ent=relationshipEntityKey(entity);
-  if(!sheet){_relationshipWarn("no character sheet for '"+(who||"player")+"' — relationship tag refused");return false;}
+  var target=relationshipWriteTarget(who,entity,R);if(!target)return false;
+  var sheet=target.sheet,ent=target.entity;
   relationshipMigrateSheet(sheet,who);var row=relationshipFind(sheet,ent,who),rows=sheet.relationships;
   var raw=axis==="pair"?"":String(value||"").trim(),next;
   if(axis==="pair")next="";
@@ -679,8 +690,8 @@ function relationshipWrite(who,entity,axis,value,R){
   R.muts.push((axis==="pair"?"Pair removal":"Bond change")+" staged: "+(who?who+" → ":"")+ent+" (\""+prev+"\" → "+(next?'"'+next+'"':"removed")+"; canon unchanged)");return true;
 }
 function relationshipLegacyProposal(who,entity,value,kind,R){
-  var sheet=relationshipSheet(who);if(!sheet){_relationshipWarn("legacy relationship tag for unknown owner '"+(who||"player")+"' refused");return false;}
-  relationshipMigrateSheet(sheet,who);return _relationshipQueueAxis(who,entity,value,kind,R);
+  var target=relationshipWriteTarget(who,entity,R);if(!target)return false;
+  relationshipMigrateSheet(target.sheet,who);return _relationshipQueueAxis(who,target.entity,value,kind,R);
 }
 function relationshipAxisReviews(){
   var out=[],scan=function(sheet,who){var rows=relationshipMigrateSheet(sheet,who),i;for(i=0;i<rows.length;i++)if(rows[i].axisReview&&rows[i].bond&&!_relationshipGuard(who,rows[i].entity)){var key=relationshipEdgeKey(who,rows[i].entity);out.push({who:who||null,entity:rows[i].entity,value:rows[i].bond,kind:"migration",turn:rows[i].bondTurn||0,lastFire:worldState.relAxisReviewFired&&worldState.relAxisReviewFired[key],key:key,row:rows[i]});}};
