@@ -33,8 +33,9 @@ function _downloadBlob(blob,filename){
 // so adding it is backward compatible.
 function exportToFolder(type,blob,filename,campId,campName){/* #481 F1: campId/campName name a NON-active campaign's folder (the #424 copy); absent = the active one */
   if(!_campRootHandle){ _downloadBlob(blob,filename); return Promise.resolve(false); }
-  var sub=_SUBFOLDERS[type]||"misc";
+  var sub=_SUBFOLDERS[type]||"misc",destinationLabel="";
   return (campId?campaignFolderFor(campId,campName,true):campaignFolder(true)).then(function(camp){
+    destinationLabel=campaignFolderLabel(_campRootHandle&&_campRootHandle.name,camp.name);
     return camp.getDirectoryHandle(sub,{create:true});
   }).then(function(dir){
     return dir.getFileHandle(filename,{create:true});
@@ -45,7 +46,7 @@ function exportToFolder(type,blob,filename,campId,campName){/* #481 F1: campId/c
   }).then(function(){
     // Name the WHOLE path, campaign folder included — "Saved to renders/x.jpg" left the user
     // guessing which folder that was (field request 2026-07-27).
-    var _fn=campaignFolderLabel(_campRootHandle&&_campRootHandle.name,activeCampFolderName());/* #336: root/campaign */
+    var _fn=destinationLabel;/* #336: root/campaign */
     showToast("Saved to "+(_fn?_fn+"/":"")+sub+"/"+filename);
     return true;
   }).catch(function(e){
@@ -246,10 +247,14 @@ function _renderFilenameFor(blob,filename){
 // desktop with no folder chosen, a plain download is the predictable thing rather than a surprise
 // share dialog. Capability check, never UA sniffing.
 function saveRenderImage(blob,filename,turn){
+  var job=_renderJobStart();
+  function liveSave(){if(_renderJobLive(job))return true;_renderJobDrop(job,"the save");return false;}
   filename=_renderFilenameFor(blob,filename);
   return _ensureFolderPerm().then(function(haveFolder){
+    if(!liveSave())return false;
     if(haveFolder){
-      return exportToFolder("render",blob,filename).then(function(toFolder){
+      return exportToFolder("render",blob,filename,job.campId,job.campName).then(function(toFolder){
+        if(!liveSave())return false;
         recordRenderPointer(filename,turn,toFolder?"renders":"download");
         return toFolder?"folder":"download";
       });
@@ -261,6 +266,7 @@ function saveRenderImage(blob,filename,turn){
       return "download";
     }
     return shareImageFile(blob,filename).then(function(shared){
+      if(!liveSave())return false;
       if(shared){recordRenderPointer(filename,turn,"share");return "share";}
       _downloadBlob(blob,filename);
       recordRenderPointer(filename,turn,"download");

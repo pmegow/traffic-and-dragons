@@ -3759,13 +3759,13 @@ function buildSeedLegend(names,omitted){
   s+=" The scene contains EXACTLY "+total+" "+(total===1?"person":"people")+": one body per named character, never the same face twice"+(omitted&&omitted.length?"; described-only names must still appear":"")+".";
   return s;
 }
-/* #440 (Astra review R3): a render is a JOB with an identity — the campaign, turn and hero it was started for.
+/* #440 (Astra review R3): a render belongs to its campaign and turn; its subjects are a detached snapshot.
    doRender awaits the prompt writer and the image service without setting busy, so a campaign load can land in
    between; before #440 the finished scene was written into whichever story pane was current, seeded from the live
    character, and Save/Portrait wrote the newly loaded campaign. Every asynchronous boundary now re-checks the job,
    and a stale one is dropped LOUDLY — never written into the campaign that came after. Pure, engine-tested. */
 function _renderJobStart(){var c=worldState&&worldState.character;return {campId:worldState?worldState.campId:null,campName:(worldState&&worldState.campName)||"",turn:(worldState&&worldState.turn)||0,name:c?c.name:""};}
-function _renderJobLive(job){if(!job||!worldState)return false;var c=worldState.character;return worldState.campId===job.campId&&(!c||c.name===job.name);}
+function _renderJobLive(job){if(!job||!worldState)return false;return worldState.campId===job.campId;}
 function _renderJobDrop(job,what){var msg="The scene for "+(job.campName||"another campaign")+" (turn "+job.turn+") finished after you switched campaigns — "+what+" was discarded; nothing was written here.";console.warn("[render] #440 "+msg);if(typeof showToast==="function")showToast("🎨 "+msg,7000);}
 async function doRender(rOpts){
   if(!worldState||_rendering)return;
@@ -3783,8 +3783,8 @@ async function doRender(rOpts){
     _frame=(hist&&typeof document!=="undefined")?document.querySelector('[data-turn="'+ctx.turn+'"]'):null;
     th=addMsg("thinking","Composing scene...",hist?{keepPlace:true}:undefined);/* #206c: the marker sits under the frame being painted, the reader stays put */
     if(_frame&&th&&_frame.parentNode===th.parentNode)_frame.parentNode.insertBefore(th,_frame.nextSibling);
-    var c=worldState.character,w=worldState.world;
-    var party=hist?partyForRender(ctx):livingPartyCompanions();
+    var subjects=JSON.parse(JSON.stringify({character:worldState.character,party:hist?partyForRender(ctx):livingPartyCompanions()}));
+    var c=subjects.character,w=worldState.world,party=subjects.party;
     var rp=hist?buildSceneRenderRequest(c,party,{location:ctx.location,region:w.region,weather:ctx.weather},{scene:ctx.prose,timeText:(ctx.ck!=null&&typeof clockStamp==="function")?clockStamp(ctx.ck):null,sublocation:ctx.sublocation,weatherInProse:ctx.weatherInProse}):buildSceneRenderRequest(c,party,w);
     var _wsys="You are an image prompt writer for a dark fantasy RPG. Output ONLY the image generation prompt. Describe EVERY listed character's exact physical appearance with full specificity — gender, colouring, build — never invent or alter them. No narration, no tags.";
     var resp=hist?await callGM(rp,_wsys,undefined,null,{noHistory:true}):await callGM(rp,_wsys);
@@ -3821,10 +3821,11 @@ async function doRender(rOpts){
       if(!_renderJobLive(_job)){showToast("This scene belongs to "+(_job.campName||"another campaign")+", which is no longer loaded — nothing saved.");return;}/* #440 */
       var _rt=hist?ctx.turn:_job.turn;/* #206: the pointer stamps the FRAME's turn, so the image re-attaches to it on reload; #440: the turn the render STARTED on, not the turn Save is clicked on */
       fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
+        if(!_renderJobLive(_job)){_renderJobDrop(_job,"the save");return;}
         var fname=buildFilename("render");
         if(typeof saveRenderImage==="function")return saveRenderImage(blob,fname,_rt);
         return exportToFolder("render",blob,fname);
-      }).catch(function(){window.open(imageUrl,"_blank");});
+      }).catch(function(){if(!_renderJobLive(_job)){_renderJobDrop(_job,"the save");return;}window.open(imageUrl,"_blank");});
     });
     // ✨ Enhance: second img2img pass over the FINISHED render — a hard cinematic relight/regrade
     // (Flux img2img at ENHANCE_STRENGTH), reusing the scene prompt so content stays coherent. This is
@@ -3849,10 +3850,15 @@ async function doRender(rOpts){
     portraitBtn.addEventListener("click",function(){
       if(!imageUrl){showToast("Image not ready yet.");return;}
       if(!_renderJobLive(_job)){showToast("This scene belongs to "+(_job.campName||"another campaign")+", which is no longer loaded — the portrait was not changed.");return;}/* #440 */
+      var portraitTarget=worldState.character;
       portraitBtn.textContent="Saving…";portraitBtn.disabled=true;
       fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
         var fr=new FileReader();
-        fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){worldState.character.portrait=compressed;storageAdapter.markPortraitDirty();saveAll();showToast("Portrait updated!");portraitBtn.textContent="⧉ Portrait";portraitBtn.disabled=false;});};
+        fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){
+          portraitBtn.textContent="⧉ Portrait";portraitBtn.disabled=false;
+          if(!_renderJobLive(_job)||worldState.character!==portraitTarget){var why="The campaign or selected character changed — the portrait was not changed.";console.warn("[render] "+why);showToast(why);return;}
+          portraitTarget.portrait=compressed;storageAdapter.markPortraitDirty();saveAll();showToast("Portrait updated!");
+        });};
         fr.readAsDataURL(blob);
       }).catch(function(){portraitBtn.textContent="⧉ Portrait";portraitBtn.disabled=false;showToast("Could not save portrait.");});
     });
@@ -3878,7 +3884,7 @@ async function doRender(rOpts){
         /* #165: seed selection is table-driven (multiSeed on the img2img entry) — Nano AND Grok
            gather the party now; single-reference models get the player only. */
         var isMulti=!!(mdlCfg.img2img&&mdlCfg.img2img.multiSeed);
-        var sc=collectRenderSeeds(mdlCfg,worldState.character,party);
+        var sc=collectRenderSeeds(mdlCfg,c,party);
         var seeds=sc.urls;
         var usingI2I=!!(seeds.length&&mdlCfg.img2img);
         /* #165: say the truth about what seeded — "portrait-seeded" alone read as "everyone's

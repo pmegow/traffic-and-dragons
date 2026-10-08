@@ -119,6 +119,103 @@ t("portrait action: a current scene applies, but a campaign switch refuses befor
   });
 });
 
+// #527(21): the campaign owns the scene; one immutable cast supplies both writer and painter.
+function roleRenderFixture(){
+  fresh("camp_A","Alpha");worldState.kind="village";worldState.character.portrait="data:image/png;base64,HERO";
+  var companion=JSON.parse(JSON.stringify(worldState.character));companion.name="Bram";companion.portrait="data:image/png;base64,BRAM";
+  worldState.npcs=[{name:"Bram",partyMember:true,charSheet:companion}];
+  renderModel=RENDER_MODELS.filter(function(m){return m.img2img&&m.img2img.partyRefs;})[0].id;
+  falAvailable=function(){return true;};elapsedTicker=function(){return {stop:function(){},base:function(){return "";},set:function(){}};};
+}
+function changedHero(){var c=JSON.parse(JSON.stringify(worldState.character));c.name="Nyla";c.portrait="data:image/png;base64,NYLA";worldState.character=c;return c;}
+function imageReply(){return {ok:true,json:function(){return Promise.resolve({images:[{url:"https://img.test/scene.png"}]});}};}
+function demand(ok,why){if(!ok)throw Error(why);}
+t("#527 same-campaign hero swap at prompt await keeps original detached hero and companion references",async function(){
+  roleRenderFixture();var held,body,request,old=worldState.character,comp=worldState.npcs[0].charSheet;
+  callGM=function(r){request=r;return new Promise(function(resolve){held=resolve;});};falFetch=function(e,b){body=b;return Promise.resolve(imageReply());};
+  var pending=doRender();await tick();changedHero();old.portrait="mutated old hero";comp.portrait="mutated companion";comp.name="Other";
+  held("Tess and Bram beside the mill.");await pending;
+  demand(body,"hero swap discarded the image request");demand(request.indexOf("Tess")>=0&&request.indexOf("Bram")>=0,"writer lost original subjects");
+  demand(JSON.stringify(body.image_urls)===JSON.stringify(["data:image/png;base64,HERO","data:image/png;base64,BRAM"]),"references mixed live or shallow subjects");
+  demand(/Reference image 1 is Tess/.test(body.prompt)&&/Reference image 2 is Bram/.test(body.prompt),"legend lost original cast");
+  demand(renderOut()[0].children.some(function(e){return e.alt==="Scene illustration";}),"same campaign image absent");demand(!_rendering,"render latch stuck");
+});
+t("#527 same-campaign hero swap at image await keeps the finished scene",async function(){
+  roleRenderFixture();callGM=function(){return Promise.resolve("Tess beside Bram.");};var held;
+  falFetch=function(){return new Promise(function(r){held=r;});};var pending=doRender();await tick();var div=renderOut()[0];changedHero();held(imageReply());await pending;
+  demand(!div.removed&&div.children.some(function(e){return e.alt==="Scene illustration";}),"same campaign scene discarded after image await");demand(!_rendering,"render latch stuck");
+});
+t("#527 in-place subject changes at prompt await cannot alter detached portrait seeds",async function(){
+  roleRenderFixture();var held,body;callGM=function(){return new Promise(function(r){held=r;});};falFetch=function(e,b){body=b;return Promise.resolve(imageReply());};
+  var pending=doRender();await tick();worldState.character.portrait="changed hero";worldState.npcs[0].charSheet.portrait="changed party";held("Tess beside Bram.");await pending;
+  demand(JSON.stringify(body.image_urls)===JSON.stringify(["data:image/png;base64,HERO","data:image/png;base64,BRAM"]),"mutable portrait references leaked into painter");
+});
+async function readyScene(){roleRenderFixture();callGM=function(){return Promise.resolve("Tess beside Bram.");};falFetch=function(){return Promise.resolve(imageReply());};await doRender();return renderOut()[0];}
+t("#527 Portrait captures click target and refuses hero swap during compression",async function(){
+  var div=await readyScene(),button=findBtn(div,"⧉ Portrait"),done,writes=0,old=worldState.character;
+  fetch=function(){return Promise.resolve({blob:function(){return Promise.resolve("blob");}});};FileReader=function(){this.readAsDataURL=function(){this.onload({target:{result:"image"}});};};
+  compressPortrait=function(d,fn){done=fn;};storageAdapter.markPortraitDirty=function(){writes++;};button.listeners.click[0]();await tick();var target=changedHero();done("compressed");
+  demand(target.portrait==="data:image/png;base64,NYLA"&&old.portrait==="data:image/png;base64,HERO"&&writes===0,"compression wrote after target changed");
+  demand(!button.disabled&&toasts.some(function(x){return /portrait.*not changed/i.test(x);}),"stale portrait must restore button and explain refusal");
+  // A deliberate click after the swap belongs to the actor chosen at that click.
+  button.listeners.click[0]();await tick();done("chosen portrait");demand(target.portrait==="chosen portrait"&&writes===1,"explicit new actor portrait choice failed");
+});
+t("#527 Portrait refuses campaign change during compression even with same hero object",async function(){
+  var div=await readyScene(),button=findBtn(div,"⧉ Portrait"),done,writes=0,old=worldState.character;
+  fetch=function(){return Promise.resolve({blob:function(){return Promise.resolve("blob");}});};FileReader=function(){this.readAsDataURL=function(){this.onload({target:{result:"image"}});};};compressPortrait=function(d,fn){done=fn;};storageAdapter.markPortraitDirty=function(){writes++;};
+  button.listeners.click[0]();await tick();worldState.campId="camp_B";done("wrong portrait");demand(writes===0&&old.portrait==="data:image/png;base64,HERO","cross-campaign portrait write");demand(!button.disabled,"portrait button stuck");
+});
+t("#527 Save checks campaign after blob await before deriving filename or writing",async function(){
+  var div=await readyScene(),button=findBtn(div,"↓ Save"),held,writes=0,names=0;
+  fetch=function(){return Promise.resolve({blob:function(){return new Promise(function(r){held=r;});}});};buildFilename=function(){names++;return "scene.png";};saveRenderImage=function(){writes++;};
+  button.listeners.click[0]();await tick();worldState.campId="camp_B";held("blob");await tick();demand(writes===0&&names===0,"stale Save reached filename or campaign writer");demand(toasts.some(function(x){return /discarded|nothing saved/.test(x);}),"stale save was silent");
+});
+
+
+t("#527 historical render keeps frame party and no-history request across a hero swap",async function(){
+  roleRenderFixture();worldState.transcript=[{r:"gm",t:5,x:"Tess alone beside the old mill.",l:"Old Mill",sl:"the attic",p:[]}];
+  var held,body,request,options;callGM=function(r,sys,unused,u,opt){request=r;options=opt;return new Promise(function(resolve){held=resolve;});};falFetch=function(e,b){body=b;return Promise.resolve(imageReply());};
+  var pending=doRender({turn:5});await tick();changedHero();held("Tess alone at the mill.");await pending;
+  demand(options&&options.noHistory&&request.indexOf("Old Mill")>=0&&request.indexOf("Bram")<0,"historical context mixed with live party/history");
+  demand(body&&JSON.stringify(body.image_urls)===JSON.stringify(["data:image/png;base64,HERO"]),"historical seed did not keep original hero alone");
+});
+t("#527 Save failed fetch after campaign switch cannot open stale download fallback",async function(){
+  var div=await readyScene(),button=findBtn(div,"↓ Save"),reject,opened=0;fetch=function(){return new Promise(function(r,j){reject=j;});};window.open=function(){opened++;};
+  button.listeners.click[0]();worldState.campId="camp_B";reject(Error("network"));await tick();demand(opened===0,"stale save opened download fallback");demand(toasts.some(function(x){return /discarded/.test(x);}),"failed stale fetch silent");
+});
+t("#527 Portrait target remains protected when hero changes during image fetch",async function(){
+  var div=await readyScene(),button=findBtn(div,"⧉ Portrait"),held,writes=0;fetch=function(){return new Promise(function(r){held=r;});};FileReader=function(){this.readAsDataURL=function(){this.onload({target:{result:"image"}});};};compressPortrait=function(d,fn){fn("compressed");};storageAdapter.markPortraitDirty=function(){writes++;};
+  button.listeners.click[0]();var target=changedHero();held({blob:function(){return Promise.resolve("blob");}});await tick();demand(writes===0&&target.portrait==="data:image/png;base64,NYLA"&&!button.disabled,"fetch-time swap wrote portrait or left button stuck");
+});
+
+function realSaveFunnel(){(0,eval)(fs.readFileSync(path.join(ROOT,"ui-files.js"),"utf8"));}
+t("#527 real Save permission await cannot write or record into a changed campaign",async function(){
+  fresh("camp_A","Alpha");realSaveFunnel();var held,downloads=0;window.showDirectoryPicker=function(){};_ensureFolderPerm=function(){return new Promise(function(r){held=r;});};_downloadBlob=function(){downloads++;};
+  var pending=saveRenderImage({type:"image/png"},"Alpha.png",10);fresh("camp_B","Beta");held(false);await pending;
+  demand(!worldState.renders&&downloads===0,"permission wait redirected download or pointer into Beta");demand(toasts.some(function(x){return /discarded/.test(x);}),"stale permission completion silent");
+});
+t("#527 real Save folder await uses captured destination and cannot record into changed campaign",async function(){
+  fresh("camp_A","Alpha");realSaveFunnel();var held,args;_ensureFolderPerm=function(){return Promise.resolve(true);};exportToFolder=function(){args=Array.prototype.slice.call(arguments);return new Promise(function(r){held=r;});};
+  var pending=saveRenderImage({type:"image/png"},"Alpha.png",10);await tick();demand(args[3]==="camp_A"&&args[4]==="Alpha","folder destination was not captured");fresh("camp_B","Beta");held(true);await pending;demand(!worldState.renders,"folder completion recorded into Beta");
+});
+t("#527 real Save share await rejects stale pointer and download but live hero swap records correctly",async function(){
+  fresh("camp_A","Alpha");realSaveFunnel();delete window.showDirectoryPicker;var held,downloads=0;_ensureFolderPerm=function(){return Promise.resolve(false);};shareImageFile=function(){return new Promise(function(r){held=r;});};_downloadBlob=function(){downloads++;};
+  var pending=saveRenderImage({type:"image/png"},"Alpha.png",10);await tick();fresh("camp_B","Beta");held(false);await pending;demand(!worldState.renders&&downloads===0,"share completion redirected fallback or pointer into Beta");
+  fresh("camp_A","Alpha");pending=saveRenderImage({type:"image/png"},"Alpha.png",10);await tick();changedHero();held(true);await pending;demand(worldState.renders&&worldState.renders[0].t===10,"same-campaign hero swap prevented explicit save");
+});
+
+t("#527 real folder write finishes original destination and names it after campaign switch",async function(){
+  fresh("camp_A","Alpha");realSaveFunnel();var held,destination,filename;_ensureFolderPerm=function(){return Promise.resolve(true);};_campRootHandle={name:"Campaigns"};
+  campaignFolderFor=function(id,name){destination=[id,name];return Promise.resolve({name:"Alpha-folder",getDirectoryHandle:function(){return Promise.resolve({getFileHandle:function(f){filename=f;return Promise.resolve({createWritable:function(){return Promise.resolve({write:function(){return new Promise(function(r){held=r;});},close:function(){return Promise.resolve();}});}});}});}});};
+  var pending=saveRenderImage({type:"image/png"},"Alpha.png",10);await tick();fresh("camp_B","Beta");held();await pending;
+  demand(JSON.stringify(destination)===JSON.stringify(["camp_A","Alpha"])&&filename==="Alpha.png","file selected wrong destination");demand(!worldState.renders,"completed original file recorded in Beta");
+  demand(toasts.some(function(x){return /Saved to.*Alpha-folder/.test(x);})&&!toasts.some(function(x){return /Saved to.*Beta/.test(x);}),"completion toast named live campaign instead of destination");
+});
+t("#527 successful share completion after switch cannot record into another campaign",async function(){
+  fresh("camp_A","Alpha");realSaveFunnel();delete window.showDirectoryPicker;var held;_ensureFolderPerm=function(){return Promise.resolve(false);};shareImageFile=function(){return new Promise(function(r){held=r;});};
+  var pending=saveRenderImage({type:"image/png"},"Alpha.png",10);await tick();fresh("camp_B","Beta");held(true);await pending;demand(!worldState.renders,"successful old share recorded in Beta");
+});
+
 chain.then(function () {
   console.log("#440 RENDER JOB: " + fails.length + " failed, " + pass + " passed");
   process.exit(fails.length ? 1 : 0);

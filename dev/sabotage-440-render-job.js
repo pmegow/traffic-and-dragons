@@ -16,7 +16,7 @@ process.exit(sabotage.prove({
       replace:'' },
     { label:"#440: the job is always live (identity ignores the campaign)",
       mustFail:"prompt boundary: the writer answers after a campaign switch",
-      find:'return worldState.campId===job.campId&&(!c||c.name===job.name);}',
+      find:'return worldState.campId===job.campId;}',
       replace:'return true;}' },
     { label:"#440: the Save pointer stamps the live turn again",
       mustFail:"the Save pointer stamps the turn the render STARTED on",
