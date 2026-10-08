@@ -3581,7 +3581,7 @@ function villageHouseOwnerFor(subName){
   var npcs=worldState.npcs||[];for(i=0;i<npcs.length;i++)if(npcs[i].resident&&!(typeof npcIsDead==="function"&&npcIsDead(npcs[i])))names.push(npcs[i].name);
   if(/^(my|your|own|the hero's)\b/.test(s)||/\b(my|your)\s+(own\s+)?(house|home|cottage|hut|manor|quarters|lodgings|place)\b/.test(s))return names[0]||null;
   /* #482 (found building #481 A7): a name owns a house as the WHOLE name (word-bounded, a leading article optional) or as
-     one of its own words in a NAME position — a possessive ("Maud's cottage", "Daeris' house") or after "of" ("the cottage
+     one of its distinctive words in a NAME position — a possessive ("Maud's cottage", "Daeris' house") or after "of" ("the cottage
      of Frizwick"). A bare word is never enough: the first-word rule let "The Entity" own every "the … house" (the well
      house, the market place — and "the cottage of Frizwick", the longest match winning), and "Old Maud" "the old house".
      A whole-name match outranks a word match; within a class the longer name wins. */
@@ -3589,7 +3589,7 @@ function villageHouseOwnerFor(subName){
   var best=null,bestScore=-1,j;
   for(i=0;i<names.length;i++){var full=String(names[i]).toLowerCase().replace(/[’]/g,"'").trim(),bare=full.replace(/^(the|a|an)\s+/,""),hit=0;
     if(new RegExp("(^|[^a-z0-9])(?:"+esc(full)+"|"+esc(bare)+")(?![a-z0-9])").test(s))hit=2;
-    else{var toks=bare.split(/\s+/);for(j=0;j<toks.length&&!hit;j++){if(toks[j].length<2)continue;var e=esc(toks[j]);
+    else{var toks=bare.split(/\s+/);for(j=0;j<toks.length&&!hit;j++){if(toks[j].length<2||_NPC_STOP[toks[j]])continue;var e=esc(toks[j]);
       if(new RegExp("(^|[^a-z0-9])"+e+"'(?:s(?![a-z0-9])|\\s|$)").test(s)||new RegExp("(^|[^a-z0-9])of\\s+(?:the\\s+)?"+e+"(?![a-z0-9])").test(s))hit=1;}}
     if(hit&&hit*1000+full.length>bestScore){bestScore=hit*1000+full.length;best=names[i];}}
   return best;

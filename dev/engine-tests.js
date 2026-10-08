@@ -29201,11 +29201,30 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // house] walked the party into The Entity's house and a placement there filed into its chest. A name now matches as the
   // whole name (word-bounded, a leading article optional) or as one of its own words in a name position — possessive
   // ("Maud's cottage") or after "of" ("the cottage of Frizwick") — never as an adjective in a compound noun.
+  section("#527 house owner personal names");
+  t("#527 old miller house files its own description without claiming Old Maud",function(){
+    h482();var key=villageHouseKey("Old Maud"),before=JSON.stringify(memory.map.nodes[key]),count=Object.keys(memory.map.nodes).length;
+    applyMuts("[SUBLOCATION:the house of the old miller][LOCATION_DESC:A low roof beside the millrace.]");
+    if(worldState.world.sublocation!=="the house of the old miller")return "generic age claimed Maud's house: "+worldState.world.sublocation;
+    if(JSON.stringify(memory.map.nodes[key])!==before)return "Maud's existing house was rewritten";
+    var node=memory.map.nodes["The Village|the house of the old miller"];
+    if(!node||node.description!=="A low roof beside the millrace."||node.owner)return "new house lost its own description or acquired an owner";
+    return Object.keys(memory.map.nodes).length===count+1?true:"wrong number of filed houses";
+  });
+  t("#527 house owner rejects generic partial names but retains full names and personal forms",function(){
+    h482();importVillageResidents([{name:"Young Alda",gender:"F",cls:"Rogue"},{name:"Captain Venn",gender:"M",cls:"Warrior"}]);
+    var bad=["the house of the old miller","old's cottage","the home of young shepherd","captain's quarters","the cottage of the captain"],i;
+    for(i=0;i<bad.length;i++)if(villageHouseOwnerFor(bad[i]))return "generic word claimed house: "+bad[i];
+    var good={"Old Maud's cottage":"Old Maud","Maud’s cottage":"Old Maud","the home of Maud":"Old Maud","the home of Old Maud":"Old Maud","Captain Venn's quarters":"Captain Venn","Venn's house":"Captain Venn","the Entity's house":"The Entity","my house":"Silas"};
+    for(var k in good)if(villageHouseOwnerFor(k)!==good[k])return "personal owner lost: "+k;
+    worldState.kind="adventure";return villageHouseOwnerFor("Maud's cottage")===null?true:"adventure house rewritten";
+  });
+
   section("#482 a house belongs to a name, not to a word");
   function h482(){villageEF();importVillageResidents([{name:"The Entity",gender:"F",cls:"Mage"},{name:"Old Maud",gender:"F",cls:"Cleric"},{name:"Ash",gender:"M",cls:"Rogue"}]);}
   t("#482 an article or an adjective is nobody's name: the well house, the market place and the old house resolve to no one; nothing is minted",function(){
     h482();var n0=Object.keys(memory.map.nodes).length,bad=[];
-    ["the well house","the market place","the old house","the bath house","The Guard House","the meeting place","the wash house"].forEach(function(p){var o=villageHouseOwnerFor(p);if(o)bad.push(p+" → "+o);});
+    ["the well house","the market place","the old house","the bath house","The Guard House","the meeting place","the wash house","the Maud garden house"].forEach(function(p){var o=villageHouseOwnerFor(p);if(o)bad.push(p+" → "+o);});
     if(bad.length)return "a common word claimed a house: "+bad.join("; ");
     var r=quiet(function(){return applyMuts("[SUBLOCATION:the well house]");}).r;
     if(worldState.world.sublocation==="The Entity's house")return "the party walked into The Entity's house (the Ammut field shape): "+JSON.stringify(r.muts);
