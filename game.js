@@ -295,6 +295,8 @@ function suggestionNameAlt(nm){
   if(!toks.length)toks=[String(nm||"")];
   return "("+toks.map(function(t){return t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}).join("|")+")";
 }
+// A possessive names the owned thing; both unavailable-person rules share this target boundary.
+function suggestionPersonNamePattern(nm){var alt=suggestionNameAlt(nm);return alt+"\\b(?!(?:\\s+"+alt+"\\b)*['\u2019])";}
 // Remote-capable only when the canon SAYS so in distance words; self/touch/Nft/N-A are all
 // scene-scale — they cannot reach someone who is not present.
 function suggestionRangeLocal(rangeStr){
@@ -588,8 +590,8 @@ function validateSuggestion(text,man){
   // by an apostrophe is skipped; "Show Aldric the token" and "Give Aldric's sword to Aldric" still match on the bare name.
   for(j=0;j<npcs.length;j++){
     if(!npcs[j].dead)continue;
-    var _dnA=suggestionNameAlt(npcs[j].name);
-    if(new RegExp("\\b(talk (to|with)|speak (to|with)|ask|tell|question|confront|greet|approach|show|give)\\b[\\s\\S]{0,24}\\b"+_dnA+"\\b(?!(?:\\s+"+_dnA+"\\b)*['\u2019])","i").test(t))
+    var _dnA=suggestionPersonNamePattern(npcs[j].name);
+    if(new RegExp("\\b(talk (to|with)|speak (to|with)|ask|tell|question|confront|greet|approach|show|give)\\b[\\s\\S]{0,24}\\b"+_dnA,"i").test(t))
       return {rule:"dead-npc-interaction",detail:npcs[j].name+" is deceased (t"+npcs[j].dead+")"};
   }
   // ④ (#12/B18, promoted from the log-only class): a direct-address verb IMMEDIATELY aimed at
@@ -601,7 +603,7 @@ function validateSuggestion(text,man){
   for(j=0;j<npcs.length;j++){
     if(npcs[j].dead)continue;/* ③ owns the dead — its message names the real reason */
     if(present[String(npcs[j].name).toLowerCase()])continue;
-    if(new RegExp("\\b(talk (to|with)|speak (to|with)|ask|tell|question|confront|greet|approach|show|give|message|signal|hail|summon|contact|warn|alert|call out to)\\b[ '\"]{0,3}(to |with |the |a )?"+suggestionNameAlt(npcs[j].name)+"\\b","i").test(t))
+    if(new RegExp("\\b(talk (to|with)|speak (to|with)|ask|tell|question|confront|greet|approach|show|give|message|signal|hail|summon|contact|warn|alert|call out to)\\b[ '\"]{0,3}(to |with |the |a )?"+suggestionPersonNamePattern(npcs[j].name),"i").test(t))
       return {rule:"absent-npc-direct-address",detail:npcs[j].name+" is not present in the scene"};
   }
   // ⑦ (#342, t2418 — "Head back toward Sandpoint." while the HUD read Sandpoint): a LEADING travel

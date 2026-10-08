@@ -28624,6 +28624,21 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (NOTE_LATCH_FIELDS.indexOf("skelTitlePing")>=0&&NOTE_SHAPES.buildSkeletonTitleNote&&NOTE_SHAPES.buildSkeletonTitleNote.combat==="fires")?true:"registered, combat fires: "+JSON.stringify(NOTE_SHAPES.buildSkeletonTitleNote);
   });
 
+  section("#527 absent companion possessive");
+  function possessive527World(){__gateWorld();worldState.npcs[0].partyMember=false;memory.npcs["Morwen Zethran"]={lastSeenAt:"Sandpoint",events:[],knowledge:[]};return buildSceneManifest();}
+  t("#527 absent companion possessions are objects for straight and curly short and full names",function(){
+    var man=possessive527World(),cases=["Show Morwen's letter to the guard","Show Morwen’s letter to the guard","Show Morwen Zethran's letter to the guard","Show Morwen Zethran’s letter to the guard","Give Morwen's letter to Frizwick","Question Morwen Zethran’s messenger about the letter"];
+    for(var i=0;i<cases.length;i++){var v=validateSuggestion(cases[i],man);if(v)return cases[i]+" was read as addressing the absent owner: "+JSON.stringify(v);}return true;
+  });
+  t("#527 absent bare addresses still refuse including after an earlier possessive",function(){
+    var man=possessive527World(),cases=["Show Morwen the letter","ask Morwen about the guard","Message Morwen Zethran about the letter","Show Morwen’s letter to the guard, then ask Morwen about the seal","Show Morwen Zethran's letter, then greet Morwen Zethran"];
+    for(var i=0;i<cases.length;i++){var v=validateSuggestion(cases[i],man);if(!v||v.rule!=="absent-npc-direct-address")return "genuine absent addressee escaped: "+cases[i]+" -> "+JSON.stringify(v);}return true;
+  });
+  t("#527 direct address of a present companion and mere mention of an absent one remain legal",function(){
+    __gateWorld();var man=buildSceneManifest(),cases=["Show Morwen the letter","Ask Morwen about Ameiko","Search for Morwen's lost letter"];
+    for(var i=0;i<cases.length;i++){var v=validateSuggestion(cases[i],man);if(v)return "legal suggestion rejected: "+cases[i]+" -> "+JSON.stringify(v);}return true;
+  });
+
   section("#527 location state receipt and world case");
   function ls527World(){makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation=null;fileLocation("Sandpoint","A port town.",worldState.turn);}
   t("#527 location receipt retains terminal s and trims only whitespace at its display boundary",function(){
