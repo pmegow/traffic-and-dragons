@@ -28624,6 +28624,27 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (NOTE_LATCH_FIELDS.indexOf("skelTitlePing")>=0&&NOTE_SHAPES.buildSkeletonTitleNote&&NOTE_SHAPES.buildSkeletonTitleNote.combat==="fires")?true:"registered, combat fires: "+JSON.stringify(NOTE_SHAPES.buildSkeletonTitleNote);
   });
 
+  section("#527 skeleton prose register");
+  t("#527 skeleton prose permits manifests in every descriptive field",function(){
+    var sk={premise:"The spirit manifests at dusk.",acts:[{title:"The Arrival",goal:"Learn why the spirit manifests.",turningPoint:"The lost queen manifests in the hall.",arcs:[{title:"The Hall",objective:"Wait until the spirit manifests.",dnaHint:"Fear manifests through silence."}]}]},before=JSON.stringify(sk);
+    var f=skeletonRegisterScan(sk);
+    if(f.length)return "prose was scanned as a label: "+JSON.stringify(f);
+    if(skeletonRegisterFindings(sk).length)return "the designer inherited a false prose finding";
+    return JSON.stringify(sk)===before?true:"the scan changed the skeleton";
+  });
+  t("#527 skeleton titles retain the stricter paperwork label list",function(){
+    var sk={premise:"A spirit manifests.",acts:[{title:"Recover the manifest",arcs:[{title:"Find the vouchers",objective:"The spirit manifests."}]}]},f=skeletonRegisterScan(sk);
+    if(f.length!==2||f[0].where!=="act 1 title"||f[0].words.join()!=="manifest"||f[1].words.join()!=="vouchers")return "paperwork labels escaped: "+JSON.stringify(f);
+    return f.every(function(x){return x.sev==="HIGH"&&x.fix;})?true:"label findings lost their severity/fix";
+  });
+  t("#527 skeleton keeps the clerical and debt ban in every field including dnaHint",function(){
+    var sk={premise:"A ledger binds the queen.",acts:[{title:"The Invoice",goal:"Break the tithe engine.",turningPoint:"The lien is broken.",arcs:[{title:"Soul-tax",objective:"Defeat the creditor.",dnaHint:"Repayment binds the queen."}]}]},f=skeletonRegisterScan(sk);
+    var want=["ledger","invoice","tithe","lien","soul-tax","creditor","repayment"];
+    if(f.length!==want.length)return "a skeleton field escaped the ban: "+JSON.stringify(f);
+    for(var i=0;i<want.length;i++)if(f[i].words.join()!==want[i]||f[i].sev!=="HIGH"||!f[i].fix)return "wrong finding at "+i+": "+JSON.stringify(f[i]);
+    var designer=skeletonRegisterFindings(sk);return designer.length===7&&designer.every(function(x){return x.sev==="HIGH"&&x.fixes.length===1;})?true:"designer lost the same guard";
+  });
+
   section("#527 continuation title advice");
   t("#527 continue miss preserves the attempted operation in receipt and one-shot combat advice",function(){
     makeWorld();worldState.skeleton={premise:"p",acts:[{title:"Act 1: The Plunder",status:"active",arcs:[{title:"True Arc",status:"active",driftChecks:2,driftCheckTurn:12},{title:"Future Arc",status:"pending"}]}]};

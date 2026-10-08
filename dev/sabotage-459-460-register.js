@@ -13,7 +13,7 @@ prove('helpers.js',['dev/run-tests.js',SEC],[
  {label:'the census forgets the record channel',find:'var rc=c.record||[];for(i=0;i<rc.length;i++){out.record++;if(rc[i].dropped)out.recordDropped++;if(rc[i].deferred)out.recordDeferred++;if(rc[i].evicted)out.recordEvicted++;}',replace:'',mustFail:'#459 ③ summarize() awaits recordRegisterGuard'}/* #481 C7 re-anchor: the channel counts deferrals and evictions too */
 ]);
 prove('campaign_generator.js',['dev/run-tests.js',SEC],[
- {label:'an arc title in the register passes the gate',find:'chk(rn+" title",r.title);',replace:'',mustFail:'#459 ① skeletonRegisterScan is the deterministic REGISTER gate'},
+ {label:'an arc title in the register passes the gate',find:'chk(rn+" title",r.title,LABEL_RE);',replace:'',mustFail:'#459 ① skeletonRegisterScan is the deterministic REGISTER gate'},
  {label:'the gate downgrades to MED',find:'out.push({sev:"HIGH",where:where,',replace:'out.push({sev:"MED",where:where,',mustFail:'#459 ① skeletonRegisterScan is the deterministic REGISTER gate'}
 ]);
 prove('game.js',['dev/run-tests.js',SEC],[
