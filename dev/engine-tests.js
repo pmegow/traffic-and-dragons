@@ -28364,7 +28364,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[ITEM_GAINED:Rope]");if(m.length!==3||m[2].action!=="taken"||m[2].name!=="Rope"||m[2].units!==1||!m[2].pack||m[2].pack.units!==1)return "a GM gain of what lies in the chest is recorded as a take with its pack half: "+JSON.stringify(m.slice(2));m.pop();removeInventoryItem(c.inventory,"Rope");h.items.filter(function(it){return stashKey(it.name)==="rope";})[0].qty+=1;
     quiet(function(){stashTradeApply({take:{"rope":2}});});
     if(m.length!==3||m[2].action!=="taken"||m[2].units!==2||!m[2].pack||m[2].pack.units!==2||m[2].by!=="Silas")return "a ledger take of two is ONE move of two: "+JSON.stringify(m[2]);
-    return (c.stashMarks&&c.stashMarks.camp_V===m[2].at)?true:"the hero sheet carries the mark of the latest move: "+JSON.stringify(c.stashMarks);
+    return (c.stashMarks&&c.stashMarks[stashMarkKey()]===m[2].at)?true:"the hero sheet carries the mark of the latest move: "+JSON.stringify(c.stashMarks);
   });
   t("#481 D9 a refresh from a library copy that never saw the village re-applies its moves: a stowed item is not back in the pack, a taken one is not lost",function(){
     var h=d9Village(),c=worldState.character;worldState.heroLibraryAt=1000;c.inventory=["Sihedron ritual spear","Longsword"];
@@ -28377,7 +28377,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(/Sihedron/.test(inv))return "the spear stays in the chest, not back in the pack: "+inv;
     if(!/Iron ring/.test(inv)||!/Healing potion/.test(inv))return "the ring taken from the chest stays in the pack, and the library copy brings its new potion: "+inv;
     if(!r.replay||r.replay.applied!==2)return "the refresh reports what it re-applied: "+JSON.stringify(r.replay);
-    var ms=worldState.stashMoves;return (worldState.character.stashMarks&&worldState.character.stashMarks.camp_V===ms[ms.length-1].at)?true:"the refreshed sheet now reflects every move: "+JSON.stringify(worldState.character.stashMarks);
+    var ms=worldState.stashMoves;return (worldState.character.stashMarks&&worldState.character.stashMarks[stashMarkKey()]===ms[ms.length-1].at)?true:"the refreshed sheet now reflects every move: "+JSON.stringify(worldState.character.stashMarks);
   });
   t("#481 D9 a refresh from the village own export re-applies nothing it already holds (no second charge lost)",function(){
     var h=d9Village(),c=worldState.character;worldState.heroLibraryAt=1000;c.inventory=["Blasting charge x5"];
@@ -30781,4 +30781,59 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return voicePinFields([out]).every(function(f){return !(f in out);})?true:"prior clears or offline model fields lost: "+JSON.stringify(out);
   });
 
+  section("#581 stash journal survives campaign rekey and import");
+  function village581(){var h=d9Village();worldState.heroLibraryAt=1000;worldState.character.inventory=["Blasting charge x5"];return h;}
+  function refresh581(lib){var at=Math.max(Date.now(),worldState.heroLibraryAt||0)+5000;return quiet(function(){return villageRefreshFromLibrary([{character:lib,updatedAt:at}]);}).r;}
+  function imported581(){var data={worldState:parseWorldState(serializeWorldState(worldState)),memory:JSON.parse(JSON.stringify(memory)),sessionLog:[]};makeWorld();setActiveCampId(null);return quiet(function(){return importSaveData(data);}).r;}
+  function legacy581(mark){village581();worldState.character.inventory=["Blasting charge x4"];worldState.character.stashMarks={camp_V:mark};worldState.stashMoves=[{name:"Blasting charge",units:1,action:"placed",key:villageHouseKey("Silas"),by:"Silas",pack:{name:"Blasting charge",units:1},turn:5,grp:1,at:mark}];delete worldState.stashJournal;}
+  t("#581 exact repro: stow one of five, export four, rekey, refresh still holds four",function(){
+    village581();quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});var lib=portableSheet(worldState.character),key=stashMarkKey();if(lib.inventory.join()!=="Blasting charge x4")return "fixture stow failed";worldState.campId="rekeyed581";refresh581(lib);
+    return worldState.character.inventory.join()==="Blasting charge x4"&&stashMarkKey()===key?true:"reflected stow replayed after rekey: "+worldState.character.inventory.join();
+  });
+  t("#581 real serialized import and rehome preserve journal and reflected hero moves",function(){
+    village581();quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});var lib=portableSheet(worldState.character),key=stashMarkKey(),plan=imported581();if(!plan.reminted)return "fixture import must rekey";refresh581(lib);if(worldState.character.inventory.join()!=="Blasting charge x4")return "import replayed reflected stow";
+    quiet(function(){rehomeCampaign("581 test");});refresh581(lib);worldState=parseWorldState(serializeWorldState(worldState));return stashMarkKey()===key&&worldState.character.inventory.join()==="Blasting charge x4"?true:"rehome/reload lost journal identity";
+  });
+  t("#581 legacy marks migrate before import rekeys and old exports remain authoritative",function(){
+    legacy581(100);var lib=portableSheet(worldState.character),plan=imported581();if(!plan.reminted)return "fixture must remint";refresh581(lib);if(worldState.character.inventory.join()!=="Blasting charge x4")return "legacy import lost old mark";
+    var key=stashMarkKey();worldState.stashMoves.push({name:"Blasting charge",units:1,action:"placed",key:villageHouseKey("Silas"),by:"Silas",pack:{name:"Blasting charge",units:1},turn:6,grp:2,at:200});lib.inventory=["Blasting charge x3"];lib.stashMarks.camp_V=200;refresh581(lib);
+    if(worldState.character.inventory.join()!=="Blasting charge x3")return "newer old-version export mark ignored";lib.stashMarks[key]=0;refresh581(lib);return worldState.character.inventory.join()==="Blasting charge"?true:"explicit stable zero must outrank legacy mark";
+  });
+  t("#581 independent legacy migrations share an origin and new journals isolate reused campaign ids",function(){
+    legacy581(100);var a=stashMarkKey(),snap=JSON.stringify(worldState);for(var i=0;i<10;i++)stashMarkKey();if(JSON.stringify(worldState)!==snap)return "migration is not idempotent";
+    legacy581(200);var b=stashMarkKey();if(a!==b)return "same legacy origin diverged across devices";
+    village581();quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});var newA=stashMarkKey(),copy=portableSheet(worldState.character);village581();quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});var newB=stashMarkKey();if(newA===newB)return "unrelated new journals share origin because campId matches";
+    copy.inventory=["Blasting charge x5"];refresh581(copy);return worldState.character.inventory.join()==="Blasting charge x4"?true:"foreign journal mark suppressed current move";
+  });
+  t("#581 companion marks and foreign marks survive rehome without replay or rewriting",function(){
+    village581();var n=wsNpcByName("Frizwick");n.charSheet.inventory=["Blasting charge x4"];stashMoveRecord({turn:5},{name:"Blasting charge",units:1,action:"placed",key:villageHouseKey("Frizwick"),by:"Frizwick",pack:{name:"Blasting charge",units:1}});n.charSheet.stashMarks.foreign=77;var lib=portableSheet(n.charSheet),key=stashMarkKey();imported581();n=wsNpcByName("Frizwick");adoptLibraryCompanion(n,lib,9999);
+    return n.charSheet.inventory.join()==="Blasting charge x4"&&n.charSheet.stashMarks[key]===lib.stashMarks[key]&&n.charSheet.stashMarks.foreign===77?true:"companion import mark lost or foreign mark changed";
+  });
+  t("#581 empty legacy ring and local mark retain identity without unbounded migration growth",function(){
+    legacy581(100);worldState.campId=null;worldState.stashMoves=[];worldState.character.stashMarks={local:100,foreign:50};var key=stashMarkKey(),before=JSON.stringify(worldState);for(var i=0;i<50;i++){worldState.campId="id_"+i;if(stashMarkKey()!==key)return "journal followed storage id";}worldState.campId=null;
+    return JSON.stringify(worldState)===before&&worldState.character.stashMarks[key]===100&&worldState.character.stashMarks.foreign===50?true:"legacy local mark lost or journal grows on rekey";
+  });
+
+  t("#581 raw legacy import and rehome freeze the old key before storage id changes",function(){
+    legacy581(100);var lib=portableSheet(worldState.character),data=JSON.parse(JSON.stringify({worldState:worldState,memory:memory,sessionLog:[]}));makeWorld();setActiveCampId(null);var p=quiet(function(){return importSaveData(data);}).r;if(!p.reminted)return "raw fixture did not remint";refresh581(lib);if(worldState.character.inventory.join()!=="Blasting charge x4")return "raw import missed original key";
+    legacy581(100);lib=portableSheet(worldState.character);setActiveCampId("camp_V");quiet(function(){rehomeCampaign("581 legacy");});refresh581(lib);return worldState.character.inventory.join()==="Blasting charge x4"?true:"legacy rehome missed original key";
+  });
+  t("#581 local load and campaign bootstrap freeze local marks before assigning active ids",function(){
+    legacy581(100);worldState.campId=null;worldState.character.stashMarks={local:100};var lib=portableSheet(worldState.character);setActiveCampId("active581");quiet(function(){migrateWorldState();});refresh581(lib);if(worldState.character.inventory.join()!=="Blasting charge x4")return "load lost local legacy mark";
+    legacy581(100);worldState.campId=null;worldState.character.stashMarks={local:100};lib=portableSheet(worldState.character);setActiveCampId(null);quiet(function(){migrateToCampaigns();});refresh581(lib);return worldState.character.inventory.join()==="Blasting charge x4"?true:"campaign bootstrap lost local key";
+  });
+  t("#581 detached server inflate and checkpoint restore freeze provenance before rekey",function(){
+    legacy581(100);var lib=portableSheet(worldState.character),incoming=JSON.parse(JSON.stringify(worldState));makeWorld();var outgoing=JSON.stringify(worldState);var restored=inflateWorldStateSnapshot(incoming);if(JSON.stringify(worldState)!==outgoing)return "inflater migrated active campaign instead of detached input";restored.campId="server581";worldState=restored;refresh581(lib);if(worldState.character.inventory.join()!=="Blasting charge x4")return "server inflater lost original key";
+    legacy581(100);lib=portableSheet(worldState.character);var snap=checkpointCapture("test"),old=snap.campId;worldState.campId="after-rehome581";snap.campId=worldState.campId;var r=quiet(function(){return checkpointRestore(snap,{cause:"fixture"});}).r;if(!r.ok)return "checkpoint refused: "+JSON.stringify(r);refresh581(lib);return worldState.character.inventory.join()==="Blasting charge x4"?true:"checkpoint replaced "+old+" before origin migration";
+  });
+  t("#581 explicit stable marks beat legacy aliases and malformed provenance refuses loudly",function(){
+    legacy581(100);var key=stashMarkKey(),c=worldState.character;c.stashMarks[key]=0;if(stashCopyMark(c)!==0)return "zero stable mark discarded";c.stashMarks[key]=50;if(stashCopyMark(c)!==50)return "older explicit stable mark overwritten";
+    var j={id:""};worldState.stashJournal=j;var warned=false,threw=false,ow=console.warn;console.warn=function(){warned=true;};try{stashMarkKey();}catch(e){threw=/provenance/.test(e.message);}finally{console.warn=ow;}return threw&&warned&&worldState.stashJournal===j?true:"malformed journal was silently replaced or not refused";
+  });
+
+  t("#581 malformed import refuses before replacing the outgoing campaign",function(){
+    legacy581(100);setActiveCampId("camp_V");var incoming=JSON.parse(JSON.stringify({worldState:worldState,memory:memory,sessionLog:[]}));incoming.worldState.stashJournal={id:""};var oldWs=worldState,oldMemory=memory,oldLog=sessionLog,oldId=getActiveCampId(),threw=false;
+    quiet(function(){try{importSaveData(incoming);}catch(e){threw=/provenance/.test(e.message);}});
+    return threw&&worldState===oldWs&&memory===oldMemory&&sessionLog===oldLog&&getActiveCampId()===oldId?true:"invalid import partly replaced active campaign";
+  });
 }

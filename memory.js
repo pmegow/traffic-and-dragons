@@ -891,16 +891,52 @@ function fileLocationItem(name,action,turn,place,room,at){
    and units of one item in a group fold into one entry (a ledger plan of N units is ONE move). Two consumers: the Car Mode
    undo reverses the tail group (D1), and a library refresh re-applies the moves a library copy never saw (D9). Only where
    the kind populates from the library does an entry carry the wall clock `at`, and the actor's sheet the mark
-   stashMarks[campId] of the latest move it reflects — so any export of that sheet says which moves it already holds.
+   stashMarks[journalId] of the latest move it reflects — so any export of that sheet says which moves it already holds.
    Capped; evicting a clocked entry is loud (a refresh from a copy that never saw it can no longer re-apply it). */
 var STASH_MOVES_CAP=200;
-function stashMarkKey(){return (worldState&&worldState.campId)||"local";}
+/* A journal is independent of its storage slot. Legacy copies use their original slot as the shared provenance;
+   born-new journals have unique ids even when a caller reuses a slot. The legacy alias never follows later rekeys. */
+function stashJournalRefuse(reason){
+  if(typeof console!=="undefined")console.warn("[stash] "+reason);
+  if(typeof showToast==="function")showToast("Stash history: "+reason);
+  throw new Error(reason);
+}
+function stashJournalEnsure(ws,create){
+  if(!ws||typeof CAMPAIGN_KINDS==="undefined"||!CAMPAIGN_KINDS[ws.kind]||!CAMPAIGN_KINDS[ws.kind].populateFromLibrary)return false;
+  if(ws.stashJournal!==undefined){
+    if(!ws.stashJournal||typeof ws.stashJournal!=="object"||Array.isArray(ws.stashJournal)||typeof ws.stashJournal.id!=="string"||!ws.stashJournal.id||("legacyKey" in ws.stashJournal&&typeof ws.stashJournal.legacyKey!=="string"))stashJournalRefuse("Invalid stash journal provenance — refusing to replace its identity");
+    return false;
+  }
+  var legacy=ws.campId||"local",sheets=[ws.character],ns=ws.npcs||[],ring=ws.stashMoves||[],i,s,marks,hasLegacy=false;
+  for(i=0;i<ns.length;i++)if(ns[i]&&ns[i].charSheet)sheets.push(ns[i].charSheet);
+  for(i=0;i<ring.length;i++)if(ring[i]&&typeof ring[i].at==="number")hasLegacy=true;
+  for(i=0;i<sheets.length;i++){s=sheets[i];marks=s&&s.stashMarks;if(marks&&Object.prototype.hasOwnProperty.call(marks,legacy))hasLegacy=true;}
+  if(!hasLegacy&&!create)return false;
+  var id=hasLegacy?"stash:legacy:"+legacy:"stash:new:"+Date.now().toString(36)+":"+Math.random().toString(36).slice(2)+":"+Math.random().toString(36).slice(2);
+  var journal={id:id};if(hasLegacy)journal.legacyKey=legacy;
+  if(hasLegacy)for(i=0;i<sheets.length;i++){s=sheets[i];marks=s&&s.stashMarks;if(marks&&Object.prototype.hasOwnProperty.call(marks,legacy)&&!Object.prototype.hasOwnProperty.call(marks,id))marks[id]=marks[legacy];}
+  ws.stashJournal=journal;
+  return true;
+}
+function stashMarkKey(){stashJournalEnsure(worldState,true);return worldState&&worldState.stashJournal?worldState.stashJournal.id:null;}
+/* The incoming copy is authority for what it already reflects. A stable mark, including zero, outranks its legacy alias. */
+function stashCopyMark(sheet){
+  stashJournalEnsure(worldState,false);
+  var journal=worldState&&worldState.stashJournal,marks=sheet&&sheet.stashMarks,key;
+  if(!journal||!marks)return null;
+  if(Object.prototype.hasOwnProperty.call(marks,journal.id))key=journal.id;
+  else if(journal.legacyKey&&Object.prototype.hasOwnProperty.call(marks,journal.legacyKey))key=journal.legacyKey;
+  else return null;
+  if(typeof marks[key]!=="number"||!isFinite(marks[key])||marks[key]<0)stashJournalRefuse("Invalid stash mark for "+(sheet.name||"character")+" — refusing to replay moves");
+  return marks[key];
+}
 function stashActorSheet(name){
   if(!worldState||!name)return null;if(worldState.character&&worldState.character.name===name)return worldState.character;
   var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;return (n&&n.charSheet)||null;
 }
 function stashMoveRecord(R,mv){
   if(!worldState||!R||!mv)return null;
+  if(typeof kindDef==="function"&&kindDef().populateFromLibrary)stashJournalEnsure(worldState,true);
   var ring=worldState.stashMoves||(worldState.stashMoves=[]),tail=ring[ring.length-1],pk=mv.pack||null,by=mv.by||null;
   if(!R.moveGrp)R.moveGrp=(tail?(tail.grp||0):0)+1;
   var e=null;

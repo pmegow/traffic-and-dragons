@@ -1583,6 +1583,7 @@ function ensureV10Arrays(s){
    settings are the one exception to wholesale — a voice field the copy carries replaces the live one, a field it lacks keeps
    the live value when it fits the copy's sex; the hero's empty slots are then cast. */
 function adoptLibraryHero(c,at){
+  var _stashMark=stashCopyMark(c);
   var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);if(typeof sceneFieldsCross==="function")sceneFieldsCross(hero);/* #481 C5 */
   hero.name=worldState.character.name;
   if(typeof portraitAdmit==="function"&&portraitAdmit(hero,"library")&&typeof showToast==="function")showToast("⚠ "+hero.name+"'s library portrait was dropped — not an image");/* #481 F2 */
@@ -1596,10 +1597,11 @@ function adoptLibraryHero(c,at){
      name, so it resurfaced on the next send offering a bump or pick the copy never earned; the marks index the old pack. */
   if(worldState.levelUpOwed)delete worldState.levelUpOwed[hero.name];
   if(typeof invDropMarksForget==="function")invDropMarksForget("");
-  adoptLibraryHero.lastReplay=(typeof stashMovesReplay==="function")?stashMovesReplay(hero,c&&c.stashMarks?c.stashMarks[stashMarkKey()]:null):null;/* #481 D9 */
+  adoptLibraryHero.lastReplay=(typeof stashMovesReplay==="function")?stashMovesReplay(hero,_stashMark):null;/* #481 D9 */
   return hero;
 }
 function adoptLibraryCompanion(n,c,at){
+  var _stashMark=stashCopyMark(c);
   var sheet=JSON.parse(JSON.stringify(c));sheet.name=n.name;if(typeof portraitAdmit==="function"&&portraitAdmit(sheet,"library")&&typeof showToast==="function")showToast("⚠ "+n.name+"'s library portrait was dropped — not an image");/* #481 F2 */
   if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,n.name);if(typeof sceneFieldsCross==="function")sceneFieldsCross(sheet);/* #481 C5 */
   if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);
@@ -1608,7 +1610,7 @@ function adoptLibraryCompanion(n,c,at){
   if(n.charSheet)voicePinsFill(sheet,[n.charSheet],voicePinFitsGender(sheet.gender));/* #543: a refused slot is cast at the next line (pinAutoCastVoices) */
   n.charSheet=sheet;n.libraryAt=(typeof at==="number")?at:null;n.pronouns=pronounsForGender(sheet.gender);
   if(sheet.portraitOffset)n.portraitOffset=JSON.parse(JSON.stringify(sheet.portraitOffset));/* §19: the wrapper's copy is what display reads */
-  adoptLibraryCompanion.lastReplay=(typeof stashMovesReplay==="function")?stashMovesReplay(sheet,c&&c.stashMarks?c.stashMarks[stashMarkKey()]:null):null;/* #481 D9: the household's takes too */
+  adoptLibraryCompanion.lastReplay=(typeof stashMovesReplay==="function")?stashMovesReplay(sheet,_stashMark):null;/* #481 D9: the household's takes too */
   return sheet;
 }
 /* #428 (owner ask + rulings 2026-09-21): "Replace from library" — the explicit, confirmed WHOLE-sheet pull for the hero

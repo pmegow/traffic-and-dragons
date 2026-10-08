@@ -263,6 +263,7 @@ function inflateTranscriptField(t){
 // otherwise poison live state with a {__lz} transcript ({__lz}.push throws mid-turn). A plain
 // array passes through untouched; inflate failure takes the UA3 rescue path below.
 function inflateWorldStateSnapshot(o){
+  if(typeof stashJournalEnsure==="function")stashJournalEnsure(o,false);
   if(o&&o.transcript&&!(o.transcript instanceof Array)){
     /* #272 D3: one tolerant attempt for EVERY shipped form ({__lz}/{__lzb64}/{__lzc}); an
        UNRECOGNIZED object form now takes the same loud rescue path instead of passing through
@@ -509,6 +510,7 @@ function migrateAncestryNames(c){
 function migrateWorldState(){
   if(!worldState||!worldState.character)return false;
   var c=worldState.character,_mig=false;
+  if(typeof stashJournalEnsure==="function"&&stashJournalEnsure(worldState,false))_mig=true;
   /* #100: class rename + spell-label re-sync — player and every NPC sheet (companions AND former
      companions keep working). Both are display-half heals; the injected canon was never wrong. */
   if(migrateAncestryNames(c))_mig=true;
@@ -805,6 +807,7 @@ function checkpointRestore(snap,opts){
   var tr=live.transcript||[];
   ws.transcript=tr;ws.turn=liveTurn;
   ws.tagLog=live.tagLog;ws.noteLog=live.noteLog;ws.usage=live.usage;ws.healthLog=live.healthLog;ws.renders=live.renders;
+  if(typeof stashJournalEnsure==="function")stashJournalEnsure(ws,false);
   ws.campId=live.campId||ws.campId;ws.campName=live.campName||ws.campName;
   ws.respawns=(live.respawns||0)+1;
   ws.deaths=(live.deaths||[]).concat([{turn:liveTurn,cause:opts.cause||"",camp:snap.turn}]);
@@ -1005,6 +1008,7 @@ function resolveImportedCampaignId(fileId){
    it is), the held checkpoint (the D1 id change would drop it; restamped instead), and the live worldState.campId.
    ONE function, so the sync path's 403 re-home and any future caller cannot each forget a key. Returns the new id. */
 function rehomeCampaign(reason){
+  if(typeof stashJournalEnsure==="function")stashJournalEnsure(worldState,false);
   var old=getActiveCampId(),nid=newCampaignId(),parts=["ws","sl","mem"],i,v;
   if(old){
     for(i=0;i<parts.length;i++){v=store.get(campSlotKey(old,parts[i]));if(v!=null){store.set(campSlotKey(nid,parts[i]),v);store.del(campSlotKey(old,parts[i]));}}
@@ -1045,6 +1049,7 @@ function importSaveData(data){
   if(!Array.isArray(ws.questLog))ws.questLog=[];
   if(!Array.isArray(ws.eventHistory))ws.eventHistory=[];
   if(!ws.world||typeof ws.world!=="object")throw new Error("Invalid world data.");
+  if(typeof stashJournalEnsure==="function")stashJournalEnsure(ws,false);
   // Snapshot (and flush, via E74) the OUTGOING campaign before repointing (audit E12) — importSave
   // used to overwrite worldState + the active campaign id without preserving the current campaign,
   // silently destroying its in-session progress since the last snapshot.
@@ -1353,6 +1358,7 @@ function deleteCampaign(id){
 }
 function migrateToCampaigns(){
   if(getActiveCampId())return;
+  if(typeof stashJournalEnsure==="function")stashJournalEnsure(worldState,false);
   var id=newCampaignId();setActiveCampId(id);
   if(worldState)worldState.campId=id;
   snapshotActiveCamp();
