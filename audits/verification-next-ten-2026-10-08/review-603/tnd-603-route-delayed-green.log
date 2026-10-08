@@ -1,0 +1,24 @@
+PASS #603 review endpoint refuses foreign origins, stale protocols and oversized payloads
+PASS #603 redraft endpoint rejects bad requests without launching Astra
+PASS #603 all 506 active rows are available and priority findings are the default
+PASS #603 removed duplicate stays absent after reload and later rows keep their own decisions
+PASS #603 duration findings leave flagged filters but remain available for optional editing
+PASS #603 decision backgrounds cover unchanged rewrites and kept wording with the requested hue
+PASS #603 editing an awaiting-decision row does not hide the active field
+ARRIVED request 1
+RELEASE request 1
+ARRIVED request 2
+RELEASE request 2
+ARRIVED request 3
+RELEASE request 3
+ARRIVED request 4
+RELEASE request 4
+PASS #603 Astra redraft inserts a recoverable draft, supports undo, and preserves late edits
+PASS #603 edits survive reload and Save writes the project without a download
+PASS #603 invalid import preserves edits, valid import and keep decisions round trip
+PASS #603 stale project saves refuse overwrite and keep the browser draft recoverable
+PASS #603 edits made during Save stay unsaved and recoverable
+PASS #603 long literal edits fit a narrow viewport and remain text
+PASS #603 vulnerability progress ignores optional rows and survives save/reload
+PASS #603 browser-storage refusal is visible and project Save still works
+PASS #603 no unexpected browser exceptions

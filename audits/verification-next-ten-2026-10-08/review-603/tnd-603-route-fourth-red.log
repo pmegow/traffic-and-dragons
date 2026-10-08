@@ -1,0 +1,13 @@
+ARRIVED request 1
+RELEASE request 1 call 1
+ARRIVED request 2
+RELEASE request 2 call 2
+ARRIVED request 3
+RELEASE request 3 call 3
+RELEASE request 3 call 4
+ARRIVED request 4
+FAIL #603 Astra redraft inserts a recoverable draft, supports undo, and preserves late edits — Error: waitForFunction timed out after 2000ms: (()=>document.getElementById('cap-0-text').value.startsWith('Astra fixture:'))()
+    at Page.waitForFunction (C:\Projects\traffic-and-dragons\dev\cdp-browser.js:285:37)
+    at async C:\Projects\traffic-and-dragons\dev\tests-603-capability-review-browser.js:77:152
+    at async check (C:\Projects\traffic-and-dragons\dev\tests-603-capability-review-browser.js:6:79)
+    at async C:\Projects\traffic-and-dragons\dev\tests-603-capability-review-browser.js:71:1
