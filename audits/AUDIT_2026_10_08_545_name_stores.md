@@ -1,6 +1,6 @@
 # #545 — name-keyed stores
 
-Status: integrated on released 90c53126 and independently source-reviewed for the v1.1191 checkpoint; mandatory commit hook remains the final shipping gate. Covers the store redesign requested by #536, #540 and #541. No reserved-word filter is added.
+Status: completed on released main 4c821589, v1.1191, after independent source/evidence review and the mandatory commit hook. Covers the store redesign requested by #536, #540 and #541. No reserved-word filter is added.
 
 ## Mechanism and scope
 
@@ -47,3 +47,7 @@ The integrated retained #542 proof initially missed removal of the shared saved-
 Final applicability in this isolated worktree is 2,769 of 2,769 clauses across 310 batteries. Released main reports 2,757 before these 13 new clauses; the one-count difference is the existing #226 private mature-fixture byte-pin clause, which is intentionally skipped when that local-only fixture is absent. Per-battery inventory confirms no retained clause was removed; main with its fixture is expected to report 2,770. Named mutation proof totals are reported separately from this dry applicability scan.
 
 Final integrated named mutation proofs passed 229 clauses across 9 batteries: retained-427-library-upstream (14), retained-533-name-word-tables (12), retained-538-hero-edges (11), retained-581-stash-journal (17), retained-guestbook (18), retained-w2 (96), sabotage-542-repaired (25), sabotage-544-alias-reveal (23), sabotage-545-stores (13). The final dry applicability log and all completed proof logs are retained under `integrated/`.
+
+Main integration: 4c821589 was pushed. Its mandatory hook passed 2,808 engine assertions and 108 standalone suites. Main includes the private fixture and reports 2,770/2,770 applicable clauses across 310 batteries. All four committed replays match their baselines; deployed runtime hashes match and all 64 selected browser assertions pass. The #542 proof strengthening also resolves the independently reproduced retained-mutation failure from earlier 90c53126 CI.
+
+The first browser CI pass exposed a fixture obstruction at My Library: a real sticky save notification intercepted the trusted click. The independently reviewed [browser follow-up](AUDIT_2026_10_08_545_browser_followup.md) pins the failing 800×600 viewport, dismisses notifications through their real handlers, and verifies the exact selection before unchanged engine assertions. All doors pass; removing dismissal fails the named occlusion assertion. This test-only correction shipped as 88414066.

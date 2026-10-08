@@ -1,0 +1,23 @@
+Smoke-replaying 40 raw GM responses through the table parser…
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 75 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 150 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[sound] 'click_glass' skipped — no AudioContext
+[clock] reconcile SKIPPED — 'late night' is 19h ahead on the same day with no [TIME_ADVANCE:]; mislabel presumed. Real skips need [REST:long] or [TIME_ADVANCE:] (#142/#368)
+[xp] GM award 75 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 100 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 200 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[sound] 'click_glass' skipped — no AudioContext
+[quest] blocked re-creation of archived quest 'The Crossroads Ledger' (completed) — a follow-up needs a NEW title
+[quest] QUEST_STEP on archived quest 'The Crossroads Ledger' (completed) — objective 'Enter the cartwright shop forgery operation' not recorded; closed quests do not gain objectives (#265②)
+[tags] SPELL_USED: player Silent Image (visual illusion) costs 1 but only 0 mana remained — the GM narrated a cast the pool cannot pay (only a Necromancer may overdraw)
+[xp] GM award 200 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[quest] blocked re-creation of archived quest 'The Crossroads Ledger' (completed) — a follow-up needs a NEW title
+[quest] blocked re-completion of 'The Crossroads Ledger' re-emitted its paid rewards (+200 XP) — possible double payment
+[quest] QUEST_STEP on archived quest 'The Crossroads Ledger' (completed) — objective 'Enter the cartwright shop forgery operation' not recorded; closed quests do not gain objectives (#265②)
+[tags] SPELL_USED: 'Message' is not on the player's sheet — no cast booked (#136③)
+── smoke-replay complete ── handler errors: 0
+end-state sanity: hp 24/24 | xp 1470 | quests archived 2 | npcs 3 | spells Mage Hand:ok, Message:ok, Charm Person:USED, Silent Image:USED
+end state matches committed baseline -> dev/corpus_playtest_v1238.json.endstate.json

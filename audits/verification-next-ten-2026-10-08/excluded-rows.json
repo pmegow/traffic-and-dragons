@@ -1,0 +1,22 @@
+{
+  "head": "b028d878d5cc7dbb13a147b9ff469a15d8273f96",
+  "excludedRows": [
+    {
+      "id": 517,
+      "comparedTo": "5751f292",
+      "unchanged": true
+    },
+    {
+      "id": 518,
+      "comparedTo": "dd0286b2",
+      "unchanged": true
+    },
+    {
+      "id": 531,
+      "comparedTo": "5751f292",
+      "unchanged": true
+    }
+  ],
+  "broader527And528Remain": true,
+  "note": "Initial comparison of #518 to 5751f292 failed because concurrent owner-rulings commit dd0286b2 added the #599-before-#518 order. The final check preserves that ruling byte-for-byte; no #518 fix was included in this batch."
+}

@@ -1,0 +1,11 @@
+{
+  "commit": "b154db6b",
+  "baseline": "705aec33",
+  "harness": "dev/verify-525-corpus.js Campaigns 705aec33",
+  "saves": 77,
+  "changedSaves": 0,
+  "endingTextRepairs": 0,
+  "promptsChanged": 0,
+  "sourceHashesUnchanged": true,
+  "reloadAddsNoNewChurn": true
+}

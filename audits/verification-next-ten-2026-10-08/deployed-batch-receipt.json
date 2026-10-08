@@ -1,0 +1,21 @@
+{
+  "version": "v1.1191",
+  "summary": "ALL GREEN — 64 assertions passed",
+  "passed": 64,
+  "failed": 0,
+  "sections": [
+    "#543 voice settings across a sheet swap",
+    "#544 alias reveal proposals and survivor sheets",
+    "#542 person alias admission",
+    "#538 hero graph and relationship boundaries",
+    "#527 role cast identity",
+    "#527 house owner personal names",
+    "#525 second-person ending and portable record",
+    "#545 name-keyed stores and prototype isolation"
+  ],
+  "failures": [],
+  "errors": [],
+  "freshProfile": true,
+  "externalRequestsBlocked": true,
+  "harness": "Unmodified deployed engine and engine-tests. Remote test.html reporter filtered to the exact listed sections; no local runtime injected. Async render and actual startup/browser-door checks have separate receipts."
+}

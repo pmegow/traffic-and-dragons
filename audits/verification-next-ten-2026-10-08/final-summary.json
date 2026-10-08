@@ -1,0 +1,23 @@
+{
+  "runtimeCommit": "4c821589",
+  "mutationRange": "5751f292..4c821589",
+  "batteriesPassed": 166,
+  "batteriesSkipped": 0,
+  "applicableClauses": 2770,
+  "applicabilityBatteries": 310,
+  "hook": {
+    "engineAssertions": 2808,
+    "standaloneSuites": 108
+  },
+  "replayCorpora": [
+    1238,
+    1258,
+    1271,
+    1276
+  ],
+  "deployedBrowserAssertions": 64,
+  "operatorCorrections": [
+    "Initial deployed-browser invocation supplied expected version 1.1191 instead of the actual v1.1191. All 64 engine assertions passed, but that version assertion failed. Rerun with the exact marker passed.",
+    "Initial excluded-row check used a baseline older than the concurrent owner-rulings commit dd0286b2. It correctly detected the #518 ordering note; final scope check compares against that owner commit and preserves it."
+  ]
+}
