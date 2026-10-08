@@ -1,6 +1,6 @@
 # #599 — Inventory rows and "equipped" (design, 2026-10-08)
 
-**Status: Opus 5.5 draft, written at engine v1.1173. No code exists.** #599 is Fable-tier: it rewrites every write path for carried items, the STATE TAGS doc and a save shape. By the drift decree a Fable or Astra session reviews this record before any code. The owner's decisions in §9 come first.
+**Status: Opus 5.5 draft, written at engine v1.1173. No code exists.** #599 is Fable-tier: it rewrites every write path for carried items, the STATE TAGS doc and a save shape. By the drift decree a Fable or Astra session reviews this record before any code. **The owner ruled on all ten decisions on 2026-10-08 (§9).**
 
 **TLDR.** Every inventory becomes a list of rows `{name, qty, equipped}`, and the separate `worn` list folds into the row's `equipped` flag. One module owns the row, one function decides when two names are the same item, and the GM's tag grammar does not change. A dry run over all 77 of the owner's saves converts 11,490 items with no unit lost and prints every row back as exactly the text the GM reads today. The real risk is not the conversion. It is a second device still running an old build pulling a converted save, and nothing in the game checks a save's version today. The recommendation is to ship a small version gate one release ahead of #599.
 
@@ -78,7 +78,7 @@ A contract in run-tests makes the boundary hold: no engine file outside inventor
 
 ### 3.2 The tag
 
-The GM writes `[EQUIPPED:Name|item|on]` and `[EQUIPPED:Name|item|off]`. The STATE TAGS doc teaches only that spelling. Its line keeps today's sense and widens it to weapons: "a carried item is equipped or set aside (a blade drawn and held ready, armor buckled, a shield slung, a ring slipped on; armor stripped for the night)". `[WORN:…]` stays registered with the same handler, stripped from display and known to the unknown-tag scan. On-words and off-words keep their exact-match lists, plus `equipped`/`equip` and `unequipped`/`unequip`.
+The GM writes `[EQUIPPED:Name|item|on]` and `[EQUIPPED:Name|item|off]`. The STATE TAGS doc teaches only that spelling. Its line keeps today's sense and widens it to weapons: "a carried item is equipped or set aside (a blade drawn and held ready, armor buckled, a shield slung, a ring slipped on; armor stripped for the night)". `[WORN:…]` stays registered with the same handler indefinitely (decision 4), stripped from display and known to the unknown-tag scan. On-words and off-words keep their exact-match lists, plus `equipped`/`equip` and `unequipped`/`unequip`.
 
 Receipts must not share a stem: "Tess equips Chainmail" and "Tess takes off Chainmail". That follows the owner's rule on opposing values, because tests and the provenance ring read these lines.
 
@@ -92,7 +92,7 @@ Receipts must not share a stem: "Tess equips Chainmail" and "Tess takes off Chai
 
 ### 3.5 Words the player sees
 
-The counter's "Worn — take it off first" becomes "Equipped — set it aside first". Ledger rows' `worn` field becomes `equipped`, and the sheet shows the same mark under the new word.
+The counter's "Worn — take it off first" becomes "Equipped — unequip it first" (decision 7). Ledger rows' `worn` field becomes `equipped`, and the sheet shows the same mark under the new word.
 
 ## 4. Every place that changes
 
@@ -220,7 +220,7 @@ The server cannot help. It stores every campaign and character as opaque text an
 
 **Recommendation: a version gate, shipped one release before #599.** Two refusals of newer data already exist: `checkpointAcceptable` refuses a newer checkpoint version, and the server pull refuses a transcript form it cannot read (storage-adapter.js:915–927). The gate makes the same refusal for the world. Every load path refuses a world whose `ver` is above what the build knows. That covers local load, .tnd import, the server pull, checkpoint restore, and .char import with the file's own `ver`. The library stores a bare character with no envelope, so `portableSheet` also stamps `sheetVer` inside the character, and every adopting road checks it. A stale device then cannot adopt a companion that a current one saved with rows. A refusal leaves the source untouched and says why: "This save was written by a newer version of the game. Reload to update." The owner opens the game once on every device, then #599 ships with `ver: 11`. The gate is small and engine-testable, and it protects every later shape change as well.
 
-The storage key keeps its name, `tnd_core_v10`. CLAUDE.md says a key's suffix is bumped when its shape changes. A local key bump protects nothing across devices, though, because the damage arrives through the server's copy, not the device's key. The gate does protect. This is a deviation from the letter of that rule, and it is the owner's call (§9).
+The storage key keeps its name, `tnd_core_v10`. CLAUDE.md says a key's suffix is bumped when its shape changes. A local key bump protects nothing across devices, though, because the damage arrives through the server's copy, not the device's key. The gate does protect. This departs from the letter of that rule, by the owner's ruling of 2026-10-08 (§9, decision 2).
 
 ### 5.5 Before the switch
 
@@ -241,7 +241,7 @@ The storage key keeps its name, `tnd_core_v10`. CLAUDE.md says a key's suffix is
 
 ## 7. What #599 does not do
 
-- **It does not close #518's remainder.** The #599 row says it does. A hero looting "Dagger" in the same reply that a companion throws an untracked "Dagger" is two events under one name. Rows do not say which loss feeds which gain; only an explicit transfer does. That is the {from, to, item, qty} record the #518 row already proposes, and the Astra schedule's trade phase. #599 keeps the pairing code, re-pointed at rows with the same behaviour, and gives #518 one key to build on. The #599 row should be corrected.
+- **It does not close #518's remainder.** The #599 row says it does. A hero looting "Dagger" in the same reply that a companion throws an untracked "Dagger" is two events under one name. Rows do not say which loss feeds which gain; only an explicit transfer does. That is the {from, to, item, qty} record the #518 row already proposes, and the Astra schedule's trade phase. #599 keeps the pairing code, re-pointed at rows with the same behaviour, and gives #518 one key to build on. The #599 row is corrected (decision 8).
 - No slots, no per-unit equipped (§3.4), no weight.
 - The chest keeps its own rows. `node.items` already holds `{name, qty, taken, …}` in the stash kinds; it only adopts `itemKey`.
 - Not #597 (counter writes state directly) or #598 (money in copper).
@@ -288,20 +288,22 @@ Every gate below is written red before the code that turns it green.
 12. **A live GM**, a few turns on gemini-3.7-flash in a throwaway campaign. Check counts on gain and loss, `[EQUIPPED:]` on and off, the counter refusing an equipped row, and `[WORN:]` still landing from a reply that uses it.
 13. **One independent review** before the push, with the owner's go.
 
-## 9. Decisions for the owner
+## 9. Decisions — ruled by the owner, 2026-10-08
 
-| # | Decision | Recommendation | Why |
+All ten were put to the owner one at a time. Nine followed the recommendation; decision 7 chose other wording.
+
+| # | Decision | Ruling | Why |
 |---|---|---|---|
-| 1 | Ship the version gate one release ahead of #599 | Yes | It is the only thing that stops a stale device writing a converted save back damaged (§5.4). It is small, and it protects every later shape change. |
-| 2 | Keep the storage key name and use `worldState.ver` | Yes | A key bump does not protect across devices; the gate does. This departs from the letter of the key-suffix rule in CLAUDE.md, so it is the owner's ruling. |
-| 3 | Library .char files carry rows, with `ver: 11` in the file | Yes, and readers accept both shapes forever | Old .char files in the library and on disk must always import. Writers write one shape. |
-| 4 | How long `[WORN:]` is parsed | Indefinitely; teach only `[EQUIPPED:]` | The GM reads its own recent replies. A refused `[WORN:]` would lose an equip in silence, and parsing an alias costs nothing. The #599 row says one release. |
-| 5 | The prompt line reads `Equipped:`, in pack order | Yes | It matches the ruling's word. The reorder is one-time and means nothing to the GM. |
-| 6 | `equipped` is one flag per row | Yes, for now | Slots and per-unit counts can follow without a migration (I5). |
-| 7 | Counter wording | "Equipped — set it aside first" | "Take it off" fits a cloak, not a sword. |
-| 8 | #518's remainder is not part of #599 | Correct the #599 row | Rows do not identify a transfer (§7). |
-| 9 | A new file, inventory.js | Yes | One job per file. It touches the load order, the SW app shell, the engine manifest and the CLAUDE.md file table. |
-| 10 | Size: one Fable week, or about three calendar weeks | See §10 | The two schedules disagree. |
+| 1 | When the version gate ships | **Its own release, before #599.** The owner opens the game once on each device, then #599 ships. | It is the only thing that stops a stale device writing a converted save back damaged (§5.4), and it protects every later shape change. |
+| 2 | The storage key | **Keep `tnd_core_v10`; gate on `worldState.ver`.** | A key bump does not protect across devices; the gate does. This is a deliberate departure from the letter of CLAUDE.md's key-suffix rule. |
+| 3 | Library .char files | **Rows, with `ver: 11` in the file. Readers accept both shapes forever.** | Old .char files in the library and on disk must always import. Writers write one shape. |
+| 4 | How long `[WORN:]` is parsed | **Indefinitely. The doc teaches only `[EQUIPPED:]`.** | The GM reads its own recent replies. A refused `[WORN:]` would lose an equip in silence, and parsing an alias costs nothing. This replaces the row's "one release". |
+| 5 | The prompt line | **`Equipped:`, in pack order.** | It matches the ruling's word. The reorder is one-time and means nothing to the GM. |
+| 6 | What `equipped` covers | **One flag for the whole row.** | Slots and per-unit counts can follow without a migration (I5). |
+| 7 | The counter's wording | **"Equipped — unequip it first"** (the recommendation was "set it aside first"). | The owner's choice of game-mechanical wording. It is display text only: the stored value is a boolean, and receipts keep "equips" and "takes off" (§3.2). |
+| 8 | #518's same-name transfer case | **Not part of #599; the #599 row is corrected.** | Rows do not identify a transfer (§7). #518's transfer record follows #599. |
+| 9 | Where the code lives | **A new engine file, inventory.js.** | One job per file, and the character editor and map cleanup need it without api.js. |
+| 10 | The schedule | **#599 takes the weeks it needs, with the gate released at the start.** | §10: 41–64 hours, about three calendar weeks. The question also asked whether #597 and #598 should wait. That rested on stale schedule text: both had already shipped and been archived (commits 0878a8e6 and 0e5b323d). What does wait is the counter work that names #599's row shape as its remedy, as the 2026-10-03 ruling already says. |
 
 ## 10. Size
 
@@ -321,4 +323,4 @@ Focused hours, on the same scale as the Astra schedule, which counts the owner's
 | The independent review and its fixes | 3–6 |
 | **Total** | **41–64** |
 
-That is closer to the Astra schedule (34 hours, range 26–50, plus a 4-hour baseline) than to the Opus schedule's single 22-hour week. It sits at the top of Astra's range, because the survey found more tests and batteries resting on the string shape than either schedule assumed. At the owner's planned 18–22 hours a week it is about three calendar weeks, with the gate released at the start. #597 and #598 then start after #599 rather than the week after the reset.
+That is closer to the Astra schedule (34 hours, range 26–50, plus a 4-hour baseline) than to the Opus schedule's single 22-hour week. It sits at the top of Astra's range, because the survey found more tests and batteries resting on the string shape than either schedule assumed. At the owner's planned 18–22 hours a week it is about three calendar weeks, with the gate released at the start (decision 10). #597 and #598 shipped before this record; the counter rows that name #599's row shape as their remedy wait for it.
