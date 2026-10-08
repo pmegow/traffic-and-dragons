@@ -1540,7 +1540,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
         break;
       }
     }
-    if(!_cfound){console.warn("[tags] ARC_CONTINUE: no ACTIVE arc titled '"+_ct+"' — no-op (typo, or the arc already completed?)");skelTitleMiss(R,"arc",_ct);}
+    if(!_cfound){console.warn("[tags] ARC_CONTINUE: no ACTIVE arc titled '"+_ct+"' — no-op (typo, or the arc already completed?)");skelTitleMiss(R,"arc",_ct,"continue");}
   }}},
 {t:"ACT_COMPLETE",apply:function(text,R){var actDone=text.match(/\[ACT_COMPLETE:([^\]]+)\]/);
   if(actDone&&worldState.skeleton){
@@ -1759,10 +1759,10 @@ function mutsSummaryEmit(R){
    a [LOCATION_ITEM:…|taken] never takes from a stash, every move is recorded. */
 /* #481 C4: an act/arc close whose title matches nothing active is SAID (⚠ line) and asked ONCE (skelTitlePing → buildSkeletonTitleNote),
    quoting the exact active titles — it used to be a console line only (the Necrotic act closed 8 turns late). */
-function skelTitleMiss(R,kind,given){var sk=worldState&&worldState.skeleton,t=[],i,j;if(!sk)return;
+function skelTitleMiss(R,kind,given,operation){var sk=worldState&&worldState.skeleton,t=[],i,j;if(!sk)return;
   for(i=0;i<(sk.acts||[]).length;i++){var a=sk.acts[i];if(!a||a.status!=="active")continue;if(kind==="act"){if(a.title)t.push(a.title);}else{for(j=0;j<(a.arcs||[]).length;j++)if(a.arcs[j].status==="active"&&a.arcs[j].title)t.push(a.arcs[j].title);}}
-  R.muts.push("⚠ "+(kind==="act"?"Act":"Arc")+" close ignored — '"+given+"' matches no active "+kind+(t.length?" ("+t.join("; ")+")":""));
-  worldState.skelTitlePing={turn:R.turn,kind:kind,given:String(given).slice(0,120),titles:t.slice(0,6)};}
+  R.muts.push("⚠ "+(kind==="act"?"Act":"Arc")+(operation==="continue"?" continuation":" close")+" ignored — '"+given+"' matches no active "+kind+(t.length?" ("+t.join("; ")+")":""));
+  worldState.skelTitlePing={turn:R.turn,kind:kind,operation:operation||"complete",given:String(given).slice(0,120),titles:t.slice(0,6)};}
 /* #481 A4: a tag's occurrences WITH their text offsets (same regex, same order as a /g match), and the reply's place at an
    offset — R.placeAt when the table built a timeline, else the live pointer (a handler called outside applyMutsTable). */
 function tagHits(text,re){var out=[],m,g=new RegExp(re.source,"g"),t=String(text==null?"":text);while((m=g.exec(t))!==null){out.push({m:m,off:m.index});if(m[0]==="")g.lastIndex++;}return out;}

@@ -28624,6 +28624,31 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (NOTE_LATCH_FIELDS.indexOf("skelTitlePing")>=0&&NOTE_SHAPES.buildSkeletonTitleNote&&NOTE_SHAPES.buildSkeletonTitleNote.combat==="fires")?true:"registered, combat fires: "+JSON.stringify(NOTE_SHAPES.buildSkeletonTitleNote);
   });
 
+  section("#527 continuation title advice");
+  t("#527 continue miss preserves the attempted operation in receipt and one-shot combat advice",function(){
+    makeWorld();worldState.skeleton={premise:"p",acts:[{title:"Act 1: The Plunder",status:"active",arcs:[{title:"True Arc",status:"active",driftChecks:2,driftCheckTurn:12},{title:"Future Arc",status:"pending"}]}]};
+    worldState.combat={round:1,foes:[{name:"Rat",hp:2,maxHp:2}]};
+    var before=JSON.stringify(worldState.skeleton),R=quiet(function(){return applyMuts("[ARC_CONTINUE:Totally Wrong|the pass remains held]");}).r;
+    if(JSON.stringify(worldState.skeleton)!==before)return "a miss changed the skeleton or drift counters";
+    if(!R.muts.some(function(m){return /^⚠/.test(m)&&/continuation ignored/.test(m)&&/Totally Wrong/.test(m);}))return "the receipt misstates continuation: "+JSON.stringify(R.muts);
+    var n=buildSkeletonTitleNote();
+    if(n.indexOf("[ARC_CONTINUE:<that exact title>|why it remains open]")<0||n.indexOf('"True Arc"')<0)return "the note does not teach the attempted continuation with its exact active title: "+n;
+    if(/ARC_COMPLETE|close|Future Arc/.test(n))return "continuation advice redirects to closure or an inactive arc: "+n;
+    return buildSkeletonTitleNote()===""?true:"the continuation note was not one-shot";
+  });
+  t("#527 continue miss with no active arcs gives no invented correction",function(){
+    makeWorld();worldState.skeleton={acts:[{title:"Done",status:"completed",arcs:[{title:"Old Arc",status:"completed"}]}]};
+    quiet(function(){applyMuts("[ARC_CONTINUE:Old Arc|unfinished]");});var n=buildSkeletonTitleNote();
+    return /continuation/.test(n)&&!/ARC_COMPLETE|ARC_CONTINUE:|close|titled exactly/.test(n)?true:"no eligible arc must not get closure advice or an invented target: "+n;
+  });
+  t("#527 legacy title ping retains complete advice for arcs and acts",function(){
+    makeWorld();var kinds=["arc","act"];
+    for(var i=0;i<kinds.length;i++){
+      worldState.skelTitlePing={kind:kinds[i],given:"Wrong",titles:["True Title"]};var n=buildSkeletonTitleNote(),tag=kinds[i]==="act"?"ACT_COMPLETE":"ARC_COMPLETE";
+      if(n.indexOf("["+tag+":<that exact title>]")<0||n.indexOf("nothing closed")<0)return "legacy completion advice changed: "+n;
+    }return true;
+  });
+
   section("#481 F2 a portrait is an image, never markup");
   t("#481 F2 safeImgSrc admits an image data URL, https: and blob:, escaped; anything else is empty and said once",function(){
     var png="data:image/png;base64,iVBORw0KGgo=",jpg="data:image/jpeg;base64,/9j/4AAQ+/=";

@@ -20,7 +20,7 @@ prove("tag_table.js", [
     find: "skeletonTitleKey(_carcs[_cj].title)!==skeletonTitleKey(_ct))continue;/* #481 C4 */", replace: "_carcs[_cj].title.toLowerCase()!==_ct.toLowerCase())continue;",
     mustFail: "both field shapes close" },
   { label: "a real mismatch is console-only again",
-    find: "  R.muts.push(\"⚠ \"+(kind===\"act\"?\"Act\":\"Arc\")+\" close ignored — '\"", replace: "  void(\"⚠ \"+(kind===\"act\"?\"Act\":\"Arc\")+\" close ignored — '\"",
+    find: "  R.muts.push(\"⚠ \"+(kind===\"act\"?\"Act\":\"Arc\")+(operation===\"continue\"?\" continuation\":\" close\")+\" ignored — '\"", replace: "  void(\"⚠ \"+(kind===\"act\"?\"Act\":\"Arc\")+(operation===\"continue\"?\" continuation\":\" close\")+\" ignored — '\"",
     mustFail: "a real mismatch still refuses" }
 ]);
 process.exit(code);

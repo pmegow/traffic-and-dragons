@@ -1778,8 +1778,8 @@ function stashPlaceNames(cap){
 }
 /* #481 C4: an act/arc title that matched nothing — quote the exact active titles. Combat FIRES (a fight can end an arc). */
 function buildSkeletonTitleNote(){var q=worldState&&worldState.skelTitlePing;if(!q)return "";delete worldState.skelTitlePing;
-  var tag=q.kind==="act"?"ACT_COMPLETE":"ARC_COMPLETE";
-  return "[ENGINE NOTE — "+(q.kind==="act"?"ACT":"ARC")+" TITLE NOT MATCHED (not a player action): your last reply's close named '"+q.given+"', which matches no active "+q.kind+", so nothing closed."+(q.titles&&q.titles.length?" The active "+q.kind+(q.titles.length>1?"s are":" is")+" titled exactly: "+q.titles.map(function(x){return "\""+x+"\"";}).join(", ")+". If one of them is done, emit ["+tag+":<that exact title>].":"")+" Never acknowledge this check in prose.]";}
+  var continuing=q.operation==="continue",tag=continuing?"ARC_CONTINUE":q.kind==="act"?"ACT_COMPLETE":"ARC_COMPLETE";
+  return "[ENGINE NOTE — "+(q.kind==="act"?"ACT":"ARC")+" TITLE NOT MATCHED (not a player action): your last reply's "+(continuing?"continuation":"close")+" named '"+q.given+"', which matches no active "+q.kind+", so "+(continuing?"the continuation was not recorded":"nothing closed")+"."+(q.titles&&q.titles.length?" The active "+q.kind+(q.titles.length>1?"s are":" is")+" titled exactly: "+q.titles.map(function(x){return "\""+x+"\"";}).join(", ")+". "+(continuing?"If one of them remains open":"If one of them is done")+", emit ["+tag+":<that exact title>"+(continuing?"|why it remains open":"")+"].":"")+" Never acknowledge this check in prose.]";}
 buildSkeletonTitleNote._noteName="buildSkeletonTitleNote";buildSkeletonTitleNote._noteShape="one-shot-ask";
 /* #481 B1: the cast check — someone spoke in the last reply but its [SCENE_CAST:] left them out, so the record did not place
    them where the reply ended. One-shot, combat-silent (oneShotPing); a forgotten cast heals, a speaker who was elsewhere
