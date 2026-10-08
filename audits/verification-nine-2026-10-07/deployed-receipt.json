@@ -1,0 +1,40 @@
+{
+  "url": "https://traffic-and-dragons.pages.dev/index.html",
+  "version": "v1.1173",
+  "combat": {
+    "shopButtons": 0,
+    "result": {
+      "ok": false,
+      "reason": "finish combat before trading"
+    },
+    "unchanged": true,
+    "combat": {
+      "round": 1,
+      "engaged": null,
+      "foes": [
+        {
+          "name": "Tavern bandit",
+          "hp": 12,
+          "maxHp": 12
+        }
+      ]
+    }
+  },
+  "voice": {
+    "merged": {
+      "voiceId": "custom-unlisted",
+      "voiceDirection": "low",
+      "voiceRate": 0.9
+    },
+    "sheet": {
+      "name": "Aldern Foxglove",
+      "voiceDirection": "low",
+      "voiceRate": 0.9,
+      "voiceId": "custom-unlisted"
+    },
+    "clear": {}
+  },
+  "errors": [],
+  "blocked": [],
+  "passed": true
+}
