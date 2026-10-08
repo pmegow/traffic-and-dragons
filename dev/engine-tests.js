@@ -28624,6 +28624,30 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (NOTE_LATCH_FIELDS.indexOf("skelTitlePing")>=0&&NOTE_SHAPES.buildSkeletonTitleNote&&NOTE_SHAPES.buildSkeletonTitleNote.combat==="fires")?true:"registered, combat fires: "+JSON.stringify(NOTE_SHAPES.buildSkeletonTitleNote);
   });
 
+  section("#527 location state receipt and world case");
+  function ls527World(){makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation=null;fileLocation("Sandpoint","A port town.",worldState.turn);}
+  t("#527 location receipt retains terminal s and trims only whitespace at its display boundary",function(){
+    ls527World();var notes=["Broken glass","Burned grass",new Array(60).join("x")+" beyond"],want=["Broken glass","Burned grass",new Array(60).join("x")];
+    for(var i=0;i<notes.length;i++){
+      var r=applyMuts("[LOCATION_STATE:"+notes[i]+"|Sandpoint]");
+      if(r.muts.indexOf("Location changed: "+want[i]+" — at Sandpoint")<0)return "receipt changed note text: "+JSON.stringify(r.muts);
+      if(a5Notes("Sandpoint").indexOf(notes[i])<0)return "the display trim changed stored text";
+    }return true;
+  });
+  t("#527 world case variant files on the canonical current world with no twin",function(){
+    ls527World();worldState.world.sublocation="the inn";fileSubLocation("the inn",worldState.turn);var n=Object.keys(memory.map.nodes).length;
+    var r=quiet(function(){return applyMuts("[LOCATION_STATE:Broken glass|sAnDpOiNt]");}).r;
+    if(a5Notes("Sandpoint").indexOf("Broken glass")<0)return "case variant world was refused or filed on the child: "+JSON.stringify(r.muts);
+    if(a5Notes("Sandpoint|the inn").length||Object.keys(memory.map.nodes).length!==n)return "case variant minted or changed a child";
+    return r.muts.indexOf("Location changed: Broken glass — at Sandpoint")>=0?true:"receipt lacks the canonical world: "+JSON.stringify(r.muts);
+  });
+  t("#527 world comparison uses each tag's text-order world and refuses other world names",function(){
+    ls527World();var r=quiet(function(){return applyMuts("[LOCATION_STATE:Broken gate|sandpoint][LOCATION:Magnimar][LOCATION_STATE:Scorched tower|mAgNiMaR][LOCATION_STATE:Wrong place|sandpoint]");});
+    if(a5Notes("Sandpoint").indexOf("Broken gate")<0||a5Notes("Magnimar").indexOf("Scorched tower")<0)return "case matching used the final world instead of the tag's world: "+JSON.stringify(r.r.muts);
+    if(a5Notes("Sandpoint").indexOf("Wrong place")>=0||a5Notes("Magnimar").indexOf("Wrong place")>=0)return "other world operand was accepted";
+    return r.warns.some(function(w){return /unresolvable/.test(w);})&&r.r.muts.some(function(m){return /^⚠/.test(m)&&/sandpoint/.test(m);})?true:"remote world refusal was not loud";
+  });
+
   section("#527 Village settled campaign title");
   t("#527 Village preserves literal campaign colons while withholding settlement details",function(){
     __mlWorld();worldState.kind="village";var cs=findCompanionChar("Daeris"),names=["Runelords: Burnt Offerings","One: Two: Three","Plain Campaign"];

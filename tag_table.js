@@ -670,11 +670,11 @@ var TAG_TABLE=[
   var lsAt=rPlaceAt(R,lsOff[lsi]),lsBar=lsm[1].split("|"),lsNote=lsBar[0].trim(),lsWhere="";
   if(lsBar.length>2||!lsNote||(lsBar.length===2&&!lsBar[1].trim())){R.muts.push("⚠ [LOCATION_STATE:] refused — write one note and at most one place: [LOCATION_STATE:note|place] (nothing stored)");if(typeof console!=="undefined")console.warn("[tags] LOCATION_STATE malformed: "+lsTags[lsi].slice(0,120));continue;}
   if(lsBar.length===2){var lsPl=lsBar[1].trim(),lsW=(lsAt&&lsAt.world)?lsAt.world:((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location);
-    var lsRp=(typeof resolvePlaceName==="function")?resolvePlaceName(lsPl,lsW):null,lsKey=lsRp?lsRp.key:((typeof locSame==="function"&&locSame(lsPl,lsW))?lsW:null);
+    var lsRp=(typeof resolvePlaceName==="function")?resolvePlaceName(lsPl,lsW):null,lsKey=lsRp?lsRp.key:((lsPl.toLowerCase()===String(lsW).toLowerCase()||(typeof locSame==="function"&&locSame(lsPl,lsW)))?lsW:null);
     if(!lsKey){R.muts.push("⚠ [LOCATION_STATE:] refused — '"+lsPl+"' names no place under "+lsW+"; the note was not stored");if(typeof console!=="undefined")console.warn("[tags] LOCATION_STATE place unresolvable: '"+lsPl+"' under "+lsW);continue;}
     if(lsRp&&lsRp.via==="house"&&!memory.map.nodes[lsKey]&&typeof villageHouseEnsure==="function")villageHouseEnsure(lsRp.owner,lsW);/* the arrival's house mint, same path */
     lsAt={key:lsKey,world:lsW};lsWhere=" — at "+((typeof locDisplayLeaf==="function")?locDisplayLeaf(lsKey):lsKey);}
-  if(fileLocationState(lsNote,R.turn,lsAt))R.muts.push("Location changed: "+(lsWhere?lsNote.slice(0,60).replace(/s+$/,""):lsNote.slice(0,60))+lsWhere);}}},
+  if(fileLocationState(lsNote,R.turn,lsAt))R.muts.push("Location changed: "+(lsWhere?lsNote.slice(0,60).replace(/\s+$/,""):lsNote.slice(0,60))+lsWhere);}}},
 /* #303 WANTS & ECONOMY — [WARES:item|price|note] files a ware on the WORLD node (fileWare: size-capped, clock-expiring, re-statement refreshes); [WARES:none] records an honest empty market; a price outside WARES_PRICE_BAND× of the bible value warns and receipts the canon beside it — the narrated price is never rewritten. [WANTED:item|offer|by] files what someone here wants from the party. */
 {t:"WARES",apply:function(text,R){var _wraw=text.match(/\[WARES:[^\]]*\](?:\|[^\[\]\n]*\])*/g)||[],wt=[],_wri,_wrOff=tagOffsets(text,/\[WARES:[^\]]*\](?:\|[^\[\]\n]*\])*/),wtOff=[];
   /* #6 F11 (owner screenshot 2026-09-16, t54 at the trading post): the GM chained several wares into one tag — "[WARES:a|1 gp|n]|b|1 gp|m]|c|1 gp|k]" — so the parser filed one and cleanTxt left "|b|1 gp|m]|c…]" in the prose. Every chained ware files; the contract stays one [WARES:item|price|note] per ware and the warn says so. */

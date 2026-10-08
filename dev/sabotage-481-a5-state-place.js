@@ -11,7 +11,7 @@ process.exit(sabotage.prove({ file: "tag_table.js", command: ["node", ["dev/run-
     find: "    if(!lsKey){R.muts.push(\"⚠ [LOCATION_STATE:] refused — '\"", replace: "    if(!lsKey)lsKey=currentNodeKey();if(false){R.muts.push(\"⚠ [LOCATION_STATE:] refused — '\"",
     mustFail: "an unresolvable place is refused loudly" },
   { label: "the world node is no place (the t191 note is refused)",
-    find: "((typeof locSame===\"function\"&&locSame(lsPl,lsW))?lsW:null)", replace: "null",
+    find: "((lsPl.toLowerCase()===String(lsW).toLowerCase()||(typeof locSame===\"function\"&&locSame(lsPl,lsW)))?lsW:null)", replace: "null",
     mustFail: "the place operand files the note where it names" },
   { label: "a second pipe is accepted",
     find: "  if(lsBar.length>2||!lsNote||", replace: "  if(false||!lsNote||",
