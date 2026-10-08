@@ -1354,9 +1354,11 @@ function healAbilitySheets(){
   var turn=worldState.turn||0,changed=0,i,ns=worldState.npcs||[];
   function one(cs,isCompanion){
     if(!cs)return;
-    var mxB=manaMax(cs),rep=abilitySheetHeal(cs,{turn:turn,pickArchetype:isCompanion}),learned=[],who=cs.name||"Companion";
+    var mxB,rep=abilitySheetHeal(cs,{turn:turn,pickArchetype:isCompanion}),learned=[],who=cs.name||"Companion";
     if(rep.archetype){
       learned=archetypeSpellGrant(cs,rep.archetype.id);
+      /* The base spell grant already funded its mana growth; only later tier picks remain. */
+      mxB=manaMax(cs);
       var unl=spellUnlocksCrossed(cs.cls,rep.archetype.id,2,cs.level||1).filter(function(u){return u.source==="arch";});
       learned=learned.concat(companionAutoPickSpells(cs,unl));
       manaGrowWithMax(cs,mxB);

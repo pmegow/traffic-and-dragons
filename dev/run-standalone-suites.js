@@ -63,6 +63,7 @@ var SUITES = [
   "dev/tests-439-designer-incoming.js",
   "dev/tests-440-render-job.js",
   "dev/tests-528-portrait-boundaries.js",
+  "dev/tests-528-levelup-integration.js",
   "dev/tests-443-campaign-delete.js",
   "dev/tests-449-boot-reconcile-row.js",
   "dev/tests-453-npc-portrait.js",
