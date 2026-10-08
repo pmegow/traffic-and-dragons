@@ -26917,6 +26917,38 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#527 hero cast identity");
+  function heroCast527(){
+    makeWorld();worldState.character.name="Ammut";worldState.character.aliases=["Bone-boy"];worldState.turn=20;
+    worldState.npcs=[{name:"Ammut's old master",rel:"neutral",status:"waiting",statusTurn:1}];
+    memory.npcs={"Ammut's old master":{attitude:"stern",knowledge:[],events:[],aliases:[],lastSeenAt:"Far Town",lastSeenTurn:1}};
+    fileLocation("Ashfen","A quiet village.",20);worldState.world.location="Ashfen";worldState.world.sublocation=null;delete worldState.sceneRefs;sceneRefsEnsure();
+  }
+  t("#527 hero-only cast cannot move or observe the NPC whose name contains the hero",function(){
+    heroCast527();var nm="Ammut's old master",before=JSON.stringify(memory.npcs[nm]),r=applyMuts("[SCENE_CAST:Ammut]");
+    if(JSON.stringify(memory.npcs[nm])!==before)return "hero cast rewrote master's location or memory";
+    if(scenePresentNow(nm)||(worldState.sceneRefs.active.observed||[]).some(function(o){return o.entity===nm;}))return "hero cast observed the master";
+    if(worldState.castLast.names.indexOf(nm)>=0||worldState.castLast.names.indexOf("Ammut")<0)return "cast canonicalization substituted master: "+JSON.stringify(worldState.castLast);
+    return (r.muts||[]).some(function(x){return /Present:.*old master/.test(x);})?"false presence receipt":true;
+  });
+  t("#527 hero-only cast does not authorize the master's speech but an explicit master cast does",function(){
+    heroCast527();var nm="Ammut's old master";
+    quiet(function(){applyMuts("[SCENE_CAST:Ammut][SAY:Ammut's old master]Stay away.");});
+    if(scenePresentNow(nm)||memory.npcs[nm].lastSeenAt!=="Far Town")return "hero cast authorized master's SAY";
+    if(!worldState.castSpeakerPing||worldState.castSpeakerPing.names.indexOf(nm)<0)return "withheld master must be reported";
+    worldState.turn++;applyMuts("[SCENE_CAST:Ammut, Ammut's old master]");
+    return scenePresentNow(nm)&&memory.npcs[nm].lastSeenAt==="Ashfen"?true:"explicit NPC name must still record presence";
+  });
+  t("#527 resolver protects only current hero names, aliases and player before exact NPC aliases",function(){
+    heroCast527();var nm="Ammut's old master",forms=["Ammut"," aMMuT ","Bone-boy","PLAYER"],i;
+    memory.npcs[nm].aliases=["Bone-boy","player"];
+    for(i=0;i<forms.length;i++)if(resolveNpcName(forms[i])!==forms[i])return "hero identity resolved into NPC: "+forms[i];
+    if(resolveNpcName(nm)!==nm)return "full NPC name lost";
+    worldState.character.name="Thessa";worldState.character.aliases=[];
+    if(resolveNpcName("Ammut")!==nm||resolveNpcName("Bone-boy")!==nm)return "old hero identity remained protected after swap";
+    return resolveNpcName("Thessa")==="Thessa"?true:"new hero identity not protected";
+  });
+
   section("#527 off-scene NPC attitude");
   t("#527 absent traited NPC keeps attitude in detail and graph without a roster personality backlog",function(){
     carriedEF();var la=lastAction;

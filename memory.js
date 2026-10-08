@@ -245,6 +245,7 @@ function npcApartLine(raw){
   return c.apart?raw+" is not "+c.apart+" ("+c.why+") — filed as a separate person":"";
 }
 function resolveNpcName(name){
+  if(memoryNpcIsPlayer(name))return name;/* The current hero and their aliases never identify an NPC, even by exact registered alias. */
   if(!memory.npcs)return name;
   var own=npcExactKey(name,1);if(own)return own;/* exact key (up to case and separators) or registered alias — one scan for the resolver and the answer reader (#504) */
   var former=npcFormerKey(name);if(former)return former;/* #504: a folded ° key goes where its merge went, never back onto the person it was split from */
