@@ -26917,6 +26917,41 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#527 companion impulse yields to audits");
+  function impulse527(fn){
+    var old=NOTE_BUILDERS;makeWorld();worldState.turn=100;
+    worldState.npcs.push({name:"Nyla",partyMember:true,charSheet:{name:"Nyla",flaw:"Pockets anything that glitters.",inventory:[],abilities:[],spells:[],conditions:[]}});
+    NOTE_BUILDERS=old.filter(function(f){return [buildCompanionImpulseNote,buildLocationFilingNudge,buildTravelPriceNudge,buildCommitmentNudge].indexOf(f)>=0;});
+    try{return fn();}finally{NOTE_BUILDERS=old;noteLogDiscard();}
+  }
+  t("#527 three real audits outrank impulse within the count budget and defer its unspent latch",function(){return impulse527(function(){
+    worldState.locationFilingPing={place:"Mill",turn:99};worldState.travelPricePing={destination:"Town",elapsed:5,shortfall:30,turn:99};worldState.commitmentPing={text:"Deliver tomorrow",turn:99};
+    var text=buildEngineNotes(),b=lastEngineNotesBuilt(),expected=["buildLocationFilingNudge","buildTravelPriceNudge","buildCommitmentNudge"];
+    if(JSON.stringify(b.n)!==JSON.stringify(expected))return "impulse displaced due audits: "+JSON.stringify(b);
+    if(worldState.impulseAsk||text.indexOf("COMPANION IMPULSE")>=0)return "deferred impulse consumed its latch or reached prompt";
+    if(text.length>NOTE_CHAR_BUDGET||b.n.length>NOTE_DELIVERY_CAP)return "note budget expanded";
+    if(!b.d.some(function(d){return d.n==="buildCompanionImpulseNote"&&d.reason==="count";}))return "deferred impulse not logged";
+    worldState.turn++;text=buildEngineNotes();return text.indexOf("COMPANION IMPULSE")>=0&&worldState.impulseAsk.turn===101?true:"spare budget failed to retry impulse";
+  });});
+  t("#527 character-budget deferral does not consume impulse; failed-turn rollback restores an admitted ask",function(){return impulse527(function(){
+    worldState.locationFilingPing={place:new Array(401).join("x"),turn:99};
+    buildEngineNotes();var b=lastEngineNotesBuilt();
+    if(b.n.indexOf("buildLocationFilingNudge")<0||b.n.indexOf("buildCompanionImpulseNote")>=0||worldState.impulseAsk)return "impulse outranked a character-budget audit: "+JSON.stringify(b);
+    if(!b.d.some(function(d){return d.n==="buildCompanionImpulseNote"&&d.reason==="characters";}))return "character drop not recorded";
+    var snap=snapshotNoteLatches(),text=buildEngineNotes();if(text.indexOf("COMPANION IMPULSE")<0||!worldState.impulseAsk)return "spare budget did not admit ask";
+    restoreNoteLatches(snap);noteLogDiscard();if(worldState.impulseAsk||worldState.noteLog||lastEngineNotesBuilt())return "failed turn consumed impulse or logged delivery";
+    return buildEngineNotes()===text?true:"failed turn could not retry same impulse";
+  });});
+  t("#527 failed-turn restore makes an admitted impulse available again",function(){return impulse527(function(){
+    var snap=snapshotNoteLatches(),text=buildEngineNotes();if(!worldState.impulseAsk||text.indexOf("COMPANION IMPULSE")<0)return "fixture: no admitted impulse";
+    restoreNoteLatches(snap);noteLogDiscard();if(worldState.impulseAsk||lastEngineNotesBuilt())return "failed turn retained impulse latch or delivery log";
+    return buildEngineNotes()===text?true:"retry lost admitted impulse";
+  });});
+  t("#527 impulse is last in the production note registry and consequence leaders retain priority",function(){
+    if(NOTE_BUILDERS[NOTE_BUILDERS.length-1]!==buildCompanionImpulseNote)return "a later audit can still be displaced by impulse";
+    return NOTE_BUILDERS[0]===buildDeathSceneNote&&NOTE_BUILDERS[1]===buildPlotArmorNote&&NOTE_BUILDERS[2]===buildDownedNote?true:"consequence leaders changed";
+  });
+
   section("#527 resident schedule and travel");
   function schedule527(){villageCD();var places=villageCommons();places.forEach(function(c){var k=locResolve("The Village|"+c);if(!memory.map.nodes[k])memory.map.nodes[k]=newMapNode(1,"The Village");delete memory.map.nodes[k].hours;});return places;}
   t("#527 opening one venue does not move residents whose preferred commons stays open",function(){
