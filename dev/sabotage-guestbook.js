@@ -78,11 +78,11 @@ rc |= sabotage.prove({
       replace: "" },
     { label: "locSplit explicit allocation removed — take.guestbook silently ignored (amendment ④)",
       mustFail: "locSplit allocates guestbook",
-      find: "    for(j=0;j<(take.guestbook||[]).length;j++){var gk=take.guestbook[j];if(gbook[gk]&&!claimedG[gk]){fresh.guestbook=fresh.guestbook||{};fresh.guestbook[gk]=gbook[gk];claimedG[gk]=1;}}",
+      find: "    for(j=0;j<(take.guestbook||[]).length;j++){var gk=take.guestbook[j];if(gbook[gk]&&!claimedG[gk]){fresh.guestbook=fresh.guestbook||keyedDict();fresh.guestbook[gk]=gbook[gk];claimedG[gk]=1;}}",
       replace: "" },
     { label: "locSplit primary fallback removed — unclaimed records vanish instead of staying with the primary",
       mustFail: "locSplit allocates guestbook",
-      find: "  for(i=0;i<gbNames.length;i++){if(!claimedG[gbNames[i]]){prim.guestbook=prim.guestbook||{};prim.guestbook[gbNames[i]]=gbook[gbNames[i]];}}",
+      find: "  for(i=0;i<gbNames.length;i++){if(!claimedG[gbNames[i]]){prim.guestbook=prim.guestbook||keyedDict();prim.guestbook[gbNames[i]]=gbook[gbNames[i]];}}",
       replace: "" }
   ]
 });

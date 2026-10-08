@@ -1,0 +1,4231 @@
+{
+ "tree": "traffic-and-dragons-next-ten-ending",
+ "runs": 22188,
+ "counts": {
+  "isPrototypeOf SAME": 22021,
+  "isPrototypeOf STATE_KEY": 163,
+  "isPrototypeOf DIFF": 4
+ },
+ "results": [
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:isPrototypeOf]",
+   "muts": [
+    "-> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.locations",
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:isPrototypeOf ]",
+   "muts": [
+    "-> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.locations",
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:﻿isPrototypeOf]",
+   "muts": [
+    "-> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.locations",
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:\nisPrototypeOf\n]",
+   "muts": [
+    "-> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.locations",
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION:isPrototypeOf]",
+   "muts": [
+    "-> isPrototypeOf",
+    "Time: dusk [LOCATION:isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:isPrototypeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.locations",
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> isPrototyqeOf",
+    "Time: dusk [LOCATION:isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:isPrototyqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:isPrototypeOf]",
+   "muts": [
+    "-> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.locations",
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:isPrototypeOf ]",
+   "muts": [
+    "-> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.locations",
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:﻿isPrototypeOf]",
+   "muts": [
+    "-> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.locations",
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:\nisPrototypeOf\n]",
+   "muts": [
+    "-> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.locations",
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION:isPrototypeOf]",
+   "muts": [
+    "-> isPrototypeOf",
+    "Time: dusk [LOCATION:isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:isPrototypeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.locations",
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> isPrototyqeOf",
+    "Time: dusk [LOCATION:isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:isPrototyqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:isPrototypeOf|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:isPrototypeOf |Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:﻿isPrototypeOf|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:\nisPrototypeOf\n|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_ALIAS:isPrototypeOf|Other]",
+   "muts": [
+    "Time: dusk [NPC_ALIAS:isPrototypeOf|Other",
+    "Alias: Other -> isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:isPrototypeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_ALIAS:isPrototyqeOf|Other",
+    "Alias: Other -> isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:isPrototyqeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:isPrototypeOf|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:isPrototypeOf |Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:﻿isPrototypeOf|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:\nisPrototypeOf\n|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_ALIAS:isPrototypeOf|Other]",
+   "muts": [
+    "Time: dusk [NPC_ALIAS:isPrototypeOf|Other",
+    "Alias: Other -> isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:isPrototypeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_ALIAS:isPrototyqeOf|Other",
+    "Alias: Other -> isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:isPrototyqeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:isPrototypeOf|Bram]",
+   "muts": [
+    "Merged: Bram -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:isPrototypeOf |Bram]",
+   "muts": [
+    "Merged: Bram -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:﻿isPrototypeOf|Bram]",
+   "muts": [
+    "Merged: Bram -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:\nisPrototypeOf\n|Bram]",
+   "muts": [
+    "Merged: Bram -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_MERGE:isPrototypeOf|Bram]",
+   "muts": [
+    "Time: dusk [NPC_MERGE:isPrototypeOf|Bram",
+    "Merged: Bram -> isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_MERGE:isPrototypeOf|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_MERGE:isPrototyqeOf|Bram",
+    "Merged: Bram -> isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_MERGE:isPrototyqeOf|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|isPrototypeOf|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|isPrototypeOf |Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|﻿isPrototypeOf|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|\nisPrototypeOf\n|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [ALIAS:npc|isPrototypeOf|Other]",
+   "muts": [
+    "Time: dusk [ALIAS:npc|isPrototypeOf|Other",
+    "Alias: Other -> isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|isPrototypeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [ALIAS:npc|isPrototyqeOf|Other",
+    "Alias: Other -> isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|isPrototyqeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|isPrototypeOf|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|isPrototypeOf |Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|﻿isPrototypeOf|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|\nisPrototypeOf\n|Other]",
+   "muts": [
+    "Alias: Other -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [ALIAS:npc|isPrototypeOf|Other]",
+   "muts": [
+    "Time: dusk [ALIAS:npc|isPrototypeOf|Other",
+    "Alias: Other -> isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|isPrototypeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [ALIAS:npc|isPrototyqeOf|Other",
+    "Alias: Other -> isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|isPrototyqeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|isPrototypeOf|Bram]",
+   "muts": [
+    "Merged: Bram -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|isPrototypeOf |Bram]",
+   "muts": [
+    "Merged: Bram -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|﻿isPrototypeOf|Bram]",
+   "muts": [
+    "Merged: Bram -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|\nisPrototypeOf\n|Bram]",
+   "muts": [
+    "Merged: Bram -> isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [MERGE:npc|isPrototypeOf|Bram]",
+   "muts": [
+    "Time: dusk [MERGE:npc|isPrototypeOf|Bram",
+    "Merged: Bram -> isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [MERGE:npc|isPrototypeOf|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [MERGE:npc|isPrototyqeOf|Bram",
+    "Merged: Bram -> isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [MERGE:npc|isPrototyqeOf|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:isPrototypeOf|calm|ally]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:isPrototypeOf |calm|ally]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿isPrototypeOf|calm|ally]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nisPrototypeOf\n|calm|ally]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:isPrototypeOf|calm|ally]",
+   "muts": [
+    "Time: dusk [NPC:isPrototypeOf|calm|ally",
+    "NPC: isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:isPrototypeOf|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:isPrototyqeOf|calm|ally",
+    "NPC: isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:isPrototyqeOf|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:isPrototypeOf|calm|ally]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:isPrototypeOf |calm|ally]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿isPrototypeOf|calm|ally]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nisPrototypeOf\n|calm|ally]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:isPrototypeOf|calm|ally]",
+   "muts": [
+    "Time: dusk [NPC:isPrototypeOf|calm|ally",
+    "NPC: isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:isPrototypeOf|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:isPrototyqeOf|calm|ally",
+    "NPC: isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:isPrototyqeOf|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:isPrototypeOf|dead|enemy]",
+   "muts": [
+    "isPrototypeOf: dead (t9)",
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: dead (t9)",
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:isPrototypeOf |dead|enemy]",
+   "muts": [
+    "isPrototypeOf: dead (t9)",
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: dead (t9)",
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿isPrototypeOf|dead|enemy]",
+   "muts": [
+    "isPrototypeOf: dead (t9)",
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: dead (t9)",
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nisPrototypeOf\n|dead|enemy]",
+   "muts": [
+    "isPrototypeOf: dead (t9)",
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: dead (t9)",
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:isPrototypeOf|dead|enemy]",
+   "muts": [
+    "Time: dusk [NPC:isPrototypeOf|dead|enemy",
+    "isPrototypeOf: dead (t9)",
+    "NPC: isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:isPrototypeOf|dead|enemy' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:isPrototyqeOf|dead|enemy",
+    "isPrototyqeOf: dead (t9)",
+    "NPC: isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:isPrototyqeOf|dead|enemy' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:isPrototypeOf]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:isPrototypeOf ]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿isPrototypeOf]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\nisPrototypeOf\n]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:isPrototypeOf]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:isPrototypeOf",
+    "Resident here: isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:isPrototypeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:isPrototyqeOf",
+    "Resident here: isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:isPrototyqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:isPrototypeOf]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:isPrototypeOf ]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿isPrototypeOf]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\nisPrototypeOf\n]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:isPrototypeOf]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:isPrototypeOf",
+    "Resident here: isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:isPrototypeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:isPrototyqeOf",
+    "Resident here: isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:isPrototyqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:isPrototypeOf|a rider]",
+   "muts": [
+    "Registered from death report: isPrototypeOf",
+    "isPrototypeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: isPrototyqeOf",
+    "isPrototyqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:isPrototypeOf |a rider]",
+   "muts": [
+    "Registered from death report: isPrototypeOf",
+    "isPrototypeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: isPrototyqeOf",
+    "isPrototyqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:﻿isPrototypeOf|a rider]",
+   "muts": [
+    "Registered from death report: isPrototypeOf",
+    "isPrototypeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: isPrototyqeOf",
+    "isPrototyqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:\nisPrototypeOf\n|a rider]",
+   "muts": [
+    "Registered from death report: isPrototypeOf",
+    "isPrototypeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: isPrototyqeOf",
+    "isPrototyqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_DEATH_REPORTED:isPrototypeOf|a rider]",
+   "muts": [
+    "Time: dusk [NPC_DEATH_REPORTED:isPrototypeOf|a rider",
+    "Registered from death report: isPrototypeOf",
+    "isPrototypeOf: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:isPrototypeOf|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_DEATH_REPORTED:isPrototyqeOf|a rider",
+    "Registered from death report: isPrototyqeOf",
+    "isPrototyqeOf: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:isPrototyqeOf|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:isPrototypeOf|a rider]",
+   "muts": [
+    "Registered from death report: isPrototypeOf",
+    "isPrototypeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: isPrototyqeOf",
+    "isPrototyqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:isPrototypeOf |a rider]",
+   "muts": [
+    "Registered from death report: isPrototypeOf",
+    "isPrototypeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: isPrototyqeOf",
+    "isPrototyqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:﻿isPrototypeOf|a rider]",
+   "muts": [
+    "Registered from death report: isPrototypeOf",
+    "isPrototypeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: isPrototyqeOf",
+    "isPrototyqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:\nisPrototypeOf\n|a rider]",
+   "muts": [
+    "Registered from death report: isPrototypeOf",
+    "isPrototypeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: isPrototyqeOf",
+    "isPrototyqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_DEATH_REPORTED:isPrototypeOf|a rider]",
+   "muts": [
+    "Time: dusk [NPC_DEATH_REPORTED:isPrototypeOf|a rider",
+    "Registered from death report: isPrototypeOf",
+    "isPrototypeOf: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:isPrototypeOf|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_DEATH_REPORTED:isPrototyqeOf|a rider",
+    "Registered from death report: isPrototyqeOf",
+    "isPrototyqeOf: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:isPrototyqeOf|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "Bram and +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Bram and isPrototypeOf]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3144,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and isprototype\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attit",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and isprototyqe\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attit"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "Ashfen (+)",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Ashfen (isPrototypeOf)]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3143,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (isprototypeo\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (isprototyqeo\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "Bram and +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Bram and isPrototypeOf]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3341,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and isprototype\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the ",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and isprototyqe\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the "
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "Ashfen (+)",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Ashfen (isPrototypeOf)]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3340,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (isprototypeo\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (isprototyqeo\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:isPrototypeOf|completed]",
+   "muts": [
+    "Quest: isPrototypeOf (completed)",
+    "+50 XP (quest milestone: isPrototypeOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: isPrototyqeOf (completed)",
+    "+50 XP (quest milestone: isPrototyqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:isPrototypeOf |completed]",
+   "muts": [
+    "Quest: isPrototypeOf (completed)",
+    "+50 XP (quest milestone: isPrototypeOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: isPrototyqeOf (completed)",
+    "+50 XP (quest milestone: isPrototyqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:﻿isPrototypeOf|completed]",
+   "muts": [
+    "Quest: isPrototypeOf (completed)",
+    "+50 XP (quest milestone: isPrototypeOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: isPrototyqeOf (completed)",
+    "+50 XP (quest milestone: isPrototyqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:\nisPrototypeOf\n|completed]",
+   "muts": [
+    "Quest: isPrototypeOf (completed)",
+    "+50 XP (quest milestone: isPrototypeOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: isPrototyqeOf (completed)",
+    "+50 XP (quest milestone: isPrototyqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [QUEST:isPrototypeOf|completed]",
+   "muts": [
+    "Time: dusk [QUEST:isPrototypeOf|completed",
+    "Quest: isPrototypeOf (completed)",
+    "+50 XP (quest milestone: isPrototypeOf)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:isPrototypeOf|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [QUEST:isPrototyqeOf|completed",
+    "Quest: isPrototyqeOf (completed)",
+    "+50 XP (quest milestone: isPrototyqeOf)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:isPrototyqeOf|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:isPrototypeOf|completed]",
+   "muts": [
+    "Quest: isPrototypeOf (completed)",
+    "+50 XP (quest milestone: isPrototypeOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: isPrototyqeOf (completed)",
+    "+50 XP (quest milestone: isPrototyqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:isPrototypeOf |completed]",
+   "muts": [
+    "Quest: isPrototypeOf (completed)",
+    "+50 XP (quest milestone: isPrototypeOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: isPrototyqeOf (completed)",
+    "+50 XP (quest milestone: isPrototyqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:﻿isPrototypeOf|completed]",
+   "muts": [
+    "Quest: isPrototypeOf (completed)",
+    "+50 XP (quest milestone: isPrototypeOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: isPrototyqeOf (completed)",
+    "+50 XP (quest milestone: isPrototyqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:\nisPrototypeOf\n|completed]",
+   "muts": [
+    "Quest: isPrototypeOf (completed)",
+    "+50 XP (quest milestone: isPrototypeOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: isPrototyqeOf (completed)",
+    "+50 XP (quest milestone: isPrototyqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [QUEST:isPrototypeOf|completed]",
+   "muts": [
+    "Time: dusk [QUEST:isPrototypeOf|completed",
+    "Quest: isPrototypeOf (completed)",
+    "+50 XP (quest milestone: isPrototypeOf)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:isPrototypeOf|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [QUEST:isPrototyqeOf|completed",
+    "Quest: isPrototyqeOf (completed)",
+    "+50 XP (quest milestone: isPrototyqeOf)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:isPrototyqeOf|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_NOTE:isPrototypeOf|a fact]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_NOTE:isPrototypeOf|a fact]",
+   "muts": [
+    "Time: dusk [NPC_NOTE:isPrototypeOf|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:isPrototypeOf|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_NOTE:isPrototyqeOf|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:isPrototyqeOf|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_NOTE:isPrototypeOf|a fact]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_NOTE:isPrototypeOf|a fact]",
+   "muts": [
+    "Time: dusk [NPC_NOTE:isPrototypeOf|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:isPrototypeOf|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_NOTE:isPrototyqeOf|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:isPrototyqeOf|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:isPrototypeOf|old|new]",
+   "muts": [
+    "isPrototypeOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:isPrototypeOf |old|new]",
+   "muts": [
+    "isPrototypeOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:﻿isPrototypeOf|old|new]",
+   "muts": [
+    "isPrototypeOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:\nisPrototypeOf\n|old|new]",
+   "muts": [
+    "isPrototypeOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_SUPERSEDE:isPrototypeOf|old|new]",
+   "muts": [
+    "Time: dusk [NPC_SUPERSEDE:isPrototypeOf|old|new",
+    "isPrototypeOf: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:isPrototypeOf|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_SUPERSEDE:isPrototyqeOf|old|new",
+    "isPrototyqeOf: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:isPrototyqeOf|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:isPrototypeOf|old|new]",
+   "muts": [
+    "isPrototypeOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:isPrototypeOf |old|new]",
+   "muts": [
+    "isPrototypeOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:﻿isPrototypeOf|old|new]",
+   "muts": [
+    "isPrototypeOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:\nisPrototypeOf\n|old|new]",
+   "muts": [
+    "isPrototypeOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_SUPERSEDE:isPrototypeOf|old|new]",
+   "muts": [
+    "Time: dusk [NPC_SUPERSEDE:isPrototypeOf|old|new",
+    "isPrototypeOf: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:isPrototypeOf|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_SUPERSEDE:isPrototyqeOf|old|new",
+    "isPrototyqeOf: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:isPrototyqeOf|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_PRONOUN:isPrototypeOf|he/him]",
+   "muts": [
+    "Pronouns: isPrototypeOf (he/him)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Pronouns: isPrototyqeOf (he/him)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_PRONOUN:isPrototypeOf|he/him]",
+   "muts": [
+    "Time: dusk [NPC_PRONOUN:isPrototypeOf|he/him",
+    "Pronouns: isPrototypeOf (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:isPrototypeOf|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_PRONOUN:isPrototyqeOf|he/him",
+    "Pronouns: isPrototyqeOf (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:isPrototyqeOf|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_PRONOUN:isPrototypeOf|he/him]",
+   "muts": [
+    "Pronouns: isPrototypeOf (he/him)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Pronouns: isPrototyqeOf (he/him)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_PRONOUN:isPrototypeOf|he/him]",
+   "muts": [
+    "Time: dusk [NPC_PRONOUN:isPrototypeOf|he/him",
+    "Pronouns: isPrototypeOf (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:isPrototypeOf|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_PRONOUN:isPrototyqeOf|he/him",
+    "Pronouns: isPrototyqeOf (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:isPrototyqeOf|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:isPrototypeOf|a group]",
+   "muts": [
+    "Faction: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:isPrototypeOf |a group]",
+   "muts": [
+    "Faction: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:﻿isPrototypeOf|a group]",
+   "muts": [
+    "Faction: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:\nisPrototypeOf\n|a group]",
+   "muts": [
+    "Faction: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [FACTION:isPrototypeOf|a group]",
+   "muts": [
+    "Time: dusk [FACTION:isPrototypeOf|a group",
+    "Faction: isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:isPrototypeOf|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [FACTION:isPrototyqeOf|a group",
+    "Faction: isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:isPrototyqeOf|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:isPrototypeOf|a group]",
+   "muts": [
+    "Faction: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:isPrototypeOf |a group]",
+   "muts": [
+    "Faction: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:﻿isPrototypeOf|a group]",
+   "muts": [
+    "Faction: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:\nisPrototypeOf\n|a group]",
+   "muts": [
+    "Faction: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [FACTION:isPrototypeOf|a group]",
+   "muts": [
+    "Time: dusk [FACTION:isPrototypeOf|a group",
+    "Faction: isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:isPrototypeOf|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [FACTION:isPrototyqeOf|a group",
+    "Faction: isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:isPrototyqeOf|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:isPrototypeOf|The Guild|member]",
+   "muts": [
+    "isPrototypeOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:isPrototypeOf |The Guild|member]",
+   "muts": [
+    "isPrototypeOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:﻿isPrototypeOf|The Guild|member]",
+   "muts": [
+    "isPrototypeOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:\nisPrototypeOf\n|The Guild|member]",
+   "muts": [
+    "isPrototypeOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:isPrototypeOf|The Guild|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:isPrototypeOf|The Guild|member",
+    "isPrototypeOf: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:isPrototypeOf|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:isPrototyqeOf|The Guild|member",
+    "isPrototyqeOf: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:isPrototyqeOf|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:isPrototypeOf|The Guild|member]",
+   "muts": [
+    "isPrototypeOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:isPrototypeOf |The Guild|member]",
+   "muts": [
+    "isPrototypeOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:﻿isPrototypeOf|The Guild|member]",
+   "muts": [
+    "isPrototypeOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:\nisPrototypeOf\n|The Guild|member]",
+   "muts": [
+    "isPrototypeOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "isPrototyqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:isPrototypeOf|The Guild|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:isPrototypeOf|The Guild|member",
+    "isPrototypeOf: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:isPrototypeOf|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:isPrototyqeOf|The Guild|member",
+    "isPrototyqeOf: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:isPrototyqeOf|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|isPrototypeOf|member]",
+   "muts": [
+    "Bram: isPrototypeOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: isPrototyqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|isPrototypeOf |member]",
+   "muts": [
+    "Bram: isPrototypeOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: isPrototyqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|﻿isPrototypeOf|member]",
+   "muts": [
+    "Bram: isPrototypeOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: isPrototyqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|\nisPrototypeOf\n|member]",
+   "muts": [
+    "Bram: isPrototypeOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: isPrototyqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:Bram|isPrototypeOf|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:Bram|isPrototypeOf|member",
+    "Bram: isPrototypeOf [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|isPrototypeOf|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:Bram|isPrototyqeOf|member",
+    "Bram: isPrototyqeOf [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|isPrototyqeOf|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|isPrototypeOf|member]",
+   "muts": [
+    "Bram: isPrototypeOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: isPrototyqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|isPrototypeOf |member]",
+   "muts": [
+    "Bram: isPrototypeOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: isPrototyqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|﻿isPrototypeOf|member]",
+   "muts": [
+    "Bram: isPrototypeOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: isPrototyqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|\nisPrototypeOf\n|member]",
+   "muts": [
+    "Bram: isPrototypeOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: isPrototyqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:Bram|isPrototypeOf|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:Bram|isPrototypeOf|member",
+    "Bram: isPrototypeOf [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|isPrototypeOf|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:Bram|isPrototyqeOf|member",
+    "Bram: isPrototyqeOf [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|isPrototyqeOf|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:isPrototypeOf|true]",
+   "muts": [
+    "Party: +isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:isPrototypeOf |true]",
+   "muts": [
+    "Party: +isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:﻿isPrototypeOf|true]",
+   "muts": [
+    "Party: +isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:\nisPrototypeOf\n|true]",
+   "muts": [
+    "Party: +isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_MEMBER:isPrototypeOf|true]",
+   "muts": [
+    "Time: dusk [PARTY_MEMBER:isPrototypeOf|true",
+    "Party: +isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:isPrototypeOf|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_MEMBER:isPrototyqeOf|true",
+    "Party: +isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:isPrototyqeOf|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:isPrototypeOf|true]",
+   "muts": [
+    "Party: +isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:isPrototypeOf |true]",
+   "muts": [
+    "Party: +isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:﻿isPrototypeOf|true]",
+   "muts": [
+    "Party: +isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:\nisPrototypeOf\n|true]",
+   "muts": [
+    "Party: +isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_MEMBER:isPrototypeOf|true]",
+   "muts": [
+    "Time: dusk [PARTY_MEMBER:isPrototypeOf|true",
+    "Party: +isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:isPrototypeOf|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_MEMBER:isPrototyqeOf|true",
+    "Party: +isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:isPrototyqeOf|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|isPrototypeOf]",
+   "muts": [
+    "Kira splits off to isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|isPrototypeOf ]",
+   "muts": [
+    "Kira splits off to isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|﻿isPrototypeOf]",
+   "muts": [
+    "Kira splits off to isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|\nisPrototypeOf\n]",
+   "muts": [
+    "Kira splits off to isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_SPLIT:Kira|isPrototypeOf]",
+   "muts": [
+    "Time: dusk [PARTY_SPLIT:Kira|isPrototypeOf",
+    "Kira splits off to isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|isPrototypeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_SPLIT:Kira|isPrototyqeOf",
+    "Kira splits off to isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|isPrototyqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|isPrototypeOf]",
+   "muts": [
+    "Kira splits off to isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|isPrototypeOf ]",
+   "muts": [
+    "Kira splits off to isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|﻿isPrototypeOf]",
+   "muts": [
+    "Kira splits off to isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|\nisPrototypeOf\n]",
+   "muts": [
+    "Kira splits off to isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_SPLIT:Kira|isPrototypeOf]",
+   "muts": [
+    "Time: dusk [PARTY_SPLIT:Kira|isPrototypeOf",
+    "Kira splits off to isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|isPrototypeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_SPLIT:Kira|isPrototyqeOf",
+    "Kira splits off to isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|isPrototyqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:isPrototypeOf]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:isPrototypeOf ]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿isPrototypeOf]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\nisPrototypeOf\n]",
+   "muts": [
+    "Resident here: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:isPrototypeOf]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:isPrototypeOf",
+    "Resident here: isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:isPrototypeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:isPrototyqeOf",
+    "Resident here: isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:isPrototyqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:isPrototypeOf|calm|neighbour]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:isPrototypeOf |calm|neighbour]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿isPrototypeOf|calm|neighbour]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nisPrototypeOf\n|calm|neighbour]",
+   "muts": [
+    "NPC: isPrototypeOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: isPrototyqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "isPrototypeOf",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:isPrototypeOf|calm|neighbour]",
+   "muts": [
+    "Time: dusk [NPC:isPrototypeOf|calm|neighbour",
+    "NPC: isPrototypeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:isPrototypeOf|calm|neighbour' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'isPrototypeOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:isPrototyqeOf|calm|neighbour",
+    "NPC: isPrototyqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:isPrototyqeOf|calm|neighbour' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  }
+ ]
+}

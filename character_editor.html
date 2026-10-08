@@ -134,6 +134,7 @@ table.list td.x button:hover{color:var(--dng);}
   }
   // Every import path in the game defaults these — mirror it so an old .char edits cleanly.
   function healChar(c){
+    keyedStores(c,"sheet");
     if(!c.skills)c.skills=(typeof initSkills==="function")?initSkills():{};
     if(typeof initSkills==="function"){var base=initSkills(),k;for(k in base)if(c.skills[k]==null)c.skills[k]=0;}
     ["inventory","abilities","spells","languages","conditions","relationships","saveModifiers","storyBeats","coreMemories","motivationHistory"].forEach(function(k){if(!Array.isArray(c[k]))c[k]=[];});

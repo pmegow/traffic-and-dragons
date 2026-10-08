@@ -23,6 +23,6 @@ process.exit(sabotage.prove({ file: "tag_table.js", command: CMD, cases: [
     find: 'if(_invLastMiss&&_invLastMiss.why==="ambiguous"){R.muts.push(', replace: 'if(false){R.muts.push(',
     mustFail: "an ambiguous name in a village sale" },
   { label: "the refused sale's items stay hits for pairing, so a gift riding with it mints the item",
-    find: "if(!R.ilMiss)R.ilMiss={};ilTags.forEach(function(t0){var m0=t0.match(/\\[ITEM_LOST:([^\\]]+)\\]/);if(m0)R.ilMiss[itemPairKey(m0[1])]=m0[1].trim();});", replace: "",
+    find: "if(!R.ilMiss)R.ilMiss=keyedDict();ilTags.forEach(function(t0){var m0=t0.match(/\\[ITEM_LOST:([^\\]]+)\\]/);if(m0)R.ilMiss[itemPairKey(m0[1])]=m0[1].trim();});", replace: "",
     mustFail: "misses for pairing" }
 ]}) ? 1 : 0);

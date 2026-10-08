@@ -133,6 +133,7 @@ t("the #424 copy of a NON-active campaign lands in ITS folder, never the active 
 t("the stored slug survives mergeCampaignLists (the folder is this device's, the server never overrides it)", function () {
   var ctx = { console: { warn: function () {}, info: function () {}, error: function () {}, log: function () {} }, Promise: Promise, setTimeout: setTimeout, clearTimeout: clearTimeout, fetch: function () {}, window: { addEventListener: function () {} }, document: { addEventListener: function () {}, visibilityState: "visible" }, navigator: {}, localStorage: { getItem: function () { return null; }, setItem: function () {} } };
   vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, "helpers.js"), "utf8"), ctx, { filename: "helpers.js" });
   vm.runInContext(fs.readFileSync(path.join(ROOT, "storage-adapter.js"), "utf8"), ctx, { filename: "storage-adapter.js" });
   var sa = ctx.storageAdapter || vm.runInContext("storageAdapter", ctx);
   var merged = sa.mergeCampaignLists([{ id: "camp_A", campName: "Alpha", folderSlug: "Alpha_2" }], [{ id: "camp_A", campName: "Alpha", folderSlug: "Elsewhere" }, { id: "camp_C", campName: "C", folderSlug: "C_from_another_device" }]);

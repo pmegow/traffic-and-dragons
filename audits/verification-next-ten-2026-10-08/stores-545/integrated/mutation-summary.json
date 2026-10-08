@@ -1,0 +1,41 @@
+{
+  "total": 229,
+  "rows": [
+    {
+      "file": "stores-545-integrated-retained-427-library-upstream.log",
+      "clauses": 14
+    },
+    {
+      "file": "stores-545-integrated-retained-533-name-word-tables.log",
+      "clauses": 12
+    },
+    {
+      "file": "stores-545-integrated-retained-538-hero-edges.log",
+      "clauses": 11
+    },
+    {
+      "file": "stores-545-integrated-retained-581-stash-journal.log",
+      "clauses": 17
+    },
+    {
+      "file": "stores-545-integrated-retained-guestbook.log",
+      "clauses": 18
+    },
+    {
+      "file": "stores-545-integrated-retained-w2.log",
+      "clauses": 96
+    },
+    {
+      "file": "stores-545-integrated-sabotage-542-repaired.log",
+      "clauses": 25
+    },
+    {
+      "file": "stores-545-integrated-sabotage-544-alias-reveal.log",
+      "clauses": 23
+    },
+    {
+      "file": "stores-545-integrated-sabotage-545-stores.log",
+      "clauses": 13
+    }
+  ]
+}

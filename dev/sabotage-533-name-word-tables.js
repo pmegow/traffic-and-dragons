@@ -10,7 +10,7 @@ function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, com
 var REPRO = "#533 the repro", READ = "#533 the name readers treat it as a plain name word", WIDER = "#533 the same class outside the name code";
 prove("memory.js", [
   { label: "word tables inherit Object.prototype again (the reported throw)",
-    find: 'function npcWordTable(o){var m=Object.create(null),k;for(k in o)m[k]=o[k];return m;}', replace: 'function npcWordTable(o){return o;}',
+    find: 'function npcWordTable(o){return keyedDict(o);}', replace: 'function npcWordTable(o){return o;}',
     mustFail: REPRO },
   { label: "the rank table alone is a plain object (the throw's own line)",
     find: 'var _NPC_RANK_WORDS=npcWordTable({king:"crown:monarch",', replace: 'var _NPC_RANK_WORDS=({king:"crown:monarch",',

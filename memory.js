@@ -9,7 +9,7 @@
 // table and every per-text token set here, in the death gate (identity.js) and in the button filter (game.js) is built through this,
 // or on Object.create(null). (It is the one reachable word: the tokenizers lower-case and keep letters and digits only, and no
 // other Object.prototype key is all lower-case letters.)
-function npcWordTable(o){var m=Object.create(null),k;for(k in o)m[k]=o[k];return m;}
+function npcWordTable(o){return keyedDict(o);}
 var _NPC_STOP=npcWordTable({sheriff:1,father:1,mother:1,lord:1,lady:1,ser:1,sir:1,captain:1,master:1,mistress:1,
   brother:1,sister:1,saint:1,st:1,king:1,queen:1,prince:1,princess:1,dame:1,elder:1,dr:1,doctor:1,
   professor:1,the:1,old:1,young:1,a:1,an:1,man:1,woman:1,girl:1,boy:1,child:1,lad:1,lass:1,
@@ -482,7 +482,7 @@ function fileNpcKnowledge(name,fact,turn,preferNew){
    ONCE in NODE_CARRY_FIELDS with its fold policy (read by locFoldNodeRecords and locSplit in identity.js). */
 function newMapNode(firstVisit,parent,extra){
   var n={firstVisit:(firstVisit===undefined?null:firstVisit),visits:0,description:null,parent:parent||null,npcs:[],items:[],size:null,travelMins:null},k;
-  if(extra)for(k in extra)if(Object.prototype.hasOwnProperty.call(extra,k))n[k]=extra[k];
+  if(extra)ownAssign(n,extra);
   return n;
 }
 /* The optional fields a node may carry beyond the factory base, with how a MERGE folds the duplicate's value into the
@@ -505,7 +505,7 @@ var VISITED_CAP=50;
 /* Every parser-created place participates in arrival provenance, even when metadata creates it before movement. */
 function ensureMapNode(key,turn,parent){
   if(typeof locResolve==="function")key=locResolve(key);
-  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   if(!memory.map.nodes[key]){memory.map.nodes[key]=newMapNode(turn,parent);if(typeof _exitNoteCreated==="function")_exitNoteCreated(key);}
   return memory.map.nodes[key];
 }
@@ -518,7 +518,7 @@ function fileLocation(loc,note,turn,from){/* #481 A4: `from` = where this move l
   if(memory.locations[loc].visited.length>VISITED_CAP)memory.locations[loc].visited.splice(0,memory.locations[loc].visited.length-VISITED_CAP);/* audit C4: bounded */
   if(note){memory.locations[loc].notes.push(note);if(memory.locations[loc].notes.length>5)memory.locations[loc].notes.shift();}
   // Map node
-  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   ensureMapNode(loc,turn,null);
   memory.map.nodes[loc].visits++;memory.map.nodes[loc].lastVisit=turn;/* audit C11: the world filer stamps recency like the sub-location filer */
   guestbookNoteArrival(loc,turn);/* #173: QUEUED during a parse, committed post-handler (amendment ③) — the attendance snapshot must see same-response split/rejoin state settled */
@@ -532,7 +532,7 @@ function fileLocation(loc,note,turn,from){/* #481 A4: `from` = where this move l
   }
 }
 function fileSubLocation(name,turn,inWorld){/* #481 A4: `inWorld` = the world this arrival happened under (a sub named before a world move belongs to the OLD world) */
-  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   var parent=(inWorld!=null)?inWorld:(worldState&&worldState.world?worldState.world.location:null);if(!parent)return;
   if(typeof locResolve==="function")parent=locResolve(parent);/* #156B: compose under the CANONICAL parent — a stale world pointer (older-device blob) must not mint children under a tombstoned key */
   var key=parent+"|"+name;
@@ -558,7 +558,7 @@ var LAYOUT_SIZES=["tiny","small","medium","large"],LAYOUT_MAX_ROOMS=12;
 /* ONE validator for both writers — the GM's tag (parseLayout) and the player's form (layoutSetByPlayer). Returns
    {ok,rooms} with normalised copies, or {ok:false,reason}. */
 function validateLayoutRooms(input){
-  var rooms=[],names={},i,j;
+  var rooms=[],names=keyedDict(),i,j;
   if(!input||!input.length)return {ok:false,reason:"no rooms"};
   for(i=0;i<input.length;i++){
     var r=input[i]||{},nm=String(r.name==null?"":r.name).trim(),sz=String(r.size==null?"":r.size).trim().toLowerCase(),feat=String(r.features==null?"":r.features).trim().slice(0,120);
@@ -616,10 +616,10 @@ function fileLayout(body,turn,by,playerText){
        The GM can never redecorate unasked; a room that holds a pinned item cannot be removed. */
     var hero=worldState.character&&worldState.character.name;
     if(!node.owner||!hero||node.owner!==hero)return {ok:false,reason:"this house has the player's own design on record; only its owner's design form changes it",key:key};
-    var said=String(playerText==null?"":playerText).toLowerCase(),oldRooms=node.layout.rooms,i,byName={};
+    var said=String(playerText==null?"":playerText).toLowerCase(),oldRooms=node.layout.rooms,i,byName=keyedDict();
     for(i=0;i<oldRooms.length;i++)byName[oldRooms[i].name.toLowerCase()]=oldRooms[i];
     var named=function(nm){return said.indexOf(String(nm).toLowerCase())>=0;};
-    var newNames={};for(i=0;i<p.rooms.length;i++)newNames[p.rooms[i].name.toLowerCase()]=1;
+    var newNames=keyedDict();for(i=0;i<p.rooms.length;i++)newNames[p.rooms[i].name.toLowerCase()]=1;
     /* a connection that vanishes only because its room is being removed is judged with the removal, not as a change to the room that lost it */
     var liveTo=function(to){return to.filter(function(t){var l=String(t).toLowerCase();return l==="outside"||newNames[l];}).join(",").toLowerCase();};
     for(i=0;i<p.rooms.length;i++){var nr=p.rooms[i],or=byName[nr.name.toLowerCase()];
@@ -714,7 +714,7 @@ function fileLocationDesc(desc,at){/* #512: `at` = the reply's place where the t
 // stops being served and the market ask fires again.
 function _waresWorldNode(turn,atWorld){
   if(!worldState||!worldState.world||!worldState.world.location)return null;
-  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   var key=atWorld||worldState.world.location;if(typeof locResolve==="function")key=locResolve(key);
   if(!memory.map.nodes[key])memory.map.nodes[key]=newMapNode(turn,null);
   return memory.map.nodes[key];
@@ -815,7 +815,7 @@ function fileWanted(item,offer,by,turn,at){
 }
 function fileLocationState(note,turn,at){/* #481 A4: `at` = the reply's place where the tag happened */
   if(!worldState||!worldState.world)return false;
-  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   var key=(at&&at.key)?at.key:currentNodeKey();/* sublocation-aware, same grain as LOCATION_ITEM/LOCATION_SIZE */
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
   var txt=String(note==null?"":note).trim();if(!txt)return false;
@@ -953,7 +953,7 @@ function stashMoveRecord(R,mv){
   else{e={name:mv.name,units:mv.units,action:mv.action,key:mv.key,by:by,pack:pk?{name:pk.name,units:pk.units}:null,turn:R.turn,grp:R.moveGrp};
     if(typeof kindDef==="function"&&kindDef().populateFromLibrary)e.at=Date.now();
     ring.push(e);}
-  if(e.at&&by){var sh=stashActorSheet(by);if(sh){if(!sh.stashMarks)sh.stashMarks={};sh.stashMarks[stashMarkKey()]=e.at;}}
+  if(e.at&&by){var sh=stashActorSheet(by);if(sh){if(!sh.stashMarks)sh.stashMarks=keyedDict();sh.stashMarks[stashMarkKey()]=e.at;}}
   while(ring.length>STASH_MOVES_CAP){var ev=ring.shift(),msg="[stash] move record full ("+STASH_MOVES_CAP+") — evicted "+ev.action+" "+ev.name+" x"+ev.units+" at "+ev.key+" (t"+ev.turn+")";
     if(typeof console!=="undefined"){if(ev.at)console.warn(msg+"; a library refresh from a copy that never saw it can no longer re-apply it (#481 D9)");else console.info(msg);}}
   return e;
@@ -1080,7 +1080,7 @@ function npcRecordPresence(name,src,atKey){/* #481 B1: atKey = where it was obse
 var _gbPendingArrivals=[];   // arrivals queued by fileLocation/fileSubLocation during a parse
 var _gbDeferArrivals=false;  // true between guestbookBeginResponse() and guestbookCommitArrivals()
 function guestbookRecordEnsure(node,name){
-  if(!node.guestbook)node.guestbook={};
+  if(!node.guestbook)node.guestbook=keyedDict();
   if(!node.guestbook[name])node.guestbook[name]={turns:[],resident:false};
   return node.guestbook[name];
 }
@@ -1109,7 +1109,7 @@ function guestbookStamp(nodeKey,name,turn,src){
   /* #194: per-turn source provenance ("say"/"combat"/"cast"/"arrive"). Pre-#194 turns have no
      entry — turn-vs-presenceEpoch grading covers them (appendix 8: grade is DERIVED, never
      stored per legacy record). */
-  if(src){if(!rec.by)rec.by={};rec.by[turn]=String(src);}
+  if(src){if(!rec.by)rec.by=keyedDict();rec.by[turn]=String(src);}
   _gbCapFold(rec);
   return true;
 }
@@ -1135,7 +1135,7 @@ function guestbookFoldRecords(dst,src){
   /* #194: source provenance folds with its turn, grade-preserving — a fold can never PROMOTE a
      record (grade derives from the turn value, which travels; a sourceless legacy turn stays
      sourceless). Existing dst sources win on collision (same-turn dedupe parity). */
-  if(src&&src.by){if(!dst.by)dst.by={};for(i in src.by)if(dst.turns.indexOf(Number(i))>=0&&dst.by[i]===undefined)dst.by[i]=src.by[i];}
+  if(src&&src.by){if(!dst.by)dst.by=keyedDict();for(i in src.by)if(dst.turns.indexOf(Number(i))>=0&&dst.by[i]===undefined)dst.by[i]=src.by[i];}
   if(src&&src.agg){
     if(!dst.agg)dst.agg={first:src.agg.first,last:src.agg.last,count:src.agg.count};
     else{dst.agg.first=Math.min(dst.agg.first,src.agg.first);dst.agg.last=Math.max(dst.agg.last,src.agg.last);dst.agg.count+=src.agg.count;}
@@ -1685,7 +1685,7 @@ function _ragRetrieveScore(inputText){
     for(i2=0;i2<terms.length;i2++){if(!ent[terms[i2]])keepT.push(terms[i2]);}
     terms=keepT;
   })();
-  var w={},k,hasInput=false;
+  var w=keyedDict(),k,hasInput=false;
   for(k in q.input){w[k]=3;hasInput=true;}
   // Party members are in nearly every entry — weak signal at best, and when the input NAMES
   // someone (a directed question), companions-standing-nearby is pure noise: weight 0.
@@ -1693,9 +1693,9 @@ function _ragRetrieveScore(inputText){
   // Duplicate-key groups share ONE weight: entries indexed at write time may carry any of the
   // duplicate names ("Hemlock" vs the collapsed "Sheriff Belor Hemlock"); alias them, and zero
   // out double-counting when an entry lists several names from the same group.
-  var gRoot={};
+  var gRoot=keyedDict();
   for(k in q.groups){gRoot[k]=k;var gi;for(gi=0;gi<q.groups[k].length;gi++){gRoot[q.groups[k][gi]]=k;if(w[k]&&!w[q.groups[k][gi]])w[q.groups[k][gi]]=w[k];}}
-  var qws={},qi;for(qi=0;qi<q.quests.length;qi++)qws[q.quests[qi].toLowerCase()]=1;
+  var qws=keyedDict(),qi;for(qi=0;qi<q.quests.length;qi++)qws[q.quests[qi].toLowerCase()]=1;
   // Skip only what the live conversation actually covers. The old fixed 10-turn skip assumed
   // sessionLog holds ~10 turns — false in mature campaigns, where summarize fires every ~2
   // turns and left a DEAD ZONE 3–10 turns back: too old for sessionLog, too recent for
@@ -1744,11 +1744,11 @@ function _ragRetrieveScore(inputText){
   // broadsheet regression: the origin scene went invisible after the user's Hemlock merges).
   // resolveNpcName bridges them (the merge registered the duplicate as an alias); memoized —
   // resolveNpcName scans all NPC keys and a mature transcript re-checks the same few names.
-  var _res={};
+  var _res=keyedDict();
   function _resolveIdx(nm){if(_res[nm]===undefined)_res[nm]=resolveNpcName(nm);return _res[nm];}
   for(i=0;i<elig.length;i++){
     var en=elig[i].en;
-    var sc=0,seenG={};
+    var sc=0,seenG=keyedDict();
     for(j=0;j<en.e.n.length;j++){
       var enNm=en.e.n[j];
       if(!w[enNm]){var rn=_resolveIdx(enNm);if(!w[rn])continue;enNm=rn;}
@@ -1882,12 +1882,12 @@ function _ragChapterScore(inputText,pool){
     for(i2=0;i2<terms.length;i2++){if(!ent[terms[i2]])keepT.push(terms[i2]);}
     terms=keepT;
   })();
-  var w={},k,hasInput=false;
+  var w=keyedDict(),k,hasInput=false;
   for(k in q.input){w[k]=3;hasInput=true;}
   for(k in q.scene){if(!w[k]){var pw=q.party[k]?(hasInput?0:1):2;if(pw)w[k]=pw;}}
-  var gRoot={};
+  var gRoot=keyedDict();
   for(k in q.groups){gRoot[k]=k;var gi;for(gi=0;gi<q.groups[k].length;gi++){gRoot[q.groups[k][gi]]=k;if(w[k]&&!w[q.groups[k][gi]])w[q.groups[k][gi]]=w[k];}}
-  var qws={},qi;for(qi=0;qi<q.quests.length;qi++)qws[q.quests[qi].toLowerCase()]=1;
+  var qws=keyedDict(),qi;for(qi=0;qi<q.quests.length;qi++)qws[q.quests[qi].toLowerCase()]=1;
   var ents=_ragChapterEnts(pool);
   var lows=[],df=[],i,j;
   for(j=0;j<terms.length;j++)df.push(0);
@@ -1896,10 +1896,10 @@ function _ragChapterScore(inputText,pool){
     for(j=0;j<terms.length;j++){if(lo.indexOf(terms[j])>=0)df[j]++;}
   }
   var N=pool.length,cands=[];
-  var _res={};
+  var _res=keyedDict();
   function _resolveIdx(nm){if(_res[nm]===undefined)_res[nm]=resolveNpcName(nm);return _res[nm];}
   for(i=0;i<pool.length;i++){
-    var sc=0,seenG={};
+    var sc=0,seenG=keyedDict();
     for(j=0;j<ents[i].length;j++){
       var enNm=ents[i][j];
       if(!w[enNm]){var rn=_resolveIdx(enNm);if(!w[rn])continue;enNm=rn;} // merge-orphan bridge
@@ -1986,19 +1986,19 @@ function ragCarriedRetrieve(inputText){
 }
 ragCarriedRetrieve._memo=null;ragCarriedRetrieve._entMemo=null;ragCarriedRetrieve._misses=0; // test hooks
 function _ragCarriedScore(inputText,pool,fp){
-  var q=ragQueryEntities(inputText||""),terms=ragQueryTerms(inputText||""),w={},k,any=false;
+  var q=ragQueryEntities(inputText||""),terms=ragQueryTerms(inputText||""),w=keyedDict(),k,any=false;
   for(k in q.input){w[k]=3;any=true;}
   if(!any)return "";/* the action named nobody: nothing is served — presence never spams the prompt */
-  var gRoot={};
+  var gRoot=keyedDict();
   for(k in q.groups){gRoot[k]=k;var gi;for(gi=0;gi<q.groups[k].length;gi++){gRoot[q.groups[k][gi]]=k;if(w[k]&&!w[q.groups[k][gi]])w[q.groups[k][gi]]=w[k];}}
   (function(){var ent=Object.create(null),k2,i2,keepT=[];for(k2 in q.input){var tk=npcCoreTokens(k2);for(i2=0;i2<tk.length;i2++)ent[tk[i2]]=1;}for(i2=0;i2<terms.length;i2++){if(!ent[terms[i2]])keepT.push(terms[i2]);}terms=keepT;})();
   var ents=_ragCarriedEnts(pool,fp),lows=[],df=[],i,j;
   for(j=0;j<terms.length;j++)df.push(0);
   for(i=0;i<pool.length;i++){var lo=pool[i].text.toLowerCase();lows.push(lo);for(j=0;j<terms.length;j++){if(lo.indexOf(terms[j])>=0)df[j]++;}}
-  var N=pool.length,cands=[],_res={};
+  var N=pool.length,cands=[],_res=keyedDict();
   function _resolveIdx(nm){if(_res[nm]===undefined)_res[nm]=resolveNpcName(nm);return _res[nm];}
   for(i=0;i<pool.length;i++){
-    var sc=0,seenG={};
+    var sc=0,seenG=keyedDict();
     for(j=0;j<ents[i].length;j++){
       var enNm=ents[i][j];
       if(!w[enNm]){var rn=_resolveIdx(enNm);if(!w[rn])continue;enNm=rn;}
@@ -2055,7 +2055,7 @@ function memoryTOC(opts){
   // comma-bearing name ("Residential Quarter, Sandpoint") survives as one entry.
   var lk=Object.keys(memory.locations);
   if(lk.length){
-    var _vis=[],_known=[],_locSeen={},_vk;
+    var _vis=[],_known=[],_locSeen=keyedDict(),_vk;
     for(_vk=0;_vk<lk.length;_vk++){
       var _lkR=(typeof locResolve==="function")?locResolve(lk[_vk]):lk[_vk];
       if(_locSeen[_lkR])continue;_locSeen[_lkR]=1;
@@ -2107,7 +2107,7 @@ function buildNpcGraph(){
   var edges=memory.npcGraph.edges||[];
   var player=worldState.character.name;
   // Build adjacency: node → [{other, rel, turn}]
-  var adj={};
+  var adj=keyedDict();
   function addAdj(from,to,rel,turn){if(!adj[from])adj[from]=[];adj[from].push({other:to,rel:rel,turn:turn});}
   // #269② (f38): the W7 bond is THE authoritative player↔NPC claim; a legacy [NPC_LINK:] edge
   // for a pair that has a live bond is SUPPRESSED from the projection (both directions — the
@@ -2115,7 +2115,7 @@ function buildNpcGraph(){
   // contradiction class ("Morwen(companions)" beside "Morwen(Wife)" every turn, t2097) — and the
   // rival claim is usually ENGINE-seeded: startGame, companion import, and PC swap each plant a
   // "companions" edge with no path to retire it. Display-side precedence, no data change.
-  var rels=relationshipRows(worldState.character,null),bonded={},ri;
+  var rels=relationshipRows(worldState.character,null),bonded=keyedDict(),ri;
   for(ri=0;ri<rels.length;ri++){if(rels[ri].bond)bonded[rels[ri].entity]=1;}
   for(var i=0;i<edges.length;i++){
     if((edges[i].a===player&&bonded[edges[i].b])||(edges[i].b===player&&bonded[edges[i].a]))continue;
@@ -2168,8 +2168,8 @@ function buildNpcGraph(){
   return lines.join("\n")+"\n\n";
 }
 function factionUpsert(name,desc){
-  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
-  if(!memory.npcGraph.factions)memory.npcGraph.factions={};
+  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:keyedDict(),factionEdges:[],npcFactions:keyedDict()};
+  if(!memory.npcGraph.factions)memory.npcGraph.factions=keyedDict();
   var turn=worldState?worldState.turn:0;
   if(!memory.npcGraph.factions[name])memory.npcGraph.factions[name]={desc:desc||"",turn:turn};
   else if(desc)memory.npcGraph.factions[name].desc=desc;
@@ -2177,20 +2177,20 @@ function factionUpsert(name,desc){
 function npcFactionSet(npcName,factionName,role,R){
   npcName=personEntityKey(npcName);
   if(memoryNpcIsPlayer(npcName))return npcGraphRefuse("NPC_FACTION cannot assign the player to an NPC faction: "+npcName,R);
-  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
-  if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};
+  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:keyedDict(),factionEdges:[],npcFactions:keyedDict()};
+  if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions=keyedDict();
   var turn=worldState?worldState.turn:0;
   if(!memory.npcGraph.npcFactions[npcName])memory.npcGraph.npcFactions[npcName]=[];
   var entries=memory.npcGraph.npcFactions[npcName],i;
   for(i=0;i<entries.length;i++){if(entries[i].faction===factionName){entries[i].role=role||entries[i].role;entries[i].turn=turn;return true;}}
   entries.push({faction:factionName,role:role||"",turn:turn});
   // Auto-register faction if not known
-  if(!memory.npcGraph.factions)memory.npcGraph.factions={};
+  if(!memory.npcGraph.factions)memory.npcGraph.factions=keyedDict();
   if(!memory.npcGraph.factions[factionName])memory.npcGraph.factions[factionName]={desc:"",turn:turn};
   return true;
 }
 function factionLinkUpsert(facA,facB,rel){
-  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
+  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:keyedDict(),factionEdges:[],npcFactions:keyedDict()};
   if(!memory.npcGraph.factionEdges)memory.npcGraph.factionEdges=[];
   var turn=worldState?worldState.turn:0,i,edges=memory.npcGraph.factionEdges;
   for(i=0;i<edges.length;i++){if((edges[i].a===facA&&edges[i].b===facB)||(edges[i].a===facB&&edges[i].b===facA)){edges[i].rel=rel;edges[i].turn=turn;return;}}
@@ -2406,7 +2406,7 @@ function _recurringKnownName(word){
 }
 function recurringNameScan(){
   if(typeof worldState==="undefined"||!worldState||worldState.recurringNamePing)return;
-  var tr=(worldState.transcript||[]).slice(-16),cand={},i,j;
+  var tr=(worldState.transcript||[]).slice(-16),cand=keyedDict(),i,j;
   for(i=0;i<tr.length;i++){
     var e=tr[i];if(!e||e.r!=="gm"||!e.x)continue;
     var text=String(e.x).replace(/"[^"]*"/g," ").replace(/\u201c[^\u201d]*\u201d/g," ");

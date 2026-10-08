@@ -1,0 +1,43 @@
+tree: traffic-and-dragons-next-ten-ending
+filed   a note: the word between commas in a sentence
+          [NPC_NOTE:Bram|A mason, constructor, and father of three]
+          summary: [] | stored: ["shod a mare","A mason, constructor, and father of three"] | handler errors: [] | built-ins: []
+filed   a note: the word in a sentence, no commas (the author's own control)
+          [NPC_NOTE:Bram|knew the constructor of the old bridge]
+          summary: [] | stored: ["shod a mare","knew the constructor of the old bridge"] | handler errors: [] | built-ins: []
+filed   lore: a list of ranks
+          [LORE:The guild has three ranks: apprentice, constructor, master]
+          summary: [] | stored: ["The guild has three ranks: apprentice, constructor, master"] | handler errors: [] | built-ins: []
+filed   a decision
+          [DECISION:Hired a carpenter, constructor, and two labourers for the bridge]
+          summary: [] | stored: ["Hired a carpenter, constructor, and two labourers for the bridge"] | handler errors: [] | built-ins: []
+filed   a place description
+          [LOCATION_DESC:A yard of stacked stone where the mason, constructor, and quarrymen eat at noon]
+          summary: [] | stored: "A yard of stacked stone where the mason, constructor, and quarrymen eat at noon" | handler errors: [] | built-ins: []
+filed   a quest description
+          [QUEST:The Broken Span|active|Find a mason, constructor, or engineer willing to work]
+          summary: ["Quest: The Broken Span (active)"] | stored: ["Find the bell","The Broken Span"] | handler errors: [] | built-ins: []
+filed   a defining moment
+          [CORE_MEMORY:Bram|Bram swore, constructor, to raise the span again]
+          summary: ["★ Defining moment (Bram)"] | stored: ["Bram swore, constructor, to raise the span again"] | handler errors: [] | built-ins: []
+filed   a story beat
+          [STORY_BEAT:Named mason, constructor, and warden of the span]
+          summary: [] | stored: ["Named mason, constructor, and warden of the span"] | handler errors: [] | built-ins: []
+filed   suggestion buttons
+          [SUGGEST:Ask the mason about the span|Find the guild's surveyor, constructor, or clerk|Leave]
+          summary: [] | stored: ["Ask the mason about the span","Find the guild's surveyor, constructor, or clerk","Leave"] | handler errors: [] | built-ins: []
+filed   an NPC's MOOD is the word (a mood is never a key)
+          [NPC:Bram|constructor|ally]
+          summary: ["NPC: Bram"] | stored: "constructor" | handler errors: [] | built-ins: []
+filed   a ware's note is the word
+          [WARES:Level|2 gp|constructor]
+          summary: ["For sale: Level — 2 gp"] | stored: ["Level"] | handler errors: [] | built-ins: []
+filed   the hero learns a language at a level named by the word
+          [LANGUAGE:Dwarvish|constructor]
+          summary: ["Language: Dwarvish"] | stored: ["Common","Dwarvish"] | handler errors: [] | built-ins: []
+filed   weather
+          [WEATHER:constructor]
+          summary: ["Weather: constructor"] | stored: "constructor" | handler errors: [] | built-ins: []
+filed   an upper-case tag payload: TIME
+          [TIME:Constructor]
+          summary: ["Time: Constructor"] | stored: "Constructor" | handler errors: [] | built-ins: []

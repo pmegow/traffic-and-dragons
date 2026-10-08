@@ -1,3 +1,21 @@
+/* Names are data, including Object.prototype's own names. Only registered dictionaries lose
+   their prototype; records, arrays and unknown save fields retain their existing shape. */
+function ownValue(table,key){return table!=null&&Object.prototype.hasOwnProperty.call(table,key)?table[key]:undefined;}
+function keyedDict(source){var out=Object.create(null),keys=source&&typeof source==="object"?Object.keys(source):[],i;for(i=0;i<keys.length;i++)out[keys[i]]=source[keys[i]];return out;}
+function ownAssign(target){var i,j,keys,src;for(i=1;i<arguments.length;i++){src=arguments[i];if(src==null)continue;keys=Object.keys(Object(src));for(j=0;j<keys.length;j++)Object.defineProperty(target,keys[j],{value:src[keys[j]],writable:true,enumerable:true,configurable:true});}return target;}
+var KEYED_STORE_PATHS={
+  memory:["npcs","locations","quests","map.nodes","map.identity.entries","map.nodes.*.guestbook","map.nodes.*.guestbook.*.by","npcGraph.factions","npcGraph.npcFactions","archive"],
+  world:["capabilityBible","itemBible","arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","canonContraNudged","consumableKept","consumableNudged","deathEvidenceNudged","deityDriftNudged","hallLines","itemDefAsked","levelUpOwed","locDescNudged","mergeHintNudged","motifNudged","plotArmor","principalNudged","provisionalNudged","provisionalRefused","reciprocityNudged","recurringNameNudged","registerCensus","relAxisReviewFired","relBondReceipts","stashLegacyCounted"],
+  sheet:["itemDefs","stashMarks","skills","skillSeeds"]
+};
+function keyedStores(root,kind){
+  var paths=ownValue(KEYED_STORE_PATHS,kind)||[],i;
+  function visit(o,parts,at){var key=parts[at],keys,j,value;if(!o||typeof o!=="object")return;if(key==="*"){keys=Object.keys(o);for(j=0;j<keys.length;j++)visit(o[keys[j]],parts,at+1);return;}if(!Object.prototype.hasOwnProperty.call(o,key))return;value=o[key];if(at+1<parts.length){visit(value,parts,at+1);return;}if(value&&typeof value==="object"&&!Array.isArray(value)&&Object.getPrototypeOf(value)!==null)o[key]=keyedDict(value);}
+  for(i=0;i<paths.length;i++)visit(root,paths[i].split("."),0);
+  if(kind==="world"&&root){keyedStores(ownValue(root,"character"),"sheet");var ns=ownValue(root,"npcs");if(Array.isArray(ns))for(i=0;i<ns.length;i++)keyedStores(ownValue(ns[i],"charSheet"),"sheet");}
+  return root;
+}
+
 /* #481 F2 (audit 2026-09-29, Fable-approved): the ONE image-source gate. A portrait string was pasted into src='…' unescaped,
    so a crafted save could close the attribute and add an event handler (the stored API key and session token are one read
    away). Admits an image data URL (png/jpeg/jpg/gif/webp, base64), https: and blob: — anything else is "" with one console
@@ -141,7 +159,7 @@ function actLabel(n,title){var at=String(title||"");return /^act\s/i.test(at)?at
 var CHAR_RECORD_CAP=3000;
 function charRecordDigest(c){
   if(!c)return "";
-  var cm=Array.isArray(c.coreMemories)?c.coreMemories:[],sb=Array.isArray(c.storyBeats)?c.storyBeats:[],seen={},bonds=[],rest=[],beats=[],i;
+  var cm=Array.isArray(c.coreMemories)?c.coreMemories:[],sb=Array.isArray(c.storyBeats)?c.storyBeats:[],seen=keyedDict(),bonds=[],rest=[],beats=[],i;
   function label(m){var k=String((m&&m.camp)||"");return !k||/^camp_\d/.test(k)?"an earlier adventure":k;}
   function line(m){var t=String((m&&m.text)||"").replace(/\s+/g," ").trim();if(!t||seen[t])return null;seen[t]=1;return "- ("+label(m)+") "+t;}
   for(i=0;i<cm.length;i++){var l=line(cm[i]);if(!l)continue;if(cm[i].kind==="bond")bonds.push(l);else rest.push(l);}
@@ -245,7 +263,7 @@ var REGISTER_LOG_MAX=50;
    the manifest" is the ledger plot by another door) — never for the narration note, whose false-positive
    discipline (#355) stands. IDIOM_WORDS is a second census, modern idiom, numbers only: no note, no latch. */
 function wordListRe(words){return new RegExp("\\b(?:"+words.map(function(w){return w.replace(/ /g,"\\s+");}).join("|")+")\\b","gi");}
-function wordListScan(text,re){var out=[],seen={},m,r=new RegExp(re.source,"gi");while((m=r.exec(String(text||"")))){var w=m[0].toLowerCase().replace(/\s+/g," ");if(!seen[w]){seen[w]=1;out.push(w);}}return out;}
+function wordListScan(text,re){var out=[],seen=keyedDict(),m,r=new RegExp(re.source,"gi");while((m=r.exec(String(text||"")))){var w=m[0].toLowerCase().replace(/\s+/g," ");if(!seen[w]){seen[w]=1;out.push(w);}}return out;}
 function registerScan(text){return wordListScan(text,REGISTER_RE);}
 /* #481 C7 (audit 2026-09-29, owner ruling + Fable): a campaign may NAME its plot objects with register words ("tithe-engines",
    "soul-tax lien" — a legacy skeleton written before the #459 gate, an item called "Ledger fragment", an ability "Ledger
@@ -264,7 +282,7 @@ function registerScanProse(text,names){return registerScan(registerMaskNames(tex
    the skeleton's OWN register terms as written (a legacy premise built on a "soul-tax" keeps its word; a post-#459
    skeleton has none). Lore — the text being guarded — is never a source. Pure over the live state. */
 function recordCanonNames(){
-  var out=[],seen={};
+  var out=[],seen=keyedDict();
   function add(n){n=String(n==null?"":(typeof n==="object"&&n.name!=null?n.name:n)).trim();if(n.length<3)return;var k=n.toLowerCase();if(seen[k])return;seen[k]=1;out.push(n);}
   function item(it){var b=(typeof _invBase==="function")?_invBase(it):String(it||"");b=String(b).split(/\s+[\u2014\u2013]\s+|\s+-\s+/)[0].replace(/\s*\([^)]*\)\s*$/,"");add(b);}
   function sheet(cs){if(!cs)return;(cs.inventory||[]).forEach(item);(cs.abilities||[]).forEach(add);(cs.spells||[]).forEach(add);}
@@ -294,7 +312,7 @@ function registerLabelScan(raw){var ops=[],m,re=/\[(?:QUEST|QUEST_STEP|SCHEDULE)
    ride the entry (the chapter channel records reasked/cleaned). Never arms registerPing: these are counts. */
 function registerCensusFile(channel,hits,turn,extra){
   if(typeof worldState==="undefined"||!worldState||!hits||!hits.length)return hits||[];
-  if(!worldState.registerCensus||typeof worldState.registerCensus!=="object")worldState.registerCensus={};
+  if(!worldState.registerCensus||typeof worldState.registerCensus!=="object")worldState.registerCensus=keyedDict();
   var c=worldState.registerCensus;if(!(c[channel] instanceof Array))c[channel]=[];
   var i,k;for(i=0;i<hits.length;i++){var e={turn:turn,word:hits[i]};if(extra)for(k in extra)e[k]=extra[k];c[channel].push(e);}
   while(c[channel].length>REGISTER_LOG_MAX)c[channel].shift();
@@ -321,7 +339,7 @@ function sheetRegisterReport(ws){
   var n=ws.npcs||[],i;for(i=0;i<n.length;i++)if(n[i]&&n[i].charSheet)scanSheet(n[i].name,n[i].charSheet);
   return out;
 }
-function registerStats(log){log=log||(worldState&&worldState.registerSlips)||[];var by={},i;for(i=0;i<log.length;i++){var w=log[i].word;by[w]=(by[w]||0)+1;}return {slips:log.length,byWord:by,lastTurn:log.length?log[log.length-1].turn:null};}
+function registerStats(log){log=log||(worldState&&worldState.registerSlips)||[];var by=keyedDict(),i;for(i=0;i<log.length;i++){var w=log[i].word;by[w]=(by[w]||0)+1;}return {slips:log.length,byWord:by,lastTurn:log.length?log[log.length-1].turn:null};}
 function registerStatsLine(){var s=registerStats();if(!s.slips)return "";var parts=Object.keys(s.byWord).sort().map(function(w){return w+" \u00d7"+s.byWord[w];});return "Register slips (clerical words the narration used and was corrected on): "+s.slips+" ("+parts.join(", ")+"), last at turn "+s.lastTurn+".";}
 // ── #356 THE elapsed ticker (owner rule 2026-09-06: "we should always have the counter while we're
 // rendering — keeps the UI alive and lets the user know we're working on something") ──
@@ -359,7 +377,7 @@ function companionGrowthOnScreen(text,cs){
   function named(n){return !!n&&new RegExp("(^|[^a-z0-9])"+n.replace(/[.*+?^{}()|[\]\\$]/g,"\\$&")+"(?=$|[^a-z0-9])","i").test(prose);}
   if(named(name))return true;
   if(!first||/^(the|a|an)$/i.test(first)||!named(first))return false;
-  var candidates={},npcs=worldState.npcs||[],i,k;
+  var candidates=keyedDict(),npcs=worldState.npcs||[],i,k;
   function take(n){if(String(n||"").split(" ")[0].toLowerCase()===first.toLowerCase())candidates[String(n).toLowerCase()]=1;}
   take(worldState.character&&worldState.character.name);
   for(i=0;i<npcs.length;i++)take(npcs[i].name);
@@ -727,7 +745,7 @@ function normalizeEndpointPair(name){
 // [PARTY_SPLIT:] (the caller checks — a tagged separation needs no nudge).
 function _partyNameForms(name){var a=[String(name)],f=String(name).split(/\s+/)[0];if(f&&f!==name)a.push(f);return a;}
 function _partyNameHits(text,partyNames){
-  var out=[],seen={},i,j,m,forms,esc,re;
+  var out=[],seen=keyedDict(),i,j,m,forms,esc,re;
   for(i=0;i<partyNames.length;i++){
     forms=_partyNameForms(partyNames[i]);
     for(j=0;j<forms.length;j++){
@@ -774,7 +792,7 @@ function detectStayBehind(text,partyNames){
   for(i=0;i<clauses.length;i++){hit=_partyClauseSeparation(clauses[i],partyNames);if(hit)return hit;}
   for(i=1;i<clauses.length;i++){
     if(!/^\s*(?:then\s+)?(?:she|he|they)\s*(?:is|['’]s|are|['’]re)\s+gone\b/i.test(clauses[i]))continue;
-    var ph=_partyNameHits(clauses[i-1],partyNames),uniq={},names=[],j;
+    var ph=_partyNameHits(clauses[i-1],partyNames),uniq=keyedDict(),names=[],j;
     for(j=0;j<ph.length;j++){if(!uniq[ph[j].name]){uniq[ph[j].name]=1;names.push(ph[j].name);}}
     if(names.length===1)return names[0];
   }
@@ -803,7 +821,7 @@ function detectPlayerStayBehind(text,partyNames){
       if(/\b(?:I(?:['’]ll)?|we(?:['’]ll|['’]re)?(?:\s+all)?|let['’]s(?:\s+all)?|us)\s*$/i.test(pre))continue; /* player-self or whole-party rest — no split */
       if(/\b(?:you\s+two|you\s+both|you\s+three|the\s+rest\s+of\s+you|everyone\s+else)\b[^,]*$/i.test(pre))return {names:[]};
       if(partyNames&&partyNames.length&&typeof _partyNameHits==="function"){
-        var hits=_partyNameHits(pre,partyNames),uniq={},names=[],j;
+        var hits=_partyNameHits(pre,partyNames),uniq=keyedDict(),names=[],j;
         for(j=0;j<hits.length;j++){if(!uniq[hits[j].name]){uniq[hits[j].name]=1;names.push(hits[j].name);}}
         if(names.length)return {names:names};
       }
@@ -835,7 +853,7 @@ function detectItemMisattribution(text){
   for(i=0;i<comps.length;i++)sheets.push({name:comps[i].name,inv:(comps[i].charSheet&&comps[i].charSheet.inventory)||[]});
   if(sheets.length<2)return null;
   for(i=0;i<sheets.length;i++){var fn=String(sheets[i].name).split(/\s+/)[0];sheets[i].forms=fn&&fn!==sheets[i].name?[sheets[i].name,fn]:[sheets[i].name];}
-  var owners={};
+  var owners=keyedDict();
   for(i=0;i<sheets.length;i++)for(j=0;j<sheets[i].inv.length;j++){
     var base=(typeof _invBase==="function")?_invBase(sheets[i].inv[j]):String(sheets[i].inv[j]);
     if(!/^[A-Z]/.test(base))continue;
@@ -884,7 +902,7 @@ function detectPartyAbsenceCorrection(text,partyNames){
 // single source both the stamp and the sweep read, so they can never disagree about what "spine"
 // means (the two-surfaces-drift class).
 function skeletonArcTitles(){
-  var out={},sk=(typeof worldState!=="undefined"&&worldState&&worldState.skeleton)||null,i,j;
+  var out=keyedDict(),sk=(typeof worldState!=="undefined"&&worldState&&worldState.skeleton)||null,i,j;
   if(!sk||!sk.acts)return out;
   for(i=0;i<sk.acts.length;i++){var arcs=sk.acts[i].arcs||[];for(j=0;j<arcs.length;j++){if(arcs[j].title)out[String(arcs[j].title).toLowerCase()]=1;}}
   return out;
@@ -944,7 +962,7 @@ function partyUploadSlug(name){return LibrarySlug.library(name);}/* #481 F5: the
    hazard: the confirm listed names only), and REFUSES party members whose names map to one library slot (they used to
    overwrite each other). heroAt = worldState.heroLibraryAt; a companion's stamp is its libraryAt. */
 function partyUploadPlan(hero,companions,libraryList,heroAt){
-  var rows=[],overwrites=[],ahead=[],refused=[],bySlug={},cand=[],group={},i;
+  var rows=[],overwrites=[],ahead=[],refused=[],bySlug=keyedDict(),cand=[],group=keyedDict(),i;
   for(i=0;i<(libraryList||[]).length;i++){var e=libraryList[i];if(e&&e.slug)bySlug[e.slug]=e;}
   if(hero&&hero.name)cand.push({name:hero.name,sheet:hero,at:heroAt});
   for(i=0;i<(companions||[]).length;i++){var c=companions[i];if(c&&c.name&&c.charSheet)cand.push({name:c.name,sheet:c.charSheet,at:c.libraryAt});}
@@ -993,8 +1011,8 @@ function partyUploadRun(plan,saveFn,done){
 var MOTIF_MIN_WORDS=3,MOTIF_WORD_MIN=4,MOTIF_STRONG_MIN=8,MOTIF_GIST_CHARS=60;/* #469 ⑤: the field retellings kept the SHORT distinctive words (soul, lien, tomb) — a four-letter floor, and at least one shared word of MOTIF_STRONG_MIN letters so everyday domestic words (home, cottage, waiting) never add up to a retelling */
 var MOTIF_STOP={before:1,after:1,around:1,through:1,toward:1,towards:1,without:1,between:1,against:1,little:1,people:1,things:1,something:1,morning:1,evening:1,together:1,another:1,because:1,should:1,really:1,always:1,though:1,across:1,beside:1,inside:1,behind:1,having:1,himself:1,herself:1,themselves:1,nothing:1,anything:1,everything:1,someone:1,anyone:1,everyone:1,already:1,almost:1,enough:1,rather:1,whether:1,during:1,within:1,beyond:1,family:1,moment:1,turned:1,looked:1,seemed:1,called:1,wanted:1,needed:1,thought:1,became:1,finally:1,better:1,longer:1,others:1,itself:1,either:1,neither:1,indeed:1,simply:1,quietly:1,gently:1,slowly:1,softly:1,nearly:1,mostly:1,waiting:1,coming:1,making:1,taking:1,giving:1,saying:1,telling:1,asking:1,knowing:1,seeing:1,walking:1,sitting:1,standing:1,holding:1,looking:1,feeling:1,thinking:1,talking:1,leaving:1,with:1,that:1,this:1,from:1,have:1,been:1,were:1,they:1,them:1,than:1,then:1,when:1,what:1,your:1,into:1,over:1,just:1,like:1,some:1,more:1,most:1,very:1,also:1,only:1,even:1,back:1,well:1,good:1,fine:1,know:1,come:1,came:1,take:1,took:1,make:1,made:1,said:1,says:1,went:1,gone:1,here:1,there:1,where:1,which:1,while:1,still:1,about:1,again:1,along:1,away:1,down:1,upon:1,each:1,much:1,many:1,such:1,same:1,both:1,last:1,next:1,first:1,never:1,ever:1,once:1,under:1,until:1,those:1,these:1,their:1,ours:1,yours:1,mine:1,onto:1,near:1,left:1,right:1,kept:1,keep:1,gave:1,give:1,held:1,hold:1,sure:1,true:1,real:1,long:1,high:1,open:1,full:1,half:1,hard:1,soft:1,late:1,early:1,later:1,tonight:1,today:1,yesterday:1,tomorrow:1,night:1,dawn:1,dusk:1,noon:1,hour:1,hours:1,week:1,month:1,year:1,years:1,time:1,times:1,home:1,house:1,door:1,room:1,fire:1,bed:1,table:1,water:1,bread:1,food:1,drink:1,cup:1,hand:1,hands:1,head:1,eyes:1,face:1,voice:1,word:1,words:1,thing:1,life:1,lives:1,world:1,place:1,road:1,lane:1,path:1,way:1,ways:1,glad:1,happy:1,peace:1,rest:1,resting:1,easy:1,light:1,warm:1,cold:1,clear:1,quiet:1,free:1,safe:1,done:1,past:1,old:1,new:1,own:1};
 function motifWords(text,exempt){
-  var out={},ex={},i;for(i=0;i<(exempt||[]).length;i++){String(exempt[i]||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex[p]=1;});}
-  String(text||"").toLowerCase().replace(/[\u2019']s\b/g,"").split(/[^a-z]+/).forEach(function(w){if(w.length>=MOTIF_WORD_MIN&&!MOTIF_STOP[w]&&!ex[w])out[w]=1;});
+  var out=keyedDict(),ex=keyedDict(),i;for(i=0;i<(exempt||[]).length;i++){String(exempt[i]||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex[p]=1;});}
+  String(text||"").toLowerCase().replace(/[\u2019']s\b/g,"").split(/[^a-z]+/).forEach(function(w){if(w.length>=MOTIF_WORD_MIN&&!ownValue(MOTIF_STOP,w)&&!ex[w])out[w]=1;});
   return out;
 }
 /* #469 ④ (owner 2026-09-27, the neighbourly chat still circled the same past): in a small-talk kind the earlier-adventure
@@ -1006,7 +1024,7 @@ function motifWords(text,exempt){
    across the window so a conversation about the past keeps its record mid-story. Names never count as record words. */
 var PAST_RAISED_TURNS=2,PAST_WORD_MIN=5;
 var PAST_CUE_RE=/\b(remember|recall|back then|back when|before (we|you|this|all this)|(your|her|his|their|my|our) (past|old life|old days|story|tale|earlier|last) ?(adventure|life|days|campaign)?|the old days|what happened (to|with|back|before|in)|tell (me|us) (about|of)|how did you|when you were|used to|earlier adventure|first met|how (did |do )?(you|they|he|she|we)( two| both| all)? (first )?(meet|met))\b/i;/* #481 C6: how people met is the past (t92) */
-function pastWords(text,ex){var out={};String(text||"").toLowerCase().replace(/[\u2019']s\b/g,"").split(/[^a-z]+/).forEach(function(w){if(w.length>=PAST_WORD_MIN&&!MOTIF_STOP[w]&&!ex[w])out[w]=1;});return out;}
+function pastWords(text,ex){var out=keyedDict();String(text||"").toLowerCase().replace(/[\u2019']s\b/g,"").split(/[^a-z]+/).forEach(function(w){if(w.length>=PAST_WORD_MIN&&!ownValue(MOTIF_STOP,w)&&!ex[w])out[w]=1;});return out;}
 // Full names always identify their owner; an article or title alone never does. The readers retain their own short-name floor.
 function momentNameForms(name,minFirst){
   var full=String(name||"").trim().toLowerCase().replace(/\s+/g," "),first=full.split(" ")[0],forms=[];
@@ -1017,13 +1035,13 @@ function momentNameForms(name,minFirst){
 }
 function pastRaisedByHero(action,userTurns,memberNames,priorMoments){
   var texts=[String(action||"")].concat((PAST_RAISED_TURNS>0?(userTurns||[]).slice(-PAST_RAISED_TURNS):[]).map(function(t){return String(t||"");})),i,j,k;/* slice(-0) is slice(0): a zero window must mean none */
-  var ex={},nameForms=[];(memberNames||[]).forEach(function(n){Array.prototype.push.apply(nameForms,momentNameForms(n,3));String(n||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex[p]=1;});});
-  var recordWords={};
-  for(i=0;i<(priorMoments||[]).length;i++){var mo=priorMoments[i];if(!mo||!mo.text)continue;var ex2={},w2;for(w2 in ex)ex2[w2]=1;String(mo.who||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex2[p]=1;});var mw=pastWords(endingMomentBody(mo),ex2);for(k in mw)recordWords[k]=1;}
+  var ex=keyedDict(),nameForms=[];(memberNames||[]).forEach(function(n){Array.prototype.push.apply(nameForms,momentNameForms(n,3));String(n||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex[p]=1;});});
+  var recordWords=keyedDict();
+  for(i=0;i<(priorMoments||[]).length;i++){var mo=priorMoments[i];if(!mo||!mo.text)continue;var ex2=keyedDict(),w2;for(w2 in ex)ex2[w2]=1;String(mo.who||"").toLowerCase().split(/[^a-z]+/).forEach(function(p){if(p)ex2[p]=1;});var mw=pastWords(endingMomentBody(mo),ex2);for(k in mw)recordWords[k]=1;}
   for(i=0;i<texts.length;i++){
     var t=texts[i];if(!t)continue;var low=t.toLowerCase(),lw=low.replace(/[\u2019']s\b/g,"").split(/[^a-z]+/);
     var named=false;for(j=0;j<nameForms.length&&!named;j++)if(new RegExp("(^|[^a-z0-9])"+nameForms[j].replace(/[.*+?^{}$()|[\]\\]/g,"\\$&")+"([^a-z0-9]|$)","i").test(low))named=true;
-    var cued=PAST_CUE_RE.test(low),hits=0,seenW={};
+    var cued=PAST_CUE_RE.test(low),hits=0,seenW=keyedDict();
     for(j=0;j<lw.length;j++)if(lw[j].length>=PAST_WORD_MIN&&recordWords[lw[j]]&&!seenW[lw[j]]){seenW[lw[j]]=1;hits++;}
     if((named&&(cued||hits>=1))||hits>=2||(cued&&/\b(my|our)\b/.test(low)))return true;
   }
@@ -1063,7 +1081,7 @@ function momentEchoWords(text,moments,exempt){
    block and the excerpt retriever both ask it, so the two can never disagree. heldPastParty gathers what it needs. */
 function heldPastParty(){
   if(typeof worldState==="undefined"||!worldState||!worldState.character)return null;
-  var camp=worldState.campName||"",names=[worldState.character.name],prior=[],seen={};
+  var camp=worldState.campName||"",names=[worldState.character.name],prior=[],seen=keyedDict();
   function take(list){var i;for(i=0;i<(list||[]).length;i++){var m=list[i];if(!m||!m.text||campIsCurrent(m))continue;/* #481 C8: by id, not display name */var k=m.camp+"|"+m.turn+"|"+m.text;if(seen[k])continue;seen[k]=1;prior.push(m);}}
   take(worldState.character.coreMemories);
   var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],i;
@@ -1182,7 +1200,7 @@ function classDefs(){
      removal changes it and rebuilds; the common no-customs path stays one identity check. */
   var src=_activeCustomClasses();
   if(_classDefsArr&&_classDefsCustomSrc===src)return _classDefsArr;
-  _classDefsArr=[];var k;for(k in CLASS_BIBLE)_classDefsArr.push(CLASS_BIBLE[k]);
+  _classDefsArr=[];var k;for(k in CLASS_BIBLE)if(Object.prototype.hasOwnProperty.call(CLASS_BIBLE,k))_classDefsArr.push(CLASS_BIBLE[k]);
   if(src){var ci;for(ci=0;ci<src.length;ci++)_classDefsArr.push(_customClassToDef(src[ci]));}
   _classDefsCustomSrc=src;
   return _classDefsArr;
@@ -1396,8 +1414,8 @@ function abilityGroups(c){
 // Returns the archetype id, or null for a class with no archetypes (#192 customs).
 var ARCH_MATCH_STOP={the:1,and:1,with:1,that:1,this:1,from:1,your:1,their:1,they:1,them:1,when:1,once:1,have:1,into:1,than:1,then:1,will:1,can:1,cannot:1,each:1,every:1,until:1,while:1,which:1,what:1,where:1,whose:1,been:1,being:1,does:1,make:1,makes:1,made:1,take:1,takes:1,within:1,without:1,after:1,before:1,against:1,other:1,also:1,only:1,more:1,most:1,must:1,next:1,first:1,time:1,turn:1,rest:1,level:1,check:1,save:1,bonus:1,action:1,reaction:1,damage:1,target:1,creature:1,ability:1,spell:1,spells:1,feet:1,round:1,rounds:1,minute:1,minutes:1,hour:1,hours:1,long:1,short:1,about:1,knows:1,know:1};
 function archMatchStems(text){
-  var w=String(text||"").toLowerCase().split(/[^a-z]+/),out={},i;
-  for(i=0;i<w.length;i++){if(w[i].length<4||ARCH_MATCH_STOP[w[i]])continue;out[w[i].slice(0,5)]=1;}
+  var w=String(text||"").toLowerCase().split(/[^a-z]+/),out=keyedDict(),i;
+  for(i=0;i<w.length;i++){if(w[i].length<4||ownValue(ARCH_MATCH_STOP,w[i]))continue;out[w[i].slice(0,5)]=1;}
   return out;
 }
 function archetypeBestMatch(c){
@@ -1405,7 +1423,7 @@ function archetypeBestMatch(c){
   if(!archs.length)return null;
   var i,j,lv,k,nm=String(c.archetypeNm||"").toLowerCase().trim();
   for(i=0;i<archs.length;i++){if(nm&&(nm===String(archs[i].nm).toLowerCase()||nm===String(archs[i].id).toLowerCase()))return archs[i].id;}
-  var nameStems=archMatchStems(c.archetypeNm),bodyTxt=[c.trait,c.flaw,c.motivation],spellKeys={},ownSpells=0;
+  var nameStems=archMatchStems(c.archetypeNm),bodyTxt=[c.trait,c.flaw,c.motivation],spellKeys=keyedDict(),ownSpells=0;
   /* Only what the sheet says in its OWN words is evidence: an ability the class bible granted says
      the same thing about every member of the class, and it arrives level by level — counting it
      made one companion's answer differ between two campaigns a level apart. */
@@ -1420,7 +1438,7 @@ function archetypeBestMatch(c){
     var aStems=archMatchStems(txt.join(" ")),aNameStems=archMatchStems(a.nm+" "+a.desc);
     for(k in nameStems){if(aNameStems[k])score+=20;else if(aStems[k])score+=6;}
     for(k in bodyStems){if(aStems[k])score+=1;}
-    var seen={};for(j=0;j<bench.length;j++){var bk=capBaseName(bench[j]);if(spellKeys[bk]&&!seen[bk]){seen[bk]=1;score+=2;}}
+    var seen=keyedDict();for(j=0;j<bench.length;j++){var bk=capBaseName(bench[j]);if(spellKeys[bk]&&!seen[bk]){seen[bk]=1;score+=2;}}
     /* A spell-less class's member who casts anyway is its casting archetype (the Rogue with a
        spell list is the Arcane Trickster, the Warrior with one the Eldritch Knight). */
     if(!casterClass&&ownSpells&&a.spellTiers)score+=20;
@@ -1601,7 +1619,7 @@ function alignSeedAxes(label){
 }
 function alignLabel(law,good){var l=law>=2?"Lawful":law<=-2?"Chaotic":"Neutral";var g=good>=2?"Good":good<=-2?"Evil":"Neutral";if(l==="Neutral"&&g==="Neutral")return"True Neutral";if(l==="Neutral")return"Neutral "+g;if(g==="Neutral")return l+" Neutral";return l+" "+g;}
 function skillLevel(successes){var i;for(i=SKILL_THRESHOLDS.length-1;i>=0;i--){if(successes>=SKILL_THRESHOLDS[i])return i+1;}return 0;}
-function initSkills(){var s={},i;for(i=0;i<SKILLS.length;i++)s[SKILLS[i].id]=0;return s;}
+function initSkills(){var s=keyedDict(),i;for(i=0;i<SKILLS.length;i++)s[SKILLS[i].id]=0;return s;}
 // UA9: THE map-node key for the current position — the geography canon's keying scheme
 // ([LOCATION_DESC:] write-once storage, GEOGRAPHY block reads). World locations key by name,
 // sub-locations by "Location|SubLocation". Was hand-computed at ~8 call sites; every copy was
@@ -1953,7 +1971,7 @@ function itemBaseName(nm){
 // ware whose base name the hero does not hold (itemBaseName: a count, a provenance note and letter case do not hide an item),
 // or null when every ware is held — the rung then steps aside.
 function firstWareNotHeld(wares,inventory){
-  var held={},i;for(i=0;i<(inventory||[]).length;i++)held[itemBaseName(inventory[i])]=true;
+  var held=keyedDict(),i;for(i=0;i<(inventory||[]).length;i++)held[itemBaseName(inventory[i])]=true;
   for(i=0;i<(wares||[]).length;i++)if(wares[i]&&!held[itemBaseName(wares[i].item)])return wares[i];
   return null;
 }
@@ -1974,13 +1992,13 @@ function _invCatValid(id){var i;for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++
 // entry (no array) derives [category]; invalid metadata (empty array, unknown id, category
 // missing from the array's implied membership) returns null — the caller files the row under
 // Unclassified and the defect stays VISIBLE, never silently repaired (Sol §3.4, spec step 3).
-var _invCatWarned={};
+var _invCatWarned=keyedDict();
 function itemInvCategories(entry){
   if(!entry)return null;
   var arr=entry.inventoryCategories;
   if(arr===undefined)return _invCatValid(entry.category)?[entry.category]:null;
   if(!(arr instanceof Array)||!arr.length)return null;
-  var seen={},i;
+  var seen=keyedDict(),i;
   for(i=0;i<arr.length;i++){if(!_invCatValid(arr[i])||seen[arr[i]])return null;seen[arr[i]]=1;}
   return arr;
 }
@@ -1997,11 +2015,11 @@ function _itemAliasIndex(){
   var ov=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)||{};
   var mk=Object.keys(stat).length+"|"+Object.keys(ov).length;
   if(_itemAliasMemo&&_itemAliasMemoKey===mk)return _itemAliasMemo;
-  var idx={},dead={},k,i;
+  var idx=keyedDict(),dead=keyedDict(),k,i;
   function claim(alias,canon){
     var a=itemBaseName(alias);
     if(!a)return;
-    if(stat[a]||ov[a]){if(!_invCatWarned["ak:"+a]){_invCatWarned["ak:"+a]=1;if(typeof console!=="undefined")console.warn("[items] alias '"+a+"' (on '"+canon+"') shadows a LIVE item key — alias ignored; an exact key always wins (#157)");}dead[a]=1;return;}
+    if(ownValue(stat,a)||ownValue(ov,a)){if(!_invCatWarned["ak:"+a]){_invCatWarned["ak:"+a]=1;if(typeof console!=="undefined")console.warn("[items] alias '"+a+"' (on '"+canon+"') shadows a LIVE item key — alias ignored; an exact key always wins (#157)");}dead[a]=1;return;}
     if(idx[a]&&idx[a]!==canon){if(!_invCatWarned["ad:"+a]){_invCatWarned["ad:"+a]=1;if(typeof console!=="undefined")console.warn("[items] alias '"+a+"' claimed by BOTH '"+idx[a]+"' and '"+canon+"' — ambiguous, resolves to neither (#157)");}dead[a]=1;return;}
     idx[a]=canon;
   }
@@ -2024,8 +2042,7 @@ function _itemAliasIndex(){
 // fields fall through to the base; the overlay keeps its display classification.
 function _itemServe(ov,base){
   if(ov&&base&&ov.effect==="N/A"&&base.effect&&base.effect!=="N/A"){
-    var m={},k;
-    for(k in base)m[k]=base[k];
+    var m=ownAssign({},base);
     if(ov.category)m.category=ov.category;
     if(ov.inventoryCategories)m.inventoryCategories=ov.inventoryCategories;
     return m;
@@ -2198,7 +2215,7 @@ function snippetAtSentence(text,max){
 }
 /* #598: a bible value in copper per unit — parsed once per distinct value string (the cache IS the boundary; nothing is
    written on the entry, so an overlay export never carries a parse). A value with no unit word is no price. */
-var _coinValueCache={};
+var _coinValueCache=keyedDict();
 function itemValueCp(entry){if(!entry||!entry.value)return null;var v=String(entry.value);if(!(v in _coinValueCache)){var c=parseCoin(v);_coinValueCache[v]=(c&&c.unit)?c.unitCp:null;}return _coinValueCache[v];}
 // #303: LOCATION_SIZE text → the wares-cap tier. The GM's vocabulary is physical scale (small /
 // medium / large / vast — measured on the t2097 map); settlement words are folded in as a courtesy.
@@ -2211,8 +2228,8 @@ function waresSizeTier(size){var s=String(size||"").toLowerCase().trim();if(!s)r
    #81). Every export (the .char file, the library saves, the party upload) and every import (startGame, a resident
    moving in, an imported companion) goes through these two. Pure over worldState.itemBible; never throws. */
 function sheetItemDefs(sheet){
-  var out={},n=0,ovs=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)||null;if(!sheet||!ovs)return out;
-  var inv=sheet.inventory||[],i;for(i=0;i<inv.length;i++){var key=itemBaseName(inv[i]);if(!key)continue;var hit=key;if(!ovs[hit]){var canon=_itemAliasIndex()[key];if(canon&&ovs[canon])hit=canon;else continue;}if(!out[hit]){out[hit]=ovs[hit];n++;}}
+  var out=keyedDict(),n=0,ovs=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)||null;if(!sheet||!ovs)return out;
+  var inv=sheet.inventory||[],i;for(i=0;i<inv.length;i++){var key=itemBaseName(inv[i]);if(!key)continue;var hit=key;if(!ovs[hit]){var canon=ownValue(_itemAliasIndex(),key);if(canon&&ovs[canon])hit=canon;else continue;}if(!out[hit]){out[hit]=ovs[hit];n++;}}
   return out;
 }
 function portableSheet(sheet){
@@ -2238,7 +2255,7 @@ var PERSONA_LINES_MAX=5,PERSONA_LINES_MIN=3,PERSONA_LINE_CHARS=200,PERSONA_SERVE
 function personaLines(transcript,name,aliases){
   var tp=(typeof TTS!=="undefined"&&TTS&&TTS._textPrep&&typeof TTS._textPrep.splitSentences==="function")?TTS._textPrep:null;
   if(!tp)return {lines:[],reason:"the sentence splitter is not loaded"};
-  var want={},i;[name].concat(aliases||[]).forEach(function(n){n=String(n||"").replace(/^\s+|\s+$/g,"").toLowerCase();if(n)want[n]=1;});
+  var want=keyedDict(),i;[name].concat(aliases||[]).forEach(function(n){n=String(n||"").replace(/^\s+|\s+$/g,"").toLowerCase();if(n)want[n]=1;});
   var out=[];
   for(i=0;i<(transcript||[]).length;i++){
     var e=transcript[i];if(!e||e.r!=="gm"||!e.sp||!e.sp.s||!e.x)continue;
@@ -2248,7 +2265,7 @@ function personaLines(transcript,name,aliases){
        walking the same double quotes in order. When the counts disagree (a quote left open across paragraphs), the
        unit text stands in. */
     var runs=[],rm,RUN=/["\u201C]([^"\u201C\u201D\n]*)["\u201D]/g;while((rm=RUN.exec(text)))runs.push(rm[1]);
-    var spans=[],seenSpan={};for(j=0;j<units.length;j++){var sj=units[j]&&units[j].spk;if(sj!==null&&sj!==undefined&&!seenSpan[sj]){seenSpan[sj]=1;spans.push(sj);}}
+    var spans=[],seenSpan=keyedDict();for(j=0;j<units.length;j++){var sj=units[j]&&units[j].spk;if(sj!==null&&sj!==undefined&&!seenSpan[sj]){seenSpan[sj]=1;spans.push(sj);}}
     var verbatim=(spans.length===runs.length);
     for(j=0;j<units.length;j++){
       var u=units[j],who=Object.prototype.hasOwnProperty.call(e.sp.s,j)?String(e.sp.s[j]).toLowerCase():null;
@@ -2266,7 +2283,7 @@ function personaLines(transcript,name,aliases){
    then returned oldest first so the sheet reads as a history. Deterministic: the same transcript picks the same lines. */
 function personaPick(lines,max){
   max=max||PERSONA_LINES_MAX;
-  var seen={},byTurn={},cands=[],i,maxTurn=0;
+  var seen=keyedDict(),byTurn={},cands=[],i,maxTurn=0;
   for(i=0;i<(lines||[]).length;i++){var t=lines[i].turn|0;if(t>maxTurn)maxTurn=t;}
   for(i=0;i<(lines||[]).length;i++){
     var l=lines[i],text=String(l.text||""),words=text.split(/\s+/).filter(function(w){return /[A-Za-z]/.test(w);}).length;
@@ -2300,8 +2317,8 @@ function personaCapture(sheet,ws){
    names of who is in the hero's place). Names resolve through the roster's own spelling and aliases; the hero's own
    name and anyone not on the roster are ignored — the rule is about residents, and a stranger is the GM's to name. */
 function elsewhereSpeakers(reply,npcs,localSet){
-  var out=[],seen={},re=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g,m;
-  var byLow={},i;for(i=0;i<(npcs||[]).length;i++){var n=npcs[i];if(!n||!n.name)continue;byLow[String(n.name).toLowerCase()]=n;(n.aliases||[]).forEach(function(a){if(a)byLow[String(a).toLowerCase()]=n;});}
+  var out=[],seen=keyedDict(),re=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g,m;
+  var byLow=keyedDict(),i;for(i=0;i<(npcs||[]).length;i++){var n=npcs[i];if(!n||!n.name)continue;byLow[String(n.name).toLowerCase()]=n;(n.aliases||[]).forEach(function(a){if(a)byLow[String(a).toLowerCase()]=n;});}
   while((m=re.exec(String(reply||"")))){
     var nm=String(m[1]).replace(/^\s+|\s+$/g,"").toLowerCase(),n=byLow[nm];
     if(!n||!n.resident||n.partyMember||(typeof npcIsDead==="function"&&npcIsDead(n)))continue;
@@ -2322,8 +2339,8 @@ function personaPromptBits(cs){
 }
 function adoptSheetItemDefs(sheet){
   if(!sheet||typeof sheet!=="object"||!sheet.itemDefs||typeof sheet.itemDefs!=="object"||typeof worldState==="undefined"||!worldState)return 0;
-  if(!worldState.itemBible)worldState.itemBible={};
-  var k,n=0,adopted={};for(k in sheet.itemDefs){if(!sheet.itemDefs[k]||typeof sheet.itemDefs[k]!=="object")continue;if(worldState.itemBible[k])continue;/* the destination's canon wins — write-once */worldState.itemBible[k]=adopted[k]=JSON.parse(JSON.stringify(sheet.itemDefs[k]));n++;}
+  if(!worldState.itemBible)worldState.itemBible=keyedDict();
+  var k,n=0,adopted=keyedDict();for(k in sheet.itemDefs){if(!sheet.itemDefs[k]||typeof sheet.itemDefs[k]!=="object")continue;if(worldState.itemBible[k])continue;/* the destination's canon wins — write-once */worldState.itemBible[k]=adopted[k]=JSON.parse(JSON.stringify(sheet.itemDefs[k]));n++;}
   if(n&&typeof itemBibleHeal==="function")itemBibleHeal(adopted);/* #436: a sheet exported before the fix carries the clobber with it — healed on the way in, the copies only */
   if(n&&typeof console!=="undefined")console.info("[items] "+n+" item definition(s) travelled in with "+(sheet.name||"a sheet")+" (#81b)");
   return n;
@@ -2333,11 +2350,11 @@ function itemLookup(nm){
   if(!key)return null;
   var ovs=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)||null;
   var bib=(typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE)||null;
-  var hit=_itemServe(ovs&&ovs[key],bib&&bib[key]);
+  var hit=_itemServe(ownValue(ovs,key),ownValue(bib,key));
   if(hit)return hit;
   var canon=_itemAliasIndex()[key];
   if(!canon)return null;
-  return _itemServe(ovs&&ovs[canon],bib&&bib[canon]);
+  return _itemServe(ownValue(ovs,canon),ownValue(bib,canon));
 }
 // #285 (joint review f18): THE Define-eligibility gate — the ONE predicate the sheet button and
 // buildItemDefinePrompt both call, so the surfaces can never disagree. Eligible when the item has
@@ -2365,7 +2382,7 @@ function itemDefEligible(rawItem){
   var hit=itemLookup(rawItem);
   if(!hit)return true;
   var ov=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)?worldState.itemBible[key]:null;
-  var base=(typeof ITEM_BIBLE!=="undefined")?ITEM_BIBLE[key]:null;
+  var base=(typeof ITEM_BIBLE!=="undefined")?ownValue(ITEM_BIBLE,key):null;
   if(ov){
     /* #294 Part B ②: write-once is write-once-per-REAL-canon. An effect-bearing overlay is real
        canon and stays sealed; a classification-only overlay over a BASE is served through to the
@@ -2398,7 +2415,7 @@ function itemDefOverlayReplaceable(key){
 function defFieldRead(part,known){
   var s=String(part==null?"":part),m=s.match(/^\s*([A-Za-z_]+)\s*([:=])\s*([\s\S]*)$/);
   if(m){var k=m[1].toLowerCase();
-    if(m[2]==="="||(known&&known[k]))return{key:k,val:m[3].replace(/\s+$/,""),keyed:true,known:!!(known&&known[k])};}
+    if(m[2]==="="||ownValue(known,k))return{key:k,val:m[3].replace(/\s+$/,""),keyed:true,known:!!ownValue(known,k)};}
   var eq=s.indexOf("=");
   if(eq>=0)return{key:s.slice(0,eq).trim().toLowerCase(),val:s.slice(eq+1).trim(),keyed:true,known:false};/* "charges left=3" — keyed, unknown, warned by the caller */
   return{val:s.trim(),keyed:false,known:false};
@@ -2437,8 +2454,8 @@ function itemBibleHeal(map){
 // REPLACE a curated base entry wholesale (multi-category listings and curated value/uses are
 // superseded unless the proposal repeats them — the no-silent-failures line the player sees).
 function itemDefShadowNote(key){
-  if(typeof ITEM_BIBLE==="undefined"||!key||!ITEM_BIBLE[key])return"";
-  return "Accepting replaces the existing organize-only catalog entry for this item ("+ITEM_BIBLE[key].category+") — the new definition becomes the whole entry.";
+  if(typeof ITEM_BIBLE==="undefined"||!key||!ownValue(ITEM_BIBLE,key))return"";
+  return "Accepting replaces the existing organize-only catalog entry for this item ("+ownValue(ITEM_BIBLE,key).category+") — the new definition becomes the whole entry.";
 }
 // ── #157: THE shared inventory view model (Sol §5) — one pure grouping fn, two renderers ───
 // Returns non-empty category groups in registry order (+ Unclassified last), each row carrying
@@ -2446,7 +2463,7 @@ function itemDefShadowNote(key){
 // Every input row appears exactly once; the stored array is never reordered or rewritten.
 function groupInventory(inv){
   inv=inv||[];
-  var buckets={},order=[],i,j;
+  var buckets=keyedDict(),order=[],i,j;
   for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++){buckets[INVENTORY_CATEGORY_REGISTRY[i].id]={id:INVENTORY_CATEGORY_REGISTRY[i].id,label:INVENTORY_CATEGORY_REGISTRY[i].label,rows:[]};order.push(INVENTORY_CATEGORY_REGISTRY[i].id);}
   var un={id:"unclassified",label:"Unclassified",rows:[]};
   for(i=0;i<inv.length;i++){
@@ -2471,11 +2488,11 @@ function groupInventory(inv){
 function invDropMarkKey(idx,name){return String(idx|0)+"|"+String(name);}
 function invDropToggle(marks,idx,name){
   marks=marks||{};var k=invDropMarkKey(idx,name),out={},m;
-  for(m in marks){if(marks.hasOwnProperty(m)&&marks[m]&&m!==k)out[m]=true;}
+  for(m in marks){if(Object.prototype.hasOwnProperty.call(marks,m)&&marks[m]&&m!==k)out[m]=true;}
   if(!marks[k])out[k]=true;
   return out;
 }
-function invDropCount(marks){var n=0,m;if(!marks)return 0;for(m in marks){if(marks.hasOwnProperty(m)&&marks[m])n++;}return n;}
+function invDropCount(marks){var n=0,m;if(!marks)return 0;for(m in marks){if(Object.prototype.hasOwnProperty.call(marks,m)&&marks[m])n++;}return n;}
 /* #481 F8: the row a × means. The × carries its row's index AND name, but a GM turn between the render and the click can
    splice the pack, so the index alone may now name the neighbour ("Deleted 1 item: Waterskin" for the Torch ×). The name
    wins when the two disagree — the row carrying it nearest the old index; no name (a render from before) keeps the index;
@@ -2488,9 +2505,9 @@ function invMarkResolve(inv,idx,name){
   return best;
 }
 function invDropPlan(inv,marks){
-  inv=inv||[];marks=marks||{};var live=[],stale=[],seen={},k,i;
+  inv=inv||[];marks=marks||{};var live=[],stale=[],seen=keyedDict(),k,i;
   for(k in marks){
-    if(!marks.hasOwnProperty(k)||!marks[k])continue;
+    if(!Object.prototype.hasOwnProperty.call(marks,k)||!marks[k])continue;
     var bar=k.indexOf("|"),idx=parseInt(k.slice(0,bar),10),name=k.slice(bar+1),at=-1;
     if(idx>=0&&idx<inv.length&&inv[idx]===name&&!seen[idx])at=idx;
     else{for(i=0;i<inv.length;i++){if(inv[i]===name&&!seen[i]){at=i;break;}}}
@@ -2618,7 +2635,7 @@ function itemDefAccept(key){
   for(i=0;i<worldState.pendingItemDefs.length;i++){if(worldState.pendingItemDefs[i].key===key){p=worldState.pendingItemDefs[i];break;}}
   if(!p)return false;
   worldState.pendingItemDefs.splice(i,1);
-  if(!worldState.itemBible)worldState.itemBible={};
+  if(!worldState.itemBible)worldState.itemBible=keyedDict();
   if(!itemDefOverlayReplaceable(key)){if(typeof console!=="undefined")console.warn("[items] accept refused — '"+key+"' already canon (write-once, #81)");return false;}
   var prior=worldState.itemBible[key];
   if(prior){/* #294B ②: replacing a classification-only overlay — its DISPLAY fields (#157) survive unless the proposal carries its own */
@@ -2790,7 +2807,7 @@ function sttWordScore(candRaw,nameWord){
 // Canonical roster from live state: PC, NPCs (+aliases), memory keys (+aliases), locations.
 // Returns [{word, full}] — `word` is the substitutable canonical token, `full` the source name.
 function sttNameRoster(ws,mem){
-  var seen={},out=[];
+  var seen=keyedDict(),out=[];
   function addName(full){
     if(!full)return;
     var parts=String(full).split(/\s+/),i;
@@ -2824,7 +2841,7 @@ function sttNameRoster(ws,mem){
 // confidence-gate territory, not a reason to stay silent about our own vocabulary.
 function sttBiasPrompt(){
   if(typeof worldState==="undefined"||!worldState)return"";
-  var parts=[],seen={},i;
+  var parts=[],seen=keyedDict(),i;
   function add(nm){
     if(!nm)return;
     var k=String(nm).trim();
@@ -3038,7 +3055,7 @@ function diceOutcomeRatio(ws,window){var log=(ws&&ws.diceLog)||[],n=(typeof wind
 // that no intervening HP loss or expense was evicted. No state is written by this measurement.
 function turnsSinceRisk(ws){
   ws=ws||{};var now=ws.turn||0,cap=typeof TAG_LOG_CAP==="number"?TAG_LOG_CAP:40;
-  var tl=ws.tagLog||[],dl=ws.diceLog||[],seen={},last=-1,kind=null,i,j,e,age;
+  var tl=ws.tagLog||[],dl=ws.diceLog||[],seen=keyedDict(),last=-1,kind=null,i,j,e,age;
   var rules=[
     {tag:"HP",pattern:/^Took [1-9][0-9]* damage$/,kind:"HP loss"},
     {tag:"GOLD",pattern:/^-[1-9][0-9]* gp$/,kind:"gold spent"},
@@ -3065,7 +3082,7 @@ function turnsSinceRisk(ws){
   return {turns:age,kind:null,capped:true};
 }
 function stakesFiledTurns(ws){
-  var logs=[ws.tagLog||[],ws.diceLog||[]],seen={},n=0,i,j,e;
+  var logs=[ws.tagLog||[],ws.diceLog||[]],seen=keyedDict(),n=0,i,j,e;
   for(i=0;i<logs.length;i++)for(j=logs[i].length-1;j>=0;j--){e=logs[i][j];if(e&&typeof e.t==="number"&&e.t<=ws.turn&&!seen[e.t]){seen[e.t]=true;n++;if(n>=3)return n;}}
   return n;
 }
@@ -3147,7 +3164,7 @@ function healthIndicators(ws,mem,withGrowth){
   // read as a scar, not a forever-red dot — a quarantine is ACTIVE only while recent
   // (within CANON_TXN_RETIRE_TURNS) or while its subject still has an open conflict.
   var anom=[],unresolved=0,activeQ=0,histQ=0,turnNow=ws.turn||0;
-  var openSubjects={},ic=ws.identityConflicts||[];
+  var openSubjects=keyedDict(),ic=ws.identityConflicts||[];
   for(i=0;i<ic.length;i++){var cf=ic[i];
     if(cf.resolved||cf.stale)continue;
     unresolved++;openSubjects[cf.subject]=1;
@@ -3299,7 +3316,7 @@ function clampImportedCharacter(c){
 }
 /* #6 THE VILLAGE (phase A): the kind readers. campaignKind() never throws and never returns an unknown kind — a legacy save
    with no `kind`, or a junk value, reads as adventure. kindDef() is the ONE dispatch point every kind-aware site uses. */
-function campaignKind(){var k=(typeof worldState!=="undefined"&&worldState)?worldState.kind:null;return (k&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[k])?k:"adventure";}
+function campaignKind(){var k=(typeof worldState!=="undefined"&&worldState)?worldState.kind:null;return (k&&typeof CAMPAIGN_KINDS!=="undefined"&&ownValue(CAMPAIGN_KINDS,k))?k:"adventure";}
 function kindDef(){return CAMPAIGN_KINDS[campaignKind()];}
 /* A resident's house is a sub-location of the village node: "<village>|<Name>'s house". The map graph already keys
    sub-locations as parent|leaf, so the house rides every existing reader (items, presence, hours) unchanged. */
@@ -3381,11 +3398,11 @@ var WANT_BUYS=1;
 function shopTradeCatalog(){
   var vtc=shopCounterContext();
   if(!vtc.ok||!vtc.node)return {ok:false,reason:vtc.reason||"not in a shop"};
-  var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||{},inv=c.inventory||[],hero={},order=[],i;
+  var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||{},inv=c.inventory||[],hero=keyedDict(),order=[],i;
   for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=base.toLowerCase();
     if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}
     hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,inv[i]))hero[k].worn=true;}
-  var wanted={},wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++)wanted[String(wl[i].item||"").toLowerCase()]=wl[i];
+  var wanted=keyedDict(),wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++)wanted[String(wl[i].item||"").toLowerCase()]=wl[i];
   var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,cp=(typeof itemValueCp==="function")?itemValueCp(canon):null;
     var w=wanted[order[i]]||wanted[String((typeof itemBaseName==="function")?itemBaseName(r.name):r.name).toLowerCase()]||null;
     r.canonCp=cp;r.wanted=!!w;r.want=w?{key:String(w.item||"").toLowerCase(),item:String(w.item||""),by:w.by||""}:null;/* #577: the want this row meets */
@@ -3400,7 +3417,7 @@ function shopTradeCatalog(){
 }
 /* marks = {sell:{<lowercase name>:qty}, buy:{<lowercase name>:qty}} — what the player has clicked. */
 function shopTradePlan(cat,marks){
-  marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],sellCp=0,buyCp=0,i,k,wantLeft={},overWant=null;
+  marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],sellCp=0,buyCp=0,i,k,wantLeft=keyedDict(),overWant=null;
   for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellCp==null)continue;q=Math.min(q,r.qty);
     if(r.want){var wl=(r.want.key in wantLeft)?wantLeft[r.want.key]:WANT_BUYS;if(q>wl&&!overWant)overWant=r.want;wantLeft[r.want.key]=wl-q;}/* #577: one allowance per want */
     lines.push({kind:"sell",name:r.name,qty:q,unitCp:r.sellCp,cp:r.sellCp*q});sellCp+=r.sellCp*q;}
@@ -3445,7 +3462,7 @@ function stashTradeCatalog(){
   var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk],leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk;
   if(!node||!node.owner)return {ok:false,reason:"not in a house ("+leaf+")"};
   if(node.owner!==c.name)return {ok:false,reason:"this is "+node.owner+"'s house \u2014 only its owner opens the chest"};
-  var inv=c.inventory||[],carried={},order=[],i;
+  var inv=c.inventory||[],carried=keyedDict(),order=[],i;
   for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=(typeof stashKey==="function")?stashKey(base):base.toLowerCase();/* #481 D2 */
     if(!carried[k]){carried[k]={name:base,qty:0,worn:false};order.push(k);}carried[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,inv[i]))carried[k].worn=true;}
   var stored=(typeof villageStash==="function")?villageStash(rk):[];
@@ -3543,7 +3560,7 @@ function villageHallKey(base){var v=base||(typeof worldState!=="undefined"&&worl
 /* #6 D3: the commons a resident may be found in — the map's filed shops first (the GM's own geography), then the kind's
    fallback list; leaf names, deduped, in a stable order. */
 function villageCommons(){
-  var def=(typeof kindDef==="function")?kindDef():null,out=[],seen={},k;if(!def)return out;
+  var def=(typeof kindDef==="function")?kindDef():null,out=[],seen=keyedDict(),k;if(!def)return out;
   var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";
   function add(x){var s=String(x||"").trim();if(!s)return;var low=s.toLowerCase();if(seen[low])return;seen[low]=1;out.push(s);}
   if(typeof memory!=="undefined"&&memory&&memory.map){var keys=Object.keys(memory.map.nodes).sort();for(k=0;k<keys.length;k++){var n=memory.map.nodes[keys[k]];if(n&&n.parent&&(typeof locSame==="function"?locSame(n.parent,v):n.parent===v)&&isShopNode(keys[k],n))add(typeof locDisplayLeaf==="function"?locDisplayLeaf(keys[k]):keys[k].split("|").pop());}}

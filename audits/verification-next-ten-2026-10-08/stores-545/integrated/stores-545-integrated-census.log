@@ -1,0 +1,9 @@
+tree traffic-and-dragons-next-ten-ending: 66564 word/control pairs in 81s; templates 270, decorations 43
+  __proto__ DIFF: 86
+  __proto__ SAME: 21884
+  __proto__ STATE_KEY: 218
+  constructor SAME: 22005
+  constructor STATE_KEY: 183
+  toString SAME: 22025
+  toString STATE_KEY: 163
+non-trivial results written to C:/Users/hannu/AppData/Local/Temp/tnd-545-integrated-census.json (650)

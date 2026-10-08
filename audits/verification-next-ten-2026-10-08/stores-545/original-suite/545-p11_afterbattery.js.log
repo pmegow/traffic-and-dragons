@@ -1,0 +1,67 @@
+tree: traffic-and-dragons-next-ten-ending
+   item, plural
+     turn 1: You find them. [ITEM_GAINED:Constructors]
+     turn 2: You hand them back. [ITEM_LOST:Constructors]
+       same as the control in every step
+!! item, provenance
+     turn 1: You find it. [ITEM_GAINED:Constructor (from the smith)]
+     turn 2: You stow it. [ITEM_LOST:Constructor (from the smith)] [LOCATION_ITEM:Constructor (from the smith)|placed]
+       state scan: own key 'constructor' at ws.itemDefAsked
+   companion item, plural
+     turn 1: Kira takes them. [COMPANION_ITEM_GAINED:Kira|Constructors]
+     turn 2: Kira drops them. [COMPANION_ITEM_LOST:Kira|Constructors]
+       same as the control in every step
+   ability with a parenthetical
+     turn 1: A new trick. [ABILITY_GAINED:Constructor (lesser)|You raise a wall of stone.]
+     turn 2: Again. [ABILITY_GAINED:Constructor (greater)|You raise a tower.]
+       same as the control in every step
+   companion ability with a parenthetical
+     turn 1: Kira learns. [COMPANION_ABILITY:Kira|Constructor (lesser)|She raises a wall.]
+     turn 2: Kira casts. [COMPANION_SPELL_USED:Kira|Constructor]
+       same as the control in every step
+!! spell definition with a parenthetical
+     turn 1: A working. [SPELL_DEF:Constructor (ritual)|range=30 ft|effect=raises a wall]
+     turn 2: Again. [SPELL_DEF:Constructor (ritual)|range=60 ft|effect=raises a tower]
+       state scan: own key 'constructor' at ws.capabilityBible
+!! item definition with a parenthetical
+     turn 1: A thing. [ITEM_GAINED:Odd level] [ITEM_DEF:Constructor (old)|category=tool|effect=sets a true line]
+     turn 2: x [ITEM_DEF:Constructor (old)|category=tool|effect=sets a truer line]
+       state scan: own key 'constructor' at ws.itemBible
+   item left at the place, plural
+     turn 1: You leave them. [LOCATION_ITEM:Constructors|placed]
+     turn 2: You take them. [LOCATION_ITEM:Constructors|taken]
+       same as the control in every step
+   wanted + wares, plural
+     turn 1: Bram wants some. [WANTED:Constructors|5 gp|Bram] [WARES:Constructors|5 gp|new]
+     turn 2: x [ITEM_GAINED:Constructors]
+       same as the control in every step
+!! sub-location with an article
+     turn 1: You step in. [SUBLOCATION:The Constructor]
+     turn 2: You step out. [SUBLOCATION_LEAVE] [SUBLOCATION:the constructor]
+       b1 serializeWorldState differs @4384
+         word   : "捃侸ᛳ梌Ƶ㭓歖⽥䊑Ჷ噸㩭爠֨⽲㓂滎瑒╯ೖ枚ᘎ㋗砒Ꮊ桬ܨ瘀睰潧൵㱑ཕશ婃॔檕⏏ඔ㬎兟圔⦞粡Я榫㪂䃠㠼ᴫɣ㡮㲊䡱ⵊ⪔ᵰº湞䄣惰牃♹ɋ᲻㽻䋭䐤།㘪ᛵ孿㛊⩍〡⭸ܾ拀⁄ף爨༁ㅎ攊့⤱崯⡙䤿ⵀ所  \\\"},\\\"ragMemory\\\":false,\\\"sceneRefs\\\":{\\\"serial\\\":2,\\\"active\\\":{\\\"scene\\\":2,\\\"node\\\":\\\"Ashfen|The Construqtor\\\",\\\"startTurn\\\":10,\\
+         control: "捃侸ᛳ梌Ƶ㭓歖⽥䊑Ჷ噸㩭爠֨⽲㓂滎瑒╯ೖ枚ᘎ㋗砒Ꮊ桬ܨ瘀睰潧൵㱑ཕશ婃॔檕⏏ඔ㬎兟圔⦞粡Я榫㪂䃠㠼ᴫɣ㡮㲊䡱ⵊ⪔ᵰº湞䄣惰牃♹ɋ᲻㽻䋭䐤།㘪ᛵ孿㛊⩍〡⭸ܾ拀⁄ע㈨༁ㅎ攊့⤱崯⡙䤿ⵀ所  \\\"},\\\"ragMemory\\\":false,\\\"sceneRefs\\\":{\\\"serial\\\":2,\\\"active\\\":{\\\"scene\\\":2,\\\"node\\\":\\\"Ashfen|The Construqtor\\\",\\\"startTurn\\\":10,\\
+       b2 serializeWorldState differs @4384
+         word   : "捃侸ᛳ梌Ƶ㭓歖⽥䊑Ჷ噸㩭爠֨⽲㓂滎瑒╯ೖ枚ᘎ㋗砒Ꮊ桬ܨ瘀睰潧൵㱑ཕશ婃॔檕⏏ඔ㬎兟圔⦞粡Я榫㪂䃠㠼ᴫɣ㡮㲊䡱ⵊ⪔ᵰº湞䄣惰牃♹ɋ᲻㽻䋭䐤།㘪ᛵ孿㛊⩍〡⭸ܾ拀⁄ף爨༁ㅎ攊့⤱崯⡙䤿⯫摕抸❦ⶓ❹潚ᝎ೙ᄉ䍐㜱ⓨ睝怦ནϢ侍⢪⽻⶘ᅄ⤣潋↋Ἳ⦪႗檡㽁ఛ罠ᰦ䃦⾊熇⾩筘ቩݿ⌱  \\\"},\\\"ragMemory\\\":false,\\\"sceneRefs\\\":{\\\"serial\\\":2,\\\"active\\\":{\\\"scene\\\":2,\\\"node\\\":\\\"Ashfen|The 
+         control: "捃侸ᛳ梌Ƶ㭓歖⽥䊑Ჷ噸㩭爠֨⽲㓂滎瑒╯ೖ枚ᘎ㋗砒Ꮊ桬ܨ瘀睰潧൵㱑ཕશ婃॔檕⏏ඔ㬎兟圔⦞粡Я榫㪂䃠㠼ᴫɣ㡮㲊䡱ⵊ⪔ᵰº湞䄣惰牃♹ɋ᲻㽻䋭䐤།㘪ᛵ孿㛊⩍〡⭸ܾ拀⁄ע㈨༁ㅎ攊့⤱崯⡙䤿⯫摕抸❦ⶓ❹潚ᝎ೙ᄉ䍐㜱ⓨ睝怦ནϢ侍⢪⽻⶘ᅄ⤣潋↋Ἳ⦪႗檡㽁ఛ罠ᰦ䃦⾊熇⾩筘ቩݿ⌱  \\\"},\\\"ragMemory\\\":false,\\\"sceneRefs\\\":{\\\"serial\\\":2,\\\"active\\\":{\\\"scene\\\":2,\\\"node\\\":\\\"Ashfen|The 
+!! quest whose title carries display numbering
+     turn 1: A task. [QUEST:Arc 1: Constructor|active|do it]
+     turn 2: Done. [QUEST:Arc 1: Constructor|completed]
+       b1 serializeWorldState differs @4504
+         word   : "喌㤥䉔䮆䝰▁笂㟈᢭捃侸ᛳ梌Ƶ㭓歖⽥䊑Ჷ噸㩭爠֨⽲㓂滎瑒╯ೖ枚ᘎ㋗砒Ꮊ桬ܨ瘀睰潧൵㱑ཕશ婃॔檕⏏ඔ㬎兟圔⦞粡Я榫㪂䃠㠼ᴫɣ㡮㲊䡱ⵊ⪔᪥礋ᦄ࣌犍綎ঊቨ㹠ᚣ䠠ェྂ偀␷ྰ䇼⺾℧㭻ʫ㖍埻㭫奚䐥橤㝣樮㉧歨ᢨ  \\\"},\\\"ragMemory\\\":false,\\\"sceneRefs\\\":{\\\"serial\\\":1,\\\"active\\\":{\\\"scene\\\":1,\\\"node\\\":\\\"Ashfen\\\",\\\"startTurn\\\":9,\\\"actors\\\"
+         control: "喌㤥䉔䮆䝰▁笂㟈᢭捃侸ᛳ梌Ƶ㭓歖⽥䊑Ჷ噸㩭爠֨⽲㓂滎瑒╯ೖ枚ᘎ㋗砒Ꮊ桬ܨ瘀睰潧൵㱑ཕશ婃॔檕⏏ඔ㬎兟圔⦞粡Я榫㪂䃠㠼ᴫɣ㡮㲊䡱ⵊ⪔᪥礋ᦄ࣌犍綎ঊቨ㹠ᚣ䠠ェྂ偀␷র䇼⺾℧㭻ʫ㖍埻㭫奚䐥橤㝣樮㉧歨ᢨ  \\\"},\\\"ragMemory\\\":false,\\\"sceneRefs\\\":{\\\"serial\\\":1,\\\"active\\\":{\\\"scene\\\":1,\\\"node\\\":\\\"Ashfen\\\",\\\"startTurn\\\":9,\\\"actors\\\"
+       b2 serializeWorldState differs @4362
+         word   : "喌㤥䉔䮆䝰▁笂㟈᢭捃侸ᛳ梌Ƶ㭓歖⽥䊑Ჷ噸㩭爠֨⽲㓂滎瑒╯ೖ枚ᘎ㋗砒Ꮊ桬ܨ瘀睰潧൵㱑ཕશ婃॔檕⏏ඔ㬎兟圔⦞粡Я榫㪂䃠㠼ᴫɣ㡮㲊䡱ⵊ⪔᪥礋ᦄ࣌犍綎ঊቨ㹠ᚣ䠠ェྂ偀␷ྰ䇼⺾℧㭻ʫ㖍埻㭫奚䐥橤㝣樮㉧欒礭㣆ৱ䭼槶㯮䗫䍎ᡚレ෤⥒唠©潜ߛ㕤⒚洳揉伫惁⽻澚ᾇ欘偄⤡㽋↉缻⦪ႛ⮫ᶜ⟸₲⑚紸䐠 \\\"},\\\"ragMemory\\\":false,\\\"sceneRefs\\\":{\\\"serial\\\":1,\\\"active\\\":{\\\"scene\\\":1,\\\"node\\\":\\\"Ashfen\
+         control: "喌㤥䉔䮆䝰▁笂㟈᢭捃侸ᛳ梌Ƶ㭓歖⽥䊑Ჷ噸㩭爠֨⽲㓂滎瑒╯ೖ枚ᘎ㋗砒Ꮊ桬ܨ瘀睰潧൵㱑ཕશ婃॔檕⏏ඔ㬎兟圔⦞粡Я榫㪂䃠㠼ᴫɣ㡮㲊䡱ⵊ⪔᪥礋ᦄ࣌犍綎ঊቨ㹠ᚣ䠠ェྂ偀␷র䇼⺾℧㭻ʫ㖍埻㭫奚䐥橤㝣樮㉧欒礭㣆ৱ䭼槶㯮䗫䍎ᡚレ෤⥒唠©潜ߛ㕤⒚洳揉伫惁⽻澚ᾇ欘偄⤡㽋↉缻⦪ႛ⮫ᶜ⟸₲⑚紸䐠 \\\"},\\\"ragMemory\\\":false,\\\"sceneRefs\\\":{\\\"serial\\\":1,\\\"active\\\":{\\\"scene\\\":1,\\\"node\\\":\\\"Ashfen\
+   scene handle that normalises to the word
+     turn 1: A figure. [SCENE_REF:constructor_|Bram]
+     turn 2: x [SCENE_REVEAL:-constructor-|Bram]
+       same as the control in every step
+   party split, parenthetical place
+     turn 1: Kira goes. [PARTY_SPLIT:Kira|constructor (the yard)]
+     turn 2: Kira returns. [PARTY_SPLIT:Kira|rejoin]
+       same as the control in every step
+!! nested bracket hides an item
+     turn 1: x [TIME:dusk [ITEM_GAINED:constructor]
+     turn 2: y [ITEM_LOST:Rope]
+       state scan: own key 'constructor' at ws.itemDefAsked

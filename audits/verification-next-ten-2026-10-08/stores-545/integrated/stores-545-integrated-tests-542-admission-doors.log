@@ -1,0 +1,88 @@
+[identity] Character identity refused: 'Tess' already identifies Tess
+[identity] Character identity refused: 'TESS' already identifies Tess
+[identity] Character identity refused: 'Bellkeeper' already identifies Tess
+[identity] Character identity refused: 'Bellkeeper' already identifies Tess
+PASS #542 UI import refuses primary and alias collisions before any campaign or source write
+PASS #542 UI valid import copies the source and sheet-only alias resolves
+[identity] Character identity refused: 'Tess' already identifies Tess
+[identity] Character identity refused: 'TESS' already identifies Tess
+[identity] Character identity refused: 'Bellkeeper' already identifies Tess
+PASS #542 startup companion namesakes never reach roster or memory
+[identity] Character identity refused: 'Bram' already identifies Bram
+[identity] Character identity refused: 'Bram' already identifies Bram
+PASS #542 replacement wrapper and Village refresh do not report rejected copies as adopted
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: bram: @player, npc:bram
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+PASS #542 loaded conflict diagnostic is deduplicated through serialization
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: hero: aliases must be an array of strings
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: hero: aliases must be an array of strings
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: hero: aliases must contain nonempty strings
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: roster Bram: aliases must be an array of strings
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: roster Bram: aliases must be an array of strings
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: roster Bram: aliases must contain nonempty strings
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: sheet Bram: aliases must be an array of strings
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: sheet Bram: aliases must be an array of strings
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: sheet Bram: aliases must contain nonempty strings
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: memory Bram: aliases must be an array of strings
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: memory Bram: aliases must be an array of strings
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[identity] Conflicting saved character names retained; canonical names and the hero keep priority: memory Bram: aliases must contain nonempty strings
+[migrate] #101: spell labels stripped to bible bare names on Bram
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+PASS #542 malformed saved aliases are retained but inactive and diagnosed once
+[identity] Character identity refused: aliases must be an array of strings
+[identity] Character identity refused: aliases must be an array of strings
+[identity] Character identity refused: aliases must contain nonempty strings
+PASS #542 incoming malformed aliases refuse before mutation
+[identity] Character identity refused: 'Bram' already identifies Bram
+[identity] Character identity refused: 'Ashen One' already identifies Ashen One
+PASS #542 canonical NPC refresh ignores only an inactive hero epithet on its primary
+#542 admission doors: 8 passed, 0 failed

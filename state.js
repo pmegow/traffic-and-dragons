@@ -37,12 +37,12 @@ var sessionLog=[];
    archive contents are storage-only — never prompt-injected (P12 eviction compaction; the
    consumers are the story compiler #5 + future RAG phases, NOT the live tiers). */
 var MEMORY_ARCHIVE_KEYS=["lore","decisions","chapters","superseded","coreMemories","expiredSchedules","npcKnowledge","npcEvents","retconPins","locationStates","futureEvents","npcForgotten","identityMerges","identityQuarantines","relDowngrades","npcDeathCorrections","quarantinedReceipts"];/* #262: retired quarantined canon receipts (f56) — the registry makes this one line, everywhere */
-function blankArchive(){var a={},i;for(i=0;i<MEMORY_ARCHIVE_KEYS.length;i++)a[MEMORY_ARCHIVE_KEYS[i]]=[];return a;}
+function blankArchive(){var a=keyedDict(),i;for(i=0;i<MEMORY_ARCHIVE_KEYS.length;i++)a[MEMORY_ARCHIVE_KEYS[i]]=[];return a;}
 /* Rebuild memory.archive from an UNTRUSTED source blob (the .tnd import). Registered categories
    default to [] and are array-guarded (a junk value must never become canon); unregistered ones
    are carried VERBATIM — dropping a category because this build does not know it IS the defect. */
 function archiveRebuild(src){
-  var out=blankArchive(),known={},k,i;
+  var out=blankArchive(),known=keyedDict(),k,i;
   for(i=0;i<MEMORY_ARCHIVE_KEYS.length;i++)known[MEMORY_ARCHIVE_KEYS[i]]=1;
   if(src&&typeof src==="object"&&!(src instanceof Array)){
     for(k in src){
@@ -64,7 +64,7 @@ function archiveHeal(arc){
   for(i=0;i<MEMORY_ARCHIVE_KEYS.length;i++){k=MEMORY_ARCHIVE_KEYS[i];if(!arc[k])arc[k]=[];}
   return arc;
 }
-function blankMemory(){return {npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],eras:[],nameIdx:0,attitudeSpec:2,map:{nodes:{},edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:{},factionEdges:[],npcFactions:{}},archive:blankArchive()};}/* eras: #148 Phase 2 — compiled era summaries above chapters; legacy saves self-heal via memEras() */
+function blankMemory(){return keyedStores({npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],eras:[],nameIdx:0,attitudeSpec:2,map:{nodes:keyedDict(),edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:keyedDict(),factionEdges:[],npcFactions:keyedDict()},archive:blankArchive()},"memory");}/* eras: #148 Phase 2 — compiled era summaries above chapters; legacy saves self-heal via memEras() */
 var memory=blankMemory();
 // Usage/cost telemetry (TODO #21) — per-campaign accumulator on worldState.usage.
 // byKind buckets: turn / actions / summarize / skeleton / sync / other. costUSD is an
@@ -128,7 +128,7 @@ var _trLzMemo=(typeof WeakMap!=="undefined")?new WeakMap():null;
 // exactly ONE compression.
 function compressWorldStateSnapshot(ws){
   if(!(ws&&ws.transcript&&ws.transcript.length&&typeof LZ!=="undefined"&&LZ.compressToUTF16))return ws;
-  var snap={},k;for(k in ws){if(Object.prototype.hasOwnProperty.call(ws,k))snap[k]=ws[k];}
+  var snap=ownAssign({},ws);
   var tr=ws.transcript,len=tr.length,last=tr[len-1],lz=null;
   var hit=_trLzMemo?_trLzMemo.get(tr):null;
   if(hit&&hit.len===len&&hit.lastRef===last&&hit.lastX===last.x){lz=hit.lz;}
@@ -172,7 +172,7 @@ function compressWorldStateSnapshotChunked(ws){
     serializeWorldState._compressions++;
     cache.tail={len:len,lastRef:last,lastX:last.x,lz:tailLz};
   }
-  var snap={},k;for(k in ws){if(Object.prototype.hasOwnProperty.call(ws,k))snap[k]=ws[k];}
+  var snap=ownAssign({},ws);
   snap.transcript={__lzc:{v:1,seg:TRANSCRIPT_SEG,segs:segs,tail:tailLz}};
   return snap;
 }
@@ -263,6 +263,7 @@ function inflateTranscriptField(t){
 // otherwise poison live state with a {__lz} transcript ({__lz}.push throws mid-turn). A plain
 // array passes through untouched; inflate failure takes the UA3 rescue path below.
 function inflateWorldStateSnapshot(o){
+  keyedStores(o,"world");
   if(typeof stashJournalEnsure==="function")stashJournalEnsure(o,false);
   if(o&&o.transcript&&!(o.transcript instanceof Array)){
     /* #272 D3: one tolerant attempt for EVERY shipped form ({__lz}/{__lzb64}/{__lzc}); an
@@ -508,6 +509,7 @@ function migrateAncestryNames(c){
   c.ancestry=next;return true;
 }
 function migrateWorldState(){
+  keyedStores(worldState,"world");keyedStores(memory,"memory");
   if(!worldState||!worldState.character)return false;
   var c=worldState.character,_mig=false;
   if(typeof identityAliasAudit==="function"&&identityAliasAudit())_mig=true;
@@ -780,7 +782,7 @@ function checkpointClear(){_checkpointMem=null;}
 function checkpointHeld(){return _checkpointMem;}
 function checkpointCapture(reason){
   if(!worldState)return null;
-  var ws={},k;for(k in worldState){if(!Object.prototype.hasOwnProperty.call(worldState,k))continue;if(CHECKPOINT_STRIP.indexOf(k)>=0)continue;ws[k]=worldState[k];}
+  var ws=ownAssign({},worldState),k;for(k=0;k<CHECKPOINT_STRIP.length;k++)delete ws[CHECKPOINT_STRIP[k]];
   var snap={v:(typeof CHECKPOINT_VER==="number"?CHECKPOINT_VER:1),turn:worldState.turn||0,reason:String(reason||"camp"),at:Date.now(),campId:worldState.campId||null,
     location:(worldState.world&&(worldState.world.sublocation||worldState.world.location))||"",
     ws:JSON.stringify(ws),sl:JSON.stringify(sessionLog||[]),mem:JSON.stringify(memory||{})};
@@ -817,6 +819,7 @@ function checkpointRestore(snap,opts){
   ws.lastActions=null;ws.combat=null;
   if(live.mpFallen)ws.mpFallen=live.mpFallen;
   var prevWs=worldState,prevSl=sessionLog,prevMem=memory;
+  keyedStores(ws,"world");keyedStores(mem,"memory");
   worldState=ws;sessionLog=sl;memory=mem;
   if(typeof healMemory==="function"){try{healMemory();}catch(e){
     worldState=prevWs;sessionLog=prevSl;memory=prevMem;
@@ -857,17 +860,18 @@ function loadState(){
 // the server-adopt path can run the same heals (audit E14) — importSave already got migrateWorldState
 // (audit #15), but the server reconcile adopted un-migrated, un-healed blobs. Operates on the global.
 function healMemory(){
+  keyedStores(memory,"memory");
   if(!memory)memory=blankMemory();
   if(!memory.futureEvents)memory.futureEvents=[];
   if(memory.usedNames!==undefined)delete memory.usedNames;/* AUDIT_FABLE_07_16 #12: dead field — nothing ever read or wrote it (name uniqueness moved to nameIdx rotation); heal converges old saves to the canonical shape by removing it */
-  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   if(!memory.map.edges)memory.map.edges=[];
-  if(!memory.map.nodes)memory.map.nodes={};
-  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:{},factionEdges:[],npcFactions:{}};
+  if(!memory.map.nodes)memory.map.nodes=keyedDict();
+  if(!memory.npcGraph)memory.npcGraph={edges:[],factions:keyedDict(),factionEdges:[],npcFactions:keyedDict()};
   if(typeof memory.nameIdx!=="number")memory.nameIdx=0;
-  if(!memory.npcGraph.factions)memory.npcGraph.factions={};
+  if(!memory.npcGraph.factions)memory.npcGraph.factions=keyedDict();
   if(!memory.npcGraph.factionEdges)memory.npcGraph.factionEdges=[];
-  if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions={};
+  if(!memory.npcGraph.npcFactions)memory.npcGraph.npcFactions=keyedDict();
   memory.archive=archiveHeal(memory.archive);/* JP0-5: was eleven hand-copied lines that had drifted five categories behind the registry (P12 pre-archive saves still heal here) */
   if(typeof healStashRows==="function")healStashRows();/* #481 D2: legacy "…xN" stash rows → base name + count (qty rows only; adventure rows untouched) */
   // #149: junk-note sweep — the live save carried a literal "none" stateNote on Sandpoint (a
@@ -1015,7 +1019,7 @@ function rehomeCampaign(reason){
   if(old){
     for(i=0;i<parts.length;i++){v=store.get(campSlotKey(old,parts[i]));if(v!=null){store.set(campSlotKey(nid,parts[i]),v);store.del(campSlotKey(old,parts[i]));}}
     var meta=getCampMeta(),changed=false;
-    for(i=0;i<meta.length;i++){if(meta[i]&&meta[i].id===old){meta[i]=Object.assign({},meta[i],{id:nid});delete meta[i].onServer;changed=true;}}
+    for(i=0;i<meta.length;i++){if(meta[i]&&meta[i].id===old){meta[i]=ownAssign({},meta[i],{id:nid});delete meta[i].onServer;changed=true;}}
     if(changed)setCampMeta(meta);
     if(typeof storageAdapter!=="undefined"&&storageAdapter.flushDirtyTurn){
       var t=storageAdapter.flushDirtyTurn(old);
@@ -1111,7 +1115,7 @@ function updateCampMeta(){
   var c=worldState.character,w=worldState.world;
   var entry={id:id,campName:worldState.campName||c.name,charName:c.name,charClass:c.cls,charAncestry:c.subraceNm||c.ancestry||"",level:c.level,location:w.location,savedAt:Date.now()};
   var meta=getCampMeta(),found=false,i;
-  for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i]=Object.assign({},meta[i],entry);found=true;break;}}
+  for(i=0;i<meta.length;i++){if(meta[i].id===id){meta[i]=ownAssign({},meta[i],entry);found=true;break;}}
   if(!found)meta.push(entry);
   // B4: never let a quota throw escape — updateCampMeta runs OUTSIDE saveCore's try in saveAll,
   // so an uncaught throw here killed the storageAdapter.syncToServer() call that follows, i.e.

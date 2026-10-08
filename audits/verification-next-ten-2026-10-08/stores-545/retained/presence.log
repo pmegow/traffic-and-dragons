@@ -1,0 +1,48 @@
+
+  sabotage — tag_table.js
+   ✓ caught      the [NPC:] handler re-wired to the presence writer — mention teleports again (fixed point 1 broken)
+   ✓ caught      the derivation seam call removed — presence is never derived, the recall floor is gone (layer 1)
+   ✓ caught      NPC_DEATH_REPORTED stops stamping the dead flag — the honest exit silently writes nothing (ruling ②)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      a statusTurn limb restored — the mention channel authorizes deaths again (layer 2's core regrade undone)
+   ✓ caught      the lastSeen limb loses its epoch floor — pre-epoch mention-fed stamps authorize deaths again (ruling ③'s flip undone)
+   ✓ caught      the guestbook limb loses its epoch floor
+   ✓ caught      the cast census stops counting answers — cast-limb promotion loses its measurement
+   ✓ caught      strictly-earlier dropped from the speech limb — speech AT the claim turn becomes its own authorization
+   ✓ caught      observed[] eviction replaced with the W2 overflow latch — a busy tavern freezes every irreversible identity write
+   ✓ caught      observed cast promotion is lost — a measured earlier sighting stops authorizing
+   ✓ caught      observed cast can authorize its own turn
+   ✓ caught      the valve never arms — a refused named death quarantines forever again (the t1903 loop restored)
+   ✓ caught      an envelope on pre-epoch-only evidence commits again — the receipt path re-admits the grandfather clause
+   ✓ file restored byte-identical
+   10/10 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      guestbook stamps lose their source — provenance dies and the cast gate has nothing to read
+   ✓ caught      the cap fold keeps folded turns' sources — rec.by grows without bound (monotonic-resources rule)
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      the epoch migration removed — with no anchor every pre-epoch mention-fed stamp reads as post-epoch and authorizes
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the fork note stops naming the reported-death exit — the valve teaches a ceremony that cannot terminate
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — helpers.js
+   ✓ caught      historical legacy-grade receipts vanish from drift health — the closed fail-open window loses its record
+   ✓ file restored byte-identical
+   1/1 clauses proven
+

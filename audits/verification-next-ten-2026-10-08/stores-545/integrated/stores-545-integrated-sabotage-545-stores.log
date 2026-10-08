@@ -1,0 +1,48 @@
+
+  sabotage — helpers.js
+   ✓ caught      restore inherited dictionary prototype
+   ✓ caught      follow inherited schema path
+   ✓ caught      omit capability overlay admission
+   ✓ caught      lose portable reserved item key
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      discard detached dictionary shape
+   ✓ caught      drop reserved scene cast key
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      restore inherited item-pair bucket
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      admit inherited category enum
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      omit generated sheet admission
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      birth a missing legacy map with inherited names
+   ✓ caught      omit checkpoint world normalization
+   ✓ caught      invoke prototype setter on snapshot copy
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — character_editor.html
+   ✓ caught      omit editor parsed-sheet normalization
+   ✓ file restored byte-identical
+   1/1 clauses proven
+

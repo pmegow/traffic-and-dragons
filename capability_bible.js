@@ -701,8 +701,8 @@ function capBaseName(nm){return String(nm||"").replace(/\s*\(.*\)/,"").toLowerCa
 // static base, so a GM-defined capability — or a GM correction to a base one — is authoritative.
 function capabilityLookup(nm){
   var key=capBaseName(nm);
-  if(typeof worldState!=="undefined"&&worldState&&worldState.capabilityBible&&worldState.capabilityBible[key])return worldState.capabilityBible[key];
-  return (typeof CAPABILITY_BIBLE!=="undefined"&&CAPABILITY_BIBLE[key])||null;
+  if(typeof worldState!=="undefined"&&worldState&&worldState.capabilityBible&&Object.prototype.hasOwnProperty.call(worldState.capabilityBible,key))return worldState.capabilityBible[key];
+  return (typeof CAPABILITY_BIBLE!=="undefined"&&Object.prototype.hasOwnProperty.call(CAPABILITY_BIBLE,key)&&CAPABILITY_BIBLE[key])||null;
 }
 
 // #253 (JP0-8, Fable f51; owner ruling 2026-08-28) — is this name already CURATED canon?
@@ -716,7 +716,7 @@ function capabilityLookup(nm){
 // verdict through capabilityLookup, which covers base AND overlay at its one call site.
 function capIsBaseCatalog(nm){
   var key=capBaseName(nm);
-  return !!(key&&typeof CAPABILITY_BIBLE!=="undefined"&&CAPABILITY_BIBLE[key]);
+  return !!(key&&typeof CAPABILITY_BIBLE!=="undefined"&&Object.prototype.hasOwnProperty.call(CAPABILITY_BIBLE,key));
 }
 
 // capabilitiesByCategory(cat) — every capability tagged with a tradition (arcane|divine|primal|
@@ -724,7 +724,7 @@ function capIsBaseCatalog(nm){
 // rolled enemy caster's menu (e.g. an enemy cleric → the "divine" list). Returns [{name, entry}]
 // sorted by name; overlay entries win on name collision.
 function capabilitiesByCategory(cat){
-  var out=[],seen={};
+  var out=[],seen=Object.create(null);
   function scan(reg){if(!reg)return;for(var key in reg){if(seen[key])continue;var e=reg[key];if(e&&e.category&&e.category.indexOf(cat)>=0){out.push({name:key,entry:e});seen[key]=1;}}}
   scan((typeof worldState!=="undefined"&&worldState&&worldState.capabilityBible)?worldState.capabilityBible:null);
   scan(typeof CAPABILITY_BIBLE!=="undefined"?CAPABILITY_BIBLE:null);

@@ -551,9 +551,9 @@ var storageAdapter = (function() {
   // ONE map for both POST /api/state paths (audit B9) — _syncNow and pushCampaignState; the
   // ui.js copy used to drift (the v1.240/E27 re-apply incidents).
   function _stripNpcPortraits(ws) {
-    return Object.assign({}, ws, {
+    return ownAssign({}, ws, {
       npcs: (ws.npcs||[]).map(function(n){
-        return n.portrait ? Object.assign({}, n, {portrait:null}) : n;
+        return n.portrait ? ownAssign({}, n, {portrait:null}) : n;
       })
     });
   }
@@ -718,9 +718,9 @@ var storageAdapter = (function() {
       serverList[i].onServer = true;
       found = false;
       for (j = 0; j < merged.length; j++) {
-        if (merged[j].id === serverList[i].id) { var _fs = merged[j].folderSlug; merged[j] = Object.assign({}, merged[j], serverList[i], {onServer:true}); if (_fs) merged[j].folderSlug = _fs; else delete merged[j].folderSlug; found = true; break; }/* #481 F1: the folder slug is this device's disk */
+        if (merged[j].id === serverList[i].id) { var _fs = merged[j].folderSlug; merged[j] = ownAssign({}, merged[j], serverList[i], {onServer:true}); if (_fs) merged[j].folderSlug = _fs; else delete merged[j].folderSlug; found = true; break; }/* #481 F1: the folder slug is this device's disk */
       }
-      if (!found) { var _nr = Object.assign({}, serverList[i]); delete _nr.folderSlug; merged.push(_nr); }
+      if (!found) { var _nr = ownAssign({}, serverList[i]); delete _nr.folderSlug; merged.push(_nr); }
     }
     var kept = [], pruned = [];
     for (j = 0; j < merged.length; j++) {

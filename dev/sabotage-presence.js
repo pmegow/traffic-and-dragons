@@ -79,7 +79,7 @@ rc |= sabotage.prove({
   cases: [
     { label: "guestbook stamps lose their source — provenance dies and the cast gate has nothing to read",
       mustFail: "npcRecordPresence is the ONE presence writer",
-      find: "  if(src){if(!rec.by)rec.by={};rec.by[turn]=String(src);}",
+      find: "  if(src){if(!rec.by)rec.by=keyedDict();rec.by[turn]=String(src);}",
       replace: "" },
     { label: "the cap fold keeps folded turns' sources — rec.by grows without bound (monotonic-resources rule)",
       mustFail: "the cap fold drops a folded turn's source",

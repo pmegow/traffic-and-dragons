@@ -33,8 +33,8 @@ rc |= sabotage.prove({
 
     { label: "the envelope clone reverts to the full JSON round-trip — the tripwire itself catches it (every envelope's transcript is now a foreign array) (#272 D4)",
       mustFail: "transaction touched the story transcript",
-      find: "    worldState=_w2CopyWorldStateDetached(_w2Ws);memory=_w2Copy(_w2Mem);",
-      replace: "    worldState=_w2Copy(_w2Ws);memory=_w2Copy(_w2Mem);" },
+      find: "    worldState=_w2CopyWorldStateDetached(_w2Ws);memory=_w2Copy(_w2Mem,\"memory\");",
+      replace: "    worldState=_w2Copy(_w2Ws);memory=_w2Copy(_w2Mem,\"memory\");" },
 
     { label: "the transcript append tripwire is disarmed — a rogue handler write commits silently (#272 D4)",
       mustFail: "the rogue append did not fail the envelope",

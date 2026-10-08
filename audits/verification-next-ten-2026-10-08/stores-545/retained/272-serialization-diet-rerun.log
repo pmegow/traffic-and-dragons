@@ -1,0 +1,63 @@
+
+  sabotage — api.js
+   ✓ caught      applyMuts ignores deferSave — the turn pays a second save/LZ pass again (#272 D1)
+   ✓ caught      the envelope clone reverts to the full JSON round-trip — the tripwire itself catches it (every envelope's transcript is now a foreign array) (#272 D4)
+   ✓ caught      the transcript append tripwire is disarmed — a rogue handler write commits silently (#272 D4)
+   ✓ caught      the tripwire stops truncating — the rogue entry stays on the one true array (#272 D4)
+   ✓ caught      the detached PC portrait is not reattached — a commit silently drops the image (#272 D4)
+   ✓ file restored byte-identical
+   5/5 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      the pre-image portrait strip is dropped — image bytes embed in the archive forever again (#272 D5)
+   ✓ caught      the f44b hoist reverts — a worldState-only duplicate folds with no pre-image (#272 D5)
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      commitGmTurn stops deferring applyMuts' save (#272 D1)
+   ✓ caught      a stamp lands AFTER the commit persist — the suggestion-completion POST re-compresses the whole transcript (#272 D1)
+   ✓ caught      the commit persist disappears — the ONE-POST contract's ordering pin catches it (#272 D1/#280b)
+   ✓ caught      the narration commit reverts to saveAll — the ordering pin catches the two-POST regression (#280b)
+   ✓ caught      generateActions loses its completion sync — the server strands on the E26 null, the second device renders no buttons (#280b)
+   ✓ caught      the E26 clear is dropped — a failed suggestion call re-attaches last turn's buttons on reload (#280b)
+   ✓ file restored byte-identical
+   6/6 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      saveLocal grows the cloud arm back — every 'local' save POSTs (#272 D1)
+   ✓ caught      the unknown-form rescue reverts to {__lz}-only — a future form passes through poisoned (#272 D3)
+   ✓ caught      the {__lzc} inflater is dropped — Phase B/C blobs become unreadable (#272 D3)
+   ✓ caught      the wire seam's flip branch dies — Phase C would silently ship {__lz} forever (#272 D3)
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      chunking is disabled — every save pays the whole-transcript LZ pass again (#272 D2)
+   ✓ caught      the segment cache is never consulted — the frozen past recompresses every save (#272 D2)
+   ✓ caught      the tail memo dies — every save recompresses the tail even unchanged (#272 D2)
+   ✓ caught      old-entry invalidation ignores the index — a stale frozen segment persists the pre-mutation bytes (the entry-4 ★ class) (#272 D2)
+   ✓ caught      mutateTranscriptEntry stops passing the index — every old-entry edit rebuilds the whole frozen past (#272 D2)
+   ✓ caught      a broken segment inflates PARTIALLY — a story with a silent hole instead of a loud rescue (#272 D2)
+   ✓ caught      the v2 packed-segment inflater is dropped — the next wire flip's blobs become unreadable (#280)
+   ✓ caught      the shipped wire form reverts to the whole-transcript path — the O(campaign) POST pass returns (#280)
+   ✓ file restored byte-identical
+   8/8 clauses proven
+
+
+  sabotage — compress.js
+   ✓ caught      packWire loses its length pin — tail padding can mint a phantom 15-bit unit (#272 D3)
+   ✓ caught      unpackWire's reconstruction drifts by one — corruption instead of a clean null (#272 D3)
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — storage-adapter.js
+   ✓ caught      the sync sentinel reverts to counting chars — it under-reports the {__lz} wire ~3x again (#272 D3)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+

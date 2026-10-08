@@ -1,0 +1,24 @@
+
+  sabotage — helpers.js
+   ✓ caught      #436: a known key with a colon is bare again (the t11 clobber returns)
+   ✓ caught      #436: the heal predicate never matches — clobbered canon stays sealed and injecting
+   ✓ caught      #436: the heal overwrites a filled target field
+   ✓ caught      #436: a sheet's travelling canon arrives unhealed
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      #436: bare parts fill claimed slots too (a keyed field is overwritten by position)
+   ✓ caught      #436: the proposal boundary skips the heal
+   ✓ caught      #436: SPELL_DEF stops recognising colon keys
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      #436: the overlay is not healed at load
+   ✓ caught      #436: the pending queue is not healed at load
+   ✓ file restored byte-identical
+   2/2 clauses proven
+

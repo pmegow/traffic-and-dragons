@@ -1,0 +1,25 @@
+tree: traffic-and-dragons-next-ten-ending
+--- control: a well-formed death claim with a reward
+    He falls. [CANON_TXN_BEGIN:c1|npc-death|Bram|h1|-][SCENE_DEATH:h1][XP:5][ITEM_GAINED:Bram's ring][CANON_TXN_END:c1]
+    summary: ["+Bram's ring","Bram: dead (t9)","+5 XP","party +5 XP"]
+    after  : Bram DEAD | xp 5 | gold undefined | pack ["Longsword","Travel ration","Bram's ring"] | quest ["active"] | claims ["c1:committed"]
+--- the same claim, one reward tag carries the word
+    He falls. [CANON_TXN_BEGIN:c1|npc-death|Bram|h1|-][SCENE_DEATH:h1][XP:5][ITEM_GAINED:constructor][CANON_TXN_END:c1]
+    summary: ["+constructor","Bram: dead (t9)","+5 XP","party +5 XP"]
+    after  : Bram DEAD | xp 5 | gold undefined | pack ["Longsword","Travel ration","constructor"] | quest ["active"] | claims ["c1:committed"]
+--- two claims, the FIRST carries the word in its marker
+    x [CANON_TXN_BEGIN:c0|npc-death|constructor|h9|-][SCENE_DEATH:h9][XP:5][CANON_TXN_END:c0] y [CANON_TXN_BEGIN:c1|npc-death|Bram|h1|-][SCENE_DEATH:h1][XP:5][CANON_TXN_END:c1]
+    summary: ["⚠ Canon claim c0 quarantined","Bram: dead (t9)","+5 XP","party +5 XP"]
+    after  : Bram DEAD | xp 5 | gold undefined | pack ["Longsword","Travel ration"] | quest ["active"] | claims ["c0:quarantined","c1:committed"]
+--- two claims, the SECOND carries the word in its marker
+    x [CANON_TXN_BEGIN:c1|npc-death|Bram|h1|-][SCENE_DEATH:h1][XP:5][CANON_TXN_END:c1] y [CANON_TXN_BEGIN:c2|quest-outcome|-|-|constructor][QUEST:constructor|completed][GOLD:9][CANON_TXN_END:c2]
+    summary: ["Bram: dead (t9)","+5 XP","party +5 XP","⚠ Canon claim c2 quarantined"]
+    after  : Bram DEAD | xp 5 | gold undefined | pack ["Longsword","Travel ration"] | quest ["active"] | claims ["c2:quarantined","c1:committed"]
+--- a death claim whose death operation is the tag that carries the word (wrong-victim tag)
+    He falls. [CANON_TXN_BEGIN:c1|npc-death|Bram|h1|-][SCENE_DEATH:h1][NPC:constructor|dead|enemy][XP:5][CANON_TXN_END:c1]
+    summary: ["⚠ Canon claim c1 quarantined"]
+    after  : Bram alive | xp 0 | gold undefined | pack ["Longsword","Travel ration"] | quest ["active"] | claims ["c1:quarantined"]
+--- control for the line above (a second victim that is not the subject)
+    He falls. [CANON_TXN_BEGIN:c1|npc-death|Bram|h1|-][SCENE_DEATH:h1][NPC:construqtor|dead|enemy][XP:5][CANON_TXN_END:c1]
+    summary: ["⚠ Canon claim c1 quarantined"]
+    after  : Bram alive | xp 0 | gold undefined | pack ["Longsword","Travel ration"] | quest ["active"] | claims ["c1:quarantined"]

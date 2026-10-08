@@ -1,0 +1,4331 @@
+{
+ "tree": "traffic-and-dragons-next-ten-ending",
+ "runs": 22188,
+ "counts": {
+  "toLocaleString SAME": 22017,
+  "toLocaleString STATE_KEY": 163,
+  "toLocaleString DIFF": 8
+ },
+ "results": [
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:toLocaleString]",
+   "muts": [
+    "-> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.locations",
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:toLocaleString ]",
+   "muts": [
+    "-> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.locations",
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:﻿toLocaleString]",
+   "muts": [
+    "-> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.locations",
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:\ntoLocaleString\n]",
+   "muts": [
+    "-> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.locations",
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION:toLocaleString]",
+   "muts": [
+    "-> toLocaleString",
+    "Time: dusk [LOCATION:toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:toLocaleString' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.locations",
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> toLocaleStqing",
+    "Time: dusk [LOCATION:toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:toLocaleStqing' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:toLocaleString]",
+   "muts": [
+    "-> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.locations",
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:toLocaleString ]",
+   "muts": [
+    "-> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.locations",
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:﻿toLocaleString]",
+   "muts": [
+    "-> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.locations",
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:\ntoLocaleString\n]",
+   "muts": [
+    "-> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.locations",
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION:toLocaleString]",
+   "muts": [
+    "-> toLocaleString",
+    "Time: dusk [LOCATION:toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:toLocaleString' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.locations",
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> toLocaleStqing",
+    "Time: dusk [LOCATION:toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:toLocaleStqing' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:toLocaleString|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:toLocaleString |Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:﻿toLocaleString|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:\ntoLocaleString\n|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_ALIAS:toLocaleString|Other]",
+   "muts": [
+    "Time: dusk [NPC_ALIAS:toLocaleString|Other",
+    "Alias: Other -> toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:toLocaleString|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_ALIAS:toLocaleStqing|Other",
+    "Alias: Other -> toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:toLocaleStqing|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:toLocaleString|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:toLocaleString |Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:﻿toLocaleString|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:\ntoLocaleString\n|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_ALIAS:toLocaleString|Other]",
+   "muts": [
+    "Time: dusk [NPC_ALIAS:toLocaleString|Other",
+    "Alias: Other -> toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:toLocaleString|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_ALIAS:toLocaleStqing|Other",
+    "Alias: Other -> toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:toLocaleStqing|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:toLocaleString|Bram]",
+   "muts": [
+    "Merged: Bram -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:toLocaleString |Bram]",
+   "muts": [
+    "Merged: Bram -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:﻿toLocaleString|Bram]",
+   "muts": [
+    "Merged: Bram -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:\ntoLocaleString\n|Bram]",
+   "muts": [
+    "Merged: Bram -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_MERGE:toLocaleString|Bram]",
+   "muts": [
+    "Time: dusk [NPC_MERGE:toLocaleString|Bram",
+    "Merged: Bram -> toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_MERGE:toLocaleString|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_MERGE:toLocaleStqing|Bram",
+    "Merged: Bram -> toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_MERGE:toLocaleStqing|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|toLocaleString|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|toLocaleString |Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|﻿toLocaleString|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|\ntoLocaleString\n|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [ALIAS:npc|toLocaleString|Other]",
+   "muts": [
+    "Time: dusk [ALIAS:npc|toLocaleString|Other",
+    "Alias: Other -> toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|toLocaleString|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [ALIAS:npc|toLocaleStqing|Other",
+    "Alias: Other -> toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|toLocaleStqing|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|toLocaleString|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|toLocaleString |Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|﻿toLocaleString|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|\ntoLocaleString\n|Other]",
+   "muts": [
+    "Alias: Other -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [ALIAS:npc|toLocaleString|Other]",
+   "muts": [
+    "Time: dusk [ALIAS:npc|toLocaleString|Other",
+    "Alias: Other -> toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|toLocaleString|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [ALIAS:npc|toLocaleStqing|Other",
+    "Alias: Other -> toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|toLocaleStqing|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|toLocaleString|Bram]",
+   "muts": [
+    "Merged: Bram -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|toLocaleString |Bram]",
+   "muts": [
+    "Merged: Bram -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|﻿toLocaleString|Bram]",
+   "muts": [
+    "Merged: Bram -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|\ntoLocaleString\n|Bram]",
+   "muts": [
+    "Merged: Bram -> toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [MERGE:npc|toLocaleString|Bram]",
+   "muts": [
+    "Time: dusk [MERGE:npc|toLocaleString|Bram",
+    "Merged: Bram -> toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [MERGE:npc|toLocaleString|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [MERGE:npc|toLocaleStqing|Bram",
+    "Merged: Bram -> toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [MERGE:npc|toLocaleStqing|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:toLocaleString|calm|ally]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:toLocaleString |calm|ally]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿toLocaleString|calm|ally]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\ntoLocaleString\n|calm|ally]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:toLocaleString|calm|ally]",
+   "muts": [
+    "Time: dusk [NPC:toLocaleString|calm|ally",
+    "NPC: toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:toLocaleString|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:toLocaleStqing|calm|ally",
+    "NPC: toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:toLocaleStqing|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:toLocaleString|calm|ally]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:toLocaleString |calm|ally]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿toLocaleString|calm|ally]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\ntoLocaleString\n|calm|ally]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:toLocaleString|calm|ally]",
+   "muts": [
+    "Time: dusk [NPC:toLocaleString|calm|ally",
+    "NPC: toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:toLocaleString|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:toLocaleStqing|calm|ally",
+    "NPC: toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:toLocaleStqing|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:toLocaleString|dead|enemy]",
+   "muts": [
+    "toLocaleString: dead (t9)",
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: dead (t9)",
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:toLocaleString |dead|enemy]",
+   "muts": [
+    "toLocaleString: dead (t9)",
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: dead (t9)",
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿toLocaleString|dead|enemy]",
+   "muts": [
+    "toLocaleString: dead (t9)",
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: dead (t9)",
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\ntoLocaleString\n|dead|enemy]",
+   "muts": [
+    "toLocaleString: dead (t9)",
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: dead (t9)",
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:toLocaleString|dead|enemy]",
+   "muts": [
+    "Time: dusk [NPC:toLocaleString|dead|enemy",
+    "toLocaleString: dead (t9)",
+    "NPC: toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:toLocaleString|dead|enemy' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:toLocaleStqing|dead|enemy",
+    "toLocaleStqing: dead (t9)",
+    "NPC: toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:toLocaleStqing|dead|enemy' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:toLocaleString]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:toLocaleString ]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿toLocaleString]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\ntoLocaleString\n]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:toLocaleString]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:toLocaleString",
+    "Resident here: toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:toLocaleString' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:toLocaleStqing",
+    "Resident here: toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:toLocaleStqing' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:toLocaleString]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:toLocaleString ]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿toLocaleString]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\ntoLocaleString\n]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:toLocaleString]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:toLocaleString",
+    "Resident here: toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:toLocaleString' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:toLocaleStqing",
+    "Resident here: toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:toLocaleStqing' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:toLocaleString|a rider]",
+   "muts": [
+    "Registered from death report: toLocaleString",
+    "toLocaleString: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: toLocaleStqing",
+    "toLocaleStqing: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:toLocaleString |a rider]",
+   "muts": [
+    "Registered from death report: toLocaleString",
+    "toLocaleString: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: toLocaleStqing",
+    "toLocaleStqing: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:﻿toLocaleString|a rider]",
+   "muts": [
+    "Registered from death report: toLocaleString",
+    "toLocaleString: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: toLocaleStqing",
+    "toLocaleStqing: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:\ntoLocaleString\n|a rider]",
+   "muts": [
+    "Registered from death report: toLocaleString",
+    "toLocaleString: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: toLocaleStqing",
+    "toLocaleStqing: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_DEATH_REPORTED:toLocaleString|a rider]",
+   "muts": [
+    "Time: dusk [NPC_DEATH_REPORTED:toLocaleString|a rider",
+    "Registered from death report: toLocaleString",
+    "toLocaleString: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:toLocaleString|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_DEATH_REPORTED:toLocaleStqing|a rider",
+    "Registered from death report: toLocaleStqing",
+    "toLocaleStqing: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:toLocaleStqing|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:toLocaleString|a rider]",
+   "muts": [
+    "Registered from death report: toLocaleString",
+    "toLocaleString: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: toLocaleStqing",
+    "toLocaleStqing: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:toLocaleString |a rider]",
+   "muts": [
+    "Registered from death report: toLocaleString",
+    "toLocaleString: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: toLocaleStqing",
+    "toLocaleStqing: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:﻿toLocaleString|a rider]",
+   "muts": [
+    "Registered from death report: toLocaleString",
+    "toLocaleString: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: toLocaleStqing",
+    "toLocaleStqing: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:\ntoLocaleString\n|a rider]",
+   "muts": [
+    "Registered from death report: toLocaleString",
+    "toLocaleString: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: toLocaleStqing",
+    "toLocaleStqing: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_DEATH_REPORTED:toLocaleString|a rider]",
+   "muts": [
+    "Time: dusk [NPC_DEATH_REPORTED:toLocaleString|a rider",
+    "Registered from death report: toLocaleString",
+    "toLocaleString: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:toLocaleString|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_DEATH_REPORTED:toLocaleStqing|a rider",
+    "Registered from death report: toLocaleStqing",
+    "toLocaleStqing: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:toLocaleStqing|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "Bram and +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Bram and toLocaleString]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3145,
+     "word": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and tolocalestr\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitu",
+     "control": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and tolocalestq\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitu"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "Bram & +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Bram & toLocaleString]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3143,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram & tolocalestrin\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram & tolocalestqin\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "Arc 1: +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Arc 1: toLocaleString]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3143,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"arc 1: tolocalestrin\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"arc 1: tolocalestqin\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "Ashfen (+)",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Ashfen (toLocaleString)]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3144,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (tolocalestri\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attit",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (tolocalestqi\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attit"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "Bram and +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Bram and toLocaleString]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3342,
+     "word": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and tolocalestr\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the f",
+     "control": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and tolocalestq\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the f"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "Bram & +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Bram & toLocaleString]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3340,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram & tolocalestrin\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram & tolocalestqin\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "Arc 1: +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Arc 1: toLocaleString]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3340,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"arc 1: tolocalestrin\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"arc 1: tolocalestqin\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "Ashfen (+)",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Ashfen (toLocaleString)]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3341,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (tolocalestri\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the ",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (tolocalestqi\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the "
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:toLocaleString|completed]",
+   "muts": [
+    "Quest: toLocaleString (completed)",
+    "+50 XP (quest milestone: toLocaleString)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: toLocaleStqing (completed)",
+    "+50 XP (quest milestone: toLocaleStqing)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:toLocaleString |completed]",
+   "muts": [
+    "Quest: toLocaleString (completed)",
+    "+50 XP (quest milestone: toLocaleString)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: toLocaleStqing (completed)",
+    "+50 XP (quest milestone: toLocaleStqing)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:﻿toLocaleString|completed]",
+   "muts": [
+    "Quest: toLocaleString (completed)",
+    "+50 XP (quest milestone: toLocaleString)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: toLocaleStqing (completed)",
+    "+50 XP (quest milestone: toLocaleStqing)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:\ntoLocaleString\n|completed]",
+   "muts": [
+    "Quest: toLocaleString (completed)",
+    "+50 XP (quest milestone: toLocaleString)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: toLocaleStqing (completed)",
+    "+50 XP (quest milestone: toLocaleStqing)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [QUEST:toLocaleString|completed]",
+   "muts": [
+    "Time: dusk [QUEST:toLocaleString|completed",
+    "Quest: toLocaleString (completed)",
+    "+50 XP (quest milestone: toLocaleString)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:toLocaleString|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [QUEST:toLocaleStqing|completed",
+    "Quest: toLocaleStqing (completed)",
+    "+50 XP (quest milestone: toLocaleStqing)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:toLocaleStqing|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:toLocaleString|completed]",
+   "muts": [
+    "Quest: toLocaleString (completed)",
+    "+50 XP (quest milestone: toLocaleString)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: toLocaleStqing (completed)",
+    "+50 XP (quest milestone: toLocaleStqing)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:toLocaleString |completed]",
+   "muts": [
+    "Quest: toLocaleString (completed)",
+    "+50 XP (quest milestone: toLocaleString)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: toLocaleStqing (completed)",
+    "+50 XP (quest milestone: toLocaleStqing)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:﻿toLocaleString|completed]",
+   "muts": [
+    "Quest: toLocaleString (completed)",
+    "+50 XP (quest milestone: toLocaleString)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: toLocaleStqing (completed)",
+    "+50 XP (quest milestone: toLocaleStqing)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:\ntoLocaleString\n|completed]",
+   "muts": [
+    "Quest: toLocaleString (completed)",
+    "+50 XP (quest milestone: toLocaleString)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: toLocaleStqing (completed)",
+    "+50 XP (quest milestone: toLocaleStqing)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [QUEST:toLocaleString|completed]",
+   "muts": [
+    "Time: dusk [QUEST:toLocaleString|completed",
+    "Quest: toLocaleString (completed)",
+    "+50 XP (quest milestone: toLocaleString)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:toLocaleString|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [QUEST:toLocaleStqing|completed",
+    "Quest: toLocaleStqing (completed)",
+    "+50 XP (quest milestone: toLocaleStqing)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:toLocaleStqing|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_NOTE:toLocaleString|a fact]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_NOTE:toLocaleString|a fact]",
+   "muts": [
+    "Time: dusk [NPC_NOTE:toLocaleString|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:toLocaleString|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_NOTE:toLocaleStqing|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:toLocaleStqing|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_NOTE:toLocaleString|a fact]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_NOTE:toLocaleString|a fact]",
+   "muts": [
+    "Time: dusk [NPC_NOTE:toLocaleString|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:toLocaleString|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_NOTE:toLocaleStqing|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:toLocaleStqing|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:toLocaleString|old|new]",
+   "muts": [
+    "toLocaleString: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:toLocaleString |old|new]",
+   "muts": [
+    "toLocaleString: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:﻿toLocaleString|old|new]",
+   "muts": [
+    "toLocaleString: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:\ntoLocaleString\n|old|new]",
+   "muts": [
+    "toLocaleString: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_SUPERSEDE:toLocaleString|old|new]",
+   "muts": [
+    "Time: dusk [NPC_SUPERSEDE:toLocaleString|old|new",
+    "toLocaleString: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:toLocaleString|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_SUPERSEDE:toLocaleStqing|old|new",
+    "toLocaleStqing: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:toLocaleStqing|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:toLocaleString|old|new]",
+   "muts": [
+    "toLocaleString: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:toLocaleString |old|new]",
+   "muts": [
+    "toLocaleString: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:﻿toLocaleString|old|new]",
+   "muts": [
+    "toLocaleString: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:\ntoLocaleString\n|old|new]",
+   "muts": [
+    "toLocaleString: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_SUPERSEDE:toLocaleString|old|new]",
+   "muts": [
+    "Time: dusk [NPC_SUPERSEDE:toLocaleString|old|new",
+    "toLocaleString: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:toLocaleString|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_SUPERSEDE:toLocaleStqing|old|new",
+    "toLocaleStqing: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:toLocaleStqing|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_PRONOUN:toLocaleString|he/him]",
+   "muts": [
+    "Pronouns: toLocaleString (he/him)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Pronouns: toLocaleStqing (he/him)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_PRONOUN:toLocaleString|he/him]",
+   "muts": [
+    "Time: dusk [NPC_PRONOUN:toLocaleString|he/him",
+    "Pronouns: toLocaleString (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:toLocaleString|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_PRONOUN:toLocaleStqing|he/him",
+    "Pronouns: toLocaleStqing (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:toLocaleStqing|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_PRONOUN:toLocaleString|he/him]",
+   "muts": [
+    "Pronouns: toLocaleString (he/him)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Pronouns: toLocaleStqing (he/him)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_PRONOUN:toLocaleString|he/him]",
+   "muts": [
+    "Time: dusk [NPC_PRONOUN:toLocaleString|he/him",
+    "Pronouns: toLocaleString (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:toLocaleString|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_PRONOUN:toLocaleStqing|he/him",
+    "Pronouns: toLocaleStqing (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:toLocaleStqing|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:toLocaleString|a group]",
+   "muts": [
+    "Faction: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:toLocaleString |a group]",
+   "muts": [
+    "Faction: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:﻿toLocaleString|a group]",
+   "muts": [
+    "Faction: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:\ntoLocaleString\n|a group]",
+   "muts": [
+    "Faction: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [FACTION:toLocaleString|a group]",
+   "muts": [
+    "Time: dusk [FACTION:toLocaleString|a group",
+    "Faction: toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:toLocaleString|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [FACTION:toLocaleStqing|a group",
+    "Faction: toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:toLocaleStqing|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:toLocaleString|a group]",
+   "muts": [
+    "Faction: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:toLocaleString |a group]",
+   "muts": [
+    "Faction: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:﻿toLocaleString|a group]",
+   "muts": [
+    "Faction: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:\ntoLocaleString\n|a group]",
+   "muts": [
+    "Faction: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [FACTION:toLocaleString|a group]",
+   "muts": [
+    "Time: dusk [FACTION:toLocaleString|a group",
+    "Faction: toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:toLocaleString|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [FACTION:toLocaleStqing|a group",
+    "Faction: toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:toLocaleStqing|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:toLocaleString|The Guild|member]",
+   "muts": [
+    "toLocaleString: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:toLocaleString |The Guild|member]",
+   "muts": [
+    "toLocaleString: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:﻿toLocaleString|The Guild|member]",
+   "muts": [
+    "toLocaleString: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:\ntoLocaleString\n|The Guild|member]",
+   "muts": [
+    "toLocaleString: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:toLocaleString|The Guild|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:toLocaleString|The Guild|member",
+    "toLocaleString: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:toLocaleString|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:toLocaleStqing|The Guild|member",
+    "toLocaleStqing: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:toLocaleStqing|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:toLocaleString|The Guild|member]",
+   "muts": [
+    "toLocaleString: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:toLocaleString |The Guild|member]",
+   "muts": [
+    "toLocaleString: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:﻿toLocaleString|The Guild|member]",
+   "muts": [
+    "toLocaleString: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:\ntoLocaleString\n|The Guild|member]",
+   "muts": [
+    "toLocaleString: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "toLocaleStqing: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:toLocaleString|The Guild|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:toLocaleString|The Guild|member",
+    "toLocaleString: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:toLocaleString|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:toLocaleStqing|The Guild|member",
+    "toLocaleStqing: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:toLocaleStqing|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|toLocaleString|member]",
+   "muts": [
+    "Bram: toLocaleString [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: toLocaleStqing [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|toLocaleString |member]",
+   "muts": [
+    "Bram: toLocaleString [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: toLocaleStqing [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|﻿toLocaleString|member]",
+   "muts": [
+    "Bram: toLocaleString [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: toLocaleStqing [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|\ntoLocaleString\n|member]",
+   "muts": [
+    "Bram: toLocaleString [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: toLocaleStqing [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:Bram|toLocaleString|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:Bram|toLocaleString|member",
+    "Bram: toLocaleString [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|toLocaleString|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:Bram|toLocaleStqing|member",
+    "Bram: toLocaleStqing [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|toLocaleStqing|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|toLocaleString|member]",
+   "muts": [
+    "Bram: toLocaleString [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: toLocaleStqing [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|toLocaleString |member]",
+   "muts": [
+    "Bram: toLocaleString [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: toLocaleStqing [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|﻿toLocaleString|member]",
+   "muts": [
+    "Bram: toLocaleString [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: toLocaleStqing [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|\ntoLocaleString\n|member]",
+   "muts": [
+    "Bram: toLocaleString [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: toLocaleStqing [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:Bram|toLocaleString|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:Bram|toLocaleString|member",
+    "Bram: toLocaleString [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|toLocaleString|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:Bram|toLocaleStqing|member",
+    "Bram: toLocaleStqing [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|toLocaleStqing|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:toLocaleString|true]",
+   "muts": [
+    "Party: +toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:toLocaleString |true]",
+   "muts": [
+    "Party: +toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:﻿toLocaleString|true]",
+   "muts": [
+    "Party: +toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:\ntoLocaleString\n|true]",
+   "muts": [
+    "Party: +toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_MEMBER:toLocaleString|true]",
+   "muts": [
+    "Time: dusk [PARTY_MEMBER:toLocaleString|true",
+    "Party: +toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:toLocaleString|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_MEMBER:toLocaleStqing|true",
+    "Party: +toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:toLocaleStqing|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:toLocaleString|true]",
+   "muts": [
+    "Party: +toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:toLocaleString |true]",
+   "muts": [
+    "Party: +toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:﻿toLocaleString|true]",
+   "muts": [
+    "Party: +toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:\ntoLocaleString\n|true]",
+   "muts": [
+    "Party: +toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_MEMBER:toLocaleString|true]",
+   "muts": [
+    "Time: dusk [PARTY_MEMBER:toLocaleString|true",
+    "Party: +toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:toLocaleString|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_MEMBER:toLocaleStqing|true",
+    "Party: +toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:toLocaleStqing|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|toLocaleString]",
+   "muts": [
+    "Kira splits off to toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|toLocaleString ]",
+   "muts": [
+    "Kira splits off to toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|﻿toLocaleString]",
+   "muts": [
+    "Kira splits off to toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|\ntoLocaleString\n]",
+   "muts": [
+    "Kira splits off to toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_SPLIT:Kira|toLocaleString]",
+   "muts": [
+    "Time: dusk [PARTY_SPLIT:Kira|toLocaleString",
+    "Kira splits off to toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|toLocaleString' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_SPLIT:Kira|toLocaleStqing",
+    "Kira splits off to toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|toLocaleStqing' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|toLocaleString]",
+   "muts": [
+    "Kira splits off to toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|toLocaleString ]",
+   "muts": [
+    "Kira splits off to toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|﻿toLocaleString]",
+   "muts": [
+    "Kira splits off to toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|\ntoLocaleString\n]",
+   "muts": [
+    "Kira splits off to toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_SPLIT:Kira|toLocaleString]",
+   "muts": [
+    "Time: dusk [PARTY_SPLIT:Kira|toLocaleString",
+    "Kira splits off to toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|toLocaleString' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_SPLIT:Kira|toLocaleStqing",
+    "Kira splits off to toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|toLocaleStqing' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:toLocaleString]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:toLocaleString ]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿toLocaleString]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\ntoLocaleString\n]",
+   "muts": [
+    "Resident here: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:toLocaleString]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:toLocaleString",
+    "Resident here: toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:toLocaleString' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:toLocaleStqing",
+    "Resident here: toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:toLocaleStqing' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:toLocaleString|calm|neighbour]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:toLocaleString |calm|neighbour]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿toLocaleString|calm|neighbour]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\ntoLocaleString\n|calm|neighbour]",
+   "muts": [
+    "NPC: toLocaleString"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: toLocaleStqing"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "toLocaleString",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:toLocaleString|calm|neighbour]",
+   "muts": [
+    "Time: dusk [NPC:toLocaleString|calm|neighbour",
+    "NPC: toLocaleString",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:toLocaleString|calm|neighbour' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'toLocaleString' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:toLocaleStqing|calm|neighbour",
+    "NPC: toLocaleStqing",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:toLocaleStqing|calm|neighbour' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  }
+ ]
+}

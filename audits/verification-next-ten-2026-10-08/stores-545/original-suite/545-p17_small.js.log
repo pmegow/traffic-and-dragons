@@ -1,0 +1,43 @@
+tree: traffic-and-dragons-next-ten-ending
+--- capability name with a parenthetical: SPELL_DEF (capBaseName strips it and lower-cases)
+    word   : [SPELL_DEF:Constructor (ritual)|range=30 ft|effect=raises a wall]
+             summary ["Spell canon defined: Constructor (ritual)"] | console lines 0 | overlay keys ["constructor"]
+    control: [SPELL_DEF:Construqtor (ritual)|range=30 ft|effect=raises a wall]
+             summary ["Spell canon defined: Construqtor (ritual)"] | console lines 0 | overlay keys ["construqtor"]
+--- capability name with a parenthetical: ABILITY_GAINED, then the scene manifest
+    word   : [ABILITY_GAINED:Constructor (lesser)|You raise a wall of stone.]
+             summary ["Ability: Constructor (lesser)"] | console lines 0 | manifest caps ["faerie fire"] | capabilityLookup -> object
+    control: [ABILITY_GAINED:Construqtor (lesser)|You raise a wall of stone.]
+             summary ["Ability: Construqtor (lesser)"] | console lines 0 | manifest caps ["faerie fire"] | capabilityLookup -> object
+--- PARTY_SPLIT to 'word (the yard)' (the handler peels the parenthetical when the outer name is a known place)
+    word   : [PARTY_SPLIT:Kira|constructor (the yard)]
+             summary ["Kira splits off to constructor (the yard)"] | console lines 0 | split record {"location":"constructor (the yard)","sublocation":null,"turn":9} | edges [{"from":"Ashfen","to":"constructor (the yard)","turn":9}]
+    control: [PARTY_SPLIT:Kira|construqtor (the yard)]
+             summary ["Kira splits off to construqtor (the yard)"] | console lines 0 | split record {"location":"construqtor (the yard)","sublocation":null,"turn":9} | edges [{"from":"Ashfen","to":"construqtor (the yard)","turn":9}]
+--- LAYOUT: a second room after ';' named by the word
+    word   : [LAYOUT:hall|small|a bench|outside; constructor|small|a vat|hall]
+             summary ["Layout: 2 rooms on record"] | console lines 0 | layout on record: true
+    control: [LAYOUT:hall|small|a bench|outside; construqtor|small|a vat|hall]
+             summary ["Layout: 2 rooms on record"] | console lines 0 | layout on record: true
+--- LAYOUT: a door to a room that is not listed, named by the word
+    word   : [LAYOUT:hall|small|a bench|constructor; yard|small|a vat|hall]
+             summary ["⚠ [LAYOUT:] refused — 'hall' opens onto 'constructor', which is not a listed room (or 'outside')"] | console lines 0 | layout on record: false
+    control: [LAYOUT:hall|small|a bench|construqtor; yard|small|a vat|hall]
+             summary ["⚠ [LAYOUT:] refused — 'hall' opens onto 'construqtor', which is not a listed room (or 'outside')"] | console lines 0 | layout on record: false
+--- ITEM_DEF: the word as a field key
+    word   : [ITEM_DEF:Lantern|constructor=gnomes|effect=gives light]
+             summary ["Item canon proposed: Lantern (awaiting your confirmation)"] | console lines 0 | proposed entry {"category":"tool","effect":"gives light","uses":"N/A","value":"N/A"}
+    control: [ITEM_DEF:Lantern|construqtor=gnomes|effect=gives light]
+             summary ["Item canon proposed: Lantern (awaiting your confirmation)"] | console lines 0 | proposed entry {"category":"tool","effect":"gives light","uses":"N/A","value":"N/A"}
+--- ITEM_DEF: the word as the category
+    word   : [ITEM_DEF:Lantern|category=constructor|effect=gives light]
+             summary ["Item canon proposed: Lantern (awaiting your confirmation)"] | console lines 0 | proposed entry {"category":"tool","effect":"gives light","uses":"N/A","value":"N/A"}
+    control: [ITEM_DEF:Lantern|category=construqtor|effect=gives light]
+             summary ["Item canon proposed: Lantern (awaiting your confirmation)"] | console lines 0 | proposed entry {"category":"tool","effect":"gives light","uses":"N/A","value":"N/A"}
+--- SOUNDSCAPE: the word as a field name
+    word   : [SOUNDSCAPE:Ashfen|constructor=open;enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds;forbid=none]
+             summary [] | console lines 0 | parse says: {"ok":false,"reason":"invalid or repeated field"}
+    control: [SOUNDSCAPE:Ashfen|construqtor=open;enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds;forbid=none]
+             summary [] | console lines 0 | parse says: {"ok":false,"reason":"invalid or repeated field"}
+--- OLD (any word): motivationChanges with a list-valued name ["Kira"]
+    applied | Bram knows ["keeps the forge","shod the grey mare"] | chapters filed 1

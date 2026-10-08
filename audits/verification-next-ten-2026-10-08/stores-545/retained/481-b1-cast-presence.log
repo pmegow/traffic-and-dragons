@@ -1,0 +1,31 @@
+
+  sabotage — identity.js
+   ✓ caught      drop the R.castSet check (Fable's named clause)
+   ✓ caught      [SCENE_CAST:none] withholds every speaker
+   ✓ caught      the out-of-cast speaker is not said
+   ✓ caught      the cast check is never armed
+   ✓ caught      a combatant is seen where the reply ends
+   ✓ file restored byte-identical
+   5/5 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      the presence writer ignores the observed place
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the cast check's registry row stops being combat-silent
+   ✓ caught      the cast check is not one-shot (it never burns its latch)
+   ✓ caught      the volatile ask loses the wording
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      the cast is never parsed
+   ✓ caught      the doc line loses the wording
+   ✓ file restored byte-identical
+   2/2 clauses proven
+

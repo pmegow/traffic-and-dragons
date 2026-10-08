@@ -1,0 +1,12 @@
+tree: C:\Projects\traffic-and-dragons-next-ten-ending
+1. the symbol TAG_RESERVED_WORDS: defined or used in source files 0 time(s); named in DOC/contracts/identity.md 0 time(s)
+   RESERVED_KEY_WORDS in source: 0; in identity.md: 0
+2. DOC/contracts/tags.md (CLAUDE.md: read it when you touch tag_table.js, applyMuts or a refusal path) mentions #536: false, tagStripReserved: false, 'reserved': false
+   the same file documents the chained WARES form the strip does not read: true
+3. tag_table.js, the comment on tagStripReserved: ""
+4. tag_table.js, the comment on tagReservedWord (last sentence): ""
+5. api.js, the comment at the call: ""
+6. order inside applyMuts (character offsets): text=tagRestoreBareMarkers(text)@368942  <  var _rsv=tagStripReserved(text)@-1  <  opts.allow.length@369983  <  w2PrepareResponse(text)@371185
+   CLAUDE.md api.js row says: ""
+7. reservedWordIn's fallback path label "the value" is reachable only for a top-level STRING: callers = 0 call sites (incl. its own recursion and definition); validateBlueprint returns before it for a non-object (true), validateSkeletonStructure throws before it without premise/acts (true)
+8. the claim refusal carries name:"CANON_TXN" (0 write) and nothing reads .name for a claim: the label is "(pattern not found)"

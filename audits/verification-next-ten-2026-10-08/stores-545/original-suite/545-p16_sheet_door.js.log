@@ -1,0 +1,7 @@
+tree: traffic-and-dragons-next-ten-ending
+sheet accepted: true | inventory ["Constructor","Rope"] | abilities ["constructor"] | spells ["Constructor (ritual)","__proto__"]
+built-ins after attach: []
+mana pool (reads the capability bible by spell name): max 2 | per spell [1,1] | lookup('Constructor (ritual)') is a object | lookup('__proto__') is object
+next prompt: builds | built-ins: []
+the GM takes the item back by tag -> ["Kira: -Constructor"] | Kira's pack ["Rope"]
+the GM books her spell by its base name -> ["Kira cast: Constructor (ritual) (−1 mana, 1/2)"] | handler errors []

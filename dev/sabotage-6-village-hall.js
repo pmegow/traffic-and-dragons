@@ -69,7 +69,7 @@ prove("game.js", [
     find: 'if(s.fate){var obj=', replace: 'if(false){var obj=',
     mustFail: "#6G2 the Hall seeds from the library" },
   { label: "the player's line never reaches village state",
-    find: 'if(t.length>200)t=t.slice(0,200);if(!worldState.hallLines)worldState.hallLines={};worldState.hallLines[name]=t;', replace: 'if(t.length>200)t=t.slice(0,200);',
+    find: 'if(t.length>200)t=t.slice(0,200);if(!worldState.hallLines)worldState.hallLines=keyedDict();worldState.hallLines[name]=t;', replace: 'if(t.length>200)t=t.slice(0,200);',
     mustFail: "#6G5 one player-authored line" },
   { label: "closeCampaign closes an already ended campaign again",
     find: 'if(typeof campaignEnded==="function"&&campaignEnded())return {action:"refused",reason:"already ended"};', replace: '',

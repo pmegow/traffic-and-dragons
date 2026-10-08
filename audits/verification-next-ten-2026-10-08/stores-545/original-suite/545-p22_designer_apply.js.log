@@ -1,0 +1,8 @@
+tree: traffic-and-dragons-next-ten-ending
+--- the sample as shipped
+    model calls spent: 1 | premise changed: true | finding status: "applied"
+    status line: "Applied (premise) — tightened the premise"
+--- the same file, one NPC's role is the one word 'Constructor'
+    model calls spent: 1 | premise changed: true | finding status: "applied"
+    status line: "Applied (premise) — tightened the premise"
+page errors: []

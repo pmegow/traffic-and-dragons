@@ -186,8 +186,8 @@ function _locEntries(){
   return (memory.map.identity&&memory.map.identity.entries)||null;
 }
 function _locEntriesEnsure(){
-  if(!memory.map.identity)memory.map.identity={entries:{}};
-  if(!memory.map.identity.entries)memory.map.identity.entries={};
+  if(!memory.map.identity)memory.map.identity={entries:keyedDict()};
+  if(!memory.map.identity.entries)memory.map.identity.entries=keyedDict();
   return memory.map.identity.entries;
 }
 // Resolution memo: the table only changes on repair operations (rare), so resolution is a hash
@@ -207,7 +207,7 @@ function locResolve(name){
   if(_locResMemoGen!==_locResGen||_locResMemoObj!==entries||_locResMemoKeys!==_locKeyCount){_locResMemo=Object.create(null);_locResMemoGen=_locResGen;_locResMemoObj=entries;_locResMemoKeys=_locKeyCount;}
   var hit=_locResMemo[name];
   if(hit!==undefined)return hit;
-  var cur=String(name),seen={},guard=0;
+  var cur=String(name),seen=keyedDict(),guard=0;
   while(guard++<12){
     var e=entries[cur];
     if(e&&e.mergedInto){
@@ -284,9 +284,9 @@ function resolvePlaceName(name,parent){
   parent=locResolve(parent);
   var direct=locResolve(parent+"|"+nm);if(nodes[direct])return {key:direct,via:"exact"};
   var def=(typeof kindDef==="function")?kindDef():null,canon=(def&&def.placeCanon)||[];
-  for(i=0;i<canon.length;i++){var fn=PLACE_CANONICALISERS[canon[i]];if(!fn)continue;var hit=fn(nm,parent);if(hit&&hit.key){hit.via=canon[i];return hit;}}
+  for(i=0;i<canon.length;i++){var fn=ownValue(PLACE_CANONICALISERS,canon[i]);if(!fn)continue;var hit=fn(nm,parent);if(hit&&hit.key){hit.via=canon[i];return hit;}}
   var want=placeNameNorm(nm);if(!want)return null;
-  var ks=Object.keys(nodes).sort(),found=[],seen={};
+  var ks=Object.keys(nodes).sort(),found=[],seen=keyedDict();
   for(i=0;i<ks.length;i++){var k=locResolve(ks[i]),n=nodes[k];if(!n||seen[k]||!n.parent||!locSame(n.parent,parent))continue;
     if(placeNameNorm(placeKeyLeaf(k))===want||placeNameNorm(locDisplayLeaf(k))===want){seen[k]=1;found.push(k);}}
   if(!found.length)return null;
@@ -437,7 +437,7 @@ function _locHealLivePointers(R){
   if(heals&&R)R.muts.push(heals+" live location pointer(s) healed");
 }
 function _locCompactEdges(R){
-  var kept=[],sig={},dropped=0,collapsed=0,i;
+  var kept=[],sig=keyedDict(),dropped=0,collapsed=0,i;
   for(i=0;i<memory.map.edges.length;i++){
     var e=memory.map.edges[i],a=locResolve(e.from),b=locResolve(e.to);
     if(a===b){dropped++;continue;}
@@ -521,7 +521,7 @@ function locSplit(fusedKey,spec,R){
   memArchive().identityMerges.push({domain:"location",op:"split",key:fusedKey,primary:spec.primary,successors:succ.map(function(s){return s.key;}),turn:R.turn,
     records:{node:JSON.parse(JSON.stringify(node)),identity:entries[fusedKey]?JSON.parse(JSON.stringify(entries[fusedKey])):null}});
   var notes=node.stateNotes||[],items=node.items||[],npcs=node.npcs||[],gbook=node.guestbook||{};
-  var claimedN={},claimedI={},claimedP={},claimedG={};
+  var claimedN=keyedDict(),claimedI=keyedDict(),claimedP=keyedDict(),claimedG=keyedDict();
   for(i=0;i<succ.length;i++){
     var s=succ[i],take=s.take||{};
     var fresh=newMapNode(node.firstVisit,node.parent||null);/* audit C3: the one factory */
@@ -541,7 +541,7 @@ function locSplit(fusedKey,spec,R){
     /* #173 (amendment ④): guestbook allocation is EXPLICIT — take.guestbook names the characters
        whose whole visit record moves to this successor; a silent primary-copy is not evidence.
        First claim wins (the claimedP pattern); unclaimed records stay with the primary below. */
-    for(j=0;j<(take.guestbook||[]).length;j++){var gk=take.guestbook[j];if(gbook[gk]&&!claimedG[gk]){fresh.guestbook=fresh.guestbook||{};fresh.guestbook[gk]=gbook[gk];claimedG[gk]=1;}}
+    for(j=0;j<(take.guestbook||[]).length;j++){var gk=take.guestbook[j];if(gbook[gk]&&!claimedG[gk]){fresh.guestbook=fresh.guestbook||keyedDict();fresh.guestbook[gk]=gbook[gk];claimedG[gk]=1;}}
     for(j=0;j<(take.children||[]).length;j++){var ck=take.children[j],cn=memory.map.nodes[ck];if(cn)cn.parent=s.key;}
     memory.map.nodes[s.key]=fresh;
   }
@@ -552,7 +552,7 @@ function locSplit(fusedKey,spec,R){
   for(i=0;i<items.length;i++){if(!claimedI[i])prim.items.push(items[i]);}
   for(i=0;i<npcs.length;i++){if(!claimedP[npcs[i]])prim.npcs.push(npcs[i]);}
   var gbNames=Object.keys(gbook);/* #173: unclaimed guestbook records stay with the primary — coarse-but-consistent, same as every other unallocated fact */
-  for(i=0;i<gbNames.length;i++){if(!claimedG[gbNames[i]]){prim.guestbook=prim.guestbook||{};prim.guestbook[gbNames[i]]=gbook[gbNames[i]];}}
+  for(i=0;i<gbNames.length;i++){if(!claimedG[gbNames[i]]){prim.guestbook=prim.guestbook||keyedDict();prim.guestbook[gbNames[i]]=gbook[gbNames[i]];}}
   for(i=0;i<memory.map.edges.length;i++){
     var e=memory.map.edges[i];
     if(e.from!==fusedKey&&e.to!==fusedKey)continue;
@@ -591,7 +591,7 @@ function locAliasRegister(canonical,alias,R){/* #529: R may be null — the arri
 // directly (deliberate Phase A call: zero parse-path churn buys nothing until the location
 // domain needs the shared path in Phase B — recorded in the Phase A review).
 function resolveEntity(domain,name){
-  var d=IDENTITY_DOMAINS[domain];
+  var d=ownValue(IDENTITY_DOMAINS,domain);
   if(!d){if(typeof console!=="undefined")console.warn("[identity] unknown domain '"+domain+"' — name passed through unresolved");return name;}
   return d.resolve(name);
 }
@@ -727,7 +727,7 @@ function _relationshipRemovePending(key){
   if(!worldState.relBondChanges)return;worldState.relBondChanges=worldState.relBondChanges.filter(function(x){return x.key!==key;});if(!worldState.relBondChanges.length)delete worldState.relBondChanges;
 }
 function _relationshipReceipt(who,entity,prev,next,turn,prevDynamic,nextDynamic){
-  if(!worldState.relBondReceipts)worldState.relBondReceipts={};var key=relationshipEdgeKey(who,entity);
+  if(!worldState.relBondReceipts)worldState.relBondReceipts=keyedDict();var key=relationshipEdgeKey(who,entity);
   worldState.relBondReceipts[key]={who:who?resolveNpcName(who):null,entity:relationshipEntityKey(entity),prev:prev,next:next,turn:turn};
   if(prevDynamic!==undefined){worldState.relBondReceipts[key].prevDynamic=prevDynamic;worldState.relBondReceipts[key].nextDynamic=nextDynamic;}
 }
@@ -795,8 +795,8 @@ function relationshipSwapOwners(newPlayer,oldPlayer){
   function swap(who){if(!who)return oldPlayer;if(resolveNpcName(who)===resolveNpcName(newPlayer))return null;return who;}
   var qs=[worldState.relAxisChoices||[],worldState.relBondChanges||[],worldState.relDowngrades||[]],i,j;
   for(i=0;i<qs.length;i++)for(j=0;j<qs[i].length;j++){qs[i][j].who=swap(qs[i][j].who);if(qs[i][j].key)qs[i][j].key=relationshipEdgeKey(qs[i][j].who,qs[i][j].entity);}
-  if(worldState.relBondReceipts){var old=worldState.relBondReceipts,fresh={},ks=Object.keys(old);for(i=0;i<ks.length;i++){var rec=old[ks[i]];rec.who=swap(rec.who);fresh[relationshipEdgeKey(rec.who,rec.entity)]=rec;}worldState.relBondReceipts=fresh;}
-  if(worldState.relAxisReviewFired){var rf=worldState.relAxisReviewFired,rn={},rks=Object.keys(rf);for(i=0;i<rks.length;i++){var parts=rks[i].split("\u001f"),rw=parts[0]==="@player"?null:parts[0],re=parts.slice(1).join("\u001f");rn[relationshipEdgeKey(swap(rw),re)]=rf[rks[i]];}worldState.relAxisReviewFired=rn;}
+  if(worldState.relBondReceipts){var old=worldState.relBondReceipts,fresh=keyedDict(),ks=Object.keys(old);for(i=0;i<ks.length;i++){var rec=old[ks[i]];rec.who=swap(rec.who);fresh[relationshipEdgeKey(rec.who,rec.entity)]=rec;}worldState.relBondReceipts=fresh;}
+  if(worldState.relAxisReviewFired){var rf=worldState.relAxisReviewFired,rn=keyedDict(),rks=Object.keys(rf);for(i=0;i<rks.length;i++){var parts=rks[i].split("\u001f"),rw=parts[0]==="@player"?null:parts[0],re=parts.slice(1).join("\u001f");rn[relationshipEdgeKey(swap(rw),re)]=rf[rks[i]];}worldState.relAxisReviewFired=rn;}
   delete worldState.reciprocityNudged;/* player-relative latch keys are invalid after a heavy anchor swap; bonds re-evaluate from their new direction. */
   worldState.relAuditDue=worldState.turn;
 }
@@ -813,9 +813,9 @@ function relationshipRekeyEntity(canonical,duplicate){
   function scan(sheet,who){if(!sheet)return;var rows=sheet.relationships||[],k;for(k=0;k<rows.length;k++)if(rows[k]&&merged(rows[k].entity))rows[k].entity=can;relationshipMigrateSheet(sheet,who);}
   scan(worldState.character,null);for(i=0;i<(worldState.npcs||[]).length;i++)if(worldState.npcs[i].charSheet)scan(worldState.npcs[i].charSheet,worldState.npcs[i].name);
   for(i=0;i<lists.length;i++)for(j=0;j<lists[i].length;j++){var item=lists[i][j];if(merged(item.entity))item.entity=can;if(item.who&&merged(item.who))item.who=can;if(item.key)item.key=relationshipEdgeKey(item.who,item.entity);}
-  if(worldState.relAxisChoices){var aq=[],seen={};for(i=0;i<worldState.relAxisChoices.length;i++){var ac=worldState.relAxisChoices[i],ak=(ac.who||"@player")+"\u001f"+ac.entity+"\u001f"+ac.kind+"\u001f"+ac.value;if(!seen[ak]){seen[ak]=1;aq.push(ac);}}worldState.relAxisChoices=aq;}
-  if(worldState.relBondReceipts){var old=worldState.relBondReceipts,fresh={},ks=Object.keys(old);for(i=0;i<ks.length;i++){var rec=old[ks[i]];if(merged(rec.entity))rec.entity=can;if(rec.who&&merged(rec.who))rec.who=can;var key=relationshipEdgeKey(rec.who,rec.entity);if(fresh[key])_relationshipWarn("two reversible bond receipts converged during identity merge; canonical edge kept the newer receipt");if(!fresh[key]||(fresh[key].turn||0)<=(rec.turn||0))fresh[key]=rec;}worldState.relBondReceipts=fresh;}
-  if(worldState.relAxisReviewFired){var rf=worldState.relAxisReviewFired,rn={},rks=Object.keys(rf);for(i=0;i<rks.length;i++){var parts=rks[i].split("\u001f"),rw=parts[0]==="@player"?null:parts[0],re=parts.slice(1).join("\u001f");if(merged(re))re=can;if(rw&&merged(rw))rw=can;rn[relationshipEdgeKey(rw,re)]=rf[rks[i]];}worldState.relAxisReviewFired=rn;}
+  if(worldState.relAxisChoices){var aq=[],seen=keyedDict();for(i=0;i<worldState.relAxisChoices.length;i++){var ac=worldState.relAxisChoices[i],ak=(ac.who||"@player")+"\u001f"+ac.entity+"\u001f"+ac.kind+"\u001f"+ac.value;if(!seen[ak]){seen[ak]=1;aq.push(ac);}}worldState.relAxisChoices=aq;}
+  if(worldState.relBondReceipts){var old=worldState.relBondReceipts,fresh=keyedDict(),ks=Object.keys(old);for(i=0;i<ks.length;i++){var rec=old[ks[i]];if(merged(rec.entity))rec.entity=can;if(rec.who&&merged(rec.who))rec.who=can;var key=relationshipEdgeKey(rec.who,rec.entity);if(fresh[key])_relationshipWarn("two reversible bond receipts converged during identity merge; canonical edge kept the newer receipt");if(!fresh[key]||(fresh[key].turn||0)<=(rec.turn||0))fresh[key]=rec;}worldState.relBondReceipts=fresh;}
+  if(worldState.relAxisReviewFired){var rf=worldState.relAxisReviewFired,rn=keyedDict(),rks=Object.keys(rf);for(i=0;i<rks.length;i++){var parts=rks[i].split("\u001f"),rw=parts[0]==="@player"?null:parts[0],re=parts.slice(1).join("\u001f");if(merged(re))re=can;if(rw&&merged(rw))rw=can;rn[relationshipEdgeKey(rw,re)]=rf[rks[i]];}worldState.relAxisReviewFired=rn;}
   delete worldState.reciprocityNudged;worldState.relAuditDue=worldState.turn;
 }
 
@@ -844,7 +844,7 @@ function _identityActionTag(kind,text,R){
       continue;
     }
     var domain=parts[0].trim().toLowerCase(),a=parts[1].trim(),b=parts[2].trim();
-    var d=IDENTITY_DOMAINS[domain];
+    var d=ownValue(IDENTITY_DOMAINS,domain);
     if(!d){
       if(typeof console!=="undefined")console.warn("[identity] ["+kind+":"+domain+"|…] REFUSED — unknown domain (Phase A registry: "+Object.keys(IDENTITY_DOMAINS).join(", ")+")");
       R.muts.push("⚠ "+kind+" refused (unknown domain '"+domain+"')");
@@ -920,7 +920,7 @@ function buildProvisionalNudge(){
     if(!best||p.turn<memory.npcs[best].provisional.turn)best=k;
   }
   if(!best)return"";
-  if(!worldState.provisionalNudged)worldState.provisionalNudged={};
+  if(!worldState.provisionalNudged)worldState.provisionalNudged=keyedDict();
   worldState.provisionalNudged[best]=worldState.turn;
   var pv=memory.npcs[best].provisional,of=pv.of,cm=memory.npcs[of],ev="",why="";
   if(cm&&cm.lastSeenAt)ev=" The established "+of+" was last seen at "+cm.lastSeenAt+".";
@@ -1007,7 +1007,7 @@ function npcMergeAnswer(tag,canonical,duplicate){
 function npcMergeRefuse(tag,canonical,duplicate,ans,R){
   if(R)R.muts.push("⚠ "+tag+" refused: "+ans.why);
   if(typeof console!=="undefined")console.warn("[identity] ["+tag+":"+canonical+"|"+duplicate+"] refused — "+ans.why+" (#504)");
-  if(ans.dupe&&worldState){if(!worldState.provisionalRefused)worldState.provisionalRefused={};worldState.provisionalRefused[ans.dupe]=ans.why;if(worldState.provisionalNudged)delete worldState.provisionalNudged[ans.dupe];}
+  if(ans.dupe&&worldState){if(!worldState.provisionalRefused)worldState.provisionalRefused=keyedDict();worldState.provisionalRefused[ans.dupe]=ans.why;if(worldState.provisionalNudged)delete worldState.provisionalNudged[ans.dupe];}
 }
 
 // ── The NAMING clause (stable half — §2.6, amended §7.3) ────────────────────────────────────
@@ -1017,7 +1017,7 @@ function npcMergeRefuse(tag,canonical,duplicate,ans,R){
 // until Phase B ships the location adapter (marked, so they move rather than duplicate).
 // #168 W2: scene-scoped referential integrity. Names remain durable keys, while short scene
 // handles let observed anonymous people exist without being substituted for a known NPC.
-function _w2Copy(v){return JSON.parse(JSON.stringify(v));}
+function _w2Copy(v,kind){var c=JSON.parse(JSON.stringify(v));return kind?keyedStores(c,kind):c;}
 function _sceneRefNode(){if(typeof currentNodeKey==="function")return locResolve(currentNodeKey());return worldState&&worldState.world?String(worldState.world.location||""):"";}
 function _sceneRefFresh(node,serial){return {scene:serial,node:node,startTurn:worldState.turn,actors:[],negatives:[],observed:[],acknowledged:false};}/* #194: observed[] = ENGINE-DERIVED presence beside the GM-authored actors[] — evictable, re-derivable, never latch-arming */
 function sceneRefsEnsure(){
@@ -1159,7 +1159,7 @@ function resolveSceneCastName(name){
 }
 function sceneCastSet(text){
   var re=/\[SCENE_CAST:([^\]]*)\]/g,m,set=null,i;
-  while((m=re.exec(String(text==null?"":text)))!==null){var p=m[1].trim();if(!p||/^none$/i.test(p))continue;if(!set)set={};
+  while((m=re.exec(String(text==null?"":text)))!==null){var p=m[1].trim();if(!p||/^none$/i.test(p))continue;if(!set)set=keyedDict();
     var parts=p.split(/[|,]/);for(i=0;i<parts.length;i++){var nm=parts[i].trim();if(nm)set[nm]=1;}}
   return set;
 }
@@ -1168,7 +1168,7 @@ function sceneCastSet(text){
    else). The GM decides whether they stayed behind; the engine never splits on its own. */
 function castOmittedCompanions(R){
   if(!R||!R.castSet||!worldState)return null;
-  var cast={},k,i,names=[],set={},npcs=worldState.npcs||[];for(k in R.castSet)cast[resolveSceneCastName(k)]=1;
+  var cast=keyedDict(),k,i,names=[],set=keyedDict(),npcs=worldState.npcs||[];for(k in R.castSet)cast[resolveSceneCastName(k)]=1;
   for(i=0;i<npcs.length;i++){var n=npcs[i];if(!n||!n.partyMember)continue;if(typeof npcIsDead==="function"&&npcIsDead(n))continue;
     if(n.charSheet&&n.charSheet.splitLoc&&n.charSheet.splitLoc.location)continue;if(cast[resolveNpcName(n.name)])continue;names.push(n.name);set[n.name]=1;}
   return names.length?{names:names,set:set}:null;
@@ -1208,12 +1208,12 @@ function sceneOnStageNow(name){
 function derivePresenceFromResponse(text,R){
   if(!worldState)return;
   text=String(text||"");
-  var recorded={},labels=[],m,i,withheld=[];
+  var recorded=keyedDict(),labels=[],m,i,withheld=[];
   /* #481 B1: a [SAY:] speaker the reply's cast leaves out stands somewhere else — the dialogue happened before a move, from
      behind shutters, across the gravel (t198/t206/t208/t213/t218 in the Village). They get NO node presence: no lastSeenAt,
      no guestbook stamp, no frame observation. The transcript speech record is untouched, so the death gate still sees the
      line. Party members are B2's (the hero is never withheld). A combatant is seen at the fight's own place (A4). */
-  var castCanon=null,ck;if(R&&R.castSet){castCanon={};for(ck in R.castSet)castCanon[resolveSceneCastName(ck)]=1;
+  var castCanon=null,ck;if(R&&R.castSet){castCanon=keyedDict();for(ck in R.castSet)castCanon[resolveSceneCastName(ck)]=1;
     worldState.castLast={turn:(R.turn!=null)?R.turn:worldState.turn,node:locResolve(currentNodeKey()),names:Object.keys(castCanon)};/* #481 B4: the latest non-none cast, where the reply ends — scenePresentNow reads it */}
   /* #514 (owner ruling 2026-10-01: "none" clears the room): a none-only cast IS a cast — the whole party and no one else, as
      the doc tells the GM. It used to change nothing, so someone named in an earlier cast stayed "in the scene" for as long as
@@ -1280,11 +1280,11 @@ function _speechFactNear(canon,lim){
   var tr=worldState.transcript,now=(typeof worldState.turn==="number")?worldState.turn:0;
   var floor=now-(SPEECH_EVIDENCE_TURNS+80);/* covers summary-cited lims across the extraction window */
   if(!_spFactsMemo||_spFactsMemo.turn!==now||_spFactsMemo.len!==tr.length||_spFactsMemo.tr!==tr){/* #271① (f57): the transcript ARRAY reference is part of the key — a campaign switch at a coincidental same turn+length must not serve stale speech evidence to the death gate */
-    var map={},i,e,k;
+    var map=keyedDict(),i,e,k;
     for(i=tr.length-1;i>=0;i--){e=tr[i];if(!e)continue;
       if(typeof e.t==="number"&&e.t<floor)break;
       if(e.r!=="gm"||!e.sp||!e.sp.s)continue;
-      var seen={};for(k in e.sp.s){var nm=String(e.sp.s[k]).trim();if(!nm||seen[nm])continue;seen[nm]=1;(map[nm]=map[nm]||[]).push(e.t);}
+      var seen=keyedDict();for(k in e.sp.s){var nm=String(e.sp.s[k]).trim();if(!nm||seen[nm])continue;seen[nm]=1;(map[nm]=map[nm]||[]).push(e.t);}
     }
     _spFactsMemo={turn:now,len:tr.length,tr:tr,map:map};
   }
@@ -1488,7 +1488,7 @@ function _w2RawTokens(s){var out=[],m,re=/[A-Za-z]+/g,str=String(s||"");while((m
 function w2SelfNamingCanon(raw){
   var rt=_w2RawTokens(raw);if(!rt.length)return null;
   var rset=Object.create(null),i;/* #533: `in` on a plain object finds "constructor" on the prototype — a word the operand never held */for(i=0;i<rt.length;i++)rset[rt[i].t]=rt[i].cap||rset[rt[i].t]||false;
-  var names={},k;
+  var names=keyedDict(),k;
   if(worldState&&worldState.npcs)for(i=0;i<worldState.npcs.length;i++)names[worldState.npcs[i].name]=1;
   if(typeof memory!=="undefined"&&memory&&memory.npcs)for(k in memory.npcs){names[k]=1;
     var _al=memory.npcs[k].aliases;if(_al)for(i=0;i<_al.length;i++)names[_al[i]]=1;/* #193: long-form aliases are candidates too — they resolve to their canonical, and the tie-forgiveness clause treats an alias and its owner as ONE claim */}
@@ -1630,7 +1630,7 @@ function _w2OpFingerprint(tag){
   if(name==="ITEM_GAINED"){m=tag.match(/^\[ITEM_GAINED:([^\]]+)/);if(m){p=typeof _qtyParse==="function"?_qtyParse(m[1]):{base:m[1],n:1};return"ITEM_GAINED:"+_w2Compact(p.base)+"|"+(p.n||1);}}
   return String(tag||"").replace(/\s+/g," ").trim();
 }
-function _w2OpTokens(ops){var counts={},out=[],i,fp;for(i=0;i<(ops||[]).length;i++){fp=_w2OpFingerprint(ops[i]);counts[fp]=(counts[fp]||0)+1;out.push(fp+"#"+counts[fp]);}return out;}
+function _w2OpTokens(ops){var counts=keyedDict(),out=[],i,fp;for(i=0;i<(ops||[]).length;i++){fp=_w2OpFingerprint(ops[i]);counts[fp]=(counts[fp]||0)+1;out.push(fp+"#"+counts[fp]);}return out;}
 function _w2TxnReceipt(m,status,reason,ops,tokens){
   if(!worldState.canonTxns)worldState.canonTxns=[];var r=_w2TxnFind(m.id),wasQuarantined=!!(r&&r.status==="quarantined"),i;if(!r){if(worldState.canonTxns.length>=CANON_TXN_CAP){worldState.canonTxnOverflow={turn:worldState.turn,id:m.id};if(typeof console!=="undefined")console.warn("[identity] canon transaction receipt cap reached - new claim refused fail-closed");return null;}r={id:m.id,claim:m.claim,subject:m.subject,evidence:m.evidence,quest:m.quest,status:status,operations:[],turn:worldState.turn,reason:reason||""};if(m.ejected&&m.ejected.length)r.ejected=m.ejected.slice();worldState.canonTxns.push(r);}
   if(status==="quarantined"){if(r.status==="committed"){r.lastAttemptReason=reason||"";r.lastAttemptTurn=worldState.turn;if(typeof console!=="undefined")console.warn("[identity] refused re-attempt recorded on COMMITTED receipt "+r.id+" — committed receipts never demote (#171②)");}else{r.status="quarantined";if(!wasQuarantined){r.reason=reason||r.reason;r.quarantinedTurn=worldState.turn;}else{r.lastAttemptReason=reason||"";r.lastAttemptTurn=worldState.turn;r.attempts=(r.attempts||1)+1;}}}else if(r.status!=="quarantined"){r.status="committed";r.reason="";r.committedTurn=worldState.turn;}
@@ -1894,7 +1894,7 @@ function _w2DisputedQuests(){
 function w2PrepareResponse(text){
   text=String(text||"");var hasW2=/\[(?:SCENE_REF|SCENE_NOT|SCENE_REVEAL|SCENE_DEATH|CANON_TXN_BEGIN|CANON_TXN_END):/.test(text);if(hasW2)sceneRefsEnsure();
   _w2RefusedNow=[];/* P2: fresh provenance per response */
-  var ordinary=text,txns=[],planned={},re=/\[CANON_TXN_BEGIN:([^\]]+)\]([\s\S]*?)\[CANON_TXN_END:([^\]]+)\]/g,m;
+  var ordinary=text,txns=[],planned=keyedDict(),re=/\[CANON_TXN_BEGIN:([^\]]+)\]([\s\S]*?)\[CANON_TXN_END:([^\]]+)\]/g,m;
   while((m=re.exec(text))){
     ordinary=ordinary.replace(m[0],"");var p=m[1].split("|"),meta={id:(p[0]||"").trim(),claim:(p[1]||"").trim(),subject:(p[2]||"").trim(),evidence:(p[3]||"").trim(),quest:(p[4]||"").trim()},ops=_w2Tags(m[2]),reason="",existing=_w2TxnFind(meta.id),prior=planned[meta.id]||existing,i;
     if(p.length!==5||!meta.id||m[3].trim()!==meta.id)reason="malformed or mismatched transaction envelope";else if(meta.claim!=="npc-death"&&meta.claim!=="quest-outcome")reason="unsupported canon claim type";else if(prior&&prior.status==="quarantined")reason="claim id was already quarantined";else if(prior&&!_w2TxnMetaSame(prior,meta))reason="claim id was reused with different metadata";else if(meta.claim==="npc-death"&&typeof kindDef==="function"&&kindDef().noHarm)reason="the peace of Pax: "+kindDef().harmRefusal;/* #6 phase B (owner, 2026-09-12): a death envelope in the village is refused at the ONE gate every death passes — before evidence, before plot armor */
@@ -2023,7 +2023,7 @@ function _w6IdentityRow(name,kind,handles){
   return {name:canon,family:family,pronouns:_w6Pronouns(family),gender:(kind==="player"||kind==="party")?family:"",aliases:aliases,kind:kind||"npc",dead:!!((w&&w.dead)||(m&&m.dead)),handles:(handles||[]).slice(0,3)};
 }
 function summaryIdentityTable(raw){
-  var table={rows:[],truncated:false},seen={},low=String(raw||"").toLowerCase(),c=worldState&&worldState.character,i,j,row,names=[],handles={};
+  var table={rows:[],truncated:false},seen=keyedDict(),low=String(raw||"").toLowerCase(),c=worldState&&worldState.character,i,j,row,names=[],handles=keyedDict();
   function add(name,kind){var key=kind==="player"?String(name||"").toLowerCase():String(resolveNpcName(name)||"").toLowerCase();if(!key||seen[key])return;row=_w6IdentityRow(name,kind,handles[key]);if(!row)return;if(table.rows.length>=SUMMARY_IDENTITY_ROW_CAP){table.truncated=true;return;}seen[key]=1;table.rows.push(row);}
   if(typeof _sceneRefFrames==="function"){var fs=_sceneRefFrames();for(i=0;i<fs.length;i++){var actors=(fs[i]&&fs[i].actors)||[];for(j=0;j<actors.length;j++)if(actors[j].entity){var cn=resolveNpcName(actors[j].entity),hk=String(cn).toLowerCase();if(!handles[hk])handles[hk]=[];if(handles[hk].indexOf(actors[j].handle)<0)handles[hk].push(actors[j].handle);names.push(cn);}}}
   if(c&&c.name)add(c.name,"player");
@@ -2129,7 +2129,7 @@ function plotArmor(name){
 // The refusal every death path shares: spends an escape, arms the next-turn note, says so loudly.
 function plotArmorRefuse(name,R,how){
   var canon=resolveNpcName(name),a=plotArmor(canon);if(!a)return false;
-  if(!worldState.plotArmor)worldState.plotArmor={};var rec=worldState.plotArmor[canon]||{escapes:0};rec.escapes++;rec.turn=worldState.turn;worldState.plotArmor[canon]=rec;
+  if(!worldState.plotArmor)worldState.plotArmor=keyedDict();var rec=worldState.plotArmor[canon]||{escapes:0};rec.escapes++;rec.turn=worldState.turn;worldState.plotArmor[canon]=rec;
   worldState.plotArmorPing={name:canon,turn:worldState.turn,act:a.act,arc:a.arc,escapes:rec.escapes,max:a.max,how:how||""};
   var line=canon+": death refused \u2014 plot armor until Act "+a.act+(a.arc?" \u201c"+a.arc+"\u201d":"")+" (escape "+rec.escapes+" of "+a.max+")";
   if(R&&R.muts)R.muts.push("⚠ "+line);
@@ -2158,7 +2158,7 @@ function _w2CombatSlainMatch(name){
   return null;
 }
 function w2ValidateSummary(extracted){
-  var legacyTrusted=!worldState.sceneRefs;sceneRefsEnsure();var ds=Array.isArray(extracted.npcDeaths)?extracted.npcDeaths:[],valid={},i,reason="",subject="",handle="-";
+  var legacyTrusted=!worldState.sceneRefs;sceneRefsEnsure();var ds=Array.isArray(extracted.npcDeaths)?extracted.npcDeaths:[],valid=keyedDict(),i,reason="",subject="",handle="-";
   for(i=0;i<ds.length;i++){var d=ds[i],name=(d&&typeof d==="object")?String(d.name||""):String(d||""),ws=name&&typeof wsNpcByName==="function"?wsNpcByName(resolveNpcName(name)):null,mem=name&&memory.npcs&&memory.npcs[resolveNpcName(name)];if(!name)continue;name=resolveNpcName(name);subject=name;handle=(d&&typeof d==="object")?String(d.handle||""):"-";if((ws&&ws.dead)||(mem&&mem.dead)){valid[name]=true;continue;}if(!ws&&!mem&&_w2CombatSlainMatch(name)){valid[name]=true;continue;}/* #299: a rolled foe slain at a combat close — combat canon, no handle needed, no conflict */if((!d||typeof d!=="object")&&!legacyTrusted)reason="uncited legacy npcDeaths entry cannot mint a new corpse";else if(!d||typeof d!=="object")valid[name]=true;else if(d.sourceTurn==null||!isFinite(Number(d.sourceTurn)))reason="summary death lacks a source turn";else if(!handle||!w2DeathAuthorized(name,handle,Number(d.sourceTurn)))reason="summary death lacks matching scene-handle evidence";else if(d.canonTxnId&&typeof _w2TxnFind==="function"&&(function(){var _ctr=_w2TxnFind(String(d.canonTxnId));if(_ctr&&_ctr.status==="quarantined")return true;if(!_ctr&&typeof console!=="undefined")console.warn("[identity] summary death cites unknown transaction id "+d.canonTxnId+" - ignored, handle evidence governs (#168R6b)");return false;})())reason="summary death cites a quarantined transaction";else valid[name]=true;if(reason)break;}
   if(!reason&&extracted.chapterSummary){var names=Object.keys(memory.npcs||{}),j;for(j=0;j<names.length;j++){var cn=resolveNpcName(names[j]),cw=typeof wsNpcByName==="function"?wsNpcByName(cn):null;if((cw&&cw.dead)||memory.npcs[cn].dead||valid[cn])continue;if(_w2ChapterDeath(cn,extracted.chapterSummary)){subject=cn;reason="death-like chapter claim has no cited npcDeaths evidence";break;}}}
   if(reason){

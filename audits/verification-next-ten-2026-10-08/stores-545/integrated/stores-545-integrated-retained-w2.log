@@ -1,0 +1,256 @@
+
+  sabotage — identity.js
+   ✓ caught      explicit scene exclusion stops blocking the claimed identity
+   ✓ caught      same-response scene evidence can self-authorize a combat death
+   ✓ caught      the frame scan stops honoring a summary's cited sourceTurn (#175bR)
+   ✓ caught      the already-dead closing envelope stamps whoever its handle resolves to (#175bR)
+   ✓ caught      the executor stops pinning the bound scene actor to the transaction subject (#175bR)
+   ✓ caught      the co-location evidence limb loses its turn stamp (#175bR)
+   ✓ caught      transaction operations stop matching their declared subject and quest
+   ✓ caught      semantic XP fingerprints revert to raw spelling and pay +100 twice
+   ✓ caught      proposal-free NPC merges become destructive again
+   ✓ file restored byte-identical
+   9/9 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      summary extraction writes before referent validation
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      combat-close propagation bypasses the scene ledger
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      transaction handlers mutate the authoritative state instead of a clone
+   ✓ caught      rolled-back quest success toasts escape the staged side-effect buffer
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      a just-refused death stops de-authorizing its co-emitted rewards (the stripped-tag evidence hole reopens)
+   ✓ caught      same-turn summary evidence self-authorizes a corpse again
+   ✓ caught      a quarantined transaction id becomes citable death authority again
+   ✓ caught      the latched-transition frame buffer stops preserving accepted evidence
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      committed receipts stop retiring — the receipt cap permanently kills envelopes again
+   ✓ caught      array-valued chapterSummary stops normalizing — the t1644 type bypass reopens
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      ejection dies — one incidental tag voids the death and its rewards again (the t1742 refusal)
+   ✓ caught      already-canon-dead subjects need fresh scene evidence again (re-assertion bookkeeping impossible)
+   ✓ caught      the standing-conflict strip goes prose-keyed again — the name-substring blackout returns
+   ✓ caught      mismatched-subject death ops get ejected instead of refusing (wrong-corpse writes launder through)
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the heal dies on the RE-ASSERTION leg — a committed claim for an already-dead subject stops resolving its conflict
+   ✓ caught      the stale cap dies — an unanswerable conflict nudges forever again
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      committed receipts demote again on a formatting-variant re-emission
+   ✓ caught      the conflict's first actionable reason is overwritten by retries again
+   ✓ caught      the same-turn duplicate confirm goes silent again (owner ruled it loud)
+   ✓ caught      confirmation stops re-verifying the staged preimage (a moved bond gets clobbered)
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      refusal provenance dies — stripped operations vanish without a trace again (the t1760 class)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the tagLog label sentinel dies — over-cap turns silently truncate again
+   ✓ caught      refused provenance never reaches the ring
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      quarantine-archive eviction goes silent again
+   ✓ caught      the canon-contradiction tripwire dies — the two-truths state goes unnoticed again
+   ✓ caught      past-tense history starts tripping the contradiction (the false-positive class)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the contradiction note stops consuming its latch (permanent noise)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      untagged continuation paragraphs inherit a voice again (the P4a ruling dies)
+   ✓ caught      scare-quoted narration counts as untagged speech again (the /i defect returns)
+   ✓ caught      the gap check re-anchors on before-the-quote text (tag-inside-quote nags forever again)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      the sentence veto dies — negation/hypotheticals/dreams arm the filing watch again
+   ✓ caught      dialogue stops being stripped — spoken intent arms the watch again
+   ✓ caught      commitment pings stop aging out
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      sentence-initial possessives anchor subjects again (valid summaries burn strikes)
+   ✓ caught      lone reflexives count as subject evidence again (third-party false rejects return)
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      name-led death claims survive a retraction again
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      the recurring-name scan dies — unregistered characters escape identity protection again
+   ✓ caught      the roster/place/faction exclusion dies — known names ping as unregistered
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the twice-ignored retirement dies — the registration note becomes permanent noise
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      the refused death stops carrying its cause to the toast (#213)
+   ✓ caught      the withheld reward is no longer stamped on the conflict record (#213)
+   ✓ caught      the withheld ledger loses its bound and grows with every re-refusal (#213)
+   ✓ caught      reward tokens are collected AFTER the strip, so the receipt is always empty (#213)
+   ✓ caught      the standing dispute stops resolving to the record that holds its reason (#213)
+   ✓ caught      every refusal collapses to the generic fallback (#213)
+   ✓ caught      unmasking and unwitnessed-death copy merge, losing the distinction (#213)
+   ✓ caught      an unknown reward token is shown to the player raw (#213)
+   ✓ file restored byte-identical
+   8/8 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      shelving a dispute stops telling the player the reward is gone (#213)
+   ✓ caught      a dispute that cost nothing invents a loss anyway (#213)
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      a victory close goes back to discarding foes that are still standing (#214)
+   ✓ caught      the outcome word stops being checked, so a rout and a retreat kill alike (#214)
+   ✓ caught      #268: the defeat exclusion dies — a mixed 'defeat — the warden kills the party' executes the foes
+   ✓ caught      #268: the unrecognized-outcome fork dies — living foes are silently discarded again
+   ✓ caught      combat-tag activity stops being stamped, so a live fight gets nagged (#214)
+   ✓ file restored byte-identical
+   5/5 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the combat-stale note loses its cooldown and nags every turn (#214)
+   ✓ caught      a shelved dispute stops queueing the reward claim (#215)
+   ✓ caught      inventoryCountOf stops summing the "xN" suffix — the count-aware read becomes a line count again (#273)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — helpers.js
+   ✓ caught      a payout that moves no state reports success anyway (#215)
+   ✓ caught      the item measure reverts to inventory LENGTH — a stacked grant reads as 'nothing changed' again (#273)
+   ✓ caught      a PARTIAL landing reports a full award again — one moving field vouches for every token (#273)
+   ✓ caught      the shortfall stops naming the tokens that failed — the player is told 'partly' and nothing else (#273)
+   ✓ caught      the measure loosens from count-exact to merely-moved — a short quantity landing pays as full (#273)
+   ✓ caught      declining a claim pays it out anyway (#215)
+   ✓ caught      the claim queue loses its bound (#215)
+   ✓ file restored byte-identical
+   7/7 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      orphan combat tags stop being collected — the ghost fight goes console-only again (#225)
+   ✓ caught      a COMBAT_END over a null tracker records a false victory again (#225)
+   ✓ caught      TIME_CHECK regains combat scoping — every peaceful turn trips the UA27 counter (#216fix)
+   ✓ caught      #254: the positional split is dropped — the previous fight's victory kills a foe the same response just introduced
+   ✓ caught      #254: the index comparison inverts — the foes that fought and fell are spared and the newcomer dies
+   ✓ caught      #254: the exempt foes are computed but discarded — the new fight still dies with the old one
+   ✓ file restored byte-identical
+   6/6 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the orphan-combat note stops delivering — the recovery path dies (#225)
+   ✓ caught      the moot check dies — the note nags a fight the GM already re-opened (#225)
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      #260: the defer condition dies — the LOCATION clear wipes the tracker before same-response outcome tags again
+   ✓ caught      #260: the seam settle is dropped — a deferred fight leaks open into the new location forever
+   ✓ caught      #260: newcomer-sparing dies — the deferred clear tears down the fresh fight with the old one
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      #262: the envelope withheld-stamp dies — the taught channel goes back to costless shelves
+   ✓ caught      #262: resolve-withdraw dies — a settled dispute leaves its claim payable beside the settlement
+   ✓ caught      #262: quarantine retirement dies — 24 stale quarantines kill the envelope mechanism forever again
+   ✓ caught      #262: the retirement guard dies — a receipt with a LIVE dispute retires out from under it
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — helpers.js
+   ✓ caught      #262: superset replacement dies — a re-armed dispute queues a second payable copy of the same reward
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      #262: the shelve stops spending the ledger — the claimed tokens stay re-queueable on re-arm
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      #263: the defer gate dies — every deferred turn bills a doomed extraction call again
+   ✓ caught      #263: the defer stamp dies — the gate has no owner to check and never skips
+   ✓ caught      #263: the cap dies — a live conflict can silence extraction forever, disabling the terminal ladder
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      #286: the summary clear regresses to scene-guarded — a same-scene latch is unclearable again and the refusal copy lies
+   ✓ caught      #286: the capacity warning loses its exits — the prompt block prescribes only the summary again
+   ✓ caught      #286: the direct-death refusal reason loses its exits — the GM is taught only the summary at the site it actually hits
+   ✓ file restored byte-identical
+   3/3 clauses proven
+

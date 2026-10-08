@@ -1,0 +1,86 @@
+tree: traffic-and-dragons-next-ten-ending
+--- A. a name written as a one-element list (not a string, so not checked; String([w]) is w)
+!! npcUpdates name=[__proto__]
+      in : {"chapterSummary":"A day passes.","npcUpdates":[{"name":["__proto__"],"attitude":"wary","knowledgeGained":"a fact"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned","__proto__"]
+      state: own key '__proto__' at mem.npcs
+!! npcDeaths name=[__proto__]
+      in : {"chapterSummary":"A day passes.","npcDeaths":[{"name":["__proto__"],"handle":"h1","sourceTurn":5}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+      applySummaryExtract THREW: W2 referential integrity: __proto__ - summary death lacks matching scene-handle evidence
+   npcDeaths entry=[[__proto__]] (a list inside the list)
+      in : {"chapterSummary":"A day passes.","npcDeaths":[["__proto__"]]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   supersededFacts name=[__proto__]
+      in : {"chapterSummary":"A day passes.","supersededFacts":[{"name":["__proto__"],"old":"keeps the forge","new":"sold the forge"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   sameNpc canonical=[__proto__]
+      in : {"chapterSummary":"A day passes.","sameNpc":[{"canonical":["__proto__"],"duplicate":"Bram"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   attire name=[__proto__]
+      in : {"chapterSummary":"A day passes.","attire":[{"name":["__proto__"],"outfit":"a grey cloak"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   motivationChanges name=[__proto__]
+      in : {"chapterSummary":"A day passes.","motivationChanges":[{"name":["__proto__"],"now":"to find the bell"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+!! npcUpdates name=[constructor]
+      in : {"chapterSummary":"A day passes.","npcUpdates":[{"name":["constructor"],"attitude":"wary","knowledgeGained":"a fact"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned","constructor"]
+      state: own key 'constructor' at mem.npcs
+!! npcDeaths name=[constructor]
+      in : {"chapterSummary":"A day passes.","npcDeaths":[{"name":["constructor"],"handle":"h1","sourceTurn":5}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+      applySummaryExtract THREW: W2 referential integrity: constructor - summary death lacks matching scene-handle evidence
+   npcDeaths entry=[[constructor]] (a list inside the list)
+      in : {"chapterSummary":"A day passes.","npcDeaths":[["constructor"]]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   supersededFacts name=[constructor]
+      in : {"chapterSummary":"A day passes.","supersededFacts":[{"name":["constructor"],"old":"keeps the forge","new":"sold the forge"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   sameNpc canonical=[constructor]
+      in : {"chapterSummary":"A day passes.","sameNpc":[{"canonical":["constructor"],"duplicate":"Bram"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   attire name=[constructor]
+      in : {"chapterSummary":"A day passes.","attire":[{"name":["constructor"],"outfit":"a grey cloak"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   motivationChanges name=[constructor]
+      in : {"chapterSummary":"A day passes.","motivationChanges":[{"name":["constructor"],"now":"to find the bell"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+--- B. nested shapes
+   knowledgeGained {fact:'__proto__'} on Bram
+      in : {"chapterSummary":"A day passes.","npcUpdates":[{"name":"Bram","knowledgeGained":{"fact":"__proto__","kind":"durable"}}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge","__proto__"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   knowledgeGained {fact:'constructor', kind:'scene'} on Bram
+      in : {"chapterSummary":"A day passes.","npcUpdates":[{"name":"Bram","knowledgeGained":{"fact":"constructor","kind":"scene"}}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   attire donned ['constructor'] for Kira
+      in : {"chapterSummary":"A day passes.","attire":[{"name":"Kira","donned":["constructor"],"doffed":["__proto__"]}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+--- C. keys of the extraction JSON itself
+   top-level key __proto__ (JSON.parse makes it an own key)
+      in : {"chapterSummary":"A day passes.","__proto__":{"npcUpdates":[{"name":"Bram","attitude":"dead"}]},"npcUpdates":[{"name":"Bram","knowledgeGained":"shod the grey mare"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge","shod the grey mare"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   entry key __proto__ inside an npcUpdates entry
+      in : {"chapterSummary":"A day passes.","npcUpdates":[{"name":"Bram","knowledgeGained":"shod the grey mare","__proto__":{"name":"Old Ned"}}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge","shod the grey mare"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+   top-level key constructor holding a list
+      in : {"chapterSummary":"A day passes.","constructor":[{"name":"Bram"}],"npcUpdates":[{"name":"Bram","knowledgeGained":"shod the grey mare"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge","shod the grey mare"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+--- D. dropped although nothing in the entry is a name (collateral)
+   Bram's update dropped for an attitude word
+      in : {"chapterSummary":"A day passes.","npcUpdates":[{"name":"Bram","attitude":"constructor","knowledgeGained":"shod the grey mare"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge","shod the grey mare"] | Bram attitude: "constructor" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+!! Bram's death citation dropped for its handle
+      in : {"chapterSummary":"A day passes.","npcDeaths":[{"name":"Bram","handle":"constructor","sourceTurn":5}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+      applySummaryExtract THREW: W2 referential integrity: Bram - summary death lacks matching scene-handle evidence
+   a lore line that is one capitalised word
+      in : {"chapterSummary":"A day passes.","loreDiscovered":["Constructor","The bridge is older than the town."]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: ["Constructor","The bridge is older than the town."] | npc keys: ["Bram","Kira","Old Ned"]
+   future event whose 'when' is the word
+      in : {"chapterSummary":"A day passes.","futureEvents":[{"what":"The guild votes on the new bridge","when":"constructor"}]}
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge"] | Bram attitude: "" | lore: [] | npc keys: ["Bram","Kira","Old Ned"]
+--- E. prose tiers and sentences (must stay)
+   chapterSummary and sentences that use the words
+      in : {"chapterSummary":"The constructor of the bridge spoke of __proto__ and toString.","loreDiscovered":["The constructor of the bridge was a dwarf."],"decisionsMade":["Hired the constructor."],"npcUpdates":[{"name
+      #540 drops said on the console: 0 | Bram knows: ["keeps the forge","knew the constructor, toString, of old"] | Bram attitude: "" | lore: ["The constructor of the bridge was a dwarf."] | npc keys: ["Bram","Kira","Old Ned"]

@@ -1,0 +1,80 @@
+
+  sabotage — identity.js
+   ✓ caught      allow incoming alias claims
+   ✓ caught      forget response competing claims
+   ✓ caught      ignore saved alias competition
+   ✓ caught      forget row sheet aliases
+   ✓ caught      treat same owner as a collision
+   ✓ file restored byte-identical
+   5/5 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      let conflicting hero alias hide canonical NPC
+   ✓ caught      forget demoted hero sheet aliases
+   ✓ caught      forget hero epithet in recurring scan
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      hero adopter bypasses claims
+   ✓ caught      companion adopter bypasses claims
+   ✓ caught      swap ignores demoted hero claims
+   ✓ caught      Village imports namesakes
+   ✓ caught      blueprint seeds namesakes
+   ✓ file restored byte-identical
+   5/5 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      lose response-wide alias plan
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      startup seeds namesake
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — ui-browsers.js
+   ✓ caught      UI admits identity collision
+   ✓ caught      UI mutates source copy
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      load loses loud conflict audit
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      load repeats diagnostic
+   ✓ caught      malformed alias becomes a claim
+   ✓ caught      malformed incoming aliases admitted
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      memory-only identity cannot reattach
+   ✓ caught      case variant silently becomes another memory key
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      inactive hero alias blocks existing canonical NPC refresh
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      legacy NPC alias takes active hero epithet
+   ✓ file restored byte-identical
+   1/1 clauses proven
+

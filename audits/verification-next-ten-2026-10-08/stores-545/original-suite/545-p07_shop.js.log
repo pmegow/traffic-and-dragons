@@ -1,0 +1,25 @@
+tree: traffic-and-dragons-next-ten-ending
+=== word: constructor
+  A. chained [WARES:Ale|1 gp|fresh]|constructor|5 gp|odd] -> summary ["For sale: Ale — 1 gp","For sale: constructor — 5 gp","Present: Frizwick (say)"] | shelf ["Ale@1 gp","constructor@5 gp"] | built-ins: []
+     the counter's catalog: buy rows ["Ale:undefined","constructor:undefined"] | built-ins: []
+  B. buy one 'constructor' at the counter -> {"ok":true,"line":"Silas bought constructor (5 gp) — -5 gp, with Frizwick at the trading post."}
+     gold 25 -> 25 | pack ["Longsword","Rope x3","constructor"] | shelf ["Ale@1 gp"] | built-ins: []
+  C. [ITEM_GAINED:Constructor x2] -> summary ["+Constructor x2"] | pack ["Longsword","Rope x3","Constructor x2"] | handler errors [] | built-ins: []
+     the counter's catalog: sell rows ["Longsword x1","Rope x3","Constructor x2"] | built-ins: []
+     GM sale [ITEM_LOST:Constructor] [GOLD:3] -> summary ["+3 gp","-Constructor"] | pack ["Longsword","Rope x3","Constructor"] | gold 25
+=== word: __proto__
+  A. chained [WARES:Ale|1 gp|fresh]|__proto__|5 gp|odd] -> summary ["For sale: Ale — 1 gp","For sale: __proto__ — 5 gp","Present: Frizwick (say)"] | shelf ["Ale@1 gp","__proto__@5 gp"] | built-ins: []
+     the counter's catalog: buy rows ["Ale:undefined","__proto__:undefined"] | built-ins: []
+  B. buy one '__proto__' at the counter -> {"ok":false,"reason":"nothing marked"}
+     gold 25 -> 25 | pack ["Longsword","Rope x3"] | shelf ["Ale@1 gp","__proto__@5 gp"] | built-ins: []
+  C. [ITEM_GAINED:__proto__ x2] -> summary ["+__proto__ x2"] | pack ["Longsword","Rope x3","__proto__ x2"] | handler errors [] | built-ins: []
+     the counter's catalog: sell rows ["Longsword x1","Rope x3","__proto__ x2"] | built-ins: []
+     GM sale [ITEM_LOST:__proto__] [GOLD:3] -> summary ["+3 gp","-__proto__"] | pack ["Longsword","Rope x3","__proto__"] | gold 25
+=== word: construqtor  (control)
+  A. chained [WARES:Ale|1 gp|fresh]|construqtor|5 gp|odd] -> summary ["For sale: Ale — 1 gp","For sale: construqtor — 5 gp","Present: Frizwick (say)"] | shelf ["Ale@1 gp","construqtor@5 gp"] | built-ins: []
+     the counter's catalog: buy rows ["Ale:undefined","construqtor:undefined"] | built-ins: []
+  B. buy one 'construqtor' at the counter -> {"ok":true,"line":"Silas bought construqtor (5 gp) — -5 gp, with Frizwick at the trading post."}
+     gold 25 -> 25 | pack ["Longsword","Rope x3","construqtor"] | shelf ["Ale@1 gp"] | built-ins: []
+  C. [ITEM_GAINED:Construqtor x2] -> summary ["+Construqtor x2"] | pack ["Longsword","Rope x3","Construqtor x2"] | handler errors [] | built-ins: []
+     the counter's catalog: sell rows ["Longsword x1","Rope x3","Construqtor x2"] | built-ins: []
+     GM sale [ITEM_LOST:Construqtor] [GOLD:3] -> summary ["+3 gp","-Construqtor"] | pack ["Longsword","Rope x3","Construqtor"] | gold 25

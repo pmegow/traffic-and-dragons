@@ -530,11 +530,11 @@ var TAG_TABLE=[
     var dg=_g.cp,_gb=Number(worldState.character.coin)||0,_ga=Math.max(0,_gb+dg),_gm=_ga-_gb;worldState.character.coin=_ga;if(_gm>0)R.goldIn=(R.goldIn||0)+_gm;/* #481 A2: the sale half (copper), for the pair check in ITEM_LOST */
     if(_gm!==0||dg===0)R.muts.push((_gm>0?"+":_gm<0?"-":"")+fmtCoin(Math.abs(_gm)));
     if(dg<0&&_gm!==dg)R.muts.push("⚠ Overspend — "+_g.raw+" asked "+fmtCoin(-dg)+"; the purse held "+fmtCoin(_gb)+" (floored at 0)");}}},
-{t:"ITEM_GAINED",apply:function(text,R){var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[],igCounts={},igi,igOff=tagOffsets(text,/\[ITEM_GAINED:([^\]]+)\]/);
+{t:"ITEM_GAINED",apply:function(text,R){var igTags=text.match(/\[ITEM_GAINED:([^\]]+)\]/g)||[],igCounts=keyedDict(),igi,igOff=tagOffsets(text,/\[ITEM_GAINED:([^\]]+)\]/);
   if(R.villageTradeRefused&&igTags.length){R.muts.push("⚠ Trade refused — nothing gained ("+igTags.length+" item tag"+(igTags.length>1?"s":"")+" rode with the refused coin)");if(typeof console!=="undefined")console.warn("[tags] ITEM_GAINED refused with the village trade: "+igTags.join(" "));return;}/* #6 F5 */for(igi=0;igi<igTags.length;igi++){var ig0=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(ig0){var iq0=_qtyParse(ig0[1]),ik0=itemBaseName(iq0.base);igCounts[ik0]=(igCounts[ik0]||0)+iq0.n;}}for(igi=0;igi<igTags.length;igi++){var igm=igTags[igi].match(/\[ITEM_GAINED:([^\]]+)\]/);if(!igm)continue;var igq=_qtyParse(igm[1]),igqi;duplicateItemGrantWarning(worldState.character.inventory,igq.base,igCounts[itemBaseName(igq.base)],null,R,text);for(igqi=0;igqi<igq.n;igqi++){addInventoryItem(worldState.character.inventory,igq.base);itemPairNote(R,"igHits",igq.base,igq.base);/* #481 A2: the take half */}R.muts.push("+"+igq.base+(igq.n>1?" x"+igq.n:"")+(igq.clamped?" (⚠ count clamped to "+QTY_MAX+")":""));/* #481 D3 */var _at=autoTakeLocationItem(igq.base,null,igq.n,rPlaceAtBlock(R,text,igOff[igi]).key);/* #481 A4: taken from where the gain happened *//* #481 D2: a take moves n units */if(_at&&_at.taken)stashMoveRecord(R,{name:_at.name,units:_at.n||1,action:"taken",key:_at.key,by:worldState.character.name,pack:{name:igq.base,units:_at.n||1}});/* #481 D9/D1 */if(_at&&_at.taken&&_at.n)R.muts.push("From the stash: "+_at.name+(_at.n>1?" ×"+_at.n:""));/* #481 D2 (c): the receipt names n */if(_at&&_at.kept){R.muts.push("⚠ Stash kept — "+_at.name+" stays in "+_at.owner+"'s house (only its owner takes from a house)");if(typeof console!=="undefined")console.warn("[tags] auto-take gated in the village: "+_at.name+" belongs to "+_at.owner+"'s house (#6 E5)");}_itemDefCandidate(igq.base,R);}}},
 {t:"ITEM_LOST",apply:function(text,R){var ilTags=text.match(/\[ITEM_LOST:([^\]]+)\]/g)||[];var ili,ilOff=tagOffsets(text,/\[ITEM_LOST:([^\]]+)\]/);
   /* #481 A2 (e): a rider refused with the coin is a MISS for pairing — its placement or gift must not land either */
-  if(R.villageTradeRefused&&ilTags.length){R.muts.push("⚠ Trade refused — nothing lost ("+ilTags.length+" item tag"+(ilTags.length>1?"s":"")+" rode with the refused coin)");if(typeof console!=="undefined")console.warn("[tags] ITEM_LOST refused with the village trade: "+ilTags.join(" "));ilTags.forEach(function(t0){var m0=t0.match(/\[ITEM_LOST:([^\]]+)\]/);if(m0){if(!R.ilMiss)R.ilMiss={};R.ilMiss[itemPairKey(m0[1])]=m0[1].trim();}});return;}/* #6 F5 */
+  if(R.villageTradeRefused&&ilTags.length){R.muts.push("⚠ Trade refused — nothing lost ("+ilTags.length+" item tag"+(ilTags.length>1?"s":"")+" rode with the refused coin)");if(typeof console!=="undefined")console.warn("[tags] ITEM_LOST refused with the village trade: "+ilTags.join(" "));ilTags.forEach(function(t0){var m0=t0.match(/\[ITEM_LOST:([^\]]+)\]/);if(m0){if(!R.ilMiss)R.ilMiss=keyedDict();R.ilMiss[itemPairKey(m0[1])]=m0[1].trim();}});return;}/* #6 F5 */
   /* #510: where trade is gated a SALE (coin in) is checked whole against a copy of the pack BEFORE anything leaves it. The miss
      used to surface mid-loop: earlier tags had already taken their items (a short count took every unit it found), the coin went
      back, and the GM was told the pack was unchanged. One miss now refuses every [ITEM_LOST:] of the reply — nothing leaves the
@@ -545,10 +545,10 @@ var TAG_TABLE=[
       if(_invLastMiss&&_invLastMiss.why==="ambiguous"){R.muts.push("⚠ Nothing lost — '"+_sMiss+"' is ambiguous: the sheet has "+_invLastMiss.names.join(" and ")+" (which one?)");}
       R.muts.push("⚠ Sale withheld — "+_sWhy+"; nothing leaves the pack and no coin changes hands (-"+fmtCoin(R.goldIn)+" returned)");
       worldState.tradeRefusedPing={turn:R.turn,reason:_sWhy.replace("the sheet","the hero's sheet"),items:true};R.goldIn=0;
-      if(!R.ilMiss)R.ilMiss={};ilTags.forEach(function(t0){var m0=t0.match(/\[ITEM_LOST:([^\]]+)\]/);if(m0)R.ilMiss[itemPairKey(m0[1])]=m0[1].trim();});
+      if(!R.ilMiss)R.ilMiss=keyedDict();ilTags.forEach(function(t0){var m0=t0.match(/\[ITEM_LOST:([^\]]+)\]/);if(m0)R.ilMiss[itemPairKey(m0[1])]=m0[1].trim();});
       if(typeof console!=="undefined")console.warn("[tags] ITEM_LOST: the village sale is withheld whole — "+_sWhy+"; nothing removed (#510)");return;}}
   for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;var ilq=_qtyParse(ilm[1]),ilqi,ilHit=0;for(ilqi=0;ilqi<ilq.n;ilqi++){if(removeInventoryItem(worldState.character.inventory,ilq.base)){ilHit++;itemPairNote(R,"ilHits",ilq.base,removeInventoryItem.last);/* #481 A2: the loss half, with the exact sheet name */}}if(ilHit){R.muts.push("-"+ilq.base+(ilHit>1?" x"+ilHit:"")+(ilq.clamped?" (⚠ count clamped to "+QTY_MAX+")":""));/* #481 D3 */var _wmet=(R.goldIn>0&&typeof retireWantedAt==="function")?retireWantedAt(rPlaceAtBlock(R,text,ilOff[ili]),ilq.base):null;/* #591: a want is met by a SALE — coin in this reply; a discarded or consumed item retires nothing */if(_wmet)R.muts.push("Want met: "+_wmet.item+(_wmet.by?" ("+_wmet.by+")":""));/* #481 D4: the counter's sale and the GM's both retire it */_clearConsumablePending(null,ilq.base);if(typeof wornPrune==="function")wornPrune(worldState.character);/* #388: nothing is worn that is not carried */}else{
-    if(!R.ilMiss)R.ilMiss={};R.ilMiss[itemPairKey(ilq.base)]=ilq.base;
+    if(!R.ilMiss)R.ilMiss=keyedDict();R.ilMiss[itemPairKey(ilq.base)]=ilq.base;
     /* #481 A2 (a): an ambiguous name is refused LOUDLY — two sheet entries share its base name */
     if(_invLastMiss&&_invLastMiss.why==="ambiguous")R.muts.push("⚠ Nothing lost — '"+ilq.base+"' is ambiguous: the sheet has "+_invLastMiss.names.join(" and ")+" (which one?)");
     /* #481 A2 (c): the SALE pair. Where trade is gated (the village) a sale whose item is not on the sheet moves no coin. In an
@@ -1319,7 +1319,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
 {t:"SPELL_DEF",apply:function(text,R){var spellDefs=text.match(/\[SPELL_DEF:([^\]]+)\]/g)||[];var sdi;for(sdi=0;sdi<spellDefs.length;sdi++){
   var sdm=spellDefs[sdi].match(/\[SPELL_DEF:([^\]]+)\]/);if(!sdm)continue;
   var sdParts=sdm[1].split("|"),sdName=(sdParts[0]||"").trim();if(!sdName||typeof capBaseName!=="function")continue;
-  var sdKey=capBaseName(sdName);if(!worldState.capabilityBible)worldState.capabilityBible={};
+  var sdKey=capBaseName(sdName);if(!worldState.capabilityBible)worldState.capabilityBible=keyedDict();
   if(worldState.capabilityBible[sdKey]){if(typeof console!=="undefined")console.warn("[tags] SPELL_DEF: '"+sdName+"' already defined — write-once, redefinition ignored (#136③)");continue;}
   /* #253 (JP0-8, Fable f51; owner ruling 2026-08-28): a name the STATIC bible already carries is
      not a correction, it is a permanent SHADOW. capabilityLookup gives the overlay precedence, so
@@ -1366,17 +1366,17 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
      "uses:at-will|value:800 gp" used to be read by position, and the price overwrote the drain effect the GM had
      written); keyed parts are collected FIRST, and bare parts then fill only the slots no keyed part claimed, in
      order — a keyed field is never overwritten by position, whichever order the GM wrote them in. */
-  var idFields=[],idBare=[],idSet={};
+  var idFields=[],idBare=[],idSet=keyedDict();
   for(idp=1;idp<idParts.length;idp++){var idf=defFieldRead(idParts[idp],ITEM_DEF_KEYS);
     if(!idf.keyed){idBare.push(idf.val);continue;}
-    if(ITEM_DEF_KEYS[idf.key]){idSet[idf.key]=1;idFields.push(idf);}
+    if(ownValue(ITEM_DEF_KEYS,idf.key)){idSet[idf.key]=1;idFields.push(idf);}
     else if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: field '"+idf.key+"' on '"+idName+"' ignored — instance state never enters a TYPE definition (#81)");}
   var idPos=["category","effect","uses","value"],idSlot=0,idb;
   for(idb=0;idb<idBare.length;idb++){while(idSlot<idPos.length&&idSet[idPos[idSlot]])idSlot++;
     if(idSlot>=idPos.length){if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: extra positional field '"+idBare[idb]+"' on '"+idName+"' ignored (#298)");continue;}
     idFields.push({key:idPos[idSlot++],val:idBare[idb]});}
   for(idp=0;idp<idFields.length;idp++){var idk=idFields[idp].key,idv=idFields[idp].val;
-    if(idk==="category"){var idc=idv.toLowerCase();if(ID_CATS[idc])idEntry.category=idc;else if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: unknown category '"+idv+"' on '"+idName+"' — kept as "+idEntry.category+" (#81)");}
+    if(idk==="category"){var idc=idv.toLowerCase();if(ownValue(ID_CATS,idc))idEntry.category=idc;else if(typeof console!=="undefined")console.warn("[tags] ITEM_DEF: unknown category '"+idv+"' on '"+idName+"' — kept as "+idEntry.category+" (#81)");}
     else if(idv)idEntry[idk]=idv;}
   /* #436: the fingerprint can also arrive INSIDE a keyed effect ("effect=value:20 gp") — one predicate, every boundary */
   var idHeal=(typeof itemDefHeal==="function")?itemDefHeal(idEntry):"";
@@ -1471,7 +1471,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
        close (the old first-match parse silently swallowed a parallel act's second sweep). */
     var _pre={};
     for(_si=0;_si<_sk.acts.length;_si++){if(_sk.acts[_si].status!=="active")continue;var _pa=_sk.acts[_si].arcs||[];for(_sj=0;_sj<_pa.length;_sj++){if(_pa[_sj].status==="active"&&_pa[_sj].title)_pre[skeletonTitleKey(_pa[_sj].title)]=1;}}/* #481 C4 */
-    var _seen={};
+    var _seen=keyedDict();
     for(_ti=0;_ti<arcTags.length;_ti++){
     var _atm=arcTags[_ti].match(/\[ARC_COMPLETE:([^\]]+)\]/);if(!_atm)continue;
     var _ad=_atm[1].trim(),_adk=skeletonTitleKey(_ad),_any=false;/* #481 C4: the display numbering is not the title */
@@ -1505,7 +1505,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
           var _wq=worldState.questLog[_wk];
           if(!_wq.bornArc||String(_wq.bornArc).toLowerCase()!==String(_wallArc).toLowerCase())continue;
           if(_wq.status!=="active"&&_wq.status!=="offered")continue;
-          if(!memory.quests)memory.quests={};
+          if(!memory.quests)memory.quests=keyedDict();
           /* #235: by:"wall" — the wall is the author, not the player. wasOffered marks the third
              semantic that used to hide under the same label: a hook the player never accepted,
              which lapsed rather than being dropped. Read by questArchiveWording (helpers.js). */
@@ -1639,7 +1639,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
      with no way to become fresh. A changed location OR sublocation is a real move and also falls
      through — the audit note explicitly asks the GM to ADD a sublocation it previously omitted. */
   if(psWas&&psWas.turn!=null&&!psToastWorthy){
-    if(!R._freshSplits)R._freshSplits={};
+    if(!R._freshSplits)R._freshSplits=keyedDict();
     R._freshSplits[psName]=1;/* ruling B: the stay-behind keeps its #133b grace */
     if(typeof console!=="undefined")console.info("[multiplayer] [PARTY_SPLIT:"+psName+"] re-affirmed unchanged at "+psArg+(psSub?" ("+psSub+")":"")+" — no-op (#228): split turn "+psWas.turn+" and the audit cooldown stand");
     continue;
@@ -1655,9 +1655,9 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
      party departs NEXT response; an age-blind sweep deleted that record in this very pass
      (died at birth). Per-RESPONSE scratch, not a turn stamp — turn does not advance between
      applyMuts calls, so a turn gate would also spare genuinely stale same-turn records. */
-  if(!R._freshSplits)R._freshSplits={};
+  if(!R._freshSplits)R._freshSplits=keyedDict();
   R._freshSplits[psName]=1;
-  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   if(!memory.map.nodes[psArg])memory.map.nodes[psArg]=newMapNode(R.turn,null);/* audit C3: the one factory */
   if(psPrev&&psPrev!==psArg){var psEx=false,psEi;for(psEi=0;psEi<memory.map.edges.length;psEi++){var psE=memory.map.edges[psEi];if((psE.from===psPrev&&psE.to===psArg)||(psE.from===psArg&&psE.to===psPrev)){psEx=true;break;}}if(!psEx)memory.map.edges.push({from:psPrev,to:psArg,turn:R.turn});}
   if(memory.map.nodes[psArg].npcs.indexOf(psName)<0)memory.map.nodes[psArg].npcs.push(psName);
@@ -1673,7 +1673,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   if(psToastWorthy&&typeof showToast==="function")showToast("⇢ "+psName+" splits from the party — "+psArg+(psSub?" · "+psSub:""));/* #189 — transition-gated */
 }}},
 {t:"COMPANION_HP",apply:function(text,R){var cHpTags=text.match(/\[COMPANION_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/g)||[];var cHpi;for(cHpi=0;cHpi<cHpTags.length;cHpi++){var cHpm=cHpTags[cHpi].match(/\[COMPANION_HP:([^|\]]+)\|\s*([+-]?\d+)[^\]]*\]/);if(!cHpm)continue;if(parseInt(cHpm[2],10)<0&&__villageHarmRefused(R,"COMPANION_HP",cHpTags[cHpi]))continue;/* Pax */var cHpCs=findCompanionChar(cHpm[1]);if(!cHpCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cHpm[1].trim()+"' — companion tag dropped (#136③)");continue;}var cHpdv=parseInt(cHpm[2]);cHpCs.hp=Math.min(cHpCs.maxHp||cHpCs.hp,Math.max(0,cHpCs.hp+cHpdv));R.muts.push(cHpm[1].trim()+(cHpdv>0?" healed ":" took ")+Math.abs(cHpdv)+" HP");}}},
-{t:"COMPANION_ITEM_GAINED",apply:function(text,R){var cIgTags=text.match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/g)||[],cIgCounts={},cIgi,cIgOff=tagOffsets(text,/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/);
+{t:"COMPANION_ITEM_GAINED",apply:function(text,R){var cIgTags=text.match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/g)||[],cIgCounts=keyedDict(),cIgi,cIgOff=tagOffsets(text,/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/);
   /* audit A5: the companion twins rode straight through a refused village trade — the gate is one gate for ALL items */
   if(R.villageTradeRefused&&cIgTags.length){R.muts.push("⚠ Trade refused — nothing gained by companions ("+cIgTags.length+" companion item tag"+(cIgTags.length>1?"s":"")+" rode with the refused coin)");if(typeof console!=="undefined")console.warn("[tags] COMPANION_ITEM_GAINED refused with the village trade: "+cIgTags.join(" "));return;}for(cIgi=0;cIgi<cIgTags.length;cIgi++){var c0=cIgTags[cIgi].match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/);if(c0){var cq0=_qtyParse(c0[2]),ck0=c0[1].trim()+"|"+itemBaseName(cq0.base);cIgCounts[ck0]=(cIgCounts[ck0]||0)+cq0.n;/* #481 D3: n per base */}}for(cIgi=0;cIgi<cIgTags.length;cIgi++){var cIgm=cIgTags[cIgi].match(/\[COMPANION_ITEM_GAINED:([^|\]]+)\|([^\]]+)\]/);if(!cIgm)continue;var cOwner=cIgm[1].trim(),cIgCs=findCompanionChar(cOwner);
     /* #481 A2 (b): the give pair — a gift whose [ITEM_LOST:] half matched nothing gives nothing; a gift to someone who is not a party member puts the unit back in the hero's pack (the vanishing bottle) */
@@ -1748,7 +1748,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
    says a repeated label once, with its count, where the first one stood. Pure: the input list is untouched, so R.muts and the
    provenance ring keep every label. A label that carries its own quantity keeps it ("+Arrow x12 (x2)"). */
 function mutsCollapseRepeats(lines){
-  var out=[],at={},i;
+  var out=[],at=keyedDict(),i;
   for(i=0;i<(lines||[]).length;i++){
     var s=String(lines[i]);
     if(Object.prototype.hasOwnProperty.call(at,s)){out[at[s]].n++;continue;}
@@ -1855,7 +1855,7 @@ function applyShopKeeper(entry,text,R,settled){
     else if(npcIsDead(npc))why=npc.name+" is dead";
     else if(npc.partyMember)why=npc.name+" travels with the party";
     if(why){R.muts.push("⚠ Keeper refused — "+why);if(typeof console!=="undefined")console.warn("[keeper] [SHOP_KEEPER:"+raw+"] refused — "+why+" (#481 B4)");return true;}
-    var written=R.shopKeeperWrites||(R.shopKeeperWrites={}),wk;
+    var written=R.shopKeeperWrites||(R.shopKeeperWrites=keyedDict()),wk;
     for(wk in written)if(locResolve(wk)===key&&written[wk]>entry.off)return true;
     written[key]=entry.off;
     if(node.keeper===npc.name)return true;
@@ -1869,7 +1869,7 @@ function applyMutsTable(text,opts){
   R.placeAt=function(off){return R.places?placeStateAt(R.places,off):null;};
   R.castSet=(typeof sceneCastSet==="function")?sceneCastSet(text):null;/* #481 B1: a non-none [SCENE_CAST:] is the reply's authority on who stands where it ENDS */
   if(typeof exitBeginResponse==="function")exitBeginResponse();
-  _sheetlessWarned={};
+  _sheetlessWarned=keyedDict();
   if(typeof guestbookBeginResponse==="function")guestbookBeginResponse();/* #173: arrivals QUEUE during the parse; the attendance snapshot commits at the post-handler seam below (amendment ③) */
   var feSnip=null;
   R.feGet=function(){if(feSnip===null){var ft=cleanTxt(text).replace(/\*You could[\s\S]*$/,"").trim();feSnip=(typeof snippetAtSentence==="function")?snippetAtSentence(ft,280):ft.slice(0,280);/* #481 C11: a sentence, never a cut word */}return feSnip;};
@@ -2072,7 +2072,7 @@ var __tagNoCombatWarns=0; // UA27: count of combat-tag-without-combat warns (tes
 var __TAG_KNOWN=null;
 function __tagUnknownScan(text){
   if(!__TAG_KNOWN){__TAG_KNOWN={};var i;for(i=0;i<TAG_STRIP_NAMES.length;i++)__TAG_KNOWN[TAG_STRIP_NAMES[i]]=1;for(i=0;i<TAG_STRIP_BARE.length;i++)__TAG_KNOWN[TAG_STRIP_BARE[i]]=1;}
-  var ms=text.match(/\[([A-Z][A-Z_]{1,}):/g)||[],seen={},i;
+  var ms=text.match(/\[([A-Z][A-Z_]{1,}):/g)||[],seen=keyedDict(),i;
   for(i=0;i<ms.length;i++){var nm=ms[i].slice(1,-1);if(__TAG_KNOWN[nm]||seen[nm])continue;seen[nm]=1;
     console.warn("[tags] UNKNOWN tag ["+nm+":…] in GM response — not parsed, not stripped (vocabulary gap or GM invention)");}
 }

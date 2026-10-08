@@ -31,8 +31,8 @@ rc|=sabotage.prove({
 
     { label:"#285: the shadow note goes silent — replacing a curated entry becomes invisible to the player (no-silent-failures)",
       mustFail:"#285 (f18): itemDefShadowNote",
-      find:"  if(typeof ITEM_BIBLE===\"undefined\"||!key||!ITEM_BIBLE[key])return\"\";",
-      replace:"  return\"\";if(typeof ITEM_BIBLE===\"undefined\"||!key||!ITEM_BIBLE[key])return\"\";" }
+      find:"  if(typeof ITEM_BIBLE===\"undefined\"||!key||!ownValue(ITEM_BIBLE,key))return\"\";",
+      replace:"  return\"\";if(typeof ITEM_BIBLE===\"undefined\"||!key||!ownValue(ITEM_BIBLE,key))return\"\";" }
   ]
 });
 

@@ -1,0 +1,44 @@
+
+  sabotage — state.js
+   ✓ caught      a library write is smuggled back into the campaign switch
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      the Hall line goes back onto the sheet
+   ✓ caught      the Hall-line reader ignores village state
+   ✓ caught      the memento reads the sheet instead of village state
+   ✓ caught      the hero is skipped again on refresh
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      the refreshed hero is not re-stamped (the adopter forgets the stamp — #428 moved it there)
+   ✓ caught      an equal copy refreshes (the stamp comparison is off by one)
+   ✓ caught      the hero is handed the library object itself
+   ✓ caught      move-in stops stamping the hero
+   ✓ caught      a swap drops the demoted hero's stamp
+   ✓ caught      a swap keeps the old hero's stamp on the new hero
+   ✓ file restored byte-identical
+   6/6 clauses proven
+
+
+  sabotage — ui-browsers.js
+   ✓ caught      the refresh shell never re-inits a refreshed hero's panels
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — ui-modals.js
+   ✓ caught      the Hall-line modal reads the sheet
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — ui-sheets.js
+   ✓ caught      a library write is smuggled back into the swap shell
+   ✓ file restored byte-identical
+   1/1 clauses proven
+

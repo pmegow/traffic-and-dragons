@@ -1,0 +1,96 @@
+
+  sabotage — game.js
+   ✓ caught      commit hook removed — missing-axis observers never see real turns
+   ✓ caught      reference rejection narrowed — 'toward Jorgenfist' arms location filing
+   ✓ caught      location tag identity loosened — LOCATION_DESC falsely suppresses the filing watch
+   ✓ caught      #28 commit-time player write removed — turns commit with no player half
+   ✓ caught      #28 logPlayer isTT guard dropped — Table Talk questions would reach the story record
+   ✓ file restored byte-identical
+   5/5 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      #196 persistence threshold deleted — the 0-HP note fires on the first zero turn
+   ✓ caught      #196 combat silence removed — the note interrupts a live fight
+   ✓ caught      #196 heal-clear removed — a stale since stamp survives recovery
+   ✓ caught      #196 builder dropped from the registry — the note can never reach a request
+   ✓ caught      #199 mid-clause pre-token filter removed — title chains mint phantom principals
+   ✓ caught      #199 premise limb disabled — the campaign's Valerius goes unwatched
+   ✓ caught      #199 ask cap removed — an owner's silence never becomes a ruling
+   ✓ caught      #199 builder dropped from the registry — the note can never reach a request
+   ✓ caught      #201 nudge reachability check removed — the dead-handle reveal is taught again
+   ✓ file restored byte-identical
+   9/9 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      strict duration promotion disabled — five days falls back to turn ageing
+   ✓ caught      outcome gate removed — merely discussing a future event marks it complete
+   ✓ caught      #194L6 rumor-mill cap dropped — a node's mention list accumulates forever
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      #201 handle separator unification removed — the t2032 spelling deadlock returns
+   ✓ caught      #201 conflict collapse removed — every respelled retry mints (and toasts) a fresh record
+   ✓ caught      #200 quarantine toast dedupe removed — a poisoned-id replay re-toasts every attempt
+   ✓ caught      #201 valve re-grant removed — a failed reveal leaves the fork note capped forever
+   ✓ caught      #193 capitalization evidence dropped — 'the caul of mist' becomes a death warrant
+   ✓ caught      #193 personal-segment rule dropped — an order-name token self-names its bare title
+   ✓ caught      #193 input-shaped tie-brake removed — a two-person token tie silently picks one
+   ✓ caught      #193 bare-death seam check removed — the descriptor upsert authority returns
+   ✓ caught      #194L6 tier misgrade — an undated assertion wears a fresh sighting's clothes again
+   ✓ caught      child match removed — LOCATION mints a world twin of a known sublocation
+   ✓ file restored byte-identical
+   10/10 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      duplicate acquisition receipt removed — the second satchel is silent
+   ✓ caught      death-retraction memory cleanup removed - the repaired NPC still injects deceased
+   ✓ caught      completion node gate removed - an old receipt drags a progressed living NPC backward
+   ✓ caught      completion residue gate removed - a clean replay grows the archive forever
+   ✓ caught      #253: the on-catalog refusal is dropped — one hallucinated tag permanently rewrites curated spell canon and its mana price
+   ✓ caught      #253: the refusal goes silent in the mutation trail — the player and the log see nothing said no
+   ✓ file restored byte-identical
+   6/6 clauses proven
+
+
+  sabotage — capability_bible.js
+   ✓ caught      #253: capIsBaseCatalog never matches — the handler's guard is decorative and the shadow returns
+   ✓ caught      #253: capIsBaseCatalog matches everything — genuinely emergent spells can no longer be defined at all
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      persistent consumable record not stored — an ignored check cannot re-fire
+   ✓ caught      clock shortfall replaced by the original price — partial elapsed time is double-billed
+   ✓ caught      #194L6 the not-a-visit clause deleted — rumor texture starts placing people in scenes
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      turn-addressing silently degrades to adjacency — late corrections eat the wrong turns again (#187④a)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      the qualification branch dies — directed memory questions go blind again (#188/#224)
+   ✓ caught      the bigram df ceiling dies — common phrases lift unrelated scenes again (#188)
+   ✓ caught      #261: the term pool shrinks back to first-come 8 — verbose questions starve the rare-word lane again
+   ✓ caught      #261: the bigram pool shrinks back to first-come 6 — the identifying phrase in a verbose question is discarded
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      the rare-word lane's compete half dies — the answer scene loses to entity noise again (#224)
+   ✓ caught      the word lane's df ceiling dies — common-ish words qualify unrelated scenes (#224)
+   ✓ caught      the single-word 8-cap dies — medium-df word piles swamp entity ranking (#224)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+

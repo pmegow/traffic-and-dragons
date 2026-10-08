@@ -27,7 +27,7 @@ function startGame(char,toneName,toneVoice,authorId){
   sessionLog=[];memory=blankMemory();lastAction=null;// don't let the previous campaign's last action leak into this one's Retry (audit E83)
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){
-    var comp=pendingCompanions[ci];if(!identitySheetAdmit(comp,comp.name,[]))continue;if(typeof sceneFieldsCross==="function")sceneFieldsCross(comp);/* #481 C5 */
+    var comp=pendingCompanions[ci];if(!identitySheetAdmit(comp,comp.name,[]))continue;keyedStores(comp,"sheet");if(typeof sceneFieldsCross==="function")sceneFieldsCross(comp);/* #481 C5 */
     if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(comp);
     worldState.npcs.push({name:comp.name,status:"ally",rel:"companion",met:0,partyMember:true,pronouns:pronounsForGender(comp.gender),portrait:null,charSheet:comp}); // portrait rides on charSheet only (#3 dedupe)
     memory.npcs[comp.name]={attitude:"ally",knowledge:[],events:[],partyMember:true,pronouns:pronounsForGender(comp.gender)};
@@ -346,7 +346,7 @@ function waysFromHere(ws,mem){
      by definition (a door the party has taken has been resolved away); the note rides as the chip's title. */
   var exs=(cur&&cur.exits)||[];for(i=0;i<exs.length;i++){var ex=exs[i];if(!ex||!ex.name)continue;
     ways.push({kind:"exit",label:ex.name,target:ex.name,action:"Go through "+ex.name+".",unexplored:true,note:ex.note||""});}
-  if(!sub&&!combat){var seen={};for(i=0;i<edges.length;i++){var e=edges[i],ef=R(e.from),et=R(e.to);if(ef===et)continue;/* #156B: a merged pair's edge leads nowhere */
+  if(!sub&&!combat){var seen=keyedDict();for(i=0;i<edges.length;i++){var e=edges[i],ef=R(e.from),et=R(e.to);if(ef===et)continue;/* #156B: a merged pair's edge leads nowhere */
     var o=ef===wKey?et:(et===wKey?ef:null);if(!o||seen[o])continue;seen[o]=1;var on=leaf(o);
     ways.push({kind:"road",label:on,target:on,action:"Take the road to "+on+".",unexplored:false});}}
   return {here:here,ways:ways};
@@ -436,7 +436,7 @@ function shopTradeApply(marks){
 // The scene-local manifest: who is PRESENT, where the exits lead, what the active character can
 // actually use — pure derivation from existing state, no new bookkeeping, no model involvement.
 function buildSceneManifest(){
-  var man={npcs:[],local:[],seenHere:[],exits:[],doors:[],caps:[]},i,seen={},seenLocal={},seenHereK={};
+  var man={npcs:[],local:[],seenHere:[],exits:[],doors:[],caps:[]},i,seen=keyedDict(),seenLocal=keyedDict(),seenHereK=keyedDict();
   function addNpc(nm){var k=String(nm).toLowerCase();if(!seen[k]){seen[k]=1;man.npcs.push(nm);}}
   /* #392: local = the SCENE, not the town. npcs keeps the #156B same-world rule (an NPC seen anywhere in this
      settlement may be addressed); local holds only those whose last-seen stamp IS this exact node/sub-location or
@@ -514,7 +514,7 @@ function buildSceneManifest(){
   /* #343: what each PRESENT companion can use, by base name — rule ⑧ reads it for delegated casting
      ("Have Daeris set a Binding Ward…"). Kept apart from man.caps, which stays the ACTIVE character's
      ownership (rule ② must still reject the player casting a companion's spell). */
-  man.partyCaps={};
+  man.partyCaps=keyedDict();
   for(i=0;i<man.npcs.length;i++){var _pcs=(typeof findCompanionChar==="function")?findCompanionChar(man.npcs[i]):null;if(!_pcs)continue;var _pl=[];
     (_pcs.spells||[]).forEach(function(s){_pl.push(capBaseName(s.nm));});(_pcs.abilities||[]).forEach(function(a){_pl.push(capBaseName(a.nm));});
     man.partyCaps[man.npcs[i]]=_pl;}
@@ -523,7 +523,7 @@ function buildSceneManifest(){
 // null = passes; {rule,detail} = reject. Narrow, high-precision rules only.
 function validateSuggestion(text,man){
   var i,j,t=String(text||""),npcs=worldState.npcs||[];
-  var present={};for(i=0;i<man.npcs.length;i++)present[String(man.npcs[i]).toLowerCase()]=1;
+  var present=keyedDict();for(i=0;i<man.npcs.length;i++)present[String(man.npcs[i]).toLowerCase()]=1;
   // ① a scene-scale capability aimed at someone who is not here (THE field case)
   for(i=0;i<man.caps.length;i++){
     var cap=man.caps[i];
@@ -540,7 +540,7 @@ function validateSuggestion(text,man){
     /* #343: a DELEGATED cast ("Have Morwen cast Silence…") is judged against the named present
        companion's sheet (man.partyCaps), not the active character's — Morwen casting her own
        Silence is legal; the player casting Morwen's Silence still is not. */
-    var owned={},_dlg=t.match(/^\s*have\s+([A-Z][\w' -]*?)\s+(?:cast|casts)\b/i),_dlgName=null;
+    var owned=keyedDict(),_dlg=t.match(/^\s*have\s+([A-Z][\w' -]*?)\s+(?:cast|casts)\b/i),_dlgName=null;
     if(_dlg){for(var _dn in (man.partyCaps||{})){if(new RegExp("\\b"+suggestionNameAlt(_dn)+"\\b","i").test(_dlg[1])){_dlgName=_dn;break;}}}
     if(_dlgName){for(i=0;i<man.partyCaps[_dlgName].length;i++)owned[man.partyCaps[_dlgName][i]]=1;}
     else{for(i=0;i<man.caps.length;i++)owned[man.caps[i].name]=1;}
@@ -1026,7 +1026,7 @@ function _speakerChar(name){var s=_speakerVoiceSubject(name);return s?s.char:nul
 // record; a generated sheet inherits it. Assigned voices remain untouched and user-recastable.
 function pinAutoCastVoices(sp){
   if(!sp||!sp.s||typeof TTS==="undefined"||!TTS.autoCastVoiceId)return false;
-  var seen={},pinned=false,k,nm,sub,ch,v;
+  var seen=keyedDict(),pinned=false,k,nm,sub,ch,v;
   for(k in sp.s){
     nm=sp.s[k];
     if(seen[nm])continue;
@@ -1151,7 +1151,7 @@ function checkLegacyCharacter(){
 // (archetype modal → stat bumps → spell picks); re-surfaced by resurfaceLevelUpOwed at boot and
 // by the sendAction guard before the next turn.
 function _luOwed(){
-  if(!worldState.levelUpOwed)worldState.levelUpOwed={};
+  if(!worldState.levelUpOwed)worldState.levelUpOwed=keyedDict();
   var nm=(worldState.character&&worldState.character.name)||"?";
   if(!worldState.levelUpOwed[nm])worldState.levelUpOwed[nm]={bumps:0,spells:[]};
   return worldState.levelUpOwed[nm];
@@ -1272,7 +1272,7 @@ function _milestoneHead(c,kicker){
     +"<div style='font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;'>"+kicker+"</div>";
 }
 function showSpellUnlockModal(unl){
-  var c=worldState.character,have={},i;
+  var c=worldState.character,have=keyedDict(),i;
   for(i=0;i<(c.spells||[]).length;i++)have[capBaseName(c.spells[i].nm)]=1;
   var pool=[];for(i=0;i<unl.pool.length;i++){if(!have[capBaseName(unl.pool[i])])pool.push(unl.pool[i]);}
   if(!pool.length){/* everything on the bench already known (GM grants, prior picks) — nothing to offer */
@@ -1320,7 +1320,7 @@ function companionAutoPickSpells(cs,unlocks){
   var learned=[],u,p,h;
   for(u=0;u<unlocks.length;u++){
     if(!unlocks[u].pool.length)continue;
-    var have={};if(!cs.spells)cs.spells=[];
+    var have=keyedDict();if(!cs.spells)cs.spells=[];
     for(h=0;h<cs.spells.length;h++)have[capBaseName(cs.spells[h].nm)]=1;
     var need=SPELL_UNLOCK_PICKS[String(unlocks[u].tier)]||1;
     for(p=0;p<unlocks[u].pool.length&&need>0;p++){
@@ -1548,7 +1548,7 @@ function inheritVoicePins(sheet,wsNpc,prior){
    populateVillageFromLibrary (ui-browsers.js). */
 function importVillageResidents(list){
   var added=0,skipped=[],i;if(!worldState||!(list instanceof Array))return {added:0,skipped:[]};
-  if(!worldState.npcs)worldState.npcs=[];if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.npcs)memory.npcs={};
+  if(!worldState.npcs)worldState.npcs=[];if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};if(!memory.npcs)memory.npcs=keyedDict();
   var here=(worldState.world&&worldState.world.location)||"The Village";
   if(!memory.map.nodes[here])memory.map.nodes[here]=newMapNode(null,null,{size:"small"});
   else if(!memory.map.nodes[here].size)memory.map.nodes[here].size="small";/* phase B: whispers, hours and wares all key on a SIZED settlement — the village is one */
@@ -1556,7 +1556,7 @@ function importVillageResidents(list){
     if(worldState.character&&worldState.character.name===nm){if(typeof _libAt==="number")worldState.heroLibraryAt=_libAt;/* #427: the hero's own move-in stamp — "newer than this" is what a later refresh means */skipped.push(nm);continue;}
     if(wsNpcByName(nm)){skipped.push(nm);continue;}
     if(!identitySheetAdmit(c,nm,identityAttachOwners(nm))){skipped.push(nm);continue;}
-    var sheet=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);/* #168 W7: imported sheets enter through the axis adapter */
+    var sheet=keyedStores(JSON.parse(JSON.stringify(c)),"sheet");if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);/* #168 W7: imported sheets enter through the axis adapter */
     if(typeof sceneFieldsCross==="function")sceneFieldsCross(sheet);/* #481 C5 */
     if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);/* #81b: the resident's gear keeps its canon */
     var pr=pronounsForGender(sheet.gender);
@@ -1574,6 +1574,7 @@ function importVillageResidents(list){
    survive. The hero and party members are never touched — an adventure's state reaches the library only by hand. Pure. */
 /* #428: the v10 field guarantee, ONE helper — startGame's own list (hoisted, so its call site above resolves). */
 function ensureV10Arrays(s){
+  keyedStores(s,"sheet");
   if(!s)return s;
   if(!s.skills)s.skills=initSkills();if(!s.conditions)s.conditions=[];if(!s.relationships)s.relationships=[];if(!s.saveModifiers)s.saveModifiers=[];if(!s.languages)s.languages=[];
   if(s.portrait===undefined)s.portrait=null;if(!s.backstory)s.backstory="";if(!s.storyBeats)s.storyBeats=[];if(!s.coreMemories)s.coreMemories=[];if(!Array.isArray(s.voiceLines))s.voiceLines=[];if(typeof s.manner!=="string")s.manner="";/* #552 */
@@ -1653,7 +1654,7 @@ function villageRefreshFromLibrary(entries){
 /* #6 E6: ONE house-minting path — import and the swap's demotion both come here, so a resident always has a house with
    its owner on the node (the live check of 2026-09-12 found the swap had none). */
 function villageHouseEnsure(name,here){
-  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   var parent=here||(worldState&&worldState.world&&worldState.world.location)||"The Village",hk=villageHouseKey(name,parent);
   if(!memory.map.nodes[hk])memory.map.nodes[hk]=newMapNode(null,parent,{size:"small",owner:name});
   else if(!memory.map.nodes[hk].owner)memory.map.nodes[hk].owner=name;
@@ -1719,7 +1720,7 @@ function villageRung(){
    Hall beside them. Idempotent; runs at blueprint time so a signed-out village has its geography too. */
 function villageCommonsSeed(base){
   var def=(typeof kindDef==="function")?kindDef():null;if(!worldState||!def||!def.commons)return {minted:0};
-  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   var v=base||(worldState.world&&worldState.world.location)||"The Village",i,minted=0;
   if(!memory.map.nodes[v])memory.map.nodes[v]=newMapNode(null,null,{size:"small"});
   for(i=0;i<def.commons.length;i++){var leaf=def.commons[i],key=v+"|"+leaf;if(memory.map.nodes[key])continue;
@@ -1733,10 +1734,10 @@ function villageCommonsSeed(base){
    one unresolved thing, their own line if they wrote one) and a wall entry for every resident without one. Idempotent. */
 function villageHallSeed(base){
   if(!worldState||typeof kindDef!=="function"||!kindDef().hall)return {mementos:0,wall:0};
-  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   var here=base||(worldState.world&&worldState.world.location)||"The Village",hk=villageHallKey(here),node=memory.map.nodes[hk];
   if(!node)node=memory.map.nodes[hk]=newMapNode(null,here,{size:"small",hall:true});
-  node.hall=true;var prior={},i;(node.mementos||[]).forEach(function(m){prior[m.resident]=m;});
+  node.hall=true;var prior=keyedDict(),i;(node.mementos||[]).forEach(function(m){prior[m.resident]=m;});
   var npcs=worldState.npcs||[],mem=[],wall=[];
   for(i=0;i<npcs.length;i++){var n=npcs[i];if(!n.resident||!n.charSheet)continue;var s=n.charSheet;
     if(s.fate){var obj=(s.inventory&&s.inventory.length)?_invBase(s.inventory[0]):"a plain token";mem.push({resident:n.name,campaign:s.fate.campaign||"a finished tale",object:obj,fate:s.fate.line||s.fate.cause||"",unresolved:(s.fate.unresolved&&s.fate.unresolved[0])||"nothing the record names",line:villageHallLineOf(n.name)||(prior[n.name]&&prior[n.name].line)||null});}/* #427: the line reads from village state first */
@@ -1756,7 +1757,7 @@ function villageHallLineOf(name){
 function villageHallLine(name,text){
   var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(!n||!n.resident||!n.charSheet)return {ok:false,reason:"no such resident"};
   var t=String(text||"").replace(/\s+/g," ").trim();if(!t)return {ok:false,reason:"an empty line"};
-  if(t.length>200)t=t.slice(0,200);if(!worldState.hallLines)worldState.hallLines={};worldState.hallLines[name]=t;
+  if(t.length>200)t=t.slice(0,200);if(!worldState.hallLines)worldState.hallLines=keyedDict();worldState.hallLines[name]=t;
   villageHallSeed();
   return {ok:true,line:t};
 }
@@ -1841,8 +1842,8 @@ function stashMovesReplay(sheet,copyMark){
     if(!e.pack||(since!==null&&e.at<=since))continue;
     if(e.action==="placed"){for(j=0;j<e.pack.units;j++){if(removeInventoryItem(sheet.inventory,e.pack.name))out.applied++;else{out.missed.push(e.pack.name);break;}}}
     else{for(j=0;j<e.pack.units;j++)addInventoryItem(sheet.inventory,e.pack.name);out.applied+=e.pack.units;}}
-  if(latest!==null){if(!sheet.stashMarks)sheet.stashMarks={};sheet.stashMarks[stashMarkKey()]=latest;}
-  if(!worldState.stashLegacyCounted)worldState.stashLegacyCounted={};
+  if(latest!==null){if(!sheet.stashMarks)sheet.stashMarks=keyedDict();sheet.stashMarks[stashMarkKey()]=latest;}
+  if(!worldState.stashLegacyCounted)worldState.stashLegacyCounted=keyedDict();
   if(!worldState.stashLegacyCounted[sheet.name]){worldState.stashLegacyCounted[sheet.name]=true;
     var nodes=(memory&&memory.map&&memory.map.nodes)||{},k;for(k in nodes){var its=nodes[k].items||[];for(j=0;j<its.length;j++){var it=its[j];
       if(it.by===sheet.name&&!it.taken&&it.qty!==0&&(firstTurn===null||(it.placed||0)<firstTurn))out.legacy+=(it.qty||1);}}
@@ -1888,12 +1889,13 @@ function attachCompanionSheet(npcName,sheet){
   var npc=wsNpcByName(npcName);
   if(!npc||npc.charSheet)return null;
   inheritVoicePins(sheet,npc,null);
+  keyedStores(sheet,"sheet");
   npc.charSheet=sheet;delete npc.sheetPending;
   releaseRowVoicePins(npc);
   if(memory&&memory.npcs&&memory.npcs[npcName])memory.npcs[npcName].partyMember=true;
   return npc;
 }
-var _sheetGenInFlight={};
+var _sheetGenInFlight=keyedDict();
 async function generateCompanionSheet(npcName){
   var npc=wsNpcByName(npcName);
   if(!npc||npc.charSheet||_sheetGenInFlight[npcName])return;
@@ -1965,7 +1967,7 @@ function pickArchetype(idx){
   // C6 ②: the archetype's level rows up to the CURRENT level land with the commitment — normally
   // just the L3 row, but a jump that crossed 3-6 before the pick catches up here. Dedupe by name
   // so a re-pick path can never double-grant.
-  var _apLv,_apF,_apHave={},_api;for(_api=0;_api<c.abilities.length;_api++)_apHave[c.abilities[_api].nm]=1;
+  var _apLv,_apF,_apHave=keyedDict(),_api;for(_api=0;_api<c.abilities.length;_api++)_apHave[c.abilities[_api].nm]=1;
   for(_apLv=3;_apLv<=c.level;_apLv++){var _apRows=archFeaturesAt(c.cls,arch.id,_apLv);for(_apF=0;_apF<_apRows.length;_apF++){if(!_apHave[_apRows[_apF].nm]){c.abilities.push({nm:_apRows[_apF].nm,ds:_apRows[_apF].ds,gained:worldState.turn});_apHave[_apRows[_apF].nm]=1;}}}
   // Grant the archetype/class spell list even if the character already owns RACIAL spells (audit E21):
   // the old `!c.spells.length` guard skipped the whole grant for e.g. a Drow Rogue picking Arcane
@@ -2103,7 +2105,7 @@ function detectCoreMoments(pre){
     if(preAl&&postAl&&preAl!==postAl)fileCoreMemory("alignment",who,who+"'s compass turned: "+preAl+" → "+postAl+here+".");
   }
   alignFlip(pre.align,c.actualAlignment,c.name);
-  var seen={},ns=worldState.npcs||[];
+  var seen=keyedDict(),ns=worldState.npcs||[];
   for(i=0;i<ns.length;i++){var n=ns[i];if(!n||!n.partyMember)continue;seen[n.name]=1;
     var p=pre.party[n.name];
     if(!p){fileCoreMemory("party",n.name,n.name+" joined the party"+here+".");continue;}
@@ -2136,7 +2138,7 @@ function detectCoreMoments(pre){
 // That is the signal the player has been missing, so this must never toast speculatively.
 function inventorySnapshot(){
   if(!worldState||!worldState.character)return null;
-  var m={},inv=worldState.character.inventory||[],i;
+  var m=keyedDict(),inv=worldState.character.inventory||[],i;
   // Skip non-string entries (load-time migration deliberately preserves them, and the other two
   // inventory readers both skip them) — this snapshot runs BEFORE applyMuts, so a throw here
   // would lose the whole turn and make Retry re-throw forever.
@@ -2172,7 +2174,7 @@ function toastInventoryGains(pre){
 // syncCharSheet is excluded on purpose: an audit-filed correction has no honest onset turn.
 function conditionSnapshot(){
   if(!worldState||!worldState.character)return null;
-  function names(list){var m={},i;for(i=0;i<(list||[]).length;i++)m[list[i].name]=1;return m;}
+  function names(list){var m=keyedDict(),i;for(i=0;i<(list||[]).length;i++)m[list[i].name]=1;return m;}
   var snap={player:names(worldState.character.conditions),party:{}},i;
   var _csParty=partyCompanionsWithSheets(true);/* DELIBERATE (user ruling 2026-07-16): read-side snapshot keeps dead companions so DEATH-TURN condition changes still stamp/toast (routing to dead sheets is deliberate — see findCompanionNpc) */
   for(i=0;i<_csParty.length;i++)snap.party[_csParty[i].name]=names(_csParty[i].charSheet.conditions);
@@ -2184,7 +2186,7 @@ function stampNewConditions(pre){
   // condition add/removal previously had zero UI feedback (v1.256, from the Daeris audit test:
   // "yay that it's done... no toast"). Toasting HERE instead of inside the tag handlers keeps
   // both parsers untouched (no pre-cutover double-implementation, no shadow-soak noise).
-  function names(list){var m={},i;for(i=0;i<(list||[]).length;i++)m[list[i].name]=1;return m;}
+  function names(list){var m=keyedDict(),i;for(i=0;i<(list||[]).length;i++)m[list[i].name]=1;return m;}
   function diff(who,list,had){
     var i,now=names(list);
     for(i=0;i<(list||[]).length;i++){if(!had[list[i].name]){
@@ -2218,7 +2220,7 @@ function stampNewConditions(pre){
 //      audit fires next turn instead of waiting out the 40-turn window.
 function relationshipSnapshot(){
   if(!worldState||!worldState.character)return null;
-  function relMap(sheet,who){var m={},rows=relationshipRows(sheet,who),i;for(i=0;i<rows.length;i++){if(rows[i]&&rows[i].entity)m[rows[i].entity]=rows[i].bond||"";}return m;}
+  function relMap(sheet,who){var m=keyedDict(),rows=relationshipRows(sheet,who),i;for(i=0;i<rows.length;i++){if(rows[i]&&rows[i].entity)m[rows[i].entity]=rows[i].bond||"";}return m;}
   var snap={player:relMap(worldState.character,null),party:{},names:{}},i;
   for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
     if(n&&n.partyMember){snap.names[n.name]=1;if(n.charSheet)snap.party[n.name]=relMap(n.charSheet,n.name);}}
@@ -2250,7 +2252,7 @@ function stampRelationshipChanges(pre){
     }
   }
   sweep(null,worldState.character,pre.player);
-  var i,nowNames={};
+  var i,nowNames=keyedDict();
   for(i=0;i<(worldState.npcs||[]).length;i++){var n=worldState.npcs[i];
     if(!n||!n.partyMember)continue;nowNames[n.name]=1;
     if(n.charSheet)sweep(n.name,n.charSheet,pre.party[n.name]||{});}
@@ -2304,13 +2306,13 @@ function detectGhostConsumables(playerTxt,raw){
   if(!worldState||!worldState.character)return;
   var hay=String(playerTxt||"")+"\n"+String(raw||"");
   // item-loss tags already in this response → those items are handled, not ghosts
-  var lostNorm={},tags=String(raw||"").match(/\[(?:COMPANION_)?ITEM_LOST:[^\]]+\]/g)||[],ti;
+  var lostNorm=keyedDict(),tags=String(raw||"").match(/\[(?:COMPANION_)?ITEM_LOST:[^\]]+\]/g)||[],ti;
   for(ti=0;ti<tags.length;ti++){
     var cm=tags[ti].match(/\[COMPANION_ITEM_LOST:([^|\]]+)\|([^\]]+)\]/),pm=tags[ti].match(/\[ITEM_LOST:([^\]]+)\]/);
     if(cm){var owner=(typeof resolveNpcName==="function")?resolveNpcName(cm[1].trim()):cm[1].trim();lostNorm[owner+"|"+_invNorm(_qtyParse(cm[2]).base)]=1;}
     else if(pm)lostNorm["|"+_invNorm(_qtyParse(pm[1]).base)]=1;
   }
-  var liveKeys={};/* #60b: every key the current party can legitimately hold a latch for */
+  var liveKeys=keyedDict();/* #60b: every key the current party can legitimately hold a latch for */
   function sweep(who,inv){
     var j;for(j=0;j<(inv||[]).length;j++){var entry=inv[j];if(typeof entry!=="string")continue;
       var base=_invBase(entry),norm=_invNorm(entry);
@@ -2536,7 +2538,7 @@ function observeDriftAxes(raw,clean){
 }
 function isBookkeepingResponse(raw,clean,dice){
   if(String(clean||"").trim()||String(dice||"").trim())return false;
-  var s=String(raw||""),known={},i,m,ms;
+  var s=String(raw||""),known=keyedDict(),i,m,ms;
   if(typeof TAG_STRIP_NAMES!=="undefined")for(i=0;i<TAG_STRIP_NAMES.length;i++)known[TAG_STRIP_NAMES[i]]=1;
   if(typeof TAG_STRIP_BARE!=="undefined")for(i=0;i<TAG_STRIP_BARE.length;i++)known[TAG_STRIP_BARE[i]]=1;
   ms=s.match(/\[([A-Z][A-Z_]{1,})(?::[^\]]*)?\]/g)||[];
@@ -3078,7 +3080,7 @@ function validateBlueprint(bp){
   // the class: this data becomes character-progression canon when the engine consumes it, and
   // a malformed class discovered at level-up would be far worse than a refused save.
   if(bp.customClasses&&bp.customClasses.length){
-    var cci,seenCC={};
+    var cci,seenCC=keyedDict();
     for(cci=0;cci<bp.customClasses.length;cci++){
       var cc=bp.customClasses[cci],who="Custom class "+(cci+1);
       if(!cc||typeof cc!=="object")return who+" is not an object.";
@@ -3149,7 +3151,7 @@ function normalizeBlueprint(bp,opts){
   if(typeof bp.startingLocation!=="string")bp.startingLocation="";
   if(typeof bp.startingRegion!=="string")bp.startingRegion="";
   if(typeof bp.startingTime!=="string")bp.startingTime="";
-  bp.kind=(typeof CAMPAIGN_KINDS!=="undefined"&&typeof bp.kind==="string"&&CAMPAIGN_KINDS[bp.kind])?bp.kind:"adventure";/* #6: a known kind or the default — never a junk value *//* #354: optional opening time "HH:MM" (blank = the wizard preset / dawn) */
+  bp.kind=(typeof CAMPAIGN_KINDS!=="undefined"&&typeof bp.kind==="string"&&ownValue(CAMPAIGN_KINDS,bp.kind))?bp.kind:"adventure";/* #6: a known kind or the default — never a junk value *//* #354: optional opening time "HH:MM" (blank = the wizard preset / dawn) */
   if(!Array.isArray(bp.acts))bp.acts=[];
   // Every act needs an arcs array (audit E19) — applyBlueprint iterates act.arcs unconditionally,
   // and the cloud-library path skips validateBlueprint, so a missing arcs crashed startGame.
@@ -3175,7 +3177,7 @@ function normalizeBlueprint(bp,opts){
   for(var _cci=0;_cci<bp.customClasses.length;_cci++)normalizeCustomClass(bp.customClasses[_cci]);
   if(!Array.isArray(bp.availableClasses))delete bp.availableClasses; // null/junk shapes → absence (unrestricted) beats guessing
   else{
-    var _avSeen={},_avList=[],_avi;
+    var _avSeen=keyedDict(),_avList=[],_avi;
     for(_avi=0;_avi<bp.availableClasses.length;_avi++){
       var _avn=String(bp.availableClasses[_avi]==null?"":bp.availableClasses[_avi]).trim();
       if(_avn&&!_avSeen[_avn.toLowerCase()]){_avSeen[_avn.toLowerCase()]=1;_avList.push(_avn);}
@@ -3255,8 +3257,8 @@ function buildBlueprintFromGame(){
   var sk=worldState.skeleton,acts=[];
   if(sk&&sk.acts&&sk.acts.length){
     var i;for(i=0;i<sk.acts.length;i++){
-      var a=Object.assign({},sk.acts[i]);a.status="pending";
-      a.arcs=(a.arcs||[]).map(function(arc){var _ea=Object.assign({},arc,{status:"pending"});delete _ea.startTurn;/* #23 runtime pacing clock — never author it into an exported blueprint */return _ea;});
+      var a=ownAssign({},sk.acts[i]);a.status="pending";
+      a.arcs=(a.arcs||[]).map(function(arc){var _ea=ownAssign({},arc,{status:"pending"});delete _ea.startTurn;/* #23 runtime pacing clock — never author it into an exported blueprint */return _ea;});
       acts.push(a);
     }
   }
@@ -3321,8 +3323,8 @@ function splitNpcStatBlock(text){
   return {bio:bio,stats:stats};
 }
 function applyBlueprint(bp){
-  if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[bp.kind]){worldState.kind=bp.kind;/* #6: only a non-default kind is stamped — adventure saves stay byte-identical */
-    if(CAMPAIGN_KINDS[bp.kind].openingWeather&&worldState.world)worldState.world.weather=CAMPAIGN_KINDS[bp.kind].openingWeather;/* #6 C4: the kind's own sky, not the adventure's ash (the first live check opened under "cold wind carrying ash") */
+  if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&ownValue(CAMPAIGN_KINDS,bp.kind)){worldState.kind=bp.kind;/* #6: only a non-default kind is stamped — adventure saves stay byte-identical */
+    if(ownValue(CAMPAIGN_KINDS,bp.kind).openingWeather&&worldState.world)worldState.world.weather=ownValue(CAMPAIGN_KINDS,bp.kind).openingWeather;/* #6 C4: the kind's own sky, not the adventure's ash (the first live check opened under "cold wind carrying ash") */
     worldState._seedCommons=bp.startingLocation||true;/* #6 E11: minted after the blueprint's own locations land (below), under the blueprint's own village name */}
   /* #192: persist the class roster into worldState as COPIES (a reused bp object must never be
      able to mutate canon later); the classDefs overlay + classAvailable read these from here on,
@@ -3363,7 +3365,7 @@ function applyBlueprint(bp){
     var li;for(li=0;li<bp.locations.length;li++){
       var loc=bp.locations[li];
       if(!memory.locations[loc.name])memory.locations[loc.name]={visited:[],notes:[]};// was {visits:0} — wrong shape crashed fileLocation on first travel (audit #8)
-      if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+      if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
       if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]=newMapNode(null,null,{description:loc.description||null});
     }
   }
@@ -4182,7 +4184,7 @@ function initAbilities(){
 function grantSpellsFromList(c,list,lvl){
   if(!list||!list.length)return;
   if(!c.spells)c.spells=[];
-  var i,have={},_mxB=manaMax(c);/* #110b: the pool grows with the max */
+  var i,have=keyedDict(),_mxB=manaMax(c);/* #110b: the pool grows with the max */
   for(i=0;i<c.spells.length;i++)have[capBaseName(c.spells[i].nm)]=1;
   for(i=0;i<list.length;i++){
     var b=capBaseName(list[i]);
@@ -4290,7 +4292,7 @@ function buildItemDefinePrompt(rawItem){
   if(!carried&&typeof livingPartyCompanions==="function"){var _pc=livingPartyCompanions(),ci;
     for(ci=0;ci<_pc.length&&!carried;ci++){if(_pc[ci].charSheet&&(_pc[ci].charSheet.inventory||[]).indexOf(rawItem)>=0)carried=true;}}
   if(!carried)return null;/* the def is TYPE canon, but the entry point is a carried item's row */
-  var _shadowBase=(typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE[key])||null;/* #285: eligibility already proved it classification-only when present */
+  var _shadowBase=(typeof ITEM_BIBLE!=="undefined"&&ownValue(ITEM_BIBLE,key))||null;/* #285: eligibility already proved it classification-only when present */
   var _opening=_shadowBase
     ?"The carried item \""+rawItem+"\" has only an organize-only catalog entry (no mechanics — it never reaches ITEM CANON injection). The curated entry classifies it as \""+_shadowBase.category+"\" with value "+_shadowBase.value+"; keep those unless the story contradicts them — your definition REPLACES that entry wholesale once the player accepts. "
     :"The carried item \""+rawItem+"\" has no entry in ITEM CANON. ";
@@ -4369,7 +4371,7 @@ async function suggestQuestCompletion(title){
 // Pure inventory diff for the loud correction trail (engine-tested): human-readable lines for
 // items added/removed between two snapshots. Order-insensitive, count-aware.
 function invDiffLines(before,after){
-  function tally(list){var m={},i;for(i=0;i<(list||[]).length;i++){m[list[i]]=(m[list[i]]||0)+1;}return m;}
+  function tally(list){var m=keyedDict(),i;for(i=0;i<(list||[]).length;i++){m[list[i]]=(m[list[i]]||0)+1;}return m;}
   var b=tally(before),a=tally(after),out=[],k;
   for(k in a){if((a[k]||0)>(b[k]||0))out.push("+"+k+((a[k]-(b[k]||0))>1?" x"+(a[k]-(b[k]||0)):""));}
   for(k in b){if((b[k]||0)>(a[k]||0))out.push("−"+k+((b[k]-(a[k]||0))>1?" x"+(b[k]-(a[k]||0)):""));}

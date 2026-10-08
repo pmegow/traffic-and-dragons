@@ -24,7 +24,7 @@ prove("tag_table.js", [
     find: 'if(_lact==="placed"&&itemPairMissed(R,_lnm)){', replace: 'if(false){',
     mustFail: "a loss that matched nothing places nothing" },
   { label: "a refused trade rider is no longer a miss",
-    find: 'ilTags.forEach(function(t0){var m0=t0.match(/\\[ITEM_LOST:([^\\]]+)\\]/);if(m0){if(!R.ilMiss)R.ilMiss={};R.ilMiss[itemPairKey(m0[1])]=m0[1].trim();}});return;}',
+    find: 'ilTags.forEach(function(t0){var m0=t0.match(/\\[ITEM_LOST:([^\\]]+)\\]/);if(m0){if(!R.ilMiss)R.ilMiss=keyedDict();R.ilMiss[itemPairKey(m0[1])]=m0[1].trim();}});return;}',
     replace: 'return;}',
     mustFail: "a loss that matched nothing places nothing" },
   { label: "a gift the hero never held reaches the companion",

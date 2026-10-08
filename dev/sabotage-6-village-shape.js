@@ -17,7 +17,7 @@ prove("data.js", [
 ]);
 prove("helpers.js", [
   { label: "an unknown kind is returned as-is instead of falling back to adventure",
-    find: 'return (k&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[k])?k:"adventure";', replace: 'return k||"adventure";',
+    find: 'return (k&&typeof CAMPAIGN_KINDS!=="undefined"&&ownValue(CAMPAIGN_KINDS,k))?k:"adventure";', replace: 'return k||"adventure";',
     mustFail: "#6A CAMPAIGN_KINDS is ONE registry" }
 ]);
 prove("game.js", [
@@ -27,13 +27,13 @@ prove("game.js", [
   { label: "the resident's sheet is the library object itself, not a copy",
     /* anchored on importVillageResidents' own line — the same copy also opens adoptLibraryCompanion (#428); the harness
        mutates the FIRST match (ambiguous-find census 2026-09-21) */
-    find: 'var sheet=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);', replace: 'var sheet=c;if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);',
+    find: 'var sheet=keyedStores(JSON.parse(JSON.stringify(c)),"sheet");if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);', replace: 'var sheet=c;if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);',
     mustFail: "#6A residents: importVillageResidents" },
   { label: "the house node forgets its owner",
     find: 'newMapNode(null,parent,{size:"small",owner:name})', replace: 'newMapNode(null,parent,{size:"small"})',
     mustFail: "#6A residents: importVillageResidents" },
   { label: "applyBlueprint stamps every kind, adventure included (legacy saves gain a field)",
-    find: 'if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&CAMPAIGN_KINDS[bp.kind]){worldState.kind=bp.kind;', replace: 'if(bp.kind){worldState.kind=bp.kind;',
+    find: 'if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&ownValue(CAMPAIGN_KINDS,bp.kind)){worldState.kind=bp.kind;', replace: 'if(bp.kind){worldState.kind=bp.kind;',
     mustFail: "#6A the blueprint carries the kind" }
   /* the "write-back stays silent when signed out" clause was retired with villageWriteBack itself (#427, 2026-09-21):
      the library is upstream and no automatic write-back exists to keep honest — dev/sabotage-427-library-upstream.js

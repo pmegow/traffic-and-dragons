@@ -10,7 +10,7 @@ prove("identity.js", [
     find: "var castCanon=null,ck;if(R&&R.castSet){", replace: "var castCanon=null,ck;if(false){",
     mustFail: "a speaker the cast leaves out gets no place" },
   { label: "[SCENE_CAST:none] withholds every speaker",
-    find: "var p=m[1].trim();if(!p||/^none$/i.test(p))continue;if(!set)set={};", replace: "var p=m[1].trim();if(!p)continue;if(!set)set={};",
+    find: "var p=m[1].trim();if(!p||/^none$/i.test(p))continue;if(!set)set=keyedDict();", replace: "var p=m[1].trim();if(!p)continue;if(!set)set=keyedDict();",
     mustFail: "no cast and [SCENE_CAST:none] keep today" },
   { label: "the out-of-cast speaker is not said",
     find: "wl.push(w);labels.push(w+\" (spoke, not in cast)\");", replace: "wl.push(w);",

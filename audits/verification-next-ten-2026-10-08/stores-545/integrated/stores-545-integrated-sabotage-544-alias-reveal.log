@@ -1,0 +1,63 @@
+
+  sabotage — tag_table.js
+   ✓ caught      existing-record alias is refused without proposal
+   ✓ caught      proposal prematurely registers the duplicate alias
+   ✓ caught      no-scene handler bypasses pending confirmation
+   ✓ caught      transferred sheet keeps duplicate name
+   ✓ caught      hero canonical operand rewritten by NPC alias
+   ✓ caught      roster-only old name not retained
+   ✓ file restored byte-identical
+   6/6 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      pending pairs never require confirmation
+   ✓ caught      all no-scene merges bypass proposal evidence
+   ✓ caught      confirmation accepts reversed direction
+   ✓ caught      confirmation ignores turn
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      roster-only hint discarded
+   ✓ caught      same-turn proposal arms itself
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      canonical operand ignores sheet-only alias
+   ✓ caught      duplicate operand ignores sheet-only alias
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      ambiguous alias becomes unregistered canonical
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      new canonical queues undeliverable proposal
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      selected canonical malformed shape reaches writers
+   ✓ caught      response plan absent so generic merge wins ordering
+   ✓ caught      planned alias proposal never finalized
+   ✓ caught      coemitted merge ignores response alias intent
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      unknown proposal endpoints enter global queue
+   ✓ caught      known canonical aliases omitted from response preflight
+   ✓ caught      deferred attempt never becomes a proposal
+   ✓ file restored byte-identical
+   3/3 clauses proven
+

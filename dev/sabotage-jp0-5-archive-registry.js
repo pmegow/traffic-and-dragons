@@ -48,13 +48,13 @@ rc |= sabotage.prove({
 
     { label: "archiveRebuild stops being TOTAL — a save whose archive is missing or junk imports with no archive shape at all",
       mustFail: "produced no archive",
-      find: '  var out=blankArchive(),known={},k,i;',
-      replace: '  var out=(src&&typeof src==="object")?blankArchive():null,known={},k,i;' },
+      find: '  var out=blankArchive(),known=keyedDict(),k,i;',
+      replace: '  var out=(src&&typeof src==="object")?blankArchive():null,known=keyedDict(),k,i;' },
 
     { label: "blankMemory re-grows its own archive literal — the birth shape drifts off the registry (the state it was actually in before JP0-5)",
       mustFail: "blankMemory no longer builds its archive from the registry",
-      find: 'archive:blankArchive()};',
-      replace: 'archive:{lore:[],decisions:[],chapters:[],coreMemories:[],identityQuarantines:[]}};' },
+      find: 'archive:blankArchive()},"memory");',
+      replace: 'archive:{lore:[],decisions:[],chapters:[],coreMemories:[],identityQuarantines:[]}},"memory");' },
 
     { label: "healMemory stops routing through the registry — imported and legacy saves lose the categories it used to fill",
       mustFail: "healMemory no longer heals its archive through the registry",

@@ -91,7 +91,7 @@ function buildGeoBlock(){
   var _subCanon=function(n){return !!(n.layout||(n.exits&&n.exits.length)||n.owner||(n.wares&&n.wares.length)||(n.stateNotes&&n.stateNotes.length)||(n.items&&n.items.some(function(it){return it&&!it.taken&&it.qty!==0;})));};
   /* #483: in a kind that serves COMMONS and HOUSES (the village) those two lines already name every shop and house as a
      sub-location with its arrival tag; the plain list repeated them (360 of its 400 chars on t279). It keeps only the residue. */
-  var _named={};if(_stashKind){(typeof _cm2!=="undefined"?_cm2:[]).concat(typeof _hk2!=="undefined"?_hk2:[]).forEach(function(x){_named[String(x).toLowerCase()]=1;});}
+  var _named=keyedDict();if(_stashKind){(typeof _cm2!=="undefined"?_cm2:[]).concat(typeof _hk2!=="undefined"?_hk2:[]).forEach(function(x){_named[String(x).toLowerCase()]=1;});}
   for(i=0;i<nKeys.length;i++){var sn=memory.map.nodes[nKeys[i]];if(sn.parent&&locSame(sn.parent,wKey)&&(((sn.lastVisit||sn.firstVisit)>=cutoff)||_subCanon(sn))){var _leaf=locDisplayLeaf(nKeys[i]);if(!_named[String(_leaf).toLowerCase()])subLocs.push(_leaf);}}/* filter on RECENCY, not first visit, so a frequently-used sub-location doesn't vanish 20 turns after first entry (audit E53); #156B: parent compare resolves (reparented children list correctly) and the display is the LEAF (fixes the 3-segment split("|")[1] bug) */
   if(subLocs.length)lines.push("Known sub-locations: "+subLocs.join(", "));
   // Connections + arrival
@@ -112,7 +112,7 @@ function buildGeoBlock(){
   // tags, never on ordinary party travel, so for a companion walking WITH the party it goes stale
   // and affirmatively lies ("Frizwick → <old node>" against the party sheet's presence — the
   // t1410 confabulation seed). Split members keep their line: their thread really is elsewhere.
-  var partyHere={},phN;
+  var partyHere=keyedDict(),phN;
   for(i=0;i<worldState.npcs.length;i++){phN=worldState.npcs[i];
     if(phN.partyMember&&!npcIsDead(phN)&&!(phN.charSheet&&phN.charSheet.splitLoc&&phN.charSheet.splitLoc.location))partyHere[phN.name]=1;}
   /* #194 L6 (v1.671): the uniform "Name → Place" arrow rendered a fresh sighting and an undated
@@ -187,7 +187,7 @@ function buildGeoBlock(){
   var splits=(typeof partySplitMembers==="function")?partySplitMembers():[];
   if(splits.length){
     lines.push("SPLIT THREADS — these party members are ELSEWHERE right now: they cannot perceive, assist, or be assisted by the main party this round; give each split thread its own beat every turn. They move ONLY via [PARTY_SPLIT:Name|Location] (emit [PARTY_SPLIT:Name|rejoin] when they return); bare [LOCATION:] NEVER moves them.");
-    var sGroups={},sgi;
+    var sGroups=keyedDict(),sgi;
     for(sgi=0;sgi<splits.length;sgi++){var sl=splits[sgi].charSheet.splitLoc;var sgk=sl.location+(sl.sublocation?" ("+sl.sublocation+")":"");if(!sGroups[sgk])sGroups[sgk]={names:[],loc:sl.location};sGroups[sgk].names.push(splits[sgi].name);}
     var sgks=Object.keys(sGroups);
     for(sgi=0;sgi<sgks.length;sgi++){var sg=sGroups[sgks[sgi]];var sgLine="— "+sgks[sgi]+": "+sg.names.join(", ");
@@ -344,7 +344,7 @@ function buildErasBlock(){
 }
 function buildCoreMemoryBlock(){
   if(!worldState||!worldState.character)return"";
-  var camp=worldState.campName||"",seen={},cur=[],prior=[],i;
+  var camp=worldState.campName||"",seen=keyedDict(),cur=[],prior=[],i;
   var carriers=[],names=[];/* #469 ④: who carries an earlier adventure, for the held-back notice */
   function collect(list,owner){
     var j;for(j=0;j<(list||[]).length;j++){var m=list[j];if(!m||!m.text)continue;
@@ -383,7 +383,7 @@ function archiveQuest(title,status){
   var i;for(i=0;i<worldState.questLog.length;i++){
     if(worldState.questLog[i].title.toLowerCase()===title.toLowerCase()){
       var q=worldState.questLog[i];
-      if(!memory.quests)memory.quests={};
+      if(!memory.quests)memory.quests=keyedDict();
       memory.quests[q.title]={title:q.title,desc:q.desc||"",objectives:q.objectives||[],status:status,turn:(worldState.turn||0)};
       worldState.questLog.splice(i,1);
       return;
@@ -402,7 +402,7 @@ function abandonQuestState(title){
   if(!worldState||!worldState.questLog)return false;
   var i;for(i=0;i<worldState.questLog.length;i++){var q=worldState.questLog[i];
     if(q.title===title&&q.status==="active"){
-      if(!memory.quests)memory.quests={};
+      if(!memory.quests)memory.quests=keyedDict();
       /* #235: by:"player" — the archive's author. The #231 wall writes the SAME status with
          by:"wall", and every reader renders through questArchiveWording (helpers.js), so a
          wall sweep can never again be reported to anyone as the player walking away. */
@@ -1024,7 +1024,7 @@ function buildLocationDescNudge(){
   var node=memory.map.nodes[key];
   if(!node||node.description)return"";
   if(node.firstVisit>=worldState.turn)return"";
-  var st=worldState.locDescNudged||(worldState.locDescNudged={});
+  var st=worldState.locDescNudged||(worldState.locDescNudged=keyedDict());
   if(st[key]!=null&&worldState.turn-st[key]<LOC_DESC_NUDGE_COOLDOWN)return"";
   st[key]=worldState.turn;
   var nm=worldState.world.sublocation||worldState.world.location;
@@ -1164,7 +1164,7 @@ function buildDeityDriftNudge(){
     for(ci=0;ci<comps.length&&!hit;ci++)hit=check(comps[ci].charSheet,comps[ci].name);
   }
   if(!hit)return"";
-  if(!worldState.deityDriftNudged)worldState.deityDriftNudged={};
+  if(!worldState.deityDriftNudged)worldState.deityDriftNudged=keyedDict();
   worldState.deityDriftNudged[hit.who]=worldState.turn;
   return"[ENGINE NOTE — DEITY DRIFT (not a player action): "+hit.who+" now walks "+hit.al+", while their deity "+hit.deity+" favors "+hit.favors.join(" / ")+". Decide from the story whether the god has noticed: an omen, a cooling in granted power, a pointed dream — or no reaction YET if the story hasn't earned one. Never silently revoke abilities; if the rift ever becomes canon, show it in the fiction first.]";
 }
@@ -1208,7 +1208,7 @@ function _principalNamesFromSkeleton(){
      being…") don't, and neither does a capitalized neighbor — which drops title chains ("The
      Heart of Blight") and counts only the FIRST word of a multi-word proper name. lastIndex is
      rewound past the pre-token so chained capitalized words can serve as the next pre-token. */
-  var counts={},m,re=/([A-Za-z]+,?)\s+([A-Z][a-z]{3,}(?:'s)?)/g;
+  var counts=keyedDict(),m,re=/([A-Za-z]+,?)\s+([A-Z][a-z]{3,}(?:'s)?)/g;
   while((m=re.exec(s))){
     re.lastIndex=m.index+m[1].length+1;
     if(!/^[a-z]+,?$/.test(m[1]))continue;
@@ -1256,7 +1256,7 @@ function buildPrincipalStageNudge(){
     if(rec&&(rec.n>=PRINCIPAL_NUDGE_MAX||t-rec.t<PRINCIPAL_NUDGE_COOLDOWN))continue;
     due.push(missing[i]);}
   if(!due.length)return"";
-  if(!worldState.principalNudged)worldState.principalNudged={};
+  if(!worldState.principalNudged)worldState.principalNudged=keyedDict();
   for(i=0;i<due.length;i++){rec=worldState.principalNudged[due[i]]||{n:0,t:0};rec.n++;rec.t=t;worldState.principalNudged[due[i]]=rec;}
   return"[ENGINE NOTE — CAMPAIGN PRINCIPALS OFF-STAGE (not a player action): this campaign's authored cast includes "+due.join(", ")+" — none of these has appeared on the record after "+t+" turns. The blueprint's named characters are canon: work them on stage, into rumor, or into consequence BY NAME as the story allows, or keep them deliberately off-screen for now — but never silently replace them with invented substitutes. If one has already appeared in the story, register them with [NPC:name|status|relation] in THIS response.]";
 }
@@ -1361,7 +1361,7 @@ function buildReciprocityNudge(){
     var mirrored=false,cr=relationshipRows(cs,r.entity);
     for(j=0;j<cr.length;j++){if(cr[j].entity&&cr[j].entity.toLowerCase()===c.name.toLowerCase()&&cr[j].bond){mirrored=true;break;}}
     if(mirrored)continue;
-    if(!worldState.reciprocityNudged)worldState.reciprocityNudged={};
+    if(!worldState.reciprocityNudged)worldState.reciprocityNudged=keyedDict();
     worldState.reciprocityNudged[key]=worldState.turn;
     return "[ENGINE NOTE — RELATIONSHIP RECIPROCITY (not a player action): the player's durable bond with "+r.entity+" is \""+r.bond+"\", but "+r.entity+"'s own sheet has NO durable bond for "+c.name+". If the fiction agrees the bond is mutual, emit [COMPANION_RELATIONSHIP_BOND:"+r.entity+"|"+c.name+"|<their durable bond with "+c.name+">] in this response; if it is genuinely one-sided, leave it as is.]";
   }
@@ -1387,7 +1387,7 @@ function buildArcQuestNudge(){
         if(!arcTitleMatch(arc.title,q.title))continue;
         var key=arc.title+"|"+q.title;
         if(worldState.arcQuestNudged&&worldState.arcQuestNudged[key])continue;
-        if(!worldState.arcQuestNudged)worldState.arcQuestNudged={};
+        if(!worldState.arcQuestNudged)worldState.arcQuestNudged=keyedDict();
         worldState.arcQuestNudged[key]=worldState.turn;
         return "[ENGINE NOTE — ARC/QUEST DESYNC (not a player action): the story arc '"+arc.title+"' is marked COMPLETE, but the quest '"+q.title+"' is still open in the journal. If the fiction has finished it, emit [QUEST:"+q.title+"|completed] in this response together with its rewards ([XP:]/[GOLD:]/[ITEM_GAINED:]); if work genuinely remains, add the objective that is left via [QUEST_STEP:"+q.title+"|<objective>]. Do not silently leave it open.]";
       }
@@ -1430,7 +1430,7 @@ function buildArcDriftNudge(){
         var keyA=arc.title+"|"+mqAband,recA=worldState.arcDriftNudged&&worldState.arcDriftNudged[keyA];
         if(typeof recA==="number")recA={t:recA,n:1};
         if(recA&&(worldState.turn-recA.t)<ARC_DRIFT_RECHECK)continue;
-        if(!worldState.arcDriftNudged)worldState.arcDriftNudged={};
+        if(!worldState.arcDriftNudged)worldState.arcDriftNudged=keyedDict();
         var nthA=(recA?recA.n:0)+1;
         worldState.arcDriftNudged[keyA]={t:worldState.turn,n:nthA};
         var _awA=(typeof questArchiveWording==="function")?questArchiveWording(mqAbandRec):{phrase:"was "+mqAbandRec.status};
@@ -1442,7 +1442,7 @@ function buildArcDriftNudge(){
       var key=arc.title+"|"+mq,rec=worldState.arcDriftNudged&&worldState.arcDriftNudged[key];
       if(typeof rec==="number")rec={t:rec,n:1};/* pre-#127 stamp was a bare lastTurn number = one check already sent */
       if(rec&&(worldState.turn-rec.t)<ARC_DRIFT_RECHECK)continue;/* still inside the recheck window */
-      if(!worldState.arcDriftNudged)worldState.arcDriftNudged={};
+      if(!worldState.arcDriftNudged)worldState.arcDriftNudged=keyedDict();
       var nth=(rec?rec.n:0)+1;
       worldState.arcDriftNudged[key]={t:worldState.turn,n:nth};
       // #127-①: the soft note alone had no teeth — the GM can "justify and forget" forever (the
@@ -1482,7 +1482,7 @@ function buildArcStagingNudge(){
       if(tracked)continue;
       var last=worldState.arcStaged&&worldState.arcStaged[arc.title];
       if(last!=null&&(worldState.turn-last)<ARC_DRIFT_RECHECK)continue;
-      if(!worldState.arcStaged)worldState.arcStaged={};
+      if(!worldState.arcStaged)worldState.arcStaged=keyedDict();
       worldState.arcStaged[arc.title]=worldState.turn;
       return "[ENGINE NOTE — STAGE THIS ARC (not a player action): the arc '"+arc.title+"'"+(arc.objective?" ('"+arc.objective+"')":"")+" is ACTIVE, but the story has never introduced it — the player has no way to know it exists. Over the next few turns, surface it IN-FICTION through the world: a rumor, a messenger, a discovery, a consequence, whatever fits the current scene — never an exposition dump, and never through a companion suddenly knowing things they were not there to learn. When the hook lands, register it with [QUEST:<player-facing title>|offered|<desc>]. (Repeats about every "+ARC_DRIFT_RECHECK+" turns until a matching quest exists.)]";
     }
@@ -1549,7 +1549,7 @@ function buildRelationshipAxisNudge(){
   var p=worldState.relBondChanges||[],q=worldState.relAxisChoices||[],reviews=relationshipAxisReviews(),i,x;
   for(i=0;i<p.length;i++){x=p[i];if(x.lastFire==null||worldState.turn-x.lastFire>=REL_NOTE_COOLDOWN){x.lastFire=worldState.turn;var bt;if(x.pair)bt=x.who?"[COMPANION_RELATIONSHIP_PAIR_REMOVED:"+x.who+"|"+x.entity+"]":"[RELATIONSHIP_PAIR_REMOVED:"+x.entity+"]";else{bt=x.who?"[COMPANION_RELATIONSHIP_BOND:"+x.who+"|"+x.entity+"|"+x.next+"]":x.next?"[RELATIONSHIP_BOND:"+x.entity+"|"+x.next+"]":"[RELATIONSHIP_BOND_REMOVED:"+x.entity+"]";if(x.who&&!x.next)bt="[COMPANION_RELATIONSHIP_BOND_REMOVED:"+x.who+"|"+x.entity+"]";}return "[ENGINE NOTE — BOND CHANGE CONFIRMATION (not a player action): the durable bond "+(x.who?x.who+" → ":"player → ")+x.entity+" remains \""+x.prev+"\". A response proposed "+(x.pair?"removing the entire relationship pair":x.next?'replacing it with "'+x.next+'"':"removing it")+". If that durable canon change is deliberate, confirm it by emitting the exact same tag on this later response: "+bt+". Otherwise leave it unchanged; current mood, favor, friction, or warmth belongs on the DYNAMIC axis.]";}}
   for(i=0;i<q.length;i++){x=q[i];if(x.who&&!relationshipSheet(x.who))continue;if(x.lastFire!=null&&worldState.turn-x.lastFire<REL_NOTE_COOLDOWN)continue;x.lastFire=worldState.turn;var owner=x.who?x.who+" → ":"player → ",bond=x.who?"[COMPANION_RELATIONSHIP_BOND:"+x.who+"|"+x.entity+"|"+x.value+"]":"[RELATIONSHIP_BOND:"+x.entity+"|"+x.value+"]",dyn=x.who?"[COMPANION_RELATIONSHIP_DYNAMIC:"+x.who+"|"+x.entity+"|"+x.value+"]":"[RELATIONSHIP_DYNAMIC:"+x.entity+"|"+x.value+"]",pair="";if(x.kind==="legacy-remove"){bond=x.who?"[COMPANION_RELATIONSHIP_BOND_REMOVED:"+x.who+"|"+x.entity+"]":"[RELATIONSHIP_BOND_REMOVED:"+x.entity+"]";dyn=x.who?"[COMPANION_RELATIONSHIP_DYNAMIC_REMOVED:"+x.who+"|"+x.entity+"]":"[RELATIONSHIP_DYNAMIC_REMOVED:"+x.entity+"]";pair=x.who?" OR [COMPANION_RELATIONSHIP_PAIR_REMOVED:"+x.who+"|"+x.entity+"]":" OR [RELATIONSHIP_PAIR_REMOVED:"+x.entity+"]";}return "[ENGINE NOTE — RELATIONSHIP AXIS DECISION (not a player action): a legacy or conflicting relationship write for "+owner+x.entity+" could not safely choose between durable BOND and current DYNAMIC, so canon was left unchanged. Emit exactly one explicit axis tag: "+bond+" OR "+dyn+pair+". Marriage, family, oath, alliance, and nemesis belong to BOND; favors, warmth, suspicion, tension, and tonight's posture belong to DYNAMIC.]";}
-  for(i=0;i<reviews.length;i++){x=reviews[i];if(x.lastFire!=null&&worldState.turn-x.lastFire<REL_NOTE_COOLDOWN)continue;if(!worldState.relAxisReviewFired)worldState.relAxisReviewFired={};worldState.relAxisReviewFired[x.key]=worldState.turn;var rb=x.who?"[COMPANION_RELATIONSHIP_BOND:"+x.who+"|"+x.entity+"|"+x.value+"]":"[RELATIONSHIP_BOND:"+x.entity+"|"+x.value+"]",rd=x.who?"[COMPANION_RELATIONSHIP_DYNAMIC:"+x.who+"|"+x.entity+"|"+x.value+"]":"[RELATIONSHIP_DYNAMIC:"+x.entity+"|"+x.value+"]";return "[ENGINE NOTE — RELATIONSHIP AXIS DECISION (not a player action): the migrated legacy value \""+x.value+"\" for "+(x.who?x.who+" → ":"player → ")+x.entity+" is preserved provisionally as a bond but still needs classification. Confirm durable canon with "+rb+", or classify it as current posture with "+rd+". The latter moves this migrated value off the bond axis without losing it.]";}
+  for(i=0;i<reviews.length;i++){x=reviews[i];if(x.lastFire!=null&&worldState.turn-x.lastFire<REL_NOTE_COOLDOWN)continue;if(!worldState.relAxisReviewFired)worldState.relAxisReviewFired=keyedDict();worldState.relAxisReviewFired[x.key]=worldState.turn;var rb=x.who?"[COMPANION_RELATIONSHIP_BOND:"+x.who+"|"+x.entity+"|"+x.value+"]":"[RELATIONSHIP_BOND:"+x.entity+"|"+x.value+"]",rd=x.who?"[COMPANION_RELATIONSHIP_DYNAMIC:"+x.who+"|"+x.entity+"|"+x.value+"]":"[RELATIONSHIP_DYNAMIC:"+x.entity+"|"+x.value+"]";return "[ENGINE NOTE — RELATIONSHIP AXIS DECISION (not a player action): the migrated legacy value \""+x.value+"\" for "+(x.who?x.who+" → ":"player → ")+x.entity+" is preserved provisionally as a bond but still needs classification. Confirm durable canon with "+rb+", or classify it as current posture with "+rd+". The latter moves this migrated value off the bond axis without losing it.]";}
   return"";
 }
 // #61: periodic relationship audit — the cadence backstop behind the per-turn injection (party
@@ -1595,7 +1595,7 @@ function buildMergeConfirmNudge(){
   }
   if(!q.length)delete worldState.pendingMergeHints;
   if(!h)return"";
-  if(!worldState.mergeHintNudged)worldState.mergeHintNudged={};
+  if(!worldState.mergeHintNudged)worldState.mergeHintNudged=keyedDict();
   worldState.mergeHintNudged[h.canonical+"|"+h.duplicate]=worldState.turn;
   worldState.mergeConfirmArmed={canonical:h.canonical,duplicate:h.duplicate,turn:worldState.turn+1};
   return "[ENGINE NOTE — POSSIBLE DUPLICATE NPC (not a player action): the record suggests \""+h.canonical+"\" and \""+h.duplicate+"\" may be the SAME person. If the story has confirmed this, emit [NPC_MERGE:"+h.canonical+"|"+h.duplicate+"] in this response (and [NPC_SUPERSEDE:] for any recorded fact the reveal made outdated). If they are genuinely different people, emit nothing — this note will not repeat.]";
@@ -1616,7 +1616,7 @@ function buildMotifNudge(){
   if(!worldState||worldState.combat)return"";
   var q=worldState.motifPing;if(!q)return"";
   delete worldState.motifPing;
-  if(!worldState.motifNudged)worldState.motifNudged={};
+  if(!worldState.motifNudged)worldState.motifNudged=keyedDict();
   var key=String(q.gist||""),rec=worldState.motifNudged[key]||(worldState.motifNudged[key]={count:0,turn:0});
   rec.count++;rec.turn=worldState.turn;
   var nth=rec.count===2?"the second time":rec.count===3?"the third time":rec.count>3?"the "+rec.count+"th time":"";
@@ -1626,7 +1626,7 @@ function buildRecurringNameNudge(){
   if(!worldState||worldState.combat)return"";
   var q=worldState.recurringNamePing;if(!q)return"";
   delete worldState.recurringNamePing;
-  if(!worldState.recurringNameNudged)worldState.recurringNameNudged={};
+  if(!worldState.recurringNameNudged)worldState.recurringNameNudged=keyedDict();
   var rec=worldState.recurringNameNudged[q.name]||(worldState.recurringNameNudged[q.name]={count:0,turn:0});
   rec.count++;rec.turn=worldState.turn;
   return "[ENGINE NOTE — UNREGISTERED RECURRING NAME (not a player action): \""+q.name+"\" has appeared in "+q.count+" recent turns but is not on the NPC roster, so no identity, pronoun, or death protection covers them. If "+q.name+" is a character the party interacts with, register them NOW with [NPC:"+q.name+"|status|relation]. If "+q.name+" is a place, thing, faction, or title, leave state unchanged and this check will stop asking. Never acknowledge this check in prose.]";
@@ -1636,7 +1636,7 @@ function buildCanonContradictionNudge(){
   if(!worldState||worldState.combat)return"";
   var q=worldState.canonContradiction;if(!q)return"";
   delete worldState.canonContradiction;
-  if(!worldState.canonContraNudged)worldState.canonContraNudged={};
+  if(!worldState.canonContraNudged)worldState.canonContraNudged=keyedDict();
   worldState.canonContraNudged[q.name]=worldState.turn;
   return "[ENGINE NOTE — CANON CONTRADICTION (not a player action): the roster records "+q.name+" as DEAD"+(q.deadTurn?" (t"+q.deadTurn+")":"")+", but stored knowledge asserts: \""+q.line+"\". These cannot both be current. If the death IS current canon, retire the stale claim with [NPC_SUPERSEDE:"+q.name+"|"+q.line.slice(0,80)+"|<what is true now>]. If "+q.name+" is genuinely alive through an explicit in-story revival, emit [NPC:"+q.name+"|resurrected|relation]. If both were true in sequence (an earlier report later overtaken), supersede the stale wording so it stops re-injecting. Never acknowledge this check in prose.]";
 }
@@ -1650,7 +1650,7 @@ function buildCanonContradictionNudge(){
 function buildDeathEvidenceNudge(){
   if(!worldState||worldState.combat)return"";
   var q=worldState.deathEvidencePing;if(!q)return"";delete worldState.deathEvidencePing;
-  if(!worldState.deathEvidenceNudged)worldState.deathEvidenceNudged={};
+  if(!worldState.deathEvidenceNudged)worldState.deathEvidenceNudged=keyedDict();
   var rec=worldState.deathEvidenceNudged[q.name]||(worldState.deathEvidenceNudged[q.name]={count:0,turn:0});
   if(rec.count>=DEATH_EVIDENCE_NOTES)return"";
   rec.count++;rec.turn=worldState.turn;
@@ -1954,7 +1954,7 @@ function _itemDefPromote(){
    ITEM_DEF_ASKED_CAP keys, oldest turn evicted — a long campaign's gear churn cannot grow it. */
 var ITEM_DEF_ASKED_CAP=60;
 function _itemDefMarkAsked(key,turn){
-  if(!worldState.itemDefAsked)worldState.itemDefAsked={};
+  if(!worldState.itemDefAsked)worldState.itemDefAsked=keyedDict();
   var a=worldState.itemDefAsked;a[key]=turn;
   var ks=Object.keys(a);
   while(ks.length>ITEM_DEF_ASKED_CAP){var old=ks[0],i;for(i=1;i<ks.length;i++)if(a[ks[i]]<a[old])old=ks[i];delete a[old];ks=Object.keys(a);}
@@ -1990,7 +1990,7 @@ function buildConsumableNudge(){
   if(q&&q.length){c=q.shift();if(!q.length)delete worldState.consumableChecks;for(i=0;i<p.length;i++)if(p[i].key===c.key){c=p[i];break;}if(i===p.length){if(p.length>=6)p.shift();c={key:c.key,who:c.who,item:c.item,attempts:0,lastFired:-9999};p.push(c);worldState.consumablePending=p;}}
   if(!c){for(i=0;i<p.length;i++){if((p[i].attempts||0)<3&&worldState.turn-(p[i].lastFired||0)>=CONSUMABLE_NUDGE_COOLDOWN){c=p[i];break;}}}
   if(!c)return"";
-  if(!worldState.consumableNudged)worldState.consumableNudged={};
+  if(!worldState.consumableNudged)worldState.consumableNudged=keyedDict();
   worldState.consumableNudged[c.key]=worldState.turn;
   c.attempts=(c.attempts||0)+1;c.lastFired=worldState.turn;
   var tag=c.who?"[COMPANION_ITEM_LOST:"+c.who+"|"+c.item+"]":"[ITEM_LOST:"+c.item+"]";
@@ -2149,7 +2149,7 @@ function buildElsewhereSpeechNote(){
   if(typeof sessionLog==="undefined"||!sessionLog||!sessionLog.length)return"";
   var last=null,i;for(i=sessionLog.length-1;i>=0;i--){if(sessionLog[i]&&sessionLog[i].role==="assistant"&&!sessionLog[i].bk){last=String(sessionLog[i].content||"");break;}}
   if(!last||last.indexOf("[SAY:")<0)return"";
-  var local={},man=(typeof buildSceneManifest==="function")?buildSceneManifest():null,loc=(man&&man.local)||[];for(i=0;i<loc.length;i++)local[String(loc[i]).toLowerCase()]=1;
+  var local=keyedDict(),man=(typeof buildSceneManifest==="function")?buildSceneManifest():null,loc=(man&&man.local)||[];for(i=0;i<loc.length;i++)local[String(loc[i]).toLowerCase()]=1;
   var spoke=elsewhereSpeakers(last,worldState.npcs||[],local);
   if(!spoke.length)return"";
   var here=(typeof locDisplayLeaf==="function")?locDisplayLeaf(currentNodeKey()):currentNodeKey();
@@ -2172,7 +2172,7 @@ function buildArcWallNudge(){
   var doomed=[],ql=worldState.questLog||[];
   for(i=0;i<ql.length;i++){if(ql[i].bornArc&&String(ql[i].bornArc).toLowerCase()===String(arcT).toLowerCase()&&(ql[i].status==="active"||ql[i].status==="offered"))doomed.push(ql[i].title);}
   if(!doomed.length)return"";
-  if(!worldState.arcWallWarned)worldState.arcWallWarned={};
+  if(!worldState.arcWallWarned)worldState.arcWallWarned=keyedDict();
   var last=worldState.arcWallWarned[arcT];
   if(last!=null&&(worldState.turn-last)<ARC_WALL_WARN_LEAD)return"";
   worldState.arcWallWarned[arcT]=worldState.turn;
@@ -2399,7 +2399,7 @@ function buildSysPrompt(){
   // (re-injected every turn) is what seeded relationship hallucinations (t755 Frizwick). For party
   // members the PLAYER'S relationship descriptor is authoritative when one exists; non-party NPCs
   // keep npc.rel untouched — theirs often carries identity ("mother of Morwen") no descriptor has.
-  var relByEntity={},_rbi,_rbl=relationshipRows(c,null);for(_rbi=0;_rbi<_rbl.length;_rbi++){if(_rbl[_rbi]&&_rbl[_rbi].entity&&_rbl[_rbi].bond)relByEntity[_rbl[_rbi].entity.toLowerCase()]=_rbl[_rbi].bond;}
+  var relByEntity=keyedDict(),_rbi,_rbl=relationshipRows(c,null);for(_rbi=0;_rbi<_rbl.length;_rbi++){if(_rbl[_rbi]&&_rbl[_rbi].entity&&_rbl[_rbi].bond)relByEntity[_rbl[_rbi].entity.toLowerCase()]=_rbl[_rbi].bond;}
   // B3 (v1.361): dead NPCs render as an AFFIRMATIVE "DECEASED" line, never as silent omission —
   // absence taught the GM nothing, so every other tier (TOC/detail/RAG excerpts/geography) kept
   // presenting the dead as alive and NOTHING in "the CURRENT state blocks above" overrode it
@@ -2444,7 +2444,7 @@ function buildSysPrompt(){
        block); an absent or merely-mentioned character keeps the one-liner byte-identical. */
     var _rosterPresent;
     if(!npc.partyMember&&npc.charSheet){
-      if(!_rosterPresent){_rosterPresent={};var _rpl=(typeof buildSceneManifest==="function")?(buildSceneManifest().local||[]):[],_rpi;for(_rpi=0;_rpi<_rpl.length;_rpi++)_rosterPresent[String(_rpl[_rpi]).toLowerCase()]=1;}
+      if(!_rosterPresent){_rosterPresent=keyedDict();var _rpl=(typeof buildSceneManifest==="function")?(buildSceneManifest().local||[]):[],_rpi;for(_rpi=0;_rpi<_rpl.length;_rpi++)_rosterPresent[String(_rpl[_rpi]).toLowerCase()]=1;}
       if(_rosterPresent[String(npc.name).toLowerCase()]){var _pcs=npc.charSheet;
         /* #460 ① (owner 2026-09-25, village Nyla "still isn't coming through"): the SHEET outranks the GM's own memory of a
            sheeted resident — the trait LEADS as "plays as", the flaw follows, and the GM-written mood shrinks to "now:" (what
@@ -2457,7 +2457,7 @@ function buildSysPrompt(){
     if(!_moodPushed&&_moodBit)npcBits.push("mood: "+_moodBit);
     /* #553 (owner 2026-10-02, "Silas is still being creepy"): in the Village a resident who is not in the hero's place leads their entry with ELSEWHERE. The roster listed every resident with their doing and nothing said who was actually here, so the GM had the nearest name speak through a wall (t260: the hero in his house, Silas on the lane). Presence is the scene manifest, the same reading #434 uses; kinds without the flag are byte-identical. */
     if(npc.resident&&!npc.partyMember&&typeof kindDef==="function"&&kindDef().residentsSilentElsewhere){
-      if(!_rosterPresent){_rosterPresent={};var _rpl2=(typeof buildSceneManifest==="function")?(buildSceneManifest().local||[]):[],_rpi2;for(_rpi2=0;_rpi2<_rpl2.length;_rpi2++)_rosterPresent[String(_rpl2[_rpi2]).toLowerCase()]=1;}
+      if(!_rosterPresent){_rosterPresent=keyedDict();var _rpl2=(typeof buildSceneManifest==="function")?(buildSceneManifest().local||[]):[],_rpi2;for(_rpi2=0;_rpi2<_rpl2.length;_rpi2++)_rosterPresent[String(_rpl2[_rpi2]).toLowerCase()]=1;}
       if(!_rosterPresent[String(npc.name).toLowerCase()]){var _ewh=(typeof residentWhereabouts==="function")?residentWhereabouts(npc.name):null;npcBits.unshift("ELSEWHERE"+(_ewh?" ("+(_ewh.home?"at home":"at "+_ewh.place)+")":"")+" — not in this scene: silent this turn, does not come to the hero");}
     }
     if(npcRel)npcBits.push("bond: "+npcRel);else if(!npc.partyMember&&npc.rel&&npc.rel!=="unknown")npcBits.push("NPC stance: "+npc.rel);if(npcPr)npcBits.push(npcPr);if(npc.partyMember)npcBits.push("PARTY MEMBER");
@@ -2888,7 +2888,7 @@ function buildSkillMechanicsDoc(){
 // a fresh character's prompt byte-identical to the pre-#52 empty case.
 function buildSkillCanonBlock(c,compact){/* #357: compact = the one-line companion form inside the party block */
   if(!c||!c.skills||typeof skillBibleEntry!=="function")return"";
-  var lines=[],ids=Object.keys(c.skills),i,statsById={};
+  var lines=[],ids=Object.keys(c.skills),i,statsById=keyedDict();
   if(typeof SKILLS!=="undefined"){for(i=0;i<SKILLS.length;i++)statsById[SKILLS[i].id]=(SKILLS[i].stats||[]).join("/");}
   for(i=0;i<ids.length;i++){
     var id=ids[i],succ=c.skills[id];if(!(succ>0))continue;
@@ -2932,7 +2932,7 @@ function _spellCanonHint(withheld){return withheld?"(Canon is shown for spells c
 function buildSpellBibleBlock(){
   var c=worldState&&worldState.character;
   if(!c||!c.spells||!c.spells.length||typeof capabilityLookup!=="function")return"";
-  var seen={},lines=[],i,_withheld=0;
+  var seen=keyedDict(),lines=[],i,_withheld=0;
   for(i=0;i<c.spells.length;i++){
     var sp=c.spells[i];if(!sp||!sp.nm)continue;
     var e=capabilityLookup(sp.nm);if(!e)continue;
@@ -2958,7 +2958,7 @@ function buildSpellBibleBlock(){
 // block's [EXPENDED] markers. VOLATILE half only (reads charSheets live).
 function buildCompanionSpellBibleBlock(){
   if(!worldState||!worldState.npcs||!worldState.npcs.length||typeof capabilityLookup!=="function")return"";
-  var seen={},i,c=worldState.character;
+  var seen=keyedDict(),i,c=worldState.character;
   if(c&&c.spells){for(i=0;i<c.spells.length;i++){if(c.spells[i]&&c.spells[i].nm)seen[capBaseName(c.spells[i].nm)]=1;}}
   var lines=[],pj,ps,_sbParty=livingPartyCompanions(),_cwith=0;/* #6: shared party scan */
   for(pj=0;pj<_sbParty.length;pj++){var n=_sbParty[pj];
@@ -2981,7 +2981,7 @@ function buildCompanionSpellBibleBlock(){
 function buildAbilityBibleBlock(){
   var c=worldState&&worldState.character;
   if(!c||!c.abilities||!c.abilities.length||typeof capabilityLookup!=="function")return"";
-  var seen={},lines=[],i;
+  var seen=keyedDict(),lines=[],i;
   for(i=0;i<c.abilities.length;i++){
     var ab=c.abilities[i];if(!ab||!ab.nm)continue;
     var e=capabilityLookup(ab.nm);if(!e)continue;
@@ -3004,7 +3004,7 @@ function itemBibleLine(nm,e){
 }
 function buildItemBibleBlock(){
   if(typeof itemLookup!=="function"||!worldState||!worldState.character)return"";
-  var seen={},lines=[],i;
+  var seen=keyedDict(),lines=[],i;
   function add(list){
     if(!list)return;
     for(var j=0;j<list.length;j++){
@@ -3146,7 +3146,7 @@ function findCompanionNpc(name){
   return null;
 }
 function findCompanionChar(name){var _fcn=findCompanionNpc(name);return _fcn?_fcn.charSheet:null;}
-var _sheetlessWarned={};
+var _sheetlessWarned=keyedDict();
 function warnSheetlessCompanion(name){
   if(_sheetlessWarned[name])return;_sheetlessWarned[name]=1;
   if(typeof console!=="undefined")console.warn("[companion] "+name+" is a party member without a character sheet — COMPANION_* update dropped");
@@ -3236,7 +3236,7 @@ function inventoryCountOf(inv,name){
   return n;
 }
 function rewardAwardTargets(tokens){
-  var out=[],idx={},i,m,q,kind,key,expect,gk,tk;
+  var out=[],idx=keyedDict(),i,m,q,kind,key,expect,gk,tk;
   for(i=0;i<(tokens||[]).length;i++){
     tk=String(tokens[i]==null?"":tokens[i]);
     kind="unknown";key=tk;expect=0;
@@ -3310,7 +3310,7 @@ function _stampItemKept(who,inv,name){
   var n=_invNorm(name),i;
   for(i=0;i<(inv||[]).length;i++){
     if(_invNorm(inv[i])!==n)continue;
-    if(!worldState.consumableKept)worldState.consumableKept={};
+    if(!worldState.consumableKept)worldState.consumableKept=keyedDict();
     worldState.consumableKept[(who||"")+"|"+n]=_invCount(inv[i]);
     _clearConsumablePending(who,name);
     return true;
@@ -3345,7 +3345,7 @@ function itemPairKey(name){return _invNorm(itemBaseName(_qtyParse(String(name==n
    (plural s, dash spacing, case), so the chest and the pack agree on what an item is. Unlike the pair key it keeps the
    provenance: "Rope (spare)" and "Rope" are two different chest rows. Every stash consumer keys through it. */
 function stashKey(name){return _invNorm(_qtyParse(String(name==null?"":name)).base);}
-function itemPairNote(R,field,name,val){if(!R[field])R[field]={};var k=itemPairKey(name);(R[field][k]=R[field][k]||[]).push(val);}
+function itemPairNote(R,field,name,val){if(!R[field])R[field]=keyedDict();var k=itemPairKey(name);(R[field][k]=R[field][k]||[]).push(val);}
 function itemPairTake(R,field,name){var m=R&&R[field],k=itemPairKey(name);return (m&&m[k]&&m[k].length)?m[k].pop():null;}
 function itemPairMissed(R,name){return !!(R&&R.ilMiss&&R.ilMiss[itemPairKey(name)]);}
 // ── #50(d): model-inventory sanitation + duplicate healing (v1.291) ────────────
@@ -3374,7 +3374,7 @@ function sanitizeModelInventory(list,cap){
 // preserved (first occurrence keeps its slot); returns the number of entries folded away.
 function foldDuplicateInventory(inv){
   if(!inv||inv.length<2)return 0;
-  var seen={},out=[],folded=0,i,k,kk;
+  var seen=keyedDict(),out=[],folded=0,i,k,kk;
   for(i=0;i<inv.length;i++){
     // #75(b) v1.385: key on _invNorm, not the raw string. Byte-identical matching could never
     // heal the dash-variant splits this pass exists to clean up ("Iron ring — unmarked" vs
@@ -3416,12 +3416,11 @@ function _w2StageEffects(run){
    and truncates the array back rather than trusting a comment. The live ws is never mutated
    here — the portrait pops work on shallow copies. */
 function _w2CopyWorldStateDetached(ws){
-  var shallow={},k;
-  for(k in ws){if(Object.prototype.hasOwnProperty.call(ws,k)&&k!=="transcript")shallow[k]=ws[k];}
+  var shallow=ownAssign({},ws);delete shallow.transcript;
   var pcP=null;
   if(shallow.character&&typeof shallow.character.portrait==="string"&&shallow.character.portrait){
     pcP=shallow.character.portrait;
-    shallow.character=Object.assign({},shallow.character,{portrait:null});
+    shallow.character=ownAssign({},shallow.character,{portrait:null});
   }
   var pops=[];
   if(shallow.npcs&&shallow.npcs.length){
@@ -3430,15 +3429,15 @@ function _w2CopyWorldStateDetached(ws){
       var np=(typeof n.portrait==="string"&&n.portrait)?n.portrait:null;
       var cp=(n.charSheet&&typeof n.charSheet.portrait==="string"&&n.charSheet.portrait)?n.charSheet.portrait:null;
       if(np||cp){
-        var n2=Object.assign({},n);
+        var n2=ownAssign({},n);
         if(np)n2.portrait=null;
-        if(cp)n2.charSheet=Object.assign({},n.charSheet,{portrait:null});
+        if(cp)n2.charSheet=ownAssign({},n.charSheet,{portrait:null});
         list[i]=n2;pops.push({i:i,np:np,cp:cp});changed=true;
       }
     }
     if(changed)shallow.npcs=list;
   }
-  var clone=_w2Copy(shallow);
+  var clone=_w2Copy(shallow,"world");
   if(ws.transcript!==undefined)clone.transcript=ws.transcript;/* SHARED — the one true array */
   if(pcP)clone.character.portrait=pcP;
   for(var j=0;j<pops.length;j++){var p=pops[j];
@@ -3481,7 +3480,7 @@ function applyMuts(text,opts){
     if(!_w2t.body)continue;/* exact replay: receipt already owns every operation */
     var _w2Ws=worldState,_w2Mem=memory;/* #284: the owed level-up queues live ON worldState now, so the clone-and-replace below rolls them back with everything else — the old module-var snapshot is retired */
     var _w2TrShared=_w2Ws.transcript,_w2TrLen=_w2TrShared?_w2TrShared.length:0;/* #272 D4: the tripwire baseline */
-    worldState=_w2CopyWorldStateDetached(_w2Ws);memory=_w2Copy(_w2Mem);
+    worldState=_w2CopyWorldStateDetached(_w2Ws);memory=_w2Copy(_w2Mem,"memory");
     /* #175bR: pin the executor to this envelope's subject for the duration of its body — the
        SCENE_DEATH handler must never stamp a different NPC than the claim names (identity.js). */
     if(typeof _w2TxnSubjectNow!=="undefined")_w2TxnSubjectNow=_w2t.meta.subject;
@@ -3531,7 +3530,7 @@ function applyMuts(text,opts){
   // mutation labels, ON THE SAVE (rides exports/sync), capped at TAG_LOG_CAP. Observational
   // only, zero parser contact; makes emitted-then-purged vs never-emitted decidable next time.
   try{
-    var _tlNames=[],_tlSeen={},_tlM=String(text||"").match(/\[([A-Z][A-Z_]{1,}):/g)||[],_tli;
+    var _tlNames=[],_tlSeen=keyedDict(),_tlM=String(text||"").match(/\[([A-Z][A-Z_]{1,}):/g)||[],_tli;
     for(_tli=0;_tli<_tlM.length;_tli++){var _tn=_tlM[_tli].slice(1,-1);if(!_tlSeen[_tn]){_tlSeen[_tn]=1;_tlNames.push(_tn);}}
     if(!worldState.tagLog)worldState.tagLog=[];
     /* P5②: the 10-label cap manufactured a false loss-finding in the #175 forensics (t1773's quest
@@ -3621,7 +3620,7 @@ function detectModelRefusal(clean){
 // turn shows zero applied tags, and names every embedded tag that was deliberately withheld.
 function tagLogRefusal(text){
   try{
-    var names=[],seen={},hits=String(text||"").match(/\[([A-Z][A-Z_]{1,}):/g)||[],i;
+    var names=[],seen=keyedDict(),hits=String(text||"").match(/\[([A-Z][A-Z_]{1,}):/g)||[],i;
     for(i=0;i<hits.length;i++){var n=hits[i].slice(1,-1);if(!seen[n]){seen[n]=1;names.push(n);}}
     if(!worldState.tagLog)worldState.tagLog=[];
     worldState.tagLog.push({t:worldState.turn,tags:[],m:["MODEL REFUSAL (#197) — narration declined, committed as non-canon; "+(names.length?names.length+" embedded tag(s) NOT applied: "+names.join(", "):"no embedded tags")],rf:1});
@@ -3680,7 +3679,7 @@ function recordUsage(u,kind,model,retries,viaServer){/* retries: #29 — absorbe
     if(!_unpricedWarned[_mid]){_unpricedWarned[_mid]=1;console.warn("[usage] no MODEL_PRICING entry matches '"+_mid+"' — tokens counted, $0 priced; the cost figures UNDERCOUNT real spend until this id is added (#30)");}
   }
 }
-var _unpricedWarned={};
+var _unpricedWarned=keyedDict();
 // UA5: djb2 hash + per-campaign memo for the stable-purity tripwire above. console.warn on
 // every mid-campaign change (each one is a full cache re-write); toast once per session.
 var _stableHash=null,_stableHashCamp=null,_stableWarned=false;

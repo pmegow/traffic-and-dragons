@@ -12,8 +12,8 @@ rc|=sabotage.prove({
   cases:[
     { label:"#436: a known key with a colon is bare again (the t11 clobber returns)",
       mustFail:"#436: the verbatim t11 daggers tag",
-      find:'    if(m[2]==="="||(known&&known[k]))return{key:k,val:m[3].replace(/\\s+$/,""),keyed:true,known:!!(known&&known[k])};}',
-      replace:'    if(m[2]==="=")return{key:k,val:m[3].replace(/\\s+$/,""),keyed:true,known:!!(known&&known[k])};}' },
+      find:'    if(m[2]==="="||ownValue(known,k))return{key:k,val:m[3].replace(/\\s+$/,""),keyed:true,known:!!ownValue(known,k)};}',
+      replace:'    if(m[2]==="=")return{key:k,val:m[3].replace(/\\s+$/,""),keyed:true,known:!!ownValue(known,k)};}' },
     { label:"#436: the heal predicate never matches — clobbered canon stays sealed and injecting",
       mustFail:"#436: the heal — an accepted overlay",
       find:'  var m=e.effect.match(/^\\s*(value|uses)\\s*:\\s*([\\s\\S]*?)\\s*$/i);',

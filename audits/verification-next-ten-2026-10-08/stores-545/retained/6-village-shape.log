@@ -1,0 +1,29 @@
+
+  sabotage — data.js
+   ✓ caught      the village swap demotes into the party like an adventure
+   ✓ caught      the village swap spends a GM handoff turn
+   ✓ caught      the village kind forges a skeleton
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — helpers.js
+   ✓ caught      an unknown kind is returned as-is instead of falling back to adventure
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      residents move in as party members
+   ✓ caught      the resident's sheet is the library object itself, not a copy
+   ✓ caught      the house node forgets its owner
+   ✓ caught      applyBlueprint stamps every kind, adventure included (legacy saves gain a field)
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the switch-POV block ignores the kind's wording
+   ✓ file restored byte-identical
+   1/1 clauses proven
+

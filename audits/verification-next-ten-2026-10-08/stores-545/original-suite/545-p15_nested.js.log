@@ -1,0 +1,37 @@
+tree: traffic-and-dragons-next-ten-ending | tagStripReserved present: false
+--- control: the tag alone (what #536 refuses)
+    reply: You walk on. [LOCATION:constructor]
+    strip: (no strip in this tree)
+    summary: ["-> constructor"]
+    wrote on built-ins: nothing
+    next prompt: builds | after a reload (saved state only): builds | every NPC reads dead: false, Bram dead: false
+--- an unclosed TIME tag before a place
+    reply: You walk on. [TIME:dusk [LOCATION:constructor]
+    strip: (no strip in this tree)
+    summary: ["-> constructor"]
+    wrote on built-ins: nothing
+    next prompt: builds | after a reload (saved state only): builds | every NPC reads dead: false, Bram dead: false
+--- an unclosed SAY tag before a death
+    reply: He falls. [SAY:Bram [NPC:toString|dead|enemy]
+    strip: (no strip in this tree)
+    summary: ["toString: dead (t9)","NPC: toString"]
+    wrote on built-ins: nothing
+    next prompt: builds | after a reload (saved state only): builds | every NPC reads dead: false, Bram dead: false
+--- an unclosed tag before a party join
+    reply: She nods. [TIME_ADVANCE:10m [PARTY_MEMBER:constructor|true]
+    strip: (no strip in this tree)
+    summary: ["Time +10m (Day 1, 00h 10m elapsed)","Party: +constructor"]
+    wrote on built-ins: nothing
+    next prompt: builds | after a reload (saved state only): builds | every NPC reads dead: false, Bram dead: false
+--- an unclosed tag before a link
+    reply: They are kin. [WEATHER:rain [NPC_LINK:constructor|Bram|kin]
+    strip: (no strip in this tree)
+    summary: ["Weather: rain [NPC_LINK:constructor|Bram|kin","Link: constructor ↔ Bram (kin)"]
+    wrote on built-ins: nothing
+    next prompt: builds | after a reload (saved state only): builds | every NPC reads dead: false, Bram dead: false
+--- the same shape with __proto__ (caught: flagged anywhere in the outer payload)
+    reply: He falls. [TIME:dusk [NPC:__proto__|dead|enemy]
+    strip: (no strip in this tree)
+    summary: ["__proto__: dead (t9)","NPC: __proto__"]
+    wrote on built-ins: nothing
+    next prompt: builds | after a reload (saved state only): builds | every NPC reads dead: false, Bram dead: false

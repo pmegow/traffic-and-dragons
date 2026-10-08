@@ -1,0 +1,89 @@
+tree: traffic-and-dragons-next-ten-ending | TTS text prep present: true
+   constructor :: SAY speaker
+      summary: []
+      transcript entry: sp={"n":4,"s":{"1":"constructor","3":"constructor"}} e={"n":[],"l":"Ashfen","q":[]}
+   constructor :: SAY speaker with a mood
+      summary: []
+      transcript entry: sp={"n":3,"s":{"1":"constructor"},"m":{"1":"gruff"}} e={"n":[],"l":"Ashfen","q":[]}
+!! constructor :: NPC + NPC_NOTE + PARTY_MEMBER (the transcript's entity index reads these raw)
+      summary: ["NPC: constructor","Party: +constructor"]
+      transcript entry: sp=null e={"n":["constructor"],"l":"Ashfen","q":[]}
+      state: own key 'constructor' at mem.npcs
+   constructor :: QUEST title (entity index)
+      summary: ["Quest offered: constructor"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":["constructor"]}
+   constructor :: SCENE_CAST
+      summary: ["Present: Bram (cast)"]
+      transcript entry: sp=null e={"n":["Bram"],"l":"Ashfen","q":[]}
+   constructor :: CONDITION (the commit-time snapshot keys by condition name)
+      summary: ["Condition: constructor"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":[]}
+   constructor :: RELATIONSHIP_BOND (the commit-time snapshot keys by entity)
+      summary: ["bond constructor (sworn brother)"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":[]}
+   __proto__ :: SAY speaker
+      summary: []
+      transcript entry: sp={"n":4,"s":{"1":"__proto__","3":"__proto__"}} e={"n":[],"l":"Ashfen","q":[]}
+   __proto__ :: SAY speaker with a mood
+      summary: []
+      transcript entry: sp={"n":3,"s":{"1":"__proto__"},"m":{"1":"gruff"}} e={"n":[],"l":"Ashfen","q":[]}
+!! __proto__ :: NPC + NPC_NOTE + PARTY_MEMBER (the transcript's entity index reads these raw)
+      summary: ["NPC: __proto__","Party: +__proto__"]
+      transcript entry: sp=null e={"n":["__proto__"],"l":"Ashfen","q":[]}
+      state: own key '__proto__' at mem.npcs
+   __proto__ :: QUEST title (entity index)
+      summary: ["Quest offered: __proto__"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":["__proto__"]}
+   __proto__ :: SCENE_CAST
+      summary: ["Present: Bram (cast)"]
+      transcript entry: sp=null e={"n":["Bram"],"l":"Ashfen","q":[]}
+   __proto__ :: CONDITION (the commit-time snapshot keys by condition name)
+      summary: ["Condition: __proto__"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":[]}
+   __proto__ :: RELATIONSHIP_BOND (the commit-time snapshot keys by entity)
+      summary: ["bond __proto__ (sworn brother)"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":[]}
+   toString :: SAY speaker
+      summary: []
+      transcript entry: sp={"n":4,"s":{"1":"toString","3":"toString"}} e={"n":[],"l":"Ashfen","q":[]}
+   toString :: SAY speaker with a mood
+      summary: []
+      transcript entry: sp={"n":3,"s":{"1":"toString"},"m":{"1":"gruff"}} e={"n":[],"l":"Ashfen","q":[]}
+!! toString :: NPC + NPC_NOTE + PARTY_MEMBER (the transcript's entity index reads these raw)
+      summary: ["NPC: toString","Party: +toString"]
+      transcript entry: sp=null e={"n":["toString"],"l":"Ashfen","q":[]}
+      state: own key 'toString' at mem.npcs
+   toString :: QUEST title (entity index)
+      summary: ["Quest offered: toString"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":["toString"]}
+   toString :: SCENE_CAST
+      summary: ["Present: Bram (cast)"]
+      transcript entry: sp=null e={"n":["Bram"],"l":"Ashfen","q":[]}
+   toString :: CONDITION (the commit-time snapshot keys by condition name)
+      summary: ["Condition: toString"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":[]}
+   toString :: RELATIONSHIP_BOND (the commit-time snapshot keys by entity)
+      summary: ["bond toString (sworn brother)"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":[]}
+   hasOwnProperty :: SAY speaker
+      summary: []
+      transcript entry: sp={"n":4,"s":{"1":"hasOwnProperty","3":"hasOwnProperty"}} e={"n":[],"l":"Ashfen","q":[]}
+   hasOwnProperty :: SAY speaker with a mood
+      summary: []
+      transcript entry: sp={"n":3,"s":{"1":"hasOwnProperty"},"m":{"1":"gruff"}} e={"n":[],"l":"Ashfen","q":[]}
+!! hasOwnProperty :: NPC + NPC_NOTE + PARTY_MEMBER (the transcript's entity index reads these raw)
+      summary: ["NPC: hasOwnProperty","Party: +hasOwnProperty"]
+      transcript entry: sp=null e={"n":["hasOwnProperty"],"l":"Ashfen","q":[]}
+      state: own key 'hasOwnProperty' at mem.npcs
+   hasOwnProperty :: QUEST title (entity index)
+      summary: ["Quest offered: hasOwnProperty"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":["hasOwnProperty"]}
+   hasOwnProperty :: SCENE_CAST
+      summary: ["Present: Bram (cast)"]
+      transcript entry: sp=null e={"n":["Bram"],"l":"Ashfen","q":[]}
+   hasOwnProperty :: CONDITION (the commit-time snapshot keys by condition name)
+      summary: ["Condition: hasOwnProperty"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":[]}
+   hasOwnProperty :: RELATIONSHIP_BOND (the commit-time snapshot keys by entity)
+      summary: ["bond hasOwnProperty (sworn brother)"]
+      transcript entry: sp=null e={"n":[],"l":"Ashfen","q":[]}

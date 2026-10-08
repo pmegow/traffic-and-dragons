@@ -1,0 +1,75 @@
+
+  sabotage — data.js
+   ✓ caught      the village never greets a return
+   ✓ caught      the village rung is off (the ladder falls through to commerce)
+   ✓ caught      residents never exchange
+   ✓ caught      residents stay home
+   ✓ caught      the village has no Hall
+   ✓ caught      the village pays XP like an adventure
+   ✓ caught      Car Mode recaps a chapter in the village
+   ✓ caught      the village opens under the adventure's ash
+   ✓ caught      the village opening asks for a hook
+   ✓ caught      the village can be closed like an adventure
+   ✓ file restored byte-identical
+   10/10 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      an older library copy overwrites the resident
+   ✓ caught      a party member is refreshed from the library
+   ✓ caught      the commons are not minted at creation
+   ✓ caught      the hero has no house until the GM names it
+   ✓ caught      the square is a shop
+   ✓ caught      the opening ignores the kind's ask
+   ✓ caught      the same absence arms the greeting every turn
+   ✓ caught      the change is never chosen from the shelf
+   ✓ caught      the village rung offers the resident already in the scene
+   ✓ caught      the fated resident gets a wall entry too (no memento)
+   ✓ caught      the player's line never reaches village state
+   ✓ caught      closeCampaign closes an already ended campaign again
+   ✓ caught      the fate forgets the unresolved threads
+   ✓ caught      import stops seeding the Hall
+   ✓ file restored byte-identical
+   14/14 clauses proven
+
+
+  sabotage — helpers.js
+   ✓ caught      'my house' belongs to nobody
+   ✓ caught      residents roam at night too
+   ✓ caught      a resident never moves through the day
+   ✓ caught      the recap forgets the house
+   ✓ caught      the close row shows before the first turn
+   ✓ file restored byte-identical
+   5/5 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the houses are not listed for the GM
+   ✓ caught      the return note drops the fact
+   ✓ caught      the exchange asks with one resident
+   ✓ caught      the exchange never cools down
+   ✓ caught      residents in the scene are listed as about
+   ✓ caught      the Hall is served everywhere
+   ✓ file restored byte-identical
+   6/6 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      the village pays XP after all
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      a tavern-ish name mints a twin beside the tavern
+   ✓ caught      a house name mints its own node beside the house key
+   ✓ caught      the GM's naming mints a twin Hall
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — village-measure.js
+   ✓ caught      the measure never counts a refusal
+   ✓ file restored byte-identical
+   1/1 clauses proven
+

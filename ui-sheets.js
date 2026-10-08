@@ -509,6 +509,7 @@ async function generateNpcSheet(name,doneCb){
     // NPC stance and a directed character bond are different authorities. Model-authored rows
     // migrate through the adapter; wsNpc.rel never seeds or overwrites a bond.
     relationshipMigrateSheet(sheet,wsNpc.name);
+    keyedStores(sheet,"sheet");
     wsNpc.charSheet=sheet;releaseRowVoicePins(wsNpc);
     saveAll();removeLoader();showToast("Character sheet ready!");
     if(doneCb)doneCb();

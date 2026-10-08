@@ -1,0 +1,8 @@
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[sound] 'click_glass' skipped — no AudioContext
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+{"standaloneBible":true,"loadSaveReload":true,"checkpoint":true,"import":true,"chunkedCopy":true,"detachedWorldAndMemory":true,"repeat1000Milliseconds":6,"sameReferences":true,"noSerializedGrowth":true}

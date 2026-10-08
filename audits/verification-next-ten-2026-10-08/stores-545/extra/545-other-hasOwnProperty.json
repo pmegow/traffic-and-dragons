@@ -1,0 +1,4331 @@
+{
+ "tree": "traffic-and-dragons-next-ten-ending",
+ "runs": 22188,
+ "counts": {
+  "hasOwnProperty SAME": 22017,
+  "hasOwnProperty STATE_KEY": 163,
+  "hasOwnProperty DIFF": 8
+ },
+ "results": [
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:hasOwnProperty]",
+   "muts": [
+    "-> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.locations",
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:hasOwnProperty ]",
+   "muts": [
+    "-> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.locations",
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:﻿hasOwnProperty]",
+   "muts": [
+    "-> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.locations",
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:\nhasOwnProperty\n]",
+   "muts": [
+    "-> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.locations",
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION:hasOwnProperty]",
+   "muts": [
+    "-> hasOwnProperty",
+    "Time: dusk [LOCATION:hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:hasOwnProperty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.locations",
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> hasOwnPropqrty",
+    "Time: dusk [LOCATION:hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:hasOwnPropqrty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:hasOwnProperty]",
+   "muts": [
+    "-> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.locations",
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:hasOwnProperty ]",
+   "muts": [
+    "-> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.locations",
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:﻿hasOwnProperty]",
+   "muts": [
+    "-> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.locations",
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:\nhasOwnProperty\n]",
+   "muts": [
+    "-> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.locations",
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION:hasOwnProperty]",
+   "muts": [
+    "-> hasOwnProperty",
+    "Time: dusk [LOCATION:hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:hasOwnProperty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.locations",
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> hasOwnPropqrty",
+    "Time: dusk [LOCATION:hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:hasOwnPropqrty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:hasOwnProperty|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:hasOwnProperty |Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:﻿hasOwnProperty|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:\nhasOwnProperty\n|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_ALIAS:hasOwnProperty|Other]",
+   "muts": [
+    "Time: dusk [NPC_ALIAS:hasOwnProperty|Other",
+    "Alias: Other -> hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:hasOwnProperty|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_ALIAS:hasOwnPropqrty|Other",
+    "Alias: Other -> hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:hasOwnPropqrty|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:hasOwnProperty|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:hasOwnProperty |Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:﻿hasOwnProperty|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:\nhasOwnProperty\n|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_ALIAS:hasOwnProperty|Other]",
+   "muts": [
+    "Time: dusk [NPC_ALIAS:hasOwnProperty|Other",
+    "Alias: Other -> hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:hasOwnProperty|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_ALIAS:hasOwnPropqrty|Other",
+    "Alias: Other -> hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:hasOwnPropqrty|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:hasOwnProperty|Bram]",
+   "muts": [
+    "Merged: Bram -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:hasOwnProperty |Bram]",
+   "muts": [
+    "Merged: Bram -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:﻿hasOwnProperty|Bram]",
+   "muts": [
+    "Merged: Bram -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:\nhasOwnProperty\n|Bram]",
+   "muts": [
+    "Merged: Bram -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_MERGE:hasOwnProperty|Bram]",
+   "muts": [
+    "Time: dusk [NPC_MERGE:hasOwnProperty|Bram",
+    "Merged: Bram -> hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_MERGE:hasOwnProperty|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_MERGE:hasOwnPropqrty|Bram",
+    "Merged: Bram -> hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_MERGE:hasOwnPropqrty|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|hasOwnProperty|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|hasOwnProperty |Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|﻿hasOwnProperty|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|\nhasOwnProperty\n|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [ALIAS:npc|hasOwnProperty|Other]",
+   "muts": [
+    "Time: dusk [ALIAS:npc|hasOwnProperty|Other",
+    "Alias: Other -> hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|hasOwnProperty|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [ALIAS:npc|hasOwnPropqrty|Other",
+    "Alias: Other -> hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|hasOwnPropqrty|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|hasOwnProperty|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|hasOwnProperty |Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|﻿hasOwnProperty|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|\nhasOwnProperty\n|Other]",
+   "muts": [
+    "Alias: Other -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [ALIAS:npc|hasOwnProperty|Other]",
+   "muts": [
+    "Time: dusk [ALIAS:npc|hasOwnProperty|Other",
+    "Alias: Other -> hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|hasOwnProperty|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [ALIAS:npc|hasOwnPropqrty|Other",
+    "Alias: Other -> hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|hasOwnPropqrty|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|hasOwnProperty|Bram]",
+   "muts": [
+    "Merged: Bram -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|hasOwnProperty |Bram]",
+   "muts": [
+    "Merged: Bram -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|﻿hasOwnProperty|Bram]",
+   "muts": [
+    "Merged: Bram -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|\nhasOwnProperty\n|Bram]",
+   "muts": [
+    "Merged: Bram -> hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [MERGE:npc|hasOwnProperty|Bram]",
+   "muts": [
+    "Time: dusk [MERGE:npc|hasOwnProperty|Bram",
+    "Merged: Bram -> hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [MERGE:npc|hasOwnProperty|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [MERGE:npc|hasOwnPropqrty|Bram",
+    "Merged: Bram -> hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [MERGE:npc|hasOwnPropqrty|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:hasOwnProperty|calm|ally]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:hasOwnProperty |calm|ally]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿hasOwnProperty|calm|ally]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nhasOwnProperty\n|calm|ally]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:hasOwnProperty|calm|ally]",
+   "muts": [
+    "Time: dusk [NPC:hasOwnProperty|calm|ally",
+    "NPC: hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:hasOwnProperty|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:hasOwnPropqrty|calm|ally",
+    "NPC: hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:hasOwnPropqrty|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:hasOwnProperty|calm|ally]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:hasOwnProperty |calm|ally]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿hasOwnProperty|calm|ally]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nhasOwnProperty\n|calm|ally]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:hasOwnProperty|calm|ally]",
+   "muts": [
+    "Time: dusk [NPC:hasOwnProperty|calm|ally",
+    "NPC: hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:hasOwnProperty|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:hasOwnPropqrty|calm|ally",
+    "NPC: hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:hasOwnPropqrty|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:hasOwnProperty|dead|enemy]",
+   "muts": [
+    "hasOwnProperty: dead (t9)",
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: dead (t9)",
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:hasOwnProperty |dead|enemy]",
+   "muts": [
+    "hasOwnProperty: dead (t9)",
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: dead (t9)",
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿hasOwnProperty|dead|enemy]",
+   "muts": [
+    "hasOwnProperty: dead (t9)",
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: dead (t9)",
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nhasOwnProperty\n|dead|enemy]",
+   "muts": [
+    "hasOwnProperty: dead (t9)",
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: dead (t9)",
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:hasOwnProperty|dead|enemy]",
+   "muts": [
+    "Time: dusk [NPC:hasOwnProperty|dead|enemy",
+    "hasOwnProperty: dead (t9)",
+    "NPC: hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:hasOwnProperty|dead|enemy' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:hasOwnPropqrty|dead|enemy",
+    "hasOwnPropqrty: dead (t9)",
+    "NPC: hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:hasOwnPropqrty|dead|enemy' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:hasOwnProperty]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:hasOwnProperty ]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿hasOwnProperty]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\nhasOwnProperty\n]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:hasOwnProperty]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:hasOwnProperty",
+    "Resident here: hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:hasOwnProperty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:hasOwnPropqrty",
+    "Resident here: hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:hasOwnPropqrty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:hasOwnProperty]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:hasOwnProperty ]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿hasOwnProperty]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\nhasOwnProperty\n]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:hasOwnProperty]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:hasOwnProperty",
+    "Resident here: hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:hasOwnProperty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:hasOwnPropqrty",
+    "Resident here: hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:hasOwnPropqrty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:hasOwnProperty|a rider]",
+   "muts": [
+    "Registered from death report: hasOwnProperty",
+    "hasOwnProperty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: hasOwnPropqrty",
+    "hasOwnPropqrty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:hasOwnProperty |a rider]",
+   "muts": [
+    "Registered from death report: hasOwnProperty",
+    "hasOwnProperty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: hasOwnPropqrty",
+    "hasOwnPropqrty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:﻿hasOwnProperty|a rider]",
+   "muts": [
+    "Registered from death report: hasOwnProperty",
+    "hasOwnProperty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: hasOwnPropqrty",
+    "hasOwnPropqrty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:\nhasOwnProperty\n|a rider]",
+   "muts": [
+    "Registered from death report: hasOwnProperty",
+    "hasOwnProperty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: hasOwnPropqrty",
+    "hasOwnPropqrty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_DEATH_REPORTED:hasOwnProperty|a rider]",
+   "muts": [
+    "Time: dusk [NPC_DEATH_REPORTED:hasOwnProperty|a rider",
+    "Registered from death report: hasOwnProperty",
+    "hasOwnProperty: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:hasOwnProperty|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_DEATH_REPORTED:hasOwnPropqrty|a rider",
+    "Registered from death report: hasOwnPropqrty",
+    "hasOwnPropqrty: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:hasOwnPropqrty|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:hasOwnProperty|a rider]",
+   "muts": [
+    "Registered from death report: hasOwnProperty",
+    "hasOwnProperty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: hasOwnPropqrty",
+    "hasOwnPropqrty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:hasOwnProperty |a rider]",
+   "muts": [
+    "Registered from death report: hasOwnProperty",
+    "hasOwnProperty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: hasOwnPropqrty",
+    "hasOwnPropqrty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:﻿hasOwnProperty|a rider]",
+   "muts": [
+    "Registered from death report: hasOwnProperty",
+    "hasOwnProperty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: hasOwnPropqrty",
+    "hasOwnPropqrty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:\nhasOwnProperty\n|a rider]",
+   "muts": [
+    "Registered from death report: hasOwnProperty",
+    "hasOwnProperty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: hasOwnPropqrty",
+    "hasOwnPropqrty: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_DEATH_REPORTED:hasOwnProperty|a rider]",
+   "muts": [
+    "Time: dusk [NPC_DEATH_REPORTED:hasOwnProperty|a rider",
+    "Registered from death report: hasOwnProperty",
+    "hasOwnProperty: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:hasOwnProperty|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_DEATH_REPORTED:hasOwnPropqrty|a rider",
+    "Registered from death report: hasOwnPropqrty",
+    "hasOwnPropqrty: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:hasOwnPropqrty|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "Bram and +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Bram and hasOwnProperty]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3145,
+     "word": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and hasownprope\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitu",
+     "control": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and hasownpropq\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitu"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "Bram & +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Bram & hasOwnProperty]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3143,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram & hasownpropert\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram & hasownpropqrt\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "Arc 1: +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Arc 1: hasOwnProperty]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3143,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"arc 1: hasownpropert\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"arc 1: hasownpropqrt\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "Ashfen (+)",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Ashfen (hasOwnProperty)]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3144,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (hasownproper\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attit",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (hasownpropqr\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attit"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "Bram and +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Bram and hasOwnProperty]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3342,
+     "word": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and hasownprope\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the f",
+     "control": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram and hasownpropq\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the f"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "Bram & +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Bram & hasOwnProperty]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3340,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram & hasownpropert\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"bram & hasownpropqrt\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "Arc 1: +",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Arc 1: hasOwnProperty]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3340,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"arc 1: hasownpropert\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"arc 1: hasownpropqrt\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "Ashfen (+)",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|Ashfen (hasOwnProperty)]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3341,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (hasownproper\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the ",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"ashfen (hasownpropqr\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the "
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:hasOwnProperty|completed]",
+   "muts": [
+    "Quest: hasOwnProperty (completed)",
+    "+50 XP (quest milestone: hasOwnProperty)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: hasOwnPropqrty (completed)",
+    "+50 XP (quest milestone: hasOwnPropqrty)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:hasOwnProperty |completed]",
+   "muts": [
+    "Quest: hasOwnProperty (completed)",
+    "+50 XP (quest milestone: hasOwnProperty)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: hasOwnPropqrty (completed)",
+    "+50 XP (quest milestone: hasOwnPropqrty)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:﻿hasOwnProperty|completed]",
+   "muts": [
+    "Quest: hasOwnProperty (completed)",
+    "+50 XP (quest milestone: hasOwnProperty)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: hasOwnPropqrty (completed)",
+    "+50 XP (quest milestone: hasOwnPropqrty)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:\nhasOwnProperty\n|completed]",
+   "muts": [
+    "Quest: hasOwnProperty (completed)",
+    "+50 XP (quest milestone: hasOwnProperty)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: hasOwnPropqrty (completed)",
+    "+50 XP (quest milestone: hasOwnPropqrty)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [QUEST:hasOwnProperty|completed]",
+   "muts": [
+    "Time: dusk [QUEST:hasOwnProperty|completed",
+    "Quest: hasOwnProperty (completed)",
+    "+50 XP (quest milestone: hasOwnProperty)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:hasOwnProperty|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [QUEST:hasOwnPropqrty|completed",
+    "Quest: hasOwnPropqrty (completed)",
+    "+50 XP (quest milestone: hasOwnPropqrty)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:hasOwnPropqrty|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:hasOwnProperty|completed]",
+   "muts": [
+    "Quest: hasOwnProperty (completed)",
+    "+50 XP (quest milestone: hasOwnProperty)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: hasOwnPropqrty (completed)",
+    "+50 XP (quest milestone: hasOwnPropqrty)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:hasOwnProperty |completed]",
+   "muts": [
+    "Quest: hasOwnProperty (completed)",
+    "+50 XP (quest milestone: hasOwnProperty)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: hasOwnPropqrty (completed)",
+    "+50 XP (quest milestone: hasOwnPropqrty)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:﻿hasOwnProperty|completed]",
+   "muts": [
+    "Quest: hasOwnProperty (completed)",
+    "+50 XP (quest milestone: hasOwnProperty)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: hasOwnPropqrty (completed)",
+    "+50 XP (quest milestone: hasOwnPropqrty)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:\nhasOwnProperty\n|completed]",
+   "muts": [
+    "Quest: hasOwnProperty (completed)",
+    "+50 XP (quest milestone: hasOwnProperty)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: hasOwnPropqrty (completed)",
+    "+50 XP (quest milestone: hasOwnPropqrty)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [QUEST:hasOwnProperty|completed]",
+   "muts": [
+    "Time: dusk [QUEST:hasOwnProperty|completed",
+    "Quest: hasOwnProperty (completed)",
+    "+50 XP (quest milestone: hasOwnProperty)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:hasOwnProperty|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [QUEST:hasOwnPropqrty|completed",
+    "Quest: hasOwnPropqrty (completed)",
+    "+50 XP (quest milestone: hasOwnPropqrty)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:hasOwnPropqrty|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_NOTE:hasOwnProperty|a fact]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_NOTE:hasOwnProperty|a fact]",
+   "muts": [
+    "Time: dusk [NPC_NOTE:hasOwnProperty|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:hasOwnProperty|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_NOTE:hasOwnPropqrty|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:hasOwnPropqrty|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_NOTE:hasOwnProperty|a fact]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_NOTE:hasOwnProperty|a fact]",
+   "muts": [
+    "Time: dusk [NPC_NOTE:hasOwnProperty|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:hasOwnProperty|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_NOTE:hasOwnPropqrty|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:hasOwnPropqrty|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:hasOwnProperty|old|new]",
+   "muts": [
+    "hasOwnProperty: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:hasOwnProperty |old|new]",
+   "muts": [
+    "hasOwnProperty: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:﻿hasOwnProperty|old|new]",
+   "muts": [
+    "hasOwnProperty: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:\nhasOwnProperty\n|old|new]",
+   "muts": [
+    "hasOwnProperty: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_SUPERSEDE:hasOwnProperty|old|new]",
+   "muts": [
+    "Time: dusk [NPC_SUPERSEDE:hasOwnProperty|old|new",
+    "hasOwnProperty: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:hasOwnProperty|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_SUPERSEDE:hasOwnPropqrty|old|new",
+    "hasOwnPropqrty: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:hasOwnPropqrty|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:hasOwnProperty|old|new]",
+   "muts": [
+    "hasOwnProperty: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:hasOwnProperty |old|new]",
+   "muts": [
+    "hasOwnProperty: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:﻿hasOwnProperty|old|new]",
+   "muts": [
+    "hasOwnProperty: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:\nhasOwnProperty\n|old|new]",
+   "muts": [
+    "hasOwnProperty: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_SUPERSEDE:hasOwnProperty|old|new]",
+   "muts": [
+    "Time: dusk [NPC_SUPERSEDE:hasOwnProperty|old|new",
+    "hasOwnProperty: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:hasOwnProperty|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_SUPERSEDE:hasOwnPropqrty|old|new",
+    "hasOwnPropqrty: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:hasOwnPropqrty|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_PRONOUN:hasOwnProperty|he/him]",
+   "muts": [
+    "Pronouns: hasOwnProperty (he/him)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Pronouns: hasOwnPropqrty (he/him)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_PRONOUN:hasOwnProperty|he/him]",
+   "muts": [
+    "Time: dusk [NPC_PRONOUN:hasOwnProperty|he/him",
+    "Pronouns: hasOwnProperty (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:hasOwnProperty|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_PRONOUN:hasOwnPropqrty|he/him",
+    "Pronouns: hasOwnPropqrty (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:hasOwnPropqrty|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_PRONOUN:hasOwnProperty|he/him]",
+   "muts": [
+    "Pronouns: hasOwnProperty (he/him)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Pronouns: hasOwnPropqrty (he/him)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_PRONOUN:hasOwnProperty|he/him]",
+   "muts": [
+    "Time: dusk [NPC_PRONOUN:hasOwnProperty|he/him",
+    "Pronouns: hasOwnProperty (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:hasOwnProperty|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_PRONOUN:hasOwnPropqrty|he/him",
+    "Pronouns: hasOwnPropqrty (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:hasOwnPropqrty|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:hasOwnProperty|a group]",
+   "muts": [
+    "Faction: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:hasOwnProperty |a group]",
+   "muts": [
+    "Faction: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:﻿hasOwnProperty|a group]",
+   "muts": [
+    "Faction: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:\nhasOwnProperty\n|a group]",
+   "muts": [
+    "Faction: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [FACTION:hasOwnProperty|a group]",
+   "muts": [
+    "Time: dusk [FACTION:hasOwnProperty|a group",
+    "Faction: hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:hasOwnProperty|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [FACTION:hasOwnPropqrty|a group",
+    "Faction: hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:hasOwnPropqrty|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:hasOwnProperty|a group]",
+   "muts": [
+    "Faction: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:hasOwnProperty |a group]",
+   "muts": [
+    "Faction: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:﻿hasOwnProperty|a group]",
+   "muts": [
+    "Faction: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:\nhasOwnProperty\n|a group]",
+   "muts": [
+    "Faction: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [FACTION:hasOwnProperty|a group]",
+   "muts": [
+    "Time: dusk [FACTION:hasOwnProperty|a group",
+    "Faction: hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:hasOwnProperty|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [FACTION:hasOwnPropqrty|a group",
+    "Faction: hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:hasOwnPropqrty|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:hasOwnProperty|The Guild|member]",
+   "muts": [
+    "hasOwnProperty: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:hasOwnProperty |The Guild|member]",
+   "muts": [
+    "hasOwnProperty: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:﻿hasOwnProperty|The Guild|member]",
+   "muts": [
+    "hasOwnProperty: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:\nhasOwnProperty\n|The Guild|member]",
+   "muts": [
+    "hasOwnProperty: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:hasOwnProperty|The Guild|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:hasOwnProperty|The Guild|member",
+    "hasOwnProperty: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:hasOwnProperty|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:hasOwnPropqrty|The Guild|member",
+    "hasOwnPropqrty: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:hasOwnPropqrty|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:hasOwnProperty|The Guild|member]",
+   "muts": [
+    "hasOwnProperty: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:hasOwnProperty |The Guild|member]",
+   "muts": [
+    "hasOwnProperty: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:﻿hasOwnProperty|The Guild|member]",
+   "muts": [
+    "hasOwnProperty: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:\nhasOwnProperty\n|The Guild|member]",
+   "muts": [
+    "hasOwnProperty: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "hasOwnPropqrty: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:hasOwnProperty|The Guild|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:hasOwnProperty|The Guild|member",
+    "hasOwnProperty: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:hasOwnProperty|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:hasOwnPropqrty|The Guild|member",
+    "hasOwnPropqrty: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:hasOwnPropqrty|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|hasOwnProperty|member]",
+   "muts": [
+    "Bram: hasOwnProperty [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: hasOwnPropqrty [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|hasOwnProperty |member]",
+   "muts": [
+    "Bram: hasOwnProperty [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: hasOwnPropqrty [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|﻿hasOwnProperty|member]",
+   "muts": [
+    "Bram: hasOwnProperty [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: hasOwnPropqrty [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|\nhasOwnProperty\n|member]",
+   "muts": [
+    "Bram: hasOwnProperty [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: hasOwnPropqrty [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:Bram|hasOwnProperty|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:Bram|hasOwnProperty|member",
+    "Bram: hasOwnProperty [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|hasOwnProperty|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:Bram|hasOwnPropqrty|member",
+    "Bram: hasOwnPropqrty [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|hasOwnPropqrty|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|hasOwnProperty|member]",
+   "muts": [
+    "Bram: hasOwnProperty [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: hasOwnPropqrty [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|hasOwnProperty |member]",
+   "muts": [
+    "Bram: hasOwnProperty [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: hasOwnPropqrty [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|﻿hasOwnProperty|member]",
+   "muts": [
+    "Bram: hasOwnProperty [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: hasOwnPropqrty [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|\nhasOwnProperty\n|member]",
+   "muts": [
+    "Bram: hasOwnProperty [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: hasOwnPropqrty [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:Bram|hasOwnProperty|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:Bram|hasOwnProperty|member",
+    "Bram: hasOwnProperty [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|hasOwnProperty|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:Bram|hasOwnPropqrty|member",
+    "Bram: hasOwnPropqrty [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|hasOwnPropqrty|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:hasOwnProperty|true]",
+   "muts": [
+    "Party: +hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:hasOwnProperty |true]",
+   "muts": [
+    "Party: +hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:﻿hasOwnProperty|true]",
+   "muts": [
+    "Party: +hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:\nhasOwnProperty\n|true]",
+   "muts": [
+    "Party: +hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_MEMBER:hasOwnProperty|true]",
+   "muts": [
+    "Time: dusk [PARTY_MEMBER:hasOwnProperty|true",
+    "Party: +hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:hasOwnProperty|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_MEMBER:hasOwnPropqrty|true",
+    "Party: +hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:hasOwnPropqrty|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:hasOwnProperty|true]",
+   "muts": [
+    "Party: +hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:hasOwnProperty |true]",
+   "muts": [
+    "Party: +hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:﻿hasOwnProperty|true]",
+   "muts": [
+    "Party: +hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:\nhasOwnProperty\n|true]",
+   "muts": [
+    "Party: +hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_MEMBER:hasOwnProperty|true]",
+   "muts": [
+    "Time: dusk [PARTY_MEMBER:hasOwnProperty|true",
+    "Party: +hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:hasOwnProperty|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_MEMBER:hasOwnPropqrty|true",
+    "Party: +hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:hasOwnPropqrty|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|hasOwnProperty]",
+   "muts": [
+    "Kira splits off to hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|hasOwnProperty ]",
+   "muts": [
+    "Kira splits off to hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|﻿hasOwnProperty]",
+   "muts": [
+    "Kira splits off to hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|\nhasOwnProperty\n]",
+   "muts": [
+    "Kira splits off to hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_SPLIT:Kira|hasOwnProperty]",
+   "muts": [
+    "Time: dusk [PARTY_SPLIT:Kira|hasOwnProperty",
+    "Kira splits off to hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|hasOwnProperty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_SPLIT:Kira|hasOwnPropqrty",
+    "Kira splits off to hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|hasOwnPropqrty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|hasOwnProperty]",
+   "muts": [
+    "Kira splits off to hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|hasOwnProperty ]",
+   "muts": [
+    "Kira splits off to hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|﻿hasOwnProperty]",
+   "muts": [
+    "Kira splits off to hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|\nhasOwnProperty\n]",
+   "muts": [
+    "Kira splits off to hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_SPLIT:Kira|hasOwnProperty]",
+   "muts": [
+    "Time: dusk [PARTY_SPLIT:Kira|hasOwnProperty",
+    "Kira splits off to hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|hasOwnProperty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_SPLIT:Kira|hasOwnPropqrty",
+    "Kira splits off to hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|hasOwnPropqrty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:hasOwnProperty]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:hasOwnProperty ]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿hasOwnProperty]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\nhasOwnProperty\n]",
+   "muts": [
+    "Resident here: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:hasOwnProperty]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:hasOwnProperty",
+    "Resident here: hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:hasOwnProperty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:hasOwnPropqrty",
+    "Resident here: hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:hasOwnPropqrty' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:hasOwnProperty|calm|neighbour]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:hasOwnProperty |calm|neighbour]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿hasOwnProperty|calm|neighbour]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nhasOwnProperty\n|calm|neighbour]",
+   "muts": [
+    "NPC: hasOwnProperty"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: hasOwnPropqrty"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "hasOwnProperty",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:hasOwnProperty|calm|neighbour]",
+   "muts": [
+    "Time: dusk [NPC:hasOwnProperty|calm|neighbour",
+    "NPC: hasOwnProperty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:hasOwnProperty|calm|neighbour' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'hasOwnProperty' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:hasOwnPropqrty|calm|neighbour",
+    "NPC: hasOwnPropqrty",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:hasOwnPropqrty|calm|neighbour' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  }
+ ]
+}

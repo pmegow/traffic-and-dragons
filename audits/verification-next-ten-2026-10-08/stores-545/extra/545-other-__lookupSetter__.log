@@ -1,0 +1,5 @@
+tree traffic-and-dragons-next-ten-ending: 22188 word/control pairs in 27s; templates 270, decorations 43
+  __lookupSetter__ DIFF: 98
+  __lookupSetter__ SAME: 21892
+  __lookupSetter__ STATE_KEY: 198
+non-trivial results written to C:\Users\hannu\AppData\Local\Temp\tnd-545-oracle\audits\reviews\536_reserved_words\545-other-__lookupSetter__.json (296)

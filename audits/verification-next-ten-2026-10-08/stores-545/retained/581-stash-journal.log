@@ -1,0 +1,32 @@
+
+  sabotage — memory.js
+   ✓ caught      stable key replaced by mutable camp id
+   ✓ caught      legacy migration diverges across devices
+   ✓ caught      new journals share reused campaign id
+   ✓ caught      legacy live-sheet marks not migrated
+   ✓ caught      legacy external copy fallback removed
+   ✓ caught      zero stable mark loses precedence
+   ✓ caught      new writer first appends then invents legacy identity
+   ✓ caught      malformed provenance goes silent
+   ✓ file restored byte-identical
+   8/8 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      hero ignores incoming journal mark
+   ✓ caught      companion ignores incoming journal mark
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      malformed import replaces outgoing world before validation
+   ✓ caught      raw import migrates after id changes
+   ✓ caught      rehome forgets original legacy id
+   ✓ caught      load assigns active id before migrating local mark
+   ✓ caught      server inflater forgets detached provenance
+   ✓ caught      checkpoint overwrites original id
+   ✓ caught      bootstrap assigns id before local provenance
+   ✓ file restored byte-identical
+   7/7 clauses proven
+

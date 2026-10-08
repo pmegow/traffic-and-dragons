@@ -1,0 +1,22 @@
+tree: traffic-and-dragons-next-ten-ending
+--- an ordinary update for the golem beside one for Bram
+    {"chapterSummary":"The party studied the golem in the yard.","npcUpdates":[{"name":"Constructor","attitude":"watchful","knowledgeGained":"its left arm is cracked"},{"name":"Bram","knowledgeGained":"fears the golem"}]}
+    applied
+    console: []
+    Constructor knows ["a brass golem of the old guild","its left arm is cracked"] | attitude "watchful" | dead null | Bram knows ["keeps the forge","fears the golem"] | chapters 1 | built-ins []
+--- the golem's death, cited the way the schema asks
+    {"chapterSummary":"Constructor was destroyed in the yard.","npcDeaths":[{"name":"Constructor","handle":"h1","sourceTurn":19}],"npcUpdates":[{"name":"Bram","knowledgeGained":"saw the golem fall"}]}
+    applySummaryExtract THREW (the whole extraction is rejected): W2 referential integrity: Constructor - summary death lacks matching scene-handle evidence
+    console: []
+    Constructor knows ["a brass golem of the old guild"] | attitude "" | dead null | Bram knows ["keeps the forge"] | chapters 0 | built-ins []
+--- the same death in plainer words ('was killed')
+    {"chapterSummary":"Constructor was killed in the yard.","npcDeaths":[{"name":"Constructor","handle":"h1","sourceTurn":19}],"npcUpdates":[{"name":"Bram","knowledgeGained":"saw the golem fall"}]}
+    applySummaryExtract THREW (the whole extraction is rejected): W2 referential integrity: Constructor - summary death lacks matching scene-handle evidence
+    console: []
+    Constructor knows ["a brass golem of the old guild"] | attitude "" | dead null | Bram knows ["keeps the forge"] | chapters 0 | built-ins []
+    open identity conflicts now: ["Constructor: summary death lacks matching scene-handle evidence"]
+--- a control death for Bram, same shape
+    {"chapterSummary":"Bram was killed in the yard.","npcDeaths":[{"name":"Bram","handle":"h1","sourceTurn":19}]}
+    applySummaryExtract THREW (the whole extraction is rejected): W2 referential integrity: Bram - summary death lacks matching scene-handle evidence
+    console: []
+    Constructor knows ["a brass golem of the old guild"] | attitude "" | dead null | Bram knows ["keeps the forge"] | chapters 0 | built-ins []

@@ -1,0 +1,11 @@
+
+  sabotage — tag_table.js
+   ✓ caught      the whole-sale check is skipped (the reported loss)
+   ✓ caught      the check runs on the real pack, not a copy
+   ✓ caught      the check counts one unit per tag, so a short count slips through
+   ✓ caught      a short count is said as a missing item
+   ✓ caught      an ambiguous name in a refused sale is no longer said
+   ✓ caught      the refused sale's items stay hits for pairing, so a gift riding with it mints the item
+   ✓ file restored byte-identical
+   6/6 clauses proven
+

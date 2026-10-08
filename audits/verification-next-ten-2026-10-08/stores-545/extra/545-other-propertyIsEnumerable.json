@@ -1,0 +1,4761 @@
+{
+ "tree": "traffic-and-dragons-next-ten-ending",
+ "runs": 22188,
+ "counts": {
+  "propertyIsEnumerable SAME": 22003,
+  "propertyIsEnumerable STATE_KEY": 163,
+  "propertyIsEnumerable DIFF": 22
+ },
+ "results": [
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:propertyIsEnumerable]",
+   "muts": [
+    "-> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.locations",
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:propertyIsEnumerable ]",
+   "muts": [
+    "-> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.locations",
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:﻿propertyIsEnumerable]",
+   "muts": [
+    "-> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.locations",
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:\npropertyIsEnumerable\n]",
+   "muts": [
+    "-> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.locations",
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION:propertyIsEnumerable]",
+   "muts": [
+    "-> propertyIsEnumerable",
+    "Time: dusk [LOCATION:propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:propertyIsEnumerable' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.locations",
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> propertyIsEnumerqble",
+    "Time: dusk [LOCATION:propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:propertyIsEnumerqble' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:propertyIsEnumerable]",
+   "muts": [
+    "-> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.locations",
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:propertyIsEnumerable ]",
+   "muts": [
+    "-> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.locations",
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:﻿propertyIsEnumerable]",
+   "muts": [
+    "-> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.locations",
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:\npropertyIsEnumerable\n]",
+   "muts": [
+    "-> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.locations",
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION:propertyIsEnumerable]",
+   "muts": [
+    "-> propertyIsEnumerable",
+    "Time: dusk [LOCATION:propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:propertyIsEnumerable' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.locations",
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> propertyIsEnumerqble",
+    "Time: dusk [LOCATION:propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:propertyIsEnumerqble' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,§;forbid=none]",
+   "mode": "plain",
+   "deco": "(paren) +",
+   "cls": "DIFF",
+   "text": "It happens. [SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,(old) propertyIsEnumerable;forbid=none]",
+   "muts": [
+    "⚠ Ambience: left out (old) propertyIsEnumerab — not a sound word the engine knows"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "muts",
+     "at": 43,
+     "word": "⚠ Ambience: left out (old) propertyIsEnumerab — not a sound word the engine knows",
+     "control": "⚠ Ambience: left out (old) propertyIsEnumerqb — not a sound word the engine knows"
+    },
+    {
+     "facet": "state",
+     "at": 3145,
+     "word": "tags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out (old) propertyIsEnumerab — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge",
+     "control": "tags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out (old) propertyIsEnumerqb — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge"
+    }
+   ],
+   "controlMuts": [
+    "⚠ Ambience: left out (old) propertyIsEnumerqb — not a sound word the engine knows"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,§;forbid=none]",
+   "mode": "plain",
+   "deco": "Bram/+",
+   "cls": "DIFF",
+   "text": "It happens. [SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,Bram/propertyIsEnumerable;forbid=none]",
+   "muts": [
+    "⚠ Ambience: left out Bram/propertyIsEnumerabl — not a sound word the engine knows"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "muts",
+     "at": 42,
+     "word": "⚠ Ambience: left out Bram/propertyIsEnumerabl — not a sound word the engine knows",
+     "control": "⚠ Ambience: left out Bram/propertyIsEnumerqbl — not a sound word the engine knows"
+    },
+    {
+     "facet": "state",
+     "at": 3144,
+     "word": "\"tags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Bram/propertyIsEnumerabl — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forg",
+     "control": "\"tags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Bram/propertyIsEnumerqbl — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forg"
+    }
+   ],
+   "controlMuts": [
+    "⚠ Ambience: left out Bram/propertyIsEnumerqbl — not a sound word the engine knows"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,§;forbid=none]",
+   "mode": "plain",
+   "deco": "Bram & +",
+   "cls": "DIFF",
+   "text": "It happens. [SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,Bram & propertyIsEnumerable;forbid=none]",
+   "muts": [
+    "⚠ Ambience: left out Bram & propertyIsEnumera — not a sound word the engine knows"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "muts",
+     "at": 44,
+     "word": "⚠ Ambience: left out Bram & propertyIsEnumera — not a sound word the engine knows",
+     "control": "⚠ Ambience: left out Bram & propertyIsEnumerq — not a sound word the engine knows"
+    },
+    {
+     "facet": "state",
+     "at": 3146,
+     "word": "ags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Bram & propertyIsEnumera — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge\"",
+     "control": "ags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Bram & propertyIsEnumerq — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge\""
+    }
+   ],
+   "controlMuts": [
+    "⚠ Ambience: left out Bram & propertyIsEnumerq — not a sound word the engine knows"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,§;forbid=none]",
+   "mode": "plain",
+   "deco": "Arc 1: +",
+   "cls": "DIFF",
+   "text": "It happens. [SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,Arc 1: propertyIsEnumerable;forbid=none]",
+   "muts": [
+    "⚠ Ambience: left out Arc 1: propertyIsEnumera — not a sound word the engine knows"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "muts",
+     "at": 44,
+     "word": "⚠ Ambience: left out Arc 1: propertyIsEnumera — not a sound word the engine knows",
+     "control": "⚠ Ambience: left out Arc 1: propertyIsEnumerq — not a sound word the engine knows"
+    },
+    {
+     "facet": "state",
+     "at": 3146,
+     "word": "ags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Arc 1: propertyIsEnumera — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge\"",
+     "control": "ags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Arc 1: propertyIsEnumerq — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge\""
+    }
+   ],
+   "controlMuts": [
+    "⚠ Ambience: left out Arc 1: propertyIsEnumerq — not a sound word the engine knows"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,§;forbid=none]",
+   "mode": "refs",
+   "deco": "(paren) +",
+   "cls": "DIFF",
+   "text": "It happens. [SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,(old) propertyIsEnumerable;forbid=none]",
+   "muts": [
+    "⚠ Ambience: left out (old) propertyIsEnumerab — not a sound word the engine knows"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "muts",
+     "at": 43,
+     "word": "⚠ Ambience: left out (old) propertyIsEnumerab — not a sound word the engine knows",
+     "control": "⚠ Ambience: left out (old) propertyIsEnumerqb — not a sound word the engine knows"
+    },
+    {
+     "facet": "state",
+     "at": 3310,
+     "word": "tags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out (old) propertyIsEnumerab — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge",
+     "control": "tags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out (old) propertyIsEnumerqb — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge"
+    }
+   ],
+   "controlMuts": [
+    "⚠ Ambience: left out (old) propertyIsEnumerqb — not a sound word the engine knows"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,§;forbid=none]",
+   "mode": "refs",
+   "deco": "Bram/+",
+   "cls": "DIFF",
+   "text": "It happens. [SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,Bram/propertyIsEnumerable;forbid=none]",
+   "muts": [
+    "⚠ Ambience: left out Bram/propertyIsEnumerabl — not a sound word the engine knows"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "muts",
+     "at": 42,
+     "word": "⚠ Ambience: left out Bram/propertyIsEnumerabl — not a sound word the engine knows",
+     "control": "⚠ Ambience: left out Bram/propertyIsEnumerqbl — not a sound word the engine knows"
+    },
+    {
+     "facet": "state",
+     "at": 3309,
+     "word": "\"tags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Bram/propertyIsEnumerabl — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forg",
+     "control": "\"tags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Bram/propertyIsEnumerqbl — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forg"
+    }
+   ],
+   "controlMuts": [
+    "⚠ Ambience: left out Bram/propertyIsEnumerqbl — not a sound word the engine knows"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,§;forbid=none]",
+   "mode": "refs",
+   "deco": "Bram & +",
+   "cls": "DIFF",
+   "text": "It happens. [SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,Bram & propertyIsEnumerable;forbid=none]",
+   "muts": [
+    "⚠ Ambience: left out Bram & propertyIsEnumera — not a sound word the engine knows"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "muts",
+     "at": 44,
+     "word": "⚠ Ambience: left out Bram & propertyIsEnumera — not a sound word the engine knows",
+     "control": "⚠ Ambience: left out Bram & propertyIsEnumerq — not a sound word the engine knows"
+    },
+    {
+     "facet": "state",
+     "at": 3311,
+     "word": "ags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Bram & propertyIsEnumera — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge\"",
+     "control": "ags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Bram & propertyIsEnumerq — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge\""
+    }
+   ],
+   "controlMuts": [
+    "⚠ Ambience: left out Bram & propertyIsEnumerq — not a sound word the engine knows"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,§;forbid=none]",
+   "mode": "refs",
+   "deco": "Arc 1: +",
+   "cls": "DIFF",
+   "text": "It happens. [SOUNDSCAPE:the yard|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,Arc 1: propertyIsEnumerable;forbid=none]",
+   "muts": [
+    "⚠ Ambience: left out Arc 1: propertyIsEnumera — not a sound word the engine knows"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "muts",
+     "at": 44,
+     "word": "⚠ Ambience: left out Arc 1: propertyIsEnumera — not a sound word the engine knows",
+     "control": "⚠ Ambience: left out Arc 1: propertyIsEnumerq — not a sound word the engine knows"
+    },
+    {
+     "facet": "state",
+     "at": 3311,
+     "word": "ags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Arc 1: propertyIsEnumera — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge\"",
+     "control": "ags\":[\"SOUNDSCAPE\"],\"m\":[\"⚠ Ambience: left out Arc 1: propertyIsEnumerq — not a sound word the engine knows\"]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the forge\""
+    }
+   ],
+   "controlMuts": [
+    "⚠ Ambience: left out Arc 1: propertyIsEnumerq — not a sound word the engine knows"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:propertyIsEnumerable|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:propertyIsEnumerable |Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:﻿propertyIsEnumerable|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:\npropertyIsEnumerable\n|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_ALIAS:propertyIsEnumerable|Other]",
+   "muts": [
+    "Time: dusk [NPC_ALIAS:propertyIsEnumerable|Other",
+    "Alias: Other -> propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:propertyIsEnumerable|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_ALIAS:propertyIsEnumerqble|Other",
+    "Alias: Other -> propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:propertyIsEnumerqble|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:propertyIsEnumerable|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:propertyIsEnumerable |Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:﻿propertyIsEnumerable|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:\npropertyIsEnumerable\n|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_ALIAS:propertyIsEnumerable|Other]",
+   "muts": [
+    "Time: dusk [NPC_ALIAS:propertyIsEnumerable|Other",
+    "Alias: Other -> propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:propertyIsEnumerable|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_ALIAS:propertyIsEnumerqble|Other",
+    "Alias: Other -> propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:propertyIsEnumerqble|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:propertyIsEnumerable|Bram]",
+   "muts": [
+    "Merged: Bram -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:propertyIsEnumerable |Bram]",
+   "muts": [
+    "Merged: Bram -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:﻿propertyIsEnumerable|Bram]",
+   "muts": [
+    "Merged: Bram -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:\npropertyIsEnumerable\n|Bram]",
+   "muts": [
+    "Merged: Bram -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_MERGE:propertyIsEnumerable|Bram]",
+   "muts": [
+    "Time: dusk [NPC_MERGE:propertyIsEnumerable|Bram",
+    "Merged: Bram -> propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_MERGE:propertyIsEnumerable|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_MERGE:propertyIsEnumerqble|Bram",
+    "Merged: Bram -> propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_MERGE:propertyIsEnumerqble|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|propertyIsEnumerable|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|propertyIsEnumerable |Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|﻿propertyIsEnumerable|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|\npropertyIsEnumerable\n|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [ALIAS:npc|propertyIsEnumerable|Other]",
+   "muts": [
+    "Time: dusk [ALIAS:npc|propertyIsEnumerable|Other",
+    "Alias: Other -> propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|propertyIsEnumerable|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [ALIAS:npc|propertyIsEnumerqble|Other",
+    "Alias: Other -> propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|propertyIsEnumerqble|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|propertyIsEnumerable|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|propertyIsEnumerable |Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|﻿propertyIsEnumerable|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|\npropertyIsEnumerable\n|Other]",
+   "muts": [
+    "Alias: Other -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [ALIAS:npc|propertyIsEnumerable|Other]",
+   "muts": [
+    "Time: dusk [ALIAS:npc|propertyIsEnumerable|Other",
+    "Alias: Other -> propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|propertyIsEnumerable|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [ALIAS:npc|propertyIsEnumerqble|Other",
+    "Alias: Other -> propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|propertyIsEnumerqble|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|propertyIsEnumerable|Bram]",
+   "muts": [
+    "Merged: Bram -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|propertyIsEnumerable |Bram]",
+   "muts": [
+    "Merged: Bram -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|﻿propertyIsEnumerable|Bram]",
+   "muts": [
+    "Merged: Bram -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|\npropertyIsEnumerable\n|Bram]",
+   "muts": [
+    "Merged: Bram -> propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [MERGE:npc|propertyIsEnumerable|Bram]",
+   "muts": [
+    "Time: dusk [MERGE:npc|propertyIsEnumerable|Bram",
+    "Merged: Bram -> propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [MERGE:npc|propertyIsEnumerable|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [MERGE:npc|propertyIsEnumerqble|Bram",
+    "Merged: Bram -> propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [MERGE:npc|propertyIsEnumerqble|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:propertyIsEnumerable|calm|ally]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:propertyIsEnumerable |calm|ally]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿propertyIsEnumerable|calm|ally]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\npropertyIsEnumerable\n|calm|ally]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:propertyIsEnumerable|calm|ally]",
+   "muts": [
+    "Time: dusk [NPC:propertyIsEnumerable|calm|ally",
+    "NPC: propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:propertyIsEnumerable|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:propertyIsEnumerqble|calm|ally",
+    "NPC: propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:propertyIsEnumerqble|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:propertyIsEnumerable|calm|ally]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:propertyIsEnumerable |calm|ally]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿propertyIsEnumerable|calm|ally]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\npropertyIsEnumerable\n|calm|ally]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:propertyIsEnumerable|calm|ally]",
+   "muts": [
+    "Time: dusk [NPC:propertyIsEnumerable|calm|ally",
+    "NPC: propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:propertyIsEnumerable|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:propertyIsEnumerqble|calm|ally",
+    "NPC: propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:propertyIsEnumerqble|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:propertyIsEnumerable|dead|enemy]",
+   "muts": [
+    "propertyIsEnumerable: dead (t9)",
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: dead (t9)",
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:propertyIsEnumerable |dead|enemy]",
+   "muts": [
+    "propertyIsEnumerable: dead (t9)",
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: dead (t9)",
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿propertyIsEnumerable|dead|enemy]",
+   "muts": [
+    "propertyIsEnumerable: dead (t9)",
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: dead (t9)",
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\npropertyIsEnumerable\n|dead|enemy]",
+   "muts": [
+    "propertyIsEnumerable: dead (t9)",
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: dead (t9)",
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:propertyIsEnumerable|dead|enemy]",
+   "muts": [
+    "Time: dusk [NPC:propertyIsEnumerable|dead|enemy",
+    "propertyIsEnumerable: dead (t9)",
+    "NPC: propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:propertyIsEnumerable|dead|enemy' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:propertyIsEnumerqble|dead|enemy",
+    "propertyIsEnumerqble: dead (t9)",
+    "NPC: propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:propertyIsEnumerqble|dead|enemy' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:propertyIsEnumerable]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:propertyIsEnumerable ]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿propertyIsEnumerable]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\npropertyIsEnumerable\n]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:propertyIsEnumerable]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:propertyIsEnumerable",
+    "Resident here: propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:propertyIsEnumerable' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:propertyIsEnumerqble",
+    "Resident here: propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:propertyIsEnumerqble' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:propertyIsEnumerable]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:propertyIsEnumerable ]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿propertyIsEnumerable]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\npropertyIsEnumerable\n]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:propertyIsEnumerable]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:propertyIsEnumerable",
+    "Resident here: propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:propertyIsEnumerable' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:propertyIsEnumerqble",
+    "Resident here: propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:propertyIsEnumerqble' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:propertyIsEnumerable|a rider]",
+   "muts": [
+    "Registered from death report: propertyIsEnumerable",
+    "propertyIsEnumerable: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: propertyIsEnumerqble",
+    "propertyIsEnumerqble: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:propertyIsEnumerable |a rider]",
+   "muts": [
+    "Registered from death report: propertyIsEnumerable",
+    "propertyIsEnumerable: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: propertyIsEnumerqble",
+    "propertyIsEnumerqble: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:﻿propertyIsEnumerable|a rider]",
+   "muts": [
+    "Registered from death report: propertyIsEnumerable",
+    "propertyIsEnumerable: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: propertyIsEnumerqble",
+    "propertyIsEnumerqble: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:\npropertyIsEnumerable\n|a rider]",
+   "muts": [
+    "Registered from death report: propertyIsEnumerable",
+    "propertyIsEnumerable: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: propertyIsEnumerqble",
+    "propertyIsEnumerqble: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_DEATH_REPORTED:propertyIsEnumerable|a rider]",
+   "muts": [
+    "Time: dusk [NPC_DEATH_REPORTED:propertyIsEnumerable|a rider",
+    "Registered from death report: propertyIsEnumerable",
+    "propertyIsEnumerable: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:propertyIsEnumerable|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_DEATH_REPORTED:propertyIsEnumerqble|a rider",
+    "Registered from death report: propertyIsEnumerqble",
+    "propertyIsEnumerqble: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:propertyIsEnumerqble|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:propertyIsEnumerable|a rider]",
+   "muts": [
+    "Registered from death report: propertyIsEnumerable",
+    "propertyIsEnumerable: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: propertyIsEnumerqble",
+    "propertyIsEnumerqble: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:propertyIsEnumerable |a rider]",
+   "muts": [
+    "Registered from death report: propertyIsEnumerable",
+    "propertyIsEnumerable: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: propertyIsEnumerqble",
+    "propertyIsEnumerqble: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:﻿propertyIsEnumerable|a rider]",
+   "muts": [
+    "Registered from death report: propertyIsEnumerable",
+    "propertyIsEnumerable: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: propertyIsEnumerqble",
+    "propertyIsEnumerqble: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:\npropertyIsEnumerable\n|a rider]",
+   "muts": [
+    "Registered from death report: propertyIsEnumerable",
+    "propertyIsEnumerable: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: propertyIsEnumerqble",
+    "propertyIsEnumerqble: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_DEATH_REPORTED:propertyIsEnumerable|a rider]",
+   "muts": [
+    "Time: dusk [NPC_DEATH_REPORTED:propertyIsEnumerable|a rider",
+    "Registered from death report: propertyIsEnumerable",
+    "propertyIsEnumerable: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:propertyIsEnumerable|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_DEATH_REPORTED:propertyIsEnumerqble|a rider",
+    "Registered from death report: propertyIsEnumerqble",
+    "propertyIsEnumerqble: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:propertyIsEnumerqble|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "a+",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|a propertyIsEnumerable]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3144,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"a propertyisenumerab\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attit",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"a propertyisenumerqb\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attit"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "\"+\"",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|\"propertyIsEnumerable\"]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3144,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"\\\"propertyisenumerabl\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"\\\"propertyisenumerqbl\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "'+'",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|'propertyIsEnumerable']",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3143,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"'propertyisenumerabl\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"'propertyisenumerqbl\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "k=+",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|k=propertyIsEnumerable]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3144,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"k=propertyisenumerab\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attit",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"k=propertyisenumerqb\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attit"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "k:+",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|k: propertyIsEnumerable]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3145,
+     "word": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"k: propertyisenumera\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitu",
+     "control": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"k: propertyisenumerq\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitu"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "-+",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|-propertyIsEnumerable]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3143,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"-propertyisenumerabl\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"-propertyisenumerqbl\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "plain",
+   "deco": "ZWSP+",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|​propertyIsEnumerable]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3143,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"​propertyisenumerabl\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"​propertyisenumerqbl\"}],\"clock\":{\"min\":0,\"schedule\":[]},\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"atti"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "a+",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|a propertyIsEnumerable]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3341,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"a propertyisenumerab\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the ",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"a propertyisenumerqb\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the "
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "\"+\"",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|\"propertyIsEnumerable\"]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3341,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"\\\"propertyisenumerabl\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"\\\"propertyisenumerqbl\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "'+'",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|'propertyIsEnumerable']",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3340,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"'propertyisenumerabl\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"'propertyisenumerqbl\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "k=+",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|k=propertyIsEnumerable]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3341,
+     "word": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"k=propertyisenumerab\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the ",
+     "control": "ce\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"k=propertyisenumerqb\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the "
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "k:+",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|k: propertyIsEnumerable]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3342,
+     "word": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"k: propertyisenumera\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the f",
+     "control": "e\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"k: propertyisenumerq\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the f"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "-+",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|-propertyIsEnumerable]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3340,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"-propertyisenumerabl\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"-propertyisenumerqbl\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[DICE:Stealth|12|§]",
+   "mode": "refs",
+   "deco": "ZWSP+",
+   "cls": "DIFF",
+   "text": "It happens. [DICE:Stealth|12|​propertyIsEnumerable]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [],
+   "diffs": [
+    {
+     "facet": "state",
+     "at": 3340,
+     "word": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"​propertyisenumerabl\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the",
+     "control": "ace\":null,\"mod\":null,\"dc\":null,\"total\":12,\"outcome\":\"​propertyisenumerqbl\"}],\"tagLog\":[{\"t\":9,\"tags\":[\"DICE\"],\"m\":[]}]},\"mem\":{\"npcs\":{\"Bram\":{\"attitude\":\"\",\"knowledge\":[\"keeps the"
+    }
+   ],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:propertyIsEnumerable|completed]",
+   "muts": [
+    "Quest: propertyIsEnumerable (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerable)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: propertyIsEnumerqble (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerqble)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:propertyIsEnumerable |completed]",
+   "muts": [
+    "Quest: propertyIsEnumerable (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerable)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: propertyIsEnumerqble (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerqble)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:﻿propertyIsEnumerable|completed]",
+   "muts": [
+    "Quest: propertyIsEnumerable (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerable)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: propertyIsEnumerqble (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerqble)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:\npropertyIsEnumerable\n|completed]",
+   "muts": [
+    "Quest: propertyIsEnumerable (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerable)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: propertyIsEnumerqble (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerqble)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [QUEST:propertyIsEnumerable|completed]",
+   "muts": [
+    "Time: dusk [QUEST:propertyIsEnumerable|completed",
+    "Quest: propertyIsEnumerable (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerable)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:propertyIsEnumerable|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [QUEST:propertyIsEnumerqble|completed",
+    "Quest: propertyIsEnumerqble (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerqble)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:propertyIsEnumerqble|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:propertyIsEnumerable|completed]",
+   "muts": [
+    "Quest: propertyIsEnumerable (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerable)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: propertyIsEnumerqble (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerqble)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:propertyIsEnumerable |completed]",
+   "muts": [
+    "Quest: propertyIsEnumerable (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerable)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: propertyIsEnumerqble (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerqble)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:﻿propertyIsEnumerable|completed]",
+   "muts": [
+    "Quest: propertyIsEnumerable (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerable)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: propertyIsEnumerqble (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerqble)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:\npropertyIsEnumerable\n|completed]",
+   "muts": [
+    "Quest: propertyIsEnumerable (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerable)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: propertyIsEnumerqble (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerqble)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [QUEST:propertyIsEnumerable|completed]",
+   "muts": [
+    "Time: dusk [QUEST:propertyIsEnumerable|completed",
+    "Quest: propertyIsEnumerable (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerable)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:propertyIsEnumerable|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [QUEST:propertyIsEnumerqble|completed",
+    "Quest: propertyIsEnumerqble (completed)",
+    "+50 XP (quest milestone: propertyIsEnumerqble)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:propertyIsEnumerqble|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_NOTE:propertyIsEnumerable|a fact]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_NOTE:propertyIsEnumerable|a fact]",
+   "muts": [
+    "Time: dusk [NPC_NOTE:propertyIsEnumerable|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:propertyIsEnumerable|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_NOTE:propertyIsEnumerqble|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:propertyIsEnumerqble|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_NOTE:propertyIsEnumerable|a fact]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_NOTE:propertyIsEnumerable|a fact]",
+   "muts": [
+    "Time: dusk [NPC_NOTE:propertyIsEnumerable|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:propertyIsEnumerable|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_NOTE:propertyIsEnumerqble|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:propertyIsEnumerqble|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:propertyIsEnumerable|old|new]",
+   "muts": [
+    "propertyIsEnumerable: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:propertyIsEnumerable |old|new]",
+   "muts": [
+    "propertyIsEnumerable: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:﻿propertyIsEnumerable|old|new]",
+   "muts": [
+    "propertyIsEnumerable: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:\npropertyIsEnumerable\n|old|new]",
+   "muts": [
+    "propertyIsEnumerable: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_SUPERSEDE:propertyIsEnumerable|old|new]",
+   "muts": [
+    "Time: dusk [NPC_SUPERSEDE:propertyIsEnumerable|old|new",
+    "propertyIsEnumerable: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:propertyIsEnumerable|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_SUPERSEDE:propertyIsEnumerqble|old|new",
+    "propertyIsEnumerqble: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:propertyIsEnumerqble|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:propertyIsEnumerable|old|new]",
+   "muts": [
+    "propertyIsEnumerable: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:propertyIsEnumerable |old|new]",
+   "muts": [
+    "propertyIsEnumerable: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:﻿propertyIsEnumerable|old|new]",
+   "muts": [
+    "propertyIsEnumerable: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:\npropertyIsEnumerable\n|old|new]",
+   "muts": [
+    "propertyIsEnumerable: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_SUPERSEDE:propertyIsEnumerable|old|new]",
+   "muts": [
+    "Time: dusk [NPC_SUPERSEDE:propertyIsEnumerable|old|new",
+    "propertyIsEnumerable: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:propertyIsEnumerable|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_SUPERSEDE:propertyIsEnumerqble|old|new",
+    "propertyIsEnumerqble: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:propertyIsEnumerqble|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_PRONOUN:propertyIsEnumerable|he/him]",
+   "muts": [
+    "Pronouns: propertyIsEnumerable (he/him)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Pronouns: propertyIsEnumerqble (he/him)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_PRONOUN:propertyIsEnumerable|he/him]",
+   "muts": [
+    "Time: dusk [NPC_PRONOUN:propertyIsEnumerable|he/him",
+    "Pronouns: propertyIsEnumerable (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:propertyIsEnumerable|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_PRONOUN:propertyIsEnumerqble|he/him",
+    "Pronouns: propertyIsEnumerqble (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:propertyIsEnumerqble|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_PRONOUN:propertyIsEnumerable|he/him]",
+   "muts": [
+    "Pronouns: propertyIsEnumerable (he/him)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Pronouns: propertyIsEnumerqble (he/him)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_PRONOUN:propertyIsEnumerable|he/him]",
+   "muts": [
+    "Time: dusk [NPC_PRONOUN:propertyIsEnumerable|he/him",
+    "Pronouns: propertyIsEnumerable (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:propertyIsEnumerable|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_PRONOUN:propertyIsEnumerqble|he/him",
+    "Pronouns: propertyIsEnumerqble (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:propertyIsEnumerqble|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:propertyIsEnumerable|a group]",
+   "muts": [
+    "Faction: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:propertyIsEnumerable |a group]",
+   "muts": [
+    "Faction: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:﻿propertyIsEnumerable|a group]",
+   "muts": [
+    "Faction: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:\npropertyIsEnumerable\n|a group]",
+   "muts": [
+    "Faction: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [FACTION:propertyIsEnumerable|a group]",
+   "muts": [
+    "Time: dusk [FACTION:propertyIsEnumerable|a group",
+    "Faction: propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:propertyIsEnumerable|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [FACTION:propertyIsEnumerqble|a group",
+    "Faction: propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:propertyIsEnumerqble|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:propertyIsEnumerable|a group]",
+   "muts": [
+    "Faction: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:propertyIsEnumerable |a group]",
+   "muts": [
+    "Faction: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:﻿propertyIsEnumerable|a group]",
+   "muts": [
+    "Faction: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:\npropertyIsEnumerable\n|a group]",
+   "muts": [
+    "Faction: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [FACTION:propertyIsEnumerable|a group]",
+   "muts": [
+    "Time: dusk [FACTION:propertyIsEnumerable|a group",
+    "Faction: propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:propertyIsEnumerable|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [FACTION:propertyIsEnumerqble|a group",
+    "Faction: propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:propertyIsEnumerqble|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:propertyIsEnumerable|The Guild|member]",
+   "muts": [
+    "propertyIsEnumerable: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:propertyIsEnumerable |The Guild|member]",
+   "muts": [
+    "propertyIsEnumerable: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:﻿propertyIsEnumerable|The Guild|member]",
+   "muts": [
+    "propertyIsEnumerable: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:\npropertyIsEnumerable\n|The Guild|member]",
+   "muts": [
+    "propertyIsEnumerable: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:propertyIsEnumerable|The Guild|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:propertyIsEnumerable|The Guild|member",
+    "propertyIsEnumerable: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:propertyIsEnumerable|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:propertyIsEnumerqble|The Guild|member",
+    "propertyIsEnumerqble: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:propertyIsEnumerqble|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:propertyIsEnumerable|The Guild|member]",
+   "muts": [
+    "propertyIsEnumerable: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:propertyIsEnumerable |The Guild|member]",
+   "muts": [
+    "propertyIsEnumerable: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:﻿propertyIsEnumerable|The Guild|member]",
+   "muts": [
+    "propertyIsEnumerable: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:\npropertyIsEnumerable\n|The Guild|member]",
+   "muts": [
+    "propertyIsEnumerable: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "propertyIsEnumerqble: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:propertyIsEnumerable|The Guild|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:propertyIsEnumerable|The Guild|member",
+    "propertyIsEnumerable: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:propertyIsEnumerable|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:propertyIsEnumerqble|The Guild|member",
+    "propertyIsEnumerqble: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:propertyIsEnumerqble|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|propertyIsEnumerable|member]",
+   "muts": [
+    "Bram: propertyIsEnumerable [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: propertyIsEnumerqble [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|propertyIsEnumerable |member]",
+   "muts": [
+    "Bram: propertyIsEnumerable [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: propertyIsEnumerqble [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|﻿propertyIsEnumerable|member]",
+   "muts": [
+    "Bram: propertyIsEnumerable [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: propertyIsEnumerqble [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|\npropertyIsEnumerable\n|member]",
+   "muts": [
+    "Bram: propertyIsEnumerable [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: propertyIsEnumerqble [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:Bram|propertyIsEnumerable|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:Bram|propertyIsEnumerable|member",
+    "Bram: propertyIsEnumerable [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|propertyIsEnumerable|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:Bram|propertyIsEnumerqble|member",
+    "Bram: propertyIsEnumerqble [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|propertyIsEnumerqble|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|propertyIsEnumerable|member]",
+   "muts": [
+    "Bram: propertyIsEnumerable [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: propertyIsEnumerqble [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|propertyIsEnumerable |member]",
+   "muts": [
+    "Bram: propertyIsEnumerable [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: propertyIsEnumerqble [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|﻿propertyIsEnumerable|member]",
+   "muts": [
+    "Bram: propertyIsEnumerable [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: propertyIsEnumerqble [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|\npropertyIsEnumerable\n|member]",
+   "muts": [
+    "Bram: propertyIsEnumerable [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: propertyIsEnumerqble [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:Bram|propertyIsEnumerable|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:Bram|propertyIsEnumerable|member",
+    "Bram: propertyIsEnumerable [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|propertyIsEnumerable|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:Bram|propertyIsEnumerqble|member",
+    "Bram: propertyIsEnumerqble [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|propertyIsEnumerqble|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:propertyIsEnumerable|true]",
+   "muts": [
+    "Party: +propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:propertyIsEnumerable |true]",
+   "muts": [
+    "Party: +propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:﻿propertyIsEnumerable|true]",
+   "muts": [
+    "Party: +propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:\npropertyIsEnumerable\n|true]",
+   "muts": [
+    "Party: +propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_MEMBER:propertyIsEnumerable|true]",
+   "muts": [
+    "Time: dusk [PARTY_MEMBER:propertyIsEnumerable|true",
+    "Party: +propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:propertyIsEnumerable|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_MEMBER:propertyIsEnumerqble|true",
+    "Party: +propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:propertyIsEnumerqble|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:propertyIsEnumerable|true]",
+   "muts": [
+    "Party: +propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:propertyIsEnumerable |true]",
+   "muts": [
+    "Party: +propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:﻿propertyIsEnumerable|true]",
+   "muts": [
+    "Party: +propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:\npropertyIsEnumerable\n|true]",
+   "muts": [
+    "Party: +propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_MEMBER:propertyIsEnumerable|true]",
+   "muts": [
+    "Time: dusk [PARTY_MEMBER:propertyIsEnumerable|true",
+    "Party: +propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:propertyIsEnumerable|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_MEMBER:propertyIsEnumerqble|true",
+    "Party: +propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:propertyIsEnumerqble|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|propertyIsEnumerable]",
+   "muts": [
+    "Kira splits off to propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|propertyIsEnumerable ]",
+   "muts": [
+    "Kira splits off to propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|﻿propertyIsEnumerable]",
+   "muts": [
+    "Kira splits off to propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|\npropertyIsEnumerable\n]",
+   "muts": [
+    "Kira splits off to propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_SPLIT:Kira|propertyIsEnumerable]",
+   "muts": [
+    "Time: dusk [PARTY_SPLIT:Kira|propertyIsEnumerable",
+    "Kira splits off to propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|propertyIsEnumerable' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_SPLIT:Kira|propertyIsEnumerqble",
+    "Kira splits off to propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|propertyIsEnumerqble' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|propertyIsEnumerable]",
+   "muts": [
+    "Kira splits off to propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|propertyIsEnumerable ]",
+   "muts": [
+    "Kira splits off to propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|﻿propertyIsEnumerable]",
+   "muts": [
+    "Kira splits off to propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|\npropertyIsEnumerable\n]",
+   "muts": [
+    "Kira splits off to propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_SPLIT:Kira|propertyIsEnumerable]",
+   "muts": [
+    "Time: dusk [PARTY_SPLIT:Kira|propertyIsEnumerable",
+    "Kira splits off to propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|propertyIsEnumerable' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_SPLIT:Kira|propertyIsEnumerqble",
+    "Kira splits off to propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|propertyIsEnumerqble' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:propertyIsEnumerable]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:propertyIsEnumerable ]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿propertyIsEnumerable]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\npropertyIsEnumerable\n]",
+   "muts": [
+    "Resident here: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:propertyIsEnumerable]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:propertyIsEnumerable",
+    "Resident here: propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:propertyIsEnumerable' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:propertyIsEnumerqble",
+    "Resident here: propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:propertyIsEnumerqble' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:propertyIsEnumerable|calm|neighbour]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:propertyIsEnumerable |calm|neighbour]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿propertyIsEnumerable|calm|neighbour]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\npropertyIsEnumerable\n|calm|neighbour]",
+   "muts": [
+    "NPC: propertyIsEnumerable"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: propertyIsEnumerqble"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "propertyIsEnumerable",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:propertyIsEnumerable|calm|neighbour]",
+   "muts": [
+    "Time: dusk [NPC:propertyIsEnumerable|calm|neighbour",
+    "NPC: propertyIsEnumerable",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:propertyIsEnumerable|calm|neighbour' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'propertyIsEnumerable' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:propertyIsEnumerqble|calm|neighbour",
+    "NPC: propertyIsEnumerqble",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:propertyIsEnumerqble|calm|neighbour' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  }
+ ]
+}

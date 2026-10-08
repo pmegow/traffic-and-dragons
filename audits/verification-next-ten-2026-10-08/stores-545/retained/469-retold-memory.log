@@ -1,0 +1,49 @@
+
+  sabotage — helpers.js
+   ✓ caught      #469 — the party's own telling counts as a bystander's
+   ✓ caught      #469 — one shared word of any length is enough: a name-only overlap fires
+   ✓ caught      #469 — names count as content: a name-only overlap fires
+   ✓ caught      #469 ④ — a raise no longer carries: the record vanishes mid-conversation
+   ✓ caught      #469 ④ — a member's name alone raises the past
+   ✓ caught      #469 ⑤ — the six-letter floor returns: the t191 Silas line slips through again
+   ✓ caught      #469 ⑤ — no strong word required: everyday domestic words add up to a retelling
+   ✓ caught      #469 ④/⑥ — the gate never holds: the village serves the earlier adventures on a walk to the well
+   ✓ caught      #469 ④/⑥ — the Hall no longer serves the past
+   ✓ file restored byte-identical
+   9/9 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      #469 ⑥ — the excerpt retriever serves a retelling of the held past again
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      #469 — the note keeps its ping: it would fire every turn
+   ✓ caught      #469 — the builder falls out of NOTE_BUILDERS: the note is never delivered
+   ✓ caught      #469 — the moments block loses the once-not-every-meeting rule
+   ✓ caught      #469 ④ — this campaign's own moments are withheld with the earlier adventures
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      #469 ⑤ — the settled how rides the village prompt again
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      #469 — the summarizer may quote a bystander again
+   ✓ caught      #469 ⑤ — the era compiler may quote a bystander again
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      #469 — a refusal arms the ping
+   ✓ caught      #469 — the hero is no longer exempt
+   ✓ file restored byte-identical
+   2/2 clauses proven
+

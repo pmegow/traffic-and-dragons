@@ -1,0 +1,77 @@
+tree: traffic-and-dragons-next-ten-ending
+===== 1. pairs: one half refused, the other lands
+--- coin + item (the GM sells the hero a thing named by the word)
+    You pay the mason. [GOLD:-25] [ITEM_GAINED:Constructor]
+    summary: ["-25 gp","+Constructor"]
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope","Constructor"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims []
+--- stow pair: the place operand is the word
+    You set it down. [ITEM_LOST:Rope] [LOCATION_ITEM:Rope|placed|constructor]
+    summary: ["-Rope","⚠ Stash refused — Rope (constructor): no such place on the map","⚠ 'Rope' stays in the pack — the placement was refused"]
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims []
+--- give pair: the receiver is the word
+    You hand it over. [ITEM_LOST:Rope] [COMPANION_ITEM_GAINED:constructor|Rope]
+    summary: ["-Rope","⚠ 'Rope' stays in the pack — no party member 'constructor' to give it to"]
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims []
+--- give pair, control receiver
+    You hand it over. [ITEM_LOST:Rope] [COMPANION_ITEM_GAINED:construqtor|Rope]
+    summary: ["-Rope","⚠ 'Rope' stays in the pack — no party member 'construqtor' to give it to"]
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims []
+===== 2. a canon marker with the word and NO partner marker (a cut-off reply, a forgotten END)
+--- BEGIN with the word as subject, END missing
+    He falls. [CANON_TXN_BEGIN:c1|npc-death|constructor|h1|-][NPC:Bram|dead|enemy][XP:50][GOLD:20]
+    summary: []
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["c1:quarantined"]
+--- same, control subject
+    He falls. [CANON_TXN_BEGIN:c1|npc-death|construqtor|h1|-][NPC:Bram|dead|enemy][XP:50][GOLD:20]
+    summary: []
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["c1:quarantined"]
+--- END with the word as id, BEGIN missing
+    He falls. [NPC:Bram|dead|enemy][XP:50][GOLD:20][CANON_TXN_END:constructor]
+    summary: []
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["constructor:quarantined"]
+--- same, control id
+    He falls. [NPC:Bram|dead|enemy][XP:50][GOLD:20][CANON_TXN_END:construqtor]
+    summary: []
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["construqtor:quarantined"]
+--- BEGIN with the word, END missing, scene refs active [refs]
+    He falls. [CANON_TXN_BEGIN:c1|npc-death|constructor|h1|-][NPC:Bram|dead|enemy][XP:50][GOLD:20]
+    summary: []
+    after  : gold undefined | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["c1:quarantined"]
+--- same, control, scene refs active [refs]
+    He falls. [CANON_TXN_BEGIN:c1|npc-death|construqtor|h1|-][NPC:Bram|dead|enemy][XP:50][GOLD:20]
+    summary: []
+    after  : gold undefined | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["c1:quarantined"]
+--- quest claim: BEGIN carries the word as its id, END missing
+    The bell rings. [CANON_TXN_BEGIN:constructor|quest-outcome|-|-|Find the bell][QUEST:Find the bell|completed][GOLD:20]
+    summary: []
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["constructor:quarantined"]
+--- same, control id
+    The bell rings. [CANON_TXN_BEGIN:construqtor|quest-outcome|-|-|Find the bell][QUEST:Find the bell|completed][GOLD:20]
+    summary: []
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["construqtor:quarantined"]
+===== 3. two claims, the first unterminated, the second carrying the word
+--- claim a (no END) then claim b with the word
+    x [CANON_TXN_BEGIN:a|quest-outcome|-|-|Find the bell][QUEST:Find the bell|completed][GOLD:20] y [CANON_TXN_BEGIN:b|npc-death|constructor|h1|-][NPC:Bram|dead|enemy][XP:50][CANON_TXN_END:b]
+    summary: ["⚠ Canon claim a quarantined"]
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["a:quarantined"]
+--- same, control
+    x [CANON_TXN_BEGIN:a|quest-outcome|-|-|Find the bell][QUEST:Find the bell|completed][GOLD:20] y [CANON_TXN_BEGIN:b|npc-death|construqtor|h1|-][NPC:Bram|dead|enemy][XP:50][CANON_TXN_END:b]
+    summary: ["⚠ Canon claim a quarantined"]
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["a:quarantined"]
+===== 4. a death claim whose death tag carries the word in a NON-name operand
+--- the relation operand of the death tag is the word
+    He falls. [CANON_TXN_BEGIN:c1|npc-death|Bram|-|-][NPC:Bram|dead|constructor][XP:50][CANON_TXN_END:c1]
+    summary: ["⚠ Canon claim c1 quarantined"]
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["c1:quarantined"]
+--- same, control
+    He falls. [CANON_TXN_BEGIN:c1|npc-death|Bram|-|-][NPC:Bram|dead|construqtor][XP:50][CANON_TXN_END:c1]
+    summary: ["⚠ Canon claim c1 quarantined"]
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["c1:quarantined"]
+===== 5. bare markers (no brackets) restored first
+--- bare BEGIN/END lines with the word as subject
+    He falls.
+CANON_TXN_BEGIN:c1|npc-death|constructor|h1|-
+[NPC:Bram|dead|enemy][XP:50]
+CANON_TXN_END:c1
+    summary: ["⚠ Canon claim c1 quarantined"]
+    after  : gold 50 | xp 0 | pack ["Longsword","Rope"] | Kira ["Dagger","Rope"] | Bram alive | quest ["active"] | claims ["c1:quarantined"]

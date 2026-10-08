@@ -1,0 +1,17 @@
+tree: traffic-and-dragons-next-ten-ending | designer v0.60 · engine v1.1187
+--- the sample as shipped
+    after Load, the status line: "Loaded: modelTestCampaign"
+    designerValidate(): null
+    Save: blocked by null | its status would read "Saved <file> — publish-ready"
+    Save to My Library / Publish refused: false | draft autosaved after an edit: {"saved":true,"role":"enemy","start":"The Crossroads of Ashenveil","dirty":true}
+--- an NPC whose role is the one word 'Constructor'
+    after Load, the status line: "Loaded: modelTestCampaign"
+    designerValidate(): null
+    Save: blocked by null | its status would read "Saved <file> — publish-ready"
+    Save to My Library / Publish refused: false | draft autosaved after an edit: {"saved":true,"role":"Constructor","start":"The Crossroads of Ashenveil","dirty":true}
+--- starting place named 'constructor'
+    after Load, the status line: "Loaded: modelTestCampaign"
+    designerValidate(): null
+    Save: blocked by null | its status would read "Saved <file> — publish-ready"
+    Save to My Library / Publish refused: false | draft autosaved after an edit: {"saved":true,"role":"enemy","start":"constructor","dirty":true}
+page errors: []

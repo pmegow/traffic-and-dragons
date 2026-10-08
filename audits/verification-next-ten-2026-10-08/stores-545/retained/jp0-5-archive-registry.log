@@ -1,0 +1,25 @@
+
+  sabotage — state.js
+   ✓ caught      the unknown-category carry is neutered — a future (or dev-tool-written) archive category is destroyed by every .tnd round-trip again
+   ✓ caught      the registry drops npcDeathCorrections — the death-retraction pre-images lose their blank-shape default (the carry still saves the DATA, which is the design)
+   ✓ caught      known categories stop being array-guarded — a junk import value becomes archive canon
+   ✓ caught      archiveHeal overwrites instead of filling — a heal wipes the archive it was meant to complete
+   ✓ caught      archiveRebuild stops being TOTAL — a save whose archive is missing or junk imports with no archive shape at all
+   ✓ caught      blankMemory re-grows its own archive literal — the birth shape drifts off the registry (the state it was actually in before JP0-5)
+   ✓ caught      healMemory stops routing through the registry — imported and legacy saves lose the categories it used to fill
+   ✓ file restored byte-identical
+   7/7 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      memArchive re-grows its own category list — the lazy-init site drifts off the registry (it was four categories behind before JP0-5)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      the .tnd import goes back to a hand-rolled rebuild — the exact shape that dropped a category four separate times
+   ✓ caught      the import keeps archiveRebuild but starts hand-patching a category beside it — the whitelist creeping back in one key at a time
+   ✓ file restored byte-identical
+   2/2 clauses proven
+

@@ -85,8 +85,8 @@ prove("state.js",[{"label":"malformed import replaces outgoing world before vali
   },
   {
     "label": "server inflater forgets detached provenance",
-    "find": "function inflateWorldStateSnapshot(o){\n  if(typeof stashJournalEnsure===\"function\")stashJournalEnsure(o,false);",
-    "replace": "function inflateWorldStateSnapshot(o){",
+    "find": "function inflateWorldStateSnapshot(o){\n  keyedStores(o,\"world\");\n  if(typeof stashJournalEnsure===\"function\")stashJournalEnsure(o,false);",
+    "replace": "function inflateWorldStateSnapshot(o){\n  keyedStores(o,\"world\");",
     "mustFail": "#581 detached server"
   },
   {

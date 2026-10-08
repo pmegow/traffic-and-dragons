@@ -15,7 +15,7 @@ proveV("state.js", [
 ]);
 proveV("game.js", [
   { label: "the Hall line goes back onto the sheet",
-    find: 'if(!worldState.hallLines)worldState.hallLines={};worldState.hallLines[name]=t;', replace: 'if(!worldState.hallLines)worldState.hallLines={};worldState.hallLines[name]=t;n.charSheet.hallLine=t;',
+    find: 'if(!worldState.hallLines)worldState.hallLines=keyedDict();worldState.hallLines[name]=t;', replace: 'if(!worldState.hallLines)worldState.hallLines=keyedDict();worldState.hallLines[name]=t;n.charSheet.hallLine=t;',
     mustFail: "#6G5 one player-authored line" },
   { label: "the Hall-line reader ignores village state",
     find: 'var v=(ws.hallLines&&ws.hallLines[name])||"";if(v)return String(v);', replace: '',

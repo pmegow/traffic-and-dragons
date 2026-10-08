@@ -1,0 +1,18 @@
+
+  sabotage — game.js
+   ✓ caught      direction and rate omitted
+   ✓ caught      model fields retained
+   ✓ caught      prior clear resurrects row
+   ✓ caught      offline inheritance skipped
+   ✓ caught      automatic attach retains stale row
+   ✓ file restored byte-identical
+   5/5 clauses proven
+
+
+  sabotage — ui-sheets.js
+   ✓ caught      manual handoff skipped
+   ✓ caught      manual attach retains stale row
+   ✓ caught      manual handoff requires TTS
+   ✓ file restored byte-identical
+   3/3 clauses proven
+

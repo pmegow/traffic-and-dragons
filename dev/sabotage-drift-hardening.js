@@ -144,11 +144,11 @@ rc|=sabotage.prove({file:"tag_table.js",command:["node",["dev/run-tests.js"]],ca
 rc|=sabotage.prove({file:"capability_bible.js",command:["node",["dev/run-tests.js"]],cases:[
   {label:"#253: capIsBaseCatalog never matches — the handler's guard is decorative and the shadow returns",
     mustFail:"curated canon is overwritable again",
-   find:"  return !!(key&&typeof CAPABILITY_BIBLE!==\"undefined\"&&CAPABILITY_BIBLE[key]);",
+   find:"  return !!(key&&typeof CAPABILITY_BIBLE!==\"undefined\"&&Object.prototype.hasOwnProperty.call(CAPABILITY_BIBLE,key));",
    replace:"  return false;"},
   {label:"#253: capIsBaseCatalog matches everything — genuinely emergent spells can no longer be defined at all",
     mustFail:"an off-catalog emergent spell was refused",
-   find:"  return !!(key&&typeof CAPABILITY_BIBLE!==\"undefined\"&&CAPABILITY_BIBLE[key]);",
+   find:"  return !!(key&&typeof CAPABILITY_BIBLE!==\"undefined\"&&Object.prototype.hasOwnProperty.call(CAPABILITY_BIBLE,key));",
    replace:"  return !!key;"}
 ]});
 

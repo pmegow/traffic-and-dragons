@@ -1,0 +1,15 @@
+
+  sabotage — helpers.js
+   ✓ caught      #285: the classification-only widening dies — organize-only base entries are un-Definable again (the f18 hole reopens)
+   ✓ caught      #285/#294B: the effect-bearing overlay refusal dies — a paid review call can be burned on a def that write-once (per real canon) will never let land
+   ✓ caught      #285: the alias guard dies — a def could land under the alias's own key and split resolution from the curated canon key
+   ✓ caught      #285: the shadow note goes silent — replacing a curated entry becomes invisible to the player (no-silent-failures)
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      #285: buildItemDefinePrompt regresses to the old any-hit gate — the builder and the button disagree
+   ✓ file restored byte-identical
+   1/1 clauses proven
+

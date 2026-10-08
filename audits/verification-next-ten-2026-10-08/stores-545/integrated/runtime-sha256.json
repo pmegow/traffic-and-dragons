@@ -1,0 +1,16 @@
+{
+  "baseline": "90c53126",
+  "files": {
+    "api.js": "e4b47c91267c6bdbdab3502f3891d5d2d1945e51023f4aa99124ee840ef8b9d1",
+    "capability_bible.js": "766a5e2606b40be3ad697c249e2f39c24426b07c6713541369f4666a35f5e047",
+    "character_editor.html": "b8e4b904c43112a175a9e66f1fc4a3501f30caf9a75f9ef63e4ea58970479e15",
+    "game.js": "63dcd5b2bdc63d7c42369ce00a0929f9bcef91c55bdbb6e11d4d0a76af9535c3",
+    "helpers.js": "ff722c77dfabbd80c2334666db3ac8f73450bbd0c6d5c10be310a1a2d87c23a6",
+    "identity.js": "58cbae012c7ea5af2dac14d1bc1d16873bcc8f6200d93be0f26faf8a0c093a49",
+    "memory.js": "6c7cfc12fab86fa31a5b7362d60c4af8ad0492a292e710eb61383bb6b0214940",
+    "state.js": "bd3ce88275a3b8631b076f915d08d50b75a2afd4ead3b05efa06a30d7ebef2fc",
+    "storage-adapter.js": "de41d5ec09f445424dc63b7c9af2585a6a7df8cc19c91b52c4bf2dc47905fc18",
+    "tag_table.js": "e50df81dcf1201e43a7be6effff125c28d3fd2b0710cb1e6f7278512c867e886",
+    "ui-sheets.js": "a53b615ab8cf1c3e986e549b4d2cdf1f9d4f131c11523d6daa85f48afc9595f0"
+  }
+}

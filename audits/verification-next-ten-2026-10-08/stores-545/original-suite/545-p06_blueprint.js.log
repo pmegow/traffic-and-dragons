@@ -1,0 +1,34 @@
+tree: traffic-and-dragons-next-ten-ending
+--- 1. real blueprint files (15)
+   modeltestcampaign.blueprint: as-is=ok | normalised=ok
+   planescape_torment.blueprint: as-is=ok | normalised=ok
+   rise_of_the_runelords.blueprint: as-is=ok | normalised=ok
+   the_almanac_of_owed_names.blueprint: as-is=ok | normalised=ok
+   the_iron_meridian.blueprint: as-is=ok | normalised=ok
+   the_last_lantern-seed.blueprint: as-is=ok | normalised=ok
+   the_princess_is_not_in_danger.blueprint: as-is=ok | normalised=ok
+   the_riverlight_masquerade_one-evening_taster.blueprint: as-is=ok | normalised=ok
+   the_road_to_cinderwing.blueprint: as-is=ok | normalised=ok
+   the_silence_between_leaves.blueprint: as-is=ok | normalised=ok
+   the_weight_of_the_coffered_god.blueprint: as-is=ok | normalised=ok
+   tomb_of_annihilation.blueprint: as-is=ok | normalised=ok
+   village.blueprint: as-is=ok | normalised=ok
+   332-iron-meridian-authored.blueprint: as-is=Blueprint has no premise or acts. | normalised=Blueprint has no premise or acts.
+   the_silence_between_leaves.original-2026-09-25.blueprint: as-is=ok | normalised=ok
+   saved skeletons in owner saves: 57; carrying a reserved word: 0
+--- 2. arc title 'Arc 1: Constructor' (skeletonTitleKey strips the numbering and lower-cases)
+   'Arc 1: Constructor' -> validation: accepted | key="constructor" | [ARC_COMPLETE:Arc 1: Constructor] summary: ["Arc complete: Arc 1: Constructor","New arc: The Gilded Cage"] | console lines: 0 | arc 1 now: completed | arc 2 now: active
+   'Arc 1: Construqtor' -> validation: accepted | key="construqtor" | [ARC_COMPLETE:Arc 1: Construqtor] summary: ["Arc complete: Arc 1: Construqtor","New arc: The Gilded Cage"] | console lines: 0 | arc 1 now: completed | arc 2 now: active
+   validateSkeletonStructure with that title: accepted
+--- 3. the same file through a path that normalises but does not validate (My Library)
+   startingLocation=constructor -> apply: ok | location now "constructor" | next prompt: builds
+   npcs[0].name=constructor -> apply: ok | ({}).knowledge=undefined | next prompt: builds
+   startingLocation=__proto__ -> apply: ok | location now "__proto__" | next prompt: builds
+   npcs[0].name=__proto__ -> apply: ok | ({}).knowledge=undefined | next prompt: builds
+--- 4. validateBlueprint verdicts
+   npc name as a one-element list -> accepted
+   location name 'The Constructor' -> accepted
+   npc role exactly 'Constructor' (not a name) -> accepted
+   a rule that is the one word -> accepted
+   npc notes that list the word between commas -> accepted
+   creature kind 'constructor' -> accepted

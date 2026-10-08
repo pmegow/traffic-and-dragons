@@ -132,3 +132,11 @@ Two-tier location graph stored in `memory.map`: `{nodes:{}, edges:[], lastArriva
 - **Proof:** `dev/sabotage-481-c9-own-words.js` (7 clauses).
 
 **Ending ownership (#525):** portable ending moments retain the hero recorded in `who`, regardless of the current hero or sheet holder. `healEndingMoments` repairs only ending text at world migration and before the system, engine-note and denouement prompt boundaries, including sheets adopted during a session and archived moments. The exact ownership prefix is idempotent and excluded from held-past and motif word matching. The external library copy is never edited by this repair. Legacy fate lines without a recorded subject are left unchanged; newly stamped fates use the shared name boundary and conservative known-namesake check.
+
+## Name-keyed stores (#545)
+
+Names are data, including `constructor`, `toString` and `__proto__`. `keyedDict` in helpers.js creates dictionaries with no prototype; `ownValue` reads only an own entry in a static registry; `ownAssign` copies own fields without invoking the legacy prototype setter. The earlier capability bible uses the same native own-property predicate because it also runs without helpers in standalone tools.
+
+`KEYED_STORE_PATHS` declares the dynamic memory, world and sheet dictionaries. `keyedStores` follows only own schema segments, converts dictionary containers, preserves unknown own fields, and leaves arrays and fixed records intact. It runs at blank-memory creation, parsed world/memory admission, checkpoint restore, detached transaction cloning, and sheet admission. Writers that create a missing dictionary use the same factory. Temporary name indexes and word sets use that shape too. JSON retains the same keys and values; inflation restores the prototype-free representation. Repeated normalization preserves already-normalized dictionary references and never traverses transcript/history arrays.
+
+The tag parser and blueprint/extraction readers do not filter reserved words. Ordinary prose, actor names, item names and arc titles remain admissible; existing identity, evidence and shape rules still apply. Evidence: [#545 audit](../../audits/AUDIT_2026_10_08_545_name_stores.md).

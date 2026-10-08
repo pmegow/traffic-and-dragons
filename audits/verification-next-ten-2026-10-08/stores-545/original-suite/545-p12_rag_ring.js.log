@@ -1,0 +1,22 @@
+tree: traffic-and-dragons-next-ten-ending
+--- (a) retrieval for an unrelated action, thirteen turns later, two towns on (nothing else on record at this place)
+   a QUEST title = constructor
+      turn-3 entity index: {"n":[],"l":"Ashfen","q":["constructor"]} | quest log: ["Find the bell:active","constructor:offered"]
+      candidates (turn:score): none
+      -> nothing served
+   a QUEST title = construqtor (control)
+      turn-3 entity index: {"n":[],"l":"Ashfen","q":["construqtor"]} | quest log: ["Find the bell:active","construqtor:offered"]
+      candidates (turn:score): none
+      -> nothing served
+   an NPC name = constructor
+      turn-3 entity index: {"n":["constructor"],"l":"Ashfen","q":[]} | quest log: ["Find the bell:active"]
+      candidates (turn:score): none
+      -> nothing served
+   an NPC name = construqtor (control)
+      turn-3 entity index: {"n":["construqtor"],"l":"Ashfen","q":[]} | quest log: ["Find the bell:active"]
+      candidates (turn:score): none
+      -> nothing served
+--- (b) the provenance ring for a busy reply that carries one refused tag
+   reply tags (raw): TIME_ADVANCE, GOLD, ITEM_GAINED, LORE, NPC, LOCATION_STATE, WEATHER, FACTION
+   ring entry: {"t":10,"tags":["TIME_ADVANCE","GOLD","ITEM_GAINED","LORE","NPC","LOCATION_STATE","WEATHER","FACTION"],"m":["+1 gp","+2 gp","+3 gp","+4 gp","+5 gp","+Chalk","+Twine","+Nails","Weather: rain easing","Time +10m (Day 1, 00h 10m elapsed)","+3 more"]}
+   FACTION in ring.tags: true | a 'refused' label in ring.m: false | ring.refused: null | ring.stripped: null

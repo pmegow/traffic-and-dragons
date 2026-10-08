@@ -77,7 +77,7 @@ rc|=sabotage.prove({
   cases:[
     {label:"transaction handlers mutate the authoritative state instead of a clone",
     mustFail:"W2 state application is atomic when a transaction handler throws after",
-      find:"    worldState=_w2CopyWorldStateDetached(_w2Ws);memory=_w2Copy(_w2Mem);",
+      find:"    worldState=_w2CopyWorldStateDetached(_w2Ws);memory=_w2Copy(_w2Mem,\"memory\");",
       replace:"    worldState=_w2Ws;memory=_w2Mem;"},
     {label:"rolled-back quest success toasts escape the staged side-effect buffer",
     mustFail:"W2 state application is atomic when a transaction handler throws after",
@@ -275,8 +275,8 @@ rc|=sabotage.prove({
     {
         "label": "the contradiction note stops consuming its latch (permanent noise)",
         "mustFail": "P5①: a dead NPC whose stored knowledge asserts PRESENT survival arms t",
-        "find": "  delete worldState.canonContradiction;\n  if(!worldState.canonContraNudged)worldState.canonContraNudged={};",
-        "replace": "  if(!worldState.canonContraNudged)worldState.canonContraNudged={};"
+        "find": "  delete worldState.canonContradiction;\n  if(!worldState.canonContraNudged)worldState.canonContraNudged=keyedDict();",
+        "replace": "  if(!worldState.canonContraNudged)worldState.canonContraNudged=keyedDict();"
     }
 ]
 });

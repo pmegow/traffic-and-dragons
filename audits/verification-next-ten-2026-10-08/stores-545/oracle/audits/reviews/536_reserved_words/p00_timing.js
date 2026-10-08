@@ -1,0 +1,12 @@
+var L = require("./lib.js");
+var t0 = Date.now(), i;
+for (i = 0; i < 200; i++) L.runCase("It happens. [NPC:Bram|calm|ally] [ITEM_GAINED:Rope]", i % 2 ? "plain" : "refs");
+console.log("200 runs: " + (Date.now() - t0) + " ms");
+var r = L.runCase("It happens. [NPC:Bram|calm|ally] [ITEM_GAINED:Rope]", "plain");
+console.log(JSON.stringify({ muts: r.muts, poison: r.poison, poison2: r.poison2, scan: r.scan, promptLen: r.prompt.length, stateLen: r.state.length, promptThrow: r.promptThrow }));
+var v = L.runCase("It happens. [NPC:Bram|calm|ally]", "village");
+console.log("village: " + JSON.stringify({ muts: v.muts, scan: v.scan, promptThrow: v.promptThrow, kind: worldState.kind }));
+var c = L.runCase("It happens. [ENEMY_HP:Goblin|-3]", "combat");
+console.log("combat: " + JSON.stringify({ muts: c.muts, scan: c.scan, promptThrow: c.promptThrow, hp: worldState.combat && worldState.combat.foes[0].hp }));
+var f = L.runCase("It happens. [SCENE_REF:h1|Bram]", "refs");
+console.log("refs: " + JSON.stringify({ muts: f.muts, scan: f.scan, promptThrow: f.promptThrow, refs: !!worldState.sceneRefs }));

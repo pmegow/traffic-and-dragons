@@ -19,11 +19,11 @@ prove("api.js", [
     find: "var _leaf=locDisplayLeaf(nKeys[i]);if(!_named[String(_leaf).toLowerCase()])subLocs.push(_leaf);}}", replace: "var _leaf=locDisplayLeaf(nKeys[i]);subLocs.push(_leaf);}}",
     mustFail: "#483 in the Village" },
   { label: "the residue is dropped too (the Hall vanishes from the list)",
-    find: "var _named={};if(_stashKind){(typeof _cm2!==\"undefined\"?_cm2:[]).concat(typeof _hk2!==\"undefined\"?_hk2:[]).forEach(function(x){_named[String(x).toLowerCase()]=1;});}",
-    replace: "var _named={};if(_stashKind){Object.keys(memory.map.nodes).forEach(function(k){_named[String(locDisplayLeaf(k)).toLowerCase()]=1;});}",
+    find: "var _named=keyedDict();if(_stashKind){(typeof _cm2!==\"undefined\"?_cm2:[]).concat(typeof _hk2!==\"undefined\"?_hk2:[]).forEach(function(x){_named[String(x).toLowerCase()]=1;});}",
+    replace: "var _named=keyedDict();if(_stashKind){Object.keys(memory.map.nodes).forEach(function(k){_named[String(locDisplayLeaf(k)).toLowerCase()]=1;});}",
     mustFail: "#483 in the Village" },
   { label: "an adventure's list is filtered too (the Rusty Dragon vanishes)",
-    find: "var _named={};if(_stashKind){", replace: "var _named={};if(true){_named[\"rusty dragon\"]=1;",
+    find: "var _named=keyedDict();if(_stashKind){", replace: "var _named=keyedDict();if(true){_named[\"rusty dragon\"]=1;",
     mustFail: "#483 in the Village" }
 ]);
 process.exit(code);

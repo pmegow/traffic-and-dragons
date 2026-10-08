@@ -1,0 +1,7 @@
+PASS actual catalog blueprint selection → start → tag → prompt
+PASS actual library blueprint selection → start → tag → prompt
+PASS actual file blueprint selection → start → tag → prompt
+PASS actual home handoff and quick start
+PASS actual Designer load/render/validate
+PASS actual character editor reserved name and own definition
+PASS all reserved-name browser doors; isolated storage, no live provider/save calls

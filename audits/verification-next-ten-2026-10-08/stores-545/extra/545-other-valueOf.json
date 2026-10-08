@@ -1,0 +1,4130 @@
+{
+ "tree": "traffic-and-dragons-next-ten-ending",
+ "runs": 22188,
+ "counts": {
+  "valueOf SAME": 22025,
+  "valueOf STATE_KEY": 163
+ },
+ "results": [
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:valueOf]",
+   "muts": [
+    "-> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.locations",
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:valueOf ]",
+   "muts": [
+    "-> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.locations",
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:﻿valueOf]",
+   "muts": [
+    "-> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.locations",
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:\nvalueOf\n]",
+   "muts": [
+    "-> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.locations",
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION:valueOf]",
+   "muts": [
+    "-> valueOf",
+    "Time: dusk [LOCATION:valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:valueOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.locations",
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> valqeOf",
+    "Time: dusk [LOCATION:valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:valqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:valueOf]",
+   "muts": [
+    "-> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.locations",
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:valueOf ]",
+   "muts": [
+    "-> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.locations",
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:﻿valueOf]",
+   "muts": [
+    "-> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.locations",
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION:\nvalueOf\n]",
+   "muts": [
+    "-> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.locations",
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION:§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION:valueOf]",
+   "muts": [
+    "-> valueOf",
+    "Time: dusk [LOCATION:valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:valueOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.locations",
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "-> valqeOf",
+    "Time: dusk [LOCATION:valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION:valqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:valueOf|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:valueOf |Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:﻿valueOf|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:\nvalueOf\n|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_ALIAS:valueOf|Other]",
+   "muts": [
+    "Time: dusk [NPC_ALIAS:valueOf|Other",
+    "Alias: Other -> valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:valueOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_ALIAS:valqeOf|Other",
+    "Alias: Other -> valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:valqeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:valueOf|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:valueOf |Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:﻿valueOf|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_ALIAS:\nvalueOf\n|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_ALIAS:§|Other]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_ALIAS:valueOf|Other]",
+   "muts": [
+    "Time: dusk [NPC_ALIAS:valueOf|Other",
+    "Alias: Other -> valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:valueOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_ALIAS:valqeOf|Other",
+    "Alias: Other -> valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_ALIAS:valqeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:valueOf|Bram]",
+   "muts": [
+    "Merged: Bram -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:valueOf |Bram]",
+   "muts": [
+    "Merged: Bram -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:﻿valueOf|Bram]",
+   "muts": [
+    "Merged: Bram -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_MERGE:\nvalueOf\n|Bram]",
+   "muts": [
+    "Merged: Bram -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_MERGE:§|Bram]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_MERGE:valueOf|Bram]",
+   "muts": [
+    "Time: dusk [NPC_MERGE:valueOf|Bram",
+    "Merged: Bram -> valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_MERGE:valueOf|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_MERGE:valqeOf|Bram",
+    "Merged: Bram -> valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_MERGE:valqeOf|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|valueOf|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|valueOf |Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|﻿valueOf|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|\nvalueOf\n|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [ALIAS:npc|valueOf|Other]",
+   "muts": [
+    "Time: dusk [ALIAS:npc|valueOf|Other",
+    "Alias: Other -> valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|valueOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [ALIAS:npc|valqeOf|Other",
+    "Alias: Other -> valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|valqeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|valueOf|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|valueOf |Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|﻿valueOf|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [ALIAS:npc|\nvalueOf\n|Other]",
+   "muts": [
+    "Alias: Other -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Alias: Other -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[ALIAS:npc|§|Other]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [ALIAS:npc|valueOf|Other]",
+   "muts": [
+    "Time: dusk [ALIAS:npc|valueOf|Other",
+    "Alias: Other -> valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|valueOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [ALIAS:npc|valqeOf|Other",
+    "Alias: Other -> valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [ALIAS:npc|valqeOf|Other' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|valueOf|Bram]",
+   "muts": [
+    "Merged: Bram -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|valueOf |Bram]",
+   "muts": [
+    "Merged: Bram -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|﻿valueOf|Bram]",
+   "muts": [
+    "Merged: Bram -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [MERGE:npc|\nvalueOf\n|Bram]",
+   "muts": [
+    "Merged: Bram -> valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Merged: Bram -> valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[MERGE:npc|§|Bram]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [MERGE:npc|valueOf|Bram]",
+   "muts": [
+    "Time: dusk [MERGE:npc|valueOf|Bram",
+    "Merged: Bram -> valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [MERGE:npc|valueOf|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [MERGE:npc|valqeOf|Bram",
+    "Merged: Bram -> valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [MERGE:npc|valqeOf|Bram' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:valueOf|calm|ally]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:valueOf |calm|ally]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿valueOf|calm|ally]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nvalueOf\n|calm|ally]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:valueOf|calm|ally]",
+   "muts": [
+    "Time: dusk [NPC:valueOf|calm|ally",
+    "NPC: valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:valueOf|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:valqeOf|calm|ally",
+    "NPC: valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:valqeOf|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:valueOf|calm|ally]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:valueOf |calm|ally]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿valueOf|calm|ally]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nvalueOf\n|calm|ally]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|ally]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:valueOf|calm|ally]",
+   "muts": [
+    "Time: dusk [NPC:valueOf|calm|ally",
+    "NPC: valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:valueOf|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:valqeOf|calm|ally",
+    "NPC: valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:valqeOf|calm|ally' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:valueOf|dead|enemy]",
+   "muts": [
+    "valueOf: dead (t9)",
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: dead (t9)",
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:valueOf |dead|enemy]",
+   "muts": [
+    "valueOf: dead (t9)",
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: dead (t9)",
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿valueOf|dead|enemy]",
+   "muts": [
+    "valueOf: dead (t9)",
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: dead (t9)",
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nvalueOf\n|dead|enemy]",
+   "muts": [
+    "valueOf: dead (t9)",
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: dead (t9)",
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|dead|enemy]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:valueOf|dead|enemy]",
+   "muts": [
+    "Time: dusk [NPC:valueOf|dead|enemy",
+    "valueOf: dead (t9)",
+    "NPC: valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:valueOf|dead|enemy' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:valqeOf|dead|enemy",
+    "valqeOf: dead (t9)",
+    "NPC: valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:valqeOf|dead|enemy' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:valueOf]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:valueOf ]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿valueOf]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\nvalueOf\n]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:valueOf]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:valueOf",
+    "Resident here: valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:valueOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:valqeOf",
+    "Resident here: valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:valqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:valueOf]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:valueOf ]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿valueOf]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\nvalueOf\n]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:valueOf]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:valueOf",
+    "Resident here: valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:valueOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.Ashfen.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:valqeOf",
+    "Resident here: valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:valqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:valueOf|a rider]",
+   "muts": [
+    "Registered from death report: valueOf",
+    "valueOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: valqeOf",
+    "valqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:valueOf |a rider]",
+   "muts": [
+    "Registered from death report: valueOf",
+    "valueOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: valqeOf",
+    "valqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:﻿valueOf|a rider]",
+   "muts": [
+    "Registered from death report: valueOf",
+    "valueOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: valqeOf",
+    "valqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:\nvalueOf\n|a rider]",
+   "muts": [
+    "Registered from death report: valueOf",
+    "valueOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: valqeOf",
+    "valqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_DEATH_REPORTED:valueOf|a rider]",
+   "muts": [
+    "Time: dusk [NPC_DEATH_REPORTED:valueOf|a rider",
+    "Registered from death report: valueOf",
+    "valueOf: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:valueOf|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_DEATH_REPORTED:valqeOf|a rider",
+    "Registered from death report: valqeOf",
+    "valqeOf: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:valqeOf|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:valueOf|a rider]",
+   "muts": [
+    "Registered from death report: valueOf",
+    "valueOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: valqeOf",
+    "valqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:valueOf |a rider]",
+   "muts": [
+    "Registered from death report: valueOf",
+    "valueOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: valqeOf",
+    "valqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:﻿valueOf|a rider]",
+   "muts": [
+    "Registered from death report: valueOf",
+    "valueOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: valqeOf",
+    "valqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_DEATH_REPORTED:\nvalueOf\n|a rider]",
+   "muts": [
+    "Registered from death report: valueOf",
+    "valueOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Registered from death report: valqeOf",
+    "valqeOf: dead AS REPORTED (t9 — a rider)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_DEATH_REPORTED:§|a rider]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_DEATH_REPORTED:valueOf|a rider]",
+   "muts": [
+    "Time: dusk [NPC_DEATH_REPORTED:valueOf|a rider",
+    "Registered from death report: valueOf",
+    "valueOf: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:valueOf|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_DEATH_REPORTED:valqeOf|a rider",
+    "Registered from death report: valqeOf",
+    "valqeOf: dead AS REPORTED (t9 — a rider)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_DEATH_REPORTED:valqeOf|a rider' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:valueOf|completed]",
+   "muts": [
+    "Quest: valueOf (completed)",
+    "+50 XP (quest milestone: valueOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: valqeOf (completed)",
+    "+50 XP (quest milestone: valqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:valueOf |completed]",
+   "muts": [
+    "Quest: valueOf (completed)",
+    "+50 XP (quest milestone: valueOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: valqeOf (completed)",
+    "+50 XP (quest milestone: valqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:﻿valueOf|completed]",
+   "muts": [
+    "Quest: valueOf (completed)",
+    "+50 XP (quest milestone: valueOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: valqeOf (completed)",
+    "+50 XP (quest milestone: valqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:\nvalueOf\n|completed]",
+   "muts": [
+    "Quest: valueOf (completed)",
+    "+50 XP (quest milestone: valueOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: valqeOf (completed)",
+    "+50 XP (quest milestone: valqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [QUEST:valueOf|completed]",
+   "muts": [
+    "Time: dusk [QUEST:valueOf|completed",
+    "Quest: valueOf (completed)",
+    "+50 XP (quest milestone: valueOf)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:valueOf|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [QUEST:valqeOf|completed",
+    "Quest: valqeOf (completed)",
+    "+50 XP (quest milestone: valqeOf)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:valqeOf|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:valueOf|completed]",
+   "muts": [
+    "Quest: valueOf (completed)",
+    "+50 XP (quest milestone: valueOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: valqeOf (completed)",
+    "+50 XP (quest milestone: valqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:valueOf |completed]",
+   "muts": [
+    "Quest: valueOf (completed)",
+    "+50 XP (quest milestone: valueOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: valqeOf (completed)",
+    "+50 XP (quest milestone: valqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:﻿valueOf|completed]",
+   "muts": [
+    "Quest: valueOf (completed)",
+    "+50 XP (quest milestone: valueOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: valqeOf (completed)",
+    "+50 XP (quest milestone: valqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [QUEST:\nvalueOf\n|completed]",
+   "muts": [
+    "Quest: valueOf (completed)",
+    "+50 XP (quest milestone: valueOf)",
+    "party +50 XP"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Quest: valqeOf (completed)",
+    "+50 XP (quest milestone: valqeOf)",
+    "party +50 XP"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[QUEST:§|completed]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [QUEST:valueOf|completed]",
+   "muts": [
+    "Time: dusk [QUEST:valueOf|completed",
+    "Quest: valueOf (completed)",
+    "+50 XP (quest milestone: valueOf)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:valueOf|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.quests"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [QUEST:valqeOf|completed",
+    "Quest: valqeOf (completed)",
+    "+50 XP (quest milestone: valqeOf)",
+    "party +50 XP",
+    "⚠ Clock reconcile SKIPPED — 'dusk [QUEST:valqeOf|completed' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_NOTE:valueOf|a fact]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_NOTE:valueOf|a fact]",
+   "muts": [
+    "Time: dusk [NPC_NOTE:valueOf|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:valueOf|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_NOTE:valqeOf|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:valqeOf|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_NOTE:valueOf|a fact]",
+   "muts": [],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_NOTE:§|a fact]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_NOTE:valueOf|a fact]",
+   "muts": [
+    "Time: dusk [NPC_NOTE:valueOf|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:valueOf|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_NOTE:valqeOf|a fact",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_NOTE:valqeOf|a fact' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:valueOf|old|new]",
+   "muts": [
+    "valueOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:valueOf |old|new]",
+   "muts": [
+    "valueOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:﻿valueOf|old|new]",
+   "muts": [
+    "valueOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:\nvalueOf\n|old|new]",
+   "muts": [
+    "valueOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_SUPERSEDE:valueOf|old|new]",
+   "muts": [
+    "Time: dusk [NPC_SUPERSEDE:valueOf|old|new",
+    "valueOf: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:valueOf|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_SUPERSEDE:valqeOf|old|new",
+    "valqeOf: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:valqeOf|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:valueOf|old|new]",
+   "muts": [
+    "valueOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:valueOf |old|new]",
+   "muts": [
+    "valueOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:﻿valueOf|old|new]",
+   "muts": [
+    "valueOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_SUPERSEDE:\nvalueOf\n|old|new]",
+   "muts": [
+    "valueOf: superseded — new"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: superseded — new"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_SUPERSEDE:§|old|new]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_SUPERSEDE:valueOf|old|new]",
+   "muts": [
+    "Time: dusk [NPC_SUPERSEDE:valueOf|old|new",
+    "valueOf: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:valueOf|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_SUPERSEDE:valqeOf|old|new",
+    "valqeOf: superseded — new",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_SUPERSEDE:valqeOf|old|new' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_PRONOUN:valueOf|he/him]",
+   "muts": [
+    "Pronouns: valueOf (he/him)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Pronouns: valqeOf (he/him)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_PRONOUN:valueOf|he/him]",
+   "muts": [
+    "Time: dusk [NPC_PRONOUN:valueOf|he/him",
+    "Pronouns: valueOf (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:valueOf|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_PRONOUN:valqeOf|he/him",
+    "Pronouns: valqeOf (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:valqeOf|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_PRONOUN:valueOf|he/him]",
+   "muts": [
+    "Pronouns: valueOf (he/him)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Pronouns: valqeOf (he/him)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_PRONOUN:§|he/him]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_PRONOUN:valueOf|he/him]",
+   "muts": [
+    "Time: dusk [NPC_PRONOUN:valueOf|he/him",
+    "Pronouns: valueOf (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:valueOf|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_PRONOUN:valqeOf|he/him",
+    "Pronouns: valqeOf (he/him)",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_PRONOUN:valqeOf|he/him' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:valueOf|a group]",
+   "muts": [
+    "Faction: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:valueOf |a group]",
+   "muts": [
+    "Faction: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:﻿valueOf|a group]",
+   "muts": [
+    "Faction: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:\nvalueOf\n|a group]",
+   "muts": [
+    "Faction: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [FACTION:valueOf|a group]",
+   "muts": [
+    "Time: dusk [FACTION:valueOf|a group",
+    "Faction: valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:valueOf|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [FACTION:valqeOf|a group",
+    "Faction: valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:valqeOf|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:valueOf|a group]",
+   "muts": [
+    "Faction: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:valueOf |a group]",
+   "muts": [
+    "Faction: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:﻿valueOf|a group]",
+   "muts": [
+    "Faction: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [FACTION:\nvalueOf\n|a group]",
+   "muts": [
+    "Faction: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Faction: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[FACTION:§|a group]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [FACTION:valueOf|a group]",
+   "muts": [
+    "Time: dusk [FACTION:valueOf|a group",
+    "Faction: valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:valueOf|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [FACTION:valqeOf|a group",
+    "Faction: valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [FACTION:valqeOf|a group' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:valueOf|The Guild|member]",
+   "muts": [
+    "valueOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:valueOf |The Guild|member]",
+   "muts": [
+    "valueOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:﻿valueOf|The Guild|member]",
+   "muts": [
+    "valueOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:\nvalueOf\n|The Guild|member]",
+   "muts": [
+    "valueOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:valueOf|The Guild|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:valueOf|The Guild|member",
+    "valueOf: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:valueOf|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:valqeOf|The Guild|member",
+    "valqeOf: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:valqeOf|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:valueOf|The Guild|member]",
+   "muts": [
+    "valueOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:valueOf |The Guild|member]",
+   "muts": [
+    "valueOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:﻿valueOf|The Guild|member]",
+   "muts": [
+    "valueOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:\nvalueOf\n|The Guild|member]",
+   "muts": [
+    "valueOf: The Guild [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "valqeOf: The Guild [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:§|The Guild|member]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:valueOf|The Guild|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:valueOf|The Guild|member",
+    "valueOf: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:valueOf|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.npcFactions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:valqeOf|The Guild|member",
+    "valqeOf: The Guild [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:valqeOf|The Guild|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|valueOf|member]",
+   "muts": [
+    "Bram: valueOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: valqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|valueOf |member]",
+   "muts": [
+    "Bram: valueOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: valqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|﻿valueOf|member]",
+   "muts": [
+    "Bram: valueOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: valqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|\nvalueOf\n|member]",
+   "muts": [
+    "Bram: valueOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: valqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:Bram|valueOf|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:Bram|valueOf|member",
+    "Bram: valueOf [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|valueOf|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:Bram|valqeOf|member",
+    "Bram: valqeOf [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|valqeOf|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|valueOf|member]",
+   "muts": [
+    "Bram: valueOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: valqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|valueOf |member]",
+   "muts": [
+    "Bram: valueOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: valqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|﻿valueOf|member]",
+   "muts": [
+    "Bram: valueOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: valqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC_FACTION:Bram|\nvalueOf\n|member]",
+   "muts": [
+    "Bram: valueOf [member]"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Bram: valqeOf [member]"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC_FACTION:Bram|§|member]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC_FACTION:Bram|valueOf|member]",
+   "muts": [
+    "Time: dusk [NPC_FACTION:Bram|valueOf|member",
+    "Bram: valueOf [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|valueOf|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcGraph.factions"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC_FACTION:Bram|valqeOf|member",
+    "Bram: valqeOf [member]",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC_FACTION:Bram|valqeOf|member' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:valueOf|true]",
+   "muts": [
+    "Party: +valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:valueOf |true]",
+   "muts": [
+    "Party: +valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:﻿valueOf|true]",
+   "muts": [
+    "Party: +valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:\nvalueOf\n|true]",
+   "muts": [
+    "Party: +valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_MEMBER:valueOf|true]",
+   "muts": [
+    "Time: dusk [PARTY_MEMBER:valueOf|true",
+    "Party: +valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:valueOf|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_MEMBER:valqeOf|true",
+    "Party: +valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:valqeOf|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:valueOf|true]",
+   "muts": [
+    "Party: +valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:valueOf |true]",
+   "muts": [
+    "Party: +valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:﻿valueOf|true]",
+   "muts": [
+    "Party: +valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_MEMBER:\nvalueOf\n|true]",
+   "muts": [
+    "Party: +valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Party: +valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_MEMBER:§|true]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_MEMBER:valueOf|true]",
+   "muts": [
+    "Time: dusk [PARTY_MEMBER:valueOf|true",
+    "Party: +valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:valueOf|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_MEMBER:valqeOf|true",
+    "Party: +valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_MEMBER:valqeOf|true' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|valueOf]",
+   "muts": [
+    "Kira splits off to valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|valueOf ]",
+   "muts": [
+    "Kira splits off to valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|﻿valueOf]",
+   "muts": [
+    "Kira splits off to valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|\nvalueOf\n]",
+   "muts": [
+    "Kira splits off to valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "plain",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_SPLIT:Kira|valueOf]",
+   "muts": [
+    "Time: dusk [PARTY_SPLIT:Kira|valueOf",
+    "Kira splits off to valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|valueOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_SPLIT:Kira|valqeOf",
+    "Kira splits off to valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|valqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|valueOf]",
+   "muts": [
+    "Kira splits off to valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|valueOf ]",
+   "muts": [
+    "Kira splits off to valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|﻿valueOf]",
+   "muts": [
+    "Kira splits off to valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [PARTY_SPLIT:Kira|\nvalueOf\n]",
+   "muts": [
+    "Kira splits off to valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Kira splits off to valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[PARTY_SPLIT:Kira|§]",
+   "mode": "refs",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [PARTY_SPLIT:Kira|valueOf]",
+   "muts": [
+    "Time: dusk [PARTY_SPLIT:Kira|valueOf",
+    "Kira splits off to valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|valueOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [PARTY_SPLIT:Kira|valqeOf",
+    "Kira splits off to valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [PARTY_SPLIT:Kira|valqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:valueOf]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:valueOf ]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:﻿valueOf]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [LOCATION_RESIDENT:\nvalueOf\n]",
+   "muts": [
+    "Resident here: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Resident here: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[LOCATION_RESIDENT:§]",
+   "mode": "village",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [LOCATION_RESIDENT:valueOf]",
+   "muts": [
+    "Time: dusk [LOCATION_RESIDENT:valueOf",
+    "Resident here: valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:valueOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.map.nodes.The Village|the tavern.guestbook"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [LOCATION_RESIDENT:valqeOf",
+    "Resident here: valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [LOCATION_RESIDENT:valqeOf' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "exact",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:valueOf|calm|neighbour]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "+NBSP",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:valueOf |calm|neighbour]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "BOM+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:﻿valueOf|calm|neighbour]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "newline+",
+   "cls": "STATE_KEY",
+   "text": "It happens. [NPC:\nvalueOf\n|calm|neighbour]",
+   "muts": [
+    "NPC: valueOf"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "NPC: valqeOf"
+   ],
+   "controlErr": []
+  },
+  {
+   "word": "valueOf",
+   "tpl": "[NPC:§|calm|neighbour]",
+   "mode": "village",
+   "deco": "hidden in outer bracket",
+   "cls": "STATE_KEY",
+   "text": "It happens. [TIME:dusk [NPC:valueOf|calm|neighbour]",
+   "muts": [
+    "Time: dusk [NPC:valueOf|calm|neighbour",
+    "NPC: valueOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:valueOf|calm|neighbour' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "errors": [],
+   "thrown": "",
+   "poison": [],
+   "promptThrow": "",
+   "serThrow": "",
+   "scan": [
+    "own key 'valueOf' at mem.npcs"
+   ],
+   "diffs": [],
+   "controlMuts": [
+    "Time: dusk [NPC:valqeOf|calm|neighbour",
+    "NPC: valqeOf",
+    "⚠ Clock reconcile SKIPPED — 'dusk [NPC:valqeOf|calm|neighbour' is 13h ahead on the same day; mislabel presumed, heal note queued (#142/#368)"
+   ],
+   "controlErr": []
+  }
+ ]
+}

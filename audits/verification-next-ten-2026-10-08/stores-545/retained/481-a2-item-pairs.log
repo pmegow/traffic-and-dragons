@@ -1,0 +1,20 @@
+
+  sabotage — api.js
+   ✓ caught      the resolver loses its unique base-name step
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      an ambiguous loss is no longer said
+   ✓ caught      a refused placement no longer puts the unit back (t216)
+   ✓ caught      a placement whose loss missed is placed anyway
+   ✓ caught      a refused trade rider is no longer a miss
+   ✓ caught      a gift the hero never held reaches the companion
+   ✓ caught      a gift to a non-member vanishes again
+   ✓ caught      a take the companion never held reaches the hero
+   ✓ caught      the village mints coin for a sale of nothing
+   ✓ caught      the adventure's missed sale is silent again
+   ✓ file restored byte-identical
+   9/9 clauses proven
+
