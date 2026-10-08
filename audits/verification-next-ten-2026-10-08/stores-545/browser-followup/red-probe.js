@@ -1,7 +1,7 @@
 // Actual browser doors, disposable storage, local assets, and intercepted remote reads only.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict'),os=require('os');
-const {chromium}=require('./cdp-browser.js');
-const root=path.resolve(__dirname,'..'),out=path.join(os.tmpdir(),'tnd-545-browser');fs.mkdirSync(out,{recursive:true});
+const {chromium}=require(path.join(process.argv[2]||process.cwd(),'dev/cdp-browser.js'));
+const root=path.resolve(process.argv[2]||process.cwd()),out=path.join(os.tmpdir(),'tnd-545-browser');fs.mkdirSync(out,{recursive:true});
 const bp={format:'tnd-blueprint-v1',name:'Reserved Names',tone:'high',startingLocation:'constructor',premise:'Find the bell.',acts:[{title:'Act One',goal:'Find it.',arcs:[{title:'Arc 1: Constructor',objective:'Find the bell.'}]}],npcs:[{name:'__proto__',role:'ally',notes:'Keeps a blue lantern.'}],locations:[{name:'constructor',description:'A stone yard.'}],rules:[]};
 const file=path.join(out,'reserved.blueprint');fs.writeFileSync(file,JSON.stringify(bp));
 (async()=>{const browser=await chromium.launch({headless:true});try{const context=await browser.newContext({serviceWorkers:'block',viewport:{width:800,height:600}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',async route=>{const u=new URL(route.request().url());if(u.pathname==='/catalog/blueprints')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{id:'reserved',name:bp.name,blurb:'A reserved-name fixture.',revision:1,blueprint:bp}])});if(u.hostname!=='stores.test')return route.abort();const f=path.resolve(root,'.'+decodeURIComponent(u.pathname));if(!f.startsWith(root+path.sep))return route.abort();try{return route.fulfill({status:200,contentType:f.endsWith('.html')?'text/html':f.endsWith('.js')?'application/javascript':f.endsWith('.css')?'text/css':'application/json',body:fs.readFileSync(f)});}catch(e){return route.fulfill({status:404,body:'Not found'});}});
@@ -12,17 +12,7 @@ for(const door of ['catalog','library','file']){
  if(door==='catalog'){await page.waitForSelector('[data-bpcat]');await page.locator('[data-bpcat]').click();}
  if(door==='library'){await page.evaluate(bp=>{storageAdapter.isServerMode=()=>true;storageAdapter.listBlueprintLibrary=cb=>cb(null,[{name:bp.name,slug:'reserved',blueprint:bp}]);},bp);await page.locator('[data-seg=library]').click();await page.waitForSelector('[data-bpidx]');await page.locator('[data-bpidx]').click();}
  if(door==='file'){await page.locator('[data-seg=local]').click();await page.locator('#bp-file-inp').setInputFiles(file);}
- await page.waitForSelector('#bp-use');
- // Sticky notifications can cover the trusted click target after the previous campaign starts.
- await page.evaluate(()=>document.querySelectorAll('.tnd-toast').forEach(t=>t.click()));
- await page.waitForFunction(()=>!document.querySelector('.tnd-toast'));
- assert.equal(await page.evaluate(()=>pendingBlueprint),null,door+' retained a previous blueprint');
- assert.equal(await page.evaluate(()=>{const e=document.getElementById('bp-use');e.scrollIntoView({block:'center',inline:'center'});const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return e===hit||e.contains(hit);}),true,door+' blueprint button is occluded');
- await page.screenshot({path:path.join(out,door+'-ready.png')});
- await page.locator('#bp-use').click();
- await page.waitForFunction(()=>pendingBlueprint!==null);
- assert.deepEqual(await page.evaluate(()=>({name:pendingBlueprint.name,place:pendingBlueprint.startingLocation,npc:pendingBlueprint.npcs[0].name,arc:pendingBlueprint.acts[0].arcs[0].title})),{name:bp.name,place:bp.startingLocation,npc:bp.npcs[0].name,arc:bp.acts[0].arcs[0].title},door+' selected the wrong blueprint');
- assert.deepEqual(await page.evaluate(()=>accept545()),{npc:true,node:true,hero:'toString',prompt:true,poison:false},door+' actual start failed');console.log('PASS actual '+door+' blueprint selection → start → tag → prompt');
+ await page.waitForSelector('#bp-use');console.log('HIT',door,await page.evaluate(()=>{const e=document.getElementById('bp-use');e.scrollIntoView({block:'center',inline:'center'});const r=e.getBoundingClientRect(),t=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return {button:{x:r.x,y:r.y,w:r.width,h:r.height},hit:t.outerHTML,toasts:[...document.querySelectorAll('.tnd-toast')].map(e=>({text:e.textContent,rect:e.getBoundingClientRect().toJSON()}))};}));await page.screenshot({path:path.join(out,door+'-hit.png')});await page.locator('#bp-use').click();assert.deepEqual(await page.evaluate(()=>accept545()),{npc:true,node:true,hero:'toString',prompt:true,poison:false},door+' actual start failed');console.log('PASS actual '+door+' blueprint selection → start → tag → prompt');
 }
 await page.evaluate(bp=>{localStorage.setItem(HOME_PENDING_BP_K,JSON.stringify({bp,at:Date.now()}));if(!consumeHomeBlueprint())throw Error('home refused');},bp);assert.equal((await page.evaluate(()=>accept545())).node,true,'home node lost');
 await page.evaluate(bp=>{busy=false;worldState=null;localStorage.setItem(HOME_PENDING_QS_K,JSON.stringify({bp,char:testHero545,at:Date.now()}));if(!consumeHomeQuickStart())throw Error('quick start refused');},bp);assert.equal(await page.evaluate(()=>Object.prototype.hasOwnProperty.call(memory.npcs,'__proto__')),true,'quick start NPC lost');

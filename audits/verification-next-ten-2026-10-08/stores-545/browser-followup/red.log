@@ -1,0 +1,26 @@
+HIT catalog {
+  button: { x: 175, y: 420.1875, w: 374.078125, h: 39 },
+  hit: '<button id="bp-use" style="flex:1;padding:11px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;">Use this blueprint</button>',
+  toasts: [
+    {
+      text: 'Ambience: This page is not secure (plain http), so the audio cannot be verified. Open the hosted game or localhost.✕',
+      rect: [Object]
+    }
+  ]
+}
+PASS actual catalog blueprint selection → start → tag → prompt
+HIT library {
+  button: { x: 172, y: 392.1875, w: 374.078125, h: 39 },
+  hit: '<div class="tnd-toast" title="Tap to dismiss" style="position: fixed; bottom: 164px; left: 50%; transform: translateX(-50%); background: var(--modal-bg); border: 1px solid var(--acc); color: var(--acc); padding: 10px 20px; border-radius: 20px; font-size: 13px; font-family: var(--font); z-index: 10000; cursor: pointer; pointer-events: auto; transition: opacity 0.25s;">⛺ Camp saved — constructor (turn 0)<span style="margin-left: 10px; opacity: 0.45; font-size: 11px;">✕</span></div>',
+  toasts: [
+    {
+      text: 'Ambience: This page is not secure (plain http), so the audio cannot be verified. Open the hosted game or localhost.✕',
+      rect: [Object]
+    },
+    { text: 'Blueprint loaded: Reserved Names✕', rect: [Object] },
+    { text: '⛺ Camp saved — constructor (turn 0)✕', rect: [Object] }
+  ]
+}
+Error: page threw: TypeError: Cannot read properties of null (reading 'startingLocation')
+    at Page._eval (C:\Projects\traffic-and-dragons\dev\cdp-browser.js:275:84)
+    at async C:\Users\hannu\AppData\Local\Temp\tnd-545-race-probe.js:15:613

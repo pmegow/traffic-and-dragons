@@ -1,0 +1,11 @@
+{
+  "dismissal-mutant.js": "ebb60147c3a059f418b105a12d73c4cf2449b81bd4e31960957f28ed2c1d1f61",
+  "dismissal-mutant.log": "444d2062e64c2cbc81dd44f46a9195a9e9befe7682796a3968f2eda06426e5cb",
+  "green-probe.js": "42fa07f4169d277908ca5d9f76ffa4ba3ea9f2f063baedb2c84d163219cd544a",
+  "green.log": "c49e04fa09e150edaed9a4fc4c0adc53275e75f1fdd4e9f727dc843087d56fa0",
+  "library-after.png": "fba59592580a53a3698fd7acf0dc4e5a82c7370d154ccb736ffe8c804260183a",
+  "library-before.png": "32140781ac745cb079f6856430329805658b185b2b13039f4ff9e3e1c4c35892",
+  "red-probe.js": "f62f01f26d953c246813be6de446912f062432430825f38df068cbb2ecaa205a",
+  "red.log": "e8e0ab2575ec1715fa9642fadb536fc9fdfb2e7fd44c121af9223e053312b345",
+  "dev/tests-545-browser.js": "4071b124f0360238966f77f9ba26e9e3a298b986dcfe46857d701bf63d4672db"
+}

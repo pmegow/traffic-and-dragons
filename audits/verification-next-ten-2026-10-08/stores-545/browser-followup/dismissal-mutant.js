@@ -1,7 +1,7 @@
 // Actual browser doors, disposable storage, local assets, and intercepted remote reads only.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict'),os=require('os');
-const {chromium}=require('./cdp-browser.js');
-const root=path.resolve(__dirname,'..'),out=path.join(os.tmpdir(),'tnd-545-browser');fs.mkdirSync(out,{recursive:true});
+const {chromium}=require(path.join(process.argv[2]||process.cwd(),'dev/cdp-browser.js'));
+const root=path.resolve(process.argv[2]||process.cwd()),out=path.join(os.tmpdir(),'tnd-545-browser');fs.mkdirSync(out,{recursive:true});
 const bp={format:'tnd-blueprint-v1',name:'Reserved Names',tone:'high',startingLocation:'constructor',premise:'Find the bell.',acts:[{title:'Act One',goal:'Find it.',arcs:[{title:'Arc 1: Constructor',objective:'Find the bell.'}]}],npcs:[{name:'__proto__',role:'ally',notes:'Keeps a blue lantern.'}],locations:[{name:'constructor',description:'A stone yard.'}],rules:[]};
 const file=path.join(out,'reserved.blueprint');fs.writeFileSync(file,JSON.stringify(bp));
 (async()=>{const browser=await chromium.launch({headless:true});try{const context=await browser.newContext({serviceWorkers:'block',viewport:{width:800,height:600}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',async route=>{const u=new URL(route.request().url());if(u.pathname==='/catalog/blueprints')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{id:'reserved',name:bp.name,blurb:'A reserved-name fixture.',revision:1,blueprint:bp}])});if(u.hostname!=='stores.test')return route.abort();const f=path.resolve(root,'.'+decodeURIComponent(u.pathname));if(!f.startsWith(root+path.sep))return route.abort();try{return route.fulfill({status:200,contentType:f.endsWith('.html')?'text/html':f.endsWith('.js')?'application/javascript':f.endsWith('.css')?'text/css':'application/json',body:fs.readFileSync(f)});}catch(e){return route.fulfill({status:404,body:'Not found'});}});
@@ -14,8 +14,8 @@ for(const door of ['catalog','library','file']){
  if(door==='file'){await page.locator('[data-seg=local]').click();await page.locator('#bp-file-inp').setInputFiles(file);}
  await page.waitForSelector('#bp-use');
  // Sticky notifications can cover the trusted click target after the previous campaign starts.
- await page.evaluate(()=>document.querySelectorAll('.tnd-toast').forEach(t=>t.click()));
- await page.waitForFunction(()=>!document.querySelector('.tnd-toast'));
+ // Mutation: skip notification dismissal.
+ 
  assert.equal(await page.evaluate(()=>pendingBlueprint),null,door+' retained a previous blueprint');
  assert.equal(await page.evaluate(()=>{const e=document.getElementById('bp-use');e.scrollIntoView({block:'center',inline:'center'});const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return e===hit||e.contains(hit);}),true,door+' blueprint button is occluded');
  await page.screenshot({path:path.join(out,door+'-ready.png')});

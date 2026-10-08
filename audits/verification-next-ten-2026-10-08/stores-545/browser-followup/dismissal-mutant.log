@@ -1,0 +1,12 @@
+PASS actual catalog blueprint selection → start → tag → prompt
+AssertionError [ERR_ASSERTION]: library blueprint button is occluded
+
+false !== true
+
+    at C:\Projects\traffic-and-dragons\audits\verification-next-ten-2026-10-08\stores-545\browser-followup\dismissal-mutant.js:20:9 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: 'strictEqual'
+}
