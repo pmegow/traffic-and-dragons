@@ -26917,6 +26917,41 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#527 keeper asks once per shop");
+  function keeper527(){shopFixture();delete worldState.keeperAsk;var a="The Village|the trading post",b="The Village|the smithy";memory.map.nodes[b]=JSON.parse(JSON.stringify(memory.map.nodes[a]));delete memory.map.nodes[a].keeper;delete memory.map.nodes[b].keeper;return [a,b];}
+  t("#527 keeper asks A then B once each across revisits and a real save round trip",function(){
+    var keys=keeper527();if(!buildKeeperNote())return "first A ask missing";
+    worldState.world.sublocation="the smithy";if(!buildKeeperNote())return "first B ask missing";
+    worldState.world.sublocation="the trading post";if(buildKeeperNote())return "A repeated after B";
+    worldState=parseWorldState(serializeWorldState(worldState));
+    var i;for(i=0;i<40;i++){worldState.turn++;worldState.world.sublocation=i%2?"the smithy":"the trading post";if(buildKeeperNote())return "repeat after save at "+i;}
+    return worldState.keeperAsk.nodes.length===2&&keys.every(function(k){return worldState.keeperAsk.nodes.indexOf(k)>=0;})?true:"latch grew with turns or lost a shop: "+JSON.stringify(worldState.keeperAsk);
+  });
+  t("#527 legacy and aliased shop asks migrate and canonical merges prune duplicate or deleted nodes",function(){
+    var keys=keeper527(),alias="The Village|Old Counter";locAliasRegister(keys[0],alias,null);worldState.keeperAsk={node:alias,turn:4};
+    if(buildKeeperNote())return "legacy aliased shop repeated";
+    worldState.world.sublocation="the smithy";if(!buildKeeperNote())return "legacy migration lost unasked B";
+    if(!worldState.keeperAsk.nodes||worldState.keeperAsk.nodes.length!==2)return "legacy A was lost when B asked";
+    locMerge(keys[0],keys[1],{muts:[]});worldState.world.sublocation="the trading post";
+    if(buildKeeperNote()||worldState.keeperAsk.nodes.length!==1||worldState.keeperAsk.nodes[0]!==keys[0])return "merged shop repeated or retained duplicate identities";
+    worldState.keeperAsk={node:alias,nodes:[keys[0],"The Village|Deleted Shop","The Village"]};
+    if(buildKeeperNote()||worldState.keeperAsk.nodes.length!==1)return "hybrid legacy normalization kept deleted/nonshop nodes";
+    var once=JSON.stringify(worldState.keeperAsk);buildKeeperNote();return JSON.stringify(worldState.keeperAsk)===once?true:"normalization is not idempotent";
+  });
+  t("#527 keeper delivery deferral and failed-turn rollback preserve every earlier shop",function(){
+    var keys=keeper527();buildKeeperNote();worldState.world.sublocation="the smithy";var before=JSON.stringify(worldState.keeperAsk),old=NOTE_BUILDERS;
+    NOTE_BUILDERS=old.filter(function(f){return [buildLocationFilingNudge,buildTravelPriceNudge,buildFutureResolveNudge,buildKeeperNote].indexOf(f)>=0;});
+    try{
+      worldState.locationFilingPing={place:"Mill",turn:worldState.turn};worldState.travelPricePing={destination:"Town",elapsed:5,shortfall:30,turn:worldState.turn};worldState.futureResolveHints=[{what:"Sable arrived",evidence:"Sable arrived."}];
+      buildEngineNotes();if(JSON.stringify(worldState.keeperAsk)!==before)return "deferred B consumed ask or lost A";
+      if(!lastEngineNotesBuilt().d.some(function(d){return d.n==="buildKeeperNote";}))return "fixture: B was not deferred";
+      var snap=snapshotNoteLatches(),text=buildEngineNotes();if(text.indexOf("SHOP KEEPER")<0)return "B not retried with spare budget";
+      restoreNoteLatches(snap);noteLogDiscard();if(JSON.stringify(worldState.keeperAsk)!==before)return "failed turn retained B or lost A";
+      if(buildEngineNotes().indexOf("SHOP KEEPER")<0)return "failed B ask could not retry";
+      worldState.world.sublocation="the trading post";return buildKeeperNote()===""?true:"earlier A forgotten after B retry";
+    }finally{NOTE_BUILDERS=old;noteLogDiscard();}
+  });
+
   section("#527 companion impulse yields to audits");
   function impulse527(fn){
     var old=NOTE_BUILDERS;makeWorld();worldState.turn=100;

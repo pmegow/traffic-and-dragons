@@ -43,7 +43,7 @@ prove("helpers.js", [
 ]);
 prove("api.js", [
   { label: "the keeper ask never latches (it repeats every turn)",
-    find: "  worldState.keeperAsk={node:key,turn:worldState.turn};\n", replace: "",
+    find: "  worldState.keeperAsk={nodes:seen};", replace: "",
     mustFail: "the keeper ask: once per shop" },
   { label: "the geo block never names the keeper",
     find: "  if(subNode&&subNode.keeper)lines.push(\"Keeper: \"+", replace: "  if(false)lines.push(\"Keeper: \"+",

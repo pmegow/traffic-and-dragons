@@ -808,13 +808,21 @@ function buildHoursNote(){
 }
 /* #481 B4 (owner ruling 2026-09-29): the keeper ask. A SHOP (isShopNode) with no keeper of record asks the GM, once per shop,
    to name who runs it; the answer is the engine-only [SHOP_KEEPER:] taught here. No answer leaves the shop on the old
-   stale-tolerant trade rule. Combat-silent; latch worldState.keeperAsk={node,turn}. */
+   stale-tolerant trade rule. Combat-silent; keeperAsk.nodes retains every asked canonical shop. */
 function buildKeeperNote(){
   if(!worldState||worldState.combat||typeof memory==="undefined"||!memory||!memory.map||!worldState.world||!worldState.world.sublocation)return "";
   var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key)return "";if(typeof locResolve==="function")key=locResolve(key);
   var node=memory.map.nodes[key];if(!node||node.keeper||typeof isShopNode!=="function"||!isShopNode(key,node))return "";
-  var ka=worldState.keeperAsk;if(ka&&ka.node===key)return "";
-  worldState.keeperAsk={node:key,turn:worldState.turn};
+  var ka=worldState.keeperAsk,asked=(ka&&ka.nodes instanceof Array)?ka.nodes.slice():[],seen=[],i,nk;
+  if(ka&&ka.node)asked.push(ka.node);/* legacy last-shop latch */
+  for(i=0;i<asked.length;i++){
+    if(typeof asked[i]!=="string")continue;
+    nk=(typeof locResolve==="function")?locResolve(asked[i]):asked[i];
+    if(memory.map.nodes[nk]&&isShopNode(nk,memory.map.nodes[nk])&&seen.indexOf(nk)<0)seen.push(nk);
+  }
+  worldState.keeperAsk={nodes:seen};/* bounded by retained canonical shops, never by visits */
+  if(seen.indexOf(key)>=0)return "";
+  seen.push(key);
   var label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
   return "[ENGINE NOTE \u2014 SHOP KEEPER (not a player action): "+label+" has no keeper on record. When this response shows who runs it \u2014 behind the counter, at the forge, pouring \u2014 file it ONCE: [SHOP_KEEPER:<their exact roster name>], a living resident, never someone invented for it. A shop's keeper counts at its counter while it is open. If nobody runs it yet, file nothing.]";
 }
