@@ -25,3 +25,9 @@ New named mutations: 11/11 caught. Retained W7: 26/26 caught; retained #504 titl
 No prompt wording changes. Canonical graph output and refusal receipts can change only when these writes occur. This is admission at write time, not migration of existing malformed graph edges or deletion of imported records.
 
 Per-call: scalar canonical names and short result objects only. Per-turn: rejected writes create no graph, sheet rows or review queue entries; accepted paths retain existing behavior. Per-session: no caches, listener or timer additions. Per-campaign: existing graph/relationship schema and queue caps unchanged; canonical endpoint dedupe avoids redundant spellings. Per-device: no storage keys, workers, vendor state or network changes. Direct callers receive the same protection as tags.
+
+## Replay oracle correction after remote CI
+
+Remote CI for e6680656 and the subsequent docs checkpoint 5ec5ed91 failed the v1271 replay comparison despite the local mandatory hook passing. An immutable e6680656 replay of all four corpora found v1238, v1258 and v1276 byte-identical. The only v1271 changes are three visible missing-sheet relationship refusal receipts for Celeste Emberveil at turns 4, 19 and 20, adding 207 JavaScript characters / 213 UTF-8 bytes. The existing clock warning merely moves one array index. No relationship, other gameplay state or memory changes.
+
+Independent Astra review approved the exact baseline correction: removing only those three exact refusal messages makes the entire expected/generated state deeply equal. The former writer already skipped missing sheets; the shared admission now also records why in tagLog, as required by the reviewed no-silent-failure boundary. Only the v1271 end-state oracle is updated; the other three remain untouched. This correction records the previously missed replay verification rather than claiming the earlier CI passed.
