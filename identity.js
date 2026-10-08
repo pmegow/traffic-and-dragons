@@ -36,7 +36,7 @@ var IDENTITY_DOMAINS={
        battle-testing (B3 death carry, #144A overflow archiving, epithet routing) ride along and
        the two tag surfaces cannot drift apart. Operands are pipe-refused upstream, so the
        synthesized legacy tag text is unambiguous. */
-    merge:function(canonical,duplicate,R){return _identityRouteLegacy("NPC_MERGE",canonical+"|"+duplicate,R);},
+    merge:function(canonical,duplicate,R){return _identityRouteLegacy("NPC_MERGE",canonical+"|"+duplicate,R,"MERGE");},/* #504: the handler learns which tag the GM chose — the generic form is the note's "another person" statement */
     registerAlias:function(canonical,alias,R){return _identityRouteLegacy("NPC_ALIAS",canonical+"|"+alias,R);},
     namingRules:["Never give a new character the name of anyone in KNOWN NPCs — the engine would file the new person into the existing record. Pick a fresh name (AVAILABLE NAMES) or leave them unnamed."]
   },
@@ -717,10 +717,10 @@ function relationshipRekeyEntity(canonical,duplicate){
 
 // Route a generalized action into the shipping legacy handler out of TAG_TABLE (the
 // npc-merge-core precedent: drive the SHIPPING handler, copy nothing).
-function _identityRouteLegacy(tag,payload,R){
+function _identityRouteLegacy(tag,payload,R,via){
   var i;
   for(i=0;i<TAG_TABLE.length;i++){
-    if(TAG_TABLE[i].t===tag){TAG_TABLE[i].apply("["+tag+":"+payload+"]",R);return true;}
+    if(TAG_TABLE[i].t===tag){if(via)R.viaTag=via;try{TAG_TABLE[i].apply("["+tag+":"+payload+"]",R);}finally{delete R.viaTag;}return true;}
   }
   if(typeof console!=="undefined")console.warn("[identity] legacy handler "+tag+" missing from TAG_TABLE — routing failed");
   return false;
@@ -776,6 +776,7 @@ function npcUpsertTarget(rawName,rawRel,R){
   var resolved=resolveNpcName(rawName);
   var mem=memory.npcs&&memory.npcs[resolved];
   if(!mem)return resolved;
+  if(mem.provisional)return resolved;/* #504: a question already open is never split again — later tags gather on the one provisional (the fuzzer minted a provisional of a provisional) */
   if(!NPC_INTRO_REL_RE.test(rawRel||""))return resolved;
   var wsN=(typeof wsNpcByName==="function")?wsNpcByName(resolved):null;
   if(wsN&&wsN.partyMember)return resolved;
@@ -817,9 +818,92 @@ function buildProvisionalNudge(){
   if(!best)return"";
   if(!worldState.provisionalNudged)worldState.provisionalNudged={};
   worldState.provisionalNudged[best]=worldState.turn;
-  var of=memory.npcs[best].provisional.of,cm=memory.npcs[of],ev="";
+  var pv=memory.npcs[best].provisional,of=pv.of,cm=memory.npcs[of],ev="",why="";
   if(cm&&cm.lastSeenAt)ev=" The established "+of+" was last seen at "+cm.lastSeenAt+".";
-  return "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): a new \""+of+"\" was introduced and is filed PROVISIONALLY as \""+best+"\" so the established record stays clean."+ev+" Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:"+of+"|"+best+"]. If they are a DIFFERENT person, give them their own name and emit [MERGE:npc|<Their Proper Name>|"+best+"] — pick a name not already in KNOWN NPCs. This note re-fires until one tag lands.]";
+  /* #504: a refused answer is said back, once — the GM learns the exact form instead of guessing again (the #534 review's tenth finding: a natural answer refused in silence loops for ever) */
+  if(worldState.provisionalRefused&&worldState.provisionalRefused[best]){why=" Your last answer could not be read: "+worldState.provisionalRefused[best]+".";delete worldState.provisionalRefused[best];if(!Object.keys(worldState.provisionalRefused).length)delete worldState.provisionalRefused;}
+  var isHero=(typeof memoryNpcIsPlayer==="function")&&memoryNpcIsPlayer(of);/* a hero swap can leave a question "of" the hero — nobody is merged into the hero, so the note never offers it */
+  var same=isHero?"\""+of+"\" is the player's own character now, and nobody is merged into the hero: treat this as another person and":"Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:"+of+"|"+best+"] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person,";
+  /* #504: the title question has its own words — nobody introduced "a new Wilhelmina"; a title was used, and it is hers or a relative's */
+  if(pv.called)return "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \""+best+"\" was named, and the names alone cannot say whether that is the established \""+of+"\" under a title or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean."+ev+why+" "+same+" emit [MERGE:npc|<Their Proper Name>|"+best+"] — \""+best+"\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]";
+  return "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): a new \""+of+"\" was introduced and is filed PROVISIONALLY as \""+best+"\" so the established record stays clean."+ev+why+" "+same+" give them their own name and emit [MERGE:npc|<Their Proper Name>|"+best+"] — pick a name not already in KNOWN NPCs. This note re-fires until one tag lands.]";
+}
+
+// ── #504: the title question's seam, and the one reading of an answer ───────────────────────
+// THE boundary for every write that names a person is the resolver: a kin or rank title on a family name with one
+// candidate resolves to ITSELF (memory.js), so any tag — [NPC:], a note, a reported death, a scene handle, the summary
+// extractor — files the name under itself and never on the relative. What a handler cannot do is ask; this seam runs once
+// per applyMuts (and once per summary extraction) over the keys the response CREATED and stamps the ones that raise the
+// question: provisional:{of,turn,called,title}, keyed by the name as called (no derived key, so nothing goes stale — the
+// GM reads and writes the natural name). A roster row is ensured (a provisional is on the roster, like every person).
+// At PROVISIONAL_CAP the record stays a separate person with no question — a fork, said loudly — never a write onto the
+// relative (#156's cap degrades to the established record because its suspect IS that record; here it is not).
+function npcKeySet(){var out=Object.create(null),k;if(typeof memory!=="undefined"&&memory&&memory.npcs)for(k in memory.npcs)out[k]=1;return out;}
+function npcStampTitleQuestions(before,R){
+  if(typeof memory==="undefined"||!memory||!memory.npcs||!worldState)return 0;
+  var k,n=0,turn=(R&&R.turn!=null)?R.turn:worldState.turn;
+  for(k in memory.npcs){
+    if(before&&before[k])continue;
+    var m=memory.npcs[k];if(!m||m.provisional||m.titleSettled)continue;
+    if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(k))continue;
+    var c=npcConsolidation(k);if(!c.ask||!c.key)continue;
+    var j,outstanding=0;for(j in memory.npcs){if(memory.npcs[j].provisional)outstanding++;}
+    if(outstanding>=PROVISIONAL_CAP){
+      if(typeof console!=="undefined")console.warn("[identity] provisional cap ("+PROVISIONAL_CAP+") reached — '"+k+"' stays a separate person with no question asked; it may be "+c.key+" under a title (#504). Resolve outstanding provisionals via their nudges.");
+      if(R)R.muts.push("⚠ '"+k+"' may be "+c.key+" under a title — filed as a separate person, NOT asked (provisional cap)");
+      continue;
+    }
+    m.provisional={of:c.key,turn:turn,called:k,title:c.ask};
+    if(typeof wsNpcByName==="function"&&!wsNpcByName(k)&&worldState.npcs)worldState.npcs.push({name:k,status:"",statusTurn:0,rel:"unknown",pronouns:m.pronouns||null,met:turn,partyMember:false,portrait:null,aliases:[]});
+    n++;
+    if(R)R.muts.push("⚠ possible name collision: '"+k+"' may be "+c.key+" under a title, or another person — filed separately; the GM is asked");
+    if(typeof console!=="undefined")console.warn("[identity] '"+k+"' is a title (\""+c.ask+"\") and a family name: "+c.key+" under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)");
+    if(typeof showToast==="function")showToast("⚠ Possible name collision: "+k+" — filed separately pending confirmation");
+  }
+  return n;
+}
+// ONE reading of a merge tag's two operands, shared by the W2 gate (before the table) and the NPC_MERGE handler (in it), so
+// the gate can never pass what the handler then reads differently (the #534 review's first finding: the gate judged a
+// resolved name, the handler created the raw one). Operands are read EXACTLY (npcExactKey: key, registered alias, case
+// and separators) — never by consolidation, so nothing is inferred from a name's shape. When neither operand is a
+// provisional the merge is "plain" and the callers keep their own rules. Otherwise P is the provisional and O the other
+// operand, in either order, and the tag the GM chose is the statement:
+//   same     O is exactly the person P was split from (NPC_MERGE or MERGE): fold P into them
+//   other    O is exactly some other record on file: a merge like any other — a proposal first under scene refs
+//   new      [MERGE:npc|<name nobody holds>|P]: another person, under that name (the note's own form)
+//   keep     [MERGE:npc|P|P]: another person who keeps the name they were called by
+//   refused  the names cannot say, and the note says so next turn: an NPC_MERGE whose other name is on no record (a
+//            short form, a title — the SAME answer needs the exact name); a MERGE whose new name is a bare short form of
+//            the established person's name with no title on it ("Wilhelmina" for Wilhelmina Underbough); the hero as a
+//            target; two open questions answering each other; a self-merge written as NPC_MERGE
+function _npcMergeOperand(x){var k=npcExactKey(x,true);if(k)return k;var f=npcFormerKey(x);return (f&&f!==x)?f:null;}/* a folded ° key reads as where it went (a repeated answer with the operands reversed used to fold the established person into a new ° record) */
+function npcMergeAnswer(tag,canonical,duplicate){
+  var isP=(typeof memoryNpcIsPlayer==="function")?memoryNpcIsPlayer:function(){return false;};
+  var c=_npcMergeOperand(canonical),d=_npcMergeOperand(duplicate);
+  if(isP(canonical)||(c&&isP(c)))return {kind:"refused",dupe:null,why:"nobody is merged into the hero (player identity belongs to the character sheet)"};/* plain merges too (#538's NPC_MERGE leg) */
+  if(isP(duplicate)||(d&&isP(d)))return {kind:"refused",dupe:null,why:"the hero is never merged away (player identity belongs to the character sheet)"};/* after a hero swap her old aliases name the hero */
+  var pc=c&&memory.npcs[c]&&memory.npcs[c].provisional,pd=d&&memory.npcs[d]&&memory.npcs[d].provisional;
+  if(!pc&&!pd)return {kind:"plain",canon:c||canonical,dupe:d||duplicate};
+  if(pc&&pd&&c!==d)return {kind:"refused",dupe:d,why:"'"+canonical+"' and '"+duplicate+"' are both open questions; answer each against the established person"};
+  var P=pd?d:c,O=pd?c:d,Oraw=pd?canonical:duplicate,of=npcExactKey(memory.npcs[P].provisional.of,true)||memory.npcs[P].provisional.of;/* the hero was refused above, as either operand */
+  var called=!!memory.npcs[P].provisional.called;
+  if(O===P)return (tag==="MERGE"&&called)?{kind:"keep",canon:P,dupe:P}:{kind:"refused",dupe:P,why:called?"'"+P+"' named against itself says nothing; the SAME person is [NPC_MERGE:"+of+"|"+P+"], another person is [MERGE:npc|<their name>|"+P+"]":"'"+P+"' is a filing key, not a name — the SAME person is [NPC_MERGE:"+of+"|"+P+"]; another person needs a name of their own"};
+  if(/ °t\d+$/.test(Oraw))return {kind:"refused",dupe:P,why:"'"+Oraw+"' is a filing key, not a name — the SAME person is [NPC_MERGE:"+of+"|"+P+"]; another person needs a name of their own"};
+  if(O&&O===of)return {kind:"same",canon:of,dupe:P};
+  if(O)return {kind:"other",canon:O,dupe:P};
+  if(tag!=="MERGE")return {kind:"refused",dupe:P,why:"'"+Oraw+"' is not an exact name on file — the SAME person is [NPC_MERGE:"+of+"|"+P+"] with that exact name; another person is [MERGE:npc|<their name>|"+P+"]"};
+  /* a bare short form of the established person's own name, under "another person", contradicts itself: refused, with the two forms */
+  var oc=npcCoreTokens(Oraw),fc=npcCoreTokens(of),i,sub=oc.length>0&&oc.length<fc.length;
+  for(i=0;sub&&i<oc.length;i++)if(fc.indexOf(oc[i])<0)sub=false;
+  if(sub&&!npcKeyTitle(Oraw))return {kind:"refused",dupe:P,why:"'"+Oraw+"' is a short form of "+of+"'s own name — the SAME person is [NPC_MERGE:"+of+"|"+P+"]; another person needs a name that is not hers"};
+  return {kind:"new",canon:Oraw,dupe:P};
+}
+// A refused answer: said in the summary, in the console and in the provenance ring, and the note re-asks NEXT turn with the
+// reason (the cooldown latch is cleared for that record). Never silent.
+function npcMergeRefuse(tag,canonical,duplicate,ans,R){
+  if(R)R.muts.push("⚠ "+tag+" refused: "+ans.why);
+  if(typeof console!=="undefined")console.warn("[identity] ["+tag+":"+canonical+"|"+duplicate+"] refused — "+ans.why+" (#504)");
+  if(ans.dupe&&worldState){if(!worldState.provisionalRefused)worldState.provisionalRefused={};worldState.provisionalRefused[ans.dupe]=ans.why;if(worldState.provisionalNudged)delete worldState.provisionalNudged[ans.dupe];}
 }
 
 // ── The NAMING clause (stable half — §2.6, amended §7.3) ────────────────────────────────────
@@ -1403,8 +1487,13 @@ function _w2ResolveConflicts(subject,handle){var q=worldState&&worldState.identi
    named a conflicted subject (making the nudge's own re-emit advice unfollowable) and stripped
    quest/reward tags from every response saying the name, forever. Same-response refusals key on
    refusedVictim; standing disputes key on _w2DisputedQuests — receipt-scoped, never prose-scoped.) */
-function w2MergeAllowed(canonical,duplicate){if(!worldState||!worldState.sceneRefs)return true;var c=resolveNpcName(canonical),m=memory.npcs&&memory.npcs[duplicate];if(m&&m.provisional&&resolveNpcName(m.provisional.of)===c)return true;var a=worldState.mergeConfirmArmed;return !!(a&&a.turn===worldState.turn&&a.canonical===canonical&&a.duplicate===duplicate);}
-function w2MergePropose(canonical,duplicate){if(typeof _queueMergeHint==="function")_queueMergeHint(canonical,duplicate);if(typeof console!=="undefined")console.warn("[identity] merge proposed, not applied: "+duplicate+" -> "+canonical+" (awaiting exact-pair confirmation)");}
+/* #504: the gate reads an answer to the name-collision note through the ONE reader the handler uses (npcMergeAnswer). An
+   answer lands (same / new / keep) or is refused by the handler, loudly, in one place — the gate passes it through so the
+   refusal is the same with or without scene refs. A provisional into some OTHER record on file is a merge like any other:
+   a proposal first, carrying the two record KEYS so the confirmation note can put it to the GM (a raw operand was
+   discarded there). A plain merge keeps the exact-pair rule. */
+function w2MergeAllowed(canonical,duplicate,tag){if(!worldState||!worldState.sceneRefs)return true;var ans=npcMergeAnswer(tag||"NPC_MERGE",canonical,duplicate);if(ans.kind!=="plain"&&ans.kind!=="other")return true;var a=worldState.mergeConfirmArmed;return !!(a&&a.turn===worldState.turn&&a.canonical===ans.canon&&a.duplicate===ans.dupe);}
+function w2MergePropose(canonical,duplicate,tag){var ans=npcMergeAnswer(tag||"NPC_MERGE",canonical,duplicate);if(typeof _queueMergeHint==="function")_queueMergeHint(ans.canon,ans.dupe);if(typeof console!=="undefined")console.warn("[identity] merge proposed, not applied: "+ans.dupe+" -> "+ans.canon+" (awaiting exact-pair confirmation)");}
 function _w2TxnFind(id){var a=worldState&&worldState.canonTxns||[],i;for(i=0;i<a.length;i++)if(a[i].id===id)return a[i];return null;}
 function _w2TxnMetaSame(r,m){return r.claim===m.claim&&r.subject===m.subject&&r.evidence===m.evidence&&r.quest===m.quest;}
 function _w2Compact(v){return String(v==null?"":v).replace(/\s+/g," ").trim().toLowerCase();}
@@ -1789,7 +1878,7 @@ function w2PrepareResponse(text){
   /* #535: _identityActionTag trims and lower-cases the domain, so [MERGE:NPC|a|b] and [MERGE: npc |a|b] are npc merges to the parser. The gate
      looked for the exact spelling only, and those passed it unseen: two established people fused with no confirmation. The DOMAIN is read
      in any case and spacing; the tag name stays exact, as every handler reads it. */
-  var gen=ordinary.match(/\[MERGE:\s*[nN][pP][cC]\s*\|([^|\]]+)\|([^\]]+)\]/g)||[];for(mi=0;mi<gen.length;mi++){var gp=gen[mi].match(/\[MERGE:\s*[nN][pP][cC]\s*\|([^|\]]+)\|([^\]]+)\]/),gc=gp[1].trim(),gd=gp[2].trim();if(!w2MergeAllowed(gc,gd)){ordinary=ordinary.replace(gen[mi],"");w2MergePropose(gc,gd);}}
+  var gen=ordinary.match(/\[MERGE:\s*[nN][pP][cC]\s*\|([^|\]]+)\|([^\]]+)\]/g)||[];for(mi=0;mi<gen.length;mi++){var gp=gen[mi].match(/\[MERGE:\s*[nN][pP][cC]\s*\|([^|\]]+)\|([^\]]+)\]/),gc=gp[1].trim(),gd=gp[2].trim();if(!w2MergeAllowed(gc,gd,"MERGE")){ordinary=ordinary.replace(gen[mi],"");w2MergePropose(gc,gd,"MERGE");}}
   return {ordinary:ordinary,txns:txns};
 }
 function _w2ChapterDeath(name,summary){var esc=String(name).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),n="\\b"+esc+"\\b",s=String(summary||"");return new RegExp(n+"\\s+(?:died|perished)\\b","i").test(s)||new RegExp(n+"\\s+(?:(?:was|is|had been|has been|lay|lies|fell|falls|dropped|drops|remained|remains)\\s+)(?:dead|slain|killed|deceased)\\b","i").test(s)||new RegExp("\\b(?:the\\s+)?death\\s+of\\s+"+n,"i").test(s)||new RegExp(n+"'s\\s+(?:corpse|remains)\\b","i").test(s)||new RegExp(n+"\\s+bled\\s+out\\b","i").test(s);/* #168R6c: "X's corpse cooled" / "X bled out" are death-shaped chapter claims too (entry-13 review) */}

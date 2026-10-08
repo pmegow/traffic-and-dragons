@@ -45,7 +45,7 @@ rc |= sabotage.prove({
   command: ["node", ["dev/run-tests.js"]],
   cases: [
     { label: "provisional ° keys pollute the alias table on resolution", mustFail:"buildProvisionalNudge: fires the same/distinct fork with exact tags; l",
-      find: "if(!npcIsProvisional(mgDupe)&&memory.npcs[mgCanon].aliases.indexOf(mgDupe)<0)memory.npcs[mgCanon].aliases.push(mgDupe);",
+      find: "if((!npcIsProvisional(mgDupe)||_mgCalled)&&memory.npcs[mgCanon].aliases.indexOf(mgDupe)<0)memory.npcs[mgCanon].aliases.push(mgDupe);",
       replace: "if(memory.npcs[mgCanon].aliases.indexOf(mgDupe)<0)memory.npcs[mgCanon].aliases.push(mgDupe);" },
     { label: "merges stop archiving pre-images (irreversible again)", mustFail:"every [NPC_MERGE:] archives the duplicate's complete pre-image to memo",
       find: "memArchive().identityMerges.push({domain:\"npc\",canonical:mgCanon,duplicate:mgDupe,turn:R.turn,records:{mem:memory.npcs[mgDupe]?JSON.parse(JSON.stringify(memory.npcs[mgDupe])):null,ws:_mgPreImageWs(_imWs)}});",

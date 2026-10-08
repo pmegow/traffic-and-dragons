@@ -61,9 +61,15 @@ var _NPC_KIN_NOUNS=npcWordTable({man:1,woman:1,boy:1,girl:1,lad:1,lass:1,wife:1,
 // Two readings it refuses: a title word that closes the name straight after a plain name word is the person's SURNAME
 // ("Marla King", "Tom Young"); a possessive is someone else's title ("the Queen's Champion Aldric") — "queen's" is not
 // "queen", so it never matches. Parentheticals describe, they do not title ("Morwen (the king's sister)").
-function npcNameSays(name){
-  var raw=String(name||"").toLowerCase().replace(/\(.*?\)/g," ").split(/\s+/),ws=[],i;
+// The plain words of a name: lower case, parentheticals dropped, letters only. ONE tokenizer for what a name SAYS (#503) and
+// for the title question (#504).
+function npcNameWords(name){
+  var raw=String(name||"").toLowerCase().replace(/\(.*?\)/g," ").replace(/[-_]+/g," ").split(/\s+/),ws=[],i;/* #504: "Queen_Underbough", "Queen-Mother" — a separator is a space; an apostrophe is not ("queen's" stays someone else's title) */
   for(i=0;i<raw.length;i++){var w=raw[i].replace(/[^a-z]/g,"");if(w)ws.push(w);}
+  return ws;
+}
+function npcNameSays(name){
+  var ws=npcNameWords(name),i;
   var out={sex:null,crown:null,age:null},last=ws.length-1;
   for(i=0;i<ws.length;i++){
     var t=ws[i],sx=_NPC_SEX_WORDS[t],rk=_NPC_RANK_WORDS[t];
@@ -116,11 +122,68 @@ function npcKeptApart(name,k,shortT,longT){
   if(a.crown&&b.crown&&a.crown!==b.crown&&shortT.length===1&&longT.length>1&&longT[longT.length-1]===shortT[0])return a.crown+", not "+b.crown;
   return "";
 }
+// ── #504 (owner ruling 2026-10-01): the one question the names cannot answer ────────────────
+// A kin or rank title plus a SURNAME only ("Queen Underbough"), beside the one record that has a given name and does not
+// carry that title ("Wilhelmina Underbough"), is the same woman under a new title, or her mother. Nothing contradicts —
+// #503 keeps a king off a princess; it cannot keep a queen off one — so the names alone used to merge them, silently.
+// The scan REPORTS the question (ask = the title). The resolver then answers "its own person, pending": the name is filed
+// under itself wherever it first appears (any tag, the summary extractor), the post-handler seam stamps the record
+// PROVISIONAL (npcStampTitleQuestions, identity.js), and the name-collision note puts "the same person, or another?" to
+// the GM. Fork before fuse: a wrong fork is one merge away; a wrong fusion is permanent.
+// ONE table. Kin and rank only — an office (sheriff, captain, priest) is one person's at a time and keeps merging; an age
+// word (old, elder) is not a title. Every word here is also in _NPC_STOP: a title that consolidation does not drop never
+// reaches the question. "ser" and "sir" are one word of address (the known-words check folds them).
+var _NPC_ASK_TITLES=npcWordTable({king:1,queen:1,prince:1,princess:1,lord:1,lady:1,sir:1,ser:1,dame:1,master:1,mistress:1,
+  father:1,mother:1,brother:1,sister:1,husband:1,wife:1});
+function _npcAskWord(w){return w==="sir"?"ser":w;}
+// The words a record is known by: its key and its aliases on both stores. Null-prototype: names are untrusted keys.
+function npcRecordWords(k){
+  var m=memory.npcs[k]||{},w=(typeof wsNpcByName==="function")?wsNpcByName(k):null,all=[k].concat(m.aliases||[],(w&&w.aliases)||[]),out=Object.create(null),i,j;
+  for(i=0;i<all.length;i++){var ws=npcNameWords(all[i]);for(j=0;j<ws.length;j++)out[_npcAskWord(ws[j])]=1;}
+  return out;
+}
+// Pure. "" = no question; otherwise the title that raises it. The name must be BARE — one distinctive word, and it closes a
+// candidate that has more (a surname shared with someone who has a given name) — and the title must stand before that word
+// ("Marla King" is a surname, as in npcNameSays) and be one the record is not already known by.
+function npcTitleQuestion(name,k,inCore){
+  var kCore=npcCoreTokens(k);
+  if(inCore.length!==1||kCore.length<2||kCore[kCore.length-1]!==inCore[0])return "";
+  var ws=npcNameWords(name),at=ws.indexOf(inCore[0]),known=npcRecordWords(k),i;
+  for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];
+  return "";
+}
+// The title a record's own KEY carries ("Queen Underbough" -> "queen"; "Wilhelmina Underbough" -> ""), or "". The shape the
+// question files under: one distinctive word with a kin or rank title before it.
+function npcKeyTitle(k){
+  var core=npcCoreTokens(k);if(core.length!==1)return "";
+  var ws=npcNameWords(k),at=ws.indexOf(core[0]),i;
+  for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1)return ws[i];
+  return "";
+}
+// A name that names a titled record on file, by the record's own title and surname however the rest is written ("Old Queen
+// Underbough", "the Queen Underbough", "Queen_Underbough" name "Queen Underbough"), or null. Exactly one such record, else
+// null — never a guess. A record filed under a title is reached this way whether its question is open or settled, so a
+// spelling the exact step misses lands on it and not on the person it was split from (the #534 review's second finding).
+function npcTitledRecord(name){
+  var inCore=npcCoreTokens(name),ws,k,hit=null,n=0;
+  if(inCore.length!==1)return null;
+  ws=npcNameWords(name);
+  for(k in memory.npcs){
+    if(k===name)continue;
+    var t=npcKeyTitle(k);if(!t)continue;
+    if(npcCoreTokens(k)[0]!==inCore[0])continue;
+    var i,has=false;for(i=0;i<ws.length;i++)if(_npcAskWord(ws[i])===_npcAskWord(t)){has=true;break;}
+    if(!has)continue;
+    n++;if(n>1)return null;hit=k;
+  }
+  return hit;
+}
 // THE consolidation scan (one copy — the resolver and the receipt both read it). key = the single candidate nothing
 // contradicts; apart = the single candidate a contradiction ruled out. A ruled-out candidate still COUNTS: with two
 // people on file the name was ambiguous before #503 and stays ambiguous — the veto never steers a name onto the survivor.
+// ask (#504) = the title that makes the single match a question instead of an answer.
 function npcConsolidation(name){
-  var out={key:null,apart:null,why:""},inCore=npcCoreTokens(name);
+  var out={key:null,apart:null,why:"",ask:""},inCore=npcCoreTokens(name);
   if(!inCore.length)return out;
   var k,cnt=0,match=null,apart=null,why="";
   for(k in memory.npcs){
@@ -136,8 +199,43 @@ function npcConsolidation(name){
     var w=npcKeptApart(name,k,shortT,longT);
     if(w){apart=k;why=w;}else match=k;
   }
-  if(cnt===1){out.key=match;out.apart=apart;out.why=why;}
+  if(cnt===1){out.key=match;out.apart=apart;out.why=why;if(match)out.ask=npcTitleQuestion(name,match,inCore);}
   return out;
+}
+// #504: the title that makes this name a question for the GM, or "". An exact name and a registered alias are answers already.
+function npcTitleAsk(name){
+  if(!memory.npcs||npcExactKey(name))return "";
+  return npcConsolidation(name).ask;
+}
+// The record a name names EXACTLY, or null: its key, a registered alias (the GM's own word — it outranks every guess), and
+// with fold=true either of those up to case and separators ("queen_underbough", "Queen  Underbough"). Never consolidation:
+// this is the step an ANSWER to the name-collision note is read with (#534 rule 3 — the same person is said by her exact
+// name). The resolver calls it without the fold: its alias scan stays case-sensitive (UA12-T4, a pinned quirk).
+function _npcFold(s){return String(s||"").toLowerCase().replace(/[-_\s]+/g," ").trim();}
+function npcExactKey(name,fold){
+  if(!memory.npcs)return null;
+  if(memory.npcs[name])return name;
+  var k,i,al;for(k in memory.npcs){al=memory.npcs[k].aliases;if(al&&al.indexOf(name)>=0)return k;}
+  if(!fold)return null;
+  var f=_npcFold(name);if(!f)return null;
+  for(k in memory.npcs){if(_npcFold(k)===f)return k;}/* fold 1: keys up to case and separators ("savah °t85" is "Savah °t85") */
+  if(fold===1)return null;
+  for(k in memory.npcs){al=memory.npcs[k].aliases||[];for(i=0;i<al.length;i++)if(_npcFold(al[i])===f)return k;}/* fold 2: aliases too — the answer reader only; the resolver's alias scan stays case-sensitive (UA12-T4) */
+  return null;
+}
+// #504: a ° key that is no live record — the provisional was folded or renamed — resolves to where the merge archive says it
+// went, and never by consolidation onto the person it was split from (the #534 review's stale-key class: MERGE runs before
+// NPC_NOTE in the table, so a note written to the key in the answering reply used to land on the established record). A °
+// key the archive has never seen stays its own name (a hallucinated key makes its own record, loudly, rather than anyone's).
+function npcFormerKey(name,depth){
+  if(!/ °t\d+$/.test(String(name||"")))return null;
+  var core=npcCoreTokens(name),k,live=null,n=0;/* "The Savah °t85", "Old Savah °t85": the live ° key with the same words */
+  for(k in memory.npcs){if(!/ °t\d+$/.test(k))continue;var kc=npcCoreTokens(k);if(kc.length===core.length&&kc.join(" ")===core.join(" ")){n++;live=k;}}
+  if(n===1)return live;
+  var a=(typeof memArchive==="function")?memArchive().identityMerges:null,i,cj=core.join(" ");
+  if(a){for(i=a.length-1;i>=0;i--){if(!a[i]||a[i].domain!=="npc")continue;var dup=a[i].duplicate;if(dup!==name&&!(/ °t\d+$/.test(dup)&&npcCoreTokens(dup).join(" ")===cj))continue;/* the key itself, or a spelling of it */
+    var c=a[i].canonical;if(memory.npcs[c])return c;var own=npcExactKey(c);if(own)return own;var f=(depth||0)<8?npcFormerKey(c,(depth||0)+1):null;return f||name;}}
+  return name;
 }
 // The receipt for a write that the veto turned into a NEW person — "" when the name was simply new. Ask BEFORE the
 // record is created (afterwards the name is an exact hit and there is nothing to say).
@@ -148,16 +246,21 @@ function npcApartLine(raw){
 }
 function resolveNpcName(name){
   if(!memory.npcs)return name;
-  if(memory.npcs[name])return name;
-  var k;for(k in memory.npcs){if(memory.npcs[k].aliases&&memory.npcs[k].aliases.indexOf(name)>=0)return k;}
+  var own=npcExactKey(name,1);if(own)return own;/* exact key (up to case and separators) or registered alias — one scan for the resolver and the answer reader (#504) */
+  var former=npcFormerKey(name);if(former)return former;/* #504: a folded ° key goes where its merge went, never back onto the person it was split from */
+  var titled=npcTitledRecord(name);if(titled)return titled;/* #504: "Old Queen Underbough" names the Queen Underbough on file */
   // Distinctive-token consolidation (bidirectional, honorific/parenthetical-tolerant). The GM freely
   // varies a name across turns — "Morwen" / "Morwen Zethran" / "Morwen (Ammut's wife)", or "Hemlock" /
   // "Sheriff Belor Hemlock" — which otherwise forks one person into several memory.npcs entries. If the
   // incoming name's distinctive tokens are a subset (either direction) of EXACTLY ONE existing entry's,
   // resolve to that entry. The single-candidate guard keeps distinct people who share a token (e.g.
   // sibling surname "Kaijitsu") separate rather than wrongly merging them. #503: and a candidate the
-  // name CONTRADICTS (npcKeptApart) is never the answer — the name stays its own.
-  return npcConsolidation(name).key||name;
+  // name CONTRADICTS (npcKeptApart) is never the answer — the name stays its own. #504: and a candidate
+  // the name can only be ASKED about (a kin or rank title on the family name) is not the answer either —
+  // the name is its own person until the GM says; the seam that files it asks.
+  var c=npcConsolidation(name);
+  if(c.ask)return name;
+  return c.key||name;
 }
 
 // ── #128: deterministic name-variant scan → the #57 merge-confirm channel ──────────────────
@@ -296,7 +399,7 @@ function getNameSuggestions(count,peek){
   if(!peek)memory.nameIdx=idx;
   return result;
 }
-function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8){var _evD=memory.npcs[name].events.splice(0,memory.npcs[name].events.length-8),_evi;for(_evi=0;_evi<_evD.length;_evi++)memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn});}/* multi-shrink like the old slice(-8) so an NPC_MERGE overfill converges (audit E50); evicted events archive, never the void (#144A) */}
+function fileNpcEvent(name,note,turn){name=resolveNpcName(name);if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(name)){if(typeof console!=="undefined")console.warn("[memory] NPC event for the player '"+name+"' refused — player canon stays on the character sheet (#538)");return;}if(!memory.npcs[name])memory.npcs[name]={attitude:"",knowledge:[],events:[],aliases:[]};memory.npcs[name].events.push({turn:turn,note:note});if(memory.npcs[name].events.length>8){var _evD=memory.npcs[name].events.splice(0,memory.npcs[name].events.length-8),_evi;for(_evi=0;_evi<_evD.length;_evi++)memArchive().npcEvents.push({npc:name,note:_evD[_evi].note,turn:_evD[_evi].turn});}/* multi-shrink like the old slice(-8) so an NPC_MERGE overfill converges (audit E50); evicted events archive, never the void (#144A) */}
 // #269① (f37): THE one knowledge-filing path — the three exact-indexOf sites (summary extract,
 // summary supersede, the NPC_SUPERSEDE tag) each deduped byte-exact only, so the extractor's
 // fresh-worded re-statements accumulated as paraphrase twins and every cap-12 admission evicted
@@ -2340,6 +2443,7 @@ function summaryMotivationGuard(change,cs,name,table){
   return {refused:"settledPurpose matches neither the standing purpose nor its history"};
 }
 function applySummaryExtract(extracted,identityTable,motivationTable){
+  var _tqBefore=(typeof npcKeySet==="function")?npcKeySet():null;/* #504: records the extractor creates under a title on a family name are stamped at the end */
   var _mt=motivationTable||summaryMotivationTable();
   motivationTable={world:_mt.world,campId:_mt.campId,campName:_mt.campName,rows:_mt.rows.slice()};
   /* #168R2 (entry-13 review): the extractor may return prose tiers as ARRAYS; _w6SummaryTexts validates only
@@ -2460,6 +2564,7 @@ function applySummaryExtract(extracted,identityTable,motivationTable){
   // window — the correction pin's job is done. Archive it (never a silent drop). Runs after the
   // chapter file so a throw in any earlier step keeps the pin alive for the retry.
   if(typeof worldState!=="undefined"&&worldState&&worldState.retconPin){memArchive().retconPins.push(worldState.retconPin);delete worldState.retconPin;}
+  if(_tqBefore&&typeof npcStampTitleQuestions==="function")npcStampTitleQuestions(_tqBefore,null);/* #504: the extractor's writes name people too */
   if(typeof sceneRefsSummarySuccess==="function")sceneRefsSummarySuccess();
   if(typeof w2TxnSummaryRetire==="function")w2TxnSummaryRetire();/* #168R3: committed receipts retire once out of replay range; the overflow latch recovers *//* active evidence remains; only safely covered transitioned frames retire */
   return stats;

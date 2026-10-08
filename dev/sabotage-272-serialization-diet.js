@@ -64,8 +64,8 @@ rc |= sabotage.prove({
 
     { label: "the f44b hoist reverts — a worldState-only duplicate folds with no pre-image (#272 D5)",
       mustFail: "a ws-only duplicate folded with NO pre-image",
-      find: "var _imWs=wsNpcByName(mgDupe);if(memory.npcs[mgDupe]||_imWs){",
-      replace: "var _imWs=wsNpcByName(mgDupe);if(memory.npcs[mgDupe]){" }
+      find: "nothing merged\");continue;}if(memory.npcs[mgDupe]||_imWs){",
+      replace: "nothing merged\");continue;}if(memory.npcs[mgDupe]){" }
   ]
 });
 

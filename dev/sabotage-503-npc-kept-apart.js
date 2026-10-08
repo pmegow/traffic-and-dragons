@@ -42,7 +42,7 @@ prove("memory.js", [
     find: "var w=raw[i].replace(/[^a-z]/g,\"\");if(w)ws.push(w);", replace: "var w=raw[i].replace(/['\\u2019]s$/,\"\").replace(/[^a-z]/g,\"\");if(w)ws.push(w);",
     mustFail: SUR },
   { label: "a parenthetical titles the person",
-    find: "  var raw=String(name||\"\").toLowerCase().replace(/\\(.*?\\)/g,\" \").split(/\\s+/),ws=[],i;", replace: "  var raw=String(name||\"\").toLowerCase().split(/\\s+/),ws=[],i;",
+    find: "  var raw=String(name||\"\").toLowerCase().replace(/\\(.*?\\)/g,\" \").replace(/[-_]+/g,\" \").split(/\\s+/),ws=[],i;", replace: "  var raw=String(name||\"\").toLowerCase().replace(/[-_]+/g,\" \").split(/\\s+/),ws=[],i;",
     mustFail: SUR },
   { label: "a name that states both sexes states the last one",
     find: "    if(sx)out.sex=(out.sex&&out.sex!==sx)?\"?\":(out.sex||sx);", replace: "    if(sx)out.sex=sx;",
