@@ -18792,6 +18792,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var r;try{r=applyMuts("[MERGE:npc|Sandpoint|Sandpoint Bathhouse|Private Room]");}finally{console.warn=ow;}
     if(JSON.stringify([memory.npcs,worldState.npcs])!==pre)return "a pipe-bearing operand MUTATED state — the exact Sol §5 hazard";
     if(!warned)return "refusal was silent";
+    /* #504: since the merge handler refuses a duplicate that is on no record, the probe above would stay clean even if the pipe rule were
+       gone. Mis-split here, the tag names two REAL records — only the pipe refusal stands between them and a fold. */
+    makeIdWorld();memory.npcs["Sandpoint"]={attitude:"",knowledge:["a harbour town"],events:[],aliases:[]};
+    var pre2=JSON.stringify([memory.npcs,worldState.npcs]),wm=[];console.warn=function(m){wm.push(String(m));};
+    try{applyMuts("[MERGE:npc|Savah|Sandpoint|Private Room]");}finally{console.warn=ow;}
+    if(JSON.stringify([memory.npcs,worldState.npcs])!==pre2)return "a mis-split merge of two real records MUTATED state (Sandpoint folded into Savah)";
+    if(!wm.some(function(m){return m.indexOf("expected domain|a|b")>=0;}))return "the refusal names the pipe rule: "+JSON.stringify(wm);
     var ow2=console.warn,w2=false;console.warn=function(){w2=true;};
     var vis;try{vis=cleanTxt("Done. [MERGE:npc|Sandpoint|Sandpoint Bathhouse|Private Room] Next.");}finally{console.warn=ow2;}
     if(vis.indexOf("[MERGE")>=0)return "refused tag leaked to display";
@@ -29457,6 +29464,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!memory.npcs["King Underbough"]||memory.npcs["Wilhelmina Underbough"].pronouns!=="she/her")return "the memory side must split the same way";
     var muts=JSON.stringify(r.r&&r.r.muts);
     if(!(/King Underbough/.test(muts)&&/Wilhelmina Underbough/.test(muts)&&/separate/.test(muts)))return "the split is said in the turn's summary (and so in the provenance ring): "+muts;
+    /* #504's receipt says "filed separately" too, so the line above cannot tell the veto from the title question. A contradiction is another
+       person outright: nothing to ask, so no provisional stamp and no "possible name collision" line. */
+    if(memory.npcs["King Underbough"].provisional||/possible name collision/.test(muts))return "a contradiction is another person outright, never a question (#504 asks only what #503 cannot tell): "+muts;
     var again=quiet(function(){return applyMuts("He wakes. [NPC:King Underbough|awake, sour|neutral] [NPC_PRONOUN:King Underbough|he/him]");});
     if(/separate/.test(JSON.stringify(again.r.muts)))return "said ONCE, when he is filed — never on every later tag: "+JSON.stringify(again.r.muts);
     return wsNpcByName("King Underbough").status==="awake, sour"&&worldState.npcs.length===2?true:"later tags land on his own record: "+roster503();
@@ -29478,7 +29488,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     w503();on503("Wil Underbough",null);
     if(resolveNpcName("King Underbough")!=="King Underbough")return "no pronouns on record states no sex — the #504 question, its own name: "+resolveNpcName("King Underbough");
     w503();on503("Wil Underbough",null);
-    return resolveNpcName("Sheriff Underbough")==="Wil Underbough"?true:"an office is no question — consolidates as before: "+resolveNpcName("Sheriff Underbough");
+    if(resolveNpcName("Sheriff Underbough")!=="Wil Underbough")return "an office is no question — consolidates as before: "+resolveNpcName("Sheriff Underbough");
+    /* #504 asks before the veto speaks whenever the record has a given name, so the cases above no longer reach the record's own pronouns.
+       A record with NO given name is never a question: here the veto alone keeps two people apart, and nothing else does. */
+    w503();on503("Voss","she/her");
+    if(resolveNpcName("Lord Voss")!=="Lord Voss")return "lord onto a she/her record with no given name — only the record's own pronouns can say so: "+resolveNpcName("Lord Voss");
+    w503();on503("Voss","they/them");
+    return resolveNpcName("Lord Voss")==="Voss"?true:"they/them states no sex — the lord is the same Voss: "+resolveNpcName("Lord Voss");
   });
   t("#503 the same person under a new title still consolidates: Sheriff Hemlock, Morwen, Sir Wendel, Lady Threnna Voss, Father Zantus",function(){
     var same=[["Hemlock","Sheriff Belor Hemlock","he/him"],["Sheriff Hemlock","Belor Hemlock","he/him"],["Morwen","Morwen Zethran","she/her"],["Morwen (Ammut's wife)","Morwen Zethran","she/her"],
@@ -29506,7 +29522,15 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(resolveNpcName("King Underbough")!=="King Underbough")return "the king onto his son";
     if(resolveNpcName("King Aldric")!=="Prince Aldric Underbough")return "a crowned prince is the same man — the given name is shared: "+resolveNpcName("King Aldric");
     w503();on503("Wilhelmina Underbough","she/her");memory.npcs["Wilhelmina Underbough"].aliases=["Princess Wilhelmina"];
-    return resolveNpcName("Queen Underbough")==="Queen Underbough"?true:"the record's aliases state her rank — the queen is her mother";
+    if(resolveNpcName("Queen Underbough")!=="Queen Underbough")return "the record's aliases state her rank — the queen is her mother";
+    /* #504 asks about "King Underbough" beside his son before the crown clause speaks. The other way round (the son arriving beside the
+       king) is never a question — two distinctive words — so the crown clause is the only guard, and so are the record's aliases. */
+    w503();on503("King Underbough","he/him");
+    if(resolveNpcName("Prince Aldric Underbough")!=="Prince Aldric Underbough")return "the son onto the king, the other way round — only the crown clause can say so: "+resolveNpcName("Prince Aldric Underbough");
+    w503();on503("Underbough","he/him");memory.npcs["Underbough"].aliases=["King Underbough"];
+    if(resolveNpcName("Prince Aldric Underbough")!=="Prince Aldric Underbough")return "the record's alias states the crown — the prince is his son: "+resolveNpcName("Prince Aldric Underbough");
+    w503();on503("Garrow",null);memory.npcs["Garrow"].aliases=["Old Garrow"];
+    return resolveNpcName("Young Garrow")==="Young Garrow"?true:"the record's alias states his age — Young Garrow is another man: "+resolveNpcName("Young Garrow");
   });
   t("#503 the reverse order: the king is on file, the princess arrives with her own pronouns — two people, his pronouns untouched",function(){
     w503();quiet(function(){applyMuts("[NPC:King Underbough|hungover|neutral] [NPC_PRONOUN:King Underbough|he/him]");});
@@ -29551,7 +29575,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#503 two candidates stay ambiguous even when one is ruled out — a third name is never steered onto the survivor",function(){
     w503();on503("Wilhelmina Underbough","she/her");on503("Aldous Underbough","he/him");
     if(resolveNpcName("King Underbough")!=="King Underbough")return "steered onto "+resolveNpcName("King Underbough")+" — two Underboughs on file was ambiguous before and still is";
-    return resolveNpcName("Underbough")==="Underbough"?true:"the bare surname with two on file stays its own, as before";
+    if(resolveNpcName("Underbough")!=="Underbough")return "the bare surname with two on file stays its own, as before";
+    /* #504 asks about "King Underbough" beside Aldous before the count matters. A survivor with no given name is never a question, so here
+       the count alone keeps the name off him: the ruled-out Wilhelmina must still count. */
+    w503();on503("Wilhelmina Underbough","she/her");on503("Underbough","he/him");
+    return resolveNpcName("King Underbough")==="King Underbough"?true:"steered onto the survivor with no given name — the ruled-out candidate stopped counting: "+resolveNpcName("King Underbough");
   });
   t("#503 resolveEntity keeps parity on a contradicted name; npcNameSays is pure",function(){
     w503();on503("Wilhelmina Underbough","she/her");

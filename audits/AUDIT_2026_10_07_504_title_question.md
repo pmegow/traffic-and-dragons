@@ -58,7 +58,18 @@ Final runs: seeds 4242 (4000), 7 with hero swaps (2000), 99 with hero swaps (600
 
 ## 6. Independent review
 
-One reviewer (an Opus agent given the code and the intent, never this record's conclusions) ran after the proof set above; its findings and their status are appended in the follow-up commit.
+**Owed.** One reviewer was launched after commit `a3a61edf`, given the code and the intent but never this record's conclusions. It stopped before reporting any finding when the Fable credits ran out on 2026-10-07. It counts as no review. The build is committed and **not pushed**: the independent-review gate for drift-surface work is unmet. Queued as todo_checkWithFable.md ▸ Pending Fable review, entry 38, with the probe list a reviewer should start from.
+
+## 6a. The range sweep after the commit, and the test-only follow-up (Opus 5.5, 2026-10-07)
+
+`node dev/run-sabotage-diff.js origin/master..HEAD` ran 82 batteries after the commit. 80 passed and two failed. The cause was the same in both: the new behaviour answers before the older guard speaks, so the older tests no longer reach the guard their battery mutates.
+
+| Battery | Clauses that stopped attributing | Why the old test went blind |
+|---|---|---|
+| `sabotage-503-npc-kept-apart.js` | the veto removed; a ruled-out candidate stops counting; the record's own pronouns; pronouns that state no sex; the crown clause; the record's aliases | Every fixture used a record with a given name, so the #504 title question asks before the #503 veto or the count speaks. The field-case test also read "filed separately" in the #504 receipt as proof of the veto. |
+| `sabotage-identity.js` | the pipe refusal disabled | The mis-split probe named a duplicate that is on no record. The #504 handler now refuses that loudly, so the probe stayed clean even without the pipe rule. |
+
+The follow-up adds cases the question cannot mask, and loosens nothing. The new cases use a record with no given name, the son arriving beside the king, a crown or an age stated by a record's alias, and a mis-split merge of two real records. The field-case test now also requires that a contradiction is never a provisional question. After the follow-up, `sabotage-503-npc-kept-apart.js` proves 19/19 + 2/2 + 2/2 and `sabotage-identity.js` proves every group. No engine file changed. The Fable session's own proof set (§4) already covered the #504 battery, which was 55/55 before the sweep and is untouched by this change.
 
 ## 7. Left open
 
