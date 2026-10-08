@@ -23,8 +23,8 @@ rc|=sabotage.prove({
       replace:"" },
     { label:"#437: the settled line repeats the old purpose's words",
       mustFail:"#437 pure: motivationSettle",
-      find:'  return "settled"+(last.camp?" in "+last.camp:"")+": "+(last.how||"settled");',
-      replace:'  return "settled"+(last.camp?" in "+last.camp:"")+": "+last.text+" — "+(last.how||"settled");' }
+      find:'  return "settled"+(last.camp?" in "+last.camp:"")+(opts&&opts.omitHow?"":": "+(last.how||"settled"));',
+      replace:'  return "settled"+(last.camp?" in "+last.camp:"")+(opts&&opts.omitHow?"":": "+last.text+" — "+(last.how||"settled"));' }
   ]
 });
 rc|=sabotage.prove({

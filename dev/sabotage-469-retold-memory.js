@@ -90,9 +90,9 @@ rc |= sabotage.prove({
   command: ["node", ["dev/run-tests.js", "motivation"]],
   cases: [
     { label: "#469 ⑤ — the settled how rides the village prompt again",
-      mustFail: "the village must serve the campaign only",
-      find: 'if(ml&&typeof kindDef==="function"&&kindDef().smallTalk)ml=ml.replace(/:\\s[\\s\\S]*$/,"");',
-      replace: 'if(false)ml=ml.replace(/:\\s[\\s\\S]*$/,"");' }
+      mustFail: "#469 ⑤ in a small-talk kind",
+      find: 'motivationSettledLine(cs,{omitHow:typeof kindDef==="function"&&kindDef().smallTalk})',
+      replace: 'motivationSettledLine(cs)'  }
   ]
 });
 

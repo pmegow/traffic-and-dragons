@@ -454,10 +454,10 @@ function motivationBirth(cs,text,turn,camp){
 }
 /* "" while a purpose stands or when none was ever recorded; otherwise how and where the last one ended — never its
    old words, so a closed paperwork purpose stays closed in the prompt. */
-function motivationSettledLine(cs){
+function motivationSettledLine(cs,opts){
   if(!cs||(typeof cs.motivation==="string"&&cs.motivation.trim()))return "";
   var h=cs.motivationHistory;if(!h||!h.length)return "";var last=h[h.length-1];
-  return "settled"+(last.camp?" in "+last.camp:"")+": "+(last.how||"settled");
+  return "settled"+(last.camp?" in "+last.camp:"")+(opts&&opts.omitHow?"":": "+(last.how||"settled"));
 }
 // #386: a companion acted on their flaw unbidden — file it (ring of 20, the sheet's stamp). Null when refused.
 function companionInitiativeFile(cs,what,turn){

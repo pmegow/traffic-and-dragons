@@ -28624,6 +28624,32 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (NOTE_LATCH_FIELDS.indexOf("skelTitlePing")>=0&&NOTE_SHAPES.buildSkeletonTitleNote&&NOTE_SHAPES.buildSkeletonTitleNote.combat==="fires")?true:"registered, combat fires: "+JSON.stringify(NOTE_SHAPES.buildSkeletonTitleNote);
   });
 
+  section("#527 Village settled campaign title");
+  t("#527 Village preserves literal campaign colons while withholding settlement details",function(){
+    __mlWorld();worldState.kind="village";var cs=findCompanionChar("Daeris"),names=["Runelords: Burnt Offerings","One: Two: Three","Plain Campaign"];
+    cs.motivation="";
+    for(var i=0;i<names.length;i++){
+      cs.motivationHistory=[{camp:names[i],how:"her brother returned: alive",text:"Old purpose"}];
+      var before=JSON.stringify(cs),p=buildPartyHistoriesBlock();
+      if(p.indexOf("motivation — none standing (settled in "+names[i]+");")<0)return "the campaign was cut at its own colon: "+p;
+      if(p.indexOf("her brother returned")>=0||p.indexOf("Old purpose")>=0)return "Village served settlement details";
+      worldState.turn++;if(buildPartyHistoriesBlock()!==p)return "a turn changed the stable history";
+      if(JSON.stringify(cs)!==before)return "rendering changed the sheet";
+    }return true;
+  });
+  t("#527 settled renderer keeps default detail and handles missing provenance without inventing text",function(){
+    var cs={motivation:"",motivationHistory:[{camp:"Runelords: Burnt Offerings",how:"her brother returned: alive"}]};
+    if(motivationSettledLine(cs)!=="settled in Runelords: Burnt Offerings: her brother returned: alive")return "default detailed rendering changed";
+    if(motivationSettledLine(cs,{omitHow:true})!=="settled in Runelords: Burnt Offerings")return "compact renderer cut the structured title";
+    cs.motivationHistory=[{}];if(motivationSettledLine(cs,{omitHow:true})!=="settled"||motivationSettledLine(cs)!=="settled: settled")return "missing provenance invented a title or omitted default detail";
+    cs.motivation="Protect her brother";if(motivationSettledLine(cs,{omitHow:true})!=="")return "standing purpose gained a settlement line";
+    return motivationSettledLine({},{omitHow:true})===""?true:"no history gained a settlement line";
+  });
+  t("#527 adventure preserves full colon campaign name and settlement reason",function(){
+    __mlWorld();var cs=findCompanionChar("Daeris");cs.motivation="";cs.motivationHistory=[{camp:"Runelords: Burnt Offerings",how:"her brother returned: alive"}];
+    var p=buildPartyHistoriesBlock();return p.indexOf("motivation — none standing (settled in Runelords: Burnt Offerings: her brother returned: alive);")>=0?true:"adventure lost full detail: "+p;
+  });
+
   section("#527 skeleton prose register");
   t("#527 skeleton prose permits manifests in every descriptive field",function(){
     var sk={premise:"The spirit manifests at dusk.",acts:[{title:"The Arrival",goal:"Learn why the spirit manifests.",turningPoint:"The lost queen manifests in the hall.",arcs:[{title:"The Hall",objective:"Wait until the spirit manifests.",dnaHint:"Fear manifests through silence."}]}]},before=JSON.stringify(sk);

@@ -757,7 +757,7 @@ function buildPartyHistoriesBlock(){
      and the skeleton), while every companion got theirs every turn (#341); a library update to the hero's
      past changed nothing the GM could see. Trait/flaw/motivation stay on the identity line (volatile). */
   var hero=worldState.character||{};if(hero.backstory)L.push("- "+hero.name+" (the player): "+hero.backstory);
-  for(i=0;i<party.length;i++){var cs=party[i].charSheet||{},ml=(typeof motivationSettledLine==="function")?motivationSettledLine(cs):"";if(ml&&typeof kindDef==="function"&&kindDef().smallTalk)ml=ml.replace(/:\s[\s\S]*$/,"");/* #469 ⑤: the how is the moment's own sentence — in a small-talk kind the campaign alone is served (the Village t191 Silas line rode this every turn) */
+  for(i=0;i<party.length;i++){var cs=party[i].charSheet||{},ml=(typeof motivationSettledLine==="function")?motivationSettledLine(cs,{omitHow:typeof kindDef==="function"&&kindDef().smallTalk}):"";/* #469 ⑤: the how is the moment's own sentence — in a small-talk kind the campaign alone is served (the Village t191 Silas line rode this every turn) */
     if(!(cs.backstory||cs.trait||cs.flaw||cs.motivation||ml))continue;
     var pers="";if(cs.trait)pers+=" trait — "+cs.trait+";";if(cs.flaw)pers+=" flaw — "+cs.flaw+";";if(cs.motivation)pers+=" motivation — "+cs.motivation+";";else if(ml)pers+=" motivation — none standing ("+ml+");";/* #437: a settled purpose is named as closed, so the GM cannot re-derive it from the backstory */
     var _pb=(typeof personaPromptBits==="function")?personaPromptBits(cs):[];if(_pb.length)pers+=" "+_pb.join("; ")+";";/* #552: the voice rides with the personality */
