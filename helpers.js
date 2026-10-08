@@ -3667,10 +3667,10 @@ function moodDoingOnly(mood,keepConditions){
     if(/\b[a-z]{2,}ing\b/i.test(p)||MOOD_PLACE_RE.test(p)||(keepConditions&&MOOD_CONDITION_RE.test(p)))out.push(p);}
   return out.join(", ");
 }
-// #460 ①: does the SHEET lead this character's entry? A present-or-absent non-party resident with a sheet trait — the
+// #460: only a present non-party character has a sheet trait served on the roster (#434). The
 // roster leads with "plays as", and the memory attitude line (the summariser's slower, GM-fed reading) is omitted in the
 // NPC detail and the graph node, so one clause from the sheet no longer loses to a hundred remembered lines.
 function sheetTraitLeads(name){
   var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;
-  return !!(n&&!n.partyMember&&n.charSheet&&typeof n.charSheet.trait==="string"&&n.charSheet.trait.trim());
+  return !!(n&&!n.partyMember&&n.charSheet&&typeof n.charSheet.trait==="string"&&n.charSheet.trait.trim()&&typeof scenePresentNow==="function"&&scenePresentNow(n.name));
 }

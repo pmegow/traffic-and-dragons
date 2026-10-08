@@ -26917,6 +26917,44 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#527 off-scene NPC attitude");
+  t("#527 absent traited NPC keeps attitude in detail and graph without a roster personality backlog",function(){
+    carriedEF();var la=lastAction;
+    try{
+      var n=wsNpcByName("Nyla Lorrath"),m=memory.npcs[n.name];m.attitude="wary of your promises";m.lastSeenAt="The Village|Nyla Lorrath's house";m.lastMentioned=worldState.turn;
+      delete worldState.sceneRefs;sceneRefsEnsure();npcLinkUpsert(n.name,"Silas Morne","neighbour");
+      if(buildSceneManifest().local.indexOf(n.name)>=0)return "fixture must be absent";
+      var before=JSON.stringify(m);lastAction="Ask Silas about Nyla Lorrath.";
+      if(memoryNpcDetail(n.name).indexOf("toward you: wary of your promises")<0)return "absent detail lost attitude";
+      if(!/Nyla Lorrath \([^)]*toward you: wary of your promises/.test(buildNpcGraph()))return "absent graph lost attitude";
+      var p=buildSysPrompt(),roster=p.volatile.match(/\nNPCs: ([^\n]*)/),entry=roster&&roster[1].split(/; (?=[A-Z])/).filter(function(x){return /^Nyla Lorrath/.test(x);})[0];
+      if(!entry||/plays as:|flaw:|look:|motivation:/.test(entry))return "absent roster gained a personality backlog: "+entry;
+      if(JSON.stringify(m)!==before)return "serving mutated recorded attitude or history";
+      return true;
+    }finally{lastAction=la;}
+  });
+  t("#527 attitude suppression follows current scene presence and leaves stable prompt unchanged",function(){
+    carriedEF();var n=wsNpcByName("Nyla Lorrath"),m=memory.npcs[n.name];m.attitude="wary of your promises";
+    delete worldState.sceneRefs;sceneRefsEnsure();npcLinkUpsert(n.name,"Silas Morne","neighbour");
+    if(!sheetTraitLeads(n.name))return "present trait must lead";
+    var stable=buildSysPrompt().stable;
+    if(/toward you:/.test(memoryNpcDetail(n.name)))return "present detail has competing attitude";
+    if(/Nyla Lorrath \([^)]*toward you:/.test(buildNpcGraph()))return "present graph has competing attitude";
+    worldState.sceneRefs.active.startTurn=worldState.turn+1;worldState.sceneRefs.active.observed=[];
+    if(scenePresentNow(n.name))return "fixture stale same-node sighting is present";
+    if(sheetTraitLeads(n.name)||memoryNpcDetail(n.name).indexOf("toward you: wary of your promises")<0)return "stale same-node sighting still suppresses attitude";
+    if(buildSysPrompt().stable!==stable)return "presence changed stable prompt";
+    worldState.sceneRefs.active.observed=[{entity:n.name,lastTurn:worldState.turn+1}];
+    return sheetTraitLeads(n.name)&&!/toward you:/.test(memoryNpcDetail(n.name))?true:"observed return must restore sheet precedence";
+  });
+  t("#527 party, traitless and unsheeted NPC attitudes stay served",function(){
+    carriedEF();var n=wsNpcByName("Nyla Lorrath"),m=memory.npcs[n.name];m.attitude="wary of your promises";npcLinkUpsert(n.name,"Silas Morne","neighbour");
+    function kept(){return !sheetTraitLeads(n.name)&&memoryNpcDetail(n.name).indexOf("toward you: wary of your promises")>=0&&/Nyla Lorrath \([^)]*toward you: wary of your promises/.test(buildNpcGraph());}
+    n.partyMember=true;if(!kept())return "party attitude lost";
+    n.partyMember=false;n.charSheet.trait="";if(!kept())return "traitless attitude lost";
+    delete n.charSheet;return kept()?true:"unsheeted attitude lost";
+  });
+
   section("#552 the portable persona — a character keeps their voice between campaigns");
   /* a transcript the way the game stores it: clean text per GM entry plus the speaker map the #96 [SAY:] pass stamps
      (sp.s: unit index → speaker, against TTS's own splitter). Built here by the same splitter, so the oracle is real. */
