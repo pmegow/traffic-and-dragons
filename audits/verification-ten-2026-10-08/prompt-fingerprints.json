@@ -1,0 +1,82 @@
+{
+  "baseline": [
+    {
+      "file": "Campaigns/The_Necrotic_Dungeon/saves/The_Necrotic_Dungeon_Ammut_t35.tnd",
+      "stable": "0abc3225fb851f8627c5debb8a6880d699b2e47ce511bd22c0b0ebe5332b7119",
+      "volatile": "b200922fca8910f9380b85c5530bf4927117f9ace4ee2ff2be8c1ba36e14013a",
+      "saveUnchanged": true
+    },
+    {
+      "file": "Campaigns/The_Village__Ammut_/saves/The_Village__Ammut__Ammut_t279.tnd",
+      "stable": "9806be1d3d465f3557fee87ad522926ca467d3fa9e62b2fdd1eabfd13f6e99b4",
+      "volatile": "f4f4d108886d93a84d43a1cda7c9c9e796a8a8937b65455069fe84b990c30cb9",
+      "saveUnchanged": true
+    },
+    {
+      "file": "Campaigns/The_Long_Walk/saves/The_Long_Walk_Silas_Morne_t146.tnd",
+      "stable": "4c173814256e0bff6674f55d2dbc2f13be4b9072a1fee66821fc40b575feaf4b",
+      "volatile": "1ad40b2bf321a4e11d13322e1e618ba6f6ab3b5b1e3934eafbe6dad480999957",
+      "saveUnchanged": true
+    }
+  ],
+  "after2": [
+    {
+      "file": "Campaigns/The_Necrotic_Dungeon/saves/The_Necrotic_Dungeon_Ammut_t35.tnd",
+      "stable": "0abc3225fb851f8627c5debb8a6880d699b2e47ce511bd22c0b0ebe5332b7119",
+      "volatile": "b200922fca8910f9380b85c5530bf4927117f9ace4ee2ff2be8c1ba36e14013a",
+      "saveUnchanged": true
+    },
+    {
+      "file": "Campaigns/The_Village__Ammut_/saves/The_Village__Ammut__Ammut_t279.tnd",
+      "stable": "9806be1d3d465f3557fee87ad522926ca467d3fa9e62b2fdd1eabfd13f6e99b4",
+      "volatile": "964b6b6f35416c515cf422d558fe99cc43abd264d200b259bf8c1a4f32c0c0f1",
+      "saveUnchanged": true
+    },
+    {
+      "file": "Campaigns/The_Long_Walk/saves/The_Long_Walk_Silas_Morne_t146.tnd",
+      "stable": "4c173814256e0bff6674f55d2dbc2f13be4b9072a1fee66821fc40b575feaf4b",
+      "volatile": "1ad40b2bf321a4e11d13322e1e618ba6f6ab3b5b1e3934eafbe6dad480999957",
+      "saveUnchanged": true
+    }
+  ],
+  "after15": [
+    {
+      "file": "Campaigns/The_Necrotic_Dungeon/saves/The_Necrotic_Dungeon_Ammut_t35.tnd",
+      "stable": "0abc3225fb851f8627c5debb8a6880d699b2e47ce511bd22c0b0ebe5332b7119",
+      "volatile": "70c4f18abeaf9da0013f82f56d87dc53fa242862822d7f3844cae39358b69ace",
+      "saveUnchanged": true
+    },
+    {
+      "file": "Campaigns/The_Village__Ammut_/saves/The_Village__Ammut__Ammut_t279.tnd",
+      "stable": "9806be1d3d465f3557fee87ad522926ca467d3fa9e62b2fdd1eabfd13f6e99b4",
+      "volatile": "de31edb2dd51586d3684715ec3a3063d71d3739fafc7078e996689a44bd50402",
+      "saveUnchanged": true
+    },
+    {
+      "file": "Campaigns/The_Long_Walk/saves/The_Long_Walk_Silas_Morne_t146.tnd",
+      "stable": "4c173814256e0bff6674f55d2dbc2f13be4b9072a1fee66821fc40b575feaf4b",
+      "volatile": "34eba893a5b698d303cbc8eae6545a7ff0e422e5bf886097dfd046845210a47d",
+      "saveUnchanged": true
+    }
+  ],
+  "after19": [
+    {
+      "file": "Campaigns/The_Necrotic_Dungeon/saves/The_Necrotic_Dungeon_Ammut_t35.tnd",
+      "stable": "0abc3225fb851f8627c5debb8a6880d699b2e47ce511bd22c0b0ebe5332b7119",
+      "volatile": "70c4f18abeaf9da0013f82f56d87dc53fa242862822d7f3844cae39358b69ace",
+      "saveUnchanged": true
+    },
+    {
+      "file": "Campaigns/The_Village__Ammut_/saves/The_Village__Ammut__Ammut_t279.tnd",
+      "stable": "9806be1d3d465f3557fee87ad522926ca467d3fa9e62b2fdd1eabfd13f6e99b4",
+      "volatile": "de31edb2dd51586d3684715ec3a3063d71d3739fafc7078e996689a44bd50402",
+      "saveUnchanged": true
+    },
+    {
+      "file": "Campaigns/The_Long_Walk/saves/The_Long_Walk_Silas_Morne_t146.tnd",
+      "stable": "4c173814256e0bff6674f55d2dbc2f13be4b9072a1fee66821fc40b575feaf4b",
+      "volatile": "34eba893a5b698d303cbc8eae6545a7ff0e422e5bf886097dfd046845210a47d",
+      "saveUnchanged": true
+    }
+  ]
+}

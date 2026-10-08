@@ -1,0 +1,23 @@
+{
+  "version": "v1.1182",
+  "summary": "ALL GREEN — 42 assertions passed",
+  "passed": 42,
+  "failed": 0,
+  "sections": [
+    "#527 keeper asks once per shop",
+    "#527 companion impulse yields to audits",
+    "#527 resident schedule and travel",
+    "#527 meaningful moment names",
+    "#527 hero cast identity",
+    "#527 off-scene NPC attitude",
+    "#581 stash journal survives campaign rekey and import",
+    "#527(15) own memory and outsider register agree",
+    "#527(17) new sublocation case variants retain description",
+    "#527(19) metadata respects arrival and roster dependencies"
+  ],
+  "failures": [],
+  "errors": [],
+  "freshProfile": true,
+  "externalRequestsBlocked": true,
+  "harness": "Unmodified deployed engine and engine-tests; remote test.html reporter filtered to the ten exact batch sections. No local runtime injected."
+}
