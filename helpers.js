@@ -1417,12 +1417,14 @@ function archetypeBestMatch(c){
 //      2026-10-01: a companion who joined at 9 held nothing from 2, 5 or 7), and before them the
 //      class's STARTING abilities (same day: a level-18 Rogue companion had no Sneak Attack). This
 //      retires the C6 "no retroactive grants" rule for abilities; a held name is never doubled.
-// Returns {archetype:null|{id,nm}, renamed:[names], removed:[names], granted:[names]}.
+// Returns {archetype:null|{id,nm}, renamed:[names], removed:[names], granted:[names], empty:[1-based slots]}.
 function abilitySheetHeal(c,opts){
-  var rep={archetype:null,renamed:[],removed:[],granted:[]},i,j,lv;
+  var rep={archetype:null,renamed:[],removed:[],granted:[],empty:[]},i,j,lv;
   if(!c)return rep;
   var d=classDef(c.cls),turn=(opts&&opts.turn)||0;
   if(!c.abilities)c.abilities=[];
+  var valid=[];for(i=0;i<c.abilities.length;i++){if(c.abilities[i]==null)rep.empty.push(i+1);else valid.push(c.abilities[i]);}
+  if(rep.empty.length)c.abilities=valid;
   if(opts&&opts.pickArchetype&&!c.archetype&&(c.level||1)>=3&&d&&(d.archetypes||[]).length){
     var id=archetypeBestMatch(c);
     for(i=0;i<d.archetypes.length;i++){if(d.archetypes[i].id===id){c.archetype=id;if(!c.archetypeNm)c.archetypeNm=d.archetypes[i].nm;rep.archetype={id:id,nm:d.archetypes[i].nm};}}

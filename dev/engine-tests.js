@@ -28624,6 +28624,41 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (NOTE_LATCH_FIELDS.indexOf("skelTitlePing")>=0&&NOTE_SHAPES.buildSkeletonTitleNote&&NOTE_SHAPES.buildSkeletonTitleNote.combat==="fires")?true:"registered, combat fires: "+JSON.stringify(NOTE_SHAPES.buildSkeletonTitleNote);
   });
 
+  section("#527 empty ability slots at load");
+  t("#527 relevelOnLoad repairs abilities null before later readers and retains legitimate grants",function(){
+    makeWorld();worldState.character.abilities=[null];
+    relevelOnLoad();
+    if(worldState.character.abilities.some(function(x){return x==null;}))return "hero retained an empty slot";
+    if(!worldState.character.abilities.length)return "legitimate starting grants disappeared";
+    buildSceneManifest();
+    var before=JSON.stringify(worldState.character.abilities);relevelOnLoad();return JSON.stringify(worldState.character.abilities)===before?true:"repeat boot changed the ability list";
+  });
+  t("#527 cleanup-only hero and companion repair is visible saved and idempotent with unknown classes",function(){
+    makeWorld();var custom={nm:"Fox's Promise",ds:"Unique story wording",gained:9,custom:{kept:true}},racial={nm:"Night Sight",ds:"See through shadows",racial:true};
+    worldState.character.cls="Unknown Class";worldState.character.abilities=[null,custom,racial];
+    var cs={name:"Guest",cls:"Unknown Class",level:1,xp:0,hp:10,maxHp:10,stats:{},spells:[],abilities:[null,custom,undefined,racial]};cs.abilities.length=5;
+    worldState.npcs=[{name:"Guest",partyMember:true,charSheet:cs}];
+    var msgs=[],warns=[],saves=0,oldMsg=addMsg,oldSave=saveAll,oldWarn=console.warn;
+    addMsg=function(k,m){msgs.push(String(m));};saveAll=function(){saves++;};console.warn=function(m){warns.push(String(m));};
+    try{
+      relevelOnLoad();
+      if(worldState.character.abilities.length!==2||cs.abilities.length!==2)return "empty slots survived cleanup";
+      if(worldState.character.abilities[0]!==custom||cs.abilities[0]!==custom||cs.abilities[1]!==racial)return "valid entry identity/order was changed";
+      if(custom.ds!=="Unique story wording"||!custom.custom.kept||!racial.racial)return "custom/racial data lost";
+      if(saves!==1)return "cleanup-only repair was not saved exactly once: "+saves;
+      if(msgs.filter(function(m){return /empty ability/.test(m);}).length!==2||warns.filter(function(m){return /empty ability/.test(m);}).length!==2)return "cleanup not visible for both sheets: "+JSON.stringify([msgs,warns]);
+      buildSceneManifest();var snap=JSON.stringify([worldState.character.abilities,cs.abilities]),m=msgs.length,w=warns.length;
+      relevelOnLoad();if(saves!==1||msgs.length!==m||warns.length!==w||JSON.stringify([worldState.character.abilities,cs.abilities])!==snap)return "repair repeated or changed valid entries";
+    }finally{addMsg=oldMsg;saveAll=oldSave;console.warn=oldWarn;}
+    return true;
+  });
+  t("#527 pure ability repair reports empty slot positions without treating valid custom entries as duplicates",function(){
+    var one={nm:"Custom",ds:"one"},two={nm:"Custom",ds:"two"},c={cls:"Unknown Class",level:1,abilities:[null,one,undefined,two]},rep=abilitySheetHeal(c);
+    if(!rep.empty||rep.empty.join()!=="1,3")return "empty positions not reported: "+JSON.stringify(rep);
+    if(c.abilities.length!==2||c.abilities[0]!==one||c.abilities[1]!==two||rep.removed.length)return "custom entries were collapsed or misreported as duplicates";
+    return abilitySheetHeal(c).empty.length===0?true:"pure repair was not idempotent";
+  });
+
   section("#527 absent companion possessive");
   function possessive527World(){__gateWorld();worldState.npcs[0].partyMember=false;memory.npcs["Morwen Zethran"]={lastSeenAt:"Sandpoint",events:[],knowledge:[]};return buildSceneManifest();}
   t("#527 absent companion possessions are objects for straight and curly short and full names",function(){

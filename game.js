@@ -1369,8 +1369,9 @@ function healAbilitySheets(){
       learned=learned.concat(companionAutoPickSpells(cs,unl));
       manaGrowWithMax(cs,mxB);
     }
-    if(!rep.archetype&&!rep.renamed.length&&!rep.removed.length&&!rep.granted.length)return;
+    if(!rep.archetype&&!rep.renamed.length&&!rep.removed.length&&!rep.granted.length&&!rep.empty.length)return;
     changed++;
+    if(rep.empty.length){var reason=who+" — removed empty ability entries at slot"+(rep.empty.length===1?" ":"s ")+rep.empty.join(", ")+" (missing saved ability data).";addMsg("system",reason);if(typeof console!=="undefined")console.warn("[#527 heal] "+reason);}
     if(rep.archetype)addMsg("system",who+" — archetype: "+rep.archetype.nm+".");
     if(rep.granted.length){addMsg("system",who+" gains: "+rep.granted.join(", "));showToast("★ "+who+" gained "+(rep.granted.length>1?"abilities owed from earlier levels: ":"an ability owed from an earlier level: ")+rep.granted.join(", "));}
     if(learned.length)addMsg("system",who+" learns: "+learned.join(", "));
