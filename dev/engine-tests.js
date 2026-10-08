@@ -26917,6 +26917,48 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#527 resident schedule and travel");
+  function schedule527(){villageCD();var places=villageCommons();places.forEach(function(c){var k=locResolve("The Village|"+c);if(!memory.map.nodes[k])memory.map.nodes[k]=newMapNode(1,"The Village");delete memory.map.nodes[k].hours;});return places;}
+  t("#527 opening one venue does not move residents whose preferred commons stays open",function(){
+    var places=schedule527(),before=13*MIN_PER_DAY+239,after=before+1,preferred={},i,checked=0;
+    if(places.length<3)return "fixture needs three commons";
+    for(i=0;i<32;i++)preferred["Resident "+i]=residentWhereabouts("Resident "+i,after).place;
+    memory.map.nodes[locResolve("The Village|"+places[0])].hours={open:10,close:24};
+    var snapshot=JSON.stringify(memory.map),world=JSON.stringify(worldState);
+    for(i=0;i<32;i++){var name="Resident "+i,a=residentWhereabouts(name,before),b=residentWhereabouts(name,after);
+      if(preferred[name]!==places[0]){checked++;if(a.place!==preferred[name]||b.place!==preferred[name])return "unrelated opening moved "+name+": "+JSON.stringify(a)+" -> "+JSON.stringify(b);}
+      if(a.place===places[0])return "closed venue served before opening";
+    }
+    if(!checked)return "fixture checked nobody";
+    return JSON.stringify(memory.map)===snapshot&&JSON.stringify(worldState)===world?true:"schedule read mutated state";
+  });
+  t("#527 closed preferred venue uses deterministic open fallback; all closed and night mean home",function(){
+    var places=schedule527(),m=13*MIN_PER_DAY+240,name="Frizwick",chosen=residentWhereabouts(name,m).place;
+    memory.map.nodes[locResolve("The Village|"+chosen)].hours={open:11,close:20};
+    var a=residentWhereabouts(name,m),b=residentWhereabouts(name,m+5);
+    if(a.home||a.place===chosen||JSON.stringify(a)!==JSON.stringify(b))return "closed preferred venue lacks stable open fallback: "+JSON.stringify(a);
+    places.forEach(function(c){memory.map.nodes[locResolve("The Village|"+c)].hours={open:23,close:23};});
+    if(!residentWhereabouts(name,m).home)return "all closed must mean home";
+    places.forEach(function(c){delete memory.map.nodes[locResolve("The Village|"+c)].hours;});
+    return residentWhereabouts(name,13*MIN_PER_DAY+18*60).home?true:"night must remain home";
+  });
+  t("#527 Go to and Head home wait for resident exchange without spending its latch",function(){
+    villageCD();worldState.world.sublocation="the tavern";delete worldState.exchangeAsk;delete worldState.sceneRefs;sceneRefsEnsure();
+    worldState.sceneRefs.active.observed=[{entity:"Frizwick",lastTurn:worldState.turn},{entity:"Daeris",lastTurn:worldState.turn}];
+    var old=lastAction,actions=["Go to the tavern.","Head home."],i;
+    try{for(i=0;i<actions.length;i++){lastAction=actions[i];delete worldState.exchangeAsk;if(buildResidentExchangeNote()||worldState.exchangeAsk)return "travel fired exchange or spent latch: "+lastAction;}
+      lastAction="Go on talking to Frizwick.";if(!buildResidentExchangeNote())return "nontravel conversation was suppressed";
+    }finally{lastAction=old;}
+    return true;
+  });
+  t("#527 travel parser distinguishes destination commands and the suggestion gate reads Go to",function(){
+    if(travelActionTarget("Go to the tavern.")!=="the tavern."||travelActionTarget("Head home")!=="home")return "missing travel destination";
+    if(travelActionTarget("Go on talking")||travelActionTarget("head wound")||travelActionTarget("Head homework"))return "nontravel read as travel";
+    makeWorld();worldState.world.location="Ashfen";worldState.world.sublocation=null;
+    var r=validateSuggestion("Go to Ashfen.",buildSceneManifest());
+    return r&&r.rule==="already-here-travel"?true:"shared suggestion gate missed Go to current world: "+JSON.stringify(r);
+  });
+
   section("#527 meaningful moment names");
   t("#527 ordinary articles do not raise The Entity's past; full names and real past questions do",function(){
     var names=["The Entity"],moments=[{who:"The Entity",text:"The Entity shattered the obsidian conduit beneath Blackwater."}];

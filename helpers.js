@@ -3537,7 +3537,7 @@ function shopOpenNow(node){
 function residentWhereText(name,wh){if(!wh)return "";return name+" is "+(wh.home?"at home":"at "+wh.place);}
 /* #481 B6: the ONE leading-travel parse — validateSuggestion's rule ⑦ and the RESIDENTS note's travel wait both read it.
    Returns the named destination, or null. Pure. */
-function travelActionTarget(t){var m=String(t==null?"":t).match(/^\s*(?:press on (?:toward|to)|head (?:back )?(?:to|for|toward|towards)|travel (?:back )?to|return to|go back to|set out (?:for|toward|towards)|ride (?:back )?(?:to|toward|towards)|march (?:to|toward|towards)|journey (?:to|toward|towards)|make for)\s+(.+)$/i);return m?m[1]:null;}
+function travelActionTarget(t){var m=String(t==null?"":t).match(/^\s*(?:press on (?:toward|to)|head (?:back )?(?:to|for|toward|towards)|travel (?:back )?to|return to|go (?:back )?to|head(?=\s+home\b)|set out (?:for|toward|towards)|ride (?:back )?(?:to|toward|towards)|march (?:to|toward|towards)|journey (?:to|toward|towards)|make for)\s+(.+)$/i);return m?m[1]:null;}
 function residentWhereabouts(name,min){
   var def=(typeof kindDef==="function")?kindDef():null;if(!def||!def.roam)return null;
   var m=(typeof min==="number")?min:((typeof clockNow==="function")?clockNow():0),day=(typeof MIN_PER_DAY==="number")?MIN_PER_DAY:1440;
@@ -3547,10 +3547,16 @@ function residentWhereabouts(name,min){
   if(hour>=22||hour<6)return {place:null,home:true};
   /* #481 B6: a commons CLOSED at the hour is nobody's whereabouts (Nyla "in the tavern" at 7:40, its hours 10-24) */
   var v=(typeof worldState!=="undefined"&&worldState&&worldState.world&&worldState.world.location)||"The Village";
-  var list=villageCommons().filter(function(c){var nd=(typeof memory!=="undefined"&&memory&&memory.map)?memory.map.nodes[(typeof locResolve==="function")?locResolve(v+"|"+c):v+"|"+c]:null;return nodeOpenAtHour(nd,hour)!==false;});
+  var list=villageCommons();
   if(!list.length)return {place:null,home:true};
   var h=0,s=String(name||""),i;for(i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
-  return {place:list[(h+Math.floor(hour/3))%list.length],home:false};
+  /* Opening hours cannot renumber the name-and-time schedule. Closed preferred venues use the next open commons. */
+  var start=(h+Math.floor(hour/3))%list.length;
+  for(i=0;i<list.length;i++){
+    var place=list[(start+i)%list.length],key=v+"|"+place,nd=(typeof memory!=="undefined"&&memory&&memory.map)?memory.map.nodes[(typeof locResolve==="function")?locResolve(key):key]:null;
+    if(nodeOpenAtHour(nd,hour)!==false)return {place:place,home:false};
+  }
+  return {place:null,home:true};
 }
 /* #6 G4: the File-menu row shows for an open, closable campaign with at least one turn behind it. */
 function closeMenuVisible(){var def=(typeof kindDef==="function")?kindDef():null;return !!(typeof worldState!=="undefined"&&worldState&&def&&def.closable&&!campaignEnded()&&(worldState.turn||0)>=1);}

@@ -12,7 +12,7 @@ prove("helpers.js", [
     replace: "function residentWhereText(name,wh){if(!wh)return \"\";return name+\" is \"+(wh.home?\"at home\":wh.place);}",
     mustFail: "ONE renderer says" },
   { label: "a shop closed at the hour takes residents again",
-    find: "return nodeOpenAtHour(nd,hour)!==false;});", replace: "return true;});",
+    find: "if(nodeOpenAtHour(nd,hour)!==false)return {place:place,home:false};", replace: "if(true)return {place:place,home:false};",
     mustFail: "a shop closed at the hour is nobody" },
   { label: "the recap gives whereabouts for residents in the scene",
     find: "if(w&&!(typeof scenePresentNow===\"function\"&&scenePresentNow(n.name)))about.push(residentWhereText(n.name,w));", replace: "if(w)about.push(residentWhereText(n.name,w));",

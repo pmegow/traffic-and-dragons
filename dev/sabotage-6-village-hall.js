@@ -89,7 +89,7 @@ prove("helpers.js", [
     find: '  if(hour>=22||hour<6)return {place:null,home:true};\n', replace: '',
     mustFail: "#6D3 residents roam by the clock" },
   { label: "a resident never moves through the day",
-    find: '  return {place:list[(h+Math.floor(hour/3))%list.length],home:false};', replace: '  return {place:list[h%list.length],home:false};',
+    find: '  var start=(h+Math.floor(hour/3))%list.length;', replace: '  var start=h%list.length;',
     mustFail: "#6D3 residents roam by the clock" },
   { label: "the recap forgets the house",
     find: 's+=st.length?" Your house holds "', replace: 's+=false?" Your house holds "',
