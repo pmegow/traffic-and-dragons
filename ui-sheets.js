@@ -504,14 +504,12 @@ async function generateNpcSheet(name,doneCb){
     if(_prior){if(typeof _prior.level==="number")sheet.level=_prior.level;if(typeof _prior.xp==="number")sheet.xp=_prior.xp;if(typeof _prior.hp==="number")sheet.hp=_prior.hp;if(typeof _prior.maxHp==="number")sheet.maxHp=_prior.maxHp;
     }
     // Voice settings belong to the player, never the generated model response.
-    if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots){
-      inheritVoicePins(sheet,wsNpc,_prior);/* Fable review 2026-09-11: the ONE inheritance step, shared with attachCompanionSheet (game.js) */
-      TTS.assignCharacterVoices(sheet);
-    }
+    inheritVoicePins(sheet,wsNpc,_prior);
+    if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(sheet);
     // NPC stance and a directed character bond are different authorities. Model-authored rows
     // migrate through the adapter; wsNpc.rel never seeds or overwrites a bond.
     relationshipMigrateSheet(sheet,wsNpc.name);
-    wsNpc.charSheet=sheet;if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)TTS.characterVoiceSlots().forEach(function(slot){delete wsNpc[slot.field];});
+    wsNpc.charSheet=sheet;releaseRowVoicePins(wsNpc);
     saveAll();removeLoader();showToast("Character sheet ready!");
     if(doneCb)doneCb();
   }catch(err){removeLoader();showToast("Sheet generation failed: "+err.message);}

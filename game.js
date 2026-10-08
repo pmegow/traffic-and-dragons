@@ -1529,11 +1529,11 @@ function canonizeCompanionSpellDefs(resp,cls,npcName){
    attachCompanionSheet did not, and a hand-picked pair on a sheetless NPC was lost when its sheet auto-generated.
    Model-authored voice fields are discarded first: voices belong to the player, never the generated response. */
 function inheritVoicePins(sheet,wsNpc,prior){
-  if(!sheet||typeof TTS==="undefined"||!TTS.characterVoiceSlots)return sheet;
-  TTS.characterVoiceSlots().forEach(function(slot){
-    delete sheet[slot.field];
-    var pinned=(prior&&prior[slot.field])||(wsNpc&&wsNpc[slot.field]);
-    if(pinned)sheet[slot.field]=pinned;
+  if(!sheet)return sheet;
+  voicePinFields([sheet,wsNpc,prior]).forEach(function(f){
+    delete sheet[f];
+    var pinned=prior?prior[f]:(wsNpc&&wsNpc[f]);/* a prior sheet owns cleared fields too */
+    if(pinned)sheet[f]=pinned;
   });
   return sheet;
 }
@@ -1880,7 +1880,7 @@ function attachCompanionSheet(npcName,sheet){
   if(!npc||npc.charSheet)return null;
   inheritVoicePins(sheet,npc,null);
   npc.charSheet=sheet;delete npc.sheetPending;
-  if(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)TTS.characterVoiceSlots().forEach(function(slot){delete npc[slot.field];});/* the sheet owns the pins now */
+  releaseRowVoicePins(npc);
   if(memory&&memory.npcs&&memory.npcs[npcName])memory.npcs[npcName].partyMember=true;
   return npc;
 }
