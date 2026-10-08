@@ -744,11 +744,16 @@ var TAG_TABLE=[
   var _mgDupN=wsNpcByName(mgDupe),_mgCanN=wsNpcByName(mgCanon);/* #7: shared lookup (degenerate X|X merge still nets to entry removed, same as the old single-pass else-if) */
   if(_mgDupN){
     if(!_mgCanN){_mgCanN={name:mgCanon,status:_mgDupN.status||"unknown",rel:_mgDupN.rel||"unknown",met:_mgDupN.met||R.turn,partyMember:false,portrait:null,aliases:[]};worldState.npcs.push(_mgCanN);}
+    var _mgVoiceRow=_mgCanN.charSheet?null:_mgCanN;/* a pre-existing sheet owns even its cleared fields */
     if(_mgDupN.partyMember)_mgCanN.partyMember=true;
     if(_mgDupN.charSheet&&_mgCanN.charSheet)relationshipMergeSheets(_mgCanN.charSheet,_mgDupN.charSheet,mgCanon,mgDupe);else if(_mgDupN.charSheet&&!_mgCanN.charSheet)_mgCanN.charSheet=_mgDupN.charSheet;
     if(_mgDupN.portrait&&!_mgCanN.portrait)_mgCanN.portrait=_mgDupN.portrait;
     if(_mgDupN.portraitOffset&&!_mgCanN.portraitOffset)_mgCanN.portraitOffset=_mgDupN.portraitOffset;
     if(_mgDupN.pronouns&&!_mgCanN.pronouns)_mgCanN.pronouns=_mgDupN.pronouns;
+    /* Only an accepted identity merge transfers pins. A pending hint may describe two different people. */
+    var _mgVo=_mgCanN.charSheet||_mgCanN,_mgVn=voicePinsFill(_mgVo,[_mgVoiceRow,_mgDupN.charSheet||_mgDupN],voicePinFitsGender(speakerSubjectOfRow(_mgCanN,mgCanon).char.gender));
+    if(_mgCanN.charSheet)releaseRowVoicePins(_mgCanN);
+    if(_mgVn&&typeof console!=="undefined")console.info("[speakers] "+mgCanon+" keeps "+_mgVn+" voice setting(s) from the accepted merge");
     if(_mgDupN.dead&&!_mgCanN.dead)_mgCanN.dead=_mgDupN.dead;/* B3: a merge must not lose the dupe's death */
     if((!_mgCanN.status||_mgCanN.status==="unknown")&&_mgDupN.status)_mgCanN.status=_mgDupN.status;
     if((!_mgCanN.rel||_mgCanN.rel==="unknown")&&_mgDupN.rel)_mgCanN.rel=_mgDupN.rel;

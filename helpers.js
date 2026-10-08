@@ -84,6 +84,22 @@ function voicePinsMirror(target,source){
   for(i=0;i<f.length;i++){if(source[f[i]])target[f[i]]=source[f[i]];else delete target[f[i]];}
   return target;
 }
+function releaseRowVoicePins(row){
+  if(row)voicePinFields([row]).forEach(function(f){delete row[f];});
+  return row;
+}
+/* The voice subject of one roster row: its pin owner (the sheet when it has one, else the row) and the character the caster
+   reads (name, sex from the sheet or from the pronouns on record, every pin). The merge fold and casting share this rule. */
+function speakerSubjectOfRow(row,nm){
+  var owner,p,g;
+  owner=row.charSheet||row;
+  p=String(owner.pronouns||row.pronouns||((typeof memory!=="undefined"&&memory&&memory.npcs&&memory.npcs[nm])?memory.npcs[nm].pronouns:"")||"").toLowerCase().replace(/\s+/g,"");
+  g=owner.gender;
+  if(g!=="M"&&g!=="F"&&g!=="NB")g=/^she\//.test(p)?"F":(/^he\//.test(p)?"M":(/^they\//.test(p)?"NB":"ANY"));
+  var _sc={name:owner.name||nm,gender:g,pronouns:p,voiceId:owner.voiceId||"",speechifyVoiceId:owner.speechifyVoiceId||"",voiceDirection:owner.voiceDirection||"",voiceRate:Number(owner.voiceRate)||0};
+  var _scs=(typeof TTS!=="undefined"&&TTS.characterVoiceSlots)?TTS.characterVoiceSlots():[],_sci;for(_sci=0;_sci<_scs.length;_sci++)if(!(_scs[_sci].field in _sc))_sc[_scs[_sci].field]=owner[_scs[_sci].field]||"";/* #456: every slot field, never a hand list */
+  return {char:_sc,owner:owner,row:row};
+}
 // AUDIT_FABLE_07_16 #11①: conservative arc↔quest title match — exact or one-contains-the-other,
 // case-insensitive (the findCompanionNpc discipline, no fuzzy scoring). Shared by
 // buildArcQuestNudge and buildArcDriftNudge (api.js), which defined it twice char-identically.
