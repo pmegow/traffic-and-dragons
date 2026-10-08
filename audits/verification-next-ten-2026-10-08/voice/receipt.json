@@ -1,0 +1,300 @@
+{
+  "before": {
+    "sheet": {
+      "name": "Mara",
+      "gender": "F",
+      "age": "30",
+      "appear": "",
+      "mark": "",
+      "backstory": "",
+      "ancestry": "Human",
+      "subrace": "northlander",
+      "subraceNm": "Northlander",
+      "heritageVariant": "",
+      "cls": "Warrior",
+      "stats": {
+        "STR": 15,
+        "DEX": 12,
+        "CON": 14,
+        "INT": 10,
+        "WIS": 10,
+        "CHA": 10
+      },
+      "hp": 10,
+      "maxHp": 10,
+      "coin": 2500,
+      "inventory": [
+        "Longsword",
+        "Travel ration"
+      ],
+      "level": 1,
+      "xp": 0,
+      "abilities": [],
+      "spells": [
+        {
+          "nm": "Faerie Fire (racial, 1/day)",
+          "lvl": 1,
+          "used": false
+        }
+      ],
+      "archetype": "",
+      "archetypeNm": "",
+      "statedAlignment": "True Neutral",
+      "actualAlignment": "True Neutral",
+      "alignLaw": 0,
+      "alignGood": 0,
+      "deity": "",
+      "trait": "",
+      "flaw": "",
+      "motivation": "",
+      "languages": [
+        {
+          "name": "Common",
+          "broken": false
+        }
+      ],
+      "skills": {
+        "Jumping": 0,
+        "Sprinting": 0,
+        "Lifting": 0,
+        "Grappling": 0,
+        "Climbing": 0,
+        "Swimming": 0,
+        "Distance Running": 0,
+        "Riding": 0,
+        "Hold Breath": 0,
+        "Endure Pain": 0,
+        "Tolerate Alcohol/Drugs": 0,
+        "Foraging": 0,
+        "Cooking": 0,
+        "Survival": 0,
+        "Animal Handling": 0,
+        "Navigation": 0,
+        "Tracking": 0,
+        "Arcana": 0,
+        "Lore": 0,
+        "Investigation": 0,
+        "Nature": 0,
+        "First Aid": 0,
+        "Alchemy": 0,
+        "Smithing": 0,
+        "Handcraft": 0,
+        "Explosives": 0,
+        "Persuasion": 0,
+        "Deception": 0,
+        "Intimidation": 0,
+        "Performance": 0,
+        "Trading": 0,
+        "Stealth": 0,
+        "Sleight of Hand": 0,
+        "Lockpicking": 0,
+        "Gambling": 0,
+        "Perception": 0,
+        "Insight": 0
+      },
+      "conditions": [],
+      "relationships": [],
+      "saveModifiers": [],
+      "portrait": null,
+      "storyBeats": [],
+      "coreMemories": [],
+      "partyMember": true,
+      "voiceId": "en_GB-alba-medium",
+      "speechifyVoiceId": "kept-speechify",
+      "inworldVoiceId": "kept-inworld",
+      "voiceDirection": "quiet and warm",
+      "voiceRate": 0.9
+    },
+    "map": {
+      "0": "en_GB-alba-medium",
+      "providers": {
+        "speechify": {
+          "0": "kept-speechify"
+        },
+        "inworld": {
+          "0": "kept-inworld"
+        }
+      },
+      "directions": {
+        "0": "quiet and warm"
+      },
+      "rates": {
+        "0": 0.9
+      }
+    }
+  },
+  "after": {
+    "sheet": {
+      "name": "Mara",
+      "gender": "F",
+      "age": "30",
+      "appear": "",
+      "mark": "",
+      "backstory": "",
+      "ancestry": "Human",
+      "subrace": "northlander",
+      "subraceNm": "Northlander",
+      "heritageVariant": "",
+      "cls": "Warrior",
+      "stats": {
+        "STR": 15,
+        "DEX": 12,
+        "CON": 14,
+        "INT": 10,
+        "WIS": 10,
+        "CHA": 10
+      },
+      "hp": 12,
+      "maxHp": 12,
+      "coin": 2500,
+      "inventory": [
+        "Longsword",
+        "Travel ration"
+      ],
+      "level": 1,
+      "xp": 0,
+      "abilities": [],
+      "spells": [
+        {
+          "nm": "Faerie Fire (racial, 1/day)",
+          "lvl": 1,
+          "used": false
+        }
+      ],
+      "archetype": "",
+      "archetypeNm": "",
+      "statedAlignment": "True Neutral",
+      "actualAlignment": "True Neutral",
+      "alignLaw": 0,
+      "alignGood": 0,
+      "deity": "",
+      "trait": "",
+      "flaw": "",
+      "motivation": "",
+      "languages": [
+        {
+          "name": "Common",
+          "broken": false
+        }
+      ],
+      "skills": {
+        "Jumping": 0,
+        "Sprinting": 0,
+        "Lifting": 0,
+        "Grappling": 0,
+        "Climbing": 0,
+        "Swimming": 0,
+        "Distance Running": 0,
+        "Riding": 0,
+        "Hold Breath": 0,
+        "Endure Pain": 0,
+        "Tolerate Alcohol/Drugs": 0,
+        "Foraging": 0,
+        "Cooking": 0,
+        "Survival": 0,
+        "Animal Handling": 0,
+        "Navigation": 0,
+        "Tracking": 0,
+        "Arcana": 0,
+        "Lore": 0,
+        "Investigation": 0,
+        "Nature": 0,
+        "First Aid": 0,
+        "Alchemy": 0,
+        "Smithing": 0,
+        "Handcraft": 0,
+        "Explosives": 0,
+        "Persuasion": 0,
+        "Deception": 0,
+        "Intimidation": 0,
+        "Performance": 0,
+        "Trading": 0,
+        "Stealth": 0,
+        "Sleight of Hand": 0,
+        "Lockpicking": 0,
+        "Gambling": 0,
+        "Perception": 0,
+        "Insight": 0
+      },
+      "conditions": [],
+      "relationships": [],
+      "saveModifiers": [],
+      "portrait": null,
+      "storyBeats": [],
+      "coreMemories": [],
+      "partyMember": true,
+      "voiceLines": [],
+      "manner": "",
+      "portraitOffset": null,
+      "voiceDirection": "quiet and warm",
+      "voiceRate": 0.9,
+      "speechifyVoiceId": "kept-speechify",
+      "inworldVoiceId": "kept-inworld",
+      "voiceId": "en_GB-alba-medium"
+    },
+    "map": {
+      "0": "en_GB-alba-medium",
+      "providers": {
+        "speechify": {
+          "0": "kept-speechify"
+        },
+        "inworld": {
+          "0": "kept-inworld"
+        }
+      },
+      "directions": {
+        "0": "quiet and warm"
+      },
+      "rates": {
+        "0": 0.9
+      }
+    }
+  },
+  "routes": [
+    {
+      "tnd": "qa543-predict",
+      "text": "\"I will keep watch until you return.\" ",
+      "voiceId": "en_GB-alba-medium",
+      "rate": 1.1
+    },
+    {
+      "tnd": "qa543-predict",
+      "text": "\"I will keep watch until you return.\" ",
+      "voiceId": "en_GB-alba-medium",
+      "rate": 1.1
+    },
+    {
+      "tnd": "qa543-predict",
+      "text": "\"I will keep watch until you return.\" ",
+      "voiceId": "en_GB-jenny_dioco-medium",
+      "rate": 1.1
+    }
+  ],
+  "audio": [
+    {
+      "sampleRate": 22050,
+      "samples": 44288,
+      "channels": 1,
+      "duration": 2.0085260770975055,
+      "rms": 0.043982386006167246
+    },
+    {
+      "sampleRate": 22050,
+      "samples": 45056,
+      "channels": 1,
+      "duration": 2.043356009070295,
+      "rms": 0.04588398912228773
+    },
+    {
+      "sampleRate": 22050,
+      "samples": 39936,
+      "channels": 1,
+      "duration": 1.811156462585034,
+      "rms": 0.056837655389706095
+    }
+  ],
+  "ended": 3,
+  "warnings": [
+    "[tts piper] persistent-storage request DENIED — downloaded voices remain evictable"
+  ]
+}
