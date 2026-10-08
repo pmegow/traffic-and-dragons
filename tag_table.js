@@ -694,6 +694,7 @@ var TAG_TABLE=[
   // their aliases routed here — the campaign can't distinguish them in prose either.
   var _plNm=(worldState.character&&worldState.character.name)||"";
   if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(alAlias)&&!memoryNpcIsPlayer(alCanon)){if(typeof console!=="undefined")console.warn("[identity] [NPC_ALIAS:"+alCanon+"|"+alAlias+"] refused — '"+alAlias+"' is the player's own name (#504)");R.muts.push("⚠ NPC alias refused: '"+alAlias+"' is the player's own name");continue;}
+  var _alIssue=identityAliasIssue(alCanon,alAlias,R.aliasClaims);if(_alIssue){identityAdmissionWarn(_alIssue,R);continue;}
   if(/^player$/i.test(alCanon)||(_plNm&&alCanon.toLowerCase()===_plNm.toLowerCase())||(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(alCanon))){/* #504: the hero's registered epithets route here too */
     if(!worldState.character.aliases)worldState.character.aliases=[];
     if(worldState.character.aliases.indexOf(alAlias)<0){
@@ -1851,6 +1852,7 @@ function applyShopKeeper(entry,text,R,settled){
 }
 function applyMutsTable(text,opts){
   var R={muts:[],turn:worldState.turn};/* audit A15: R.text had no consumer anywhere */
+  R.aliasClaims=identityResponseClaims(text);
   R.departKey=(typeof currentNodeKey==="function")?currentNodeKey():null;/* #415: where the party stood BEFORE any handler moves it — the doors live there */
   R.places=(typeof placeTimeline==="function"&&worldState.world)?placeTimeline(text):null;/* #481 A4: ONE place timeline per call — its first state is departKey's place */
   R.placeAt=function(off){return R.places?placeStateAt(R.places,off):null;};

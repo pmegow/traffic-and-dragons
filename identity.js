@@ -25,6 +25,72 @@
 // call into here at parse time). Everything here reads worldState/memory as globals, exactly
 // like the tag handlers do.
 
+/* Identity claims are exact spellings, case-folded; row/sheet/memory copies share one owner.
+   This scan never calls a resolver: the hero and NPC resolvers themselves consult it. */
+function identityNameFold(name){return String(name||"").trim().toLowerCase();}
+/* Malformed legacy fields remain stored, but never become claims (or string characters). */
+function identityAliasList(value){return Array.isArray(value)?value.filter(function(v){return typeof v==="string"&&v.trim();}):[];}
+function identityAliasShapeIssue(value){if(value==null)return "";if(!Array.isArray(value))return "aliases must be an array of strings";for(var i=0;i<value.length;i++)if(typeof value[i]!=="string"||!value[i].trim())return "aliases must contain nonempty strings";return "";}
+function identityNpcOwner(name){return "npc:"+identityNameFold(name);}
+function identityNameClaims(name,exclude){
+  var low=identityNameFold(name),out=[],i,k,ws=(typeof worldState!=="undefined"&&worldState)||{},mem=(typeof memory!=="undefined"&&memory&&memory.npcs)||{};
+  if(!low)return out;
+  function add(id,nm,primary){if((exclude||[]).indexOf(id)>=0)return;for(var j=0;j<out.length;j++)if(out[j].id===id){if(primary)out[j].primary=true;return;}out.push({id:id,name:nm,primary:!!primary});}
+  function scan(id,nm,aliases){if(identityNameFold(nm)===low)add(id,nm,true);aliases=identityAliasList(aliases);for(var j=0;j<aliases.length;j++)if(identityNameFold(aliases[j])===low)add(id,nm,false);}
+  if(ws.character){scan("@player",ws.character.name,ws.character.aliases);if(low==="player")add("@player",ws.character.name,true);}
+  for(k in mem)if(Object.prototype.hasOwnProperty.call(mem,k))scan(identityNpcOwner(k),k,mem[k]&&mem[k].aliases);
+  var ns=ws.npcs||[];for(i=0;i<ns.length;i++){var n=ns[i];if(!n)continue;scan(identityNpcOwner(n.name),n.name,identityAliasList(n.aliases).concat(identityAliasList(n.charSheet&&n.charSheet.aliases)));}
+  return out;
+}
+/* Sheet attachment may reuse an exact memory-only identity, never a case-variant key. */
+function identityAttachOwners(name){return memory&&memory.npcs&&Object.prototype.hasOwnProperty.call(memory.npcs,name)&&!wsNpcByName(name)?[identityNpcOwner(name)]:[];}
+function identitySheetIssue(sheet,name,exclude){
+  var malformed=identityAliasShapeIssue(sheet&&sheet.aliases);if(malformed)return malformed;
+  var own=String(name||(sheet&&sheet.name)||"").trim(),values=[own].concat((sheet&&sheet.aliases)||[]),i;
+  for(i=0;i<values.length;i++){var claims=identityNameClaims(values[i],exclude);
+    /* An existing canonical NPC keeps its primary when an old hero epithet is inactive.
+       Only that primary gets the exception; additional aliases remain admission claims. */
+    if(i===0&&(exclude||[]).indexOf(identityNpcOwner(own))>=0&&((memory&&memory.npcs&&Object.prototype.hasOwnProperty.call(memory.npcs,own))||(worldState.npcs||[]).some(function(n){return n.name===own;})))claims=claims.filter(function(c){return c.id!=="@player"||c.primary;});
+    if(claims.length)return "'"+values[i]+"' already identifies "+claims.map(function(c){return c.name;}).join(", ");}
+  return "";
+}
+function identityAdmissionWarn(why,R){var msg="Character identity refused: "+why;if(typeof console!=="undefined")console.warn("[identity] "+msg);if(R)R.muts.push("⚠ "+msg);else if(typeof showToast==="function")showToast("⚠ "+msg);return false;}
+function identitySheetAdmit(sheet,name,exclude){var why=identitySheetIssue(sheet,name,exclude);return why?identityAdmissionWarn(why):true;}
+/* Loaded conflicts retain both records and raw aliases. The fingerprint bounds notices by current claims,
+   not visits or turns, and survives save/load so an unresolved collision does not nag at each boot. */
+function identityAliasAudit(){
+  if(!worldState||!worldState.character)return false;var words=[],ns=worldState.npcs||[],i,j,lines=[];
+  function collect(label,nm,value){words=words.concat([nm],identityAliasList(value));var why=identityAliasShapeIssue(value);if(why)lines.push(label+": "+why);}
+  collect("hero",worldState.character.name,worldState.character.aliases);
+  for(i=0;i<ns.length;i++)if(ns[i]){collect("roster "+ns[i].name,ns[i].name,ns[i].aliases);if(ns[i].charSheet)collect("sheet "+ns[i].name,ns[i].name,ns[i].charSheet.aliases);}
+  var mem=(memory&&memory.npcs)||{};for(var key in mem)if(Object.prototype.hasOwnProperty.call(mem,key))collect("memory "+key,key,mem[key]&&mem[key].aliases);
+  for(i=0;i<words.length;i++){var claims=identityNameClaims(words[i]);if(claims.length<2)continue;var line=identityNameFold(words[i])+": "+claims.map(function(c){return c.id;}).sort().join(", ");if(lines.indexOf(line)<0)lines.push(line);}
+  var fingerprint=lines.sort().join("; ");if((worldState.identityAliasNotice||"")===fingerprint)return false;
+  if(fingerprint){worldState.identityAliasNotice=fingerprint;var msg="Conflicting saved character names retained; canonical names and the hero keep priority: "+fingerprint;if(typeof console!=="undefined")console.warn("[identity] "+msg);if(typeof showToast==="function")showToast("⚠ "+msg);}
+  else delete worldState.identityAliasNotice;
+  return true;
+}
+function identitySheetAliasKey(name){
+  var claims=identityNameClaims(name);if(claims.length!==1||claims[0].id==="@player")return null;
+  var ns=(worldState&&worldState.npcs)||[],i,j;
+  for(i=0;i<ns.length;i++){var n=ns[i];if(!n||identityNpcOwner(n.name)!==claims[0].id)continue;var al=identityAliasList(n.aliases).concat(identityAliasList(n.charSheet&&n.charSheet.aliases));for(j=0;j<al.length;j++)if(al[j]===name)return n.name;}
+  return null;
+}
+function identityAliasOwner(name){if(memoryNpcIsPlayer(name))return "@player";return identityNpcOwner(npcExactKey(name,2)||npcFormerKey(name)||name);}
+function identityResponseClaims(text){
+  var out=[],m,re=/\[NPC:([^|\]]+)\|/g;
+  while((m=re.exec(text)))out.push({name:m[1].trim(),owner:identityNpcOwner(m[1]),kind:"name"});
+  re=/\[(?:NPC_ALIAS:|ALIAS:\s*npc\s*\|)([^|\]]+)\|([^\]]+)\]/gi;
+  while((m=re.exec(text)))out.push({name:m[2].trim(),owner:identityAliasOwner(m[1].trim()),kind:"alias"});
+  return out;
+}
+function identityAliasIssue(canonical,alias,planned){
+  var owner=identityAliasOwner(canonical),claims=identityNameClaims(alias,[owner]),i;
+  if(claims.length)return "'"+alias+"' already identifies "+claims.map(function(c){return c.name;}).join(", ");
+  for(i=0;i<(planned||[]).length;i++)if(identityNameFold(planned[i].name)===identityNameFold(alias)&&planned[i].owner!==owner&&(planned[i].kind!=="name"||owner==="@player"))return "'"+alias+"' has competing character claims in this reply";
+  return "";
+}
+
 var IDENTITY_DOMAINS={
   npc:{
     keys:function(){return (typeof memory!=="undefined"&&memory&&memory.npcs)?Object.keys(memory.npcs):[];},

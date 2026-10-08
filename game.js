@@ -27,7 +27,7 @@ function startGame(char,toneName,toneVoice,authorId){
   sessionLog=[];memory=blankMemory();lastAction=null;// don't let the previous campaign's last action leak into this one's Retry (audit E83)
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){
-    var comp=pendingCompanions[ci];if(typeof sceneFieldsCross==="function")sceneFieldsCross(comp);/* #481 C5 */
+    var comp=pendingCompanions[ci];if(!identitySheetAdmit(comp,comp.name,[]))continue;if(typeof sceneFieldsCross==="function")sceneFieldsCross(comp);/* #481 C5 */
     if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(comp);
     worldState.npcs.push({name:comp.name,status:"ally",rel:"companion",met:0,partyMember:true,pronouns:pronounsForGender(comp.gender),portrait:null,charSheet:comp}); // portrait rides on charSheet only (#3 dedupe)
     memory.npcs[comp.name]={attitude:"ally",knowledge:[],events:[],partyMember:true,pronouns:pronounsForGender(comp.gender)};
@@ -1555,6 +1555,7 @@ function importVillageResidents(list){
   for(i=0;i<list.length;i++){var c=list[i],_libAt=null;if(c&&c.character&&typeof c.character==="object"){_libAt=(typeof c.updatedAt==="number")?c.updatedAt:null;c=c.character;}/* #6 E13: a library entry {character,updatedAt} or a bare sheet */if(!c||!c.name)continue;var nm=String(c.name).trim();
     if(worldState.character&&worldState.character.name===nm){if(typeof _libAt==="number")worldState.heroLibraryAt=_libAt;/* #427: the hero's own move-in stamp — "newer than this" is what a later refresh means */skipped.push(nm);continue;}
     if(wsNpcByName(nm)){skipped.push(nm);continue;}
+    if(!identitySheetAdmit(c,nm,identityAttachOwners(nm))){skipped.push(nm);continue;}
     var sheet=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);/* #168 W7: imported sheets enter through the axis adapter */
     if(typeof sceneFieldsCross==="function")sceneFieldsCross(sheet);/* #481 C5 */
     if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);/* #81b: the resident's gear keeps its canon */
@@ -1585,6 +1586,7 @@ function ensureV10Arrays(s){
    settings are the one exception to wholesale — a voice field the copy carries replaces the live one, a field it lacks keeps
    the live value when it fits the copy's sex; the hero's empty slots are then cast. */
 function adoptLibraryHero(c,at){
+  if(!identitySheetAdmit(c,worldState.character.name,["@player"]))return null;
   var _stashMark=stashCopyMark(c);
   var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);if(typeof sceneFieldsCross==="function")sceneFieldsCross(hero);/* #481 C5 */
   hero.name=worldState.character.name;
@@ -1603,6 +1605,7 @@ function adoptLibraryHero(c,at){
   return hero;
 }
 function adoptLibraryCompanion(n,c,at){
+  if(!identitySheetAdmit(c,n.name,[identityNpcOwner(n.name)]))return null;
   var _stashMark=stashCopyMark(c);
   var sheet=JSON.parse(JSON.stringify(c));sheet.name=n.name;if(typeof portraitAdmit==="function"&&portraitAdmit(sheet,"library")&&typeof showToast==="function")showToast("⚠ "+n.name+"'s library portrait was dropped — not an image");/* #481 F2 */
   if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,n.name);if(typeof sceneFieldsCross==="function")sceneFieldsCross(sheet);/* #481 C5 */
@@ -1626,9 +1629,9 @@ function libReplaceSummary(cur,lib){
 function libReplaceApply(name,lib,at){
   if(!worldState)return {ok:false,reason:"no active campaign"};
   if(!lib||typeof lib!=="object"||!lib.name)return {ok:false,reason:"no library copy"};
-  if(worldState.character&&worldState.character.name===name){adoptLibraryHero(lib,at);return {ok:true,host:"hero"};}
+  if(worldState.character&&worldState.character.name===name){if(!adoptLibraryHero(lib,at))return {ok:false,reason:"the library copy has conflicting character names"};return {ok:true,host:"hero"};}
   var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(!n||!n.charSheet)return {ok:false,reason:name+" has no character sheet in this campaign"};
-  adoptLibraryCompanion(n,lib,at);return {ok:true,host:n.partyMember?"companion":"resident"};
+  if(!adoptLibraryCompanion(n,lib,at))return {ok:false,reason:"the library copy has conflicting character names"};return {ok:true,host:n.partyMember?"companion":"resident"};
 }
 function villageRefreshFromLibrary(entries){
   var out={refreshed:[],kept:[],unknown:[]};if(!worldState||typeof kindDef!=="function"||!kindDef().populateFromLibrary||!(entries instanceof Array))return out;
@@ -1639,11 +1642,11 @@ function villageRefreshFromLibrary(entries){
          (level, gold, gear, memories) and re-stamps; older, equal or undated is kept. Village-only changes since the
          export are lost by design (village saves are disposable). The v10 arrays are ensured as startGame does. */
       if(at===null||(typeof worldState.heroLibraryAt==="number"&&at<=worldState.heroLibraryAt)){out.kept.push(nm);continue;}
-      adoptLibraryHero(c,at);out.hero=nm;out.refreshed.push(nm);out.replay=adoptLibraryHero.lastReplay;continue;}/* #428: the one adopter the sheet's Replace uses too */
+      if(!adoptLibraryHero(c,at)){out.kept.push(nm);continue;}out.hero=nm;out.refreshed.push(nm);out.replay=adoptLibraryHero.lastReplay;continue;}/* #428: the one adopter the sheet's Replace uses too */
     var n=(typeof wsNpcByName==="function")?wsNpcByName(nm):null;if(!n){out.unknown.push(nm);continue;}
     if(!n.resident||n.partyMember){out.kept.push(nm);continue;}
     if(at===null||(typeof n.libraryAt==="number"&&at<=n.libraryAt)){out.kept.push(nm);continue;}
-    adoptLibraryCompanion(n,c,at);out.refreshed.push(nm);}
+    if(adoptLibraryCompanion(n,c,at))out.refreshed.push(nm);else out.kept.push(nm);}
   if(out.refreshed.length&&typeof villageHallSeed==="function"&&kindDef().hall)villageHallSeed();
   return out;
 }
@@ -1859,6 +1862,7 @@ function swapPlayerCharacter(name){
   if(npcIdx<0)return {ok:false,reason:name+" is not in this campaign."};
   var npc=worldState.npcs[npcIdx],newChar=npc.charSheet;
   if(!newChar)return {ok:false,reason:name+" has no character sheet. Generate one first."};
+  var identityIssue=identitySheetIssue(newChar,newChar.name,[identityNpcOwner(npc.name)]);if(identityIssue){identityAdmissionWarn(identityIssue);return {ok:false,reason:identityIssue};}
   var def=kindDef(),toResident=def.swapDemotesTo==="resident",oldChar=worldState.character,pr=pronounsForGender(oldChar.gender);
   var oldNpc=toResident
     ?{name:oldChar.name,status:"",statusTurn:0,rel:"resident",met:worldState.turn,partyMember:false,resident:true,pronouns:pr,portrait:null,portraitOffset:oldChar.portraitOffset||null,charSheet:oldChar,libraryAt:(typeof worldState.heroLibraryAt==="number")?worldState.heroLibraryAt:null}/* #427: the stamp travels with the sheet */
@@ -3337,9 +3341,10 @@ function applyBlueprint(bp){
     worldState.skeleton=skel;
   }
   // NPCs — seed into both worldState.npcs and memory.npcs
+  var admittedNpcs=[];
   if(bp.npcs&&bp.npcs.length){
     var ni;for(ni=0;ni<bp.npcs.length;ni++){
-      var n=bp.npcs[ni];
+      var n=bp.npcs[ni];if(!identitySheetAdmit(n,n.name,[]))continue;admittedNpcs.push(n);
       /* v1.439 (F2, brief B): role fans into RELATION only. The old line wrote it into status
          (mood) and attitude (disposition) too — recreating in one call the exact contamination
          v1.379-383 separated. Mood/disposition start empty; play fills them. */
@@ -3370,9 +3375,9 @@ function applyBlueprint(bp){
   // memory knowledge, mechanics join the bestiary (single home, STABLE half so it caches).
   // Runs AFTER the creatures seed so an author-provided bestiary entry wins: if the name
   // already exists there, the bio is left whole rather than losing the stat text.
-  if(bp.npcs&&bp.npcs.length){
-    var si;for(si=0;si<bp.npcs.length;si++){
-      var sn=bp.npcs[si];if(!sn.notes)continue;
+  if(admittedNpcs.length){
+    var si;for(si=0;si<admittedNpcs.length;si++){
+      var sn=admittedNpcs[si];if(!sn.notes)continue;
       var sp=splitNpcStatBlock(sn.notes);if(!sp)continue;
       var dup=false,sj;
       if(worldState.bestiary){for(sj=0;sj<worldState.bestiary.length;sj++){if(String(worldState.bestiary[sj].name).toLowerCase()===String(sn.name).toLowerCase()){dup=true;break;}}}
@@ -3384,10 +3389,10 @@ function applyBlueprint(bp){
     }
   }
   // Stat extraction precedes provenance marking so mechanics have their single bestiary home.
-  for(var _an=0;_an<(bp.npcs||[]).length;_an++){
-    var _am=memory.npcs[bp.npcs[_an].name];
+  for(var _an=0;_an<admittedNpcs.length;_an++){
+    var _am=memory.npcs[admittedNpcs[_an].name];
     if(_am&&_am.knowledge&&_am.knowledge.length)fileNpcAuthored(_am,_am.knowledge[0]);
-    var _seed=bp.npcs[_an];if(_seed.secret){fileNpcSecret(_am,_seed.secret,_seed.revealAct);if(!validRevealAct(_seed.revealAct,(worldState.skeleton||{}).acts))console.warn("[blueprint] "+_seed.name+": secret withheld — invalid revealAct");}
+    var _seed=admittedNpcs[_an];if(_seed.secret){fileNpcSecret(_am,_seed.secret,_seed.revealAct);if(!validRevealAct(_seed.revealAct,(worldState.skeleton||{}).acts))console.warn("[blueprint] "+_seed.name+": secret withheld — invalid revealAct");}
   }
   // Custom rules from the blueprint — WRAPPED as quoted data (TODO #22, v1.350): a raw push gave a
   // semi-trusted campaign file the same prompt authority as the player's own rules (an embedded

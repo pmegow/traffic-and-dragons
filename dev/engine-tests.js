@@ -27068,6 +27068,77 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
 
+  section("#542 person alias admission");
+  function names542(){heroEdges538();worldState.character.aliases=["Bellkeeper"];}
+  t("#542 library replacements reject colliding titles atomically and preserve source copies",function(){
+    names542();var old=worldState.character,copy=JSON.parse(JSON.stringify(old));copy.aliases=["Bram"];copy.coin=9999;var raw=JSON.stringify(copy),before=JSON.stringify(worldState),mem=JSON.stringify(memory);
+    if(adoptLibraryHero(copy,100)!==null||worldState.character!==old||JSON.stringify(worldState)!==before||JSON.stringify(memory)!==mem)return "hero copy collision partially adopted";
+    if(JSON.stringify(copy)!==raw)return "library source mutated";
+    var n=worldState.npcs[0],other=JSON.parse(JSON.stringify(n.charSheet));other.aliases=["Bellkeeper"];before=JSON.stringify(worldState);mem=JSON.stringify(memory);
+    if(adoptLibraryCompanion(n,other,100)!==null||JSON.stringify(worldState)!==before||JSON.stringify(memory)!==mem)return "companion copy collision partially adopted";
+    copy.aliases=["Bellkeeper","Wayfarer"];if(!adoptLibraryHero(copy,100)||worldState.character.aliases.indexOf("Wayfarer")<0)return "collision-free replacement lost";
+    if(!adoptLibraryHero(copy,101))return "own aliases failed readmission";
+    return true;
+  });
+  t("#542 swap validates promoted titles against demoted hero and resolves sheet-only aliases both ways",function(){
+    names542();worldState.npcs[0].charSheet.aliases=["Tess"];var before=JSON.stringify(worldState),m=JSON.stringify(memory),r=swapPlayerCharacter("Bram");
+    if(r.ok||JSON.stringify(worldState)!==before||JSON.stringify(memory)!==m)return "colliding swap mutated campaign";
+    worldState.npcs[0].charSheet.aliases=["Smith"];if(!swapPlayerCharacter("Bram").ok)return "valid swap failed";
+    if(resolveNpcName("Bellkeeper")!=="Tess"||memoryNpcIsPlayer("Bellkeeper"))return "demoted hero alias lost or stayed player";
+    applyMuts("[NPC_NOTE:Bellkeeper|Keeps the bell.][NPC_LINK:Bellkeeper|player|friends]");if(!memory.npcs.Tess||memory.npcs.Bellkeeper)return "demoted alias minted twin";
+    if(!swapPlayerCharacter("Tess").ok||!memoryNpcIsPlayer("Bellkeeper")||resolveNpcName("Smith")!=="Bram")return "swap back failed alias ownership";
+    return true;
+  });
+  t("#542 reply preflight keeps new NPC names and rejects competing title awards in either order",function(){
+    var pairs=[["[NPC_ALIAS:player|Lantern]","[NPC:Lantern|neutral|waiting]"],["[NPC_ALIAS:player|Lantern]","[NPC_ALIAS:Bram|Lantern]"],["[ALIAS:npc|player|Lantern]","[NPC_ALIAS:Bram|Lantern]"]],i,j;
+    for(i=0;i<pairs.length;i++)for(j=0;j<2;j++){names542();var tags=j?pairs[i].slice().reverse():pairs[i],r=applyMuts(tags.join(""));
+      if((worldState.character.aliases||[]).indexOf("Lantern")>=0)return "hero stole reply name/title";
+      if(i===0&&!memory.npcs.Lantern)return "new NPC introduction lost";
+      if(i>0&&((worldState.npcs[0].charSheet.aliases||[]).indexOf("Lantern")>=0||(memory.npcs.Bram.aliases||[]).indexOf("Lantern")>=0))return "companion won contested title by tag order";
+      if(!(r.muts||[]).some(function(x){return /refused/i.test(x);}))return "preflight refusal invisible";
+    }
+    names542();worldState.npcs[0].charSheet.aliases=["Smith"];applyMuts("[NPC_ALIAS:player|Smith]");if(memoryNpcIsPlayer("Smith")||(worldState.character.aliases||[]).indexOf("Smith")>=0)return "existing sheet-only title stolen";
+    names542();applyMuts("[NPC_ALIAS:player|Wayfarer][NPC_ALIAS:Bram|Smith]");return memoryNpcIsPlayer("Wayfarer")&&resolveNpcName("Smith")==="Bram"?true:"unrelated awards lost";
+  });
+  t("#542 exact memory-only sheet attachment retains canon while other-owner aliases and case twins refuse",function(){
+    names542();worldState.kind="village";worldState.npcs=[];memory.npcs.Alda={aliases:["Wanderer"],knowledge:["A kept fact"],events:[{turn:1,note:"Met before"}],lastSeenAt:"Ashfen"};var before=JSON.stringify(memory.npcs.Alda),c=JSON.parse(JSON.stringify(worldState.character));c.name="Alda";c.aliases=["Wanderer"];var r=importVillageResidents([c]);if(r.added!==1||JSON.stringify(memory.npcs.Alda)!==before||worldState.npcs[0].name!=="Alda")return "exact memory reattachment lost canon";
+    worldState.npcs=[];c.name="ALDA";c.aliases=[];if(importVillageResidents([c]).added||memory.npcs.ALDA)return "case twin admitted";
+    c.name="Alda";c.aliases=["Bellkeeper"];if(importVillageResidents([c]).added||JSON.stringify(memory.npcs.Alda)!==before)return "other-owner alias admitted";return true;
+  });
+  t("#542 loaded canonical NPC retains relationship ownership when it conflicts with a hero epithet",function(){
+    names542();worldState.character.aliases=["Ashen One"];worldState.npcs.push({name:"Ashen One",partyMember:true,charSheet:{name:"Ashen One",relationships:[]}});identityAliasAudit();var before=JSON.stringify(worldState.character);applyMuts("[COMPANION_RELATIONSHIP_BOND:Ashen One|Bram|Brother]");var n=wsNpcByName("Ashen One");return JSON.stringify(worldState.character)===before&&!memoryNpcIsPlayer("Ashen One")&&worldState.identityAliasNotice&&n.charSheet.relationships.length===1&&n.charSheet.relationships[0].entity==="Bram"&&!worldState.relAxisChoices&&!worldState.relBondChanges?true:"canonical NPC or retained hero changed";
+  });
+  t("#542 loaded alias-only conflict preserves hero cast priority while canonical NPC primary wins",function(){
+    heroCast527();var nm="Ammut's old master",before;memory.npcs[nm].aliases=["Bone-boy","player"];identityAliasAudit();before=JSON.stringify(memory.npcs[nm]);
+    quiet(function(){applyMuts("[SCENE_CAST:Bone-boy][SAY:Ammut's old master]I am here.");});
+    if(!memoryNpcIsPlayer("Bone-boy")||resolveNpcName("Bone-boy")!=="Bone-boy"||scenePresentNow(nm)||JSON.stringify(memory.npcs[nm])!==before)return "legacy alias stole hero cast";
+    if(!worldState.castSpeakerPing||worldState.castSpeakerPing.names.indexOf(nm)<0||!worldState.identityAliasNotice)return "withheld speech or collision silent";
+    applyMuts("[SCENE_CAST:Ammut's old master]");if(!scenePresentNow(nm))return "canonical master blocked";
+    worldState.character.name="Thessa";worldState.character.aliases=[];if(resolveNpcName("Bone-boy")!==nm)return "released alias remained hero-owned";
+    names542();worldState.character.aliases=["Bram"];return !memoryNpcIsPlayer("Bram")&&resolveNpcName("Bram")==="Bram"?true:"hero alias hid canonical NPC primary";
+  });
+  t("#542 recurring-name scan and graph know hero epithets without weakening NPC-only factions",function(){
+    names542();if(!_recurringKnownName("Bellkeeper"))return "hero epithet considered unregistered";
+    worldState.transcript=[{r:"gm",t:1,x:"Today Bellkeeper waits."},{r:"gm",t:2,x:"Again Bellkeeper waits."},{r:"gm",t:3,x:"Still Bellkeeper waits."}];recurringNameScan();if(worldState.recurringNamePing&&JSON.stringify(worldState.recurringNamePing).indexOf("Bellkeeper")>=0)return "recurring note asked to register hero epithet";
+    applyMuts("[NPC_LINK:Bellkeeper|Bram|ally][NPC_FACTION:Bellkeeper|Watch|captain]");return memory.npcGraph.edges[0].a==="Tess"&&!memory.npcGraph.factions.Watch?true:"hero graph spelling or NPC-only boundary regressed";
+  });
+  t("#542 Village and blueprint refuse hero namesakes before notes secrets or item canon can leak",function(){
+    var forms=["Tess","TESS","Bellkeeper"],i;
+    for(i=0;i<forms.length;i++){names542();worldState.kind="village";var c=JSON.parse(JSON.stringify(worldState.character));c.name=forms[i];c.aliases=[];var src=JSON.stringify(c);importVillageResidents([c]);if(worldState.npcs.some(function(n){return n.name===forms[i];})||JSON.stringify(c)!==src)return "Village namesake admitted or source changed: "+forms[i];
+      names542();var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"Door test",acts:[],npcs:[{name:forms[i],role:"ally",notes:"Hidden claim",secret:"Hidden secret",revealAct:1}]});applyBlueprint(bp);
+      if(worldState.npcs.some(function(n){return n.name===forms[i];})||memory.npcs[forms[i]])return "blueprint namesake admitted: "+forms[i];
+    }
+    names542();var copy=JSON.parse(JSON.stringify(worldState.npcs[0].charSheet));copy.name="Alda";copy.aliases=["Bellkeeper"];worldState.kind="village";var result=importVillageResidents([copy]);return result.added===0&&!wsNpcByName("Alda")?true:"conflicting imported sheet title admitted";
+  });
+  t("#542 loaded conflicting aliases remain preserved but inactive with one persisted diagnostic",function(){
+    names542();worldState.character.aliases.push("Bram");var al=JSON.stringify(worldState.character.aliases),npc=JSON.stringify(memory.npcs.Bram);
+    migrateWorldState();if(memoryNpcIsPlayer("Bram")||resolveNpcName("Bram")!=="Bram")return "loaded title hides canonical NPC";
+    if(JSON.stringify(worldState.character.aliases)!==al||JSON.stringify(memory.npcs.Bram)!==npc)return "loaded collision destroyed identity data";
+    if(!worldState.identityAliasNotice)return "loaded collision was not diagnosed";
+    var saved=JSON.parse(JSON.stringify({worldState:worldState,memory:memory}));worldState=saved.worldState;memory=saved.memory;var notice=worldState.identityAliasNotice;
+    migrateWorldState();return worldState.identityAliasNotice===notice&&JSON.stringify(worldState.character.aliases)===al&&!memoryNpcIsPlayer("Bram")?true:"roundtrip lost collision guard or diagnostic dedupe";
+  });
+
   section("#538 hero graph and relationship boundaries");
   function heroEdges538(){
     makeWorld();worldState.character.name="Tess";worldState.character.aliases=["Ashen One"];
@@ -27105,7 +27176,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return !worldState.character.relationships.length&&!worldState.relAxisChoices?true:"direct relationship writer bypassed self boundary";
   });
   t("#538 companion owner cannot be hero or shadow sheet while real companion to hero stays valid",function(){
-    var forms=["Tess","TESS","player","Ashen One"],i;
+    var forms=["Tess","TESS","player"],i;
     for(i=0;i<forms.length;i++){heroEdges538();var shadow={name:forms[i],relationships:[]};worldState.npcs.push({name:forms[i],partyMember:true,charSheet:shadow});var before=JSON.stringify(worldState.character);
       var r=applyMuts("[COMPANION_RELATIONSHIP_BOND:"+forms[i]+"|Bram|Brother][COMPANION_RELATIONSHIP:"+forms[i]+"|Bram|Family][COMPANION_RELATIONSHIP_REMOVED:"+forms[i]+"|Bram]");
       if(shadow.relationships.length||JSON.stringify(worldState.character)!==before||worldState.relAxisChoices||worldState.relBondChanges)return "hero owner reached a sheet or queue: "+forms[i];

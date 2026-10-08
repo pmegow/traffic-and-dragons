@@ -510,6 +510,7 @@ function migrateAncestryNames(c){
 function migrateWorldState(){
   if(!worldState||!worldState.character)return false;
   var c=worldState.character,_mig=false;
+  if(typeof identityAliasAudit==="function"&&identityAliasAudit())_mig=true;
   if(typeof stashJournalEnsure==="function"&&stashJournalEnsure(worldState,false))_mig=true;
   /* #100: class rename + spell-label re-sync — player and every NPC sheet (companions AND former
      companions keep working). Both are display-half heals; the injected canon was never wrong. */

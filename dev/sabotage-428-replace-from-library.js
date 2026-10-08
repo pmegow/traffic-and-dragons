@@ -36,7 +36,7 @@ prove("game.js", [
     find: 'if(!n||!n.charSheet)return {ok:false,reason:name+" has no character sheet in this campaign"};', replace: 'if(!n||!n.charSheet){adoptLibraryHero(lib,at);return {ok:true,host:"hero"};}',
     mustFail: "libReplaceApply on a companion" },
   { label: "the village refresh copies on its own again instead of the shared adopter",
-    find: 'adoptLibraryCompanion(n,c,at);out.refreshed.push(nm);}', replace: 'var sheet=JSON.parse(JSON.stringify(c));n.charSheet=sheet;n.libraryAt=at;n.pronouns=pronounsForGender(sheet.gender);out.refreshed.push(nm);}',
+    find: 'if(adoptLibraryCompanion(n,c,at))out.refreshed.push(nm);else out.kept.push(nm);}', replace: 'var sheet=JSON.parse(JSON.stringify(c));n.charSheet=sheet;n.libraryAt=at;n.pronouns=pronounsForGender(sheet.gender);out.refreshed.push(nm);}',
     mustFail: "one adopter per host" }
 ]);
 prove("ui-sheets.js", [

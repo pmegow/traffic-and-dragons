@@ -678,6 +678,8 @@ function _addImportedCompanion(char){
      line returns on busy — the companion appeared, the toast said so, and the GM was never told. Refuse
      BEFORE any state write instead, so the join is all-or-nothing. */
   if(typeof busy!=="undefined"&&busy){showToast("Wait for the turn to finish — "+char.name+" can join after it.");return;}
+  if(!identitySheetAdmit(char,char.name,identityAttachOwners(char.name)))return;
+  char=JSON.parse(JSON.stringify(char));/* the imported source remains untouched by scene and item adoption */
   // Check if already in party
   if(wsNpcByName(char.name)){showToast(char.name+" is already in this campaign.");return;}/* #7: shared lookup */
   if(partyCompanionCount()>=partyCompanionCap()){showToast("Party full (max "+PARTY_MAX+", incl. you). Remove a companion before adding "+char.name+".");return;}

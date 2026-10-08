@@ -247,7 +247,8 @@ function npcApartLine(raw){
 function resolveNpcName(name){
   if(memoryNpcIsPlayer(name))return name;/* The current hero and their aliases never identify an NPC, even by exact registered alias. */
   if(!memory.npcs)return name;
-  var own=npcExactKey(name,1);if(own)return own;/* exact key (up to case and separators) or registered alias — one scan for the resolver and the answer reader (#504) */
+  var own=npcExactKey(name,1);if(own)return own;
+  var sheetAlias=identitySheetAliasKey(name);if(sheetAlias)return sheetAlias;/* exact key (up to case and separators) or registered alias — one scan for the resolver and the answer reader (#504) */
   var former=npcFormerKey(name);if(former)return former;/* #504: a folded ° key goes where its merge went, never back onto the person it was split from */
   var titled=npcTitledRecord(name);if(titled)return titled;/* #504: "Old Queen Underbough" names the Queen Underbough on file */
   // Distinctive-token consolidation (bidirectional, honorific/parenthetical-tolerant). The GM freely
@@ -1429,7 +1430,7 @@ function memoryNpcIsPlayer(name){
   if(low==="player")return true;
   if(!c||!low)return false;
   if(low===String(c.name||"").replace(/^\s+|\s+$/g,"").toLowerCase())return true;
-  for(i=0;i<(c.aliases||[]).length;i++){if(low===String(c.aliases[i]||"").replace(/^\s+|\s+$/g,"").toLowerCase())return true;}
+  var heroNames=identityAliasList(c.aliases);for(i=0;i<heroNames.length;i++){if(low===String(heroNames[i]||"").replace(/^\s+|\s+$/g,"").toLowerCase()&&(!identityNameClaims(name,["@player"]).some(function(claim){return claim.primary;})))return true;}
   return false;
 }
 function _ragNpcsFp(){
@@ -2392,8 +2393,9 @@ var RECURRING_NAME_STOP={"Monday":1,"Tuesday":1,"Wednesday":1,"Thursday":1,"Frid
 function _recurringKnownName(word){
   var low=word.toLowerCase();/* #309: every containment below is nameContains — word-boundaried, possessive-refusing (the #297 class: "Grimtide's ledger" in the pack is not Grimtide) */
   if(worldState.character&&nameContains(worldState.character.name,word))return true;
+  var heroAliases=identityAliasList(worldState.character&&worldState.character.aliases);for(var ha=0;ha<heroAliases.length;ha++)if(memoryNpcIsPlayer(heroAliases[ha])&&nameContains(heroAliases[ha],word))return true;
   var i,ns=worldState.npcs||[];
-  for(i=0;i<ns.length;i++){if(nameContains(ns[i].name,word))return true;var al=(ns[i].aliases||[]).concat((memory.npcs&&memory.npcs[ns[i].name]&&memory.npcs[ns[i].name].aliases)||[]),j;for(j=0;j<al.length;j++)if(String(al[j]).toLowerCase()===low)return true;}
+  for(i=0;i<ns.length;i++){if(nameContains(ns[i].name,word))return true;var al=identityAliasList(ns[i].aliases).concat(identityAliasList(ns[i].charSheet&&ns[i].charSheet.aliases),identityAliasList(memory.npcs&&memory.npcs[ns[i].name]&&memory.npcs[ns[i].name].aliases)),j;for(j=0;j<al.length;j++)if(String(al[j]).toLowerCase()===low)return true;}
   var mk;for(mk in (memory.npcs||{}))if(nameContains(mk,word))return true;
   var nodes=(memory.map&&memory.map.nodes)||{};for(mk in nodes){var leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(mk):mk;if(nameContains(leaf,word)||nameContains(mk,word))return true;}
   var fx=(memory.npcGraph&&memory.npcGraph.factions)||{};for(mk in fx)if(nameContains(mk,word))return true;
