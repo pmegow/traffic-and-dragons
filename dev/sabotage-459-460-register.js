@@ -31,7 +31,7 @@ prove('memory.js',['dev/run-tests.js',SEC],[
 ]);
 prove('api.js',['dev/run-tests.js',SEC],[
  {label:'the mood leads a sheeted resident again',find:'if(_pcs.trait){npcBits.push("plays as: "+_pcs.trait);if(_pcs.flaw)npcBits.push("flaw: "+_pcs.flaw);if(_moodBit)npcBits.push("now: "+_moodBit);_moodPushed=true;}',replace:'if(_pcs.trait){if(_moodBit)npcBits.push("mood: "+_moodBit);npcBits.push("trait: "+_pcs.trait);if(_pcs.flaw)npcBits.push("flaw: "+_pcs.flaw);_moodPushed=true;}',mustFail:'#460 ① the sheet outranks the GM\'s memory for a present sheeted resident'},
- {label:'STYLE loses the record clause',find:'THE RECORD IS YOURS, NOT THEIRS: when a character speaks of the past they speak as people do — short, vague, feeling first, never the wording of the record; a companion who was there says less, not more; a stranger has only heard a garbled version. ',replace:'',mustFail:'#459 ④ STYLE carries THE RECORD IS YOURS'},
+ {label:'STYLE loses the record clause',find:"THE RECORD IS YOURS, NOT THEIRS: characters speak of the past in their own voice, feeling first, never as a recital of the record. Party members who lived a served memory may recall its details naturally; outsiders know only a passing, possibly garbled handle, never the record's wording or particulars. ",replace:'',mustFail:'#459 ④ STYLE carries THE RECORD IS YOURS'},
  {label:'STYLE loses the greetings clause',find:'NO STOCK BLESSINGS OR RITUAL GREETINGS: no formula hellos and no invented rites of welcome; people greet the way their trait says they would, or not at all. ',replace:'',mustFail:'#460 ② STYLE carries NO STOCK BLESSINGS'}
 ]);
 prove('tag_table.js',['dev/run-tests.js',SEC],[

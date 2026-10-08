@@ -27562,10 +27562,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var s=registerCensusStats();if(s.record!==2||s.recordDropped!==1)return "stats: "+JSON.stringify(s);
     return /record lines 2 \(1 dropped\)/.test(registerCensusLine())?true:"line: "+registerCensusLine();
   });
-  t("#459 ④ STYLE carries THE RECORD IS YOURS, NOT THEIRS — short, vague, feeling first, never the record's wording; a companion who was there says less; a stranger has a garbled version — inside STYLE before 'Death is possible.'",function(){
+  t("#459 ④ STYLE carries THE RECORD IS YOURS, NOT THEIRS — natural lived recall when served, outsiders know only a handle — inside STYLE before 'Death is possible.'",function(){
     makeWorld();var v=buildSysPrompt().volatile,tail=v.slice(v.indexOf("STYLE: ")),ri=tail.indexOf("THE RECORD IS YOURS, NOT THEIRS"),di=tail.indexOf("Death is possible.");
     if(ri<0||di<0||ri>di)return "clause missing or misplaced";
-    if(!/never the wording of the record/.test(tail)||!/says less, not more/.test(tail)||!/garbled/.test(tail)||!/feeling first/.test(tail))return "clause wording";
+    if(!/never as a recital of the record/.test(tail)||!/Party members who lived a served memory may recall its details naturally/.test(tail)||!/garbled/.test(tail)||!/feeling first/.test(tail))return "clause wording";
     return true;
   });
   t("#459 the settled filing lands in plain speech: a 'how' in the banned register falls to a bare 'settled' with a console line, so the growth core memory never recites it; a plain how is kept",function(){
@@ -30836,4 +30836,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     quiet(function(){try{importSaveData(incoming);}catch(e){threw=/provenance/.test(e.message);}});
     return threw&&worldState===oldWs&&memory===oldMemory&&sessionLog===oldLog&&getActiveCampId()===oldId?true:"invalid import partly replaced active campaign";
   });
+
+section("#527(15) own memory and outsider register agree");
+function memory52715(){makeWorld();worldState.character.name="Ammut";worldState.campName="The Village";worldState.kind="village";worldState.world.location="The Village";delete worldState.world.sublocation;worldState.character.coreMemories=[];worldState.npcs=[{name:"Daeris",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Daeris",hp:10,maxHp:10,coreMemories:[{text:"The necrotic tether to the Reach engines was extinguished.",turn:7,camp:"The Necrotic Dungeon",who:"Daeris"}]}}];sessionLog=[];lastAction="Walk to the well.";}
+t("#527(15) composed STYLE permits served lived detail and confines record particulars to outsiders",function(){memory52715();lastAction="Ask Daeris about the Reach.";var p=buildSysPrompt().volatile;if(p.indexOf("people who lived them may recall them in detail")<0||p.indexOf("The necrotic tether to the Reach engines was extinguished.")<0)return "served detail missing";if(p.indexOf("Party members who lived a served memory may recall its details naturally")<0||p.indexOf("outsiders know only a passing, possibly garbled handle, never the record's wording or particulars")<0)return "STYLE still contradicts own detailed recall";if(/short, vague, feeling first|says less, not more/.test(p))return "universal vagueness remains";return true;});
+t("#527(15) outsider correction is scoped while the held-past rule still binds everyone until raised or Hall",function(){memory52715();worldState.motifPing={speaker:"Nyla",who:"Daeris",gist:"private record",camp:"The Necrotic Dungeon"};var n=buildMotifNudge(),held=buildCoreMemoryBlock();if(n.indexOf("Bystanders must let it rest now")<0||n.indexOf("if a bystander must touch it")<0)return "correction still restricts everyone";if(held.indexOf("from anyone")<0||held.indexOf("necrotic tether")>=0)return "held-past boundary changed";lastAction="Ask Daeris about the Reach.";if(buildCoreMemoryBlock().indexOf("necrotic tether")<0)return "raised memory missing";lastAction="Look around.";worldState.world.sublocation="the Village Hall";memory.map.nodes[villageHallKey()]={firstVisit:1,visits:1,parent:"The Village",npcs:[],items:[]};if(buildCoreMemoryBlock().indexOf("necrotic tether")<0)return "Hall memory missing";return true;});
+t("#527(15) own speaker stays exempt and current memories remain available",function(){memory52715();var m=worldState.npcs[0].charSheet.coreMemories[0];m.camp=worldState.campName;var body="The necrotic tether to the Reach engines was extinguished.";if(detectMomentRetelling("[SAY:Daeris]"+body,[m],["Ammut","Daeris"]))return "own telling fired";if(!detectMomentRetelling("[SAY:Nyla]"+body,[m],["Ammut","Daeris"]))return "outsider retelling escaped";if(buildCoreMemoryBlock().indexOf(body)<0)return "current memory withheld";return true;});
+
 }
