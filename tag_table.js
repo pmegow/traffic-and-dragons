@@ -497,25 +497,16 @@ var TAG_TABLE=[
 /* #207 ②: hours on the CURRENT node (sublocation-aware). Overnight ranges (20-4) are legal; the geo block
    decides OPEN/CLOSED from the clock. A range that does not parse refuses loudly and files nothing. */
 {t:"LOCATION_HOURS",apply:function(text,R){var lh=text.match(/\[LOCATION_HOURS:([^\]]*)\]/);if(!lh)return;
-  if(/^\s*none\s*$/i.test(lh[1])){/* #207 ③: the honest no — this place keeps no hours; the ask never repeats here */var nk=rPlaceAt(R,lh.index).key;/* #481 A4: where the tag happened */if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.map.nodes[nk])memory.map.nodes[nk]=newMapNode(R.turn,(nk.indexOf("|")>=0?nk.split("|")[0]:null))/* audit C3: the one factory; the key was composed under the canonical world by currentNodeKey */;memory.map.nodes[nk].hoursNone={t:R.turn};R.muts.push("Hours: none kept here");return;}
-  var parts=lh[1].split("|"),m=String(parts[0]||"").trim().match(/^(\d{1,2})\s*[-–]\s*(\d{1,2})$/);if(!m||+m[1]>24||+m[2]>24){if(typeof console!=="undefined")console.warn("[hours] [LOCATION_HOURS:"+lh[1]+"] refused — the form is [LOCATION_HOURS:open-close|note] with whole hours 0-24 (#207)");return;}var key=rPlaceAt(R,lh.index).key;/* #481 A4: the hours belong where the tag happened (arrive-then-hours files on the shop) */if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};if(!memory.map.nodes[key])memory.map.nodes[key]=newMapNode(R.turn,(key.indexOf("|")>=0?key.split("|")[0]:null))/* audit C3 */;memory.map.nodes[key].hours={open:+m[1],close:+m[2],note:String(parts.slice(1).join("|")||"").trim().slice(0,80)};R.muts.push("Hours: "+m[1]+"-"+m[2]);}},
+  if(/^\s*none\s*$/i.test(lh[1])){/* #207 ③: the honest no — this place keeps no hours; the ask never repeats here */var nk=rPlaceAt(R,lh.index).key;/* #481 A4: where the tag happened */ensureMapNode(nk,R.turn,(nk.indexOf("|")>=0?nk.split("|")[0]:null)).hoursNone={t:R.turn};R.muts.push("Hours: none kept here");return;}
+  var parts=lh[1].split("|"),m=String(parts[0]||"").trim().match(/^(\d{1,2})\s*[-–]\s*(\d{1,2})$/);if(!m||+m[1]>24||+m[2]>24){if(typeof console!=="undefined")console.warn("[hours] [LOCATION_HOURS:"+lh[1]+"] refused — the form is [LOCATION_HOURS:open-close|note] with whole hours 0-24 (#207)");return;}var key=rPlaceAt(R,lh.index).key;/* #481 A4: the hours belong where the tag happened (arrive-then-hours files on the shop) */ensureMapNode(key,R.turn,(key.indexOf("|")>=0?key.split("|")[0]:null)).hours={open:+m[1],close:+m[2],note:String(parts.slice(1).join("|")||"").trim().slice(0,80)};R.muts.push("Hours: "+m[1]+"-"+m[2]);}},
 /* #481 B4 (owner ruling 2026-09-29: "a shop's owner counts as present while the shop is open"; built 2026-09-30): the
    keeper of record — who runs THIS shop — filed on the shop where the tag happens (the place timeline). Refused loudly,
    filing nothing, unless the place is a shop and the name resolves to a living, non-party NPC on the roster. The trade gate
    counts the keeper at the counter while the shop is open (villageTradeContext); buildKeeperNote asks once per keeperless
    shop. A re-filing that names someone else replaces the keeper and says who it was. */
 {t:"SHOP_KEEPER",apply:function(text,R){var re=/\[SHOP_KEEPER:([^\]]*)\]/g,m;
-  while((m=re.exec(text))){var raw=String(m[1]||"").split("|")[0].trim(),at=rPlaceAtBlock(R,text,m.index),key=(at&&at.key)?((typeof locResolve==="function")?locResolve(at.key):at.key):null;
-    var node=(key&&memory.map&&memory.map.nodes)?memory.map.nodes[key]:null,leaf=key?((typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key):"this place";
-    var canon=raw?((typeof resolveNpcName==="function")?resolveNpcName(raw):raw):"",npc=canon?wsNpcByName(canon):null,why=null;
-    if(!raw)why="no name given";
-    else if(!node||typeof isShopNode!=="function"||!isShopNode(key,node))why=leaf+" is not a shop";
-    else if(!npc)why="\""+raw+"\" is not on the roster (name them with [NPC:] first)";
-    else if(npcIsDead(npc))why=npc.name+" is dead";
-    else if(npc.partyMember)why=npc.name+" travels with the party";
-    if(why){R.muts.push("⚠ Keeper refused — "+why);if(typeof console!=="undefined")console.warn("[keeper] [SHOP_KEEPER:"+m[1]+"] refused — "+why+" (#481 B4)");continue;}
-    if(node.keeper===npc.name)continue;
-    var prev=node.keeper;node.keeper=npc.name;R.muts.push("Keeper of "+leaf+": "+npc.name+(prev?" (was "+prev+")":""));}
+  while((m=re.exec(text))){var entry={raw:String(m[1]||"").split("|")[0].trim(),off:m.index};
+    if(!applyShopKeeper(entry,text,R,false)){if(!R.pendingShopKeepers)R.pendingShopKeepers=[];R.pendingShopKeepers.push(entry);}}
 }},
 /* #300: the GM's resolution of a downed hero — captured / rescued / intervened end it (stabilised at 1 HP if
    no heal came, the scar filed as a Defining Moment by the engine); dead arms the true-death path. */
@@ -1840,6 +1831,24 @@ function applyPlaceTimeline(text,R){
   if(lastLeave>lastSub)R.muts.push("Left sub-location");/* a leave with no later arrival (#6F8: a leave BEFORE an arrival is no departure from it) */
 }
 // ── The table-driven parser — THE sole applyMuts body since the v1.261 cutover close ───────────
+/* Existing subjects file before trade checks; missing subjects wait for the reply's roster and party commits. */
+function applyShopKeeper(entry,text,R,settled){
+  var raw=entry.raw,at=rPlaceAtBlock(R,text,entry.off),key=(at&&at.key)?((typeof locResolve==="function")?locResolve(at.key):at.key):null;
+    var node=(key&&memory.map&&memory.map.nodes)?memory.map.nodes[key]:null,leaf=key?((typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key):"this place";
+    var canon=raw?((typeof resolveNpcName==="function")?resolveNpcName(raw):raw):"",npc=canon?wsNpcByName(canon):null,why=null;
+    if(!settled&&raw&&(!node||!npc))return false;
+    if(!raw)why="no name given";
+    else if(!node||typeof isShopNode!=="function"||!isShopNode(key,node))why=leaf+" is not a shop";
+    else if(!npc)why="\""+raw+"\" is not on the roster (name them with [NPC:] first)";
+    else if(npcIsDead(npc))why=npc.name+" is dead";
+    else if(npc.partyMember)why=npc.name+" travels with the party";
+    if(why){R.muts.push("⚠ Keeper refused — "+why);if(typeof console!=="undefined")console.warn("[keeper] [SHOP_KEEPER:"+raw+"] refused — "+why+" (#481 B4)");return true;}
+    var written=R.shopKeeperWrites||(R.shopKeeperWrites={}),wk;
+    for(wk in written)if(locResolve(wk)===key&&written[wk]>entry.off)return true;
+    written[key]=entry.off;
+    if(node.keeper===npc.name)return true;
+    var prev=node.keeper;node.keeper=npc.name;R.muts.push("Keeper of "+leaf+": "+npc.name+(prev?" (was "+prev+")":""));return true;
+}
 function applyMutsTable(text,opts){
   var R={muts:[],turn:worldState.turn};/* audit A15: R.text had no consumer anywhere */
   R.departKey=(typeof currentNodeKey==="function")?currentNodeKey():null;/* #415: where the party stood BEFORE any handler moves it — the doors live there */
@@ -1882,6 +1891,10 @@ function applyMutsTable(text,opts){
       TAG_TABLE[i].apply(text,R);
     }
     catch(e){R.errors.push(TAG_TABLE[i].t+": "+(e&&e.message));console.warn("[tags] table handler "+TAG_TABLE[i].t+" threw:",e&&e.message);}
+  }
+  if(R.pendingShopKeepers)for(var ki=0;ki<R.pendingShopKeepers.length;ki++){
+    try{applyShopKeeper(R.pendingShopKeepers[ki],text,R,true);}
+    catch(e){R.errors.push("SHOP_KEEPER: "+(e&&e.message));console.warn("[tags] deferred SHOP_KEEPER threw:",e&&e.message);}
   }
   stampQuestCompletion();
   // #131: reconcile the clock to the GM's declared time-of-day AFTER every tag handler has run —

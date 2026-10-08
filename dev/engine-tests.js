@@ -30868,4 +30868,39 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var children=Object.keys(memory.map.nodes).filter(function(x){return memory.map.nodes[x].parent;});return children.length===2?true:"world-scoped children count "+children.length;
   });
 
+  section("#527(19) metadata respects arrival and roster dependencies");
+  function order52719(){makeWorld();delete worldState.kind;worldState.world.location="Ashfen";worldState.world.sublocation=null;fileLocation("Ashfen","Town",1);fileExit("trapdoor","",1);lastAction="Go through the trapdoor";}
+  t("#527(19) hours range and none keep new arrival receipt and retire the taken exit",function(){
+    for(var i=0;i<2;i++){order52719();var r=quiet(function(){return applyMuts("[SUBLOCATION:the forge][LOCATION_HOURS:"+(i?"none":"8-18")+"][LOCATION_DESC:A hot forge.]");}).r;
+      if((memory.map.nodes.Ashfen.exits||[]).length)return "early hours mint hid the new arrival from exit retirement";
+      if(!r.muts.some(function(x){return x.indexOf("Exit resolved: trapdoor")===0;}))return "new arrival receipt missing";
+      var node=memory.map.nodes[locResolve(currentNodeKey())];if(!node||node.visits!==1||node.description!=="A hot forge."||(i?!node.hoursNone:!node.hours))return "arrival metadata/visits lost";
+    }return true;
+  });
+  t("#527(19) same-response new NPC and shop bind after registration with one receipt",function(){
+    shopFixture();delete memory.map.nodes[B4K_POST].keeper;var r=quiet(function(){return applyMuts("[NPC:Marta|working at the counter|neutral][SHOP_KEEPER:Marta]");}).r;
+    if(memory.map.nodes[B4K_POST].keeper!=="Marta")return "new NPC keeper was refused before registration";
+    if(r.muts.filter(function(x){return /Keeper of/.test(x)&&/Marta/.test(x);}).length!==1||r.muts.some(function(x){return /Keeper refused/.test(x);}))return "duplicate or premature keeper receipt";
+    return true;
+  });
+  t("#527(19) early existing keeper and same-response hours still govern gold",function(){
+    shopFixture();b4kStale();delete memory.map.nodes[B4K_POST].keeper;b4kOpen();worldState.world.sublocation=null;var coin=worldState.character.coin;
+    quiet(function(){applyMuts("[SUBLOCATION:the trading post][SHOP_KEEPER:Frizwick][GOLD:-1 cp]");});if(worldState.character.coin!==coin-1)return "deferring an existing keeper broke eligible trade";
+    shopFixture();b4kStale();memory.map.nodes[B4K_POST].keeper="Frizwick";b4kOpen();coin=worldState.character.coin;var h=b4kHour();quiet(function(){applyMuts("[LOCATION_HOURS:"+((h+1)%24)+"-"+((h+2)%24)+"][GOLD:-1 cp]");});return worldState.character.coin===coin?true:"hours moved after GOLD: closed shop traded";
+  });
+
+  t("#527(19) deferred earlier keeper cannot replace a later successful binding",function(){
+    shopFixture();delete memory.map.nodes[B4K_POST].keeper;quiet(function(){applyMuts("[NPC:Marta|working|neutral][SHOP_KEEPER:Marta][SHOP_KEEPER:Frizwick]");});return memory.map.nodes[B4K_POST].keeper==="Frizwick"?true:"deferred earlier keeper overrode later successful tag";
+  });
+  t("#527(19) deferred keeper checks final party eligibility and unresolved names warn once",function(){
+    shopFixture();delete memory.map.nodes[B4K_POST].keeper;var r=quiet(function(){return applyMuts("[NPC:Marta|working|neutral][SHOP_KEEPER:Marta][PARTY_MEMBER:Marta|true]");}).r;if(memory.map.nodes[B4K_POST].keeper||!r.muts.some(function(x){return /Marta travels with the party/.test(x);}))return "deferred keeper ignored final party state";
+    shopFixture();delete memory.map.nodes[B4K_POST].keeper;r=quiet(function(){return applyMuts("[SHOP_KEEPER:Missing Name]");}).r;if(r.muts.filter(function(x){return /Keeper refused/.test(x);}).length!==1||memory.map.nodes[B4K_POST].keeper)return "missing name refusal duplicated or filed";
+    shopFixture();delete memory.map.nodes[B4K_POST].keeper;r=quiet(function(){return applyMuts("[NPC:Marta|working|neutral][SHOP_KEEPER:Marta][SHOP_KEEPER:Missing Name]");}).r;return memory.map.nodes[B4K_POST].keeper==="Marta"?true:"later refused tag suppressed valid deferred keeper";
+  });
+  t("#527(19) metadata retains timeline scope and case-variant arrival identity",function(){
+    order52719();quiet(function(){applyMuts("[SUBLOCATION:the forge][SUBLOCATION:The Forge][LOCATION_HOURS:8-18][LOCATION_DESC:A hot forge.]");});var keys=Object.keys(memory.map.nodes).filter(function(k){return memory.map.nodes[k].parent==="Ashfen";});if(keys.length!==1||memory.map.nodes[keys[0]].description!=="A hot forge."||(memory.map.nodes.Ashfen.exits||[]).length)return "case variant metadata split or hid arrival";
+    shopFixture();delete memory.map.nodes[B4K_POST].keeper;quiet(function(){applyMuts("[NPC:Marta|working|neutral][SHOP_KEEPER:Marta] You cross town. [SUBLOCATION:the smithy][NPC:Elva|working|neutral][SHOP_KEEPER:Elva]");});var smith=resolvePlaceName("the smithy","The Village");if(memory.map.nodes[B4K_POST].keeper!=="Marta"||!smith||memory.map.nodes[smith.key].keeper!=="Elva")return "deferred keeper lost text-order place scope";
+    order52719();quiet(function(){applyMuts("[LOCATION_HOURS:8-18] You travel. [LOCATION:Brightwater][SUBLOCATION:the forge]");});if(!memory.map.nodes.Ashfen.hours||memory.map.nodes[locResolve(currentNodeKey())].hours)return "hours followed final pointer instead of tag scope";return true;
+  });
+
 }

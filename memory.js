@@ -501,6 +501,13 @@ var NODE_CARRY_FIELDS=[
 /* memory.locations[k].visited was write-only and grew one integer per arrival forever (audit C4); node.visits carries the
    count the engine uses, so the list is bounded to the newest VISITED_CAP turns. */
 var VISITED_CAP=50;
+/* Every parser-created place participates in arrival provenance, even when metadata creates it before movement. */
+function ensureMapNode(key,turn,parent){
+  if(typeof locResolve==="function")key=locResolve(key);
+  if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+  if(!memory.map.nodes[key]){memory.map.nodes[key]=newMapNode(turn,parent);if(typeof _exitNoteCreated==="function")_exitNoteCreated(key);}
+  return memory.map.nodes[key];
+}
 function fileLocation(loc,note,turn,from){/* #481 A4: `from` = where this move left from (the walker chains a reply's moves); absent = the live pointer */
   if(typeof locResolve==="function")loc=locResolve(loc);/* #156B: a merged/aliased name lands on the canonical node — a tombstoned key must never re-mint (guarded: identity.js loads later; some dev tools load memory.js alone) */
   // Legacy locations index
@@ -511,7 +518,7 @@ function fileLocation(loc,note,turn,from){/* #481 A4: `from` = where this move l
   if(note){memory.locations[loc].notes.push(note);if(memory.locations[loc].notes.length>5)memory.locations[loc].notes.shift();}
   // Map node
   if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
-  if(!memory.map.nodes[loc]){memory.map.nodes[loc]=newMapNode(turn,null);if(typeof _exitNoteCreated==="function")_exitNoteCreated(loc);/* #415: a NEW place this parse */}
+  ensureMapNode(loc,turn,null);
   memory.map.nodes[loc].visits++;memory.map.nodes[loc].lastVisit=turn;/* audit C11: the world filer stamps recency like the sub-location filer */
   guestbookNoteArrival(loc,turn);/* #173: QUEUED during a parse, committed post-handler (amendment ③) — the attendance snapshot must see same-response split/rejoin state settled */
   // Edge + arrival tracking
@@ -538,7 +545,7 @@ function fileSubLocation(name,turn,inWorld){/* #481 A4: `inWorld` = the world th
      place. The arrival registers world|leaf as the real key's ALIAS, so the pointer, a placed item, a state note and the geo
      block all land on the one node. (Last week's engine put everything on the twin — wrong but consistent.) */
   var _composed=parent+"|"+name;if(key!==_composed&&!memory.map.nodes[_composed]&&typeof locAliasRegister==="function"&&typeof locResolve==="function"&&locResolve(_composed)!==key)locAliasRegister(key,_composed,null);
-  if(!memory.map.nodes[key]){memory.map.nodes[key]=newMapNode(turn,parent);if(typeof _exitNoteCreated==="function")_exitNoteCreated(key);/* #415: a NEW place this parse */}
+  ensureMapNode(key,turn,parent);
   memory.map.nodes[key].visits++;memory.map.nodes[key].lastVisit=turn;// stamp recency so buildGeoBlock keeps a re-visited sub-location listed (audit E53)
   guestbookNoteArrival(key,turn);/* #173: same post-handler commit as the world arrival */
 }
