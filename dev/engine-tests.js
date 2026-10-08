@@ -28624,6 +28624,29 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return (NOTE_LATCH_FIELDS.indexOf("skelTitlePing")>=0&&NOTE_SHAPES.buildSkeletonTitleNote&&NOTE_SHAPES.buildSkeletonTitleNote.combat==="fires")?true:"registered, combat fires: "+JSON.stringify(NOTE_SHAPES.buildSkeletonTitleNote);
   });
 
+  section("#527 shopping waits for combat");
+  function combatShop527(){worldState.combat={round:1,engaged:null,foes:[{name:"Tavern bandit",hp:12,maxHp:12}]};}
+  t("#527 combat hides the shopping opportunity and refuses the catalog until peace",function(){
+    shopFixture();if(!shopOpportunity()||!shopTradeCatalog().ok)return "fixture lacks a peaceful counter";
+    combatShop527();if(shopOpportunity())return "combat still offers a Shop/Trade door";
+    var cat=shopTradeCatalog();if(cat.ok||!/combat/i.test(cat.reason))return "combat catalog lacks a refusal reason: "+JSON.stringify(cat);
+    worldState.combat=null;return shopOpportunity()&&shopTradeCatalog().ok?true:"peace failed to reopen the counter";
+  });
+  t("#527 stale shop marks refuse before any trade state changes and report why",function(){
+    shopFixture();worldState.character.coin=6000;var cat=shopTradeCatalog(),marks={sell:{"bone-handled knife":1},buy:{"healing potion":1}};
+    if(!shopTradePlan(cat,marks).ok)return "fixture marks are not a valid peaceful exchange";
+    combatShop527();var before=JSON.stringify([worldState,memory]),q=quiet(function(){return shopTradeApply(marks);});
+    if(q.r.ok||!/combat/i.test(q.r.reason))return "stale marked trade landed during combat: "+JSON.stringify(q.r);
+    if(JSON.stringify([worldState,memory])!==before)return "refusal mutated coin, pack, wares, wants, ping or provenance";
+    if(!q.warns.some(function(w){return /combat/i.test(w);}))return "trade refusal was not logged";
+    worldState.combat=null;var ok=shopTradeApply(marks);return ok.ok&&worldState.character.inventory.indexOf("Bone-handled knife")<0?true:"peace did not restore the legitimate trade: "+JSON.stringify(ok);
+  });
+  t("#527 combat counter policy leaves the home chest and adventure gold untouched",function(){
+    shopFixture();var hero=worldState.character.name;villageHouseEnsure(hero);worldState.world.sublocation=locDisplayLeaf(villageHouseKey(hero));combatShop527();
+    if(!stashTradeCatalog().ok)return "combat shop policy disabled the own-house chest";
+    makeWorld();combatShop527();var before=worldState.character.coin;applyMuts("[GOLD:+3]");return worldState.character.coin===before+300?true:"adventure combat gold was suppressed";
+  });
+
   section("#527 empty ability slots at load");
   t("#527 relevelOnLoad repairs abilities null before later readers and retains legitimate grants",function(){
     makeWorld();worldState.character.abilities=[null];

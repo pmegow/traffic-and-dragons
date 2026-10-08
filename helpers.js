@@ -3289,13 +3289,18 @@ function villageTradeContext(text,R){
   if(!keeper)return {ok:false,reason:(_kName&&!_kOpen)?leaf+" is closed at this hour ("+_kName+" keeps it) and nobody in the scene can trade":"no counterparty present in "+leaf};
   return {ok:true,keeper:keeper,shop:leaf,node:node,key:rk};
 }
+// Counter actions wait for combat; narrated gold and the house chest have their own gates.
+function shopCounterContext(){
+  if(typeof worldState!=="undefined"&&worldState&&worldState.combat)return {ok:false,reason:"finish combat before trading"};
+  return (typeof villageTradeContext==="function")?villageTradeContext():{ok:false,reason:"no trade context"};
+}
 /* #501 (owner 2026-10-01): is there a counter to open RIGHT NOW? The ONE rule both doors to the counter read — the
    narration's Shop button (syncShopButton, ui-shell.js) and the inventory panel's Trade row (ui-panels.js): the trade gate
    is open AND names a shop (villageTradeContext: a shop node, someone to trade with). Only a kind with a counter has shop
    nodes (isShopNode), and the adventure's always-open gate names none, so no kind test is needed here. Returns
    {shop,keeper}, or null. Pure over the live state, so nothing about it is stored with a turn. */
 function shopOpportunity(){
-  var t=(typeof villageTradeContext==="function")?villageTradeContext():null;
+  var t=shopCounterContext();
   return (t&&t.ok&&t.shop)?{shop:t.shop,keeper:t.keeper}:null;
 }
 
@@ -3320,7 +3325,7 @@ var SHOP_SELL_FRACTION=0.5;
    from the crypt", "(cracked)") are separate rows, and each used to get its own allowance (one 40 gp want paid 120 gp). */
 var WANT_BUYS=1;
 function shopTradeCatalog(){
-  var vtc=(typeof villageTradeContext==="function")?villageTradeContext():{ok:false,reason:"no trade context"};
+  var vtc=shopCounterContext();
   if(!vtc.ok||!vtc.node)return {ok:false,reason:vtc.reason||"not in a shop"};
   var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||{},inv=c.inventory||[],hero={},order=[],i;
   for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=base.toLowerCase();

@@ -81,7 +81,7 @@ function showLedgerModal(spec){
 function showShopModal(){
   if(typeof busy!=="undefined"&&busy){showToast("Wait for the turn to finish before trading.");return;}/* audit E1: the panel row may have been painted before the turn began */
   var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no shop"};
-  if(!cat.ok){showToast("Trade: "+cat.reason);return;}
+  if(!cat.ok){console.warn("[shop] counter refused — "+cat.reason);showToast("Trade: "+cat.reason);return;}
   var rows=shopLedgerRows(cat);
   function toMarks(m){return {sell:m.left,buy:m.right};}
   showLedgerModal({id:"shop-modal",left:{name:worldState.character.name,sub:fmtCoin(cat.coin),gold:true,head:"Sell"},right:{name:cat.keeper,sub:cat.shop,head:"Buy"},rows:rows,

@@ -153,6 +153,46 @@ function fixture() {
       await shot('501_phone.png');
       await page.setViewportSize({ width: 1000, height: 760 });
     });
+    // #527(24): exact live-combat fixture, plus a counter opened while peaceful and committed after combat starts.
+    const combatFixture = JSON.parse(JSON.stringify(fx));
+    combatFixture.world.character.coin = 6000;
+    combatFixture.world.combat = { round: 1, engaged: null, foes: [{ name: 'Tavern bandit', hp: 12, maxHp: 12 }] };
+    combatFixture.memory.map.nodes['The Village|the tavern'].wares[0].cp = 100;
+    combatFixture.memory.map.nodes['The Village|the tavern'].wares[0].per = 1;
+    combatFixture.world.transcript[3].x = 'A bandit draws a blade in the taproom. Combat is underway; Frizwick is still behind the counter.';
+    const resetCombatFixture = async fighting => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.evaluate(f => {
+        worldState = f.world; memory = f.memory; sessionLog = []; busy = false;
+        saveAll = function () {}; saveCore = function () {}; saveMem = function () {};
+        var modal = document.getElementById('shop-modal'); if (modal) modal.remove();
+        window.__toasts.length = 0; document.querySelectorAll(".tnd-toast").forEach(e => e.remove()); showGame(); syncUI(); rebuildNarrativeFromTranscript(20, true);
+      }, Object.assign({}, combatFixture, { world: Object.assign({}, combatFixture.world, { combat: fighting ? combatFixture.world.combat : null }) }));
+    };
+    await test('#527 combat hides both shopping doors and a stale opener gives the reason', async () => {
+      await resetCombatFixture(true);
+      await shot('527_combat_shop.png');
+      const doors = await page.evaluate(() => ({ shop: document.querySelectorAll('#story-narrative .frame-shop').length, trade: document.querySelectorAll('.inv-ledger[data-open="showShopModal"]').length, hp: worldState.combat.foes[0].hp }));
+      assert.equal(doors.hp, 12); assert.equal(doors.shop, 0, 'live combat still draws Shop'); assert.equal(doors.trade, 0, 'live combat still draws inventory Trade');
+      await page.evaluate(() => invLedgerOpen('showShopModal'));
+      assert.equal(await page.evaluate(() => !!document.getElementById('shop-modal')), false, 'a stale opener created a counter');
+      assert.match(await page.evaluate(() => window.__toasts.join(' | ')), /combat/i);
+    });
+    await test('#527 an already open marked counter refuses completion after combat begins, then peace allows trade', async () => {
+      await resetCombatFixture(false);
+      await page.locator('#story-narrative .frame-shop').click();
+      await page.locator('#shop-modal .shop-row[data-side="right"][data-key="smoked fish"]').click();
+      await page.evaluate(c => { worldState.combat = c; window.__toasts.length = 0; syncUI(); window.__combatBefore = JSON.stringify([worldState, memory]); }, combatFixture.world.combat);
+      await page.locator('#ledger-go').click();
+      await shot('527_stale_shop_refused.png');
+      const r = await page.evaluate(() => ({ same: JSON.stringify([worldState, memory]) === window.__combatBefore, modal: !!document.getElementById('shop-modal'), toasts: window.__toasts.slice(), coin: worldState.character.coin, hp: worldState.combat.foes[0].hp }));
+      assert.equal(r.same, true, 'combat changed transaction state'); assert.equal(r.modal, true, 'refused transaction closed as if completed'); assert.equal(r.coin, 6000); assert.equal(r.hp, 12); assert.match(r.toasts.join(' | '), /Trade refused.*combat/i);
+      await page.evaluate(() => { document.getElementById('ledger-x').click(); worldState.combat = null; syncUI(); });
+      await page.locator('#story-narrative .frame-shop').click();
+      await page.locator('#shop-modal .shop-row[data-side="right"][data-key="smoked fish"]').click();
+      await page.locator('#ledger-go').click();
+      assert.deepEqual(await page.evaluate(() => ({ coin: worldState.character.coin, bought: worldState.character.inventory.indexOf('Smoked fish') >= 0, modal: !!document.getElementById('shop-modal') })), { coin: 5900, bought: true, modal: false });
+    });
     await test('no page error', async () => { assert.deepEqual(errors, []); });
   } finally { await browser.close(); }
   console.log('#501 SHOP BUTTON (browser): ' + failed + ' failed, ' + passed + ' passed');

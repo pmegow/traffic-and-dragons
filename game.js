@@ -418,7 +418,7 @@ function stashTradeApply(marks){
    sentence for the next turn. */
 function shopTradeApply(marks){
   if(typeof busy!=="undefined"&&busy){if(typeof console!=="undefined")console.warn("[shop] trade refused — a GM turn is in flight (audit E1: a second applyMuts would race the turn's own writes and overwrite the one-shot tradePing)");return {ok:false,reason:"wait for the turn to finish"};}/* audit E1 */
-  var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok)return {ok:false,reason:cat.reason};
+  var cat=(typeof shopTradeCatalog==="function")?shopTradeCatalog():{ok:false,reason:"no catalog"};if(!cat.ok){if(typeof console!=="undefined")console.warn("[shop] trade refused — "+cat.reason);return {ok:false,reason:cat.reason};}
   var plan=shopTradePlan(cat,marks);if(!plan.ok)return {ok:false,reason:plan.reason,plan:plan};
   var R=ledgerApply(plan,{key:cat.key}),muts=R.muts;/* #597 */
   if(!R.ok){if(typeof console!=="undefined")console.warn("[shop] "+R.reason);return {ok:false,reason:R.reason,muts:muts,plan:plan};}
