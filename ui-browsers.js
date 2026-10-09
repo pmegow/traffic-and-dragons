@@ -928,6 +928,7 @@ function _addPendingCompanion(char){
   if(pendingCompanions.length>=3){showToast("Max 3 companions.");return;}
   for(var i=0;i<pendingCompanions.length;i++){if(pendingCompanions[i].name===char.name){showToast(char.name+" already added.");return;}}
   if(cs&&cs.name&&cs.name===char.name){showToast("That's your own character.");return;}
+  if(sheetVersionRefused(char,"companion pick"))return;/* #599 (a), review R5: the companion browser's two roads skip the preview */
   pendingCompanions.push(char);
   _renderCompanionSlots();
   showToast(char.name+" added as companion.");

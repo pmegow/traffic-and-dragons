@@ -1204,9 +1204,11 @@ function showStakeModal(done){
 function showVersionRefusedScreen(why){
   var m=modalShell("version-refused","<h3 style='margin:0 0 10px;color:var(--acc);'>This save needs a newer version of the game</h3>"
     +"<p style='color:var(--t1);margin:0 0 8px;'>"+escHtml(String(why||"").replace(/^./,function(c){return c.toUpperCase();}))+".</p>"
-    +"<p style='color:var(--t1);margin:0 0 14px;'>Nothing was changed. Reload to update. If this message comes back, use File &#9656; Clear cache &amp; reload.</p>"
-    +"<div style='text-align:right;'><button id='vr-reload' style='font-family:var(--font);padding:8px 16px;background:var(--acc);color:#111;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Reload</button></div>",
+    +"<p style='color:var(--t1);margin:0 0 14px;'>Nothing was changed. Reload to update &mdash; the update can take two reloads. If this message comes back, clear the cache and reload.</p>"
+    +"<div style='text-align:right;display:flex;gap:8px;justify-content:flex-end;'><button id='vr-clear' style='font-family:var(--font);padding:8px 14px;background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Clear cache &amp; reload</button><button id='vr-reload' style='font-family:var(--font);padding:8px 16px;background:var(--acc);color:#111;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Reload</button></div>",
     {wireClose:false,noEscape:true});
   var b=document.getElementById("vr-reload");if(b)b.addEventListener("click",function(){location.reload();});
+  /* review R9: there is no File menu on this screen — the same routine the menu item runs is a button here */
+  var c=document.getElementById("vr-clear");if(c)c.addEventListener("click",function(){if(typeof clearCacheAndReload==="function")clearCacheAndReload();else location.reload();});
   return m;
 }

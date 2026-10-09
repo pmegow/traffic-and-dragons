@@ -814,6 +814,10 @@ var storageAdapter = (function() {
 
   function load(cb) {
     var localOk = loadState();
+    /* #599 (a), review R2: a local save this build could not read (written by a newer build) is the newest copy there is.
+       No reconcile, no boot push: the "fresh device" branch would otherwise adopt the account's latest cloud world over it,
+       and the refusal screen would be lying. The player reloads into the newer build; that build reconciles. */
+    if (!localOk && typeof versionRefusedLoad === "function" && versionRefusedLoad()) { console.warn("[version] boot reconcile skipped — the local save was refused as newer (" + versionRefusedLoad() + ")"); cb(false); return; }
 
     if (!_serverUrl) {
       cb(localOk);
@@ -1072,6 +1076,7 @@ var storageAdapter = (function() {
   // server yet (first camp before the first state sync) — the IndexedDB copy carries it until the next.
   function putCheckpoint(campId, snap) {
     if (!_serverUrl || !_token || !snap) return;
+    if (typeof versionLockFor === "function" && versionLockFor(campId)) { console.warn("[version] server camp slot not written — the cloud copy of " + campId + " was written by a newer app version; the IndexedDB copy stands"); return; }/* #599 (a), review R8 */
     _apiJson("/api/campaigns/" + encodeURIComponent(campId) + "/checkpoint", "PUT", { turn: snap.turn, reason: snap.reason, snapshot: snap }, function (err) {
       if (err) console.warn("[checkpoint] server slot not written (" + err + ") — the IndexedDB copy stands");
     });
@@ -1183,7 +1188,13 @@ var storageAdapter = (function() {
       cb(err,list);
     });
   }
-  function saveCharacterToLibrary(char, cb) { _apiJson("/api/characters", "POST", { character: char }, cb); }
+  function saveCharacterToLibrary(char, cb) {
+    /* #599 (a), review R8: while the ACTIVE campaign's cloud copy is newer than this build, its characters are newer too —
+       a library save from here would put an older sheet over them. */
+    var _lcamp = (typeof getActiveCampId === "function") ? getActiveCampId() : null, _lvl = (_lcamp && typeof versionLockFor === "function") ? versionLockFor(_lcamp) : null;
+    if (_lvl) { var _lwhy = "library save refused — the cloud copy of the campaign you are playing was written by a newer app version; reload to update"; console.warn("[version] " + _lwhy); if (cb) cb(_lwhy); return; }
+    _apiJson("/api/characters", "POST", { character: char }, cb);
+  }
   function deleteCharacterFromLibrary(slug, cb) { _apiJson("/api/characters/" + encodeURIComponent(slug), "DELETE", null, cb); }
 
   // ── Blueprint library ────────────────────────────────────────────────────
@@ -1249,6 +1260,10 @@ var storageAdapter = (function() {
   // push from the campaign picker passes the turn it just probed, so a device that wrote between the
   // probe and this POST gets a 409 instead of being silently overwritten.
   function pushCampaignState(campId, parts, cb) {
+    /* #599 (a), review R3: the manual push (☁↑, Remove-local's push-then-evict, an inactive campaign's rename) is the same
+       upload as _syncNow and obeys the same lock. */
+    var _pvl = (typeof versionLockFor === "function") ? versionLockFor(campId) : null;
+    if (_pvl) { var _pwhy = "upload refused — the cloud copy of this campaign was written by a newer app version (" + _pvl.why + "); reload to update"; console.warn("[version] " + _pwhy); if (typeof showToast === "function") showToast("&#9729; " + _pwhy, 9000); if (cb) cb(_pwhy); return; }
     var body = {
       worldState:    wireWorldStateSnapshot(_stripNpcPortraits(parts.worldState)),/* #92/#272 D3: same wire form as _syncNow — the B9 one-map rule */
       sessionLog:    parts.sessionLog,

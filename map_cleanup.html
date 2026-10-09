@@ -104,7 +104,7 @@ select{background:#222;color:var(--fg);border:1px solid #444;border-radius:5px;p
   };
   document.getElementById("btnLive").onclick=function(){
     try{
-      loadState();
+      if(!loadState()){status("loadStatus","live load refused: "+((typeof versionRefusedLoad==="function"&&versionRefusedLoad())||"the live save could not be read")+" — nothing loaded","badc");return;}/* #599 (a), review R6: a false here used to leave MODE live over a null world, and Apply then saved "null" */
       MODE="live";TND=null;
       status("loadStatus","LIVE campaign loaded: "+(worldState.campName||"?")+" — turn "+worldState.turn+", "+Object.keys((memory.map&&memory.map.nodes)||{}).length+" map nodes. Applying WILL write this campaign.","warnc");
     }catch(e){status("loadStatus","live load failed: "+e.message,"badc");}

@@ -348,6 +348,7 @@ function _applyPulledCampaign(id,data,opts){
       _applyLoadedCampaign();
     }
   }
+  versionLockClear(id);/* #599 (a), review R10: a cloud copy this build could read has landed — uploads for it resume */
   storageAdapter.clearFlushDirty(id);
   if(id===getActiveCampId())storageAdapter.adoptServerTurn(typeof data.worldState.turn==="number"?data.worldState.turn:0);
   // Update meta savedAt (small write; guarded so a quota edge can't kill the picker refresh below)

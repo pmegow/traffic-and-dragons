@@ -316,7 +316,7 @@ table.list td.x button:hover{color:var(--dng);}
     var _fv=charFileVersionIssue(obj&&obj.character?obj:{character:c});if(_fv){setStatus(_fv+" — update the game first; nothing was loaded.","err");return false;}/* #599 (a) */
     ch=healChar(JSON.parse(JSON.stringify(c)));dirty=false;render();setStatus("Loaded "+(ch.name||"character")+(src?" from "+src:""),"ok");return true;
   }
-  function out(){return {ver:10,type:"character",character:ch};}
+  function out(){return {ver:SAVE_VER,type:"character",character:ch};}/* #599 (a): the envelope says which build wrote it */
   function saveFile(){
     var v=validate();if(v.errors.length){setStatus("Can't save — "+v.errors.join(" "),"err");return;}
     var data=JSON.stringify(out(),null,2),blob=new Blob([data],{type:"application/json"});
@@ -328,7 +328,7 @@ table.list td.x button:hover{color:var(--dng);}
     if(!signedIn()){setStatus("Not signed in — sign in from the game, then reload this page.","err");return;}
     var v=validate();if(v.errors.length){setStatus("Can't save — "+v.errors.join(" "),"err");return;}
     setStatus("Saving to library…","");
-    libCall(function(cb){storageAdapter.saveCharacterToLibrary(ch,cb);},function(err){if(err){setStatus("Library save failed: "+libErrText(err),"err");return;}dirty=false;setStatus("Saved “"+ch.name+"” to your library (same name overwrites).","ok");});
+    libCall(function(cb){storageAdapter.saveCharacterToLibrary(portableSheet(ch),cb);},/* #599 (a): the library copy carries sheetVer */function(err){if(err){setStatus("Library save failed: "+libErrText(err),"err");return;}dirty=false;setStatus("Saved “"+ch.name+"” to your library (same name overwrites).","ok");});
   }
   function openLibrary(){
     if(!signedIn()){setStatus("Not signed in — sign in from the game, then reload this page.","err");return;}
@@ -355,7 +355,9 @@ table.list td.x button:hover{color:var(--dng);}
 
   // Boot: restore the working draft, else a blank sheet.
   var d=null;try{d=JSON.parse(localStorage.getItem(CE_DRAFT_K)||"null");}catch(e){}
-  if(d&&d.ch){ch=healChar(d.ch);dirty=!!d.dirty;render();setStatus((ch.name||"Untitled")+" — restored from draft"+(dirty?" (unsaved changes)":""),"");}
+  if(d&&d.ch){var _dv=charFileVersionIssue({character:d.ch});/* #599 (a), review R5: a draft from a newer build is kept, never healed into this one */
+    if(_dv)setStatus("Draft not restored: "+_dv+" — update the game first.","err");
+    else{ch=healChar(d.ch);dirty=!!d.dirty;render();setStatus((ch.name||"Untitled")+" — restored from draft"+(dirty?" (unsaved changes)":""),"");}}
   else{ch=blankChar();render();}
   // #476: probe the account once so a dead session shows before the first click (home.html / mementos.html do the same).
   if(signedIn())storageAdapter.fetchAccount(function(err,acct){if(is401(err)){sessionLost();return;}if(!err&&acct&&acct.username){$("who").textContent="Library: signed in as "+acct.username;}else if(err){$("who").textContent="Library unreachable: "+err;$("who").className="hint err";}});

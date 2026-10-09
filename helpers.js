@@ -677,6 +677,7 @@ function libUpdateDiff(cur,lib){
 // apply can never drift) and returns the applied rows. Object values land as fresh
 // copies — the live sheet must never share a reference with the library object.
 function libUpdateApply(cur,lib){
+  if(sheetVersionRefused(lib,"library update"))return [];/* #599 (a), review R5: a newer copy's fields never land */
   var d=libUpdateDiff(cur,lib),i,row;
   for(i=0;i<d.length;i++){
     row=d[i];
@@ -2239,13 +2240,14 @@ function sheetItemDefs(sheet){
    the past (a save hand-edited to `ver:"11"` or `ver:null` is not a newer build). Pure: no globals, no I/O. The doors:
    inflateWorldStateSnapshot (local load, .tnd import, the cloud reconcile), checkpointRestore, the manual pull, the three
    library adopters, the .char import and its preview, quick start, the character editor, map cleanup. */
-function versionNewer(v,mine){return typeof v==="number"&&isFinite(v)&&v>mine;}
+function versionNewer(v,mine){return typeof v==="number"&&v>mine;}/* NaN is never above; Infinity is (review R14) */
 function sheetVersionIssue(sheet){if(!sheet||typeof sheet!=="object"||!versionNewer(sheet.sheetVer,SHEET_VER))return "";return (sheet.name||"this character")+"'s sheet was written by a newer version of the game (sheet v"+sheet.sheetVer+"; this build reads v"+SHEET_VER+")";}
 function worldVersionIssue(ws){
   if(!ws||typeof ws!=="object")return "";
   if(versionNewer(ws.ver,SAVE_VER))return "this save was written by a newer version of the game (save v"+ws.ver+"; this build reads v"+SAVE_VER+")";
-  var s=sheetVersionIssue(ws.character),i,ns=Array.isArray(ws.npcs)?ws.npcs:[];if(s)return s;
+  var s=sheetVersionIssue(ws.character),i,ns=Array.isArray(ws.npcs)?ws.npcs:[],fallen=Array.isArray(ws.mpFallen)?ws.mpFallen:[];if(s)return s;
   for(i=0;i<ns.length;i++){s=sheetVersionIssue(ns[i]&&ns[i].charSheet);if(s)return s;}
+  for(i=0;i<fallen.length;i++){s=sheetVersionIssue(fallen[i]&&fallen[i].sheet);if(s)return s;}/* a fallen PC's parked sheet rejoins later (review R14) */
   return sheetVersionIssue(ws.pendingLegacy);
 }
 function charFileVersionIssue(data){if(!data||typeof data!=="object")return "";if(versionNewer(data.ver,SAVE_VER))return "this character file was written by a newer version of the game (file v"+data.ver+"; this build reads v"+SAVE_VER+")";return sheetVersionIssue(data.character);}

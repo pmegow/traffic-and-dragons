@@ -303,10 +303,12 @@ function versionRefusedLoad(){return _versionRefusedLoad;}
    and the reason: it outlives a reload of the same stale build (the SW can lag a navigation); _syncNow refuses while it
    names the active campaign; a reconcile that reads a compatible cloud world for that campaign clears it. Local saves are
    not locked — the local slot is this device's own, and the danger is only the upload. */
-var VERSION_LOCK_K="tnd_version_lock_v1";
-function versionLockSet(campId,why){if(!campId)return;try{store.set(VERSION_LOCK_K,JSON.stringify({campId:campId,why:String(why||""),at:Date.now()}));}catch(e){console.error("[version] the publication lock could not be stored ("+((e&&e.message)||e)+") — it holds for this page only");}}
-function versionLockFor(campId){if(!campId)return null;var raw=null;try{raw=store.get(VERSION_LOCK_K);}catch(e){raw=null;}if(!raw)return null;var o=null;try{o=JSON.parse(raw);}catch(e){return null;}return (o&&o.campId===campId)?o:null;}
-function versionLockClear(campId){if(!versionLockFor(campId))return false;store.del(VERSION_LOCK_K);return true;}
+var VERSION_LOCK_K="tnd_version_lock_v1";/* ONE key, a map {campId:{why,at}} — one entry per locked campaign (review R4: a single record let locking B unlock A) */
+function _versionLocks(){var raw=null;try{raw=store.get(VERSION_LOCK_K);}catch(e){raw=null;}if(!raw)return keyedDict();var o=null;try{o=JSON.parse(raw);}catch(e){return keyedDict();}if(!o||typeof o!=="object"||Array.isArray(o))return keyedDict();if(typeof o.campId==="string"){var one=keyedDict();one[o.campId]={why:o.why,at:o.at};return one;}/* the first shipped form, one record */return keyedDict(o);}
+function _versionLocksWrite(m){var any=false,k;for(k in m){any=true;break;}try{if(any)store.set(VERSION_LOCK_K,JSON.stringify(m));else store.del(VERSION_LOCK_K);}catch(e){console.error("[version] the publication lock could not be stored ("+((e&&e.message)||e)+") — it holds for this page only");}}
+function versionLockSet(campId,why){if(!campId)return;var m=_versionLocks();m[campId]={why:String(why||""),at:Date.now()};_versionLocksWrite(m);}
+function versionLockFor(campId){if(!campId)return null;var m=_versionLocks();return m[campId]?{campId:campId,why:m[campId].why,at:m[campId].at}:null;}
+function versionLockClear(campId){if(!campId)return false;var m=_versionLocks();if(!m[campId])return false;delete m[campId];_versionLocksWrite(m);return true;}
 // UA3 recovery: re-inflate a rescued transcript once LZ is healthy again and PREPEND it (rescued
 // entries strictly predate the loss). Overlap-guard: if the current transcript's first entry
 // appears inside the rescue (the stored blob was never overwritten — e.g. the failed session
@@ -780,6 +782,9 @@ function checkpointAcceptable(snap){
   if(snapVer>myVer)return {ok:false,reason:"that camp was written by a newer version of the game (snapshot v"+snapVer+", this build reads v"+myVer+")"};
   var live=(typeof worldState!=="undefined"&&worldState&&worldState.campId)||null;
   if(snap.campId&&live&&snap.campId!==live)return {ok:false,reason:"that camp belongs to another campaign ("+snap.campId+"; this campaign is "+live+")"};
+  /* #599 (a), review R13: the nested world and its sheets are gated at the HOLD too, not only at the restore — a newer camp is
+     never held through the escort scene only to refuse at its end. One parse; a camp is held once per boot. */
+  if(typeof snap.ws==="string"){var _hv=null;try{_hv=JSON.parse(snap.ws);}catch(e){_hv=null;}var _hvi=_hv?worldVersionIssue(_hv):"";if(_hvi)return {ok:false,reason:_hvi};}
   return {ok:true};
 }
 /* checkpointHold is the ONE door a transported snapshot (IndexedDB or the server slot, via
@@ -821,9 +826,7 @@ function checkpointRestore(snap,opts){
   if(!gate.ok){if(typeof console!=="undefined")console.warn("[checkpoint] restore REFUSED — "+gate.reason+"; the live campaign is untouched (audit D1/D9)");return {ok:false,reason:gate.reason};}
   var live=worldState,liveTurn=live.turn||0,ws,sl,mem,i;
   try{ws=JSON.parse(snap.ws);}catch(e){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's WORLD could not be read; the live campaign is untouched:",e);return {ok:false,reason:"the camp's world could not be read ("+((e&&e.message)||"unknown")+")"};}
-  /* #599 (a): the camp's outer `v` (checkpointAcceptable) and its nested world and sheets are separate stamps — a camp written
-     by a newer build refuses here, before anything is assigned (Astra R1: the outer gate alone accepted a world v11). */
-  var _cvi=worldVersionIssue(ws);if(_cvi){if(typeof console!=="undefined")console.warn("[checkpoint] restore REFUSED — "+_cvi+"; the live campaign is untouched (#599 a)");return {ok:false,reason:_cvi};}
+  /* #599 (a): the nested world and sheets were gated by checkpointAcceptable above (one gate for the hold and the restore). */
   try{sl=JSON.parse(snap.sl||"[]");}catch(e){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's SESSION LOG could not be read; the live campaign is untouched (it used to be blanked here, then saved and synced):",e);return {ok:false,reason:"the camp's session log could not be read ("+((e&&e.message)||"unknown")+")"};}
   if(!Array.isArray(sl)){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's SESSION LOG is not an array ("+(typeof sl)+"); the live campaign is untouched");return {ok:false,reason:"the camp's session log is not a session log"};}
   try{mem=JSON.parse(snap.mem||"{}");}catch(e){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's LONG-TERM MEMORY could not be read; the live campaign is untouched (it used to be blanked here, then saved and synced):",e);return {ok:false,reason:"the camp's long-term memory could not be read ("+((e&&e.message)||"unknown")+")"};}
@@ -1080,6 +1083,9 @@ function importSaveData(data){
   if(!Array.isArray(ws.questLog))ws.questLog=[];
   if(!Array.isArray(ws.eventHistory))ws.eventHistory=[];
   if(!ws.world||typeof ws.world!=="object")throw new Error("Invalid world data.");
+  /* #599 (a), review R1: the .tnd import never passes through inflate — it is gated HERE, before the outgoing snapshot and
+     every write below. The importer shows the reason; the live campaign, the active id and the store are untouched. */
+  var _ivi=worldVersionIssue(ws);if(_ivi){console.error("[version] .tnd import REFUSED — "+_ivi+"; nothing changed");throw new Error(_ivi+VERSION_RELOAD_HINT);}
   if(typeof stashJournalEnsure==="function")stashJournalEnsure(ws,false);
   // Snapshot (and flush, via E74) the OUTGOING campaign before repointing (audit E12) — importSave
   // used to overwrite worldState + the active campaign id without preserving the current campaign,
@@ -1268,11 +1274,12 @@ function switchToCampaign(id){
     // id and live keys are already repointed while the worldState/memory globals still hold the OLD
     // campaign — the next saveAll then writes campaign A's state under campaign B's id, locally AND
     // on the server. The previous layout fits by construction (it existed at entry).
+    var _vr=_versionRefusedLoad;/* #599 (a): read before the rollback's own loadState resets it (review R11) */
     writeLiveKeys(prevWs,prevSl,prevMem);
     setActiveCampId(prevId);
     loadState(); // restore the previous campaign into the globals
     restoreTargetSlot();
-    if(typeof showToast==="function"&&!_versionRefusedLoad)showToast("Couldn't load that campaign — its save looks corrupted.");/* #599 (a): a newer-build refusal already said the real reason */
+    if(typeof showToast==="function"&&!_vr)showToast("Couldn't load that campaign — its save looks corrupted.");/* #599 (a): a newer-build refusal already said the real reason */
   }
   // Audit D1: setActiveCampId dropped the outgoing campaign's camp; fetch THIS campaign's own from
   // IndexedDB/the server so a death after a mid-session switch has a camp to wake at. Async and
@@ -1383,6 +1390,7 @@ function removeActiveCampaignLocally(id){
   return true;
 }
 function deleteCampaign(id){
+  versionLockClear(id);/* #599 (a), review R16: no orphan lock */
   store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
   setCampMeta(getCampMeta().filter(function(c){return c.id!==id;}));
   forgetCampaignSyncMarkers(id);/* D10/D13: the campaign is gone — its sync markers must not keep a capped slot */

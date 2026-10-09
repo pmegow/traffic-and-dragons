@@ -1391,7 +1391,8 @@ try {
   ["capability_bible.js", "class_bible.js", "skills_bible.js", "item_bible.js", "helpers.js"].forEach(function (f) {
     if (_ce.indexOf('<script src="' + f + '">') < 0) _ceFail(f + " is not loaded — class/spell/skill/item references would not resolve.");
   });
-  if (_ce.indexOf('{ver:10,type:"character",character:ch}') < 0) _ceFail("the .char wrapper drifted from the game's own {ver:10,type:\"character\",character}.");
+  if (_ce.indexOf('{ver:SAVE_VER,type:"character",character:ch}') < 0) _ceFail("the .char wrapper drifted from the game's own {ver:SAVE_VER,type:\"character\",character} (#599 a: the stamp is the constant, never a literal).");
+  if (_src("ui-browsers.js").indexOf('{ver:SAVE_VER,type:"character",character:portableSheet(sheet)}') < 0) _ceFail("the game's own .char wrapper (ui-browsers.js) must stamp ver:SAVE_VER through portableSheet.");
   if (_ce.indexOf("var FIELDS=") < 0 || _ce.indexOf("var LISTS=") < 0) _ceFail("the FIELDS/LISTS registries are gone — fields would be hand-built forms again.");
   ["abilities", "spells", "inventory", "languages", "conditions", "relationships", "saveModifiers", "storyBeats", "coreMemories"].forEach(function (k) {
     if (!(new RegExp('\\{k:"' + k + '",title:')).test(_ce)) _ceFail("v10 list field '" + k + "' has no LISTS entry — unreachable in the editor.");

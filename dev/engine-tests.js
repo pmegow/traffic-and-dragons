@@ -31241,5 +31241,74 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var mc=__fsForTests.readFileSync(__rootForTests+"/map_cleanup.html","utf8"),lt=fn(mc,"function loadTnd(","worldState=data.worldState");if(!/worldVersionIssue\(data(&&data)?\.worldState\)/.test(lt))return "map cleanup refuses a newer .tnd before installing it";
     return true;
   });
+  // ── the independent review of fa065e87 (2026-10-08): the holes it found, each pinned before its fix ──
+  t("#599a review R1: the .tnd import is gated at importSaveData — a newer world (or a sheet in it) throws before the outgoing snapshot, and nothing changes",function(){
+    makeWorld();var liveBefore=JSON.stringify(worldState),prevId=getActiveCampId(),wsk=store.get(WSK);
+    var data={worldState:{ver:SAVE_VER+1,campId:"campX",character:{name:"T",inventory:[],abilities:[],spells:[]},npcs:[],world:{location:"X"},questLog:[],eventHistory:[],transcript:[]},sessionLog:[],memory:{}};
+    var threw=null;try{quiet(function(){importSaveData(data);});}catch(e){threw=e;}
+    if(!threw||!/newer version/.test(threw.message))return "the import must throw the version reason: "+(threw&&threw.message);
+    if(JSON.stringify(worldState)!==liveBefore||getActiveCampId()!==prevId||store.get(WSK)!==wsk)return "a refused import changed the live campaign, the active id or the store";
+    data.worldState.ver=SAVE_VER;data.worldState.npcs=[{name:"M",charSheet:{name:"M",sheetVer:SHEET_VER+1}}];threw=null;try{quiet(function(){importSaveData(data);});}catch(e){threw=e;}
+    return (threw&&/newer version/.test(threw.message))?true:"a newer companion sheet inside the file refuses too";
+  });
+  t("#599a review R4: the lock holds one entry PER campaign — locking B keeps A locked; deleting a campaign drops its lock",function(){
+    store.del(VERSION_LOCK_K);versionLockSet("campA","a");versionLockSet("campB","b");
+    if(!versionLockFor("campA")||!versionLockFor("campB"))return "both locked: "+store.get(VERSION_LOCK_K);
+    if(!versionLockClear("campA")||versionLockFor("campA")||!versionLockFor("campB"))return "clearing A leaves B";
+    versionLockSet("campA","a");quiet(function(){deleteCampaign("campA");});if(versionLockFor("campA"))return "deleteCampaign leaves an orphan lock";
+    store.del(VERSION_LOCK_K);return true;
+  });
+  t("#599a review R3/R8: every upload of a locked campaign is refused — the manual push, the server camp slot, the library save while that campaign is active, and the ordinary push, not only the beacon",function(){
+    makeWorld();var prevId=getActiveCampId(),calls=[],realFetch=global.fetch;
+    global.fetch=function(url,opts){calls.push(((opts&&opts.method)||"GET")+" "+String(url).replace(/^https?:\/\/[^\/]+/,""));return Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve({});}});};
+    try{setActiveCampId("campV");worldState.campId="campV";storageAdapter.setServer("https://unit.test","tok");store.del(VERSION_LOCK_K);versionLockSet("campV","save v11");
+      var cbErr=null;quiet(function(){storageAdapter.pushCampaignState("campV",{worldState:{turn:3,npcs:[]},sessionLog:[],memory:{lore:[]}},function(err){cbErr=err;});});
+      if(calls.length)return "the manual push of a locked campaign reached the server: "+calls.join(", ");
+      if(!cbErr||!/newer/.test(String(cbErr)))return "the manual push says why it was refused: "+cbErr;
+      quiet(function(){storageAdapter.putCheckpoint("campV",{v:1,turn:3,reason:"rest",ws:"{}",sl:"[]",mem:"{}"});});
+      if(calls.length)return "the server camp slot of a locked campaign was written: "+calls.join(", ");
+      var libErr=null;quiet(function(){storageAdapter.saveCharacterToLibrary({name:"T"},function(err){libErr=err;});});
+      if(calls.length||!libErr)return "a library save while the active campaign is locked was sent, or gave no reason: "+calls.join(", ")+" "+libErr;
+      quiet(function(){storageAdapter.syncNow(false);});if(calls.some(function(c){return /POST \/api\/state$/.test(c);}))return "the ordinary push of a locked campaign reached the server";
+      versionLockClear("campV");quiet(function(){storageAdapter.syncNow(false);});if(!calls.some(function(c){return /POST \/api\/state$/.test(c);}))return "an unlocked campaign pushes: "+calls.join(", ");
+    }finally{global.fetch=realFetch;storageAdapter.setServer(null,null);store.del(VERSION_LOCK_K);if(prevId)setActiveCampId(prevId);else store.del(ACTIVE_CAMP_K);}
+    return true;
+  });
+  t("#599a review R2: after a refused local load the boot does not reconcile — nothing is fetched, nothing adopted, the refused save stays the only copy",function(){
+    makeWorld();var prevId=getActiveCampId(),calls=0,realFetch=global.fetch;global.fetch=function(){calls++;return Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve({});}});};
+    try{setActiveCampId("campV");var o={ver:SAVE_VER+1,campId:"campV",character:{name:"T",inventory:[]},npcs:[],world:{location:"X"},transcript:[],turn:80},before=JSON.stringify(o);
+      store.set(WSK,before);store.set(SLK,"[]");store.set(MEM_KEY,JSON.stringify(memory));storageAdapter.setServer("https://unit.test","tok");
+      var got=null,tz=[],os=showToast;showToast=function(m){tz.push(String(m));};try{quiet(function(){storageAdapter.load(function(ok){got=ok;});});}finally{showToast=os;}
+      if(got!==false||worldState!==null)return "the load must refuse: "+got;
+      if(calls!==0)return "the boot reconciled after a refused load ("+calls+" fetches) — the cloud copy could be adopted over the newer save";
+      if(store.get(WSK)!==before)return "the refused save was changed";
+    }finally{global.fetch=realFetch;storageAdapter.setServer(null,null);if(prevId)setActiveCampId(prevId);else store.del(ACTIVE_CAMP_K);}
+    return true;
+  });
+  t("#599a review R14/R13/R5: Infinity is a number above (refused); a fallen PC's parked sheet counts; a camp with a nested newer world is not even HELD",function(){
+    if(!worldVersionIssue({ver:Infinity,character:{name:"T"},npcs:[]}))return "Infinity passed";
+    if(!worldVersionIssue({ver:SAVE_VER,character:{name:"T"},npcs:[],mpFallen:[{name:"F",sheet:{name:"F",sheetVer:SHEET_VER+1}}]}))return "a parked fallen sheet from a newer build passed";
+    makeWorld();worldState.turn=40;var snap=checkpointCapture("rest"),ws=JSON.parse(snap.ws);ws.ver=SAVE_VER+1;snap.ws=JSON.stringify(ws);checkpointClear();
+    var held=quiet(function(){return checkpointHold(snap);}).r;
+    return (held===false&&!checkpointHeld())?true:"a newer camp was held: "+held;
+  });
+  t("#599a review R12/R5/R6/R10: libReplaceApply names the version refusal; libUpdateApply refuses a newer copy; the legacy pick, a pending companion, startGame's companion loop, the editor's file, library save and draft, map cleanup's live load and a landed pull are gated (source)",function(){
+    makeWorld();var hero=worldState.character,lib=JSON.parse(JSON.stringify(hero));lib.sheetVer=SHEET_VER+1;
+    var r=quiet(function(){return libReplaceApply(hero.name,lib,Date.now());}).r;
+    if(!r||r.ok||!/newer version/.test(r.reason))return "libReplaceApply must name the version refusal: "+JSON.stringify(r);
+    var cur={name:"T",level:1},d=quiet(function(){return libUpdateApply(cur,{name:"T",level:9,sheetVer:SHEET_VER+1});}).r;
+    if(cur.level!==1||(d&&d.length))return "libUpdateApply applied a newer copy: "+JSON.stringify(cur)+" "+JSON.stringify(d);
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8"),ce=__fsForTests.readFileSync(__rootForTests+"/character_editor.html","utf8"),mc=__fsForTests.readFileSync(__rootForTests+"/map_cleanup.html","utf8"),uc=__fsForTests.readFileSync(__rootForTests+"/ui-campaigns.js","utf8");
+    function fn(src,head,stop){var s=src.slice(src.indexOf(head));var e=s.indexOf(stop||"\nfunction ",10);return e>0?s.slice(0,e):s;}
+    var sg=fn(g,"function startGame(");if(sg.indexOf("sheetVersionRefused(comp")<0||sg.indexOf("sheetVersionRefused(comp")>sg.indexOf("worldState.npcs.push("))return "startGame gates each pending companion before it is installed";
+    if(fn(g,"function checkLegacyCharacter(").indexOf("sheetVersionRefused(pick")<0)return "the legacy pick is gated";
+    var ap=fn(ub,"function _addPendingCompanion(");if(ap.indexOf("sheetVersionRefused(char")<0||ap.indexOf("sheetVersionRefused(char")>ap.indexOf("pendingCompanions.push("))return "_addPendingCompanion gates before the push";
+    if(ce.indexOf("return {ver:SAVE_VER,type:\"character\",character:ch};")<0)return "the editor's file stamps ver:SAVE_VER";
+    if(ce.indexOf("saveCharacterToLibrary(portableSheet(ch)")<0)return "the editor's library save goes through portableSheet (sheetVer)";
+    var dr=ce.slice(ce.indexOf("CE_DRAFT_K)||\"null\""));if(dr.indexOf("charFileVersionIssue(")<0||dr.indexOf("charFileVersionIssue(")>dr.indexOf("healChar(d.ch)"))return "the draft restore gates before healing";
+    var lv=fn(mc,"document.getElementById(\"btnLive\").onclick","MODE=\"live\"");if(!/if\(!loadState\(\)\)/.test(lv))return "map cleanup's live load stops when loadState refuses";
+    var pc=fn(uc,"function _applyPulledCampaign(");if(pc.indexOf("versionLockClear(id)")<0)return "a pull that lands clears the lock";
+    return true;
+  });
 
 }

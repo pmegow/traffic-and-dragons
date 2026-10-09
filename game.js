@@ -27,7 +27,7 @@ function startGame(char,toneName,toneVoice,authorId){
   sessionLog=[];memory=blankMemory();lastAction=null;// don't let the previous campaign's last action leak into this one's Retry (audit E83)
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){
-    var comp=pendingCompanions[ci];if(!identitySheetAdmit(comp,comp.name,[]))continue;keyedStores(comp,"sheet");if(typeof sceneFieldsCross==="function")sceneFieldsCross(comp);/* #481 C5 */
+    var comp=pendingCompanions[ci];if(sheetVersionRefused(comp,"companion "+comp.name))continue;/* #599 (a), review R5: the wizard's companions came in without the preview */if(!identitySheetAdmit(comp,comp.name,[]))continue;keyedStores(comp,"sheet");if(typeof sceneFieldsCross==="function")sceneFieldsCross(comp);/* #481 C5 */
     if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(comp);
     worldState.npcs.push({name:comp.name,status:"ally",rel:"companion",met:0,partyMember:true,pronouns:pronounsForGender(comp.gender),portrait:null,charSheet:comp}); // portrait rides on charSheet only (#3 dedupe)
     memory.npcs[comp.name]={attitude:"ally",knowledge:[],events:[],partyMember:true,pronouns:pronounsForGender(comp.gender)};
@@ -1116,6 +1116,7 @@ function checkLegacyCharacter(){
   }
   if(!candidates.length){if(legacyChancePct>=100&&typeof console!=="undefined")console.warn("[legacy] enabled and rolled, but no eligible character in the Character Library (need a saved library character that isn't the current PC or already met; requires server connection).");return;}
   var pick=candidates[Math.floor(Math.random()*candidates.length)];
+  if(sheetVersionRefused(pick,"legacy character "+(pick.name||"")))return;/* #599 (a), review R5: pendingLegacy is built field by field, so its source is gated */
   migrateAncestryNames(pick);
   migrateCharClassNames(pick);/* #100: server-library entries may predate the Berserker→Primal rename — heal before the cls string reaches the GM prompt */
   if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(pick);/* #221 */
@@ -1633,6 +1634,7 @@ function libReplaceSummary(cur,lib){
 function libReplaceApply(name,lib,at){
   if(!worldState)return {ok:false,reason:"no active campaign"};
   if(!lib||typeof lib!=="object"||!lib.name)return {ok:false,reason:"no library copy"};
+  var _lvi=sheetVersionIssue(lib);if(_lvi)return {ok:false,reason:_lvi+VERSION_RELOAD_HINT};/* #599 (a), review R12: the real reason, not "conflicting names" */
   if(worldState.character&&worldState.character.name===name){if(!adoptLibraryHero(lib,at))return {ok:false,reason:"the library copy has conflicting character names"};return {ok:true,host:"hero"};}
   var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;if(!n||!n.charSheet)return {ok:false,reason:name+" has no character sheet in this campaign"};
   if(!adoptLibraryCompanion(n,lib,at))return {ok:false,reason:"the library copy has conflicting character names"};return {ok:true,host:n.partyMember?"companion":"resident"};

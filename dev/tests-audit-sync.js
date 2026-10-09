@@ -803,8 +803,9 @@ tAsync("a compatible cloud world clears the lock, so pushes resume once the newe
   global.fetch = _vgServer(SAVE_VER, 5);
   storageAdapter.setServer("https://unit.test", "tok"); resetSinks();
   return new Promise(function (res) { storageAdapter.load(function () { res(); }); }).then(settle).then(settle).then(function () {
-    global.fetch = realFetch; storageAdapter.setServer(null, null); store.del(VERSION_LOCK_K);
-    return versionLockFor("campV") === null ? true : "the lock survived a compatible reconcile";
+    global.fetch = realFetch; storageAdapter.setServer(null, null);
+    var cleared = versionLockFor("campV") === null; store.del(VERSION_LOCK_K);/* assert BEFORE the cleanup — the battery caught this test deleting the key first */
+    return cleared ? true : "the lock survived a compatible reconcile";
   });
 });
 
