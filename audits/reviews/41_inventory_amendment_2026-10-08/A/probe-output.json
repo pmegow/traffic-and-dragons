@@ -1,0 +1,85 @@
+{
+  "time": "2026-10-09T04:18:38.312Z",
+  "quantity": {
+    "base": "Arrow",
+    "n": 999,
+    "clamped": true
+  },
+  "keys": [
+    [
+      "Modelx3",
+      "model",
+      {
+        "base": "Modelx3",
+        "n": 1
+      }
+    ],
+    [
+      "Model x01",
+      "model",
+      {
+        "base": "Model x01",
+        "n": 1
+      }
+    ],
+    [
+      "Wolf pelts",
+      "wolf pelt",
+      {
+        "base": "Wolf pelts",
+        "n": 1
+      }
+    ]
+  ],
+  "stringWriter": [
+    "Torch x1",
+    "Rope"
+  ],
+  "attire": "Wearing: Sword, Shield",
+  "projectedOrder": [
+    "Shield",
+    "Sword"
+  ],
+  "rename": {
+    "ok": true,
+    "inventory": [
+      "New ring",
+      "Signet ring (from B)"
+    ]
+  },
+  "equipped": {
+    "worn": null,
+    "muts": [],
+    "errors": []
+  },
+  "replays": [
+    {
+      "file": "dev/corpus_playtest_v1238.json.endstate.json",
+      "paths": [
+        "$.ws.ver",
+        "$.ws.character.inventory"
+      ]
+    },
+    {
+      "file": "dev/corpus_playtest_v1258.json.endstate.json",
+      "paths": [
+        "$.ws.ver",
+        "$.ws.character.inventory"
+      ]
+    },
+    {
+      "file": "dev/corpus_playtest_v1271.json.endstate.json",
+      "paths": [
+        "$.ws.ver",
+        "$.ws.character.inventory"
+      ]
+    },
+    {
+      "file": "dev/corpus_playtest_v1276.json.endstate.json",
+      "paths": [
+        "$.ws.ver",
+        "$.ws.character.inventory"
+      ]
+    }
+  ]
+}

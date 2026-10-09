@@ -1,0 +1,17 @@
+const started=Date.now(),L=require('C:/Projects/traffic-and-dragons/dev/load-engine.js');L.loadEngine();L.makeTestWorld();
+const log=(k,v)=>console.log(k+': '+JSON.stringify(v));
+log('future APIs',[typeof global.invRows,typeof global.invHealSheet,typeof global.invFind]);
+const rows=[{name:'Torch',qty:2,equipped:false,slot:'left'},{name:'Torch',qty:3,equipped:false,slot:'right'}];
+const p=rows.map(r=>({name:r.name,qty:r.qty,worn:r.equipped,sellCp:10})),shop={sell:p,buy:[],coin:100,keeper:'Keeper'},stash={carried:p,stored:[]};
+log('shop keys',shopLedgerRows(shop).left.map(r=>r.key));log('shop mark',shopTradePlan(shop,{sell:{torch:1}}));
+log('stash keys',stashLedgerRows(stash).left.map(r=>r.key));log('stash mark',stashTradePlan(stash,{stow:{torch:1}}));
+log('exact resolver',resolveInventoryName(['Torch x2','Torch x3'],'Torch'));log('base resolver',resolveInventoryName(['Torch (left)','Torch (right)'],'Torch'));log('ambiguity',_invLastMiss);
+log('index plus name delete',invDropPlan(['Torch','Torch'],invDropToggle({},1,'Torch')));
+const a=[{name:'Torch',qty:3,equipped:false,extra:{socket:2}}],b=a.slice();b[0].qty--;log('slice aliases',a);
+const c=JSON.parse(JSON.stringify(a));c[0].extra.socket--;log('JSON detached JSON extras',a);
+const unsafe={name:'Torch',qty:Infinity,extra:{u:undefined,n:NaN,m:-0}};log('extra keys before',Object.keys(unsafe.extra));log('JSON unsafe copy',JSON.parse(JSON.stringify(unsafe)));
+log('literal count collision',[{name:'Torch x2',qty:1},{name:'Torch',qty:2}].map(r=>r.name+(r.qty>1?' x'+r.qty:'')));
+log('quantity bounds',[QTY_MAX,_qtyParse('Torch x9999'),_invCount('Torch x10000')]);
+const inv=['Torch x9999'];addInventoryItem(inv,'Torch');log('write over proposed bound',inv);const fold=['Torch x9999','Torch'];foldDuplicateInventory(fold);log('fold over proposed bound',fold);
+const initial=JSON.stringify(a),t=Date.now();for(let i=0;i<10000;i++)JSON.parse(JSON.stringify(a));log('10000 copies',{same:initial===JSON.stringify(a),bytes:Buffer.byteLength(initial),elapsedMs:Date.now()-t});
+log('measurement',{startedUtc:new Date(started).toISOString(),endedUtc:new Date().toISOString(),elapsedMs:Date.now()-started});

@@ -1,0 +1,19 @@
+future APIs: ["undefined","undefined","undefined"]
+shop keys: ["torch","torch"]
+shop mark: {"lines":[{"kind":"sell","name":"Torch","qty":1,"unitCp":10,"cp":10},{"kind":"sell","name":"Torch","qty":1,"unitCp":10,"cp":10}],"sellCp":20,"buyCp":0,"netCp":-20,"coinAfter":120,"ok":true,"reason":""}
+stash keys: ["torch","torch"]
+stash mark: {"lines":[{"kind":"stow","name":"Torch","qty":1},{"kind":"stow","name":"Torch","qty":1}],"stowed":2,"taken":0,"ok":true,"reason":""}
+exact resolver: 0
+base resolver: -1
+ambiguity: {"why":"ambiguous","names":["Torch (left)","Torch (right)"]}
+index plus name delete: {"drop":[{"idx":1,"name":"Torch"}],"stale":[],"count":1,"ok":true}
+slice aliases: [{"name":"Torch","qty":2,"equipped":false,"extra":{"socket":2}}]
+JSON detached JSON extras: [{"name":"Torch","qty":2,"equipped":false,"extra":{"socket":2}}]
+extra keys before: ["u","n","m"]
+JSON unsafe copy: {"name":"Torch","qty":null,"extra":{"n":null,"m":0}}
+literal count collision: ["Torch x2","Torch x2"]
+quantity bounds: [999,{"base":"Torch","n":999,"clamped":true},10000]
+write over proposed bound: ["Torch x10000"]
+fold over proposed bound: ["Torch x10000"]
+10000 copies: {"same":true,"bytes":64,"elapsedMs":9}
+measurement: {"startedUtc":"2026-10-09T04:19:29.367Z","endedUtc":"2026-10-09T04:19:29.420Z","elapsedMs":53}

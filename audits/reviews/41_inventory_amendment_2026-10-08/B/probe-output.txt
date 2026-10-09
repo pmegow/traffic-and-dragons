@@ -1,0 +1,10 @@
+CHECKPOINT_ACCEPT {"ok":true}
+[sound] 'click_glass' skipped — no AudioContext
+CHECKPOINT_RESTORE {"ok":true,"turn":5,"camp":"Ashfen","respawn":1} worldVer=11
+CHAR_IMPORT {"preview":true,"sheetVer":999,"healedSkills":true}
+PULL_REFUSED_LOAD {"returned":true,"writes":["tnd_core_v10","tnd_sess_v10","tnd_mem_v10","meta"],"acks":["clear:probe","adopt:7"],"sourceCampId":"probe","liveVer":10}
+FALLEN_REJOIN {"returned":1,"sheetVer":999,"sourceHp":10,"remaining":null}
+SAME_CAMPAIGN_HEAL {"name":"Alda","relationships":[{"name":"Tess","dynamic":"","dynamicTurn":null}]}
+[items] 1 item definition(s) travelled in with Alda (#81b)
+DETACHED_HEAL_GLOBAL_WRITE {"worldHasDefinition":true}
+MEASUREMENT {"startUtc":"2026-10-09T04:19:39.026Z","endUtc":"2026-10-09T04:19:39.081Z","elapsedMs":54.5338,"tokens":"unavailable"}
