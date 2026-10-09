@@ -423,7 +423,7 @@ function shopTradeApply(marks){
   if(!R.ok){if(typeof console!=="undefined")console.warn("[shop] "+R.reason);return {ok:false,reason:R.reason,muts:muts,plan:plan};}
   var i,node=cat.node,sold=[],bought=[],hero=(worldState.character&&worldState.character.name)||"the hero";
   for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];
-    if(l.kind==="buy"){bought.push(l.qty>1?l.name+" x"+l.qty+" ("+fmtCoin(l.cp)+")":l.name+" ("+l.price+")");/* #481 D5: a bundle buy names its count */var wi;for(wi=0;wi<(node.wares||[]).length;wi++)if(String(node.wares[wi].item).toLowerCase()===l.name.toLowerCase()){node.wares.splice(wi,1);break;}}
+    if(l.kind==="buy"){bought.push(l.qty>1?l.name+" x"+l.qty+" ("+fmtCoin(l.cp)+")":l.name+" ("+l.price+")");/* #481 D5: a bundle buy names its count */var wi;for(wi=0;wi<(node.wares||[]).length;wi++)if(itemKey(node.wares[wi].item)===itemKey(l.name)){node.wares.splice(wi,1);break;}}/* #599 (b3): the bought ware leaves the shelf by the one item key */
     else{sold.push(l.name+(l.qty>1?" x"+l.qty:"")+" ("+fmtCoin(l.cp)+")");if(typeof fileWare==="function"){var out={};fileWare(l.name,fmtCoin(l.unitCp),"sold by "+hero,worldState.turn,out);if(out.evicted&&out.evicted.length)muts.push("Shelf full — dropped: "+out.evicted.join(", "));}}}
   var line=hero+(sold.length?" sold "+sold.join(", "):"")+(sold.length&&bought.length?" and":"")+(bought.length?" bought "+bought.join(", "):"")+" — "+(plan.netCp>0?"-":plan.netCp<0?"+":"")+fmtCoin(Math.abs(plan.netCp))+", with "+cat.keeper+" at "+cat.shop+".";
   worldState.tradePing={turn:worldState.turn,keeper:cat.keeper,shop:cat.shop,hero:hero,sold:sold,bought:bought,netCp:plan.netCp};

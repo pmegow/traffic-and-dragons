@@ -17,6 +17,12 @@ var BASE = dirArg ? path.resolve(dirArg) : path.join(ROOT, "Campaigns");
 // ---- legacy-string conversion under examination ----
 function parseStored(s) { var m = String(s).match(/^(.*\S)\s+x([1-9]\d*)\s*$/i); return m ? { name: m[1].trim(), qty: parseInt(m[2], 10) } : { name: String(s).trim(), qty: 1 }; }
 function itemKey(n) { return _invNorm(n); } // today's pack rule, which §2.2 adopts
+// ---- the OLD readers, frozen: the v1.1197 legacy strip (any trailing x-digits), the rule an unrefreshed device may still run
+// (§5.4). A stored string the old rule and the stored grammar read differently is a GRAMMAR SPLIT. Since #599 (b3), v1.1198,
+// the engine's own readers (_invBase/_invCount) use the stored grammar, so the comparison carries the old rule itself —
+// otherwise it would compare the grammar with itself and could never fire.
+function looseCount(s) { var m = String(s).match(/\sx(\d+)\s*$/i); return m ? parseInt(m[1], 10) : 1; }
+function looseBase(s) { return String(s).replace(/\s*x\d+\s*$/i, "").trim(); }
 function legacyRows(list, worn) {
   var rows = [], idx = Object.create(null), junk = [], unmatched = [], i;
   for (i = 0; i < (list || []).length; i++) {
@@ -31,7 +37,7 @@ function legacyRows(list, worn) {
   return { rows: rows, junk: junk, wornUnmatched: unmatched };
 }
 function invText(r) { return r.name + (r.qty > 1 ? " x" + r.qty : ""); }
-function unitsByKey(strings) { var o = Object.create(null), i; for (i = 0; i < strings.length; i++) { var k = itemKey(_invBase(strings[i])); o[k] = (o[k] || 0) + _invCount(strings[i]); } return o; }
+function unitsByKey(strings) { var o = Object.create(null), i; for (i = 0; i < strings.length; i++) { var k = itemKey(looseBase(strings[i])); o[k] = (o[k] || 0) + looseCount(strings[i]); } return o; }
 
 // ---- which saves ----
 // Every folder holding .tnd files, at any depth (Campaigns/<slug>/saves, Campaigns/Runelords/<slug>/saves, a folder of exports).
@@ -81,7 +87,7 @@ savesIn(BASE).forEach(function (sv) {
     inv.forEach(function (e, i) {
       if (typeof e !== "string") { S.junk++; fail(where + ": unsupported non-string inventory entry at " + i); return; }
       if (!e.trim()) { S.junk++; fail(where + ": empty inventory entry at " + i); return; }
-      var q = parseStored(e).qty, c = _invCount(e);
+      var q = parseStored(e).qty, c = looseCount(e);
       if (q > 1) S.counted++; if (q > S.maxQty) S.maxQty = q;
       if (q !== c) { S.grammarSplit++; fail(where + ": count grammars disagree at " + i); }
       if (!safeUnits(q) || !safeUnits(c)) fail(where + ": quantity is not a safe positive integer at " + i);
@@ -106,7 +112,7 @@ savesIn(BASE).forEach(function (sv) {
     });
     // Expected membership comes from original strings and worn, not converter flags.
     var expected = Object.create(null), actual = Object.create(null);
-    inv.forEach(function (e) { var k = itemKey(_invBase(e)); expected[k] = worn.some(function (w) { return itemKey(w) === k; }); });
+    inv.forEach(function (e) { var k = itemKey(looseBase(e)); expected[k] = worn.some(function (w) { return itemKey(w) === k; }); });
     m.rows.forEach(function (r) { actual[itemKey(r.name)] = r.equipped === true; });
     Array.from(new Set(Object.keys(expected).concat(Object.keys(actual)))).forEach(function (k) {
       if (expected[k] !== actual[k]) { S.equippedMismatch++; fail(where + ": equipped membership changed"); }

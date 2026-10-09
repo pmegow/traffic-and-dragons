@@ -365,7 +365,7 @@ function locFoldNodeRecords(canonNode,dupNode,canonLabel){
   var di=dupNode.items||[];canonNode.items=canonNode.items||[];
   for(i=0;i<di.length;i++){ /* concat + case-insensitive dedupe — reads are first-ci-match, so twins would shadow */
     var seen=false;
-    for(j=0;j<canonNode.items.length;j++){if(String(canonNode.items[j].name).toLowerCase()===String(di[i].name).toLowerCase()){seen=true;break;}}
+    for(j=0;j<canonNode.items.length;j++){if(itemKey(canonNode.items[j].name)===itemKey(di[i].name)){seen=true;break;}}/* #599 (b3): the chest fold keys through the one item key (§4.5) */
     if(!seen)canonNode.items.push(di[i]);
     else if(di[i].qty!==undefined||canonNode.items[j].qty!==undefined){/* #6 E7: stash rows sum — a merge never loses a chest */var _ci=canonNode.items[j];if(!di[i].taken&&di[i].qty!==0){var _sum=(_ci.taken||_ci.qty===0?0:(_ci.qty||1))+(di[i].qty||1);_ci.qty=_sum;_ci.taken=false;}}
   }
@@ -389,7 +389,7 @@ function locFoldNodeRecords(canonNode,dupNode,canonLabel){
     else if(_f.fold==="newer"){if(!_cv||((_dv&&_dv.t)||0)>((_cv&&_cv.t)||0))canonNode[_k]=JSON.parse(JSON.stringify(_dv));}
     else if(_f.fold==="concat"||_f.fold==="union-by-item"){var _dl=(_dv instanceof Array)?_dv:[],_cl=(_cv instanceof Array)?_cv.slice():[],_di;
       for(_di=0;_di<_dl.length;_di++){var _row=_dl[_di],_dup=false;
-        if(_f.fold==="union-by-item"){var _ri;for(_ri=0;_ri<_cl.length;_ri++){if(String((_cl[_ri]&&_cl[_ri].item)||"").toLowerCase()===String((_row&&_row.item)||"").toLowerCase()){_dup=true;break;}}}
+        if(_f.fold==="union-by-item"){var _ri;for(_ri=0;_ri<_cl.length;_ri++){if(itemKey((_cl[_ri]&&_cl[_ri].item)||"")===itemKey((_row&&_row.item)||"")){_dup=true;break;}}}/* #599 (b3): wares and wants union by the one item key */
         if(!_dup)_cl.push(_row);}
       if(_f.cap&&_cl.length>_f.cap){if(typeof console!=="undefined")console.warn("[identity] "+canonLabel+" "+_k+" over cap ("+_f.cap+") after fold — oldest "+(_cl.length-_f.cap)+" dropped");_cl=_cl.slice(_cl.length-_f.cap);}
       canonNode[_k]=_cl;}

@@ -31480,4 +31480,63 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return (s2===null&&JSON.stringify(n.charSheet)===before&&tz.some(function(x){return /newer version/.test(x);}))?true:"a refused copy changes nothing and says so";
   });
 
+  // ── #599 (b3): ONE KEY — the legacy readers, the stash and pair keys, the wants, the counter and the folds converge on
+  // itemKey / itemBaseKey and the stored grammar (DOC/DESIGN_599_inventory_rows.md §2.2, §2.3, §4.5; §8.2 gate 2 is the
+  // compatibility TABLE below: which names must and must not share a key under each rule). Intentional changes: plural,
+  // dash and case variants converge in wants, the counter, wares and chest folds; the loose x-digits strip is gone.
+  section("#599 (b3) one item key — the compatibility table, the stored grammar, the resolver, the wants, the counter and the folds");
+  t("#599b3 the compatibility table: which names share a key under each rule, and which must not (the pack rule keeps provenance and a literal row name; the want and pair keys project the clause; the stash key decodes a tag count and keeps provenance)",function(){
+    var T=[/* [rule, a, b, same?] */
+      ["itemKey","Wolf pelts","Wolf pelt",true],["itemKey","Iron ring — unmarked","Iron ring - unmarked",true],["itemKey","Healing Potion","healing  potion",true],["itemKey","Chaos","Chao",true],/* the natural-s rule is inherited from the pack, not a linguistic guarantee (§2.2) */
+      ["itemKey","Rope (spare)","Rope",false],["itemKey","Torch x2","Torch",false],/* an object-row name is literal (I3) */["itemKey","Rope","Lantern",false],
+      ["itemBaseKey","Rope (spare)","Rope",true],["itemBaseKey","Signet ring (from Sheriff Hemlock)","Signet ring",true],["itemBaseKey","Iron ring — unmarked","Iron ring",true],["itemBaseKey","Wolf pelts","Wolf pelt",true],["itemBaseKey","Rope","Lantern",false],
+      ["stashKey","Torch x3","Torch",true],["stashKey","Wolf pelts","Wolf pelt",true],["stashKey","Iron ring — unmarked","Iron ring - unmarked",true],["stashKey","Rope (spare)","Rope",false],/* the chest keeps provenance (#481 D2) */
+      ["itemPairKey","Signet ring (from Sheriff Hemlock) x2","Signet ring",true],["itemPairKey","Wolf pelts","Wolf pelt",true],["itemPairKey","Rope","Lantern",false],
+      ["_invNorm","Torch x3","Torch",true],["_invNorm","Wolf pelts","Wolf pelt",true],["_invNorm","Iron ring — unmarked","Iron ring - unmarked",true],["_invNorm","Rope (spare)","Rope",false]
+    ];
+    var fns={itemKey:itemKey,itemBaseKey:itemBaseKey,stashKey:stashKey,itemPairKey:itemPairKey,_invNorm:_invNorm},bad=[],i;
+    for(i=0;i<T.length;i++){var f=fns[T[i][0]],ka=f(T[i][1]),kb=f(T[i][2]);if((ka===kb)!==T[i][3])bad.push(T[i][0]+"('"+T[i][1]+"') "+(ka===kb?"=":"≠")+" ('"+T[i][2]+"') ["+ka+" / "+kb+"]");}
+    return bad.length?"the table disagrees: "+bad.join("; "):true;
+  });
+  t("#599b3 the stored grammar is the ONE count reader for the legacy readers: ' xN' (N ≥ 1, no leading zero) is a count, anything else is a literal name with one unit — the loose x-digits strip that read 'Model x01' and 'Torch x0' as counts is gone (0 grammar splits over 77 owner saves)",function(){
+    var D=[["Torch x3","Torch",3],["Arrow x20","Arrow",20],["Rope","Rope",1],["Model x01","Model x01",1],["Modelx3","Modelx3",1],["Torch x0","Torch x0",1],["Torch  x2","Torch",2],["","",1]],bad=[],i;
+    for(i=0;i<D.length;i++){if(_invBase(D[i][0])!==D[i][1]||_invCount(D[i][0])!==D[i][2])bad.push(JSON.stringify(D[i][0])+" → "+JSON.stringify([_invBase(D[i][0]),_invCount(D[i][0])]));}
+    if(bad.length)return "the readers disagree with the stored grammar: "+bad.join("; ");
+    if(_invBase(7)!==""||_invCount(null)!==1||_invNorm(undefined)!=="")return "a non-string reads as an empty name with one unit";
+    return (_invNorm("Modelx3")==="modelx3"&&_invNorm("Torch x3")==="torch")?true:"the key of a literal keeps its letters: "+_invNorm("Modelx3");
+  });
+  t("#599b3 a rename resolves through the one resolver: the exact key, then a UNIQUE provenance-free base; two bases for one name refuse LOUDLY, naming both, and nothing is relabelled; the collision refusal stands",function(){
+    var inv=["Signet ring (from Sheriff Hemlock) x2","Rope (spare)","Rope (coil)","Torch"],R={muts:[]};
+    if(!quiet(function(){return renameInventoryItem(inv,"Signet ring","Sheriff's signet",R);}).r||inv[0]!=="Sheriff's signet x2")return "a unique base renames and keeps the stack: "+inv.join("|");
+    var snap=inv.join("|");R={muts:[]};var q=quiet(function(){return renameInventoryItem(inv,"Rope","Cord",R);});
+    if(q.r!==false||inv.join("|")!==snap)return "two bases for 'Rope' refuse and relabel nothing: "+inv.join("|");
+    if(!R.muts.some(function(m){return /matches 2 items/.test(m)&&/Rope \(spare\), Rope \(coil\)/.test(m);})||!q.warns.some(function(w){return /matches 2 items/.test(w);}))return "the refusal names both candidates on the receipt and the console: "+JSON.stringify([R.muts,q.warns]);
+    R={muts:[]};if(!quiet(function(){return renameInventoryItem(inv,"TORCH","Lantern",R);}).r||inv[3]!=="Lantern")return "the exact key is case-blind: "+inv.join("|");
+    R={muts:[]};q=quiet(function(){return renameInventoryItem(inv,"Lantern","Rope (spare)",R);});
+    return (q.r===false&&inv[3]==="Lantern"&&R.muts.some(function(m){return /already on the sheet/.test(m);}))?true:"a relabel onto an existing entry still refuses: "+JSON.stringify([inv,R.muts]);
+  });
+  t("#599b3 the want match is provenance-free and plural/dash-blind: the counter folds 'Wolf pelts' and 'Wolf pelt' into ONE row (first spelling, units summed) that meets the keeper's want for 'Wolf pelt' at the stated offer, 'Rope (spare)' and 'Rope' stay two rows, and selling the plural retires the singular want",function(){
+    shopFixture();worldState.character.inventory=["Wolf pelts","Wolf pelt","Rope (spare)","Rope","Bone-handled knife"];
+    var node=memory.map.nodes["The Village|the trading post"];node.wanted=[{item:"Wolf pelt",offer:"2 gp",cp:200,by:"Frizwick",t:1,min:clockNow()}];
+    var cat=shopTradeCatalog();if(!cat.ok)return "catalog: "+cat.reason;
+    var names=cat.sell.map(function(r){return r.name+":"+r.qty;}).join("|");
+    if(names!=="Wolf pelts:2|Rope (spare):1|Rope:1|Bone-handled knife:1")return "one row per item key, units summed, provenance kept: "+names;
+    var wp=cat.sell[0];if(!wp.wanted||!wp.want||wp.want.key!==itemBaseKey("Wolf pelt")||wp.sellCp!==200)return "the pelts meet the want at the stated offer: "+JSON.stringify(wp);
+    var ret=retireWantedAt(null,"Wolf pelts");
+    return (ret&&ret.item==="Wolf pelt"&&node.wanted.length===0)?true:"the sale of the plural retires the singular want: "+JSON.stringify([ret,node.wanted]);
+  });
+  t("#599b3 wares, wants and chest rows key through the one item key: a re-stated 'Healing potions' refreshes the 'Healing potion' ware instead of twinning it, a re-stated want likewise, and a place merge folds a 'Wolf pelts' chest row onto 'Wolf pelt' with the units summed",function(){
+    shopFixture();var node=memory.map.nodes["The Village|the trading post"],n0=node.wares.length,w0=node.wanted.length;
+    fileWare("Healing potions","55 gp","",worldState.turn,{},"the trading post");
+    var hp=node.wares.filter(function(w){return itemKey(w.item)==="healing potion";});
+    if(node.wares.length!==n0||hp.length!==1||hp[0].item!=="Healing potions")return "a re-stated ware refreshes by key, never twins: "+JSON.stringify(node.wares.map(function(w){return w.item;}));
+    fileWanted("bone-handled  Knife","4 gp","Frizwick",worldState.turn,"the trading post");/* case and spacing variants fold; "knives" would not — the pack rule strips one trailing s, nothing more */
+    var bk=node.wanted.filter(function(w){return itemKey(w.item)==="bone-handled knife";});
+    if(node.wanted.length!==w0||bk.length!==1||bk[0].offer!=="4 gp")return "a re-stated want refreshes by key, never twins: "+JSON.stringify(node.wanted.map(function(w){return w.item;}));
+    var canon={firstVisit:1,visits:1,description:null,parent:"The Village",npcs:[],items:[{name:"Wolf pelt",qty:2},{name:"Rope (spare)",qty:1}],size:"small",travelMins:null},dup={firstVisit:2,visits:1,description:null,parent:"The Village",npcs:[],items:[{name:"Wolf pelts",qty:3},{name:"Rope",qty:1}],size:"small",travelMins:null};
+    quiet(function(){locFoldNodeRecords(canon,dup,"the cellar");});
+    var rows=canon.items.map(function(r){return r.name+":"+r.qty;}).join("|");
+    return rows==="Wolf pelt:5|Rope (spare):1|Rope:1"?true:"the chest fold keys by item key, keeps provenance and sums: "+rows;
+  });
+
 }

@@ -3422,13 +3422,16 @@ function shopTradeCatalog(){
   var vtc=shopCounterContext();
   if(!vtc.ok||!vtc.node)return {ok:false,reason:vtc.reason||"not in a shop"};
   var c=(typeof worldState!=="undefined"&&worldState&&worldState.character)||{},inv=c.inventory||[],hero=keyedDict(),order=[],i;
-  for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=base.toLowerCase();
+  /* #599 (b3) ONE KEY: a counter row is the pack's item key (provenance kept — "Rope (spare)" and "Rope" stay two rows; "Wolf
+     pelt" and "Wolf pelts" are ONE row, the first spelling its label, the units summed); the want match is provenance-free
+     (itemBaseKey — §2.2), so a carried "Signet ring (from Hemlock)" meets a want for "Signet ring" */
+  for(i=0;i<inv.length;i++){var base=_invBase(inv[i]),n=_invCount(inv[i]),k=itemKey(base);
     if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}
     hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,inv[i]))hero[k].worn=true;}
-  var wanted=keyedDict(),wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++)wanted[String(wl[i].item||"").toLowerCase()]=wl[i];
+  var wanted=keyedDict(),wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++)wanted[itemBaseKey(wl[i].item)]=wl[i];
   var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,cp=(typeof itemValueCp==="function")?itemValueCp(canon):null;
-    var w=wanted[order[i]]||wanted[String((typeof itemBaseName==="function")?itemBaseName(r.name):r.name).toLowerCase()]||null;
-    r.canonCp=cp;r.wanted=!!w;r.want=w?{key:String(w.item||"").toLowerCase(),item:String(w.item||""),by:w.by||""}:null;/* #577: the want this row meets */
+    var w=wanted[itemBaseKey(r.name)]||null;
+    r.canonCp=cp;r.wanted=!!w;r.want=w?{key:itemBaseKey(w.item),item:String(w.item||""),by:w.by||""}:null;/* #577: the want this row meets */
     /* #481 D4 (ruled 2026-09-29; amends #407 ruling ①): a WANTED item sells at the keeper's STATED offer, parsed once when
        the want was filed (its `cp`), for ONE unit (the want retires when met); an offer in words is no counter price. */
     if(w){r.offer=String(w.offer||"");if(w.cp!=null)r.sellCp=w.cp;else r.offerWords=true;}

@@ -151,9 +151,13 @@ function invDetach(rows){var ji=invJsonIssue(rows);if(ji)return {ok:false,reason
 // non-string inventory entries, and a primitive that throws on one kills whatever loop touched it —
 // inventorySnapshot sits BEFORE applyMuts in the turn path, so that throw cost the entire turn.
 function _invStr(s){return typeof s==="string"?s:"";}
-function _invNorm(s){return _invStr(s).replace(/\s*x\d+\s*$/i,"").toLowerCase().replace(/[—–−‑]/g,"-").replace(/\s*-\s*/g,"-").replace(/\s+/g," ").trim().replace(/s$/,"");}
-function _invCount(s){var m=_invStr(s).match(/\sx(\d+)\s*$/i);return m?parseInt(m[1],10):1;}
-function _invBase(s){return _invStr(s).replace(/\s*x\d+\s*$/i,"").trim();}
+/* #599 (b3) ONE KEY, ONE GRAMMAR: the three legacy readers are delegates — the STORED grammar decodes the count (invStoredParse:
+   " xN", N ≥ 1, no leading zero; anything else is a literal name with one unit — "Modelx3" and "Model x01" are names, the
+   loose `x\d+` strip that read them as counts is gone; the 2026-10-09 census over 77 owner saves / 11,490 entries found 0
+   grammar splits) and itemKey is the pack rule on the decoded name. The compatibility table is the "#599 (b3)" test section. */
+function _invNorm(s){return itemKey(_invBase(s));}
+function _invCount(s){return invStoredParse(_invStr(s)).qty;}
+function _invBase(s){return invStoredParse(_invStr(s)).name;}
 function _wornIdx(list,item){var t=_invNorm(item),i;for(i=0;i<(list||[]).length;i++)if(_invNorm(list[i])===t)return i;return -1;}
 function wornSet(cs,item,on,who){if(!cs)return {ok:false,reason:"no sheet"};if(!cs.worn)cs.worn=[];var inv=cs.inventory||[],ii=_wornIdx(inv,item),wi=_wornIdx(cs.worn,item);
   if(!on){if(wi<0)return {ok:false,reason:"not worn"};var _rm=cs.worn.splice(wi,1)[0];return {ok:true,item:_invBase(_rm)};}
@@ -187,11 +191,13 @@ function inventoryCountOf(inv,name){
 // (muts + console). A collision is refused because two entries silently becoming one is
 // [ITEM_LOST:]'s job — a relabel must never destroy a stack.
 function renameInventoryItem(inv,oldName,newName,R,who){
-  var key=_invNorm(oldName),nk=_invNorm(newName),i,hit=-1,label=who?who+": ":"";
-  for(i=0;i<(inv||[]).length;i++){if(_invNorm(inv[i])===key){hit=i;break;}}
-  if(hit<0){for(i=0;i<(inv||[]).length;i++){if(itemBaseName(inv[i])===itemBaseName(oldName)){hit=i;break;}}}
+  /* #599 (b3): the ONE resolver — exact key, then a UNIQUE provenance-free base; two candidates for one base refuse LOUDLY
+     (the first-match fallback used to relabel whichever came first — "Rope" with "Rope (spare)" and "Rope (coil)" carried) */
+  var nk=_invNorm(newName),i,hit=resolveInventoryName(inv,oldName),label=who?who+": ":"";
   if(hit<0){
-    var m1="RENAME refused: no '"+oldName+"' on the "+(who||"player")+" sheet";
+    var m1=(_invLastMiss&&_invLastMiss.why==="ambiguous")
+      ?"RENAME refused: '"+oldName+"' matches "+_invLastMiss.names.length+" items on the "+(who||"player")+" sheet ("+_invLastMiss.names.join(", ")+") — name the one you mean"
+      :"RENAME refused: no '"+oldName+"' on the "+(who||"player")+" sheet";
     if(typeof console!=="undefined")console.warn("[items] "+m1);if(R&&R.muts)R.muts.push("⚠ "+label+m1);return false;
   }
   for(i=0;i<inv.length;i++){if(i!==hit&&_invNorm(inv[i])===nk){
@@ -210,8 +216,8 @@ var _invLastMiss=null;
 function resolveInventoryName(inv,name){
   var t=_invNorm(name),i,hits=[];_invLastMiss=null;
   for(i=0;i<(inv||[]).length;i++){if(_invNorm(inv[i])===t)return i;}
-  var b=_invNorm(itemBaseName(name));
-  if(b)for(i=0;i<(inv||[]).length;i++){if(_invNorm(itemBaseName(inv[i]))===b)hits.push(i);}
+  var b=itemBaseKey(_invBase(name));/* #599 (b3): the provenance-free key on the count-free name */
+  if(b)for(i=0;i<(inv||[]).length;i++){if(itemBaseKey(_invBase(inv[i]))===b)hits.push(i);}
   if(hits.length===1)return hits[0];
   _invLastMiss=hits.length>1?{why:"ambiguous",names:hits.map(function(k){return _invBase(inv[k]);})}:{why:"absent"};
   return -1;
@@ -224,11 +230,11 @@ function removeInventoryItem(inv,name){var i=resolveInventoryName(inv,name);remo
    missed on R, so the partner handler can withhold itself or put the unit back. The shapes: stow (ITEM_LOST +
    LOCATION_ITEM placed), give (ITEM_LOST + COMPANION_ITEM_GAINED), take (COMPANION_ITEM_LOST + ITEM_GAINED), and sale
    (GOLD + ITEM_LOST). */
-function itemPairKey(name){return _invNorm(itemBaseName(_qtyParse(String(name==null?"":name)).base));}
+function itemPairKey(name){return itemBaseKey(_qtyParse(String(name==null?"":name)).base);}/* #599 (b3): the tag grammar decodes the count, itemBaseKey projects the clause */
 /* #481 D2 (audit 2026-09-29, Fable-approved): the STASH identity — the quantity grammar plus the pack's own name normaliser
    (plural s, dash spacing, case), so the chest and the pack agree on what an item is. Unlike the pair key it keeps the
    provenance: "Rope (spare)" and "Rope" are two different chest rows. Every stash consumer keys through it. */
-function stashKey(name){return _invNorm(_qtyParse(String(name==null?"":name)).base);}
+function stashKey(name){return itemKey(_qtyParse(String(name==null?"":name)).base);}/* #599 (b3): the tag grammar, then the pack rule — provenance kept */
 function itemPairNote(R,field,name,val){if(!R[field])R[field]=keyedDict();var k=itemPairKey(name);(R[field][k]=R[field][k]||[]).push(val);}
 function itemPairTake(R,field,name){var m=R&&R[field],k=itemPairKey(name);return (m&&m[k]&&m[k].length)?m[k].pop():null;}
 function itemPairMissed(R,name){return !!(R&&R.ilMiss&&R.ilMiss[itemPairKey(name)]);}

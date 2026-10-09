@@ -739,8 +739,8 @@ function fileWare(item,price,note,turn,out,at){
   var node=waresNodeFor(turn,at);if(!node)return null;
   var it=String(item||"").trim(),pr=String(price||"").trim();if(!it||!pr)return null;
   if(!node.wares)node.wares=[];delete node.waresNone;
-  var now=(typeof clockNow==="function")?clockNow():0,low=it.toLowerCase(),i,row=null;
-  for(i=0;i<node.wares.length;i++)if(String(node.wares[i].item).toLowerCase()===low){row=node.wares.splice(i,1)[0];break;}/* a re-stated ware refreshes, never twins */
+  var now=(typeof clockNow==="function")?clockNow():0,low=itemKey(it),i,row=null;/* #599 (b3): wares key through the one item key (§4.5) */
+  for(i=0;i<node.wares.length;i++)if(itemKey(node.wares[i].item)===low){row=node.wares.splice(i,1)[0];break;}/* a re-stated ware refreshes, never twins */
   var prior=row?row.price:null,def=(typeof kindDef==="function")?kindDef():null;
   if(def&&def.pinPrices){/* #6 F4: canon pins the price; without canon the first quote anchors */
     var _pc=(typeof itemLookup==="function")?itemLookup(it):null,_pg=(typeof itemValueCp==="function")?itemValueCp(_pc):null;
@@ -796,15 +796,17 @@ function wantedNodeAt(at){
 /* A met want leaves the list: the live want for `item` (base-name match) at the place `at`. Returns the row, or null. */
 function retireWantedAt(at,item){
   var node=wantedNodeAt(at);if(!node)return null;
-  var live=nodeWantedLive(node),base=(typeof itemBaseName==="function")?itemBaseName(item):String(item).toLowerCase(),i;
-  for(i=0;i<live.length;i++){if(((typeof itemBaseName==="function")?itemBaseName(live[i].item):String(live[i].item).toLowerCase())!==base)continue;var ix=node.wanted.indexOf(live[i]);if(ix>=0)node.wanted.splice(ix,1);return live[i];}
+  /* #599 (b3): the WANT MATCH is provenance-free (§2.2) — the tag grammar decodes a count, itemBaseKey projects the clause and
+     applies the pack rule, so "Wolf pelts" and "Iron ring - unmarked" now meet "Wolf pelt" and "Iron ring — unmarked" */
+  var live=nodeWantedLive(node),base=itemBaseKey(_qtyParse(String(item==null?"":item)).base),i;
+  for(i=0;i<live.length;i++){if(itemBaseKey(_qtyParse(String(live[i].item==null?"":live[i].item)).base)!==base)continue;var ix=node.wanted.indexOf(live[i]);if(ix>=0)node.wanted.splice(ix,1);return live[i];}
   return null;
 }
 function fileWanted(item,offer,by,turn,at){
   var node=waresNodeFor(turn,at);if(!node)return null;
   var it=String(item||"").trim();if(!it)return null;
   if(!node.wanted)node.wanted=[];
-  var low=it.toLowerCase(),i;for(i=0;i<node.wanted.length;i++)if(String(node.wanted[i].item).toLowerCase()===low){node.wanted.splice(i,1);break;}
+  var low=itemKey(it),i;for(i=0;i<node.wanted.length;i++)if(itemKey(node.wanted[i].item)===low){node.wanted.splice(i,1);break;}/* #599 (b3): a re-stated want refreshes by the one item key (§4.5) */
   var _oc=(typeof parseCoin==="function")?parseCoin(offer):null;
   var row={item:it,offer:String(offer||"").trim().slice(0,120),cp:(_oc&&_oc.unit)?_oc.unitCp:null,/* #598: the offer in copper, once; null = in words */by:String(by||"").trim().slice(0,60),t:turn,min:(typeof clockNow==="function")?clockNow():0};
   node.wanted.push(row);var cap=(typeof WANTED_CAP!=="undefined")?WANTED_CAP:4;fileWanted.lastEvicted=[];
