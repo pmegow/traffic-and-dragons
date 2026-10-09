@@ -30465,6 +30465,18 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if((memory.npcs["Isolde Marsh"].aliases||[]).indexOf("Isolde Marsh")>=0||!/alias ignored/.test(muts504(r)))return "a record is never its own alias, and says so: "+JSON.stringify(memory.npcs["Isolde Marsh"].aliases)+" "+muts504(r);
     return true;
   });
+  t("#504 what the fuzzer found at v1.1191 (#604, review 2026-10-08): after a hero swap, [NPC_ALIAS:] whose canonical is an alias on the hero's OWN memory record registers the epithet on the hero — never a second NPC record under the hero's alias (the ALIAS-SHADOW class)",function(){
+    /* the swap keeps the new hero's memory record (swapPlayerCharacter only restamps the old hero's); its aliases still name her */
+    w504(W504,"she/her");sceneRefsEnsure();worldState.turn=85;quiet(function(){applyMuts("[NPC:Queen Underbough|furious|hostile]");});
+    worldState.turn=86;quiet(function(){applyMuts("[NPC_MERGE:Wilhelmina Underbough|Queen Underbough]");});
+    if((memory.npcs[W504].aliases||[]).indexOf(K504)<0)return "setup: the answered title is her alias";
+    worldState.character.name=W504;worldState.npcs=worldState.npcs.filter(function(n){return n.name!==W504;});
+    worldState.turn=88;var r=quiet(function(){return applyMuts("[NPC_ALIAS:Queen Underbough|Mother Underbough]");});
+    if(memory.npcs[K504]||wsNpcByName(K504))return "a second record was minted under the hero's own alias (v1.1191: npcAliasOperand said 'hero' but the raw operand reached the NPC upsert): "+Object.keys(memory.npcs).join(", ")+" | "+muts504(r);
+    if((worldState.character.aliases||[]).indexOf("Mother Underbough")<0)return "the epithet lands on the hero's sheet: "+JSON.stringify(worldState.character.aliases)+" | "+muts504(r);
+    if((memory.npcs[W504].aliases||[]).indexOf("Mother Underbough")>=0)return "the hero's retired memory record is not where epithets go now";
+    return true;
+  });
   t("#504 NOTE_LATCH_FIELDS carries provisionalRefused; a provisional's stamp survives a save round-trip; the #156 path is unchanged (its ° key, its immunities, its answers)",function(){
     if(NOTE_LATCH_FIELDS.indexOf("provisionalRefused")<0)return "provisionalRefused missing from NOTE_LATCH_FIELDS";
     w504(W504,"she/her");worldState.turn=85;quiet(function(){applyMuts("[NPC:Queen Underbough|furious|hostile]");});

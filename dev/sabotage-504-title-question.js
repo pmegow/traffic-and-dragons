@@ -134,6 +134,9 @@ prove("identity.js", [
     mustFail: FUZZ }
 ]);
 prove("tag_table.js", [
+  { label: "#604: a 'hero' alias operand keeps the raw name, and the NPC upsert mints a record under the hero's own alias (v1.1191)",
+    find: "_alHero=_alRef.kind===\"hero\",_alOwn=_alRef.key;", replace: "_alHero=_alRef.kind===\"hero\",_alOwn=_alHero?null:_alRef.key;",
+    mustFail: FUZZ },
   { label: "a refused answer falls through into the fold",
     find: "  if(_mgAns.kind===\"refused\"){npcMergeRefuse(_mgTag,mgCanon,mgDupe,_mgAns,R);continue;}", replace: "  if(_mgAns.kind===\"refused\"){npcMergeRefuse(_mgTag,mgCanon,mgDupe,_mgAns,R);}",
     mustFail: REFUSE },
@@ -150,7 +153,7 @@ prove("tag_table.js", [
     find: "if(_mgAns.kind===\"new\"&&memory.npcs[mgCanon])memory.npcs[mgCanon].titleSettled=R.turn;", replace: "",
     mustFail: EXTRACT },
   { label: "the alias handler creates a record under an existing alias (the alias-shadow class)",
-    find: "_alOwn=_alHero?null:_alRef.key;", replace: "_alOwn=null;",
+    find: "_alOwn=_alRef.key;/* #604", replace: "_alOwn=null;/* #604",
     mustFail: FUZZ },
   { label: "an alias that is another record's name is registered (one alias on two records)",
     find: "  if(_alHas&&_alHas!==alCanon){", replace: "  if(false){",

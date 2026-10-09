@@ -680,7 +680,7 @@ var TAG_TABLE=[
   /* #504: the canonical operand names a record EXACTLY — its key or a registered alias (never consolidation). The raw operand used to
      create a second record under a name that was already someone's alias ("The Ferrywoman" beside Isolde Marsh, who is known by it:
      the fuzzer's alias-shadow class), and a name aliased to itself made a record its own alias. */
-  var _alRef=npcAliasOperand(alCanon),_alHero=_alRef.kind==="hero",_alOwn=_alHero?null:_alRef.key;
+  var _alRef=npcAliasOperand(alCanon),_alHero=_alRef.kind==="hero",_alOwn=_alRef.key;/* #604: a 'hero' answer names the hero — an alias on her retired memory record (a hero swap keeps it) used to leave the raw operand here, and the NPC upsert below minted a record under the hero's own alias (the fuzzer's ALIAS-SHADOW class at v1.1191) */
   var _alShape=npcAliasWriteIssue(_alRef);if(_alShape){identityAdmissionWarn(_alShape,R);continue;}
   if(_alRef.kind==="ambiguous"){identityAdmissionWarn("ambiguous NPC alias owner '"+alCanon+"'",R);continue;}if(_alOwn)alCanon=_alOwn;
   /* a ° key is a filing key, not a name: never an alias of anyone, and as a canonical only while it is a live record (a folded one reads as where it went, above) */
