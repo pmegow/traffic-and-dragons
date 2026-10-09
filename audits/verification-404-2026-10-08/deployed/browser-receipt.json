@@ -1,0 +1,27 @@
+{
+  "start": "2026-10-09T03:56:21.689Z",
+  "end": "2026-10-09T03:56:22.918Z",
+  "commit": "794950fd",
+  "url": "https://traffic-and-dragons.pages.dev",
+  "version": "v1.1193",
+  "cache": "tnd-v3-20261008t",
+  "initialHero": null,
+  "labels": "Deep reader · Male",
+  "clearDraftOnly": true,
+  "cancelBytesUnchanged": true,
+  "saved": {
+    "primary": "local",
+    "voices": [],
+    "narrator": "deep",
+    "cast": {
+      "legacy": "deep"
+    },
+    "rate": 1.15,
+    "gm": "synthetic-gm",
+    "key": "synthetic"
+  },
+  "reopened": true,
+  "errors": [],
+  "blocked": [],
+  "limits": "Fresh disposable browser profile; service workers blocked; only same-origin GET permitted; no Test/synthesis/provider calls, no personal profile/save/library used."
+}

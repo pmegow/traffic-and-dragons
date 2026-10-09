@@ -1,0 +1,42 @@
+{
+  "commit": "794950fd",
+  "version": "1.1193",
+  "url": "https://traffic-and-dragons.pages.dev",
+  "files": {
+    "tts.js": {
+      "sha256": "1488179bf03973efa20879c20c8b6e082c8a8f42713ccad2f870359bc7574d5f",
+      "bytes": 310580,
+      "reviewedIdentical": true
+    },
+    "ui-sheets.js": {
+      "sha256": "10729c8739f20cc835307458493d3009b47c4c90ef66ae007605e70205e43f33",
+      "bytes": 83344,
+      "reviewedIdentical": true
+    },
+    "ui-voice-settings.js": {
+      "sha256": "71f4b276f79731f31c98475b0f92a840e574e36d5eb63998ab273ec13f4a88fc",
+      "bytes": 20774,
+      "reviewedIdentical": true
+    },
+    "game.js": {
+      "sha256": "77166d9014cbc1cb4218e171de6434d9ed63c6139b9c25a3efbd98b7b7175d89",
+      "bytes": 387865,
+      "reviewedIdentical": true
+    },
+    "globals.js": {
+      "sha256": "bc53b089be122cd54a96f742e640dda37a1a0b69c832026973174a2db14b01cc",
+      "bytes": 64009
+    },
+    "sw.js": {
+      "sha256": "10b36c8d816003d79619ed5c8d44246dfbfd745f9ded63b3ceb33424d7fecd5f",
+      "bytes": 11205
+    }
+  },
+  "cache": "tnd-v3-20261008t",
+  "reviewedHashes": {
+    "tts.js": "1488179bf03973efa20879c20c8b6e082c8a8f42713ccad2f870359bc7574d5f",
+    "ui-sheets.js": "10729c8739f20cc835307458493d3009b47c4c90ef66ae007605e70205e43f33",
+    "ui-voice-settings.js": "71f4b276f79731f31c98475b0f92a840e574e36d5eb63998ab273ec13f4a88fc",
+    "game.js": "77166d9014cbc1cb4218e171de6434d9ed63c6139b9c25a3efbd98b7b7175d89"
+  }
+}

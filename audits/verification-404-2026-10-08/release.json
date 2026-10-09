@@ -1,0 +1,38 @@
+{
+  "task": 404,
+  "commit": "794950fd0237f1474c0019aef3f0cfe0290f2ced",
+  "version": "1.1193",
+  "cache": "tnd-v3-20261008t",
+  "recordedUTC": "2026-10-09T04:10:14.037Z",
+  "hook": {
+    "engineAssertions": 2809,
+    "standaloneSuites": 112
+  },
+  "applicability": {
+    "applicable": 2794,
+    "total": 2794,
+    "batteries": 312
+  },
+  "mutations": {
+    "passedBatteries": 63,
+    "failed": 0,
+    "range": "e1dd1e0b9bb60dacee4b2659b28589716c3a26f0..794950fd0237f1474c0019aef3f0cfe0290f2ced"
+  },
+  "ci": {
+    "conclusion": "success",
+    "headSha": "794950fd0237f1474c0019aef3f0cfe0290f2ced",
+    "status": "completed",
+    "url": "https://github.com/pmegow/traffic-and-dragons/actions/runs/37881427819"
+  },
+  "deployed": {
+    "verdict": "PASS",
+    "version": "v1.1193",
+    "cache": "tnd-v3-20261008t",
+    "url": "https://traffic-and-dragons.pages.dev",
+    "receipt": "deployed/receipt.json",
+    "runtimeHashesMatch": true,
+    "desktopAndPhone": true,
+    "clearCancelSavePreservesPins": true,
+    "providerRequests": 0
+  }
+}

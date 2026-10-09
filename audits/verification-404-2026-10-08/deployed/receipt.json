@@ -1,0 +1,82 @@
+{
+  "verdict": "PASS",
+  "commit": "794950fd",
+  "deployedAtCheck": "2026-10-09T03:55:16.657Z",
+  "url": "https://traffic-and-dragons.pages.dev",
+  "version": "v1.1193",
+  "cache": "tnd-v3-20261008t",
+  "publicFiles": [
+    {
+      "file": "tts.js",
+      "sha256": "1488179bf03973efa20879c20c8b6e082c8a8f42713ccad2f870359bc7574d5f",
+      "exactMatch": true
+    },
+    {
+      "file": "ui-sheets.js",
+      "sha256": "10729c8739f20cc835307458493d3009b47c4c90ef66ae007605e70205e43f33",
+      "exactMatch": true
+    },
+    {
+      "file": "ui-voice-settings.js",
+      "sha256": "71f4b276f79731f31c98475b0f92a840e574e36d5eb63998ab273ec13f4a88fc",
+      "exactMatch": true
+    },
+    {
+      "file": "game.js",
+      "sha256": "77166d9014cbc1cb4218e171de6434d9ed63c6139b9c25a3efbd98b7b7175d89",
+      "exactMatch": true
+    },
+    {
+      "file": "globals.js",
+      "sha256": "bc53b089be122cd54a96f742e640dda37a1a0b69c832026973174a2db14b01cc",
+      "exactMatch": true
+    },
+    {
+      "file": "sw.js",
+      "sha256": "10b36c8d816003d79619ed5c8d44246dfbfd745f9ded63b3ceb33424d7fecd5f",
+      "exactMatch": true
+    }
+  ],
+  "browser": {
+    "start": "2026-10-09T03:56:21.689Z",
+    "end": "2026-10-09T03:56:22.918Z",
+    "commit": "794950fd",
+    "url": "https://traffic-and-dragons.pages.dev",
+    "version": "v1.1193",
+    "cache": "tnd-v3-20261008t",
+    "initialHero": null,
+    "labels": "Deep reader · Male",
+    "clearDraftOnly": true,
+    "cancelBytesUnchanged": true,
+    "saved": {
+      "primary": "local",
+      "voices": [],
+      "narrator": "deep",
+      "cast": {
+        "legacy": "deep"
+      },
+      "rate": 1.15,
+      "gm": "synthetic-gm",
+      "key": "synthetic"
+    },
+    "reopened": true,
+    "errors": [],
+    "blocked": [],
+    "limits": "Fresh disposable browser profile; service workers blocked; only same-origin GET permitted; no Test/synthesis/provider calls, no personal profile/save/library used."
+  },
+  "artifacts": [
+    "expected.json",
+    "hashes.js",
+    "public-hashes.json",
+    "browser.js",
+    "browser.log",
+    "browser-receipt.json",
+    "deployed-desktop.png",
+    "deployed-phone.png"
+  ],
+  "notes": [
+    "All four runtime hashes equal the independently reviewed source hashes byte-for-byte; globals.js/sw.js match committed markers.",
+    "Initial browser oracle expected the unprefixed version string; corrected to product literal v1.1193 and reran. No deployment defect was observed.",
+    "Only synthetic disposable-profile storage was written; no owner profile, personal save, paid/provider request, runtime edit, stage or commit."
+  ]
+}
