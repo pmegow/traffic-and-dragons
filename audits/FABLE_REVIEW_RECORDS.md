@@ -2551,3 +2551,16 @@ Seven findings corrected: release (b) must preserve legacy strings and worn orde
 The three evidence briefs contain actual engine probes and explicitly labelled synthetic projections. The unchanged baseline passes `node dev/run-tests.js` (2,809 assertions); no future row API, admission guard, rollout, device-skew drill or live-GM migration check was implemented or validated. The review is design/documentation only. #599 remains in progress and #518 remains a separate task.
 
 Full adjudication, source citations, corrected contracts, limits and delegation receipts: [Astra review](AUDIT_FABLE_2026_10_08_41_inventory_amendment.md), [evidence](reviews/41_inventory_amendment_2026-10-08/README.md), [design](../DOC/DESIGN_599_inventory_rows.md). The earlier Fable evaluation is retained as historical evidence; entry 41 records the engineering corrections.
+
+
+## Entry 37 — #577 objective acceptance (2026-10-08)
+
+### Original brief
+
+**37 · #577 one allowance per wanted offer (v1.1146, Opus 5.5, owner-approved off-Fable build 2026-10-04).** Tier Fable (the audit's D4 "drift hole"); the owner chose to build on Opus with this skim queued. Scope: helpers.js only — `WANT_BUYS`, `r.want` on catalog rows, the per-want allowance and refusal in `shopTradePlan`, and `shopLedgerRows`' max reading the constant. No applyMuts, prompt or memory path; `ledgerApply`'s retirement is unchanged and now sees at most one line per want. Proof: the `#577` test in the #481 D4 section (red first: one 40 gp want paid 120 gp) and a new clause in `dev/sabotage-481-d4-want-met.js` (8/8). Skim for: (a) a want matched by base name across two DIFFERENT wants with one base ("Warded ring" and "Warded ring (silver)" in one shop) — each keeps its own allowance here, but `retireWantedAt` retires by base name; (b) whether refusing the whole trade, rather than selling the extra copies at half canon, is the right counter behaviour.
+
+### Astra adjudication
+
+**REVIEW COMPLETE — FAIL objective acceptance.** The original shared-allowance refusal works, but the paid exact offer is lost at the pricing-to-retirement handoff. Selling silver at 60 gp retires the plain 40 gp offer, and silver can pay again; reversing insertion order reverses the lost offer. Four failing assertions cover this defect, and a fifth stays with separate #591. Delegated and independent probes both reproduce 19 pass / 5 fail with exit 1. No runtime fix was made. Keep #577 open. The owner asked to skip matters of taste, so refusal versus ordinary-price overflow was not adjudicated.
+
+[Evidence and runnable failure test](verification-577-2026-10-08/report.md), [senior verdict](verification-530-531-2026-10-08/README.md#senior-adjudication-of-delegated-577-evidence).
