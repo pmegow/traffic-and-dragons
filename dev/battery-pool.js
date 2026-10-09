@@ -23,7 +23,7 @@
 "use strict";
 var fs = require("fs"), os = require("os"), path = require("path"), cp = require("child_process");
 var verdict = require("./battery-verdict.js");
-var MAX_DEFAULT_JOBS = 8, TAIL_LINES = 15;
+var MAX_DEFAULT_JOBS = 16, TAIL_LINES = 15;   // 16 since 2026-10-09 (owner): at 8 the workers wait on git and spawn, not CPU or RAM — 18 node processes used 0.84 GB on a 64 GB, 32-core box
 
 function jobsFrom(argv, env, cpus) {
   var rest = [], jobs = null, i, m;

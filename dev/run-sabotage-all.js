@@ -2,7 +2,7 @@
 // run-sabotage-all.js — run EVERY dev/sabotage-*.js battery (#312 ①). DEV TOOL, node-only.
 //   node dev/run-sabotage-all.js            every battery, in name order
 //   node dev/run-sabotage-all.js w2 phase   only batteries whose filename contains a given word
-//   --jobs=N (or SABOTAGE_JOBS=N)           how many at a time (dev/battery-pool.js; default half the cores up to 8)
+//   --jobs=N (or SABOTAGE_JOBS=N)           how many at a time (dev/battery-pool.js; default half the cores up to 16)
 // Each battery is its own process (they restore their target files on exit, crash and Ctrl-C);
 // a battery that exits non-zero, or whose output carries a FAIL / NOT on mustFail line, counts
 // as a failure. Slow by design (a full-suite run per mutation) — this is the weekly job, not the

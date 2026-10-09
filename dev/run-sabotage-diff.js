@@ -3,7 +3,7 @@
 // change. Reads the files changed in the commit range (default HEAD~1..HEAD; pass a range as
 // argv[2]), finds every dev/sabotage-*.js whose `file:` targets include one of them (or which is
 // itself changed), and runs those batteries. Nothing matched → exits 0 and says so.
-// Several at a time (dev/battery-pool.js): --jobs=N or SABOTAGE_JOBS=N, default half the cores up to 8; 1 = one by one.
+// Several at a time (dev/battery-pool.js): --jobs=N or SABOTAGE_JOBS=N, default half the cores up to 16; 1 = one by one.
 "use strict";
 var fs=require("fs"),os=require("os"),path=require("path"),cp=require("child_process"),pool=require("./battery-pool.js");
 var ROOT=path.join(__dirname,"..");
