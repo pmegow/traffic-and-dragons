@@ -508,8 +508,8 @@ async function generateNpcSheet(name,doneCb){
     if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(sheet);
     // NPC stance and a directed character bond are different authorities. Model-authored rows
     // migrate through the adapter; wsNpc.rel never seeds or overwrites a bond.
-    relationshipMigrateSheet(sheet,wsNpc.name);
-    keyedStores(sheet,"sheet");
+    var _ad=sheetAdmit(sheet,{door:"generated sheet "+wsNpc.name,mode:"same",detach:false,rel:wsNpc.name});/* #599 (b): the model faucet runs the registry too — same-campaign data, healed in place, no cross-campaign entries */
+    if(!_ad.ok){removeLoader();showToast("Sheet refused: "+_ad.reason);return;}
     wsNpc.charSheet=sheet;releaseRowVoicePins(wsNpc);
     saveAll();removeLoader();showToast("Character sheet ready!");
     if(doneCb)doneCb();

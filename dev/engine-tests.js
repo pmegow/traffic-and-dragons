@@ -24913,8 +24913,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var src=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8");
     if(!/function _doExportChar\(name, sheet\)\{[\s\S]{0,120}portableSheet\(sheet\)/.test(src))return "the .char export must go through portableSheet";
     if((src.match(/saveCharacterToLibrary\(portableSheet\(char\)/g)||[]).length<2)return "both library-save branches must send the portable sheet";
-    if(!/_addImportedCompanion\(char\)\{[\s\S]{0,1200}adoptSheetItemDefs\(char\)/.test(src))return "an imported companion's canon must be adopted";
-    var game=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(!/function startGame\([\s\S]{0,3000}adoptSheetItemDefs\(char\)/.test(game))return "startGame must adopt the hero's travelling canon";
+    /* #599 (b): the canon adoption is the registry's itemDefs PUBLISH entry (admission.js) — a door adopts it by admitting the
+       sheet in cross mode outside a preview; the two doors below are pinned to that admission, the entry to its call */
+    var adm=__fsForTests.readFileSync(__rootForTests+"/admission.js","utf8");
+    if(!/\{name:"itemDefs",phase:"publish",[\s\S]{0,400}?run:function\(sheet\)\{adoptSheetItemDefs\(sheet\);\}/.test(adm))return "the registry's itemDefs entry must publish the canon through adoptSheetItemDefs";
+    if(!/_addImportedCompanion\(char\)\{[\s\S]{0,1600}sheetAdmit\(char,\{door:"companion import",mode:"cross"(?![^}]*stage:"preview")/.test(src))return "an imported companion's canon must be adopted (the join admits in cross mode, not as a preview)";
+    var game=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(!/function startGame\([\s\S]{0,3000}sheetAdmit\(char,\{door:"new game hero",mode:"cross"(?![^}]*stage:"preview")/.test(game))return "startGame must adopt the hero's travelling canon (a full cross admission)";
     return true;
   });
 
@@ -29775,9 +29779,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(worldState.campId&&o.campId!==worldState.campId)return "and its id: "+JSON.stringify(o);
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),b=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8");
     function body(src,name){var a=src.indexOf("function "+name+"(");return a<0?"":src.slice(a,src.indexOf("\nfunction ",a+10));}
+    /* #599 (b): the cross is the registry's scene PREPARE entry (admission.js), cross mode only (review 41 R2: never on this
+       campaign's own data) — a site crosses by admitting in cross mode; the entry is pinned to the helper, each site to the mode */
+    var adm=__fsForTests.readFileSync(__rootForTests+"/admission.js","utf8");
+    if(!/\{name:"scene",phase:"prepare",applies:function\(ctx\)\{return ctx\.mode!=="same";\},[\s\S]{0,40}run:function\(sheet\)\{sceneFieldsCross\(sheet\);\}/.test(adm))return "the registry's scene entry must cross through the one helper on a cross-mode admission only";
     var sites=[[g,"startGame"],[g,"importVillageResidents"],[g,"adoptLibraryHero"],[g,"adoptLibraryCompanion"],[b,"_addImportedCompanion"]],bad=[];
-    sites.forEach(function(x){if(!/sceneFieldsCross\(/.test(body(x[0],x[1])))bad.push(x[1]);});
-    return bad.length?"sites that bypass the boundary helper: "+bad.join(", "):true;
+    sites.forEach(function(x){var s=body(x[0],x[1]);if(!/sheetAdmit\(/.test(s)||!/mode:"cross"/.test(s)||/mode:"same"/.test(s))bad.push(x[1]);});
+    return bad.length?"sites that bypass the boundary helper (no cross-mode admission): "+bad.join(", "):true;
   });
 
   // ── #481 E5 (audit 2026-09-29, Fable-approved with changes): 9 of the 18 distinct saved [SOUNDSCAPE:] tags were refused, three
@@ -31234,7 +31242,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(f.indexOf("versionLockSet(id")<0)return "a refused pull locks this device's pushes for that campaign";
     var ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8");
     if(fn(ub,"function importCharacterFile(").indexOf("charFileVersionIssue(data)")<0)return "importCharacterFile gates the file envelope and its sheet";
-    var pv=fn(ub,"function showCharImportPreview("),pg=pv.indexOf("sheetVersionRefused(char"),pm=pv.indexOf("modalShell(");if(pg<0||pg>pm)return "the import preview refuses a newer sheet before it is shown";
+    var pv=fn(ub,"function showCharImportPreview("),pg=pv.indexOf("sheetAdmit(char"),pm=pv.indexOf("modalShell(");if(pg<0||pg>pm)return "the import preview refuses a newer sheet before it is shown";
     var qs=fn(ub,"function consumeHomeQuickStart("),qg=qs.indexOf("sheetVersionRefused(rec.char"),qd=qs.indexOf("store.del(WSK)");if(qg<0||qg>qd)return "quick start refuses a newer hero before the live keys are cleared";
     var boot=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),is=fn(boot,"function initState("),bg=is.indexOf("versionRefusedLoad()"),bc=is.lastIndexOf("showChar();");if(bg<0||bg>bc)return "the boot shows the refusal screen, never the wizard, over a save it could not read";
     var ce=__fsForTests.readFileSync(__rootForTests+"/character_editor.html","utf8"),lo=fn(ce,"function loadObject(","healChar(");if(lo.indexOf("charFileVersionIssue(")<0)return "the character editor refuses a newer file before healing it";
@@ -31300,7 +31308,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(cur.level!==1||(d&&d.length))return "libUpdateApply applied a newer copy: "+JSON.stringify(cur)+" "+JSON.stringify(d);
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8"),ce=__fsForTests.readFileSync(__rootForTests+"/character_editor.html","utf8"),mc=__fsForTests.readFileSync(__rootForTests+"/map_cleanup.html","utf8"),uc=__fsForTests.readFileSync(__rootForTests+"/ui-campaigns.js","utf8");
     function fn(src,head,stop){var s=src.slice(src.indexOf(head));var e=s.indexOf(stop||"\nfunction ",10);return e>0?s.slice(0,e):s;}
-    var sg=fn(g,"function startGame(");if(sg.indexOf("sheetVersionRefused(comp")<0||sg.indexOf("sheetVersionRefused(comp")>sg.indexOf("worldState.npcs.push("))return "startGame gates each pending companion before it is installed";
+    var sg=fn(g,"function startGame(");if(sg.indexOf("sheetAdmit(comp")<0||sg.indexOf("sheetAdmit(comp")>sg.indexOf("worldState.npcs.push("))return "startGame gates each pending companion before it is installed";
     if(fn(g,"function checkLegacyCharacter(").indexOf("sheetVersionRefused(pick")<0)return "the legacy pick is gated";
     var ap=fn(ub,"function _addPendingCompanion(");if(ap.indexOf("sheetVersionRefused(char")<0||ap.indexOf("sheetVersionRefused(char")>ap.indexOf("pendingCompanions.push("))return "_addPendingCompanion gates before the push";
     if(ce.indexOf("return {ver:SAVE_VER,type:\"character\",character:ch};")<0)return "the editor's file stamps ver:SAVE_VER";
@@ -31403,6 +31411,73 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(sanitizeModelInventory(["Rope x3","rope x3",7,"Torch"]).join("|")!=="Rope x6|Torch")return "sanitation stacks on arrival";
     var f=["Dagger","Dagger","Iron ring — unmarked","Iron ring - unmarked"];if(foldDuplicateInventory(f)!==2||f.join("|")!=="Dagger x2|Iron ring — unmarked x2")return "folding heals the stock: "+f.join("|");
     return true;
+  });
+
+  // ── #599 (b2): SHEET ADMISSION — one registry, every door (DOC/DESIGN_599_inventory_rows.md §5.3) ──
+  section("#599 (b2) the sheet admission registry — gate, prepare, publish; one table every door runs");
+  function sheet599(extra){var s={name:"Vessa Thorn",gender:"F",cls:"Rogue",level:2,inventory:["Rope"],abilities:[],spells:[],skills:{},conditions:[],relationships:[],coreMemories:[],itemDefs:{"Warded ring":{effect:"a bell"}},portrait:"not-an-image"},k;for(k in (extra||{}))s[k]=extra[k];return s;}
+  t("#599b2 the registry's shape: every entry names a phase and an applies, gates come first, version is the first gate, the writes are publish entries",function(){
+    var i,e,seenPrep=false,phases={gate:1,prepare:1,publish:1};
+    if(!Array.isArray(SHEET_ADMISSION)||!SHEET_ADMISSION.length)return "no registry";
+    for(i=0;i<SHEET_ADMISSION.length;i++){e=SHEET_ADMISSION[i];if(!e.name||!phases[e.phase]||typeof e.applies!=="function"||typeof e.run!=="function")return "entry "+i+" is malformed: "+JSON.stringify(e&&e.name);
+      if(e.phase==="gate"){if(seenPrep)return "a gate after a prepare: "+e.name;if(typeof e.say!=="function")return "a gate must say its refusal: "+e.name;}else seenPrep=true;}
+    if(SHEET_ADMISSION[0].name!=="version")return "the version gate runs first";
+    var names=SHEET_ADMISSION.map(function(x){return x.name+":"+x.phase;}).join(" ");
+    if(!/itemDefs:publish/.test(names)||!/voices:publish/.test(names))return "the item canon and the voice pins are publish entries: "+names;
+    return /identity:gate/.test(names)&&/scene:prepare/.test(names)&&/inventory:prepare/.test(names)?true:"expected entries missing: "+names;
+  });
+  t("#599b2 a refused gate stops everything: the source is untouched, no prepare or publish ran, the reason and the gate are named; version is judged before identity; toast:false keeps the console line",function(){
+    makeWorld();var src=sheet599({sheetVer:SHEET_VER+1}),before=JSON.stringify(src),bible=JSON.stringify(worldState.itemBible||null);
+    worldState.npcs.push({name:"Vessa Thorn",status:"",rel:"",met:1,partyMember:false,portrait:null,aliases:[]});
+    var tz=[],os=showToast;showToast=function(m){tz.push(String(m));};var r;try{r=quiet(function(){return sheetAdmit(src,{door:"test",mode:"cross",exclude:[]});}).r;}finally{showToast=os;}
+    if(r.ok||r.gate!=="version"||!/newer version/.test(r.reason)||r.sheet!==null)return "a newer sheet that also collides refuses at the VERSION gate first: "+JSON.stringify(r);
+    if(JSON.stringify(src)!==before)return "the refused source was touched";
+    if(JSON.stringify(worldState.itemBible||null)!==bible)return "a publish ran before the gates";
+    if(!tz.some(function(x){return /newer version/.test(x);}))return "the refusal is said: "+JSON.stringify(tz);
+    src=sheet599();var q=quiet(function(){return sheetAdmit(src,{door:"test",mode:"cross",exclude:[],toast:false});});
+    if(q.r.ok||q.r.gate!=="identity"||!/already identifies/.test(q.r.reason))return "the identity gate refuses a name that is someone else's: "+JSON.stringify(q.r);
+    if(!q.warns.some(function(w){return /identity refused/.test(w);}))return "toast:false still warns on the console: "+JSON.stringify(q.warns);
+    return true;
+  });
+  t("#599b2 prepare heals a DETACHED copy: the source keeps its portrait and name, the copy carries the destination name and no bad portrait; detach:false heals the object itself",function(){
+    makeWorld();var src=sheet599(),before=JSON.stringify(src);
+    var r=quiet(function(){return sheetAdmit(src,{door:"test",mode:"cross",name:"Vessa of the Reach",rel:"Vessa of the Reach",toast:false});}).r;
+    if(!r.ok)return "admitted: "+r.reason;
+    if(JSON.stringify(src)!==before)return "the source was touched by a prepare";
+    if(r.sheet===src||r.sheet.name!=="Vessa of the Reach"||r.sheet.portrait!=null)return "the copy carries the destination name and lost the non-image portrait: "+JSON.stringify([r.sheet.name,r.sheet.portrait]);
+    if(r.ran.indexOf("stores")<0||r.ran.indexOf("relationships")<0||r.ran.indexOf("scene")<0||r.ran.indexOf("names")<0||r.ran.indexOf("clamp")<0)return "the cross-campaign prepares ran: "+r.ran.join(",");
+    if(r.ran.indexOf("version")!==0||r.ran.indexOf("itemDefs")<r.ran.indexOf("scene"))return "gate before prepare before publish: "+r.ran.join(",");
+    var own=sheet599();r=quiet(function(){return sheetAdmit(own,{door:"test",mode:"cross",detach:false,toast:false});}).r;
+    return (r.ok&&r.sheet===own&&own.portrait==null)?true:"detach:false heals in place";
+  });
+  t("#599b2 the context decides what runs: same-campaign data skips the cross-campaign heals and the item canon; a preview never publishes; the item canon lands only on a full cross admission",function(){
+    makeWorld();delete worldState.itemBible;
+    var r=quiet(function(){return sheetAdmit(sheet599(),{door:"gen",mode:"same",detach:false,toast:false});}).r;
+    if(!r.ok||r.ran.indexOf("scene")>=0||r.ran.indexOf("names")>=0||r.ran.indexOf("clamp")>=0||r.ran.indexOf("itemDefs")>=0)return "same mode must not cross scene fields, rename or publish the canon: "+r.ran.join(",");
+    if(worldState.itemBible&&worldState.itemBible["Warded ring"])return "same mode published the item canon";
+    r=quiet(function(){return sheetAdmit(sheet599(),{door:"preview",mode:"cross",detach:false,stage:"preview",toast:false});}).r;
+    if(!r.ok||r.ran.indexOf("itemDefs")>=0||(worldState.itemBible&&worldState.itemBible["Warded ring"]))return "a preview never publishes: "+r.ran.join(",");
+    r=quiet(function(){return sheetAdmit(sheet599(),{door:"join",mode:"cross",toast:false});}).r;
+    if(!r.ok||r.ran.indexOf("itemDefs")<0||!(worldState.itemBible&&worldState.itemBible["Warded ring"]))return "a full cross admission publishes the item canon: "+r.ran.join(",")+" "+JSON.stringify(worldState.itemBible);
+    var prev={name:"Vessa Thorn",gender:"F",voiceId:"v-prev"};r=quiet(function(){return sheetAdmit(sheet599(),{door:"replace",mode:"cross",prev:prev,toast:false});}).r;
+    if(!(r.ok&&r.sheet.voiceId==="v-prev"&&r.ran.indexOf("voices")>=0))return "the replaced sheet's voice pin fills the copy's empty slot: "+JSON.stringify([r.sheet&&r.sheet.voiceId,r.ran]);
+    /* the stash mark is read from the SOURCE on a cross admission and handed back on the context (#481 D9); never in same mode */
+    worldState.kind="village";/* the stash journal lives in a kind that populates from the library */var marked=sheet599({stashMarks:{}});marked.stashMarks[stashMarkKey()]=3;var cx={door:"copy",mode:"cross",toast:false};r=quiet(function(){return sheetAdmit(marked,cx);}).r;
+    if(!r.ok||cx.stashMark!==3||r.ran.indexOf("stash")<0)return "a cross admission reads the copy's stash mark onto the context: "+JSON.stringify([cx.stashMark,r.ran]);
+    var sx={door:"own",mode:"same",detach:false,toast:false};r=quiet(function(){return sheetAdmit(marked,sx);}).r;
+    return (r.ok&&sx.stashMark===undefined&&r.ran.indexOf("stash")<0)?true:"same-campaign data reads no stash mark: "+JSON.stringify([sx.stashMark,r.ran]);
+  });
+  t("#599b2 the doors run the registry: adoptLibraryCompanion through sheetAdmit keeps its outcome (the copy installed, the canon in the bible, the voice carried, the stash mark read), and a refused copy changes nothing",function(){
+    makeWorld();delete worldState.itemBible;
+    worldState.npcs.push({name:"Morwen",status:"",rel:"resident",met:1,partyMember:false,resident:true,portrait:null,aliases:[],charSheet:{name:"Morwen",gender:"F",level:3,inventory:[],abilities:[],spells:[],coreMemories:[],voiceId:"v-old"}});
+    var n=wsNpcByName("Morwen"),copy={name:"Morwen",gender:"F",level:5,inventory:["Rope"],abilities:[],spells:[],coreMemories:[],itemDefs:{"Warded ring":{effect:"a bell"}}};
+    var s=quiet(function(){return adoptLibraryCompanion(n,copy,Date.now());}).r;
+    if(!s||n.charSheet!==s||s.level!==5||s===copy)return "the copy is installed (detached): "+JSON.stringify(s&&s.level);
+    if(s.voiceId!=="v-old")return "the replaced sheet's voice carried: "+s.voiceId;
+    if(!(worldState.itemBible&&worldState.itemBible["Warded ring"]))return "the item canon joined the bible";
+    var bad={name:"Morwen",gender:"F",level:9,sheetVer:SHEET_VER+1},before=JSON.stringify(n.charSheet);
+    var tz=[],os=showToast;showToast=function(m){tz.push(String(m));};var s2;try{s2=quiet(function(){return adoptLibraryCompanion(n,bad,Date.now());}).r;}finally{showToast=os;}
+    return (s2===null&&JSON.stringify(n.charSheet)===before&&tz.some(function(x){return /newer version/.test(x);}))?true:"a refused copy changes nothing and says so";
   });
 
 }

@@ -21,13 +21,12 @@ function startGame(char,toneName,toneVoice,authorId){
   /* #354: the preset carries the opening hour — the clock is engine-owned, so the preset sets it (never the GM) */
   if(typeof char._startHour==="number"){worldState.clock={min:startClockMin(char._startHour),schedule:[]};worldState.world.time=clockHourLabel(char._startHour);}
   delete worldState.character._startLoc;delete worldState.character._campName;delete worldState.character._startHour;
-  if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(char);/* #81b: an imported hero's item canon travels in */
-  if(typeof sceneFieldsCross==="function")sceneFieldsCross(char);/* #481 C5: the last campaign's scene stays there */
+  sheetAdmit(char,{door:"new game hero",mode:"cross",detach:false,rel:null});/* #599 (b): the hero's own admission in place — an imported hero's item canon travels in (#81b), the last campaign's scene stays there (#481 C5); a refusal cannot happen here (the preview and the wizard gated the sheet) and would only skip the heals */
   if(arguments.length>=4){worldState.proseAuthor=authorId||"";proseAuthor=authorId||"";store.set(PROSE_K,authorId||"");}
   sessionLog=[];memory=blankMemory();lastAction=null;// don't let the previous campaign's last action leak into this one's Retry (audit E83)
   // Add any companions selected during character creation
   var ci;for(ci=0;ci<pendingCompanions.length;ci++){
-    var comp=pendingCompanions[ci];if(sheetVersionRefused(comp,"companion "+comp.name))continue;/* #599 (a), review R5: the wizard's companions came in without the preview */if(!identitySheetAdmit(comp,comp.name,[]))continue;keyedStores(comp,"sheet");if(typeof sceneFieldsCross==="function")sceneFieldsCross(comp);/* #481 C5 */
+    var comp=pendingCompanions[ci];if(!sheetAdmit(comp,{door:"companion "+comp.name,mode:"cross",exclude:[],rel:comp.name,detach:false}).ok)continue;/* #599 (b): ONE admission in place (the wizard holds the object): version, identity, stores, the heals, the scene cross (#481 C5), the item canon */
     if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(comp);
     worldState.npcs.push({name:comp.name,status:"ally",rel:"companion",met:0,partyMember:true,pronouns:pronounsForGender(comp.gender),portrait:null,charSheet:comp}); // portrait rides on charSheet only (#3 dedupe)
     memory.npcs[comp.name]={attitude:"ally",knowledge:[],events:[],partyMember:true,pronouns:pronounsForGender(comp.gender)};
@@ -1556,12 +1555,8 @@ function importVillageResidents(list){
   for(i=0;i<list.length;i++){var c=list[i],_libAt=null;if(c&&c.character&&typeof c.character==="object"){_libAt=(typeof c.updatedAt==="number")?c.updatedAt:null;c=c.character;}/* #6 E13: a library entry {character,updatedAt} or a bare sheet */if(!c||!c.name)continue;var nm=String(c.name).trim();
     if(worldState.character&&worldState.character.name===nm){if(typeof _libAt==="number")worldState.heroLibraryAt=_libAt;/* #427: the hero's own move-in stamp — "newer than this" is what a later refresh means */skipped.push(nm);continue;}
     if(wsNpcByName(nm)){skipped.push(nm);continue;}
-    if(sheetVersionRefused(c,"village resident "+nm)){skipped.push(nm);continue;}/* #599 (a): a library copy from a newer build never enters */
-    if(!identitySheetAdmit(c,nm,identityAttachOwners(nm))){skipped.push(nm);continue;}
-    var sheet=keyedStores(JSON.parse(JSON.stringify(c)),"sheet");if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);/* #168 W7: imported sheets enter through the axis adapter */
-    if(typeof sceneFieldsCross==="function")sceneFieldsCross(sheet);/* #481 C5 */
-    if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);/* #81b: the resident's gear keeps its canon */
-    var pr=pronounsForGender(sheet.gender);
+    var _ad=sheetAdmit(c,{door:"village resident "+nm,mode:"cross",name:nm,exclude:identityAttachOwners(nm),rel:nm});if(!_ad.ok){skipped.push(nm);continue;}/* #599 (b): ONE admission — a copy from a newer build, a name that is someone else's, a non-image portrait never enter; the heals and the item canon ride the registry */
+    var sheet=_ad.sheet,pr=pronounsForGender(sheet.gender);
     worldState.npcs.push({name:nm,status:"",statusTurn:0,rel:"resident",met:0,partyMember:false,resident:true,pronouns:pr,portrait:null,charSheet:sheet,libraryAt:_libAt});/* portrait rides on charSheet only (#3 dedupe); libraryAt = the library's updated time at move-in (#6 E13) */
     if(!memory.npcs[nm])memory.npcs[nm]={attitude:"",knowledge:[],events:[],pronouns:pr};
     villageHouseEnsure(nm,here);
@@ -1589,16 +1584,12 @@ function ensureV10Arrays(s){
    settings are the one exception to wholesale — a voice field the copy carries replaces the live one, a field it lacks keeps
    the live value when it fits the copy's sex; the hero's empty slots are then cast. */
 function adoptLibraryHero(c,at){
-  if(sheetVersionRefused(c,"library hero"))return null;/* #599 (a): before any write */
-  if(!identitySheetAdmit(c,worldState.character.name,["@player"]))return null;
-  var _stashMark=stashCopyMark(c);
-  var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);if(typeof sceneFieldsCross==="function")sceneFieldsCross(hero);/* #481 C5 */
-  hero.name=worldState.character.name;
-  if(typeof portraitAdmit==="function"&&portraitAdmit(hero,"library")&&typeof showToast==="function")showToast("⚠ "+hero.name+"'s library portrait was dropped — not an image");/* #481 F2 */
-  if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(hero);
-  ensureV10Arrays(hero);
+  /* #599 (b): ONE admission (admission.js) — the version and identity gates on the source, the heals on a detached copy, the
+     item canon and the voice pins (#543, before the cast so only a slot still empty is cast) after every gate */
+  var _ctx={door:"library hero",mode:"cross",name:worldState.character.name,exclude:["@player"],rel:null,prev:worldState.character},_ad=sheetAdmit(c,_ctx);
+  if(!_ad.ok)return null;
+  var hero=_ad.sheet,_stashMark=_ctx.stashMark;
   hero.portraitOffset=hero.portraitOffset||worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};
-  voicePinsFill(hero,[worldState.character],voicePinFitsGender(hero.gender));/* #543: before the cast, so only a slot still empty is cast */
   if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(hero);
   worldState.character=hero;worldState.heroLibraryAt=(typeof at==="number")?at:null;
   /* #481 D10: the OLD sheet's owed level-up choices and pending delete-marks go with it — the queue is keyed by the kept
@@ -1609,15 +1600,12 @@ function adoptLibraryHero(c,at){
   return hero;
 }
 function adoptLibraryCompanion(n,c,at){
-  if(sheetVersionRefused(c,"library companion "+n.name))return null;/* #599 (a): before any write */
-  if(!identitySheetAdmit(c,n.name,[identityNpcOwner(n.name)]))return null;
-  var _stashMark=stashCopyMark(c);
-  var sheet=JSON.parse(JSON.stringify(c));sheet.name=n.name;if(typeof portraitAdmit==="function"&&portraitAdmit(sheet,"library")&&typeof showToast==="function")showToast("⚠ "+n.name+"'s library portrait was dropped — not an image");/* #481 F2 */
-  if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,n.name);if(typeof sceneFieldsCross==="function")sceneFieldsCross(sheet);/* #481 C5 */
-  if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);
-  ensureV10Arrays(sheet);
+  /* #599 (b): ONE admission (admission.js); the replaced sheet's voice pins fill the copy's empty slots (#543: a refused
+     slot is cast at the next line, pinAutoCastVoices) */
+  var _ctx={door:"library companion "+n.name,mode:"cross",name:n.name,exclude:[identityNpcOwner(n.name)],rel:n.name,prev:n.charSheet||null},_ad=sheetAdmit(c,_ctx);
+  if(!_ad.ok)return null;
+  var sheet=_ad.sheet,_stashMark=_ctx.stashMark;
   sheet.portraitOffset=sheet.portraitOffset||(n.charSheet&&n.charSheet.portraitOffset)||n.portraitOffset||null;
-  if(n.charSheet)voicePinsFill(sheet,[n.charSheet],voicePinFitsGender(sheet.gender));/* #543: a refused slot is cast at the next line (pinAutoCastVoices) */
   n.charSheet=sheet;n.libraryAt=(typeof at==="number")?at:null;n.pronouns=pronounsForGender(sheet.gender);
   if(sheet.portraitOffset)n.portraitOffset=JSON.parse(JSON.stringify(sheet.portraitOffset));/* §19: the wrapper's copy is what display reads */
   adoptLibraryCompanion.lastReplay=(typeof stashMovesReplay==="function")?stashMovesReplay(sheet,_stashMark):null;/* #481 D9: the household's takes too */
@@ -1894,7 +1882,7 @@ function attachCompanionSheet(npcName,sheet){
   var npc=wsNpcByName(npcName);
   if(!npc||npc.charSheet)return null;
   inheritVoicePins(sheet,npc,null);
-  keyedStores(sheet,"sheet");
+  if(!sheetAdmit(sheet,{door:"generated sheet "+npcName,mode:"same",detach:false,rel:npcName}).ok)return null;/* #599 (b): the model faucet runs the registry — same-campaign data, healed in place, no cross-campaign entries */
   npc.charSheet=sheet;delete npc.sheetPending;
   releaseRowVoicePins(npc);
   if(memory&&memory.npcs&&memory.npcs[npcName])memory.npcs[npcName].partyMember=true;

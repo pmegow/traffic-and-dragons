@@ -7,22 +7,25 @@
 var sabotage = require("./sabotage.js"), code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: ["node", ["dev/run-tests.js", "#543"]], cases: cases }); }
 prove("game.js", [
+  /* #599 (b): the keep is the registry's voices publish entry, fed by the door's `prev` — a door that passes no prev drops the live voices */
   { label: "the hero adopter drops the live voices again",
-    find: '  voicePinsFill(hero,[worldState.character],voicePinFitsGender(hero.gender));', replace: '',
+    find: 'rel:null,prev:worldState.character},_ad=sheetAdmit(c,_ctx);', replace: 'rel:null},_ad=sheetAdmit(c,_ctx);',
     mustFail: "keeps the hero's voices" },
-  { label: "the hero's keep runs after the cast, so every slot is cast again",
-    find: '  voicePinsFill(hero,[worldState.character],voicePinFitsGender(hero.gender));/* #543: before the cast, so only a slot still empty is cast */\n  if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(hero);',
-    replace: '  if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(hero);\n  voicePinsFill(hero,[worldState.character],voicePinFitsGender(hero.gender));',
+  { label: "the hero's keep runs after the cast, so every slot is cast again (the cast lands on the copy before the registry fills its empty slots)",
+    find: 'rel:null,prev:worldState.character},_ad=sheetAdmit(c,_ctx);',
+    replace: 'rel:null,prev:worldState.character},_ad=((typeof TTS!=="undefined"&&TTS.assignCharacterVoices)?TTS.assignCharacterVoices(c):0,sheetAdmit(c,_ctx));',
     mustFail: "keeps the hero's voices" },
-  { label: "the hero keeps a voice of the other sex",
-    find: 'voicePinsFill(hero,[worldState.character],voicePinFitsGender(hero.gender));', replace: 'voicePinsFill(hero,[worldState.character]);',
-    mustFail: "a kept voice of the known other sex" },
   { label: "the companion adopter drops the live voices again",
-    find: '  if(n.charSheet)voicePinsFill(sheet,[n.charSheet],voicePinFitsGender(sheet.gender));', replace: '',
+    find: 'rel:n.name,prev:n.charSheet||null},_ad=sheetAdmit(c,_ctx);', replace: 'rel:n.name},_ad=sheetAdmit(c,_ctx);',
     mustFail: "Replace from library on a companion" },
   { label: "the rejoin puts the parked copy back with no voice handoff",
     find: 'if(n.charSheet)voicePinsMirror(rec.sheet,n.charSheet);/* #543 */', replace: '',
     mustFail: "fallen companion rejoins" }
+]);
+prove("admission.js", [
+  { label: "the hero keeps a voice of the other sex (the registry's fill forgets the sex fit)",
+    find: 'run:function(sheet,ctx){voicePinsFill(sheet,[ctx.prev],voicePinFitsGender(sheet.gender));}', replace: 'run:function(sheet,ctx){voicePinsFill(sheet,[ctx.prev]);}',
+    mustFail: "a kept voice of the known other sex" },
 ]);
 prove("helpers.js", [
   { label: "the fill overwrites the copy's own value with the live one",

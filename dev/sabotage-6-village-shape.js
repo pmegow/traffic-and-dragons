@@ -25,9 +25,8 @@ prove("game.js", [
     find: 'rel:"resident",met:0,partyMember:false,resident:true,pronouns:pr,portrait:null,charSheet:sheet,libraryAt:_libAt}', replace: 'rel:"resident",met:0,partyMember:true,resident:true,pronouns:pr,portrait:null,charSheet:sheet,libraryAt:_libAt}',
     mustFail: "#6A residents: importVillageResidents" },
   { label: "the resident's sheet is the library object itself, not a copy",
-    /* anchored on importVillageResidents' own line — the same copy also opens adoptLibraryCompanion (#428); the harness
-       mutates the FIRST match (ambiguous-find census 2026-09-21) */
-    find: 'var sheet=keyedStores(JSON.parse(JSON.stringify(c)),"sheet");if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);', replace: 'var sheet=c;if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);',
+    /* #599 (b): the copy is the registry's — anchored on the village door's own context (detach:false hands over the object) */
+    find: '{door:"village resident "+nm,mode:"cross",name:nm,', replace: '{door:"village resident "+nm,mode:"cross",detach:false,name:nm,',
     mustFail: "#6A residents: importVillageResidents" },
   { label: "the house node forgets its owner",
     find: 'newMapNode(null,parent,{size:"small",owner:name})', replace: 'newMapNode(null,parent,{size:"small"})',

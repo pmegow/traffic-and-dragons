@@ -45,8 +45,7 @@ function consumeHomeQuickStart(){
   if(worldState&&!snapshotActiveCamp())return false;/* B4: never wipe the only local copy of a live campaign */
   consume();
   var bp=normalizeBlueprint(rec.bp),char=rec.char,tone=null,ti;
-  if(typeof clampImportedCharacter==="function")clampImportedCharacter(char);/* #315 */
-  if(typeof portraitAdmit==="function"&&portraitAdmit(char,"quick start"))showToast("⚠ The quick-start hero's portrait was dropped — not an image");/* #481 F2 */
+  if(!sheetAdmit(char,{door:"quick start",mode:"cross",detach:false,stage:"preview",rel:"@import:"+(char.name||"character"),portable:true}).ok)return false;/* #599 (b): the registry heals the pick in place (#315, #481 F2, the names); startGame publishes */
   for(ti=0;ti<TONES.length;ti++)if(TONES[ti].id===bp.tone)tone=TONES[ti];
   tone=tone||TONES.filter(function(t){return t.id==="swords";})[0]||TONES[0];
   store.del(WSK);store.del(SLK);store.del(MEM_KEY);
@@ -481,13 +480,11 @@ function showCharacterBrowser(initialMode){
 }
 // ── Character import preview modal ───────────────────────────────────────────
 function showCharImportPreview(char, onAccept, onCancel){
-  if(sheetVersionRefused(char,"character import")){if(onCancel)onCancel();return;}/* #599 (a): every import road funnels here — a sheet from a newer build never reaches a heal or a modal */
-  migrateAncestryNames(char);
-  migrateCharClassNames(char);/* #100: .char files + library entries may predate the Berserker→Primal rename; every import path funnels through this preview, so heal here once */
-  if(typeof portraitAdmit==="function"&&portraitAdmit(char,"character import")&&typeof showToast==="function")showToast("⚠ "+(char.name||"The character")+"'s portrait was dropped — not an image");/* #481 F2 */
-  if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(char);/* #221: a portable sheet may carry a renamed capability's old name */
-  migrateSpellDisplayNames(char);/* same funnel: spell labels that drifted from the capability-bible canon (v1.478 Fire Bolt d10→d8) */
-  if(typeof clampImportedCharacter==="function")clampImportedCharacter(char);/* #315: every import path funnels here — over-long prose is cut before it can reach a prompt */
+  /* #599 (b): every import road funnels through this preview, so the registry runs here ONCE on the object itself (the
+     accept callbacks hold it): the version gate (#599 a), the name heals (#100, #221, v1.478), the portrait gate (#481 F2),
+     the clamp (#315), the relationship adapter. A preview never publishes — the later door (join, play-as) does. */
+  var _ad=sheetAdmit(char,{door:"character import",mode:"cross",detach:false,stage:"preview",rel:"@import:"+(char.name||"character"),portable:true});
+  if(!_ad.ok){if(onCancel)onCancel();return;}
   var initials=csInitials(char.name);/* #15③: canonical — this copy lacked the w[0] guard and rendered "undefined" on double-space names (sanctioned fix) */
   var portrait=char.portrait?"<img src='"+safeImgSrc(char.portrait)+"' alt='"+escHtml(char.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;
   var stats=char.stats||{};
@@ -680,14 +677,13 @@ function _addImportedCompanion(char){
      line returns on busy — the companion appeared, the toast said so, and the GM was never told. Refuse
      BEFORE any state write instead, so the join is all-or-nothing. */
   if(typeof busy!=="undefined"&&busy){showToast("Wait for the turn to finish — "+char.name+" can join after it.");return;}
-  if(!identitySheetAdmit(char,char.name,identityAttachOwners(char.name)))return;
-  char=JSON.parse(JSON.stringify(char));/* the imported source remains untouched by scene and item adoption */
-  // Check if already in party
+  // Check if already in party — BEFORE admission, so a refusal here writes nothing (the item canon is a publish)
   if(wsNpcByName(char.name)){showToast(char.name+" is already in this campaign.");return;}/* #7: shared lookup */
   if(partyCompanionCount()>=partyCompanionCap()){showToast("Party full (max "+PARTY_MAX+", incl. you). Remove a companion before adding "+char.name+".");return;}
+  /* #599 (b): ONE admission (admission.js) — gates on the source, heals on a detached copy (the imported source stays
+     untouched), the item canon joins the bible only after every gate */
+  var _ad=sheetAdmit(char,{door:"companion import",mode:"cross",exclude:identityAttachOwners(char.name),rel:char.name});if(!_ad.ok)return;char=_ad.sheet;
   // Add as party member NPC with full charSheet
-  if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(char);/* #81b: the companion's gear keeps its canon */
-  if(typeof sceneFieldsCross==="function")sceneFieldsCross(char);/* #481 C5: the last campaign's scene stays there */
   var npc={name:char.name,status:"ally",rel:"companion",met:worldState.turn,partyMember:true,pronouns:pronounsForGender(char.gender),portrait:null,charSheet:char}; // portrait rides on charSheet only (#3 dedupe)
   worldState.npcs.push(npc);
   /* audit E9: same seeding as the [PARTY_MEMBER:] handler — aliases[] so every later alias write has a

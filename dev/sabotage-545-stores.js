@@ -12,7 +12,7 @@ prove('identity.js',[
 ]);
 prove('inventory.js',[{label:'restore inherited item-pair bucket',find:'if(!R[field])R[field]=keyedDict();',replace:'if(!R[field])R[field]={};',mustFail:'#545 item pairing'}]);
 prove('tag_table.js',[{label:'admit inherited category enum',find:'if(ownValue(ID_CATS,idc))',replace:'if(ID_CATS[idc])',mustFail:'#545 unknown reserved item categories'}]);
-prove('game.js',[{label:'omit generated sheet admission',find:'  keyedStores(sheet,"sheet");\n  npc.charSheet=sheet;',replace:'  npc.charSheet=sheet;',mustFail:'#545 generated attachment'}]);
+prove('game.js',[{label:'omit generated sheet admission (#599 (b): the attach runs the registry — its stores AND arrays entries both normalize, so the only single-point bypass is dropping the admission, which the ADMISSION CONTRACT names before the #545 test can)',find:'  if(!sheetAdmit(sheet,{door:"generated sheet "+npcName,mode:"same",detach:false,rel:npcName}).ok)return null;',replace:'',mustFail:'ADMISSION CONTRACT'}]);
 prove('state.js',[
 {label:'birth a missing legacy map with inherited names',find:'if(!memory.map)memory.map={nodes:keyedDict(),edges:[]',replace:'if(!memory.map)memory.map={nodes:{},edges:[]',mustFail:'#545 legacy missing map'},
 {label:'omit checkpoint world normalization',find:'keyedStores(ws,"world");keyedStores(mem,"memory");',replace:'keyedStores(mem,"memory");',mustFail:'#545 checkpoint restore'},

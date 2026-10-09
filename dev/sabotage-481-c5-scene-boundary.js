@@ -35,7 +35,8 @@ prove("api.js", [
 ]);
 prove("game.js", [
   { label: "a resident's import bypasses the boundary",
-    find: "    if(typeof sceneFieldsCross===\"function\")sceneFieldsCross(sheet);/* #481 C5 */\n", replace: "\n",
+    /* #599 (b): the cross is the registry's scene entry, cross mode only — a door that calls its import same-campaign data bypasses it */
+    find: "{door:\"village resident \"+nm,mode:\"cross\",", replace: "{door:\"village resident \"+nm,mode:\"same\",",
     mustFail: "the boundary: an incoming sheet" }
 ]);
 process.exit(code);

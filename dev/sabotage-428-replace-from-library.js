@@ -15,10 +15,11 @@ prove("game.js", [
     find: 'if(!s.conditions)s.conditions=[];', replace: 's.conditions=[];',
     mustFail: "ensureV10Arrays" },
   { label: "the hero adopter hands over the library object itself",
-    find: 'var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);if(typeof sceneFieldsCross', replace: 'var hero=c;if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);if(typeof sceneFieldsCross',/* #481 C5 re-anchor: the boundary helper follows the copy */
+    /* #599 (b): the copy and the kept name are the registry's — the door's context says detach and name */
+    find: '_ctx={door:"library hero",mode:"cross",', replace: '_ctx={door:"library hero",mode:"cross",detach:false,',
     mustFail: "libReplaceApply on the hero" },
   { label: "the hero adopter takes the library's spelling of the name",
-    find: '  hero.name=worldState.character.name;\n', replace: '',
+    find: '_ctx={door:"library hero",mode:"cross",name:worldState.character.name,', replace: '_ctx={door:"library hero",mode:"cross",',
     mustFail: "libReplaceApply on the hero" },
   { label: "the hero adopter drops the framing when the copy has none",
     find: 'hero.portraitOffset=hero.portraitOffset||worldState.character.portraitOffset||{x:0.5,y:0.5,zoom:1};', replace: 'hero.portraitOffset=hero.portraitOffset||{x:0.5,y:0.5,zoom:1};',
@@ -35,9 +36,9 @@ prove("game.js", [
   { label: "an unknown name is applied to the hero",
     find: 'if(!n||!n.charSheet)return {ok:false,reason:name+" has no character sheet in this campaign"};', replace: 'if(!n||!n.charSheet){adoptLibraryHero(lib,at);return {ok:true,host:"hero"};}',
     mustFail: "libReplaceApply on a companion" },
-  { label: "the village refresh copies on its own again instead of the shared adopter",
+  { label: "the village refresh copies on its own again instead of the shared adopter (#599 (b): the ADMISSION CONTRACT's derived sink census names the bypass — an install without sheetAdmit — before the one-adopter test can)",
     find: 'if(adoptLibraryCompanion(n,c,at))out.refreshed.push(nm);else out.kept.push(nm);}', replace: 'var sheet=JSON.parse(JSON.stringify(c));n.charSheet=sheet;n.libraryAt=at;n.pronouns=pronounsForGender(sheet.gender);out.refreshed.push(nm);}',
-    mustFail: "one adopter per host" }
+    mustFail: "ADMISSION CONTRACT" }
 ]);
 prove("ui-sheets.js", [
   { label: "the hero sheet loses the Replace button",

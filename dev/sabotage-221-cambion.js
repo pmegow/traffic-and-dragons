@@ -22,8 +22,8 @@ prove('storage-adapter.js',['node',['dev/tests-c13-adapter.js']],[
 prove('char-creation.js',browser,[
  {label:'creation loses Infernal on the renamed id',find:'cambion:"Infernal"',replace:'tiefling:"Infernal"',mustFail:'Cambion creation retains Infernal'}
 ],true);
-prove('ui-browsers.js',browser,[
- {label:'portable import keeps retired ancestry',find:'  migrateAncestryNames(char);',replace:'',mustFail:'portable import preview migrates'}
+prove('admission.js',browser,[/* #599 (b): the preview's name heals are the registry's names entry */
+ {label:'portable import keeps retired ancestry',find:'run:function(sheet){migrateAncestryNames(sheet);migrateCharClassNames(sheet);',replace:'run:function(sheet){migrateCharClassNames(sheet);',mustFail:'portable import preview migrates'}
 ],true);
 prove('character_editor.html',browser,[
  {label:'editor skips ancestry migration',find:'if(typeof migrateAncestryNames==="function")migrateAncestryNames(c);',replace:'',mustFail:'editor imports old name and id'},

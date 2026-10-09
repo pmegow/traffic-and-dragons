@@ -31,6 +31,7 @@ var ENGINE_MANIFEST = [
   { file: "memory.js",             sym: "resolveNpcName" },
   { file: "clock.js",              sym: "clockAdvance" },
   { file: "identity.js",           sym: "IDENTITY_DOMAINS" },
+  { file: "admission.js",          sym: "sheetAdmit" },/* #599 (b): ONE sheet admission registry, every door */
   { file: "tag_table.js",          sym: "TAG_TABLE" },
   { file: "api.js",                sym: "buildSysPrompt" },
   { file: "table-talk.js",         sym: "ttMenuOutline" },

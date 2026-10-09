@@ -1411,6 +1411,90 @@ try {
   console.log("[#62] character editor contract OK — portable-sheet surface, wrapper pinned, 9 list fields registered");
 } catch (e) { console.error("CHARACTER EDITOR CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── ADMISSION CONTRACT (#599 b, v1.1197) ──────────────────────────────────────
+// ONE registry admits a character sheet (admission.js: SHEET_ADMISSION, sheetAdmit). DERIVED, never listed by hand: every
+// call of a per-sheet step outside admission.js is a hand-run step at a door unless an EXEMPT row names the function with
+// its reason; every DOOR runs sheetAdmit before its first effect. The doors are DERIVED too (§5.3: a name list is not
+// enough): every INSTALL SINK in a root file — a `.charSheet=` or `worldState.character=` assignment, a roster push that
+// carries a charSheet — makes its enclosing function a door, unless an INTERNAL row names it with its reason (a sheet
+// already live in this campaign changing seats); the two previews, which install nothing, are listed with their effect.
+// A new door, a copied step, a new sink in an unlisted file or an admission moved after a write fails here. Comment-blind,
+// like the editor contract above.
+try {
+  var _adFail = function (msg) { console.error("ADMISSION CONTRACT: " + msg); process.exit(1); };
+  var _adCode = function (s) { return s.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "0;"); };
+  var _adSteps = ["identitySheetAdmit(", "portraitAdmit(", "sceneFieldsCross(", "adoptSheetItemDefs(", "voicePinsFill(", "stashCopyMark(", "clampImportedCharacter("];
+  var _adExempt = [
+    { file: "helpers.js", fn: "portraitsSanitizeWorld", why: "a world-level sweep over every portrait at the .tnd import — not a sheet door" },
+    { file: "game.js", fn: "applyBlueprint", why: "a blueprint's NPC seed is a roster entry with no sheet; the identity gate alone applies" },
+    { file: "tag_table.js", fn: "tag NPC_MERGE", why: "the merge fills the canon's empty voice slots from the duplicate's — a fold of two sheets already admitted, not an admission (#543)" }
+  ];
+  var _adFs = require("fs"), _adRoot = require("path").join(__dirname, "..");
+  var _adFiles = _adFs.readdirSync(_adRoot).filter(function (f) { return /\.(js|html)$/.test(f) && f !== "admission.js"; }), _adBad = [];
+  /* the enclosing unit of a site: the nearest top-level `function name(` / `async function name(` or tag-table entry
+     `{t:"NAME"` above it; _adEnd is the next such boundary (the unit's end) */
+  var _adBounds = ["\nfunction ", "\nasync function ", "\n{t:\""];
+  var _adFn = function (src, at) { var best = -1, kind = -1, i, p;
+    for (i = 0; i < _adBounds.length; i++) { p = src.lastIndexOf(_adBounds[i], at); if (p > best) { best = p; kind = i; } }
+    if (best < 0) return { name: "(top)", at: 0 };
+    if (kind === 2) return { name: "tag " + src.slice(best + 5, src.indexOf("\"", best + 5)), at: best + 1 };
+    var n0 = best + _adBounds[kind].length; return { name: src.slice(n0, src.indexOf("(", n0)), at: best + 1 }; };
+  var _adEnd = function (src, from) { var end = -1, i, p; for (i = 0; i < _adBounds.length; i++) { p = src.indexOf(_adBounds[i], from); if (p >= 0 && (end < 0 || p < end)) end = p; } return end; };
+  var _adBody = function (src, at) { var end = _adEnd(src, at + 10); return end > 0 ? src.slice(at, end) : src.slice(at); };
+  _adFiles.forEach(function (f) {
+    var src = _adCode(_src(f)), i, at, step;
+    for (i = 0; i < _adSteps.length; i++) { step = _adSteps[i]; at = -1;
+      while ((at = src.indexOf(step, at + 1)) >= 0) {
+        if (src.slice(Math.max(0, at - 9), at) === "function ") continue;
+        var fn = _adFn(src, at).name;
+        if (!_adExempt.some(function (x) { return x.file === f && x.fn === fn; })) _adBad.push(f + " › " + fn + " calls " + step.slice(0, -1));
+      } }
+  });
+  if (_adBad.length) _adFail("a per-sheet step is hand-run outside the registry (route the door through sheetAdmit, or add an EXEMPT row with its reason): " + _adBad.join("; "));
+  /* the DERIVED door census: every install sink names its door */
+  /* a sink: a `.charSheet=` / `worldState.character=` assignment, or a wrapper literal that carries a sheet (`charSheet:x`,
+     not null) — the literal, not the push, so a wrapper built into a variable and pushed later is seen too */
+  var _adSink = /\.charSheet\s*=(?!=)|worldState\.character\s*=(?!=)|charSheet:\s*(?!null)[A-Za-z_$]/g;
+  var _adInternal = [
+    { file: "game.js", fn: "swapPlayerCharacter", why: "the hero swap — a companion's sheet already live in this campaign takes the hero's seat; the owners swap through relationshipSwapOwners" },
+    { file: "game.js", fn: "mpRejoinFallen", why: "a fallen companion's own sheet returns from mpFallen — admitted when it joined, read by (a)'s world gate while it waited" },
+    { file: "tag_table.js", fn: "tag NPC_MERGE", why: "the merge folds the duplicate's live sheet onto the canon — both admitted when they arrived; the pre-image lives in the merge archive" },
+    { file: "api.js", fn: "_w2CopyWorldStateDetached", why: "the W2 staging copy of the world with the portraits popped — a detached read copy for the kill-turn envelope, not an install" },
+    { file: "ui-carmode.js", fn: "_carUpdateParty", why: "a display wrapper for the Car Mode party line around the hero's live sheet — a read, not an install" }
+  ];
+  var _adDoors = {}, _adDoorN = 0, _adSeen = {};
+  _adFiles.forEach(function (f) {
+    var src = _adCode(_src(f)), m; _adSink.lastIndex = 0;
+    while ((m = _adSink.exec(src))) {
+      var u = _adFn(src, m.index), key = f + " › " + u.name;
+      if (_adInternal.some(function (x) { return x.file === f && x.fn === u.name; })) { _adSeen[key] = 1; continue; }
+      if (!_adDoors[key]) { _adDoors[key] = { file: f, fn: u.name, effect: m[0], at: m.index, fnAt: u.at }; _adDoorN++; }
+    }
+  });
+  _adInternal.forEach(function (x) { if (!_adSeen[x.file + " › " + x.fn]) _adFail("the INTERNAL row " + x.file + " › " + x.fn + " names no install sink any more — remove the row or restore the site"); });
+  var _adPreviews = [   /* doors that install nothing: the admission is pinned before the door's own effect */
+    { file: "ui-browsers.js", fn: "showCharImportPreview", effect: "modalShell(" }, { file: "ui-browsers.js", fn: "consumeHomeQuickStart", effect: "startGame(" }
+  ];
+  _adPreviews.forEach(function (d) {
+    var src = _adCode(_src(d.file)), at = src.indexOf("function " + d.fn + "("); if (at < 0) _adFail(d.file + " lost the preview door " + d.fn);
+    var body = _adBody(src, at), g = body.indexOf("sheetAdmit("), e = body.indexOf(d.effect);
+    if (g < 0) _adFail(d.file + " › " + d.fn + " is a door without sheetAdmit");
+    if (e < 0) _adFail(d.file + " › " + d.fn + " lost its effect " + d.effect);
+    if (g > e) _adFail(d.file + " › " + d.fn + " admits AFTER its first effect (" + d.effect + ")");
+  });
+  /* a door admits before its first EFFECT, not only before its install: a roster write, a save, a stored key */
+  var _adEffects = ["npcs.push(", "npcs.splice(", "saveAll(", "store.set(", ".charSheet=", "worldState.character="];
+  Object.keys(_adDoors).forEach(function (k) {
+    var d = _adDoors[k], src = _adCode(_src(d.file)), at = d.fnAt, body = _adBody(src, at), g = body.indexOf("sheetAdmit("), e = -1, ename = "", i, p;
+    if (g < 0) _adFail(k + " installs a sheet (" + d.effect + ") without sheetAdmit — a door outside the registry (route it through sheetAdmit, or add an INTERNAL row with its reason)");
+    if (at + g > d.at) _adFail(k + " admits AFTER its first install (" + d.effect + ")");
+    for (i = 0; i < _adEffects.length; i++) { p = body.indexOf(_adEffects[i]); if (p >= 0 && (e < 0 || p < e)) { e = p; ename = _adEffects[i]; } }
+    if (e >= 0 && g > e) _adFail(k + " admits AFTER its first effect (" + ename + ")");
+  });
+  if (_adDoorN < 7) _adFail("the door census found " + _adDoorN + " install doors — fewer than the seven the registry was built for; the sink pattern lost a site");
+  console.log("[#599 b] admission contract OK — " + _adDoorN + " install doors + " + _adPreviews.length + " previews through sheetAdmit, " + _adInternal.length + " internal transfers, " + _adExempt.length + " reasoned exemptions, no hand-run step");
+} catch (e) { console.error("ADMISSION CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── CAMPAIGN SLOT WRITER CONTRACT (#337, v1.821) ─────────────────────────────
 // The field failure: three raw store.set calls per path in campLoad/campCloudPull, unguarded — a
 // quota throw mid-triple left a half-written slot (or half-switched live keys) and no toast. Every

@@ -16,14 +16,15 @@ prove("helpers.js", [
 ]);
 prove("game.js", [
   { label: "a resident moves in without their canon",
-    find: 'if(typeof adoptSheetItemDefs==="function")adoptSheetItemDefs(sheet);/* #81b: the resident\'s gear keeps its canon */', replace: '',
+    /* #599 (b): the canon is the registry's itemDefs publish — a door that calls itself a preview never publishes */
+    find: '{door:"village resident "+nm,mode:"cross",name:nm,', replace: '{door:"village resident "+nm,mode:"cross",stage:"preview",name:nm,',
     mustFail: "#81b every export and every import is wired" }
   /* "the write-back sends the raw sheet" retired with villageWriteBack (#427, 2026-09-21) — the two manual library-save
      branches below are the only senders left and keep their own portable-copy clause. */
 ]);
 prove("ui-browsers.js", [
-  { label: "the .char export drops the canon",
+  { label: "the .char export drops the canon (since #599 (a) the CHARACTER EDITOR CONTRACT pins the wrapper's portableSheet first — the #81b source pin stands behind it)",
     find: 'character:portableSheet(sheet)},null,2);', replace: 'character:sheet},null,2);',
-    mustFail: "#81b every export and every import is wired" }
+    mustFail: "CHARACTER EDITOR CONTRACT" }
 ]);
 process.exit(code);

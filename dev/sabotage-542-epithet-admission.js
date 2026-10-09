@@ -83,15 +83,15 @@ if(!code)code=sabotage.prove({
   ],
   "cases": [
     {
-      "label": "hero adopter bypasses claims",
-      "find": "if(!identitySheetAdmit(c,worldState.character.name,[\"@player\"]))return null;",
-      "replace": "",
+      "label": "hero adopter bypasses claims (#599 (b): the identity gate applies only when the door passes exclusions)",
+      "find": "name:worldState.character.name,exclude:[\"@player\"],",
+      "replace": "name:worldState.character.name,",
       "mustFail": "library replacements"
     },
     {
       "label": "companion adopter bypasses claims",
-      "find": "if(!identitySheetAdmit(c,n.name,[identityNpcOwner(n.name)]))return null;",
-      "replace": "",
+      "find": "name:n.name,exclude:[identityNpcOwner(n.name)],",
+      "replace": "name:n.name,",
       "mustFail": "library replacements"
     },
     {
@@ -102,8 +102,8 @@ if(!code)code=sabotage.prove({
     },
     {
       "label": "Village imports namesakes",
-      "find": "if(!identitySheetAdmit(c,nm,identityAttachOwners(nm))){skipped.push(nm);continue;}",
-      "replace": "",
+      "find": "name:nm,exclude:identityAttachOwners(nm),",
+      "replace": "name:nm,",
       "mustFail": "Village and blueprint"
     },
     {
@@ -143,8 +143,8 @@ if(!code)code=sabotage.prove({
   "cases": [
     {
       "label": "startup seeds namesake",
-      "find": "if(!identitySheetAdmit(comp,comp.name,[]))continue;",
-      "replace": "",
+      "find": "mode:\"cross\",exclude:[],rel:comp.name,",
+      "replace": "mode:\"cross\",rel:comp.name,",
       "mustFail": "startup companion namesakes"
     }
   ]
@@ -160,14 +160,14 @@ if(!code)code=sabotage.prove({
   "cases": [
     {
       "label": "UI admits identity collision",
-      "find": "if(!identitySheetAdmit(char,char.name,identityAttachOwners(char.name)))return;",
-      "replace": "",
+      "find": "{door:\"companion import\",mode:\"cross\",exclude:identityAttachOwners(char.name),",
+      "replace": "{door:\"companion import\",mode:\"cross\",",
       "mustFail": "UI import refuses"
     },
     {
-      "label": "UI mutates source copy",
-      "find": "char=JSON.parse(JSON.stringify(char));",
-      "replace": "",
+      "label": "UI mutates source copy (#599 (b): the door tells the registry to heal the object itself)",
+      "find": "{door:\"companion import\",mode:\"cross\",exclude:",
+      "replace": "{door:\"companion import\",mode:\"cross\",detach:false,exclude:",
       "mustFail": "UI valid import copies"
     }
   ]

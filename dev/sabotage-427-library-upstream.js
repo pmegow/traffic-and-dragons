@@ -35,7 +35,8 @@ proveU("game.js", [
     find: '(typeof worldState.heroLibraryAt==="number"&&at<=worldState.heroLibraryAt)', replace: '(typeof worldState.heroLibraryAt==="number"&&at<worldState.heroLibraryAt)',
     mustFail: "the played hero refreshes" },
   { label: "the hero is handed the library object itself",
-    find: 'var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);', replace: 'var hero=c;if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);',
+    /* #599 (b): the copy is the registry's (sheetAdmit detaches unless the door says detach:false) */
+    find: '_ctx={door:"library hero",mode:"cross",', replace: '_ctx={door:"library hero",mode:"cross",detach:false,',
     mustFail: "the played hero refreshes" },
   { label: "move-in stops stamping the hero",
     find: 'if(typeof _libAt==="number")worldState.heroLibraryAt=_libAt;', replace: '',

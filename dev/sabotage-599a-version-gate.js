@@ -29,8 +29,10 @@ prove("helpers.js", [
   { label: "the portable copy is not stamped",
     find: "  copy.sheetVer=SHEET_VER;/* #599 (a): every portable copy says which build wrote it, so an older build can refuse it */\n", replace: "",
     mustFail: STAMP },
-  { label: "a sheet door refuses silently (no toast)",
-    find: "if(typeof showToast===\"function\")showToast(\"⚠ \"+why+VERSION_RELOAD_HINT,9000);return true;}", replace: "return true;}",
+]);
+prove("admission.js", [
+  { label: "a sheet door refuses silently (no toast) — #599 (b): the sheet doors say their refusal through the registry's version gate",
+    find: "if(ctx.toast!==false&&typeof showToast===\"function\")showToast(\"⚠ \"+why+VERSION_RELOAD_HINT,9000);}},", replace: "}},",
     mustFail: DOORS },
 ]);
 prove("state.js", [
@@ -82,19 +84,23 @@ prove("state.js", [
     find: "  if(typeof snap.ws===\"string\"){var _hv=null;try{_hv=JSON.parse(snap.ws);}catch(e){_hv=null;}var _hvi=_hv?worldVersionIssue(_hv):\"\";if(_hvi)return {ok:false,reason:_hvi};}\n", replace: "",
     mustFail: REVIEW_EDGES },
 ]);
-prove("game.js", [
+/* #599 (b): the sheet doors run the registry's version gate (admission.js, the first entry, applies to every context); each
+   mutation lets ONE door's context past it — the door-side anchor is gone by design */
+prove("admission.js", [
   { label: "the library hero door does not gate",
-    find: "  if(sheetVersionRefused(c,\"library hero\"))return null;/* #599 (a): before any write */\n", replace: "",
+    find: "  {name:\"version\",phase:\"gate\",applies:function(){return true;},", replace: "  {name:\"version\",phase:\"gate\",applies:function(ctx){return ctx.door!==\"library hero\";},",
     mustFail: DOORS },
-  { label: "startGame installs a pending companion from a newer build (review R5)",
-    find: "if(sheetVersionRefused(comp,\"companion \"+comp.name))continue;", replace: "",
-    mustFail: REVIEW_SOURCE },
   { label: "the library companion door does not gate",
-    find: "  if(sheetVersionRefused(c,\"library companion \"+n.name))return null;/* #599 (a): before any write */\n", replace: "",
+    find: "  {name:\"version\",phase:\"gate\",applies:function(){return true;},", replace: "  {name:\"version\",phase:\"gate\",applies:function(ctx){return ctx.door.indexOf(\"library companion\")!==0;},",
     mustFail: DOORS },
   { label: "the village import door does not gate",
-    find: "    if(sheetVersionRefused(c,\"village resident \"+nm)){skipped.push(nm);continue;}/* #599 (a): a library copy from a newer build never enters */\n", replace: "",
+    find: "  {name:\"version\",phase:\"gate\",applies:function(){return true;},", replace: "  {name:\"version\",phase:\"gate\",applies:function(ctx){return ctx.door.indexOf(\"village resident\")!==0;},",
     mustFail: DOORS },
+]);
+prove("game.js", [
+  { label: "startGame installs a pending companion from a newer build (review R5 — the loop's admission is a source pin; the hero's own admission above it keeps the ADMISSION CONTRACT quiet)",
+    find: "if(!sheetAdmit(comp,{door:\"companion \"+comp.name,mode:\"cross\",exclude:[],rel:comp.name,detach:false}).ok)continue;", replace: "",
+    mustFail: REVIEW_SOURCE },
   { label: "a new world is stamped with a literal that rots",
     find: "  worldState={ver:SAVE_VER,campId:getActiveCampId(),", replace: "  worldState={ver:10,campId:getActiveCampId(),",
     mustFail: STAMP },
@@ -111,9 +117,9 @@ prove("ui-boot.js", [
     mustFail: DOM },
 ]);
 prove("ui-browsers.js", [
-  { label: "the import preview shows a sheet from a newer build",
-    find: "  if(sheetVersionRefused(char,\"character import\")){if(onCancel)onCancel();return;}/* #599 (a): every import road funnels here — a sheet from a newer build never reaches a heal or a modal */\n", replace: "",
-    mustFail: DOM },
+  { label: "the import preview shows a sheet from a newer build (#599 (b): the preview's gate is its sheetAdmit; the ADMISSION CONTRACT names a preview door without one before the source pin can)",
+    find: "  var _ad=sheetAdmit(char,{door:\"character import\",mode:\"cross\",detach:false,stage:\"preview\",rel:\"@import:\"+(char.name||\"character\"),portable:true});\n  if(!_ad.ok){if(onCancel)onCancel();return;}\n", replace: "",
+    mustFail: "ADMISSION CONTRACT" },
   { label: "the .char import discards the envelope before reading its version",
     find: "      var _fv=charFileVersionIssue(data);if(_fv){console.error(\"[version] character import refused — \"+_fv);showToast(\"⚠ \"+_fv+VERSION_RELOAD_HINT,9000);return;}/* #599 (a): the file's envelope AND its sheet, before the envelope is discarded */\n", replace: "",
     mustFail: DOM },
