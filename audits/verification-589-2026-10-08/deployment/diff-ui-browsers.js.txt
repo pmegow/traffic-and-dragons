@@ -1,0 +1,37 @@
+diff --git "a/C:\\Projects\\traffic-and-dragons\\audits\\verification-589-2026-10-08\\deployment\\deployed-ui-browsers.js" "b/C:\\Projects\\traffic-and-dragons\\ui-browsers.js"
+index 4d92b9d2..0f9ca5d0 100644
+--- "a/C:\\Projects\\traffic-and-dragons\\audits\\verification-589-2026-10-08\\deployment\\deployed-ui-browsers.js"
++++ "b/C:\\Projects\\traffic-and-dragons\\ui-browsers.js"
+@@ -38,6 +38,7 @@ function consumeHomeQuickStart(){
+   var rec=null,_qsErr=null;try{rec=JSON.parse(raw);}catch(e){_qsErr=(e&&e.message)||String(e);}/* audit E15 */
+   var bad=quickStartPayloadValid(rec);
+   if(bad){consume();console.warn("[home] quick start dropped — "+bad+(_qsErr?" ("+_qsErr+")":"")+"; "+String(raw).length+" chars discarded");showToast("Quick start could not begin: "+bad);return false;}
++  if(sheetVersionRefused(rec.char,"quick start"))return false;/* #599 (a): a hero from a newer build; the pick is KEPT — after the reload that updates this build it begins */
+   /* #481 F11: the TRANSIENT refusals — a turn in flight, storage too full to snapshot the live campaign — run BEFORE the
+      payload is consumed, so the pick survives for the next try (it used to be removed first and lost with the refusal) */
+   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return false;}
+@@ -480,6 +481,7 @@ function showCharacterBrowser(initialMode){
+ }
+ // ── Character import preview modal ───────────────────────────────────────────
+ function showCharImportPreview(char, onAccept, onCancel){
++  if(sheetVersionRefused(char,"character import")){if(onCancel)onCancel();return;}/* #599 (a): every import road funnels here — a sheet from a newer build never reaches a heal or a modal */
+   migrateAncestryNames(char);
+   migrateCharClassNames(char);/* #100: .char files + library entries may predate the Berserker→Primal rename; every import path funnels through this preview, so heal here once */
+   if(typeof portraitAdmit==="function"&&portraitAdmit(char,"character import")&&typeof showToast==="function")showToast("⚠ "+(char.name||"The character")+"'s portrait was dropped — not an image");/* #481 F2 */
+@@ -535,7 +537,7 @@ function showCharImportPreview(char, onAccept, onCancel){
+ }
+ // ── Character I/O ─────────────────────────────────────────────────────────────
+ function _doExportChar(name, sheet){
+-  var data=JSON.stringify({ver:10,type:"character",character:portableSheet(sheet)},null,2);/* #81b: the item canon travels */
++  var data=JSON.stringify({ver:SAVE_VER,type:"character",character:portableSheet(sheet)},null,2);/* #81b: the item canon travels; #599 (a): the envelope says which build wrote it */
+   var blob=new Blob([data],{type:"application/json"});
+   var slug=function(s){return(s||"unknown").replace(/[^a-zA-Z0-9_\-]/g,"_");};
+   var camp=slug(worldState.campName||worldState.character.name);
+@@ -708,6 +710,7 @@ function importCharacterFile(e){
+     try{
+       var data=JSON.parse(ev.target.result);
+       if(!data.character||!data.character.name){showToast("Invalid character file.");return;}
++      var _fv=charFileVersionIssue(data);if(_fv){console.error("[version] character import refused — "+_fv);showToast("⚠ "+_fv+VERSION_RELOAD_HINT,9000);return;}/* #599 (a): the file's envelope AND its sheet, before the envelope is discarded */
+       var char=data.character;
+       if(!char.skills)char.skills=initSkills();if(!char.conditions)char.conditions=[];if(!char.relationships)char.relationships=[];relationshipMigrateSheet(char,"@import:"+(char.name||"character"),{portable:true});
+       if(!char.saveModifiers)char.saveModifiers=[];if(!char.languages)char.languages=[];if(char.portrait===undefined)char.portrait=null;

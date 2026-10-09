@@ -1,0 +1,19 @@
+
+  sabotage — library-slug.js
+   ✓ caught      the server's bug: only one edge underscore is trimmed
+   ✓ caught      the blueprint slug loses the designer's 120-character cut
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — helpers.js
+   ✓ caught      the party upload builds its own slug again
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — ui-browsers.js
+   ✓ caught      the character export builds its own slug again
+   ✓ file restored byte-identical
+   1/1 clauses proven
+

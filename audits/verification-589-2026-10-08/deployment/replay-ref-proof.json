@@ -1,0 +1,45 @@
+{
+  "ref": "0de4866f2aec79716029138755e44ada2976e973",
+  "checks": [
+    {
+      "file": "library-slug.js",
+      "sha256": "4d02b9b6a528903f58771ad101a36c0b6d627f0306324c28adc78afde2afd872",
+      "matchesPublicDeployment": true
+    },
+    {
+      "file": "helpers.js",
+      "sha256": "ff722c77dfabbd80c2334666db3ac8f73450bbd0c6d5c10be310a1a2d87c23a6",
+      "matchesPublicDeployment": true
+    },
+    {
+      "file": "ui-browsers.js",
+      "sha256": "12b3daae4e52f9824a192323b73d241a10cfb96c8948e01bdb4e553dc7646958",
+      "matchesPublicDeployment": true
+    },
+    {
+      "file": "storage-adapter.js",
+      "sha256": "de41d5ec09f445424dc63b7c9af2585a6a7df8cc19c91b52c4bf2dc47905fc18",
+      "matchesPublicDeployment": true
+    },
+    {
+      "file": "game.js",
+      "sha256": "77166d9014cbc1cb4218e171de6434d9ed63c6139b9c25a3efbd98b7b7175d89",
+      "matchesPublicDeployment": true
+    },
+    {
+      "file": "index.html",
+      "sha256": "24ee22593f579dda261151a081033943e1bfdba6a8d8bd78c01af5a887639d97",
+      "matchesPublicDeployment": true
+    },
+    {
+      "file": "globals.js",
+      "sha256": "bc53b089be122cd54a96f742e640dda37a1a0b69c832026973174a2db14b01cc",
+      "matchesPublicDeployment": true
+    },
+    {
+      "file": "sw.js",
+      "sha256": "10b36c8d816003d79619ed5c8d44246dfbfd745f9ded63b3ceb33424d7fecd5f",
+      "matchesPublicDeployment": true
+    }
+  ]
+}

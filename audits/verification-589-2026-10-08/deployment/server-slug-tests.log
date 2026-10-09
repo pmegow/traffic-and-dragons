@@ -1,0 +1,8 @@
+PASS slug the vendored contract is the game's file, byte for byte
+PASS slug a new save of "(Ammut)" files under ammut — the slug the game looks for
+PASS slug migration v7 renames a stored slug to the shared rule when the new slug is free for that user
+PASS slug a taken slug is left exactly as it is, and the skip is logged
+PASS slug two rows wanting ONE free slug: exactly one is renamed, the other is left and logged
+PASS slug the database is stamped v7 and a second boot is a no-op
+PASS slug re-running the migration over a migrated store moves nothing (stamped back to 6, booted again)
+library slug: 7 passed, 0 failed

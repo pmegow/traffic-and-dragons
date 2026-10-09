@@ -1,0 +1,5 @@
+PASS #481 F5 the repro names: one rule trims BOTH edge underscores ("(Ammut)" → ammut, "Åsa Lindé" → sa_lind)
+PASS #481 F5 the blueprint slug reproduces the designer's slice rule (trim, then at most 120)
+PASS #481 F5 the game's two library slug sites go through the one contract
+PASS #481 F5 the vendoring pin: the file's bytes match the hash both repos pin (update the server's library-slug.cjs with it)
+#481 F5 LIBRARY SLUG: 0 failed, 4 passed

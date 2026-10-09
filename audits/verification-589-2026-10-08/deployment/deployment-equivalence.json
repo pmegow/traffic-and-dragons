@@ -1,0 +1,157 @@
+{
+  "utc": "2026-10-09T05:22:56.992Z",
+  "localNode": "v22.17.0",
+  "deployedNode": "v22.23.3",
+  "normalization": "CRLF to LF only",
+  "serverFiles": [
+    {
+      "file": "library-slug.cjs",
+      "bytes": 944,
+      "sha256": "4d02b9b6a528903f58771ad101a36c0b6d627f0306324c28adc78afde2afd872",
+      "localSha256": "4d02b9b6a528903f58771ad101a36c0b6d627f0306324c28adc78afde2afd872",
+      "equal": true
+    },
+    {
+      "file": "index.js",
+      "bytes": 47387,
+      "sha256": "250749645dde4bbffb6d9f9f9a9f4a5b7d0f6b8215be642f942a8220ee60089a",
+      "localSha256": "250749645dde4bbffb6d9f9f9a9f4a5b7d0f6b8215be642f942a8220ee60089a",
+      "equal": true
+    },
+    {
+      "file": "db.js",
+      "bytes": 19901,
+      "sha256": "92c99ce4c6fda262e5ac749ab353f0c5c04c77884817ac6496354f619de10286",
+      "localSha256": "92c99ce4c6fda262e5ac749ab353f0c5c04c77884817ac6496354f619de10286",
+      "equal": true
+    },
+    {
+      "file": "package.json",
+      "bytes": 811,
+      "sha256": "bf3aa615bbd0e365b275c8013b56f0d06f036a2d3e2e42f902032a0b3779ba11",
+      "localSha256": "bf3aa615bbd0e365b275c8013b56f0d06f036a2d3e2e42f902032a0b3779ba11",
+      "equal": true
+    },
+    {
+      "file": "package-lock.json",
+      "bytes": 17974,
+      "sha256": "45fa713aa99cf0a00e95c717765588a520f2b8bea46b44a4cbc1bae07be40235",
+      "localSha256": "45fa713aa99cf0a00e95c717765588a520f2b8bea46b44a4cbc1bae07be40235",
+      "equal": true
+    }
+  ],
+  "clientFiles": [
+    {
+      "file": "library-slug.js",
+      "url": "https://traffic-and-dragons.pages.dev/library-slug.js",
+      "status": 200,
+      "localSha256": "4d02b9b6a528903f58771ad101a36c0b6d627f0306324c28adc78afde2afd872",
+      "deployedSha256": "4d02b9b6a528903f58771ad101a36c0b6d627f0306324c28adc78afde2afd872",
+      "equal": true,
+      "deployedBytes": 944,
+      "localBytes": 944
+    },
+    {
+      "file": "helpers.js",
+      "url": "https://traffic-and-dragons.pages.dev/helpers.js",
+      "status": 200,
+      "localSha256": "53529fd1477cb9a46ca6a5a78d33d4ede0aae43bffbf163ec7826f38830e7fb0",
+      "deployedSha256": "ff722c77dfabbd80c2334666db3ac8f73450bbd0c6d5c10be310a1a2d87c23a6",
+      "equal": false,
+      "deployedBytes": 307862,
+      "localBytes": 310440,
+      "firstDifferentLine": {
+        "line": 2235,
+        "local": "/* ── #599 (a): THE VERSION GATE (owner's go 2026-10-08; DOC/DESIGN_599_inventory_rows.md §5.4, §12 row a) ─────────────────",
+        "deployed": "function portableSheet(sheet){"
+      }
+    },
+    {
+      "file": "ui-browsers.js",
+      "url": "https://traffic-and-dragons.pages.dev/ui-browsers.js",
+      "status": 200,
+      "localSha256": "3fbb70c43f5bffad0f16b83a6db7806e8cf39bf01645d4a9855efd7060b8ef26",
+      "deployedSha256": "12b3daae4e52f9824a192323b73d241a10cfb96c8948e01bdb4e553dc7646958",
+      "equal": false,
+      "deployedBytes": 88689,
+      "localBytes": 89363,
+      "firstDifferentLine": {
+        "line": 41,
+        "local": "  if(sheetVersionRefused(rec.char,\"quick start\"))return false;/* #599 (a): a hero from a newer build; the pick is KEPT — after the reload that updates this build it begins */",
+        "deployed": "  /* #481 F11: the TRANSIENT refusals — a turn in flight, storage too full to snapshot the live campaign — run BEFORE the"
+      }
+    },
+    {
+      "file": "storage-adapter.js",
+      "url": "https://traffic-and-dragons.pages.dev/storage-adapter.js",
+      "status": 200,
+      "localSha256": "53ebffdf81768fd6d4d3e268982047a30b2b1f0df0d30f9a1c0786bea8898f45",
+      "deployedSha256": "de41d5ec09f445424dc63b7c9af2585a6a7df8cc19c91b52c4bf2dc47905fc18",
+      "equal": false,
+      "deployedBytes": 87335,
+      "localBytes": 89364,
+      "firstDifferentLine": {
+        "line": 574,
+        "local": "    /* #599 (a): the publication lock — the cloud copy of this campaign was written by a newer build than this one (the",
+        "deployed": "    if (_de && campId && _de.id === campId) { console.info(\"[storage] sync paused — \" + campId + \" was deleted on another device; answer the question to keep or remove it\"); _fin(\"sync paused — deleted on another device\"); return; }"
+      }
+    },
+    {
+      "file": "game.js",
+      "url": "https://traffic-and-dragons.pages.dev/game.js",
+      "status": 200,
+      "localSha256": "2ad9a95418e3271125c305323d44c81f5cdfecf8cbd33d2e219122f926843047",
+      "deployedSha256": "77166d9014cbc1cb4218e171de6434d9ed63c6139b9c25a3efbd98b7b7175d89",
+      "equal": false,
+      "deployedBytes": 387865,
+      "localBytes": 388204,
+      "firstDifferentLine": {
+        "line": 20,
+        "local": "  worldState={ver:SAVE_VER,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||\"The Crossroads of Ashenveil\",region:\"The Blighted Reach\",time:\"dusk\",weather:\"cold wind carrying ash\",threat:\"low\",sublocation:null},tone:{name:toneName||\"Sword and Sorcery\",voice:toneVoice||\"\"},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[],actStartTurn:0,clock:{min:12*MIN_PER_HOUR,schedule:[]}};/* #73: new campaigns open at the declared dusk; rendered time derives from this scalar */",
+        "deployed": "  worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||\"The Crossroads of Ashenveil\",region:\"The Blighted Reach\",time:\"dusk\",weather:\"cold wind carrying ash\",threat:\"low\",sublocation:null},tone:{name:toneName||\"Sword and Sorcery\",voice:toneVoice||\"\"},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[],actStartTurn:0,clock:{min:12*MIN_PER_HOUR,schedule:[]}};/* #73: new campaigns open at the declared dusk; rendered time derives from this scalar */"
+      }
+    },
+    {
+      "file": "index.html",
+      "url": "https://traffic-and-dragons.pages.dev/index.html",
+      "status": 200,
+      "localSha256": "24ee22593f579dda261151a081033943e1bfdba6a8d8bd78c01af5a887639d97",
+      "deployedSha256": "24ee22593f579dda261151a081033943e1bfdba6a8d8bd78c01af5a887639d97",
+      "equal": true,
+      "deployedBytes": 69567,
+      "localBytes": 69567
+    },
+    {
+      "file": "globals.js",
+      "url": "https://traffic-and-dragons.pages.dev/globals.js",
+      "status": 200,
+      "localSha256": "85485a3d91392655d0adec4099a279de940f1a53a933a632512a4dd26f64014c",
+      "deployedSha256": "bc53b089be122cd54a96f742e640dda37a1a0b69c832026973174a2db14b01cc",
+      "equal": false,
+      "deployedBytes": 64009,
+      "localBytes": 64486,
+      "localVersion": "APP_VERSION=\"v1.1194\"",
+      "deployedVersion": "APP_VERSION=\"v1.1193\"",
+      "firstDifferentLine": {
+        "line": 174,
+        "local": "/* #599 (a) — the shapes this build reads and writes: the world save (`worldState.ver`, written by startGame and the .char",
+        "deployed": "// #301 (owner design 2026-09-02): DEATH AS A CHARACTER. On a true death Death arrives, states the terms in"
+      }
+    },
+    {
+      "file": "sw.js",
+      "url": "https://traffic-and-dragons.pages.dev/sw.js",
+      "status": 200,
+      "localSha256": "0c278d5bef451d30696951ddf2e400f0381b29f891cbb1a40c516ea7681a090c",
+      "deployedSha256": "10b36c8d816003d79619ed5c8d44246dfbfd745f9ded63b3ceb33424d7fecd5f",
+      "equal": false,
+      "deployedBytes": 11205,
+      "localBytes": 11205,
+      "firstDifferentLine": {
+        "line": 1,
+        "local": "var CACHE = \"tnd-v3-20261008u\";",
+        "deployed": "var CACHE = \"tnd-v3-20261008t\";"
+      }
+    }
+  ]
+}

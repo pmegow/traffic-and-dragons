@@ -1,0 +1,268 @@
+{
+  "started": "2026-10-09T05:28:16.873Z",
+  "ended": "2026-10-09T05:28:25.118Z",
+  "version": "v1.1193",
+  "servedClientRef": "0de4866f2aec79716029138755e44ada2976e973",
+  "clientCommit": "fa065e87f3e773fda88569109b114f4be0389eca",
+  "serverCommit": "025877aca0249d960266e90dd56c393209ecda41",
+  "cases": [
+    {
+      "name": "(Ammut)",
+      "slug": "ammut",
+      "update": true,
+      "replace": true,
+      "upstreamUnchanged": true,
+      "confirmBeforeWrite": true,
+      "cancelByteIdentical": true,
+      "confirmedOverwrite": true,
+      "deleted": true
+    },
+    {
+      "name": "Åsa Lindé",
+      "slug": "sa_lind",
+      "update": true,
+      "replace": true,
+      "upstreamUnchanged": true,
+      "confirmBeforeWrite": true,
+      "cancelByteIdentical": true,
+      "confirmedOverwrite": true,
+      "deleted": true
+    },
+    {
+      "name": "--Brann--",
+      "slug": "brann",
+      "update": true,
+      "replace": true,
+      "upstreamUnchanged": true,
+      "confirmBeforeWrite": true,
+      "cancelByteIdentical": true,
+      "confirmedOverwrite": true,
+      "deleted": true
+    },
+    {
+      "name": "Plain Control",
+      "slug": "plain_control",
+      "update": true,
+      "replace": true,
+      "upstreamUnchanged": true,
+      "confirmBeforeWrite": true,
+      "cancelByteIdentical": true,
+      "confirmedOverwrite": true,
+      "deleted": true
+    }
+  ],
+  "negativeControl": {
+    "oldStoredSlug": "ammut_",
+    "failedAssertion": "library lookup must find punctuation/accent name",
+    "caught": true
+  },
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "POST",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/characters/ammut"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "POST",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "POST",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/characters/sa_lind"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "POST",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "POST",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/characters/brann"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "POST",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "POST",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/characters/plain_control"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "POST",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    }
+  ],
+  "blocked": [],
+  "errors": [],
+  "scope": "Actual browser UI and storageAdapter against actual local server HTTP/auth/SQLite; dedicated dev_local and scratch databases. No production authenticated operation. Public deployment code parity is separate."
+}

@@ -1,0 +1,6 @@
+PASS #589 complete library flow (Ammut) -> ammut
+PASS #589 complete library flow Åsa Lindé -> sa_lind
+FAIL #589 acceptance: Error: waitForFunction timed out after 30000ms: (()=>!document.getElementById('char-overwrite-modal'))()
+    at Page.waitForFunction (C:\Projects\traffic-and-dragons\dev\cdp-browser.js:285:37)
+    at async verifyCase (C:\Projects\traffic-and-dragons\audits\verification-589-2026-10-08\browser.cjs:20:194)
+    at async C:\Projects\traffic-and-dragons\audits\verification-589-2026-10-08\browser.cjs:22:359

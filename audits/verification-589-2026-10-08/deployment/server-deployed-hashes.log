@@ -1,0 +1,32 @@
+Connecting to fdaa:78:f1c8:a7b:89c:b052:34b7:2...
+{
+  "utc": "2026-10-09T05:22:33.681Z",
+  "node": "v22.23.3",
+  "files": [
+    {
+      "file": "library-slug.cjs",
+      "bytes": 944,
+      "sha256": "4d02b9b6a528903f58771ad101a36c0b6d627f0306324c28adc78afde2afd872"
+    },
+    {
+      "file": "index.js",
+      "bytes": 47387,
+      "sha256": "250749645dde4bbffb6d9f9f9a9f4a5b7d0f6b8215be642f942a8220ee60089a"
+    },
+    {
+      "file": "db.js",
+      "bytes": 19901,
+      "sha256": "92c99ce4c6fda262e5ac749ab353f0c5c04c77884817ac6496354f619de10286"
+    },
+    {
+      "file": "package.json",
+      "bytes": 811,
+      "sha256": "bf3aa615bbd0e365b275c8013b56f0d06f036a2d3e2e42f902032a0b3779ba11"
+    },
+    {
+      "file": "package-lock.json",
+      "bytes": 17974,
+      "sha256": "45fa713aa99cf0a00e95c717765588a520f2b8bea46b44a4cbc1bae07be40235"
+    }
+  ]
+}

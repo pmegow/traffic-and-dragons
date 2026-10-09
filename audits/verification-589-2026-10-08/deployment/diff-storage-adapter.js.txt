@@ -1,0 +1,36 @@
+diff --git "a/C:\\Projects\\traffic-and-dragons\\audits\\verification-589-2026-10-08\\deployment\\deployed-storage-adapter.js" "b/C:\\Projects\\traffic-and-dragons\\storage-adapter.js"
+index 867a314c..eba4c059 100644
+--- "a/C:\\Projects\\traffic-and-dragons\\audits\\verification-589-2026-10-08\\deployment\\deployed-storage-adapter.js"
++++ "b/C:\\Projects\\traffic-and-dragons\\storage-adapter.js"
+@@ -571,6 +571,12 @@ var storageAdapter = (function() {
+     if (_syncing && !beacon) { _pendingSync = true; _fin("a sync was already in flight"); return; }
+     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
+     var _de = _delElsewhere();   /* #481 F9: never re-upload a campaign another device deleted until the player answers */
++    /* #599 (a): the publication lock — the cloud copy of this campaign was written by a newer build than this one (the
++       reconcile or a manual pull refused it). This device's older state must never land on top of it; the lock is a stored
++       key (state.js versionLockFor), so it outlives a reload of the same stale build, and a reconcile that reads a
++       compatible cloud world clears it. The beacon flush is refused too — it is the same POST. */
++    var _vl = (typeof versionLockFor === "function" && campId) ? versionLockFor(campId) : null;
++    if (_vl) { console.warn("[version] sync paused — the cloud copy of " + campId + " was written by a newer app version (" + _vl.why + "); reload to update"); _fin("sync paused — the cloud copy was written by a newer app version; reload to update"); return; }
+     if (_de && campId && _de.id === campId) { console.info("[storage] sync paused — " + campId + " was deleted on another device; answer the question to keep or remove it"); _fin("sync paused — deleted on another device"); return; }
+     if (!beacon) { _syncing = true; _pendingSync = false; }
+     var turnAt   = worldState.turn || 0; // the turn this payload carries — ACKed on 2xx
+@@ -918,6 +924,18 @@ var storageAdapter = (function() {
+       // device's next push could then adopt-race an empty transcript over the server's good copy.
+       // The server copy is safe where it lives; keep local state and defer — the SW update lands
+       // on the next navigation. Pure attempt, no rescue write.
++      /* #599 (a): the same refusal for a world (or a sheet in it) stamped by a newer build, before any consumer — and this
++         device's pushes for the campaign are LOCKED (a stored key, so a reload of the same stale build keeps it) until a
++         compatible cloud world is read here, which is what the newer build does on its first reconcile. */
++      var _srvCampV = data.campaignId || data.worldState.campId || null, _vIssue = worldVersionIssue(data.worldState);
++      if (_vIssue) {
++        console.error("[version] reconcile REFUSED — " + _vIssue + ". Keeping local state; pushes for " + _srvCampV + " are locked until this device runs the newer build.");
++        if (typeof versionLockSet === "function") versionLockSet(_srvCampV, _vIssue);
++        if (typeof showToast === "function") showToast("&#9729; Cloud copy was written by a newer app version &mdash; reload to update; uploads are paused until then", 9000);
++        syncCampaignList(null);
++        return;
++      }
++      if (typeof versionLockClear === "function" && versionLockClear(_srvCampV)) console.info("[version] the cloud copy of " + _srvCampV + " reads on this build — the publication lock is cleared, uploads resume");
+       var _srvTr = data.worldState.transcript;
+       if (_srvTr && !(_srvTr instanceof Array) && typeof inflateTranscriptField === "function" && inflateTranscriptField(_srvTr) === null) {
+         console.error("[storage] reconcile REFUSED — the server blob's transcript is in a form this build cannot read (newer client?). Keeping local state; reload this device to update.");

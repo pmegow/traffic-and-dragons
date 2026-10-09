@@ -1,0 +1,38 @@
+[
+  {
+    "file": "helpers.js",
+    "start": "function partyUploadSlug(",
+    "end": "function partyUploadRun(",
+    "bytes": 2529,
+    "localSha256": "f914e5f6def999e557b14b246cb6c8cb3e233d15e4ce4cb3a15b988212b1b72c",
+    "deployedSha256": "f914e5f6def999e557b14b246cb6c8cb3e233d15e4ce4cb3a15b988212b1b72c",
+    "equal": true
+  },
+  {
+    "file": "helpers.js",
+    "start": "function libUpdateDiff(",
+    "end": "// B3 (v1.361)",
+    "bytes": 907,
+    "localSha256": "9809ee177d17f56b5e2e4ce60e918e19a911c5ed3388ef6eaef03a84cb4285f9",
+    "deployedSha256": "9809ee177d17f56b5e2e4ce60e918e19a911c5ed3388ef6eaef03a84cb4285f9",
+    "equal": true
+  },
+  {
+    "file": "ui-browsers.js",
+    "start": "function _charLibSlug(",
+    "end": "function _renderCompanionSlots(",
+    "bytes": 16510,
+    "localSha256": "cc3fc03adf9d39aba244807de8f9d63162b43ef770217aab2e7e4bfa317aaed4",
+    "deployedSha256": "cc3fc03adf9d39aba244807de8f9d63162b43ef770217aab2e7e4bfa317aaed4",
+    "equal": true
+  },
+  {
+    "file": "storage-adapter.js",
+    "start": "  function listCharacterLibrary(",
+    "end": "  // ── Blueprint library",
+    "bytes": 576,
+    "localSha256": "88ecced4137dc4f30a4f4cbc883e2c4535e70d9e9e8f48442b1cf10a8d3a91c8",
+    "deployedSha256": "88ecced4137dc4f30a4f4cbc883e2c4535e70d9e9e8f48442b1cf10a8d3a91c8",
+    "equal": true
+  }
+]
