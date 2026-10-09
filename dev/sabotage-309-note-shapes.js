@@ -52,8 +52,8 @@ rc|=sabotage.prove({
   cases:[
     { label:"#309: the recurring-name router goes back to raw substring on the inventory",
       mustFail:"the recurring-name checker no longer treats a possessive derivative",
-      find:'typeof inv[ii]==="string"&&nameContains(inv[ii],word)',
-      replace:'typeof inv[ii]==="string"&&inv[ii].toLowerCase().indexOf(low)>=0' }
+      find:'nameContains(_re[ii].text,word)',/* #599 (b4): the reader goes through invEntries */
+      replace:'_re[ii].text.toLowerCase().indexOf(low)>=0' }
   ]
 });
 process.exit(rc?1:0);

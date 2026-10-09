@@ -9,7 +9,7 @@
 var sabotage = require("./sabotage.js"), code = 0;
 function prove(file, command, cases) { if (!code) code = sabotage.prove({ file: file, command: command, cases: cases }); }
 var ENGINE = ["node", ["dev/run-tests.js", "#429 batch"]], SHEET = ["node", ["dev/tests-429-inventory-drop.js"]];
-prove("helpers.js", ENGINE, [
+prove("inventory.js", ENGINE, [/* #599 (b4): the drop-mark helpers live in inventory.js (one home) */
   { label: "the plan trusts a marked index blindly (a GM splice would drop the row that slid in)",
     find: 'if(idx>=0&&idx<inv.length&&inv[idx]===name&&!seen[idx])at=idx;', replace: 'if(idx>=0&&idx<inv.length&&!seen[idx])at=idx;',
     mustFail: "invDropPlan" },
@@ -32,7 +32,7 @@ prove("helpers.js", ENGINE, [
 prove("ui-sheets.js", SHEET, [
   { label: "the × drops at once again (the per-item thorn is back)",
     /* #481 F8 re-anchor: the mark now resolves its row first (invMarkResolve → at) */
-    find: '_invDropMarks.by[owner]=invDropToggle(_invDropMarksFor(owner),at,cs.inventory[at]);', replace: 'cs.inventory.splice(at,1);saveAll();',
+    find: '_invDropMarks.by[owner]=invDropToggle(_invDropMarksFor(owner),at,invEntryText(cs.inventory,at));', replace: 'cs.inventory.splice(at,1);saveAll();',/* #599 (b4): the entry's text through the module */
     mustFail: "the × marks a row" },
   { label: "the commit forgets to prune worn (a dropped worn sword rides every prompt)",
     find: '  if(typeof wornPrune==="function")wornPrune(cs);/* audit E4/#388: nothing is worn that is not carried — a dropped worn sword otherwise rode attireLine into every prompt */\n', replace: '',

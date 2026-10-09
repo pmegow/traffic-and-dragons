@@ -855,12 +855,12 @@ function detectItemMisattribution(text){
   if(sheets.length<2)return null;
   for(i=0;i<sheets.length;i++){var fn=String(sheets[i].name).split(/\s+/)[0];sheets[i].forms=fn&&fn!==sheets[i].name?[sheets[i].name,fn]:[sheets[i].name];}
   var owners=keyedDict();
-  for(i=0;i<sheets.length;i++)for(j=0;j<sheets[i].inv.length;j++){
-    var base=(typeof _invBase==="function")?_invBase(sheets[i].inv[j]):String(sheets[i].inv[j]);
+  for(i=0;i<sheets.length;i++){var _me=invEntries(sheets[i].inv);/* #599 (b4) */for(j=0;j<_me.length;j++){
+    var base=_me[j].name;
     if(!/^[A-Z]/.test(base))continue;
     if(!owners[base])owners[base]=[];
     if(owners[base].indexOf(sheets[i].name)<0)owners[base].push(sheets[i].name);
-  }
+  }}
   var sents=t.match(/[^.!?\n]+[.!?]*/g)||[];
   for(i=0;i<sents.length;i++){
     var s=sents[i];
@@ -1959,12 +1959,11 @@ function normalizeDeepTime(raw){
 }
 
 function itemBaseName(nm){
-  var s=String(nm||"");
-  s=s.replace(/\s+x\d+\s*$/i,"");        // trailing count: "… x6"
+  var s=invStoredParse(String(nm||"")).name;   // trailing count: "… x6" — #599 (b4): the ONE stored grammar (" xN", N ≥ 1, no leading zero), no private strip
   var cut=s.search(/\s+[—–-]\s+/);        // first spaced dash begins the provenance clause
   if(cut>=0)s=s.slice(0,cut);
   s=s.replace(/\s*\(.*\)/,"");           // parenthetical provenance (the capBaseName pattern)
-  s=s.replace(/\s+x\d+\s*$/i,"");        // count that sat before a stripped clause
+  s=invStoredParse(s).name;               // count that sat before a stripped clause
   return s.toLowerCase().replace(/\s+/g," ").trim();
 }
 // #492 (playtest v1.1078, 2 of 2 runs): the fourth button's buy rung named the first ware on the list without looking in the
@@ -1972,7 +1971,7 @@ function itemBaseName(nm){
 // ware whose base name the hero does not hold (itemBaseName: a count, a provenance note and letter case do not hide an item),
 // or null when every ware is held — the rung then steps aside.
 function firstWareNotHeld(wares,inventory){
-  var held=keyedDict(),i;for(i=0;i<(inventory||[]).length;i++)held[itemBaseName(inventory[i])]=true;
+  var held=keyedDict(),i,_he=invEntries(inventory||[]);/* #599 (b4): read through the module */for(i=0;i<_he.length;i++)held[itemBaseName(_he[i].name)]=true;
   for(i=0;i<(wares||[]).length;i++)if(wares[i]&&!held[itemBaseName(wares[i].item)])return wares[i];
   return null;
 }
@@ -2230,7 +2229,7 @@ function waresSizeTier(size){var s=String(size||"").toLowerCase().trim();if(!s)r
    moving in, an imported companion) goes through these two. Pure over worldState.itemBible; never throws. */
 function sheetItemDefs(sheet){
   var out=keyedDict(),n=0,ovs=(typeof worldState!=="undefined"&&worldState&&worldState.itemBible)||null;if(!sheet||!ovs)return out;
-  var inv=sheet.inventory||[],i;for(i=0;i<inv.length;i++){var key=itemBaseName(inv[i]);if(!key)continue;var hit=key;if(!ovs[hit]){var canon=ownValue(_itemAliasIndex(),key);if(canon&&ovs[canon])hit=canon;else continue;}if(!out[hit]){out[hit]=ovs[hit];n++;}}
+  var _ie=invEntries(sheet.inventory||[]),i;/* #599 (b4): read through the module */for(i=0;i<_ie.length;i++){var key=itemBaseName(_ie[i].name);if(!key)continue;var hit=key;if(!ovs[hit]){var canon=ownValue(_itemAliasIndex(),key);if(canon&&ovs[canon])hit=canon;else continue;}if(!out[hit]){out[hit]=ovs[hit];n++;}}
   return out;
 }
 /* ── #599 (a): THE VERSION GATE (owner's go 2026-10-08; DOC/DESIGN_599_inventory_rows.md §5.4, §12 row a) ─────────────────
@@ -2479,77 +2478,6 @@ function itemBibleHeal(map){
 function itemDefShadowNote(key){
   if(typeof ITEM_BIBLE==="undefined"||!key||!ownValue(ITEM_BIBLE,key))return"";
   return "Accepting replaces the existing organize-only catalog entry for this item ("+ownValue(ITEM_BIBLE,key).category+") — the new definition becomes the whole entry.";
-}
-// ── #157: THE shared inventory view model (Sol §5) — one pure grouping fn, two renderers ───
-// Returns non-empty category groups in registry order (+ Unclassified last), each row carrying
-// its ORIGINAL array index so a visually regrouped Drop still removes the right stored row.
-// Every input row appears exactly once; the stored array is never reordered or rewritten.
-function groupInventory(inv){
-  inv=inv||[];
-  var buckets=keyedDict(),order=[],i,j;
-  for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++){buckets[INVENTORY_CATEGORY_REGISTRY[i].id]={id:INVENTORY_CATEGORY_REGISTRY[i].id,label:INVENTORY_CATEGORY_REGISTRY[i].label,rows:[]};order.push(INVENTORY_CATEGORY_REGISTRY[i].id);}
-  var un={id:"unclassified",label:"Unclassified",rows:[]};
-  for(i=0;i<inv.length;i++){
-    var raw=inv[i],e=itemLookup(raw),cats=e?itemInvCategories(e):null;
-    var row={raw:raw,sourceIndex:i,key:itemBaseName(raw),entry:e,categories:cats||[]};
-    if(!cats){un.rows.push(row);continue;}
-    var placed=false;
-    for(j=0;j<order.length;j++){if(cats.indexOf(order[j])>=0){buckets[order[j]].rows.push(row);placed=true;break;}}
-    if(!placed)un.rows.push(row);
-  }
-  var out=[];
-  for(i=0;i<order.length;i++){if(buckets[order[i]].rows.length)out.push(buckets[order[i]]);}
-  if(un.rows.length)out.push(un);
-  return out;
-}
-// ── #429 BATCH DROP (owner 2026-09-21): the sheet's × MARKS a row, one "Delete N items" button commits ──
-// (The copy says DELETE: nothing is placed in the world, the item ceases to exist. The identifiers keep "drop".)
-// Marks are session state: {"<idx>|<name>":true} per owner. The pair pins a mark to the row it was set
-// on; invDropPlan re-resolves every mark against the LIVE inventory (index first, then by name, never
-// the same row twice) so a GM turn that spliced the array between the mark and the button never drops
-// the row that slid into a marked index. Pure and DOM-free — the sheet is a thin shell over these.
-function invDropMarkKey(idx,name){return String(idx|0)+"|"+String(name);}
-function invDropToggle(marks,idx,name){
-  marks=marks||{};var k=invDropMarkKey(idx,name),out={},m;
-  for(m in marks){if(Object.prototype.hasOwnProperty.call(marks,m)&&marks[m]&&m!==k)out[m]=true;}
-  if(!marks[k])out[k]=true;
-  return out;
-}
-function invDropCount(marks){var n=0,m;if(!marks)return 0;for(m in marks){if(Object.prototype.hasOwnProperty.call(marks,m)&&marks[m])n++;}return n;}
-/* #481 F8: the row a × means. The × carries its row's index AND name, but a GM turn between the render and the click can
-   splice the pack, so the index alone may now name the neighbour ("Deleted 1 item: Waterskin" for the Torch ×). The name
-   wins when the two disagree — the row carrying it nearest the old index; no name (a render from before) keeps the index;
-   -1 = the item is gone. Pure. */
-function invMarkResolve(inv,idx,name){
-  inv=inv||[];idx=idx|0;
-  if(name==null||name==="")return idx>=0&&idx<inv.length?idx:-1;
-  if(idx>=0&&idx<inv.length&&inv[idx]===name)return idx;
-  var best=-1,i;for(i=0;i<inv.length;i++){if(inv[i]===name&&(best<0||Math.abs(i-idx)<Math.abs(best-idx)))best=i;}
-  return best;
-}
-function invDropPlan(inv,marks){
-  inv=inv||[];marks=marks||{};var live=[],stale=[],seen=keyedDict(),k,i;
-  for(k in marks){
-    if(!Object.prototype.hasOwnProperty.call(marks,k)||!marks[k])continue;
-    var bar=k.indexOf("|"),idx=parseInt(k.slice(0,bar),10),name=k.slice(bar+1),at=-1;
-    if(idx>=0&&idx<inv.length&&inv[idx]===name&&!seen[idx])at=idx;
-    else{for(i=0;i<inv.length;i++){if(inv[i]===name&&!seen[i]){at=i;break;}}}
-    if(at<0){stale.push(name);continue;}
-    seen[at]=true;live.push({idx:at,name:name});
-  }
-  live.sort(function(a,b){return a.idx-b.idx;});
-  return {drop:live,stale:stale,count:live.length,ok:live.length>0};
-}
-function invDropApply(inv,plan){
-  var names=[],i;
-  for(i=plan.drop.length-1;i>=0;i--)inv.splice(plan.drop[i].idx,1);/* highest first: the lower indices stay true */
-  for(i=0;i<plan.drop.length;i++)names.push(plan.drop[i].name);
-  return names;
-}
-function invDropButtonText(n){return "Delete "+n+" item"+(n===1?"":"s");}
-function invDropNamesText(names){
-  names=names||[];if(names.length<=4)return names.join(", ");
-  return names.slice(0,4).join(", ")+" and "+(names.length-4)+" more";
 }
 // Player verdicts on [ITEM_DEF:] proposals — the ONLY writers of worldState.itemBible (#81).
 // Pure state ops (no DOM) so the confirm modal stays a thin veneer and the flow is engine-
@@ -3425,9 +3353,10 @@ function shopTradeCatalog(){
   /* #599 (b3) ONE KEY: a counter row is the pack's item key (provenance kept — "Rope (spare)" and "Rope" stay two rows; "Wolf
      pelt" and "Wolf pelts" are ONE row, the first spelling its label, the units summed); the want match is provenance-free
      (itemBaseKey — §2.2), so a carried "Signet ring (from Hemlock)" meets a want for "Signet ring" */
-  for(i=0;i<inv.length;i++){var base=_invBase(inv[i]),n=_invCount(inv[i]),k=itemKey(base);
+  var _ce=invEntries(inv);/* #599 (b4): read through the module */
+  for(i=0;i<_ce.length;i++){var base=_ce[i].name,n=_ce[i].qty,k=itemKey(base);
     if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}
-    hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,inv[i]))hero[k].worn=true;}
+    hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,_ce[i].text))hero[k].worn=true;}
   var wanted=keyedDict(),wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++)wanted[itemBaseKey(wl[i].item)]=wl[i];
   var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,cp=(typeof itemValueCp==="function")?itemValueCp(canon):null;
     var w=wanted[itemBaseKey(r.name)]||null;
@@ -3489,8 +3418,9 @@ function stashTradeCatalog(){
   if(!node||!node.owner)return {ok:false,reason:"not in a house ("+leaf+")"};
   if(node.owner!==c.name)return {ok:false,reason:"this is "+node.owner+"'s house \u2014 only its owner opens the chest"};
   var inv=c.inventory||[],carried=keyedDict(),order=[],i;
-  for(i=0;i<inv.length;i++){var base=(typeof _invBase==="function")?_invBase(inv[i]):String(inv[i]),n=(typeof _invCount==="function")?_invCount(inv[i]):1,k=(typeof stashKey==="function")?stashKey(base):base.toLowerCase();/* #481 D2 */
-    if(!carried[k]){carried[k]={name:base,qty:0,worn:false};order.push(k);}carried[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,inv[i]))carried[k].worn=true;}
+  var _se=invEntries(inv);/* #599 (b4): read through the module */
+  for(i=0;i<_se.length;i++){var base=_se[i].name,n=_se[i].qty,k=stashKey(base);/* #481 D2 */
+    if(!carried[k]){carried[k]={name:base,qty:0,worn:false};order.push(k);}carried[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,_se[i].text))carried[k].worn=true;}
   var stored=(typeof villageStash==="function")?villageStash(rk):[];
   return {ok:true,house:leaf,key:rk,node:node,hero:c.name,carried:order.map(function(k){return carried[k];}),stored:stored.map(function(r){return {name:r.name,qty:r.qty,room:r.room||null};})};
 }

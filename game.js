@@ -192,8 +192,8 @@ function engineFourthAction(){
      healing words when wounded, the named condition when afflicted — and matching candidates rotate by turn (pure over the
      turn number, no new state) so two potions take turns instead of the first always winning. */
   var wounded=typeof c.hp==="number"&&c.hp<c.maxHp,conds=c.conditions||[];
-  if((wounded||conds.length>0)&&typeof itemLookup==="function"){var cands=[];for(i=0;i<(c.inventory||[]).length;i++){var it=c.inventory[i],e=itemLookup(it);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A"&&consumableAnswersNeed(e.effect,wounded,conds))cands.push(it);}
-    if(cands.length){var pick=cands[(worldState.turn||0)%cands.length];return {kind:"use",text:"Use your "+(typeof _invBase==="function"?_invBase(pick):pick)+"."};}}
+  if((wounded||conds.length>0)&&typeof itemLookup==="function"){var cands=[],_es=invEntries(c.inventory||[]);/* #599 (b4): read through the module */for(i=0;i<_es.length;i++){var it=_es[i].name,e=itemLookup(it);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A"&&consumableAnswersNeed(e.effect,wounded,conds))cands.push(it);}
+    if(cands.length){var pick=cands[(worldState.turn||0)%cands.length];return {kind:"use",text:"Use your "+pick+"."};}}
   var q=worldState.questLog||[];for(i=0;i<q.length;i++)if(q[i]&&q[i].status==="offered")return {kind:"accept",text:"Accept the offer: "+q[i].title+"."};
   /* #6 D1: the village rung (a resident call or a commons look-in). It takes turns with nothing: the village's buy and sell
      rungs are retired (#496), their choices are inside the counter. */
@@ -1733,7 +1733,7 @@ function villageHallSeed(base){
   node.hall=true;var prior=keyedDict(),i;(node.mementos||[]).forEach(function(m){prior[m.resident]=m;});
   var npcs=worldState.npcs||[],mem=[],wall=[];
   for(i=0;i<npcs.length;i++){var n=npcs[i];if(!n.resident||!n.charSheet)continue;var s=n.charSheet;
-    if(s.fate){var obj=(s.inventory&&s.inventory.length)?_invBase(s.inventory[0]):"a plain token";mem.push({resident:n.name,campaign:s.fate.campaign||"a finished tale",object:obj,fate:s.fate.line||s.fate.cause||"",unresolved:(s.fate.unresolved&&s.fate.unresolved[0])||"nothing the record names",line:villageHallLineOf(n.name)||(prior[n.name]&&prior[n.name].line)||null});}/* #427: the line reads from village state first */
+    if(s.fate){var _fe=invEntries(s.inventory||[]),obj=_fe.length?_fe[0].name:"a plain token";/* #599 (b4): the first readable entry, through the module */mem.push({resident:n.name,campaign:s.fate.campaign||"a finished tale",object:obj,fate:s.fate.line||s.fate.cause||"",unresolved:(s.fate.unresolved&&s.fate.unresolved[0])||"nothing the record names",line:villageHallLineOf(n.name)||(prior[n.name]&&prior[n.name].line)||null});}/* #427: the line reads from village state first */
     else wall.push({resident:n.name,campaign:s.originCampaign||s.campName||"an unfinished tale"});}
   node.mementos=mem;node.wall=wall;
   return {mementos:mem.length,wall:wall.length};
@@ -1795,7 +1795,7 @@ function _stashUndoCheck(e,curKey,curWorld){
   var sk=stashKey(e.name),held=0,i;for(i=0;i<node.items.length;i++){var it=node.items[i];if(!it.taken&&stashKey(it.name)===sk)held+=(it.qty||1);}
   if(e.action==="placed"){if(held<e.units)return {ok:false,reason:e.name+" is no longer in "+leaf};}
   else if(e.pack){var sh=stashActorSheet(e.by||hero),inv=(sh&&sh.inventory)||[],have=0,pk=stashKey(e.pack.name),j;
-    for(j=0;j<inv.length;j++)if(stashKey(_invBase(inv[j]))===pk)have+=_invCount(inv[j]);
+    var _pe=invEntries(inv);for(j=0;j<_pe.length;j++)if(stashKey(_pe[j].name)===pk)have+=_pe[j].qty;/* #599 (b4) */
     if(have<e.pack.units)return {ok:false,reason:e.pack.name+" is no longer in "+((e.by&&e.by!==hero)?e.by+"'s":"your")+" pack"};}
   return {ok:true};
 }
@@ -2131,12 +2131,9 @@ function detectCoreMoments(pre){
 // That is the signal the player has been missing, so this must never toast speculatively.
 function inventorySnapshot(){
   if(!worldState||!worldState.character)return null;
-  var m=keyedDict(),inv=worldState.character.inventory||[],i;
-  // Skip non-string entries (load-time migration deliberately preserves them, and the other two
-  // inventory readers both skip them) — this snapshot runs BEFORE applyMuts, so a throw here
-  // would lose the whole turn and make Retry re-throw forever.
-  for(i=0;i<inv.length;i++){if(typeof inv[i]!=="string")continue;m[_invNorm(inv[i])]={label:_invBase(inv[i]),n:_invCount(inv[i])};}
-  return m;
+  /* #599 (b4): the module's tally — units per item KEY (two spellings of one item sum; the old per-entry write let the
+     last spelling overwrite the count), an unreadable entry skipped LOUDLY by invEntries, never a throw before applyMuts */
+  return invTally(worldState.character.inventory||[]);
 }
 // Diff against a pre-applyMuts snapshot and announce the net gain. Counts are compared per
 // normalized key so a stack going 5→7 reports "x2" (what you just got), never "x7" (what you
@@ -2307,8 +2304,8 @@ function detectGhostConsumables(playerTxt,raw){
   }
   var liveKeys=keyedDict();/* #60b: every key the current party can legitimately hold a latch for */
   function sweep(who,inv){
-    var j;for(j=0;j<(inv||[]).length;j++){var entry=inv[j];if(typeof entry!=="string")continue;
-      var base=_invBase(entry),norm=_invNorm(entry);
+    var j,_ge=invEntries(inv||[]);/* #599 (b4): read through the module (an unreadable entry is skipped loudly there) */for(j=0;j<_ge.length;j++){
+      var base=_ge[j].name,norm=itemKey(base);
       var itemDef=(typeof itemLookup==="function")?itemLookup(base):null;
       if(itemDef?itemDef.category!=="consumable":!CONSUMABLE_RE.test(base))continue;
       var key=(who||"")+"|"+norm;
@@ -2319,7 +2316,7 @@ function detectGhostConsumables(playerTxt,raw){
       // re-mention of the same unspent stack is not (that re-nagging is what produced the leak).
       var kept=worldState.consumableKept&&worldState.consumableKept[key];
       if(kept!=null){
-        if(kept===_invCount(entry))continue;
+        if(kept===_ge[j].qty)continue;
         delete worldState.consumableKept[key];/* count moved — the confirmation is stale, let the check speak again */
       }
       var head=consumableHeadNoun(base);if(head.length<3)head=base;
@@ -4281,9 +4278,9 @@ function buildItemDefinePrompt(rawItem){
   else if(typeof itemLookup==="function"&&itemLookup(rawItem))return null;/* satellite fallback: old gate */
   var pend=worldState.pendingItemDefs||[],pi;
   for(pi=0;pi<pend.length;pi++)if(pend[pi].key===key)return null;/* awaiting confirmation already */
-  var carried=(worldState.character.inventory||[]).indexOf(rawItem)>=0;
+  var carried=invHolds(worldState.character.inventory||[],rawItem);/* #599 (b4): by the one resolver — a stacked "Rope x2" holds "Rope"; the whole-string indexOf left Define dead on every stack */
   if(!carried&&typeof livingPartyCompanions==="function"){var _pc=livingPartyCompanions(),ci;
-    for(ci=0;ci<_pc.length&&!carried;ci++){if(_pc[ci].charSheet&&(_pc[ci].charSheet.inventory||[]).indexOf(rawItem)>=0)carried=true;}}
+    for(ci=0;ci<_pc.length&&!carried;ci++){if(_pc[ci].charSheet&&invHolds(_pc[ci].charSheet.inventory||[],rawItem))carried=true;}}
   if(!carried)return null;/* the def is TYPE canon, but the entry point is a carried item's row */
   var _shadowBase=(typeof ITEM_BIBLE!=="undefined"&&ownValue(ITEM_BIBLE,key))||null;/* #285: eligibility already proved it classification-only when present */
   var _opening=_shadowBase
@@ -4364,10 +4361,11 @@ async function suggestQuestCompletion(title){
 // Pure inventory diff for the loud correction trail (engine-tested): human-readable lines for
 // items added/removed between two snapshots. Order-insensitive, count-aware.
 function invDiffLines(before,after){
-  function tally(list){var m=keyedDict(),i;for(i=0;i<(list||[]).length;i++){m[list[i]]=(m[list[i]]||0)+1;}return m;}
-  var b=tally(before),a=tally(after),out=[],k;
-  for(k in a){if((a[k]||0)>(b[k]||0))out.push("+"+k+((a[k]-(b[k]||0))>1?" x"+(a[k]-(b[k]||0)):""));}
-  for(k in b){if((b[k]||0)>(a[k]||0))out.push("−"+k+((b[k]-(a[k]||0))>1?" x"+(b[k]-(a[k]||0)):""));}
+  /* #599 (b4): units per item KEY through the module's tally (the old tally counted whole strings, so "Torch x3" and "Torch"
+     were two unrelated entries and a respelling read as a loss and a gain); the label is the side's own first spelling */
+  var b=invTally(before),a=invTally(after),out=[],k,d;
+  for(k in a){d=a[k].n-(b[k]?b[k].n:0);if(d>0)out.push("+"+a[k].label+(d>1?" x"+d:""));}
+  for(k in b){d=b[k].n-(a[k]?a[k].n:0);if(d>0)out.push("−"+b[k].label+(d>1?" x"+d:""));}
   return out;
 }
 async function syncCharSheet(){

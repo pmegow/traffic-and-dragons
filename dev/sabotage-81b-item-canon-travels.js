@@ -11,7 +11,7 @@ prove("helpers.js", [
     find: 'if(worldState.itemBible[k])continue;/* the destination\'s canon wins — write-once */', replace: '',
     mustFail: "#81b adoptSheetItemDefs merges" },
   { label: "uncarried items travel too",
-    find: 'var inv=sheet.inventory||[],i;for(i=0;i<inv.length;i++){var key=itemBaseName(inv[i]);', replace: 'var inv=Object.keys(ovs),i;for(i=0;i<inv.length;i++){var key=itemBaseName(inv[i]);',
+    find: 'var _ie=invEntries(sheet.inventory||[]),i;', replace: 'var _ie=invEntries(Object.keys(ovs)),i;',/* #599 (b4): the reader goes through invEntries — every bible key "travels" */
     mustFail: "#81b portableSheet attaches" }
 ]);
 prove("game.js", [

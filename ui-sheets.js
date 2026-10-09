@@ -59,7 +59,7 @@ function markInvItem(owner,idx,ev,name){
   idx=parseInt(idx,10);var cs=_invOwnerSheet(owner);if(!cs||isNaN(idx))return;
   var at=invMarkResolve(cs.inventory,idx,name);/* #481 F8: the × means ITS row — by name when a turn moved the pack under it */
   if(at<0){if(name&&typeof showToast==="function")showToast(name+" is no longer carried — nothing marked",4000);_invSheetRepaint(owner);return;}
-  _invDropMarks.by[owner]=invDropToggle(_invDropMarksFor(owner),at,cs.inventory[at]);
+  _invDropMarks.by[owner]=invDropToggle(_invDropMarksFor(owner),at,invEntryText(cs.inventory,at));/* #599 (b4): the entry's text through the module */
   _invSheetRepaint(owner);
 }
 function dropMarkedItems(owner,ev){
@@ -251,7 +251,7 @@ function csSheetSections(c,invOwner,portable){
       invRows+='<div class="cs-inv-cat'+(_grp.id==="unclassified"?' unc':'')+'">'+escHtml(_grp.label)+'</div>';
       for(_ri=0;_ri<_grp.rows.length;_ri++){
         var _row=_grp.rows[_ri],_marked=!!_mkAt[_row.sourceIndex],_xc=_marked?'var(--dng)':'var(--t2)';
-        var _dropBtn=_canDrop?'<button class="inv-x" data-own="'+escHtml(invOwner)+'" data-idx="'+_row.sourceIndex+'" data-name="'+escHtml(c.inventory[_row.sourceIndex])+'" data-c="'+_xc+'" onclick="markInvItem(this.dataset.own,this.dataset.idx,event,this.dataset.name)" title="'+(_marked?'Keep this item (un-mark)':'Mark this item to delete')+'" style="background:none;border:none;color:'+_xc+';cursor:pointer;font-size:13px;padding:0 4px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=this.dataset.c">&#10005;</button>':"";/* #429: the × marks, never drops */
+        var _dropBtn=_canDrop?'<button class="inv-x" data-own="'+escHtml(invOwner)+'" data-idx="'+_row.sourceIndex+'" data-name="'+escHtml(invEntryText(c.inventory,_row.sourceIndex))+'" data-c="'+_xc+'" onclick="markInvItem(this.dataset.own,this.dataset.idx,event,this.dataset.name)" title="'+(_marked?'Keep this item (un-mark)':'Mark this item to delete')+'" style="background:none;border:none;color:'+_xc+';cursor:pointer;font-size:13px;padding:0 4px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=this.dataset.c">&#10005;</button>':"";/* #429: the × marks, never drops */
         // #230: 📖 Define — live sheets only; #285 (f18) widened the gate from bare itemLookup
         // misses to the shared itemDefEligible predicate (helpers.js): canon-less items AND
         // classification-only curated BASE entries qualify — both leave the GM re-deriving the

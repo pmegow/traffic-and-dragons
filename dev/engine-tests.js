@@ -31539,4 +31539,34 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return rows==="Wolf pelt:5|Rope (spare):1|Rope:1"?true:"the chest fold keys by item key, keeps provenance and sums: "+rows;
   });
 
+  // ── #599 (b4): THE READ/WRITE BOUNDARY — every reader outside inventory.js sees the pack through the module (§2.4); the
+  // INVENTORY BOUNDARY CONTRACT (run-tests.js) derives the census of readers that index, type-test, count-parse or join it.
+  section("#599 (b4) the read/write boundary — invEntries, invTextList, invEntryText, invTally, invFromLines, invHolds; the three silent string guards are one loud skip");
+  t("#599b4 invEntries decodes a legacy list through the stored grammar, passes a row through, and skips junk LOUDLY — counted on lastJunk and said once per call, never in silence",function(){
+    var q=quiet(function(){return invEntries(["Torch x3","Rope",{name:"Lamp",qty:2},"",7,null,"Model x01"]);}),es=q.r;
+    var got=es.map(function(e){return e.name+":"+e.qty+":"+e.text+":"+e.i;}).join("|");
+    if(got!=="Torch:3:Torch x3:0|Rope:1:Rope:1|Lamp:2:Lamp x2:2|Model x01:1:Model x01:6")return "entries: "+got;
+    if(invEntries.lastJunk!==3||!q.warns.some(function(w){return /3 unreadable inventory entries skipped/.test(w);}))return "junk is counted and said: "+JSON.stringify([invEntries.lastJunk,q.warns]);
+    var q2=quiet(function(){return invEntries(["Rope"]);});return (q2.r.length===1&&invEntries.lastJunk===0&&!q2.warns.length)?true:"a clean list says nothing";
+  });
+  t("#599b4 invTextList prints a legacy string VERBATIM and a row through invText (the prompt stays byte-identical); invEntryText reads one position; invFromLines is the one free-text parser (trim, drop empties, keep each line as typed)",function(){
+    var tl=invTextList(["Torch x3","  Rope ",{name:"Lamp",qty:2},{name:"Pin",qty:1}]);if(tl.join("|")!=="Torch x3|  Rope |Lamp x2|Pin")return "text list: "+JSON.stringify(tl);
+    if(invEntryText(["Torch x3",{name:"Lamp",qty:2}],1)!=="Lamp x2"||invEntryText(["Torch x3"],0)!=="Torch x3"||invEntryText(["Torch x3"],5)!=="")return "entry text by position";
+    var l=invFromLines(" Rope \n\nTorch x3\r\n  \nModel x01\n");return l.join("|")==="Rope|Torch x3|Model x01"?true:"lines: "+JSON.stringify(l);
+  });
+  t("#599b4 invTally sums units per item KEY (two spellings of one item are one tally, the first spelling its label); the turn snapshot and the Sync diff ride it — a respelling is no loss and no gain, a split stack is one count",function(){
+    var t1=invTally(["Torch","torch x2","Rope (spare)","Rope"]);
+    if(!t1.torch||t1.torch.n!==3||t1.torch.label!=="Torch"||!t1["rope (spare)"]||t1["rope (spare)"].n!==1||!t1.rope||t1.rope.n!==1)return "tally: "+JSON.stringify(t1);
+    if(invDiffLines(["Rope"],["rope"]).length!==0)return "a respelling is no diff: "+JSON.stringify(invDiffLines(["Rope"],["rope"]));
+    var d=invDiffLines(["Torch"],["Torch x3","Flask"]).sort();if(d.join("|")!=="+Flask|+Torch x2")return "the diff reads counts through the grammar: "+JSON.stringify(d);
+    makeWorld();worldState.character.inventory=["Torch","Torch x2"];var snap=inventorySnapshot();return (snap.torch&&snap.torch.n===3)?true:"the snapshot sums a split stack (the per-entry write kept only the last spelling's count): "+JSON.stringify(snap);
+  });
+  t("#599b4 invHolds is the one resolver: a stacked 'Rope x2' holds 'Rope', 'rope' holds 'Rope', a unique provenance-free base holds, two bases do not; Define finds a stacked carried item (the whole-string indexOf left it dead on every stack)",function(){
+    var inv=["Rope x2","Signet ring (from Sheriff Hemlock)","Lantern (brass)","Lantern (tin)"];
+    var h=[invHolds(inv,"Rope"),invHolds(inv,"rope"),invHolds(inv,"Signet ring"),invHolds(inv,"Lantern"),invHolds(inv,"Torch")];
+    if(h.join()!=="true,true,true,false,false")return "holds: "+h.join();
+    makeWorld();worldState.character.inventory=["Quillon dagger x2"];delete worldState.itemBible;worldState.pendingItemDefs=[];
+    var p=quiet(function(){return buildItemDefinePrompt("Quillon dagger");}).r;return p?true:"Define must find a stacked carried item";
+  });
+
 }

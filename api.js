@@ -2492,7 +2492,7 @@ function buildSysPrompt(){
       var pSp="none";if(pcs.spells&&pcs.spells.length){var ps2=[],psi;for(psi=0;psi<pcs.spells.length;psi++){var _ps=pcs.spells[psi];ps2.push(_ps.racial&&_ps.used&&_ps.lvl>0?_ps.nm+" [1/day — EXPENDED until dawn]":_ps.nm);}pSp=ps2.join(", ");}
       var pMx=manaMax(pcs);
       var pSt=pcs.stats?("STR "+pcs.stats.STR+" DEX "+pcs.stats.DEX+" CON "+pcs.stats.CON+" INT "+pcs.stats.INT+" WIS "+pcs.stats.WIS+" CHA "+pcs.stats.CHA):"";
-      var pInv=(pcs.inventory&&pcs.inventory.length)?pcs.inventory.join(", "):"none";
+      var pInv=(pcs.inventory&&pcs.inventory.length)?invTextList(pcs.inventory).join(", "):"none";/* #599 (b4): the one text projection */
       /* #140 ①+②: alignment finally reaches the GM for companions (it shaped nothing before —
          the sheet line never carried it), with the stated-vs-actual tension when play has
          drifted them. Descriptive, not directive — the GM decides what the tension means. */
@@ -2604,7 +2604,7 @@ function buildSysPrompt(){
     var _lpron=_lc.gender?pronounsForGender(_lc.gender):"they/them";
     var _lgw=_lc.gender==="F"?"female":_lc.gender==="NB"?"non-binary":_lc.gender==="M"?"male":"";
     var _lrows=relationshipMigrateSheet(_lc,"@legacy:"+(_lc.name||"character"),{portable:true}),_lrels=[];for(var _lri=0;_lri<_lrows.length;_lri++){if(_lrows[_lri].bond)_lrels.push(_lrows[_lri].entity+" (bond: "+_lrows[_lri].bond+")");if(_lrows[_lri].dynamic)_lrels.push(_lrows[_lri].entity+" (current dynamic: "+_lrows[_lri].dynamic+")");}var _lrel=_lrels.join(", ");
-    var _linv=(_lc.inventory&&_lc.inventory.length)?_lc.inventory.join(", "):"";
+    var _linv=(_lc.inventory&&_lc.inventory.length)?invTextList(_lc.inventory).join(", "):"";/* #599 (b4) */
     var _lpers="";if(_lc.trait)_lpers+=" trait — "+_lc.trait+";";if(_lc.flaw)_lpers+=" flaw — "+_lc.flaw+";";if(_lc.motivation)_lpers+=" motivation — "+_lc.motivation+";";
     var _lpb=(typeof personaPromptBits==="function")?personaPromptBits(_lc):[];if(_lpb.length)_lpers+=" "+_lpb.join("; ")+";";/* #552 */
     legacyBlock=(_lc.introduced?"LEGACY CHARACTER RELATIONSHIP RESIDUE — already introduced; preserve these unresolved carried facts until the engine can transfer them:\n":"LEGACY CHARACTER — INTRODUCE THIS SESSION:\n")
@@ -2715,7 +2715,7 @@ function buildSysPrompt(){
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+fmtCoin(c.coin)+" | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"
     +"Stats: STR "+c.stats.STR+" DEX "+c.stats.DEX+" CON "+c.stats.CON+" INT "+c.stats.INT+" WIS "+c.stats.WIS+" CHA "+c.stats.CHA+"\n"
     +(c.trait||c.flaw||c.motivation?(c.trait?"Trait: "+c.trait:"")+(c.flaw?" | Flaw: "+c.flaw:"")+(c.motivation?" | Motivation: "+c.motivation:"")+"\n":"")+(c.deity?"Deity: "+c.deity+"\n":"")/* trailing \n so "Motivation:" doesn't glue to the next line (audit E54) */
-    +"Abilities: "+abilstr+"\nSpells: "+spstr+"\n"+manaStr+"Inventory: "+c.inventory.join(", ")+"\n"
+    +"Abilities: "+abilstr+"\nSpells: "+spstr+"\n"+manaStr+"Inventory: "+invTextList(c.inventory).join(", ")+"\n"
     +(attireLine(c)?attireLine(c)+"\n":"")/* #388: what is ON — "" when never set (byte-identical) */
     +condStr+relStr+saveStr+langStr+skillStr
     +buildSpellBibleBlock()
@@ -3205,13 +3205,14 @@ function duplicateItemGrantWarning(inv,name,incoming,owner,R,raw){
   if(incoming!==1)return false;
   var key=itemBaseName(name),i,lossRe,losses=String(raw||"").match(owner?/\[COMPANION_ITEM_LOST:[^|\]]+\|[^\]]+\]/g:/\[ITEM_LOST:[^\]]+\]/g)||[];
   for(i=0;i<losses.length;i++){var lm=owner?losses[i].match(/\[COMPANION_ITEM_LOST:([^|\]]+)\|([^\]]+)\]/):losses[i].match(/\[ITEM_LOST:([^\]]+)\]/);if(lm&&(!owner||String(lm[1]).trim()===owner)&&itemBaseName(owner?lm[2]:lm[1])===key)return false;}
-  for(i=0;i<(inv||[]).length;i++)if(_invCount(inv[i])===1&&itemBaseName(inv[i])===key){
-    var who=owner?owner+"'s ":"player ",msg="DUPLICATE ITEM: "+who+"sheet already had uncounted '"+_invBase(inv[i])+"'; grant stacked, verify acquisition/rename";
+  var _es=invEntries(inv),_e;/* #599 (b4): read through the module */
+  for(i=0;i<_es.length;i++)if((_e=_es[i]).qty===1&&itemBaseName(_e.name)===key){
+    var who=owner?owner+"'s ":"player ",msg="DUPLICATE ITEM: "+who+"sheet already had uncounted '"+_e.name+"'; grant stacked, verify acquisition/rename";
     if(typeof console!=="undefined")console.warn("[items] "+msg);if(R&&R.muts)R.muts.push("⚠ "+msg);
     /* #176: the warning above lives only in console+muts — invisible to the GM, so the rename
        path it asks for was never taken (the Cleaver class). Stamp ONE pending record (latest
        wins, the W4 one-record-per-axis discipline) for buildDupItemNudge to deliver. */
-    if(typeof worldState!=="undefined"&&worldState)worldState.dupItemPending={owner:owner||null,item:_invBase(inv[i]),turn:worldState.turn||0};
+    if(typeof worldState!=="undefined"&&worldState)worldState.dupItemPending={owner:owner||null,item:_e.name,turn:worldState.turn||0};
     return true;
   }
   return false;
@@ -3237,11 +3238,11 @@ function _clearConsumablePending(who,name){
 // for that item until the count actually changes (a real spend, or a fresh acquisition) rather
 // than re-nagging every CONSUMABLE_NUDGE_COOLDOWN turns on a decision already made.
 function _stampItemKept(who,inv,name){
-  var n=_invNorm(name),i;
-  for(i=0;i<(inv||[]).length;i++){
-    if(_invNorm(inv[i])!==n)continue;
+  var n=_invNorm(name),i,_es=invEntries(inv);/* #599 (b4): read through the module */
+  for(i=0;i<_es.length;i++){
+    if(itemKey(_es[i].name)!==n)continue;
     if(!worldState.consumableKept)worldState.consumableKept=keyedDict();
-    worldState.consumableKept[(who||"")+"|"+n]=_invCount(inv[i]);
+    worldState.consumableKept[(who||"")+"|"+n]=_es[i].qty;
     _clearConsumablePending(who,name);
     return true;
   }

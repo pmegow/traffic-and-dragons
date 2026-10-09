@@ -123,7 +123,9 @@ function invEquip(rows,name,on){
 }
 /* invText is a DISPLAY projection: two distinct rows can print alike; it is never the row's serialization or identity */
 function invText(row){return String(row&&row.name)+(row&&row.qty>1?" x"+row.qty:"");}
-function invTextList(rows){var out=[],i;for(i=0;i<(rows||[]).length;i++)out.push(invText(rows[i]));return out;}
+/* invTextList(inv): every entry's text, for the prompt and every display that showed the old strings — a legacy STRING
+   VERBATIM (the prompt stays byte-identical through (b)), a row through invText. The ONE join source outside this file. */
+function invTextList(inv){var out=[],i;for(i=0;i<(inv||[]).length;i++){var e=inv[i];out.push(typeof e==="string"?e:invText(e));}return out;}
 /* a detached copy for preflights and snapshots (§5.2 ⑦) — validated first, so nothing is lost in the clone */
 function invDetach(rows){var ji=invJsonIssue(rows);if(ji)return {ok:false,reason:ji,rows:null};return {ok:true,rows:JSON.parse(JSON.stringify(rows)),reason:""};}
 
@@ -236,6 +238,31 @@ function itemPairKey(name){return itemBaseKey(_qtyParse(String(name==null?"":nam
    provenance: "Rope (spare)" and "Rope" are two different chest rows. Every stash consumer keys through it. */
 function stashKey(name){return itemKey(_qtyParse(String(name==null?"":name)).base);}/* #599 (b3): the tag grammar, then the pack rule — provenance kept */
 function itemPairNote(R,field,name,val){if(!R[field])R[field]=keyedDict();var k=itemPairKey(name);(R[field][k]=R[field][k]||[]).push(val);}
+
+/* ═══ THE READ/WRITE BOUNDARY (#599 b4) — every reader and writer outside this file sees an inventory through these, never
+   by indexing an entry, testing its type, parsing its count or joining the list itself (the INVENTORY BOUNDARY CONTRACT in
+   run-tests.js derives the census). Release (c) changes what these return; nothing outside this file moves. ═══ */
+/* invEntries(inv) → [{name, qty, text, i}]: a string decodes through the stored grammar, a row is itself. A non-string,
+   non-row entry is JUNK — skipped, counted on invEntries.lastJunk and said on the console (the three readers that used to
+   skip it in silence now share this one loud skip). */
+function invEntries(inv){var out=[],i,junk=0;for(i=0;i<(inv||[]).length;i++){var e=inv[i];
+  if(typeof e==="string"){if(!e.trim()){junk++;continue;}var p=invStoredParse(e);out.push({name:p.name,qty:p.qty,text:e,i:i});}
+  else if(e&&typeof e==="object"&&typeof e.name==="string"){out.push({name:e.name,qty:invUnits(e.qty),text:invText(e),i:i});}
+  else junk++;}
+  invEntries.lastJunk=junk;if(junk&&typeof console!=="undefined")console.warn("[inventory] "+junk+" unreadable inventory entr"+(junk===1?"y":"ies")+" skipped — not a string, not a row");
+  return out;}
+invEntries.lastJunk=0;
+/* invEntryText(inv, at): the text of ONE entry by position — the sheet's × mark rides it (#429) */
+function invEntryText(inv,at){var e=(inv||[])[at];return e==null?"":(typeof e==="string"?e:invText(e));}
+/* invTally(inv) → {key: {label, n}}: units per item KEY (never per whole string — two spellings of one item are one tally);
+   the label is the first spelling met. The snapshot/toast and the Sync diff read this. */
+function invTally(inv){var m=keyedDict(),es=invEntries(inv),i;for(i=0;i<es.length;i++){var k=itemKey(es[i].name);if(!m[k])m[k]={label:es[i].name,n:0};m[k].n+=es[i].qty;}return m;}
+/* invFromLines(text): the ONE free-text parser (the Sync modal's textarea) — one item per line, trimmed, empties dropped,
+   each line kept as typed (a legacy string; " xN" is read by the stored grammar wherever it is read) */
+function invFromLines(text){return String(text==null?"":text).split("\n").map(function(x){return x.trim();}).filter(function(x){return x.length>0;});}
+/* invHolds(inv, name): does the pack hold the item — by the ONE resolver (exact key, then a unique provenance-free base),
+   never a whole-string indexOf: "Rope x2" holds "Rope", "rope" holds "Rope"; two bases for one name is not a hold */
+function invHolds(inv,name){return resolveInventoryName(inv,name)>=0;}
 function itemPairTake(R,field,name){var m=R&&R[field],k=itemPairKey(name);return (m&&m[k]&&m[k].length)?m[k].pop():null;}
 function itemPairMissed(R,name){return !!(R&&R.ilMiss&&R.ilMiss[itemPairKey(name)]);}
 // ── #50(d): model-inventory sanitation + duplicate healing (v1.291) ────────────
@@ -279,4 +306,78 @@ function foldDuplicateInventory(inv){
   }
   if(folded){inv.length=0;for(i=0;i<out.length;i++)inv.push(out[i]);}
   return folded;
+}
+
+/* ═══ THE SHEET'S READERS (#599 b4) — moved VERBATIM from helpers.js (one home): the category grouping the sheet renders and the
+   #429 drop marks it commits. They index the stored list and compare whole entries, which only this module may do. ═══ */
+// ── #157: THE shared inventory view model (Sol §5) — one pure grouping fn, two renderers ───
+// Returns non-empty category groups in registry order (+ Unclassified last), each row carrying
+// its ORIGINAL array index so a visually regrouped Drop still removes the right stored row.
+// Every input row appears exactly once; the stored array is never reordered or rewritten.
+function groupInventory(inv){
+  inv=inv||[];
+  var buckets=keyedDict(),order=[],i,j;
+  for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++){buckets[INVENTORY_CATEGORY_REGISTRY[i].id]={id:INVENTORY_CATEGORY_REGISTRY[i].id,label:INVENTORY_CATEGORY_REGISTRY[i].label,rows:[]};order.push(INVENTORY_CATEGORY_REGISTRY[i].id);}
+  var un={id:"unclassified",label:"Unclassified",rows:[]};
+  for(i=0;i<inv.length;i++){
+    var raw=inv[i],e=itemLookup(raw),cats=e?itemInvCategories(e):null;
+    var row={raw:raw,sourceIndex:i,key:itemBaseName(raw),entry:e,categories:cats||[]};
+    if(!cats){un.rows.push(row);continue;}
+    var placed=false;
+    for(j=0;j<order.length;j++){if(cats.indexOf(order[j])>=0){buckets[order[j]].rows.push(row);placed=true;break;}}
+    if(!placed)un.rows.push(row);
+  }
+  var out=[];
+  for(i=0;i<order.length;i++){if(buckets[order[i]].rows.length)out.push(buckets[order[i]]);}
+  if(un.rows.length)out.push(un);
+  return out;
+}
+// ── #429 BATCH DROP (owner 2026-09-21): the sheet's × MARKS a row, one "Delete N items" button commits ──
+// (The copy says DELETE: nothing is placed in the world, the item ceases to exist. The identifiers keep "drop".)
+// Marks are session state: {"<idx>|<name>":true} per owner. The pair pins a mark to the row it was set
+// on; invDropPlan re-resolves every mark against the LIVE inventory (index first, then by name, never
+// the same row twice) so a GM turn that spliced the array between the mark and the button never drops
+// the row that slid into a marked index. Pure and DOM-free — the sheet is a thin shell over these.
+function invDropMarkKey(idx,name){return String(idx|0)+"|"+String(name);}
+function invDropToggle(marks,idx,name){
+  marks=marks||{};var k=invDropMarkKey(idx,name),out={},m;
+  for(m in marks){if(Object.prototype.hasOwnProperty.call(marks,m)&&marks[m]&&m!==k)out[m]=true;}
+  if(!marks[k])out[k]=true;
+  return out;
+}
+function invDropCount(marks){var n=0,m;if(!marks)return 0;for(m in marks){if(Object.prototype.hasOwnProperty.call(marks,m)&&marks[m])n++;}return n;}
+/* #481 F8: the row a × means. The × carries its row's index AND name, but a GM turn between the render and the click can
+   splice the pack, so the index alone may now name the neighbour ("Deleted 1 item: Waterskin" for the Torch ×). The name
+   wins when the two disagree — the row carrying it nearest the old index; no name (a render from before) keeps the index;
+   -1 = the item is gone. Pure. */
+function invMarkResolve(inv,idx,name){
+  inv=inv||[];idx=idx|0;
+  if(name==null||name==="")return idx>=0&&idx<inv.length?idx:-1;
+  if(idx>=0&&idx<inv.length&&inv[idx]===name)return idx;
+  var best=-1,i;for(i=0;i<inv.length;i++){if(inv[i]===name&&(best<0||Math.abs(i-idx)<Math.abs(best-idx)))best=i;}
+  return best;
+}
+function invDropPlan(inv,marks){
+  inv=inv||[];marks=marks||{};var live=[],stale=[],seen=keyedDict(),k,i;
+  for(k in marks){
+    if(!Object.prototype.hasOwnProperty.call(marks,k)||!marks[k])continue;
+    var bar=k.indexOf("|"),idx=parseInt(k.slice(0,bar),10),name=k.slice(bar+1),at=-1;
+    if(idx>=0&&idx<inv.length&&inv[idx]===name&&!seen[idx])at=idx;
+    else{for(i=0;i<inv.length;i++){if(inv[i]===name&&!seen[i]){at=i;break;}}}
+    if(at<0){stale.push(name);continue;}
+    seen[at]=true;live.push({idx:at,name:name});
+  }
+  live.sort(function(a,b){return a.idx-b.idx;});
+  return {drop:live,stale:stale,count:live.length,ok:live.length>0};
+}
+function invDropApply(inv,plan){
+  var names=[],i;
+  for(i=plan.drop.length-1;i>=0;i--)inv.splice(plan.drop[i].idx,1);/* highest first: the lower indices stay true */
+  for(i=0;i<plan.drop.length;i++)names.push(plan.drop[i].name);
+  return names;
+}
+function invDropButtonText(n){return "Delete "+n+" item"+(n===1?"":"s");}
+function invDropNamesText(names){
+  names=names||[];if(names.length<=4)return names.join(", ");
+  return names.slice(0,4).join(", ")+" and "+(names.length-4)+" more";
 }

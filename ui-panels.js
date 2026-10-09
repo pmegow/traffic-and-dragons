@@ -265,8 +265,7 @@ function invItemHtml(s){
   s=String(s);
   // #50(b): render stacked quantities as "Blasting charge (4)" instead of the stored "x4"
   // suffix — DISPLAY transform only; the stored format and the stacking parsers are untouched.
-  var _qty=null,_qm=s.match(/^(.*?)\s+x(\d+)\s*$/);
-  if(_qm){s=_qm[1];_qty=_qm[2];}
+  var _qp=invStoredParse(s),_qty=_qp.qty>1?String(_qp.qty):null;s=_qp.name;/* #599 (b4): the ONE stored grammar reads the count (no panel-private pattern) */
   var _qh=_qty?"<span style='opacity:.7'> ("+_qty+")</span>":"";
   // Name/description split at the EARLIEST of: spaced dash, opening paren, comma, or a
   // clause lead-in word — GM-written entries carry free-prose descriptions with no dash

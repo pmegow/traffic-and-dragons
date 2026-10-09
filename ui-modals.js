@@ -205,7 +205,7 @@ function showSyncModal(){
       +"<div><label class='sc-lbl'>Sub-location (blank = none)</label><input id='sc-sub' type='text' class='sc-inp' value='"+escHtml(w.sublocation||"")+"' "+ro+"/></div>"/* audit E2: the sub is real state; without a field here a patched location left it hanging under the old parent */
       +"<div><label class='sc-lbl'>Time flavor (clock is authoritative)</label><input id='sc-time' type='text' class='sc-inp' value='"+escHtml(w.time)+"' "+ro+"/></div>"
       +"<div><label class='sc-lbl'>Weather</label><input id='sc-weather' type='text' class='sc-inp' value='"+escHtml(w.weather)+"' "+ro+"/></div></div>"
-      +"<div style='margin-bottom:12px;'><label class='sc-lbl'>Inventory (one per line)</label><textarea id='sc-inv' class='sc-inp' style='height:80px;resize:vertical;' "+ro+">"+escHtml(c.inventory.join("\n"))+"</textarea></div>"
+      +"<div style='margin-bottom:12px;'><label class='sc-lbl'>Inventory (one per line)</label><textarea id='sc-inv' class='sc-inp' style='height:80px;resize:vertical;' "+ro+">"+escHtml(invTextList(c.inventory).join("\n"))+"</textarea></div>"
       +(isUI?"<button id='sc-apply' style='width:100%;padding:13px;font-size:15px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>APPLY</button>":"<div style='text-align:center;font-size:12px;color:var(--t2);padding:8px;'>Showing live game state. Switch to UI -> Game to edit.</div>")
       +"<p id='sc-msg' style='font-size:12px;min-height:16px;margin-top:8px;text-align:center;'></p>";
     document.getElementById("sc-x").addEventListener("click",function(){modalDiv.remove();});
@@ -218,7 +218,7 @@ function showSyncModal(){
       var loc2=document.getElementById("sc-loc").value.trim(),tm2=document.getElementById("sc-time").value.trim(),wx2=document.getElementById("sc-weather").value.trim();
       var _scSub=document.getElementById("sc-sub"),sub2=_scSub?_scSub.value.trim():((w2.sublocation)||"");
       var rawInv=document.getElementById("sc-inv").value.trim();
-      var inv2=rawInv?rawInv.split("\n").map(function(x){return x.trim();}).filter(function(x){return x.length>0;}):[];
+      var inv2=invFromLines(rawInv);/* #599 (b4): the ONE free-text parser — this modal is the only free-text inventory writer */
       var notes=[];/* audit E2: a refused or adjusted patch is reported in the modal, never silently dropped */
       if(!isNaN(mhp2)&&mhp2>0)c2.maxHp=mhp2;if(!isNaN(hp2))c2.hp=Math.min(c2.maxHp,Math.max(0,hp2));
       if(!isNaN(gld2))c2.coin=Math.max(0,gld2);if(!isNaN(xp2))c2.xp=Math.max(0,xp2);

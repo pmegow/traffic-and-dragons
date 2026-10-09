@@ -1495,6 +1495,39 @@ try {
   console.log("[#599 b] admission contract OK — " + _adDoorN + " install doors + " + _adPreviews.length + " previews through sheetAdmit, " + _adInternal.length + " internal transfers, " + _adExempt.length + " reasoned exemptions, no hand-run step");
 } catch (e) { console.error("ADMISSION CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
+// ── INVENTORY BOUNDARY CONTRACT (#599 b4, v1.1199) ────────────────────────────
+// inventory.js owns every read and write of a carried-items list (DOC/DESIGN_599_inventory_rows.md §2.4). DERIVED over every
+// root engine file but inventory.js: no string type-test on an inventory entry, no hand-rolled count grammar (an " xN"
+// regex), no index into an inventory, no whole-list join and no whole-string indexOf of one — each is a reader that would
+// skip or misread a row in silence when (c) flips the shape. A site that must stay carries an EXEMPT row with its reason.
+// The satellite pages are outside this census: character_editor.html and map_cleanup.html get the module's editor in (c)
+// (§4.4). Comment-blind, like the two contracts above; the enclosing unit comes from the admission contract's _adFn.
+try {
+  var _ibFail = function (msg) { console.error("INVENTORY BOUNDARY CONTRACT: " + msg); process.exit(1); };
+  var _ibCode = function (s) { return s.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "0;"); };
+  var _ibRules = [
+    { name: "a string type-test on an inventory entry", re: /typeof\s+[A-Za-z_$][\w$.]*(?:[iI]nv[\w$.]*|\.inventory)\[[^\]]*\]\s*[!=]==\s*"string"/g },
+    { name: "a hand-rolled count grammar (an \" xN\" regex — read invStoredParse or invEntries)", re: /\/[^\/\n]*\\s[*+]?x\\?\(?\\d[^\/\n]*\//g },
+    { name: "an index into an inventory (read invEntries or invEntryText)", re: /\.inventory\[[^\]]+\]|\b(?:inv|inv2|inventory)\[[^\]]+\]/g },
+    /* `.inventory.join(` and `(x.inventory||[]).join(` are the list joining itself; `invTextList(x.inventory).join(` is the module's text — not matched */
+    { name: "a whole-list join (read invTextList)", re: /\.inventory(?:\s*\|\|\s*\[\]\s*\))?\.join\(|\binv\.join\(/g },
+    { name: "a whole-string indexOf on an inventory (ask invHolds)", re: /\.inventory(?:\s*\|\|\s*\[\]\s*\))?\.indexOf\(|\binv\.indexOf\(/g }
+  ];
+  var _ibExempt = [];   /* { file, fn, rule, why } — none today; a row here is a reader (c) must visit by hand */
+  var _ibFs = require("fs"), _ibRoot = require("path").join(__dirname, "..");
+  var _ibFiles = _ibFs.readdirSync(_ibRoot).filter(function (f) { return /\.js$/.test(f) && f !== "inventory.js" && f !== "sw.js"; }), _ibBad = [], _ibSeen = {};
+  _ibFiles.forEach(function (f) {
+    var src = _ibCode(_src(f));
+    _ibRules.forEach(function (rule) { var m; rule.re.lastIndex = 0;
+      while ((m = rule.re.exec(src))) { var u = _adFn(src, m.index), key = f + " › " + u.name;
+        if (_ibExempt.some(function (x) { return x.file === f && x.fn === u.name && x.rule === rule.name; })) { _ibSeen[key + " › " + rule.name] = 1; continue; }
+        _ibBad.push(key + ": " + rule.name + " — " + m[0].slice(0, 70)); } });
+  });
+  _ibExempt.forEach(function (x) { if (!_ibSeen[x.file + " › " + x.fn + " › " + x.rule]) _ibFail("the EXEMPT row " + x.file + " › " + x.fn + " (" + x.rule + ") names no site any more — remove it"); });
+  if (_ibBad.length) _ibFail("an inventory is read or written outside inventory.js (route it through the module — invEntries, invTextList, invEntryText, invTally, invFromLines, invHolds — or add an EXEMPT row with its reason): " + _ibBad.join("; "));
+  console.log("[#599 b4] inventory boundary contract OK — " + _ibFiles.length + " engine files, " + _ibRules.length + " rules, " + _ibExempt.length + " reasoned exemptions");
+} catch (e) { console.error("INVENTORY BOUNDARY CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
 // ── CAMPAIGN SLOT WRITER CONTRACT (#337, v1.821) ─────────────────────────────
 // The field failure: three raw store.set calls per path in campLoad/campCloudPull, unguarded — a
 // quota throw mid-triple left a half-written slot (or half-switched live keys) and no toast. Every

@@ -146,7 +146,7 @@ function buildPortraitPromptRequest(char,opts){
   if(char.age||anc||char.cls)d+=", a "+gw+(char.age?" "+char.age:"")+(anc?" "+anc:"")+(char.cls?" "+char.cls:"")+(char.archetypeNm?" ["+char.archetypeNm+"]":"");
   if(char.appear)d+=", "+char.appear;
   if(char.mark)d+=", "+char.mark;
-  if(char.inventory&&char.inventory.length)d+=". Visible wardrobe/gear: "+char.inventory.join(", ");
+  if(char.inventory&&char.inventory.length)d+=". Visible wardrobe/gear: "+invTextList(char.inventory).join(", ");/* #599 (b4): byte-identical for strings (tests-160 pins it) */
   var ov=details?"Player overrides — apply these exactly and let them supersede any conflicting character description: "+details+". ":"";
   var style="Style: dark fantasy portrait, upper body, detailed face, dramatic chiaroscuro lighting, painterly. 2-3 sentences. Output ONLY the prompt, no commentary, no tags.";
   var promptReq=img2img

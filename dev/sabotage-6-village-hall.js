@@ -66,7 +66,7 @@ prove("game.js", [
     find: 'if(!n.resident||npcIsDead(n)||local.indexOf(String(n.name).toLowerCase())>=0)continue;res.push(n);', replace: 'if(!n.resident||npcIsDead(n))continue;res.push(n);',
     mustFail: "#6D1 the village rung sits ABOVE buy" },
   { label: "the fated resident gets a wall entry too (no memento)",
-    find: 'if(s.fate){var obj=', replace: 'if(false){var obj=',
+    find: 'if(s.fate){var _fe=', replace: 'if(false){var _fe=',/* #599 (b4): the memento's object reads through invEntries */
     mustFail: "#6G2 the Hall seeds from the library" },
   { label: "the player's line never reaches village state",
     find: 'if(t.length>200)t=t.slice(0,200);if(!worldState.hallLines)worldState.hallLines=keyedDict();worldState.hallLines[name]=t;', replace: 'if(t.length>200)t=t.slice(0,200);',

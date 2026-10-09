@@ -2403,7 +2403,7 @@ function _recurringKnownName(word){
   var fx=(memory.npcGraph&&memory.npcGraph.factions)||{};for(mk in fx)if(nameContains(mk,word))return true;
   var q=(worldState.questLog||[]),qi;for(qi=0;qi<q.length;qi++)if(nameContains(q[qi].title,word))return true;
   if(typeof capabilityLookup==="function"&&capabilityLookup(word))return true;/* corpus finding: spell names (Message, Silence, Phantasmal Force) recur like characters */
-  var inv=(worldState.character&&worldState.character.inventory)||[],ii;for(ii=0;ii<inv.length;ii++)if(typeof inv[ii]==="string"&&nameContains(inv[ii],word))return true;/* corpus finding: a NAMED ITEM (Cleaver) recurs like a character */
+  var inv=(worldState.character&&worldState.character.inventory)||[],ii;var _re=invEntries(inv);/* #599 (b4): read through the module (an unreadable entry is skipped loudly there) */for(ii=0;ii<_re.length;ii++)if(nameContains(_re[ii].text,word))return true;/* corpus finding: a NAMED ITEM (Cleaver) recurs like a character */
   return false;
 }
 function recurringNameScan(){

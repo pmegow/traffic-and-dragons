@@ -12,7 +12,7 @@ rc |= sabotage.prove({ file: "game.js", command: CMD, cases: [
 ]});
 rc |= sabotage.prove({ file: "helpers.js", command: CMD, cases: [
   { label: "the pack is compared raw (a count, a provenance note or letter case hides the item)",
-    find: "held[itemBaseName(inventory[i])]=true;", replace: "held[String(inventory[i])]=true;",
+    find: "held[itemBaseName(_he[i].name)]=true;", replace: "held[_he[i].text]=true;",/* #599 (b4): the picker reads through invEntries */
     mustFail: T },
   { label: "an item that merely starts with the ware's name counts as holding it",
     find: "if(wares[i]&&!held[itemBaseName(wares[i].item)])return wares[i];", replace: "if(wares[i]&&!Object.keys(held).some(function(h){return h.indexOf(itemBaseName(wares[i].item))===0;}))return wares[i];",

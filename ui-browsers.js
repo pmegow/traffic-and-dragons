@@ -493,7 +493,7 @@ function showCharImportPreview(char, onAccept, onCancel){
   }).join("");
   var abilities=(char.abilities||[]).slice(0,4).map(function(a){return "<div style='font-size:11px;color:var(--t1);margin-bottom:3px;'><span style='color:var(--acc);'>"+escHtml(a.nm)+"</span> — "+escHtml(a.ds)+"</div>";}).join("");
   var spells=(char.spells||[]).filter(function(s){return!spellUnavailable(s);}).slice(0,6).map(function(s){return escHtml(s.nm);}).join(", ");/* #361: only a used RACIAL 1/day spell is unavailable (slot-era filter hid every cast spell) */
-  var inv=escHtml((char.inventory||[]).join(", ")||"Nothing");
+  var inv=escHtml(invTextList(char.inventory).join(", ")||"Nothing");/* #599 (b4): the one text projection */
   var langs=(char.languages||[]).map(function(l){return escHtml(l.name)+(l.broken?" (broken)":"");}).join(", ")||"Common";
   /* #14: wireClose:false — × and Cancel share the custom doCancel (fires onCancel) */
   var modal=modalShell("char-import-preview",

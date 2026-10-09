@@ -121,8 +121,9 @@ function ttItemBlock(question){
   if(!c||!c.inventory||!c.inventory.length)return "";
   if(typeof itemLookup!=="function"||typeof itemBaseName!=="function")return "";
   var defined=[],undef=[],seen={},i;
-  for(i=0;i<c.inventory.length;i++){
-    var raw=c.inventory[i];if(!raw)continue;
+  var _te=invEntries(c.inventory);/* #599 (b4): read through the module */
+  for(i=0;i<_te.length;i++){
+    var raw=_te[i].text;
     var key=itemBaseName(raw);if(!key||seen[key])continue;seen[key]=1;
     var e=itemLookup(raw);
     /* The Giant's Bane shape: an entry can exist for CLASSIFICATION ONLY (#157 — effect "N/A"
@@ -205,7 +206,7 @@ function ttStateBlock(){
   if(typeof diceStatsLine==="function"){var _dl=diceStatsLine();if(_dl)s.push(_dl);}/* #350: the roll record, so "are my rolls fair?" is answered from data */
   if(typeof registerStatsLine==="function"){var _rl=registerStatsLine();if(_rl)s.push(_rl);}/* #355: the register record */
   if(typeof registerCensusLine==="function"){var _rc=registerCensusLine();if(_rc)s.push(_rc);}/* #372: the census counters — chapters, labels, modern idiom */
-  if(c.inventory&&c.inventory.length)s.push("Inventory: "+c.inventory.join(", "));
+  if(c.inventory&&c.inventory.length)s.push("Inventory: "+invTextList(c.inventory).join(", "));/* #599 (b4) */
   if(c.spells&&c.spells.length){var sp=[];for(i=0;i<c.spells.length;i++)sp.push(c.spells[i].nm+(spellUnavailable(c.spells[i])?" (1/day — used, back after a long rest)":""));s.push("Known spells: "+sp.join(", "));}/* #361: mana spells are never "used" in the slot sense */
   if(c.abilities&&c.abilities.length){var ab=[];for(i=0;i<c.abilities.length;i++)ab.push(c.abilities[i].nm);s.push("Abilities: "+ab.join(", "));}
   if(c.conditions&&c.conditions.length){var cd=[];for(i=0;i<c.conditions.length;i++)cd.push(c.conditions[i].name);s.push("Conditions: "+cd.join(", "));}

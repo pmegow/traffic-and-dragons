@@ -5,7 +5,7 @@
 var sabotage = require("./sabotage.js"), code = 0;
 var CMD = ["node", ["dev/tests-429-inventory-drop.js"]];
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
-prove("helpers.js", [
+prove("inventory.js", [/* #599 (b4): invMarkResolve lives in inventory.js (one home) */
   { label: "the index wins over the name (the neighbour is marked)",
     find: "  if(idx>=0&&idx<inv.length&&inv[idx]===name)return idx;\n  var best=-1", replace: "  if(idx>=0&&idx<inv.length)return idx;\n  var best=-1",
     mustFail: "#481 F8 the repro" }
