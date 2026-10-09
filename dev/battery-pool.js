@@ -23,7 +23,7 @@
 "use strict";
 var fs = require("fs"), os = require("os"), path = require("path"), cp = require("child_process");
 var verdict = require("./battery-verdict.js");
-var MAX_DEFAULT_JOBS = 16, TAIL_LINES = 15;   // 16 since 2026-10-09 (owner): at 8 the workers wait on git and spawn, not CPU or RAM — 18 node processes used 0.84 GB on a 64 GB, 32-core box
+var MAX_DEFAULT_JOBS = 8, TAIL_LINES = 15;   // 8 (owner's call 2026-10-09 evening, after a day at 16): 16 was TRIED and rolled back — the (c) tree sweep ran 154 batteries / 8,778 battery-seconds in 14 min at 16 wide (~10.5 battery-s per wall-s) against ~7–8 at 8 wide, so ~1.4×, not 2×; and the width made the Chrome-driven batteries flaky beside others (three re-ran alone, one of them 196 s) — the serial re-run tail ate most of the gain. The ceiling is the scratch clone's git reset and process spawn, not cores. --jobs=N / SABOTAGE_JOBS=N still override.
 
 function jobsFrom(argv, env, cpus) {
   var rest = [], jobs = null, i, m;
