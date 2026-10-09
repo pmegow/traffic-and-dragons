@@ -107,10 +107,10 @@ if(!code)code=sabotage.prove({
       "mustFail": "Village and blueprint"
     },
     {
-      "label": "blueprint seeds namesakes",
+      "label": "blueprint seeds namesakes (since #599 b5 the ADMISSION CONTRACT names it first: its EXEMPT row for this very call must match a live site)",
       "find": "if(!identitySheetAdmit(n,n.name,[]))continue;",
       "replace": "",
-      "mustFail": "Village and blueprint"
+      "mustFail": "ADMISSION CONTRACT"
     }
   ]
 });
