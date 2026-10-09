@@ -1,0 +1,1 @@
+const fs=require('fs'),path=require('path'),old=JSON.parse(fs.readFileSync("C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-404-builder\\baseline-sources.json",'utf8')),read=fs.readFileSync;fs.readFileSync=function(p,o){const s=old[path.resolve(String(p))];if(s!==undefined)return o?s:Buffer.from(s);return read.apply(this,arguments)};

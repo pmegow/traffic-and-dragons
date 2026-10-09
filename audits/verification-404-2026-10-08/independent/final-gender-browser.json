@@ -1,0 +1,20 @@
+{
+  "mode": "final-gender",
+  "wallMs": 888,
+  "before": {
+    "labels": [
+      "Warm reader · Female",
+      "Deep reader · Male"
+    ],
+    "note": "API key savedChange keySpeechify API keyStored on this device, like your existing API keys.English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate. Simba 3.2 honours speaking rate but not emotion tags, so there is no Emotion control here.Load / refresh voices2 actors loadedClear cached catalogClears the downloaded actor list when saved; assigned voices are kept.Narrator voiceWarm reader · FemaleDeep reader · MaleWarm reader · Female · British accent · Low pitch · Rich resonantLanguage: EnglishSpeech rate 1.10×"
+  },
+  "lifecycle": {
+    "elapsedMs": 0,
+    "cycles": 70,
+    "timers": 0,
+    "frames": 0,
+    "checkpoints": []
+  },
+  "errors": [],
+  "limits": "Actual Chrome clock and lifecycle handles; synthetic ready iframe, no synthesis or heap/GC measurement. All external requests aborted."
+}

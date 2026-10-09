@@ -1,0 +1,9 @@
+PASS #404 registry credential roundtrip preserves GM keys
+PASS #404 sheet dispatch follows slot presentation not provider name
+PASS #404 settings direction and credential hints derive from model
+[speakers] pinned voice en_US-libritts_r-medium#611 to Fixture Hero (auto-cast, now permanent — change it on their NPC card)
+PASS #404 speaker map and first speech respect numeric slot role
+PASS #404 credential transaction rollback and blank BYOK preservation
+PASS #404 standalone draft tolerates absent BYOK registry
+PASS #404 catalog recovery control dispatches explicit draft clear
+#404 registry: 7 passed, 0 failed

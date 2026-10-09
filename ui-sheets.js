@@ -128,7 +128,7 @@ function csVoiceControlHtml(char){
   return TTS.characterVoiceSlots().map(function(slot){
     return "<div class='cs-voice-row' style='margin-top:10px;font-size:12px;color:var(--t1);'>"
       +"<label for='"+slot.selectId+"' style='display:block;margin-bottom:5px;'>"+slot.label+" · "+slot.service+"</label>"
-      +"<div style='display:flex;align-items:center;gap:8px;'><select id='"+slot.selectId+"' style='flex:1;min-width:0;width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:8px;cursor:pointer;'>"+(slot.provider==="piper"?csBackupVoiceOptions:csPrimaryVoiceOptions)(char,slot)+"</select>"
+      +"<div style='display:flex;align-items:center;gap:8px;'><select id='"+slot.selectId+"' style='flex:1;min-width:0;width:0;font-family:var(--font);font-size:12px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:8px;cursor:pointer;'>"+({backup:csBackupVoiceOptions,catalog:csPrimaryVoiceOptions}[slot.options||"catalog"])(char,slot)+"</select>"
       +"<button id='"+slot.testId+"' type='button' style='flex-shrink:0;min-height:36px;padding:5px 10px;font-family:var(--font);font-size:12px;background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;'>&#9654; Test</button></div></div>";
   }).join("")+csVoiceDirectionHtml(char)+"<div style='font-size:11px;color:var(--t2);margin-top:6px;'>Cloud voice tests use your API keys.</div>";
 }

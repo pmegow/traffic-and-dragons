@@ -24,23 +24,26 @@ var VoiceSettings = (function() {
   }
   function renderSettings(ctx) {
     var m = ctx.model(), c = ctx.config(), html = "";
+    Object.keys(ctx.d.models || {}).forEach(function(id) { var issue = ctx.d.models[id]._catalogIssue; if (issue) html += "<p class='tts-help' role='alert'>" + e(issue) + " <button type='button' id='tts-clear-catalog-" + e(id) + "'>Clear cached catalog</button></p>"; });
     if (m.key) {
       var key = ctx.d.keys[ctx.id], saved = ctx.initial.keys[ctx.id];
       html += "<div class='tts-connection'><span>" + (key ? (key === saved ? "API key saved" : "API key staged — Save to keep") : "API key needed") + "</span>";
       if (key) html += "<button id='tts-key-change' class='tts-link' type='button'>Change key</button>";
-      html += "</div>" + "<div id='tts-key-wrap'" + (key ? " hidden" : "") + ">" + field("tts-api-key", m.label.split(" · ")[0] + " API key", "<input id='tts-api-key' type='password' autocomplete='off' spellcheck='false' placeholder='Paste API key' value='" + e(key === saved ? "" : key) + "'/>") + "<p class='tts-help'>" + (m.auth === "Basic" ? "Paste the encoded API key from Inworld, without the Basic prefix." : "Stored on this device, like your existing API keys.") + "</p></div>";
+      html += "</div>" + "<div id='tts-key-wrap'" + (key ? " hidden" : "") + ">" + field("tts-api-key", m.label.split(" · ")[0] + " API key", "<input id='tts-api-key' type='password' autocomplete='off' spellcheck='false' placeholder='Paste API key' value='" + e(key === saved ? "" : key) + "'/>") + "<p class='tts-help'>" + e(m.keyHint || "Stored on this device, like your existing API keys.") + "</p></div>";
     }
     html += "<p class='tts-help'>" + e(m.note) + "</p>";
     if (m.catalogUrl) html += "<div class='tts-load'><button id='tts-load-voices' type='button'>Load / refresh voices</button><span id='tts-catalog-status' role='status'>" + ctx.catalog().length + " actors loaded</span></div>";
+    if (m.catalogUrl && !c._catalogIssue && c.voices.length) html += "<button type='button' id='tts-clear-catalog-" + e(ctx.id) + "'>Clear cached catalog</button><p class='tts-help'>Clears the downloaded actor list when saved; assigned voices are kept.</p>";
     if (ctx.catalog().length > 30) html += field("tts-actor-search", "Find a narrator", "<input id='tts-actor-search' type='search' placeholder='Name, gender or description'/>");
     html += field("tts-narrator", "Narrator voice", "<select id='tts-narrator'>" + actors(ctx, c.narrator, false) + "</select>");
     html += "<p id='tts-actor-note' class='tts-help'></p>";
     if (m.languages.length > 1) html += field("tts-language", "Speech language", select("tts-language", m.languages, c.language, LANG));
     else html += "<p class='tts-help'>Language: " + (m.languages[0] ? e(LANG[m.languages[0]]) : "detected from text / selected voice") + "</p>";
-    if (m.direction) html += field("tts-direction", "Delivery direction" + (ctx.id === "inworld" ? " (write in English)" : ""), "<textarea id='tts-direction' rows='2' maxlength='1200'>" + e(c.direction) + "</textarea>");
+    if (m.direction) html += field("tts-direction", "Delivery direction" + e(m.directionHint || ""), "<textarea id='tts-direction' rows='2' maxlength='1200'>" + e(c.direction) + "</textarea>");
     if (m.delivery) html += field("tts-delivery", "Performance variation", select("tts-delivery", m.delivery, c.delivery, { STABLE: "Stable · consistent reading", BALANCED: "Balanced", CREATIVE: "Creative · more variation" }));
     if (m.rate) html += field("tts-speed", "Speech rate <span id='tts-speed-value'>" + Number(c.rate).toFixed(2) + "×</span>", "<input id='tts-speed' type='range' min='0.8' max='1.3' step='0.05' value='" + c.rate + "'/>");
     ctx.panel.innerHTML = html;
+    Object.keys(ctx.d.models || {}).forEach(function(id) { ctx.bind("tts-clear-catalog-" + id, "click", function() { ctx.clearCatalog(id); }); });
     ctx.bind("tts-api-key", "input", function(el) { if (el.value.trim()) ctx.d.keys[ctx.id] = el.value.trim().replace(/^(Bearer|Basic)\s+/i, ""); });
     ctx.bind("tts-key-change", "click", function() { ctx.el("tts-key-wrap").hidden = false; ctx.el("tts-api-key").focus(); });
     ctx.bind("tts-load-voices", "click", function() { ctx.load(); });
@@ -100,6 +103,7 @@ var VoiceSettings = (function() {
     activeClose = close;
     var ctx = { S: S, d: draft, initial: initial, id: draft.primary, panel: el("tts-tab-panel"), el: el, bind: bind,
       catalog: function() { return ctx.actorList; }, model: function() { return S.models[ctx.id]; }, config: function() { return draft.models[ctx.id]; },
+      clearCatalog: function(id) { cancelCatalog(); stopTest(); S.clearCatalog(draft, id); paint(); el("tts-status").textContent = "Cached catalog cleared in this draft. Assigned voices are kept. Save to keep this change, or Cancel to discard it."; },
       test: function(actor) {
         stopTest(); el("tts-status").textContent = "";
         try { ownsAudio = true; S.test(draft, el("tts-test-text").value, actor, function(phase) {
@@ -116,7 +120,7 @@ var VoiceSettings = (function() {
         catalogTicker = elapsedTicker(el("tts-catalog-status"), "Loading actors", { text: true });
         S.loadCatalog(id, key, function(ctrl) { catalogCtrl = ctrl; if (closed || token !== generation) ctrl.abort(); }).then(function(list) {
           if (closed || token !== generation) return;
-          c.voices = list; if (!list.some(function(v) { return v.id === c.narrator; })) c.narrator = list[0].id;
+          c.voices = list; delete c._catalogIssue; if (!list.some(function(v) { return v.id === c.narrator; })) c.narrator = list[0].id;
           cancelCatalog(); paint(); el("tts-status").textContent = list.length + " actors loaded. Save to keep this catalog and key.";
         }, function(err) { if (closed || token !== generation) return; cancelCatalog(); btn.disabled = false; el("tts-catalog-status").textContent = "Load failed"; el("tts-status").textContent = "Could not load actors: " + err.message; console.warn("[tts settings] " + err.message); });
       }

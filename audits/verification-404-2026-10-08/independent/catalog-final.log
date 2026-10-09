@@ -1,0 +1,9 @@
+{
+  "checks": 245,
+  "cycles": 30,
+  "actors": 8000,
+  "serializedCodeUnits": 868547,
+  "utf8Bytes": 876547,
+  "worldImmutable": true,
+  "scope": "synthetic in-memory storage, fresh TTS module per reload, exact IDs/labels/genders/notes/languages and cast pins compared each cycle"
+}

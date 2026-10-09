@@ -1,0 +1,38 @@
+[
+  {
+    "version": "baseline",
+    "shape": "long-id",
+    "draftOpened": true,
+    "actors": 1
+  },
+  {
+    "version": "baseline",
+    "shape": "4001-actors",
+    "draftOpened": true,
+    "actors": 4001
+  },
+  {
+    "version": "baseline",
+    "shape": "malformed",
+    "draftOpened": true,
+    "actors": 1
+  },
+  {
+    "version": "candidate",
+    "shape": "long-id",
+    "draftOpened": false,
+    "error": "Voice catalog actor requires an unchanged id of 1–512 characters."
+  },
+  {
+    "version": "candidate",
+    "shape": "4001-actors",
+    "draftOpened": false,
+    "error": "Voice catalog must contain at most 4000 actors."
+  },
+  {
+    "version": "candidate",
+    "shape": "malformed",
+    "draftOpened": false,
+    "error": "Voice catalog actor requires an unchanged id of 1–512 characters."
+  }
+]

@@ -1,0 +1,19 @@
+#404 catalogs: 0 passed, 7 failed
+FAIL #404 imported catalog gender and compact traits normalize without writes — Expected values to be strictly equal:
+
+'male' !== 'M'
+
+FAIL #404 two full catalogs shrink and plateau without losing ids or pins — catalog did not meaningfully shrink
+FAIL #404 oversized settings refuse atomically rather than dropping actors — Missing expected exception.
+FAIL #404 malformed catalog is loud and reserved actor ids survive — The input did not match the regular expression /catalog|actor/i. Input:
+
+'TypeError: (intermediate value)(intermediate value)(intermediate value).slice is not a function'
+
+FAIL #404 invalid inactive saved catalog remains repairable without data loss — no attributable repair warning
+FAIL #404 compact projection preserves bounded metadata and Unicode boundaries — Expected values to be strictly equal:
++ actual - expected
+
++ 'LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL😀tail'
+- 'LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL'
+
+FAIL #404 explicit keyless catalog clear is draft-only and preserves pins — S.clearCatalog is not a function

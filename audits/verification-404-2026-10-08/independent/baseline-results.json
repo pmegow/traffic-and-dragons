@@ -1,0 +1,37 @@
+{
+  "importedGender": {
+    "catalog": "male",
+    "pin": ""
+  },
+  "readWrites": false,
+  "traitIdempotence": {
+    "first": "British accent · Low pitch · Rich resonant",
+    "second": ""
+  },
+  "catalog": {
+    "bytes": 5140485,
+    "codeUnits": 5140485,
+    "actors": 8000,
+    "pin": "actor-3999",
+    "unknownRetained": true
+  },
+  "addedKey": {
+    "saved": "",
+    "credentials": ""
+  },
+  "readyTimers": {
+    "cycles": 300,
+    "virtualMs": 30000,
+    "peak": 300,
+    "remaining": 299,
+    "listeners": 0,
+    "removed": 300
+  },
+  "cloudAfterAllocationFailure": true,
+  "cloudAfterStop": false,
+  "warnings": [
+    "[tts] primer failed: synthetic allocation failure",
+    "[tts fixture] decode failed on group 1/1, skipping: synthetic allocation failure",
+    "[tts fixture] no group produced audio and nothing was handed off — falling back to native for this line"
+  ]
+}

@@ -1,0 +1,23 @@
+const fs=require('fs'),vm=require('vm'),path=require('path');const root='C:/Projects/traffic-and-dragons',out=__dirname;
+require(path.join(root,'dev/load-engine.js')).loadEngine();
+let src=fs.readFileSync(process.argv[2]||path.join(out,'tts-baseline.js'),'utf8');
+src=src.replace('settings: { models: VOICE_MODELS','_review404: { spawn:_piperSpawnFrame, speak:_speakGemini, cloud:function(){return !!_cloudAbort;}, note:_speechifyActorNote },\n settings: { models: VOICE_MODELS');
+vm.runInThisContext(src,{filename:'tts-review.js'});
+const S=TTS.settings,results={},warn=[];global.showToast=()=>{};const oldWarn=console.warn;console.warn=(...x)=>warn.push(x.map(String).join(' '));
+function draft(id){const d=S.draft();d.primary=id;d.keys[id]='synthetic-key';d.models[id].voices=[{id:'a',label:'Actor A',g:'F',note:'accent:british,pitch:low,timbre:warm',language:'en-US'},{id:'b',label:'Actor B',g:'male'}];d.models[id].narrator='a';return d;}
+(async()=>{
+ const d=draft('inworld');S.save(d);const stored=store.get(S._keys.settings),model=S.draft().models.inworld;results.importedGender={catalog:S.catalog('inworld',model).find(x=>x.id==='b').g,pin:TTS.pinnedVoiceGender('inworldVoiceId','b')};results.readWrites=store.get(S._keys.settings)!==stored;
+ const a=draft('speechify');a.models.speechify.voices[0].note='accent:british,pitch:low,timbre:rich resonant';const n=S.catalog('speechify',a.models.speechify)[0].note;a.models.speechify.voices[0].note=n;results.traitIdempotence={first:n,second:S.catalog('speechify',a.models.speechify)[0].note};
+ const huge=draft('inworld');for(const id of ['inworld','speechify']){huge.models[id].voices=Array.from({length:4000},(_,i)=>({id:'actor-'+i,label:'Actor '+i,g:i%2?'male':'female',note:'accent:british,pitch:low,timbre:warm, marketing:'+('x'.repeat(250)),language:'en-US',unknown:'z'.repeat(250)}));huge.models[id].narrator='actor-0';huge.models[id].cast['legacy-pin']='actor-3999';}
+ S.save(huge);const raw=store.get(S._keys.settings);results.catalog={bytes:Buffer.byteLength(raw),codeUnits:raw.length,actors:S.draft().models.inworld.voices.length+S.draft().models.speechify.voices.length,pin:S.draft().models.inworld.cast['legacy-pin'],unknownRetained:raw.includes('unknown')};
+ S.models.fixture=Object.assign({},S.models.inworld,{label:'Fixture',defaults:()=>({narrator:'a',direction:''})});const added=draft('fixture');S.save(added);results.addedKey={saved:S.draft().keys.fixture||'',credentials:JSON.parse(store.get(S._keys.credentials)).fixture||''};delete S.models.fixture;
+ const timers=new Map(),listeners=new Set(),frames=[];let serial=0,removed=0,now=0;const realSet=global.setTimeout,realClear=global.clearTimeout;
+ global.setTimeout=(fn,ms)=>{const id=++serial;timers.set(id,{fn,at:now+ms,ms});return id;};global.clearTimeout=id=>timers.delete(id);
+ global.location={origin:'http://fixture.invalid'};global.document={createElement:()=>{const f={setAttribute(){},style:{},contentWindow:{postMessage(){}},remove(){removed++;}};frames.push(f);return f;},body:{appendChild(){}},getElementById:()=>null};global.window={addEventListener:(t,f)=>listeners.add(f),removeEventListener:(t,f)=>listeners.delete(f)};
+ let peak=0;for(let i=0;i<300;i++){const p=TTS._review404.spawn(),f=frames.at(-1);for(const listener of listeners)listener({source:f.contentWindow,origin:location.origin,data:{tnd:'ready'}});const adapter=await p;adapter.destroy();peak=Math.max(peak,timers.size);now+=100;for(const [id,t]of timers)if(t.at<=now){timers.delete(id);t.fn();}}
+ results.readyTimers={cycles:300,virtualMs:now,peak,remaining:timers.size,listeners:listeners.size,removed};global.setTimeout=realSet;global.clearTimeout=realClear;
+ global.document={getElementById:()=>null,addEventListener(){},removeEventListener(){}};
+ global.window={AudioContext:function(){this.state='running';this.currentTime=0;this.destination={};this.createBuffer=()=>{throw Error('synthetic allocation failure');};this.createBufferSource=()=>({connect(){},start(){},stop(){}});this.createGain=()=>({gain:{},connect(){}});}};
+ await TTS._review404.speak('A quiet road.',null,null,null,null,{label:'fixture',key:()=>'',direction:()=>'',depth:1,group:units=>[{text:'A quiet road.',last:units.at(-1),voice:'a'}],fetch:async()=>({bytes:new Uint8Array([0,0,255,127]),rate:24000}),prime:()=>true,degrade:()=>{}});
+ results.cloudAfterAllocationFailure=TTS._review404.cloud();TTS.stop();results.cloudAfterStop=TTS._review404.cloud();results.warnings=warn;console.warn=oldWarn;console.log(JSON.stringify(results,null,2));fs.writeFileSync(path.join(out,process.argv[2]?'patched-results.json':'baseline-results.json'),JSON.stringify(results,null,2));
+})().catch(e=>{console.warn=oldWarn;console.error(e);process.exitCode=1;});

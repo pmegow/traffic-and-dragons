@@ -1,0 +1,81 @@
+{
+  "invalid": {
+    "open": true,
+    "alerts": [
+      "Inworld · TTS-2: Voice catalog must contain at most 4000 actors. Refresh this catalog in Voice Settings before saving.",
+      ""
+    ]
+  },
+  "repaired": {
+    "primary": "inworld",
+    "ids": [
+      "actor-0"
+    ],
+    "cast": {
+      "legacy": "actor-4000"
+    },
+    "issue": "",
+    "gm": "synthetic-gm"
+  },
+  "mode": "patched",
+  "wallMs": 37181,
+  "before": {
+    "labels": [
+      "Warm reader · Female",
+      "Deep reader · Male"
+    ],
+    "note": "API key savedChange keySpeechify API keyStored on this device, like your existing API keys.English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate. Simba 3.2 honours speaking rate but not emotion tags, so there is no Emotion control here.Load / refresh voices2 actors loadedNarrator voiceWarm reader · FemaleDeep reader · MaleWarm reader · Female · British accent · Low pitch · Rich resonantLanguage: EnglishSpeech rate 1.10×"
+  },
+  "lifecycle": {
+    "elapsedMs": 35996,
+    "cycles": 70,
+    "timers": 0,
+    "frames": 0,
+    "checkpoints": [
+      {
+        "cycle": 1,
+        "ms": 9,
+        "timers": 0,
+        "frames": 0
+      },
+      {
+        "cycle": 11,
+        "ms": 5158,
+        "timers": 0,
+        "frames": 0
+      },
+      {
+        "cycle": 21,
+        "ms": 10284,
+        "timers": 0,
+        "frames": 0
+      },
+      {
+        "cycle": 31,
+        "ms": 15431,
+        "timers": 0,
+        "frames": 0
+      },
+      {
+        "cycle": 41,
+        "ms": 20595,
+        "timers": 0,
+        "frames": 0
+      },
+      {
+        "cycle": 51,
+        "ms": 25742,
+        "timers": 0,
+        "frames": 0
+      },
+      {
+        "cycle": 61,
+        "ms": 30860,
+        "timers": 0,
+        "frames": 0
+      }
+    ]
+  },
+  "errors": [],
+  "limits": "Actual Chrome clock and lifecycle handles; synthetic ready iframe, no synthesis or heap/GC measurement. All external requests aborted."
+}

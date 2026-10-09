@@ -1001,7 +1001,7 @@ function speakerVoiceMap(sp,text){
     if(!out)out={};
     out[parseInt(k,10)]=vid;
     var _ix=parseInt(k,10),_sl=TTS.characterVoiceSlots?TTS.characterVoiceSlots():[],_si;/* #456: every cloud slot's pin rides under providers.<id>; the delivery direction under directions */
-    for(_si=0;_si<_sl.length;_si++){var _s=_sl[_si];if(_s.provider==="piper"||!ch[_s.field])continue;if(!out.providers)out.providers={};if(!out.providers[_s.provider])out.providers[_s.provider]={};out.providers[_s.provider][_ix]=ch[_s.field];}
+    for(_si=0;_si<_sl.length;_si++){var _s=_sl[_si];if(_s.speakerMap===false||!ch[_s.field])continue;if(!out.providers)out.providers={};if(!out.providers[_s.provider])out.providers[_s.provider]={};out.providers[_s.provider][_ix]=ch[_s.field];}
     if(ch.voiceDirection){if(!out.directions)out.directions={};out.directions[_ix]=ch.voiceDirection;}
     var _vr=Number(ch.voiceRate)||0;if(_vr){if(!out.rates)out.rates={};out.rates[_ix]=_vr;}/* #457: an assigned speed rides, 1.0 included; unassigned follows the provider rate */
     if(sp.m&&sp.m[_ix]){if(!out.moods)out.moods={};out.moods[_ix]=sp.m[_ix];}/* #458: the line's mood, persisted with the speaker; rides only with a resolved speaker, like directions and rates */
@@ -1037,7 +1037,7 @@ function pinAutoCastVoices(sp){
     /* Fable review 2026-09-11 (Brief A): the Speechify fill runs BEFORE the Piper guard — it used to sit below
        `continue`-on-voiceId, so a speaker who already had a Piper backup (every character of every pre-v1.905
        campaign) never received a Speechify pin, and two speakers sharing a backup collapsed onto one actor. */
-    if(TTS.assignCharacterVoices&&TTS.characterVoiceSlots){var _vps=TTS.characterVoiceSlots(),_vpi;for(_vpi=0;_vpi<_vps.length;_vpi++){var _vp=_vps[_vpi];if(_vp.provider==="piper"||sub.owner[_vp.field])continue;var _vpChar={name:ch.name,gender:ch.gender,pronouns:ch.pronouns,voiceId:sub.owner.voiceId||""};TTS.assignCharacterVoices(_vpChar,null,_vp.provider);if(_vpChar[_vp.field]){sub.owner[_vp.field]=_vpChar[_vp.field];pinned=true;}}}/* #456: every cloud slot, not only Speechify */
+    if(TTS.assignCharacterVoices&&TTS.characterVoiceSlots){var _vps=TTS.characterVoiceSlots(),_vpi;for(_vpi=0;_vpi<_vps.length;_vpi++){var _vp=_vps[_vpi];if(_vp.speakerMap===false||sub.owner[_vp.field])continue;var _vpChar={name:ch.name,gender:ch.gender,pronouns:ch.pronouns,voiceId:sub.owner.voiceId||""};TTS.assignCharacterVoices(_vpChar,null,_vp.provider);if(_vpChar[_vp.field]){sub.owner[_vp.field]=_vpChar[_vp.field];pinned=true;}}}/* #456: every cloud slot, not only Speechify */
     if(sub.owner.voiceId)continue;
     v=TTS.autoCastVoiceId(ch);
     if(!v)continue;

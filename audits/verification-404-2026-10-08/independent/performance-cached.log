@@ -1,0 +1,126 @@
+[
+  {
+    "version": "baseline",
+    "actors": 4000,
+    "batches": [
+      {
+        "calls": 100,
+        "ms": 12.53,
+        "heapBefore": 12987304,
+        "heapBeforeGC": 17310240,
+        "heapAfterGC": 13091120
+      },
+      {
+        "calls": 100,
+        "ms": 9.11,
+        "heapBefore": 13089608,
+        "heapBeforeGC": 13427504,
+        "heapAfterGC": 13101072
+      },
+      {
+        "calls": 100,
+        "ms": 8.98,
+        "heapBefore": 13101712,
+        "heapBeforeGC": 13426488,
+        "heapAfterGC": 13101616
+      },
+      {
+        "calls": 100,
+        "ms": 8.55,
+        "heapBefore": 13102528,
+        "heapBeforeGC": 13426656,
+        "heapAfterGC": 13102760
+      },
+      {
+        "calls": 100,
+        "ms": 8.68,
+        "heapBefore": 13102848,
+        "heapBeforeGC": 13427272,
+        "heapAfterGC": 13103184
+      },
+      {
+        "calls": 100,
+        "ms": 8.5,
+        "heapBefore": 13103272,
+        "heapBeforeGC": 13427400,
+        "heapAfterGC": 13103312
+      },
+      {
+        "calls": 100,
+        "ms": 9.29,
+        "heapBefore": 13103400,
+        "heapBeforeGC": 13427528,
+        "heapAfterGC": 13103440
+      },
+      {
+        "calls": 100,
+        "ms": 8.95,
+        "heapBefore": 13103528,
+        "heapBeforeGC": 13427656,
+        "heapAfterGC": 13103568
+      }
+    ]
+  },
+  {
+    "version": "candidate",
+    "actors": 4000,
+    "batches": [
+      {
+        "calls": 100,
+        "ms": 28.61,
+        "heapBefore": 14202184,
+        "heapBeforeGC": 15472840,
+        "heapAfterGC": 14206016
+      },
+      {
+        "calls": 100,
+        "ms": 27.09,
+        "heapBefore": 14206256,
+        "heapBeforeGC": 23469224,
+        "heapAfterGC": 14205880
+      },
+      {
+        "calls": 100,
+        "ms": 27.13,
+        "heapBefore": 14205936,
+        "heapBeforeGC": 23447912,
+        "heapAfterGC": 14206424
+      },
+      {
+        "calls": 100,
+        "ms": 24.03,
+        "heapBefore": 14206512,
+        "heapBeforeGC": 23447976,
+        "heapAfterGC": 14206104
+      },
+      {
+        "calls": 100,
+        "ms": 25.15,
+        "heapBefore": 14206192,
+        "heapBeforeGC": 23508328,
+        "heapAfterGC": 14206680
+      },
+      {
+        "calls": 100,
+        "ms": 24.25,
+        "heapBefore": 14206768,
+        "heapBeforeGC": 23448232,
+        "heapAfterGC": 14206360
+      },
+      {
+        "calls": 100,
+        "ms": 25.74,
+        "heapBefore": 14206448,
+        "heapBeforeGC": 23469928,
+        "heapAfterGC": 14206936
+      },
+      {
+        "calls": 100,
+        "ms": 25.75,
+        "heapBefore": 14207024,
+        "heapBeforeGC": 23469992,
+        "heapAfterGC": 14206616
+      }
+    ]
+  }
+]

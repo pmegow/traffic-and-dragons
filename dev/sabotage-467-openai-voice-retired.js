@@ -10,8 +10,8 @@ var voice = [
     replace: 'return p ? p : geminiTtsEnabled() ? "gemini" : "local";',
     mustFail: "stale saved primary escaped" },
   { label: "the voice save drops the GM's OpenAI key",
-    find: "    if (data.keys.gemini) keys.gemini = data.keys.gemini.trim();",
-    replace: "    if (data.keys.gemini) keys.gemini = data.keys.gemini.trim(); delete keys.openai;",
+    find: "    var voiceKeys = {}, keyStores = { byok: keys, voice: voiceKeys };",
+    replace: "    var voiceKeys = {}, keyStores = { byok: keys, voice: voiceKeys }; delete keys.openai;",
     mustFail: "the voice save changed the OpenAI language-model key" }
 ];
 var provider = [

@@ -1,0 +1,61 @@
+{
+  "late": {
+    "voices": [],
+    "cast": {
+      "legacy": "saved-pin"
+    },
+    "aborted": true
+  },
+  "keyless": {
+    "primary": "local",
+    "voices": [],
+    "narrator": "keep-narrator",
+    "cast": {
+      "legacy": "keep-pin"
+    },
+    "key": ""
+  },
+  "aggregate": {
+    "primary": "local",
+    "inworld": 0,
+    "speechify": 4000,
+    "pinsSame": true,
+    "size": 583024
+  },
+  "invalid": {
+    "open": true,
+    "alerts": [
+      "Inworld · TTS-2: Voice catalog must contain at most 4000 actors. Refresh or clear this cached catalog in Voice Settings before saving. Clear cached catalog",
+      ""
+    ]
+  },
+  "repaired": {
+    "primary": "inworld",
+    "ids": [
+      "actor-0"
+    ],
+    "cast": {
+      "legacy": "actor-4000"
+    },
+    "issue": "",
+    "gm": "synthetic-gm"
+  },
+  "mode": "patched-recovery-final",
+  "wallMs": 1937,
+  "before": {
+    "labels": [
+      "Warm reader · Female",
+      "Deep reader · Male"
+    ],
+    "note": "API key savedChange keySpeechify API keyStored on this device, like your existing API keys.English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate. Simba 3.2 honours speaking rate but not emotion tags, so there is no Emotion control here.Load / refresh voices2 actors loadedClear cached catalogClears the downloaded actor list when saved; assigned voices are kept.Narrator voiceWarm reader · FemaleDeep reader · MaleWarm reader · Female · British accent · Low pitch · Rich resonantLanguage: EnglishSpeech rate 1.10×"
+  },
+  "lifecycle": {
+    "elapsedMs": 0,
+    "cycles": 70,
+    "timers": 0,
+    "frames": 0,
+    "checkpoints": []
+  },
+  "errors": [],
+  "limits": "Actual Chrome clock and lifecycle handles; synthetic ready iframe, no synthesis or heap/GC measurement. All external requests aborted."
+}

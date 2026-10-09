@@ -1,0 +1,11 @@
+{
+  "checks": 1090,
+  "readyCycles": 300,
+  "timeoutCycles": 30,
+  "allocationFailures": 100,
+  "remainingTimers": 0,
+  "listeners": 0,
+  "framesRemoved": 330,
+  "warnings": 300,
+  "limits": "Synthetic controlled event/time matrix; separate browser receipt covers actual35s duration."
+}

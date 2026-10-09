@@ -1,0 +1,15 @@
+PASS #404 imported catalog gender and compact traits normalize without writes
+METRIC inworld bank before 2877781 units / 2877781 bytes; after 409781 units / 409781 bytes
+METRIC speechify bank before 3013781 units / 3013781 bytes; after 457781 units / 465781 bytes
+METRIC catalogs before 5892495 units / 5892495 bytes; after 868495 units / 876495 bytes
+PASS #404 two full catalogs shrink and plateau without losing ids or pins
+PASS #404 oversized settings refuse atomically rather than dropping actors
+PASS #404 malformed catalog is loud and reserved actor ids survive
+PASS #404 invalid inactive saved catalog remains repairable without data loss
+PASS #404 compact projection preserves bounded metadata and Unicode boundaries
+PASS #404 explicit keyless catalog clear is draft-only and preserves pins
+#404 catalogs: 7 passed, 0 failed
+[tts settings] Inworld · TTS-2: Voice catalog actor requires an unchanged id of 1–512 characters. Refresh or clear this cached catalog in Voice Settings before saving.
+[tts settings] Inworld · TTS-2: Voice catalog must contain at most 4000 actors. Refresh or clear this cached catalog in Voice Settings before saving.
+[tts settings] Inworld · TTS-2: Voice catalog actor requires an unchanged id of 1–512 characters. Refresh or clear this cached catalog in Voice Settings before saving.
+[tts settings] Inworld · TTS-2: Voice catalog actor requires an unchanged id of 1–512 characters. Refresh or clear this cached catalog in Voice Settings before saving.

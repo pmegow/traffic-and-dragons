@@ -652,10 +652,10 @@ var TTS = (function() {
 
   // Settings are copied into a draft; only commitSettings writes preferences.
   var VOICE_SETTINGS_K = "tnd_voice_settings_v1", VOICE_KEYS_K = "tnd_voice_keys_v1";
-  var _voiceErrors = {}, _voiceReadCache = {}, _voiceCatalogCache = {};
+  var _voiceErrors = {}, _voiceReadCache = {};
   function _speechifyActorNote(note) {
     var traits = {}, plain = [];
-    String(note || "").split(/,|\s*·\s*/).forEach(function(tag) {
+    String(note || "").split(",").forEach(function(tag) {
       tag = tag.trim(); var pair = /^([a-z-]+):(.+)$/i.exec(tag);
       if (pair) { var key = pair[1].toLowerCase(); if (!Object.prototype.hasOwnProperty.call(traits, key)) traits[key] = pair[2].trim(); }
       else if (tag && tag.indexOf(":") < 0) plain.push(tag);
@@ -687,10 +687,10 @@ var TTS = (function() {
      (#458): a mood rides as a steering tag (Inworld). The model-level `rate`/`direction` flags are the Voice Settings fields — a
      different thing: Piper and device voices take ONE rate for every line, and Gemini's direction is the narrator's prompt. */
   var VOICE_MODELS = {
-    gemini: { label: "Google · Gemini TTS", key: true, credential: { store: "byok", key: "gemini", keepEmpty: true }, direction: true, languages: [""],
+    gemini: { label: "Google · Gemini TTS", key: true, direction: true, languages: [""],
       note: "30 actors. Uses your existing Google key. Test bills that key. Backup Gemini model retains the cast.", catalog: function() { return GEMINI_VOICES; },
       defaults: function() { return { narrator: geminiNarratorVoice(), direction: geminiDirection() }; } },
-    inworld: { credential: { store: "voice", key: "inworld" }, keyHint: "Paste the encoded API key from Inworld, without the Basic prefix.", directionHint: " (write in English)", label: "Inworld · TTS-2", depth: 4,/* #463 (owner on the Builder plan, 2026-09-25): 50 concurrent requests — four groups in flight hide the seam at a voice change; a skip aborts them all */ key: true, direction: true, rate: true, unitRate: true, unitDirection: true,/* #481 E6 */ markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
+    inworld: { label: "Inworld · TTS-2", depth: 4,/* #463 (owner on the Builder plan, 2026-09-25): 50 concurrent requests — four groups in flight hide the seam at a voice change; a skip aborts them all */ key: true, direction: true, rate: true, unitRate: true, unitDirection: true,/* #481 E6 */ markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
       delivery: ["STABLE", "BALANCED", "CREATIVE"],
       note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. Test bills your Inworld key.",
       defaults: function() { return { narrator: "", direction: "Speak naturally, as an understated storyteller.", delivery: "STABLE" }; },
@@ -700,7 +700,7 @@ var TTS = (function() {
       audio: function(r) { return r.json().then(function(j) { return _voiceDecode64(j.audioContent); }); },
       page: function(j) { return { voices: j.voices, next: j.nextPageToken || "" }; }, cursor: "pageToken",
       actor: function(v) { return { id: v.voiceId, label: v.displayName || v.voiceId, g: _voiceGender(v.gender), note: v.description || "", language: v.langCode || "" }; } },
-    speechify: { credential: { store: "voice", key: "speechify" }, label: "Speechify · Simba 3.2", compactActors: true, actorNote: _speechifyActorNote, depth: 1, key: true, rate: true, unitRate: true,/* #481 E6 */ languages: ["en-US"],
+    speechify: { label: "Speechify · Simba 3.2", compactActors: true, actorNote: _speechifyActorNote, depth: 1, key: true, rate: true, unitRate: true,/* #481 E6 */ languages: ["en-US"],
       /* #454 (owner 2026-09-24): no `emotions` — Simba 3 ignores <speechify:style>; the Emotion control was theatre and is gone */
       note: "English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate. Simba 3.2 honours speaking rate but not emotion tags, so there is no Emotion control here.",
       defaults: function() { return { narrator: "", language: "en-US" }; },/* #481 E10: the dead emotion default is gone (#454) */
@@ -733,21 +733,7 @@ var TTS = (function() {
   };
   function _unitCaps(id) { var m = VOICE_MODELS[id]; return { rate: !!(m && m.unitRate), direction: !!(m && m.unitDirection), mood: !!(m && m.markups) }; }/* #481 E6 */
   function _unitReaders(flag) { return Object.keys(VOICE_MODELS).filter(function(id) { return !!VOICE_MODELS[id][flag]; }).map(function(id) { return VOICE_MODELS[id].label; }); }
-  function _voiceGender(g) { g = String(g || "").trim().toLowerCase(); return g === "male" || g === "m" ? "M" : g === "female" || g === "f" ? "F" : ""; }
-  var VOICE_SETTINGS_MAX = 1048576;
-  function _voiceClip(value, max) { var text = String(value || ""); if (text.length <= max) return text; var end = max; if (/[\uD800-\uDBFF]/.test(text.charAt(end - 1))) end--; return text.slice(0, end); }
-  function _voiceCompactActors(id, voices) {
-    if (!Array.isArray(voices) || voices.length > 4000) throw new Error("Voice catalog must contain at most 4000 actors.");
-    var model = VOICE_MODELS[id];
-    return voices.map(function(v) {
-      if (!v || typeof v !== "object" || typeof v.id !== "string" || !v.id || v.id.length > 512) throw new Error("Voice catalog actor requires an unchanged id of 1–512 characters.");
-      var row = { id: v.id, label: _voiceClip(v.label || v.id, 80), g: _voiceGender(v.g) };
-      var note = _voiceClip(model.actorNote ? model.actorNote(v.note || v.blurb || "") : v.note || v.blurb || "", 160);
-      if (note) row.note = note;
-      if (v.language) row.language = _voiceClip(v.language, 24);
-      return row;
-    });
-  }
+  function _voiceGender(g) { return g === "male" || g === "M" ? "M" : g === "female" || g === "F" ? "F" : ""; }
   function _voiceRead(k) {
     var raw = store.get(k), cached = _voiceReadCache[k];
     if (cached && cached.raw === raw) return cached.value;
@@ -761,34 +747,16 @@ var TTS = (function() {
   function _voiceConfig(id) {
     var m = VOICE_MODELS[id], saved = _voiceRead(VOICE_SETTINGS_K).models || {};
     var result = Object.assign({ narrator: "", direction: "", language: "", rate: 1.1,/* #457: 1.1× default */ delivery: "STABLE", cast: {}, voices: [] }, m.defaults(), saved[id] || {});
-    if (m.catalogUrl) {
-      var cached = _voiceCatalogCache[id];
-      if (!cached || cached.source !== result.voices) {
-        cached = { source: result.voices };
-        try { cached.value = _voiceCompactActors(id, result.voices); } catch (err) { cached.issue = m.label + ": " + err.message + " Refresh or clear this cached catalog in Voice Settings before saving."; console.warn("[tts settings] " + cached.issue); }
-        _voiceCatalogCache[id] = cached;
-      }
-      if (cached.issue) result._catalogIssue = cached.issue; else { result.voices = cached.value; delete result._catalogIssue; }
-    }
     if (id === "local") result.narrator = resolvePiperVoice();
     if (id === "native") result.narrator = getNativeVoice();
     return result;
   }
-  function _voiceKey(id) { var spec = VOICE_MODELS[id].credential; if (!spec) return ""; var stores = { byok: (typeof providerKeys !== "undefined" && providerKeys) || {}, voice: _voiceRead(VOICE_KEYS_K) }; return stores[spec.store][spec.key] || ""; }
+  function _voiceKey(id) { return id === "gemini" ? _geminiKey() : _voiceRead(VOICE_KEYS_K)[id] || ""; }
   function _voiceCatalog(id, c) {
     var m = VOICE_MODELS[id];
-    if (m.catalogUrl) {
-      if (c._catalogIssue) return [];
-      var cached = _voiceCatalogCache[id], compact = cached && c.voices === cached.value ? cached.value : _voiceCompactActors(id, c.voices || []);
-      return compact.map(function(v) { return Object.assign({}, v); });
-    }
-    var list = m.catalog ? m.catalog().slice() : _voiceCompactActors(id, c.voices || []);
+    var list = (m.catalog ? m.catalog() : c.voices || []).slice();
     if (id === "local" && c.narrator && _piperVoiceKnown(c.narrator) && !list.some(function(v) { return v.id === c.narrator; })) list.push({ id: c.narrator, label: _voiceLabelOf(c.narrator) });
-    return list.map(function(v) { return { id: v.id, label: v.label || v.id, g: _voiceGender(v.g), note: m.actorNote ? m.actorNote(v.note || v.blurb || "") : v.note || v.blurb || "", language: v.language || "" }; });
-  }
-  function _voiceClearCatalog(d, id) {
-    if (!VOICE_MODELS[id] || !VOICE_MODELS[id].catalogUrl || !d.models[id]) throw new Error("Select a cached voice catalog to clear.");
-    d.models[id].voices = []; delete d.models[id]._catalogIssue;
+    return list.map(function(v) { return { id: v.id, label: v.label || v.id, g: v.g || "", note: m.actorNote ? m.actorNote(v.note || v.blurb || "") : v.note || v.blurb || "", language: v.language || "" }; });
   }
   function _voiceDraft() {
     var d = { primary: _voicePrimary(), models: {}, keys: {}, fallback: { piper: resolvePiperVoice(), native: getNativeVoice(), rate: getRate() } };
@@ -808,20 +776,15 @@ var TTS = (function() {
   }
   function _voiceCommit(d) {
     var error = _voiceValidate(d); if (error) throw new Error(error);
-    var data = JSON.parse(JSON.stringify(d)), models = {};
-    Object.keys(VOICE_MODELS).forEach(function(id) { var c = data.models[id]; if (!c) return; if (VOICE_MODELS[id].catalogUrl) c.voices = _voiceCompactActors(id, c.voices || []); delete c._catalogIssue; models[id] = c; });
-    data.models = models;
-    var settingsJson = JSON.stringify({ primary: data.primary, models: data.models });
-    if (settingsJson.length > VOICE_SETTINGS_MAX) throw new Error("Voice catalogs are too large to save. Clear an unused cached catalog in Voice Settings, then try again. Your saved settings are unchanged.");
+    var data = JSON.parse(JSON.stringify(d));
     var keys = Object.assign({}, providerKeys);
-    var voiceKeys = {}, keyStores = { byok: keys, voice: voiceKeys };
-    Object.keys(VOICE_MODELS).forEach(function(id) { var spec = VOICE_MODELS[id].credential; if (!spec) return; var value = String(data.keys[id] || "").trim(); if (value || !spec.keepEmpty) keyStores[spec.store][spec.key] = value; });
+    if (data.keys.gemini) keys.gemini = data.keys.gemini.trim();   // the one voice key kept in the BYOK store; every other entry (the GM's) passes through untouched
     var local = data.primary === "local" ? data.models.local.narrator : data.fallback.piper;
     var native = data.primary === "native" ? data.models.native.narrator : data.fallback.native;
     var writes = [
       [PKEYS_K, JSON.stringify(keys)],
-      [VOICE_KEYS_K, JSON.stringify(voiceKeys)],
-      [VOICE_SETTINGS_K, settingsJson],
+      [VOICE_KEYS_K, JSON.stringify({ inworld: data.keys.inworld.trim(), speechify: data.keys.speechify.trim() })],
+      [VOICE_SETTINGS_K, JSON.stringify({ primary: data.primary, models: data.models })],
       [GEMINI_TTS_K, data.primary === "gemini" ? "1" : "0"],
       [GEMINI_NARRATOR_K, data.models.gemini.narrator], [GEMINI_DIR_K, data.models.gemini.direction],
       [NVOICE_K, native], [RATE_K, String((data.primary === "local" || data.primary === "native") ? data.models[data.primary].rate : data.fallback.rate)]
@@ -946,7 +909,7 @@ var TTS = (function() {
       if (voices.length > 4000) throw new Error("Voice catalog exceeds 4000 actors");
     } while (next);
     if (!voices.length) throw new Error("No compatible actors returned for this model.");
-    return _voiceCompactActors(id, voices);
+    return voices;
   }
   function _voiceReader(id, c, key, audition) {
     var base = CLOUD_READERS[id], r = Object.assign({}, base), bank = _voiceCatalog(id, c), resolved = {};
@@ -986,16 +949,16 @@ var TTS = (function() {
      a pin already set is never touched. Piper's equivalent is the star bench. */
   var SPEECHIFY_BENCH = ["beatrice_32", "dominic_32", "edmund_32", "geffen_32", "harper_32", "hugh_32", "imogen_32", "wyatt_32"];
   var CHARACTER_VOICE_SLOTS = [
-    { provider: "speechify", options: "catalog", speakerMap: true, field: "speechifyVoiceId", label: "Speechify voice", service: "Speechify", selectId: "cs-primary-voice-sel", testId: "cs-primary-voice-test",
+    { provider: "speechify", field: "speechifyVoiceId", label: "Speechify voice", service: "Speechify", selectId: "cs-primary-voice-sel", testId: "cs-primary-voice-test",
       catalog: function() { return _voiceCatalog("speechify", _voiceConfig("speechify")); }, bench: SPEECHIFY_BENCH,/* #455 */
       test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "speechify"; actor = actor || _voiceActor("speechify", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.speechify); d.models.speechify.narrator = actor; _voiceTest(d, TTS_TEST_LINE, actor, onPhase, Number(char.voiceRate) || 0);/* #457: the Test reads at the character's speed */ } },
     /* #456 (owner 2026-09-25, after the Inworld trial): the Inworld slot. Its Test reads with the character's own delivery
        direction when one is set, so the owner hears what play will do. Auto-assignment draws gender-matched from the loaded
        Inworld catalog (no bench — the owner's ear found the catalog uniformly good). */
-    { provider: "inworld", options: "catalog", speakerMap: true, field: "inworldVoiceId", label: "Inworld voice", service: "Inworld", selectId: "cs-inworld-voice-sel", testId: "cs-inworld-voice-test",
+    { provider: "inworld", field: "inworldVoiceId", label: "Inworld voice", service: "Inworld", selectId: "cs-inworld-voice-sel", testId: "cs-inworld-voice-test",
       catalog: function() { return _voiceCatalog("inworld", _voiceConfig("inworld")); },
       test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "inworld"; actor = actor || _voiceActor("inworld", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.inworld); d.models.inworld.narrator = actor; if (char.voiceDirection) d.models.inworld.direction = char.voiceDirection; _voiceTest(d, TTS_TEST_LINE, actor, onPhase, Number(char.voiceRate) || 0);/* #457 */ } },
-    { provider: "piper", options: "backup", speakerMap: false, field: "voiceId", label: "Backup voice", service: "Piper", selectId: "cs-voice-sel", testId: "cs-voice-test", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
+    { provider: "piper", field: "voiceId", label: "Backup voice", service: "Piper", selectId: "cs-voice-sel", testId: "cs-voice-test", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
       test: function(char, actor) { testVoice(actor || autoCastVoiceId(char) || resolvePiperVoice()); }, release: releaseVoiceIfUnused }
   ];
   /* Fable review 2026-09-11 (Briefs A+C): THE one gender predicate. The sheet filter, the creation assignment and
@@ -1060,28 +1023,28 @@ var TTS = (function() {
   var TTS_PROVIDERS = {
     native: {
       id: "native", label: "Native (device voice)",
-
+      hint: "Your browser/OS built-in voice. No key needed, works everywhere, lower quality. Always the fallback target for the other engines.",
       available: function() { return true; },
       enqueue: function(text) { return { text: text, native: true }; },
       fallbackReason: function() { return ""; }
     },
     piper: {
       id: "piper", label: "Piper (local, offline, $0)",
-
+      hint: "Synthesizes on-device — free, works offline. First use per voice downloads once (60–115MB by voice), then cached.",
       available: function() { return _piperOk(); },
       enqueue: function(text) { return { text: text, piper: true, voiceId: resolvePiperVoice() }; },
       fallbackReason: function() { return _piperError || "Piper engine unavailable"; }
     },
     server: {
       id: "server", label: "Server (cloud Piper — #90)",
-
+      hint: "Synthesizes on the Traffic and Dragons server with the same Piper voices — zero work on this device (the B9 close). Requires the server connection; degrades to local Piper, then native.",
       available: function() { return _serverTtsOk(); },
       enqueue: function(text) { return { text: text, server: true, voiceId: resolvePiperVoice() }; },
       fallbackReason: function() { return _serverTtsErr || "server tier unavailable (not connected)"; }
     },
     gemini: {
       id: "gemini", label: "Gemini (Google cloud voices — #41)",
-
+      hint: "Google's TTS voices — far better quality than Piper, with expressive delivery. Bills per use against YOUR Gemini key (~$1.75 per 50 turns of narration), so it is off until you turn it on. Degrades to the server tier, then local Piper, then native.",
       available: function() { return _geminiTtsOk(); },
       // voiceId stays the PIPER id the cast already binds — _speakGemini maps it per unit, so a
       // player who turns this tier off keeps the exact cast they had.
@@ -2436,14 +2399,13 @@ var TTS = (function() {
       frame.setAttribute("aria-hidden", "true");
       frame.setAttribute("title", "Piper synthesis host");
       frame.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden;";
-      var pending = {}, progress = {}, settled = false, dead = false, readyTimer = null;
-      function clearReadyTimer() { if (readyTimer !== null) { clearTimeout(readyTimer); readyTimer = null; } }
+      var pending = {}, progress = {}, settled = false, dead = false;
 
       function onMessage(ev) {
         if (ev.source !== frame.contentWindow || ev.origin !== location.origin) return;
         var d = ev.data;
         if (!d || !d.tnd) return;
-        if (d.tnd === "ready") { if (!settled) { settled = true; clearReadyTimer(); resolve(adapter); } return; }
+        if (d.tnd === "ready") { if (!settled) { settled = true; resolve(adapter); } return; }
         if (d.tnd === "progress") { var f = progress[d.id]; if (f) { try { f(d.p); } catch (e) {} } return; }
         if (d.tnd === "rpc") {
           var p = pending[d.id];
@@ -2497,14 +2459,13 @@ var TTS = (function() {
           });
         },
         destroy: function () {
-          dead = true; clearReadyTimer();
-          if (!settled) { settled = true; reject(new Error("piper host destroyed before ready")); }
+          dead = true;
           window.removeEventListener("message", onMessage);
           // Reject anything still in flight — a destroyed realm will never answer, and a promise
           // that never settles would wedge the op mutex (_piperSerial) forever.
           Object.keys(pending).forEach(function (k) {
             try { pending[k].reject(new Error("piper host destroyed mid-call")); } catch (e) {}
-            delete pending[k]; delete progress[k];
+            delete pending[k];
           });
           try { frame.remove(); } catch (e) {}
         }
@@ -2517,8 +2478,7 @@ var TTS = (function() {
       // is exactly that. A tight timeout there would drop us onto the ratcheting engine for the
       // whole session, which is the failure this feature exists to prevent. Observed live: 15s
       // was not enough under a frozen tab.
-      if (!settled) readyTimer = setTimeout(function () {
-        clearReadyTimer();
+      setTimeout(function () {
         if (settled) return;
         settled = true;
         try { adapter.destroy(); } catch (e) {}
@@ -3232,7 +3192,6 @@ var TTS = (function() {
     loopDone = true;
     if (_piperEpoch !== myEpoch) return;
     if (!anyOk && !handedOff) {
-      abortAll();
       console.warn("[tts " + cloud.label + "] no group produced audio and nothing was handed off — falling back to native for this line");
       _auditionPhase("idle");
       _curNative = true;
@@ -4447,7 +4406,7 @@ var TTS = (function() {
     // _textPrep/_serverTest/_gemini); the underscore is the marker that says so, and
     // ui-voice-settings.js — the one production consumer of this object — touches none of them.
     settings: { models: VOICE_MODELS, draft: _voiceDraft, save: _voiceCommit,
-      catalog: _voiceCatalog, clearCatalog: _voiceClearCatalog, loadCatalog: _voiceLoadCatalog, actor: _voiceActor, castSlots: _voiceCastSlots, test: _voiceTest,
+      catalog: _voiceCatalog, loadCatalog: _voiceLoadCatalog, actor: _voiceActor, castSlots: _voiceCastSlots, test: _voiceTest,
       sample: GEMINI_TEST_LINE,
       _validate: _voiceValidate, _fetch: _voiceFetch,
       _keys: { settings: VOICE_SETTINGS_K, credentials: VOICE_KEYS_K },

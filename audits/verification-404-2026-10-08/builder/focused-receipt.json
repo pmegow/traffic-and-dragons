@@ -1,0 +1,65 @@
+{
+  "baseline": "02f4fa51",
+  "results": [
+    {
+      "suite": "registry",
+      "mode": "baseline",
+      "exit": 1,
+      "passes": 2,
+      "failures": 5
+    },
+    {
+      "suite": "registry",
+      "mode": "final",
+      "exit": 0,
+      "passes": 7,
+      "failures": 0
+    },
+    {
+      "suite": "catalog",
+      "mode": "baseline",
+      "exit": 1,
+      "passes": 0,
+      "failures": 7
+    },
+    {
+      "suite": "catalog",
+      "mode": "final",
+      "exit": 0,
+      "passes": 7,
+      "failures": 0
+    },
+    {
+      "suite": "resources",
+      "mode": "baseline",
+      "exit": 1,
+      "passes": 0,
+      "failures": 2
+    },
+    {
+      "suite": "resources",
+      "mode": "final",
+      "exit": 0,
+      "passes": 2,
+      "failures": 0
+    }
+  ],
+  "runtime": [
+    {
+      "file": "tts.js",
+      "sha256": "1488179bf03973efa20879c20c8b6e082c8a8f42713ccad2f870359bc7574d5f"
+    },
+    {
+      "file": "game.js",
+      "sha256": "77166d9014cbc1cb4218e171de6434d9ed63c6139b9c25a3efbd98b7b7175d89"
+    },
+    {
+      "file": "ui-sheets.js",
+      "sha256": "10729c8739f20cc835307458493d3009b47c4c90ef66ae007605e70205e43f33"
+    },
+    {
+      "file": "ui-voice-settings.js",
+      "sha256": "71f4b276f79731f31c98475b0f92a840e574e36d5eb63998ab273ec13f4a88fc"
+    }
+  ]
+}

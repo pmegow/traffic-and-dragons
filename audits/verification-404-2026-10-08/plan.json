@@ -1,0 +1,38 @@
+{
+  "task": 404,
+  "baseline": "02f4fa517cbee06a0e5f14624dab160c45648b65",
+  "scope": "Complete voice provider structure, bounded catalog metadata and lifecycle/gender residues",
+  "builder": "Astra /root/astra_nine_review",
+  "independentReviewer": "Astra /root/astra_nine_voice",
+  "rootResponsibilities": [
+    "integration records",
+    "version markers",
+    "mandatory hook",
+    "affected-range mutations",
+    "push and remote CI",
+    "archive completed row unchanged"
+  ],
+  "noOwnerDecisionNeeded": true,
+  "preReview": {
+    "registry": "credential destination, model help metadata, slot options and map participation; preserve GM keys and rollback",
+    "catalog": "one bounded compact projection preserves all actor IDs/order, selections and useful casting descriptions; normalizes saved gender; no writes until Save",
+    "lifecycle": "own ready timer handle; release completed cloud abort closure; retain cancellation and fallback controls"
+  },
+  "preservation": [
+    "runtime no provider API/paid live calls",
+    "no personal settings or save writes",
+    "unrelated untracked website art untouched",
+    "excluded issues untouched"
+  ],
+  "proofPlan": [
+    "new synthetic provider works from registry entry",
+    "credential rollback and unrelated GM keys",
+    "two 4000 actor catalogs and repeated Save/reload content preservation",
+    "saved male/female gender and existing pins",
+    "Piper ready/destroy/timeout cycles",
+    "all-decode-failed cloud read and Stop/success controls",
+    "rendered settings and character controls in disposable browser",
+    "named scratch sabotage",
+    "full mandatory pre-commit and CI"
+  ]
+}

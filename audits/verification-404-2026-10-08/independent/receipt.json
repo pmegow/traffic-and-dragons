@@ -1,0 +1,200 @@
+{
+  "review": "APPROVE",
+  "baseline": "02f4fa517cbee06a0e5f14624dab160c45648b65",
+  "completedUTC": "2026-10-09T03:46:06.285Z",
+  "sourceHashes": {
+    "tts.js": "1488179bf03973efa20879c20c8b6e082c8a8f42713ccad2f870359bc7574d5f",
+    "ui-sheets.js": "10729c8739f20cc835307458493d3009b47c4c90ef66ae007605e70205e43f33",
+    "ui-voice-settings.js": "71f4b276f79731f31c98475b0f92a840e574e36d5eb63998ab273ec13f4a88fc",
+    "game.js": "77166d9014cbc1cb4218e171de6434d9ed63c6139b9c25a3efbd98b7b7175d89"
+  },
+  "assertions": {
+    "registry": 8,
+    "catalog": 245,
+    "cache": 703,
+    "lifecycle": 1090,
+    "total": 2046
+  },
+  "catalog": {
+    "checks": 245,
+    "cycles": 30,
+    "actors": 8000,
+    "serializedCodeUnits": 868547,
+    "utf8Bytes": 876547,
+    "worldImmutable": true,
+    "scope": "synthetic in-memory storage, fresh TTS module per reload, exact IDs/labels/genders/notes/languages and cast pins compared each cycle"
+  },
+  "browserDuration": {
+    "before": {
+      "elapsedMs": 35847,
+      "cycles": 70,
+      "timers": 58,
+      "frames": 0,
+      "checkpoints": [
+        {
+          "cycle": 1,
+          "ms": 7,
+          "timers": 1,
+          "frames": 0
+        },
+        {
+          "cycle": 11,
+          "ms": 5133,
+          "timers": 11,
+          "frames": 0
+        },
+        {
+          "cycle": 21,
+          "ms": 10249,
+          "timers": 21,
+          "frames": 0
+        },
+        {
+          "cycle": 31,
+          "ms": 15369,
+          "timers": 31,
+          "frames": 0
+        },
+        {
+          "cycle": 41,
+          "ms": 20485,
+          "timers": 41,
+          "frames": 0
+        },
+        {
+          "cycle": 51,
+          "ms": 25610,
+          "timers": 51,
+          "frames": 0
+        },
+        {
+          "cycle": 61,
+          "ms": 30732,
+          "timers": 59,
+          "frames": 0
+        }
+      ]
+    },
+    "after": {
+      "elapsedMs": 35996,
+      "cycles": 70,
+      "timers": 0,
+      "frames": 0,
+      "checkpoints": [
+        {
+          "cycle": 1,
+          "ms": 9,
+          "timers": 0,
+          "frames": 0
+        },
+        {
+          "cycle": 11,
+          "ms": 5158,
+          "timers": 0,
+          "frames": 0
+        },
+        {
+          "cycle": 21,
+          "ms": 10284,
+          "timers": 0,
+          "frames": 0
+        },
+        {
+          "cycle": 31,
+          "ms": 15431,
+          "timers": 0,
+          "frames": 0
+        },
+        {
+          "cycle": 41,
+          "ms": 20595,
+          "timers": 0,
+          "frames": 0
+        },
+        {
+          "cycle": 51,
+          "ms": 25742,
+          "timers": 0,
+          "frames": 0
+        },
+        {
+          "cycle": 61,
+          "ms": 30860,
+          "timers": 0,
+          "frames": 0
+        }
+      ]
+    }
+  },
+  "recovery": {
+    "keyless": {
+      "primary": "local",
+      "voices": [],
+      "narrator": "keep-narrator",
+      "cast": {
+        "legacy": "keep-pin"
+      },
+      "key": ""
+    },
+    "aggregate": {
+      "primary": "local",
+      "inworld": 0,
+      "speechify": 4000,
+      "pinsSame": true,
+      "size": 583024
+    },
+    "late": {
+      "voices": [],
+      "cast": {
+        "legacy": "saved-pin"
+      },
+      "aborted": true
+    }
+  },
+  "files": [
+    "probe.js",
+    "tts-baseline.js",
+    "baseline-results.json",
+    "browser.js",
+    "baseline-browser.json",
+    "baseline-browser.log",
+    "baseline-detail-settings.png",
+    "browser-snapshot.js",
+    "registry.js",
+    "registry.log",
+    "catalog-final.js",
+    "catalog-final.log",
+    "cache-final.js",
+    "cache-final.log",
+    "lifecycle-final.js",
+    "lifecycle-final.log",
+    "performance.js",
+    "performance.log",
+    "performance-cached.log",
+    "draft-regression.js",
+    "draft-regression.log",
+    "keyless-repair.js",
+    "keyless-repair.log",
+    "browser-final.js",
+    "patched-browser.json",
+    "patched-browser.log",
+    "browser-clear.js",
+    "browser-clear.log",
+    "patched-recovery-final-browser.json",
+    "keyless-clear-draft.png",
+    "aggregate-refusal.png",
+    "browser-gender-final.js",
+    "final-gender-settings.png",
+    "final-gender-phone.png",
+    "final-gender-browser.json",
+    "final-gender-browser.log"
+  ],
+  "limits": [
+    "Synthetic catalogs/keys only; no personal saves/profile written or read.",
+    "No paid/provider synthesis calls; all browser foreign requests intercepted/aborted.",
+    "Actual Chrome duration measures handles/frame lifecycle with synthetic ready iframe, not WASM synthesis heap.",
+    "Forced-GC Node figures demonstrate bounded sampled heaps, not proof of browser GC or all device behavior.",
+    "No full suite, staging, commit, markers, TODO or repository edits performed by independent reviewer.",
+    "Preexisting all-decode-failed audition fallback behavior was not changed by this closure-cleanup task."
+  ]
+}

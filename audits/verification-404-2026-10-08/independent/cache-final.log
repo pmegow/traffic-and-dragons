@@ -1,0 +1,11 @@
+{
+  "checks": 703,
+  "imports": 100,
+  "invalidReads": 100,
+  "warnings": 1,
+  "cacheEntries": [
+    "inworld",
+    "speechify"
+  ],
+  "scope": "static registered models only; no runtime provider registration/removal UI exists"
+}

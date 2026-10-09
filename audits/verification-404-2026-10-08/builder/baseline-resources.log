@@ -1,0 +1,8 @@
+#404 resources: 0 passed, 2 failed
+FAIL #404 ready timer lifecycle returns to zero across repeated spawns — ready timer retained
+
+1 !== 0
+
+FAIL #404 decode allocation failure releases cloud closure before fallback — finished cloud closure retained
+
+true !== false

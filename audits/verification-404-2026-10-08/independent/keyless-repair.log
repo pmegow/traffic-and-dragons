@@ -1,0 +1,13 @@
+[
+  {
+    "version": "baseline",
+    "savedLocal": true,
+    "inworldKey": false
+  },
+  {
+    "version": "candidate",
+    "savedLocal": false,
+    "inworldKey": false,
+    "error": "Voice catalog actor requires an unchanged id of 1–512 characters."
+  }
+]

@@ -1,0 +1,14 @@
+[speakers] pinned voice en_US-libritts_r-medium#611 to Fixture Hero (auto-cast, now permanent — change it on their NPC card)
+PASS #404 credential transaction rollback and blank BYOK preservation
+PASS #404 standalone draft tolerates absent BYOK registry
+#404 registry: 2 passed, 5 failed
+FAIL #404 registry credential roundtrip preserves GM keys — Expected values to be strictly equal:
+
+'' !== 'fresh'
+
+FAIL #404 sheet dispatch follows slot presentation not provider name — backup options lost after provider rename
+FAIL #404 settings direction and credential hints derive from model — <div class='tts-connection'><span>API key saved</span><button id='tts-key-change' class='tts-link' type='button'>Change key</button></div><div id='tts-key-wrap' hidden>Fixture API key<input id='tts-api-key' type='password' autocomplete='off' spellcheck='false' placeholder='Paste API key' value=''/><p class='tts-help'>Stored on this device, like your existing API keys.</p></div><p class='tts-help'></p>Narrator voice<select id='tts-narrator'></select><p id='tts-actor-note' class='tts-help'></p><p class='tts-help'>Language: detected from text / selected voice</p>Delivery direction<textarea id='tts-direction' rows='2' maxlength='1200'></textarea>
+FAIL #404 speaker map and first speech respect numeric slot role — numeric backup dispatched as cloud
+FAIL #404 catalog recovery control dispatches explicit draft clear — The expression evaluated to a falsy value:
+
+  assert(html.includes('tts-clear-catalog-inworld'))
