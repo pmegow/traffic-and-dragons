@@ -5,7 +5,7 @@
 var sabotage = require("./sabotage.js"), code = 0;
 var CMD = ["node", ["dev/run-tests.js", "#481 D3"]];
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
-prove("api.js", [
+prove("inventory.js", [/* #599 (b): the quantity grammar moved */
   { label: "the parser reads only single digits again",
     find: "match(/^(.*\\S)\\s+x([1-9]\\d*)$/i);if(!m)return", replace: "match(/^(.*\\S)\\s+x([2-9])$/i);if(!m)return",
     mustFail: "x12 and x10 move twelve and ten" },

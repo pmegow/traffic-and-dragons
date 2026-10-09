@@ -25,6 +25,7 @@ var ENGINE_MANIFEST = [
   { file: "blueprint-edition.js",  sym: "BlueprintEdition" },
   { file: "library-slug.js",       sym: "LibrarySlug" },/* #481 F5: the library slug the server vendors */
   { file: "helpers.js",            sym: "skillLevel" },
+  { file: "inventory.js",          sym: "itemKey" },/* #599 (b): the inventory module — both forms, one key */
   { file: "state.js",              sym: "blankMemory" },
   { file: "storage-adapter.js",    sym: "storageAdapter" },
   { file: "memory.js",             sym: "resolveNpcName" },

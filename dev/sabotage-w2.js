@@ -496,7 +496,13 @@ rc|=sabotage.prove({
       // Removing this call breaks the same reward-claim edge in the earlier transitive census.
       mustFail:"buildIdentityConflictNudge -> rewardClaimQueue -> pendingRewardClaims is outside the transitive census",
       find:"if(_shLost&&typeof rewardClaimQueue===\"function\"&&rewardClaimQueue(c.subject,c.withheld,c.reason)){",/* #262 made the queue call the ledger-clearing conditional */
-      replace:"if(false){"},
+      replace:"if(false){"}
+  ]
+});
+rc|=sabotage.prove({/* #599 (b): inventoryCountOf moved to inventory.js */
+  file:"inventory.js",
+  command:["node",["dev/run-tests.js"]],skip:FOCUSED,
+  cases:[
     {label:"inventoryCountOf stops summing the \"xN\" suffix — the count-aware read becomes a line count again (#273)",
       mustFail:"#273 a claimed item the player ALREADY carries is reported AWARDED",
       find:"  for(i=0;i<(inv||[]).length;i++)if(_invNorm(inv[i])===t)n+=_invCount(inv[i]);",

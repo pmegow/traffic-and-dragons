@@ -31311,4 +31311,98 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
 
+  // ── #599 (b): THE INVENTORY MODULE — inventory.js owns both forms; the legacy functions moved verbatim, the row API is
+  // built and tested here and installed by release (c). Gates 1 and 14 of DOC/DESIGN_599_inventory_rows.md §8.2.
+  section("#599 (b) the inventory module — one home, one key, the row form prepared losslessly or refused");
+  t("#599b one home: the inventory-string functions live in inventory.js and nowhere else; the engine manifest and every host load it after helpers.js and before state.js",function(){
+    var api=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),inv=__fsForTests.readFileSync(__rootForTests+"/inventory.js","utf8"),i;
+    var names=["_invNorm","_invCount","_invBase","_qtyParse","addInventoryItem","removeInventoryItem","resolveInventoryName","renameInventoryItem","inventoryCountOf","wornSet","wornPrune","wornRename","_wornIdx","isWorn","itemPairKey","stashKey","sanitizeModelInventory","foldDuplicateInventory"];
+    for(i=0;i<names.length;i++){if(api.indexOf("function "+names[i]+"(")>=0)return names[i]+" is still defined in api.js — two inventory APIs";if(inv.indexOf("function "+names[i]+"(")<0)return names[i]+" is not defined in inventory.js";}
+    if(typeof itemKey!=="function"||typeof invRows!=="function")return "the module's own API is missing";
+    var man=__fsForTests.readFileSync(__rootForTests+"/dev/engine-manifest.js","utf8"),h=man.indexOf('file: "helpers.js"'),m=man.indexOf('file: "inventory.js"'),s=man.indexOf('file: "state.js"');
+    if(!(h>=0&&m>h&&s>m))return "the engine manifest must list inventory.js between helpers.js and state.js";
+    var hosts=["index.html","admin_console.html","blueprint-designer.html","character_editor.html","home.html","map_cleanup.html","mementos.html"];
+    for(i=0;i<hosts.length;i++){var src=__fsForTests.readFileSync(__rootForTests+"/"+hosts[i],"utf8");if(src.indexOf('<script src="helpers.js"></script>\n<script src="inventory.js"></script>\n<script src="state.js"></script>')<0)return hosts[i]+" must load inventory.js between helpers.js and state.js (a host that loads state.js without it skips a migration step in silence)";}
+    if(__fsForTests.readFileSync(__rootForTests+"/sw.js","utf8").indexOf('"/inventory.js",')<0)return "sw.js's app shell must carry inventory.js";
+    return true;
+  });
+  t("#599b one key: itemKey is the pack rule on a count-free name and agrees with the legacy _invNorm wherever no count is involved; itemBaseKey agrees with the legacy pair key",function(){
+    var cases=["Torch","Travel rations","Iron ring — unmarked","Iron ring - unmarked","Sword (rusty)","  Saddles ","Signet ring (from Sheriff Hemlock)","Potion of Hex","Chaos","well-worn cloak","Dark tooth cap 'Third'"],i;
+    for(i=0;i<cases.length;i++){if(itemKey(cases[i])!==_invNorm(cases[i]))return "itemKey and _invNorm disagree on '"+cases[i]+"': "+itemKey(cases[i])+" / "+_invNorm(cases[i]);
+      if(itemBaseKey(cases[i])!==itemPairKey(cases[i]))return "itemBaseKey and itemPairKey disagree on '"+cases[i]+"': "+itemBaseKey(cases[i])+" / "+itemPairKey(cases[i]);}
+    if(itemKey("Iron ring — unmarked")!==itemKey("Iron ring - unmarked")||itemKey("Wolf pelts")!==itemKey("Wolf pelt")||itemKey("Sword (rusty)")===itemKey("Sword (enchanted)"))return "the pack rule: dash variants and a plural s fold, a parenthetical does not";
+    if(itemKey("Torch x2")===itemKey("Torch"))return "itemKey must NOT strip a count — a row named 'Torch x2' is literal (I3)";
+    if(itemBaseKey("Signet ring (from Sheriff Hemlock)")!==itemKey("Signet ring")||itemBaseKey("Rope — spare")!==itemKey("Rope"))return "the provenance-free projection strips the clause";
+    var p=invStoredParse("Arrow x20");if(p.name!=="Arrow"||p.qty!==20)return "the stored grammar reads a trailing count";
+    p=invStoredParse("Model x01");if(p.name!=="Model x01"||p.qty!==1)return "a leading zero is a literal name";
+    p=invStoredParse("Arrow x5000");if(p.qty!==5000)return "the stored grammar never clamps (the caller refuses above INV_QTY_MAX): "+p.qty;
+    return INV_QTY_MAX===9999&&QTY_MAX===999?true:"INV_QTY_MAX is 9999 and the tag grammar keeps QTY_MAX 999";
+  });
+  t("#599b gate 1: invRows over strings, rows, a mix, leftover worn, junk, duplicate keys, literal count names, leading zeros, the two bounds and conflicting extras — success idempotent, refusal preserves the input",function(){
+    var r=invRows(["Torch x3","Rope","rope","Model x01",{name:"Lamp",qty:2,equipped:true,slot:"hand"},{name:"Torch x2",qty:1},null,7,{qty:3},{name:" "}],["Rope","Lamp","Ghost"]);
+    if(!r.ok)return "a sane mixed list prepares: "+r.reason;
+    var names=r.rows.map(function(x){return x.name;}).join("|");if(names!=="Torch|Rope|Model x01|Lamp|Torch x2")return "rows by key, first name and position win, literal count names stay literal: "+names;
+    if(r.rows[1].qty!==2||!r.rows[1].equipped)return "'rope' folded into 'Rope' (qty 2) and the worn name equipped it: "+JSON.stringify(r.rows[1]);
+    if(r.rows[3].slot!=="hand"||r.rows[3].qty!==2||r.rows[3].equipped!==true)return "an unknown field rides, qty and equipped keep: "+JSON.stringify(r.rows[3]);
+    var reasons=r.diagnostics.map(function(d){return d.reason;}).join("|");if(!/not an item.*not an item.*not an item.*empty name|not an item/.test(reasons)||r.diagnostics.length!==5)return "junk and the uncarried worn name are evidence, each with its original: "+reasons+" ("+r.diagnostics.length+")";
+    if(r.diagnostics[r.diagnostics.length-1].original!=="Ghost")return "the worn name nobody carries is reported with its original";
+    var again=invRows(r.rows);if(!again.ok||!invDeepEqual(again.rows,r.rows)||again.diagnostics.length)return "re-preparing the rows is identity with no new diagnostics";
+    var bad=invRows(["Torch x10000"]);if(bad.ok||bad.rows!==null||!/above 9999/.test(bad.reason))return "a stored count above the bound refuses whole: "+JSON.stringify(bad);
+    bad=invRows([{name:"Torch",qty:5000},{name:"torch",qty:5000}]);if(bad.ok||!/passes 9999/.test(bad.reason))return "a fold that passes the bound refuses: "+JSON.stringify(bad);
+    bad=invRows([{name:"Torch",qty:1,slot:"hand"},{name:"torch",qty:1,slot:"belt"}]);if(bad.ok||!/different fields/.test(bad.reason))return "a same-key fold with different extras refuses — I2 stays strict: "+JSON.stringify(bad);
+    var same=invRows([{name:"Torch",qty:1,slot:"hand"},{name:"torch",qty:1,slot:"hand"}]);if(!same.ok||same.rows.length!==1||same.rows[0].qty!==2)return "equal extras fold";
+    var src=[{name:"Torch",qty:Infinity}],before=JSON.stringify(src.map(function(x){return [x.name,String(x.qty)];}));bad=invRows(src);if(bad.ok||!/non-finite/.test(bad.reason))return "a non-finite count refuses before any clone: "+JSON.stringify(bad);
+    if(JSON.stringify(src.map(function(x){return [x.name,String(x.qty)];}))!==before)return "the refused input was touched";
+    var rep=invRows([{name:"Torch",qty:"3"},{name:"Lamp",qty:0},{name:"Rope",equipped:"yes"}]);if(!rep.ok||rep.rows[0].qty!==1||rep.rows[1].qty!==1||rep.rows[2].equipped!==false||rep.diagnostics.length!==3)return "a JSON-representable invalid count repairs to 1 WITH evidence; a non-boolean flag reads false with evidence: "+JSON.stringify(rep);
+    var cyc={name:"Loop",qty:1};cyc.self=cyc;bad=invRows([cyc]);if(bad.ok||!/cycle/.test(bad.reason))return "a cycle refuses";
+    var und=invRows([{name:"Torch",qty:1,note:undefined}]);if(und.ok||!/undefined/.test(und.reason))return "an undefined field refuses (JSON would drop it in silence)";
+    var nz=invRows([{name:"Torch",qty:1,weight:-0}]);if(nz.ok||!/negative zero/.test(nz.reason))return "negative zero refuses (JSON turns it into 0)";
+    var none=invRows(undefined);if(!none.ok||none.rows.length||none.diagnostics.length)return "a missing inventory is an empty list without evidence";
+    var cont=invRows("Torch");if(!cont.ok||cont.rows.length||cont.diagnostics.length!==1||cont.diagnostics[0].original!=="Torch")return "a container that is not a list is kept whole as evidence and reads as empty";
+    return true;
+  });
+  t("#599b the row functions: find (exact, then a unique base, ambiguous refuses), add stacks by key and refuses over the bound, remove returns the fragment with its fields, rename refuses a collision, equip refuses an uncarried item, text is a projection",function(){
+    var rows=invRows(["Torch x2","Signet ring (from Sheriff Hemlock)","Rope (spare)","Rope"]).rows;
+    if(invFind(rows,"torch")!==0||invFind(rows,"Signet ring")!==1)return "exact key, then a unique provenance-free base";
+    if(invFind(rows,"Rope")!==3)return "an exact key beats the base";
+    rows=invRows(["Rope (spare)","Rope (coil)"]).rows;if(invFind(rows,"Rope")!==-1||!invFind.last||invFind.last.why!=="ambiguous"||invFind.last.names.length!==2)return "two bases are ambiguous: "+JSON.stringify(invFind.last);
+    rows=invRows(["Rope x2"]).rows;var a=invAdd(rows,"ropes",3);if(!a.ok||rows.length!==1||rows[0].qty!==5||rows[0].name!=="Rope")return "add stacks by key (a plural s folds, as the pack rule always did), the first name wins: "+JSON.stringify(rows);
+    a=invAdd(rows,"Rope",9999);if(a.ok||!/pass/.test(a.reason)||rows[0].qty!==5)return "add refuses over the bound and changes nothing: "+JSON.stringify(a);
+    a=invAdd(rows,"Lamp");if(!a.ok||rows.length!==2||rows[1].qty!==1||rows[1].equipped!==false)return "a new name appends one unit";
+    rows[0].slot="hand";var rm=invRemove(rows,"rope",2);if(!rm.ok||rm.units!==2||rm.removed.slot!=="hand"||rm.removed.qty!==2||rows[0].qty!==3||rm.remainder!==3)return "remove returns the fragment with its fields and the units taken: "+JSON.stringify(rm);
+    rm=invRemove(rows,"Rope",99);if(!rm.ok||rm.units!==3||rows.length!==1||rows[0].name!=="Lamp")return "removing more than held takes what is there and drops the row";
+    rm=invRemove(rows,"Sword");if(rm.ok||rm.reason!=="not carried")return "an absent item refuses";
+    var rn=invRename(rows,"Lamp","Lantern");if(!rn.ok||rows[0].name!=="Lantern")return "rename keeps the row";
+    invAdd(rows,"Torch");rn=invRename(rows,"Torch","lanterns");if(rn.ok||rows[1].name!=="Torch")return "a rename onto an existing key refuses";
+    var eq=invEquip(rows,"Shield",true);if(eq.ok||eq.reason!=="not carried")return "equipping an uncarried item refuses";
+    eq=invEquip(rows,"lantern",true);if(!eq.ok||rows[0].equipped!==true)return "equip sets the flag";eq=invEquip(rows,"Lantern",true);if(eq.ok||eq.reason!=="already equipped")return "re-equipping says so";
+    eq=invEquip(rows,"Lantern",false);if(!eq.ok||rows[0].equipped!==false)return "unequip clears it";
+    if(invText({name:"Torch",qty:3})!=="Torch x3"||invText({name:"Torch",qty:1})!=="Torch"||invTextList(rows).join("|")!=="Lantern|Torch")return "text is today's stored string";
+    if(invText({name:"Torch x2",qty:1})!==invText({name:"Torch",qty:2}))return "two distinct rows CAN print alike — text is never identity";
+    return true;
+  });
+  t("#599b gate 14: a detached copy is validated first, then independent — writes to the copy never reach the live rows, and a refused detach names why",function(){
+    var live=invRows([{name:"Torch",qty:3,extra:{deep:[1,2]}}]).rows,d=invDetach(live);
+    if(!d.ok)return "a plain list detaches: "+d.reason;
+    invRemove(d.rows,"Torch",2);d.rows[0].extra.deep.push(3);
+    if(live[0].qty!==3||live[0].extra.deep.length!==2)return "the live rows changed through the copy";
+    var bad={name:"Torch",qty:1};bad.me=bad;d=invDetach([bad]);if(d.ok||!/cycle/.test(d.reason)||d.rows!==null)return "a cycle refuses to detach: "+JSON.stringify(d);
+    d=invDetach([{name:"T",qty:1,at:new Date()}]);return (!d.ok&&/unsupported object type/.test(d.reason))?true:"a Date refuses (JSON would stringify it): "+JSON.stringify(d);
+  });
+  t("#599b the legacy form is untouched by the move: stacking, counting, the resolver, the pair and stash keys, worn, sanitation and folding behave as they did (a frozen table of cases)",function(){
+    var inv=["Torch x1","Rope"];addInventoryItem(inv,"rope");if(inv.join("|")!=="Torch x1|Rope x2")return "an untouched spelling survives a write ('Torch x1' stays): "+inv.join("|");
+    addInventoryItem(inv,"Rope");if(inv[1]!=="Rope x3")return "stacking";
+    if(inventoryCountOf(inv,"ropes")!==3||_invCount("Rope x3")!==3||_invBase("Rope x3")!=="Rope")return "counting";
+    if(!removeInventoryItem(inv,"Rope")||inv[1]!=="Rope x2"||removeInventoryItem.last!=="Rope")return "removing one";
+    if(resolveInventoryName(["Signet ring (from Sheriff Hemlock)"],"Signet ring")!==0||resolveInventoryName(["Rope (a)","Rope (b)"],"Rope")!==-1||!_invLastMiss||_invLastMiss.why!=="ambiguous")return "the resolver";
+    if(itemPairKey("Signet ring (from Sheriff Hemlock) x2")!=="signet ring"||stashKey("Iron ring — unmarked x3")!=="iron ring-unmarked")return "the pair and stash keys";
+    var q=_qtyParse("Arrow x1000");if(q.n!==999||!q.clamped)return "the TAG grammar still clamps at QTY_MAX";
+    var cs={name:"T",inventory:["Chainmail","Shield"],worn:[]};var w=wornSet(cs,"chainmail",true);if(!w.ok||cs.worn[0]!=="Chainmail"||!isWorn(cs,"Chainmail"))return "worn";
+    w=wornSet(cs,"Helm",true);if(w.ok||w.reason!=="not carried")return "nothing uncarried is worn";
+    cs.inventory=["Shield"];if(wornPrune(cs)!==1||cs.worn.length)return "prune follows the pack";
+    if(sanitizeModelInventory(["Rope x3","rope x3",7,"Torch"]).join("|")!=="Rope x6|Torch")return "sanitation stacks on arrival";
+    var f=["Dagger","Dagger","Iron ring — unmarked","Iron ring - unmarked"];if(foldDuplicateInventory(f)!==2||f.join("|")!=="Dagger x2|Iron ring — unmarked x2")return "folding heals the stock: "+f.join("|");
+    return true;
+  });
+
 }

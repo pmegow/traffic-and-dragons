@@ -3155,29 +3155,7 @@ function warnSheetlessCompanion(name){
 // True for a pronoun pair like "he/him", "she/her", "they/them" (incl. common neopronouns).
 // Whitelisted tokens so real relations like "ally/foe" don't false-positive.
 function isPronounStr(s){return /^\s*(he|she|they|it|ze|zie|xe|fae|ey|per)\s*\/\s*(him|her|them|it|its|hir|zir|xem|faer|em|per)\s*$/i.test(s||"");}
-// Inventory stacks via a trailing " xN" suffix: gaining a duplicate increments the count instead of
-// pushing a second entry; losing decrements (and drops the suffix at 1). Genuine repeat pickups (5x
-// poison arrow) collapse to one "Poison arrow x5" line.
-// Stack-matching tolerates case, extra whitespace, and a trailing plural "s" (so "Travel ration",
-// "travel rations", and "Saddle"/"Saddles" stack) — but NOT parenthetical qualifiers: "Sword (rusty)"
-// and "Sword (enchanted)" are distinct and must stay separate. A trailing " xN" count is stripped first.
-// #75(b) v1.385: DASH VARIANTS normalise too. The GM writes the same item with an em-dash one
-// turn and a hyphen the next ("Iron ring — unmarked" / "Iron ring - unmarked"), and because the
-// two strings differed here they were two separate stacks of the same three rings — on the t881
-// save, exactly 2 such pairs across the party (Iron ring, Iron key; verified by enumerating every
-// NEW collision the change causes, since a wrong merge silently destroys a real item — the
-// superficially-similar "Dark tooth cap 'Third'/'Seventh'" pair correctly does NOT fold).
-// Every dash character folds to "-" and the
-// spacing around it collapses, so all of "A — B", "A - B", "A—B" agree. Spaced words are NOT
-// folded into hyphenated ones ("well worn" stays distinct from "well-worn") — deliberately
-// conservative, since a wrong merge silently destroys a real item.
-// Non-strings coerce to "" (not just null/undefined): load-time migration deliberately preserves
-// non-string inventory entries, and a primitive that throws on one kills whatever loop touched it —
-// inventorySnapshot sits BEFORE applyMuts in the turn path, so that throw cost the entire turn.
-function _invStr(s){return typeof s==="string"?s:"";}
-function _invNorm(s){return _invStr(s).replace(/\s*x\d+\s*$/i,"").toLowerCase().replace(/[—–−‑]/g,"-").replace(/\s*-\s*/g,"-").replace(/\s+/g," ").trim().replace(/s$/,"");}
-function _invCount(s){var m=_invStr(s).match(/\sx(\d+)\s*$/i);return m?parseInt(m[1],10):1;}
-function _invBase(s){return _invStr(s).replace(/\s*x\d+\s*$/i,"").trim();}
+/* #599 (b): the inventory-string functions that lived here (stacking, worn, the quantity grammar, the resolver, the pair and stash keys, sanitation and duplicate folding) moved VERBATIM to inventory.js — ONE home for the inventory, in both its forms. Their comments and war stories went with them. */
 // ── #388: ATTIRE — what a party member has ON, as two fields on every sheet (player and companion alike):
 //   worn:[]        the STORED inventory strings currently worn/held-ready (armor buckled, shield slung, ring on).
 //                  Nothing can be worn that is not carried: [WORN:|on] for an uncarried item is REFUSED loudly,
@@ -3189,34 +3167,11 @@ function _invBase(s){return _invStr(s).replace(/\s*x\d+\s*$/i,"").trim();}
 // Narrative-only for the first cut (no AC, no stealth). Name-addressed: attireSheet resolves the player by name.
 var OUTFIT_MAX_CHARS=140;
 function attireSheet(name){var n=String(name||"").trim();if(!n||!worldState)return null;if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(n))return worldState.character;var _c=worldState.character;if(_c&&_c.name&&_c.name.toLowerCase()===n.toLowerCase())return _c;return findCompanionChar(typeof resolveNpcName==="function"?resolveNpcName(n):n);}
-function _wornIdx(list,item){var t=_invNorm(item),i;for(i=0;i<(list||[]).length;i++)if(_invNorm(list[i])===t)return i;return -1;}
-function wornSet(cs,item,on,who){if(!cs)return {ok:false,reason:"no sheet"};if(!cs.worn)cs.worn=[];var inv=cs.inventory||[],ii=_wornIdx(inv,item),wi=_wornIdx(cs.worn,item);
-  if(!on){if(wi<0)return {ok:false,reason:"not worn"};var _rm=cs.worn.splice(wi,1)[0];return {ok:true,item:_invBase(_rm)};}
-  if(ii<0){if(typeof console!=="undefined")console.warn("[attire] WORN: '"+item+"' is not in "+(who||cs.name||"?")+"'s inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)");return {ok:false,reason:"not carried"};}
-  var stored=_invBase(inv[ii]);if(wi>=0)return {ok:false,reason:"already worn",item:stored};cs.worn.push(stored);return {ok:true,item:stored};}
-function wornPrune(cs){if(!cs||!cs.worn||!cs.worn.length)return 0;var inv=cs.inventory||[],keep=[],i,dropped=0;for(i=0;i<cs.worn.length;i++){if(_wornIdx(inv,cs.worn[i])>=0)keep.push(cs.worn[i]);else dropped++;}cs.worn=keep;return dropped;}
-function wornRename(cs,oldName,newName){if(!cs||!cs.worn)return false;var wi=_wornIdx(cs.worn,oldName);if(wi<0)return false;cs.worn[wi]=_invBase(newName);return true;}
 function outfitSet(cs,text,turn){if(!cs)return null;var t=String(text||"").replace(/\s+/g," ").trim();if(!t)return null;if(t.length>OUTFIT_MAX_CHARS)t=t.slice(0,OUTFIT_MAX_CHARS-1)+"…";cs.outfit={text:t,turn:(typeof turn==="number"?turn:((worldState&&worldState.turn)||0))};if(typeof campStampOn==="function")campStampOn(cs.outfit);/* #481 C5 (d): C8's stamper */return cs.outfit;}
-function isWorn(cs,item){return !!(cs&&cs.worn&&_wornIdx(cs.worn,item)>=0);}
 // The ONE prompt/sheet/render line. "" when nothing was ever set — the prompt stays byte-identical for every
 // campaign that never touches attire (engine-tested). Worn empty but an outfit on file reads "Wearing: nothing".
 function attireLine(cs){if(!cs)return "";var w=(cs.worn||[]).filter(function(x){return !!x;}),o=cs.outfit&&cs.outfit.text&&(typeof sceneTurnLive!=="function"||sceneTurnLive(cs.outfit.turn))?cs.outfit:null;/* #481 C5: a negative age is another campaign's */if(!w.length&&!o)return "";return "Wearing: "+(w.length?w.join(", "):"no gear")+(o?" | Outfit (t"+(o.turn||0)+"): "+o.text:"");/* #388b (owner, 2026-09-10: "Wearing: nothing" read as naked — the outfit half is the clothes) */}
 function attireRenderText(cs){if(!cs)return "";var w=(cs.worn||[]).filter(function(x){return !!x;}),o=cs.outfit&&cs.outfit.text&&(typeof sceneTurnLive!=="function"||sceneTurnLive(cs.outfit.turn))?cs.outfit.text:"";/* #481 C5 */if(!w.length&&!o)return "";return "currently wearing: "+(w.length?w.join(", "):"no gear")+(o?"; "+o:"");}
-// P14: a quantity baked into an item TAG ("Rope x3") means N of the base item, not one item
-// literally named "Rope x3" — without this, gaining "Rope x3" onto an existing "Rope" stack
-// stepped the count to x2 instead of x4, and losing "Rope x2" removed only one. The x must be
-// a separate token (whitespace before, single digit 2-9 after) so names that merely end in x
-// ("Potion of Hex") are never mangled.
-/* #481 D3 (audit 2026-09-29, Fable-approved): ONE quantity grammar — " xN" for any N from 1 (the stack reader always
-   accepted any xN; the tag parser read only x2..x9, so "+Arrows x12" onto 13 gave 14 and "-Arrow x10" removed one). "x1" is
-   one unit, never part of a name; x0 and leading zeros stay part of the name (unchanged). A runaway count is CLAMPED at
-   QTY_MAX with clamped:true, and every caller names the bound in its receipt. */
-var QTY_MAX=999;
-function _qtyParse(name){var m=(name||"").trim().match(/^(.*\S)\s+x([1-9]\d*)$/i);if(!m)return {base:(name||"").trim(),n:1};var n=parseInt(m[2],10);return n>QTY_MAX?{base:m[1],n:QTY_MAX,clamped:true}:{base:m[1],n:n};}
-function addInventoryItem(inv,name){var t=_invNorm(name),i;
-  for(i=0;i<inv.length;i++){if(_invNorm(inv[i])===t){inv[i]=_invBase(inv[i])+" x"+(_invCount(inv[i])+1);return;}}
-  inv.push(name);
-}
 /* ── #273 (Fable f29, joint review 2026-08-27) — a reward token declares the target it must move ──
    The #215 measured-award guard compared inventory LENGTH, but addInventoryItem STACKS IN PLACE
    (the rewrite directly above): a claimed item the player already carries becomes "Name x2" and
@@ -3230,11 +3185,6 @@ function addInventoryItem(inv,name){var t=_invNorm(name),i;
    fills a claim, and each arm's amount grammar mirrors that tag's own handler in tag_table.js. A
    token this table cannot measure is reported UNVERIFIED by rewardClaimAccept and never assumed
    landed, so a new reward tag can never silently ride another token's delta. */
-function inventoryCountOf(inv,name){
-  var t=_invNorm(name),n=0,i;
-  for(i=0;i<(inv||[]).length;i++)if(_invNorm(inv[i])===t)n+=_invCount(inv[i]);
-  return n;
-}
 function rewardAwardTargets(tokens){
   var out=[],idx=keyedDict(),i,m,q,kind,key,expect,gk,tk;
   for(i=0;i<(tokens||[]).length;i++){
@@ -3265,26 +3215,6 @@ function duplicateItemGrantWarning(inv,name,incoming,owner,R,raw){
     return true;
   }
   return false;
-}
-// #176: relabel a carried item IN PLACE — the engine path a fiction-side rename never had.
-// Stack count and list position survive; unknown item and name-collision both refuse LOUDLY
-// (muts + console). A collision is refused because two entries silently becoming one is
-// [ITEM_LOST:]'s job — a relabel must never destroy a stack.
-function renameInventoryItem(inv,oldName,newName,R,who){
-  var key=_invNorm(oldName),nk=_invNorm(newName),i,hit=-1,label=who?who+": ":"";
-  for(i=0;i<(inv||[]).length;i++){if(_invNorm(inv[i])===key){hit=i;break;}}
-  if(hit<0){for(i=0;i<(inv||[]).length;i++){if(itemBaseName(inv[i])===itemBaseName(oldName)){hit=i;break;}}}
-  if(hit<0){
-    var m1="RENAME refused: no '"+oldName+"' on the "+(who||"player")+" sheet";
-    if(typeof console!=="undefined")console.warn("[items] "+m1);if(R&&R.muts)R.muts.push("⚠ "+label+m1);return false;
-  }
-  for(i=0;i<inv.length;i++){if(i!==hit&&_invNorm(inv[i])===nk){
-    var m2="RENAME refused: '"+newName+"' already on the sheet — if the two are one item, emit [ITEM_LOST:"+oldName+"] instead";
-    if(typeof console!=="undefined")console.warn("[items] "+m2);if(R&&R.muts)R.muts.push("⚠ "+label+m2);return false;
-  }}
-  var c=_invCount(inv[hit]);inv[hit]=newName+(c>1?" x"+c:"");
-  if(R&&R.muts)R.muts.push(label+oldName+" → "+newName);
-  return true;
 }
 function _clearConsumablePending(who,name){
   if(!worldState||!worldState.consumablePending)return;var key=(who||"")+"|"+_invNorm(name);
@@ -3317,78 +3247,6 @@ function _stampItemKept(who,inv,name){
   }
   console.warn("[ITEM_KEPT] no inventory entry matches '"+name+"'"+(who?" on "+who:"")+" — latch not written");
   return false;
-}
-/* #481 A2 (a) (audit 2026-09-29, Fable-approved): ONE inventory name resolver. Exact (_invNorm) first; then a UNIQUE base
-   name (itemBaseName strips the provenance clause, the rename rule), because the tag doc teaches "Signet ring (from Sheriff
-   Hemlock)" and the GM later writes "Signet ring". Two candidates for one base name are AMBIGUOUS: nothing is removed and
-   the reason rides _invLastMiss for the loud line. Returns the index, or -1. */
-var _invLastMiss=null;
-function resolveInventoryName(inv,name){
-  var t=_invNorm(name),i,hits=[];_invLastMiss=null;
-  for(i=0;i<(inv||[]).length;i++){if(_invNorm(inv[i])===t)return i;}
-  var b=_invNorm(itemBaseName(name));
-  if(b)for(i=0;i<(inv||[]).length;i++){if(_invNorm(itemBaseName(inv[i]))===b)hits.push(i);}
-  if(hits.length===1)return hits[0];
-  _invLastMiss=hits.length>1?{why:"ambiguous",names:hits.map(function(k){return _invBase(inv[k]);})}:{why:"absent"};
-  return -1;
-}
-function removeInventoryItem(inv,name){var i=resolveInventoryName(inv,name);removeInventoryItem.last=null;if(i<0)return false;
-  removeInventoryItem.last=_invBase(inv[i]);/* #481 A2: the exact sheet name removed, so a refused partner can put it back */
-  var n=_invCount(inv[i])-1;if(n<=0)inv.splice(i,1);else if(n===1)inv[i]=_invBase(inv[i]);else inv[i]=_invBase(inv[i])+" x"+n;return true;
-}
-/* #481 A2 (b): the halves of one move share a PAIR KEY (base name, provenance-free), and each handler notes what it moved or
-   missed on R, so the partner handler can withhold itself or put the unit back. The shapes: stow (ITEM_LOST +
-   LOCATION_ITEM placed), give (ITEM_LOST + COMPANION_ITEM_GAINED), take (COMPANION_ITEM_LOST + ITEM_GAINED), and sale
-   (GOLD + ITEM_LOST). */
-function itemPairKey(name){return _invNorm(itemBaseName(_qtyParse(String(name==null?"":name)).base));}
-/* #481 D2 (audit 2026-09-29, Fable-approved): the STASH identity — the quantity grammar plus the pack's own name normaliser
-   (plural s, dash spacing, case), so the chest and the pack agree on what an item is. Unlike the pair key it keeps the
-   provenance: "Rope (spare)" and "Rope" are two different chest rows. Every stash consumer keys through it. */
-function stashKey(name){return _invNorm(_qtyParse(String(name==null?"":name)).base);}
-function itemPairNote(R,field,name,val){if(!R[field])R[field]=keyedDict();var k=itemPairKey(name);(R[field][k]=R[field][k]||[]).push(val);}
-function itemPairTake(R,field,name){var m=R&&R[field],k=itemPairKey(name);return (m&&m[k]&&m[k].length)?m[k].pop():null;}
-function itemPairMissed(R,name){return !!(R&&R.ilMiss&&R.ilMiss[itemPairKey(name)]);}
-// ── #50(d): model-inventory sanitation + duplicate healing (v1.291) ────────────
-// Byte-identical duplicate inventory entries can only be MINTED where a model-emitted array is
-// copied verbatim — sheet generation (normalizeCompanionSheet) and regeneration (generateNpcSheet).
-// Every play-time write stacks via addInventoryItem, which provably cannot produce two identical
-// siblings (the Frizwick t455 three-adjacent-pairs anomaly). Two teeth:
-//   sanitizeModelInventory — guards the FAUCETS: strings only, duplicates stack on arrival
-//   (quantity-aware: two "Rope x3" fold to x6), cap counts unique entries.
-//   foldDuplicateInventory — heals the STOCK: migrateWorldState folds exact-duplicate entries
-//   already sitting in saves into proper " xN" stacks.
-function sanitizeModelInventory(list,cap){
-  var out=[],i,j,max=cap||1e9;
-  if(!list||!list.length)return out;
-  for(i=0;i<list.length&&out.length<max;i++){
-    if(typeof list[i]!=="string"||!list[i])continue;
-    var q=_qtyParse(list[i]),t=_invNorm(q.base),hit=false;
-    for(j=0;j<out.length;j++){if(_invNorm(out[j])===t){out[j]=_invBase(out[j])+" x"+(_invCount(out[j])+q.n);hit=true;break;}}
-    if(!hit)out.push(list[i]);
-  }
-  return out;
-}
-// Folds BYTE-IDENTICAL entries only — healing must never guess at intent, so "Dagger"+"Dagger"
-// becomes "Dagger x2" but "Dagger"+"dagger" is left alone (play-time writes already stack the
-// loose-match class; anything loose-distinct in a save could be deliberate). In place, order
-// preserved (first occurrence keeps its slot); returns the number of entries folded away.
-function foldDuplicateInventory(inv){
-  if(!inv||inv.length<2)return 0;
-  var seen=keyedDict(),out=[],folded=0,i,k,kk;
-  for(i=0;i<inv.length;i++){
-    // #75(b) v1.385: key on _invNorm, not the raw string. Byte-identical matching could never
-    // heal the dash-variant splits this pass exists to clean up ("Iron ring — unmarked" vs
-    // "Iron ring - unmarked"), and raw matching was already INCONSISTENT with the write path —
-    // addInventoryItem/removeInventoryItem have always stacked by _invNorm, so the migration was
-    // using a stricter notion of "same item" than the code that creates the stacks.
-    // Verified on the t881 save: norm keying merges exactly 2 groups across the whole party, both
-    // genuine dash twins; the look-alike "Dark tooth cap 'Third'/'Seventh'" pair is untouched.
-    k=inv[i];kk="k:"+(typeof k==="string"?_invNorm(k):k); // prefixed key — an item literally named "__proto__" must not walk the prototype
-    if(typeof k==="string"&&seen[kk]!=null){var fi=seen[kk];out[fi]=_invBase(out[fi])+" x"+(_invCount(out[fi])+_invCount(k));folded++;}
-    else{if(typeof k==="string")seen[kk]=out.length;out.push(k);}
-  }
-  if(folded){inv.length=0;for(i=0;i<out.length;i++)inv.push(out[i]);}
-  return folded;
 }
 // ⛨ UA1 CLOSED (v1.261): the tag TABLE is the ONLY parser. applyMutsLegacy and the
 // TAG_AUTHORITY/TAG_SHADOW cross-check machinery are DELETED — the reverse soak finished clean

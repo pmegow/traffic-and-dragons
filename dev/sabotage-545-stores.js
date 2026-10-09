@@ -10,7 +10,7 @@ prove('identity.js',[
 {label:'discard detached dictionary shape',find:'return kind?keyedStores(c,kind):c;',replace:'return c;',mustFail:'#545 detached memory clone'},
 {label:'drop reserved scene cast key',find:'if(!set)set=keyedDict();',replace:'if(!set)set={};',mustFail:'#545 scene cast reserved name'}
 ]);
-prove('api.js',[{label:'restore inherited item-pair bucket',find:'if(!R[field])R[field]=keyedDict();',replace:'if(!R[field])R[field]={};',mustFail:'#545 item pairing'}]);
+prove('inventory.js',[{label:'restore inherited item-pair bucket',find:'if(!R[field])R[field]=keyedDict();',replace:'if(!R[field])R[field]={};',mustFail:'#545 item pairing'}]);
 prove('tag_table.js',[{label:'admit inherited category enum',find:'if(ownValue(ID_CATS,idc))',replace:'if(ID_CATS[idc])',mustFail:'#545 unknown reserved item categories'}]);
 prove('game.js',[{label:'omit generated sheet admission',find:'  keyedStores(sheet,"sheet");\n  npc.charSheet=sheet;',replace:'  npc.charSheet=sheet;',mustFail:'#545 generated attachment'}]);
 prove('state.js',[

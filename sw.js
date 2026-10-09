@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261008v";
+var CACHE = "tnd-v3-20261009a";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -25,6 +25,7 @@ var APP_SHELL = [
   "/skills_bible.js",
   "/item_bible.js",
   "/helpers.js",
+  "/inventory.js",
   "/state.js",
   "/storage-adapter.js",
   "/memory.js",

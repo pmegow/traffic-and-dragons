@@ -8,9 +8,9 @@
 var sabotage = require("./sabotage.js"), code = 0;
 var CMD = ["node", ["dev/run-tests.js", "#481 A2"]];
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
-prove("api.js", [
+prove("inventory.js", [/* #599 (b): the resolver moved */
   { label: "the resolver loses its unique base-name step",
-    find: "  if(hits.length===1)return hits[0];\n", replace: "",
+    find: "  if(hits.length===1)return hits[0];\n  _invLastMiss=", replace: "  _invLastMiss=",/* anchored on the LEGACY resolver's own next line — the row resolver (invFind) shares the first (#599 b) */
     mustFail: "the resolver: a short name reaches" }
 ]);
 prove("tag_table.js", [
