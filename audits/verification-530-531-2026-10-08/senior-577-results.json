@@ -1,0 +1,348 @@
+{
+  "summary": {
+    "passed": 19,
+    "failed": 5,
+    "elapsedMs": 37,
+    "startedUtc": "2026-10-09T05:28:49.468Z"
+  },
+  "cases": [
+    {
+      "name": "three marks",
+      "plan": {
+        "lines": [
+          {
+            "kind": "sell",
+            "name": "Warded ring",
+            "qty": 1,
+            "unitCp": 4000,
+            "cp": 4000
+          },
+          {
+            "kind": "sell",
+            "name": "Warded ring — taken from the crypt",
+            "qty": 1,
+            "unitCp": 4000,
+            "cp": 4000
+          },
+          {
+            "kind": "sell",
+            "name": "Warded ring (cracked)",
+            "qty": 1,
+            "unitCp": 4000,
+            "cp": 4000
+          }
+        ],
+        "sellCp": 12000,
+        "buyCp": 0,
+        "netCp": -12000,
+        "coinAfter": 14500,
+        "ok": false,
+        "reason": "Frizwick wants one Warded ring — the offer pays once; mark just one"
+      },
+      "result": {
+        "ok": false,
+        "reason": "Frizwick wants one Warded ring — the offer pays once; mark just one",
+        "plan": {
+          "lines": [
+            {
+              "kind": "sell",
+              "name": "Warded ring",
+              "qty": 1,
+              "unitCp": 4000,
+              "cp": 4000
+            },
+            {
+              "kind": "sell",
+              "name": "Warded ring — taken from the crypt",
+              "qty": 1,
+              "unitCp": 4000,
+              "cp": 4000
+            },
+            {
+              "kind": "sell",
+              "name": "Warded ring (cracked)",
+              "qty": 1,
+              "unitCp": 4000,
+              "cp": 4000
+            }
+          ],
+          "sellCp": 12000,
+          "buyCp": 0,
+          "netCp": -12000,
+          "coinAfter": 14500,
+          "ok": false,
+          "reason": "Frizwick wants one Warded ring — the offer pays once; mark just one"
+        }
+      }
+    },
+    {
+      "name": "one then subsequent",
+      "result": {
+        "ok": true,
+        "plan": {
+          "lines": [
+            {
+              "kind": "sell",
+              "name": "Warded ring (cracked)",
+              "qty": 1,
+              "unitCp": 4000,
+              "cp": 4000
+            }
+          ],
+          "sellCp": 4000,
+          "buyCp": 0,
+          "netCp": -4000,
+          "coinAfter": 6500,
+          "ok": true,
+          "reason": ""
+        },
+        "muts": [
+          "-Warded ring (cracked)",
+          "Want met: Warded ring (Frizwick)",
+          "+40 gp"
+        ],
+        "line": "Silas sold Warded ring (cracked) (40 gp) — +40 gp, with Frizwick at the trading post."
+      },
+      "coin": 6500,
+      "wants": [],
+      "inventory": [
+        "Warded ring x2",
+        "Warded ring — taken from the crypt"
+      ]
+    },
+    {
+      "name": "second stack unit ordinary canon",
+      "result": {
+        "ok": true,
+        "plan": {
+          "lines": [
+            {
+              "kind": "sell",
+              "name": "Warded ring",
+              "qty": 1,
+              "unitCp": 10000,
+              "cp": 10000
+            }
+          ],
+          "sellCp": 10000,
+          "buyCp": 0,
+          "netCp": -10000,
+          "coinAfter": 16500,
+          "ok": true,
+          "reason": ""
+        },
+        "muts": [
+          "-Warded ring",
+          "+100 gp"
+        ],
+        "line": "Silas sold Warded ring (100 gp) — +100 gp, with Frizwick at the trading post."
+      },
+      "coin": 16500
+    },
+    {
+      "name": "distinct want single sale false",
+      "catalog": [
+        {
+          "name": "Warded ring",
+          "qty": 2,
+          "worn": false,
+          "canonCp": null,
+          "wanted": true,
+          "sellCp": 4000,
+          "want": {
+            "key": "warded ring",
+            "item": "Warded ring",
+            "by": "Frizwick"
+          },
+          "offer": "40 gp"
+        },
+        {
+          "name": "Warded ring (silver)",
+          "qty": 2,
+          "worn": false,
+          "canonCp": null,
+          "wanted": true,
+          "sellCp": 6000,
+          "want": {
+            "key": "warded ring (silver)",
+            "item": "Warded ring (silver)",
+            "by": "Frizwick"
+          },
+          "offer": "60 gp"
+        }
+      ],
+      "result": {
+        "ok": true,
+        "plan": {
+          "lines": [
+            {
+              "kind": "sell",
+              "name": "Warded ring (silver)",
+              "qty": 1,
+              "unitCp": 6000,
+              "cp": 6000
+            }
+          ],
+          "sellCp": 6000,
+          "buyCp": 0,
+          "netCp": -6000,
+          "coinAfter": 8500,
+          "ok": true,
+          "reason": ""
+        },
+        "muts": [
+          "-Warded ring (silver)",
+          "Want met: Warded ring (Frizwick)",
+          "+60 gp"
+        ],
+        "line": "Silas sold Warded ring (silver) (60 gp) — +60 gp, with Frizwick at the trading post."
+      },
+      "wants": [
+        "Warded ring (silver)"
+      ],
+      "coin": 8500
+    },
+    {
+      "name": "same paid offer repeated false",
+      "result": {
+        "ok": true,
+        "plan": {
+          "lines": [
+            {
+              "kind": "sell",
+              "name": "Warded ring (silver)",
+              "qty": 1,
+              "unitCp": 6000,
+              "cp": 6000
+            }
+          ],
+          "sellCp": 6000,
+          "buyCp": 0,
+          "netCp": -6000,
+          "coinAfter": 14500,
+          "ok": true,
+          "reason": ""
+        },
+        "muts": [
+          "-Warded ring (silver)",
+          "Want met: Warded ring (silver) (Frizwick)",
+          "+60 gp"
+        ],
+        "line": "Silas sold Warded ring (silver) (60 gp) — +60 gp, with Frizwick at the trading post."
+      },
+      "wants": [],
+      "coin": 14500
+    },
+    {
+      "name": "distinct want single sale true",
+      "catalog": [
+        {
+          "name": "Warded ring",
+          "qty": 2,
+          "worn": false,
+          "canonCp": null,
+          "wanted": true,
+          "sellCp": 4000,
+          "want": {
+            "key": "warded ring",
+            "item": "Warded ring",
+            "by": "Frizwick"
+          },
+          "offer": "40 gp"
+        },
+        {
+          "name": "Warded ring (silver)",
+          "qty": 2,
+          "worn": false,
+          "canonCp": null,
+          "wanted": true,
+          "sellCp": 6000,
+          "want": {
+            "key": "warded ring (silver)",
+            "item": "Warded ring (silver)",
+            "by": "Frizwick"
+          },
+          "offer": "60 gp"
+        }
+      ],
+      "result": {
+        "ok": true,
+        "plan": {
+          "lines": [
+            {
+              "kind": "sell",
+              "name": "Warded ring",
+              "qty": 1,
+              "unitCp": 4000,
+              "cp": 4000
+            }
+          ],
+          "sellCp": 4000,
+          "buyCp": 0,
+          "netCp": -4000,
+          "coinAfter": 6500,
+          "ok": true,
+          "reason": ""
+        },
+        "muts": [
+          "-Warded ring",
+          "Want met: Warded ring (silver) (Frizwick)",
+          "+40 gp"
+        ],
+        "line": "Silas sold Warded ring (40 gp) — +40 gp, with Frizwick at the trading post."
+      },
+      "wants": [
+        "Warded ring"
+      ],
+      "coin": 6500
+    },
+    {
+      "name": "same paid offer repeated true",
+      "result": {
+        "ok": true,
+        "plan": {
+          "lines": [
+            {
+              "kind": "sell",
+              "name": "Warded ring",
+              "qty": 1,
+              "unitCp": 4000,
+              "cp": 4000
+            }
+          ],
+          "sellCp": 4000,
+          "buyCp": 0,
+          "netCp": -4000,
+          "coinAfter": 10500,
+          "ok": true,
+          "reason": ""
+        },
+        "muts": [
+          "-Warded ring",
+          "Want met: Warded ring (Frizwick)",
+          "+40 gp"
+        ],
+        "line": "Silas sold Warded ring (40 gp) — +40 gp, with Frizwick at the trading post."
+      },
+      "wants": [],
+      "coin": 10500
+    },
+    {
+      "name": "stale missing item ledger refusal",
+      "ok": false,
+      "reason": "Warded ring is no longer in the pack — nothing moved",
+      "muts": []
+    },
+    {
+      "name": "591 separate boundary",
+      "muts": [
+        "+1 cp",
+        "-Warded ring",
+        "Want met: Warded ring (Frizwick)",
+        "Present: Frizwick (say)"
+      ],
+      "wants": [],
+      "coinDelta": 1
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+Smoke-replaying 29 raw GM responses through the table parser…
+[identity] Refugee man is not Refugee woman (he, not she) — filed as a separate person (#503)
+[relationship] no character sheet for 'Celeste Emberveil' — relationship tag refused
+[clock] reconcile SKIPPED — 'dusk' is 13h ahead on the same day with no [TIME_ADVANCE:]; mislabel presumed. Real skips need [REST:long] or [TIME_ADVANCE:] (#142/#368)
+[sound] 'click_glass' skipped — no AudioContext
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[clock] reconcile SKIPPED — 'dusk' is 13h ahead on the same day with no [TIME_ADVANCE:]; mislabel presumed. Real skips need [REST:long] or [TIME_ADVANCE:] (#142/#368)
+[presence] 'Lantern Holder' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Club Thugs' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[tags] ITEM_LOST: no inventory entry matches 'Flask of Alchemist's Fire' — nothing removed, no receipt minted (#136⑤, the live t1530 -none class)
+[companion] Celeste Emberveil is a party member without a character sheet — COMPANION_* update dropped
+[tags] COMPANION_SPELL_USED: no party member matches 'Celeste Emberveil' — cast not booked
+[presence] 'Lantern Holder' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[companion] Celeste Emberveil is a party member without a character sheet — COMPANION_* update dropped
+[tags] no party member matches 'Celeste Emberveil' — companion tag dropped (#136③)
+[presence] 'Club Thugs' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Club Thugs' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[tags] SPELL_USED: 'Scorching Ray' is not on the player's sheet — no cast booked (#136③)
+[xp] GM award 80 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 120 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[companion] Celeste Emberveil is a party member without a character sheet — COMPANION_* update dropped
+[tags] COMPANION_SPELL_USED: no party member matches 'Celeste Emberveil' — cast not booked
+[xp] GM award 120 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[quest] blocked re-creation of archived quest 'The Burning Man' (completed) — a follow-up needs a NEW title
+[quest] blocked re-completion of 'The Burning Man' re-emitted its paid rewards (+120 XP, +10 gp) — possible double payment
+[quest] QUEST_STEP on archived quest 'The Burning Man' (completed) — objective 'Deliver Rhett Lorrath to Wyndfall breathing' not recorded; closed quests do not gain objectives (#265②)
+[sound] 'click_glass' skipped — no AudioContext
+[relationship] no character sheet for 'Celeste Emberveil' — relationship tag refused
+[relationship] no character sheet for 'Celeste Emberveil' — relationship tag refused
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+── smoke-replay complete ── handler errors: 0
+end-state sanity: hp 24/24 | xp 1230 | quests archived 1 | npcs 10 | spells Mage Hand:ok, Message:ok, Charm Person:ok, Silent Image:ok
+end state matches committed baseline -> dev/corpus_playtest_v1271.json.endstate.json

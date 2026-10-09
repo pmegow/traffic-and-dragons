@@ -1,0 +1,47 @@
+Smoke-replaying 100 raw GM responses through the table parser…
+[tags] SPELL_USED: 'Healing Word' is not on the player's sheet — no cast booked (#136③)
+[quest] QUEST_STEP names no known quest: 'Chapel in the Mud' — objective 'Treat first patient' dropped (mis-title? the ACTIVE block's titles are authoritative) (#265②)
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[clock] reconcile SKIPPED — 'night' is 15h ahead on the same day with no [TIME_ADVANCE:]; mislabel presumed. Real skips need [REST:long] or [TIME_ADVANCE:] (#142/#368)
+[quest] blocked re-creation of archived quest 'Chapel in the Mud' (completed) — a follow-up needs a NEW title
+[quest] QUEST_STEP on archived quest 'Chapel in the Mud' (completed) — objective 'Treat patients in Duskbridge' not recorded; closed quests do not gain objectives (#265②)
+[quest] QUEST_STEP on archived quest 'Chapel in the Mud' (completed) — objective 'Treat patients in Duskbridge' not recorded; closed quests do not gain objectives (#265②)
+[relationship] no character sheet for 'Bramble Ironside' — relationship tag refused
+[quest] QUEST_STEP on archived quest 'Chapel in the Mud' (completed) — objective 'Treat patients in Duskbridge' not recorded; closed quests do not gain objectives (#265②)
+[tags] SPELL_USED: 'Bless' is not on the player's sheet — no cast booked (#136③)
+[companion] Bramble Ironside is a party member without a character sheet — COMPANION_* update dropped
+[tags] no party member matches 'Bramble Ironside' — companion tag dropped (#136③)
+[tags] SPELL_USED: 'Guidance' is not on the player's sheet — no cast booked (#136③)
+[companion] Bramble Ironside is a party member without a character sheet — COMPANION_* update dropped
+[tags] no party member (with conditions) matches 'Bramble Ironside' — companion tag dropped (#136③)
+[relationship] no character sheet for 'Bramble Ironside' — relationship tag refused
+[tags] SPELL_DEF: 'Guidance' is already curated in the capability bible — REFUSED, curated canon is not redefinable in play (#253); invent a distinct name for a genuinely new working
+[tags] CONDITION_REMOVED: 'Guidance' is not on the sheet — nothing cured (#136⑤)
+[memory] lore fold: "Physician Duskmantle shares the family name Duskmantle with Toldun Duskmantle, w" ⇒ kept richer "The Council physician's name is Duskmantle — same family name as Toldun Duskmant" (loser archived)
+[quest] blocked re-creation of archived quest 'Chapel in the Mud' (completed) — a follow-up needs a NEW title
+[xp] GM award 40 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[presence] 'Council Enforcer (tall)' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Council Enforcer (broad)' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[combat] ambiguous bare ENEMY_HP with 2 foes up — routed to Council Enforcer (tall); use [ENEMY_HP:Name|-X]
+[companion] Bramble Ironside is a party member without a character sheet — COMPANION_* update dropped
+[tags] no party member matches 'Bramble Ironside' — companion tag dropped (#136③)
+[tags] SPELL_USED: 'Bless' is not on the player's sheet — no cast booked (#136③)
+[companion] Bramble Ironside is a party member without a character sheet — COMPANION_* update dropped
+[tags] no party member matches 'Bramble Ironside' — companion tag dropped (#136③)
+[xp] GM award 75 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[combat] COMBAT_END:victory closed with 1 foe(s) still standing — resolved as slain; the narration outranks an untagged hp bar (#214)
+[companion] Bramble Ironside is a party member without a character sheet — COMPANION_* update dropped
+[tags] no party member matches 'Bramble Ironside' — companion tag dropped (#136③)
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 75 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 75 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[tags] SPELL_USED: 'Guidance' is not on the player's sheet — no cast booked (#136③)
+[xp] GM award 75 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[xp] GM award 50 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[tags] SPELL_USED: 'Guidance' is not on the player's sheet — no cast booked (#136③)
+[xp] GM award 75 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+── smoke-replay complete ── handler errors: 0
+end-state sanity: hp 20/24 | xp 1730 | quests archived 2 | npcs 13 | spells Mage Hand:ok, Message:ok, Charm Person:ok, Silent Image:ok
+end state matches committed baseline -> dev/corpus_playtest_v1258.json.endstate.json

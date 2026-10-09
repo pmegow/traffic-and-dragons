@@ -1,0 +1,230 @@
+PASS entry38 initial-title route NPC
+PASS entry38 initial-title route NOTE
+PASS entry38 initial-title route PRONOUN
+PASS entry38 initial-title route REPORTED
+PASS entry38 initial-title route LINK
+PASS entry38 initial-title route RELATIONSHIP
+PASS entry38 initial-title route SCENE_REF
+PASS entry38 initial-title route SCENE_REVEAL
+PASS entry38 initial-title route COMBAT
+PASS entry38 summary creates independent title question
+PASS entry38 case/spacing variants preserve existing identities
+PASS entry38 refused loose answer re-asks once, then settles with exact ANOTHER
+PASS entry38 200-NPC resolver timing and fixed-input state
+{
+  "appVersion": "v1.1194",
+  "results": [
+    {
+      "name": "entry38 initial-title route NPC",
+      "ok": true,
+      "result": {
+        "keys": [
+          "Wilhelmina Underbough",
+          "Queen Underbough"
+        ],
+        "muts": [
+          "NPC: Queen Underbough",
+          "⚠ possible name collision: 'Queen Underbough' may be Wilhelmina Underbough under a title, or another person — filed separately; the GM is asked"
+        ]
+      }
+    },
+    {
+      "name": "entry38 initial-title route NOTE",
+      "ok": true,
+      "result": {
+        "keys": [
+          "Wilhelmina Underbough",
+          "Queen Underbough"
+        ],
+        "muts": [
+          "⚠ possible name collision: 'Queen Underbough' may be Wilhelmina Underbough under a title, or another person — filed separately; the GM is asked"
+        ]
+      }
+    },
+    {
+      "name": "entry38 initial-title route PRONOUN",
+      "ok": true,
+      "result": {
+        "keys": [
+          "Wilhelmina Underbough",
+          "Queen Underbough"
+        ],
+        "muts": [
+          "Pronouns: Queen Underbough (they/them)",
+          "⚠ possible name collision: 'Queen Underbough' may be Wilhelmina Underbough under a title, or another person — filed separately; the GM is asked"
+        ]
+      }
+    },
+    {
+      "name": "entry38 initial-title route REPORTED",
+      "ok": true,
+      "result": {
+        "keys": [
+          "Wilhelmina Underbough",
+          "Queen Underbough"
+        ],
+        "muts": [
+          "Registered from death report: Queen Underbough",
+          "Queen Underbough: dead AS REPORTED (t85 — a rider)",
+          "⚠ possible name collision: 'Queen Underbough' may be Wilhelmina Underbough under a title, or another person — filed separately; the GM is asked"
+        ]
+      }
+    },
+    {
+      "name": "entry38 initial-title route LINK",
+      "ok": true,
+      "result": {
+        "keys": [
+          "Wilhelmina Underbough"
+        ],
+        "muts": [
+          "Link: Queen Underbough ↔ Wilhelmina Underbough (mother/daughter)"
+        ]
+      }
+    },
+    {
+      "name": "entry38 initial-title route RELATIONSHIP",
+      "ok": true,
+      "result": {
+        "keys": [
+          "Wilhelmina Underbough"
+        ],
+        "muts": [
+          "bond Queen Underbough (rival)"
+        ]
+      }
+    },
+    {
+      "name": "entry38 initial-title route SCENE_REF",
+      "ok": true,
+      "result": {
+        "keys": [
+          "Wilhelmina Underbough"
+        ],
+        "muts": [
+          "Scene ref: queen -> Queen Underbough"
+        ]
+      }
+    },
+    {
+      "name": "entry38 initial-title route SCENE_REVEAL",
+      "ok": true,
+      "result": {
+        "keys": [
+          "Wilhelmina Underbough"
+        ],
+        "muts": [
+          "Scene ref: queen -> anonymous",
+          "Scene reveal: queen -> Queen Underbough"
+        ]
+      }
+    },
+    {
+      "name": "entry38 initial-title route COMBAT",
+      "ok": true,
+      "result": {
+        "keys": [
+          "Wilhelmina Underbough"
+        ],
+        "muts": [
+          "Combat: Queen Underbough"
+        ]
+      }
+    },
+    {
+      "name": "entry38 summary creates independent title question",
+      "ok": true,
+      "result": {
+        "queen": {
+          "attitude": "cold",
+          "knowledge": [
+            "rules Elderwood"
+          ],
+          "events": [],
+          "aliases": [],
+          "provisional": {
+            "of": "Wilhelmina Underbough",
+            "turn": 85,
+            "called": "Queen Underbough",
+            "title": "queen"
+          }
+        }
+      }
+    },
+    {
+      "name": "entry38 case/spacing variants preserve existing identities",
+      "ok": true,
+      "result": [
+        [
+          "wilhelmina underbough",
+          "Wilhelmina Underbough"
+        ],
+        [
+          "Wilhelmina_Underbough",
+          "Wilhelmina Underbough"
+        ],
+        [
+          "Wilhelmina  Underbough",
+          "Wilhelmina Underbough"
+        ],
+        [
+          "The Ferrywoman",
+          "Isolde Marsh"
+        ]
+      ]
+    },
+    {
+      "name": "entry38 refused loose answer re-asks once, then settles with exact ANOTHER",
+      "ok": true,
+      "result": {
+        "keys": [
+          "Wilhelmina Underbough",
+          "Isolde Underbough"
+        ],
+        "refusalNote": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Queen Underbough\" was named, and the names alone cannot say whether that is the established \"Wilhelmina Underbough\" under a title or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Your last answer could not be read: 'Wilhelmina' is not an exact name on file — the SAME person is [NPC_MERGE:Wilhelmina Underbough|Queen Underbough] with that exact name; another person is [MERGE:npc|<their name>|Queen Underbough]. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Wilhelmina Underbough|Queen Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Queen Underbough] — \"Queen Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]"
+      }
+    },
+    {
+      "name": "entry38 200-NPC resolver timing and fixed-input state",
+      "ok": true,
+      "result": {
+        "npcs": 200,
+        "times": [
+          {
+            "name": "Wilhelmina Underbough",
+            "answer": "Wilhelmina Underbough",
+            "calls": 1000,
+            "elapsedMs": 0.3418
+          },
+          {
+            "name": "wilhelmina_underbough",
+            "answer": "Wilhelmina Underbough",
+            "calls": 1000,
+            "elapsedMs": 15.687
+          },
+          {
+            "name": "Queen Underbough",
+            "answer": "Queen Underbough",
+            "calls": 1000,
+            "elapsedMs": 99.4437
+          },
+          {
+            "name": "Old Queen Underbough",
+            "answer": "Old Queen Underbough",
+            "calls": 1000,
+            "elapsedMs": 91.9704
+          },
+          {
+            "name": "Missing Traveller",
+            "answer": "Missing Traveller",
+            "calls": 1000,
+            "elapsedMs": 70.9077
+          }
+        ],
+        "bytes": 54640
+      }
+    }
+  ],
+  "passed": 13,
+  "failed": 0
+}

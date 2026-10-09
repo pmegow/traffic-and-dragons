@@ -1,0 +1,387 @@
+PASS #530 ANOTHER lands and stays settled; refs=false
+PASS #530 OTHER uses known-key confirmation; refs=false
+PASS #531 reported death actually kills the titled queen; refs=false
+FAIL #531 combat presence belongs to title, never relative; refs=false — positive control: queen present
+
+undefined !== 86
+
+PASS #530 ANOTHER lands and stays settled; refs=true
+PASS #530 OTHER uses known-key confirmation; refs=true
+PASS #531 reported death actually kills the titled queen; refs=true
+FAIL #531 combat presence belongs to title, never relative; refs=true — positive control: queen present
+
+undefined !== 86
+
+PASS #531 valid scene death with binding and subject=Queen Underbough
+PASS #531 valid scene death with binding and subject=-
+PASS #531 valid scene death with reveal and subject=Queen Underbough
+PASS #531 valid scene death with reveal and subject=-
+PASS #531 same-turn handle cannot authorize a death (negative control)
+PASS #530 repeated settled keep answer has bounded state
+{
+  "appVersion": "v1.1194",
+  "cases": [
+    {
+      "name": "#530 ANOTHER lands and stays settled; refs=false",
+      "ok": true,
+      "result": {
+        "names": [
+          "Wilhelmina Underbough",
+          "Isolde Underbough"
+        ],
+        "muts": [
+          "Merged: Queen Underbough -> Isolde Underbough"
+        ]
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#530 OTHER uses known-key confirmation; refs=false",
+      "ok": true,
+      "result": {
+        "names": [
+          "Wilhelmina Underbough",
+          "Isolde Marsh"
+        ],
+        "question": ""
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#531 reported death actually kills the titled queen; refs=false",
+      "ok": true,
+      "result": {
+        "princessDead": false,
+        "queenDead": true,
+        "muts": [
+          "Registered from death report: Queen Underbough",
+          "Queen Underbough: dead AS REPORTED (t85 — fever|Elderwood)",
+          "⚠ possible name collision: 'Queen Underbough' may be Wilhelmina Underbough under a title, or another person — filed separately; the GM is asked"
+        ]
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#531 combat presence belongs to title, never relative; refs=false",
+      "ok": false,
+      "error": "AssertionError [ERR_ASSERTION]: positive control: queen present\n\nundefined !== 86\n\n    at C:\\Projects\\traffic-and-dragons\\audits\\verification-530-531-2026-10-08\\acceptance.cjs:18:472\n    at run (C:\\Projects\\traffic-and-dragons\\audits\\verification-530-531-2026-10-08\\acceptance.cjs:13:51)\n    at Object.<anonymous> (C:\\Projects\\traffic-and-dragons\\audits\\verification-530-531-2026-10-08\\acceptance.cjs:18:2)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)",
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#530 ANOTHER lands and stays settled; refs=true",
+      "ok": true,
+      "result": {
+        "names": [
+          "Wilhelmina Underbough",
+          "Isolde Underbough"
+        ],
+        "muts": [
+          "Merged: Queen Underbough -> Isolde Underbough"
+        ]
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#530 OTHER uses known-key confirmation; refs=true",
+      "ok": true,
+      "result": {
+        "names": [
+          "Wilhelmina Underbough",
+          "Isolde Marsh"
+        ],
+        "question": ""
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Isolde Marsh (awaiting exact-pair confirmation)"
+      ]
+    },
+    {
+      "name": "#531 reported death actually kills the titled queen; refs=true",
+      "ok": true,
+      "result": {
+        "princessDead": false,
+        "queenDead": true,
+        "muts": [
+          "Registered from death report: Queen Underbough",
+          "Queen Underbough: dead AS REPORTED (t85 — fever|Elderwood)",
+          "⚠ possible name collision: 'Queen Underbough' may be Wilhelmina Underbough under a title, or another person — filed separately; the GM is asked"
+        ]
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#531 combat presence belongs to title, never relative; refs=true",
+      "ok": false,
+      "error": "AssertionError [ERR_ASSERTION]: positive control: queen present\n\nundefined !== 86\n\n    at C:\\Projects\\traffic-and-dragons\\audits\\verification-530-531-2026-10-08\\acceptance.cjs:18:472\n    at run (C:\\Projects\\traffic-and-dragons\\audits\\verification-530-531-2026-10-08\\acceptance.cjs:13:51)\n    at Object.<anonymous> (C:\\Projects\\traffic-and-dragons\\audits\\verification-530-531-2026-10-08\\acceptance.cjs:18:2)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)",
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#531 valid scene death with binding and subject=Queen Underbough",
+      "ok": true,
+      "result": {
+        "queenDead": true,
+        "princessDead": false,
+        "muts": [
+          "Queen Underbough: dead (t86)"
+        ],
+        "txns": [
+          {
+            "id": "accept531",
+            "claim": "npc-death",
+            "subject": "Queen Underbough",
+            "evidence": "queen",
+            "quest": "-",
+            "status": "committed",
+            "operations": [
+              "SCENE_DEATH:queen#1"
+            ],
+            "turn": 86,
+            "reason": "",
+            "committedTurn": 86
+          }
+        ]
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#531 valid scene death with binding and subject=-",
+      "ok": true,
+      "result": {
+        "queenDead": true,
+        "princessDead": false,
+        "muts": [
+          "Queen Underbough: dead (t86)"
+        ],
+        "txns": [
+          {
+            "id": "accept531",
+            "claim": "npc-death",
+            "subject": "-",
+            "evidence": "queen",
+            "quest": "-",
+            "status": "committed",
+            "operations": [
+              "SCENE_DEATH:queen#1"
+            ],
+            "turn": 86,
+            "reason": "",
+            "committedTurn": 86
+          }
+        ]
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#531 valid scene death with reveal and subject=Queen Underbough",
+      "ok": true,
+      "result": {
+        "queenDead": true,
+        "princessDead": false,
+        "muts": [
+          "Queen Underbough: dead (t86)"
+        ],
+        "txns": [
+          {
+            "id": "accept531",
+            "claim": "npc-death",
+            "subject": "Queen Underbough",
+            "evidence": "queen",
+            "quest": "-",
+            "status": "committed",
+            "operations": [
+              "SCENE_DEATH:queen#1"
+            ],
+            "turn": 86,
+            "reason": "",
+            "committedTurn": 86
+          }
+        ]
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#531 valid scene death with reveal and subject=-",
+      "ok": true,
+      "result": {
+        "queenDead": true,
+        "princessDead": false,
+        "muts": [
+          "Queen Underbough: dead (t86)"
+        ],
+        "txns": [
+          {
+            "id": "accept531",
+            "claim": "npc-death",
+            "subject": "-",
+            "evidence": "queen",
+            "quest": "-",
+            "status": "committed",
+            "operations": [
+              "SCENE_DEATH:queen#1"
+            ],
+            "turn": 86,
+            "reason": "",
+            "committedTurn": 86
+          }
+        ]
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)"
+      ]
+    },
+    {
+      "name": "#531 same-turn handle cannot authorize a death (negative control)",
+      "ok": true,
+      "result": {
+        "queenDead": false,
+        "muts": [
+          "Scene ref: queen -> Queen Underbough",
+          "⚠ Canon claim too-early quarantined"
+        ]
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)",
+        "[identity] irreversible write QUARANTINED for Queen Underbough (handle queen): scene evidence does not bind the claimed victim"
+      ]
+    },
+    {
+      "name": "#530 repeated settled keep answer has bounded state",
+      "ok": true,
+      "result": {
+        "iterations": 100,
+        "keys": [
+          "Wilhelmina Underbough",
+          "Queen Underbough"
+        ],
+        "archiveEntries": 0
+      },
+      "warnings": [
+        "[identity] 'Queen Underbough' is a title (\"queen\") and a family name: Wilhelmina Underbough under that title, or a relative — filed PROVISIONALLY under its own name so neither record can fuse; the GM decides same/distinct via the next engine note (#504)",
+        "[identity] 'Queen Underbough' is another person and keeps the name (#504)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)",
+        "[identity] merge proposed, not applied: Queen Underbough -> Queen Underbough (awaiting exact-pair confirmation)"
+      ]
+    }
+  ],
+  "passed": 12,
+  "failed": 2
+}

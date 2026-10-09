@@ -1,0 +1,80 @@
+
+  sabotage — memory.js
+   ✓ caught      the question is never raised (the reported fusion: the resolver consolidates a titled surname as before)
+   ✓ caught      the question ignores the title: any one-word name closing a longer one asks
+   ✓ caught      a record already known by the title is asked about anyway
+   ✓ caught      a title beside a GIVEN name asks too (Lady Threnna Voss is a question)
+   ✓ caught      a record with no given name is asked about (Lady Vane beside Mother Vane)
+   ✓ caught      an office joins the table (Sheriff Hemlock becomes a question)
+   ✓ caught      the roster-side aliases are not read for the known words
+   ✓ caught      a spelling of the called name no longer finds the titled record on file (it falls to consolidation and the princess)
+   ✓ caught      the titled-record match answers with two candidates (steers a name onto one of two)
+   ✓ caught      the titled-record match ignores the title word (the bare surname lands on the queen)
+   ✓ caught      the exact reader falls back to consolidation (an answer is inferred from a name's shape again)
+   ✓ caught      the extractor's writes are not stamped
+   ✓ caught      a folded ° key falls back to consolidation (the stale-key class: the note lands on the person it was split from)
+   ✓ caught      a note files the hero as an NPC (#538's NPC_NOTE leg)
+   ✓ caught      a spelling of a FOLDED ° key is nobody's (the archive is read by the exact key only)
+   ✓ caught      a spelling of a live ° key makes a second ° record (The Savah °t85 beside Savah °t85)
+   ✓ caught      a ° key the archive has never seen consolidates onto the person it looks like
+   ✓ caught      the resolver's exact step is byte-exact again (a ° key in another case forks)
+   ✓ file restored byte-identical
+   18/18 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      the seam stamps nothing (the record is a plain separate person, never asked)
+   ✓ caught      the seam stamps every new record, not only the questions
+   ✓ caught      a settled record is asked about again after the answer renames it
+   ✓ caught      the cap is ignored
+   ✓ caught      the stamped record gets no roster row
+   ✓ caught      the note offers the hero as a merge target after a swap
+   ✓ caught      the note loses its title wording
+   ✓ caught      the refused answer is never said back
+   ✓ caught      a loose SAME answer is read as a new person (the twin)
+   ✓ caught      a short form of her name under 'another person' makes a twin
+   ✓ caught      a provisional into another established record skips the proposal
+   ✓ caught      the gate strips a landed answer as a proposal (the #530 class: the different-person answer never lands)
+   ✓ caught      the refusal clears no latch (the note waits out its cooldown before saying why)
+   ✓ caught      the generic form is read as NPC_MERGE (another person's new name is refused as a loose SAME)
+   ✓ caught      a provisional is split again by an introduction-shaped tag (a provisional of a provisional)
+   ✓ caught      the hero is merged away (her old alias names her after a swap)
+   ✓ caught      a plain merge into the hero is allowed
+   ✓ caught      a folded ° key as an operand is read as a name on no record (the reversed repeated answer folds the established person into a new ° record)
+   ✓ caught      a ° provisional can 'keep' its filing key as a name
+   ✓ caught      a ° key passes as a new name
+   ✓ file restored byte-identical
+   20/20 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      #604: a 'hero' alias operand keeps the raw name, and the NPC upsert mints a record under the hero's own alias (v1.1191)
+   ✓ caught      a refused answer falls through into the fold
+   ✓ caught      'keeps the name' leaves the question open
+   ✓ caught      the title she was called by is not kept as an alias (asked again next time)
+   ✓ caught      a duplicate on no record prints a receipt for nothing
+   ✓ caught      the renamed record is not settled (asked about again the same reply)
+   ✓ caught      the alias handler creates a record under an existing alias (the alias-shadow class)
+   ✓ caught      an alias that is another record's name is registered (one alias on two records)
+   ✓ caught      the fold carries the canonical's own name in as its alias
+   ✓ caught      the handler folds the RAW operands, not what the reader resolved (a case variant is 'not on file')
+   ✓ caught      a pronoun tag files the hero as an NPC (#538's NPC_PRONOUN leg)
+   ✓ caught      a plain merge is folded on the state the gate never saw (an earlier tag of the reply changed what the operands name)
+   ✓ caught      a provisional into another established person is folded on the state the gate never saw (a same-reply alias)
+   ✓ caught      the hero's name is registered as an NPC's alias
+   ✓ caught      a ° filing key is registered as an alias, or made a canonical after its fold
+   ✓ caught      a record becomes its own alias
+   ✓ file restored byte-identical
+   16/16 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the seam does not run after a reply
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      the alias handler reads a folded ° canonical as a fresh name (a zombie record)
+   ✓ file restored byte-identical
+   1/1 clauses proven
