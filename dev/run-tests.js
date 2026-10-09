@@ -55,7 +55,31 @@ try {
 // changes nothing a contract asserts. The same extraction already exists in frozen-golden.js and
 // latch-census.js; this section simply had not taken it.
 var _rtFs = require("fs"), _rtPath = require("path"), _rtRoot = _rtPath.join(__dirname, "..");
-function _stripComments(text) { return String(text).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); }
+/* ONE comment stripper for every source contract — a SCANNER, not two regexes (#599 (b5), review (b) 3: the regex pair stripped
+   line comments first, so two ADJACENT block comments (close-star-slash followed by slash-star-open) lost the rest of their line
+   and the orphaned opener then swallowed everything to the next closer — 26 regions, up to 107 lines, invisible to every
+   contract). The scanner walks strings (with escapes), line and block comments, and regex literals (a slash after one of
+   ( , = : [ ! & | ? { } ; an operator, or return/typeof/case/in/of/delete/void/throw/new/else/do opens one); a block
+   comment becomes spaces so line structure holds. A line-comment marker inside a string or a regex is kept. */
+function _stripComments(text) {
+  var src = String(text), out = "", i = 0, n = src.length, c, q, p, d, cls, e2, seg;
+  function prevSig(k) { var t = k - 1; while (t >= 0 && (src[t] === " " || src[t] === "\t" || src[t] === "\r" || src[t] === "\n")) t--; return t < 0 ? "" : src[t]; }
+  function afterWord(k) { var t = k - 1; while (t >= 0 && (src[t] === " " || src[t] === "\t" || src[t] === "\r" || src[t] === "\n")) t--; var e = t; while (t >= 0 && /[A-Za-z_$]/.test(src[t])) t--; var w = src.slice(t + 1, e + 1);
+    return w === "return" || w === "typeof" || w === "case" || w === "in" || w === "of" || w === "delete" || w === "void" || w === "throw" || w === "new" || w === "else" || w === "do"; }
+  while (i < n) { c = src[i];
+    if (c === "'" || c === '"') { q = c; out += c; i++; while (i < n && src[i] !== q && src[i] !== "\n") { if (src[i] === "\\") { out += src[i] + (src[i + 1] || ""); i += 2; continue; } out += src[i]; i++; } if (i < n && src[i] === q) { out += q; i++; } continue; }
+    if (c === "/" && src[i + 1] === "/") { while (i < n && src[i] !== "\n") i++; continue; }
+    if (c === "/" && src[i + 1] === "*") { e2 = src.indexOf("*/", i + 2); seg = e2 < 0 ? src.slice(i) : src.slice(i, e2 + 2); out += seg.replace(/[^\n]/g, " "); i = e2 < 0 ? n : e2 + 2; continue; }
+    if (c === "/") { p = prevSig(i); if (p === "" || "(,=:[!&|?{};+-*%<>~^".indexOf(p) >= 0 || afterWord(i)) { out += c; i++; cls = false;
+      while (i < n) { d = src[i]; if (d === "\\") { out += d + (src[i + 1] || ""); i += 2; continue; } if (d === "\n") break; out += d; i++; if (d === "[" && !cls) cls = true; else if (d === "]" && cls) cls = false; else if (d === "/" && !cls) break; }
+      continue; } }
+    out += c; i++; }
+  return out;
+}
+/* the stripper's own proof, every run: adjacent block comments keep the code after them, a regex or a string holding a
+   line-comment marker is kept, a real line comment goes */
+(function () { var probe = "a();/*x*/" + "/*y*/ b();\nvar r=/\\/\\//;c(); // t\n'//s'", o = _stripComments(probe);
+  if (o.indexOf("b();") < 0 || o.indexOf("c();") < 0 || o.indexOf("'//s'") < 0 || o.indexOf("// t") >= 0 || o.indexOf("/\\/\\//") < 0) { console.error("STRIP COMMENTS SELF-TEST FAILED: " + JSON.stringify(o)); process.exit(1); } })();
 var _srcCache = {};
 function _src(rel) {   // repo-relative path → file text, read at most once per process
   if (!Object.prototype.hasOwnProperty.call(_srcCache, rel)) _srcCache[rel] = _rtFs.readFileSync(_rtPath.join(_rtRoot, rel), "utf8");
@@ -1422,13 +1446,30 @@ try {
 // like the editor contract above.
 try {
   var _adFail = function (msg) { console.error("ADMISSION CONTRACT: " + msg); process.exit(1); };
-  var _adCode = function (s) { return s.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "0;"); };
-  var _adSteps = ["identitySheetAdmit(", "portraitAdmit(", "sceneFieldsCross(", "adoptSheetItemDefs(", "voicePinsFill(", "stashCopyMark(", "clampImportedCharacter("];
+  var _adCode = _stripComments;   /* the ONE scanner (review (b) 3) */
+  /* the per-sheet steps a door may not run by hand: the registry's own gates and heals, and the version gate and the name heals
+     (review (b) 7 — a door that re-runs them beside sheetAdmit is the eighth copy the registry exists to prevent). keyedStores,
+     ensureV10Arrays and relationshipMigrateSheet stay out: they are also this campaign's own load-time heals, in every host. */
+  var _adSteps = ["identitySheetAdmit(", "portraitAdmit(", "sceneFieldsCross(", "adoptSheetItemDefs(", "voicePinsFill(", "stashCopyMark(", "clampImportedCharacter(",
+    "sheetVersionRefused(", "migrateAncestryNames(", "migrateCharClassNames(", "migrateCapabilityRenames(", "migrateSpellDisplayNames("];
+  /* an EXEMPT row names ONE step in ONE unit, with its reason, and must match a live site (review (b) 8: a whole-function
+     exemption would have hidden any step added there later) */
   var _adExempt = [
-    { file: "helpers.js", fn: "portraitsSanitizeWorld", why: "a world-level sweep over every portrait at the .tnd import — not a sheet door" },
-    { file: "game.js", fn: "applyBlueprint", why: "a blueprint's NPC seed is a roster entry with no sheet; the identity gate alone applies" },
-    { file: "tag_table.js", fn: "tag NPC_MERGE", why: "the merge fills the canon's empty voice slots from the duplicate's — a fold of two sheets already admitted, not an admission (#543)" }
-  ];
+    { file: "helpers.js", fn: "portraitsSanitizeWorld", step: "portraitAdmit(", why: "a world-level sweep over every portrait at the .tnd import — not a sheet door" },
+    { file: "game.js", fn: "applyBlueprint", step: "identitySheetAdmit(", why: "a blueprint's NPC seed is a roster entry with no sheet; the identity gate alone applies" },
+    { file: "tag_table.js", fn: "tag NPC_MERGE", step: "voicePinsFill(", why: "the merge fills the canon's empty voice slots from the duplicate's — a fold of two sheets already admitted, not an admission (#543)" },
+    /* this campaign's OWN sheets healed at load — same-campaign data, outside the registry in (b); (c) routes the load through a same-mode admission (§5.3) */
+    { file: "state.js", fn: "migrateWorldState", step: "migrateAncestryNames(", why: "the load-time heal of this campaign's own sheets (hero, roster, archives)" },
+    { file: "state.js", fn: "migrateWorldState", step: "migrateCharClassNames(", why: "the load-time heal of this campaign's own sheets" },
+    { file: "state.js", fn: "migrateWorldState", step: "migrateCapabilityRenames(", why: "the load-time heal of this campaign's own sheets" },
+    { file: "state.js", fn: "migrateWorldState", step: "migrateSpellDisplayNames(", why: "the load-time heal of this campaign's own sheets" },
+    { file: "storage-adapter.js", fn: "(top)", step: "migrateAncestryNames(", why: "the library LISTING heals a renamed ancestry for display and the diff; the adopting door admits the copy itself (#221)" },
+    /* the character editor is a satellite with its own door; (c) gives it the module's row editor and the registry (§4.4) */
+    { file: "character_editor.html", fn: "(top)", step: "migrateAncestryNames(", why: "the editor's healChar on a loaded .char — its own door until (c)" },
+    { file: "character_editor.html", fn: "(top)", step: "migrateCharClassNames(", why: "the editor's healChar — its own door until (c)" },
+    { file: "character_editor.html", fn: "(top)", step: "migrateCapabilityRenames(", why: "the editor's healChar — its own door until (c)" },
+    { file: "character_editor.html", fn: "(top)", step: "migrateSpellDisplayNames(", why: "the editor's healChar — its own door until (c)" }
+  ], _adExSeen = {};
   var _adFs = require("fs"), _adRoot = require("path").join(__dirname, "..");
   var _adFiles = _adFs.readdirSync(_adRoot).filter(function (f) { return /\.(js|html)$/.test(f) && f !== "admission.js"; }), _adBad = [];
   /* the enclosing unit of a site: the nearest top-level `function name(` / `async function name(` or tag-table entry
@@ -1446,11 +1487,13 @@ try {
     for (i = 0; i < _adSteps.length; i++) { step = _adSteps[i]; at = -1;
       while ((at = src.indexOf(step, at + 1)) >= 0) {
         if (src.slice(Math.max(0, at - 9), at) === "function ") continue;
-        var fn = _adFn(src, at).name;
-        if (!_adExempt.some(function (x) { return x.file === f && x.fn === fn; })) _adBad.push(f + " › " + fn + " calls " + step.slice(0, -1));
+        var fn = _adFn(src, at).name, exKey = f + " › " + fn + " › " + step;
+        if (_adExempt.some(function (x) { return x.file === f && x.fn === fn && x.step === step; })) { _adExSeen[exKey] = 1; continue; }
+        _adBad.push(f + " › " + fn + " calls " + step.slice(0, -1));
       } }
   });
-  if (_adBad.length) _adFail("a per-sheet step is hand-run outside the registry (route the door through sheetAdmit, or add an EXEMPT row with its reason): " + _adBad.join("; "));
+  _adExempt.forEach(function (x) { if (!_adExSeen[x.file + " › " + x.fn + " › " + x.step]) _adFail("the EXEMPT row " + x.file + " › " + x.fn + " (" + x.step.slice(0, -1) + ") names no live site — remove it"); });
+  if (_adBad.length) _adFail("a per-sheet step is hand-run outside the registry (route the door through sheetAdmit, or add an EXEMPT row naming the step with its reason): " + _adBad.join("; "));
   /* the DERIVED door census: every install sink names its door */
   /* a sink: a `.charSheet=` / `worldState.character=` assignment, or a wrapper literal that carries a sheet (`charSheet:x`,
      not null) — the literal, not the push, so a wrapper built into a variable and pushed later is seen too */
@@ -1504,9 +1547,12 @@ try {
 // (§4.4). Comment-blind, like the two contracts above; the enclosing unit comes from the admission contract's _adFn.
 try {
   var _ibFail = function (msg) { console.error("INVENTORY BOUNDARY CONTRACT: " + msg); process.exit(1); };
-  var _ibCode = function (s) { return s.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "0;"); };
+  var _ibCode = _stripComments;   /* the ONE scanner (review (b) 3) */
   var _ibRules = [
-    { name: "a string type-test on an inventory entry", re: /typeof\s+[A-Za-z_$][\w$.]*(?:[iI]nv[\w$.]*|\.inventory)\[[^\]]*\]\s*[!=]==\s*"string"/g },
+    { name: "a string type-test on an inventory entry", re: /typeof\s+[\w$.]*(?:[iI]nv[\w$.]*|\.inventory)\[[^\]]*\]\s*[!=]==\s*"string"/g },
+    /* the legacy entry readers are the module's own delegates: outside it, `_invBase(x)` / `_invCount(x)` read an ENTRY and would read a
+       row as "" and 1 in (c) — invEntries is the reader (review (b) 2: buildMoneyNote, recordCanonNames, sheetRegisterReport) */
+    { name: "a legacy entry reader (read invEntries)", re: /\b_inv(?:Base|Count)\(/g },
     { name: "a hand-rolled count grammar (an \" xN\" regex — read invStoredParse or invEntries)", re: /\/[^\/\n]*\\s[*+]?x\\?\(?\\d[^\/\n]*\//g },
     { name: "an index into an inventory (read invEntries or invEntryText)", re: /\.inventory\[[^\]]+\]|\b(?:inv|inv2|inventory)\[[^\]]+\]/g },
     /* `.inventory.join(` and `(x.inventory||[]).join(` are the list joining itself; `invTextList(x.inventory).join(` is the module's text — not matched */
@@ -1525,7 +1571,15 @@ try {
   });
   _ibExempt.forEach(function (x) { if (!_ibSeen[x.file + " › " + x.fn + " › " + x.rule]) _ibFail("the EXEMPT row " + x.file + " › " + x.fn + " (" + x.rule + ") names no site any more — remove it"); });
   if (_ibBad.length) _ibFail("an inventory is read or written outside inventory.js (route it through the module — invEntries, invTextList, invEntryText, invTally, invFromLines, invHolds — or add an EXEMPT row with its reason): " + _ibBad.join("; "));
-  console.log("[#599 b4] inventory boundary contract OK — " + _ibFiles.length + " engine files, " + _ibRules.length + " rules, " + _ibExempt.length + " reasoned exemptions");
+  /* the HOSTS: helpers.js reads counts through inventory.js (itemBaseName → invStoredParse, b4), so every page that loads
+     helpers.js loads inventory.js, and the bible server serves it (review (b) 5: the bible editor's item editing threw) */
+  var _ibHosts = _ibFs.readdirSync(_ibRoot).filter(function (f) { return /\.html$/.test(f); }), _ibHostBad = [];
+  /* a LOADED script: a <script src> or a quoted name in a loader array — never a mention in a comment */
+  var _ibLoads = function (src, name) { return new RegExp("src=[\"']" + name + "\\.js|[\"']" + name + "\\.js[\"']").test(src); };
+  _ibHosts.forEach(function (f) { var src = _src(f); if (_ibLoads(src, "helpers") && !_ibLoads(src, "inventory")) _ibHostBad.push(f); });
+  var _ibServer = _src("dev/bible-server.js"); if (/"\/helpers\.js"/.test(_ibServer) && !/"\/inventory\.js"/.test(_ibServer)) _ibHostBad.push("dev/bible-server.js (EDITOR_ASSETS)");
+  if (_ibHostBad.length) _ibFail("a host loads helpers.js without inventory.js — itemBaseName would throw: " + _ibHostBad.join(", "));
+  console.log("[#599 b4] inventory boundary contract OK — " + _ibFiles.length + " engine files, " + _ibRules.length + " rules, " + _ibExempt.length + " reasoned exemptions, " + _ibHosts.length + " hosts paired");
 } catch (e) { console.error("INVENTORY BOUNDARY CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── CAMPAIGN SLOT WRITER CONTRACT (#337, v1.821) ─────────────────────────────

@@ -15,7 +15,7 @@ var args = process.argv.slice(2), ALL = args.indexOf("--all") >= 0, dirArg = arg
 var BASE = dirArg ? path.resolve(dirArg) : path.join(ROOT, "Campaigns");
 
 // ---- legacy-string conversion under examination ----
-function parseStored(s) { var m = String(s).match(/^(.*\S)\s+x([1-9]\d*)\s*$/i); return m ? { name: m[1].trim(), qty: parseInt(m[2], 10) } : { name: String(s).trim(), qty: 1 }; }
+function parseStored(s) { return invStoredParse(s); } // THE engine's stored grammar (inventory.js), never a private copy — review (b) 6: a copy that trimmed where the engine did not hid a whole class of splits
 function itemKey(n) { return _invNorm(n); } // today's pack rule, which §2.2 adopts
 // ---- the OLD readers, frozen: the v1.1197 legacy strip (any trailing x-digits), the rule an unrefreshed device may still run
 // (§5.4). A stored string the old rule and the stored grammar read differently is a GRAMMAR SPLIT. Since #599 (b3), v1.1198,

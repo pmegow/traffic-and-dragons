@@ -36,7 +36,7 @@
 <!-- Per-open cache-buster — same stale-subresource class as bible_editor (2026-08-02): a
      cached capability_bible.js shows stale canon with no visible symptom. -->
 <script>
-(function(){var q="?fresh="+Date.now(),fs=["data.js","capability_bible.js","skills_bible.js","item_bible.js","helpers.js"],i;
+(function(){var q="?fresh="+Date.now(),fs=["data.js","capability_bible.js","skills_bible.js","item_bible.js","helpers.js","inventory.js"],i;/* 599 (b5): helpers.js reads counts through inventory.js - a host that loads one loads both */
 for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');})();
 </script>
 <script>

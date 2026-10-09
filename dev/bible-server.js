@@ -43,6 +43,7 @@ var EDITOR_ASSETS = {
   "/capability_bible.js": "capability_bible.js",
   "/item_bible.js": "item_bible.js",
   "/helpers.js": "helpers.js",
+  "/inventory.js": "inventory.js",   // #599 (b5): helpers.js reads counts through inventory.js — served wherever helpers.js is
   "/class_bible.js": "class_bible.js",
   "/satellite.css": "satellite.css"   // #312: the shared satellite palette — missing here = an unstyled editor (2026-09-03)
 };

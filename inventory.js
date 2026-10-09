@@ -20,7 +20,7 @@ function itemProvenanceFree(name){var s=String(name==null?"":name),cut=s.search(
 function itemBaseKey(name){return itemKey(itemProvenanceFree(name));}
 /* the STORED grammar (§5.2 ②): a trailing " xN", N ≥ 1 with no leading zero, is a count; anything else is a literal name with
    one unit. It never clamps — a stored count above INV_QTY_MAX is the caller's refusal, never a silent cut. */
-function invStoredParse(s){var str=String(s==null?"":s),m=str.match(/^(.*\S)\s+x([1-9]\d*)$/i);return m?{name:m[1],qty:parseInt(m[2],10)}:{name:str.trim(),qty:1};}
+function invStoredParse(s){var str=String(s==null?"":s).trim(),m=str.match(/^(.*\S)\s+x([1-9]\d*)$/i);return m?{name:m[1],qty:parseInt(m[2],10)}:{name:str,qty:1};}/* trimmed first: "Torch x3 " is three torches, as the old reader and the tag grammar read it (review (b) 6) */
 
 /* ═══ THE ROW FORM ═══
    I1 qty is an integer in 1…INV_QTY_MAX; a write or a fold that would pass it refuses, never clamps.
@@ -50,7 +50,7 @@ function invDeepEqual(a,b){
   var ka=Object.keys(a).sort(),kb=Object.keys(b).sort();if(ka.length!==kb.length)return false;
   for(i=0;i<ka.length;i++){if(ka[i]!==kb[i]||!invDeepEqual(a[ka[i]],b[kb[i]]))return false;}return true;
 }
-function invExtras(row){var o={},k;for(k in row)if(Object.prototype.hasOwnProperty.call(row,k)&&k!=="name"&&k!=="qty"&&k!=="equipped")o[k]=row[k];return o;}
+function invExtras(row){var o=keyedDict(),k;for(k in row)if(Object.prototype.hasOwnProperty.call(row,k)&&k!=="name"&&k!=="qty"&&k!=="equipped")o[k]=row[k];return o;}/* a null-prototype bag: an own "__proto__" field is a field, never the prototype (review (b) 12) */
 /* one entry → {ok,row,diag} (a detached row), {ok:false,diag} (junk: not an item), or {refuse} (the whole preparation stops) */
 function invRowOf(entry){
   if(typeof entry==="string"){var p=invStoredParse(entry);if(!p.name)return {ok:false,diag:{reason:"an empty name",original:entry}};if(p.qty>INV_QTY_MAX)return {refuse:"a stored count above "+INV_QTY_MAX+" ('"+entry+"')"};return {ok:true,row:{name:p.name,qty:p.qty,equipped:false},diag:null};}
@@ -125,7 +125,7 @@ function invEquip(rows,name,on){
 function invText(row){return String(row&&row.name)+(row&&row.qty>1?" x"+row.qty:"");}
 /* invTextList(inv): every entry's text, for the prompt and every display that showed the old strings — a legacy STRING
    VERBATIM (the prompt stays byte-identical through (b)), a row through invText. The ONE join source outside this file. */
-function invTextList(inv){var out=[],i;for(i=0;i<(inv||[]).length;i++){var e=inv[i];out.push(typeof e==="string"?e:invText(e));}return out;}
+function invTextList(inv){var out=[],i;for(i=0;i<(inv||[]).length;i++){var e=inv[i];out.push(typeof e==="string"?e:(e==null?"":(typeof e==="object"&&typeof e.name==="string"?invText(e):String(e))));}return out;}/* junk prints as the old join printed it — null/undefined as "", a number as its digits — never "undefined" (review (b) 11) */
 /* a detached copy for preflights and snapshots (§5.2 ⑦) — validated first, so nothing is lost in the clone */
 function invDetach(rows){var ji=invJsonIssue(rows);if(ji)return {ok:false,reason:ji,rows:null};return {ok:true,rows:JSON.parse(JSON.stringify(rows)),reason:""};}
 
@@ -245,13 +245,16 @@ function itemPairNote(R,field,name,val){if(!R[field])R[field]=keyedDict();var k=
 /* invEntries(inv) → [{name, qty, text, i}]: a string decodes through the stored grammar, a row is itself. A non-string,
    non-row entry is JUNK — skipped, counted on invEntries.lastJunk and said on the console (the three readers that used to
    skip it in silence now share this one loud skip). */
-function invEntries(inv){var out=[],i,junk=0;for(i=0;i<(inv||[]).length;i++){var e=inv[i];
-  if(typeof e==="string"){if(!e.trim()){junk++;continue;}var p=invStoredParse(e);out.push({name:p.name,qty:p.qty,text:e,i:i});}
+function invEntries(inv){var out=[],i,junk=0,first=-1;for(i=0;i<(inv||[]).length;i++){var e=inv[i];
+  if(typeof e==="string"){if(!e.trim()){junk++;if(first<0)first=i;continue;}var p=invStoredParse(e);out.push({name:p.name,qty:p.qty,text:e,i:i});}
   else if(e&&typeof e==="object"&&typeof e.name==="string"){out.push({name:e.name,qty:invUnits(e.qty),text:invText(e),i:i});}
-  else junk++;}
-  invEntries.lastJunk=junk;if(junk&&typeof console!=="undefined")console.warn("[inventory] "+junk+" unreadable inventory entr"+(junk===1?"y":"ies")+" skipped — not a string, not a row");
+  else{junk++;if(first<0)first=i;}}
+  invEntries.lastJunk=junk;
+  /* said ONCE per distinct junk shape per page (count, first position, list length) — the readers run several times a turn
+     (the snapshot, the ghost sweep, the recurring-name check, a panel paint), and §5.2 ⑥ forbids a repeated warning */
+  if(junk&&typeof console!=="undefined"){var sig=junk+"|"+first+"|"+(inv||[]).length;if(!invEntries._said[sig]){invEntries._said[sig]=1;console.warn("[inventory] "+junk+" empty or unreadable inventory entr"+(junk===1?"y":"ies")+" skipped (not a string, not a row) — first at position "+first);}}
   return out;}
-invEntries.lastJunk=0;
+invEntries.lastJunk=0;invEntries._said=keyedDict();
 /* invEntryText(inv, at): the text of ONE entry by position — the sheet's × mark rides it (#429) */
 function invEntryText(inv,at){var e=(inv||[])[at];return e==null?"":(typeof e==="string"?e:invText(e));}
 /* invTally(inv) → {key: {label, n}}: units per item KEY (never per whole string — two spellings of one item are one tally);
@@ -320,8 +323,8 @@ function groupInventory(inv){
   for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++){buckets[INVENTORY_CATEGORY_REGISTRY[i].id]={id:INVENTORY_CATEGORY_REGISTRY[i].id,label:INVENTORY_CATEGORY_REGISTRY[i].label,rows:[]};order.push(INVENTORY_CATEGORY_REGISTRY[i].id);}
   var un={id:"unclassified",label:"Unclassified",rows:[]};
   for(i=0;i<inv.length;i++){
-    var raw=inv[i],e=itemLookup(raw),cats=e?itemInvCategories(e):null;
-    var row={raw:raw,sourceIndex:i,key:itemBaseName(raw),entry:e,categories:cats||[]};
+    var raw=inv[i],text=invEntryText(inv,i),e=itemLookup(text),cats=e?itemInvCategories(e):null;
+    var row={raw:raw,text:text,sourceIndex:i,key:itemBaseName(text),entry:e,categories:cats||[]};/* #599 (b5): `text` is what a renderer shows and passes on — `raw` is the stored entry, whatever its shape (review (b) 2) */
     if(!cats){un.rows.push(row);continue;}
     var placed=false;
     for(j=0;j<order.length;j++){if(cats.indexOf(order[j])>=0){buckets[order[j]].rows.push(row);placed=true;break;}}

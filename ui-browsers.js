@@ -38,14 +38,17 @@ function consumeHomeQuickStart(){
   var rec=null,_qsErr=null;try{rec=JSON.parse(raw);}catch(e){_qsErr=(e&&e.message)||String(e);}/* audit E15 */
   var bad=quickStartPayloadValid(rec);
   if(bad){consume();console.warn("[home] quick start dropped — "+bad+(_qsErr?" ("+_qsErr+")":"")+"; "+String(raw).length+" chars discarded");showToast("Quick start could not begin: "+bad);return false;}
-  if(sheetVersionRefused(rec.char,"quick start"))return false;/* #599 (a): a hero from a newer build; the pick is KEPT — after the reload that updates this build it begins */
+  var char=rec.char;
+  /* #599 (b5): the registry runs BEFORE the payload is consumed — the version gate (a) refuses a hero from a newer build and the
+     pick is KEPT for the build the reload brings; the heals (#315, #481 F2, the names) land on the pick in place; startGame
+     publishes. (b2 ran it after consume() behind a hand-run version gate — one gate, one place now.) */
+  if(!sheetAdmit(char,{door:"quick start",mode:"cross",detach:false,stage:"preview",rel:"@import:"+(char.name||"character"),portable:true}).ok)return false;
   /* #481 F11: the TRANSIENT refusals — a turn in flight, storage too full to snapshot the live campaign — run BEFORE the
      payload is consumed, so the pick survives for the next try (it used to be removed first and lost with the refusal) */
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return false;}
   if(worldState&&!snapshotActiveCamp())return false;/* B4: never wipe the only local copy of a live campaign */
   consume();
-  var bp=normalizeBlueprint(rec.bp),char=rec.char,tone=null,ti;
-  if(!sheetAdmit(char,{door:"quick start",mode:"cross",detach:false,stage:"preview",rel:"@import:"+(char.name||"character"),portable:true}).ok)return false;/* #599 (b): the registry heals the pick in place (#315, #481 F2, the names); startGame publishes */
+  var bp=normalizeBlueprint(rec.bp),tone=null,ti;
   for(ti=0;ti<TONES.length;ti++)if(TONES[ti].id===bp.tone)tone=TONES[ti];
   tone=tone||TONES.filter(function(t){return t.id==="swords";})[0]||TONES[0];
   store.del(WSK);store.del(SLK);store.del(MEM_KEY);
@@ -924,7 +927,9 @@ function _addPendingCompanion(char){
   if(pendingCompanions.length>=3){showToast("Max 3 companions.");return;}
   for(var i=0;i<pendingCompanions.length;i++){if(pendingCompanions[i].name===char.name){showToast(char.name+" already added.");return;}}
   if(cs&&cs.name&&cs.name===char.name){showToast("That's your own character.");return;}
-  if(sheetVersionRefused(char,"companion pick"))return;/* #599 (a), review R5: the companion browser's two roads skip the preview */
+  /* #599 (b5): the companion browser's two roads skip the import preview, so the registry runs HERE, in place and as a preview —
+     the version gate (a) refuses a copy from a newer build before it queues; the heals land; startGame's loop publishes */
+  if(!sheetAdmit(char,{door:"companion pick",mode:"cross",detach:false,stage:"preview",rel:"@import:"+(char.name||"character"),portable:true}).ok)return;
   pendingCompanions.push(char);
   _renderCompanionSlots();
   showToast(char.name+" added as companion.");

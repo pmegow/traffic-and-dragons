@@ -23,6 +23,8 @@
      portable  true for a file or a library copy (the relationship adapter's portable mode)
      prev      the sheet being replaced, when one is (the voice pins it holds fill the copy's empty slots)
      detach    false when the door owns the object and heals it in place (the import preview, a generated sheet)
+     typed     true when the sheet's prose was typed into this build (the wizard's hero at New Game) or already clamped by
+               this build's preview — the import clamp does not apply to it
      toast     false to refuse without a toast (the door says it its own way)
    The context is a value, never a label: an entry's `applies` reads it, never the door's name.
 
@@ -36,16 +38,17 @@ var SHEET_ADMISSION=[
   {name:"identity",phase:"gate",applies:function(ctx){return ctx.exclude!==undefined;},
    run:function(sheet,ctx){return identitySheetIssue(sheet,ctx.name||sheet.name,ctx.exclude);},
    say:function(why,ctx){if(ctx.toast===false){if(typeof console!=="undefined")console.warn("[identity] Character identity refused: "+why);}else identityAdmissionWarn(why);}},
-  {name:"stash",phase:"prepare",applies:function(ctx){return ctx.mode!=="same";},/* memory.js loads before this file in every host — a missing helper fails loudly, never skips the mark (§5.3) */
-   run:function(sheet,ctx){ctx.stashMark=stashCopyMark(ctx.source);}},/* read from the SOURCE: the mark says which moves the copy already holds (#481 D9) */
+  {name:"stash",phase:"gate",applies:function(ctx){return ctx.mode!=="same";},/* memory.js loads before this file in every host — a missing helper fails loudly, never skips the mark (§5.3) */
+   run:function(sheet,ctx){try{ctx.stashMark=stashCopyMark(ctx.source);return "";}catch(e){ctx.stashMark=null;return (sheet.name||"the copy")+"'s stash history is unreadable ("+((e&&e.message)||e)+") — refused";}},/* read from the SOURCE: the mark says which moves the copy already holds (#481 D9); a corrupted mark REFUSES the copy (review (b) 13: stashJournalRefuse throws, and a throw mid-import would abort the whole list) */
+   say:function(why,ctx){if(typeof console!=="undefined")console.error("[admission] "+ctx.door+" refused — "+why);if(ctx.toast!==false&&typeof showToast==="function")showToast("⚠ "+why,9000);}},
   {name:"stores",phase:"prepare",applies:function(){return true;},
    run:function(sheet){keyedStores(sheet,"sheet");}},/* #545: name-keyed dictionaries never walk the prototype */
   {name:"portrait",phase:"prepare",applies:function(){return true;},
    run:function(sheet,ctx){if(portraitAdmit(sheet,ctx.door)&&ctx.toast!==false&&typeof showToast==="function")showToast("⚠ "+(sheet.name||"The character")+"'s portrait was dropped — not an image");}},/* #481 F2 */
   {name:"names",phase:"prepare",applies:function(ctx){return ctx.mode!=="same";},
    run:function(sheet){migrateAncestryNames(sheet);migrateCharClassNames(sheet);migrateCapabilityRenames(sheet);migrateSpellDisplayNames(sheet);}},/* #100, #221: a portable copy may predate a rename */
-  {name:"clamp",phase:"prepare",applies:function(ctx){return ctx.mode!=="same";},
-   run:function(sheet){clampImportedCharacter(sheet);}},/* #315: over-long prose is cut before it can reach a prompt */
+  {name:"clamp",phase:"prepare",applies:function(ctx){return ctx.mode!=="same"&&!ctx.typed;},
+   run:function(sheet){clampImportedCharacter(sheet);}},/* #315: over-long IMPORTED prose is cut before it can reach a prompt — never the prose the player typed into this build (ctx.typed: the wizard's hero at New Game; review (b) 1 found the wizard's 3000-character backstory cut to 2500) */
   {name:"arrays",phase:"prepare",applies:function(){return typeof ensureV10Arrays==="function";},
    run:function(sheet){ensureV10Arrays(sheet);}},/* #428: the v10 field guarantee (game.js; a host without game.js has no v10 doors) */
   {name:"relationships",phase:"prepare",applies:function(){return true;},

@@ -323,7 +323,7 @@ function updateInvPanel(){
       var row=grp.rows[j],eq=(grp.id==="weapon"||grp.id==="armor");
       /* #295: every item row opens the item-bible click-card (showItemCard, ui-sheets) — same
          canon as the hover tooltip, readable on touch where title-tooltips need a long-press. */
-      h+='<div class="ii has-tip'+(eq?' eq':'')+'" data-item="'+escHtml(row.raw)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;" title="'+escHtml(itemTip(row.raw)+_invTipCats(row,grp.id))+'">'+invItemHtml(row.raw)+(typeof isWorn==="function"&&isWorn(_ap,row.raw)?' <span style="color:var(--t2);font-size:10px;">· worn</span>':'')+'</div>';/* #388: plain-text marker, no pill (the no-borders rule) */
+      h+='<div class="ii has-tip'+(eq?' eq':'')+'" data-item="'+escHtml(row.text)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;" title="'+escHtml(itemTip(row.text)+_invTipCats(row,grp.id))+'">'+invItemHtml(row.text)+(typeof isWorn==="function"&&isWorn(_ap,row.text)?' <span style="color:var(--t2);font-size:10px;">· worn</span>':'')+'</div>';/* #388: plain-text marker, no pill (the no-borders rule) */
     }
   }
   /* #6 E8 → #431 (owner 2026-09-21): the "Your house" item group left this panel — what lies at the current node now

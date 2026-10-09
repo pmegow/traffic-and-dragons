@@ -661,7 +661,7 @@ function buildMoneyNote(){
      MONEY_EVERY turns played and at least one decision on file. A price with no reason behind it is the tax the ruling forbids. */
   if((worldState.turn||0)<every||!((memory.keyDecisions||[]).length))return"";
   var foes=sceneAntagonists();if(typeof codaState==="function"&&codaState()&&!foes.length)return"";
-  var dec=(memory.keyDecisions||[]).slice(-4).map(function(d){return "t"+d.turn+": "+d.desc;}),carry=(c.inventory||[]).slice(0,6).map(function(x){return (typeof _invBase==="function")?_invBase(x):String(x);});
+  var dec=(memory.keyDecisions||[]).slice(-4).map(function(d){return "t"+d.turn+": "+d.desc;}),carry=invEntries(c.inventory||[]).slice(0,6).map(function(e){return e.name;});/* #599 (b5): through the module */
   var label=(typeof locDisplayLeaf==="function")?locDisplayLeaf(key):key;
   worldState.moneyAsk={turn:worldState.turn,node:key};
   return "[ENGINE NOTE \u2014 MONEY AT STAKE (not a player action): the party carries "+fmtCoin(c.coin)+" at "+label+" and nothing has cost them coin in a long while. Let THIS scene put some of it at risk, in the fiction and from the record: a bribe demanded, a fine, a shakedown, a ransom, a debt called in, a ruined thing to replace"+(foes.length?" \u2014 "+foes.join(", ")+" is in the scene and has cause":"")+(dec.length?". What they did lately: "+dec.join("; "):"")+(carry.length?". What they carry: "+carry.join(", "):"")+". Settle it through [GOLD:-N] only if they pay; a refused demand is a scene too. NEVER a tax, upkeep, rent, ledger or bookkeeping \u2014 a price with a face and a reason, once. Never mention this note.]\n";
@@ -3005,7 +3005,7 @@ function itemBibleLine(nm,e){
 function buildItemBibleBlock(){
   if(typeof itemLookup!=="function"||!worldState||!worldState.character)return"";
   var seen=keyedDict(),lines=[],i;
-  function add(list){
+  function add(list){list=invTextList(list);/* #599 (b5): the one text projection — a string verbatim, a row as its text (the ITEM CANON block is prompt) */
     if(!list)return;
     for(var j=0;j<list.length;j++){
       var raw=list[j];if(!raw)continue;

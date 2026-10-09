@@ -92,7 +92,7 @@ textarea{width:100%;resize:vertical;}
      the SW but their SUBRESOURCES are not, and Chrome caches file:// scripts too; a unique
      query per open defeats both. Editors open rarely — the extra fetch is noise. -->
 <script>
-(function(){var q="?fresh="+Date.now(),fs=["dev/bible-editor-version.js","dev/bible-helper-version.js","data.js","capability_bible.js","item_bible.js","helpers.js","class_bible.js"],i;
+(function(){var q="?fresh="+Date.now(),fs=["dev/bible-editor-version.js","dev/bible-helper-version.js","data.js","capability_bible.js","item_bible.js","helpers.js","inventory.js","class_bible.js"],i;/* #599 (b5): helpers.js reads counts through inventory.js since b4 — a host that loads one loads both (review (b) 5: item editing threw ReferenceError) */
 for(i=0;i<fs.length;i++)document.write('<script src="'+fs[i]+q+'"><\/script>');})();
 </script>
 </head>

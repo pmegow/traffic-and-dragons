@@ -34,7 +34,7 @@ prove("helpers.js", [
 ]);
 prove("game.js", [
   { label: "a bought ware stays on the shelf",
-    find: "if(itemKey(node.wares[wi].item)===itemKey(l.name)){node.wares.splice(wi,1);break;}", replace: "if(false){node.wares.splice(wi,1);break;}",/* #599 (b3): the shelf match keys through itemKey */
+    find: "if(itemKey(_lw[wi].item)===itemKey(l.name)){var _wx=node.wares.indexOf(_lw[wi]);if(_wx>=0)node.wares.splice(_wx,1);break;}", replace: "if(false){var _wx=node.wares.indexOf(_lw[wi]);if(_wx>=0)node.wares.splice(_wx,1);break;}",/* #599 (b3/b5): the shelf match keys through itemKey, among the live wares */
     mustFail: "#407 ③ Complete lands" },
   { label: "the GM is never told (tradePing not armed)",
     find: "worldState.tradePing={turn:worldState.turn,keeper:cat.keeper,", replace: "worldState.tradePingX={turn:worldState.turn,keeper:cat.keeper,",

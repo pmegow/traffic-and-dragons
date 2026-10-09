@@ -284,8 +284,8 @@ function registerScanProse(text,names){return registerScan(registerMaskNames(tex
 function recordCanonNames(){
   var out=[],seen=keyedDict();
   function add(n){n=String(n==null?"":(typeof n==="object"&&n.name!=null?n.name:n)).trim();if(n.length<3)return;var k=n.toLowerCase();if(seen[k])return;seen[k]=1;out.push(n);}
-  function item(it){var b=(typeof _invBase==="function")?_invBase(it):String(it||"");b=String(b).split(/\s+[\u2014\u2013]\s+|\s+-\s+/)[0].replace(/\s*\([^)]*\)\s*$/,"");add(b);}
-  function sheet(cs){if(!cs)return;(cs.inventory||[]).forEach(item);(cs.abilities||[]).forEach(add);(cs.spells||[]).forEach(add);}
+  function item(e){var b=String(e.name).split(/\s+[\u2014\u2013]\s+|\s+-\s+/)[0].replace(/\s*\([^)]*\)\s*$/,"");add(b);}
+  function sheet(cs){if(!cs)return;invEntries(cs.inventory||[]).forEach(item);/* #599 (b5): the pack through the module */(cs.abilities||[]).forEach(add);(cs.spells||[]).forEach(add);}
   if(typeof worldState==="undefined"||!worldState)return out;
   var ws=worldState,mem=(typeof memory!=="undefined"&&memory)||{};
   if(ws.character){add(ws.character.name);sheet(ws.character);}
@@ -334,7 +334,7 @@ function sheetRegisterReport(ws){
     var w=s.agenda&&s.agenda.want;if(typeof w==="string"&&w){var hw=wordListScan(w,LABEL_RE);if(hw.length)out.push({name:name,field:"want",words:hw});}
     /* #481 C9: the names a sheet carries — an ability ("Ledger Memory") or an item ("Ledger fragment") — are reported too */
     (s.abilities||[]).forEach(function(a){var an=String((a&&a.name!=null)?a.name:(a||"")).trim();if(!an)return;var ha=wordListScan(an,LABEL_RE);if(ha.length)out.push({name:name,field:"ability",words:ha,text:an});});
-    (s.inventory||[]).forEach(function(it){var inm=String((typeof _invBase==="function")?_invBase(it):(it||"")).split(/\s+[\u2014\u2013]\s+/)[0].trim();if(!inm)return;var hi=wordListScan(inm,LABEL_RE);if(hi.length)out.push({name:name,field:"item",words:hi,text:inm});});}
+    invEntries(s.inventory||[]).forEach(function(it){var inm=String(it.name).split(/\s+[\u2014\u2013]\s+/)[0].trim();if(!inm)return;/* #599 (b5): through the module */var hi=wordListScan(inm,LABEL_RE);if(hi.length)out.push({name:name,field:"item",words:hi,text:inm});});}
   if(ws.character)scanSheet(ws.character.name||"the player",ws.character);
   var n=ws.npcs||[],i;for(i=0;i<n.length;i++)if(n[i]&&n[i].charSheet)scanSheet(n[i].name,n[i].charSheet);
   return out;
@@ -677,8 +677,15 @@ function libUpdateDiff(cur,lib){
 // apply can never drift) and returns the applied rows. Object values land as fresh
 // copies — the live sheet must never share a reference with the library object.
 function libUpdateApply(cur,lib){
-  if(sheetVersionRefused(lib,"library update"))return [];/* #599 (a), review R5: a newer copy's fields never land */
-  var d=libUpdateDiff(cur,lib),i,row;
+  /* #599 (b5), review (b) 7: the library copy is ADMITTED before any field lands — the version gate (a), the portrait gate, the
+     clamp and the name heals on a detached copy; the fields come from the healed copy (a dropped portrait is null and skipEmpty
+     keeps the live one; over-long prose arrives cut, never raw) */
+  var _ad=sheetAdmit(lib,{door:"library update",mode:"cross",stage:"preview",rel:"@import:"+((lib&&lib.name)||"character"),portable:true});
+  if(!_ad.ok)return [];
+  /* only the fields the library copy CARRIED, read from the healed copy — the heals fill a missing field with a default, and a
+     default is not a deliberate clear (#161: an old export missing a field never deletes live data) */
+  var _src={},_k;for(_k in lib)if(Object.prototype.hasOwnProperty.call(lib,_k)&&lib[_k]!==undefined)_src[_k]=_ad.sheet[_k];
+  var d=libUpdateDiff(cur,_src),i,row;
   for(i=0;i<d.length;i++){
     row=d[i];
     cur[row.k]=(row.kind==="json"&&row.to!=null)?JSON.parse(JSON.stringify(row.to)):row.to;
@@ -3357,7 +3364,7 @@ function shopTradeCatalog(){
   for(i=0;i<_ce.length;i++){var base=_ce[i].name,n=_ce[i].qty,k=itemKey(base);
     if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}
     hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,_ce[i].text))hero[k].worn=true;}
-  var wanted=keyedDict(),wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++)wanted[itemBaseKey(wl[i].item)]=wl[i];
+  var wanted=keyedDict(),wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++){var _wk=itemBaseKey(wl[i].item);if(!wanted[_wk])wanted[_wk]=wl[i];}/* the FIRST live want per base — the same one retireWantedAt retires (review (b) 4: last-wins paid one want and retired another) */
   var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,cp=(typeof itemValueCp==="function")?itemValueCp(canon):null;
     var w=wanted[itemBaseKey(r.name)]||null;
     r.canonCp=cp;r.wanted=!!w;r.want=w?{key:itemBaseKey(w.item),item:String(w.item||""),by:w.by||""}:null;/* #577: the want this row meets */

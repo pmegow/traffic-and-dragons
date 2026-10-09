@@ -33,8 +33,8 @@ prove("admission.js", [
   { label: "the voice pins are not carried from the replaced sheet",
     find: "  {name:\"voices\",phase:\"publish\",applies:function(ctx){return !!ctx.prev;},", replace: "  {name:\"voices\",phase:\"publish\",applies:function(ctx){return false;},",
     mustFail: CONTEXT },
-  { label: "the stash mark is never read from the copy",
-    find: "  {name:\"stash\",phase:\"prepare\",applies:function(ctx){return ctx.mode!==\"same\";},", replace: "  {name:\"stash\",phase:\"prepare\",applies:function(ctx){return false;},",
+  { label: "the stash mark is never read from the copy (the stash entry is a GATE since b5 — review (b) 13)",
+    find: "  {name:\"stash\",phase:\"gate\",applies:function(ctx){return ctx.mode!==\"same\";},", replace: "  {name:\"stash\",phase:\"gate\",applies:function(ctx){return false;},",
     mustFail: CONTEXT },
   { label: "the item canon is published as a prepare (before the voices, but the shape test reads phases)",
     find: "  {name:\"itemDefs\",phase:\"publish\",", replace: "  {name:\"itemDefs\",phase:\"prepare\",",
@@ -75,7 +75,7 @@ prove("ui-sheets.js", [
 ]);
 prove("dev/run-tests.js", [
   { label: "the step census stops seeing a real site (an exemption row removed must be noticed)",
-    find: "    { file: \"game.js\", fn: \"applyBlueprint\", why: \"a blueprint's NPC seed is a roster entry with no sheet; the identity gate alone applies\" },\n", replace: "",
+    find: "    { file: \"game.js\", fn: \"applyBlueprint\", step: \"identitySheetAdmit(\", why: \"a blueprint's NPC seed is a roster entry with no sheet; the identity gate alone applies\" },\n", replace: "",
     mustFail: CONTRACT },
   { label: "the door census stops seeing an internal transfer (its row removed, the swap becomes a door without sheetAdmit)",
     find: "    { file: \"game.js\", fn: \"swapPlayerCharacter\", why: \"the hero swap — a companion's sheet already live in this campaign takes the hero's seat; the owners swap through relationshipSwapOwners\" },\n", replace: "",

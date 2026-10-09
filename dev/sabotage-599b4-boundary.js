@@ -46,10 +46,10 @@ prove("memory.js", [
 ]);
 prove("inventory.js", [
   { label: "junk is skipped in silence again (no count, no console line)",
-    find: "  invEntries.lastJunk=junk;if(junk&&typeof console!==\"undefined\")console.warn(", replace: "  invEntries.lastJunk=0;if(false)console.warn(",
+    find: "  invEntries.lastJunk=junk;\n", replace: "  invEntries.lastJunk=0;junk=0;\n",
     mustFail: ENTRIES },
   { label: "the text projection runs a string through the row printer (the prompt would read 'undefined')",
-    find: "out.push(typeof e===\"string\"?e:invText(e));}return out;}", replace: "out.push(invText(e));}return out;}",
+    find: "out.push(typeof e===\"string\"?e:(e==null?\"\":(typeof e===\"object\"&&typeof e.name===\"string\"?invText(e):String(e))));}return out;}", replace: "out.push(invText(e));}return out;}",
     mustFail: TEXT },
   { label: "the free-text parser stops trimming",
     find: "split(\"\\n\").map(function(x){return x.trim();}).filter(function(x){return x.length>0;});}", replace: "split(\"\\n\").filter(function(x){return x.length>0;});}",

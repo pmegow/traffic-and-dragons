@@ -31243,7 +31243,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8");
     if(fn(ub,"function importCharacterFile(").indexOf("charFileVersionIssue(data)")<0)return "importCharacterFile gates the file envelope and its sheet";
     var pv=fn(ub,"function showCharImportPreview("),pg=pv.indexOf("sheetAdmit(char"),pm=pv.indexOf("modalShell(");if(pg<0||pg>pm)return "the import preview refuses a newer sheet before it is shown";
-    var qs=fn(ub,"function consumeHomeQuickStart("),qg=qs.indexOf("sheetVersionRefused(rec.char"),qd=qs.indexOf("store.del(WSK)");if(qg<0||qg>qd)return "quick start refuses a newer hero before the live keys are cleared";
+    var qs=fn(ub,"function consumeHomeQuickStart("),qg=qs.indexOf("sheetAdmit(char"),qd=qs.indexOf("store.del(WSK)");if(qg<0||qg>qd)return "quick start refuses a newer hero before the live keys are cleared";/* #599 (b5): the registry's version gate, before consume() */
     var boot=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),is=fn(boot,"function initState("),bg=is.indexOf("versionRefusedLoad()"),bc=is.lastIndexOf("showChar();");if(bg<0||bg>bc)return "the boot shows the refusal screen, never the wizard, over a save it could not read";
     var ce=__fsForTests.readFileSync(__rootForTests+"/character_editor.html","utf8"),lo=fn(ce,"function loadObject(","healChar(");if(lo.indexOf("charFileVersionIssue(")<0)return "the character editor refuses a newer file before healing it";
     var mc=__fsForTests.readFileSync(__rootForTests+"/map_cleanup.html","utf8"),lt=fn(mc,"function loadTnd(","worldState=data.worldState");if(!/worldVersionIssue\(data(&&data)?\.worldState\)/.test(lt))return "map cleanup refuses a newer .tnd before installing it";
@@ -31309,8 +31309,8 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8"),ce=__fsForTests.readFileSync(__rootForTests+"/character_editor.html","utf8"),mc=__fsForTests.readFileSync(__rootForTests+"/map_cleanup.html","utf8"),uc=__fsForTests.readFileSync(__rootForTests+"/ui-campaigns.js","utf8");
     function fn(src,head,stop){var s=src.slice(src.indexOf(head));var e=s.indexOf(stop||"\nfunction ",10);return e>0?s.slice(0,e):s;}
     var sg=fn(g,"function startGame(");if(sg.indexOf("sheetAdmit(comp")<0||sg.indexOf("sheetAdmit(comp")>sg.indexOf("worldState.npcs.push("))return "startGame gates each pending companion before it is installed";
-    if(fn(g,"function checkLegacyCharacter(").indexOf("sheetVersionRefused(pick")<0)return "the legacy pick is gated";
-    var ap=fn(ub,"function _addPendingCompanion(");if(ap.indexOf("sheetVersionRefused(char")<0||ap.indexOf("sheetVersionRefused(char")>ap.indexOf("pendingCompanions.push("))return "_addPendingCompanion gates before the push";
+    if(fn(g,"function checkLegacyCharacter(").indexOf("sheetAdmit(pick")<0)return "the legacy pick is gated";/* #599 (b5): through the registry */
+    var ap=fn(ub,"function _addPendingCompanion(");if(ap.indexOf("sheetAdmit(char")<0||ap.indexOf("sheetAdmit(char")>ap.indexOf("pendingCompanions.push("))return "_addPendingCompanion gates before the push";
     if(ce.indexOf("return {ver:SAVE_VER,type:\"character\",character:ch};")<0)return "the editor's file stamps ver:SAVE_VER";
     if(ce.indexOf("saveCharacterToLibrary(portableSheet(ch)")<0)return "the editor's library save goes through portableSheet (sheetVer)";
     var dr=ce.slice(ce.indexOf("CE_DRAFT_K)||\"null\""));if(dr.indexOf("charFileVersionIssue(")<0||dr.indexOf("charFileVersionIssue(")>dr.indexOf("healChar(d.ch)"))return "the draft restore gates before healing";
@@ -31492,6 +31492,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
       ["itemBaseKey","Rope (spare)","Rope",true],["itemBaseKey","Signet ring (from Sheriff Hemlock)","Signet ring",true],["itemBaseKey","Iron ring — unmarked","Iron ring",true],["itemBaseKey","Wolf pelts","Wolf pelt",true],["itemBaseKey","Rope","Lantern",false],
       ["stashKey","Torch x3","Torch",true],["stashKey","Wolf pelts","Wolf pelt",true],["stashKey","Iron ring — unmarked","Iron ring - unmarked",true],["stashKey","Rope (spare)","Rope",false],/* the chest keeps provenance (#481 D2) */
       ["itemPairKey","Signet ring (from Sheriff Hemlock) x2","Signet ring",true],["itemPairKey","Wolf pelts","Wolf pelt",true],["itemPairKey","Rope","Lantern",false],
+      ["itemPairKey","Rope x2 (spare)","Rope (spare) x2",false],/* a count belongs at the END (the tag grammar); a count before a clause is part of a literal name — the projection never parses a count (§2.2; review (b) 9) */
       ["_invNorm","Torch x3","Torch",true],["_invNorm","Wolf pelts","Wolf pelt",true],["_invNorm","Iron ring — unmarked","Iron ring - unmarked",true],["_invNorm","Rope (spare)","Rope",false]
     ];
     var fns={itemKey:itemKey,itemBaseKey:itemBaseKey,stashKey:stashKey,itemPairKey:itemPairKey,_invNorm:_invNorm},bad=[],i;
@@ -31546,7 +31547,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var q=quiet(function(){return invEntries(["Torch x3","Rope",{name:"Lamp",qty:2},"",7,null,"Model x01"]);}),es=q.r;
     var got=es.map(function(e){return e.name+":"+e.qty+":"+e.text+":"+e.i;}).join("|");
     if(got!=="Torch:3:Torch x3:0|Rope:1:Rope:1|Lamp:2:Lamp x2:2|Model x01:1:Model x01:6")return "entries: "+got;
-    if(invEntries.lastJunk!==3||!q.warns.some(function(w){return /3 unreadable inventory entries skipped/.test(w);}))return "junk is counted and said: "+JSON.stringify([invEntries.lastJunk,q.warns]);
+    if(invEntries.lastJunk!==3||!q.warns.some(function(w){return /3 empty or unreadable inventory entries skipped/.test(w);}))return "junk is counted and said: "+JSON.stringify([invEntries.lastJunk,q.warns]);
     var q2=quiet(function(){return invEntries(["Rope"]);});return (q2.r.length===1&&invEntries.lastJunk===0&&!q2.warns.length)?true:"a clean list says nothing";
   });
   t("#599b4 invTextList prints a legacy string VERBATIM and a row through invText (the prompt stays byte-identical); invEntryText reads one position; invFromLines is the one free-text parser (trim, drop empties, keep each line as typed)",function(){
@@ -31567,6 +31568,70 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(h.join()!=="true,true,true,false,false")return "holds: "+h.join();
     makeWorld();worldState.character.inventory=["Quillon dagger x2"];delete worldState.itemBible;worldState.pendingItemDefs=[];
     var p=quiet(function(){return buildItemDefinePrompt("Quillon dagger");}).r;return p?true:"Define must find a stacked carried item";
+  });
+
+  // ── #599 (b5): THE REVIEW CLOSES — the independent review of release (b) (audits/REVIEW_599_release_b_2026_10_09.md) found
+  // five live defects and two contract holes; each fix is pinned here, failing first.
+  section("#599 (b5) the review closes — typed prose is never clamped, one want paid is the want retired, a corrupted stash mark refuses, the shelf keeps its live row, the grammar trims, junk is said once, the doors install the healed copy");
+  t("#599b5 review 1: the wizard's hero is admitted at New Game without the import clamp — a 3000-character backstory keeps every character; an imported sheet is still clamped at the preview",function(){
+    var long=new Array(3001).join("x"),ch={name:"Vessa",gender:"F",cls:"Rogue",level:1,backstory:long,appear:new Array(900).join("a"),inventory:[],abilities:[],spells:[],skills:{},conditions:[],relationships:[],coreMemories:[]};
+    quiet(function(){sheetAdmit(ch,{door:"new game hero",mode:"cross",detach:false,rel:null,typed:true,toast:false});});
+    if(ch.backstory.length!==3000||ch.appear.length!==899)return "typed prose is never clamped: "+[ch.backstory.length,ch.appear.length];
+    var imp={name:"Vessa",backstory:long};quiet(function(){sheetAdmit(imp,{door:"character import",mode:"cross",detach:false,stage:"preview",toast:false});});
+    if(imp.backstory.length!==2500)return "an imported sheet is still clamped: "+imp.backstory.length;
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");return /sheetAdmit\(char,\{door:"new game hero",mode:"cross",detach:false,rel:null,typed:true\}\)/.test(g)?true:"startGame passes typed:true for the hero";
+  });
+  t("#599b5 review 4: two live wants that share a base (one plain, one with provenance) — the counter pays the FIRST and the sale retires that same want; the other stays live",function(){
+    shopFixture();var node=memory.map.nodes["The Village|the trading post"];
+    node.wanted=[{item:"Signet ring",offer:"1 gp",cp:100,by:"Alice",t:1,min:clockNow()},{item:"Signet ring (from Hemlock)",offer:"5 gp",cp:500,by:"Bob",t:1,min:clockNow()}];
+    worldState.character.inventory=["Signet ring"];
+    var cat=shopTradeCatalog(),r=cat.sell[0];if(!r.want||r.want.by!=="Alice"||r.sellCp!==100)return "the first live want pays: "+JSON.stringify(r.want);
+    var ret=retireWantedAt(null,"Signet ring");
+    return (ret&&ret.by==="Alice"&&node.wanted.length===1&&node.wanted[0].by==="Bob")?true:"the paid want is the retired one: "+JSON.stringify([ret&&ret.by,node.wanted.map(function(w){return w.by;})]);
+  });
+  t("#599b5 review 13: a copy whose stash mark is corrupted is REFUSED at the stash gate — no throw, the source untouched, and the clean copies in the same village import still arrive",function(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";var k=stashMarkKey();
+    var bad={name:"Ammut",gender:"M",cls:"Rogue",inventory:[],stashMarks:{}};bad.stashMarks[k]=-1;var good={name:"Morwen",gender:"F",cls:"Rogue",inventory:[]};
+    var before=JSON.stringify(bad),threw=null;try{quiet(function(){importVillageResidents([bad,good]);});}catch(e){threw=(e&&e.message)||String(e);}
+    if(threw)return "the import threw: "+threw;
+    if(wsNpcByName("Ammut"))return "the corrupted copy entered";if(!wsNpcByName("Morwen"))return "the clean copy did not arrive";
+    if(JSON.stringify(bad)!==before)return "the refused source was touched";
+    var r=quiet(function(){return sheetAdmit(bad,{door:"test",mode:"cross",toast:false});}).r;return (r.ok===false&&r.gate==="stash"&&/stash history/.test(r.reason))?true:"the refusal names the stash gate: "+JSON.stringify(r);
+  });
+  t("#599b5 review 10: a bought ware leaves the shelf by key among the LIVE wares — an expired key twin keeps its place and the live row goes",function(){
+    shopFixture();var node=memory.map.nodes["The Village|the trading post"];
+    node.wares.unshift({item:"Healing potions",price:"50 gp",note:"",t:1,min:clockNow()-100*1440,at:"the trading post"});/* an expired twin, first in the list */
+    worldState.character.coin=10000;var res=quiet(function(){return shopTradeApply({sell:{},buy:{"healing potion":1}});}).r;
+    if(!res||!res.ok)return "the buy: "+JSON.stringify(res);
+    var items=node.wares.map(function(w){return w.item;});return (items.indexOf("Healing potion")<0&&items.indexOf("Healing potions")>=0)?true:"the LIVE row left, the expired twin stayed: "+items.join("|");
+  });
+  t("#599b5 review 6: the stored grammar trims — 'Torch x3 ' is three torches for every reader, as the old reader and the tag grammar read it; the census tool reads the engine's grammar, never a copy",function(){
+    if(_invCount("Torch x3 ")!==3||_invBase("Torch x3 ")!=="Torch"||invStoredParse(" Torch x3 ").qty!==3||resolveInventoryName(["Torch x3 "],"Torch")!==0)return "trailing space: "+JSON.stringify([_invCount("Torch x3 "),_invBase("Torch x3 ")]);
+    var src=__fsForTests.readFileSync(__rootForTests+"/dev/census-inventory-rows.js","utf8");return /function parseStored\(s\) \{ return invStoredParse\(s\); \}/.test(src)?true:"the census tool must read the engine's grammar";
+  });
+  t("#599b5 review 11/12: junk is said ONCE per shape per page and named as empty-or-unreadable; invTextList prints junk as the old join did; an own __proto__ extra is a field",function(){
+    var list=["Rope","",7];invEntries._said=keyedDict();var q=quiet(function(){invEntries(list);invEntries(list);invEntries(list);});
+    var said=q.warns.filter(function(w){return /inventory entr/.test(w);});if(said.length!==1||!/2 empty or unreadable/.test(said[0]))return "once, and named: "+JSON.stringify(q.warns);
+    if(invTextList(["Rope",7,null,undefined]).join("|")!=="Rope|7||")return "junk prints as the old join printed it: "+JSON.stringify(invTextList(["Rope",7,null,undefined]));
+    var x=JSON.parse('{"name":"Lamp","qty":1,"__proto__":{"k":1}}'),ex=invExtras(x);return (Object.prototype.hasOwnProperty.call(ex,"__proto__")&&ex["__proto__"]&&ex["__proto__"].k===1)?true:"an own __proto__ extra survives as a field: "+JSON.stringify(ex);
+  });
+  t("#599b5 review 12: the doors install the HEALED copy, never the source — the library hero and the village resident",function(){
+    makeWorld();worldState.kind="village";worldState.world.location="The Village";var copy={name:worldState.character.name,gender:"F",level:7,inventory:["Rope"],portrait:"not-an-image"};
+    var h=quiet(function(){return adoptLibraryHero(copy,Date.now());}).r;if(!h||h===copy||worldState.character!==h||h.portrait!=null||copy.portrait!=="not-an-image")return "the hero door installs the detached, healed copy";
+    var res={name:"Morwen",gender:"F",cls:"Rogue",level:2,inventory:["Rope"],portrait:"not-an-image"};quiet(function(){importVillageResidents([res]);});var n=wsNpcByName("Morwen");
+    return (n&&n.charSheet!==res&&n.charSheet.portrait==null&&res.portrait==="not-an-image")?true:"the village door installs the detached, healed copy";
+  });
+  t("#599b5 review 7: a library update, the legacy pick, the companion pick and quick start admit the copy — a non-image portrait never reaches the hero (the live one stays), over-long prose arrives clamped; quick start admits BEFORE it consumes the handoff (source)",function(){
+    makeWorld();var c=worldState.character;c.portrait="data:image/jpeg;base64,AAAA";c.backstory="short";
+    var lib={name:c.name,portrait:"not-an-image",backstory:new Array(3001).join("b")};
+    quiet(function(){return libUpdateApply(c,lib);});
+    if(c.portrait!=="data:image/jpeg;base64,AAAA")return "the live portrait must survive a dropped library portrait";
+    if(c.backstory.length!==2500)return "the backstory arrives clamped: "+c.backstory.length;
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),b=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8");
+    function fn(src,head){var s=src.slice(src.indexOf(head));var e=s.indexOf("\nfunction ",10);return e>0?s.slice(0,e):s;}
+    var lg=fn(g,"function checkLegacyCharacter(");if(lg.indexOf("sheetAdmit(pick")<0||lg.indexOf("sheetAdmit(pick")>lg.indexOf("worldState.pendingLegacy=")||lg.indexOf("pick=_ad.sheet;")<0||lg.indexOf("pick=_ad.sheet;")>lg.indexOf("worldState.pendingLegacy="))return "the legacy pick admits the copy and builds pendingLegacy from the HEALED copy, never the raw library sheet";
+    var qs=fn(b,"function consumeHomeQuickStart(");if(qs.indexOf("sheetAdmit(char")<0||qs.indexOf("sheetAdmit(char")>qs.indexOf("\n  consume();"))return "quick start admits before it consumes the handoff";/* the statement-level consume(), not the malformed-payload drop */
+    var cp=fn(b,"function _addPendingCompanion(");return (cp.indexOf("sheetAdmit(char")>=0&&cp.indexOf("sheetAdmit(char")<cp.indexOf("pendingCompanions.push("))?true:"the companion pick admits before it queues";
   });
 
 }

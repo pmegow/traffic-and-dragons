@@ -21,7 +21,7 @@ function startGame(char,toneName,toneVoice,authorId){
   /* #354: the preset carries the opening hour — the clock is engine-owned, so the preset sets it (never the GM) */
   if(typeof char._startHour==="number"){worldState.clock={min:startClockMin(char._startHour),schedule:[]};worldState.world.time=clockHourLabel(char._startHour);}
   delete worldState.character._startLoc;delete worldState.character._campName;delete worldState.character._startHour;
-  sheetAdmit(char,{door:"new game hero",mode:"cross",detach:false,rel:null});/* #599 (b): the hero's own admission in place — an imported hero's item canon travels in (#81b), the last campaign's scene stays there (#481 C5); a refusal cannot happen here (the preview and the wizard gated the sheet) and would only skip the heals */
+  sheetAdmit(char,{door:"new game hero",mode:"cross",detach:false,rel:null,typed:true});/* #599 (b): the hero's own admission in place; typed — the wizard's prose is the player's, never clamped (review (b) 1) — an imported hero's item canon travels in (#81b), the last campaign's scene stays there (#481 C5); a refusal cannot happen here (the preview and the wizard gated the sheet) and would only skip the heals */
   if(arguments.length>=4){worldState.proseAuthor=authorId||"";proseAuthor=authorId||"";store.set(PROSE_K,authorId||"");}
   sessionLog=[];memory=blankMemory();lastAction=null;// don't let the previous campaign's last action leak into this one's Retry (audit E83)
   // Add any companions selected during character creation
@@ -423,7 +423,7 @@ function shopTradeApply(marks){
   if(!R.ok){if(typeof console!=="undefined")console.warn("[shop] "+R.reason);return {ok:false,reason:R.reason,muts:muts,plan:plan};}
   var i,node=cat.node,sold=[],bought=[],hero=(worldState.character&&worldState.character.name)||"the hero";
   for(i=0;i<plan.lines.length;i++){var l=plan.lines[i];
-    if(l.kind==="buy"){bought.push(l.qty>1?l.name+" x"+l.qty+" ("+fmtCoin(l.cp)+")":l.name+" ("+l.price+")");/* #481 D5: a bundle buy names its count */var wi;for(wi=0;wi<(node.wares||[]).length;wi++)if(itemKey(node.wares[wi].item)===itemKey(l.name)){node.wares.splice(wi,1);break;}}/* #599 (b3): the bought ware leaves the shelf by the one item key */
+    if(l.kind==="buy"){bought.push(l.qty>1?l.name+" x"+l.qty+" ("+fmtCoin(l.cp)+")":l.name+" ("+l.price+")");/* #481 D5: a bundle buy names its count */var wi,_lw=(typeof nodeWaresLive==="function")?nodeWaresLive(node):(node.wares||[]);for(wi=0;wi<_lw.length;wi++)if(itemKey(_lw[wi].item)===itemKey(l.name)){var _wx=node.wares.indexOf(_lw[wi]);if(_wx>=0)node.wares.splice(_wx,1);break;}}/* #599 (b3): the bought ware leaves the shelf by the one item key — among the LIVE wares (review (b) 10: a key twin that expired must not take the live row's place) */
     else{sold.push(l.name+(l.qty>1?" x"+l.qty:"")+" ("+fmtCoin(l.cp)+")");if(typeof fileWare==="function"){var out={};fileWare(l.name,fmtCoin(l.unitCp),"sold by "+hero,worldState.turn,out);if(out.evicted&&out.evicted.length)muts.push("Shelf full — dropped: "+out.evicted.join(", "));}}}
   var line=hero+(sold.length?" sold "+sold.join(", "):"")+(sold.length&&bought.length?" and":"")+(bought.length?" bought "+bought.join(", "):"")+" — "+(plan.netCp>0?"-":plan.netCp<0?"+":"")+fmtCoin(Math.abs(plan.netCp))+", with "+cat.keeper+" at "+cat.shop+".";
   worldState.tradePing={turn:worldState.turn,keeper:cat.keeper,shop:cat.shop,hero:hero,sold:sold,bought:bought,netCp:plan.netCp};
@@ -1115,11 +1115,11 @@ function checkLegacyCharacter(){
   }
   if(!candidates.length){if(legacyChancePct>=100&&typeof console!=="undefined")console.warn("[legacy] enabled and rolled, but no eligible character in the Character Library (need a saved library character that isn't the current PC or already met; requires server connection).");return;}
   var pick=candidates[Math.floor(Math.random()*candidates.length)];
-  if(sheetVersionRefused(pick,"legacy character "+(pick.name||"")))return;/* #599 (a), review R5: pendingLegacy is built field by field, so its source is gated */
-  migrateAncestryNames(pick);
-  migrateCharClassNames(pick);/* #100: server-library entries may predate the Berserker→Primal rename — heal before the cls string reaches the GM prompt */
-  if(typeof migrateCapabilityRenames==="function")migrateCapabilityRenames(pick);/* #221 */
-  relationshipMigrateSheet(pick,"@legacy:"+pick.name,{portable:true});
+  /* #599 (b5), review (b) 7: the legacy pick is a DOOR — the registry admits the library copy (the version gate (a), the name heals
+     #100/#221, the clamp, the portable relationship adapter, the item canon) on a detached copy; pendingLegacy is built from the
+     healed copy, never from the raw library sheet */
+  var _ad=sheetAdmit(pick,{door:"legacy character "+(pick.name||""),mode:"cross",rel:"@legacy:"+pick.name,portable:true});
+  if(!_ad.ok)return;pick=_ad.sheet;
   // Capture the FULL identity so the legacy NPC is portrayed consistently — same person, gender,
   // relationships and gear as in their own tale (fixes #18: Ammut forgot his wives + got mis-gendered).
   worldState.pendingLegacy={
