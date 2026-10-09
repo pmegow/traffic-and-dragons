@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="anchor" content="f1a48a2a">
+<title>Fable review — 2026-10-08 (the Astra and Opus batch since Tuesday)</title>
+<style>
+:root{--bg:#0e0e10;--bg2:#161618;--bg3:#1e1e22;--brd:#2a2a30;--t0:#e6e2d8;--t1:#a9a49a;--t2:#6f6b64;--acc:#b8935a;--grn:#7aa86a;--amb:#d8a04a;--red:#c05050;--blu:#6a8fb8;--font:Georgia,"Times New Roman",serif;--mono:Consolas,"Courier New",monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t0);font-family:var(--font);font-size:15px;line-height:1.55}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 80px}
+h1{font-size:26px;margin:0 0 4px;letter-spacing:.02em}
+h2{font-size:19px;margin:44px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--brd);color:var(--acc)}
+h3{font-size:16px;margin:26px 0 8px;color:var(--t0)}
+p{margin:8px 0}
+.sub{color:var(--t1);font-size:13.5px}
+.lean{display:inline-block;border-radius:12px;padding:2px 10px;font-size:.78em;letter-spacing:1px;font-family:var(--mono);font-weight:bold;text-transform:uppercase;color:rgba(255,255,255,.4);border:1px solid var(--acc);background:#241d12}
+.lean.high{border-color:var(--red);background:#261010}.lean.med{border-color:var(--amb);background:#2b200f}.lean.low{border-color:var(--blu);background:#151b22}.lean.info{border-color:var(--t2);background:#161618}.lean.ok{border-color:var(--grn);background:#182215}
+table{border-collapse:collapse;width:100%;margin:10px 0 16px;font-size:13.5px}
+th,td{border:1px solid var(--brd);padding:7px 9px;vertical-align:top;text-align:left}
+th{background:var(--bg2);color:var(--t1);font-weight:normal;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+td.n{font-family:var(--mono);white-space:nowrap;color:var(--t1)}
+.verdict{background:var(--bg2);border:1px solid var(--brd);border-left:3px solid var(--acc);padding:14px 18px;margin:18px 0;font-size:15.5px}
+.f{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:14px 18px;margin:14px 0}
+.f h3{margin:0 0 6px;font-size:16px}
+.f .k{display:inline-block;min-width:92px;color:var(--t2);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
+.f p{margin:6px 0}
+code{font-family:var(--mono);font-size:.9em;color:#d9c9a8;background:#1a1712;padding:1px 4px;border-radius:3px}
+ul{margin:6px 0 6px 20px;padding:0}li{margin:3px 0}
+.small{font-size:13px;color:var(--t1)}
+</style>
+</head>
+<body><main>
+<h1>Fable review — 2026-10-08 (the Astra and Opus batch since Tuesday)</h1>
+<p class="sub">Traffic and Dragons · the rung-1 commit review of the Thursday ladder (TODO #448), run alone at the owner's ask · judged by Fable 5.1 · every engine diff read by the judge, every candidate reproduced through the real engine on fixture worlds</p>
+
+<h2 id="method">1 Method</h2>
+<div class="verdict"><b>Summary.</b> 61 commits since Tuesday 2026-10-06 (engine v1.1163 → v1.1191): 53 by Astra (Codex), 7 by Opus 5.5, 1 by Fable (#504). <b>One defect found and fixed:</b> #604 — after a hero swap, an alias tag on the hero's old title minted a ghost NPC under her own alias (v1.1192). It is a regression of the #504 build: the identity fuzzer that shipped with #504 at 0 violations over 16,000 sequences reported 1 at HEAD. <b>Everything else read clean.</b> The Astra batch is careful work: every refusal says why in the summary and the console, the prompt's stable half stayed byte-identical through the two text changes, and each commit's claimed proofs exist in the tree. Three design choices are recorded under Checked and clean so nobody re-litigates them. <b>For your eyes:</b> nothing is blocked on you from this review. The #599 design record is the next item and is not judged here.</div>
+<p>Range under review: <code>06016b0c^..02f4fa51</code> — 61 commits, 391 files, +207,546 / −864 lines (almost all of it Astra's evidence folders under <code>audits/</code>; the engine files moved +4,107 / −549). The 144 commits between the <a href="Review_fable_2026_10_01.html">2026-10-01 receipt</a> and Tuesday (Fable's own shipping day of 2026-10-03, the Astra triage of 2026-10-04, the clutter pass) were not re-read; each has its own record. This receipt's anchor is <code>02f4fa51</code>, the HEAD the review opened at.</p>
+<p><b>Who judged.</b> Fable 5.1 alone, in one sitting. No reviewer agents: the drift-surface diff was small enough (about 150 KB across 25 Astra commits) to read whole. The full suite at HEAD was green first (2,808 assertions), then every drift-surface diff was read as a reviewer would — what silent failure could this cause, and was the claimed verification in the tree — and eight failure-condition probes were run through <code>dev/load-engine.js</code> on fixture worlds: the denouement RECORD-line parser on ten shapes (markdown wrappers, a missing period, Arabic prose, RECORD first), the ending-moment repair for idempotence with an accented hero, a titled companion and a shared surname, a corrupt stash journal at load, a hero alias that is also an NPC's name, a same-reply alias into an existing record, cast names with an occupation, the keeper-ask latch, and self-links and hero factions in the graph. Then the identity fuzzer (<code>dev/fuzz-npc-identity.js</code>) at HEAD with two seeds.</p>
+<p><b>Verification of the one fix.</b> Failing test first (section #504, red at v1.1191 with the exact ghost record named), the one-line fix, a new clause in <code>dev/sabotage-504-title-question.js</code> and the older alias-shadow clause re-anchored (the fix had orphaned it — a mutation that changes no bytes is a failure); the battery 56/56; the fuzzer 12,000 sequences over three seeds with hero swaps at 0 violations; the full gate in a clean worktree (the shared tree carried another session's unfinished voice edits, whose stale #467 clause fails the retained-proof suite there — not this change's).</p>
+
+<h2 id="rung1">2 Rung 1 — commit review</h2>
+<div class="verdict">The batch closed 30 rows across three "known issues" sweeps, each with an Astra-on-Astra independent review and a receipt (<code>audits/VERIFY_*_2026-10-0[78].html</code>). Reading the diffs found one regression on the identity layer, introduced by the alias rework of 90c53126 and reachable in play after a hero swap. It is fixed as #604. No commit message claimed a check its diff lacked. The reserved-word refactor (4c821589, #536/#540/#541) is the largest change and is structurally sound: one <code>keyedDict</code>, one <code>keyedStores</code> path table applied at every load, import and sheet boundary, no direct <code>.hasOwnProperty</code> call left on a store.</div>
+<h3>Censuses (scripted, read-only)</h3>
+<table><tr><th>Census</th><th>Result</th><th>Action</th></tr>
+<tr><td>Churn</td><td>Engine: identity.js +301, memory.js +337, tag_table.js +155, helpers.js +273, game.js +197, api.js +143. Every engine commit maps to a #527 lead, a #5xx row or #504.</td><td>—</td></tr>
+<tr><td>Full suite at HEAD</td><td>ALL GREEN — 2,808 engine assertions, every standalone suite.</td><td>—</td></tr>
+<tr><td>CI on master</td><td>Green for every push since b028d878 (that one failed the browser-waits suite; fixed by the next commit). Range sweep and the four replays ran in CI.</td><td>—</td></tr>
+<tr><td>Identity fuzzer at HEAD</td><td>seed 4242 with swaps: <b>1 violation</b> (ALIAS-SHADOW) at 3,000 sequences; seed 7: 0.</td><td>#604 fixed</td></tr>
+<tr><td>Off-Fable log</td><td>Three Astra lines for 2026-10-07 (#527(25), #528, #437); the 10-08 drift-surface commits are Astra's under the 2026-10-04 eligibility ruling and carry their own audit files instead.</td><td>—</td></tr>
+<tr><td>Reviewed index</td><td>Entry 39 (#599 design review) was written by Astra on 2026-10-08. Entry 38 (#504's own independent review) is still owed.</td><td>see §6</td></tr>
+</table>
+<h3>Findings from the drift-surface diffs</h3>
+<table><tr><th>Row</th><th>Severity</th><th>Finding</th><th>Status</th></tr>
+<tr><td class="n">#604</td><td><span class="lean high">high</span></td><td>After a hero swap, <code>[NPC_ALIAS:Queen Underbough|Mother Underbough]</code> — the canonical being an alias on the new hero's retained memory record — minted a new NPC "Queen Underbough" carrying the alias. Every later tag naming the Queen then filed on the ghost instead of being refused as the hero's. Mechanism: <code>npcAliasOperand</code> answered <code>hero</code> but the handler kept the raw operand (<code>_alOwn=null</code>), and the hero branch tests the raw name, so the legacy NPC upsert ran. v1.1164 resolved the operand first and had no such hole.</td><td>fixed v1.1192</td></tr>
+</table>
+<div class="f"><h3><span class="lean high">high</span> #604 — the ghost record under the hero's alias</h3>
+<p><span class="k">Repro</span> Wilhelmina on file; <code>[NPC:Queen Underbough]</code> raises the #504 question; the GM answers <code>[NPC_MERGE:Wilhelmina Underbough|Queen Underbough]</code> so "Queen Underbough" becomes her alias; the player swaps to Wilhelmina (the swap keeps her memory record, as the real <code>swapPlayerCharacter</code> does); the GM writes <code>[NPC_ALIAS:Queen Underbough|Mother Underbough]</code>.</p>
+<p><span class="k">At v1.1191</span> summary line "Alias: Mother Underbough -> Queen Underbough"; <code>memory.npcs["Queen Underbough"]</code> exists with aliases ["Mother Underbough"]; the hero's sheet unchanged.</p>
+<p><span class="k">At v1.1192</span> summary line "Epithet: Mother Underbough"; no record minted; the epithet on the hero's sheet.</p>
+<p><span class="k">Why it matters</span> The resolver prefers an exact key, so the ghost would have captured every later note, pronoun, link and death naming the Queen — silently, with a routine receipt. This is the class the fuzzer was written to catch, and it did.</p></div>
+
+<h2 id="rung2">3 Rung 2 — the week's play</h2>
+<p>Not run. The owner scoped this session to the commit review and the #599 design evaluation.</p>
+<h2 id="rung3">4 Rung 3 — prompt diff</h2>
+<p>Not run (same scope). Astra's own record for the one STYLE change (<a href="../audits/AUDIT_2026_10_08_52715.md">527(15)</a>) reports the stable half byte-identical on three real saves and the volatile half +55 characters, exactly the substitution.</p>
+<h2 id="rung4">5 Rung 4 — smalls</h2>
+<p>Not run (same scope).</p>
+
+<h2 id="clean">6 Checked and clean</h2>
+<p>Each line is a candidate that was reproduced and judged correct as designed, so nobody re-litigates it.</p>
+<ul>
+<li><b>A corrupt stash journal refuses the whole load (078847bc, #527(27)).</b> A village save whose <code>stashJournal</code> is <code>null</code> or has an empty id throws from <code>inflateWorldStateSnapshot</code>, so <code>loadState</code> returns false and the campaign does not open (the toast says "Stash history: Invalid stash journal provenance"). Probed and confirmed. Judged acceptable: nothing in the engine writes such a value, only village kinds are affected (disposable by the owner's rule), the bytes stay in storage, and replacing a damaged journal with a fresh id would re-open the #581 duplicate-items class. A watch, not a row: if a report ever shows this toast, the remedy is a preserve-and-shout rescue like <code>rescueCorruptStore</code>.</li>
+<li><b>A hero alias that is also an NPC's canonical name now names the NPC (b154db6b).</b> <code>memoryNpcIsPlayer("the Walker")</code> is false when "The Walker" is a record's own key; a note through it files on the NPC, and the load-time audit toasts the collision once with the fingerprint. Probed: the note files (an event on the record), nothing vanishes. Canonical-name-over-epithet is a defensible priority and is said out loud.</li>
+<li><b>The skeleton register scan reads prose fields with the narration list (9b37b65e, #527(14)).</b> Act and arc titles keep <code>LABEL_RE</code>; premise, goals, turning points, objectives and dnaHint use <code>REGISTER_RE</code>. This loosens the deterministic gate for prose fields only, matching the archived #459 remedy; the vocabulary itself is unchanged.</li>
+<li><b>The STYLE text on lived memories (f49136fe, #527(15)).</b> "A companion who was there says less, not more" became "party members who lived a served memory may recall its details naturally; outsiders know only a passing, possibly garbled handle". This reconciles STYLE with the #469 record (verbatim moments are served so their carriers can use them); the held-past gate for small-talk kinds is untouched and tested. STYLE is in the volatile half, so the cache is unaffected.</li>
+<li><b>The denouement asks for a hidden RECORD line and second person (65fbf748, #525).</b> The owner's second ruling of 2026-10-01 ("second person; the campaign's voice decides the rest") is what shipped, including the voice's game words. The RECORD parser handles markdown wrappers, a leading list marker, a bracketed line and a record that spans two lines; Arabic prose without a RECORD line is kept whole and the last paragraph is attributed with a console warning; a record without a terminal period is treated the same way. The ending-moment repair is idempotent with an accented hero, a titled companion and a shared surname (first-name token, titles skipped).</li>
+<li><b>Companion impulse note moved last in <code>NOTE_BUILDERS</code> (269bc12b).</b> A builder dropped by the delivery budget has its latches restored, so the move only changes priority, never burns the ask.</li>
+<li><b>Deferred <code>[SHOP_KEEPER:]</code> (290c27d9, #527(19)).</b> A keeper named before the roster row exists in the same reply waits for every handler, then files or refuses with the reason. An earlier-offset keeper tag for the same shop processed after a later one is dropped without a line; a nit, not a row.</li>
+<li><b>Self-merge proposal before the table.</b> <code>[MERGE:npc|X|X]</code> under scene refs is proposed to the hint queue (console only) and never asked, since the nudge filters same-record pairs. Pre-existing, cosmetic.</li>
+<li><b>Voice pins through a merge and a sheet (101a9e4f, 1c91a248; #532, #539).</b> One <code>speakerSubjectOfRow</code> for casting and the fold; <code>inheritVoicePins</code> treats a prior sheet as the owner of cleared fields. Read clean.</li>
+<li><b>Relationship and graph endpoints (e6680656).</b> Self-links, the player as an owner or a faction member, refused in the summary. Probed.</li>
+</ul>
+<p class="small">Still owed from before this review: <code>todo_checkWithFable.md</code> entry 38 — the independent review of the #504 build itself (its probe list stands; the Astra commits on top of it are now covered by this receipt and the fuzzer at 12,000 sequences), and one live-GM answer to the #504 note.</p>
+
+<h2 id="files">7 Files changed</h2>
+<table><tr><th>File</th><th>Change</th></tr>
+<tr><td class="n">tag_table.js</td><td>NPC_ALIAS: a hero answer from <code>npcAliasOperand</code> names the hero (#604).</td></tr>
+<tr><td class="n">dev/engine-tests.js</td><td>#504 section: the ALIAS-SHADOW regression test (red at v1.1191).</td></tr>
+<tr><td class="n">dev/sabotage-504-title-question.js</td><td>One new clause (#604) and the older alias-shadow clause re-anchored on the fixed line.</td></tr>
+<tr><td class="n">TODO.md</td><td>Row #604 (Known issues), ✅.</td></tr>
+<tr><td class="n">globals.js · sw.js</td><td>v1.1192 · tnd-v3-20261008s.</td></tr>
+<tr><td class="n">DOC/Review_fable_2026_10_08.html · todo_checkWithFable.md</td><td>This receipt; Reviewed index entry 40.</td></tr>
+</table>
+
+<h2 id="design599">8 The #599 design record — Fable's evaluation</h2>
+<div class="verdict"><b>Verdict: the direction is right and the ten rulings stand; do not build it as one series.</b> The record (<a href="DESIGN_599_inventory_rows.md">DESIGN_599_inventory_rows.md</a>, drafted by Opus 5.5, ruled by the owner, reviewed by Astra as entry 39) gets the three things that matter right: rows with one module and one key, the GM's tag grammar untouched, and a version gate shipped first because the real risk is a stale device writing a converted save back. Its weakness is shape, not substance: it is written as a 41–64 hour big-bang that re-anchors 90 sabotage clauses, re-baselines the golden files and all four replay baselines, and flips the stored shape in the same breath as every reader — on a tree that moved 61 commits this week. Astra's review then left eleven engineering contracts open in §11 and asked for them to be "resolved before implementation", which reads as a second design round. They are Fable-sized decisions; the answers are below so the build can start.</div>
+<h3>What the record gets right</h3>
+<ul>
+<li><b>The gate first.</b> <code>worldState.ver</code> is written as 10 in two places and read nowhere (verified). Decision 1 is the only thing that protects every later shape change, and Astra's R1 (admission must precede the four writes in <code>_applyPulledCampaign</code>) is the one finding that must be honoured to the letter.</li>
+<li><b>Tolerant reader, one-way writer, writers heal on entry.</b> The #272 transcript pattern; fixtures and shipped samples stay legal input, so the test corpus does not have to be rewritten to start.</li>
+<li><b>The field census as a pre-switch check</b> (11,490 entries, zero loss) and Astra's R4 correction so that erasing every equipped flag fails it. The census is evidence for legacy strings only, and the record now says so.</li>
+<li><b>#518 kept out</b> (decision 8): rows do not identify a transfer; that is the explicit {from, to, item, qty} record.</li>
+</ul>
+<h3>What to change before the first commit</h3>
+<ol>
+<li><b>Sequence it as four releases, each green on master, instead of one series.</b> (a) The gate, alone (2–3 h; ship this week). (b) <code>inventory.js</code> with <code>invRows</code>, <code>itemKey</code> and the §2.4 functions, the old helpers turned into one-line delegates, every reader and writer routed through the module, the boundary contract in run-tests — <i>with the stored shape still strings</i>. Nothing on disk changes, no baseline moves, no clause needs re-anchoring beyond the delegate lines. (c) The shape flip: <code>invRows</code> at the doors and the faucets, <code>ver: 11</code>, the census over the owner's exports, the four replays re-baselined with the "only the inventory differs" checker. This is the smallest possible commit once (b) has landed, and the only one that touches a frozen artifact. (d) <code>[EQUIPPED:]</code>, the doc line, the strip set and the golden files — the one stable-half change, paired with #420 and #22b in one deploy as the schedule already says. The one-key convergence (§2.2: "Wolf pelt" meets "Wolf pelts" in wants and catalogs) is a behaviour change and ships as its own commit inside (b), with the compatibility table of gate 2 as its test.</li>
+<li><b>One sheet admission registry, not a sixth scattered step.</b> §5.3 puts the inventory heal inside <code>relationshipMigrateSheet</code>. Today one adopter (<code>adoptLibraryCompanion</code>) already runs seven per-sheet steps by hand — <code>identitySheetAdmit</code>, <code>portraitAdmit</code>, <code>sceneFieldsCross</code>, <code>relationshipMigrateSheet</code>, <code>adoptSheetItemDefs</code>, <code>voicePinsFill</code>, <code>stashCopyMark</code> — plus <code>keyedStores(sheet,"sheet")</code>, and this week's batch added two of them. Adding an eighth is the pattern the design rules forbid. The (b) release should land <code>SHEET_ADMISSION</code>: one ordered table of {gate | heal} entries that every door runs through one <code>sheetAdmit(sheet, where)</code>, with the existing seven as its first entries and the version check as its first gate. Astra's "per-sheet prompt healing is not admission" then holds by construction, and the next per-sheet rule is an entry.</li>
+<li><b>Resolve §11 in the record now; none of it needs the owner.</b> Recommended contracts: <code>qty</code> is a safe integer in 1…9999 (<code>QTY_MAX</code>); a write that would exceed it refuses loudly and leaves the row; a non-finite or non-integer stored qty heals to 1 with one console line and one junk note per sheet per load (the note keyed by row, so a repeated heal cannot grow it); <code>equipped</code> is true only for the boolean <code>true</code>; a count suffix inside an object row's <code>name</code> is a literal name (the stored grammar applies to strings only); a same-key fold happens only when the rows' unknown fields deep-equal — otherwise both rows stay and one line says so (I2 reads "no two rows share a key unless their extra fields differ"), which is the lossless answer to I5; <code>invRows</code> returns the list and the caller (<code>invHealSheet</code>) owns <code>sheet.inventoryJunk</code>; a non-array container is replaced by an empty list and the original kept as junk; writers mutate the live list, and every preflight or snapshot takes a deep copy (<code>JSON.parse(JSON.stringify(…))</code>) — the rule Astra's R3 asks for, stated once.</li>
+<li><b>Keep the string-guard census out of the proof.</b> Gate 4's planted <code>typeof inv[i]==="string"</code> sabotage is the right proof; the 2,077-site grep is a map. Say so in §8.2 so a green grep is never reported as coverage.</li>
+<li><b>Trim the record.</b> Astra's pass made §2.2, §5.2 and §5.4 read as disclaimers ("not permission to silently choose lossy coercions"). Once item 3 lands, those paragraphs become the contracts themselves. A design record that argues with itself costs every later reader.</li>
+</ol>
+<h3>Size, re-estimated under the four-release shape</h3>
+<table><tr><th>Release</th><th>Hours</th><th>Note</th></tr>
+<tr><td>(a) the gate</td><td>3–4</td><td>Astra's R1 doors add an hour to the record's 2–3.</td></tr>
+<tr><td>(b) the module, delegates, boundary contract, admission registry</td><td>14–20</td><td>Most of the record's reader work, but green on strings throughout; no baseline moves.</td></tr>
+<tr><td>(c) the shape flip, census, replays, round trips, skew drill</td><td>10–14</td><td>The only release that touches frozen artifacts; the live-GM check and the independent review ride here.</td></tr>
+<tr><td>(d) EQUIPPED, doc line, golden, strip set</td><td>4–6</td><td>Stable half changes once; paired with #420 and #22b.</td></tr>
+<tr><td><b>Total</b></td><td><b>31–44</b></td><td>Under the record's 41–64 because nothing is carried on a branch and the 90 clauses mostly survive (b) unchanged.</td></tr>
+</table>
+<p class="small">Tier: Fable or Astra for every release; (c) and (d) re-baseline frozen artifacts and need the independent review with the owner's go. Nothing here reopens a ruling. The counter rows that name #599's row shape as their remedy (#517, #518) keep waiting for (c).</p>
+</main></body></html>
