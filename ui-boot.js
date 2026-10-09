@@ -452,6 +452,9 @@ function initState(saved){
     }catch(e){store.del("tnd_carmode_v1");}
     if(typeof offerHomeHandoff==="function")offerHomeHandoff();/* #441: a story picked on Home is offered, never silently ignored, when a campaign is already saved */
   }else{
+    /* #599 (a): a saved campaign this build could not read (written by a newer build) never gets the wizard — a new game
+       would save over it. The refusal screen's only way on is a reload, which fetches the newer build. */
+    if(typeof versionRefusedLoad==="function"&&versionRefusedLoad()){showVersionRefusedScreen(versionRefusedLoad());return;}
     showChar();
     if(typeof consumeHomeQuickStart==="function"&&consumeHomeQuickStart())return;/* #307: a hero + story picked on the home page — the campaign is already running */
     if(typeof consumeHomeBlueprint==="function")consumeHomeBlueprint();/* #290: a blueprint picked on the home page */

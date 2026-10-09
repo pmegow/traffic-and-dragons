@@ -313,6 +313,7 @@ table.list td.x button:hover{color:var(--dng);}
   function loadObject(obj,src){
     var c=obj&&obj.character?obj.character:obj;
     if(!c||typeof c!=="object"||!("name" in c)){setStatus("Not a character file (no character.name).","err");return false;}
+    var _fv=charFileVersionIssue(obj&&obj.character?obj:{character:c});if(_fv){setStatus(_fv+" — update the game first; nothing was loaded.","err");return false;}/* #599 (a) */
     ch=healChar(JSON.parse(JSON.stringify(c)));dirty=false;render();setStatus("Loaded "+(ch.name||"character")+(src?" from "+src:""),"ok");return true;
   }
   function out(){return {ver:10,type:"character",character:ch};}

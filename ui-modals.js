@@ -1198,3 +1198,15 @@ function showStakeModal(done){
   bg.addEventListener("click",function(){finish(ta.value);});
   bs.addEventListener("click",function(){finish("");});
 }
+/* #599 (a): the saved campaign was written by a NEWER build than the one running. The wizard is never shown over it (a new
+   game would save over the newer copy); the only way on is a reload, which fetches the newer build (the SW serves it on the
+   next navigation; a stuck one is File ▸ Clear cache & reload). Undismissable by design: no ×, no Escape, no outside click. */
+function showVersionRefusedScreen(why){
+  var m=modalShell("version-refused","<h3 style='margin:0 0 10px;color:var(--acc);'>This save needs a newer version of the game</h3>"
+    +"<p style='color:var(--t1);margin:0 0 8px;'>"+escHtml(String(why||"").replace(/^./,function(c){return c.toUpperCase();}))+".</p>"
+    +"<p style='color:var(--t1);margin:0 0 14px;'>Nothing was changed. Reload to update. If this message comes back, use File &#9656; Clear cache &amp; reload.</p>"
+    +"<div style='text-align:right;'><button id='vr-reload' style='font-family:var(--font);padding:8px 16px;background:var(--acc);color:#111;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Reload</button></div>",
+    {wireClose:false,noEscape:true});
+  var b=document.getElementById("vr-reload");if(b)b.addEventListener("click",function(){location.reload();});
+  return m;
+}

@@ -31148,4 +31148,98 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
 
   t("#545 generated attachment normalizes parsed sheet dictionaries",function(){makeWorld();worldState.npcs.push({name:"Constructor",partyMember:true});var sh=JSON.parse('{"name":"Constructor","skills":{"constructor":1},"itemDefs":{"__proto__":{"effect":"A bell"}}}');attachCompanionSheet("Constructor",sh);return Object.getPrototypeOf(sh.skills)===null&&Object.getPrototypeOf(sh.itemDefs)===null?true:"parsed attached sheet retained prototypes";});
 
+  // ── #599 (a): THE VERSION GATE — release (a) of the inventory-rows plan (DOC/DESIGN_599_inventory_rows.md §5.4, §12).
+  // A world or a sheet stamped by a NEWER build than this one is refused at every door before any write, loudly; a cloud
+  // copy that is newer locks this device's pushes for that campaign until the newer build runs here.
+  section("#599 (a) the version gate — a newer save or sheet is refused at every door before any write");
+  t("#599a the gate is pure and reads one rule: a FINITE number above this build's refuses; absent, legacy or malformed passes",function(){
+    if(typeof SAVE_VER!=="number"||typeof SHEET_VER!=="number")return "SAVE_VER/SHEET_VER missing from globals.js";
+    var ok=[undefined,null,SAVE_VER,SAVE_VER-1,"11",NaN,"x"],i;
+    for(i=0;i<ok.length;i++)if(worldVersionIssue({ver:ok[i],character:{name:"T"},npcs:[]})!=="")return "a legacy or malformed stamp must pass: "+String(ok[i]);
+    var bad=worldVersionIssue({ver:SAVE_VER+1,character:{name:"T"},npcs:[]});
+    if(!/newer version/.test(bad)||bad.indexOf("v"+(SAVE_VER+1))<0||bad.indexOf("v"+SAVE_VER)<0)return "a newer world says both versions: "+bad;
+    if(sheetVersionIssue({name:"Morwen",sheetVer:SHEET_VER})!==""||!/Morwen/.test(sheetVersionIssue({name:"Morwen",sheetVer:SHEET_VER+1})))return "a sheet stamp is read, and the refusal names the character";
+    if(!worldVersionIssue({ver:SAVE_VER,character:{name:"T"},npcs:[{name:"M",charSheet:{name:"M",sheetVer:SHEET_VER+1}}]}))return "a companion sheet from a newer build refuses the world";
+    if(!worldVersionIssue({ver:SAVE_VER,character:{name:"T",sheetVer:SHEET_VER+1},npcs:[]}))return "the hero's own sheet stamp counts";
+    if(!worldVersionIssue({ver:SAVE_VER,character:{name:"T"},npcs:[],pendingLegacy:{name:"L",sheetVer:SHEET_VER+1}}))return "a pending legacy sheet counts";
+    if(charFileVersionIssue({ver:SAVE_VER,type:"character",character:{name:"T"}})!==""||!charFileVersionIssue({ver:SAVE_VER+1,character:{name:"T"}})||!charFileVersionIssue({ver:SAVE_VER,character:{name:"T",sheetVer:SHEET_VER+1}}))return "a .char file is gated on its envelope AND its sheet";
+    return true;
+  });
+  t("#599a inflateWorldStateSnapshot refuses a newer world BEFORE touching it; loadState then leaves the stored save byte-identical, worldState null, the reason on record for the boot, the player told to reload",function(){
+    var o={ver:SAVE_VER+1,character:{name:"T",inventory:[]},npcs:[],world:{location:"X"},transcript:[],itemDefAsked:{}},before=JSON.stringify(o),threw=null;
+    try{inflateWorldStateSnapshot(o);}catch(e){threw=e;}
+    if(!threw||!threw.incompatible)return "inflate must throw a flagged error: "+(threw&&threw.message);
+    if(JSON.stringify(o)!==before)return "the refused object was mutated before the gate";
+    if(Object.getPrototypeOf(o.itemDefAsked)!==Object.prototype)return "the refused object was touched before the gate (keyedStores re-keyed a store — the same bytes, a different object)";
+    makeWorld();var live=serializeWorldState();store.set(WSK,before);store.set(SLK,"[]");store.set(MEM_KEY,JSON.stringify(memory));
+    var tz=[],os=showToast;showToast=function(m){tz.push(String(m));};var ok;try{ok=quiet(function(){return loadState();}).r;}finally{showToast=os;}
+    if(ok!==false||worldState!==null)return "loadState must refuse (false, worldState null): "+ok;
+    if(store.get(WSK)!==before)return "the stored save was changed by a refused load";
+    if(!versionRefusedLoad()||!/newer version/.test(versionRefusedLoad()))return "the refusal reason is on record for the boot path: "+versionRefusedLoad();
+    if(!tz.some(function(x){return /newer version/.test(x)&&/reload/i.test(x);}))return "the player is told to reload: "+JSON.stringify(tz);
+    store.set(WSK,live);ok=quiet(function(){return loadState();}).r;
+    return (ok===true&&versionRefusedLoad()===null)?true:"a compatible load clears the record: "+ok+" "+versionRefusedLoad();
+  });
+  t("#599a checkpointRestore refuses a camp whose nested world (or a sheet in it) is from a newer build; the live campaign is untouched",function(){
+    makeWorld();worldState.turn=40;var snap=checkpointCapture("rest"),ws=JSON.parse(snap.ws);ws.ver=SAVE_VER+1;snap.ws=JSON.stringify(ws);
+    var before=JSON.stringify(worldState),r=quiet(function(){return checkpointRestore(snap,{cause:"x"});}).r;
+    if(!r||r.ok||!/newer version/.test(r.reason))return "refused with the reason: "+JSON.stringify(r);
+    if(JSON.stringify(worldState)!==before)return "the live campaign changed on a refused restore";
+    ws.ver=SAVE_VER;ws.character.sheetVer=SHEET_VER+1;snap.ws=JSON.stringify(ws);r=quiet(function(){return checkpointRestore(snap,{cause:"x"});}).r;
+    return (r&&!r.ok&&/newer version/.test(r.reason))?true:"a newer hero sheet inside the camp refuses too: "+JSON.stringify(r);
+  });
+  t("#599a the library doors refuse a sheet from a newer build before any write: adoptLibraryHero, adoptLibraryCompanion, importVillageResidents",function(){
+    makeWorld();var hero=worldState.character,heroBefore=JSON.stringify(hero);
+    var lib=JSON.parse(heroBefore);lib.sheetVer=SHEET_VER+1;lib.level=99;
+    var tz=[],os=showToast;showToast=function(m){tz.push(String(m));};var r;try{r=quiet(function(){return adoptLibraryHero(lib,Date.now());}).r;}finally{showToast=os;}
+    if(r!==null||JSON.stringify(worldState.character)!==heroBefore)return "the hero is untouched and the adopt returns null: "+String(JSON.stringify(r)).slice(0,80);
+    if(!tz.some(function(x){return /newer version/.test(x);}))return "the refusal is said: "+JSON.stringify(tz);
+    worldState.npcs.push({name:"Morwen",status:"",rel:"resident",met:1,partyMember:false,resident:true,portrait:null,aliases:[],charSheet:{name:"Morwen",level:3,inventory:[],abilities:[],spells:[],coreMemories:[]}});
+    var n=wsNpcByName("Morwen"),sheetBefore=JSON.stringify(n.charSheet),copy=JSON.parse(sheetBefore);copy.sheetVer=SHEET_VER+1;copy.level=99;
+    r=quiet(function(){return adoptLibraryCompanion(n,copy,Date.now());}).r;
+    if(r!==null||JSON.stringify(n.charSheet)!==sheetBefore)return "the companion's sheet is untouched: "+JSON.stringify(n.charSheet).slice(0,80);
+    var imp=quiet(function(){return importVillageResidents([{name:"Vessa Thorn",level:2,sheetVer:SHEET_VER+1,inventory:[],abilities:[],spells:[]}]);}).r;
+    if(wsNpcByName("Vessa Thorn"))return "a resident from a newer build was imported";
+    return (imp&&imp.skipped&&imp.skipped.indexOf("Vessa Thorn")>=0)?true:"the import reports the skip: "+JSON.stringify(imp);
+  });
+  t("#599a what this build writes is stamped: a new world carries ver SAVE_VER, a portable sheet sheetVer SHEET_VER, the .char envelope ver SAVE_VER (never a literal that rots)",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8");
+    if(g.indexOf("worldState={ver:SAVE_VER,")<0)return "startGame must stamp ver:SAVE_VER";
+    if(ub.indexOf("JSON.stringify({ver:SAVE_VER,type:\"character\"")<0)return "the .char export must stamp ver:SAVE_VER";
+    makeWorld();var p=portableSheet(worldState.character);
+    if(p.sheetVer!==SHEET_VER)return "portableSheet stamps sheetVer: "+p.sheetVer;
+    return worldState.character.sheetVer===undefined?true:"the live sheet is not stamped by taking a copy";
+  });
+  t("#599a the publication lock: stored by campaign id, read for that id only, cleared once",function(){
+    store.del(VERSION_LOCK_K);versionLockSet("campV","save v11");
+    var l=versionLockFor("campV");if(!l||l.why!=="save v11")return "set/for: "+JSON.stringify(l);
+    if(versionLockFor("campW")!==null)return "another campaign is not locked";
+    if(!versionLockClear("campV")||versionLockFor("campV")!==null||versionLockClear("campV"))return "clear once";
+    return true;
+  });
+  t("#599a while the lock names the active campaign no push leaves this device, the page-hide beacon included; cleared, the push resumes",function(){
+    makeWorld();var prevId=getActiveCampId(),posts=0,realFetch=global.fetch;
+    global.fetch=function(url,opts){if(opts&&opts.method==="POST"&&/\/api\/state$/.test(String(url)))posts++;return Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve({});}});};
+    try{setActiveCampId("campV");worldState.campId="campV";storageAdapter.setServer("https://unit.test","tok");store.del(VERSION_LOCK_K);
+      versionLockSet("campV","save v11");quiet(function(){storageAdapter.syncNow(true);});if(posts!==0)return "a locked campaign was pushed";
+      versionLockClear("campV");quiet(function(){storageAdapter.syncNow(true);});if(posts!==1)return "an unlocked campaign pushes: "+posts;
+    }finally{global.fetch=realFetch;storageAdapter.setServer(null,null);store.del(VERSION_LOCK_K);if(prevId)setActiveCampId(prevId);else store.del(ACTIVE_CAMP_K);}
+    return true;
+  });
+  t("#599a every DOM door gates before its first write (source contract): the manual pull, the .char import, the import preview, quick start, the boot, the editor, the cleanup",function(){
+    function fn(src,head,stop){var s=src.slice(src.indexOf(head));var e=s.indexOf(stop||"\nfunction ",10);return e>0?s.slice(0,e):s;}
+    var uc=__fsForTests.readFileSync(__rootForTests+"/ui-campaigns.js","utf8"),f=fn(uc,"function _applyPulledCampaign(");
+    var g=f.indexOf("worldVersionIssue(data.worldState)"),w=f.indexOf("writeLiveKeys("),s=f.indexOf("writeCampaignSlot(");
+    if(g<0||(w>=0&&g>w)||(s>=0&&g>s))return "_applyPulledCampaign must read the gate before writeLiveKeys/writeCampaignSlot";
+    if(f.indexOf("versionLockSet(id")<0)return "a refused pull locks this device's pushes for that campaign";
+    var ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8");
+    if(fn(ub,"function importCharacterFile(").indexOf("charFileVersionIssue(data)")<0)return "importCharacterFile gates the file envelope and its sheet";
+    var pv=fn(ub,"function showCharImportPreview("),pg=pv.indexOf("sheetVersionRefused(char"),pm=pv.indexOf("modalShell(");if(pg<0||pg>pm)return "the import preview refuses a newer sheet before it is shown";
+    var qs=fn(ub,"function consumeHomeQuickStart("),qg=qs.indexOf("sheetVersionRefused(rec.char"),qd=qs.indexOf("store.del(WSK)");if(qg<0||qg>qd)return "quick start refuses a newer hero before the live keys are cleared";
+    var boot=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),is=fn(boot,"function initState("),bg=is.indexOf("versionRefusedLoad()"),bc=is.lastIndexOf("showChar();");if(bg<0||bg>bc)return "the boot shows the refusal screen, never the wizard, over a save it could not read";
+    var ce=__fsForTests.readFileSync(__rootForTests+"/character_editor.html","utf8"),lo=fn(ce,"function loadObject(","healChar(");if(lo.indexOf("charFileVersionIssue(")<0)return "the character editor refuses a newer file before healing it";
+    var mc=__fsForTests.readFileSync(__rootForTests+"/map_cleanup.html","utf8"),lt=fn(mc,"function loadTnd(","worldState=data.worldState");if(!/worldVersionIssue\(data(&&data)?\.worldState\)/.test(lt))return "map cleanup refuses a newer .tnd before installing it";
+    return true;
+  });
+
 }

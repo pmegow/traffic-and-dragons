@@ -326,6 +326,11 @@ function campCloudPush(id){
 function _applyPulledCampaign(id,data,opts){
   opts=opts||{};
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return false;}
+  /* #599 (a): the gate runs BEFORE any write (Astra R1: this door used to write the live keys, then let loadState refuse). A
+     cloud copy from a newer build is left where it is, and this device's pushes for the campaign are locked until the newer
+     build runs here — its older state must never land on top of the copy it could not read. */
+  var _vi=worldVersionIssue(data.worldState);
+  if(_vi){console.error("[version] pull REFUSED — "+_vi+"; nothing changed, pushes for "+id+" are locked");versionLockSet(id,_vi);showToast("⚠ "+_vi+" — nothing changed. Reload to update; uploads of this campaign are paused until then.",9000);return false;}
   data.worldState.campId=id;
   var wsS=serializeWorldState(data.worldState),slS=JSON.stringify(data.sessionLog||[]),memS=JSON.stringify(_pulledMemory(data,id));
   if(id===getActiveCampId()){

@@ -263,6 +263,10 @@ function inflateTranscriptField(t){
 // otherwise poison live state with a {__lz} transcript ({__lz}.push throws mid-turn). A plain
 // array passes through untouched; inflate failure takes the UA3 rescue path below.
 function inflateWorldStateSnapshot(o){
+  /* #599 (a): THE world door — local load, .tnd import, the manual push-probe parse and the cloud reconcile all come through
+     here. A world (or a sheet in it) stamped by a newer build is refused before the first write below; the error is flagged
+     so each caller can say why and lock what it must. Nothing about `o` has been touched when this throws. */
+  var _vi=worldVersionIssue(o);if(_vi){var _ve=new Error(_vi);_ve.incompatible=true;throw _ve;}
   keyedStores(o,"world");
   if(typeof stashJournalEnsure==="function")stashJournalEnsure(o,false);
   if(o&&o.transcript&&!(o.transcript instanceof Array)){
@@ -290,6 +294,19 @@ function inflateWorldStateSnapshot(o){
   return o;
 }
 function parseWorldState(str){return inflateWorldStateSnapshot(JSON.parse(str));}
+/* #599 (a): what the boot needs to know after a refused local load — the reason, or null. Set by loadState's catch, cleared
+   at the top of every loadState; ui-boot's initState shows the refusal screen instead of the wizard while it is set. */
+var _versionRefusedLoad=null;
+function versionRefusedLoad(){return _versionRefusedLoad;}
+/* #599 (a): THE PUBLICATION LOCK. When the cloud copy of a campaign was written by a newer build than this one (the reconcile
+   or a manual pull refused it), this device must never push its older state over it. ONE stored key holding the campaign id
+   and the reason: it outlives a reload of the same stale build (the SW can lag a navigation); _syncNow refuses while it
+   names the active campaign; a reconcile that reads a compatible cloud world for that campaign clears it. Local saves are
+   not locked — the local slot is this device's own, and the danger is only the upload. */
+var VERSION_LOCK_K="tnd_version_lock_v1";
+function versionLockSet(campId,why){if(!campId)return;try{store.set(VERSION_LOCK_K,JSON.stringify({campId:campId,why:String(why||""),at:Date.now()}));}catch(e){console.error("[version] the publication lock could not be stored ("+((e&&e.message)||e)+") — it holds for this page only");}}
+function versionLockFor(campId){if(!campId)return null;var raw=null;try{raw=store.get(VERSION_LOCK_K);}catch(e){raw=null;}if(!raw)return null;var o=null;try{o=JSON.parse(raw);}catch(e){return null;}return (o&&o.campId===campId)?o:null;}
+function versionLockClear(campId){if(!versionLockFor(campId))return false;store.del(VERSION_LOCK_K);return true;}
 // UA3 recovery: re-inflate a rescued transcript once LZ is healthy again and PREPEND it (rescued
 // entries strictly predate the loss). Overlap-guard: if the current transcript's first entry
 // appears inside the rescue (the stored blob was never overwritten — e.g. the failed session
@@ -804,6 +821,9 @@ function checkpointRestore(snap,opts){
   if(!gate.ok){if(typeof console!=="undefined")console.warn("[checkpoint] restore REFUSED — "+gate.reason+"; the live campaign is untouched (audit D1/D9)");return {ok:false,reason:gate.reason};}
   var live=worldState,liveTurn=live.turn||0,ws,sl,mem,i;
   try{ws=JSON.parse(snap.ws);}catch(e){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's WORLD could not be read; the live campaign is untouched:",e);return {ok:false,reason:"the camp's world could not be read ("+((e&&e.message)||"unknown")+")"};}
+  /* #599 (a): the camp's outer `v` (checkpointAcceptable) and its nested world and sheets are separate stamps — a camp written
+     by a newer build refuses here, before anything is assigned (Astra R1: the outer gate alone accepted a world v11). */
+  var _cvi=worldVersionIssue(ws);if(_cvi){if(typeof console!=="undefined")console.warn("[checkpoint] restore REFUSED — "+_cvi+"; the live campaign is untouched (#599 a)");return {ok:false,reason:_cvi};}
   try{sl=JSON.parse(snap.sl||"[]");}catch(e){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's SESSION LOG could not be read; the live campaign is untouched (it used to be blanked here, then saved and synced):",e);return {ok:false,reason:"the camp's session log could not be read ("+((e&&e.message)||"unknown")+")"};}
   if(!Array.isArray(sl)){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's SESSION LOG is not an array ("+(typeof sl)+"); the live campaign is untouched");return {ok:false,reason:"the camp's session log is not a session log"};}
   try{mem=JSON.parse(snap.mem||"{}");}catch(e){if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's LONG-TERM MEMORY could not be read; the live campaign is untouched (it used to be blanked here, then saved and synced):",e);return {ok:false,reason:"the camp's long-term memory could not be read ("+((e&&e.message)||"unknown")+")"};}
@@ -847,7 +867,12 @@ function loadState(){
   // then overwrote the intact campaign). SLK is parsed BEFORE the migrate/saveCore (audit E36) so a
   // migrate-save persists the loaded log, not the stale global.
   try{sessionLog=sl?JSON.parse(sl):[];}catch(e){rescueCorruptStore("sess",sl,e);sessionLog=[];}/* JP0-4: preserve + shout before degrading */
-  try{if(ws){worldState=parseWorldState(ws);restoreTranscriptRescue();/* UA3: BEFORE any migrate-save — preserve the rescued transcript. */if(typeof _sumFails!=="undefined")_sumFails=worldState.summaryFailure&&typeof worldState.summaryFailure.count==="number"?worldState.summaryFailure.count:0;}}catch(e){worldState=null;return false;}
+  _versionRefusedLoad=null;
+  try{if(ws){worldState=parseWorldState(ws);restoreTranscriptRescue();/* UA3: BEFORE any migrate-save — preserve the rescued transcript. */if(typeof _sumFails!=="undefined")_sumFails=worldState.summaryFailure&&typeof worldState.summaryFailure.count==="number"?worldState.summaryFailure.count:0;}}catch(e){worldState=null;
+    /* #599 (a): the stored save was written by a newer build. Nothing was changed (the gate threw before the first write);
+       the reason is kept for the boot, which shows the refusal screen instead of the wizard (ui-boot initState). */
+    if(e&&e.incompatible){_versionRefusedLoad=e.message;console.error("[version] local load REFUSED — "+e.message+"; nothing was changed, reload to update");if(typeof showToast==="function")showToast("⚠ "+e.message+VERSION_RELOAD_HINT,9000);}
+    return false;}
   try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){rescueCorruptStore("mem",mm,e);memory=blankMemory();}/* JP0-4: covers a heal throw on VALID json too — the bytes are still the only copy */
   if(memoryOwnerMismatch(worldState,memory)){/* #365: loud, attributable, never silent */var _own=(typeof campDisplayName==="function"&&campDisplayName(memory.campId))||memory.campId;console.error("[load] MEMORY OWNER MISMATCH — the live memory is stamped for "+memory.campId+" but the worldState is "+worldState.campId+" (#365). Play would run this campaign on another campaign's canon.");if(typeof showToast==="function")showToast("\u26a0 This campaign's memory belongs to \""+_own+"\" \u2014 Load a saved copy of "+(worldState.campName||"this campaign")+" before playing on (#365).");if(typeof reportError==="function")reportError("memory-owner","memory "+memory.campId+" under worldState "+worldState.campId,{turn:worldState.turn});}
   /* #168 W7: relationship entity migration needs THIS campaign's alias table. Parsing/healing
@@ -1247,7 +1272,7 @@ function switchToCampaign(id){
     setActiveCampId(prevId);
     loadState(); // restore the previous campaign into the globals
     restoreTargetSlot();
-    if(typeof showToast==="function")showToast("Couldn't load that campaign — its save looks corrupted.");
+    if(typeof showToast==="function"&&!_versionRefusedLoad)showToast("Couldn't load that campaign — its save looks corrupted.");/* #599 (a): a newer-build refusal already said the real reason */
   }
   // Audit D1: setActiveCampId dropped the outgoing campaign's camp; fetch THIS campaign's own from
   // IndexedDB/the server so a death after a mid-session switch has a camp to wake at. Async and

@@ -769,6 +769,45 @@ t("exportCampaignCopy exports the SLOT for a non-active campaign and the live st
   return true;
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+section("#599 (a) — the cloud reconcile refuses a world from a newer build and locks this device's pushes");
+
+function _vgServer(ver, turn) {
+  return function (url) {
+    if (/\/api\/campaigns\/campV$/.test(String(url))) return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve({ campaignId: "campV", worldState: { ver: ver, campId: "campV", turn: turn, character: { name: "T", inventory: [], abilities: [], spells: [] }, npcs: [], world: { location: "X" }, questLog: [], eventHistory: [], transcript: [] }, sessionLog: [], memory: { npcs: {}, lore: [], chapters: [] } }); } });
+    return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve([]); } });
+  };
+}
+function _vgLocal() {
+  E.makeTestWorld(); setActiveCampId("campV"); worldState.campId = "campV"; worldState.turn = 5;
+  store.set(WSK, serializeWorldState()); store.set(SLK, "[]"); store.set(MEM_KEY, JSON.stringify(memory));
+  storageAdapter.clearFlushDirty("campV");
+}
+tAsync("a cloud world from a newer build is refused before any consumer: local state kept, the lock set, the player told to reload", function () {
+  _vgLocal(); store.del(VERSION_LOCK_K);
+  var localBefore = null, realFetch = global.fetch;
+  global.fetch = _vgServer(SAVE_VER + 1, 50);
+  storageAdapter.setServer("https://unit.test", "tok"); resetSinks();
+  /* the local paint lands in the callback (loadState has re-read the store); the reconcile is what follows it */
+  return new Promise(function (res) { storageAdapter.load(function () { localBefore = JSON.stringify(worldState); res(); }); }).then(settle).then(settle).then(function () {
+    global.fetch = realFetch; storageAdapter.setServer(null, null);
+    if (JSON.stringify(worldState) !== localBefore || worldState.turn !== 5) return "local state was replaced by a world this build cannot read (turn " + worldState.turn + ")";
+    var l = versionLockFor("campV"); if (!l || !/newer version/.test(l.why)) return "the lock was not set for campV: " + JSON.stringify(l);
+    if (!sawErr(/reconcile REFUSED/) || !sawToast(/newer app version/)) return "the refusal is loud: " + JSON.stringify(errs) + JSON.stringify(toasts);
+    return true;
+  });
+});
+tAsync("a compatible cloud world clears the lock, so pushes resume once the newer build runs here", function () {
+  _vgLocal(); versionLockSet("campV", "save v11");
+  var realFetch = global.fetch;
+  global.fetch = _vgServer(SAVE_VER, 5);
+  storageAdapter.setServer("https://unit.test", "tok"); resetSinks();
+  return new Promise(function (res) { storageAdapter.load(function () { res(); }); }).then(settle).then(settle).then(function () {
+    global.fetch = realFetch; storageAdapter.setServer(null, null); store.del(VERSION_LOCK_K);
+    return versionLockFor("campV") === null ? true : "the lock survived a compatible reconcile";
+  });
+});
+
 chain.then(function () {
   releaseConsole();
   if (fails.length) {

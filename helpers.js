@@ -2232,11 +2232,32 @@ function sheetItemDefs(sheet){
   var inv=sheet.inventory||[],i;for(i=0;i<inv.length;i++){var key=itemBaseName(inv[i]);if(!key)continue;var hit=key;if(!ovs[hit]){var canon=ownValue(_itemAliasIndex(),key);if(canon&&ovs[canon])hit=canon;else continue;}if(!out[hit]){out[hit]=ovs[hit];n++;}}
   return out;
 }
+/* ── #599 (a): THE VERSION GATE (owner's go 2026-10-08; DOC/DESIGN_599_inventory_rows.md §5.4, §12 row a) ─────────────────
+   This build reads and writes the world shape SAVE_VER and the sheet shape SHEET_VER (globals.js). A world or a sheet whose
+   stamp is a FINITE NUMBER ABOVE what this build knows was written by a newer build; every door refuses it before any write
+   and says so. An absent or malformed stamp is legacy data and passes — the gate protects against the future, never against
+   the past (a save hand-edited to `ver:"11"` or `ver:null` is not a newer build). Pure: no globals, no I/O. The doors:
+   inflateWorldStateSnapshot (local load, .tnd import, the cloud reconcile), checkpointRestore, the manual pull, the three
+   library adopters, the .char import and its preview, quick start, the character editor, map cleanup. */
+function versionNewer(v,mine){return typeof v==="number"&&isFinite(v)&&v>mine;}
+function sheetVersionIssue(sheet){if(!sheet||typeof sheet!=="object"||!versionNewer(sheet.sheetVer,SHEET_VER))return "";return (sheet.name||"this character")+"'s sheet was written by a newer version of the game (sheet v"+sheet.sheetVer+"; this build reads v"+SHEET_VER+")";}
+function worldVersionIssue(ws){
+  if(!ws||typeof ws!=="object")return "";
+  if(versionNewer(ws.ver,SAVE_VER))return "this save was written by a newer version of the game (save v"+ws.ver+"; this build reads v"+SAVE_VER+")";
+  var s=sheetVersionIssue(ws.character),i,ns=Array.isArray(ws.npcs)?ws.npcs:[];if(s)return s;
+  for(i=0;i<ns.length;i++){s=sheetVersionIssue(ns[i]&&ns[i].charSheet);if(s)return s;}
+  return sheetVersionIssue(ws.pendingLegacy);
+}
+function charFileVersionIssue(data){if(!data||typeof data!=="object")return "";if(versionNewer(data.ver,SAVE_VER))return "this character file was written by a newer version of the game (file v"+data.ver+"; this build reads v"+SAVE_VER+")";return sheetVersionIssue(data.character);}
+var VERSION_RELOAD_HINT=" — reload to update (File ▸ Clear cache & reload if it persists)";
+/* the one refusal line for a sheet door: the console says where, the toast says what, true = refused */
+function sheetVersionRefused(sheet,where){var why=sheetVersionIssue(sheet);if(!why)return false;if(typeof console!=="undefined")console.error("[version] "+where+" refused — "+why);if(typeof showToast==="function")showToast("⚠ "+why+VERSION_RELOAD_HINT,9000);return true;}
 function portableSheet(sheet){
   if(!sheet||typeof sheet!=="object")return sheet;
   var copy=JSON.parse(JSON.stringify(sheet)),defs=sheetItemDefs(sheet),k,any=false;for(k in defs){any=true;break;}
   if(any)copy.itemDefs=JSON.parse(JSON.stringify(defs));else delete copy.itemDefs;
   personaCapture(copy,(typeof worldState!=="undefined"&&worldState)?worldState:null);/* #552: the voice travels with the sheet */
+  copy.sheetVer=SHEET_VER;/* #599 (a): every portable copy says which build wrote it, so an older build can refuse it */
   return copy;
 }
 

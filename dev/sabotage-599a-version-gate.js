@@ -1,0 +1,83 @@
+// dev/sabotage-599a-version-gate.js — proves the #599 (a) version gate is guarded. Release (a) of the inventory-rows plan
+// (DOC/DESIGN_599_inventory_rows.md §5.4, §12 row a): a world or a sheet stamped by a NEWER build than this one is refused
+// at every door BEFORE any write, loudly; a newer cloud copy locks this device's pushes for that campaign until the newer
+// build runs here. Each mutation runs in a disposable clone; a mutation that changes no bytes is a failure.
+//   node dev/sabotage-599a-version-gate.js
+var sabotage = require("./sabotage.js");
+var CMD = ["node", ["dev/run-tests.js", "#599 (a)"]];
+var code = 0;
+function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
+var RULE = "#599a the gate is pure and reads one rule", INFLATE = "#599a inflateWorldStateSnapshot refuses a newer world BEFORE touching it",
+    CAMP = "#599a checkpointRestore refuses a camp whose nested world", DOORS = "#599a the library doors refuse a sheet from a newer build",
+    STAMP = "#599a what this build writes is stamped", LOCK = "#599a the publication lock", PUSH = "#599a while the lock names the active campaign no push leaves this device",
+    DOM = "#599a every DOM door gates before its first write";
+prove("helpers.js", [
+  { label: "the rule reads 'at or above' — this build's own stamp refuses itself",
+    find: "function versionNewer(v,mine){return typeof v===\"number\"&&isFinite(v)&&v>mine;}", replace: "function versionNewer(v,mine){return typeof v===\"number\"&&isFinite(v)&&v>=mine;}",
+    mustFail: RULE },
+  { label: "the rule reads 'two above' — the next build's save passes",
+    find: "function versionNewer(v,mine){return typeof v===\"number\"&&isFinite(v)&&v>mine;}", replace: "function versionNewer(v,mine){return typeof v===\"number\"&&isFinite(v)&&v>mine+1;}",
+    mustFail: RULE },
+  { label: "a companion's sheet stamp is not read by the world gate",
+    find: "  for(i=0;i<ns.length;i++){s=sheetVersionIssue(ns[i]&&ns[i].charSheet);if(s)return s;}\n", replace: "",
+    mustFail: RULE },
+  { label: "the portable copy is not stamped",
+    find: "  copy.sheetVer=SHEET_VER;/* #599 (a): every portable copy says which build wrote it, so an older build can refuse it */\n", replace: "",
+    mustFail: STAMP },
+  { label: "a sheet door refuses silently (no toast)",
+    find: "if(typeof showToast===\"function\")showToast(\"⚠ \"+why+VERSION_RELOAD_HINT,9000);return true;}", replace: "return true;}",
+    mustFail: DOORS },
+]);
+prove("state.js", [
+  { label: "the world door does not gate (inflate accepts a newer world)",
+    find: "  var _vi=worldVersionIssue(o);if(_vi){var _ve=new Error(_vi);_ve.incompatible=true;throw _ve;}\n", replace: "",
+    mustFail: INFLATE },
+  { label: "the world door gates AFTER the first write (keyedStores has already touched the object)",
+    find: "  var _vi=worldVersionIssue(o);if(_vi){var _ve=new Error(_vi);_ve.incompatible=true;throw _ve;}\n  keyedStores(o,\"world\");", replace: "  keyedStores(o,\"world\");\n  var _vi=worldVersionIssue(o);if(_vi){var _ve=new Error(_vi);_ve.incompatible=true;throw _ve;}",
+    mustFail: INFLATE },
+  { label: "a refused local load leaves no reason for the boot (the wizard would open over the newer save)",
+    find: "if(e&&e.incompatible){_versionRefusedLoad=e.message;", replace: "if(e&&e.incompatible){",
+    mustFail: INFLATE },
+  { label: "the camp's nested world is not gated at restore",
+    find: "  var _cvi=worldVersionIssue(ws);if(_cvi){if(typeof console!==\"undefined\")console.warn(\"[checkpoint] restore REFUSED — \"+_cvi+\"; the live campaign is untouched (#599 a)\");return {ok:false,reason:_cvi};}\n", replace: "",
+    mustFail: CAMP },
+  { label: "the lock answers for every campaign, not the one it names",
+    find: "return (o&&o.campId===campId)?o:null;}", replace: "return o||null;}",
+    mustFail: LOCK },
+]);
+prove("storage-adapter.js", [
+  { label: "a locked campaign is still pushed",
+    find: "    if (_vl) { console.warn(\"[version] sync paused — the cloud copy of \" + campId + \" was written by a newer app version (\" + _vl.why + \"); reload to update\"); _fin(\"sync paused — the cloud copy was written by a newer app version; reload to update\"); return; }\n", replace: "",
+    mustFail: PUSH },
+]);
+prove("game.js", [
+  { label: "the library companion door does not gate",
+    find: "  if(sheetVersionRefused(c,\"library companion \"+n.name))return null;/* #599 (a): before any write */\n", replace: "",
+    mustFail: DOORS },
+  { label: "the village import door does not gate",
+    find: "    if(sheetVersionRefused(c,\"village resident \"+nm)){skipped.push(nm);continue;}/* #599 (a): a library copy from a newer build never enters */\n", replace: "",
+    mustFail: DOORS },
+  { label: "a new world is stamped with a literal that rots",
+    find: "  worldState={ver:SAVE_VER,campId:getActiveCampId(),", replace: "  worldState={ver:10,campId:getActiveCampId(),",
+    mustFail: STAMP },
+]);
+/* the DOM doors are pinned by a source contract (they are not in the engine manifest); each mutation removes one door's gate */
+prove("ui-campaigns.js", [
+  { label: "the manual pull writes the live keys without the gate",
+    find: "  var _vi=worldVersionIssue(data.worldState);\n  if(_vi){console.error(\"[version] pull REFUSED — \"+_vi+\"; nothing changed, pushes for \"+id+\" are locked\");versionLockSet(id,_vi);showToast(\"⚠ \"+_vi+\" — nothing changed. Reload to update; uploads of this campaign are paused until then.\",9000);return false;}\n", replace: "",
+    mustFail: DOM },
+]);
+prove("ui-boot.js", [
+  { label: "the boot opens the wizard over a save it could not read",
+    find: "    if(typeof versionRefusedLoad===\"function\"&&versionRefusedLoad()){showVersionRefusedScreen(versionRefusedLoad());return;}\n", replace: "",
+    mustFail: DOM },
+]);
+prove("ui-browsers.js", [
+  { label: "the import preview shows a sheet from a newer build",
+    find: "  if(sheetVersionRefused(char,\"character import\")){if(onCancel)onCancel();return;}/* #599 (a): every import road funnels here — a sheet from a newer build never reaches a heal or a modal */\n", replace: "",
+    mustFail: DOM },
+  { label: "the .char import discards the envelope before reading its version",
+    find: "      var _fv=charFileVersionIssue(data);if(_fv){console.error(\"[version] character import refused — \"+_fv);showToast(\"⚠ \"+_fv+VERSION_RELOAD_HINT,9000);return;}/* #599 (a): the file's envelope AND its sheet, before the envelope is discarded */\n", replace: "",
+    mustFail: DOM },
+]);
+process.exit(code);

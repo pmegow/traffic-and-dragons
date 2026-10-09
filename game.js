@@ -17,7 +17,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // updateCampMeta/snapshotActiveCamp both no-op on a null id, so it was never listed or
   // snapshotted and "New Game" deleted it with no save. The import/campNew paths already mint one.
   var _aid=getActiveCampId();if(!_aid||campaignIdOccupied(_aid))setActiveCampId(newCampaignId());/* E13b: never inherit an OCCUPIED id — a new campaign is a new campaign */
-  worldState={ver:10,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[],actStartTurn:0,clock:{min:12*MIN_PER_HOUR,schedule:[]}};/* #73: new campaigns open at the declared dusk; rendered time derives from this scalar */
+  worldState={ver:SAVE_VER,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[],actStartTurn:0,clock:{min:12*MIN_PER_HOUR,schedule:[]}};/* #73: new campaigns open at the declared dusk; rendered time derives from this scalar */
   /* #354: the preset carries the opening hour — the clock is engine-owned, so the preset sets it (never the GM) */
   if(typeof char._startHour==="number"){worldState.clock={min:startClockMin(char._startHour),schedule:[]};worldState.world.time=clockHourLabel(char._startHour);}
   delete worldState.character._startLoc;delete worldState.character._campName;delete worldState.character._startHour;
@@ -1555,6 +1555,7 @@ function importVillageResidents(list){
   for(i=0;i<list.length;i++){var c=list[i],_libAt=null;if(c&&c.character&&typeof c.character==="object"){_libAt=(typeof c.updatedAt==="number")?c.updatedAt:null;c=c.character;}/* #6 E13: a library entry {character,updatedAt} or a bare sheet */if(!c||!c.name)continue;var nm=String(c.name).trim();
     if(worldState.character&&worldState.character.name===nm){if(typeof _libAt==="number")worldState.heroLibraryAt=_libAt;/* #427: the hero's own move-in stamp — "newer than this" is what a later refresh means */skipped.push(nm);continue;}
     if(wsNpcByName(nm)){skipped.push(nm);continue;}
+    if(sheetVersionRefused(c,"village resident "+nm)){skipped.push(nm);continue;}/* #599 (a): a library copy from a newer build never enters */
     if(!identitySheetAdmit(c,nm,identityAttachOwners(nm))){skipped.push(nm);continue;}
     var sheet=keyedStores(JSON.parse(JSON.stringify(c)),"sheet");if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(sheet,nm);/* #168 W7: imported sheets enter through the axis adapter */
     if(typeof sceneFieldsCross==="function")sceneFieldsCross(sheet);/* #481 C5 */
@@ -1587,6 +1588,7 @@ function ensureV10Arrays(s){
    settings are the one exception to wholesale — a voice field the copy carries replaces the live one, a field it lacks keeps
    the live value when it fits the copy's sex; the hero's empty slots are then cast. */
 function adoptLibraryHero(c,at){
+  if(sheetVersionRefused(c,"library hero"))return null;/* #599 (a): before any write */
   if(!identitySheetAdmit(c,worldState.character.name,["@player"]))return null;
   var _stashMark=stashCopyMark(c);
   var hero=JSON.parse(JSON.stringify(c));if(typeof relationshipMigrateSheet==="function")relationshipMigrateSheet(hero,null);if(typeof sceneFieldsCross==="function")sceneFieldsCross(hero);/* #481 C5 */
@@ -1606,6 +1608,7 @@ function adoptLibraryHero(c,at){
   return hero;
 }
 function adoptLibraryCompanion(n,c,at){
+  if(sheetVersionRefused(c,"library companion "+n.name))return null;/* #599 (a): before any write */
   if(!identitySheetAdmit(c,n.name,[identityNpcOwner(n.name)]))return null;
   var _stashMark=stashCopyMark(c);
   var sheet=JSON.parse(JSON.stringify(c));sheet.name=n.name;if(typeof portraitAdmit==="function"&&portraitAdmit(sheet,"library")&&typeof showToast==="function")showToast("⚠ "+n.name+"'s library portrait was dropped — not an image");/* #481 F2 */
