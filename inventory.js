@@ -436,7 +436,19 @@ function foldDuplicateInventory(inv){
 // ── #157: THE shared inventory view model (Sol §5) — one pure grouping fn, two renderers ───
 // Returns non-empty category groups in registry order (+ Unclassified last), each row carrying
 // its ORIGINAL array index so a visually regrouped Drop still removes the right stored row.
-// Every input row appears exactly once; the stored array is never reordered or rewritten.
+// Every input row appears exactly once; the stored array is never reordered or rewritten. #608: each group's rows come
+// back in DISPLAY order (invDisplayOrder below) — the stored list, the prompt and the drop marks never see that order.
+/* #608 (owner asks 2026-10-09): THE DISPLAY ORDER inside a category — the equipped rows first, in pack order; then the rest
+   case- and count-blind on the decoded name (itemKey order), ties by the stored index. DISPLAY only: the stored list, the
+   prompt's Inventory and Equipped: lines stay pack order (gate 8), and every row keeps its sourceIndex so a drop mark still
+   names the stored row. A total order (the index breaks every tie), so nothing relies on sort stability. Pure. */
+function invDisplayOrder(rows){
+  return (rows||[]).slice().sort(function(a,b){
+    if(!!a.equipped!==!!b.equipped)return a.equipped?-1:1;
+    if(!a.equipped){var ka=itemKey(a.name),kb=itemKey(b.name);if(ka<kb)return -1;if(ka>kb)return 1;}
+    return (a.sourceIndex|0)-(b.sourceIndex|0);
+  });
+}
 function groupInventory(inv){
   inv=inv||[];
   var buckets=keyedDict(),order=[],i,j;
@@ -451,6 +463,7 @@ function groupInventory(inv){
     if(!placed)un.rows.push(row);
   }
   var out=[];
+  for(i=0;i<order.length;i++)buckets[order[i]].rows=invDisplayOrder(buckets[order[i]].rows);un.rows=invDisplayOrder(un.rows);/* #608: display order inside every group, Unclassified included */
   for(i=0;i<order.length;i++){if(buckets[order[i]].rows.length)out.push(buckets[order[i]]);}
   if(un.rows.length)out.push(un);
   return out;

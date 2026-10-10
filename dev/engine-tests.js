@@ -32042,4 +32042,37 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
 
+  section("#608 the inventory display order — equipped first, then alphabetical; the stored order, the prompt and the drop marks untouched");
+  t("#608 invDisplayOrder: the equipped rows lead in PACK order, the rest follow by decoded name (case- and count-blind), ties by the stored index; the stored list is never reordered; a legacy string decodes before it sorts",function(){
+    var inv=[{name:"Vexthorn",qty:3,equipped:false},{name:"Oddboots",qty:1,equipped:true},{name:"vexthorn handle",qty:1,equipped:false},{name:"Nullplate",qty:1,equipped:true},{name:"Brindle",qty:2,equipped:false},{name:"vexthorn",qty:1,equipped:false},{name:"ambergris",qty:1,equipped:false}];
+    makeWorld();var g=groupInventory(inv),un=g.filter(function(x){return x.id==="unclassified";})[0];
+    if(!un||un.rows.length!==7||g.length!==1)return "the fixture files as seven unclassified rows: "+JSON.stringify(g.map(function(x){return x.id+":"+x.rows.length;}));
+    var names=un.rows.map(function(r){return r.name;}).join("|"),idx=un.rows.map(function(r){return r.sourceIndex;}).join(",");
+    if(names!=="Oddboots|Nullplate|ambergris|Brindle|Vexthorn|vexthorn|vexthorn handle")return "display order: "+names;
+    if(idx!=="1,3,6,4,0,5,2")return "every row keeps its stored index: "+idx;
+    if(inv.map(function(r){return r.name;}).join("|")!=="Vexthorn|Oddboots|vexthorn handle|Nullplate|Brindle|vexthorn|ambergris")return "the stored list is never reordered";
+    var leg=groupInventory(["Vexthorn handle","Vexthorn x2"]).filter(function(x){return x.id==="unclassified";})[0];
+    if(leg.rows.map(function(r){return r.text;}).join("|")!=="Vexthorn x2|Vexthorn handle")return "a legacy string sorts by its decoded name, not its count suffix: "+JSON.stringify(leg.rows.map(function(r){return r.text;}));
+    return true;
+  });
+  t("#608 an unequip moves the row down on the next paint; the prompt's Inventory and Equipped: lines stay pack order (gate 8); a drop mark set on a sorted display still names the STORED row",function(){
+    makeWorld();var c=worldState.character;c.name="Tess";c.inventory=["Vexthorn","Nullplate","Brindle"];delete c.worn;delete c.outfit;
+    applyMuts("[EQUIPPED:Tess|Nullplate|on]");var shown=function(){return groupInventory(c.inventory).filter(function(x){return x.id==="unclassified";})[0].rows.map(function(r){return r.name;}).join("|");};
+    if(shown()!=="Nullplate|Brindle|Vexthorn")return "equipped first: "+shown();
+    var v=buildSysPrompt().volatile;if(v.indexOf("Inventory: Vexthorn, Nullplate, Brindle")<0||v.indexOf("Equipped: Nullplate")<0)return "the prompt keeps pack order: "+v.slice(Math.max(0,v.indexOf("Inventory:")),v.indexOf("Inventory:")+120);
+    applyMuts("[EQUIPPED:Tess|Nullplate|off]");if(shown()!=="Brindle|Nullplate|Vexthorn")return "after the unequip the row sorts by name: "+shown();
+    var g=groupInventory(c.inventory).filter(function(x){return x.id==="unclassified";})[0],marks={};marks[invDropMarkKey(g.rows[0].sourceIndex,g.rows[0].name)]=true;/* the FIRST display row is Brindle, stored index 2 */
+    var plan=invDropPlan(c.inventory,marks);if(plan.count!==1||plan.drop[0].idx!==2||plan.drop[0].name!=="Brindle")return "the mark names the stored row, not the display position: "+JSON.stringify(plan);
+    return true;
+  });
+  t("#608 ONE sort: it lives in invDisplayOrder, groupInventory applies it to every bucket (Unclassified included), the panel and the sheet walk grp.rows as returned and sort nothing themselves, and the character editor keeps the stored order (it edits the list, not a view)",function(){
+    var fs=__fsForTests,R=__rootForTests,p=fs.readFileSync(R+"/ui-panels.js","utf8"),s=fs.readFileSync(R+"/ui-sheets.js","utf8"),inv=fs.readFileSync(R+"/inventory.js","utf8"),ed=fs.readFileSync(R+"/character_editor.html","utf8");
+    var at=inv.indexOf("function invDisplayOrder");if(at<0||!/\.slice\(\)\.sort\(/.test(inv.slice(at,at+400)))return "the ONE sort lives in invDisplayOrder, on a copy";
+    if(inv.indexOf("buckets[order[i]].rows=invDisplayOrder(buckets[order[i]].rows);un.rows=invDisplayOrder(un.rows);")<0)return "groupInventory applies the order to every bucket, Unclassified included";
+    var pa=p.indexOf("function updateInvPanel"),sa=s.indexOf("_grps=groupInventory(c.inventory)");
+    if(pa<0||sa<0||/\.sort\(/.test(p.slice(pa,pa+3500))||/\.sort\(/.test(s.slice(sa,sa+4000)))return "a shell sorts on its own";
+    if(/groupInventory|invDisplayOrder/.test(ed))return "the editor must not take a display view";
+    return true;
+  });
+
 }
