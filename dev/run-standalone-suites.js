@@ -13,6 +13,7 @@ var SUITES = [
   "dev/tests-525-adversarial.js",
   "dev/tests-581-stash-persistence.js",
   "dev/tests-603-capability-redraft.js",
+  "dev/tests-609-contract-harness.js",
   "dev/tests-603-capability-review.js",
   "dev/tests-designer-prose.js",
   "dev/tests-designer-creatures.js",

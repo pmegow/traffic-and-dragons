@@ -54,16 +54,17 @@ var MIRROR_SKIP = [
   { re: /(^|\/)__pycache__\//, what: "Python cache file(s)" }
 ];
 var _mirrorSkipSaid = false;
-function mirrorWorkingSet(scratch) {
+function mirrorWorkingSet(scratch, rootArg) {
+  var root = rootArg || ROOT;   /* #609: a probe hands a fixture repo; every battery leaves it to the repo */
   var env = {};   // a git hook's GIT_DIR / GIT_INDEX_FILE must not steer these reads off ROOT's own index (the TODO #27 class)
   Object.keys(process.env).forEach(function (k) { if (k.indexOf("GIT_") !== 0) env[k] = process.env[k]; });
   function git(args) {
-    var r = cp.spawnSync("git", ["-c", "safe.directory=" + ROOT, "-c", "core.quotepath=off"].concat(args), { cwd: ROOT, env: env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    var r = cp.spawnSync("git", ["-c", "safe.directory=" + root, "-c", "core.quotepath=off"].concat(args), { cwd: root, env: env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     if (r.status !== 0) throw new Error("git " + args[0] + " failed: " + String(r.stderr || r.stdout || r.error).trim());
     return r.stdout;
   }
   function copyIn(rel) {
-    var src = path.join(ROOT, rel), st;
+    var src = path.join(root, rel), st;
     try { st = fs.statSync(src); } catch (e) { return; }
     if (!st.isFile()) return;
     fs.mkdirSync(path.dirname(path.join(scratch, rel)), { recursive: true });
@@ -274,4 +275,4 @@ function prove(opts) {
   return (bad.length || !intact) ? 1 : 0;
 }
 
-module.exports = { prove: prove };
+module.exports = { prove: prove, mirrorWorkingSet: mirrorWorkingSet };/* #609: the ONE mirror — scratch-contract-sabotage.js rides on it too */

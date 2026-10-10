@@ -29,7 +29,7 @@ console.log("run-sabotage-diff: "+Math.min(args.jobs,due.length)+" at a time (--
 var failed=[],skipped=[],flaky=[];
 pool.run(due,{cwd:ROOT,jobs:args.jobs},function(v){
   var f=v.file,out=v.out;
-  console.log((v.verdict==="fail"?"FAIL ":v.verdict==="skip"?"SKIP ":"ok   ")+f+" ("+v.secs+"s"+(v.flake?", passed only when re-run alone":"")+")");
+  console.log((v.verdict==="fail"?"FAIL ":v.verdict==="skip"?"SKIP ":"ok   ")+f+" ("+v.secs+"s"+(v.flake?", passed only when re-run alone":"")+")"+(String(out||"").indexOf("scratch-contract-sabotage:")>=0?" [contract harness]":""));/* #609: which harness ran it */
   if(v.verdict==="fail"){failed.push(f);console.log(out.split("\n").slice(-25).join("\n"));}
   if(v.verdict==="skip"){skipped.push(f);v.skipLines.forEach(function(l){console.log(l);});}   /* re-echoed: an Actions ::warning registers only from the step's own stdout */
   if(v.flake)flaky.push(f);
