@@ -28,24 +28,23 @@ live in TODO.md; this file archives as DOC/HANDOFF_v<ver>.md when superseded. Th
   keys at boot with the undismissable screen; the pre-gate build (v1.1191) accepts a copy and garbles it (`[object Object]` in the
   prompt and the panel, an empty Wearing line, a gain landing as a string beside the rows, a loss and a WORN no-op) — its export
   re-enters the (c) build losslessly. The harm of a pre-(a) runtime is the garbled prompt, not data loss.
-- **Gate 12 NOT RUN** — no Gemini key in the session's shell and the playtest rule forbids pasting one. Owed to the owner: a key
-  pasted into the signed-out preview (`http://localhost:8123` via `.claude/launch.json` "static"), or the owner's own first turns
-  after the push — a gain and a loss with counts, a `[WORN:]` landing on the row, the counter's "Worn — take it off first", a
-  `.tnd` export showing rows.
+- **Gate 12 green** — the owner pasted a Gemini key into the signed-out preview; four gemini-3.8-flash turns on the throwaway
+  Village copy: a gain of twelve candles as one row, a loss of five to seven, `[WORN:…|off]` landing on the row, the counter
+  listing the equipped boots as off with "Worn — take it off first" (an apply refuses, nothing moves), the export at v11 rows.
+- **§5.5 done except the snapshot** — the owner exported both live campaigns (The Village t291, Ammut t67, both v10 as the
+  deployed v1.1201 writes them); the census over them CENSUS OK; `run-sabotage-diff origin/master..HEAD` all due batteries
+  green; the four replays unchanged.
 - **Gate 13 closed** — [audits/REVIEW_599_release_c_2026_10_09.md](../audits/REVIEW_599_release_c_2026_10_09.md): ten findings,
   no live defect on real data, every one closed test-first in c2. The c2 sweep also found a false proof since (c) in the 597
   battery (a no-op `wornPrune` mutation) and re-anchored it.
 
 ## Before the PUSH (§5.5, decision 1) — in this order
 
-1. The owner exports every live campaign from the desktop File menu (a .tnd each) and takes a server volume snapshot
-   (`flyctl volumes snapshots create <vol> -a traffic-and-dragons-server`).
-2. `node dev/census-inventory-rows.js <folder of the exports> --all` must say CENSUS OK.
-3. `node dev/run-sabotage-diff.js origin/master..HEAD` (the range holds the whole (c) commit — expect most of the tree's
-   batteries, ~20–30 min at 8 wide; a flaky Chrome-driven battery passes alone) and the four
-   `node dev/diff-replay.js dev/corpus_playtest_v12xx.json --check` (1238, 1258, 1271, 1276).
-4. Push. Then the owner opens the game on every device (a stale tab refuses the newer save until it reloads — designed) and plays
-   the gate-12 turns.
+1. ~~The owner exports every live campaign~~ done 2026-10-09 (The Village t291, Ammut t67). A server volume snapshot
+   (`flyctl volumes snapshots create <vol> -a traffic-and-dragons-server`) — taken by the session if flyctl answered, else owed.
+2. ~~`node dev/census-inventory-rows.js Campaigns` must say CENSUS OK~~ done (11 saves / 50 sheets / 1,259 items).
+3. ~~`node dev/run-sabotage-diff.js origin/master..HEAD` and the four replay checks~~ done, all green.
+4. Push. Then the owner opens the game on every device (a stale tab refuses the newer save until it reloads — designed).
 5. `git branch -D backup-c-local`.
 
 ## Then release (d) — EQUIPPED (§12 row d, §3.2–3.5)
