@@ -738,6 +738,10 @@ function waresCapFor(node){var tier=(typeof waresSizeTier==="function")?waresSiz
 function fileWare(item,price,note,turn,out,at){
   var node=waresNodeFor(turn,at);if(!node)return null;
   var it=String(item||"").trim(),pr=String(price||"").trim();if(!it||!pr)return null;
+  /* #517 (b): a count baked into the ware's name ("Arrow x20") is the BUNDLE the price buys — the ware is "Arrow" and the price is
+     per 20; a price that already says "per N" keeps its own N. The counter used to sell "Arrow x20" as a one-unit ware: each unit
+     bought landed twenty arrows (the stored grammar decodes the name), so a full bundle was 400 arrows for 1 gp. */
+  var _wq=(typeof _qtyParse==="function")?_qtyParse(it):{base:it,n:1};if(_wq.n>1){it=_wq.base;var _wpc=(typeof parseCoin==="function")?parseCoin(pr):null;if(_wpc&&_wpc.unit&&_wpc.per===1)pr=pr+" per "+_wq.n;}
   if(!node.wares)node.wares=[];delete node.waresNone;
   var now=(typeof clockNow==="function")?clockNow():0,low=itemKey(it),i,row=null;/* #599 (b3): wares key through the one item key (§4.5) */
   for(i=0;i<node.wares.length;i++)if(itemKey(node.wares[i].item)===low){row=node.wares.splice(i,1)[0];break;}/* a re-stated ware refreshes, never twins */
@@ -783,7 +787,7 @@ function nodeWaresLive(node){
 function nodeWantedLive(node){
   if(!node||!node.wanted||!node.wanted.length)return [];
   var now=(typeof clockNow==="function")?clockNow():0,win=((typeof WARES_RESTOCK_DAYS!=="undefined")?WARES_RESTOCK_DAYS:7)*((typeof MIN_PER_DAY!=="undefined")?MIN_PER_DAY:1440);
-  return node.wanted.filter(function(w){if(w.cp===undefined){var c=(typeof parseCoin==="function")?parseCoin(w.offer):null;w.cp=(c&&c.unit)?c.unitCp:null;}/* #598 */return typeof w.min!=="number"||now-w.min<win;});
+  return node.wanted.filter(function(w){if(w.cp===undefined){var c=(typeof parseCoin==="function")?parseCoin(w.offer):null;w.cp=(c&&c.unit)?c.unitCp:null;w.per=(c&&c.unit)?c.per:1;}/* #598; #517 (c): a row filed before the bundle reads per 1 */return typeof w.min!=="number"||now-w.min<win;});
 }
 /* The node whose wants a place sees — the read-only twin of waresNodeFor (the shop in a waresPerShop kind, else the
    settlement); it never mints. `at` = {key, world} from R.placeAt, absent = the live pointer. */
@@ -808,7 +812,7 @@ function fileWanted(item,offer,by,turn,at){
   if(!node.wanted)node.wanted=[];
   var low=itemKey(it),i;for(i=0;i<node.wanted.length;i++)if(itemKey(node.wanted[i].item)===low){node.wanted.splice(i,1);break;}/* #599 (b3): a re-stated want refreshes by the one item key (§4.5) */
   var _oc=(typeof parseCoin==="function")?parseCoin(offer):null;
-  var row={item:it,offer:String(offer||"").trim().slice(0,120),cp:(_oc&&_oc.unit)?_oc.unitCp:null,/* #598: the offer in copper, once; null = in words */by:String(by||"").trim().slice(0,60),t:turn,min:(typeof clockNow==="function")?clockNow():0};
+  var row={item:it,offer:String(offer||"").trim().slice(0,120),cp:(_oc&&_oc.unit)?_oc.unitCp:null,/* #598: the offer in copper, once; null = in words */per:(_oc&&_oc.unit)?_oc.per:1,/* #517 (c): "1 gp per 5" buys FIVE at 2 sp each — the bundle is the want's allowance */by:String(by||"").trim().slice(0,60),t:turn,min:(typeof clockNow==="function")?clockNow():0};
   node.wanted.push(row);var cap=(typeof WANTED_CAP!=="undefined")?WANTED_CAP:4;fileWanted.lastEvicted=[];
   /* audit C8: the one eviction in the map tier that said nothing — a standing offer dropped with zero trace. Loud now:
      the console names it and the handler reads fileWanted.lastEvicted for the mutation log. */

@@ -29,7 +29,7 @@ prove("helpers.js", [
     find: "wl=(typeof nodeWantedLive===\"function\")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);", replace: "wl=vtc.node.wanted||[];",
     mustFail: "a want expires on the clock" },
   { label: "a want buys the whole stack at the offer",
-    find: "max:r.wanted?Math.min(WANT_BUYS,r.qty):r.qty,", replace: "max:r.qty,",
+    find: "max:r.wanted?Math.min(WANT_BUYS*((r.want&&r.want.per)||1),r.qty):r.qty,", replace: "max:r.qty,",/* #517 (c) re-anchor: one BUNDLE */
     mustFail: "the counter pays the keeper's offer for ONE ring" },
   { label: "#577 every row that meets a want gets its own allowance again",
     find: "if(q>wl&&!overWant)overWant=r.want;", replace: "",

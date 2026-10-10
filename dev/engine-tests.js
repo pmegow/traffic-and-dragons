@@ -27635,6 +27635,46 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(invTextList(findCompanionChar("Bram").inventory).join()!=="Healing potion"||c.inventory.length)return "the gift moves one potion from the pack: "+JSON.stringify([c.inventory,findCompanionChar("Bram").inventory,r.muts]);
     return (h.items[0].qty===1&&!h.items[0].taken)?true:"the chest's potion stays — the gift came from the pack, not the chest: "+JSON.stringify(h.items)+" "+JSON.stringify(r.muts);
   });
+  function quartetShop(){quartetVillage();var key="The Village|the trading post";worldState.world.sublocation="the trading post";memory.map.nodes[key]={firstVisit:1,visits:1,parent:"The Village",npcs:[],items:[],shop:true,wares:[],wanted:[]};memory.npcs["Frizwick"].lastSeenAt=key;return memory.map.nodes[key];}
+  t("#517 ③ a counted ware name is the bundle the price buys: [WARES:Arrow x20|1 gp] files Arrow at 1 gp per 20; a full bundle bought lands twenty arrows for 1 gp (it used to land 400), one arrow costs 5 cp; a price that already says per N keeps its N",function(){
+    var n=quartetShop(),c=worldState.character;c.inventory=[];c.coin=1000;
+    var r=quiet(function(){return applyMuts("[WARES:Arrow x20|1 gp]");}).r;
+    if(n.wares.length!==1||n.wares[0].item!=="Arrow"||n.wares[0].per!==20||n.wares[0].cp!==100)return "the ware is Arrow, 1 gp per 20: "+JSON.stringify(n.wares)+" "+JSON.stringify(r.muts);
+    if(!/For sale: Arrow — 1 gp per 20/.test(r.muts.join("|")))return "the receipt names the bundle: "+JSON.stringify(r.muts);
+    var cat=shopTradeCatalog(),row=shopLedgerRows(cat).right[0];if(!cat.ok||!row||row.label!=="Arrow"||row.max!==20||row.unit!==5)return "the counter offers up to twenty at 5 cp: "+JSON.stringify(row);
+    var res=quiet(function(){return shopTradeApply({buy:{arrow:20}});}).r;
+    if(!res.ok||inventoryCountOf(c.inventory,"Arrow")!==20||c.coin!==900)return "twenty arrows for 1 gp: "+JSON.stringify([res.ok,res.reason,c.inventory,c.coin]);
+    quartetShop();c=worldState.character;c.inventory=[];c.coin=1000;quiet(function(){return applyMuts("[WARES:Arrow x20|1 gp]");});
+    res=quiet(function(){return shopTradeApply({buy:{arrow:1}});}).r;if(!res.ok||inventoryCountOf(c.inventory,"Arrow")!==1||c.coin!==995)return "one arrow costs 5 cp: "+JSON.stringify([res.ok,c.inventory,c.coin]);
+    n=quartetShop();quiet(function(){return applyMuts("[WARES:Bolt x10|1 gp per 20]");});if(n.wares[0].item!=="Bolt"||n.wares[0].per!==20)return "a price with its own per keeps it: "+JSON.stringify(n.wares);
+    n=quartetShop();quiet(function(){return applyMuts("[WARES:Rope|1 gp]");});if(n.wares[0].item!=="Rope"||n.wares[0].per!==1||n.wares[0].price!=="1 gp")return "an uncounted ware is untouched: "+JSON.stringify(n.wares);
+    n=quartetShop();quiet(function(){return applyMuts("[WARES:Fen-reed dart x12|1 sp]");});if(n.wares[0].item!=="Fen-reed dart"||n.wares[0].per!==12||n.wares[0].price!=="1 sp per 12"||n.wares[0].cp!==10)return "a ware with no canon to pin it keeps the bundle in its own price words: "+JSON.stringify(n.wares);
+    return true;
+  });
+  t("#517 ④ a want priced per N buys its bundle: 'Iron ore|1 gp per 5' lets the counter take up to five at 2 sp each, pays 1 gp for the five and retires; a sixth mark is refused naming five; a plain want still buys one",function(){
+    var n=quartetShop(),c=worldState.character;c.inventory=["Iron ore x6"];c.coin=0;
+    var r=quiet(function(){return applyMuts("[WANTED:Iron ore|1 gp per 5|Frizwick]");}).r;if(n.wanted.length!==1||n.wanted[0].per!==5||n.wanted[0].cp!==20)return "the want keeps its bundle: "+JSON.stringify(n.wanted)+" "+JSON.stringify(r.muts);
+    var cat=shopTradeCatalog(),row=shopLedgerRows(cat).left[0];if(!row||row.max!==5||row.unit!==20||!/up to 5/.test(row.hint))return "the ledger offers up to five at 2 sp: "+JSON.stringify(row);
+    var six=shopTradePlan(cat,{sell:{"iron ore":6}});if(six.ok||!/wants 5 Iron ore/.test(six.reason))return "a sixth is refused, naming five: "+JSON.stringify(six);
+    var five=shopTradePlan(cat,{sell:{"iron ore":5}});if(!five.ok||five.netCp!==-100)return "five sell for 1 gp: "+JSON.stringify(five);
+    var res=quiet(function(){return shopTradeApply({sell:{"iron ore":5}});}).r;
+    if(!res.ok||c.coin!==100||inventoryCountOf(c.inventory,"Iron ore")!==1||n.wanted.length)return "the five leave, 1 gp arrives, the want retires: "+JSON.stringify([res.ok,res.reason,c.coin,c.inventory,n.wanted]);
+    n=quartetShop();c=worldState.character;c.inventory=["Warded ring x2"];quiet(function(){return applyMuts("[WANTED:Warded ring|40 gp|Frizwick]");});
+    cat=shopTradeCatalog();row=shopLedgerRows(cat).left[0];if(!row||row.max!==1||!/for one$/.test(row.hint))return "a plain want still buys one: "+JSON.stringify(row);
+    var two=shopTradePlan(cat,{sell:{"warded ring":2}});if(two.ok||!/wants one Warded ring — the offer pays once; mark just one/.test(two.reason))return "the plain refusal reads as before: "+JSON.stringify(two);
+    return true;
+  });
+  t("#517 ⑤ a paid take that moved nothing returns the block's coin: [GOLD:-2][COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch] with Bram holding none leaves the purse as it was and says so; the coin stays spent when the block bought something else, or when the spend sits in another block",function(){
+    makeWorld();var c=worldState.character;c.inventory=[];worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    var g=c.coin,r=quiet(function(){return applyMuts("[GOLD:-2][COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch]");}).r;
+    if(c.coin!==g||c.inventory.length)return "nothing moved, nothing paid: coin "+c.coin+" of "+g+" "+JSON.stringify([c.inventory,r.muts]);
+    if(!r.muts.some(function(m){return /2 gp returned/.test(m);})||!r.muts.some(function(m){return /Nothing moved/.test(m);}))return "both are said: "+JSON.stringify(r.muts);
+    c.inventory=[];r=quiet(function(){return applyMuts("[GOLD:-2][COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch][ITEM_GAINED:Rope]");}).r;
+    if(c.coin!==g-200||invTextList(c.inventory).join()!=="Rope")return "a block that also bought a rope keeps its coin: "+JSON.stringify([c.coin,c.inventory,r.muts]);
+    c.inventory=[];c.coin=g;r=quiet(function(){return applyMuts("You pay the toll. [GOLD:-2] Bram hands you a torch. [COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch]");}).r;
+    if(c.coin!==g-200||r.muts.some(function(m){return /returned/.test(m);}))return "a spend in another block is not this take's: "+JSON.stringify([c.coin,r.muts]);
+    return true;
+  });
   t("#519 the spoken undo after a hero swap: the stowed spear stays in the chest and the undo refuses with the reason, instead of returning ok with the spear in nobody's pack",function(){
     var house=quartetVillage();worldState.character.inventory=["Sihedron ritual spear"];
     applyMuts("[ITEM_LOST:Sihedron ritual spear][LOCATION_ITEM:Sihedron ritual spear|placed]");
