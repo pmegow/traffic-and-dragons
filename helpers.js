@@ -2440,6 +2440,17 @@ function itemLookup(nm){
    applyMenuTier (ui-shell.js). null = not signed in (local dev keeps everything); a signed-in
    payload hides unless the server says isAdmin:true (a server predating the field reads as a
    non-admin, which is the safe direction for a beta tester's screen). */
+/* #610 (owner 2026-10-10): the Account dialog's sign-in doors — the server's list of doors bound to this account
+   (`providers`, /api/account since server v1.7.5) and, while Google is not among them, the button that links it. A server
+   that sends no list is read as GitHub only, so the button still shows against an older server (the adapter says why if the
+   server then refuses). Pure HTML string; showAccountModal wires the button to storageAdapter.linkGoogleToAccount. */
+function accountDoorsHtml(a){
+  var p=(a&&Array.isArray(a.providers))?a.providers:["github"],has=function(x){return p.indexOf(x)>=0;};
+  var doors=p.map(function(x){return x==="github"?"GitHub":x==="google"?"Google":String(x);}).join(", ")||"none";
+  var h="<div style='display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:4px 0;'><span style='color:var(--t2)'>Sign-in doors</span><span><b>"+doors+"</b></span></div>";
+  if(!has("google"))h+="<button class='btn-p' id='ac-link-google' style='width:100%;margin-top:8px;'>Link a Google sign-in (for the phone)</button><div style='font-size:10px;color:var(--t2);margin-top:4px;line-height:1.4;'>Links Google to THIS account \u2014 your campaigns, your tier. On the phone, sign in with Google and leave GitHub to the desktop.</div>";
+  return h;
+}
 function menuTierHidesDev(acct){
   if(!acct)return false;
   return acct.isAdmin!==true;

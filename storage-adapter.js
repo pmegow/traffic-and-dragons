@@ -159,7 +159,7 @@ var storageAdapter = (function() {
 
   // ── GitHub OAuth popup login ────────────────────────────────────────────
 
-  function loginWithServer(serverUrl, onSuccess, provider) {
+  function loginWithServer(serverUrl, onSuccess, provider, opts) {
     if (_popup && !_popup.closed) { _popup.focus(); return; }
 
     // provider: "github" (default) | "google" — same ticket flow, different first door (§5.2).
@@ -174,13 +174,32 @@ var storageAdapter = (function() {
     var w = 600, h = 700;
     var left = Math.round(screen.width  / 2 - w / 2);
     var top  = Math.round(screen.height / 2 - h / 2);
+    /* #610 (owner 2026-10-10: the phone is for checking the experience, never dev work — it should not need GitHub): a LINK
+       (opts.link) attaches a second door to the account the player is signed in to. The window opens NOW, on the click — a popup
+       opened after a fetch is blocked on phones — and is pointed at the door once the server's one-time link ticket is back.
+       The rest of the flow is the ordinary one: the server answers the link with a fresh session for the SAME account. */
+    var _link = !!(opts && opts.link);
     _popup = window.open(
-      serverUrl + _authPath,
+      _link ? "" : serverUrl + _authPath,
       "tnd-auth",
       "width=" + w + ",height=" + h + ",left=" + left + ",top=" + top
     );
     // A blocked popup returns null (audit E75) — report it instead of failing silently.
     if (!_popup) { if (typeof _popupCb === "function") { _popupCb("Popup blocked — allow popups for this site and try again."); _popupCb = null; } return; }
+    if (_link) {
+      if (provider !== "google") { try { _popup.close(); } catch (x) { /* audit E15: a popup already gone refuses close() — nothing to link anyway */ } _popup = null; if (typeof _popupCb === "function") { _popupCb("Only Google can be linked."); _popupCb = null; } return; }
+      _apiJson("/auth/link-ticket", "POST", { provider: "google" }, function (err, d) {
+        if (err || !d || !d.ticket) {
+          var why = (String(err).indexOf("HTTP 404") >= 0) ? "This server cannot link sign-ins yet (it needs server v1.7.5)." : "Could not start the link (" + (err || "no ticket came back") + ").";
+          console.warn("[storage] #610 link ticket refused — " + why);
+          if (typeof _popupCb === "function") { _popupCb(why); _popupCb = null; }
+          if (_popup && !_popup.closed) { try { _popup.close(); } catch (x) { /* audit E15: a cross-origin/already-gone popup refuses close() — the refusal was reported above */ } }
+          _popup = null; return;
+        }
+        try { _popup.location.href = serverUrl + _authPath + "?link=" + encodeURIComponent(d.ticket); }
+        catch (x) { console.warn("[storage] #610 could not point the popup at the door: " + x.message); }
+      });
+    }
 
     // Listen for postMessage from /auth/done (works on https origins)
     // AND poll /auth/ticket/:ticket as fallback for file:// origins
@@ -1304,6 +1323,7 @@ var storageAdapter = (function() {
     isServerMode:          isServerMode,
     getServerUrl:          getServerUrl,
     loginWithServer:       loginWithServer,
+    linkGoogleToAccount:   function (cb) { loginWithServer(_serverUrl, cb, "google", { link: true }); },/* #610: attach Google to the signed-in account */
     logoutFromServer:      logoutFromServer,
     load:                  load,
     syncToServer:          syncToServer,

@@ -474,6 +474,7 @@ function showAccountModal(){
     var h="";
     h+=line("Signed in as","<b>"+(a.username||"?")+"</b>");
     h+=line("Menus",a.isAdmin?"<b style='color:var(--acc)'>Operator</b> — full Dev menus":"Player — operator rows hidden (#289)");
+    h+=accountDoorsHtml(a);/* #610: the sign-in doors, and the Link button while Google is not one of them */
     if(a.entitled){
       h+=line("Subscription","<b style='color:var(--grn)'>"+(a.tierLabel||a.tier)+"</b> ("+a.status+")");
       h+=line("Turns used","<b>"+a.turnsUsed+"</b> of "+a.turnsCap+" in the last 30 days");
@@ -489,6 +490,7 @@ function showAccountModal(){
     wireRouting();
     var so=document.getElementById("ac-signout");
     if(so)so.addEventListener("click",function(){modal.remove();disconnectFromServer();});
+    var lg=document.getElementById("ac-link-google");if(lg)lg.addEventListener("click",function(){lg.disabled=true;lg.textContent="Finish the Google sign-in in the popup\u2026";storageAdapter.linkGoogleToAccount(function(err){modal.remove();if(err)showToast(typeof err==="string"?err:"Linking failed.");else showToast("\u2601 Google is linked \u2014 on the phone, sign in with Google");showAccountModal();});});/* #610 */
   }
   body.innerHTML="<p style='color:var(--t2);'>Loading account&hellip;</p>";
   storageAdapter.fetchAccount(function(err,a){

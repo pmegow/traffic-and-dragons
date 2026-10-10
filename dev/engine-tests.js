@@ -27866,6 +27866,29 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     quiet(function(){commitGmTurn("Nyla looks up from the porch. [SAY:Nyla Lorrath|warm]\"Peace on your hearth, Ammut! Still warms my heart to see you walking so free, now that the soul-tax lien and necrotic tether to the Reach's engines and Tomb-Architect are extinguished for good.\"",{userMsg:"x",playerTxt:"I wave to Nyla."});});
     var p=worldState.motifPing;return (p&&p.speaker==="Nyla Lorrath"&&p.who==="Ammut"&&p.turn===worldState.turn)?true:"the ping is armed by the live turn: "+JSON.stringify(p);
   });
+  section("#610 Google link — the phone never needs GitHub (owner 2026-10-10)");
+  function src610(file){return __fsForTests.readFileSync(__rootForTests+"/"+file,"utf8");}
+  t("#610 accountDoorsHtml: the doors line names what the server lists; the Link button shows while Google is missing — and against a server that lists nothing (GitHub only); it is gone once Google is linked",function(){
+    var h0=accountDoorsHtml({username:"x"});if(!/Sign-in doors/.test(h0)||!/<b>GitHub<\/b>/.test(h0)||h0.indexOf("id='ac-link-google'")<0)return "no list = GitHub only, with the button: "+h0;
+    var h1=accountDoorsHtml({providers:["github"]});if(!/<b>GitHub<\/b>/.test(h1)||h1.indexOf("id='ac-link-google'")<0||!/for the phone/.test(h1))return "GitHub only: the button, named for the phone: "+h1;
+    var h2=accountDoorsHtml({providers:["github","google"]});if(!/<b>GitHub, Google<\/b>/.test(h2)||h2.indexOf("ac-link-google")>=0)return "linked: both doors named, no button: "+h2;
+    var h3=accountDoorsHtml({providers:["google"]});return (/<b>Google<\/b>/.test(h3)&&h3.indexOf("ac-link-google")<0)?true:"a Google-born account has nothing to link: "+h3;
+  });
+  t("#610 the adapter's link path: the popup opens on the click BEFORE the ticket fetch (blank for a link), the ticket rides as ?link=, an old server is named, and linkGoogleToAccount is the one export",function(){
+    var a=src610("storage-adapter.js"),open=a.indexOf('_link ? "" : serverUrl + _authPath'),fetch=a.indexOf('_apiJson("/auth/link-ticket", "POST", { provider: "google" }');
+    if(open<0||fetch<0)return "the blank-first open and the ticket fetch are both in the adapter";
+    if(open>fetch)return "the popup must open before the fetch (a phone blocks a popup opened after one)";
+    if(a.indexOf('"?link=" + encodeURIComponent(d.ticket)')<0)return "the ticket rides to the door as ?link=";
+    if(!/it needs server v1\.7\.5/.test(a))return "an older server is named, not a bare HTTP 404";
+    return /linkGoogleToAccount:\s+function \(cb\) \{ loginWithServer\(_serverUrl, cb, "google", \{ link: true \}\); \}/.test(a)?true:"the export opens the Google door with the link intent";
+  });
+  t("#610 the Account dialog shows the doors and wires the button to the adapter; a sign-out stays its own button",function(){
+    var m=src610("ui-modals.js"),fn=m.slice(m.indexOf("function showAccountModal("),m.indexOf("function showAccountModal(")+9000);
+    if(fn.indexOf("h+=accountDoorsHtml(a);")<0)return "the connected readout carries the doors line";
+    if(!/getElementById\("ac-link-google"\)[\s\S]{0,400}storageAdapter\.linkGoogleToAccount\(/.test(fn))return "the Link button calls linkGoogleToAccount";
+    if(!/Google is linked/.test(fn))return "a successful link is toasted";
+    return /getElementById\("ac-signout"\)/.test(fn)?true:"sign-out stands";
+  });
   section("#527 (23) a companion's spell held as an ability gives its slot to the next same-tier bench spell (owner ruling 2026-10-10)");
   function cleric23(spells,abilities,lvl){return {name:"Vesna",gender:"F",cls:"Cleric",level:lvl||1,xp:0,maxHp:9,hp:9,stats:{WIS:14},trait:"calm",flaw:"proud",motivation:"serve",spells:spells||[],abilities:abilities||[],inventory:[],conditions:[],relationships:[]};}
   function join23(cs){worldState.npcs.push({name:cs.name,status:"ally",rel:"companion",met:1,partyMember:true,charSheet:cs});memory.npcs[cs.name]={knowledge:[],events:[],aliases:[],partyMember:true};return cs;}
