@@ -27014,7 +27014,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     memory.map.nodes[locResolve("The Village|"+chosen)].hours={open:11,close:20};
     var a=residentWhereabouts(name,m),b=residentWhereabouts(name,m+5);
     if(a.home||a.place===chosen||JSON.stringify(a)!==JSON.stringify(b))return "closed preferred venue lacks stable open fallback: "+JSON.stringify(a);
-    places.forEach(function(c){memory.map.nodes[locResolve("The Village|"+c)].hours={open:23,close:23};});
+    places.forEach(function(c){memory.map.nodes[locResolve("The Village|"+c)].hours={open:12,close:13};});/* #527 (8): closed at the 10:00 judged — open=close now reads round the clock */
     if(!residentWhereabouts(name,m).home)return "all closed must mean home";
     places.forEach(function(c){delete memory.map.nodes[locResolve("The Village|"+c)].hours;});
     return residentWhereabouts(name,13*MIN_PER_DAY+18*60).home?true:"night must remain home";
@@ -29036,6 +29036,39 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return NODE_CARRY_FIELDS.some(function(f){return f.k==="keeper";})?true:"the keeper is carried by the registry";
   });
 
+  section("#527 (8) the village counter's hour and arrival (review leads, 2026-10-01; built 2026-10-10)");
+  t("#527 (8) hours '6-6' are round the clock, not always closed: the one predicate reads open=close as open at every hour; 0-24, a day range and an overnight range read as before",function(){
+    var h,n66={hours:{open:6,close:6}};for(h=0;h<24;h++)if(nodeOpenAtHour(n66,h)!==true)return "6-6 is open at "+h;
+    for(h=0;h<24;h++)if(nodeOpenAtHour({hours:{open:0,close:24}},h)!==true)return "0-24 is open at "+h;
+    var day={hours:{open:9,close:17}};if(nodeOpenAtHour(day,9)!==true||nodeOpenAtHour(day,16)!==true||nodeOpenAtHour(day,17)!==false||nodeOpenAtHour(day,20)!==false)return "a day range closes at its close";
+    var night={hours:{open:20,close:4}};if(nodeOpenAtHour(night,23)!==true||nodeOpenAtHour(night,2)!==true||nodeOpenAtHour(night,12)!==false)return "an overnight range wraps";
+    if(nodeOpenAtHour({},5)!==null)return "no hours on record is null (read as open)";
+    shopFixture();memory.map.nodes[B4K_POST].keeper="Frizwick";b4kStale();memory.map.nodes[B4K_POST].hours={open:6,close:6};
+    var v=villageTradeContext();return (v.ok&&v.keeper==="Frizwick")?true:"the keeper of a 6-6 shop is at the counter: "+JSON.stringify(v);
+  });
+  t("#527 (8) the hours are judged at the coin's own clock: a shop closed now but open after the reply's [TIME_ADVANCE:2h] trades when the coin comes after the advance, refuses when the coin comes before it, and the state-only gate still reads now",function(){
+    shopFixture();memory.map.nodes[B4K_POST].keeper="Frizwick";b4kStale();var h=b4kHour();memory.map.nodes[B4K_POST].hours={open:(h+2)%24,close:(h+4)%24};
+    if(buildSceneManifest().local.indexOf("Frizwick")>=0)return "fixture: the keeper is not in the scene";
+    var after=villageTradeContext("Two hours pass over the ledgers. [TIME_ADVANCE:2h] You lay the coin down. [GOLD:-5]",null);
+    if(!after.ok||after.keeper!=="Frizwick")return "after the advance the shop is open and the keeper is at the counter: "+JSON.stringify(after);
+    var before=villageTradeContext("You lay the coin down. [GOLD:-5] Two hours pass. [TIME_ADVANCE:2h]",null);
+    if(before.ok||!/closed/.test(before.reason))return "before the advance it is closed: "+JSON.stringify(before);
+    var now=villageTradeContext();if(now.ok||!/closed/.test(now.reason))return "the state-only gate reads the clock now: "+JSON.stringify(now);
+    var m0=clockNow();if(clockAtOffset("[TIME_ADVANCE:2h] x [TIME_ADVANCE:30m]",null)!==m0+150||clockAtOffset("[TIME_ADVANCE:2h] x [TIME_ADVANCE:30m]",10)!==m0+120||clockAtOffset("no tags",null)!==m0)return "clockAtOffset sums the advances before the offset";
+    var c=worldState.character,g=c.coin,r=quiet(function(){return applyMuts("Two hours pass over the ledgers. [TIME_ADVANCE:2h] You buy the rope. [GOLD:-1][ITEM_GAINED:Rope]");}).r;
+    return (c.coin===g-100&&invHolds(c.inventory,"Rope"))?true:"the real reply lands the purchase: "+JSON.stringify([c.coin,g,c.inventory,r.muts]);
+  });
+  t("#527 (8) a tag naming the place the party already stands in is no arrival: the room is not reset, so the counterparty seen here still trades; a real arrival from elsewhere still resets it",function(){
+    shopFixture();delete memory.map.nodes[B4K_POST].keeper;/* no keeper of record: the stale-tolerant exact-spot rule decides, and an arrival empties it */
+    var v0=villageTradeContext();if(!v0.ok||v0.keeper!=="Frizwick")return "fixture: Frizwick is seen at the post: "+JSON.stringify(v0);
+    var same=villageTradeContext("You turn back to the counter. [SUBLOCATION:the trading post][GOLD:-5]",null);
+    if(!same.ok||same.keeper!=="Frizwick")return "already inside: the room stands and Frizwick trades: "+JSON.stringify(same);
+    var restate=villageTradeContext("[SUBLOCATION:the trading post][LOCATION:The Village][GOLD:-5]",null);
+    if(!restate.ok)return "a same-world re-statement after the sub is no arrival either (#511): "+JSON.stringify(restate);
+    worldState.world.sublocation="the tavern";memory.map.nodes["The Village|the tavern"]={firstVisit:1,visits:1,parent:"The Village",npcs:[],items:[]};
+    var arrive=villageTradeContext("You cross to the post. [SUBLOCATION:the trading post][GOLD:-5]",null);
+    return (!arrive.ok&&/no counterparty/.test(arrive.reason))?true:"a real arrival resets the room — only the reply's own speakers are known inside: "+JSON.stringify(arrive);
+  });
   section("#481 B3 the exchange note amplifies a real pair, never summons one");
   function b3Home(){villageEF();villageHouseEnsure("Silas",null);worldState.world.sublocation="Silas's house";worldState.turn=80;delete worldState.sceneRefs;sceneRefsEnsure();delete worldState.exchangeAsk;
     var f=worldState.sceneRefs.active;f.observed.push({entity:"Frizwick",channel:"say",firstTurn:79,lastTurn:82,turns:2});f.observed.push({entity:"Daeris",channel:"say",firstTurn:80,lastTurn:79,turns:1});
@@ -29317,8 +29350,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#481 B6 a shop closed at the hour is nobody's whereabouts (Nyla in the tavern at 7:40, its hours 10-24)",function(){
     villageCD();var day=13*MIN_PER_DAY+4*60,i,ks=Object.keys(memory.map.nodes);
-    for(i=0;i<ks.length;i++){var nd=memory.map.nodes[ks[i]];if(nd&&nd.parent&&isShopNode(ks[i],nd))nd.hours={open:23,close:23,note:"never"};}
-    (kindDef().commons||[]).forEach(function(c){var k=locResolve("The Village|"+c);if(!memory.map.nodes[k])memory.map.nodes[k]=newMapNode(1,"The Village");memory.map.nodes[k].hours={open:23,close:23,note:"never"};});
+    for(i=0;i<ks.length;i++){var nd=memory.map.nodes[ks[i]];if(nd&&nd.parent&&isShopNode(ks[i],nd))nd.hours={open:12,close:13,note:"shut at ten"};}/* #527 (8): closed at the 10:00 judged — open=close now reads round the clock */
+    (kindDef().commons||[]).forEach(function(c){var k=locResolve("The Village|"+c);if(!memory.map.nodes[k])memory.map.nodes[k]=newMapNode(1,"The Village");memory.map.nodes[k].hours={open:12,close:13,note:"shut at ten"};});
     var r=residentWhereabouts("Frizwick",day);return (r&&r.home)?true:"every commons closed: the resident is at home, never in a shut shop: "+JSON.stringify(r);
   });
   t("#481 B6 the notes never say \"<name> is the <place>\", and a present resident gets no whereabouts",function(){

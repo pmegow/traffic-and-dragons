@@ -3330,7 +3330,7 @@ function villageTradeContext(text,R){
   var _t=String(text||""),_spk=[],_arrived=false;
   if(_t){var _tl=(R&&R.places)?R.places:placeTimeline(_t),_go=_t.search(/\[GOLD:/),_st=placeStateAt(_tl,_go>=0?tagBlockEnd(_t,_go):null),_ei;/* #511 ②: the coin is judged at its block's arrival */
     if(_st&&_st.key)key=_st.key;
-    for(_ei=0;_ei<_tl.events.length;_ei++){var _e=_tl.events[_ei];if((_go<0||_e.off<tagBlockEnd(_t,_go))&&(_e.kind==="sub"||(_e.kind==="world"&&!_e.twin)))_arrived=true;}
+    for(_ei=0;_ei<_tl.events.length;_ei++){var _e=_tl.events[_ei],_eFrom=_tl.states[_ei]?_tl.states[_ei].key:null,_eTo=_tl.states[_ei+1]?_tl.states[_ei+1].key:null;if((_go<0||_e.off<tagBlockEnd(_t,_go))&&(_e.kind==="sub"||(_e.kind==="world"&&!_e.twin))&&_eTo!==_eFrom)_arrived=true;}/* #527 (8): a tag naming the place the party already stands in is no arrival — the room is not reset */
     var _sm=_t.match(/\[SAY:[^\]]+\]/g)||[],_si;for(_si=0;_si<_sm.length;_si++)_spk.push(_sm[_si].slice(5,-1).split("|")[0].trim());/* #458: the |mood is not part of the name — "Name|bright" is nobody on the roster */}
   var rk=(typeof locResolve==="function")?locResolve(key):key,node=memory.map.nodes[rk],leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(rk):rk;
   if(!isShopNode(rk,node))return {ok:false,reason:"not in a shop ("+leaf+")"};
@@ -3339,7 +3339,7 @@ function villageTradeContext(text,R){
      RECORD ([SHOP_KEEPER:]) counts that keeper at the counter while it is open (shopOpenNow: its hours, or none on record);
      anyone else — and the keeper out of hours — only in the scene now (man.local) or speaking in this reply. A shop with no
      keeper on record keeps the stale-tolerant exact-spot rule (man.seenHere) until the GM files one. */
-  var _kName=(node&&node.keeper)?node.keeper:null,_kOpen=_kName?shopOpenNow(node):true;
+  var _kName=(node&&node.keeper)?node.keeper:null,_kMin=(_t&&typeof clockAtOffset==="function")?clockAtOffset(_t,_go>=0?_go:null):null,_kOpen=_kName?shopOpenNow(node,_kMin):true;/* #527 (8): judged at the clock the reply's own [TIME_ADVANCE:] tags before the coin imply — the TIME handlers run after this gate */
   if(_kName){local=_arrived?_spk.slice():(man.local||[]).concat(_spk);if(_kOpen)local.unshift((typeof resolveNpcName==="function")?resolveNpcName(_kName):_kName);}
   else local=_arrived?_spk:(man.seenHere||man.local||[]).concat(_spk);/* an arrival in the text resets the room: only this response's speakers are known to be inside */
   for(i=0;i<local.length&&!keeper;i++){var n=(typeof wsNpcByName==="function")?wsNpcByName(local[i]):null;if(n&&!n.partyMember&&!(typeof npcIsDead==="function"&&npcIsDead(n)))keeper=n.name;}
@@ -3571,12 +3571,12 @@ function villageCommons(){
    while and somewhere else later. A whereabouts line, not a presence stamp — the story places them with tags. */
 /* #481 B6 (audit 2026-09-29, Fable-approved): the ONE open-at-the-hour predicate — the geo block's OPEN/CLOSED line and the
    residents' whereabouts both read it. null = no hours on record (read as open). Overnight ranges (20-4) wrap. Pure. */
-function nodeOpenAtHour(node,hr){if(!node||!node.hours)return null;var h=node.hours;return (h.open<=h.close)?(hr>=h.open&&hr<h.close):(hr>=h.open||hr<h.close);}
+function nodeOpenAtHour(node,hr){if(!node||!node.hours)return null;var h=node.hours;if(h.open===h.close)return true;/* #527 (8): "6-6" opens at six and closes at six the next day — round the clock, never always closed */return (h.open<h.close)?(hr>=h.open&&hr<h.close):(hr>=h.open||hr<h.close);}
 /* #481 B4: is this shop open NOW? Its hours at the clock's hour (nodeOpenAtHour, the one predicate); a place with no hours on
    record — none filed yet, or [LOCATION_HOURS:none] — counts as open, so a keeper of record is never lost to a missing record. */
-function shopOpenNow(node){
+function shopOpenNow(node,min){/* #527 (8): `min` = the clock minute to judge at (the trade gate passes the coin's own moment); absent = now */
   if(!node||!node.hours||typeof clockMinuteOfDay!=="function")return true;
-  return nodeOpenAtHour(node,Math.floor(clockMinuteOfDay()/60))!==false;
+  return nodeOpenAtHour(node,Math.floor(clockMinuteOfDay(min==null?undefined:min)/60))!==false;
 }
 /* #481 B6: ONE renderer for a resident's whereabouts — "<name> is at home" / "<name> is at <place>". The RESIDENTS note used to
    join a name and a place with a bare "is" ("Thessa Saltborn is the animal handler's yard"). Serves RESIDENTS ABOUT, the

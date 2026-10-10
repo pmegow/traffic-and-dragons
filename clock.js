@@ -166,6 +166,12 @@ function parseDuration(str){
   return any?total:0;
 }
 
+/* #527 (8): the clock a reply implies at a text offset — now plus every [TIME_ADVANCE:] tag that lies before `off` (null = the whole
+   reply). The trade gate judges a shop's hours at the coin's own moment: the TIME handlers run after GOLD, so "two hours pass
+   [TIME_ADVANCE:2h] … you pay [GOLD:-5]" used to be judged at the clock before the advance. Pure over the text; [REST:] and
+   [TIME:] reconcile the clock after the handlers and are not counted here. */
+function clockAtOffset(text,off){var t=String(text==null?"":text),re=/\[TIME_ADVANCE:([^\]]+)\]/g,m,add=0;while((m=re.exec(t))){if(off!=null&&m.index>=off)break;add+=Math.max(0,parseDuration(m[1].trim()));}return clockNow()+add;}
+
 // W4: only a deliberately narrow duration grammar may cross from the fuzzy future-event store
 // into the deterministic scheduler. Natural-language dates ("after the feast", "at dusk") stay
 // pending for GM judgment; exact scalar intervals get one clock authority immediately.

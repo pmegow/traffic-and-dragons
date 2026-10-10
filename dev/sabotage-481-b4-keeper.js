@@ -32,7 +32,7 @@ prove("helpers.js", [
     find: "if(_kOpen)local.unshift(", replace: "if(false)local.unshift(",
     mustFail: "trades while the shop is open, and not while it is closed" },
   { label: "the hours are ignored (a closed shop trades)",
-    find: "_kOpen=_kName?shopOpenNow(node):true;", replace: "_kOpen=true;",
+    find: "_kOpen=_kName?shopOpenNow(node,_kMin):true;", replace: "_kOpen=true;",/* #527 (8) re-anchor: the gate judges at the coin's minute */
     mustFail: "trades while the shop is open, and not while it is closed" },
   { label: "a keeper's shop still opens to a stale sighting of someone else",
     find: "if(_kName){local=_arrived?_spk.slice():(man.local||[]).concat(_spk);", replace: "if(_kName){local=_arrived?_spk.slice():(man.seenHere||man.local||[]).concat(_spk);",
