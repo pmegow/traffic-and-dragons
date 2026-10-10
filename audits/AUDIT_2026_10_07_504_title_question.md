@@ -73,6 +73,6 @@ The follow-up adds cases the question cannot mask, and loosens nothing. The new 
 
 ## 7. Left open
 
-- The mirror case (a given name arriving beside a bare-title record, "Wilhelmina Underbough" beside "Queen Underbough") still consolidates; the owner's call.
+- ~~The mirror case (a given name arriving beside a bare-title record, "Wilhelmina Underbough" beside "Queen Underbough") still consolidates; the owner's call.~~ **Ruled 2026-10-10: ask, as the forward case does — built at v1.1214** (`npcTitleQuestion`'s mirror branch; the note's direction; a question of an open question is never stamped — the fuzzer found that one on the first run). Tests `#504 mirror` (4), battery +5 clauses (61/61), fuzzer 0 violations over 16,000 sequences.
 - Family names of several words, apostrophes and suffixes ("the Younger") do not raise the question (one distinctive word is the shape); a false question costs one note.
 - #538's `NPC_LINK`, `NPC_FACTION` and relationship legs are not covered here; the branch `claude/532-538-voice-hero` still carries #532 (voice carry on merge).

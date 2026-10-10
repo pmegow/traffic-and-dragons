@@ -30761,6 +30761,50 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
 
+  t("#504 mirror (owner ruling 2026-10-10): a given name arriving beside the bare-title record is ASKED about — [NPC:Wilhelmina Underbough] beside Queen Underbough is filed provisional under its own name (of the Queen, title queen), the Queen's record untouched, the summary says so",function(){
+    w504(K504,"she/her");wsNpcByName(K504).status="holding court";memory.npcs[K504].knowledge=["rules from the amber hall"];
+    var pre=JSON.stringify([memory.npcs[K504],wsNpcByName(K504)]);worldState.turn=85;
+    var r=quiet(function(){return applyMuts("A young woman curtsies. [NPC:Wilhelmina Underbough|composed|neutral]");});
+    if(JSON.stringify([memory.npcs[K504],wsNpcByName(K504)])!==pre)return "the Queen's record was touched: "+roster503();
+    var p=prov504(W504);if(!p)return "no provisional under the arriving name: "+Object.keys(memory.npcs).join(", ");
+    if(p.of!==K504||p.called!==W504||p.title!=="queen"||p.turn!==85)return "the stamp names who she may be, the name as called and the title: "+JSON.stringify(p);
+    if(!wsNpcByName(W504)||wsNpcByName(W504).status!=="composed")return "her own roster row carries her own tag: "+roster503();
+    if(resolveNpcName(W504)!==W504)return "the resolver answers her own name while the question stands: "+resolveNpcName(W504);
+    if(!/possible name collision/.test(muts504(r))||!/Wilhelmina Underbough/.test(muts504(r))||!/Queen Underbough/.test(muts504(r)))return "said in the summary, naming both: "+muts504(r);
+    return npcTitleQuestion(W504,K504,npcCoreTokens(W504))==="queen"?true:"the pure question names the title: "+JSON.stringify(npcTitleQuestion(W504,K504,npcCoreTokens(W504)));
+  });
+  t("#504 mirror the note reads in that direction and both answers land: SAME by the Queen's exact name folds her in (the given name becomes the alias); ANOTHER under her own name keeps her as her own person",function(){
+    w504(K504,"she/her");sceneRefsEnsure();worldState.turn=85;quiet(function(){applyMuts("[NPC:Wilhelmina Underbough|composed|neutral]");});worldState.combat=null;
+    var note=buildProvisionalNudge();
+    if(!/by a given name/.test(note)||/under a title or another/.test(note))return "the note says the established one is the titled record: "+note;
+    if(note.indexOf("[NPC_MERGE:"+K504+"|"+W504+"]")<0||note.indexOf("|"+W504+"]")<0)return "both exact tags, the arrival as the provisional: "+note;
+    worldState.turn=86;var r=quiet(function(){return applyMuts("The same woman, out of her crown. [NPC_MERGE:"+K504+"|"+W504+"]");});
+    if(memory.npcs[W504]||!memory.npcs[K504]||memory.npcs[K504].provisional)return "SAME folds the arrival into the Queen: "+Object.keys(memory.npcs).join(", ")+" | "+muts504(r);
+    if((memory.npcs[K504].aliases||[]).indexOf(W504)<0||resolveNpcName(W504)!==K504)return "her given name finds the Queen now: "+resolveNpcName(W504)+" "+JSON.stringify(memory.npcs[K504].aliases);
+    w504(K504,"she/her");sceneRefsEnsure();worldState.turn=85;quiet(function(){applyMuts("[NPC:Wilhelmina Underbough|composed|neutral]");});worldState.turn=86;
+    r=quiet(function(){return applyMuts("Her daughter. [MERGE:npc|"+W504+"|"+W504+"]");});
+    if(!memory.npcs[W504]||memory.npcs[W504].provisional||!memory.npcs[W504].titleSettled)return "ANOTHER under her own name keeps her, settled: "+JSON.stringify(memory.npcs[W504])+" | "+muts504(r);
+    return (memory.npcs[K504]&&!memory.npcs[K504].provisional&&resolveNpcName(W504)===W504)?true:"the Queen stands apart and the daughter resolves to herself: "+resolveNpcName(W504);
+  });
+  t("#504 mirror who is NOT asked: a name that carries the record's own title folds (Queen Wilhelmina Underbough is the Queen); a given name beside an OFFICE title folds (Belor Hemlock is Sheriff Hemlock); the forward question is unchanged",function(){
+    w504(K504,"she/her");worldState.turn=85;
+    if(resolveNpcName("Queen Wilhelmina Underbough")!==K504||npcTitleQuestion("Queen Wilhelmina Underbough",K504,npcCoreTokens("Queen Wilhelmina Underbough"))!=="")return "her title on the fuller name is her: "+resolveNpcName("Queen Wilhelmina Underbough");
+    w503();on503("Sheriff Hemlock","he/him");
+    if(resolveNpcName("Belor Hemlock")!=="Sheriff Hemlock")return "an office title raises no question: "+resolveNpcName("Belor Hemlock");
+    w504(W504,"she/her");
+    return npcTitleQuestion(K504,W504,npcCoreTokens(K504))==="queen"?true:"the forward question still asks";
+  });
+  t("#504 mirror beside an OPEN question: Hilda Underbough arriving while Queen Underbough's own question stands is her own person — no stamp, said; the Queen's question still answers, and Hilda stays apart",function(){
+    w504(W504,"she/her");sceneRefsEnsure();worldState.turn=85;quiet(function(){applyMuts("[NPC:Queen Underbough|furious|hostile]");});
+    if(!prov504(K504))return "fixture: the Queen's question is open";
+    worldState.turn=86;var r=quiet(function(){return applyMuts("A second woman of the house. [NPC:Hilda Underbough|wary|neutral]");});
+    if(!memory.npcs["Hilda Underbough"]||prov504("Hilda Underbough"))return "her own record, no question of a question: "+JSON.stringify(memory.npcs["Hilda Underbough"])+" | "+muts504(r);
+    if(!/filed as a separate person, not asked/.test(muts504(r))||!/Queen Underbough/.test(muts504(r)))return "said, naming the open question: "+muts504(r);
+    if(resolveNpcName("Hilda Underbough")!=="Hilda Underbough")return "she resolves to herself";
+    worldState.turn=87;r=quiet(function(){return applyMuts("The same woman, out of her crown. [NPC_MERGE:"+W504+"|"+K504+"]");});
+    if(memory.npcs[K504]||!memory.npcs[W504]||prov504(K504))return "the Queen's own SAME answer still lands: "+Object.keys(memory.npcs).join(", ")+" | "+muts504(r);
+    return (memory.npcs["Hilda Underbough"]&&!prov504("Hilda Underbough")&&resolveNpcName("Hilda Underbough")==="Hilda Underbough")?true:"Hilda stays apart";
+  });
   section("#505 a sheeted NPC dies by the standing tag");
   function w505(party){makeWorld();worldState.turn=9;delete worldState.kind;
     worldState.npcs.push({name:"Bram",status:"watching",rel:"former companion",partyMember:!!party,pronouns:"he/him",met:1,portrait:null,aliases:[],

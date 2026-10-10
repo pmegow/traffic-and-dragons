@@ -189,4 +189,25 @@ prove("api.js", [
     mustFail: REPRO }
 ]);
 prove("identity.js",[{label:"the alias handler reads a folded ° canonical as a fresh name (a zombie record)",find:'if(!key){var former=npcFormerKey(name);if(former&&former!==name)key=former;}',replace:'',mustFail:FUZZ}]);
+/* #504 mirror (owner ruling 2026-10-10): the question in the other direction */
+var MIRROR = "#504 mirror (owner ruling 2026-10-10)", MIRROR_NOTE = "#504 mirror the note reads", MIRROR_NOT = "#504 mirror who is NOT asked";
+prove("memory.js", [
+  { label: "the mirror branch is gone (a given name beside the titled record folds again)",
+    find: 'if(inCore.length>=2&&kCore.length===1&&inCore[inCore.length-1]===kCore[0]){var kt=npcKeyTitle(k);if(!kt)return "";', replace: 'if(false){var kt=npcKeyTitle(k);if(!kt)return "";',
+    mustFail: MIRROR },
+  { label: "the own-title guard is gone (Queen Wilhelmina Underbough is asked about instead of being the Queen)",
+    find: 'for(ni=0;ni<nw.length;ni++)if(_npcAskWord(nw[ni])===_npcAskWord(kt))return "";return kt;}', replace: 'return kt;}',
+    mustFail: MIRROR_NOT },
+  { label: "the office-title guard is gone (Belor Hemlock is asked about Sheriff Hemlock)",
+    find: 'var kt=npcKeyTitle(k);if(!kt)return "";var nw=npcNameWords(name),ni;', replace: 'var kt=npcKeyTitle(k)||"sheriff";var nw=npcNameWords(name),ni;',
+    mustFail: MIRROR_NOT }
+]);
+prove("identity.js", [
+  { label: "a question is stamped of an OPEN question again (the fuzzer's STRANDED-SAME)",
+    find: "if(memory.npcs[c.key]&&memory.npcs[c.key].provisional){if(R)R.muts.push(", replace: "if(false){if(R)R.muts.push(",
+    mustFail: "#504 mirror beside an OPEN question" },
+  { label: "the note loses its direction (the titled record is said to be under a title)",
+    find: '(_mir?" by a given name":" under a title")', replace: '" under a title"',
+    mustFail: MIRROR_NOTE }
+]);
 process.exit(code);

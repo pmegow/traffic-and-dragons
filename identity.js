@@ -929,7 +929,8 @@ function buildProvisionalNudge(){
   var isHero=(typeof memoryNpcIsPlayer==="function")&&memoryNpcIsPlayer(of);/* a hero swap can leave a question "of" the hero — nobody is merged into the hero, so the note never offers it */
   var same=isHero?"\""+of+"\" is the player's own character now, and nobody is merged into the hero: treat this as another person and":"Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:"+of+"|"+best+"] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person,";
   /* #504: the title question has its own words — nobody introduced "a new Wilhelmina"; a title was used, and it is hers or a relative's */
-  if(pv.called)return "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \""+best+"\" was named, and the names alone cannot say whether that is the established \""+of+"\" under a title or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean."+ev+why+" "+same+" emit [MERGE:npc|<Their Proper Name>|"+best+"] — \""+best+"\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]";
+  var _mir=(typeof npcKeyTitle==="function")&&!!npcKeyTitle(of)&&!npcKeyTitle(best);/* #504 mirror: the established record is the titled one, the arrival the given name */
+  if(pv.called)return "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \""+best+"\" was named, and the names alone cannot say whether that is the established \""+of+"\""+(_mir?" by a given name":" under a title")+" or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean."+ev+why+" "+same+" emit [MERGE:npc|<Their Proper Name>|"+best+"] — \""+best+"\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]";
   return "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): a new \""+of+"\" was introduced and is filed PROVISIONALLY as \""+best+"\" so the established record stays clean."+ev+why+" "+same+" give them their own name and emit [MERGE:npc|<Their Proper Name>|"+best+"] — pick a name not already in KNOWN NPCs. This note re-fires until one tag lands.]";
 }
 
@@ -951,6 +952,11 @@ function npcStampTitleQuestions(before,R){
     var m=memory.npcs[k];if(!m||m.provisional||m.titleSettled)continue;
     if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(k))continue;
     var c=npcConsolidation(k);if(!c.ask||!c.key)continue;
+    /* #504 mirror: a question is asked of an ESTABLISHED record only. Beside a candidate whose OWN question is still open ("Hilda
+       Underbough" arriving while "Queen Underbough" is provisional) the arrival is its own person, said, with no stamp — the
+       resolver already kept it apart (c.ask); the open question is answered first, and the note's ANOTHER/OTHER answers can
+       still name the arrival. The fuzzer found the stamp: a question of a question, whose own SAME answer could never land. */
+    if(memory.npcs[c.key]&&memory.npcs[c.key].provisional){if(R)R.muts.push("⚠ '"+k+"' may be "+c.key+" (whose own question is still open) or another person — filed as a separate person, not asked; answer the open question first");if(typeof console!=="undefined")console.warn("[identity] '"+k+"' beside the OPEN question '"+c.key+"' — filed as its own person, no second question (#504 mirror)");continue;}
     var j,outstanding=0;for(j in memory.npcs){if(memory.npcs[j].provisional)outstanding++;}
     if(outstanding>=PROVISIONAL_CAP){
       if(typeof console!=="undefined")console.warn("[identity] provisional cap ("+PROVISIONAL_CAP+") reached — '"+k+"' stays a separate person with no question asked; it may be "+c.key+" under a title (#504). Resolve outstanding provisionals via their nudges.");

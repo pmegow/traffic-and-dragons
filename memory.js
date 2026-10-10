@@ -147,6 +147,11 @@ function npcRecordWords(k){
 // ("Marla King" is a surname, as in npcNameSays) and be one the record is not already known by.
 function npcTitleQuestion(name,k,inCore){
   var kCore=npcCoreTokens(k);
+  /* #504 mirror (owner ruling 2026-10-10): the record on file is the bare titled one and the ARRIVING name carries a given name on the
+     same family name with no title of its own — "Wilhelmina Underbough" beside "Queen Underbough" — the same question the other way
+     round (the queen by her given name, or her daughter). A name that carries the record's own title ("Queen Wilhelmina Underbough")
+     is her, as before; an office title on the record ("Sheriff Hemlock") raises nothing, as before. */
+  if(inCore.length>=2&&kCore.length===1&&inCore[inCore.length-1]===kCore[0]){var kt=npcKeyTitle(k);if(!kt)return "";var nw=npcNameWords(name),ni;for(ni=0;ni<nw.length;ni++)if(_npcAskWord(nw[ni])===_npcAskWord(kt))return "";return kt;}
   if(inCore.length!==1||kCore.length<2||kCore[kCore.length-1]!==inCore[0])return "";
   var ws=npcNameWords(name),at=ws.indexOf(inCore[0]),known=npcRecordWords(k),i;
   for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];
