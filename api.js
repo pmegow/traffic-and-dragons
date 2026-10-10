@@ -3157,8 +3157,9 @@ function warnSheetlessCompanion(name){
 function isPronounStr(s){return /^\s*(he|she|they|it|ze|zie|xe|fae|ey|per)\s*\/\s*(him|her|them|it|its|hir|zir|xem|faer|em|per)\s*$/i.test(s||"");}
 /* #599 (b): the inventory-string functions that lived here (stacking, worn, the quantity grammar, the resolver, the pair and stash keys, sanitation and duplicate folding) moved VERBATIM to inventory.js — ONE home for the inventory, in both its forms. Their comments and war stories went with them. */
 // ── #388: ATTIRE — what a party member has ON, as two fields on every sheet (player and companion alike):
-//   worn:[]        the STORED inventory strings currently worn/held-ready (armor buckled, shield slung, ring on).
-//                  Nothing can be worn that is not carried: [WORN:|on] for an uncarried item is REFUSED loudly,
+//   equipped       (#599: the flag on each inventory ROW; the old worn:[] list folds into it at every door) what is ON or held
+//                  ready (armor buckled, shield slung, ring on, a blade drawn). Nothing can be equipped that is not carried:
+//                  [EQUIPPED:|on] (or its alias [WORN:]) for an uncarried item is REFUSED loudly,
 //                  ITEM_LOST/COMPANION_ITEM_LOST prune it, ITEM_RENAMED follows it.
 //   outfit:{text,turn}  the mundane layer beneath or instead of gear, one dated line, REPLACED never appended
 //                  ("nothing — armor and road clothes out for laundry"). Dated so the GM reads it as last-known,
@@ -3169,8 +3170,9 @@ var OUTFIT_MAX_CHARS=140;
 function attireSheet(name){var n=String(name||"").trim();if(!n||!worldState)return null;if(typeof memoryNpcIsPlayer==="function"&&memoryNpcIsPlayer(n))return worldState.character;var _c=worldState.character;if(_c&&_c.name&&_c.name.toLowerCase()===n.toLowerCase())return _c;return findCompanionChar(typeof resolveNpcName==="function"?resolveNpcName(n):n);}
 function outfitSet(cs,text,turn){if(!cs)return null;var t=String(text||"").replace(/\s+/g," ").trim();if(!t)return null;if(t.length>OUTFIT_MAX_CHARS)t=t.slice(0,OUTFIT_MAX_CHARS-1)+"…";cs.outfit={text:t,turn:(typeof turn==="number"?turn:((worldState&&worldState.turn)||0))};if(typeof campStampOn==="function")campStampOn(cs.outfit);/* #481 C5 (d): C8's stamper */return cs.outfit;}
 // The ONE prompt/sheet/render line. "" when nothing was ever set — the prompt stays byte-identical for every
-// campaign that never touches attire (engine-tested). Worn empty but an outfit on file reads "Wearing: nothing".
-function attireLine(cs){if(!cs)return "";var w=invEquippedNames(cs),o=cs.outfit&&cs.outfit.text&&(typeof sceneTurnLive!=="function"||sceneTurnLive(cs.outfit.turn))?cs.outfit:null;/* #481 C5: a negative age is another campaign's; #599 (c): the equipped rows in PACK order (a legacy sheet's worn list reads as before) */if(!w.length&&!o)return "";return "Wearing: "+(w.length?w.join(", "):"no gear")+(o?" | Outfit (t"+(o.turn||0)+"): "+o.text:"");/* #388b (owner, 2026-09-10: "Wearing: nothing" read as naked — the outfit half is the clothes) */}
+// campaign that never touches attire (engine-tested). Nothing equipped but an outfit on file reads "Equipped: no gear" (#388b).
+// #599 (d): the label is "Equipped:" (decision 5) — the ONE volatile-prompt change release (d) makes (gate 8).
+function attireLine(cs){if(!cs)return "";var w=invEquippedNames(cs),o=cs.outfit&&cs.outfit.text&&(typeof sceneTurnLive!=="function"||sceneTurnLive(cs.outfit.turn))?cs.outfit:null;/* #481 C5: a negative age is another campaign's; #599 (c): the equipped rows in PACK order (a legacy sheet's worn list reads as before) */if(!w.length&&!o)return "";return "Equipped: "+(w.length?w.join(", "):"no gear")+(o?" | Outfit (t"+(o.turn||0)+"): "+o.text:"");/* #388b (owner, 2026-09-10: "Wearing: nothing" read as naked — the outfit half is the clothes) */}
 function attireRenderText(cs){if(!cs)return "";var w=invEquippedNames(cs),o=cs.outfit&&cs.outfit.text&&(typeof sceneTurnLive!=="function"||sceneTurnLive(cs.outfit.turn))?cs.outfit.text:"";/* #481 C5; #599 (c) */if(!w.length&&!o)return "";return "currently wearing: "+(w.length?w.join(", "):"no gear")+(o?"; "+o:"");}
 /* ── #273 (Fable f29, joint review 2026-08-27) — a reward token declares the target it must move ──
    The #215 measured-award guard compared inventory LENGTH, but addInventoryItem STACKS IN PLACE

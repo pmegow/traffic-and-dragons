@@ -1752,28 +1752,28 @@ function runEngineTests(R){
     delete worldState.phaseMismatch;worldState.clock.min=4545;clockPhaseDetect("Dawn light creeps over the marble avenue.");if(worldState.phaseMismatch)return "the PROSE recogniser must keep its 4h tolerance (135m)";
     return typeof PHASE_CHECK_GRACE_MIN==="number"&&PHASE_CHECK_GRACE_MIN<PHASE_MISMATCH_MIN?true:"grace constant";
   });
-  t("#388 attire: [WORN:Name|item|on/off] and [OUTFIT:Name|line] land on the player and companion sheets, nothing is worn that is not carried, ITEM_LOST prunes worn, the prompt serves one Wearing: line (byte-identical when nothing is set), the extractor belt files both, strip + doc",function(){
+  t("#388 attire: [WORN:Name|item|on/off] and [OUTFIT:Name|line] land on the player and companion sheets, nothing is worn that is not carried, ITEM_LOST prunes worn, the prompt serves one Equipped: line (byte-identical when nothing is set), the extractor belt files both, strip + doc",function(){
     makeWorld();worldState.turn=113;var c=worldState.character;c.name="Silas Morne";c.inventory=["mace","scale armor","shield","holy symbol"];delete c.worn;delete c.outfit;
     worldState.npcs.push({name:"Nyla Lorrath",partyMember:true,status:"steady",charSheet:{name:"Nyla Lorrath",cls:"Rogue",level:3,hp:20,maxHp:20,stats:{},abilities:[],spells:[],inventory:["dagger","stolen breeches"]}});
     var cs=findCompanionChar("Nyla Lorrath");
-    var v0=buildSysPrompt().volatile;if(/Wearing:/.test(v0))return "Wearing line present with nothing set";
+    var v0=buildSysPrompt().volatile;if(/Equipped:/.test(v0))return "Equipped line present with nothing set";
     var warned="",_w=console.warn;console.warn=function(m){warned+=String(m)+" ";};var r;
     try{r=applyMuts("He buckles the scale. [WORN:Silas Morne|scale armor|on][WORN:Silas Morne|Shield|on][WORN:Nyla Lorrath|dagger|on][WORN:Nyla Lorrath|plate mail|on]");}finally{console.warn=_w;}
     if(invEquippedNames(c).join("|")!=="scale armor|shield")return "player worn: "+JSON.stringify(invEquippedNames(c));/* #599 (c): the flag on the row, read in pack order *//* the STORED inventory string is what lands, not the tag's casing */
     if(invEquippedNames(cs).join("|")!=="dagger")return "companion worn: "+JSON.stringify(invEquippedNames(cs));
     if(!/plate mail/.test(warned)||!/not in Nyla Lorrath/.test(warned))return "uncarried item was not refused loudly: "+warned;
-    if(!r.muts.some(function(x){return /Silas Morne wears scale armor/.test(x);})||!r.muts.some(function(x){return /Nyla Lorrath wears dagger/.test(x);}))return "no mutation line: "+JSON.stringify(r.muts);
-    var rd=applyMuts("[WORN:Silas Morne|scale armor|on]");if(invEquippedNames(c).length!==2||rd.muts.some(function(x){return /wears scale armor/.test(x);}))return "re-donning duplicated the entry or said wears again: "+JSON.stringify(rd.muts);
+    if(!r.muts.some(function(x){return /Silas Morne equips scale armor/.test(x);})||!r.muts.some(function(x){return /Nyla Lorrath equips dagger/.test(x);}))return "no mutation line: "+JSON.stringify(r.muts);
+    var rd=applyMuts("[WORN:Silas Morne|scale armor|on]");if(invEquippedNames(c).length!==2||rd.muts.some(function(x){return /equips scale armor/.test(x);}))return "re-donning duplicated the entry or said equips again: "+JSON.stringify(rd.muts);
     r=applyMuts("He strips. [WORN:Silas Morne|scale armor|off][OUTFIT:Silas Morne|nothing — armor and road clothes out for laundry][OUTFIT:Nyla Lorrath|a borrowed swan-down robe]");
     if(invEquippedNames(c).join("|")!=="shield")return "off did not remove: "+JSON.stringify(invEquippedNames(c));
     if(!c.outfit||c.outfit.turn!==113||!/laundry/.test(c.outfit.text))return "player outfit: "+JSON.stringify(c.outfit);
     if(!cs.outfit||!/robe/.test(cs.outfit.text))return "companion outfit: "+JSON.stringify(cs.outfit);
-    if(!r.muts.some(function(x){return /Silas Morne removes scale armor/.test(x);})||!r.muts.some(function(x){return /Nyla Lorrath outfit:/.test(x);}))return "no off/outfit mutation line: "+JSON.stringify(r.muts);
+    if(!r.muts.some(function(x){return /Silas Morne takes off scale armor/.test(x);})||!r.muts.some(function(x){return /Nyla Lorrath outfit:/.test(x);}))return "no off/outfit mutation line: "+JSON.stringify(r.muts);
     var v1=buildSysPrompt().volatile;
-    if(v1.indexOf("Wearing: shield | Outfit (t113): nothing — armor and road clothes out for laundry")<0)return "player Wearing line missing: "+v1.slice(v1.indexOf("Inventory:")-20,v1.indexOf("Inventory:")+400);
-    if(v1.indexOf("Wearing: dagger | Outfit (t113): a borrowed swan-down robe")<0)return "companion Wearing line missing";
+    if(v1.indexOf("Equipped: shield | Outfit (t113): nothing — armor and road clothes out for laundry")<0)return "player Equipped line missing: "+v1.slice(v1.indexOf("Inventory:")-20,v1.indexOf("Inventory:")+400);
+    if(v1.indexOf("Equipped: dagger | Outfit (t113): a borrowed swan-down robe")<0)return "companion Equipped line missing";
     applyMuts("[ITEM_LOST:shield][COMPANION_ITEM_LOST:Nyla Lorrath|dagger]");if(invEquippedNames(c).length!==0||invEquippedNames(cs).length!==0)return "ITEM_LOST did not prune worn: "+JSON.stringify([invEquippedNames(c),invEquippedNames(cs)]);
-    var v2=buildSysPrompt().volatile;if(v2.indexOf("Wearing: no gear | Outfit (t113)")<0)return "empty worn with an outfit should read 'Wearing: no gear' (never 'nothing' — that reads as naked): "+v2.slice(v2.indexOf("Wearing"),v2.indexOf("Wearing")+80);
+    var v2=buildSysPrompt().volatile;if(v2.indexOf("Equipped: no gear | Outfit (t113)")<0)return "empty worn with an outfit should read 'Equipped: no gear' (never 'nothing' — that reads as naked): "+v2.slice(v2.indexOf("Equipped"),v2.indexOf("Equipped")+80);
     applyMuts("[ITEM_GAINED:iron ring][WORN:Silas Morne|iron ring|on]");if(invEquippedNames(c).join("|")!=="iron ring")return "gain-then-wear in one response failed: "+JSON.stringify(invEquippedNames(c));applyMuts("[ITEM_RENAMED:iron ring|ring of the drowned]");if(invEquippedNames(c).join("|")!=="ring of the drowned")return "rename did not follow into worn: "+JSON.stringify(invEquippedNames(c));
     delete c.worn;delete c.outfit;delete cs.worn;delete cs.outfit;c.inventory=["mace","scale armor","shield","holy symbol"];cs.inventory=["dagger","stolen breeches"];
     if(buildSysPrompt().volatile!==v0)return "clearing attire did not restore the byte-identical prompt";
@@ -1783,7 +1783,7 @@ function runEngineTests(R){
     if(invEquippedNames(cs).join("|")!=="dagger"||!cs.outfit||!/robe/.test(cs.outfit.text))return "extractor: companion attire not filed: "+JSON.stringify([invEquippedNames(cs),cs.outfit]);
     if(buildExtractPrompt("x",[],"","",null).indexOf('"attire":[{"name":"","donned":[')<0)return "extraction schema lacks attire";
     if(cleanTxt("x [WORN:Silas|shield|on] y [OUTFIT:Silas|a robe] z")!=="x  y  z"||TAG_STRIP_NAMES.indexOf("WORN")<0||TAG_STRIP_NAMES.indexOf("OUTFIT")<0)return "not stripped";
-    var d=buildStateTagsDoc();if(d.indexOf("[WORN:Name|item|on]")<0||d.indexOf("[OUTFIT:Name|")<0)return "doc lacks the attire tags";
+    var d=buildStateTagsDoc();if(d.indexOf("[EQUIPPED:Name|item|on]")<0||d.indexOf("[OUTFIT:Name|")<0)return "doc lacks the attire tags";
     var rr=buildSceneRenderRequest(c,[],{location:"x",region:"y",weather:"z"});c.worn=["mace"];c.outfit={text:"a swan-down robe",turn:113};var rr2=buildSceneRenderRequest(c,[],{location:"x",region:"y",weather:"z"});
     if(rr2.indexOf("currently wearing: mace; a swan-down robe")<0||rr===rr2)return "render prompt lacks attire: "+rr2.slice(0,300);
     return true;
@@ -8287,7 +8287,7 @@ function runEngineTests(R){
     // #408 (v1.926): +LAYOUT strip entry — source grew exactly 7 chars = "LAYOUT|". The room graph is engine-only in the
     // doc (the doc golden is byte-unchanged) but MUST strip: a leaked [LAYOUT:] would read the floor plan aloud in TTS
     // and put it in the transcript's clean text. Golden diffed by eye in the same commit.
-    if(__djb2(_CT_TAGS.source)!==162957682||_CT_TAGS.source.length!==1809)return "_CT_TAGS diverged from the frozen literal";/* #481 B4 (2026-09-30): SHOP_KEEPER joins the strip vocabulary (+12) *//* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==-1753075509||_CT_TAGS.source.length!==1818)return "_CT_TAGS diverged from the frozen literal";/* #481 B4 (2026-09-30): SHOP_KEEPER joins the strip vocabulary (+12) *//* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -8366,7 +8366,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===-1589675154&&d.length===30886)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #598 (v1.1125): the GOLD doc line says the coin is tagged in its own unit (gp|sp|cp), +16 chars. #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===2037632638&&d.length===30929)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #598 (v1.1125): the GOLD doc line says the coin is tagged in its own unit (gp|sp|cp), +16 chars. #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -26540,7 +26540,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#407 ⑥ the ledger rows are sorted for the eye: unpriced sell rows sink to the bottom, priced rows keep their inventory order, worn rows keep their place greyed; buy rows likewise",function(){
     shopFixture();worldState.character.inventory=["Longsword","Rope x3","Bruthazmus's head","Bone-handled knife","Healing potion"];wornSet(worldState.character,"Longsword",true);/* #599 (c): the flag rides the row, so a replaced pack is re-worn */var rows=shopLedgerRows(shopTradeCatalog());
     var order=rows.left.map(function(r){return r.label;}).join(",");if(order!=="Rope,Bone-handled knife,Healing potion,Longsword,Bruthazmus's head")return "unpriced rows sink, priced keep order: "+order;
-    var ls=rows.left.filter(function(r){return r.label==="Longsword";})[0];if(!ls.off||!ls.worn||!/Worn/.test(ls.offReason))return "the worn longsword is off with its reason";
+    var ls=rows.left.filter(function(r){return r.label==="Longsword";})[0];if(!ls.off||!ls.worn||!/Equipped/.test(ls.offReason))return "the equipped longsword is off with its reason (#599 (d): the owner wording)";
     if(rows.right.map(function(r){return r.label;}).join(",")!=="Rope,Healing potion,Lantern oil")return "word-priced ware sinks: "+rows.right.map(function(r){return r.label;}).join(",");
     if(rows.left.filter(function(r){return r.tag==="wanted";}).length!==1)return "the WANTED tag rides the row";
     return true;
@@ -31477,7 +31477,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
     var r=applyMuts("[WORN:Tess|Chainmail|on][ITEM_GAINED:Arrow x12]");
     if(typeof c.inventory[0]!=="object"||invTextList(c.inventory).join("|")!=="Torch|Chainmail|Arrow x12"||!c.inventory[1].equipped||c.worn!==undefined)return "the first write prepares the pack as rows; WORN sets the flag: "+JSON.stringify(c.inventory);
-    if(!r.muts.some(function(m){return /Tess wears Chainmail/.test(m);}))return "the WORN receipt: "+JSON.stringify(r.muts);
+    if(!r.muts.some(function(m){return /Tess equips Chainmail/.test(m);}))return "the WORN receipt (the alias writes the (d) receipt): "+JSON.stringify(r.muts);
     applyMuts("[ITEM_LOST:Arrow x5]");if(c.inventory[2].qty!==7)return "a counted loss: "+JSON.stringify(c.inventory[2]);
     applyMuts("[ITEM_RENAMED:Chainmail|Mail of the Deep]");if(c.inventory[1].name!=="Mail of the Deep"||!c.inventory[1].equipped)return "a rename keeps the row and its flag: "+JSON.stringify(c.inventory[1]);
     var q=quiet(function(){return applyMuts("[ITEM_RENAMED:Mail of the Deep|Torch]");});if(c.inventory[1].name!=="Mail of the Deep"||!c.inventory[1].equipped||!q.r.muts.some(function(m){return /already on the sheet/.test(m);}))return "a REFUSED rename moves nothing — the flag stays where it was (#606): "+JSON.stringify(c.inventory);
@@ -31501,10 +31501,10 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(!/var invBefore=\{player:invSnapshot\(worldState\.character\.inventory\)\};/.test(g))return "syncCharSheet's before-copies are detached (invSnapshot)";
     return true;
   });
-  t("#599c the Wearing line reads the equipped rows in PACK order on a healed sheet and the worn list on a legacy one — the only prompt difference (c) allows (gate 8); the portrait prompt's join is byte-identical",function(){
+  t("#599c the Equipped line (named Wearing: until (d)) reads the equipped rows in PACK order on a healed sheet and the worn list on a legacy one — the only prompt difference (c) allows (gate 8); the portrait prompt's join is byte-identical",function(){
     var leg={name:"L",inventory:["Shield","Chainmail","Ring"],worn:["Ring","Chainmail"],outfit:null};
-    if(attireLine(leg)!=="Wearing: Ring, Chainmail")return "a legacy sheet reads its worn list in donning order: "+attireLine(leg);
-    invHealSheet(leg);if(attireLine(leg)!=="Wearing: Chainmail, Ring")return "a healed sheet reads pack order: "+attireLine(leg);
+    if(attireLine(leg)!=="Equipped: Ring, Chainmail")return "a legacy sheet reads its worn list in donning order: "+attireLine(leg);
+    invHealSheet(leg);if(attireLine(leg)!=="Equipped: Chainmail, Ring")return "a healed sheet reads pack order: "+attireLine(leg);
     if(attireRenderText(leg)!=="currently wearing: Chainmail, Ring")return "the render text agrees: "+attireRenderText(leg);
     if(attireLine({name:"N",inventory:["Hat"]})!=="")return "nothing on, no outfit: no line";
     var mixed={name:"M",inventory:[{name:"Boots",qty:1,equipped:true},"Cloak"],worn:["Cloak","Boots"]};if(invEquippedNames(mixed).join("|")!=="Boots|Cloak")return "a mixed sheet (a stale device wrote beside the rows) reads both, never twice: "+invEquippedNames(mixed).join("|");
@@ -31927,6 +31927,80 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
       var b=cp.spawnSync(process.execPath,[__rootForTests+"/dev/check-replay-rebaseline.js",base+"/old.json",base+"/bad.json"],{cwd:__rootForTests,encoding:"utf8"});
       return (b.status!==0&&/exactly/i.test(String(b.stdout)+String(b.stderr)))?true:"an extra field fails: "+String(b.stdout)+String(b.stderr);
     }finally{try{fs.rmSync(base,{recursive:true,force:true});}catch(e){}}
+  });
+
+  section("#599 (d) EQUIPPED — the taught tag, WORN its permanent alias, the Equipped: line, the receipts, the counter's word, the ◆ mark");
+  t("#599d gate 3: [EQUIPPED:Name|item|on/off] lands on the row with the receipts 'equips' / 'takes off'; equip/unequip are accepted words; [WORN:] is the permanent alias writing the same receipt; a refusal is loud, names the spelling the GM used and lands no receipt; the receipts never use the old words",function(){
+    makeWorld();var c=worldState.character;c.name="Tess";c.inventory=["Torch","Chainmail","Shield"];delete c.worn;
+    worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:["Cloak"]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    var r=applyMuts("[EQUIPPED:Tess|Chainmail|on]");
+    if(!isWorn(c,"Chainmail")||!c.inventory[1].equipped)return "on did not set the flag: "+JSON.stringify(c.inventory);
+    if(!r.muts.some(function(m){return m==="Tess equips Chainmail";}))return "the on receipt: "+JSON.stringify(r.muts);
+    r=applyMuts("[EQUIPPED:Tess|Shield|equip]");if(!isWorn(c,"Shield")||!r.muts.some(function(m){return m==="Tess equips Shield";}))return "'equip' is an on-word: "+JSON.stringify([invEquippedNames(c),r.muts]);
+    r=applyMuts("[EQUIPPED:Tess|Chainmail|off]");if(isWorn(c,"Chainmail")||!r.muts.some(function(m){return m==="Tess takes off Chainmail";}))return "the off receipt: "+JSON.stringify([invEquippedNames(c),r.muts]);
+    r=applyMuts("[EQUIPPED:Tess|Shield|unequip]");if(isWorn(c,"Shield")||!r.muts.some(function(m){return m==="Tess takes off Shield";}))return "'unequip' is an off-word: "+JSON.stringify([invEquippedNames(c),r.muts]);
+    r=applyMuts("[WORN:Tess|Chainmail|on][WORN:Bram|Cloak|equipped]");var b=findCompanionChar("Bram");
+    if(!isWorn(c,"Chainmail")||!isWorn(b,"Cloak"))return "the WORN alias lands on the hero and on a companion: "+JSON.stringify([invEquippedNames(c),invEquippedNames(b)]);
+    if(!r.muts.some(function(m){return m==="Tess equips Chainmail";})||!r.muts.some(function(m){return m==="Bram equips Cloak";}))return "the alias writes the SAME receipt: "+JSON.stringify(r.muts);
+    r=applyMuts("[WORN:Tess|Chainmail|unequipped]");if(isWorn(c,"Chainmail")||!r.muts.some(function(m){return m==="Tess takes off Chainmail";}))return "'unequipped' through the alias: "+JSON.stringify(r.muts);
+    var q=quiet(function(){return applyMuts("[EQUIPPED:Tess|Helm|on][EQUIPPED:Nobody|Torch|on][EQUIPPED:Tess|Torch|sideways]");});
+    if(invEquippedNames(c).length||q.r.muts.some(function(m){return /Helm|Torch/.test(m);}))return "a refusal lands no receipt: "+JSON.stringify([invEquippedNames(c),q.r.muts]);
+    if(!q.warns.some(function(w){return w.indexOf("[EQUIPPED:Tess|Torch|sideways]")>=0;})||!q.warns.some(function(w){return w.indexOf("[EQUIPPED:Nobody]")>=0;})||!q.warns.some(function(w){return /'Helm' is not in Tess/.test(w);}))return "the three refusals are loud and name the spelling the GM used: "+JSON.stringify(q.warns);
+    var all=[];["[EQUIPPED:Tess|Chainmail|on]","[EQUIPPED:Tess|Chainmail|off]"].forEach(function(tg){all=all.concat(applyMuts(tg).muts);});
+    if(all.length!==2||all.some(function(m){return /\bwears\b|\bremoves\b|\bworn\b/i.test(m);}))return "a receipt still uses the old words, or a receipt is missing: "+JSON.stringify(all);
+    var src=__fsForTests.readFileSync(__rootForTests+"/tag_table.js","utf8");
+    if(!/\{t:"EQUIPPED",apply:/.test(src)||/\{t:"WORN",apply:/.test(src))return "ONE handler, registered under the taught name";
+    if(TAG_NO_HANDLER.indexOf("WORN")<0)return "WORN is the documented alias exemption (the coverage test would otherwise call it a phantom)";
+    return true;
+  });
+  t("#599d the strip and the scan: [EQUIPPED:] is stripped from prose and known to the unknown-tag scan, [WORN:] still is; the doc teaches ONLY [EQUIPPED:], widens the sense to a drawn blade and ends its line 'as Equipped:'; the stable half carries no WORN or Wearing",function(){
+    var raw="He buckles it. [EQUIPPED:Tess|Chainmail|on] Done. [WORN:Tess|Shield|on]";
+    if(cleanTxt(raw)!=="He buckles it.  Done.")return "strip: "+JSON.stringify(cleanTxt(raw));
+    if(TAG_STRIP_NAMES.indexOf("EQUIPPED")<0||TAG_STRIP_NAMES.indexOf("WORN")<0)return "both spellings in the strip registry";
+    var q=quiet(function(){__tagUnknownScan("[EQUIPPED:Tess|x|on][WORN:Tess|x|on][EQUIPT:Tess|x|on]");});
+    if(q.warns.some(function(w){return /\[EQUIPPED:|\[WORN:/.test(w);})||!q.warns.some(function(w){return /\[EQUIPT:/.test(w);}))return "the scan knows both and flags a misspelling: "+JSON.stringify(q.warns);
+    var d=buildStateTagsDoc();
+    if(d.indexOf("[EQUIPPED:Name|item|on] / [EQUIPPED:Name|item|off]")<0)return "the doc teaches the EQUIPPED pair";
+    if(d.indexOf("[WORN:")>=0||/\bWearing\b/.test(d))return "the doc still teaches WORN or names Wearing (decision 4: the alias is parsed, never taught)";
+    if(d.indexOf("serves both back on the sheet as Equipped:")<0)return "the line ends 'as Equipped:'";
+    if(d.indexOf("a blade drawn and held ready")<0)return "the widened sense (a weapon counts) is in the line";
+    makeWorld();var s=buildSysPrompt().stable;if(/\[WORN:|Wearing:/.test(s))return "the stable half names the old spelling";
+    return true;
+  });
+  t("#599d the prompt line is 'Equipped:' in pack order, 'no gear' with an outfit alone, absent when nothing was set — the volatile half never says Wearing (gate 8: the label is the ONE volatile change (d) allows); the portrait prompt keeps its own words",function(){
+    makeWorld();var c=worldState.character;c.name="Tess";c.inventory=["Shield","Chainmail","Ring"];delete c.worn;delete c.outfit;
+    var v0=buildSysPrompt().volatile;if(/Equipped:|Wearing:/.test(v0))return "a line with nothing set";
+    applyMuts("[EQUIPPED:Tess|Ring|on][EQUIPPED:Tess|Chainmail|on]");
+    if(attireLine(c)!=="Equipped: Chainmail, Ring")return "pack order under the new label: "+attireLine(c);
+    var v1=buildSysPrompt().volatile;if(v1.indexOf("Equipped: Chainmail, Ring")<0||/Wearing:/.test(v1))return "the volatile half: "+v1.slice(Math.max(0,v1.indexOf("Inventory:")),v1.indexOf("Inventory:")+300);
+    applyMuts("[EQUIPPED:Tess|Ring|off][EQUIPPED:Tess|Chainmail|off][OUTFIT:Tess|road clothes]");
+    if(attireLine(c).indexOf("Equipped: no gear | Outfit (t")!==0)return "an outfit alone: "+attireLine(c);
+    var leg={name:"L",inventory:["Shield","Chainmail","Ring"],worn:["Ring","Chainmail"]};if(attireLine(leg)!=="Equipped: Ring, Chainmail")return "a legacy sheet reads its worn list under the new label: "+attireLine(leg);
+    if(attireRenderText(leg)!=="currently wearing: Ring, Chainmail")return "the portrait prompt is an image prompt, not a GM line — its words stay: "+attireRenderText(leg);
+    return true;
+  });
+  t("#599d the counter and the chest say 'Equipped — unequip it first' on an equipped row (decision 7) and still refuse it; no ledger row says Worn",function(){
+    shopFixture();var c=worldState.character;invHealSheet(c);applyMuts("[EQUIPPED:Silas|Longsword|on]");
+    var cat=shopTradeCatalog();if(!cat.ok)return "catalog: "+cat.reason;
+    var rows=shopLedgerRows(cat),ls=rows.left.filter(function(r){return r.label==="Longsword";})[0];
+    if(!ls||!ls.off||ls.offReason!=="Equipped — unequip it first")return "the counter's row: "+JSON.stringify(ls);
+    var p=shopTradePlan(cat,{sell:{"longsword":1},buy:{}});if(p.ok||p.lines.length)return "an equipped row never enters the plan: "+JSON.stringify(p);
+    var st=stashLedgerRows({carried:[{name:"Longsword",qty:1,worn:true},{name:"Rope",qty:2,worn:false}],stored:[]});
+    if(st.left[0].offReason!=="Equipped — unequip it first"||!st.left[0].off||st.left[1].offReason!==""||st.left[1].off)return "the chest's row: "+JSON.stringify(st.left);
+    var txt=JSON.stringify(rows)+JSON.stringify(st);if(/\bWorn\b|take it off/.test(txt))return "the old words survive in a ledger row: "+txt.slice(0,200);
+    return true;
+  });
+  t("#599d §3.5 the equipped mark: ONE renderer (invEquippedMarkHtml) — a ◆ in the accent before the name, the row's .eqp class lifts the name to --t0, the word lives in the tooltip and the aria-label; the panel and the sheet both call it and neither prints '· worn'",function(){
+    var m=invEquippedMarkHtml();
+    if(m.indexOf("◆")<0||m.indexOf('class="inv-eqp"')<0||m.indexOf('aria-label="equipped"')<0||m.indexOf('title="Equipped"')<0||/\bworn\b/i.test(m))return "the mark: "+m;
+    var fs=__fsForTests,R=__rootForTests,p=fs.readFileSync(R+"/ui-panels.js","utf8"),s=fs.readFileSync(R+"/ui-sheets.js","utf8"),x=fs.readFileSync(R+"/index.html","utf8");
+    if(p.indexOf("(eqp?invEquippedMarkHtml():'')+invItemHtml(row.name,row.qty)")<0||s.indexOf("(_eqp?invEquippedMarkHtml():'')+invItemHtml(_row.name,_row.qty)")<0)return "both shells render the mark through the one helper, before the name";
+    if(/· worn/.test(p)||/· worn/.test(s))return "a shell still prints the old text mark";
+    if(p.indexOf("(eqp?' eqp':'')")<0||s.indexOf("(_eqp?' eqp':'')")<0)return "the row carries the .eqp class that lifts the name";
+    if(p.indexOf('(eqp?"\\n"+INV_EQUIPPED_WORD:"")')<0)return "the panel's tooltip carries the word";
+    if(x.indexOf(".ii.eqp,.inv-name.eqp{color:var(--t0)}")<0||x.indexOf(".inv-eqp{color:var(--acc)")<0)return "index.html: the name in --t0, the glyph in --acc";
+    if(!/\.ii\.gear\{[^}]*\}\r?\n\.ii\.eqp,/.test(x))return "the .eqp rule follows .ii.gear so an equipped weapon reads in --t0, not the gear accent";
+    return true;
   });
 
 }

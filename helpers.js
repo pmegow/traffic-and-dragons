@@ -2009,6 +2009,11 @@ function itemInvCategories(entry){
   for(i=0;i<arr.length;i++){if(!_invCatValid(arr[i])||seen[arr[i]])return null;seen[arr[i]]=1;}
   return arr;
 }
+/* #599 (d) §3.5 — THE EQUIPPED MARK, one renderer for the panel and the sheet: a small ◆ in the accent colour before the
+   name (index.html .inv-eqp), the name itself lifted to the brighter tone through the row's .eqp class while unequipped rows
+   keep --t1; the word lives only in the tooltip and the screen-reader text (no pill, no border, no new colour). Pure. */
+var INV_EQUIPPED_GLYPH="◆",INV_EQUIPPED_WORD="Equipped";
+function invEquippedMarkHtml(){return '<span class="inv-eqp" role="img" aria-label="'+INV_EQUIPPED_WORD.toLowerCase()+'" title="'+INV_EQUIPPED_WORD+'">'+INV_EQUIPPED_GLYPH+'</span> ';}
 // ── #157: exact alias index (Sol §3.6 — never substring, never stemming, never inference) ──
 // One collision-checked map alias→canonical over the static bible + campaign overlay. Cached;
 // the memo key is the two stores' entry counts (overlay entries are write-once, the static
@@ -3417,7 +3422,7 @@ function visibleAuthors(list,selectedId){
 }
 function shopLedgerRows(cat){
   var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.wanted?Math.min(WANT_BUYS,r.qty):r.qty,/* #481 D4: a want buys one */worn:r.worn,off:r.worn||r.sellCp==null,unit:r.sellCp,cp:r.sellCp,per:1,
-    offReason:r.worn?"Worn \u2014 take it off first":(r.sellCp==null?(r.offerWords?"Wanted, but the offer is in words (\u201c"+r.offer+"\u201d) \u2014 ask "+cat.keeper:"No price on record here \u2014 ask "+cat.keeper):""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: the keeper's offer ("+r.offer+"), for one":"Half its listed value"};});
+    offReason:r.worn?"Equipped \u2014 unequip it first":(r.sellCp==null?(r.offerWords?"Wanted, but the offer is in words (\u201c"+r.offer+"\u201d) \u2014 ask "+cat.keeper:"No price on record here \u2014 ask "+cat.keeper):""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: the keeper's offer ("+r.offer+"), for one":"Half its listed value"};});
   sell.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});/* stable in ES2019+; a priced row never sinks below an unpriced one */
   var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:b.per||1,/* #481 D5 */worn:false,off:b.cp==null,unit:b.cp==null?null:Math.round(b.cp/(b.per||1)),cp:b.cp,per:b.per||1,offReason:b.cp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",note:b.note||"",/* #558: the keeper's own line rides to the card */hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
   buy.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});
@@ -3442,7 +3447,7 @@ function stashTradeCatalog(){
   return {ok:true,house:leaf,key:rk,node:node,hero:c.name,carried:order.map(function(k){return carried[k];}),stored:stored.map(function(r){return {name:r.name,qty:r.qty,room:r.room||null};})};
 }
 function stashLedgerRows(cat){
-  return {left:cat.carried.map(function(r){return {key:(typeof stashKey==="function")?stashKey(r.name):r.name.toLowerCase(),/* #481 D2: the one stash identity */label:r.name,max:r.qty,worn:r.worn,off:r.worn,unit:null,offReason:r.worn?"Worn \u2014 take it off first":"",tag:"",hint:"Stow it in the house"};}),
+  return {left:cat.carried.map(function(r){return {key:(typeof stashKey==="function")?stashKey(r.name):r.name.toLowerCase(),/* #481 D2: the one stash identity */label:r.name,max:r.qty,worn:r.worn,off:r.worn,unit:null,offReason:r.worn?"Equipped \u2014 unequip it first":"",tag:"",hint:"Stow it in the house"};}),
     right:cat.stored.map(function(r){return {key:(typeof stashKey==="function")?stashKey(r.name):r.name.toLowerCase(),label:r.name,max:r.qty,worn:false,off:false,unit:null,offReason:"",tag:r.room||"",hint:"Take it with you"};})};
 }
 /* marks = {stow:{<lowercase name>:qty}, take:{<lowercase name>:qty}} */
