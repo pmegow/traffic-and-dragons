@@ -33,6 +33,10 @@ function clearCacheAndReload(){
 }
 
 function connectToServer(provider){
+  /* #610 (owner, the phone, 2026-10-10): a provider-less call — the sync badge's "session expired — tap to reconnect", the picker's
+     Connect — fell to GitHub whatever door the player had used, so a Google-signed phone was sent to GitHub's 2FA at every lapse.
+     The door used last is remembered (storageAdapter.lastLoginProvider); with none remembered the Account dialog asks. */
+  if(!provider){provider=(typeof storageAdapter!=="undefined"&&storageAdapter.lastLoginProvider)?storageAdapter.lastLoginProvider():null;if(!provider){if(typeof showAccountModal==="function"){showAccountModal();return;}provider="github";}}
   storageAdapter.loginWithServer(TND_SERVER_URL,function(err,info){
     if(err){showToast(typeof err==="string"?err:"Server login failed.");return;}// surface the real reason (audit E75)
     updateServerUI();

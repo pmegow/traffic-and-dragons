@@ -27882,6 +27882,20 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!/it needs server v1\.7\.5/.test(a))return "an older server is named, not a bare HTTP 404";
     return /linkGoogleToAccount:\s+function \(cb\) \{ loginWithServer\(_serverUrl, cb, "google", \{ link: true \}\); \}/.test(a)?true:"the export opens the Google door with the link intent";
   });
+  t("#610 the door used last is remembered on sign-in and read back; a provider-less reconnect uses it, and with none remembered the Account dialog asks instead of defaulting to GitHub",function(){
+    var a=src610("storage-adapter.js"),on=a.indexOf("function onAuth(sessionId, username, avatarUrl) {"),st=a.indexOf('localStorage.setItem(SERVER_PROV_KEY, provider === "google" ? "google" : "github")');
+    if(on<0||st<0||st<on||st-on>900)return "the successful sign-in remembers its door";
+    var had=(typeof localStorage!=="undefined"),shim=null;if(!had){shim={};global.localStorage={getItem:function(k){return Object.prototype.hasOwnProperty.call(shim,k)?shim[k]:null;},setItem:function(k,v){shim[k]=String(v);},removeItem:function(k){delete shim[k];}};}
+    try{localStorage.setItem("tnd_server_prov_v1","google");if(storageAdapter.lastLoginProvider()!=="google")return "google is read back";
+      localStorage.setItem("tnd_server_prov_v1","github");if(storageAdapter.lastLoginProvider()!=="github")return "github is read back";
+      localStorage.setItem("tnd_server_prov_v1","nonsense");if(storageAdapter.lastLoginProvider()!==null)return "an unknown value is no door";
+      localStorage.removeItem("tnd_server_prov_v1");if(storageAdapter.lastLoginProvider()!==null)return "nothing remembered is null";}
+    finally{if(!had)delete global.localStorage;else{try{localStorage.removeItem("tnd_server_prov_v1");}catch(e){}}}
+    var c=src610("ui-campaigns.js"),fn=c.slice(c.indexOf("function connectToServer(provider){"),c.indexOf("function connectToServer(provider){")+1600);
+    if(fn.indexOf('if(!provider){provider=(typeof storageAdapter!=="undefined"&&storageAdapter.lastLoginProvider)?storageAdapter.lastLoginProvider():null;')<0)return "a provider-less call reads the remembered door first (the outer guard, not only the inner ask)";
+    if(!/if\(!provider\)\{if\(typeof showAccountModal==="function"\)\{showAccountModal\(\);return;\}/.test(fn))return "with none remembered the dialog asks";
+    return fn.indexOf("storageAdapter.lastLoginProvider()")<fn.indexOf("storageAdapter.loginWithServer(")?true:"the memory is read before the popup opens";
+  });
   t("#610 the Account dialog shows the doors and wires the button to the adapter; a sign-out stays its own button",function(){
     var m=src610("ui-modals.js"),fn=m.slice(m.indexOf("function showAccountModal("),m.indexOf("function showAccountModal(")+9000);
     if(fn.indexOf("h+=accountDoorsHtml(a);")<0)return "the connected readout carries the doors line";

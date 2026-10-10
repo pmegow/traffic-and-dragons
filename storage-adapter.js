@@ -15,6 +15,7 @@ var storageAdapter = (function() {
 
   var SERVER_URL_KEY = "tnd_server_url_v1";
   var SERVER_TOK_KEY = "tnd_server_tok_v1";
+  var SERVER_PROV_KEY = "tnd_server_prov_v1";/* #610: the sign-in door used last ("github" | "google") — a provider-less reconnect uses it */
 
   var _serverUrl           = null;   // null = local mode
   var _token               = null;
@@ -224,6 +225,7 @@ var storageAdapter = (function() {
       if (_popup && !_popup.closed) { try { _popup.close(); } catch(x) { /* audit E15: a cross-origin/already-gone popup refuses close() — nothing is lost, the auth result already arrived. */ } }
       _popup = null;
       setServer(serverUrl, sessionId);
+      try { localStorage.setItem(SERVER_PROV_KEY, provider === "google" ? "google" : "github"); } catch (x) { /* audit E15: storage unavailable — only the remembered door is lost; the next reconnect asks */ }/* #610 */
       syncSpeakerStars(null);   // #95.5: fresh connect — adopt (or seed) the cloud star bench
       if (typeof _popupCb === "function") {
         _popupCb(null, { username: username, avatarUrl: avatarUrl });
@@ -1324,6 +1326,7 @@ var storageAdapter = (function() {
     getServerUrl:          getServerUrl,
     loginWithServer:       loginWithServer,
     linkGoogleToAccount:   function (cb) { loginWithServer(_serverUrl, cb, "google", { link: true }); },/* #610: attach Google to the signed-in account */
+    lastLoginProvider:     function () { try { var p = localStorage.getItem(SERVER_PROV_KEY); return (p === "google" || p === "github") ? p : null; } catch (x) { return null; } },/* #610: the door used last, or null */
     logoutFromServer:      logoutFromServer,
     load:                  load,
     syncToServer:          syncToServer,

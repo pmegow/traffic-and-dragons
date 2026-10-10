@@ -5,7 +5,7 @@ var sabotage = require("./sabotage.js");
 var CMD = ["node", ["dev/run-tests.js", "#610"]];
 var code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
-var DOORS = "#610 accountDoorsHtml", ADAPTER = "#610 the adapter's link path", DIALOG = "#610 the Account dialog";
+var DOORS = "#610 accountDoorsHtml", ADAPTER = "#610 the adapter's link path", DIALOG = "#610 the Account dialog", RECONNECT = "#610 the door used last is remembered";/* declared before every use — a hoisted undefined mustFail would attribute anything */
 prove("helpers.js", [
   { label: "the Link button never shows",
     find: 'if(!has("google"))h+="<button class=\'btn-p\' id=\'ac-link-google\'', replace: 'if(false)h+="<button class=\'btn-p\' id=\'ac-link-google\'',
@@ -18,9 +18,20 @@ prove("storage-adapter.js", [
   { label: "the link popup opens at the plain door (the ticket never reaches it)",
     find: '      _link ? "" : serverUrl + _authPath,', replace: '      serverUrl + _authPath,',
     mustFail: ADAPTER },
+  { label: "a successful sign-in no longer remembers its door",
+    find: 'try { localStorage.setItem(SERVER_PROV_KEY, provider === "google" ? "google" : "github"); }', replace: 'try { }',
+    mustFail: RECONNECT },
+  { label: "an unknown remembered value is read as a door",
+    find: 'return (p === "google" || p === "github") ? p : null;', replace: 'return p || null;',
+    mustFail: RECONNECT },
   { label: "the ticket is dropped from the door's URL",
     find: '_popup.location.href = serverUrl + _authPath + "?link=" + encodeURIComponent(d.ticket);', replace: '_popup.location.href = serverUrl + _authPath;',
     mustFail: ADAPTER }
+]);
+prove("ui-campaigns.js", [
+  { label: "the provider-less reconnect falls to GitHub again",
+    find: 'if(!provider){provider=(typeof storageAdapter!=="undefined"&&storageAdapter.lastLoginProvider)?storageAdapter.lastLoginProvider():null;', replace: 'if(false){provider=(typeof storageAdapter!=="undefined"&&storageAdapter.lastLoginProvider)?storageAdapter.lastLoginProvider():null;',
+    mustFail: RECONNECT }
 ]);
 prove("ui-modals.js", [
   { label: "the Link button is not wired",
