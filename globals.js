@@ -257,7 +257,8 @@ var MODEL_PRICING={
   // cached reads therefore bill at the FULL input rate here, a documented UPPER bound, never
   // an undercount (the #30 failure class). `out` already includes thinking tokens (parseUsage
   // folds thoughtsTokenCount into out, matching Google's billing).
-  "gemini-3.7-flash": {in:0.75, out:3.75, cacheWrite:0, cacheRead:0},
+  "gemini-3.8-flash": {in:0.75, out:3.75, cacheWrite:0, cacheRead:0}, // 2026-10-09: 3.7-flash deprecated by Google (auto-redirects to 3.8); rates assumed EQUAL to 3.7 until the first invoice says otherwise
+  "gemini-3.7-flash": {in:0.75, out:3.75, cacheWrite:0, cacheRead:0}, // kept: the usage history prices old records by their model string
   "gemini-3.6-flash": {in:0.75, out:3.75, cacheWrite:0, cacheRead:0},
   // OpenAI rates verified 2026-08-18 (post the July 30 2026 adjustment: sol standard $5/$30;
   // luna cut 80% to $0.20/$1.20). Same cacheRead:0 caveat as the Gemini entries — the OpenAI
@@ -368,9 +369,9 @@ var PROVIDERS={
     // and the MODEL NAME is in the URL — so endpoint is a function(model).
     id:"gemini", label:"Gemini (Google)", keyHint:"AIza...",
     endpoint:function(model){return "https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent";},
-    defaultModel:"gemini-3.7-flash", // pruned to the >=Sonnet-5 menu (owner ruling 2026-08-16): 3.7-flash held the sweep contract (round-2 arm 1, index ~56); 3.5-flash FAILED story coherence and the 2.5 line sits below the tier floor
-    upgradeModel:"gemini-3.7-flash",
-    models:["gemini-3.7-flash"],
+    defaultModel:"gemini-3.8-flash", // 2026-10-09 (owner): Google deprecated gemini-3.7-flash — it auto-redirects to 3.8-flash, so the endpoints name 3.8 outright. Pruned to the >=Sonnet-5 menu (owner ruling 2026-08-16): 3.7-flash held the sweep contract (round-2 arm 1, index ~56); 3.5-flash FAILED story coherence and the 2.5 line sits below the tier floor
+    upgradeModel:"gemini-3.8-flash",
+    models:["gemini-3.8-flash"],
     // #29b in-family overload rung (owner ruling 2026-08-18, the 503 storms): when the primary
     // exhausts its transient retries, the SAME call re-attempts ONCE on this model. PER-CALL
     // only, never sticky — the next call starts back on the chosen model, because voice
@@ -415,7 +416,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.1200";
+var APP_VERSION="v1.1201";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

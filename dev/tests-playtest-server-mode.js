@@ -113,8 +113,8 @@ test("the preflight reads the account and returns the app's own route", async fu
   assert.equal((await q.ctx.__ptPreflight()).ok, false, "an unentitled account is refused");
 });
 test("the run's model is set in memory only — the owner's saved choice is never written", function () {
-  var p = page(), r = p.ctx.__ptUseModel("gemini", "gemini-3.7-flash");
-  assert.equal(p.ctx.activeProvider, "gemini"); assert.equal(p.ctx.providerModels.gemini, "gemini-3.7-flash");
+  var p = page(), r = p.ctx.__ptUseModel("gemini", "gemini-3.8-flash");
+  assert.equal(p.ctx.activeProvider, "gemini"); assert.equal(p.ctx.providerModels.gemini, "gemini-3.8-flash");
   assert.deepEqual(JSON.parse(JSON.stringify(r.was)), { provider: "anthropic", model: null });
   assert.equal(p.calls.filter(function (c) { return /^store\.set/.test(c); }).length, 0, "nothing persisted");
   assert.match(p.ctx.__ptUseModel("nope", "x"), /refused/);

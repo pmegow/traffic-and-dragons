@@ -5,11 +5,11 @@
 //
 // Usage (the key stays in the owner's hands — set it in the shell, never on disk):
 //   set GEMINI_API_KEY=...            (PowerShell: $env:GEMINI_API_KEY="...")
-//   node dev/probe-gemini-empty.js <save.tnd> [--n 3] [--model gemini-3.7-flash] [--dry] "player line" ["another line" ...]
+//   node dev/probe-gemini-empty.js <save.tnd> [--n 3] [--model gemini-3.8-flash] [--dry] "player line" ["another line" ...]
 // --dry builds the requests and prints their sizes without calling anything.
 var fs=require("fs"),path=require("path");
 var engine=require("./load-engine.js");engine.loadEngine("game.js");
-var args=process.argv.slice(2),n=3,model="gemini-3.7-flash",dry=false,save=null,lines=[];
+var args=process.argv.slice(2),n=3,model="gemini-3.8-flash",dry=false,save=null,lines=[];
 var extract=false,win=null,bisect=false;/* --bisect (with --extract): one call per exchange of the window, normal shape — WHICH turn carries the block. B38: replay the CHAPTER EXTRACTOR's exact payload from the save's session log, in both shapes; --window a-b rebuilds that log from the transcript for turns a..b (the blocked windows are long gone from the live log) */
 for(var i=0;i<args.length;i++){if(args[i]==="--n")n=parseInt(args[++i],10)||3;else if(args[i]==="--model")model=args[++i];else if(args[i]==="--dry")dry=true;else if(args[i]==="--extract")extract=true;else if(args[i]==="--window")win=args[++i];else if(args[i]==="--bisect")bisect=true;else if(!save&&/\.tnd$/i.test(args[i]))save=args[i];else lines.push(args[i]);}
 if(!save){console.error("usage: node dev/probe-gemini-empty.js <save.tnd> [--n 3] [--model m] [--dry] [--extract] \"player line\" ...\n  --extract: replay the chapter extractor's payload built from the save's session log (B38) — the normal shape and the reframed, shortened shape, n tries each; prints promptFeedback/finishReason per try");process.exit(2);}

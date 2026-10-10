@@ -4436,7 +4436,7 @@ function runEngineTests(R){
   t("#22 gemini buildBody pins thinkingLevel 'low' on every call kind",function(){
     var kinds=[[{stable:"S",volatile:"V"},1000],["plain override",2000],[{stable:"S",volatile:"V"},200]];
     for(var i=0;i<kinds.length;i++){
-      var b=PROVIDERS.gemini.buildBody([{role:"user",content:"hi"}],kinds[i][0],kinds[i][1],"gemini-3.7-flash");
+      var b=PROVIDERS.gemini.buildBody([{role:"user",content:"hi"}],kinds[i][0],kinds[i][1],"gemini-3.8-flash");
       var tc=b.generationConfig&&b.generationConfig.thinkingConfig;
       if(!tc)return "call kind "+i+": no thinkingConfig — the low-thinking ruling regressed";
       if(tc.thinkingLevel!=="low")return "call kind "+i+": thinkingLevel is '"+tc.thinkingLevel+"', expected 'low'";
@@ -5633,7 +5633,7 @@ function runEngineTests(R){
   t("#334 Gemini advertises the exact Unicode stable prefix without changing the vendor body",function(){
     var p=PROVIDERS.gemini,sys={stable:"Stable \ud83d\udc09 rules\n",volatile:"Live state",extra:"Extra"},msgs=[{role:"user",content:"Go"}];
     if(typeof p.gatewayHeaders!=="function")return "cache header adapter absent";
-    var h=p.gatewayHeaders(sys,"turn"),b=p.buildBody(msgs,sys,100,"gemini-3.7-flash");
+    var h=p.gatewayHeaders(sys,"turn"),b=p.buildBody(msgs,sys,100,"gemini-3.8-flash");
     return h["X-TND-Cache"]==="v1:"+sys.stable.length&&b.systemInstruction.parts[0].text===sysJoin(sys)&&!b.cachedContent?true:"prefix length or raw fallback body changed";
   });
   t("#334 overrides and non-turn calls cannot request stable caching",function(){
@@ -5645,9 +5645,9 @@ function runEngineTests(R){
     try{
       serverAccount={transportCapabilities:{geminiStableCacheV1:1}};
       gmViaServer=function(){return true;};storageAdapter={authHeader:function(){return {Authorization:"Bearer test"};},getServerUrl:function(){return "http://localhost";}};
-      var primary=gmTransport(p,"gemini-3.7-flash","","turn",sys),fallback=gmTransport(p,p.fallbackModel,"","turn",sys);
+      var primary=gmTransport(p,"gemini-3.8-flash","","turn",sys),fallback=gmTransport(p,p.fallbackModel,"","turn",sys);
       if(primary.headers["X-TND-Cache"]!=="v1:6"||fallback.headers["X-TND-Cache"]!=="v1:6")return "account primary or fallback lost split metadata";
-      gmViaServer=function(){return false;};var own=gmTransport(p,"gemini-3.7-flash","own-test-key","turn",sys);
+      gmViaServer=function(){return false;};var own=gmTransport(p,"gemini-3.8-flash","own-test-key","turn",sys);
       return !own.headers["X-TND-Cache"]&&own.headers["x-goog-api-key"]==="own-test-key"?true:"BYOK path changed";
     }finally{gmViaServer=via;storageAdapter=sa;serverAccount=account;}
   });
@@ -14758,7 +14758,7 @@ function runEngineTests(R){
   });
 
   // ═══ #197 — model content-refusal: a refused narration commits as NON-CANON ═══
-  // Field origin: t1985 (the Magnimar bathhouse) — gemini-3.7-flash answered a scene with its own
+  // Field origin: t1985 (the Magnimar bathhouse) — gemini-3.8-flash answered a scene with its own
   // meta-voice refusal; the engine committed it as story canon. Owner ruling 2026-08-20: refused
   // narration must not be tag-accessible — no state mutation, no retrieval service.
   section("#197 — model content-refusal (non-canon commit)");
@@ -22994,9 +22994,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     c=cache([a(1,100),a(2,100),a(3,100)]);if(c.level!=="warn")return "a low Anthropic hit ratio still warns (the table kept the ratio rule): "+c.level;
     /* the ring: recordUsage stamps gw only for a call that rode the server, and callGM passes the transport it actually used */
     var _ap=activeProvider;activeProvider="gemini";worldState.healthLog=[];worldState.turn=7;
-    recordUsage({in:18000,out:300,cacheRead:13614,cacheWrite:0},"turn","gemini-3.7-flash",0,true);
-    recordUsage({in:18000,out:300,cacheRead:0,cacheWrite:0},"turn","gemini-3.7-flash",0,false);
-    recordUsage({in:900,out:200,cacheRead:0,cacheWrite:0},"summarize","gemini-3.7-flash",0,true);
+    recordUsage({in:18000,out:300,cacheRead:13614,cacheWrite:0},"turn","gemini-3.8-flash",0,true);
+    recordUsage({in:18000,out:300,cacheRead:0,cacheWrite:0},"turn","gemini-3.8-flash",0,false);
+    recordUsage({in:900,out:200,cacheRead:0,cacheWrite:0},"summarize","gemini-3.8-flash",0,true);
     activeProvider=_ap;
     var hl=worldState.healthLog;if(hl.length!==2)return "only gameplay turns enter the ring: "+hl.length;
     if(hl[0].gw!==1||hl[0].cr!==13614||hl[0].prov!=="gemini")return "a server-route turn must be stamped gw:1: "+JSON.stringify(hl[0]);
@@ -26406,7 +26406,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
   t("#488 SOUNDSCAPE note: every profile word comes from the ONE vocabulary and the ambiguous ones carry their meaning; a room inside a building is taught as sealed + interior; nothing invents 'indoor'",function(){
-    /* Playtest v1.1078 (gemini-3.7-flash): both tavern scenes wrote enclosure=indoor;setting=settlement. The note listed the
+    /* Playtest v1.1078 (gemini-3.8-flash): both tavern scenes wrote enclosure=indoor;setting=settlement. The note listed the
        words bare ("enclosure open/covered/sealed/unspecified; setting settlement/…/interior/…"), so the GM took "setting" for
        the surrounding town and had no word for indoors. The engine refused both, and the tavern got no ambience. */
     makeWorld();memory.map.nodes.Ashfen={parent:null,visits:1};

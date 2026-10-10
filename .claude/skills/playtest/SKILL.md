@@ -30,7 +30,7 @@ share the browser storage, and every save syncs to the owner's cloud. So a signe
 - installs the harness first, then `await __ptPreflight()` → `{ok, route, ask, provider, model}`;
   not ok → relay `ask` and stop;
 - saves any unsaved previous corpus (`__ptLoad().log.length > 0`) to `dev/` before `__ptClear()`;
-- sets the model with `__ptUseModel("gemini","gemini-3.7-flash")` (in memory only; the owner's
+- sets the model with `__ptUseModel("gemini","gemini-3.8-flash")` (in memory only; the owner's
   saved choice is untouched);
 - starts with `__ptStart(char, toneId, authorId)` instead of `startGame` — `char._campName` must
   start with `PlaytestHarness` (or `modelTestCampaign_` after setting `pendingBlueprint`). It

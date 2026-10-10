@@ -7,7 +7,7 @@ function fixture(mode){
     {userId:"test_operator",username:"Operator (fixture)",createdAt:"2026-08-01 09:00:00",lastActive:"2026-09-04 10:58:00",tier:"beta",status:"active",periodEnd:"2026-11-01T00:00:00Z",turnsUsed30d:248,
       usage30d:[{provider:"anthropic",model:"claude-sonnet-5",calls:640,tokIn:843100,tokOut:201250,cacheRead:8712400,cacheWrite:829400,errors:3}]},
     {userId:"test_long_id_123456789012345678901234567890",username:"A deliberately long tester name <img src=x onerror=alert(1)>",createdAt:"2026-09-01 09:00:00",lastActive:"2026-09-03 22:15:00",tier:"tester",status:"active",periodEnd:"2026-10-01T00:00:00Z",turnsUsed30d:12,
-      usage30d:[{provider:"gemini",model:"gemini-3.7-flash",calls:24,tokIn:643100,tokOut:71250,cacheRead:712400,cacheWrite:0,errors:0},{provider:"fal",model:"unpriced-image",calls:2,tokIn:0,tokOut:0,cacheRead:0,cacheWrite:0,errors:0}]},
+      usage30d:[{provider:"gemini",model:"gemini-3.8-flash",calls:24,tokIn:643100,tokOut:71250,cacheRead:712400,cacheWrite:0,errors:0},{provider:"fal",model:"unpriced-image",calls:2,tokIn:0,tokOut:0,cacheRead:0,cacheWrite:0,errors:0}]},
     {userId:"test_new",username:"New arrival",createdAt:"2026-09-04 10:59:00",lastActive:null,tier:null,status:null,periodEnd:null,turnsUsed30d:0,usage30d:[]}
   ];
   window.storageAdapter={

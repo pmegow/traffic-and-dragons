@@ -22,7 +22,7 @@
 //      a. paste this file to install, then `await __ptPreflight()` → {ok, route, ask, provider, model}. Not ok → relay
 //         `ask` to the owner (they sign in in the visible preview; never type credentials) and stop.
 //      b. `__ptLoad().log.length` > 0 → a previous run's corpus is unsaved: write it to dev/ first, then `__ptClear()`.
-//      c. `__ptUseModel("gemini","gemini-3.7-flash")` — the playtest default, in memory only (the owner's choice is kept).
+//      c. `__ptUseModel("gemini","gemini-3.8-flash")` — the playtest default, in memory only (the owner's choice is kept).
 //      d. `__ptStart(char, "gritty", "abercrombie")` in place of step 2's startGame — char._campName must start with
 //         "PlaytestHarness" (or "modelTestCampaign_", after setting pendingBlueprint). It records the campaign's id and
 //         refuses while a previous signed-in run's campaign is undeleted.

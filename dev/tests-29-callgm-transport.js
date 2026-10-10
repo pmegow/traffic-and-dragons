@@ -244,7 +244,7 @@ tAsync("a storm that exhausts the primary falls ONCE to prov.fallbackModel and t
     if (!r.ok) return "turn still failed: " + r.e.message;
     if (r.v !== "Through the storm") return "wrong response: " + r.v;
     if (calls.length !== 4) return "expected 4 fetches (1 + " + CALLGM_RETRY_MAX + " retries on primary, 1 rung), got " + calls.length;
-    if (calls[2].url.indexOf("gemini-3.7-flash") < 0) return "primary attempts left gemini-3.7-flash: " + calls[2].url;
+    if (calls[2].url.indexOf("gemini-3.8-flash") < 0) return "primary attempts left gemini-3.8-flash: " + calls[2].url;
     if (calls[3].url.indexOf("gemini-3.6-flash") < 0) return "rung attempt did not target gemini-3.6-flash: " + calls[3].url;
     // Gemini's model rides ONLY in the URL — the rebuilt payload must stay byte-identical.
     return calls[0].opts.body === calls[3].opts.body ? true : "rung payload drifted from the primary's body";
@@ -260,7 +260,7 @@ tAsync("the rung is PER-CALL — the very next call probes the primary again (vo
     return raceCall(["hi again", "SYS", 60, null, { noHistory: true, kind: "turn" }]).then(function (r2) {
       if (r2.sentinel || !r2.ok) return "the follow-up call failed";
       if (calls.length !== 1) return "follow-up took " + calls.length + " fetches";
-      return calls[0].url.indexOf("gemini-3.7-flash") >= 0 ? true : "a memo stuck — the next call started on " + calls[0].url;
+      return calls[0].url.indexOf("gemini-3.8-flash") >= 0 ? true : "a memo stuck — the next call started on " + calls[0].url;
     });
   });
 });

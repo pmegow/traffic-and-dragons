@@ -30,7 +30,7 @@ function pageFixture() {
     document: { getElementById: function (id) { return elements[id] || (elements[id] = new Node("div")); }, createElement: function (tag) { return new Node(tag); } },
     console: { warn: function () { warns.push([].slice.call(arguments).join(" ")); } },
     storageAdapter: adapter,
-    MODEL_PRICING: { "claude-sonnet-5": { in: 2, out: 10, cacheRead: 0.2, cacheWrite: 2.5 }, "gemini-3.7-flash": { in: 0.75, out: 3.75, cacheRead: 0, cacheWrite: 0 } },
+    MODEL_PRICING: { "claude-sonnet-5": { in: 2, out: 10, cacheRead: 0.2, cacheWrite: 2.5 }, "gemini-3.8-flash": { in: 0.75, out: 3.75, cacheRead: 0, cacheWrite: 0 } },
     window: { confirm: function () { return confirmed; } }, Date: Date
   };
   vm.createContext(box);
@@ -90,7 +90,7 @@ async function main() {
   await test("cached and uncached tokens are priced once; unknown models are not free", function () {
     var c = pageFixture(), total = c.seam.summarizeUsage([
       { provider: "anthropic", model: "claude-sonnet-5-20260901", tokIn: 100, tokOut: 20, cacheRead: 300, cacheWrite: 40, calls: 1, errors: 0 },
-      { provider: "gemini", model: "gemini-3.7-flash", tokIn: 100, tokOut: 20, cacheRead: 90, cacheWrite: 0, calls: 2, errors: 1 },
+      { provider: "gemini", model: "gemini-3.8-flash", tokIn: 100, tokOut: 20, cacheRead: 90, cacheWrite: 0, calls: 2, errors: 1 },
       { provider: "fal", model: "unknown-image", calls: 1, tokIn: 0, tokOut: 0, cacheRead: 0, cacheWrite: 0 }
     ]);
     assert(Math.abs(total.usd - 0.00071) < 1e-10, "cost " + total.usd);
