@@ -30435,7 +30435,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var w=wsNpcByName("Wilhelmina Underbough"),k=wsNpcByName("King Underbough");
     if(!w||!k)return "two roster rows: "+roster503();
     if(k.pronouns!=="he/him"||k.status!=="hungover")return "the king's record was rewritten: "+roster503();
-    return w.pronouns==="she/her"&&/separate/.test(JSON.stringify(r.r.muts))?true:"her record, her pronouns, and the summary says so: "+roster503()+" | "+JSON.stringify(r.r.muts);
+    if(!(w.pronouns==="she/her"&&/separate/.test(JSON.stringify(r.r.muts))))return "her record, her pronouns, and the summary says so: "+roster503()+" | "+JSON.stringify(r.r.muts);
+    /* #504 mirror (2026-10-10): a KIN title on the record now asks, so above it is the question, not only the pronouns, that keeps them apart; an OFFICE title raises no question — here the reply's stated pronouns alone decide */
+    w503();quiet(function(){applyMuts("[NPC:Sheriff Underbough|hungover|neutral] [NPC_PRONOUN:Sheriff Underbough|he/him]");});worldState.turn=80;
+    r=quiet(function(){return applyMuts("She does not look up. [NPC:Wilhelmina Underbough|bored, captive|ally] [NPC_PRONOUN:Wilhelmina Underbough|she/her]");});
+    w=wsNpcByName("Wilhelmina Underbough");k=wsNpcByName("Sheriff Underbough");
+    if(!w||!k||k.pronouns!=="he/him"||k.status!=="hungover")return "beside an office title the stated pronouns keep them apart: "+roster503()+" | "+JSON.stringify(r.r.muts);
+    return (w.pronouns==="she/her"&&!memory.npcs["Wilhelmina Underbough"].provisional)?true:"her own record, no question asked: "+roster503();
   });
   t("#503 a pronoun tag never flips another person's record: [NPC_PRONOUN:Captain Voss|he/him] beside Threnna Voss (she/her), alone or as an [NPC:] operand",function(){
     w503();on503("Threnna Voss","she/her");
@@ -31164,8 +31170,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#535 the repro: [MERGE:NPC|a|b], [MERGE: npc |a|b] and [MERGE:Npc|a|b] are proposals like [MERGE:npc|a|b] — never an unconfirmed fusion of two established people",function(){
     var forms=["[MERGE:NPC|Isolde Marsh|Wilhelmina Underbough]","[MERGE: npc |Isolde Marsh|Wilhelmina Underbough]","[MERGE:Npc|Isolde Marsh|Wilhelmina Underbough]","[MERGE:npc|Isolde Marsh|Wilhelmina Underbough]"],i;
     for(i=0;i<forms.length;i++){w535();
-      quiet(function(){applyMuts("They are one woman. "+forms[i]);});
+      var r=quiet(function(){return applyMuts("They are one woman. "+forms[i]);}).r;
       if(!memory.npcs["Wilhelmina Underbough"]||!wsNpcByName("Wilhelmina Underbough"))return forms[i]+" fused two established people with no confirmation (the gate looked for the lower-case, unspaced spelling only; the parser accepts any)";
+      /* since #534 the handler re-judges and proposes too, so a missed tag no longer fuses — it reaches the handler and is answered with the handler's receipt ("the pair changed in this reply"), which is false here. The GATE reads every spelling first: no handler receipt */
+      if((r.muts||[]).some(function(m){return /needs the exact confirmation/.test(m);}))return forms[i]+" reached the handler — the gate must read it first, whatever the spelling: "+JSON.stringify(r.muts);
       if(!(worldState.pendingMergeHints||[]).some(function(h){return h.canonical==="Isolde Marsh"&&h.duplicate==="Wilhelmina Underbough";}))return forms[i]+" must reach the confirmation queue: "+JSON.stringify(worldState.pendingMergeHints);}
     return true;
   });
