@@ -1559,9 +1559,9 @@ try {
   var _ibCode = _stripComments;   /* the ONE scanner (review (b) 3) */
   var _ibRules = [
     { name: "a string type-test on an inventory entry", re: /typeof\s+[\w$.]*(?:[iI]nv[\w$.]*|\.inventory)\[[^\]]*\]\s*[!=]==\s*"string"/g },
-    /* the legacy entry readers are the module's own delegates: outside it, `_invBase(x)` / `_invCount(x)` read an ENTRY and would read a
+    /* the stored-grammar readers are the module's own: outside it, `invStoredName(x)` / `invStoredCount(x)` read an ENTRY and would read a
        row as "" and 1 in (c) — invEntries is the reader (review (b) 2: buildMoneyNote, recordCanonNames, sheetRegisterReport) */
-    { name: "a legacy entry reader (read invEntries)", re: /\b_inv(?:Base|Count)\(/g },
+    { name: "a stored-grammar entry reader outside the module (read invEntries)", re: /\binvStored(?:Name|Count)\(/g },
     { name: "a hand-rolled count grammar (an \" xN\" regex — read invStoredParse or invEntries)", re: /\/[^\/\n]*\\s[*+]?x\\?\(?\\d[^\/\n]*\//g },
     { name: "an index into an inventory (read invEntries or invEntryText)", re: /\.inventory\[[^\]]+\]|\b(?:inv|inv2|inventory)\[[^\]]+\]/g },
     /* `.inventory.join(` and `(x.inventory||[]).join(` are the list joining itself; `invTextList(x.inventory).join(` is the module's text — not matched */

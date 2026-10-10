@@ -392,7 +392,7 @@ function ledgerApply(plan,ctx){
     if(ln.kind==="stow"){var st=fileLocationItem(ln.name,"placed",R.turn,null,null,{key:key,units:n});/* #599 (c): the count is an argument, never " xN" baked into a name (§4) */muts.push("Left: "+ln.name+(st.qty>1?" ×"+st.qty:""));stashMoveRecord(R,{name:ln.name,units:n,action:"placed",key:st.key,by:c.name,pack:{name:ln.name,units:n}});moved=true;}
     if(ln.kind==="take"){var tk=fileLocationItem(ln.name,"taken",R.turn,null,null,{key:key,units:n});muts.push("Taken: "+ln.name+(n>1?" ×"+n:""));stashMoveRecord(R,{name:ln.name,units:tk.n||n,action:"taken",key:tk.key,by:c.name,pack:{name:ln.name,units:n}});moved=true;}}
   if(net){c.coin=(Number(c.coin)||0)-net;muts.push((net<0?"+":"-")+fmtCoin(Math.abs(net)));}
-  if(typeof wornPrune==="function")wornPrune(c);
+  invHealSheet(c);/* cleanup 1: the writer leaves a HEALED sheet — a leftover worn list folds into the rows' flags (what wornPrune did under its old name) */
   if(moved&&R.moveGrp)worldState.stashUndoGrp=R.moveGrp;else delete worldState.stashUndoGrp;/* #481 D1: a trade ends the chance to undo what came before */
   ledgerLog(muts,"ledger");
   return {ok:true,muts:muts,grp:R.moveGrp||null};
@@ -1804,7 +1804,7 @@ function _stashUndoApply(e,muts){
   var hero=worldState.character&&worldState.character.name,sh=e.pack?stashActorSheet(e.by||hero):null,j,qs=e.units>1?" x"+e.units:"";
   if(e.action==="placed"){fileLocationItem(e.name,"taken",worldState.turn,null,null,{key:e.key,units:e.units});/* #599 (c): the count rides as an argument */muts.push("Taken: "+e.name+(e.units>1?" ×"+e.units:""));
     if(sh){for(j=0;j<e.pack.units;j++)addInventoryItem(sh.inventory,e.pack.name);muts.push("+"+e.pack.name+(e.pack.units>1?" x"+e.pack.units:"")+((e.by&&e.by!==hero)?" ("+e.by+")":""));}}
-  else{if(sh){for(j=0;j<e.pack.units;j++)removeInventoryItem(sh.inventory,e.pack.name);muts.push("-"+e.pack.name+(e.pack.units>1?" x"+e.pack.units:"")+((e.by&&e.by!==hero)?" ("+e.by+")":""));if(typeof wornPrune==="function")wornPrune(sh);}
+  else{if(sh){for(j=0;j<e.pack.units;j++)removeInventoryItem(sh.inventory,e.pack.name);muts.push("-"+e.pack.name+(e.pack.units>1?" x"+e.pack.units:"")+((e.by&&e.by!==hero)?" ("+e.by+")":""));invHealSheet(sh);/* cleanup 1: the heal wornPrune was */}
     fileLocationItem(e.name,"placed",worldState.turn,null,null,{key:e.key,units:e.units});muts.push("Left: "+e.name+(e.units>1?" ×"+e.units:""));}
 }
 function _stashUndoSaid(e){
@@ -2300,8 +2300,8 @@ function detectGhostConsumables(playerTxt,raw){
   var lostNorm=keyedDict(),tags=String(raw||"").match(/\[(?:COMPANION_)?ITEM_LOST:[^\]]+\]/g)||[],ti;
   for(ti=0;ti<tags.length;ti++){
     var cm=tags[ti].match(/\[COMPANION_ITEM_LOST:([^|\]]+)\|([^\]]+)\]/),pm=tags[ti].match(/\[ITEM_LOST:([^\]]+)\]/);
-    if(cm){var owner=(typeof resolveNpcName==="function")?resolveNpcName(cm[1].trim()):cm[1].trim();lostNorm[owner+"|"+_invNorm(_qtyParse(cm[2]).base)]=1;}
-    else if(pm)lostNorm["|"+_invNorm(_qtyParse(pm[1]).base)]=1;
+    if(cm){var owner=(typeof resolveNpcName==="function")?resolveNpcName(cm[1].trim()):cm[1].trim();lostNorm[owner+"|"+invStoredKey(_qtyParse(cm[2]).base)]=1;}
+    else if(pm)lostNorm["|"+invStoredKey(_qtyParse(pm[1]).base)]=1;
   }
   var liveKeys=keyedDict();/* #60b: every key the current party can legitimately hold a latch for */
   function sweep(who,inv){

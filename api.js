@@ -3180,7 +3180,7 @@ function attireRenderText(cs){if(!cs)return "";var w=invEquippedNames(cs),o=cs.o
    the reward could not be awarded, closed the claim anyway, and invited a manual re-grant that
    pays twice. Length was also the wrong SHAPE: it could attest only that SOMETHING moved, so a
    mixed claim passed on its xp delta while its item silently failed.
-   Both live HERE because the stacking identity (_invNorm) and the "xN" suffix (_invCount /
+   Both live HERE because the stacking identity (invStoredKey) and the "xN" suffix (invStoredCount /
    _qtyParse) are api.js's rules — helpers.js only orchestrates the before/after read.
    ⚠ The token grammar below must stay in step with W2_REWARD_RES (identity.js), the ledger that
    fills a claim, and each arm's amount grammar mirrors that tag's own handler in tag_table.js. A
@@ -3196,7 +3196,7 @@ function rewardAwardTargets(tokens){
     else if((m=tk.match(/\[ITEM_GAINED:([^\]]+)\]/i))){q=_qtyParse(m[1]);kind="item";key=q.base;expect=q.n;}
     /* Tokens sharing one target are ONE group with a summed expectation — two [ITEM_GAINED:Rope]
        must move the count by 2, not merely "move it". */
-    gk=kind+"|"+(kind==="item"?_invNorm(key):String(key).toLowerCase());
+    gk=kind+"|"+(kind==="item"?invStoredKey(key):String(key).toLowerCase());
     if(idx[gk]===undefined){idx[gk]=out.length;out.push({kind:kind,key:key,expect:0,tokens:[]});}
     out[idx[gk]].expect+=expect;out[idx[gk]].tokens.push(tk);
   }
@@ -3219,7 +3219,7 @@ function duplicateItemGrantWarning(inv,name,incoming,owner,R,raw){
   return false;
 }
 function _clearConsumablePending(who,name){
-  if(!worldState||!worldState.consumablePending)return;var key=(who||"")+"|"+_invNorm(name);
+  if(!worldState||!worldState.consumablePending)return;var key=(who||"")+"|"+invStoredKey(name);
   worldState.consumablePending=worldState.consumablePending.filter(function(x){return x&&x.key!==key;});
   if(!worldState.consumablePending.length)delete worldState.consumablePending;
 }
@@ -3239,7 +3239,7 @@ function _clearConsumablePending(who,name){
 // for that item until the count actually changes (a real spend, or a fresh acquisition) rather
 // than re-nagging every CONSUMABLE_NUDGE_COOLDOWN turns on a decision already made.
 function _stampItemKept(who,inv,name){
-  var n=_invNorm(name),i,_es=invEntries(inv);/* #599 (b4): read through the module */
+  var n=invStoredKey(name),i,_es=invEntries(inv);/* #599 (b4): read through the module */
   for(i=0;i<_es.length;i++){
     if(itemKey(_es[i].name)!==n)continue;
     if(!worldState.consumableKept)worldState.consumableKept=keyedDict();

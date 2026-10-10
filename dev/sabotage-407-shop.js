@@ -12,7 +12,7 @@ prove("helpers.js", [
     find: "if(w){r.offer=String(w.offer||\"\");if(w.cp!=null)r.sellCp=w.cp;else r.offerWords=true;}", replace: "if(w){r.offer=String(w.offer||\"\");if(w.cp!=null&&cp==null)r.sellCp=w.cp;else if(cp!=null)r.sellCp=Math.floor(cp*SHOP_SELL_FRACTION);else r.offerWords=true;}",
     mustFail: "#407 ① the catalog" },
   { label: "worn items can be sold off the hero's back",
-    find: "if(q<=0||r.worn||r.sellCp==null)continue;", replace: "if(q<=0||r.sellCp==null)continue;",
+    find: "if(q<=0||r.equipped||r.sellCp==null)continue;", replace: "if(q<=0||r.sellCp==null)continue;",/* cleanup 1: the ledger field is `equipped` */
     mustFail: "#407 ② the plan" },
   { label: "the affordability lock is gone",
     find: "var netCp=buyCp-sellCp,coinAfter=cat.coin-netCp,ok=lines.length>0&&coinAfter>=0;", replace: "var netCp=buyCp-sellCp,coinAfter=cat.coin-netCp,ok=lines.length>0;",

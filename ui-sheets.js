@@ -65,11 +65,11 @@ function markInvItem(owner,idx,ev,name){
 function dropMarkedItems(owner,ev){
   if(ev&&ev.stopPropagation)ev.stopPropagation();
   var cs=_invOwnerSheet(owner);if(!cs)return;
+  invHealSheet(cs);/* cleanup 1: heal BEFORE the plan — a legacy worn name folds onto its row, so the dropped row takes its flag with it (audit E4) and no junk is filed; the marks re-resolve by name if a fold moved an index */
   var plan=invDropPlan(cs.inventory,_invDropMarksFor(owner)),stale=plan.stale.length?" — no longer carried: "+plan.stale.join(", "):"";
   delete _invDropMarks.by[owner];
   if(!plan.ok){if(typeof showToast==="function")showToast("Nothing to delete"+stale,5000);_invSheetRepaint(owner);return;}
   var names=invDropApply(cs.inventory,plan);
-  if(typeof wornPrune==="function")wornPrune(cs);/* audit E4/#388: nothing is worn that is not carried — a dropped worn sword otherwise rode attireLine into every prompt */
   saveAll();
   if(typeof showToast==="function")showToast("Deleted "+names.length+" item"+(names.length===1?"":"s")+": "+invDropNamesText(names)+stale,6000);
   _invSheetRepaint(owner);

@@ -137,7 +137,7 @@ test("E2 the Sync modal's Apply routes level and location through the grant path
   assert(/checkLevelUp\(/.test(body), "the Apply does not reach checkLevelUp");
   assert(/syncLevelPatchPlan\(/.test(body), "the Apply decides the level change without the pure plan");
   assert(/applyMuts\(/.test(body), "the Apply does not reach applyMuts");
-  assert(/wornPrune\(/.test(body), "the Apply assigns inventory without pruning worn (E4)");
+  assert(!/wornPrune\(/.test(body), "wornPrune is retired — the Apply installs rows, the flag rides each row (E4 by construction; #599 cleanup 1)");
   assert(/c2\.inventory\s*=\s*inv2/.test(body), "the E63 inventory-clear behaviour was dropped");
 });
 
@@ -202,7 +202,7 @@ test("E7 no raw showCharSheet() re-render site survives", function () {
   assert(/refreshCharSheetInPlace/.test(p), "ui-portrait.js still re-renders the sheet raw");
   assert(/_csReRender/.test(g.slice(g.indexOf("async function syncCharSheet("))), "syncCharSheet still re-renders the sheet raw");
   var drop = s.slice(s.indexOf("function dropMarkedItems("), s.indexOf("function _invDropDiscard("));/* #429: the batch commit replaced dropInvItem */
-  assert(/wornPrune\(cs\)/.test(drop), "dropMarkedItems does not prune worn (E4)");
+  assert(!/wornPrune\(/.test(drop), "wornPrune is retired — a dropped row takes its flag with it (E4 by construction; #599 cleanup 1)");
   assert(/_invSheetRepaint\(owner\)/.test(drop), "the batch drop does not repaint the sheet");
   assert(/_csReRender\(\)/.test(s.slice(s.indexOf("function _invSheetRepaint("), s.indexOf("function markInvItem("))),
     "the sheet repaint after a drop is not in place (E7)");

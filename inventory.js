@@ -15,7 +15,7 @@
      implementation. The names retire in a later explicit cleanup commit once callers, tests and anchors have moved.
 
    ONE KEY. itemKey(name) is the pack rule — case, spaces, dash variants, a trailing plural "s" — on a COUNT-FREE name. A
-   legacy string decodes its count first (invStoredParse, _invNorm); an object row's name is literal (I3: a row named
+   legacy string decodes its count first (invStoredParse, invStoredKey); an object row's name is literal (I3: a row named
    "Torch x2" is an item called "Torch x2"). Where a provenance-free match is wanted (wants, the pair key, bible lookups)
    itemBaseKey projects the clause away — "(from …)" and " — …" — never a count. The TAG grammar (_qtyParse, QTY_MAX=999)
    reads what the GM writes and keeps its own bound; INV_QTY_MAX bounds stored rows (§5.2 ②). */
@@ -235,7 +235,7 @@ function invPrepare(inv){
 /* ═══ THE LEGACY DELEGATES (#599 c) — the api.js names every caller and test knows, each a thin delegate over the row
    functions above: PREPARE the list (invPrepare — strings become rows in place, or the write refuses loudly and nothing
    moves), then the one implementation. A legacy string operand decodes its count at this boundary (invStoredParse) — a
-   row's name is literal, so the literal key is tried first (§2.2). The readers (_invNorm/_invCount/_invBase, isWorn,
+   row's name is literal, so the literal key is tried first (§2.2). The readers (invStoredKey/invStoredCount/invStoredName, isWorn,
    inventoryCountOf, resolveInventoryName) never mutate and read both shapes through invEntries. ═══ */
 // Inventory stacks via a trailing " xN" suffix: gaining a duplicate increments the count instead of
 // pushing a second entry; losing decrements (and drops the suffix at 1). Genuine repeat pickups (5x
@@ -261,10 +261,11 @@ function _invStr(s){return typeof s==="string"?s:"";}
    " xN", N ≥ 1, no leading zero; anything else is a literal name with one unit — "Modelx3" and "Model x01" are names, the
    loose `x\d+` strip that read them as counts is gone; the 2026-10-09 census over 77 owner saves / 11,490 entries found 0
    grammar splits) and itemKey is the pack rule on the decoded name. The compatibility table is the "#599 (b3)" test section. */
-function _invNorm(s){return itemKey(_invBase(s));}
-function _invCount(s){return invStoredParse(_invStr(s)).qty;}
-function _invBase(s){return invStoredParse(_invStr(s)).name;}
-function _wornIdx(list,item){var t=_invNorm(item),i;for(i=0;i<(list||[]).length;i++)if(_invNorm(list[i])===t)return i;return -1;}/* the legacy worn LIST reader (isWorn on an unhealed sheet) */
+/* the STORED-grammar readers of a legacy string (cleanup 1: invStoredKey/invStoredName/invStoredCount under names that say what they read —
+   a stored entry's key, decoded name and count; a row has these on itself). Same semantics as before, nothing converged. */
+function invStoredKey(s){return itemKey(invStoredName(s));}
+function invStoredCount(s){return invStoredParse(_invStr(s)).qty;}
+function invStoredName(s){return invStoredParse(_invStr(s)).name;}
 /* the legacy boundary's find over ROWS: the literal key first (a row named "Torch x2" is that item), then the decoded name
    (a legacy caller handing "Torch x2" means two torches), each through invFind (exact key, then a unique base) */
 function _invLegacyFind(rows,name){var i=invFind(rows,name),d;if(i>=0)return i;d=invStoredParse(name).name;if(d!==String(name==null?"":name).trim()){var miss=invFind.last;i=invFind(rows,d);if(i<0&&miss&&miss.why==="ambiguous")invFind.last=miss;}return i;}
@@ -283,15 +284,12 @@ function wornSet(cs,item,on,who,tag){tag=tag||"EQUIPPED";/* #599 (d2), review 7:
   var inv=cs.inventory,ii=_invLegacyFind(inv,item);
   if(ii<0){if(on&&typeof console!=="undefined")console.warn("[attire] "+tag+": '"+item+"' is not in "+(who||cs.name||"?")+"'s inventory — nothing is equipped that is not carried; emit [ITEM_GAINED:] first (#388)");return {ok:false,reason:on?"not carried":"not worn"};}
   var r=invEquip(inv,inv[ii].name,on);if(r.ok)return {ok:true,item:r.row.name};return {ok:false,reason:on?"already worn":"not worn",item:inv[ii].name};}
-/* wornPrune(cs): the invariant "nothing is worn that is not carried" holds by construction on rows (a removed row takes its
-   flag with it) — the call heals an unhealed sheet (a leftover worn list folds in) and returns 0. The name retires with the
-   legacy form's cleanup. */
-function wornPrune(cs){if(!cs)return 0;invHealSheet(cs);return 0;}
-/* wornRename: a rename keeps the row and its flag (invRename) — nothing to move; a REFUSED rename moves nothing either (#606
-   closes by construction: the mark could no longer follow a name the pack refused). Returns false: no separate mark exists. */
-function wornRename(cs){if(cs)invHealSheet(cs);return false;}
+/* wornPrune and wornRename RETIRED (the #599 cleanup commit, v1.1209): on rows the invariant "nothing equipped that is not
+   carried" holds by construction — a removed row takes its flag with it, a rename keeps the row and its flag (invRename; #606
+   closes by construction). The writers that called wornPrune heal through invHealSheet instead (the writer prepares, §2.4); the
+   two rename handlers call nothing. */
 /* isWorn(cs, item): READ-ONLY, both shapes — the row's flag; on an unhealed sheet the legacy worn list */
-function isWorn(cs,item){if(!cs)return false;if(Array.isArray(cs.worn))return _wornIdx(cs.worn,item)>=0;var es=invEntries(cs.inventory||[]),i=_invEntryFind(es,item);return i>=0&&es[i].equipped===true;}
+function isWorn(cs,item){if(!cs)return false;if(Array.isArray(cs.worn)){var wt=invStoredKey(item),wl=cs.worn,wi;for(wi=0;wi<wl.length;wi++)if(invStoredKey(wl[wi])===wt)return true;return false;}/* the legacy worn LIST, by the stored key (cleanup 1: _wornIdx folded in) */var es=invEntries(cs.inventory||[]),i=_invEntryFind(es,item);return i>=0&&es[i].equipped===true;}
 // P14: a quantity baked into an item TAG ("Rope x3") means N of the base item, not one item
 // literally named "Rope x3" — without this, gaining "Rope x3" onto an existing "Rope" stack
 // stepped the count to x2 instead of x4, and losing "Rope x2" removed only one. The x must be
@@ -338,7 +336,7 @@ function renameInventoryItem(inv,oldName,newName,R,who){
   if(R&&R.muts)R.muts.push(label+oldName+" → "+newName);
   return true;
 }
-/* #481 A2 (a) (audit 2026-09-29, Fable-approved): ONE inventory name resolver. Exact (_invNorm) first; then a UNIQUE base
+/* #481 A2 (a) (audit 2026-09-29, Fable-approved): ONE inventory name resolver. Exact (invStoredKey) first; then a UNIQUE base
    name (itemBaseName strips the provenance clause, the rename rule), because the tag doc teaches "Signet ring (from Sheriff
    Hemlock)" and the GM later writes "Signet ring". Two candidates for one base name are AMBIGUOUS: nothing is removed and
    the reason rides _invLastMiss for the loud line. Returns the index, or -1. */
@@ -421,15 +419,8 @@ function sanitizeModelInventory(list,cap){
   if(clamped.length&&typeof console!=="undefined")console.warn("[inventory] a model inventory held "+clamped.length+" count"+(clamped.length>1?"s":"")+" over "+INV_QTY_MAX+" — clamped: "+clamped.join(", "));
   return rows.slice(0,max);
 }
-/* foldDuplicateInventory(inv): the stock heal — two entries under one key become one row (invRows: first name and position
-   win, units summed, equipped OR; different unknown fields refuse). In place; returns the number of entries folded away.
-   (c): the admission registry's heal does this at every door; the name stays for its callers and tests. */
-function foldDuplicateInventory(inv){
-  if(!inv||inv.length<2)return 0;
-  var r=invRows(inv),i;if(!r.ok||r.diagnostics.length){if(typeof console!=="undefined")console.warn("[inventory] fold refused — "+(r.ok?"unreadable entries on a bare list (heal the sheet first)":r.reason));return 0;}
-  var folded=inv.length-r.rows.length;inv.length=0;for(i=0;i<r.rows.length;i++)inv.push(r.rows[i]);
-  return folded;
-}
+/* foldDuplicateInventory RETIRED (cleanup 1): the stock heal is invRows (first name and position win, units summed, equipped OR;
+   different unknown fields refuse), run by invHealSheet at every door. */
 
 /* ═══ THE SHEET'S READERS (#599 b4) — moved VERBATIM from helpers.js (one home): the category grouping the sheet renders and the
    #429 drop marks it commits. They index the stored list and compare whole entries, which only this module may do. ═══ */

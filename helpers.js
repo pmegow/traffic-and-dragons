@@ -3390,8 +3390,8 @@ function shopTradeCatalog(){
      (itemBaseKey — §2.2), so a carried "Signet ring (from Hemlock)" meets a want for "Signet ring" */
   var _ce=invEntries(inv);/* #599 (b4): read through the module */
   for(i=0;i<_ce.length;i++){var base=_ce[i].name,n=_ce[i].qty,k=itemKey(base);
-    if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}
-    hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,_ce[i].text))hero[k].worn=true;}
+    if(!hero[k]){hero[k]={name:base,qty:0,equipped:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}
+    hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,_ce[i].text))hero[k].equipped=true;}
   var wanted=keyedDict(),wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++){var _wk=itemBaseKey(wl[i].item);if(!wanted[_wk])wanted[_wk]=wl[i];}/* the FIRST live want per base — the same one retireWantedAt retires (review (b) 4: last-wins paid one want and retired another) */
   var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,cp=(typeof itemValueCp==="function")?itemValueCp(canon):null;
     var w=wanted[itemBaseKey(r.name)]||null;
@@ -3408,7 +3408,7 @@ function shopTradeCatalog(){
 /* marks = {sell:{<lowercase name>:qty}, buy:{<lowercase name>:qty}} — what the player has clicked. */
 function shopTradePlan(cat,marks){
   marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],sellCp=0,buyCp=0,i,k,wantLeft=keyedDict(),overWant=null;
-  for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.worn||r.sellCp==null)continue;q=Math.min(q,r.qty);
+  for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.equipped||r.sellCp==null)continue;q=Math.min(q,r.qty);
     if(r.want){var wl=(r.want.key in wantLeft)?wantLeft[r.want.key]:WANT_BUYS;if(q>wl&&!overWant)overWant=r.want;wantLeft[r.want.key]=wl-q;}/* #577: one allowance per want */
     lines.push({kind:"sell",name:r.name,qty:q,unitCp:r.sellCp,cp:r.sellCp*q});sellCp+=r.sellCp*q;}
   for(i=0;i<cat.buy.length;i++){var b=cat.buy[i];k=b.name.toLowerCase();var bq=Math.min(mb[k]|0,b.per||1);if(bq<=0||b.cp==null)continue;var lc=Math.round(b.cp*bq/(b.per||1));lines.push({kind:"buy",name:b.name,qty:bq,unitCp:Math.round(b.cp/(b.per||1)),cp:lc,price:b.price});buyCp+=lc;}/* a bundle line is the bundle price times its share */
@@ -3419,9 +3419,9 @@ function shopTradePlan(cat,marks){
   return {lines:lines,sellCp:sellCp,buyCp:buyCp,netCp:netCp,coinAfter:coinAfter,ok:ok,reason:why};
 }
 /* #407 ⑤ (owner 2026-09-16): ONE two-column LEDGER shape, used by the shop and the stash (and whatever comes next).
-   A spec is data: two titled columns of rows {key,label,max,worn,off,offReason,tag,sub}, an amount rule, a plan and a
+   A spec is data: two titled columns of rows {key,label,max,equipped,off,offReason,tag,sub}, an amount rule, a plan and a
    complete function. showLedgerModal (ui-modals) renders any spec; the builders below stay pure and engine-tested.
-   Rows without a price sort to the bottom of their column (owner ask); worn rows keep their place, greyed. */
+   Rows without a price sort to the bottom of their column (owner ask); equipped rows keep their place, greyed. */
 /* #497 (owner 2026-09-30): how a tap steps a ledger row's count — the shop's counter and the chest share it. Up by one to the
    row's maximum, then back to none: "14/14" used to be a dead end, cleared only by a tap on the small count badge. A single
    item toggles. A count above the maximum (the stock shrank under an open modal) resets to none. Pure. */
@@ -3434,10 +3434,10 @@ function visibleAuthors(list,selectedId){
   return (list||[]).filter(function(a){return a&&(!a.hidden||(selectedId!=null&&a.id===selectedId));});
 }
 function shopLedgerRows(cat){
-  var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.wanted?Math.min(WANT_BUYS,r.qty):r.qty,/* #481 D4: a want buys one */worn:r.worn,off:r.worn||r.sellCp==null,unit:r.sellCp,cp:r.sellCp,per:1,
-    offReason:r.worn?"Equipped \u2014 unequip it first":(r.sellCp==null?(r.offerWords?"Wanted, but the offer is in words (\u201c"+r.offer+"\u201d) \u2014 ask "+cat.keeper:"No price on record here \u2014 ask "+cat.keeper):""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: the keeper's offer ("+r.offer+"), for one":"Half its listed value"};});
+  var sell=cat.sell.map(function(r){return {key:r.name.toLowerCase(),label:r.name,max:r.wanted?Math.min(WANT_BUYS,r.qty):r.qty,/* #481 D4: a want buys one */equipped:r.equipped,off:r.equipped||r.sellCp==null,unit:r.sellCp,cp:r.sellCp,per:1,
+    offReason:r.equipped?"Equipped \u2014 unequip it first":(r.sellCp==null?(r.offerWords?"Wanted, but the offer is in words (\u201c"+r.offer+"\u201d) \u2014 ask "+cat.keeper:"No price on record here \u2014 ask "+cat.keeper):""),tag:r.wanted?"wanted":"",hint:r.wanted?"Wanted here: the keeper's offer ("+r.offer+"), for one":"Half its listed value"};});
   sell.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});/* stable in ES2019+; a priced row never sinks below an unpriced one */
-  var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:b.per||1,/* #481 D5 */worn:false,off:b.cp==null,unit:b.cp==null?null:Math.round(b.cp/(b.per||1)),cp:b.cp,per:b.per||1,offReason:b.cp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",note:b.note||"",/* #558: the keeper's own line rides to the card */hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
+  var buy=cat.buy.map(function(b){return {key:b.name.toLowerCase(),label:b.name,max:b.per||1,/* #481 D5 */equipped:false,off:b.cp==null,unit:b.cp==null?null:Math.round(b.cp/(b.per||1)),cp:b.cp,per:b.per||1,offReason:b.cp==null?"Priced in words \u2014 ask "+cat.keeper:"",tag:"",note:b.note||"",/* #558: the keeper's own line rides to the card */hint:b.price+(b.note?" \u00b7 "+b.note:""),price:b.price};});
   buy.sort(function(a,b){var ap=a.unit==null?1:0,bp=b.unit==null?1:0;return ap-bp;});
   return {left:sell,right:buy};
 }
@@ -3455,19 +3455,19 @@ function stashTradeCatalog(){
   var inv=c.inventory||[],carried=keyedDict(),order=[],i;
   var _se=invEntries(inv);/* #599 (b4): read through the module */
   for(i=0;i<_se.length;i++){var base=_se[i].name,n=_se[i].qty,k=stashKey(base);/* #481 D2 */
-    if(!carried[k]){carried[k]={name:base,qty:0,worn:false};order.push(k);}carried[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,_se[i].text))carried[k].worn=true;}
+    if(!carried[k]){carried[k]={name:base,qty:0,equipped:false};order.push(k);}carried[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,_se[i].text))carried[k].equipped=true;}
   var stored=(typeof villageStash==="function")?villageStash(rk):[];
   return {ok:true,house:leaf,key:rk,node:node,hero:c.name,carried:order.map(function(k){return carried[k];}),stored:stored.map(function(r){return {name:r.name,qty:r.qty,room:r.room||null};})};
 }
 function stashLedgerRows(cat){
-  return {left:cat.carried.map(function(r){return {key:(typeof stashKey==="function")?stashKey(r.name):r.name.toLowerCase(),/* #481 D2: the one stash identity */label:r.name,max:r.qty,worn:r.worn,off:r.worn,unit:null,offReason:r.worn?"Equipped \u2014 unequip it first":"",tag:"",hint:"Stow it in the house"};}),
-    right:cat.stored.map(function(r){return {key:(typeof stashKey==="function")?stashKey(r.name):r.name.toLowerCase(),label:r.name,max:r.qty,worn:false,off:false,unit:null,offReason:"",tag:r.room||"",hint:"Take it with you"};})};
+  return {left:cat.carried.map(function(r){return {key:(typeof stashKey==="function")?stashKey(r.name):r.name.toLowerCase(),/* #481 D2: the one stash identity */label:r.name,max:r.qty,equipped:r.equipped,off:r.equipped,unit:null,offReason:r.equipped?"Equipped \u2014 unequip it first":"",tag:"",hint:"Stow it in the house"};}),
+    right:cat.stored.map(function(r){return {key:(typeof stashKey==="function")?stashKey(r.name):r.name.toLowerCase(),label:r.name,max:r.qty,equipped:false,off:false,unit:null,offReason:"",tag:r.room||"",hint:"Take it with you"};})};
 }
 /* marks = {stow:{<lowercase name>:qty}, take:{<lowercase name>:qty}} */
 function stashTradePlan(cat,marks){
   marks=marks||{};var ms=marks.stow||{},mt=marks.take||{},lines=[],i,k,stow=0,take=0;
   function _mk(m,name){var a=(typeof stashKey==="function")?stashKey(name):name.toLowerCase();return (m[a]|0)||(m[name.toLowerCase()]|0);}/* #481 D2: marks keyed by the stash identity (a lowercase name still reads) */
-  for(i=0;i<cat.carried.length;i++){var r=cat.carried[i];var q=_mk(ms,r.name);if(q<=0||r.worn)continue;q=Math.min(q,r.qty);lines.push({kind:"stow",name:r.name,qty:q});stow+=q;}
+  for(i=0;i<cat.carried.length;i++){var r=cat.carried[i];var q=_mk(ms,r.name);if(q<=0||r.equipped)continue;q=Math.min(q,r.qty);lines.push({kind:"stow",name:r.name,qty:q});stow+=q;}
   for(i=0;i<cat.stored.length;i++){var s=cat.stored[i];var tq=_mk(mt,s.name);if(tq<=0)continue;tq=Math.min(tq,s.qty);lines.push({kind:"take",name:s.name,qty:tq});take+=tq;}
   return {lines:lines,stowed:stow,taken:take,ok:lines.length>0,reason:lines.length?"":"nothing marked"};
 }

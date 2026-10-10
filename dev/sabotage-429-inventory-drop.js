@@ -34,9 +34,6 @@ prove("ui-sheets.js", SHEET, [
     /* #481 F8 re-anchor: the mark now resolves its row first (invMarkResolve → at) */
     find: '_invDropMarks.by[owner]=invDropToggle(_invDropMarksFor(owner),at,invEntryName(cs.inventory,at));', replace: 'cs.inventory.splice(at,1);saveAll();',/* #599 (c): the entry's NAME through the module */
     mustFail: "the × marks a row" },
-  { label: "the commit forgets to prune worn (a dropped worn sword rides every prompt)",
-    find: '  if(typeof wornPrune==="function")wornPrune(cs);/* audit E4/#388: nothing is worn that is not carried — a dropped worn sword otherwise rode attireLine into every prompt */\n', replace: '',
-    mustFail: "worn pruned" },
   { label: "the commit forgets to save",
     find: '  saveAll();\n  if(typeof showToast==="function")showToast("Deleted "', replace: '  if(typeof showToast==="function")showToast("Deleted "',
     mustFail: "one save" },
@@ -75,5 +72,13 @@ prove("ui-sheets.js", SHEET, [
   { label: "marks cross a campaign switch",
     find: 'if(_invDropMarks.camp!==camp){_invDropMarks.camp=camp;_invDropMarks.by={};}', replace: '',
     mustFail: "campaign switch" }
+]);
+/* #599 cleanup 1: wornPrune retired — E4 ("a dropped sword is not still worn") holds because the ROW leaves with its flag. The
+   mutation keeps a zero-count ghost that carries the flag, and the sheet suite's E4 assertion catches it. */
+prove("inventory.js", SHEET, [
+  { label: "a dropped equipped row leaves a zero-count ghost that keeps its flag (the dropped sword rides every prompt again — E4)",
+    find: "  for(i=plan.drop.length-1;i>=0;i--)inv.splice(plan.drop[i].idx,1);/* highest first: the lower indices stay true */",
+    replace: "  for(i=plan.drop.length-1;i>=0;i--){var _g=inv[plan.drop[i].idx];inv.splice(plan.drop[i].idx,1);if(_g&&_g.equipped)inv.push({name:_g.name,qty:1,equipped:true});}",
+    mustFail: "worn pruned" }
 ]);
 process.exit(code);

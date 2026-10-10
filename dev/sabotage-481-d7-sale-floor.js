@@ -9,7 +9,7 @@ prove("helpers.js", [
     find: "lines.push({kind:\"sell\",name:r.name,qty:q,unitCp:r.sellCp,cp:r.sellCp*q});sellCp+=r.sellCp*q;}", replace: "lines.push({kind:\"sell\",name:r.name,qty:q,unitCp:r.sellCp,cp:r.sellCp*q});sellCp+=Math.round(r.sellCp*q/100)*100;}",
     mustFail: "a lone 3 sp whistle sells for 3 sp" },
   { label: "a line under a gold piece is dropped from the plan",
-    find: "var q=ms[k]|0;if(q<=0||r.worn||r.sellCp==null)continue;", replace: "var q=ms[k]|0;if(q<=0||r.worn||r.sellCp==null||r.sellCp*q<100)continue;",
+    find: "var q=ms[k]|0;if(q<=0||r.equipped||r.sellCp==null)continue;", replace: "var q=ms[k]|0;if(q<=0||r.equipped||r.sellCp==null||r.sellCp*q<100)continue;",
     mustFail: "a lone 3 sp whistle sells for 3 sp" }
 ]);
 prove("game.js", [

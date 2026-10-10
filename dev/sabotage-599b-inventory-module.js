@@ -54,7 +54,7 @@ prove("inventory.js", [
 ]);
 prove("api.js", [
   { label: "a second inventory API grows back in api.js",
-    find: "/* #599 (b): the inventory-string functions that lived here", replace: "function _invNorm(s){return s;}\n/* #599 (b): the inventory-string functions that lived here",
+    find: "/* #599 (b): the inventory-string functions that lived here", replace: "function invStoredKey(s){return s;}\n/* #599 (b): the inventory-string functions that lived here",
     mustFail: HOME },
 ]);
 /* the manifest and the hosts' load order are pinned by the HOME test and the ENGINE MANIFEST CONTRACT (run-tests.js) — a

@@ -43,6 +43,9 @@ prove("inventory.js", [
   { label: "the READ resolver (_invEntryFind: invHolds, isWorn, resolveInventoryName) loses its unique base-name step (d2 review 4b)",
     find: "  if(hits.length===1)return hits[0];\n  _invLastMiss=", replace: "  _invLastMiss=",
     mustFail: "#599d2 review 4b" },
+  { label: "an unhealed legacy sheet no longer reads its worn list (cleanup 1 folded _wornIdx into isWorn; the preview's mark and order lose it)",
+    find: "if(Array.isArray(cs.worn)){var wt=invStoredKey(item),wl=cs.worn,wi;for(wi=0;wi<wl.length;wi++)if(invStoredKey(wl[wi])===wt)return true;return false;}", replace: "if(Array.isArray(cs.worn))return false;",
+    mustFail: "#599d2 review 5" },
   { label: "wornSet forgets the spelling the GM used (the console says WORN for an [EQUIPPED:] refusal)",
     find: "function wornSet(cs,item,on,who,tag){tag=tag||\"EQUIPPED\";", replace: "function wornSet(cs,item,on,who,tag){tag=\"WORN\";",
     mustFail: "#599d2 review 6" }
@@ -59,10 +62,10 @@ prove("api.js", [
 ]);
 prove("helpers.js", [
   { label: "the counter's row says 'Worn — take it off first' again",
-    find: "offReason:r.worn?\"Equipped \\u2014 unequip it first\":(r.sellCp==null?", replace: "offReason:r.worn?\"Worn \\u2014 take it off first\":(r.sellCp==null?",
+    find: "offReason:r.equipped?\"Equipped \\u2014 unequip it first\":(r.sellCp==null?", replace: "offReason:r.equipped?\"Worn \\u2014 take it off first\":(r.sellCp==null?",
     mustFail: COUNTER },
   { label: "the chest's row says 'Worn — take it off first' again",
-    find: "offReason:r.worn?\"Equipped \\u2014 unequip it first\":\"\",tag:\"\",hint:\"Stow it in the house\"", replace: "offReason:r.worn?\"Worn \\u2014 take it off first\":\"\",tag:\"\",hint:\"Stow it in the house\"",
+    find: "offReason:r.equipped?\"Equipped \\u2014 unequip it first\":\"\",tag:\"\",hint:\"Stow it in the house\"", replace: "offReason:r.equipped?\"Worn \\u2014 take it off first\":\"\",tag:\"\",hint:\"Stow it in the house\"",
     mustFail: COUNTER },
   { label: "the mark loses its screen-reader word",
     find: "role=\"img\" aria-label=\"'+INV_EQUIPPED_WORD.toLowerCase()+'\"", replace: "role=\"img\"",

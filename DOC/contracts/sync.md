@@ -138,7 +138,7 @@ After connecting to server, `syncCampaignList()` fetches the server campaign lis
 
 ## 17. Sync modal
 
-Direct editing of HP, max HP, gold, XP, level, sub-location, location, time, weather, inventory without going through the GM. **Level and place are NOT raw writes (audit E2, 2026-09-18):** the level goes through `syncLevelPatchPlan` → `checkLevelUp({land:true})` (a level-*down* is refused — no un-grant path exists), and the place is built as one engine-authored `[LOCATION:]`/`[SUBLOCATION:]`/`[SUBLOCATION_LEAVE]` tag by `syncLocationPatchTags` and applied through `applyMuts`, so resolution, the twin-conflict refusal, the node mint, the edge and `sublocation=null` all happen. The inventory assign is followed by `wornPrune` (audit E4).
+Direct editing of HP, max HP, gold, XP, level, sub-location, location, time, weather, inventory without going through the GM. **Level and place are NOT raw writes (audit E2, 2026-09-18):** the level goes through `syncLevelPatchPlan` → `checkLevelUp({land:true})` (a level-*down* is refused — no un-grant path exists), and the place is built as one engine-authored `[LOCATION:]`/`[SUBLOCATION:]`/`[SUBLOCATION_LEAVE]` tag by `syncLocationPatchTags` and applied through `applyMuts`, so resolution, the twin-conflict refusal, the node mint, the edge and `sublocation=null` all happen. Nothing prunes after the assign: the rows carry their own flag, so audit E4 (a dropped item is not still equipped) holds by construction since #599 (c); `wornPrune` retired in the cleanup commit (v1.1209).
 
 ## 22. Cloud sync (`storage-adapter.js`)
 

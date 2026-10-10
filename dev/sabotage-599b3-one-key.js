@@ -11,13 +11,13 @@ var TABLE = "#599b3 the compatibility table", GRAMMAR = "#599b3 the stored gramm
     WANT = "#599b3 the want match is provenance-free", KEYS = "#599b3 wares, wants and chest rows key through the one item key";
 prove("inventory.js", [
   { label: "the base reader strips any x-digits suffix again (a literal 'Model x01' loses its name)",
-    find: "function _invBase(s){return invStoredParse(_invStr(s)).name;}", replace: "function _invBase(s){return _invStr(s).replace(/\\s*x\\d+\\s*$/i,\"\").trim();}",
+    find: "function invStoredName(s){return invStoredParse(_invStr(s)).name;}", replace: "function invStoredName(s){return _invStr(s).replace(/\\s*x\\d+\\s*$/i,\"\").trim();}",
     mustFail: GRAMMAR },
   { label: "the count reader accepts a zero count again",
-    find: "function _invCount(s){return invStoredParse(_invStr(s)).qty;}", replace: "function _invCount(s){var m=_invStr(s).match(/\\sx(\\d+)\\s*$/i);return m?parseInt(m[1],10):1;}",
+    find: "function invStoredCount(s){return invStoredParse(_invStr(s)).qty;}", replace: "function invStoredCount(s){var m=_invStr(s).match(/\\sx(\\d+)\\s*$/i);return m?parseInt(m[1],10):1;}",
     mustFail: GRAMMAR },
   { label: "the legacy key is lower case only (plural and dash variants split again)",
-    find: "function _invNorm(s){return itemKey(_invBase(s));}", replace: "function _invNorm(s){return _invBase(s).toLowerCase();}",
+    find: "function invStoredKey(s){return itemKey(invStoredName(s));}", replace: "function invStoredKey(s){return invStoredName(s).toLowerCase();}",
     mustFail: TABLE },
   { label: "the stash key projects the provenance away (the chest's 'Rope (spare)' and 'Rope' become one row)",
     find: "function stashKey(name){return itemKey(", replace: "function stashKey(name){return itemBaseKey(",
@@ -46,8 +46,8 @@ prove("memory.js", [
 ]);
 prove("helpers.js", [
   { label: "the counter keys a row by lower-cased text (the pelts split into two rows again)",
-    find: "k=itemKey(base);\n    if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}",
-    replace: "k=base.toLowerCase();\n    if(!hero[k]){hero[k]={name:base,qty:0,worn:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}",
+    find: "k=itemKey(base);\n    if(!hero[k]){hero[k]={name:base,qty:0,equipped:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}",
+    replace: "k=base.toLowerCase();\n    if(!hero[k]){hero[k]={name:base,qty:0,equipped:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}",
     mustFail: WANT },
   { label: "the counter looks a want up by the row's own spelling (the plural row misses the singular want)",
     find: "    var w=wanted[itemBaseKey(r.name)]||null;", replace: "    var w=wanted[r.name.toLowerCase()]||null;",

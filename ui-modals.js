@@ -246,7 +246,7 @@ function showSyncModal(){
       var _scMana=document.getElementById("sc-mana");if(_scMana){var mn2=parseInt(_scMana.value);if(!isNaN(mn2))c2.mana=Math.max(0,Math.min(manaMax(c2),mn2));}/* #110 */
       if(inv2)c2.inventory=inv2;/* always assign so emptying the textarea actually clears inventory (audit E63); (c): a refused mapping keeps the pack and says so below */
       else{notes.push("Inventory not changed — "+_ia.reason+".");if(typeof console!=="undefined")console.warn("[sync] inventory edit refused: "+_ia.reason);}
-      if(typeof wornPrune==="function")wornPrune(c2);/* audit E4/#388: nothing is worn that is not carried */
+      invHealSheet(c2);/* audit E4/#388, cleanup 1: a leftover worn list folds into the rows' flags (the heal wornPrune was) */
       syncUI();saveAll();renderSync();
       var msg=document.getElementById("sc-msg");if(msg){msg.textContent=notes.length?("Applied. "+notes.join(" ")):"Applied.";msg.style.color=notes.length?"var(--warn)":"var(--grn)";}
     });}

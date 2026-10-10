@@ -261,7 +261,7 @@ test("source: the per-item drop is dead, the mark and the commit never reach a c
   assert(/function dropMarkedItems\(/.test(body) && /function _invDropDiscard\(/.test(body), "the commit or the discard is missing");
   var commit = body.slice(body.indexOf("function dropMarkedItems("), body.indexOf("function _invDropDiscard("));
   assert(/invDropPlan\(/.test(commit) && /invDropApply\(/.test(commit), "the commit does not go through the pure plan/apply pair");
-  assert(/wornPrune\(cs\)/.test(commit), "the commit does not prune worn (E4)");
+  assert(!/wornPrune\(/.test(commit), "wornPrune is retired — the flag leaves with its row (E4 holds by construction; #599 cleanup 1)");
   assert(/saveAll\(\)/.test(commit), "the commit does not save");
   var hero = s.slice(s.indexOf("function showCharSheet("), s.indexOf('getElementById("cs-export-btn")'));
   assert(/onClose:function\(\)\{[^}]*_invDropDiscard\(""\)/.test(hero), "the hero sheet's close does not discard the marks");

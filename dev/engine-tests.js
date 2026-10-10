@@ -7703,14 +7703,14 @@ function runEngineTests(R){
   });
   t("ITEM_GAINED 'Rope x3' stores quantity 3 of 'Rope' (P14)",function(){
     makeWorld();applyMuts("[ITEM_GAINED:Rope x3]");
-    var f=invTextList(worldState.character.inventory).filter(function(x){return _invNorm(x)==="rope";});
+    var f=invTextList(worldState.character.inventory).filter(function(x){return invStoredKey(x)==="rope";});
     if(f.length!==1)return "entries: "+JSON.stringify(worldState.character.inventory);
-    return _invBase(f[0])==="Rope"&&_invCount(f[0])===3?true:"stored as: "+f[0];
+    return invStoredName(f[0])==="Rope"&&invStoredCount(f[0])===3?true:"stored as: "+f[0];
   });
   t("ITEM_GAINED 'Rope x3' onto an existing Rope yields 4, not 2 (the xN-as-name bug)",function(){
     makeWorld();worldState.character.inventory.push("Rope");
     applyMuts("[ITEM_GAINED:Rope x3]");
-    var f=invTextList(worldState.character.inventory).filter(function(x){return _invNorm(x)==="rope";});
+    var f=invTextList(worldState.character.inventory).filter(function(x){return invStoredKey(x)==="rope";});
     return f.length===1&&f[0]==="Rope x4"?true:"got "+JSON.stringify(f);
   });
   // ── #107: say out loud what actually reached the sheet ────────────────────
@@ -7756,10 +7756,10 @@ function runEngineTests(R){
   t("ITEM_LOST 'Rope x2' removes two copies (P14)",function(){
     makeWorld();worldState.character.inventory.push("Rope x3");
     applyMuts("[ITEM_LOST:Rope x2]");
-    var f=invTextList(worldState.character.inventory).filter(function(x){return _invNorm(x)==="rope";});
+    var f=invTextList(worldState.character.inventory).filter(function(x){return invStoredKey(x)==="rope";});
     if(!(f.length===1&&f[0]==="Rope"))return "got "+JSON.stringify(f);
     applyMuts("[ITEM_LOST:Rope x2]"); // over-remove: takes the last one, no crash, no negatives
-    return invTextList(worldState.character.inventory).filter(function(x){return _invNorm(x)==="rope";}).length===0?true:"over-remove left residue";
+    return invTextList(worldState.character.inventory).filter(function(x){return invStoredKey(x)==="rope";}).length===0?true:"over-remove left residue";
   });
   t("names where x is not a separate quantity token are left intact ('Potion of Hex')",function(){
     makeWorld();applyMuts("[ITEM_GAINED:Potion of Hex][ITEM_GAINED:Elixir of Styx]");
@@ -12172,41 +12172,42 @@ function runEngineTests(R){
     if(!s)return "sheet not built";
     return invTextList(s.inventory).join("|")==="Lockpicks x2|Shortbow"?true:"got "+invTextList(s.inventory).join("|");
   });
-  t("foldDuplicateInventory: folds byte-identical entries, keeps first-occurrence order",function(){
+  function foldInv(inv){var cs={inventory:inv},n=inv.length;invHealSheet(cs);if(cs.inventory!==inv){inv.length=0;Array.prototype.push.apply(inv,cs.inventory);}return n-inv.length;}/* cleanup 1: the stock fold is invRows, run by invHealSheet — these tests keep guarding the RULE */
+  t("the fold rule (invRows via invHealSheet): folds byte-identical entries, keeps first-occurrence order",function(){
     var inv=["Dagger","Rope","Dagger"];
-    var n=foldDuplicateInventory(inv);
+    var n=foldInv(inv);
     if(n!==1)return "folded "+n;
     return invTextList(inv).join("|")==="Dagger x2|Rope"?true:"got "+invTextList(inv).join("|");
   });
   // v1.385 (#75b) REVERSED the old "case-different entries untouched" assertion. That
   // conservatism was incoherent: addInventoryItem/removeInventoryItem have always stacked by
-  // _invNorm, so the migration was using a STRICTER notion of "same item" than the code that
+  // invStoredKey, so the migration was using a STRICTER notion of "same item" than the code that
   // creates the stacks — "Dagger" and "dagger" could never coexist from play, only from a
   // model-authored sheet array, and when they did the heal pass refused to touch them.
   // Folding now matches the write path exactly. Real-data impact is nil: on the t881 save,
   // norm keying merges the same 2 groups raw keying would have, both genuine dash twins.
-  t("foldDuplicateInventory: folds by _invNorm — same sameness rule as the write path",function(){
+  t("the fold rule: folds by invStoredKey — same sameness rule as the write path",function(){
     var a=["Dagger","dagger"];
-    if(foldDuplicateInventory(a)!==1||invTextList(a).join("|")!=="Dagger x2")return "case-different entries not folded: "+invTextList(a).join("|");
+    if(foldInv(a)!==1||invTextList(a).join("|")!=="Dagger x2")return "case-different entries not folded: "+invTextList(a).join("|");
     var b=["Torch x2","Torch x2"];
-    foldDuplicateInventory(b);
+    foldInv(b);
     return invTextList(b).join("|")==="Torch x4"?true:"got "+invTextList(b).join("|");
   });
   t("#75b: dash variants of the same item fold; look-alikes with real differences do NOT",function(){
     // the t881 field pair — em-dash and hyphen spellings of the same three rings
     var a=["Iron ring — unmarked x3","Iron ring - unmarked x3"];
-    if(foldDuplicateInventory(a)!==1||invTextList(a).join("|")!=="Iron ring — unmarked x6")return "dash twins did not fold: "+invTextList(a).join("|");
+    if(foldInv(a)!==1||invTextList(a).join("|")!=="Iron ring — unmarked x6")return "dash twins did not fold: "+invTextList(a).join("|");
     // the FAILURE condition: superficially similar, genuinely different objects must survive
     var b=["Dark tooth cap — script reads 'Third' x2","Dark tooth cap — script reads 'Seventh'"];
-    if(foldDuplicateInventory(b)!==0||b.length!==2)return "DESTRUCTIVE MERGE — two different items were folded: "+invTextList(b).join("|");
+    if(foldInv(b)!==0||b.length!==2)return "DESTRUCTIVE MERGE — two different items were folded: "+invTextList(b).join("|");
     var c=["Iron ring x2","Iron ring — unmarked x3"];
-    return (foldDuplicateInventory(c)===0&&c.length===2)?true:"qualified and unqualified rings were folded: "+invTextList(c).join("|");
+    return (foldInv(c)===0&&c.length===2)?true:"qualified and unqualified rings were folded: "+invTextList(c).join("|");
   });
-  t("#75b: _invNorm agrees across dash spellings but not across genuine differences",function(){
-    if(_invNorm("Iron ring — unmarked")!==_invNorm("Iron ring - unmarked"))return "em-dash and hyphen still disagree";
-    if(_invNorm("Iron ring—unmarked")!==_invNorm("Iron ring - unmarked"))return "unspaced dash disagrees";
-    if(_invNorm("well worn cloak")===_invNorm("well-worn cloak"))return "over-merged: spaced words folded into a hyphenated compound";
-    return _invNorm("Folded letter — from iron box")!==_invNorm("Folded letter — from iron box, Hemwick's name")?true:"distinct letters collapsed";
+  t("#75b: invStoredKey agrees across dash spellings but not across genuine differences",function(){
+    if(invStoredKey("Iron ring — unmarked")!==invStoredKey("Iron ring - unmarked"))return "em-dash and hyphen still disagree";
+    if(invStoredKey("Iron ring—unmarked")!==invStoredKey("Iron ring - unmarked"))return "unspaced dash disagrees";
+    if(invStoredKey("well worn cloak")===invStoredKey("well-worn cloak"))return "over-merged: spaced words folded into a hyphenated compound";
+    return invStoredKey("Folded letter — from iron box")!==invStoredKey("Folded letter — from iron box, Hemwick's name")?true:"distinct letters collapsed";
   });
   t("migrateWorldState heals player + companion duplicate pairs, idempotent",function(){
     makeWorld();
@@ -20537,8 +20538,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn=43;var split=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[XP:25]");applyMuts(split+split);
     if(worldState.character.xp!==175)return "duplicate envelopes in one response paid more than once: "+worldState.character.xp;
     worldState.turn=44;var twins=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[ITEM_GAINED:Obsidian shard][ITEM_GAINED:Obsidian shard]");applyMuts(twins);applyMuts(twins);
-    var shards=invTextList(worldState.character.inventory).filter(function(x){return _invNorm(x)==="obsidian shard";});
-    if(shards.length!==1||_invCount(shards[0])!==2)return "same-transaction multiplicity was lost or replayed: "+JSON.stringify(shards);
+    var shards=invTextList(worldState.character.inventory).filter(function(x){return invStoredKey(x)==="obsidian shard";});
+    if(shards.length!==1||invStoredCount(shards[0])!==2)return "same-transaction multiplicity was lost or replayed: "+JSON.stringify(shards);
     return worldState.questLog[0].objectives[0].done?true:"delayed objective did not commit";
   });
 
@@ -26473,7 +26474,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!by["Rope"]||by["Rope"].qty!==3||by["Rope"].sellCp!==50)return "rope: half of 1 gp canon (50 cp), stack of 3: "+JSON.stringify(by["Rope"]);
     if(!by["Bone-handled knife"]||!by["Bone-handled knife"].wanted||by["Bone-handled knife"].sellCp!==300)return "the WANTED knife sells at the keeper's offer (3 gp; #481 D4 re-baseline from full canon 2 gp): "+JSON.stringify(by["Bone-handled knife"]);
     if(!by["Longsword"]||by["Longsword"].sellCp!==null)return "no canon and not wanted = not sellable here: "+JSON.stringify(by["Longsword"]);
-    if(!by["Longsword"].worn)return "the worn longsword must be flagged";
+    if(!by["Longsword"].equipped)return "the equipped longsword must be flagged";
     if(!by["Healing potion"]||by["Healing potion"].sellCp!==2500)return "potion: half of 50 gp";
     var bb={};cat.buy.forEach(function(b){bb[b.name]=b;});
     if(!bb["Rope"]||bb["Rope"].cp!==100||!bb["Healing potion"]||bb["Healing potion"].cp!==5000)return "buy rows must carry the pinned copper: "+JSON.stringify(cat.buy);
@@ -26540,7 +26541,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#407 ⑥ the ledger rows are sorted for the eye: unpriced sell rows sink to the bottom, priced rows keep their inventory order, worn rows keep their place greyed; buy rows likewise",function(){
     shopFixture();worldState.character.inventory=["Longsword","Rope x3","Bruthazmus's head","Bone-handled knife","Healing potion"];wornSet(worldState.character,"Longsword",true);/* #599 (c): the flag rides the row, so a replaced pack is re-worn */var rows=shopLedgerRows(shopTradeCatalog());
     var order=rows.left.map(function(r){return r.label;}).join(",");if(order!=="Rope,Bone-handled knife,Healing potion,Longsword,Bruthazmus's head")return "unpriced rows sink, priced keep order: "+order;
-    var ls=rows.left.filter(function(r){return r.label==="Longsword";})[0];if(!ls.off||!ls.worn||!/Equipped/.test(ls.offReason))return "the equipped longsword is off with its reason (#599 (d): the owner wording)";
+    var ls=rows.left.filter(function(r){return r.label==="Longsword";})[0];if(!ls.off||!ls.equipped||!/Equipped/.test(ls.offReason))return "the equipped longsword is off with its reason (#599 (d): the owner wording)";
     if(rows.right.map(function(r){return r.label;}).join(",")!=="Rope,Healing potion,Lantern oil")return "word-priced ware sinks: "+rows.right.map(function(r){return r.label;}).join(",");
     if(rows.left.filter(function(r){return r.tag==="wanted";}).length!==1)return "the WANTED tag rides the row";
     return true;
@@ -26570,7 +26571,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.character.inventory=["Rope x3","Longsword","Bone-handled knife"];applyMuts("[WORN:Silas|Longsword|on]");
     worldState.world.sublocation="Silas's house";var cat=stashTradeCatalog();if(!cat.ok)return "own house: "+cat.reason;
     if(cat.house!=="Silas's house"||cat.hero!=="Silas")return "header: "+JSON.stringify([cat.house,cat.hero]);
-    var c={};cat.carried.forEach(function(r){c[r.name]=r;});if(!c["Rope"]||c["Rope"].qty!==3||!c["Longsword"]||!c["Longsword"].worn)return "carried rows: "+JSON.stringify(cat.carried);
+    var c={};cat.carried.forEach(function(r){c[r.name]=r;});if(!c["Rope"]||c["Rope"].qty!==3||!c["Longsword"]||!c["Longsword"].equipped)return "carried rows: "+JSON.stringify(cat.carried);
     var s={};cat.stored.forEach(function(r){s[r.name]=r;});if(!s["Old boots"]||s["Old boots"].qty!==2||!s["Lantern"]||s["Lantern"].room!=="main room")return "stored rows: "+JSON.stringify(cat.stored);
     var rows=stashLedgerRows(cat);if(rows.left.filter(function(r){return r.label==="Longsword";})[0].off!==true||rows.right.filter(function(r){return r.label==="Lantern";})[0].tag!=="main room")return "ledger rows: worn off, room as the tag";
     worldState.world.sublocation="Frizwick's house";var o=stashTradeCatalog();if(o.ok||!/Frizwick's house/.test(o.reason))return "another resident's house is refused with the owner named: "+JSON.stringify(o);
@@ -28445,7 +28446,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     r=applyMuts("[ITEM_LOST:Arrow x10]");if(invTextList(c.inventory)[0]!=="Arrow x15")return "x10 must remove ten: "+JSON.stringify(c.inventory);
     c.inventory=[];applyMuts("[ITEM_GAINED:Rope x1]");if(invTextList(c.inventory).join()!=="Rope")return "x1 is one unit, not a name: "+JSON.stringify(c.inventory);
     c.inventory=[];var q=quiet(function(){return applyMuts("[ITEM_GAINED:Arrow x5000]");});
-    if(_invCount(invTextList(c.inventory)[0])!==QTY_MAX)return "an absurd count is clamped to QTY_MAX: "+JSON.stringify(c.inventory);
+    if(invStoredCount(invTextList(c.inventory)[0])!==QTY_MAX)return "an absurd count is clamped to QTY_MAX: "+JSON.stringify(c.inventory);
     return (q.r.muts||[]).some(function(m){return /clamp/i.test(m)&&m.indexOf(String(QTY_MAX))>=0;})?true:"the clamp must be said with the bound named: "+JSON.stringify(q.r.muts);
   });
   t("#481 D3 the companion twins read the count: Torch x3 onto one torch gives four with no duplicate alarm; x2 removes two",function(){
@@ -31326,7 +31327,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
   section("#599 (b) the inventory module — one home, one key, the row form prepared losslessly or refused");
   t("#599b one home: the inventory-string functions live in inventory.js and nowhere else; the engine manifest and every host load it after helpers.js and before state.js",function(){
     var api=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),inv=__fsForTests.readFileSync(__rootForTests+"/inventory.js","utf8"),i;
-    var names=["_invNorm","_invCount","_invBase","_qtyParse","addInventoryItem","removeInventoryItem","resolveInventoryName","renameInventoryItem","inventoryCountOf","wornSet","wornPrune","wornRename","_wornIdx","isWorn","itemPairKey","stashKey","sanitizeModelInventory","foldDuplicateInventory"];
+    var names=["invStoredKey","invStoredCount","invStoredName","_qtyParse","addInventoryItem","removeInventoryItem","resolveInventoryName","renameInventoryItem","inventoryCountOf","wornSet","isWorn","itemPairKey","stashKey","sanitizeModelInventory"];/* cleanup 1: wornPrune, wornRename, _wornIdx and foldDuplicateInventory retired */
     for(i=0;i<names.length;i++){if(api.indexOf("function "+names[i]+"(")>=0)return names[i]+" is still defined in api.js — two inventory APIs";if(inv.indexOf("function "+names[i]+"(")<0)return names[i]+" is not defined in inventory.js";}
     if(typeof itemKey!=="function"||typeof invRows!=="function")return "the module's own API is missing";
     var man=__fsForTests.readFileSync(__rootForTests+"/dev/engine-manifest.js","utf8"),h=man.indexOf('file: "helpers.js"'),m=man.indexOf('file: "inventory.js"'),s=man.indexOf('file: "state.js"');
@@ -31336,9 +31337,9 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(__fsForTests.readFileSync(__rootForTests+"/sw.js","utf8").indexOf('"/inventory.js",')<0)return "sw.js's app shell must carry inventory.js";
     return true;
   });
-  t("#599b one key: itemKey is the pack rule on a count-free name and agrees with the legacy _invNorm wherever no count is involved; itemBaseKey agrees with the legacy pair key",function(){
+  t("#599b one key: itemKey is the pack rule on a count-free name and agrees with the legacy invStoredKey wherever no count is involved; itemBaseKey agrees with the legacy pair key",function(){
     var cases=["Torch","Travel rations","Iron ring — unmarked","Iron ring - unmarked","Sword (rusty)","  Saddles ","Signet ring (from Sheriff Hemlock)","Potion of Hex","Chaos","well-worn cloak","Dark tooth cap 'Third'"],i;
-    for(i=0;i<cases.length;i++){if(itemKey(cases[i])!==_invNorm(cases[i]))return "itemKey and _invNorm disagree on '"+cases[i]+"': "+itemKey(cases[i])+" / "+_invNorm(cases[i]);
+    for(i=0;i<cases.length;i++){if(itemKey(cases[i])!==invStoredKey(cases[i]))return "itemKey and invStoredKey disagree on '"+cases[i]+"': "+itemKey(cases[i])+" / "+invStoredKey(cases[i]);
       if(itemBaseKey(cases[i])!==itemPairKey(cases[i]))return "itemBaseKey and itemPairKey disagree on '"+cases[i]+"': "+itemBaseKey(cases[i])+" / "+itemPairKey(cases[i]);}
     if(itemKey("Iron ring — unmarked")!==itemKey("Iron ring - unmarked")||itemKey("Wolf pelts")!==itemKey("Wolf pelt")||itemKey("Sword (rusty)")===itemKey("Sword (enchanted)"))return "the pack rule: dash variants and a plural s fold, a parenthetical does not";
     if(itemKey("Torch x2")===itemKey("Torch"))return "itemKey must NOT strip a count — a row named 'Torch x2' is literal (I3)";
@@ -31403,7 +31404,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var inv=["Torch x1","Rope"];if(!addInventoryItem(inv,"rope"))return "the write landed";if(invTextList(inv).join("|")!=="Torch|Rope x2")return "the list is rows now and prints back: "+invTextList(inv).join("|");
     if(typeof inv[0]!=="object"||inv[0].name!=="Torch"||inv[0].qty!==1||inv[0].equipped!==false)return "prepared in place as rows: "+JSON.stringify(inv[0]);
     addInventoryItem(inv,"Rope");if(invTextList(inv)[1]!=="Rope x3")return "stacking";
-    if(inventoryCountOf(inv,"ropes")!==3||inventoryCountOf(["Rope x3"],"rope")!==3||_invCount("Rope x3")!==3||_invBase("Rope x3")!=="Rope")return "counting, both shapes";
+    if(inventoryCountOf(inv,"ropes")!==3||inventoryCountOf(["Rope x3"],"rope")!==3||invStoredCount("Rope x3")!==3||invStoredName("Rope x3")!=="Rope")return "counting, both shapes";
     if(!removeInventoryItem(inv,"Rope")||invTextList(inv)[1]!=="Rope x2"||removeInventoryItem.last!=="Rope")return "removing one";
     if(resolveInventoryName(["Signet ring (from Sheriff Hemlock)"],"Signet ring")!==0||resolveInventoryName(["Rope (a)","Rope (b)"],"Rope")!==-1||!_invLastMiss||_invLastMiss.why!=="ambiguous")return "the resolver reads strings";
     if(resolveInventoryName(inv,"ropes")!==1||resolveInventoryName([{name:"Rope (a)",qty:1,equipped:false},{name:"Rope (b)",qty:1,equipped:false}],"Rope")!==-1||_invLastMiss.why!=="ambiguous")return "the resolver reads rows";
@@ -31412,10 +31413,10 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var cs={name:"T",inventory:["Chainmail","Shield"],worn:[]};var w=wornSet(cs,"chainmail",true);if(!w.ok||w.item!=="Chainmail"||cs.worn!==undefined||cs.inventory[0].equipped!==true||!isWorn(cs,"Chainmail")||isWorn(cs,"Shield"))return "worn is the row's flag; the worn list is gone: "+JSON.stringify(cs);
     w=wornSet(cs,"Helm",true);if(w.ok||w.reason!=="not carried")return "nothing uncarried is worn";
     w=wornSet(cs,"Chainmail",true);if(w.ok||w.reason!=="already worn")return "re-wearing says so";w=wornSet(cs,"Shield",false);if(w.ok||w.reason!=="not worn")return "removing what is not worn says so";
-    if(!removeInventoryItem(cs.inventory,"Chainmail")||cs.inventory.length!==1||isWorn(cs,"Chainmail")||wornPrune(cs)!==0)return "a removed row takes its flag with it; prune has nothing to do";
+    if(!removeInventoryItem(cs.inventory,"Chainmail")||cs.inventory.length!==1||isWorn(cs,"Chainmail"))return "a removed row takes its flag with it";
     var leg={name:"L",inventory:["Longsword","Cloak"],worn:["Cloak"]};if(!isWorn(leg,"cloak")||isWorn(leg,"Longsword")||invEquippedNames(leg).join("|")!=="Cloak")return "an unhealed legacy sheet still reads its worn list";
     var sm=sanitizeModelInventory(["Rope x3","rope x3",7,"Torch"]);if(invTextList(sm).join("|")!=="Rope x6|Torch"||typeof sm[0]!=="object")return "sanitation stacks on arrival, as rows: "+JSON.stringify(sm);
-    var f=["Dagger","Dagger","Iron ring — unmarked","Iron ring - unmarked"];if(foldDuplicateInventory(f)!==2||invTextList(f).join("|")!=="Dagger x2|Iron ring — unmarked x2")return "folding heals the stock: "+invTextList(f).join("|");
+    var f=["Dagger","Dagger","Iron ring — unmarked","Iron ring - unmarked"];if(foldInv(f)!==2||invTextList(f).join("|")!=="Dagger x2|Iron ring — unmarked x2")return "folding heals the stock: "+invTextList(f).join("|");
     var lit=[{name:"Torch x2",qty:1,equipped:false},{name:"Torch",qty:3,equipped:false}];if(!removeInventoryItem(lit,"Torch x2")||lit.length!==1||lit[0].name!=="Torch"||lit[0].qty!==3)return "a legacy operand tries the LITERAL row first (I3): "+JSON.stringify(lit);
     if(!removeInventoryItem(lit,"Torch x1")||lit[0].qty!==2)return "then the decoded name";
     var junk=["Torch",null];if(!addInventoryItem(junk,"Rope")||junk.length!==3||junk[0].name!=="Torch"||junk.indexOf(null)<0||!junk.some(function(x){return x&&x.name==="Rope";}))return "a bare list keeps its junk VERBATIM beside the rows (a bare list cannot file evidence; the sheet heal does) and the write lands: "+JSON.stringify(junk);
@@ -31666,18 +31667,18 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
       ["stashKey","Torch x3","Torch",true],["stashKey","Wolf pelts","Wolf pelt",true],["stashKey","Iron ring — unmarked","Iron ring - unmarked",true],["stashKey","Rope (spare)","Rope",false],/* the chest keeps provenance (#481 D2) */
       ["itemPairKey","Signet ring (from Sheriff Hemlock) x2","Signet ring",true],["itemPairKey","Wolf pelts","Wolf pelt",true],["itemPairKey","Rope","Lantern",false],
       ["itemPairKey","Rope x2 (spare)","Rope (spare) x2",false],/* a count belongs at the END (the tag grammar); a count before a clause is part of a literal name — the projection never parses a count (§2.2; review (b) 9) */
-      ["_invNorm","Torch x3","Torch",true],["_invNorm","Wolf pelts","Wolf pelt",true],["_invNorm","Iron ring — unmarked","Iron ring - unmarked",true],["_invNorm","Rope (spare)","Rope",false]
+      ["invStoredKey","Torch x3","Torch",true],["invStoredKey","Wolf pelts","Wolf pelt",true],["invStoredKey","Iron ring — unmarked","Iron ring - unmarked",true],["invStoredKey","Rope (spare)","Rope",false]
     ];
-    var fns={itemKey:itemKey,itemBaseKey:itemBaseKey,stashKey:stashKey,itemPairKey:itemPairKey,_invNorm:_invNorm},bad=[],i;
+    var fns={itemKey:itemKey,itemBaseKey:itemBaseKey,stashKey:stashKey,itemPairKey:itemPairKey,invStoredKey:invStoredKey},bad=[],i;
     for(i=0;i<T.length;i++){var f=fns[T[i][0]],ka=f(T[i][1]),kb=f(T[i][2]);if((ka===kb)!==T[i][3])bad.push(T[i][0]+"('"+T[i][1]+"') "+(ka===kb?"=":"≠")+" ('"+T[i][2]+"') ["+ka+" / "+kb+"]");}
     return bad.length?"the table disagrees: "+bad.join("; "):true;
   });
   t("#599b3 the stored grammar is the ONE count reader for the legacy readers: ' xN' (N ≥ 1, no leading zero) is a count, anything else is a literal name with one unit — the loose x-digits strip that read 'Model x01' and 'Torch x0' as counts is gone (0 grammar splits over 77 owner saves)",function(){
     var D=[["Torch x3","Torch",3],["Arrow x20","Arrow",20],["Rope","Rope",1],["Model x01","Model x01",1],["Modelx3","Modelx3",1],["Torch x0","Torch x0",1],["Torch  x2","Torch",2],["","",1]],bad=[],i;
-    for(i=0;i<D.length;i++){if(_invBase(D[i][0])!==D[i][1]||_invCount(D[i][0])!==D[i][2])bad.push(JSON.stringify(D[i][0])+" → "+JSON.stringify([_invBase(D[i][0]),_invCount(D[i][0])]));}
+    for(i=0;i<D.length;i++){if(invStoredName(D[i][0])!==D[i][1]||invStoredCount(D[i][0])!==D[i][2])bad.push(JSON.stringify(D[i][0])+" → "+JSON.stringify([invStoredName(D[i][0]),invStoredCount(D[i][0])]));}
     if(bad.length)return "the readers disagree with the stored grammar: "+bad.join("; ");
-    if(_invBase(7)!==""||_invCount(null)!==1||_invNorm(undefined)!=="")return "a non-string reads as an empty name with one unit";
-    return (_invNorm("Modelx3")==="modelx3"&&_invNorm("Torch x3")==="torch")?true:"the key of a literal keeps its letters: "+_invNorm("Modelx3");
+    if(invStoredName(7)!==""||invStoredCount(null)!==1||invStoredKey(undefined)!=="")return "a non-string reads as an empty name with one unit";
+    return (invStoredKey("Modelx3")==="modelx3"&&invStoredKey("Torch x3")==="torch")?true:"the key of a literal keeps its letters: "+invStoredKey("Modelx3");
   });
   t("#599b3 a rename resolves through the one resolver: the exact key, then a UNIQUE provenance-free base; two bases for one name refuse LOUDLY, naming both, and nothing is relabelled; the collision refusal stands",function(){
     var inv=["Signet ring (from Sheriff Hemlock) x2","Rope (spare)","Rope (coil)","Torch"],R={muts:[]};
@@ -31779,7 +31780,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var items=node.wares.map(function(w){return w.item;});return (items.indexOf("Healing potion")<0&&items.indexOf("Healing potions")>=0)?true:"the LIVE row left, the expired twin stayed: "+items.join("|");
   });
   t("#599b5 review 6: the stored grammar trims — 'Torch x3 ' is three torches for every reader, as the old reader and the tag grammar read it; the census tool reads the engine's grammar, never a copy",function(){
-    if(_invCount("Torch x3 ")!==3||_invBase("Torch x3 ")!=="Torch"||invStoredParse(" Torch x3 ").qty!==3||resolveInventoryName(["Torch x3 "],"Torch")!==0)return "trailing space: "+JSON.stringify([_invCount("Torch x3 "),_invBase("Torch x3 ")]);
+    if(invStoredCount("Torch x3 ")!==3||invStoredName("Torch x3 ")!=="Torch"||invStoredParse(" Torch x3 ").qty!==3||resolveInventoryName(["Torch x3 "],"Torch")!==0)return "trailing space: "+JSON.stringify([invStoredCount("Torch x3 "),invStoredName("Torch x3 ")]);
     var src=__fsForTests.readFileSync(__rootForTests+"/dev/census-inventory-rows.js","utf8");return /function parseStored\(s\) \{ return invStoredParse\(s\); \}/.test(src)?true:"the census tool must read the engine's grammar";
   });
   t("#599b5 review 11/12: junk is said ONCE per shape per page and named as empty-or-unreadable; invTextList prints junk as the old join did; an own __proto__ extra is a field",function(){
@@ -31987,7 +31988,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var rows=shopLedgerRows(cat),ls=rows.left.filter(function(r){return r.label==="Longsword";})[0];
     if(!ls||!ls.off||ls.offReason!=="Equipped — unequip it first")return "the counter's row: "+JSON.stringify(ls);
     var p=shopTradePlan(cat,{sell:{"longsword":1},buy:{}});if(p.ok||p.lines.length)return "an equipped row never enters the plan: "+JSON.stringify(p);
-    var st=stashLedgerRows({carried:[{name:"Longsword",qty:1,worn:true},{name:"Rope",qty:2,worn:false}],stored:[]});
+    var st=stashLedgerRows({carried:[{name:"Longsword",qty:1,equipped:true},{name:"Rope",qty:2,equipped:false}],stored:[]});
     if(st.left[0].offReason!=="Equipped — unequip it first"||!st.left[0].off||st.left[1].offReason!==""||st.left[1].off)return "the chest's row: "+JSON.stringify(st.left);
     var txt=JSON.stringify(rows)+JSON.stringify(st);if(/\bWorn\b|take it off/.test(txt))return "the old words survive in a ledger row: "+txt.slice(0,200);
     return true;
@@ -32147,6 +32148,35 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(s.indexOf("+(_eqp?invEquippedMarkHtml():'')+invItemHtml(_row.name,_row.qty)+(_eqp?invEquippedTailHtml():'')+'</span>")<0)return "the sheet: mark, name, then the word";
     if(x.indexOf(".inv-eqp-word{color:var(--t2);font-size:10px}")<0)return "the word is the old dim small text";
     if(x.indexOf(".cs-inv-cat{margin:9px 0 3px;font-size:16px;")<0||x.indexOf(".inv-cat{margin:7px 0 2px;font-size:15px;")<0)return "the headings grew by half (10.5 → 16, 10 → 15)";
+    return true;
+  });
+
+  section("#599 cleanup 1 — the legacy delegate names retire, the stored-grammar readers take honest names, the ledger rows carry equipped");
+  t("#599 cleanup 1: wornPrune, wornRename, _wornIdx and foldDuplicateInventory are gone from every engine file; no caller remains (the ledger, the Sync modal, the batch drop, the two rename handlers); the stored-grammar readers answer under their new names with the old semantics, and the boundary rule names them",function(){
+    if(typeof wornPrune!=="undefined"||typeof wornRename!=="undefined"||typeof _wornIdx!=="undefined"||typeof foldDuplicateInventory!=="undefined"||typeof _invNorm!=="undefined"||typeof _invBase!=="undefined"||typeof _invCount!=="undefined")return "a retired name is still defined";
+    if(invStoredKey("Torch x3")!==itemKey("Torch")||invStoredName("Torch x3")!=="Torch"||invStoredCount("Torch x3")!==3||invStoredCount("Torch")!==1||invStoredKey(7)!==itemKey(""))return "the stored-grammar readers: "+JSON.stringify([invStoredKey("Torch x3"),invStoredName("Torch x3"),invStoredCount("Torch x3")]);
+    var fs=__fsForTests,R=__rootForTests,eng=["inventory.js","api.js","game.js","tag_table.js","ui-modals.js","ui-sheets.js","helpers.js","state.js","memory.js"],i,src;
+    for(i=0;i<eng.length;i++){src=fs.readFileSync(R+"/"+eng[i],"utf8").replace(/\/\*[\s\S]*?\*\//g,"");if(/\b(wornPrune|wornRename|_wornIdx|foldDuplicateInventory|_invNorm|_invBase|_invCount)\s*\(/.test(src))return eng[i]+" still calls a retired name";}
+    var rt=fs.readFileSync(R+"/dev/run-tests.js","utf8");if(rt.indexOf("re: /\\binvStored(?:Name|Count)\\(/g")<0||/_inv\(\?:Base\|Count\)/.test(rt))return "the boundary rule follows the renamed readers";
+    return true;
+  });
+  t("#599 cleanup 1: isWorn still reads an unhealed legacy sheet's worn list by the stored key (case, a count suffix); the E4 invariant needs no prune — a dropped equipped row takes its flag with it through invDropApply, a renamed one keeps it, a Sync-mapped pack keeps it",function(){
+    var leg={name:"L",inventory:["Cloak","Torch x3"],worn:["cloak","Torch x3"]};if(!isWorn(leg,"Cloak")||!isWorn(leg,"torch")||isWorn(leg,"Hat"))return "the legacy list by key: "+JSON.stringify([isWorn(leg,"Cloak"),isWorn(leg,"torch")]);
+    makeWorld();var c=worldState.character;c.name="Tess";c.inventory=["Longsword","Chain shirt"];delete c.worn;applyMuts("[EQUIPPED:Tess|Chain shirt|on]");
+    var marks={};marks[invDropMarkKey(1,"Chain shirt")]=true;var names=invDropApply(c.inventory,invDropPlan(c.inventory,marks));
+    if(names.join()!=="Chain shirt"||c.inventory.length!==1||invEquippedNames(c).length)return "a dropped equipped row takes its flag with it: "+JSON.stringify([names,c.inventory]);
+    applyMuts("[EQUIPPED:Tess|Longsword|on]");applyMuts("[ITEM_RENAMED:Longsword|Blade of Ash]");if(invEquippedNames(c).join()!=="Blade of Ash")return "a renamed row keeps its flag: "+JSON.stringify(c.inventory);
+    return true;
+  });
+  t("#599 cleanup 1: the ledger rows carry `equipped` and no `worn` field — the counter's sell rows, buy rows, the chest's carried and stored rows, and the shop plan skip an equipped row by that name",function(){
+    shopFixture();var c=worldState.character;invHealSheet(c);applyMuts("[EQUIPPED:Silas|Longsword|on]");
+    var cat=shopTradeCatalog();if(!cat.ok)return "catalog: "+cat.reason;var rows=shopLedgerRows(cat),i;
+    var all=rows.left.concat(rows.right);for(i=0;i<all.length;i++){if(typeof all[i].equipped!=="boolean"||"worn" in all[i])return "a ledger row without `equipped` or with the old field: "+JSON.stringify(all[i]);}
+    var ls=rows.left.filter(function(r){return r.label==="Longsword";})[0];if(!ls.equipped||!ls.off)return "the equipped row is off: "+JSON.stringify(ls);
+    var sell=cat.sell.filter(function(r){return r.name==="Longsword";})[0];if(sell.equipped!==true||"worn" in sell)return "the catalog row: "+JSON.stringify(sell);
+    var p=shopTradePlan(cat,{sell:{"longsword":1},buy:{}});if(p.ok||p.lines.length)return "the plan skips an equipped row";
+    var st=stashLedgerRows({carried:[{name:"Longsword",qty:1,equipped:true}],stored:[{name:"Rope",qty:2,room:"hall"}]});if(!st.left[0].equipped||!st.left[0].off||st.right[0].equipped!==false||"worn" in st.left[0]||"worn" in st.right[0])return "the chest rows: "+JSON.stringify(st);
+    var h=__fsForTests.readFileSync(__rootForTests+"/helpers.js","utf8");if(/\bworn\s*:|\.worn\b/.test(h.replace(/\/\*[\s\S]*?\*\//g,"")))return "helpers.js still names a worn field";
     return true;
   });
 

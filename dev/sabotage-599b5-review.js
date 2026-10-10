@@ -70,7 +70,7 @@ prove("ui-browsers.js", [
 ]);
 prove("ui-shell.js", [
   { label: "a legacy entry reader planted in an engine file",
-    find: "function showToast(", replace: "function _p599b5(c){return _invBase(c.inventory.slice()[0]);}\nfunction showToast(",
+    find: "function showToast(", replace: "function _p599b5(c){return invStoredName(c.inventory.slice()[0]);}\nfunction showToast(",
     mustFail: BOUNDARY },
 ]);
 prove("bible_editor.html", [

@@ -47,7 +47,15 @@ must name that gate in `mustFail`, and MISATTRIBUTED exits 0 — read the verdic
    window drops a `[EQUIPPED:]` the GM copies from a cloud-synced newer reply with one console line, and files `category=jewelry`
    as tool — no version gate fires for a vocabulary change; the window is the first navigation after the deploy and any unreloaded tab).
 
-## Then the cleanup commit (§12 notes; NOT started — the census, 2026-10-09)
+## The cleanup commits (§12 notes) — part 1 SHIPPED v1.1209, part 2 open
+
+**Part 1 (v1.1209):** the delegate names retired (`wornPrune` had SIX callers, not four — the two item-loss handlers too; the four
+writers heal through `invHealSheet` where it stood because the 429 sheet suite proved the hidden heal load-bearing on an unhealed
+fixture), `_wornIdx` folded into `isWorn`, `foldDuplicateInventory` retired, `_invNorm`/`_invBase`/`_invCount` renamed to
+`invStoredKey`/`invStoredName`/`invStoredCount` (a rename, not the convergence to `itemKey` — the callers hand it stored strings
+with counts), the ledger rows' `worn` → `equipped`. `sanitizeModelInventory` stays: it is the model faucet, not a delegate.
+
+## The census as it stood before part 1 (2026-10-09)
 
 Two single-concern commits are honest here, both Fable-tier (the handlers are the drift surface):
 

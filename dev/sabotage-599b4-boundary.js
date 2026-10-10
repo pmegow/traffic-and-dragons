@@ -29,7 +29,7 @@ prove("ui-shell.js", [
 prove("game.js", [
   { label: "the turn snapshot goes back to its own loop with the silent string guard",
     find: "  return invTally(worldState.character.inventory||[]);",
-    replace: "  var m=keyedDict(),inv=worldState.character.inventory||[],i;for(i=0;i<inv.length;i++){if(typeof inv[i]!==\"string\")continue;m[_invNorm(inv[i])]={label:_invBase(inv[i]),n:_invCount(inv[i])};}return m;",
+    replace: "  var m=keyedDict(),inv=worldState.character.inventory||[],i;for(i=0;i<inv.length;i++){if(typeof inv[i]!==\"string\")continue;m[invStoredKey(inv[i])]={label:invStoredName(inv[i]),n:invStoredCount(inv[i])};}return m;",
     mustFail: CONTRACT },
   { label: "the Sync diff tallies whole strings again (a respelling reads as a loss and a gain)",
     find: "  var b=invTally(before),a=invTally(after),out=[],k,d;\n  for(k in a){d=a[k].n-(b[k]?b[k].n:0);if(d>0)out.push(\"+\"+a[k].label+(d>1?\" x\"+d:\"\"));}\n  for(k in b){d=b[k].n-(a[k]?a[k].n:0);if(d>0)out.push(\"−\"+b[k].label+(d>1?\" x\"+d:\"\"));}",
