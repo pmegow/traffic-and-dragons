@@ -1,80 +1,68 @@
-# Handoff — Fable session 2026-10-09 (late evening) → the session that PUSHES #599 release (c) and starts (d)
+# Handoff — Fable session 2026-10-09 (night) → the session that reviews and PUSHES the (d) deploy, then does the cleanup commit
 
-**Read this when** continuing #599 after release (c) was built, reviewed and closed. Ephemeral per the trackers rule: open items
-live in TODO.md; this file archives as DOC/HANDOFF_v<ver>.md when superseded. The previous handoff is DOC/HANDOFF_v1.1200.md.
+**Read this when** continuing #599 after release (d), #607 and #608 were built. Ephemeral per the trackers rule: open items live
+in TODO.md; this file archives as DOC/HANDOFF_v<ver>.md when superseded. The previous handoff is DOC/HANDOFF_v1.1203.md.
 
 ## State
 
-- **origin/master = `1438e811` (v1.1201):** the gemini-3.8-flash hotfix. Cloudflare serves it.
-- **Local master, NOT pushed, four commits ahead:** `45f0d189` release (c) at v1.1202 (the shape flip); `18252a90` the sabotage
-  pool's cap back to 8; `7352024f` the previous handoff; and **c2 at v1.1203** (`sw.js` CACHE `tnd-v3-20261009h`) — the review
-  of (c) closed. A safety branch `backup-c-local` holds the pre-rebuild commits (0dcb1aba, 1cd2460b, e44418a6) — delete it once
-  (c) is pushed.
-- **Server v1.7.4 deployed.** Its one open measurement: the 3.8 explicit-cache floor (4096) is an assumption until the first 3.8
-  row in `gemini_prompt_caches` shows a token count.
+- **origin/master = `82a53b63`** (release (c) at v1.1203 plus the #607/#608 filings). Cloudflare serves it.
+- **Local master, NOT pushed, five commits ahead** — one deploy, four concerns:
+  - `a59b9ab4` **#599 release (d) EQUIPPED, v1.1204** — `[EQUIPPED:]` the taught tag, `[WORN:]` its permanent alias (ONE handler
+    registered as EQUIPPED, WORN in `TAG_NO_HANDLER`); equip/unequip words; "equips" / "takes off" receipts; the `Equipped:` prompt
+    line; "Equipped — unequip it first" at the counter and the chest; the ◆ mark (`invEquippedMarkHtml`, helpers.js) in the panel
+    and on the sheet; both goldens re-baselined (the stable half moves once at this deploy).
+  - `c3e17db8` **#607 Jewelry, v1.1205** — one registry entry; `invCategoryIds()` is the one derivation for the ITEM_DEF parse and
+    doc line, the define prompt, the editor's lists and header, the run-tests bible contract; seven bible entries re-filed (jewelry
+    first, the old category kept as a secondary membership); the doc golden moved again in the same deploy.
+  - `ce0e2a4e` docs: gate 12 of (d) green (two live gemini-3.8-flash turns; the model wrote `[EQUIPPED:]` in its own spelling).
+  - `e1ede5bc` **#608, v1.1206**: `invDisplayOrder` — equipped first in pack order, then alphabetical by
+    decoded key, ties by stored index; applied by `groupInventory` for both shells; the prompt capture byte-identical.
 - **Tree:** clean except `website/art/trafficAndDragons_close.png` (another session's; never stage it).
-- **Suite at c2:** 2875 engine assertions, 112 standalone suites, every contract green; `dev/sabotage-599c2-review.js` 29/29;
-  every battery anchor applicable (2962 clauses across 320 batteries); gate 7 census 77 owner saves / 507 sheets / 11,490 items
-  with 0 loss; the four replay baselines unchanged.
+- **Gates at the last commit:** 2887 engine assertions, every contract green; `check-sabotage-applicability` 2995/2995 across 323
+  batteries; the new batteries `sabotage-599d-equipped.js` 20/20, `sabotage-607-jewelry.js` 8/8, `sabotage-608-display-order.js`
+  5/5; `run-sabotage-diff HEAD` green before each commit (the three editor batteries read MISATTRIBUTED only on the uncommitted
+  two-file #607 change — TODO #609 — and 15/15 once committed). Gate 8: before→(d) only the STATE TAGS line and
+  `Wearing:`→`Equipped:`; (d)→#607 only the ITEM_DEF doc line and the category word on the ITEM CANON line of the two re-filed
+  entries that carry an effect; #607→#608 byte-identical.
+- **The owner's preview origins:** `localhost:8123` (the other chat's static server) still holds the owner's Gemini key and a
+  throwaway import of the Village t291 save at t293 (signed out — nothing synced); `localhost:3000` (this session's) holds a
+  throwaway import too. Neither touched an owner campaign.
 
-## What (c) measured on 2026-10-09 evening (the full record: the "Release (c)" entry of
-[DOC/todos_completed/todo_599_status_history.md](todos_completed/todo_599_status_history.md))
+## Before the PUSH (§12 row (d): gate 13 with the owner's go)
 
-- **Gate 10 green** — the owner's `The_Village__Ammut__Ammut_t279.tnd` (v10) through the import path on the signed-out preview:
-  15 sheets rows at `sheetVer` 11, units/text/equipped identical, the panel and the sheet paint counts and "· worn", the export
-  re-imports byte-identical twice, a camp taken and restored keeps every pack. NOT done (an account is needed): the library
-  `.char` round trip through the server and a cloud push/pull between two profiles — the owner's.
-- **Gate 11 green** — the (b) build (c0fe505d) on a second port refuses the (c) `.tnd` before any effect and refuses the v11 local
-  keys at boot with the undismissable screen; the pre-gate build (v1.1191) accepts a copy and garbles it (`[object Object]` in the
-  prompt and the panel, an empty Wearing line, a gain landing as a string beside the rows, a loss and a WORN no-op) — its export
-  re-enters the (c) build losslessly. The harm of a pre-(a) runtime is the garbled prompt, not data loss.
-- **Gate 12 green** — the owner pasted a Gemini key into the signed-out preview; four gemini-3.8-flash turns on the throwaway
-  Village copy: a gain of twelve candles as one row, a loss of five to seven, `[WORN:…|off]` landing on the row, the counter
-  listing the equipped boots as off with "Worn — take it off first" (an apply refuses, nothing moves), the export at v11 rows.
-- **§5.5 done except the snapshot** — the owner exported both live campaigns (The Village t291, Ammut t67, both v10 as the
-  deployed v1.1201 writes them); the census over them CENSUS OK; `run-sabotage-diff origin/master..HEAD` all due batteries
-  green; the four replays unchanged.
-- **Gate 13 closed** — [audits/REVIEW_599_release_c_2026_10_09.md](../audits/REVIEW_599_release_c_2026_10_09.md): ten findings,
-  no live defect on real data, every one closed test-first in c2. The c2 sweep also found a false proof since (c) in the 597
-  battery (a no-op `wornPrune` mutation) and re-anchored it.
+1. **Gate 13 — ONE independent review of the whole deploy** (release (d) + #607 + #608), read-only on the five commits, with the
+   owner's go (the review-before-push rule: one per batch, ~0.5–1M tokens). Findings close test-first as a `d2` commit, as (c)'s did.
+2. `node dev/run-sabotage-diff.js origin/master..HEAD` and the four replay `--check` baselines (unchanged by (d) — prove, do not
+   assume), then push. Every campaign's prompt cache resets once (the stable half moved twice in one deploy, on purpose).
+3. The owner opens the game on every device (a stale tab keeps its cached prompt until it reloads — designed).
 
-## Before the PUSH (§5.5, decision 1) — in this order
+## Then the cleanup commit (§12 notes; NOT started — the census, 2026-10-09)
 
-1. ~~The owner exports every live campaign~~ done 2026-10-09 (The Village t291, Ammut t67). A server volume snapshot
-   (`flyctl volumes snapshots create <vol> -a traffic-and-dragons-server`) — taken by the session if flyctl answered, else owed.
-2. ~~`node dev/census-inventory-rows.js Campaigns` must say CENSUS OK~~ done (11 saves / 50 sheets / 1,259 items).
-3. ~~`node dev/run-sabotage-diff.js origin/master..HEAD` and the four replay checks~~ done, all green.
-4. Push. Then the owner opens the game on every device (a stale tab refuses the newer save until it reloads — designed).
-5. `git branch -D backup-c-local`.
+Two single-concern commits are honest here, both Fable-tier (the handlers are the drift surface):
 
-## Then release (d) — EQUIPPED (§12 row d, §3.2–3.5)
+- **The legacy delegate names retire.** Callers today: `wornPrune` — game.js, tag_table.js, ui-modals.js, ui-sheets.js, 5 test
+  pins (engine-tests ×2, tests-429 ×1, tests-audit-ui ×2), anchors in `sabotage-429-inventory-drop` and `sabotage-597-ledger-direct`;
+  `wornRename` — tag_table.js ×2, 1 test; `_wornIdx` — inventory.js only (fold into `isWorn`'s legacy branch); `foldDuplicateInventory`
+  — inventory.js, 12 test refs; the string half of `sanitizeModelInventory` — game.js, ui-sheets.js, 13 test refs; `_invBase` /
+  `_invCount` / `_invNorm` → `itemKey` — inventory.js, api.js, game.js, 33 test refs, anchors in the 599b, 599b3, 599b4 and 599b5
+  batteries. Plus the ledger rows' internal `worn` field → `equipped` (helpers.js `shopTradeCatalog`/`shopLedgerRows`/
+  `stashTradeCatalog`/`stashLedgerRows`/the two plans, ui-modals.js reads `r.worn`; the (d) tests pin the wording, not the field).
+- **The handlers' per-unit loops → counted `invAdd`/`invRemove`, and c2's fragment carry (`ilFrags`, `invCarryFields`) → one
+  `invTransfer`.** A semantic change on the pair notes (#518 reads them per unit) — write the failing test first for a partial
+  landing (3 of 5 land, the rest refused on their own ⚠ line) and for a give whose fragment carries fields.
 
-`[EQUIPPED:Name|item|on/off]` joins the WORN handler (one handler, `[WORN:]` parsed forever); the on/off word lists gain
-equipped/equip and unequipped/unequip; the STATE TAGS doc line teaches only `[EQUIPPED:]` and ends "as Equipped:"; the prompt
-label `Wearing:` → `Equipped:`; receipts "equips" / "takes off" (no shared stem); the counter's "Equipped — unequip it first"
-(decision 7); the ◆ mark in `--acc` before an equipped name with the name in `--t0` (§3.5); the two golden files re-baselined
-(Fable-tier; the stable half changes once, so every campaign's cache resets — pair with #420 and #22b as separate commits in one
-deploy if they are ready). Gate 8 then allows exactly the `Equipped:` label and the STATE TAGS line.
+## Also open
 
-## Cleanup commit (after (d), its own commit)
+- **#609** (filed this session): `dev/scratch-contract-sabotage.js` mirrors only the mutated file — bring it to sabotage.js's
+  `mirrorWorkingSet`. Opus-safe dev tooling.
+- **#420 / #22b** were not paired with this deploy (not ready); the stable half will move again when #420 lands.
+- The owner's saves hold six emergent jewelry-named canon entries filed as tool/quest (listed in TODO #607) — a save's overlay wins,
+  so they stay unless re-filed by hand in the campaign.
 
-The handlers' per-unit loops → counted `invAdd`/`invRemove` (the pair notes keep their per-unit meaning; c2's fragment carry
-(`ilFrags`, `invCarryFields`) folds into one `invTransfer` that stages removal and destination acceptance together, §2.4);
-retire the legacy delegate names (`wornPrune`, `wornRename`, `_wornIdx`, `foldDuplicateInventory`, the string half of
-`sanitizeModelInventory`, `_invBase`, `_invCount`, `_invNorm` → `itemKey`) once every caller, test and sabotage anchor has moved;
-the source pins on `wornPrune(` in tests-429 and tests-audit-ui go with them; the ledger's `wornPrune(c)` line is a no-op on rows.
+## Discipline that bit tonight
 
-## Discipline that bit this evening
-
-- A test that reads a pack must use the both-shape readers (`inventoryCountOf`, `invEntries`): `invCount` is rows-only, and a
-  companion pack that was never written is still the legacy strings — the first draft of the c2 take-pair test passed vacuously
-  for that reason before it was caught.
-- The harness stubs `saveCore`/`saveAll`/`showToast`; a test of a write boundary pins the source and checks the live object, and
-  a test that counts toasts installs its OWN `showToast` ring (an earlier test can leave another stub on the global).
-- A sabotage clause whose mutation is a no-op on the new shape proves nothing even though it changes bytes — the applicability
-  scan cannot see it; only a real run says MISSED. Run every battery touching a changed file, not only the new one.
-- The pre-commit hook runs the full gate (~3 min). `git add` explicit paths, never `-A`.
-
-## Estimate
-
-The owner's steps and the push: 30 min of the owner's time plus the sweep. (d): 3–4 h. The cleanup commit: 1–2 h.
+- The Bash tool halves backslashes: `grep -c $'\r'` counted the letter r and "proved" CRLF files that are LF. Line-ending facts
+  come from `git ls-files --eol`, and edit scripts go through the Write tool.
+- A battery clause caught by an EARLIER gate (the BIBLE EDITOR CONTRACT before any engine test) must name that gate in `mustFail`;
+  the harness exits 0 on MISATTRIBUTED, so read the verdict lines, not the exit code.
+- `run-sabotage-diff HEAD` (one revision, not a range) sweeps the uncommitted working tree.
