@@ -27896,6 +27896,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!/if\(!provider\)\{if\(typeof showAccountModal==="function"\)\{showAccountModal\(\);return;\}/.test(fn))return "with none remembered the dialog asks";
     return fn.indexOf("storageAdapter.lastLoginProvider()")<fn.indexOf("storageAdapter.loginWithServer(")?true:"the memory is read before the popup opens";
   });
+  t("#610 a dead session (HTTP 401) in the Account dialog offers both doors and a way to forget the stale token — never a bare error with no button",function(){
+    var m=src610("ui-modals.js"),fn=m.slice(m.indexOf("function showAccountModal("),m.indexOf("function showAccountModal(")+12000),e=fn.indexOf("if(/HTTP 401/.test(String(err))){"),c=fn.indexOf("if(typeof serverAccount!==\"undefined\"&&serverAccount)render(serverAccount);");
+    if(e<0)return "the 401 branch exists";if(c<0||e>c)return "the 401 branch comes BEFORE the cached readout (a dead session must not show a stale account)";
+    var br=fn.slice(e,c);if(br.indexOf("id='ac-gh'")<0||br.indexOf("id='ac-gg'")<0||br.indexOf("id='ac-forget'")<0)return "both doors and the forget button: "+br.slice(0,300);
+    if(!/ac-forget[\s\S]{0,200}disconnectFromServer\(\)/.test(br))return "forget drops the stale token through disconnectFromServer";
+    return /ac-gg[\s\S]{0,200}connectToServer\("google"\)/.test(br)?true:"the Google door is wired";
+  });
   t("#610 the Account dialog shows the doors and wires the button to the adapter; a sign-out stays its own button",function(){
     var m=src610("ui-modals.js"),fn=m.slice(m.indexOf("function showAccountModal("),m.indexOf("function showAccountModal(")+9000);
     if(fn.indexOf("h+=accountDoorsHtml(a);")<0)return "the connected readout carries the doors line";

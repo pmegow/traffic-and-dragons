@@ -495,6 +495,19 @@ function showAccountModal(){
   body.innerHTML="<p style='color:var(--t2);'>Loading account&hellip;</p>";
   storageAdapter.fetchAccount(function(err,a){
     if(err){
+      /* #610 (the owner's phone, 2026-10-10): a 401 is a DEAD session — expired, or the account it belonged to is gone (the merged-away test
+         account) — not an outage. The dialog used to show "Could not reach the server (HTTP 401)" with no button at all, and the badge's
+         reconnect led back to the same dialog: a dead end. A dead session shows the doors and a way to forget the stale token. */
+      if(/HTTP 401/.test(String(err))){
+        body.innerHTML="<p style='margin-bottom:12px;'>Your sign-in on this device has expired, or no longer matches an account. Sign in again — your local game is unaffected.</p>"
+          +"<button class='btn-p' id='ac-gh' style='width:100%;margin-bottom:8px;'>Sign in with GitHub</button>"
+          +"<button class='btn-p' id='ac-gg' style='width:100%;'>Sign in with Google</button>"
+          +"<button id='ac-forget' style='width:100%;margin-top:14px;padding:9px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Forget this sign-in</button>";
+        var gh0=document.getElementById("ac-gh");if(gh0)gh0.addEventListener("click",function(){modal.remove();connectToServer("github");});
+        var gg0=document.getElementById("ac-gg");if(gg0)gg0.addEventListener("click",function(){modal.remove();connectToServer("google");});
+        var fg0=document.getElementById("ac-forget");if(fg0)fg0.addEventListener("click",function(){modal.remove();disconnectFromServer();});
+        return;
+      }
       // Serve the cached readout if one exists; otherwise say what failed (no silent failures).
       if(typeof serverAccount!=="undefined"&&serverAccount)render(serverAccount);
       else body.innerHTML="<p style='color:var(--dng);'>Could not reach the server ("+err+"). Your local game is unaffected.</p>";

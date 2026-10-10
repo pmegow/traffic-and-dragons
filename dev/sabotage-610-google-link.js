@@ -34,6 +34,9 @@ prove("ui-campaigns.js", [
     mustFail: RECONNECT }
 ]);
 prove("ui-modals.js", [
+  { label: "a dead session is a bare error again (the 401 branch is gone)",
+    find: "if(/HTTP 401/.test(String(err))){", replace: "if(false){",
+    mustFail: "#610 a dead session" },
   { label: "the Link button is not wired",
     find: 'var lg=document.getElementById("ac-link-google");if(lg)lg.addEventListener(', replace: 'var lg=null;if(lg)lg.addEventListener(',
     mustFail: DIALOG }
