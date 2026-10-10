@@ -10,8 +10,8 @@ var CMD = ["node", ["dev/run-tests.js", "#481 A2"]];
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 prove("inventory.js", [/* #599 (b): the resolver moved */
   { label: "the resolver loses its unique base-name step",
-    find: "  if(hits.length===1)return hits[0];\n  _invLastMiss=", replace: "  _invLastMiss=",/* anchored on the LEGACY resolver's own next line — the row resolver (invFind) shares the first (#599 b) */
-    mustFail: "the resolver: a short name reaches" }
+    find: "  if(hits.length===1)return hits[0];\n  invFind.last=", replace: "  invFind.last=",/* #599 (d2) re-anchor: the WRITE resolver is invFind since (c) — the test drives ITEM_LOST through it; the old anchor sat on the read resolver and the clause read MISSED */
+    mustFail: "the resolver: a short name reaches" }/* the READ resolver's step is proven by the 599d battery (its filter runs the "#599 (d2)" section that guards it) */
 ]);
 prove("tag_table.js", [
   { label: "an ambiguous loss is no longer said",
