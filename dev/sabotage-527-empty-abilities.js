@@ -42,8 +42,8 @@ rc|=sabotage.prove({
   "cases": [
     {
       "label": "cleanup-only repair is not persisted or reported",
-      "find": "&&!rep.granted.length&&!rep.empty.length)return;",
-      "replace": "&&!rep.granted.length)return;",
+      "find": "&&!rep.granted.length&&!rep.empty.length&&!swapped.length)return;",
+      "replace": "&&!rep.granted.length&&!swapped.length)return;",
       "mustFail": "#527 cleanup-only hero"
     },
     {

@@ -27866,6 +27866,41 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     quiet(function(){commitGmTurn("Nyla looks up from the porch. [SAY:Nyla Lorrath|warm]\"Peace on your hearth, Ammut! Still warms my heart to see you walking so free, now that the soul-tax lien and necrotic tether to the Reach's engines and Tomb-Architect are extinguished for good.\"",{userMsg:"x",playerTxt:"I wave to Nyla."});});
     var p=worldState.motifPing;return (p&&p.speaker==="Nyla Lorrath"&&p.who==="Ammut"&&p.turn===worldState.turn)?true:"the ping is armed by the live turn: "+JSON.stringify(p);
   });
+  section("#527 (23) a companion's spell held as an ability gives its slot to the next same-tier bench spell (owner ruling 2026-10-10)");
+  function cleric23(spells,abilities,lvl){return {name:"Vesna",gender:"F",cls:"Cleric",level:lvl||1,xp:0,maxHp:9,hp:9,stats:{WIS:14},trait:"calm",flaw:"proud",motivation:"serve",spells:spells||[],abilities:abilities||[],inventory:[],conditions:[],relationships:[]};}
+  function join23(cs){worldState.npcs.push({name:cs.name,status:"ally",rel:"companion",met:1,partyMember:true,charSheet:cs});memory.npcs[cs.name]={knowledge:[],events:[],aliases:[],partyMember:true};return cs;}
+  function cap23(fn){var cap=[],_am=addMsg;addMsg=function(ty,h){if(ty==="system")cap.push(String(h));return _am(ty,h);};try{return {r:quiet(fn).r,lines:cap};}finally{addMsg=_am;}}
+  t("#527 (23) the pure substitution: Healing Word held as an ability and as a tier-1 spell — the spell slot becomes the next tier-1 bench spell the sheet lacks (Guiding Bolt, past the held Bless), the ability stays, the mana pool is unchanged, a second pass changes nothing; a racial spell is never touched; a bench with nothing left leaves both",function(){
+    var cs=cleric23([{nm:"Healing Word",lvl:1,used:false},{nm:"Bless",lvl:1,used:false}],[{nm:"Healing Word",ds:"Bonus action. Heal target for d4+WIS modifier HP."}]),m0=manaMax(cs);
+    var out=spellAbilityOverlapHeal(cs);
+    if(out.length!==1||out[0].from!=="Healing Word"||out[0].to!=="Guiding Bolt")return "one swap, Healing Word → Guiding Bolt: "+JSON.stringify(out);
+    if(cs.spells.map(function(x){return x.nm;}).join("|")!=="Guiding Bolt|Bless"||cs.spells[0].lvl!==1)return "the slot keeps its place and tier: "+JSON.stringify(cs.spells);
+    if(cs.abilities.length!==1||cs.abilities[0].nm!=="Healing Word")return "the ability stays: "+JSON.stringify(cs.abilities);
+    if(manaMax(cs)!==m0)return "same tier, same pool: "+m0+" → "+manaMax(cs);
+    if(spellAbilityOverlapHeal(cs).length)return "idempotent";
+    var two=cleric23([{nm:"Healing Word",lvl:1,used:false}],[{nm:"Healing Word",ds:"x"},{nm:"Bless",ds:"x"}]);var o3=spellAbilityOverlapHeal(two);if(o3.length!==1||o3[0].to!=="Guiding Bolt")return "a substitute is never another name held as an ability (Bless is held): "+JSON.stringify([o3,two.spells]);
+    var rc=cleric23([{nm:"Healing Word",lvl:1,used:false,racial:true}],[{nm:"Healing Word",ds:"x"}]);if(spellAbilityOverlapHeal(rc).length||rc.spells[0].nm!=="Healing Word")return "a racial spell is never touched";
+    var full=cleric23([{nm:"Healing Word",lvl:1},{nm:"Bless",lvl:1},{nm:"Guiding Bolt",lvl:1},{nm:"Shield of Faith",lvl:1},{nm:"Detect Magic",lvl:1}],[{nm:"Healing Word",ds:"x"}]);var o2=spellAbilityOverlapHeal(full);
+    return (o2.length===1&&o2[0].to===null&&full.spells[0].nm==="Healing Word")?true:"nothing left on the bench: both stay, said as to:null: "+JSON.stringify([o2,full.spells]);
+  });
+  t("#527 (23) the heal applies it to every COMPANION sheet with a system line, once; the hero's own picks are theirs; a Druid who holds Healing Word as a spell only keeps it",function(){
+    makeWorld();worldState.character.cls="Cleric";worldState.character.spells=[{nm:"Healing Word",lvl:1,used:false}];worldState.character.abilities=[{nm:"Healing Word",ds:"x"}];
+    var v=join23(cleric23([{nm:"Healing Word",lvl:1,used:false},{nm:"Bless",lvl:1,used:false}],[{nm:"Healing Word",ds:"Bonus action. Heal target for d4+WIS modifier HP."},{nm:"Sacred Flame",ds:"x"},{nm:"Turn Undead",ds:"x"}]));
+    var dr=join23({name:"Thorn",gender:"M",cls:"Druid",level:1,xp:0,maxHp:9,hp:9,stats:{WIS:14},trait:"",flaw:"",motivation:"",spells:[{nm:"Healing Word",lvl:1,used:false}],abilities:[],inventory:[],conditions:[],relationships:[]});
+    var a=cap23(function(){return healAbilitySheets();});
+    if(v.spells.map(function(x){return x.nm;}).join("|")!=="Guiding Bolt|Bless")return "Vesna's Healing Word slot becomes Guiding Bolt: "+JSON.stringify(v.spells)+" "+JSON.stringify(a.lines);
+    if(!a.lines.some(function(l){return /Vesna: Healing Word is an ability on the sheet — the spell slot becomes Guiding Bolt/.test(l);}))return "said: "+JSON.stringify(a.lines);
+    if(worldState.character.spells[0].nm!=="Healing Word")return "the hero's pick is theirs: "+JSON.stringify(worldState.character.spells);
+    if(dr.spells[0].nm!=="Healing Word")return "a spell with no ability twin stays: "+JSON.stringify(dr.spells);
+    var b=cap23(function(){return healAbilitySheets();});
+    return (b.r===0&&!b.lines.some(function(l){return /spell slot becomes/.test(l);}))?true:"a second heal changes nothing: "+b.r+" "+JSON.stringify(b.lines);
+  });
+  t("#527 (23) the auto-pick skips a bench spell the sheet holds as an ability: a Cleric companion holding Spiritual Weapon as an ability reaching level 5 learns Lesser Restoration and Augury, never Spiritual Weapon; without the ability the pick is Spiritual Weapon first",function(){
+    var cs=cleric23([],[{nm:"Spiritual Weapon",ds:"x"}],5),learned=companionAutoPickSpells(cs,spellUnlocksCrossed("Cleric",null,4,5));
+    if(learned.join("|")!=="Lesser Restoration|Augury")return "the held name is skipped, the next two of the tier are taken: "+JSON.stringify(learned);
+    var cs2=cleric23([],[],5),l2=companionAutoPickSpells(cs2,spellUnlocksCrossed("Cleric",null,4,5));
+    return l2[0]==="Spiritual Weapon"?true:"without the ability the bench order stands: "+JSON.stringify(l2);
+  });
   section("#518 block — an item pair is TWO TAGS IN ONE BLOCK (owner ruling 2026-10-10; the pair notes are the protocol)");
   function blockComp(inv){worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:inv||[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};}
   t("#518 block the loot/throw collision: a hero who loots a Dagger in the same reply that a companion throws an untracked Dagger KEEPS the loot — the two tags sit in two blocks, so neither is the other's half",function(){

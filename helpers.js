@@ -1335,6 +1335,23 @@ function abilityHas(c,nm){
   for(i=0;i<L.length;i++){if(abilitySame(c,abilityParts(L[i]).nm,nm))return true;}
   return false;
 }
+/* #527 (23) (owner ruling 2026-10-10): a companion's spell that the sheet ALSO holds as an ability (the Cleric's Healing Word is a
+   class ability row AND a tier-1 bench spell) gives its slot to the next bench spell of its tier the sheet does not hold — the
+   class bench first, then the archetype's; the ability stays, and the bible keeps the spell for the classes that cast it. Racial
+   spells are never touched. Returns [{from,to}] (to:null when the bench had nothing left — the spell stays). Pure; idempotent.
+   The same tier keeps the mana pool where it was (manaMax sums per-spell costs by tier). */
+function spellAbilityOverlapHeal(cs){
+  var out=[];if(!cs||!cs.spells||!cs.spells.length)return out;
+  var held=keyedDict(),i,j;for(i=0;i<(cs.abilities||[]).length;i++)held[capBaseName(abilityParts(cs.abilities[i]).nm)]=1;
+  var d=classDef(cs.cls),arch=null;if(d&&d.archetypes&&cs.archetype)for(i=0;i<d.archetypes.length;i++)if(d.archetypes[i].id===cs.archetype)arch=d.archetypes[i];
+  for(i=0;i<cs.spells.length;i++){var sp=cs.spells[i];if(!sp||sp.racial)continue;var base=capBaseName(sp.nm);if(!held[base])continue;
+    var tier=String(sp.lvl||1),pool=((d&&d.spells&&d.spells[tier])||[]).concat((arch&&arch.spells&&arch.spells[tier])||[]),known=keyedDict(),to=null;
+    for(j=0;j<cs.spells.length;j++)known[capBaseName(cs.spells[j].nm)]=1;
+    for(j=0;j<pool.length;j++){var cand=capBaseName(pool[j]);if(known[cand]||held[cand])continue;to=pool[j];break;}
+    if(to)cs.spells[i]={nm:to,lvl:sp.lvl,used:false};
+    out.push({from:sp.nm,to:to});}
+  return out;
+}
 // #490: does the sheet hold this name under ANY spelling a GM tag could collide with — another
 // case, stray spaces, or an old "LvN" entry carrying it in the description. Deliberately NOT
 // capBaseName: "Mudwalk (greater)" is a different ability from "Mudwalk" and always was.

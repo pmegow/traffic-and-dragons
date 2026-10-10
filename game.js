@@ -1323,6 +1323,7 @@ function companionAutoPickSpells(cs,unlocks){
     if(!unlocks[u].pool.length)continue;
     var have=keyedDict();if(!cs.spells)cs.spells=[];
     for(h=0;h<cs.spells.length;h++)have[capBaseName(cs.spells[h].nm)]=1;
+    for(h=0;h<(cs.abilities||[]).length;h++)have[capBaseName(abilityParts(cs.abilities[h]).nm)]=1;/* #527 (23): a bench spell the sheet holds as an ABILITY is not picked — the next of the tier is */
     var need=SPELL_UNLOCK_PICKS[String(unlocks[u].tier)]||1;
     for(p=0;p<unlocks[u].pool.length&&need>0;p++){
       var nm=unlocks[u].pool[p];
@@ -1364,8 +1365,12 @@ function healAbilitySheets(){
       learned=learned.concat(companionAutoPickSpells(cs,unl));
       manaGrowWithMax(cs,mxB);
     }
-    if(!rep.archetype&&!rep.renamed.length&&!rep.removed.length&&!rep.granted.length&&!rep.empty.length)return;
+    /* #527 (23): a companion's spell the sheet also holds as an ability gives its slot to the next same-tier bench spell (the hero's own picks are theirs) */
+    var swaps=(isCompanion&&typeof spellAbilityOverlapHeal==="function")?spellAbilityOverlapHeal(cs):[],swapped=swaps.filter(function(s){return s.to;}),kept=swaps.filter(function(s){return !s.to;});
+    if(kept.length&&typeof console!=="undefined")console.info("[#527 heal] "+who+": "+kept.map(function(s){return s.from;}).join(", ")+" held as ability and spell — the tier's bench has nothing left to put in the slot; both stay");
+    if(!rep.archetype&&!rep.renamed.length&&!rep.removed.length&&!rep.granted.length&&!rep.empty.length&&!swapped.length)return;
     changed++;
+    if(swapped.length)addMsg("system",who+": "+swapped.map(function(s){return s.from+" is an ability on the sheet — the spell slot becomes "+s.to;}).join("; ")+" (#527)");
     if(rep.empty.length){var reason=who+" — removed empty ability entries at slot"+(rep.empty.length===1?" ":"s ")+rep.empty.join(", ")+" (missing saved ability data).";addMsg("system",reason);if(typeof console!=="undefined")console.warn("[#527 heal] "+reason);}
     if(rep.archetype)addMsg("system",who+" — archetype: "+rep.archetype.nm+".");
     if(rep.granted.length){addMsg("system",who+" gains: "+rep.granted.join(", "));showToast("★ "+who+" gained "+(rep.granted.length>1?"abilities owed from earlier levels: ":"an ability owed from an earlier level: ")+rep.granted.join(", "));}
