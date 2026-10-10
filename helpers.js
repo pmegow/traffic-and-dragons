@@ -1988,6 +1988,7 @@ function firstWareNotHeld(wares,inventory){
 var INVENTORY_CATEGORY_REGISTRY=[
   {id:"weapon",     label:"Weapons"},
   {id:"armor",      label:"Armor"},
+  {id:"jewelry",    label:"Jewelry"},/* #607 (owner ask 2026-10-09): rings, amulets, bracelets, signets — their own section, after Armor */
   {id:"quest",      label:"Quest"},
   {id:"consumable", label:"Consumables"},
   {id:"tool",       label:"Tools"},
@@ -1995,6 +1996,10 @@ var INVENTORY_CATEGORY_REGISTRY=[
   {id:"mundane",    label:"Mundane"}
 ];
 function _invCatValid(id){var i;for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++){if(INVENTORY_CATEGORY_REGISTRY[i].id===id)return true;}return false;}
+/* #607: the ids in registry order — the ONE derivation the ITEM_DEF doc line and parse (tag_table.js), the define prompt (api.js),
+   the bible editor's dropdown, sort order and file header, and the run-tests bible contract all read. A new category is one
+   registry entry; a hand copy of this list anywhere is the rot class #607 closed (five copies had drifted apart). */
+function invCategoryIds(){return INVENTORY_CATEGORY_REGISTRY.map(function(c){return c.id;});}
 // The display-membership set for an entry: a VALID inventoryCategories array wins; a legacy
 // entry (no array) derives [category]; invalid metadata (empty array, unknown id, category
 // missing from the array's implied membership) returns null — the caller files the row under

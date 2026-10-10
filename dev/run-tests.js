@@ -746,6 +746,12 @@ try {
   var _beFile = _src("class_bible.js").replace(/\r\n/g, "\n");
   var _serM = _bePage.match(/\/\/ >>> BIBLE SERIALIZER[\s\S]*?\/\/ <<< BIBLE SERIALIZER/);
   if (!_serM) _failBE("the serializer markers are gone from bible_editor.html");
+  // #607: the category vocabulary is the ONE registry in helpers.js — the item serializer and the checks below derive from it
+  var _regM = _src("helpers.js").match(/var INVENTORY_CATEGORY_REGISTRY=\[[\s\S]*?\];/);
+  if (!_regM) _failBE("INVENTORY_CATEGORY_REGISTRY is gone from helpers.js");
+  var _reg = new Function(_regM[0] + "\nreturn INVENTORY_CATEGORY_REGISTRY;")();
+  var _regIds = _reg.map(function (c) { return c.id; });
+  function _withRegistry(code) { return new Function("INVENTORY_CATEGORY_REGISTRY", "invCategoryIds", code)(_reg, function () { return _regIds.slice(); }); }
   var _serialize = new Function(_serM[0] + "\nreturn serializeClassBible;")();
   var _beVals = new Function(_beFile + "\nreturn { b: CLASS_BIBLE, x: CLASS_XP_LEVELS };")();
   var _beOut = _serialize(_beVals.b, _beVals.x).replace(/\r\n/g, "\n");
@@ -799,7 +805,7 @@ try {
 
   // ── ITEM BIBLE half (#81, same discipline): item_bible.js is machine-regenerated wholesale ──
   var _biFile = _src("item_bible.js").replace(/\r\n/g, "\n");
-  var _serItems = new Function(_serM[0] + "\nreturn serializeItemBible;")();
+  var _serItems = _withRegistry(_serM[0] + "\nreturn serializeItemBible;");
   var _biData = new Function(_biFile + "\nreturn ITEM_BIBLE;")();
   var _biOut = _serItems(_biData).replace(/\r\n/g, "\n");
   if (_biOut !== _biFile) {
@@ -814,8 +820,8 @@ try {
   // ids, includes category, serialized in registry order) and aliases (itemBaseName-normalized,
   // sorted, collision-free across keys and other entries). The scalar category contract is
   // untouched; unclassified is a UI safety state and may never be authored into the bible.
-  var _biCats = { weapon: 1, armor: 1, consumable: 1, tool: 1, quest: 1, treasure: 1, mundane: 1 };
-  var _biOrder = ["weapon", "armor", "quest", "consumable", "tool", "treasure", "mundane"];
+  var _biCats = {}; _regIds.forEach(function (id) { _biCats[id] = 1; }); // #607: derived from the registry extracted above
+  var _biOrder = _regIds;
   var _biAliasOwner = {};
   for (var _bk in _biData) {
     var _be2 = _biData[_bk], _bfs = Object.keys(_be2).sort().join(",");

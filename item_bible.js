@@ -11,14 +11,14 @@
 //
 // Schema, fixed-attribute discipline (every entry carries the full set, "N/A" where
 // inapplicable — injected canon must never query empty). #157 adds two display fields:
-//   inventoryCategories — one or more of the seven ids (DISPLAY membership for the grouped
+//   inventoryCategories — one or more of the registry ids (DISPLAY membership for the grouped
 //     inventory; always includes category; serialized in registry order; the FIRST registry
 //     match decides the section an item files under),
 //   aliases — exact alternate TYPE names, itemBaseName()-normalized, collision-refused —
 //     never substring, never fuzzy (an ambiguous name stays honestly Unclassified).
 // effect:"N/A" outside mundane/treasure is a LEGAL classification-only entry (#157): it
 // organizes the inventory and fills the tooltip but is NEVER injected as GM canon.
-//   { category: weapon|armor|consumable|tool|quest|treasure|mundane,
+//   { category: weapon|armor|jewelry|quest|consumable|tool|treasure|mundane,
 //     effect:   what it DOES, mechanically, or "N/A",
 //     uses:     usage/recharge model of the TYPE ("single use", "at-will", "1/day", "reusable"),
 //     value:    typical price, or "N/A" }
@@ -187,8 +187,9 @@ var ITEM_BIBLE = {
     "value": "10 gp"
   },
   "veil token pendant": {
-    "category": "tool",
+    "category": "jewelry",
     "inventoryCategories": [
+      "jewelry",
       "tool"
     ],
     "aliases": [],
@@ -828,8 +829,9 @@ var ITEM_BIBLE = {
     "value": "N/A"
   },
   "iron spiral pendant": {
-    "category": "quest",
+    "category": "jewelry",
     "inventoryCategories": [
+      "jewelry",
       "quest"
     ],
     "aliases": [],
@@ -848,8 +850,9 @@ var ITEM_BIBLE = {
     "value": "N/A"
   },
   "brass ring": {
-    "category": "treasure",
+    "category": "jewelry",
     "inventoryCategories": [
+      "jewelry",
       "treasure"
     ],
     "aliases": [],
@@ -858,8 +861,9 @@ var ITEM_BIBLE = {
     "value": "N/A"
   },
   "iron ring": {
-    "category": "treasure",
+    "category": "jewelry",
     "inventoryCategories": [
+      "jewelry",
       "treasure"
     ],
     "aliases": [],
@@ -898,8 +902,9 @@ var ITEM_BIBLE = {
     "value": "N/A"
   },
   "cold iron ring": {
-    "category": "treasure",
+    "category": "jewelry",
     "inventoryCategories": [
+      "jewelry",
       "treasure"
     ],
     "aliases": [],
@@ -908,8 +913,9 @@ var ITEM_BIBLE = {
     "value": "N/A"
   },
   "wedding ring": {
-    "category": "treasure",
+    "category": "jewelry",
     "inventoryCategories": [
+      "jewelry",
       "treasure"
     ],
     "aliases": [
@@ -1122,8 +1128,9 @@ var ITEM_BIBLE = {
     "value": "N/A"
   },
   "karzoug's greed-signet ring": {
-    "category": "tool",
+    "category": "jewelry",
     "inventoryCategories": [
+      "jewelry",
       "tool"
     ],
     "aliases": [

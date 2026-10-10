@@ -8366,7 +8366,7 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===2037632638&&d.length===30929)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #598 (v1.1125): the GOLD doc line says the coin is tagged in its own unit (gp|sp|cp), +16 chars. #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    return (__djb2(d)===2036607599&&d.length===30937)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #598 (v1.1125): the GOLD doc line says the coin is tagged in its own unit (gp|sp|cp), +16 chars. #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
@@ -19246,10 +19246,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.itemBible={};/* overlay-staged entries keep these tests independent of static-bible content */
     return worldState;
   }
-  t("INVENTORY_CATEGORY_REGISTRY: the seven ids in fixed priority order, position IS the priority",function(){
+  t("INVENTORY_CATEGORY_REGISTRY: the eight ids in fixed priority order (#607: jewelry after armor), position IS the priority",function(){
     if(typeof INVENTORY_CATEGORY_REGISTRY==="undefined")return "registry missing";
     var ids=INVENTORY_CATEGORY_REGISTRY.map(function(c){return c.id;}).join(",");
-    if(ids!=="weapon,armor,quest,consumable,tool,treasure,mundane")return "order wrong: "+ids;
+    if(ids!=="weapon,armor,jewelry,quest,consumable,tool,treasure,mundane")return "order wrong: "+ids;
     var i;for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++){if(!INVENTORY_CATEGORY_REGISTRY[i].label)return "missing label at "+i;if(INVENTORY_CATEGORY_REGISTRY[i].rank!==undefined)return "no separate numeric ranks — array position is the priority (Sol §3.1)";}
     return true;
   });
@@ -32000,6 +32000,45 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(p.indexOf('(eqp?"\\n"+INV_EQUIPPED_WORD:"")')<0)return "the panel's tooltip carries the word";
     if(x.indexOf(".ii.eqp,.inv-name.eqp{color:var(--t0)}")<0||x.indexOf(".inv-eqp{color:var(--acc)")<0)return "index.html: the name in --t0, the glyph in --acc";
     if(!/\.ii\.gear\{[^}]*\}\r?\n\.ii\.eqp,/.test(x))return "the .eqp rule follows .ii.gear so an equipped weapon reads in --t0, not the gear accent";
+    return true;
+  });
+
+  section("#607 Jewelry — a new inventory category, derived everywhere from the ONE registry");
+  t("#607 the registry: jewelry sits after armor; _invCatValid and itemInvCategories accept it; invCategoryIds() is the one derivation; groupInventory files a bible ring under Jewelry and not again under Treasure",function(){
+    var ids=invCategoryIds();if(ids.join(",")!=="weapon,armor,jewelry,quest,consumable,tool,treasure,mundane")return "order: "+ids.join(",");
+    if(!_invCatValid("jewelry")||JSON.stringify(itemInvCategories({category:"jewelry"}))!=='["jewelry"]')return "the validator and the legacy derive";
+    var lbl=INVENTORY_CATEGORY_REGISTRY.filter(function(c){return c.id==="jewelry";})[0].label;if(lbl!=="Jewelry")return "label: "+lbl;
+    makeInvWorld();var g=groupInventory(["Brass ring","Rope"]);var j=g.filter(function(x){return x.id==="jewelry";})[0];
+    if(!j||j.rows.length!==1||!/brass ring/i.test(j.rows[0].name))return "a bible ring files under Jewelry: "+JSON.stringify(g.map(function(x){return x.id+":"+x.rows.length;}));
+    if(g.some(function(x){return x.id!=="jewelry"&&x.rows.some(function(r){return /brass ring/i.test(r.name);});}))return "and not twice";
+    return true;
+  });
+  t("#607 the ITEM_DEF parse accepts category=jewelry and refuses a spelling the registry does not know (kept as tool, said once); the vocabulary is derived, not a hand list",function(){
+    makeWorld();worldState.pendingItemDefs=[];
+    var q=quiet(function(){return applyMuts("[ITEM_DEF:Moon signet|category=jewelry|effect=Glows under moonlight|uses=at-will|value=40 gp][ITEM_DEF:Odd band|category=jewellery|effect=Hums softly|uses=at-will|value=1 gp]");});
+    var p=worldState.pendingItemDefs;if(p.length!==2)return "two proposals: "+JSON.stringify(p);
+    if(p[0].entry.category!=="jewelry")return "jewelry accepted: "+JSON.stringify(p[0]);
+    if(p[1].entry.category!=="tool"||!q.warns.some(function(w){return /unknown category 'jewellery'/.test(w);}))return "an unknown spelling is refused loudly and kept as tool: "+JSON.stringify([p[1],q.warns]);
+    var src=__fsForTests.readFileSync(__rootForTests+"/tag_table.js","utf8");if(/var ID_CATS=\{weapon:1/.test(src)||src.indexOf("_idcs=invCategoryIds()")<0)return "the parse vocabulary is DERIVED from the registry, not a hand list";
+    return true;
+  });
+  t("#607 the vocabulary has ONE source: the STATE TAGS line, the define prompt, the bible editor's dropdown, sort order and header, the bible file's header and the run-tests contract all derive from the registry — no hand list of the categories survives",function(){
+    var d=buildStateTagsDoc(),want="category is one of "+invCategoryIds().join("/")+";";if(d.indexOf(want)<0)return "the doc line: "+want;
+    if(/weapon\/armor\/consumable\/tool\/quest\/treasure\/mundane/.test(d))return "the old hand list is still in the doc";
+    var fs=__fsForTests,R=__rootForTests,ed=fs.readFileSync(R+"/bible_editor.html","utf8"),api=fs.readFileSync(R+"/api.js","utf8"),rt=fs.readFileSync(R+"/dev/run-tests.js","utf8"),ib=fs.readFileSync(R+"/item_bible.js","utf8");
+    if(ed.indexOf("var ITEM_CATEGORIES = invCategoryIds();")<0||ed.indexOf("var _ord = invCategoryIds();")<0||ed.indexOf('"//   { category: " + invCategoryIds().join("|") + ",",')<0)return "the editor's three copies derive";
+    if(/\["weapon", "armor", "(quest|consumable)"/.test(ed))return "a hand list survives in the editor";
+    if(api.indexOf('(categories: "+invCategoryIds().join("/")+")')<0||/weapon\/armor\/consumable\/tool\/quest\//.test(api))return "the define prompt derives";
+    if(rt.indexOf("var _biOrder = _regIds;")<0||/_biCats = \{ weapon: 1/.test(rt))return "the run-tests contract derives from the registry it extracts";
+    if(ib.indexOf("//   { category: "+invCategoryIds().join("|")+",")<0)return "the bible file's header is the serializer's (derived) output";
+    return true;
+  });
+  t("#607 the bible census: every jewelry-named entry (ring, pendant, signet, amulet, bracelet…) files under jewelry FIRST with its old category kept as a secondary membership; jewelry without an effect still never injects as canon, jewelry with one still does",function(){
+    var re=/\b(ring|rings|amulet|necklace|pendant|bracelet|signet|brooch|torc|earring|circlet|locket|bangle)\b/i,ex=/\b(key ring|ring mail)\b/i,k,n=0,bad=[];
+    for(k in ITEM_BIBLE){if(!re.test(k)||ex.test(k))continue;n++;var e=ITEM_BIBLE[k];if(e.category!=="jewelry"||!e.inventoryCategories||e.inventoryCategories[0]!=="jewelry"||e.inventoryCategories.length<2)bad.push(k+":"+e.category+JSON.stringify(e.inventoryCategories));}
+    if(n<7||bad.length)return "jewelry-named entries not filed under jewelry with a secondary membership ("+n+" found): "+bad.join(", ");
+    makeWorld();worldState.character.inventory=["Brass ring"];if(buildItemBibleBlock().indexOf("brass ring")>=0)return "a jewelry entry with effect N/A injected as canon";
+    worldState.character.inventory=["Veil token pendant"];if(buildItemBibleBlock().indexOf("- veil token pendant — jewelry")<0)return "a jewelry entry WITH an effect still injects, under its new category: "+buildItemBibleBlock().slice(0,200);
     return true;
   });
 

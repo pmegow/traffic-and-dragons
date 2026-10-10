@@ -192,14 +192,14 @@ function serializeItemBible(bible) {
     "//",
     "// Schema, fixed-attribute discipline (every entry carries the full set, \"N/A\" where",
     "// inapplicable — injected canon must never query empty). #157 adds two display fields:",
-    "//   inventoryCategories — one or more of the seven ids (DISPLAY membership for the grouped",
+    "//   inventoryCategories — one or more of the registry ids (DISPLAY membership for the grouped",
     "//     inventory; always includes category; serialized in registry order; the FIRST registry",
     "//     match decides the section an item files under),",
     "//   aliases — exact alternate TYPE names, itemBaseName()-normalized, collision-refused —",
     "//     never substring, never fuzzy (an ambiguous name stays honestly Unclassified).",
     "// effect:\"N/A\" outside mundane/treasure is a LEGAL classification-only entry (#157): it",
     "// organizes the inventory and fills the tooltip but is NEVER injected as GM canon.",
-    "//   { category: weapon|armor|consumable|tool|quest|treasure|mundane,",
+    "//   { category: " + invCategoryIds().join("|") + ",",
     "//     effect:   what it DOES, mechanically, or \"N/A\",",
     "//     uses:     usage/recharge model of the TYPE (\"single use\", \"at-will\", \"1/day\", \"reusable\"),",
     "//     value:    typical price, or \"N/A\" }",
@@ -231,7 +231,7 @@ function serializeItemBible(bible) {
   // (category, inventoryCategories, aliases, effect, uses, value), legacy entries normalized to
   // the full shape ([category] / []), and inventoryCategories sorted in registry order. The
   // BIBLE EDITOR CONTRACT byte-compares this output against the file, so drift cannot ship.
-  var _ord = ["weapon", "armor", "quest", "consumable", "tool", "treasure", "mundane"];
+  var _ord = invCategoryIds(); // #607: the registry order, derived (helpers.js) — never a hand copy
   var canon = {}, ks = Object.keys(bible), ki, oi;
   for (ki = 0; ki < ks.length; ki++) {
     var se = bible[ks[ki]];
@@ -800,7 +800,7 @@ function serializeItemBible(bible) {
   }
 
   // ── #81 item bible view — regenerated wholesale on save (the class-bible pattern) ─────────
-  var ITEM_CATEGORIES = ["weapon", "armor", "consumable", "tool", "quest", "treasure", "mundane"];
+  var ITEM_CATEGORIES = invCategoryIds(); // #607: derived from the ONE registry (helpers.js)
   function renderItems() {
     var b = CUR.data.bible, keys = Object.keys(b), f = itemFilter.toLowerCase();
     var h = "<h2>Item bible <span class='muted'>" + keys.length + " entries — regenerated wholesale on save (canonical JSON)</span></h2>" +
