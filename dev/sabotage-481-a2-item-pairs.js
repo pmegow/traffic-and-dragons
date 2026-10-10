@@ -21,20 +21,20 @@ prove("tag_table.js", [
     find: 'if(_lact==="placed"){var _lpb=null,', replace: 'if(false){var _lpb=null,',
     mustFail: "a stow whose placement is refused" },
   { label: "a placement whose loss missed is placed anyway",
-    find: 'if(_lact==="placed"&&itemPairMissed(R,_lnm)){', replace: 'if(false){',
+    find: 'if(_lact==="placed"&&itemPairMissed(R,_lnm,_liB)){', replace: 'if(false){',/* #518: the block rides the call */
     mustFail: "a loss that matched nothing places nothing" },
   { label: "a refused trade rider is no longer a miss",
-    find: 'ilTags.forEach(function(t0){var m0=t0.match(/\\[ITEM_LOST:([^\\]]+)\\]/);if(m0){if(!R.ilMiss)R.ilMiss=keyedDict();R.ilMiss[itemPairKey(m0[1])]=m0[1].trim();}});return;}',
+    find: 'ilTags.forEach(function(t0,i0){var m0=t0.match(/\\[ITEM_LOST:([^\\]]+)\\]/);if(m0)itemPairMiss(R,"ilMiss",m0[1],m0[1].trim(),rBlockAt(R,text,ilOff[i0]));});return;}',/* #518 re-anchor */
     replace: 'return;}',
     mustFail: "a loss that matched nothing places nothing" },
   { label: "a gift the hero never held reaches the companion",
-    find: 'if(itemPairMissed(R,cIgm[2])){', replace: 'if(false){',
+    find: 'if(itemPairMissed(R,cIgm[2],_cgBlk)){', replace: 'if(false){',/* #518 */
     mustFail: "a loss that matched nothing places nothing" },
   { label: "a gift to a non-member vanishes again",
-    find: 'var _gpb=itemPairTake(R,"ilHits",cIgm[2]);if(_gpb){', replace: 'var _gpb=null;if(_gpb){',
+    find: 'var _gpb=itemPairTake(R,"ilHits",cIgm[2],_cgBlk);if(_gpb){', replace: 'var _gpb=null;if(_gpb){',/* #518 */
     mustFail: "a gift to someone who is not a party member" },
   { label: "a take the companion never held reaches the hero",
-    find: 'var _tpb=itemPairTake(R,"igHits",cIlm[2]),_tpn=0;while(_tpb){', replace: 'var _tpb=null,_tpn=0;while(_tpb){',
+    find: 'var _tpb=itemPairTake(R,"igHits",cIlm[2],_tlB),_tpn=0;while(_tpb){', replace: 'var _tpb=null,_tpn=0;while(_tpb){',/* #518 */
     mustFail: "a take from a companion whose loss misses" },
   { label: "the village mints coin for a sale of nothing",
     find: 'if(R.goldIn>0&&typeof kindDef==="function"&&kindDef().tradeOnlyInShops){var _sSim=',

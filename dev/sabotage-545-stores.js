@@ -10,7 +10,7 @@ prove('identity.js',[
 {label:'discard detached dictionary shape',find:'return kind?keyedStores(c,kind):c;',replace:'return c;',mustFail:'#545 detached memory clone'},
 {label:'drop reserved scene cast key',find:'if(!set)set=keyedDict();',replace:'if(!set)set={};',mustFail:'#545 scene cast reserved name'}
 ]);
-prove('inventory.js',[{label:'restore inherited item-pair bucket',find:'if(!R[field])R[field]=keyedDict();',replace:'if(!R[field])R[field]={};',mustFail:'#545 item pairing'}]);
+prove('inventory.js',[{label:'restore inherited item-pair bucket',find:'function itemPairNote(R,field,name,val,blk){if(!R[field])R[field]=keyedDict();',replace:'function itemPairNote(R,field,name,val,blk){if(!R[field])R[field]={};'/* #518: itemPairMiss shares the span — anchor on the note */,mustFail:'#545 item pairing'}]);
 prove('tag_table.js',[{label:'admit inherited category enum',find:'if(ownValue(ID_CATS,idc))',replace:'if(ID_CATS[idc])',mustFail:'#545 unknown reserved item categories'}]);
 prove('game.js',[{label:'omit generated sheet admission (#599 (b): the attach runs the registry — its stores AND arrays entries both normalize, so the only single-point bypass is dropping the admission, which the ADMISSION CONTRACT names before the #545 test can)',find:'  if(!sheetAdmit(sheet,{door:"generated sheet "+npcName,mode:"same",detach:false,rel:npcName}).ok)return null;',replace:'',mustFail:'ADMISSION CONTRACT'}]);
 prove('state.js',[

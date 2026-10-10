@@ -359,7 +359,13 @@ function itemPairKey(name){return itemBaseKey(_qtyParse(String(name==null?"":nam
    (plural s, dash spacing, case), so the chest and the pack agree on what an item is. Unlike the pair key it keeps the
    provenance: "Rope (spare)" and "Rope" are two different chest rows. Every stash consumer keys through it. */
 function stashKey(name){return itemKey(_qtyParse(String(name==null?"":name)).base);}/* #599 (b3): the tag grammar, then the pack rule — provenance kept */
-function itemPairNote(R,field,name,val){if(!R[field])R[field]=keyedDict();var k=itemPairKey(name);(R[field][k]=R[field][k]||[]).push(val);}
+/* #518: a pair note is keyed by the item AND the tag's block (tagBlockIndex, helpers.js) — a note from another block is no partner */
+function _itemPairK(name,blk){return itemPairKey(name)+(blk==null?"":"\u0000"+blk);}
+function itemPairNote(R,field,name,val,blk){if(!R[field])R[field]=keyedDict();var k=_itemPairK(name,blk);(R[field][k]=R[field][k]||[]).push(val);}
+function itemPairList(R,field,name,blk){var m=R&&R[field],k=_itemPairK(name,blk);return (m&&m[k])?m[k]:null;}/* the notes still standing; null = none was ever made (no such half in the block) */
+function itemPairCount(R,field,name,blk){var l=itemPairList(R,field,name,blk);return l?l.length:null;}
+function itemPairMiss(R,field,name,why,blk){if(!R[field])R[field]=keyedDict();R[field][_itemPairK(name,blk)]=why;}
+function itemPairMissWhy(R,field,name,blk){var m=R&&R[field];return (m&&m[_itemPairK(name,blk)])||null;}
 
 /* ═══ THE READ/WRITE BOUNDARY (#599 b4) — every reader and writer outside this file sees an inventory through these, never
    by indexing an entry, testing its type, parsing its count or joining the list itself (the INVENTORY BOUNDARY CONTRACT in
@@ -395,8 +401,8 @@ function invFromLines(text){return String(text==null?"":text).split("\n").map(fu
 /* invHolds(inv, name): does the pack hold the item — by the ONE resolver (exact key, then a unique provenance-free base),
    never a whole-string indexOf: "Rope x2" holds "Rope", "rope" holds "Rope"; two bases for one name is not a hold */
 function invHolds(inv,name){return resolveInventoryName(inv,name)>=0;}
-function itemPairTake(R,field,name){var m=R&&R[field],k=itemPairKey(name);return (m&&m[k]&&m[k].length)?m[k].pop():null;}
-function itemPairMissed(R,name){return !!(R&&R.ilMiss&&R.ilMiss[itemPairKey(name)]);}
+function itemPairTake(R,field,name,blk){var l=itemPairList(R,field,name,blk);return (l&&l.length)?l.pop():null;}
+function itemPairMissed(R,name,blk){return !!itemPairMissWhy(R,"ilMiss",name,blk);}
 // ── #50(d): model-inventory sanitation + duplicate healing (v1.291) ────────────
 // Byte-identical duplicate inventory entries can only be MINTED where a model-emitted array is
 // copied verbatim — sheet generation (normalizeCompanionSheet) and regeneration (generateNpcSheet).

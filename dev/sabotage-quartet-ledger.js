@@ -33,7 +33,7 @@ prove("tag_table.js", [
     find: "    if(cIlHit&&cIlHit<cIlq.n){var _tsh=cIlq.n-cIlHit,_tsb=0,_tsx;", replace: "    if(false){var _tsh=cIlq.n-cIlHit,_tsb=0,_tsx;",
     mustFail: "#518 ② the take pair" },
   { label: "#518 ② a total miss takes back one unit only (the hero keeps two)",
-    find: "var _tpb=itemPairTake(R,\"igHits\",cIlm[2]),_tpn=0;while(_tpb){removeInventoryItem(worldState.character.inventory,_tpb);_tpn++;_tpb=itemPairTake(R,\"igHits\",cIlm[2]);}", replace: "var _tpb=itemPairTake(R,\"igHits\",cIlm[2]),_tpn=0;if(_tpb){removeInventoryItem(worldState.character.inventory,_tpb);_tpn++;}",
+    find: "var _tpb=itemPairTake(R,\"igHits\",cIlm[2],_tlB),_tpn=0;while(_tpb){removeInventoryItem(worldState.character.inventory,_tpb);_tpn++;_tpb=itemPairTake(R,\"igHits\",cIlm[2],_tlB);}", replace: "var _tpb=itemPairTake(R,\"igHits\",cIlm[2],_tlB),_tpn=0;if(_tpb){removeInventoryItem(worldState.character.inventory,_tpb);_tpn++;}",/* #518 */
     mustFail: "#518 ② the take pair" },
   { label: "#518 ② a gift from the pack also takes from the chest again (the potion destroyed)",
     find: "    var _cAt=(_gHits!==null)?null:autoTakeLocationItem(", replace: "    var _cAt=autoTakeLocationItem(",

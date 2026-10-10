@@ -27677,6 +27677,45 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #372: the register guard's reach — three channels the #355 narration census cannot see ──
+  section("#518 block — an item pair is TWO TAGS IN ONE BLOCK (owner ruling 2026-10-10; the pair notes are the protocol)");
+  function blockComp(inv){worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:inv||[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};}
+  t("#518 block the loot/throw collision: a hero who loots a Dagger in the same reply that a companion throws an untracked Dagger KEEPS the loot — the two tags sit in two blocks, so neither is the other's half",function(){
+    makeWorld();var c=worldState.character;c.inventory=[];blockComp([]);
+    var r=quiet(function(){return applyMuts("You loot a dagger. [ITEM_GAINED:Dagger] Bram throws his dagger. [COMPANION_ITEM_LOST:Bram|Dagger]");}).r;
+    if(invTextList(c.inventory).join()!=="Dagger")return "the loot stays in the pack: "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
+    if(r.muts.some(function(m){return /Nothing moved/.test(m);}))return "no take was read across the prose: "+JSON.stringify(r.muts);
+    if(r.muts.indexOf("+Dagger")<0)return "the loot has its receipt: "+JSON.stringify(r.muts);
+    return true;
+  });
+  t("#518 block the SAME two tags in ONE block are still the take pair: with Bram holding nothing, nothing moves and it is said; with Bram holding one, the hero gains one and Bram loses it",function(){
+    makeWorld();var c=worldState.character;c.inventory=[];blockComp([]);
+    var r=quiet(function(){return applyMuts("Bram hands you a dagger. [COMPANION_ITEM_LOST:Bram|Dagger][ITEM_GAINED:Dagger]");}).r;
+    if(c.inventory.length)return "a take from a companion who held nothing lands nothing (#481 A2 b): "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
+    if(!r.muts.some(function(m){return /Nothing moved/.test(m);}))return "and it is said: "+JSON.stringify(r.muts);
+    r=quiet(function(){return applyMuts("[ITEM_GAINED:Dagger] [COMPANION_ITEM_LOST:Bram|Dagger]");}).r;/* whitespace between tags is still one block, either order */
+    if(c.inventory.length||!r.muts.some(function(m){return /Nothing moved/.test(m);}))return "whitespace does not break a block: "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
+    findCompanionChar("Bram").inventory=["Dagger"];r=quiet(function(){return applyMuts("Bram hands you his dagger. [COMPANION_ITEM_LOST:Bram|Dagger][ITEM_GAINED:Dagger]");}).r;
+    if(invTextList(c.inventory).join()!=="Dagger"||findCompanionChar("Bram").inventory.length)return "the real take lands: "+JSON.stringify([c.inventory,findCompanionChar("Bram").inventory,r.muts]);
+    return true;
+  });
+  t("#518 block the give pair's bound is per block: [ITEM_LOST:Torch x3] with one torch held and the gift in the same block gives one; the gift in another block is its own event — Bram gains what the tag says and the short loss is its own receipt",function(){
+    makeWorld();var c=worldState.character;c.inventory=["Torch"];blockComp([]);
+    var r=quiet(function(){return applyMuts("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3]");}).r;
+    if(invTextList(findCompanionChar("Bram").inventory).join()!=="Torch"||!r.muts.some(function(m){return /cut to/.test(m);}))return "in one block the gift is bounded by the loss and the cut is said: "+JSON.stringify([findCompanionChar("Bram").inventory,r.muts]);
+    c.inventory=["Torch"];findCompanionChar("Bram").inventory=[];
+    r=quiet(function(){return applyMuts("[ITEM_LOST:Torch x3] Bram grins at the bundle. [COMPANION_ITEM_GAINED:Bram|Torch x3]");}).r;
+    if(invTextList(findCompanionChar("Bram").inventory).join()!=="Torch x3")return "across prose the gain is its own event (the census found no real pair written this way): "+JSON.stringify([findCompanionChar("Bram").inventory,r.muts]);
+    if(r.muts.some(function(m){return /cut to/.test(m);}))return "no cross-block cut: "+JSON.stringify(r.muts);
+    return true;
+  });
+  t("#518 block the pure spans: tagBlockSpans joins tags separated only by whitespace and splits them at prose; tagBlockIndex finds a tag's block and -1 outside",function(){
+    var t0="You loot a dagger. [ITEM_GAINED:Dagger] Bram throws his. [COMPANION_ITEM_LOST:Bram|Dagger] The light fades.\n[TIME_ADVANCE:5m]  [TIME_CHECK:dusk]",sp=tagBlockSpans(t0);
+    if(sp.length!==3)return "three blocks (the loot, the throw, the two time tags): "+JSON.stringify(sp);
+    if(tagBlockIndex(sp,t0.indexOf("[ITEM_GAINED"))!==0||tagBlockIndex(sp,t0.indexOf("[COMPANION_ITEM_LOST"))!==1||tagBlockIndex(sp,t0.indexOf("[TIME_CHECK"))!==2)return "each tag knows its block";
+    if(tagBlockIndex(sp,5)!==-1||tagBlockSpans("").length!==0||tagBlockSpans("no tags here").length!==0)return "prose is in no block";
+    if(tagBlockSpans("[A:1]\n[B:2]").length!==1)return "a line break alone is still one block";
+    return true;
+  });
   section("#459 / #460 — records never recited; the sheet outranks the GM's memory (owner field reports 2026-09-25)");
   /* the owner's real Necrotic Dungeon skeleton (t35 save), shortened: the register lives in the premise, the act goals, a
      turning point, an arc objective and an arc title — the exact lines the GM later pasted into Nyla's mouth at the hearth */

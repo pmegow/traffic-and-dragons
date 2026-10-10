@@ -3364,6 +3364,14 @@ function shopOpportunity(){
 /* #511 ②: a tag's BLOCK — the run of tags with nothing but whitespace between them that starts at `off` — and the offset just
    past its LAST movement tag ([LOCATION:], [SUBLOCATION:], [SUBLOCATION_LEAVE]); `off` itself when the block moves nowhere.
    Pure. The trade tags read their place at that offset (rPlaceAtBlock, tag_table.js). */
+/* #518 (owner ruling 2026-10-10: a move stays two tags; the pair notes are the protocol): a reply's tag BLOCKS — the runs of tags
+   with nothing but whitespace between them, as [start,end] spans in text order — and the index of the block a tag at `off`
+   belongs to (-1 outside every block). The item pairs (#481 A2: give, take, stow) are scoped to ONE block: "You loot a dagger.
+   [ITEM_GAINED:Dagger] Bram throws his dagger. [COMPANION_ITEM_LOST:Bram|Dagger]" is two events, and the hero keeps the loot;
+   the reply-wide pairing used to read it as a take from a companion who held nothing and roll the loot back. The census of
+   the owner's saves (dev/census-tag-layout.js, 2026-10-10): every real give pair sat in one block. Pure. */
+function tagBlockSpans(text){var t=String(text==null?"":text),re=/\[[^\]]*\]/g,m,out=[],cur=null;while((m=re.exec(t))){if(cur&&!/\S/.test(t.slice(cur[1],m.index)))cur[1]=m.index+m[0].length;else{cur=[m.index,m.index+m[0].length];out.push(cur);}}return out;}
+function tagBlockIndex(spans,off){var i;for(i=0;i<(spans||[]).length;i++){if(off>=spans[i][0]&&off<spans[i][1])return i;}return -1;}
 function tagBlockEnd(text,off){
   var t=String(text==null?"":text),p=off|0,last=-1;
   while(p<t.length){var m=t.slice(p).match(/^\s*(\[[^\]]*\])/);if(!m)break;var q=p+m[0].length;if(/^\[(?:LOCATION|SUBLOCATION|SUBLOCATION_LEAVE)[:\]]/.test(m[1]))last=q;p=q;}

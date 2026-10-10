@@ -67,16 +67,16 @@ prove("tag_table.js", [
     find: "if(!_igL){R.muts.push(\"⚠ Nothing gained — '\"+igq.base+\"': \"", replace: "if(false){R.muts.push(\"⚠ Nothing gained — '\"+igq.base+\"': \"",
     mustFail: R2 },
   { label: "ITEM_LOST notes no fragment for the pair",
-    find: "itemPairNote(R,\"ilFrags\",ilq.base,removeInventoryItem.lastRow);", replace: "",
+    find: "itemPairNote(R,\"ilFrags\",ilq.base,removeInventoryItem.lastRow,_ilB);", replace: "",/* #518 */
     mustFail: R4A },
   { label: "a stow of a row with fields is filed in the chest (the fields are lost)",
-    find: "if(_lact===\"placed\"&&invFragsHaveFields(R.ilFrags&&R.ilFrags[itemPairKey(_lnm)])){", replace: "if(false){",
+    find: "if(_lact===\"placed\"&&invFragsHaveFields(itemPairList(R,\"ilFrags\",_lnm,_liB))){", replace: "if(false){",/* #518 */
     mustFail: R4C },
   { label: "a gift's refused unit vanishes instead of returning to the hero",
     find: "if(_gHits!==null){if(addInventoryItem(worldState.character.inventory,_cgF?_cgF.name:cIq.base,_cgF))_cgB++;", replace: "if(false){if(addInventoryItem(worldState.character.inventory,_cgF?_cgF.name:cIq.base,_cgF))_cgB++;",
     mustFail: R4A },
   { label: "the take pair hands the unit over although the hero's gain was refused (the item is destroyed)",
-    find: "if(R.igMiss&&R.igMiss[_tlK]){", replace: "if(false){",
+    find: "_tlMiss=itemPairMissWhy(R,\"igMiss\",cIlq.base,_tlB);if(_tlMiss){", replace: "_tlMiss=itemPairMissWhy(R,\"igMiss\",cIlq.base,_tlB);if(false){",/* #518 */
     mustFail: R2 },
   { label: "a take onto a plain stack keeps the move (the companion's fields are lost)",
     find: "if(cIlHit&&_tlG>0&&invFragsHaveFields(_tlF)){", replace: "if(false){",

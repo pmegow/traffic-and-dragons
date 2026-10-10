@@ -15,7 +15,7 @@ prove("inventory.js", [/* #599 (b): the quantity grammar moved */
 ]);
 prove("tag_table.js", [
   { label: "the companion gain ignores its count again",
-    find: "for(cIqi=0;cIqi<cIq.n;cIqi++){_cgF=itemPairTake(R,\"ilFrags\",cIq.base);", replace: "for(cIqi=0;cIqi<1;cIqi++){_cgF=itemPairTake(R,\"ilFrags\",cIq.base);",/* #599 (c2): the loop counts what landed and carries the fragment */
+    find: "for(cIqi=0;cIqi<cIq.n;cIqi++){_cgF=itemPairTake(R,\"ilFrags\",cIq.base,_cgBlk);", replace: "for(cIqi=0;cIqi<1;cIqi++){_cgF=itemPairTake(R,\"ilFrags\",cIq.base,_cgBlk);",/* #518: the block rides the take *//* #599 (c2): the loop counts what landed and carries the fragment */
     mustFail: "the companion twins read the count" },
   { label: "the companion loss ignores its count again",
     find: "for(cIlqi=0;cIlqi<cIlq.n;cIlqi++){if(removeInventoryItem(cIlCs.inventory,cIlq.base)){cIlHit++;_tlF.push(removeInventoryItem.lastRow);}else break;}", replace: "for(cIlqi=0;cIlqi<1;cIlqi++){if(removeInventoryItem(cIlCs.inventory,cIlq.base)){cIlHit++;_tlF.push(removeInventoryItem.lastRow);}else break;}",/* #599 (c2): the loop keeps each unit's fragment */
