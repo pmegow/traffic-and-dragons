@@ -27717,6 +27717,155 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   // ── #372: the register guard's reach — three channels the #355 narration census cannot see ──
+  section("#528 proof — the week's commit messages claimed it, no test pinned it (Thursday review 2026-10-01; closed 2026-10-10)");
+  t("#528 proof c51d052 A4: arrive-then-sub in ONE block files the sub under the NEW world — the walker sets the world pointer only after the loop, so the sub's own world rides the call",function(){
+    makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation=null;memory.map={nodes:{"Sandpoint":{firstVisit:1,visits:1,parent:null,npcs:[],items:[]}},edges:[],lastArrivalFrom:null};
+    var r=quiet(function(){return applyMuts("You ride the coast road north.\n[LOCATION:Magnimar]\n[SUBLOCATION:The Gilded Lily]");}).r;
+    if(worldState.world.location!=="Magnimar"||worldState.world.sublocation!=="The Gilded Lily")return "the party ends inside the Lily in Magnimar: "+JSON.stringify(worldState.world)+" "+JSON.stringify(r.muts);
+    if(!memory.map.nodes["Magnimar|The Gilded Lily"])return "the sub is a child of Magnimar: "+JSON.stringify(Object.keys(memory.map.nodes));
+    return memory.map.nodes["Sandpoint|The Gilded Lily"]?"the sub must not be minted under the world the party LEFT: "+JSON.stringify(Object.keys(memory.map.nodes)):true;
+  });
+  t("#528 proof 313b621 B4: an observation in a frame at ANOTHER node makes nobody present here — the frame counts only at its own node",function(){
+    makeWorld();worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    memory.map={nodes:{"Sandpoint":{firstVisit:1,visits:1,parent:null,npcs:[],items:[]},"Sandpoint|The Rusty Dragon":{firstVisit:1,visits:1,parent:"Sandpoint",npcs:[],items:[]}},edges:[],lastArrivalFrom:null};
+    worldState.npcs.push({name:"Ameiko",status:"warm",rel:"ally",met:1});memory.npcs["Ameiko"]={knowledge:[],events:[],aliases:[],lastSeenAt:"Sandpoint|The Rusty Dragon",lastSeenTurn:worldState.turn};
+    worldState.sceneRefs={active:{node:"Sandpoint|The Rusty Dragon",startTurn:worldState.turn,observed:[{entity:"Ameiko",channel:"say",firstTurn:worldState.turn,lastTurn:worldState.turn,turns:1}]}};
+    if(scenePresentNow("Ameiko"))return "Ameiko was observed in the tavern's frame; the party stands in the street — she is not present here";
+    worldState.world.sublocation="The Rusty Dragon";
+    return scenePresentNow("Ameiko")?true:"at the frame's own node the observation makes her present";
+  });
+  t("#528 proof d42fd63 D2: the LOAD heals a legacy '…xN' stash row — through healMemory, the hook every load runs, not by calling the healer",function(){
+    makeWorld();worldState.kind="village";if(!memory.map)memory.map={nodes:{},edges:[],lastArrivalFrom:null};
+    memory.map.nodes["The Village|Silas's house"]={firstVisit:1,visits:1,parent:"The Village",npcs:[],items:[{name:"Torch x3",qty:1,placed:1,taken:false,by:"Silas",min:0}]};
+    quiet(function(){healMemory();});var it=memory.map.nodes["The Village|Silas's house"].items;
+    return (it.length===1&&it[0].name==="Torch"&&it[0].qty===3)?true:"the load must fold the count into the row: "+JSON.stringify(it);
+  });
+  t("#528 proof d42fd63 D2: a COUNTED placement the stash refuses puts back every unit the loss took, not one",function(){
+    villageEF();var c=worldState.character;c.inventory=["Tomb-iron siphon core x3"];
+    var q=quiet(function(){return applyMuts("[ITEM_LOST:Tomb-iron siphon core x3][LOCATION_ITEM:Tomb-iron siphon core x3|placed|the well house]");});
+    if(inventoryCountOf(c.inventory,"Tomb-iron siphon core")!==3)return "all three cores back in the pack: "+JSON.stringify(c.inventory)+" "+JSON.stringify(q.r.muts);
+    return (q.r.muts||[]).some(function(m){return /stays in the pack/.test(m)&&/x3/.test(m);})?true:"the put-back names the three: "+JSON.stringify(q.r.muts);
+  });
+  t("#528 proof f1265cd C5: attireRenderText renders an outfit stamped on this campaign's clock and not one stamped after the current turn (another campaign's clock)",function(){
+    makeWorld();var c=worldState.character;worldState.turn=18;c.inventory=[];c.outfit={text:"a scarlet travelling cloak",turn:169};
+    if(/scarlet/.test(attireRenderText(c)))return "an outfit from t169 at t18 is another campaign's: "+attireRenderText(c);
+    c.outfit.turn=12;return /scarlet/.test(attireRenderText(c))?true:"this campaign's outfit renders: "+attireRenderText(c);
+  });
+  t("#528 proof f1265cd C5: the admission's scene step, in cross mode, drops another campaign's outfit and clears every relationship dynamic; in same mode it leaves them",function(){
+    makeWorld();worldState.campName="Here";worldState.campId="camp_here";
+    function src(){return {name:"Vel",cls:"Rogue",level:1,hp:8,maxHp:8,xp:0,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},abilities:[],inventory:[],spells:[],conditions:[],outfit:{text:"a sable coat",turn:2106,camp:"There",campId:"camp_there"},relationships:[{entity:"Daeris",bond:"Friend",bondTurn:1,dynamic:"wary since the bridge",dynamicTurn:5}]};}
+    var x=sheetAdmit(src(),{door:"test cross",mode:"cross",name:"Vel"});if(!x||!x.ok||!x.sheet)return "cross admission lands: "+JSON.stringify(x&&x.reason);
+    if(x.sheet.outfit)return "another campaign's outfit must not cross: "+JSON.stringify(x.sheet.outfit);
+    if((x.sheet.relationships||[]).some(function(r){return r.dynamic;}))return "every dynamic is left at the door: "+JSON.stringify(x.sheet.relationships);
+    var s2=src();s2.outfit={text:"a sable coat",turn:3,camp:"Here",campId:"camp_here"};var y=sheetAdmit(s2,{door:"test same",mode:"same",name:"Vel"});if(!y||!y.ok)return "same admission lands";
+    return (y.sheet.outfit&&y.sheet.outfit.text==="a sable coat"&&(y.sheet.relationships||[]).some(function(r){return r.dynamic==="wary since the bridge";}))?true:"same mode keeps this campaign's scene: "+JSON.stringify([y.sheet.outfit,y.sheet.relationships]);
+  });
+  t("#528 proof d3d4f86 C4: the title note advises ACT_COMPLETE for a missed act, ARC_COMPLETE for a missed arc and ARC_CONTINUE for a missed continue — never one tag for all",function(){
+    makeWorld();worldState.skelTitlePing={kind:"act",given:"The Invoice",titles:["The Long Night"],operation:"complete"};var n=buildSkeletonTitleNote();
+    if(!/\[ACT_COMPLETE:<that exact title>\]/.test(n)||/ARC_COMPLETE/.test(n))return "an act names ACT_COMPLETE: "+n;
+    worldState.skelTitlePing={kind:"arc",given:"x",titles:["The Ferry"],operation:"complete"};n=buildSkeletonTitleNote();if(!/\[ARC_COMPLETE:<that exact title>\]/.test(n))return "an arc names ARC_COMPLETE: "+n;
+    worldState.skelTitlePing={kind:"arc",given:"x",titles:["The Ferry"],operation:"continue"};n=buildSkeletonTitleNote();return /\[ARC_CONTINUE:<that exact title>/.test(n)?true:"a continue names ARC_CONTINUE: "+n;
+  });
+  t("#528 proof 172a202 #459: the register gate scans an arc's dnaHint — a hint written in accountant's language is a HIGH finding on that field",function(){
+    var sk={premise:"A quiet valley.",acts:[{title:"The Thaw",goal:"Find the shepherd.",turningPoint:"The ice breaks.",arcs:[{title:"The Hollow",objective:"Reach the hollow.",dnaHint:"Audit the tithe ledger and collect every invoice from the miller."}]}]};
+    var f=skeletonRegisterScan(sk),hit=f.filter(function(x){return /dnaHint$/.test(x.where);});
+    if(!hit.length)return "the dnaHint must be scanned: "+JSON.stringify(f);
+    return (hit[0].sev==="HIGH"&&/ledger|invoice|tithe|audit/.test(hit[0].issue))?true:"a HIGH finding naming the words: "+JSON.stringify(hit[0]);
+  });
+  t("#528 proof 970a2bf B2: the delivered SCENE CAST ask says what none means — the whole party is here and no one else, and a companion elsewhere is left out of a named cast",function(){
+    makeWorld();delete worldState.castAsk;delete worldState.combat;worldState.world.location="Sandpoint";worldState.world.sublocation=null;
+    var seed=buildSceneCastNote();if(seed)return "the first sight seeds silently: "+seed.slice(0,80);
+    worldState.world.location="Magnimar";var ask=buildSceneCastNote();
+    if(!/SCENE CAST/.test(ask))return "a node change delivers the ask: "+ask.slice(0,120);
+    return /none means the whole party is here and no one else; a companion who is elsewhere is left out of a named cast/.test(ask)?true:"the ask must say what none means: "+ask;
+  });
+  t("#528 proof 2db7ac6 D3: the gain receipt counts what LANDED — a pack at 9998 torches taking x3 lands one, says +Torch, and says the two refused",function(){
+    makeWorld();var c=worldState.character;c.inventory=[{name:"Torch",qty:9998,equipped:false}];
+    var r=quiet(function(){return applyMuts("[ITEM_GAINED:Torch x3]");}).r;
+    if(inventoryCountOf(c.inventory,"Torch")!==9999)return "one lands at the cap: "+JSON.stringify(c.inventory);
+    if(r.muts.indexOf("+Torch")<0||r.muts.some(function(m){return /\+Torch x3/.test(m);}))return "the receipt is +Torch, never +Torch x3: "+JSON.stringify(r.muts);
+    return r.muts.some(function(m){return /2 of 'Torch' refused/.test(m);})?true:"the refused two are said: "+JSON.stringify(r.muts);
+  });
+  t("#528 proof 86698a8 D9/D1: a companion's gain from the hero's own chest writes the move record with the companion as mover and the UNITS that moved; the undo refuses once the mover has left the party, once the pack half is gone, and from another place",function(){
+    var h=quartetVillage(),c=worldState.character;c.inventory=[];h.items=[{name:"Healing potion",placed:1,taken:false,qty:2,by:"Silas",min:0}];
+    worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    var r=quiet(function(){return applyMuts("[COMPANION_ITEM_GAINED:Bram|Healing potion x2]");}).r,ring=worldState.stashMoves||[],e=ring[ring.length-1];
+    if(inventoryCountOf(findCompanionChar("Bram").inventory,"Healing potion")!==2||h.items[0].qty!==0)return "both potions move from the chest to Bram: "+JSON.stringify([findCompanionChar("Bram").inventory,h.items,r.muts]);
+    if(!e||e.action!=="taken"||e.by!=="Bram"||e.units!==2||!e.pack||e.pack.units!==2)return "the move record names Bram and two units: "+JSON.stringify(e);
+    var g=worldState.stashUndoGrp;if(g==null)return "the undo pointer stands";
+    var sub=worldState.world.sublocation;worldState.world.location="Elsewhere";memory.map.nodes["Elsewhere"]={firstVisit:1,visits:1,parent:null,npcs:[],items:[]};worldState.world.sublocation=null;
+    var u1=undoLastItemMove();if(u1.ok||!/no longer where/.test(u1.reason))return "from another place the undo refuses: "+JSON.stringify(u1);
+    worldState.world.location="The Village";worldState.world.sublocation=sub;
+    findCompanionChar("Bram").inventory=[];var u2=undoLastItemMove();if(u2.ok||!/no longer in Bram's pack/.test(u2.reason))return "with the pack half gone the undo refuses: "+JSON.stringify(u2);
+    findCompanionChar("Bram").inventory=["Healing potion x2"];worldState.npcs=worldState.npcs.filter(function(n){return n.name!=="Bram";});var u3=undoLastItemMove();
+    return (!u3.ok&&/no longer the hero or in the party/.test(u3.reason))?true:"with the mover gone the undo refuses: "+JSON.stringify(u3);
+  });
+  t("#528 proof 594cf54: a village sale withheld for an item the hero does not hold arms the GM-facing tradeRefusedPing (the nudge fires), with the coin back",function(){
+    shopFixture();var c=worldState.character;c.inventory=["Rope"];delete worldState.tradeRefusedPing;var g=c.coin;
+    var r=quiet(function(){return applyMuts("[GOLD:+5][ITEM_LOST:Signet ring]");}).r;
+    if(c.coin!==g)return "the coin goes back: "+c.coin+" "+JSON.stringify(r.muts);
+    var p=worldState.tradeRefusedPing;if(!p||p.turn!==worldState.turn||!p.items||!/Signet ring/.test(p.reason)||!/hero's sheet/.test(p.reason))return "the GM is told through tradeRefusedPing: "+JSON.stringify(p);
+    var n=buildTradeRefusedNudge();return /Signet ring/.test(n)?true:"the nudge carries the reason: "+n;
+  });
+  t("#528 proof 6ef870e: an empty purse writes no spend receipt — only the overspend line",function(){
+    makeWorld();worldState.character.coin=0;var r=quiet(function(){return applyMuts("[GOLD:-5]");}).r;
+    if(r.muts.some(function(m){return /^[+-]?\d+ (gp|sp|cp)(\s|$)/.test(m);}))return "no receipt claims a coin movement (the old \"-0 gp\" pin missed the signless \"0 gp\"): "+JSON.stringify(r.muts);
+    return (worldState.character.coin===0&&r.muts.length===1&&/Overspend/.test(r.muts[0]))?true:"only the overspend is said: "+JSON.stringify(r.muts);
+  });
+  t("#528 proof 91e50ea B4: a party member cannot be a shop's keeper (refused, said), and a keeper is stored under the roster's exact name however the tag spelled it",function(){
+    shopFixture();delete memory.map.nodes["The Village|the trading post"].keeper;worldState.npcs.push({name:"Bram Oakes",status:"ally",rel:"companion",met:1,partyMember:true,charSheet:{name:"Bram Oakes",inventory:[]}});memory.npcs["Bram Oakes"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    var r=quiet(function(){return applyMuts("[SHOP_KEEPER:Bram Oakes]");}).r;
+    if(memory.map.nodes["The Village|the trading post"].keeper)return "a party member was filed as keeper";
+    if(!r.muts.some(function(m){return /Keeper refused/.test(m)&&/travels with the party/.test(m);}))return "the refusal says why: "+JSON.stringify(r.muts);
+    r=quiet(function(){return applyMuts("[SHOP_KEEPER:frizwick]");}).r;
+    return memory.map.nodes["The Village|the trading post"].keeper==="Frizwick"?true:"the roster name, not the operand: "+JSON.stringify(memory.map.nodes["The Village|the trading post"].keeper)+" "+JSON.stringify(r.muts);
+  });
+  t("#528 proof 1bbf9f6 D8: the tenth new undefined item in one reply overflows the ask queue OUT LOUD — a ⚠ line names it",function(){
+    makeWorld();var c=worldState.character;c.inventory=[];delete worldState.itemDefCandidate;delete worldState.itemDefQueue;delete worldState.itemDefAsked;worldState.pendingItemDefs=[];
+    var tags="",i;for(i=1;i<=10;i++)tags+="[ITEM_GAINED:Zarquon relic "+i+"]";
+    var r=quiet(function(){return applyMuts(tags);}).r;
+    if(!worldState.itemDefCandidate||(worldState.itemDefQueue||[]).length!==ITEM_DEF_QUEUE_CAP)return "one asks now, eight wait: "+JSON.stringify([worldState.itemDefCandidate,worldState.itemDefQueue]);
+    return r.muts.some(function(m){return /Too many new items at once/.test(m)&&/zarquon relic 10/.test(m);})?true:"the overflow is said and names the item: "+JSON.stringify(r.muts);
+  });
+  t("#528 proof 5e9a116 #437: a want landing toasts and a purpose settling toasts — both are visible events",function(){
+    makeWorld();var _stT=showToast,got=[];showToast=function(m){got.push(String(m));};try{worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",cls:"Fighter",level:2,hp:10,maxHp:10,xp:0,stats:{},abilities:[],inventory:[],spells:[],conditions:[],relationships:[],motivation:"to find his brother"}});memory.npcs["Bram"]={attitude:"",knowledge:[],events:[],aliases:[],partyMember:true,lastSeenAt:worldState.world.location};worldState.combat=null;
+    quiet(function(){return applyMuts("[COMPANION_AGENDA:Bram|find the ferryman who took his brother|peaceful]");});
+    if(!got.some(function(x){return /Bram wants: find the ferryman/.test(x)||/Bram \(later\): find the ferryman/.test(x);}))return "the want landing toasts: "+JSON.stringify(got);
+    got.length=0;var r=quiet(function(){return applyMuts("Bram folds the letter and sets it down. [COMPANION_GROWTH:Bram|motivation|settled: his brother was found alive]");}).r;
+    if(!r.muts.some(function(m){return /purpose settled/.test(m);}))return "fixture: the settling landed: "+JSON.stringify(r.muts);
+    return got.some(function(x){return /Bram — purpose settled/.test(x);})?true:"the settling toasts: "+JSON.stringify(got);}finally{showToast=_stT;}
+  });
+  t("#528 proof a2ddcec #490: a hero ability tag that describes a companion lands on the companion WITH a receipt that says so",function(){
+    makeWorld();worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",cls:"Rogue",level:3,hp:10,maxHp:10,xp:0,stats:{},abilities:[],inventory:[],spells:[],conditions:[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    var r=quiet(function(){return applyMuts("[ABILITY_GAINED:Blindsense|Bram senses unseen foes within ten feet, a rogue's honed instinct.]");}).r;
+    if(!(findCompanionChar("Bram").abilities||[]).some(function(a){return a.nm==="Blindsense";}))return "fixture: the ability lands on Bram: "+JSON.stringify(findCompanionChar("Bram").abilities)+" "+JSON.stringify(r.muts);
+    return r.muts.some(function(m){return /^Bram: ability Blindsense \(the tag named the hero; the description is theirs\)$/.test(m);})?true:"the re-route is receipted: "+JSON.stringify(r.muts);
+  });
+  t("#528 proof 605b557 B6: the RETURN change never reports a resident who is at home, nor one standing in the scene",function(){
+    villageCD();worldState.world.sublocation=null;memory.map.nodes["The Village"].wares=[];
+    (worldState.npcs||[]).forEach(function(n){n.resident=true;});importVillageResidents([{name:"Frizwick",gender:"F",cls:"Rogue",inventory:[],coreMemories:[]}]);
+    worldState.clock={min:13*MIN_PER_DAY+17*60};/* 23:00 of the day (dawn offset 6h) — every resident is at home */
+    var wh=residentWhereabouts("Frizwick");if(!wh||!wh.home)return "fixture: at this hour Frizwick is at home: "+JSON.stringify(wh);
+    var line=villageReturnChange();if(/Frizwick is/.test(line))return "a resident at home is nobody's return change: "+line;
+    worldState.clock={min:13*MIN_PER_DAY+6*60};wh=residentWhereabouts("Frizwick");if(!wh||wh.home)return "fixture: at noon Frizwick is out: "+JSON.stringify(wh);
+    line=villageReturnChange();if(!/Frizwick is at /.test(line))return "fixture: out of the scene she is the change: "+line;
+    delete worldState.sceneRefs;sceneRefsEnsure();worldState.sceneRefs.active.node=currentNodeKey();worldState.sceneRefs.active.observed=[{entity:"Frizwick",channel:"say",firstTurn:worldState.turn,lastTurn:worldState.turn,turns:1}];memory.npcs["Frizwick"].lastSeenAt=currentNodeKey();memory.npcs["Frizwick"].lastSeenTurn=worldState.turn;
+    if(!scenePresentNow("Frizwick"))return "fixture: Frizwick is present now";
+    line=villageReturnChange();return /Frizwick is/.test(line)?"a resident standing in the scene is not elsewhere: "+line:true;
+  });
+  t("#528 proof 36f6139 C11: the companion-sheet prompt's First met line ends at a sentence, never mid-word",function(){
+    makeWorld();worldState.npcs.push({name:"Lyle",status:"warm",rel:"ally",met:1});memory.npcs["Lyle"]={knowledge:[],events:[],aliases:[],firstEncounter:"Lyle stood by the gate with a lantern raised against the fog. He said nothing more about the rightmo"};
+    var p=buildCompanionSheetPrompt("Lyle").msg;
+    if(p.indexOf("First met: Lyle stood by the gate with a lantern raised against the fog.\n")<0)return "the line ends at the sentence: "+p.slice(p.indexOf("First met"),p.indexOf("First met")+160);
+    return /rightmo/.test(p)?"the cut word is gone":true;
+  });
+  t("#528 proof 71a6e3d #469: the LIVE gate — commitGmTurn arms motifPing when a bystander retells a party member's defining moment in the record's words",function(){
+    makeWorld();worldState.turn=30;delete worldState.motifPing;var c=worldState.character;c.name="Ammut";
+    c.coreMemories=[{kind:"resolution",text:"Daeris's soul-tax lien and necrotic tether to the Reach's engines and Tomb-Architect have been completely extinguished",turn:49,who:"Ammut",camp:"The Necrotic Dungeon"}];
+    worldState.npcs.push({name:"Nyla Lorrath",status:"warm",rel:"ally",met:1});memory.npcs["Nyla Lorrath"]={knowledge:[],events:[],aliases:[]};
+    quiet(function(){commitGmTurn("Nyla looks up from the porch. [SAY:Nyla Lorrath|warm]\"Peace on your hearth, Ammut! Still warms my heart to see you walking so free, now that the soul-tax lien and necrotic tether to the Reach's engines and Tomb-Architect are extinguished for good.\"",{userMsg:"x",playerTxt:"I wave to Nyla."});});
+    var p=worldState.motifPing;return (p&&p.speaker==="Nyla Lorrath"&&p.who==="Ammut"&&p.turn===worldState.turn)?true:"the ping is armed by the live turn: "+JSON.stringify(p);
+  });
   section("#518 block — an item pair is TWO TAGS IN ONE BLOCK (owner ruling 2026-10-10; the pair notes are the protocol)");
   function blockComp(inv){worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:inv||[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};}
   t("#518 block the loot/throw collision: a hero who loots a Dagger in the same reply that a companion throws an untracked Dagger KEEPS the loot — the two tags sit in two blocks, so neither is the other's half",function(){
