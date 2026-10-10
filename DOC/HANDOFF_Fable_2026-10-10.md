@@ -28,7 +28,12 @@ live in TODO.md; this file archives as DOC/HANDOFF_v<ver>.md when superseded. Th
   - the next commit **#527 lead (23) (v1.1215)** — a companion's spell the sheet also holds as an ability gives its slot to the next
     same-tier bench spell (`spellAbilityOverlapHeal`, helpers.js; `healAbilitySheets` for companions; `companionAutoPickSpells`
     skips a held name). Row #527 ✅.
-  - this commit **docs** — the handoff after both rulings.
+  - `1696204a` **#610 (v1.1216)** + `fc03e8e6` (v1.1217) — link a Google sign-in to the account you have; the provider-less
+    reconnect uses the door used last. Server v1.7.5 → v1.7.7 (the link ticket, the link-aware door, `auth-identity.js`, the v8
+    migration the baseline had left off production, stub adoption, a secondary door never renames the player). The owner's Google
+    identity had owned the Google-born test account; it was merged into the main account by `ops-merge-google-account-2026-10-10.cjs`
+    (the owner's live run) and the next Link adopted the emptied stub. #610 ✅; #451 needs a new second account.
+  - this commit **docs** — the handoff after both rulings and #610.
 - **Gates at each commit:** the hook's full suite green (2927 at the last); `check-sabotage-applicability` 3056/3056 across 328
   batteries; the new batteries `sabotage-518-pair-block.js` 5/5, `sabotage-517-counter-tail.js` 10/10, `sabotage-527-8-trade-hour.js`
   6/6, `sabotage-528-proof-gaps.js` 27/27; ten re-anchored batteries re-proven; the four replay baselines unchanged at every
@@ -44,7 +49,7 @@ live in TODO.md; this file archives as DOC/HANDOFF_v<ver>.md when superseded. Th
 ## Rows after this session
 
 - #517 ◉ and #518 ◉ — ready to test in play (both change what the counter and the item tags do; reload every device once).
-- #527 ✅ and #528 ✅.
+- #527 ✅, #528 ✅, #610 ✅ (the phone signs in with Google into the owner's own account).
 - #504 ◉ — built; what remains is the live-GM answer to the name-collision note (owner-side, #534 direction 5).
 
 ## Hazards
