@@ -34,6 +34,16 @@ prove("api.js", [
     find: "(categories: \"+invCategoryIds().join(\"/\")+\"); the PLAYER confirms it", replace: "(categories: weapon/armor/consumable/tool/quest/treasure/mundane); the PLAYER confirms it",
     mustFail: ONE }
 ]);
+prove("game.js", [
+  { label: "the Define review prompt goes back to a hand list (the seventh copy, review 2)",
+    find: "(category one of \"+invCategoryIds().join(\"/\")+\"; '=' per field", replace: "(category one of weapon/armor/consumable/tool/quest/treasure/mundane; '=' per field",
+    mustFail: ONE }
+]);
+prove("helpers.js", [
+  { label: "jewelry loses the Define exemption (four bible rings and 77 carried rows start asking to be defined — review 1)",
+    find: "function itemDefCategoryExempt(cat){return cat===\"mundane\"||cat===\"treasure\"||cat===\"jewelry\";}", replace: "function itemDefCategoryExempt(cat){return cat===\"mundane\"||cat===\"treasure\";}",
+    mustFail: "#599d2 review 1" }
+]);
 prove("bible_editor.html", [
   { label: "the editor's dropdown goes back to a hand list",
     find: "  var ITEM_CATEGORIES = invCategoryIds(); // #607: derived from the ONE registry (helpers.js)", replace: "  var ITEM_CATEGORIES = [\"weapon\", \"armor\", \"consumable\", \"tool\", \"quest\", \"treasure\", \"mundane\"];",

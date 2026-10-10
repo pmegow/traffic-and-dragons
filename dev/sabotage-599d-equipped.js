@@ -3,7 +3,7 @@
 // (decision 7) and the ◆ mark (§3.5).
 //   node dev/sabotage-599d-equipped.js
 var sabotage = require("./sabotage.js");
-var CMD = ["node", ["dev/run-tests.js", "#599 (d)"]];
+var CMD = ["node", ["dev/run-tests.js", "#599 (d"]];/* matches "#599 (d)" and "#599 (d2)" — the d2 closures ride this battery */
 var code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 var G3 = "#599d gate 3", STRIP = "#599d the strip and the scan", LINE = "#599d the prompt line", COUNTER = "#599d the counter and the chest", MARK = "#599d §3.5 the equipped mark";
@@ -21,8 +21,14 @@ prove("tag_table.js", [
     find: "(wOn?\" equips \":\" takes off \")", replace: "(wOn?\" wears \":\" removes \")",
     mustFail: G3 },
   { label: "the handler re-registers under WORN (the taught name has no handler of record)",
-    find: "{t:\"EQUIPPED\",apply:function(text,R){var wt=", replace: "{t:\"WORN\",apply:function(text,R){var wt=",
+    find: "{t:\"EQUIPPED\",apply:function(text,R){__tagNearMiss(", replace: "{t:\"WORN\",apply:function(text,R){__tagNearMiss(",
     mustFail: G3 },
+  { label: "the EQUIPPED near-miss is no longer registered (a two-field tag vanishes again)",
+    find: "__tagNearMiss(text,R,\"EQUIPPED\",\"^\\\\[EQUIPPED:[^|\\\\]]+\\\\|[^|\\\\]]+\\\\|[^\\\\]]+\\\\]$\",\"[EQUIPPED:Name|item|on/off]\");", replace: "",
+    mustFail: "#599d2 review 6" },
+  { label: "an uncarried item is refused without a ⚠ line again",
+    find: "if(wr.reason===\"not carried\")R.muts.push(", replace: "if(false)R.muts.push(",
+    mustFail: "#599d2 review 6" },
   { label: "EQUIPPED leaves the strip registry (the tag would print in the story)",
     find: "\"WORN\",\"EQUIPPED\",\"OUTFIT\"", replace: "\"WORN\",\"OUTFIT\"",
     mustFail: STRIP },
@@ -32,6 +38,19 @@ prove("tag_table.js", [
   { label: "the doc line ends 'as Wearing:' again",
     find: "serves both back on the sheet as Equipped: -- keep", replace: "serves both back on the sheet as Wearing: -- keep",
     mustFail: STRIP }
+]);
+prove("inventory.js", [
+  { label: "the READ resolver (_invEntryFind: invHolds, isWorn, resolveInventoryName) loses its unique base-name step (d2 review 4b)",
+    find: "  if(hits.length===1)return hits[0];\n  _invLastMiss=", replace: "  _invLastMiss=",
+    mustFail: "#599d2 review 4b" },
+  { label: "wornSet forgets the spelling the GM used (the console says WORN for an [EQUIPPED:] refusal)",
+    find: "function wornSet(cs,item,on,who,tag){tag=tag||\"EQUIPPED\";", replace: "function wornSet(cs,item,on,who,tag){tag=\"WORN\";",
+    mustFail: "#599d2 review 6" }
+]);
+prove("dev/battery-targets.js", [
+  { label: "the sweep stops reading the prove(\"file\", …) wrapper (78 batteries go invisible again)",
+    find: "  while ((m = wrapped.exec(src))) add(m[2]);", replace: "",
+    mustFail: "#599d2 review 4" }
 ]);
 prove("api.js", [
   { label: "the prompt label reverts to Wearing:",

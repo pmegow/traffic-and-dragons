@@ -5,18 +5,21 @@
 var sabotage = require("./sabotage.js");
 var command = ["node", ["dev/tests-252-retained-proof-wiring.js"]];
 // The probes read these by path inside the scratch clone, so their working bytes ride in (pre-commit they are new or changed).
-var also = ["dev/battery-verdict.js", "dev/run-sabotage-diff.js", "dev/run-sabotage-all.js", "dev/cdp-browser.js",
+var also = ["dev/battery-verdict.js", "dev/battery-targets.js", "dev/run-sabotage-diff.js", "dev/run-sabotage-all.js", "dev/cdp-browser.js",
   "dev/sabotage-blueprint-publish.js", "dev/sabotage-blueprint-catalog.js",
   "dev/tests-blueprint-publish-browser.js", "dev/tests-blueprint-catalog-browser.js", "dev/tests-blueprint-editions-browser.js"];
 var failed = 0;
-failed += sabotage.prove({ file: "dev/run-sabotage-diff.js", also: also, command: command, cases: [
+/* #599 (d2), review 4: the target pattern lives in dev/battery-targets.js now (the ONE reader; the prove("file") wrapper counts too) */
+failed += sabotage.prove({ file: "dev/battery-targets.js", also: also, command: command, cases: [
   { label: "a quoted \"file\" key is invisible to the diff runner again",
-    find: "re=/(^|[^\\w$])[\"']?file[\"']?\\s*:\\s*[\"']([^\"']+)[\"']/g;while((m=re.exec(src)))targets.push(m[2]",
-    replace: "re=/file\\s*:\\s*[\"']([^\"']+)[\"']/g;while((m=re.exec(src)))targets.push(m[1]",
+    find: "var keyed = /(^|[^\\w$])[\"']?file[\"']?\\s*:\\s*[\"']([^\"']+)[\"']/g;",
+    replace: "var keyed = /(^|[^\\w$])file\\s*:\\s*[\"']([^\"']+)[\"']/g;",
     mustFail: "the quoted-key battery was not scheduled" },
   { label: "the target pattern loses its word boundary (profile: reads as file:)",
-    find: "re=/(^|[^\\w$])[\"']?file", replace: "re=/()[\"']?file",
-    mustFail: "a profile: key was read as a target" },
+    find: "var keyed = /(^|[^\\w$])[\"']?file", replace: "var keyed = /()[\"']?file",
+    mustFail: "a profile: key was read as a target" }
+]});
+failed += sabotage.prove({ file: "dev/run-sabotage-diff.js", also: also, command: command, cases: [
   { label: "the commit gate prints a skip as ok",
     find: "(v.verdict===\"fail\"?\"FAIL \":v.verdict===\"skip\"?\"SKIP \":\"ok   \")", replace: "(v.verdict===\"fail\"?\"FAIL \":\"ok   \")",
     mustFail: "the skip was not printed with its announcement" }

@@ -19,7 +19,7 @@ batteries.forEach(function(f){
   var src=fs.readFileSync(path.join(ROOT,"dev",f),"utf8");
   /* #472: a quoted key ("file": "x") counts too — sabotage-blueprint-catalog.js declares its target that way and was never
      scheduled; the boundary keeps a key like profile: from reading as file: */
-  var targets=[],m,re=/(^|[^\w$])["']?file["']?\s*:\s*["']([^"']+)["']/g;while((m=re.exec(src)))targets.push(m[2].replace(/\\/g,"/"));
+  var targets=require("./battery-targets.js").targetsOf(src);/* #599 (d2), review 4: the prove("file", …) wrapper counts too — 78 batteries were invisible to this sweep */
   var hit=changed.indexOf("dev/"+f)>=0||targets.some(function(t){return changed.indexOf(t)>=0;});
   if(hit)due.push(f);
 });

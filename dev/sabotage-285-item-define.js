@@ -15,7 +15,7 @@ rc|=sabotage.prove({
   cases:[
     { label:"#285: the classification-only widening dies — organize-only base entries are un-Definable again (the f18 hole reopens)",
       mustFail:"#285 (f18): a classification-only BASE entry is Define-eligible",
-      find:"  return hit.effect===\"N/A\"&&hit.category!==\"mundane\"&&hit.category!==\"treasure\";",
+      find:"  return hit.effect===\"N/A\"&&!itemDefCategoryExempt(hit.category);/* #607 d2: the one rule */",/* #599 (d2) re-anchor: ONE predicate for the exempt categories */
       replace:"  return false;" },
 
     { label:"#285/#294B: the effect-bearing overlay refusal dies — a paid review call can be burned on a def that write-once (per real canon) will never let land",

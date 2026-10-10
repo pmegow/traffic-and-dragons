@@ -19,6 +19,9 @@ prove("inventory.js", [
   { label: "the Unclassified group is left in pack order",
     find: "un.rows=invDisplayOrder(un.rows);", replace: "",
     mustFail: ORDER },
+  { label: "a legacy worn string no longer reads as equipped (the mark and the order disagree on an unhealed preview — review 5)",
+    find: "(typeof raw===\"string\"&&!!sheet&&typeof isWorn===\"function\"&&isWorn(sheet,er.name))", replace: "false",
+    mustFail: "#599d2 review 5" },
   { label: "the sort runs on the live bucket array instead of a copy",
     find: "  return (rows||[]).slice().sort(function(a,b){", replace: "  return (rows||[]).sort(function(a,b){",
     mustFail: ONE }

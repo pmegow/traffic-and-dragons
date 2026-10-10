@@ -8,7 +8,7 @@ var sabotage = require("./sabotage.js");
 var CMD = ["node", ["dev/run-tests.js", "#599 (c)"]];
 var code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
-var HEAL = "#599c the heal", LOAD = "#599c the load is a door", HANDLERS = "#599c gate 3", COPY = "#599c gate 14", WEAR = "#599c the Wearing line",
+var HEAL = "#599c the heal", LOAD = "#599c the load is a door", HANDLERS = "#599c gate 3", COPY = "#599c gate 14", WEAR = "#599c the Equipped line",
     SYNC = "#599c the Sync modal", MARKS = "#599c the delete marks", FAUCET = "#599c the model faucets", CENSUS = "#599c gate 7", SATELLITES = "#599c the satellites",
     STAMPS = "#599c what this build stamps", PLACE = "#599c the place writer", BOUNDARY = "INVENTORY BOUNDARY CONTRACT";
 prove("inventory.js", [

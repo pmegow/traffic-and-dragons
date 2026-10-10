@@ -7,7 +7,7 @@ var sabotage = require("./sabotage.js");
 var CMD = ["node", ["dev/run-tests.js", "#599 (b)"]];
 var code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
-var HOME = "#599b one home", KEY = "#599b one key", GATE1 = "#599b gate 1", ROWS = "#599b the row functions", GATE14 = "#599b gate 14", LEGACY = "#599b the legacy form";
+var HOME = "#599b one home", KEY = "#599b one key", GATE1 = "#599b gate 1", ROWS = "#599b the row functions", GATE14 = "#599b gate 14", LEGACY = "#599b→c the legacy names are DELEGATES over rows";
 prove("inventory.js", [
   { label: "itemKey strips a count — a row named 'Torch x2' becomes Torch (I3 broken)",
     find: "function itemKey(name){return String(name==null?\"\":name).toLowerCase()", replace: "function itemKey(name){return String(name==null?\"\":name).replace(/\\s*x\\d+\\s*$/i,\"\").toLowerCase()",

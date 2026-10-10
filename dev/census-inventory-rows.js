@@ -127,7 +127,7 @@ if (!S.sheets) fail("no inventory sheets found");
 
 console.log("#599 inventory-rows census (gate 7) — " + BASE + (ALL ? " (every save)" : " (latest save per campaign)"));
 console.log("  saves " + S.saves + " · sheets " + S.sheets + " (legacy " + S.legacySheets + ", rows " + S.rowSheets + ") · items " + S.items + " · counted (x2+) " + S.counted + " · largest count " + S.maxQty);
-console.log("  equipped sheets " + S.equippedSheets + " (" + S.equippedNames + " names) · Wearing-line order changes " + S.equippedOrderChanges + " · worn with no carried item " + S.wornUnmatched);
+console.log("  equipped sheets " + S.equippedSheets + " (" + S.equippedNames + " names) · Equipped-line order changes " + S.equippedOrderChanges + " · worn with no carried item " + S.wornUnmatched);
 console.log("  folds " + S.folds + " · grammar splits " + S.grammarSplit + " · rows printing back differently " + S.textMismatch + " · units lost or gained " + S.unitMismatch);
 console.log("  equipped mismatches " + S.equippedMismatch + " · not idempotent " + S.notIdempotent + " · heals refused " + S.refused + " · skipped (no inventory field) " + S.skippedInventory);
 notes.forEach(function (n) { console.log("  - " + n); });

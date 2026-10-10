@@ -28,13 +28,24 @@ in TODO.md; this file archives as DOC/HANDOFF_v<ver>.md when superseded. The pre
   throwaway import of the Village t291 save at t293 (signed out — nothing synced); `localhost:3000` (this session's) holds a
   throwaway import too. Neither touched an owner campaign.
 
-## Before the PUSH (§12 row (d): gate 13 with the owner's go)
+## Gate 13 — DONE (2026-10-09 night): nine findings, closed as d2 v1.1207
+
+The receipt is [audits/REVIEW_599_release_d_2026_10_09.md](../audits/REVIEW_599_release_d_2026_10_09.md). The one live
+behaviour change (#607 had cost the plain rings treasure's Define exemption) is closed by ONE predicate, `itemDefCategoryExempt`
+(helpers.js) — the owner flips it there if rings should be defined after all. The sweep's due-selection missed every battery
+that names its target through `prove("file", …)` (78 for this range); `dev/battery-targets.js` is the one reader now and the
+whole-deploy sweep was re-run with it. Note for every later range sweep: a battery clause caught by an EARLIER gate (a contract)
+must name that gate in `mustFail`, and MISATTRIBUTED exits 0 — read the verdict lines.
+
+## Before the PUSH (§12 row (d): gate 13 with the owner's go) — the steps as they stood
 
 1. **Gate 13 — ONE independent review of the whole deploy** (release (d) + #607 + #608), read-only on the five commits, with the
    owner's go (the review-before-push rule: one per batch, ~0.5–1M tokens). Findings close test-first as a `d2` commit, as (c)'s did.
 2. `node dev/run-sabotage-diff.js origin/master..HEAD` and the four replay `--check` baselines (unchanged by (d) — prove, do not
    assume), then push. Every campaign's prompt cache resets once (the stable half moved twice in one deploy, on purpose).
-3. The owner opens the game on every device (a stale tab keeps its cached prompt until it reloads — designed).
+3. The owner RELOADS the game on every device BEFORE playing a turn there (review finding 8: a stale build in the service-worker
+   window drops a `[EQUIPPED:]` the GM copies from a cloud-synced newer reply with one console line, and files `category=jewelry`
+   as tool — no version gate fires for a vocabulary change; the window is the first navigation after the deploy and any unreloaded tab).
 
 ## Then the cleanup commit (§12 notes; NOT started — the census, 2026-10-09)
 

@@ -49,7 +49,7 @@ rc|=sabotage.prove({
       replace:"  return true;" },
     { label:"#294B ②: eligibility over a base-less classification-only overlay dies — Define stays greyed for the crown",
       mustFail:"a classification-only overlay with NO base canon is Define-eligible and REPLACEABLE",
-      find:"    if(base)return false;\n    return ov.category!==\"mundane\"&&ov.category!==\"treasure\";",
+      find:"    if(base)return false;\n    return !itemDefCategoryExempt(ov.category);/* #607 d2: the one rule */",/* #599 (d2) re-anchor */
       replace:"    return false;" },
     { label:"#294B ②: the replacement drops the stub's #157 display classification",
       mustFail:"a classification-only overlay with NO base canon is Define-eligible and REPLACEABLE",

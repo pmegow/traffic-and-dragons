@@ -26885,6 +26885,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       if(/Silas Morne/.test(n))return "the note named someone the action did not name: "+n;
       lastAction="Ask Nyla about the dye trade";sessionLog=[{role:"user",content:"x"},{role:"assistant",content:"The kettle sings. Frizwick yawns."}];
       if(buildCarriedRecordNote()!=="")return "the note fired with no recent GM mention of the carrier";
+      lastAction="Is that how you remember it Nyla?";sessionLog=[{role:"user",content:"x"},{role:"assistant",content:"The kettle sings. Frizwick yawns."}];/* #599 (d2): the retrieving action against a reply that names nobody — the only case that reaches the spoken guard (the sweep found the clause MISSED: the dye-trade case left at the retrieval gate) */
+      if(buildCarriedRecordNote()!=="")return "the note fired although the recent reply did not speak of the carrier (the spoken guard)";
       lastAction="Stoke the fire";sessionLog=[{role:"user",content:"x"},{role:"assistant",content:"Nyla laughs at Silas."}];
       if(buildCarriedRecordNote()!=="")return "the note fired for an action naming nobody";
       lastAction="Is that how you remember it Nyla?";worldState.combat={round:1,foes:[]};
@@ -31944,7 +31946,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(!r.muts.some(function(m){return m==="Tess equips Chainmail";})||!r.muts.some(function(m){return m==="Bram equips Cloak";}))return "the alias writes the SAME receipt: "+JSON.stringify(r.muts);
     r=applyMuts("[WORN:Tess|Chainmail|unequipped]");if(isWorn(c,"Chainmail")||!r.muts.some(function(m){return m==="Tess takes off Chainmail";}))return "'unequipped' through the alias: "+JSON.stringify(r.muts);
     var q=quiet(function(){return applyMuts("[EQUIPPED:Tess|Helm|on][EQUIPPED:Nobody|Torch|on][EQUIPPED:Tess|Torch|sideways]");});
-    if(invEquippedNames(c).length||q.r.muts.some(function(m){return /Helm|Torch/.test(m);}))return "a refusal lands no receipt: "+JSON.stringify([invEquippedNames(c),q.r.muts]);
+    if(invEquippedNames(c).length||q.r.muts.some(function(m){return /equips|takes off/.test(m);}))return "a refusal lands no receipt (a ⚠ line is not one — d2 review 6): "+JSON.stringify([invEquippedNames(c),q.r.muts]);
     if(!q.warns.some(function(w){return w.indexOf("[EQUIPPED:Tess|Torch|sideways]")>=0;})||!q.warns.some(function(w){return w.indexOf("[EQUIPPED:Nobody]")>=0;})||!q.warns.some(function(w){return /'Helm' is not in Tess/.test(w);}))return "the three refusals are loud and name the spelling the GM used: "+JSON.stringify(q.warns);
     var all=[];["[EQUIPPED:Tess|Chainmail|on]","[EQUIPPED:Tess|Chainmail|off]"].forEach(function(tg){all=all.concat(applyMuts(tg).muts);});
     if(all.length!==2||all.some(function(m){return /\bwears\b|\bremoves\b|\bworn\b/i.test(m);}))return "a receipt still uses the old words, or a receipt is missing: "+JSON.stringify(all);
@@ -32029,6 +32031,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(ed.indexOf("var ITEM_CATEGORIES = invCategoryIds();")<0||ed.indexOf("var _ord = invCategoryIds();")<0||ed.indexOf('"//   { category: " + invCategoryIds().join("|") + ",",')<0)return "the editor's three copies derive";
     if(/\["weapon", "armor", "(quest|consumable)"/.test(ed))return "a hand list survives in the editor";
     if(api.indexOf('(categories: "+invCategoryIds().join("/")+")')<0||/weapon\/armor\/consumable\/tool\/quest\//.test(api))return "the define prompt derives";
+    var gm=fs.readFileSync(R+"/game.js","utf8");if(gm.indexOf('(category one of "+invCategoryIds().join("/")+"; ')<0||/weapon\/armor\/consumable\/tool\/quest\/treasure\/mundane/.test(gm))return "the Define REVIEW prompt derives (d2 review 2 — the seventh copy)";
     if(rt.indexOf("var _biOrder = _regIds;")<0||/_biCats = \{ weapon: 1/.test(rt))return "the run-tests contract derives from the registry it extracts";
     if(ib.indexOf("//   { category: "+invCategoryIds().join("|")+",")<0)return "the bible file's header is the serializer's (derived) output";
     return true;
@@ -32069,9 +32072,69 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var fs=__fsForTests,R=__rootForTests,p=fs.readFileSync(R+"/ui-panels.js","utf8"),s=fs.readFileSync(R+"/ui-sheets.js","utf8"),inv=fs.readFileSync(R+"/inventory.js","utf8"),ed=fs.readFileSync(R+"/character_editor.html","utf8");
     var at=inv.indexOf("function invDisplayOrder");if(at<0||!/\.slice\(\)\.sort\(/.test(inv.slice(at,at+400)))return "the ONE sort lives in invDisplayOrder, on a copy";
     if(inv.indexOf("buckets[order[i]].rows=invDisplayOrder(buckets[order[i]].rows);un.rows=invDisplayOrder(un.rows);")<0)return "groupInventory applies the order to every bucket, Unclassified included";
-    var pa=p.indexOf("function updateInvPanel"),sa=s.indexOf("_grps=groupInventory(c.inventory)");
+    var pa=p.indexOf("function updateInvPanel"),sa=s.indexOf("_grps=groupInventory(c.inventory,c)");
     if(pa<0||sa<0||/\.sort\(/.test(p.slice(pa,pa+3500))||/\.sort\(/.test(s.slice(sa,sa+4000)))return "a shell sorts on its own";
     if(/groupInventory|invDisplayOrder/.test(ed))return "the editor must not take a display view";
+    return true;
+  });
+
+  section("#599 (d2) the review of (d) closes — jewelry keeps the Define exemption, the seventh category copy derives, a legacy sheet's mark and order agree, attire near-misses and refusals are loud and name the spelling, the sweep schedules wrapper batteries, the batteries' attributions name live tests (the #607 and #608 closures ride here)");
+  t("#599d2 review 1: a plain ring filed under jewelry keeps treasure's Define exemption — ONE predicate (itemDefCategoryExempt) read by the gain note, the quill and itemDefEligible; a pendant with an effect is already canon; an unknown ring still asks",function(){
+    if(!itemDefCategoryExempt("jewelry")||!itemDefCategoryExempt("treasure")||!itemDefCategoryExempt("mundane")||itemDefCategoryExempt("tool")||itemDefCategoryExempt("weapon"))return "the predicate";
+    makeWorld();var c=worldState.character;c.inventory=[];worldState.itemDefCandidate=null;worldState.itemDefQueue=[];worldState.itemDefAsked={};worldState.pendingItemDefs=[];
+    if(itemDefEligible("Wedding ring")||itemDefEligible("Brass ring")||itemDefEligible("Veil token pendant"))return "a bible ring (effect N/A) and a pendant with an effect are not Define-eligible";
+    applyMuts("[ITEM_GAINED:Brass ring]");if(worldState.itemDefCandidate)return "a gained bible ring must not set the UNDEFINED ITEM candidate: "+JSON.stringify(worldState.itemDefCandidate);
+    applyMuts("[ITEM_GAINED:Ring of Nine Moons]");if(!worldState.itemDefCandidate||!/nine moons/i.test(worldState.itemDefCandidate.key))return "an unknown ring still asks: "+JSON.stringify(worldState.itemDefCandidate);
+    if(String(buildItemDefinePrompt("Ring of Nine Moons")).indexOf("category one of "+invCategoryIds().join("/"))<0)return "the review prompt (built for an eligible item) lists the registry's categories";
+    var fs=__fsForTests,R=__rootForTests,api=fs.readFileSync(R+"/api.js","utf8"),h=fs.readFileSync(R+"/helpers.js","utf8");
+    if(api.split("itemDefCategoryExempt(e.category)").length!==3||h.split("!itemDefCategoryExempt(").length!==3)return "the three sites read the one predicate";
+    if(/\(e\.category==="mundane"\|\|e\.category==="treasure"\)\)return/.test(api)||/category!=="mundane"&&/.test(h))return "a hand-written exemption survives";
+    return true;
+  });
+  t("#599d2 review 5: on a legacy sheet (string entries, a worn list) the ◆ mark and the equipped-first order agree — groupInventory takes the sheet and decides both; the shells pass it and read row.equipped",function(){
+    var leg={name:"L",inventory:["Zedmoor","Annwick","Brindle"],worn:["Zedmoor"]};
+    var rows=groupInventory(leg.inventory,leg).filter(function(x){return x.id==="unclassified";})[0].rows;
+    if(rows[0].name!=="Zedmoor"||!rows[0].equipped||rows.map(function(r){return r.name;}).join("|")!=="Zedmoor|Annwick|Brindle")return "the worn string leads and is marked: "+JSON.stringify(rows.map(function(r){return r.name+":"+r.equipped;}));
+    var r2=groupInventory(leg.inventory).filter(function(x){return x.id==="unclassified";})[0].rows;if(r2[0].equipped||r2[0].name!=="Annwick")return "without the sheet a string reads unequipped (the flag lives on rows): "+JSON.stringify(r2.map(function(r){return r.name;}));
+    invHealSheet(leg);var r3=groupInventory(leg.inventory,leg).filter(function(x){return x.id==="unclassified";})[0].rows;if(r3[0].name!=="Zedmoor"||!r3[0].equipped||leg.worn!==undefined)return "after the heal the row's flag says the same";
+    var fs=__fsForTests,R=__rootForTests,p=fs.readFileSync(R+"/ui-panels.js","utf8"),s=fs.readFileSync(R+"/ui-sheets.js","utf8");
+    if(p.indexOf("groupInventory(inv,_ap)")<0||s.indexOf("_grps=groupInventory(c.inventory,c)")<0)return "both shells hand the sheet to groupInventory";
+    if(p.indexOf("var eqp=!!row.equipped;")<0||s.indexOf("var _eqp=!!_row.equipped;")<0||/isWorn\(_ap,row\.name\)|isWorn\(c,_row\.name\)/.test(p+s))return "the mark reads the row's decision, not a second lookup";
+    return true;
+  });
+  t("#599d2 review 6 and 7: a short attire tag ([EQUIPPED:Name|item], [WORN:item]) is a loud near-miss (⚠ line and console); an unknown member, a bad third word and an uncarried item each leave a ⚠ line and no receipt; the console names the spelling the GM used; a re-equip and an off of a thing not on stay silent no-ops",function(){
+    makeWorld();var c=worldState.character;c.name="Tess";c.inventory=["Torch","Chainmail"];delete c.worn;
+    var q=quiet(function(){return applyMuts("[EQUIPPED:Tess|Chainmail][WORN:Torch]");});
+    if(isWorn(c,"Chainmail")||q.r.muts.filter(function(m){return /malformed/.test(m);}).length!==2||!q.warns.some(function(w){return /EQUIPPED operand near-miss/.test(w);})||!q.warns.some(function(w){return /WORN operand near-miss/.test(w);}))return "near-miss: "+JSON.stringify([q.r.muts,q.warns]);
+    q=quiet(function(){return applyMuts("[EQUIPPED:Nobody|Torch|on][EQUIPPED:Tess|Torch|sideways][EQUIPPED:Tess|Helm|on][WORN:Tess|Visor|on]");});
+    var m=q.r.muts;if(invEquippedNames(c).length||m.some(function(x){return /equips|takes off/.test(x);}))return "a refusal lands no receipt: "+JSON.stringify(m);
+    if(!m.some(function(x){return /^⚠ \[EQUIPPED:\] Nobody — no party member/.test(x);})||!m.some(function(x){return /^⚠ \[EQUIPPED:\] Tess\|Torch — the third field must be on or off, not 'sideways'/.test(x);})||m.indexOf("⚠ Tess has no 'Helm' to equip — emit [ITEM_GAINED:] first")<0||m.indexOf("⚠ Tess has no 'Visor' to equip — emit [ITEM_GAINED:] first")<0)return "each refusal leaves a ⚠ line: "+JSON.stringify(m);
+    if(!q.warns.some(function(w){return /\[attire\] EQUIPPED: 'Helm' is not in Tess/.test(w);})||!q.warns.some(function(w){return /\[attire\] WORN: 'Visor' is not in Tess/.test(w);}))return "the console names the spelling: "+JSON.stringify(q.warns);
+    applyMuts("[EQUIPPED:Tess|Chainmail|on]");q=quiet(function(){return applyMuts("[EQUIPPED:Tess|Chainmail|on][EQUIPPED:Tess|Torch|off]");});
+    if(q.r.muts.length||!isWorn(c,"Chainmail"))return "a re-equip and an off of a thing not on are silent no-ops: "+JSON.stringify(q.r.muts);
+    return true;
+  });
+  t("#599d2 review 4: the range sweep schedules a battery that declares its target through the prove(\"file\", …) wrapper (78 were invisible) — ONE reader, dev/battery-targets.js, for file: \"x\", \"file\": \"x\" and prove(\"x\"",function(){
+    var fs=__fsForTests,R=__rootForTests,mod={exports:{}};new Function("module","exports","require",fs.readFileSync(R+"/dev/battery-targets.js","utf8"))(mod,mod.exports,function(){throw new Error("no deps");});var T=mod.exports.targetsOf;
+    var got=T('prove("tag_table.js", [\n { file: "api.js" }\n]);\nsabotage.prove({ file: "helpers.js", cases: [] });\nvar o = { "file": "ui-panels.js" };\nsabotage.prove("A LABEL, NOT A FILE", cases);\nprofile: "x"');
+    if(got.join("|")!=="api.js|helpers.js|ui-panels.js|tag_table.js")return "targets: "+JSON.stringify(got);
+    var rsd=fs.readFileSync(R+"/dev/run-sabotage-diff.js","utf8");if(rsd.indexOf('require("./battery-targets.js").targetsOf(src)')<0||/file\["'\]\?\\s\*:/.test(rsd))return "run-sabotage-diff reads targets through the one module";
+    var names=["sabotage-599c-shape-flip.js","sabotage-599c2-review.js","sabotage-599d-equipped.js","sabotage-607-jewelry.js","sabotage-608-display-order.js","sabotage-599b3-one-key.js"],i;
+    for(i=0;i<names.length;i++){var t=T(fs.readFileSync(R+"/dev/"+names[i],"utf8"));if(!t.length||t.some(function(x){return !fs.existsSync(R+"/"+x);}))return names[i]+" declares its targets through the wrapper: "+JSON.stringify(t);}
+    return true;
+  });
+  t("#599d2 review 3: every literal attribution (mustFail) in the #599, #607 and #608 batteries names a test that exists — a renamed test must take its battery's attribution with it",function(){
+    var fs=__fsForTests,R=__rootForTests,tests=fs.readFileSync(R+"/dev/engine-tests.js","utf8"),files=fs.readdirSync(R+"/dev").filter(function(f){return /^sabotage-(599|607|608)/.test(f);}),bad=[],i,n=0;
+    for(i=0;i<files.length;i++){var src=fs.readFileSync(R+"/dev/"+files[i],"utf8"),m,re=/(?:mustFail:\s*|=\s*)"((?:#599|#607|#608)[^"]*)"/g;while((m=re.exec(src))){n++;if(tests.indexOf(m[1])<0)bad.push(files[i]+": "+m[1]);}}
+    if(n<40)return "the scan found only "+n+" attributions — the pattern no longer reads the batteries";
+    return bad.length?"stale attributions: "+bad.join(" / "):true;
+  });
+
+  t("#599d2 review 4b: the READ resolver (_invEntryFind — invHolds, isWorn, resolveInventoryName) keeps its unique base-name step, as the write resolver does: a short name reaches the one provenance-rich entry on both shapes, two candidates resolve to neither",function(){
+    var rows=[{name:"Signet ring (from Sheriff Hemlock)",qty:1,equipped:true},{name:"Rope",qty:2,equipped:false}];
+    if(!invHolds(rows,"Signet ring")||resolveInventoryName(rows,"signet ring")!==0||!isWorn({inventory:rows},"Signet ring"))return "a short name reaches the one provenance-rich ROW: "+JSON.stringify([invHolds(rows,"Signet ring"),resolveInventoryName(rows,"signet ring")]);
+    var legacy=["Signet ring (from Sheriff Hemlock)","Rope x2"];if(!invHolds(legacy,"Signet ring")||resolveInventoryName(legacy,"Signet ring")!==0)return "and the one provenance-rich STRING";
+    var two=[{name:"Rope (spare)",qty:1,equipped:false},{name:"Rope (coil)",qty:1,equipped:false}];if(invHolds(two,"Rope")||resolveInventoryName(two,"Rope")!==-1||!_invLastMiss||_invLastMiss.why!=="ambiguous")return "two candidates resolve to neither, loudly: "+JSON.stringify(_invLastMiss);
     return true;
   });
 

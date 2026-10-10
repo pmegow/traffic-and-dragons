@@ -2424,6 +2424,11 @@ function menuTierHidesDev(acct){
   if(!acct)return false;
   return acct.isAdmin!==true;
 }
+/* #607 (review of (d), finding 1): ONE rule for the categories the Define nudge leaves alone — mundane and treasure as before,
+   and jewelry since #607 (a plain ring moved out of treasure for FINDABILITY, not for mechanics; without this, four bible rings
+   and 77 carried rows in the owner's saves started asking to be defined). The owner flips it here, in one place. The injection
+   rule (buildItemBibleBlock) is a different question — jewelry WITH an effect injects, as it did under its old category. */
+function itemDefCategoryExempt(cat){return cat==="mundane"||cat==="treasure"||cat==="jewelry";}
 function itemDefEligible(rawItem){
   if(typeof itemBaseName!=="function"||typeof itemLookup!=="function")return false;
   var key=itemBaseName(rawItem);
@@ -2440,10 +2445,10 @@ function itemDefEligible(rawItem){
        itemDefAccept / the ITEM_DEF handler let an accepted proposal replace it. */
     if(ov.effect&&ov.effect!=="N/A")return false;
     if(base)return false;
-    return ov.category!=="mundane"&&ov.category!=="treasure";
+    return !itemDefCategoryExempt(ov.category);/* #607 d2: the one rule */
   }
   if(!base||base!==hit)return false;/* alias-resolved */
-  return hit.effect==="N/A"&&hit.category!=="mundane"&&hit.category!=="treasure";
+  return hit.effect==="N/A"&&!itemDefCategoryExempt(hit.category);/* #607 d2: the one rule */
 }
 /* #294B: may an accepted [ITEM_DEF:] proposal land on this key? Shared by itemDefAccept and the
    ITEM_DEF tag handler so the two boundaries cannot disagree: only an EFFECT-BEARING overlay is

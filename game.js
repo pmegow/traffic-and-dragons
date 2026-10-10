@@ -4289,7 +4289,7 @@ function buildItemDefinePrompt(rawItem){
     :"The carried item \""+rawItem+"\" has no entry in ITEM CANON. ";
   return "[GM ITEM CANON REVIEW — internal, not a player action] "+_opening
     +"Review what the story has ALREADY ESTABLISHED about it — how it was found, what it visibly did, what identification or use revealed — and capture that as canon. "
-    +"Emit exactly one [ITEM_DEF:"+key+"|category=...|effect=...|uses=...|value=...] (category one of weapon/armor/consumable/tool/quest/treasure/mundane; '=' per field, '|' between fields; effect free of '|' and ']'; \"N/A\" where truly inapplicable; TYPE definition only — never instance state like charges left or provenance). "
+    +"Emit exactly one [ITEM_DEF:"+key+"|category=...|effect=...|uses=...|value=...] (category one of "+invCategoryIds().join("/")+"; '=' per field, '|' between fields; effect free of '|' and ']'; \"N/A\" where truly inapplicable; TYPE definition only — never instance state like charges left or provenance). "
     +"Ground every word in committed story: never invent powers, numbers, or lore the narrative has not shown. If the story has established nothing mechanical yet, emit NO tag and say so in one sentence. "
     +"After the tag, one short sentence naming which scene(s) the definition comes from.";
 }

@@ -316,7 +316,7 @@ function updateInvPanel(){
   /* #157: item-bible-driven grouping through the ONE shared view model — the old substring
      weapon/armor guess is retired (canon decides; a miss shows honestly as Unclassified).
      Weapon/armor row emphasis (.eq) now derives from the SELECTED canonical section. */
-  var groups=groupInventory(inv),h="",i,j;
+  var groups=groupInventory(inv,_ap),h="",i,j;/* #599 (d2): the sheet rides along so a legacy worn list reads as equipped */
   for(i=0;i<groups.length;i++){
     var grp=groups[i],open=_invSecOpen[grp.id]!==false,unc=grp.id==="unclassified";
     h+='<div class="inv-cat'+(unc?' unc':'')+' has-tip" data-sec="'+grp.id+'" onclick="invToggleSec(this.dataset.sec)"'+(unc?' title="These items have no item-bible classification yet — they are shown here rather than guessed (#157)"':'')+'>'+(open?"&#9662; ":"&#9656; ")+escHtml(grp.label)+' <span class="inv-cat-n">'+grp.rows.length+"</span></div>";
@@ -325,7 +325,7 @@ function updateInvPanel(){
       var row=grp.rows[j],gear=(grp.id==="weapon"||grp.id==="armor");/* #599 (c) §4.3: the class is .gear — a weapon or armor CATEGORY, never "equipped" (the old .eq read as that) */
       /* #295: every item row opens the item-bible click-card (showItemCard, ui-sheets) — same
          canon as the hover tooltip, readable on touch where title-tooltips need a long-press. */
-      var eqp=typeof isWorn==="function"&&isWorn(_ap,row.name);/* #599 (d) §3.5: the ◆ mark before the name, the name lifted by .eqp, the word in the tooltip */
+      var eqp=!!row.equipped;/* #599 (d) §3.5: the ◆ mark before the name, the name lifted by .eqp, the word in the tooltip; (d2) review 5: decided by groupInventory for both shapes */
       h+='<div class="ii has-tip'+(gear?' gear':'')+(eqp?' eqp':'')+'" data-item="'+escHtml(row.text)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;" title="'+escHtml(itemTip(row.text)+_invTipCats(row,grp.id)+(eqp?"\n"+INV_EQUIPPED_WORD:""))+'">'+(eqp?invEquippedMarkHtml():'')+invItemHtml(row.name,row.qty)+'</div>';/* #388: no pill (the no-borders rule); #599 (c): the badge and the mark read the ROW (name, qty, flag) */
     }
   }

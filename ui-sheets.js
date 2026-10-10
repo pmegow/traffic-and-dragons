@@ -242,7 +242,7 @@ function csSheetSections(c,invOwner,portable){
      panel — Sol §5). Each row carries its ORIGINAL array index, so a visually regrouped Drop
      still removes the right stored row; the stored array itself is never reordered. No nested
      collapse here — the sheet already has a parent collapse (Sol §6.3). */
-    var invRows="",_canDrop=(invOwner!==undefined),_gi,_ri,_grps=groupInventory(c.inventory);
+    var invRows="",_canDrop=(invOwner!==undefined),_gi,_ri,_grps=groupInventory(c.inventory,c);/* #599 (d2) */
     /* #429: which rows read as marked is decided by the RESOLVED plan (index first, then name) — the same
        call the button commits — so the render and the commit cannot disagree after a GM turn shifted the array. */
     var _mkPlan=_canDrop?invDropPlan(c.inventory,_invDropMarksFor(invOwner)):{drop:[],count:0},_mkAt={},_mi;for(_mi=0;_mi<_mkPlan.drop.length;_mi++)_mkAt[_mkPlan.drop[_mi].idx]=true;
@@ -261,7 +261,7 @@ function csSheetSections(c,invOwner,portable){
         var _defBtn=(_canDrop&&typeof itemDefEligible==="function"&&itemDefEligible(_row.text))?'<button class="inv-def" data-raw="'+escHtml(_row.text)+'" onclick="defineItemFromStory(this.dataset.raw,event)" title="Define this item: the GM reviews the story for what is already established about it and proposes canon — you confirm before it binds. Canonized items are re-injected every turn, so their nature can no longer drift." style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;" onmouseover="this.style.color=\'var(--acc)\'" onmouseout="this.style.color=\'var(--t2)\'">&#9998;</button>':"";/* #382: the quill, like every other edit control */
         /* #295: the item text opens the click-card; the Define/Drop buttons sit in their own
            flex span, so their clicks never bubble into the card. */
-        var _eqp=typeof isWorn==="function"&&isWorn(c,_row.name);/* #599 (d) §3.5: the ◆ mark, the .eqp lift, the word in the glyph's tooltip */
+        var _eqp=!!_row.equipped;/* #599 (d) §3.5: the ◆ mark, the .eqp lift, the word in the glyph's tooltip; (d2) review 5 */
         invRows+='<div class="cs-list-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span class="inv-name'+(_marked?' inv-marked':'')+(_eqp?' eqp':'')+'" data-item="'+escHtml(_row.text)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;'+(_marked?'color:var(--dng);':'')+'">'+(_eqp?invEquippedMarkHtml():'')+invItemHtml(_row.name,_row.qty)+'</span><span style="display:flex;gap:2px;flex-shrink:0;">'+_defBtn+_dropBtn+'</span></div>';/* #388; #429: a marked row reads red */
       }
     }

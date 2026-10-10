@@ -1916,7 +1916,7 @@ function _itemDefCandidate(rawName,R){
      carries its inline "—" description ("Torch — burns an hour") has described itself. */
   if(/\s[—–-]\s/.test(String(rawName||"")))return;
   var e=itemLookup(rawName);
-  if(e&&(e.category==="mundane"||e.category==="treasure"))return;
+  if(e&&itemDefCategoryExempt(e.category))return;/* #607 (d2): ONE rule — jewelry keeps treasure's exemption */
   if(e&&e.effect&&e.effect!=="N/A")return;              /* already canon (Part A serves base canon through a classification-only overlay) */
   var pend=worldState.pendingItemDefs||[],i;
   for(i=0;i<pend.length;i++)if(pend[i].key===key)return;/* a proposal already awaits the player */
@@ -1935,7 +1935,7 @@ var ITEM_DEF_QUEUE_CAP=8;
 function _itemDefOpen(key){
   var pend=worldState.pendingItemDefs||[],i;for(i=0;i<pend.length;i++)if(pend[i].key===key)return false;
   if(worldState.itemDefAsked&&worldState.itemDefAsked[key]!=null)return false;
-  var e=(typeof itemLookup==="function")?itemLookup(key):null;if(e&&(e.category==="mundane"||e.category==="treasure"))return false;if(e&&e.effect&&e.effect!=="N/A")return false;
+  var e=(typeof itemLookup==="function")?itemLookup(key):null;if(e&&itemDefCategoryExempt(e.category))return false;if(e&&e.effect&&e.effect!=="N/A")return false;/* #607 (d2) */
   return true;
 }
 /* #481 D8: the next waiting item that is still open becomes the next ask; closed ones leave the queue. The note says "just

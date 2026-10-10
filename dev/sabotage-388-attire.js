@@ -16,7 +16,7 @@ var rc1 = sabotage.prove({
   cases: [
     { label: "an uncarried item can be worn (the refusal is dropped)",
       /* #599 (c) re-anchor: wornSet is a delegate over rows — the refusal is the same line, the mutation mints the uncarried item and wears it */
-      find: '  if(ii<0){if(on&&typeof console!=="undefined")console.warn("[attire] WORN: \'"+item+"\' is not in "+(who||cs.name||"?")+"\'s inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)");return {ok:false,reason:on?"not carried":"not worn"};}',
+      find: '  if(ii<0){if(on&&typeof console!=="undefined")console.warn("[attire] "+tag+": \'"+item+"\' is not in "+(who||cs.name||"?")+"\'s inventory — nothing is equipped that is not carried; emit [ITEM_GAINED:] first (#388)");return {ok:false,reason:on?"not carried":"not worn"};}',
       replace: '  if(ii<0){if(on){invAdd(inv,invStoredParse(item).name,1);ii=_invLegacyFind(inv,item);}else return {ok:false,reason:"not worn"};}' },
     { label: "re-donning duplicates the worn entry",
       /* #599 (c) re-anchor: the flag is on the row (invEquip refuses a re-don); the mutation sets it blindly and says ok twice */

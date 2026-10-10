@@ -151,7 +151,7 @@ test("diff runner schedules a quoted \"file\" key, ignores a profile: key, print
   function battery(name, body) { fs.writeFileSync(path.join(tmp, "dev", name), body, "utf8"); }
   try {
     fs.mkdirSync(path.join(tmp, "dev"));
-    ["run-sabotage-diff.js", "battery-verdict.js", "battery-pool.js"].forEach(function (f) { fs.copyFileSync(path.join(ROOT, "dev", f), path.join(tmp, "dev", f)); });
+    ["run-sabotage-diff.js", "battery-verdict.js", "battery-pool.js", "battery-targets.js"].forEach(function (f) { fs.copyFileSync(path.join(ROOT, "dev", f), path.join(tmp, "dev", f)); });/* #599 (d2): the runner reads targets through battery-targets.js */
     battery("sabotage-quoted.js", '// {"file": "target.js"}\nconsole.log("QUOTED RAN");\n');
     battery("sabotage-profile.js", '// {profile: "target.js"}\nconsole.log("PROFILE RAN");\n');
     battery("sabotage-skip.js", '// {file: "target.js"}\nconsole.log("SABOTAGE SKIPPED (sabotage-skip.js): 2 clause(s) NOT proven on this machine — fixture");process.exit(78);\n');
@@ -203,7 +203,7 @@ test("battery pool: batteries run at once, each in its own temp dir; a failure b
   }
   try {
     fs.mkdirSync(path.join(tmp, "dev")); fs.mkdirSync(marks);
-    ["run-sabotage-diff.js", "run-sabotage-all.js", "battery-verdict.js", "battery-pool.js"].forEach(function (f) { fs.copyFileSync(path.join(ROOT, "dev", f), path.join(tmp, "dev", f)); });
+    ["run-sabotage-diff.js", "run-sabotage-all.js", "battery-verdict.js", "battery-pool.js", "battery-targets.js"].forEach(function (f) { fs.copyFileSync(path.join(ROOT, "dev", f), path.join(tmp, "dev", f)); });
     battery("sabotage-aa-rendezvous.js", rendezvous("aa", "ab"));
     battery("sabotage-ab-rendezvous.js", rendezvous("ab", "aa"));
     battery("sabotage-flaky.js", counted("flaky", "n===0"));

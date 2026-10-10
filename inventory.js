@@ -279,9 +279,9 @@ function _invEntryFind(es,name){
 }
 /* wornSet(cs, item, on, who) → {ok, item | reason}: the WORN tag and the summary extractor's attire belt. The sheet is healed
    first (rows, the flag on the row); nothing uncarried is worn — refused LOUDLY, as always (#388). */
-function wornSet(cs,item,on,who){if(!cs)return {ok:false,reason:"no sheet"};var h=invHealSheet(cs);if(!h.ok){if(typeof console!=="undefined")console.warn("[attire] WORN refused — "+h.reason);return {ok:false,reason:h.reason};}
+function wornSet(cs,item,on,who,tag){tag=tag||"EQUIPPED";/* #599 (d2), review 7: the console names the spelling the GM used */if(!cs)return {ok:false,reason:"no sheet"};var h=invHealSheet(cs);if(!h.ok){if(typeof console!=="undefined")console.warn("[attire] "+tag+" refused — "+h.reason);return {ok:false,reason:h.reason};}
   var inv=cs.inventory,ii=_invLegacyFind(inv,item);
-  if(ii<0){if(on&&typeof console!=="undefined")console.warn("[attire] WORN: '"+item+"' is not in "+(who||cs.name||"?")+"'s inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)");return {ok:false,reason:on?"not carried":"not worn"};}
+  if(ii<0){if(on&&typeof console!=="undefined")console.warn("[attire] "+tag+": '"+item+"' is not in "+(who||cs.name||"?")+"'s inventory — nothing is equipped that is not carried; emit [ITEM_GAINED:] first (#388)");return {ok:false,reason:on?"not carried":"not worn"};}
   var r=invEquip(inv,inv[ii].name,on);if(r.ok)return {ok:true,item:r.row.name};return {ok:false,reason:on?"already worn":"not worn",item:inv[ii].name};}
 /* wornPrune(cs): the invariant "nothing is worn that is not carried" holds by construction on rows (a removed row takes its
    flag with it) — the call heals an unhealed sheet (a leftover worn list folds in) and returns 0. The name retires with the
@@ -449,14 +449,14 @@ function invDisplayOrder(rows){
     return (a.sourceIndex|0)-(b.sourceIndex|0);
   });
 }
-function groupInventory(inv){
+function groupInventory(inv,sheet){/* #599 (d2), review 5: the SHEET (optional) lets a legacy string entry read its worn list, so the ◆ mark and the equipped-first order agree on an unhealed preview */
   inv=inv||[];
   var buckets=keyedDict(),order=[],i,j;
   for(i=0;i<INVENTORY_CATEGORY_REGISTRY.length;i++){buckets[INVENTORY_CATEGORY_REGISTRY[i].id]={id:INVENTORY_CATEGORY_REGISTRY[i].id,label:INVENTORY_CATEGORY_REGISTRY[i].label,rows:[]};order.push(INVENTORY_CATEGORY_REGISTRY[i].id);}
   var un={id:"unclassified",label:"Unclassified",rows:[]};
   for(i=0;i<inv.length;i++){
     var raw=inv[i],text=invEntryText(inv,i),er=invEntryRow(raw),e=itemLookup(text),cats=e?itemInvCategories(e):null;
-    var row={raw:raw,text:text,name:er?er.name:"",qty:er?er.qty:1,equipped:!!(er&&er.equipped),sourceIndex:i,key:itemBaseName(text),entry:e,categories:cats||[]};/* #599 (b5): `text` is what a renderer shows and passes on — `raw` is the stored entry, whatever its shape (review (b) 2); (c): name, qty and equipped for the row's badge and mark */
+    var row={raw:raw,text:text,name:er?er.name:"",qty:er?er.qty:1,equipped:!!(er&&(er.equipped||(typeof raw==="string"&&!!sheet&&typeof isWorn==="function"&&isWorn(sheet,er.name)))),sourceIndex:i,key:itemBaseName(text),entry:e,categories:cats||[]};/* #599 (b5): `text` is what a renderer shows and passes on — `raw` is the stored entry, whatever its shape (review (b) 2); (c): name, qty and equipped for the row's badge and mark */
     if(!cats){un.rows.push(row);continue;}
     var placed=false;
     for(j=0;j<order.length;j++){if(cats.indexOf(order[j])>=0){buckets[order[j]].rows.push(row);placed=true;break;}}
