@@ -48,7 +48,7 @@ var SHEET_ADMISSION=[
   {name:"stores",phase:"prepare",applies:function(){return true;},
    run:function(sheet){keyedStores(sheet,"sheet");}},/* #545: name-keyed dictionaries never walk the prototype */
   {name:"portrait",phase:"prepare",applies:function(){return true;},
-   run:function(sheet,ctx){if(portraitAdmit(sheet,ctx.door)&&ctx.toast!==false&&typeof showToast==="function")showToast("⚠ "+(sheet.name||"The character")+"'s portrait was dropped — not an image");}},/* #481 F2 */
+   run:function(sheet,ctx){var _pd=portraitAdmit(sheet,ctx.door);if(!_pd)return;ctx.portraitsDropped=(ctx.portraitsDropped||0)+_pd;/* #599 (c2), review 5: a door that silences the per-sheet toast (the load) reads the count and says it once */if(ctx.toast!==false&&typeof showToast==="function")showToast("⚠ "+(sheet.name||"The character")+"'s portrait was dropped — not an image");}},/* #481 F2 */
   {name:"names",phase:"prepare",applies:function(ctx){return ctx.mode!=="same";},
    run:function(sheet){migrateAncestryNames(sheet);migrateCharClassNames(sheet);migrateCapabilityRenames(sheet);migrateSpellDisplayNames(sheet);}},/* #100, #221: a portable copy may predate a rename */
   {name:"clamp",phase:"prepare",applies:function(ctx){return ctx.mode!=="same"&&!ctx.typed;},

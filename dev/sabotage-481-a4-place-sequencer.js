@@ -35,7 +35,7 @@ prove("tag_table.js", [
     find: "node:rPlaceAt(R,csOff[csi]).key};", replace: "node:rPlaceAt(R,null).key};",
     mustFail: "fight-then-ride anchors the aftermath" },
   { label: "the gain takes from where the party stood before the reply",
-    find: "autoTakeLocationItem(igq.base,null,igq.n,rPlaceAtBlock(R,text,igOff[igi]).key)", replace: "autoTakeLocationItem(igq.base,null,igq.n,null)",
+    find: "autoTakeLocationItem(igq.base,null,_igL,rPlaceAtBlock(R,text,igOff[igi]).key)", replace: "autoTakeLocationItem(igq.base,null,_igL,null)",/* #599 (c2): the take moves the units that LANDED */
     mustFail: "arrive-then-take takes from where the hero arrived" },
   { label: "wares file where the reply ends",
     find: "_wat=rPlaceAtBlock(R,text,wtOff[wi]);", replace: "_wat=rPlaceAt(R,null);",

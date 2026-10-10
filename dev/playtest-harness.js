@@ -188,7 +188,7 @@ if(typeof window!=="undefined")(function(){
   // #306: the state digest the scripted layer reads, and the previous pick (kind + text).
   window.__ptChoose=__ptChoose;window.__ptPrev={text:"",kind:""};window.__ptUsed={};/* #363: items used this run */
   function ptState(){var w=(typeof worldState!=="undefined")?worldState:null;if(!w||!w.character)return {};var c=w.character,cons=[],i;
-    if(typeof itemLookup==="function")for(i=0;i<(c.inventory||[]).length;i++){var e=itemLookup(c.inventory[i]);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A")cons.push((typeof _invBase==="function")?_invBase(c.inventory[i]):c.inventory[i]);}
+    if(typeof itemLookup==="function"&&typeof invEntries==="function"){var _es=invEntries(c.inventory||[]);for(i=0;i<_es.length;i++){var e=itemLookup(_es[i].name);if(e&&e.category==="consumable"&&e.effect&&e.effect!=="N/A")cons.push(_es[i].name);}}/* #599 (c2), review 1: the pack is rows — read through the module, never by index */
     var off=[];for(i=0;i<(w.questLog||[]).length;i++)if(w.questLog[i]&&w.questLog[i].status==="offered")off.push(w.questLog[i].title);
     var lastRaw=window.__pt.raw.length?String(window.__pt.raw[window.__pt.raw.length-1].raw||""):"";
     return {hp:c.hp,maxHp:c.maxHp,combat:!!w.combat,downed:!!w.downed,deathStage:(w.deathScene&&w.deathScene.stage)||null,consumables:cons,offered:off,turn:w.turn||0,used:window.__ptUsed,lastNoChange:lastRaw.indexOf("[NO_CHANGE")>=0};}/* #363 */

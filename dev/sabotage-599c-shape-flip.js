@@ -40,7 +40,7 @@ prove("inventory.js", [
     find: "function _invMarkIs(inv,i,name){return itemKey(invEntryName(inv,i))===itemKey(name);}", replace: "function _invMarkIs(inv,i,name){return inv[i]===name;}",
     mustFail: MARKS },
   { label: "the model faucet pushes the raw strings again",
-    find: "  return r.rows.slice(0,max);\n}", replace: "  return strs.slice(0,max);\n}",
+    find: "  return rows.slice(0,max);\n}", replace: "  return list.filter(function(s){return typeof s===\"string\"&&s;}).slice(0,max);\n}",/* #599 (c2): the faucet clamps per entry; the rows are built in place */
     mustFail: FAUCET },
   { label: "a refused rename moves the flag with it (#606 reopened: the mark follows a name the pack refused)",
     find: "  rows[i].name=nm;return {ok:true,row:rows[i]};", replace: "  rows[i].name=nm;rows[i].equipped=false;return {ok:true,row:rows[i]};",

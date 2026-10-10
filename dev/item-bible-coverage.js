@@ -22,7 +22,7 @@ var owners=[{name:worldState.character.name+" (PC)",inv:worldState.character.inv
 
 var total=0,uniq={},stats={direct:0,alias:0,invalid:0,miss:0},bySec={},missRows=[];
 owners.forEach(function(o){
-  o.inv.forEach(function(raw){
+  invEntries(o.inv).forEach(function(en){var raw=en.name;/* #599 (c2), review 1: rows, read through the module */
     total++;
     var key=itemBaseName(raw);uniq[key]=1;
     var direct=(worldState.itemBible&&worldState.itemBible[key])||(typeof ITEM_BIBLE!=="undefined"&&ITEM_BIBLE[key])||null;

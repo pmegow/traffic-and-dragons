@@ -10,8 +10,8 @@ prove("game.js", [
     find: "  var R=ledgerApply(plan,{key:cat.key}),muts=R.muts;/* #597 */", replace: "  var R=ledgerApply(plan,{key:cat.key}),muts=R.muts;applyMuts(\"\",{deferSave:true});",
     mustFail: "#597 ① the counter, the chest and the undo never reach applyMuts" },
   { label: "the pack is no longer checked before a removal (a stale plan lands half)",
-    find: "for(j=0;j<l.qty;j++)if(!removeInventoryItem(sim,l.name))return {ok:false,reason:(j?\"only \"+j+\" of \"+l.name+\" x\"+l.qty+\" is in the pack\":l.name+\" is no longer in the pack\")+\" — nothing moved\",muts:[]};",
-    replace: "for(j=0;j<0;j++)if(!removeInventoryItem(sim,l.name))return {ok:false,reason:(j?\"only \"+j+\" of \"+l.name+\" x\"+l.qty+\" is in the pack\":l.name+\" is no longer in the pack\")+\" — nothing moved\",muts:[]};",
+    find: "for(j=0;j<l.qty;j++){if(!removeInventoryItem(sim,l.name))return {ok:false,reason:(j?\"only \"+j+\" of \"+l.name+\" x\"+l.qty+\" is in the pack\":l.name+\" is no longer in the pack\")+\" — nothing moved\",muts:[]};",
+    replace: "for(j=0;j<0;j++){if(!removeInventoryItem(sim,l.name))return {ok:false,reason:(j?\"only \"+j+\" of \"+l.name+\" x\"+l.qty+\" is in the pack\":l.name+\" is no longer in the pack\")+\" — nothing moved\",muts:[]};",/* #599 (c2): the loop body also checks a stow's fields */
     mustFail: "#597 ② a stale plan is refused WHOLE" },
   { label: "the chest row is no longer checked before a take",
     find: "if(have<l.qty)return {ok:false,reason:(have?\"only \"+have+\" of \"+l.name+\" x\"+l.qty+\" is in the chest\":l.name+\" is no longer in the chest\")+\" — nothing moved\",muts:[]};",
@@ -23,8 +23,8 @@ prove("game.js", [
   { label: "a sale no longer retires the keeper's want",
     find: "var w=(typeof retireWantedAt===\"function\")?retireWantedAt({key:key},ln.name):null;", replace: "var w=null;",
     mustFail: "#597 ③ what the tag path did for a sale is kept" },
-  { label: "a sold item stays on the worn list",
-    find: "  if(typeof wornPrune===\"function\")wornPrune(c);\n  if(moved&&R.moveGrp)", replace: "  if(moved&&R.moveGrp)",
+  { label: "a sold row stays on the sheet with its flag (the removal no longer lands)",/* #599 (c2): on rows the flag leaves WITH the row, so the old wornPrune mutation changed nothing — a false proof since (c), found by the c2 sweep */
+    find: "if(ln.kind===\"sell\"||ln.kind===\"stow\"){for(j=0;j<n;j++)removeInventoryItem(c.inventory,ln.name);muts.push(\"-\"+ln.name+qs);}", replace: "if(ln.kind===\"sell\"||ln.kind===\"stow\"){muts.push(\"-\"+ln.name+qs);}",
     mustFail: "#597 ③ what the tag path did for a sale is kept" },
   { label: "a trade no longer ends the chance to undo the stow before it",
     find: "if(moved&&R.moveGrp)worldState.stashUndoGrp=R.moveGrp;else delete worldState.stashUndoGrp;", replace: "if(moved&&R.moveGrp)worldState.stashUndoGrp=R.moveGrp;",

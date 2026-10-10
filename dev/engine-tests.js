@@ -31805,4 +31805,128 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var cp=fn(b,"function _addPendingCompanion(");return (cp.indexOf("sheetAdmit(char")>=0&&cp.indexOf("sheetAdmit(char")<cp.indexOf("pendingCompanions.push("))?true:"the companion pick admits before it queues";
   });
 
+  section("#599 (c2) the review of (c) closes — a refused write lands no receipt, a world holding a row is written as v11, unknown fields ride a transfer or the move refuses, the load door says a dropped portrait, the Sync mapper refuses junk, prepare keeps a nameless object, a malformed worn is evidence, the faucet clamps one entry, the dev tools and the re-baseline checker read rows");
+  function c2Bram(inv){worldState.npcs.push({name:"Bram",status:"ally",partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:2,hp:10,maxHp:10,stats:{},abilities:[],spells:[],conditions:[],inventory:inv||[]}});return worldState.npcs[worldState.npcs.length-1].charSheet;}
+  t("#599c2 review 1: the playtest harness and the item-bible coverage tool read the pack through invEntries — a row campaign's consumables are seen, and the coverage tool misses nothing on a pack of bible items",function(){
+    var ph=__fsForTests.readFileSync(__rootForTests+"/dev/playtest-harness.js","utf8"),cv=__fsForTests.readFileSync(__rootForTests+"/dev/item-bible-coverage.js","utf8");
+    var ps=ph.slice(ph.indexOf("function ptState("),ph.indexOf("function ptPick("));
+    if(ps.indexOf("invEntries(c.inventory")<0||/c\.inventory\[i\]/.test(ps))return "ptState reads the pack through invEntries, never by index";
+    if(cv.indexOf("invEntries(o.inv)")<0||/o\.inv\.forEach\(function\(raw\)/.test(cv))return "the coverage tool walks invEntries, never the raw entries";
+    var key=Object.keys(ITEM_BIBLE)[0];if(!key)return "no bible item to test with";
+    var os=__osForTests,fs=__fsForTests,cp=__cpForTests,base=fs.mkdtempSync(os.tmpdir()+"/tnd-599c2-cov-");
+    try{fs.writeFileSync(base+"/f.tnd",JSON.stringify({worldState:{ver:SAVE_VER,character:{name:"F",inventory:[{name:key,qty:2,equipped:false}]},npcs:[],world:{location:"x"}},memory:{}}));
+      var r=cp.spawnSync(process.execPath,[__rootForTests+"/dev/item-bible-coverage.js",base+"/f.tnd"],{cwd:__rootForTests,encoding:"utf8"}),out=String(r.stdout)+String(r.stderr);
+      return (r.status===0&&/missed: 0\b/.test(out)&&out.indexOf("[object")<0)?true:"a row pack of bible items misses nothing: "+out.split("\n").slice(0,6).join(" / ");
+    }finally{try{fs.rmSync(base,{recursive:true,force:true});}catch(e){}}
+  });
+  t("#599c2 review 2: a gain the pack REFUSES lands no receipt and notes no pair hit — the reason is said; the take pair withholds the companion's loss when the hero's gain was refused; the ledger's buy refuses before the coin moves; a companion's refused gain prints no receipt",function(){
+    makeWorld();worldState.character.inventory=["Arrow x10000"];/* a legacy count over the bound: no writer can prepare this pack */
+    var r=quiet(function(){return applyMuts("You find rope. [ITEM_GAINED:Rope]");}).r,m=(r.muts||[]).join("|");
+    if(/\+Rope/.test(m)||!/Nothing gained/.test(m)||!/Rope/.test(m))return "a refused gain: no '+Rope', the refusal said: "+m;
+    if(worldState.character.inventory.length!==1||worldState.character.inventory[0]!=="Arrow x10000")return "the pack is untouched: "+JSON.stringify(worldState.character.inventory);
+    var bram=c2Bram(["Rope"]);
+    r=quiet(function(){return applyMuts("Bram hands it over. [COMPANION_ITEM_LOST:Bram|Rope][ITEM_GAINED:Rope]");}).r;m=(r.muts||[]).join("|");
+    if(inventoryCountOf(bram.inventory,"Rope")!==1||/Bram: -Rope/.test(m)||!/Nothing moved/.test(m))return "the take pair hands the unit back when the hero's gain was refused: "+m+" / Bram "+JSON.stringify(bram.inventory);/* both shapes: Bram's pack was never written, so it is still the legacy string */
+    worldState.character.coin=1000;var lr=ledgerApply({netCp:200,lines:[{kind:"buy",name:"Rope",qty:2}]},{key:null});
+    if(lr.ok||worldState.character.coin!==1000||!/Rope/.test(lr.reason))return "the ledger's buy refuses before the coin moves: "+JSON.stringify(lr)+" coin "+worldState.character.coin;
+    bram.inventory=["Arrow x10000"];r=quiet(function(){return applyMuts("[COMPANION_ITEM_GAINED:Bram|Rope]");}).r;m=(r.muts||[]).join("|");
+    return (!/Bram: \+Rope/.test(m)&&/Nothing gained/.test(m)&&bram.inventory.length===1)?true:"a companion's refused gain prints no receipt: "+m;
+  });
+  t("#599c2 review 3: after a REFUSED load, a world that comes to hold a row is written as SAVE_VER — the save, the camp and the exports stamp it, so a v10 build refuses the row-bearing copy instead of garbling it",function(){
+    makeWorld();worldState.ver=10;worldState.character.inventory=["Longsword"];delete worldState.character.sheetVer;var bram=c2Bram(["Arrow x10000"]);
+    var a=quiet(function(){return inventoryAdmitWorld(worldState,"test load");}).r;if(a.ok||worldState.ver!==10)return "the load refuses and leaves ver 10: "+JSON.stringify([a,worldState.ver]);
+    quiet(function(){applyMuts("[ITEM_GAINED:Torch]");});
+    if(typeof worldState.character.inventory[0]!=="object")return "the hero's pack converted on the first write: "+JSON.stringify(worldState.character.inventory);
+    worldState.ver=10;var st=inventoryStampWorld(worldState);if(st!==true||worldState.ver!==SAVE_VER)return "inventoryStampWorld stamps a world holding a row: "+JSON.stringify([st,worldState.ver]);
+    var stj=__fsForTests.readFileSync(__rootForTests+"/state.js","utf8");if(stj.indexOf("function saveCore(){try{inventoryStampWorld(worldState);")<0)return "saveCore stamps the live world before it serializes (the harness stubs saveCore itself)";
+    worldState.ver=10;var snap=checkpointCapture("rest");if(JSON.parse(snap.ws).ver!==SAVE_VER||worldState.ver!==SAVE_VER)return "the camp carries SAVE_VER: "+JSON.parse(snap.ws).ver;
+    worldState.character.inventory=["Longsword"];worldState.ver=10;if(inventoryStampWorld(worldState)!==false||worldState.ver!==10)return "a world of strings is not stamped";
+    var uf=__fsForTests.readFileSync(__rootForTests+"/ui-files.js","utf8"),sa=__fsForTests.readFileSync(__rootForTests+"/storage-adapter.js","utf8");
+    var es=uf.slice(uf.indexOf("function exportSave("),uf.indexOf("function exportCampaignCopy(")),ec=uf.slice(uf.indexOf("function exportCampaignCopy("),uf.indexOf("function exportCampaignCopy(")+2500),sn=sa.slice(sa.indexOf("function _syncNow("),sa.indexOf("function _syncNow(")+3000);
+    if(es.indexOf("inventoryStampWorld(worldState)")<0||es.indexOf("inventoryStampWorld(worldState)")>es.indexOf("JSON.stringify({worldState:worldState"))return "exportSave stamps before it serializes";
+    if(ec.indexOf("inventoryStampWorld(ws)")<0||ec.indexOf("inventoryStampWorld(ws)")>ec.indexOf("JSON.stringify({worldState:ws"))return "exportCampaignCopy stamps before it serializes";
+    if(sn.indexOf("inventoryStampWorld(worldState)")<0||sn.indexOf("inventoryStampWorld(worldState)")>sn.indexOf("_stripNpcPortraits(worldState)"))return "_syncNow stamps before it builds the wire form";
+    return true;
+  });
+  t("#599c2 review 4a: a GIVE carries the row's unknown fields to the companion (the fragment rides the pair); a destination row with DIFFERENT fields refuses the whole move and the unit stays with the hero, fields intact",function(){
+    makeWorld();worldState.character.inventory=[{name:"Rope",qty:1,equipped:false,bibleKey:"rope-hemp"}];var bram=c2Bram([]);
+    quiet(function(){applyMuts("[ITEM_LOST:Rope][COMPANION_ITEM_GAINED:Bram|Rope]");});
+    if(bram.inventory.length!==1||bram.inventory[0].bibleKey!=="rope-hemp"||bram.inventory[0].qty!==1||worldState.character.inventory.length)return "the fragment rides the give: "+JSON.stringify([bram.inventory,worldState.character.inventory]);
+    worldState.character.inventory=[{name:"Rope",qty:1,equipped:false,bibleKey:"rope-hemp"}];bram.inventory=[{name:"Rope",qty:1,equipped:false,bibleKey:"other"}];
+    var r=quiet(function(){return applyMuts("[ITEM_LOST:Rope][COMPANION_ITEM_GAINED:Bram|Rope]");}).r,m=(r.muts||[]).join("|");
+    if(worldState.character.inventory.length!==1||worldState.character.inventory[0].bibleKey!=="rope-hemp"||worldState.character.inventory[0].qty!==1)return "a refused give puts the unit back with its fields: "+JSON.stringify(worldState.character.inventory)+" / "+m;
+    if(bram.inventory[0].qty!==1||bram.inventory[0].bibleKey!=="other"||!/fields/.test(m))return "the companion's row is untouched and the refusal is said: "+JSON.stringify(bram.inventory)+" / "+m;
+    return true;
+  });
+  t("#599c2 review 4b: a TAKE carries the companion row's unknown fields onto the hero's fresh row; onto a plain stack the hero already held the move refuses and both sides are restored",function(){
+    makeWorld();worldState.character.inventory=[];var bram=c2Bram([{name:"Rope",qty:1,equipped:false,bibleKey:"rope-hemp"}]);
+    quiet(function(){applyMuts("[COMPANION_ITEM_LOST:Bram|Rope][ITEM_GAINED:Rope]");});
+    var h=worldState.character.inventory;if(h.length!==1||h[0].bibleKey!=="rope-hemp"||h[0].qty!==1||bram.inventory.length)return "the fragment rides the take: "+JSON.stringify([h,bram.inventory]);
+    worldState.character.inventory=[{name:"Rope",qty:2,equipped:false}];bram.inventory=[{name:"Rope",qty:1,equipped:false,bibleKey:"rope-hemp"}];
+    var r=quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Rope][ITEM_GAINED:Rope]");}).r,m=(r.muts||[]).join("|");
+    h=worldState.character.inventory;
+    if(h.length!==1||h[0].qty!==2||h[0].bibleKey!==undefined)return "the hero's plain stack is restored: "+JSON.stringify(h)+" / "+m;
+    if(bram.inventory.length!==1||bram.inventory[0].bibleKey!=="rope-hemp"||bram.inventory[0].qty!==1||!/fields/.test(m))return "the companion keeps the row with its fields and the refusal is said: "+JSON.stringify(bram.inventory)+" / "+m;
+    return true;
+  });
+  t("#599c2 review 4c: a STOW of a row with unknown fields refuses — the chest cannot carry them — and the unit returns to the pack with its fields; the ledger's stow precheck refuses the same row before anything moves",function(){
+    villageEF();worldState.character.inventory=[{name:"Lantern",qty:1,equipped:false,bibleKey:"lantern-brass"}];worldState.turn=7;
+    var r=quiet(function(){return applyMuts("You leave it. [ITEM_LOST:Lantern][LOCATION_ITEM:Lantern|placed]");}).r,m=(r.muts||[]).join("|");
+    var h=worldState.character.inventory,node=memory.map.nodes["The Village|the tavern"];
+    if(h.length!==1||h[0].bibleKey!=="lantern-brass"||h[0].qty!==1)return "the unit is back in the pack with its fields: "+JSON.stringify(h)+" / "+m;
+    if((node.items||[]).some(function(it){return !it.taken&&/lantern/i.test(it.name);})||!/fields/.test(m))return "nothing was placed and the refusal is said: "+JSON.stringify(node.items)+" / "+m;
+    var lr=ledgerApply({netCp:0,lines:[{kind:"stow",name:"Lantern",qty:1}]},{key:"The Village|the tavern"});
+    return (!lr.ok&&/fields/.test(lr.reason)&&h.length===1&&h[0].bibleKey==="lantern-brass")?true:"the ledger's stow precheck refuses: "+JSON.stringify(lr)+" / "+JSON.stringify(h);
+  });
+  t("#599c2 review 5: the load door says a dropped portrait ONCE — a toast naming the count — never only a console line",function(){
+    makeWorld();worldState.character.portrait="http://example.invalid/p.png";var bram=c2Bram([]);bram.portrait="data:image/svg+xml;base64,AAAA";
+    var _ts=[],_os=showToast,a;showToast=function(m){_ts.push(String(m));};/* this test's own ring: an earlier test may have left another stub on the global */
+    try{a=quiet(function(){return inventoryAdmitWorld(worldState,"test load");}).r;}finally{showToast=_os;}
+    if(!a.ok||worldState.character.portrait||bram.portrait)return "both portraits drop at the door: "+JSON.stringify([a,worldState.character.portrait,bram.portrait]);
+    var pt=_ts.filter(function(x){return /portrait/.test(x);});
+    return (pt.length===1&&/2 portraits/.test(pt[0]))?true:"one toast naming the count: "+JSON.stringify(_ts);
+  });
+  t("#599c2 review 6: the Sync mapper REFUSES a source that holds junk — a null, a number, a nameless object never become rows named '7' or '[object Object]'",function(){
+    var src=["Torch x2",null,7,{nm:"Old-shape row"},"Rope"],lines=invTextList(src);
+    var r=invApplyLines(src,lines);
+    if(r.ok||!/unreadable/.test(r.reason))return "the mapper refuses junk in its source: "+JSON.stringify(r);
+    if(src.length!==5||src[1]!==null||src[2]!==7)return "the source is untouched";
+    var ok=invApplyLines(["Torch x2","Rope"],["Torch x2","Rope","Lantern"]);return (ok.ok&&ok.rows.length===3)?true:"a clean source still maps: "+JSON.stringify(ok);
+  });
+  t("#599c2 review 7: a writer's prepare keeps a nameless object verbatim beside the rows (the same classifier the conversion uses) — nothing is dropped without evidence",function(){
+    var inv=["Torch x2",{name:"",note:"keep me"},{name:"   "},"Rope"];
+    if(!addInventoryItem(inv,"Lantern"))return "the gain lands";
+    var kept=inv.filter(function(e){return e&&typeof e==="object"&&typeof e.name==="string"&&!e.name.trim();});
+    if(kept.length!==2||kept[0].note!=="keep me")return "both nameless objects stay in the list: "+JSON.stringify(inv);
+    var rows=inv.filter(function(e){return e&&typeof e==="object"&&e.name&&e.name.trim();});return (rows.length===3&&rows[0].name==="Torch"&&rows[0].qty===2)?true:"the rows precede the junk: "+JSON.stringify(inv);
+  });
+  t("#599c2 review 8: a malformed worn value is EVIDENCE, never silently deleted — a string, a non-string entry, a non-list object each file their original",function(){
+    var s1={name:"A",inventory:["Chainmail"],worn:"Chainmail"};var h1=quiet(function(){return invHealSheet(s1);}).r;
+    if(!h1.ok||h1.filed!==1||!s1.inventoryJunk||s1.inventoryJunk[0].original!=="Chainmail"||s1.worn!==undefined||s1.inventory[0].equipped)return "a string worn is filed and not guessed: "+JSON.stringify([h1,s1]);
+    var s2={name:"B",inventory:["Chainmail","Shield"],worn:[{name:"Shield"},7,"Chainmail"]};var h2=quiet(function(){return invHealSheet(s2);}).r;
+    if(!h2.ok||h2.filed!==2||s2.inventoryJunk.length!==2||!s2.inventory[0].equipped||s2.inventory[1].equipped)return "the two non-string entries are filed, the name still folds: "+JSON.stringify([h2,s2]);
+    var s3={name:"C",inventory:["Chainmail"],worn:{0:"Chainmail"}};var h3=quiet(function(){return invHealSheet(s3);}).r;
+    if(!h3.ok||h3.filed!==1||JSON.stringify(s3.inventoryJunk[0].original)!=='{"0":"Chainmail"}')return "a non-list object is filed whole: "+JSON.stringify([h3,s3]);
+    var h1b=quiet(function(){return invHealSheet(s1);}).r;return (h1b.ok&&h1b.filed===0&&s1.inventoryJunk.length===1)?true:"a second heal adds nothing: "+JSON.stringify(s1.inventoryJunk);
+  });
+  t("#599c2 review 9: the model faucet keeps the pack when ONE entry passes the bound — that entry is clamped to INV_QTY_MAX and said; the rest arrive untouched; a fold over the bound clamps too",function(){
+    var r=quiet(function(){return sanitizeModelInventory(["Shortsword","Leather armor","Copper bits x12000","Rope"]);});
+    var names=r.r.map(function(x){return x.name;}).join("|");
+    if(names!=="Shortsword|Leather armor|Copper bits|Rope"||r.r[2].qty!==INV_QTY_MAX)return "the pack arrives, the one count clamped: "+JSON.stringify(r.r);
+    if(!r.warns.some(function(w){return /Copper bits/.test(w)&&/12000/.test(w);}))return "the clamp is said with the entry and its count: "+JSON.stringify(r.warns);
+    var r2=quiet(function(){return sanitizeModelInventory(["Copper bits x6000","copper bits x6000"]);});
+    return (r2.r.length===1&&r2.r[0].qty===INV_QTY_MAX&&r2.warns.some(function(w){return /Copper bits/.test(w);}))?true:"a fold over the bound clamps too, said: "+JSON.stringify([r2.r,r2.warns]);
+  });
+  t("#599c2 review 10: the re-baseline checker requires every new row to carry EXACTLY name, qty and equipped — a tampered end state with an extra field fails, the canonical pair passes",function(){
+    var os=__osForTests,fs=__fsForTests,cp=__cpForTests,base=fs.mkdtempSync(os.tmpdir()+"/tnd-599c2-rb-");
+    try{fs.writeFileSync(base+"/old.json",JSON.stringify({ws:{ver:10,character:{name:"F",inventory:["Rope","Torch x2"]}},mem:{}}));
+      fs.writeFileSync(base+"/good.json",JSON.stringify({ws:{ver:SAVE_VER,character:{name:"F",inventory:[{name:"Rope",qty:1,equipped:false},{name:"Torch",qty:2,equipped:false}],sheetVer:SHEET_VER}},mem:{}}));
+      fs.writeFileSync(base+"/bad.json",JSON.stringify({ws:{ver:SAVE_VER,character:{name:"F",inventory:[{name:"Rope",qty:1,equipped:false,src:"x"},{name:"Torch",qty:2,equipped:false}],sheetVer:SHEET_VER}},mem:{}}));
+      var g=cp.spawnSync(process.execPath,[__rootForTests+"/dev/check-replay-rebaseline.js",base+"/old.json",base+"/good.json"],{cwd:__rootForTests,encoding:"utf8"});
+      if(g.status!==0)return "the canonical pair passes: "+String(g.stdout)+String(g.stderr);
+      var b=cp.spawnSync(process.execPath,[__rootForTests+"/dev/check-replay-rebaseline.js",base+"/old.json",base+"/bad.json"],{cwd:__rootForTests,encoding:"utf8"});
+      return (b.status!==0&&/exactly/i.test(String(b.stdout)+String(b.stderr)))?true:"an extra field fails: "+String(b.stdout)+String(b.stderr);
+    }finally{try{fs.rmSync(base,{recursive:true,force:true});}catch(e){}}
+  });
+
 }

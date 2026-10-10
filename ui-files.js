@@ -574,6 +574,7 @@ function exportSave(){
     // the file gets the pre-reconcile turn stamp (the t4-name-on-t139-data bug, 2026-07-03).
     if(actualFname===fname)actualFname=buildFilename("save");
     modal.remove();
+    inventoryStampWorld(worldState);/* #599 (c2), review 3: a world holding a row is written as SAVE_VER */
     var data=JSON.stringify({worldState:worldState,sessionLog:sessionLog,memory:memory},null,2);
     var blob=new Blob([data],{type:"application/json"});
     /* Re-arm a folder restored from a previous session INSIDE this click (the gesture the permission
@@ -607,6 +608,7 @@ function exportCampaignCopy(id){
     catch(e){return Promise.reject(new Error("this device's copy of "+campDisplayName(id)+" could not be read ("+(e&&e.message)+")"));}
   }
   var fname=buildFilename("save",ws);
+  inventoryStampWorld(ws);/* #599 (c2), review 3: a copy holding a row is written as SAVE_VER */
   var blob=new Blob([JSON.stringify({worldState:ws,sessionLog:sl,memory:mem},null,2)],{type:"application/json"});
   return _ensureFolderPerm().then(function(){return exportToFolder("save",blob,fname,isActive?null:id,ws&&ws.campName);});/* #481 F1: a non-active campaign's copy lands in ITS folder */
 }

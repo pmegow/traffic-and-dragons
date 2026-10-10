@@ -90,7 +90,8 @@ function invRows(list,worn){
     idx[k]=rows.length;rows.push(r.row);
   }
   var w=Array.isArray(worn)?worn:[];
-  for(i=0;i<w.length;i++){if(typeof w[i]!=="string"||!w[i].trim())continue;k=itemKey(invStoredParse(w[i]).name);
+  if(worn!==undefined&&worn!==null&&!Array.isArray(worn))diags.push({reason:"a worn list that is not a list",original:worn});/* #599 (c2), review 8: a malformed worn is EVIDENCE, never deleted in silence (§5.2 ⑤) */
+  for(i=0;i<w.length;i++){if(typeof w[i]!=="string"||!w[i].trim()){if(w[i]!==undefined&&w[i]!==null)diags.push({reason:"a worn entry that is not a name",original:w[i]});continue;}k=itemKey(invStoredParse(w[i]).name);
     if(idx[k]!==undefined)rows[idx[k]].equipped=true;else diags.push({reason:"a worn item that is not carried",original:w[i]});}
   return {ok:true,rows:rows,diagnostics:diags,reason:""};
 }
@@ -107,10 +108,13 @@ function invFind(rows,name){
 }
 function invCount(rows,name){var i=invFind(rows,name);return i<0?0:rows[i].qty;}
 function invUnits(n){return (typeof n==="number"&&n===Math.floor(n)&&n>=1)?n:1;}
-function invAdd(rows,name,n){
-  n=invUnits(n);var nm=String(name==null?"":name).trim(),t,i,row;if(!nm)return {ok:false,reason:"no name"};t=itemKey(nm);
-  for(i=0;i<rows.length;i++)if(_invIsRow(rows[i])&&itemKey(rows[i].name)===t){if(rows[i].qty+n>INV_QTY_MAX)return {ok:false,reason:"'"+rows[i].name+"' would pass "+INV_QTY_MAX};rows[i].qty+=n;return {ok:true,row:rows[i]};}
-  if(n>INV_QTY_MAX)return {ok:false,reason:"a count above "+INV_QTY_MAX};row={name:nm,qty:n,equipped:false};rows.push(row);return {ok:true,row:row};
+/* invAdd(rows, name, n, extras): stacks by key, else appends a row. `extras` (#599 (c2), review 4 — I5) is a fragment's unknown
+   fields riding a TRANSFER: a new row carries them; a stack with the same fields takes the units; a stack with DIFFERENT
+   fields refuses with fields:true (the caller restores the move). A plain add (no extras) merges as it always did. */
+function invAdd(rows,name,n,extras){
+  n=invUnits(n);var nm=String(name==null?"":name).trim(),t,i,row,k,ex=(extras&&typeof extras==="object")?keyedDict(extras):null,exn=ex?Object.keys(ex).length:0;if(!nm)return {ok:false,reason:"no name"};t=itemKey(nm);
+  for(i=0;i<rows.length;i++)if(_invIsRow(rows[i])&&itemKey(rows[i].name)===t){if(exn&&!invDeepEqual(invExtras(rows[i]),ex))return {ok:false,reason:"'"+rows[i].name+"' carries different fields",fields:true};if(rows[i].qty+n>INV_QTY_MAX)return {ok:false,reason:"'"+rows[i].name+"' would pass "+INV_QTY_MAX};rows[i].qty+=n;return {ok:true,row:rows[i]};}
+  if(n>INV_QTY_MAX)return {ok:false,reason:"a count above "+INV_QTY_MAX};row={name:nm,qty:n,equipped:false};if(exn)for(k in ex)row[k]=JSON.parse(JSON.stringify(ex[k]));rows.push(row);return {ok:true,row:row};
 }
 /* invRemove returns the removed FRAGMENT — the row's unknown fields with the units taken (I5 through a transfer) */
 function invRemove(rows,name,n){
@@ -134,6 +138,21 @@ function invText(row){return String(row&&row.name)+(row&&row.qty>1?" x"+row.qty:
 /* invTextList(inv): every entry's text, for the prompt and every display that showed the old strings — a legacy STRING
    VERBATIM (the prompt stays byte-identical through (b)), a row through invText. The ONE join source outside this file. */
 function invTextList(inv){var out=[],i;for(i=0;i<(inv||[]).length;i++){var e=inv[i];out.push(typeof e==="string"?e:(e==null?"":(typeof e==="object"&&typeof e.name==="string"?invText(e):String(e))));}return out;}/* junk prints as the old join printed it — null/undefined as "", a number as its digits — never "undefined" (review (b) 11) */
+/* #599 (c2) — I5 through a TRANSFER. A fragment is what invRemove returned: the row's unknown fields with the units taken.
+   invHasFields(frag) says whether it carries any; invFragsHaveFields(list) asks it of a pair's noted fragments; invCarryFields
+   (rows, name, frag, units) puts a fragment's fields onto the destination row a transfer created — a row with the same fields
+   takes the units as they are, a plain row of exactly those units takes the fields, anything else refuses (the caller restores
+   the move). invHoldsRow(inv) is the write boundary's question — does this pack hold a row at all (inventoryStampWorld). */
+function invHasFields(frag){return !!(frag&&typeof frag==="object"&&Object.keys(invExtras(frag)).length);}
+function invFragsHaveFields(list){var i;for(i=0;i<(list||[]).length;i++)if(invHasFields(list[i]))return true;return false;}
+function invCarryFields(rows,name,frag,units){
+  var i=_invLegacyFind(rows,name),ex=frag?invExtras(frag):keyedDict(),k;if(i<0)return {ok:false,reason:"'"+name+"' is not on the sheet"};
+  var row=rows[i],have=invExtras(row);if(invDeepEqual(have,ex))return {ok:true,row:row};
+  if(Object.keys(have).length)return {ok:false,reason:"'"+row.name+"' already carries different fields"};
+  if(row.qty!==units)return {ok:false,reason:"'"+row.name+"' is a stack of "+row.qty+" without those fields"};
+  for(k in ex)row[k]=JSON.parse(JSON.stringify(ex[k]));return {ok:true,row:row};
+}
+function invHoldsRow(inv){var i;for(i=0;i<(inv||[]).length;i++)if(_invIsRow(inv[i]))return true;return false;}
 /* a detached copy for preflights and snapshots (§5.2 ⑦) — validated first, so nothing is lost in the clone */
 function invDetach(rows){var ji=invJsonIssue(rows);if(ji)return {ok:false,reason:ji,rows:null};return {ok:true,rows:JSON.parse(JSON.stringify(rows)),reason:""};}
 /* invSnapshot(inv): the detached copy every preflight and before/after diff reads — a `.slice()` of a row list SHARES the row
@@ -173,6 +192,7 @@ function invHealSheet(sheet){
 function invApplyLines(inv,lines){
   var d=invDetach(inv||[]);if(!d.ok)return {ok:false,rows:null,reason:"the pack cannot be copied ("+d.reason+")"};
   var p=invRows(d.rows);if(!p.ok)return {ok:false,rows:null,reason:p.reason};
+  if(p.diagnostics.length)return {ok:false,rows:null,reason:p.diagnostics.length+" unreadable entr"+(p.diagnostics.length===1?"y":"ies")+" in the pack ("+p.diagnostics.map(function(d){return d.reason;}).slice(0,3).join("; ")+") — reload to heal the sheet before editing its items"};/* #599 (c2), review 6: junk never becomes a row through the text box */
   var src=p.rows,claimed=[],out=[],i,j,hits,nr,k,kh,row;lines=lines||[];
   for(i=0;i<lines.length;i++){hits=[];
     for(j=0;j<src.length;j++)if(!claimed[j]&&invText(src[j])===lines[i])hits.push(j);
@@ -206,7 +226,7 @@ function invPrepare(inv){
   var r=invRows(inv);
   if(!r.ok){if(typeof console!=="undefined")console.error("[inventory] write refused — the pack cannot be prepared: "+r.reason);return {ok:false,reason:r.reason};}
   for(i=0;i<r.diagnostics.length;i++){if(/repaired|read as false/.test(r.diagnostics[i].reason)){if(typeof console!=="undefined")console.error("[inventory] write refused — an entry needs repair ("+r.diagnostics[i].reason+") and a bare list cannot keep the evidence; heal the sheet first (invHealSheet)");return {ok:false,reason:"an entry needs repair on an unhealed list"};}}
-  for(i=0;i<inv.length;i++)if(!invEntryRow(inv[i]))keep.push(inv[i]);/* junk stays, verbatim */
+  for(i=0;i<inv.length;i++)if(!invRowOf(inv[i]).ok)keep.push(inv[i]);/* junk stays, verbatim — classified by the SAME rule the conversion used (#599 (c2), review 7: invEntryRow read a nameless object as a row, so it was neither converted nor kept) */
   inv.length=0;for(i=0;i<r.rows.length;i++)inv.push(r.rows[i]);for(i=0;i<keep.length;i++)inv.push(keep[i]);
   return {ok:true};
 }
@@ -285,8 +305,8 @@ var QTY_MAX=999;
 function _qtyParse(name){var m=(name||"").trim().match(/^(.*\S)\s+x([1-9]\d*)$/i);if(!m)return {base:(name||"").trim(),n:1};var n=parseInt(m[2],10);return n>QTY_MAX?{base:m[1],n:QTY_MAX,clamped:true}:{base:m[1],n:n};}
 /* addInventoryItem(inv, name): ONE unit by a count-free name (every tag handler and ledger line passes the decoded base);
    a legacy caller handing "Rope x3" adds three, as the raw push used to read back. Returns true when the unit landed. */
-function addInventoryItem(inv,name){var p=invPrepare(inv);if(!p.ok)return false;var d=invStoredParse(name),r=invAdd(inv,d.name,d.qty);
-  if(!r.ok&&typeof console!=="undefined")console.warn("[inventory] gain refused — '"+name+"': "+r.reason);return r.ok;}
+function addInventoryItem(inv,name,frag){addInventoryItem.lastRefusal=null;addInventoryItem.lastFields=false;var p=invPrepare(inv);if(!p.ok){addInventoryItem.lastRefusal="the pack cannot be prepared: "+p.reason;return false;}var d=invStoredParse(name),r=invAdd(inv,d.name,d.qty,frag?invExtras(frag):null);/* #599 (c2): a fragment's fields ride the unit (I5); .lastRefusal says why a unit did not land, .lastFields that the destination's fields differ */
+  if(!r.ok){addInventoryItem.lastRefusal=r.reason;addInventoryItem.lastFields=!!r.fields;if(typeof console!=="undefined")console.warn("[inventory] gain refused — '"+name+"': "+r.reason);}return r.ok;}
 /* inventoryCountOf(inv, name): units held under the name's key — read-only, both shapes (the reward measurement) */
 function inventoryCountOf(inv,name){
   var es=invEntries(inv||[]),lit=itemKey(name),dec=itemKey(invStoredParse(name).name),n=0,i;
@@ -328,9 +348,9 @@ var _invLastMiss=null;
 function resolveInventoryName(inv,name){var es=invEntries(inv||[]),i=_invEntryFind(es,name);return i<0?-1:es[i].i;}
 /* removeInventoryItem(inv, name): ONE unit; .last carries the exact sheet name removed (#481 A2: a refused partner puts it
    back by that name) and _invLastMiss the reason for a miss */
-function removeInventoryItem(inv,name){removeInventoryItem.last=null;_invLastMiss=null;var p=invPrepare(inv);if(!p.ok)return false;
+function removeInventoryItem(inv,name){removeInventoryItem.last=null;removeInventoryItem.lastRow=null;_invLastMiss=null;var p=invPrepare(inv);if(!p.ok)return false;
   var i=_invLegacyFind(inv,name);if(i<0){_invLastMiss=invFind.last;return false;}
-  var r=invRemove(inv,inv[i].name,1);if(!r.ok)return false;removeInventoryItem.last=r.name;return true;
+  var r=invRemove(inv,inv[i].name,1);if(!r.ok)return false;removeInventoryItem.last=r.name;removeInventoryItem.lastRow=r.removed;/* #599 (c2): the unit's FRAGMENT (its unknown fields), for a transfer to carry (I5) */return true;
 }
 /* #481 A2 (b): the halves of one move share a PAIR KEY (base name, provenance-free), and each handler notes what it moved or
    missed on R, so the partner handler can withhold itself or put the unit back. The shapes: stow (ITEM_LOST +
@@ -390,13 +410,16 @@ function itemPairMissed(R,name){return !!(R&&R.ilMiss&&R.ilMiss[itemPairKey(name
 //   already sitting in saves into proper " xN" stacks.
 /* (c): the faucet hands the model's strings to invRows — duplicates stack by key on arrival, the stored grammar reads the count
    ("Rope x3" + "rope x3" is one row of six), the first `cap` rows are kept. Non-strings are not evidence here: the model's
-   array is not a sheet. A refused list (a count over the bound) is said and returns empty — never a raw push. */
+   array is not a sheet. A count over the bound is CLAMPED to INV_QTY_MAX and said — the pack arrives (#599 (c2), review 9:
+   the (c) faucet emptied a whole generated pack over one such entry; the old faucet had kept it) — never a raw push. */
 function sanitizeModelInventory(list,cap){
-  var strs=[],i,max=cap||1e9;
+  var rows=[],i,max=cap||1e9,p,q,a,j,clamped=[];
   if(!list||!list.length)return [];
-  for(i=0;i<list.length;i++)if(typeof list[i]==="string"&&list[i])strs.push(list[i]);
-  var r=invRows(strs);if(!r.ok){if(typeof console!=="undefined")console.warn("[inventory] a model inventory was refused — "+r.reason+"; the sheet starts empty");return [];}
-  return r.rows.slice(0,max);
+  for(i=0;i<list.length;i++){if(typeof list[i]!=="string"||!list[i])continue;p=invStoredParse(list[i]);if(!p.name)continue;q=p.qty;
+    if(q>INV_QTY_MAX){clamped.push(p.name+" x"+q);q=INV_QTY_MAX;}
+    a=invAdd(rows,p.name,q);if(!a.ok){j=invFind(rows,p.name);if(j>=0){clamped.push(rows[j].name+" x"+(rows[j].qty+q));rows[j].qty=INV_QTY_MAX;}}}/* a fold over the bound clamps the stack */
+  if(clamped.length&&typeof console!=="undefined")console.warn("[inventory] a model inventory held "+clamped.length+" count"+(clamped.length>1?"s":"")+" over "+INV_QTY_MAX+" — clamped: "+clamped.join(", "));
+  return rows.slice(0,max);
 }
 /* foldDuplicateInventory(inv): the stock heal — two entries under one key become one row (invRows: first name and position
    win, units summed, equipped OR; different unknown fields refuse). In place; returns the number of entries folded away.

@@ -23,6 +23,7 @@ function walk(p, x, y) {
     if (!Array.isArray(x) || !Array.isArray(y)) { hunks.push(p + ": not two lists"); return; }
     var bad = x.some(function (e) { return typeof e !== "string"; }) ? "the OLD inventory is not all strings" : "";
     if (!bad && y.some(function (r) { return !r || typeof r !== "object" || typeof r.name !== "string" || typeof r.qty !== "number" || typeof r.equipped !== "boolean"; })) bad = "the NEW inventory is not all rows";
+    if (!bad && y.some(function (r) { return Object.keys(r).sort().join(",") !== "equipped,name,qty"; })) bad = "a NEW row carries fields other than exactly name, qty and equipped (review (c) 10): " + JSON.stringify(y.filter(function (r) { return Object.keys(r).sort().join(",") !== "equipped,name,qty"; })[0]);
     if (!bad && JSON.stringify(invTextList(y)) !== JSON.stringify(x)) bad = "the rows do not print back to the old strings: " + JSON.stringify(invTextList(y)) + " vs " + JSON.stringify(x);
     if (!bad && y.some(function (r) { return r.equipped; })) bad = "a row is equipped where the old state had no worn list";
     if (bad) hunks.push(p + ": " + bad); else okNotes.push("ws.character.inventory: " + x.length + " strings -> " + y.length + " rows, text identical");

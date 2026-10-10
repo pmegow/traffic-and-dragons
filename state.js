@@ -340,7 +340,7 @@ function restoreTranscriptRescue(){
     return true;
   }catch(e){console.error("[save] transcript rescue re-inflate failed — keeping the rescue blob",e);return false;}
 }
-function saveCore(){try{store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));return true;}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Free space: Campaigns → \"Remove local\" on old campaigns.");console.error("[save] saveCore failed:",e);return false;}}
+function saveCore(){try{inventoryStampWorld(worldState);/* #599 (c2), review 3 */store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));return true;}catch(e){if(typeof showToast==="function")showToast("⚠ Save failed — storage full. Free space: Campaigns → \"Remove local\" on old campaigns.");console.error("[save] saveCore failed:",e);return false;}}
 // #365: memory carries its owner's campId. Stamped on save when unset; a DIFFERENT stamp is never
 // overwritten, so a half-switched pair (live worldState = B, live memory = A — the 2026-09-05 #337
 // failure that ran the Runelords campaign on the Iron Meridian's memory for 28 turns) stays
@@ -537,16 +537,27 @@ function migrateAncestryNames(c){
    restore, map cleanup's load and the prompt capture (dev/capture-prompt.js). admission.js loads after this file and before
    any of those run; a missing registry fails loudly, never skips (§5.3). */
 function inventoryAdmitWorld(ws,door){
-  var sheets=worldSheetsOf(ws),i,why="",changed=false,ctx;
+  var sheets=worldSheetsOf(ws),i,why="",changed=false,ctx,dropped=0;
   for(i=0;i<sheets.length&&!why;i++)why=invSheetIssue(sheets[i].sheet);
   if(why){if(typeof console!=="undefined")console.error("[inventory] "+(door||"load")+": the packs were NOT converted — "+why+"; the save stays at v"+(ws&&ws.ver!==undefined?ws.ver:"?")+" with every pack as it was");
     if(typeof showToast==="function")showToast("⚠ "+why+" — this campaign's items were not converted; repair the sheet and reload",9000);return {ok:false,reason:why,changed:false};}
   for(i=0;i<sheets.length;i++){ctx={door:(door||"load")+" "+sheets[i].who,mode:"same",detach:false,rel:sheets[i].rel,portable:sheets[i].portable,toast:false};
     var a=sheetAdmit(sheets[i].sheet,ctx);
     if(!a.ok){if(typeof console!=="undefined")console.error("[inventory] "+(door||"load")+": "+sheets[i].who+" refused after its pack check passed — "+a.reason);return {ok:false,reason:a.reason,changed:changed};}
-    if(ctx.healed)changed=true;}
+    if(ctx.healed)changed=true;dropped+=ctx.portraitsDropped||0;}
   if(ws&&(typeof ws.ver!=="number"||ws.ver<SAVE_VER)){ws.ver=SAVE_VER;changed=true;}
+  if(dropped&&typeof showToast==="function")showToast("⚠ "+dropped+" portrait"+(dropped>1?"s were":" was")+" dropped from this campaign on load — not an image",9000);/* #599 (c2), review 5: the door says it ONCE, with the count — the import and the reconcile already did; a console line alone is silent on a phone */
   return {ok:true,reason:"",changed:changed};
+}
+/* #599 (c2), review 3: a world that holds a ROW is a v11 world wherever it is WRITTEN. After a refused load (one sheet the
+   heal cannot prepare) the door leaves `ver` as it was and the writers still prepare a pack on its first write (§2.4) — the
+   stored, pushed or exported copy then carried rows under ver 10, and a v10 build would admit it and garble it (§5.4).
+   Every write boundary stamps: saveCore, checkpointCapture, the two .tnd exports (ui-files.js), the wire form (_syncNow).
+   Returns true when it stamped. */
+function inventoryStampWorld(ws){
+  if(!ws||typeof ws!=="object"||(typeof ws.ver==="number"&&ws.ver>=SAVE_VER))return false;
+  var sheets=worldSheetsOf(ws),i;for(i=0;i<sheets.length;i++)if(sheets[i].sheet&&invHoldsRow(sheets[i].sheet.inventory)){ws.ver=SAVE_VER;return true;}
+  return false;
 }
 function migrateWorldState(){
   keyedStores(worldState,"world");keyedStores(memory,"memory");
@@ -817,6 +828,7 @@ function checkpointClear(){_checkpointMem=null;}
 function checkpointHeld(){return _checkpointMem;}
 function checkpointCapture(reason){
   if(!worldState)return null;
+  inventoryStampWorld(worldState);/* #599 (c2), review 3: a camp of a world holding a row carries SAVE_VER */
   var ws=ownAssign({},worldState),k;for(k=0;k<CHECKPOINT_STRIP.length;k++)delete ws[CHECKPOINT_STRIP[k]];
   var snap={v:(typeof CHECKPOINT_VER==="number"?CHECKPOINT_VER:1),turn:worldState.turn||0,reason:String(reason||"camp"),at:Date.now(),campId:worldState.campId||null,
     location:(worldState.world&&(worldState.world.sublocation||worldState.world.location))||"",

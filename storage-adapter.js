@@ -580,6 +580,7 @@ var storageAdapter = (function() {
     if (_de && campId && _de.id === campId) { console.info("[storage] sync paused — " + campId + " was deleted on another device; answer the question to keep or remove it"); _fin("sync paused — deleted on another device"); return; }
     if (!beacon) { _syncing = true; _pendingSync = false; }
     var turnAt   = worldState.turn || 0; // the turn this payload carries — ACKed on 2xx
+    inventoryStampWorld(worldState);/* #599 (c2), review 3: a world holding a row goes over the wire as SAVE_VER */
     var wsStripped = _stripNpcPortraits(worldState); // PC portrait stays inline — see _stripNpcPortraits
     // narrativeHtml intentionally empty (audit #18): the story pane is rebuilt from
     // worldState.transcript on load — the DOM copy was the largest payload item and fully
