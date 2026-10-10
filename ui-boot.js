@@ -48,6 +48,7 @@ function buildFileMenus(){
     h+=btn(p+"account","&#128100; Account&hellip;",0);/* §3 gateway: subscription status, turn allowance, GM routing, sign out */
     h+=btn(p+"home","&#127968; Home",0);/* #290: bibles, designer, curated shelf, the account library */
     h+=g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true});
+    if(g)h+=btn("fm-reroll-mob","Re-roll last scene",0,{cls:"fm-mobile-only",hidden:true});
     if(g)h+=btn(p+"ending","&#9997; Write the ending&hellip;",0,{hidden:true,color:"var(--warn)",extra:"font-weight:bold;"});/* #364: shown by updateMemStatus while the tale is told and the campaign is open */
     if(g)h+=btn(p+"close","&#9673; Close this campaign&hellip;",0,{hidden:true});/* #6 G4: shown by updateMemStatus for an open, closable campaign — deposits a stopped tale */
     h+=sep();
@@ -171,6 +172,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   document.getElementById("sync-btn").addEventListener("click",showSyncModal);
   document.getElementById("render-btn").addEventListener("click",doRender);
   var _rrb=document.getElementById("reroll-btn");if(_rrb)_rrb.addEventListener("click",rerollLast);
+  document.getElementById("fm-reroll-mob").addEventListener("click",function(){closeAllMenus();rerollLast();});
   document.getElementById("file-btn").addEventListener("click",function(e){e.stopPropagation();var fm=document.getElementById("file-menu");var opening=fm.style.display!=="block";if(opening)resetFileSubmenus(fm);fm.style.display=opening?"block":"none";});
   document.addEventListener("click",closeAllMenus);/* #15④: was the closeAllMenus body unrolled inline */
   // ── Shared menu wiring across all three File menus (fm-, cs-fm-, api-fm-) ──
@@ -315,11 +317,13 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   // Start panel collapsed on mobile so first tap expands (not collapses)
   if(window.innerWidth<=600){panelCol=true;var rp=document.getElementById("rpanel");if(rp)rp.classList.add("col");}
   document.getElementById("panel-tog").addEventListener("click",function(){panelCol=!panelCol;document.getElementById("rpanel").classList.toggle("col",panelCol);stickStoryBottomAfterPanel();/* the reflow drifts the story scroll — re-pin the end */});
-  // Swipe right to collapse, swipe left to expand
+  if(typeof mobileInit==="function")mobileInit();
+  // Swipe right to collapse, swipe left to expand (desktop/tablet only; phone uses the grabber)
   (function(){
     var rp=document.getElementById("rpanel"),tx=0;
     rp.addEventListener("touchstart",function(e){tx=e.touches[0].clientX;},{passive:true});
     rp.addEventListener("touchend",function(e){
+      if(typeof mobilePhone==="function"&&mobilePhone())return;
       var dx=e.changedTouches[0].clientX-tx;
       if(Math.abs(dx)<30)return;
       panelCol=dx>0;  // swipe right → collapse, swipe left → expand

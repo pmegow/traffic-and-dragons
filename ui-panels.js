@@ -51,8 +51,9 @@ var _cpanelWasActive=false;/* TODO #7: module-local previous-state latch — let
    (ruling ②). Unexplored = a place the map holds but the party has never entered (dashed). */
 function renderWaysRow(){
   var el=document.getElementById("hud-ways");if(!el)return;
-  if(!worldState||!worldState.world||!worldState.world.location||typeof waysFromHere!=="function"){el.style.display="none";return;}
+  if(!worldState||!worldState.world||!worldState.world.location||typeof waysFromHere!=="function"){el.style.display="none";if(typeof mobileRenderWays==="function")mobileRenderWays(null);return;}
   var w=waysFromHere(worldState,memory),i,h="";
+  if(typeof mobileRenderWays==="function")mobileRenderWays(w);
   h+="<span style='color:var(--t0);font-weight:bold;'>"+escHtml(w.here.world)+"</span>";
   if(w.here.sub)h+="<span style='color:var(--t2);'>\u203A</span><span style='color:var(--t0);'>"+escHtml(w.here.sub)+"</span>";
   h+="<span style='color:var(--t2);margin-left:6px;'>ways:</span>";
@@ -517,9 +518,10 @@ function updateCombat(){
       if(sbFoe.immune&&sbFoe.immune.length)sbh+="<span style='color:var(--hp);margin-left:8px;'>Immune: "+escHtml(sbFoe.immune.join(", "))+"</span>";
       if(sbFoe.resist&&sbFoe.resist.length)sbh+="<span style='color:var(--t2);margin-left:8px;'>Resist: "+escHtml(sbFoe.resist.join(", "))+"</span>";
       if(sbFoe.vuln&&sbFoe.vuln.length)sbh+="<span style='color:var(--acc);margin-left:8px;'>Vuln: "+escHtml(sbFoe.vuln.join(", "))+"</span>";
-      if(sbh)h+="<div style='font-size:10px;color:var(--t2);padding:2px 0 4px;line-height:1.7;font-family:var(--font);'>"+sbh+"</div>";
+      if(sbh)h+="<div id='combat-stats' style='font-size:10px;color:var(--t2);padding:2px 0 4px;line-height:1.7;font-family:var(--font);'>"+sbh+"</div>";
     }
     rows.innerHTML=h;
+    if(typeof wireEnemyDetails==="function")wireEnemyDetails(ordered);
   }
   document.getElementById("pl-name").textContent=pc.name;
   document.getElementById("pl-hpt").textContent=pc.hp+"/"+pc.maxHp;
@@ -544,7 +546,7 @@ function updateMemStatus(){if(!worldState)return;var dot=document.getElementById
 var dayPart=(typeof clockStamp==="function")?" | "+clockStamp():
   ((typeof clockDayNumber==="function")?" | Day "+clockDayNumber():"");
 txt.innerHTML="Memory ~"+(t>=1000?(t/1000).toFixed(1)+"k":t)+" tokens"+actPart+" | Chapters: "+memory.chapters.length+" | NPCs: "+Object.keys(memory.npcs).length+" | Turn "+worldState.turn+escHtml(dayPart)+" | "+escHtml(APP_VERSION)+(mdl?" | "+escHtml(mdl):"");var _fe=document.getElementById("fm-ending");if(_fe)_fe.style.display=(typeof endingMenuVisible==="function"&&endingMenuVisible())?"block":"none";
-var _fc=document.getElementById("fm-close");if(_fc)_fc.style.display=(typeof closeMenuVisible==="function"&&closeMenuVisible())?"block":"none";/* #6 G4 *//* #364 */updateSyncBadge();updateHealthDot();}
+var _fc=document.getElementById("fm-close");if(_fc)_fc.style.display=(typeof closeMenuVisible==="function"&&closeMenuVisible())?"block":"none";/* #6 G4 *//* #364 */updateSyncBadge();updateHealthDot();if(typeof mobileRenderStatus==="function")mobileRenderStatus(_al,dayPart);}
 // #17 drift-health dot — thin shell over healthIndicators (helpers.js, engine-tested there).
 // Same green/amber/red classes as the token dot beside it; n/a dims. Click opens the modal.
 function updateHealthDot(){

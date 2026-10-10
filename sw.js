@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261010k";
+var CACHE = "tnd-v3-20261010l";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -40,6 +40,8 @@ var APP_SHELL = [
   "/game.js",
   "/ui-shell.js",
   "/ui-panels.js",
+  "/ui-mobile.js",
+  "/mobile.css",
   "/ui-portrait.js",
   "/ui-files.js",
   "/ui-sheets.js",

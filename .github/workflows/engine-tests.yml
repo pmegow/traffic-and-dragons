@@ -113,6 +113,8 @@ jobs:
         run: node dev/tests-481-g3-todo-viewer-browser.js
       - name: Model waits count seconds in a real browser (#481 G5)
         run: node dev/tests-481-g5-waits-browser.js
+      - name: Phone UI, drawer and enemy details in a real browser (#611)
+        run: node dev/tests-611-mobile-browser.js
       - name: The narration Shop button in a real browser (#501)
         run: node dev/tests-501-shop-button-browser.js
       # #312 ①: a battery whose target file changed in this push runs in this push (the weekly

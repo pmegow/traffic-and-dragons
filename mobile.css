@@ -1,0 +1,63 @@
+/* #611: phone presentation only. Existing panels, File actions and game state remain the owners. */
+.mobile-only{display:none}
+.cname.en[role=button]{cursor:pointer;text-decoration:underline;text-decoration-color:var(--brd);text-underline-offset:3px}
+.cname.en[role=button]:focus-visible{outline:1px solid var(--acc);outline-offset:1px}
+#enemy-modal>div{max-height:85dvh;overflow:auto}
+.enemy-facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 14px;margin:16px 0;font-size:13px}
+.enemy-facts dt{color:var(--t2)}.enemy-facts dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}
+@media(max-width:600px){
+ #game-screen{height:100dvh!important;overflow:hidden}
+ #topbar{position:relative;padding:7px 11px 6px;padding-top:max(7px,env(safe-area-inset-top,0px));gap:5px}
+ #hud-namecls{flex-wrap:nowrap!important;align-items:center!important;flex-basis:calc(100% - 55px);max-width:calc(100% - 55px);height:24px}
+ #hud-namecls h1{font-size:15px;max-width:40%}
+ #hud-cls{font-size:10px}
+ #hud-stats{flex:0 0 100%!important;flex-wrap:nowrap!important;justify-content:center;font-size:11px!important;gap:12px!important;white-space:nowrap}
+ #hud-btns{position:absolute;right:11px;top:max(7px,env(safe-area-inset-top,0px));gap:0!important}
+ #hud-btns>button,#file-btn,#hud-ways,#hud-ways-more{display:none!important}
+ #mobile-file{display:block;width:49px;height:24px;font-size:10px!important;padding:0 2px}
+ #mobile-place{display:block;width:100%;min-width:0;border-top:1px solid var(--brd);padding-top:6px;font-size:11px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ #mobile-ways{display:block;width:100%;height:28px;padding:0 9px;font-size:12px!important}
+ .mobile-select{background:var(--bg2);color:var(--t1);border:1px solid var(--brd);border-radius:6px;font-family:var(--font);min-width:0}
+ #membar{padding:5px 11px;gap:5px;min-height:28px;font-size:10px}
+ #memdot,#memstatus{display:none}
+ #mobile-status{display:flex;flex:1;min-width:0;align-items:center;gap:8px}
+ #mobile-act{color:var(--warn);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+ #mobile-clock{white-space:nowrap;color:var(--t1)}
+ #mobile-version{margin-left:auto;color:var(--t2);white-space:nowrap}
+ #healthdot{order:3;margin-left:0!important}#syncbadge{order:2;margin-left:0!important}
+ #cpanel{padding:6px 11px 5px;border-bottom-color:var(--brd)}
+ .ct-h{margin-bottom:2px}.ct-t,.ct-r{font-size:10px}
+ .crow{height:24px;gap:7px;margin:0}.cname{font-size:10px}.hpt{font-size:9px;width:46px;flex-shrink:0}.hbw{height:5px}
+ #cpanel .mbdg,#combat-stats{display:none}
+ #story-area{min-height:0;padding-top:6px}
+ #story-narrative,#story-tabletalk{min-width:0;padding:0 8px 8px 11px;gap:10px}
+ #story-narrative .msg,#story-tabletalk .msg{padding:5px 3px;font-size:16px;line-height:1.8;overflow-wrap:anywhere}
+ #story-narrative::-webkit-scrollbar,#story-tabletalk::-webkit-scrollbar{width:6px}
+ #mobile-grip{display:flex;align-self:stretch;align-items:center;justify-content:center;flex:0 0 8px;width:8px;background:transparent;position:relative}
+ #mobile-grab{width:8px;height:80px;padding:0;border:0;background:transparent;cursor:col-resize;touch-action:none;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+ #mobile-grab:after{content:'';width:5px;height:36px;border-radius:3px;background:#777;pointer-events:none}
+ #mobile-grab:focus-visible{outline:1px solid var(--t1);outline-offset:-1px}
+ #rpanel,#rpanel.col,#rpanel:not(.col){width:calc(var(--mobile-drawer,0px) + 32px);transition:none;overflow:hidden;position:relative;border-left:1px solid var(--brd);padding-right:31px}
+ #panel-tog{display:none}
+ #rpanel .pss{display:none!important;width:var(--mobile-drawer,0px);height:100%;overflow:auto;border:0}
+ #rpanel .pss.mobile-selected{display:block!important}
+ #rpanel .pss .psh{padding:9px 8px;justify-content:space-between}
+ #rpanel .pss .pst{display:block!important;color:var(--acc);font-size:12px;text-transform:none;letter-spacing:0}
+ #rpanel .pss .psic{display:none!important}
+ #rpanel .pss .psb{display:flex!important;padding:0 8px 10px;min-width:80px}
+ #rpanel .pss .psa,#rpanel .pss .psbdg{display:none!important}
+ #rpanel .pss.col .psb{display:none!important}
+ #mobile-panel-tabs{display:flex;position:absolute;right:0;top:0;bottom:0;width:31px;border-left:1px solid var(--brd);flex-direction:column;overflow-y:auto}
+ #mobile-panel-tabs button{width:30px;height:32px;min-height:32px;flex-shrink:0;padding:0;border:0;border-bottom:1px solid var(--brd);border-radius:0;background:var(--bg1);color:var(--t2);font:10px var(--font);cursor:pointer}
+ #mobile-panel-tabs button[aria-selected=true]{color:var(--acc);background:var(--bg2)}
+ #mobile-panel-tabs #tts-btn{font-size:13px;margin-top:2px}
+ #inputarea{padding:6px 11px max(3px,env(safe-area-inset-bottom,0px));}
+ #inrow{gap:6px}#inwrap{min-width:0}
+ #action-input,#mic-btn,#sendbtn,.chat-tab{height:28px;min-height:28px;max-height:28px;border-radius:6px;box-sizing:border-box;line-height:normal}
+ #action-input{min-width:0;width:100%;padding:0 30px 0 9px;font-size:16px!important}
+ #input-clear{right:2px;height:26px;width:28px;padding:0;font-size:19px}
+ #mic-btn{width:38px;padding:0;font-size:15px}#sendbtn{padding:0 12px;font-size:12px}
+ #chat-tabs{gap:6px;margin-top:5px}.chat-tab{flex:1;padding:0 6px;font-size:11px}
+ .chat-tab.active{background:var(--bg2);border-color:var(--brd2);color:var(--acc);box-shadow:none}
+ #tts-bar{gap:12px!important;padding:2px 11px!important}#tts-bar button{min-height:28px!important;min-width:28px!important;padding:2px 8px!important;font-size:18px!important}
+}

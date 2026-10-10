@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-10 · #611 · Codex: owner-approved phone UI, thin DOM/CSS over existing ways, File actions, combat and drift-health readers; no game-state writes. 2,939 engine assertions and real-browser layout/interactions checked. Enemy headcount schema deferred explicitly to #612; no count guessed from aggregate HP. Physical-phone voice tap remains owner verification (Chrome driver omits compatibility clicks even on a plain test button).
+
 - 2026-10-07 · #504 follow-up · Opus 5.5: test-only. The #503 field-case, record-pronouns, two-candidates and crown tests and the #156 pipe-refusal test gain cases the new #504 title question cannot mask (a record with no given name, the son beside the king, a crown or age stated by an alias, a mis-split merge of two real records), so `sabotage-503-npc-kept-apart.js` (19/19 + 2 + 2) and `sabotage-identity.js` attribute again after the range sweep found them blind. No engine change, no assertion loosened. Record: audits/AUDIT_2026_10_07_504_title_question.md §6a.
 
 - 2026-10-06 · #603 latest save · Codex: verified the new owner save answers the last three note questions. Corrected “at after” and “hitpoints,” reconciled draft duration/target fields, and marked all 12 follow-up notes resolved while preserving note history. Atomic revision-checked save and backup protect the owner’s revisions; game definitions remain untouched.
