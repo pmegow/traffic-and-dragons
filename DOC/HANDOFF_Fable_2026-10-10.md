@@ -47,7 +47,7 @@ must name that gate in `mustFail`, and MISATTRIBUTED exits 0 — read the verdic
    window drops a `[EQUIPPED:]` the GM copies from a cloud-synced newer reply with one console line, and files `category=jewelry`
    as tool — no version gate fires for a vocabulary change; the window is the first navigation after the deploy and any unreloaded tab).
 
-## The cleanup commits (§12 notes) — part 1 SHIPPED v1.1209, part 2 open
+## The cleanup commits (§12 notes) — part 1 SHIPPED v1.1209; part 2 WITHDRAWN by the owner's ruling of 2026-10-10 (a move stays two tags; no `invTransfer`)
 
 **Part 1 (v1.1209):** the delegate names retired (`wornPrune` had SIX callers, not four — the two item-loss handlers too; the four
 writers heal through `invHealSheet` where it stood because the 429 sheet suite proved the hidden heal load-bearing on an unhealed

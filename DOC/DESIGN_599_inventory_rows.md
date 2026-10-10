@@ -261,6 +261,7 @@ The storage key keeps its name, `tnd_core_v10`. CLAUDE.md says a key's suffix is
 ## 7. What #599 does not do
 
 - **It does not close #518's remainder.** The #599 row says it does. A hero looting "Dagger" in the same reply that a companion throws an untracked "Dagger" is two events under one name. Rows do not say which loss feeds which gain; only an explicit transfer does. That is the {from, to, item, qty} record the #518 row already proposes, and the Astra schedule's trade phase. #599 keeps the pairing code, re-pointed at rows with the same behaviour, and gives #518 one key to build on. The #599 row is corrected (decision 8).
+- **Owner ruling 2026-10-10: the move stays two tags.** No engine-level `invTransfer`; the per-unit pair notes (`ilHits`, `ilFrags`, `igHits`) ARE the protocol and the handlers' per-unit loops are its implementation. The §12 cleanup note's second half (counted calls, one transfer) is withdrawn; cleanup 1 (the delegate names, v1.1209) was the whole cleanup.
 - No slots, no per-unit equipped (§3.4), no weight.
 - The chest keeps its own rows. `node.items` already holds `{name, qty, taken, …}` in the stash kinds; it only adopts `itemKey`.
 - Not #597 (counter writes state directly) or #598 (money in copper).
