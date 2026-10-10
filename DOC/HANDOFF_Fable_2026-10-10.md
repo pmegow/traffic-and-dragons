@@ -72,6 +72,7 @@ Two single-concern commits are honest here, both Fable-tier (the handlers are th
 
 ## Also open
 
+- **#609 SHIPPED** (38a41743) and **#420 SHIPPED** (v1.1210) on 2026-10-10 after the owner's go — the bullets below are as they stood.
 - **#609** (filed this session): `dev/scratch-contract-sabotage.js` mirrors only the mutated file — bring it to sabotage.js's
   `mirrorWorkingSet`. Opus-safe dev tooling.
 - **#420 / #22b** were not paired with this deploy (not ready); the stable half will move again when #420 lands.
