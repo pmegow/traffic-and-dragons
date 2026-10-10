@@ -505,8 +505,8 @@ rc|=sabotage.prove({/* #599 (b): inventoryCountOf moved to inventory.js */
   cases:[
     {label:"inventoryCountOf stops summing the \"xN\" suffix — the count-aware read becomes a line count again (#273)",
       mustFail:"#273 a claimed item the player ALREADY carries is reported AWARDED",
-      find:"  for(i=0;i<(inv||[]).length;i++)if(_invNorm(inv[i])===t)n+=_invCount(inv[i]);",
-      replace:"  for(i=0;i<(inv||[]).length;i++)if(_invNorm(inv[i])===t)n+=1;"}
+      find:"  for(i=0;i<es.length;i++)if(itemKey(es[i].name)===lit)n+=es[i].qty;",
+      replace:"  for(i=0;i<es.length;i++)if(itemKey(es[i].name)===lit)n+=1;"}/* #599 (c): the reader sums entry units through the module */
   ]
 });
 

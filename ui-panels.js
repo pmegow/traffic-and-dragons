@@ -261,11 +261,13 @@ function updatePartyPanel(){
 // #32: inventory entries are plain strings, often "Name — description" or "Name (description)".
 // Bold the NAME segment only (split at the first spaced dash or opening paren) so lists scan;
 // the description stays regular. No separator = the whole entry is the name.
-function invItemHtml(s){
+function invItemHtml(s,qty){
   s=String(s);
   // #50(b): render stacked quantities as "Blasting charge (4)" instead of the stored "x4"
   // suffix — DISPLAY transform only; the stored format and the stacking parsers are untouched.
-  var _qp=invStoredParse(s),_qty=_qp.qty>1?String(_qp.qty):null;s=_qp.name;/* #599 (b4): the ONE stored grammar reads the count (no panel-private pattern) */
+  /* #599 (c): a renderer that has the ROW passes its name and count (a row's name is literal — "Torch x2" with qty 1 is an
+     item called that); a bare string still decodes through the ONE stored grammar (b4) */
+  var _qty,_qp;if(typeof qty==="number"){_qty=qty>1?String(qty):null;}else{_qp=invStoredParse(s);_qty=_qp.qty>1?String(_qp.qty):null;s=_qp.name;}
   var _qh=_qty?"<span style='opacity:.7'> ("+_qty+")</span>":"";
   // Name/description split at the EARLIEST of: spaced dash, opening paren, comma, or a
   // clause lead-in word — GM-written entries carry free-prose descriptions with no dash
@@ -320,10 +322,10 @@ function updateInvPanel(){
     h+='<div class="inv-cat'+(unc?' unc':'')+' has-tip" data-sec="'+grp.id+'" onclick="invToggleSec(this.dataset.sec)"'+(unc?' title="These items have no item-bible classification yet — they are shown here rather than guessed (#157)"':'')+'>'+(open?"&#9662; ":"&#9656; ")+escHtml(grp.label)+' <span class="inv-cat-n">'+grp.rows.length+"</span></div>";
     if(!open)continue;
     for(j=0;j<grp.rows.length;j++){
-      var row=grp.rows[j],eq=(grp.id==="weapon"||grp.id==="armor");
+      var row=grp.rows[j],gear=(grp.id==="weapon"||grp.id==="armor");/* #599 (c) §4.3: the class is .gear — a weapon or armor CATEGORY, never "equipped" (the old .eq read as that) */
       /* #295: every item row opens the item-bible click-card (showItemCard, ui-sheets) — same
          canon as the hover tooltip, readable on touch where title-tooltips need a long-press. */
-      h+='<div class="ii has-tip'+(eq?' eq':'')+'" data-item="'+escHtml(row.text)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;" title="'+escHtml(itemTip(row.text)+_invTipCats(row,grp.id))+'">'+invItemHtml(row.text)+(typeof isWorn==="function"&&isWorn(_ap,row.text)?' <span style="color:var(--t2);font-size:10px;">· worn</span>':'')+'</div>';/* #388: plain-text marker, no pill (the no-borders rule) */
+      h+='<div class="ii has-tip'+(gear?' gear':'')+'" data-item="'+escHtml(row.text)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;" title="'+escHtml(itemTip(row.text)+_invTipCats(row,grp.id))+'">'+invItemHtml(row.name,row.qty)+(typeof isWorn==="function"&&isWorn(_ap,row.name)?' <span style="color:var(--t2);font-size:10px;">· worn</span>':'')+'</div>';/* #388: plain-text marker, no pill (the no-borders rule); #599 (c): the badge and the mark read the ROW (name, qty, flag) */
     }
   }
   /* #6 E8 → #431 (owner 2026-09-21): the "Your house" item group left this panel — what lies at the current node now

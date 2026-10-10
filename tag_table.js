@@ -539,7 +539,7 @@ var TAG_TABLE=[
      used to surface mid-loop: earlier tags had already taken their items (a short count took every unit it found), the coin went
      back, and the GM was told the pack was unchanged. One miss now refuses every [ITEM_LOST:] of the reply — nothing leaves the
      pack, each tag is a miss for pairing (its stow or gift does not land), the coin returns, the GM is asked. */
-  if(R.goldIn>0&&typeof kindDef==="function"&&kindDef().tradeOnlyInShops){var _sSim=worldState.character.inventory.slice(),_sMiss=null,_sWhy="",_si,_sj;
+  if(R.goldIn>0&&typeof kindDef==="function"&&kindDef().tradeOnlyInShops){var _sSim=invSnapshot(worldState.character.inventory),_sMiss=null,_sWhy="",_si,_sj;/* #599 (c): a DETACHED copy — a .slice() of rows shares them, and the check below removes from the copy (gate 14) */
     for(_si=0;_si<ilTags.length&&!_sMiss;_si++){var _sm=ilTags[_si].match(/\[ITEM_LOST:([^\]]+)\]/);if(!_sm)continue;var _sq=_qtyParse(_sm[1]);for(_sj=0;_sj<_sq.n;_sj++){if(!removeInventoryItem(_sSim,_sq.base)){_sMiss=_sq.base;_sWhy=_sj?"'"+_sm[1].trim()+"' is more than the sheet holds":"'"+_sq.base+"' is not on the sheet";break;}}}
     if(_sMiss){worldState.character.coin=Math.max(0,(Number(worldState.character.coin)||0)-R.goldIn);
       if(_invLastMiss&&_invLastMiss.why==="ambiguous"){R.muts.push("⚠ Nothing lost — '"+_sMiss+"' is ambiguous: the sheet has "+_invLastMiss.names.join(" and ")+" (which one?)");}

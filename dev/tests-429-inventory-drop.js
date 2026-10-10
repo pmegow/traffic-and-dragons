@@ -93,8 +93,8 @@ test("Delete N items commits every mark at once: one splice pass, worn pruned, o
   markInvItem("", 1, null); markInvItem("", 3, null);
   __saves = 0; __rerender = 0; __invPanel = 0;
   dropMarkedItems("", null);
-  assert.deepEqual(c.inventory, ["Longsword", "Rope"], "the wrong rows went: " + JSON.stringify(c.inventory));
-  assert.deepEqual(c.worn, [], "a dropped item is still listed as worn — attireLine would inject it into every prompt (E4)");
+  assert.deepEqual(invTextList(c.inventory), ["Longsword", "Rope"], "the wrong rows went: " + JSON.stringify(c.inventory));
+  assert.deepEqual(invEquippedNames(c), [], "a dropped item is still listed as worn — attireLine would inject it into every prompt (E4; #599 (c): the flag left with its row)");
   assert.equal(__saves, 1, "expected exactly one save, got " + __saves);
   assert.equal(__toasts.length, 1, "expected one toast, got: " + __toasts.join(" | "));
   assert(/Deleted 2 items: Chain shirt, Bread/.test(__toasts[0]), "the toast does not say DELETED and name the count and the items (owner 2026-09-21: 'dropped' implies they are on the floor — they are not): " + __toasts[0]);
@@ -109,7 +109,7 @@ test("a GM splice between the mark and the button drops the marked item, not the
   markInvItem("", 2, null);              /* Torch */
   c.inventory.splice(0, 1);              /* the GM took the lamp: Torch is now at index 1 */
   dropMarkedItems("", null);
-  assert.deepEqual(c.inventory, ["Rope"], "dropped by stale index: " + JSON.stringify(c.inventory));
+  assert.deepEqual(invTextList(c.inventory), ["Rope"], "dropped by stale index: " + JSON.stringify(c.inventory));
 });
 
 test("a mark the GM already consumed is refused loudly and drops nothing", function () {
@@ -120,7 +120,7 @@ test("a mark the GM already consumed is refused loudly and drops nothing", funct
   c.inventory.splice(1, 1);              /* the potion was drunk on the GM's turn */
   __saves = 0; __toasts.length = 0;
   dropMarkedItems("", null);
-  assert.deepEqual(c.inventory, ["Lamp"], "something else was dropped");
+  assert.deepEqual(invTextList(c.inventory), ["Lamp"], "something else was dropped");
   assert.equal(__saves, 0, "a refused commit still saved");
   assert.equal(__toasts.length, 1, "the refusal was silent");
   assert(/Nothing to delete/.test(__toasts[0]) && /Potion/.test(__toasts[0]), "the refusal does not name the vanished item: " + __toasts[0]);
@@ -135,7 +135,7 @@ test("a stale mark beside live ones is reported in the same toast, the live ones
   c.inventory.splice(1, 1);
   __toasts.length = 0;
   dropMarkedItems("", null);
-  assert.deepEqual(c.inventory, ["Lamp"]);
+  assert.deepEqual(invTextList(c.inventory), ["Lamp"]);
   assert(/Deleted 1 item: Rope/.test(__toasts[0]) && /no longer carried: Potion/.test(__toasts[0]), "toast: " + __toasts[0]);
 });
 
@@ -150,7 +150,7 @@ test("#481 F8 the repro: a × rendered before a GM turn marks ITS item, never th
   __toasts.length = 0;
   markInvItem("", 1, null, "Torch");                                /* the Torch row's ×, as rendered before the turn */
   dropMarkedItems("", null);
-  assert.deepEqual(c.inventory, ["Waterskin"], "the neighbour was deleted: " + JSON.stringify(c.inventory));
+  assert.deepEqual(invTextList(c.inventory), ["Waterskin"], "the neighbour was deleted: " + JSON.stringify(c.inventory));
   assert(/Deleted 1 item: Torch/.test(__toasts[__toasts.length - 1]), "toast: " + __toasts[__toasts.length - 1]);
 });
 test("#481 F8 the × carries its row's name; a × whose item is gone marks nothing and says so", function () {
@@ -220,8 +220,8 @@ test("companion sheets share the path: marks keyed by the companion's name, the 
   assert.equal(invDropCount(marksFor("")), 0, "a companion mark landed on the hero");
   __saves = 0; __npcShown.length = 0;
   dropMarkedItems("Nyla", null);
-  assert.deepEqual(worldState.npcs[0].charSheet.inventory, ["Dagger"]);
-  assert.deepEqual(worldState.npcs[0].charSheet.worn, []);
+  assert.deepEqual(invTextList(worldState.npcs[0].charSheet.inventory), ["Dagger"]);
+  assert.deepEqual(invEquippedNames(worldState.npcs[0].charSheet), []);
   assert.equal(__saves, 1);
   assert.deepEqual(__npcShown, ["Nyla"], "the companion sheet was not reopened after the drop");
   document.getElementById = function () { return null; };
@@ -237,7 +237,7 @@ test("closing the sheet discards pending marks with a toast; silent when there i
   assert.equal(invDropCount(marksFor("")), 0, "marks survived the close");
   assert.equal(__toasts.length, 1, "the discard was silent");
   assert(/2 marks cleared/.test(__toasts[0]) && /nothing deleted/.test(__toasts[0]), "toast: " + __toasts[0]);
-  assert.deepEqual(worldState.character.inventory, ["Lamp", "Rope"], "the close dropped something");
+  assert.deepEqual(invTextList(worldState.character.inventory), ["Lamp", "Rope"], "the close dropped something");
   assert.equal(_invDropDiscard(""), 0);
   assert.equal(__toasts.length, 1, "a close with nothing pending toasted");
 });

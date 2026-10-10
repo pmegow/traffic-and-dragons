@@ -2248,13 +2248,23 @@ function sheetItemDefs(sheet){
    library adopters, the .char import and its preview, quick start, the character editor, map cleanup. */
 function versionNewer(v,mine){return typeof v==="number"&&v>mine;}/* NaN is never above; Infinity is (review R14) */
 function sheetVersionIssue(sheet){if(!sheet||typeof sheet!=="object"||!versionNewer(sheet.sheetVer,SHEET_VER))return "";return (sheet.name||"this character")+"'s sheet was written by a newer version of the game (sheet v"+sheet.sheetVer+"; this build reads v"+SHEET_VER+")";}
+/* worldSheetsOf(ws): EVERY character sheet a world carries — the hero, each roster sheet, the pending legacy character, each
+   fallen PC's parked sheet (it rejoins later, review R14) — as {who, sheet, rel, portable}: the one walker the version gate
+   reads and the load admission heals (#599 (c), state.js inventoryAdmitWorld). Merge archives in memory are preimages and
+   stay verbatim (§5.3). */
+function worldSheetsOf(ws){
+  var out=[],i,ns,fallen;if(!ws||typeof ws!=="object")return out;
+  if(ws.character&&typeof ws.character==="object")out.push({who:"hero",sheet:ws.character,rel:null,portable:false});
+  ns=Array.isArray(ws.npcs)?ws.npcs:[];for(i=0;i<ns.length;i++)if(ns[i]&&ns[i].charSheet&&typeof ns[i].charSheet==="object")out.push({who:"roster "+ns[i].name,sheet:ns[i].charSheet,rel:ns[i].name,portable:false});
+  if(ws.pendingLegacy&&typeof ws.pendingLegacy==="object")out.push({who:"pending legacy "+ws.pendingLegacy.name,sheet:ws.pendingLegacy,rel:"@legacy:"+(ws.pendingLegacy.name||"character"),portable:true});
+  fallen=Array.isArray(ws.mpFallen)?ws.mpFallen:[];for(i=0;i<fallen.length;i++)if(fallen[i]&&fallen[i].sheet&&typeof fallen[i].sheet==="object")out.push({who:"fallen "+fallen[i].name,sheet:fallen[i].sheet,rel:fallen[i].name,portable:false});
+  return out;
+}
 function worldVersionIssue(ws){
   if(!ws||typeof ws!=="object")return "";
   if(versionNewer(ws.ver,SAVE_VER))return "this save was written by a newer version of the game (save v"+ws.ver+"; this build reads v"+SAVE_VER+")";
-  var s=sheetVersionIssue(ws.character),i,ns=Array.isArray(ws.npcs)?ws.npcs:[],fallen=Array.isArray(ws.mpFallen)?ws.mpFallen:[];if(s)return s;
-  for(i=0;i<ns.length;i++){s=sheetVersionIssue(ns[i]&&ns[i].charSheet);if(s)return s;}
-  for(i=0;i<fallen.length;i++){s=sheetVersionIssue(fallen[i]&&fallen[i].sheet);if(s)return s;}/* a fallen PC's parked sheet rejoins later (review R14) */
-  return sheetVersionIssue(ws.pendingLegacy);
+  var ss=worldSheetsOf(ws),i,s;for(i=0;i<ss.length;i++){s=sheetVersionIssue(ss[i].sheet);if(s)return s;}/* the hero, the roster, the pending legacy, the parked fallen (review R14) — one walker */
+  return "";
 }
 function charFileVersionIssue(data){if(!data||typeof data!=="object")return "";if(versionNewer(data.ver,SAVE_VER))return "this character file was written by a newer version of the game (file v"+data.ver+"; this build reads v"+SAVE_VER+")";return sheetVersionIssue(data.character);}
 var VERSION_RELOAD_HINT=" — reload to update (File ▸ Clear cache & reload if it persists)";

@@ -1458,17 +1458,20 @@ try {
     { file: "helpers.js", fn: "portraitsSanitizeWorld", step: "portraitAdmit(", why: "a world-level sweep over every portrait at the .tnd import — not a sheet door" },
     { file: "game.js", fn: "applyBlueprint", step: "identitySheetAdmit(", why: "a blueprint's NPC seed is a roster entry with no sheet; the identity gate alone applies" },
     { file: "tag_table.js", fn: "tag NPC_MERGE", step: "voicePinsFill(", why: "the merge fills the canon's empty voice slots from the duplicate's — a fold of two sheets already admitted, not an admission (#543)" },
-    /* this campaign's OWN sheets healed at load — same-campaign data, outside the registry in (b); (c) routes the load through a same-mode admission (§5.3) */
-    { file: "state.js", fn: "migrateWorldState", step: "migrateAncestryNames(", why: "the load-time heal of this campaign's own sheets (hero, roster, archives)" },
-    { file: "state.js", fn: "migrateWorldState", step: "migrateCharClassNames(", why: "the load-time heal of this campaign's own sheets" },
-    { file: "state.js", fn: "migrateWorldState", step: "migrateCapabilityRenames(", why: "the load-time heal of this campaign's own sheets" },
-    { file: "state.js", fn: "migrateWorldState", step: "migrateSpellDisplayNames(", why: "the load-time heal of this campaign's own sheets" },
+    /* this campaign's OWN sheets at load: the four NAME heals stay hand-run here (the registry's names entry is cross-mode only —
+       a rename a portable copy may predate); everything else the load needs — the row heal, the stores, the portrait, the arrays,
+       the relationship adapter — runs through the registry in SAME mode since (c) (inventoryAdmitWorld, §5.3) */
+    { file: "state.js", fn: "migrateWorldState", step: "migrateAncestryNames(", why: "the load-time name heal of this campaign's own sheets (hero, roster) — a same-campaign rename catch-up, not an admission" },
+    { file: "state.js", fn: "migrateWorldState", step: "migrateCharClassNames(", why: "the load-time name heal of this campaign's own sheets" },
+    { file: "state.js", fn: "migrateWorldState", step: "migrateCapabilityRenames(", why: "the load-time name heal of this campaign's own sheets" },
+    { file: "state.js", fn: "migrateWorldState", step: "migrateSpellDisplayNames(", why: "the load-time name heal of this campaign's own sheets" },
     { file: "storage-adapter.js", fn: "(top)", step: "migrateAncestryNames(", why: "the library LISTING heals a renamed ancestry for display and the diff; the adopting door admits the copy itself (#221)" },
-    /* the character editor is a satellite with its own door; (c) gives it the module's row editor and the registry (§4.4) */
-    { file: "character_editor.html", fn: "(top)", step: "migrateAncestryNames(", why: "the editor's healChar on a loaded .char — its own door until (c)" },
-    { file: "character_editor.html", fn: "(top)", step: "migrateCharClassNames(", why: "the editor's healChar — its own door until (c)" },
-    { file: "character_editor.html", fn: "(top)", step: "migrateCapabilityRenames(", why: "the editor's healChar — its own door until (c)" },
-    { file: "character_editor.html", fn: "(top)", step: "migrateSpellDisplayNames(", why: "the editor's healChar — its own door until (c)" }
+    /* the character editor is a satellite with its own door (no world, no identity layer, no registry); (c) gave it the module's
+       row editor and the module's own heal (invHealSheet, the same function the registry's inventory entry runs) — §4.4 */
+    { file: "character_editor.html", fn: "(top)", step: "migrateAncestryNames(", why: "the editor's healChar on a loaded .char — the satellite's own door (it loads no registry)" },
+    { file: "character_editor.html", fn: "(top)", step: "migrateCharClassNames(", why: "the editor's healChar — its own door" },
+    { file: "character_editor.html", fn: "(top)", step: "migrateCapabilityRenames(", why: "the editor's healChar — its own door" },
+    { file: "character_editor.html", fn: "(top)", step: "migrateSpellDisplayNames(", why: "the editor's healChar — its own door" }
   ], _adExSeen = {};
   var _adFs = require("fs"), _adRoot = require("path").join(__dirname, "..");
   var _adFiles = _adFs.readdirSync(_adRoot).filter(function (f) { return /\.(js|html)$/.test(f) && f !== "admission.js"; }), _adBad = [];
@@ -1557,7 +1560,10 @@ try {
     { name: "an index into an inventory (read invEntries or invEntryText)", re: /\.inventory\[[^\]]+\]|\b(?:inv|inv2|inventory)\[[^\]]+\]/g },
     /* `.inventory.join(` and `(x.inventory||[]).join(` are the list joining itself; `invTextList(x.inventory).join(` is the module's text — not matched */
     { name: "a whole-list join (read invTextList)", re: /\.inventory(?:\s*\|\|\s*\[\]\s*\))?\.join\(|\binv\.join\(/g },
-    { name: "a whole-string indexOf on an inventory (ask invHolds)", re: /\.inventory(?:\s*\|\|\s*\[\]\s*\))?\.indexOf\(|\binv\.indexOf\(/g }
+    { name: "a whole-string indexOf on an inventory (ask invHolds)", re: /\.inventory(?:\s*\|\|\s*\[\]\s*\))?\.indexOf\(|\binv\.indexOf\(/g },
+    /* (c): rows are OBJECTS — a `.slice()` of the pack shares them, so a preflight that removes from the copy decrements the live
+       pack (gate 14: the ledger check, the #510 sale check, the Sync diff's before-copy). invSnapshot / invDetach copy. */
+    { name: "a shallow copy of an inventory (rows are shared — copy through invSnapshot or invDetach)", re: /\.inventory(?:\s*\|\|\s*\[\]\s*\))?\.slice\(|\binv\.slice\(/g }
   ];
   var _ibExempt = [];   /* { file, fn, rule, why } — none today; a row here is a reader (c) must visit by hand */
   var _ibFs = require("fs"), _ibRoot = require("path").join(__dirname, "..");
@@ -2510,7 +2516,7 @@ var geval=eval; // indirect eval → global scope (same loader convention as loa
 /* #199: `require` is module-scoped and invisible to indirect-eval'd tests, so a fixture-reading
    test gets fs through this handle instead. test.html never defines it — browser runs of such
    tests must guard on typeof and skip, keeping node CI the gate for fixture pins. */
-global.__fsForTests=fs;global.__rootForTests=path.join(__dirname,"..");
+global.__fsForTests=fs;global.__rootForTests=path.join(__dirname,"..");global.__cpForTests=require("child_process");global.__osForTests=require("os");/* #599 (c): the census tool runs as a child process in its own test */
 geval(fs.readFileSync(path.join(__dirname,"village-measure.js"),"utf8"));/* #6 D4: the village acceptance measure — engine-visible so the suite can run it on a corpus */
 geval(fs.readFileSync(path.join(__dirname,"loc-repair-core.js"),"utf8"));/* #156B: the location repair census/apply core — engine-visible for the identity battery (drives the SHIPPING executors) */
 geval(fs.readFileSync(path.join(__dirname,"engine-tests.js"),"utf8"));

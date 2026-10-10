@@ -861,7 +861,7 @@ function fileLocationItem(name,action,turn,place,room,at){
   var qtyMode=!!(typeof kindDef==="function"&&kindDef().stashQuantities);
   /* #481 D2: ONE stash identity (stashKey); in a stash kind the row stores the BASE name and the tag's count ("Hemp rope x2" is
      one row of two, never a row literally named "Hemp rope x2"). Adventure toggle rows keep the name as given (byte-identical). */
-  var _sk=(typeof stashKey==="function")?stashKey(name):String(name).toLowerCase(),_sq=(qtyMode&&typeof _qtyParse==="function")?_qtyParse(name):{base:name,n:1};
+  var _sk=(typeof stashKey==="function")?stashKey(name):String(name).toLowerCase(),_sq=(at&&typeof at.units==="number"&&at.units>=1)?{base:String(name).trim(),n:Math.floor(at.units)}:((qtyMode&&typeof _qtyParse==="function")?_qtyParse(name):{base:name,n:1});/* #599 (c): a caller that KNOWS the count passes at.units (the ledger, the undo); only a tag parses " xN" */
   if(qtyMode)name=_sq.base;
   for(i=0;i<items.length;i++){if(((typeof stashKey==="function")?stashKey(items[i].name):items[i].name.toLowerCase())===_sk){idx=i;break;}}
   var hero=(worldState.character&&worldState.character.name)||null,now=(typeof clockNow==="function")?clockNow():0;

@@ -1,4 +1,5 @@
-// Scratch-only named proofs for the legacy census CLI. No production/source mutation.
+// Scratch-only named proofs for the inventory census CLI (gate 7 since #599 (c): the ENGINE heals, the tool's own oracle
+// judges — these clauses break the ORACLE and expect the suite to see the engine and the oracle disagree). No source mutation.
 const fs = require('fs'), path = require('path'), os = require('os');
 const sabotage = require('./sabotage.js');
 const source = path.join(__dirname, 'census-inventory-rows.js');
@@ -13,9 +14,9 @@ process.env.CENSUS_TOOL = file;
 try {
   process.exitCode = sabotage.prove({file, command:[process.execPath, [path.join(__dirname, 'tests-599-legacy-census.js')]], cases:[
     {file:'dev/census-inventory-rows.js', label:'erased equipped membership is rejected', find:'rows[idx[wk]].equipped = true', replace:'rows[idx[wk]].equipped = false', mustFail:'FAIL legacy census equipped membership:'},
-    {file:'dev/census-inventory-rows.js', label:'reordered carried rows are rejected', find:'return { rows: rows, junk:', replace:'rows.reverse(); return { rows: rows, junk:', mustFail:'FAIL legacy census ordinary strings:'},
-    {file:'dev/census-inventory-rows.js', label:'skipped unsupported mixed input is rejected', find:'var inv = s.inventory, before = S.invalid;', replace:'var inv = s.inventory.filter(function(e) { return typeof e === "string"; }), before = S.invalid;', mustFail:'FAIL legacy census unsupported mixed:'},
-    {file:'dev/census-inventory-rows.js', label:'lost units are rejected', find:'r = parseStored(e); r.equipped = false;', replace:'r = parseStored(e); r.qty = 1; r.equipped = false;', mustFail:'FAIL legacy census unit conservation:'}
+    {file:'dev/census-inventory-rows.js', label:'reordered carried rows are rejected', find:'return { rows: rows, wornUnmatched: unmatched };', replace:'rows.reverse(); return { rows: rows, wornUnmatched: unmatched };', mustFail:'FAIL legacy census ordinary strings:'},
+    {file:'dev/census-inventory-rows.js', label:'skipped unsupported mixed input is rejected', find:'var inv = s.inventory; S.sheets++; S.items += inv.length;', replace:'var inv = s.inventory.filter(function(e) { return typeof e === "string"; }); S.sheets++; S.items += inv.length;', mustFail:'FAIL legacy census unsupported mixed:'},
+    {file:'dev/census-inventory-rows.js', label:'lost units are rejected', find:'var r = parseStored(list[i]); r.equipped = false;', replace:'var r = parseStored(list[i]); r.qty = 1; r.equipped = false;', mustFail:'FAIL legacy census unit conservation:'}
   ]});
 } finally {
   if (prior === undefined) delete process.env.CENSUS_TOOL; else process.env.CENSUS_TOOL = prior;

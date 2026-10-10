@@ -376,7 +376,7 @@ function ledgerApply(plan,ctx){
   var c=worldState&&worldState.character;if(!c||!plan||!plan.lines||!plan.lines.length)return {ok:false,reason:"nothing marked",muts:[]};
   var key=ctx&&ctx.key,net=plan.netCp|0,lines=plan.lines,muts=[],i,j,q;
   /* check: every removal against a copy of the pack, the coin against the purse, every take against the row */
-  var sim=c.inventory.slice(),node=key&&memory&&memory.map?memory.map.nodes[key]:null;
+  var sim=invSnapshot(c.inventory),node=key&&memory&&memory.map?memory.map.nodes[key]:null;/* #599 (c): DETACHED — the check removes from the copy, never from the live rows (gate 14) */
   for(i=0;i<lines.length;i++){var l=lines[i];
     if(l.kind==="sell"||l.kind==="stow"){for(j=0;j<l.qty;j++)if(!removeInventoryItem(sim,l.name))return {ok:false,reason:(j?"only "+j+" of "+l.name+" x"+l.qty+" is in the pack":l.name+" is no longer in the pack")+" — nothing moved",muts:[]};}
     if(l.kind==="stow"||l.kind==="take"){if(!node)return {ok:false,reason:"no place on record — nothing moved",muts:[]};}
@@ -388,8 +388,8 @@ function ledgerApply(plan,ctx){
     if(ln.kind==="sell"||ln.kind==="stow"){for(j=0;j<n;j++)removeInventoryItem(c.inventory,ln.name);muts.push("-"+ln.name+qs);}
     if(ln.kind==="buy"||ln.kind==="take"){for(j=0;j<n;j++)addInventoryItem(c.inventory,ln.name);muts.push("+"+ln.name+qs);}
     if(ln.kind==="sell"){var w=(typeof retireWantedAt==="function")?retireWantedAt({key:key},ln.name):null;if(w)muts.push("Want met: "+w.item+(w.by?" ("+w.by+")":""));if(typeof _clearConsumablePending==="function")_clearConsumablePending(null,ln.name);}
-    if(ln.kind==="stow"){var st=fileLocationItem(ln.name+qs,"placed",R.turn,null,null,{key:key});muts.push("Left: "+ln.name+(st.qty>1?" ×"+st.qty:""));stashMoveRecord(R,{name:ln.name,units:n,action:"placed",key:st.key,by:c.name,pack:{name:ln.name,units:n}});moved=true;}
-    if(ln.kind==="take"){var tk=fileLocationItem(ln.name+qs,"taken",R.turn,null,null,{key:key});muts.push("Taken: "+ln.name+(n>1?" ×"+n:""));stashMoveRecord(R,{name:ln.name,units:tk.n||n,action:"taken",key:tk.key,by:c.name,pack:{name:ln.name,units:n}});moved=true;}}
+    if(ln.kind==="stow"){var st=fileLocationItem(ln.name,"placed",R.turn,null,null,{key:key,units:n});/* #599 (c): the count is an argument, never " xN" baked into a name (§4) */muts.push("Left: "+ln.name+(st.qty>1?" ×"+st.qty:""));stashMoveRecord(R,{name:ln.name,units:n,action:"placed",key:st.key,by:c.name,pack:{name:ln.name,units:n}});moved=true;}
+    if(ln.kind==="take"){var tk=fileLocationItem(ln.name,"taken",R.turn,null,null,{key:key,units:n});muts.push("Taken: "+ln.name+(n>1?" ×"+n:""));stashMoveRecord(R,{name:ln.name,units:tk.n||n,action:"taken",key:tk.key,by:c.name,pack:{name:ln.name,units:n}});moved=true;}}
   if(net){c.coin=(Number(c.coin)||0)-net;muts.push((net<0?"+":"-")+fmtCoin(Math.abs(net)));}
   if(typeof wornPrune==="function")wornPrune(c);
   if(moved&&R.moveGrp)worldState.stashUndoGrp=R.moveGrp;else delete worldState.stashUndoGrp;/* #481 D1: a trade ends the chance to undo what came before */
@@ -1127,7 +1127,7 @@ function checkLegacyCharacter(){
     level:pick.level||1,age:pick.age||"",appear:pick.appear||"",mark:pick.mark||"",
     backstory:pick.backstory||"",trait:pick.trait||"",flaw:pick.flaw||"",motivation:pick.motivation||"",
     alignment:pick.actualAlignment||pick.statedAlignment||"",deity:pick.deity||"",
-    relationships:(pick.relationships||[]).slice(0,8),relationshipAxisProposals:(pick.relationshipAxisProposals||[]).slice(0,8),inventory:(pick.inventory||[]).slice(0,12),
+    relationships:(pick.relationships||[]).slice(0,8),relationshipAxisProposals:(pick.relationshipAxisProposals||[]).slice(0,8),inventory:invSnapshot(pick.inventory).slice(0,12),/* #599 (c): the admitted copy's rows, detached (§4.2) */
     queuedAt:worldState.turn};
   saveCore();
   if(typeof showToast==="function")showToast("☠ A familiar face approaches...");
@@ -1801,10 +1801,10 @@ function _stashUndoCheck(e,curKey,curWorld){
 }
 function _stashUndoApply(e,muts){
   var hero=worldState.character&&worldState.character.name,sh=e.pack?stashActorSheet(e.by||hero):null,j,qs=e.units>1?" x"+e.units:"";
-  if(e.action==="placed"){fileLocationItem(e.name+qs,"taken",worldState.turn,null,null,{key:e.key});muts.push("Taken: "+e.name+(e.units>1?" ×"+e.units:""));
+  if(e.action==="placed"){fileLocationItem(e.name,"taken",worldState.turn,null,null,{key:e.key,units:e.units});/* #599 (c): the count rides as an argument */muts.push("Taken: "+e.name+(e.units>1?" ×"+e.units:""));
     if(sh){for(j=0;j<e.pack.units;j++)addInventoryItem(sh.inventory,e.pack.name);muts.push("+"+e.pack.name+(e.pack.units>1?" x"+e.pack.units:"")+((e.by&&e.by!==hero)?" ("+e.by+")":""));}}
   else{if(sh){for(j=0;j<e.pack.units;j++)removeInventoryItem(sh.inventory,e.pack.name);muts.push("-"+e.pack.name+(e.pack.units>1?" x"+e.pack.units:"")+((e.by&&e.by!==hero)?" ("+e.by+")":""));if(typeof wornPrune==="function")wornPrune(sh);}
-    fileLocationItem(e.name+qs,"placed",worldState.turn,null,null,{key:e.key});muts.push("Left: "+e.name+(e.units>1?" ×"+e.units:""));}
+    fileLocationItem(e.name,"placed",worldState.turn,null,null,{key:e.key,units:e.units});muts.push("Left: "+e.name+(e.units>1?" ×"+e.units:""));}
 }
 function _stashUndoSaid(e){
   var hero=worldState.character&&worldState.character.name,nm=e.name+(e.units>1?" x"+e.units:"");
@@ -4382,9 +4382,9 @@ async function syncCharSheet(){
     // Daeris test showed Haiku ignores even the targeted cleanup instructions.
     var resp=await callGM(auditMsg,null,500,upgradeModelFor(),{kind:"sync"});
     // #50a loud trail: snapshot every inventory, diff after applyMuts, toast each correction.
-    var invBefore={player:(worldState.character.inventory||[]).slice()};
+    var invBefore={player:invSnapshot(worldState.character.inventory)};/* #599 (c): DETACHED — applyMuts changes row counts in place, so a shared copy would read the AFTER state (gate 14) */
     var ci,_ivParty=livingPartyCompanions();/* user ruling 2026-07-16 (AUDIT_FABLE_07_16 #6): matches the living-only companions list above */
-    for(ci=0;ci<_ivParty.length;ci++)invBefore[_ivParty[ci].name]=(_ivParty[ci].charSheet.inventory||[]).slice();
+    for(ci=0;ci<_ivParty.length;ci++)invBefore[_ivParty[ci].name]=invSnapshot(_ivParty[ci].charSheet.inventory);
     applyMuts(resp);/* #40: deliberately NO detectCoreMoments here — a sheet-sync correction is bookkeeping, not a story moment */
     var who;for(who in invBefore){
       var nowInv=who==="player"?worldState.character.inventory:(function(){var i2;for(i2=0;i2<worldState.npcs.length;i2++){if(worldState.npcs[i2].name===who&&worldState.npcs[i2].charSheet)return worldState.npcs[i2].charSheet.inventory;}return [];})();

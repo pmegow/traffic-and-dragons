@@ -99,7 +99,7 @@ prove("game.js", [
     find: 'if(!_vts.ok)return {rule:"trade-outside-shop",detail:_vts.reason};', replace: 'if(!_vts.ok)return null;',
     mustFail: "#6F7 suggestions obey the same rule" },
   { label: "the undo leaves the item where it was placed (#481 D1: once-only is now structural — see sabotage-481-d1-d9-move-record.js)",
-    find: '  if(e.action==="placed"){fileLocationItem(e.name+qs,"taken",worldState.turn,null,null,{key:e.key});', replace: '  if(e.action==="placed"){',
+    find: '  if(e.action==="placed"){fileLocationItem(e.name,"taken",worldState.turn,null,null,{key:e.key,units:e.units});', replace: '  if(e.action==="placed"){',/* #599 (c): the count rides as an argument */
     mustFail: "#6E9 Car Mode undo" }
 ]);
 prove("identity.js", [

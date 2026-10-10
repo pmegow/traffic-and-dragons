@@ -7,7 +7,7 @@ var CMD = ["node", ["dev/tests-429-inventory-drop.js"]];
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 prove("inventory.js", [/* #599 (b4): invMarkResolve lives in inventory.js (one home) */
   { label: "the index wins over the name (the neighbour is marked)",
-    find: "  if(idx>=0&&idx<inv.length&&inv[idx]===name)return idx;\n  var best=-1", replace: "  if(idx>=0&&idx<inv.length)return idx;\n  var best=-1",
+    find: "  if(idx>=0&&idx<inv.length&&_invMarkIs(inv,idx,name))return idx;\n  var best=-1", replace: "  if(idx>=0&&idx<inv.length)return idx;\n  var best=-1",/* #599 (c): the mark's name is matched by key */
     mustFail: "#481 F8 the repro" }
 ]);
 prove("ui-sheets.js", [

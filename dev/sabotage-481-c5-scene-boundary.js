@@ -24,7 +24,7 @@ prove("api.js", [
     find: "if(typeof campStampOn===\"function\")campStampOn(cs.outfit);/* #481 C5 (d): C8's stamper */", replace: "",
     mustFail: "an outfit is filed with the campaign's stamp" },
   { label: "the attire line ignores the age",
-    find: "o=cs.outfit&&cs.outfit.text&&(typeof sceneTurnLive!==\"function\"||sceneTurnLive(cs.outfit.turn))?cs.outfit:null;/* #481 C5: a negative age is another campaign's */", replace: "o=cs.outfit&&cs.outfit.text?cs.outfit:null;",
+    find: "o=cs.outfit&&cs.outfit.text&&(typeof sceneTurnLive!==\"function\"||sceneTurnLive(cs.outfit.turn))?cs.outfit:null;/* #481 C5: a negative age is another campaign's; #599 (c): the equipped rows in PACK order (a legacy sheet's worn list reads as before) */", replace: "o=cs.outfit&&cs.outfit.text?cs.outfit:null;",
     mustFail: "renders neither line" },
   { label: "the party block serves a companion's foreign dynamic",
     find: "if(_pmR[_pmRi].dynamic&&(typeof sceneTurnLive!==\"function\"||sceneTurnLive(_pmR[_pmRi].dynamicTurn)))", replace: "if(_pmR[_pmRi].dynamic)",

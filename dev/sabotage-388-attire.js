@@ -15,18 +15,21 @@ var rc1 = sabotage.prove({
   command: ["node", ["dev/run-tests.js", "class bible"]],
   cases: [
     { label: "an uncarried item can be worn (the refusal is dropped)",
-      find: 'if(ii<0){if(typeof console!=="undefined")console.warn("[attire] WORN: \'"+item+"\' is not in "+(who||cs.name||"?")+"\'s inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)");return {ok:false,reason:"not carried"};}',
-      replace: 'if(ii<0){if(typeof console!=="undefined")console.warn("[attire] WORN: \'"+item+"\' is not in "+(who||cs.name||"?")+"\'s inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)");cs.worn.push(_invBase(item));return {ok:true,item:_invBase(item)};}' },
+      /* #599 (c) re-anchor: wornSet is a delegate over rows — the refusal is the same line, the mutation mints the uncarried item and wears it */
+      find: '  if(ii<0){if(on&&typeof console!=="undefined")console.warn("[attire] WORN: \'"+item+"\' is not in "+(who||cs.name||"?")+"\'s inventory — nothing is worn that is not carried; emit [ITEM_GAINED:] first (#388)");return {ok:false,reason:on?"not carried":"not worn"};}',
+      replace: '  if(ii<0){if(on){invAdd(inv,invStoredParse(item).name,1);ii=_invLegacyFind(inv,item);}else return {ok:false,reason:"not worn"};}' },
     { label: "re-donning duplicates the worn entry",
-      find: 'if(wi>=0)return {ok:false,reason:"already worn",item:stored};cs.worn.push(stored);', replace: 'cs.worn.push(stored);' }
+      /* #599 (c) re-anchor: the flag is on the row (invEquip refuses a re-don); the mutation sets it blindly and says ok twice */
+      find: '  var r=invEquip(inv,inv[ii].name,on);if(r.ok)return {ok:true,item:r.row.name};return {ok:false,reason:on?"already worn":"not worn",item:inv[ii].name};}', replace: '  inv[ii].equipped=!!on;return {ok:true,item:inv[ii].name};}' }
   ]
 });
 var rc2 = sabotage.prove({
-  file: "tag_table.js",
+  file: "inventory.js",/* #599 (c): the lost-item invariant lives in the row remover now */
   command: ["node", ["dev/run-tests.js", "class bible"]],
   cases: [
+    /* #599 (c) re-anchor: the invariant holds by construction (a row leaves with its flag) — the mutation keeps the emptied row, so the lost shield stays worn */
     { label: "ITEM_LOST no longer prunes worn (a lost shield stays 'worn')",
-      find: 'if(typeof wornPrune==="function")wornPrune(worldState.character);/* #388: nothing is worn that is not carried */', replace: '' }
+      find: 'row.qty-=take;if(row.qty<=0)rows.splice(i,1);', replace: 'row.qty-=take;if(row.qty<=0){row.qty=0;}' }
   ]
 });
 var rc3 = sabotage.prove({

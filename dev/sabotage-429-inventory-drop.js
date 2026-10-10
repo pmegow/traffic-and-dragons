@@ -11,10 +11,10 @@ function prove(file, command, cases) { if (!code) code = sabotage.prove({ file: 
 var ENGINE = ["node", ["dev/run-tests.js", "#429 batch"]], SHEET = ["node", ["dev/tests-429-inventory-drop.js"]];
 prove("inventory.js", ENGINE, [/* #599 (b4): the drop-mark helpers live in inventory.js (one home) */
   { label: "the plan trusts a marked index blindly (a GM splice would drop the row that slid in)",
-    find: 'if(idx>=0&&idx<inv.length&&inv[idx]===name&&!seen[idx])at=idx;', replace: 'if(idx>=0&&idx<inv.length&&!seen[idx])at=idx;',
+    find: 'if(idx>=0&&idx<inv.length&&_invMarkIs(inv,idx,name)&&!seen[idx])at=idx;', replace: 'if(idx>=0&&idx<inv.length&&!seen[idx])at=idx;',/* #599 (c): a mark names its row by key */
     mustFail: "invDropPlan" },
   { label: "the plan lets two marks claim one row",
-    find: 'if(inv[i]===name&&!seen[i]){at=i;break;}', replace: 'if(inv[i]===name){at=i;break;}',
+    find: 'if(_invMarkIs(inv,i,name)&&!seen[i]){at=i;break;}', replace: 'if(_invMarkIs(inv,i,name)){at=i;break;}',/* #599 (c) */
     mustFail: "invDropPlan" },
   { label: "the apply splices lowest index first (every later index is off by one)",
     find: 'for(i=plan.drop.length-1;i>=0;i--)inv.splice(plan.drop[i].idx,1);', replace: 'for(i=0;i<plan.drop.length;i++)inv.splice(plan.drop[i].idx,1);',
@@ -32,7 +32,7 @@ prove("inventory.js", ENGINE, [/* #599 (b4): the drop-mark helpers live in inven
 prove("ui-sheets.js", SHEET, [
   { label: "the × drops at once again (the per-item thorn is back)",
     /* #481 F8 re-anchor: the mark now resolves its row first (invMarkResolve → at) */
-    find: '_invDropMarks.by[owner]=invDropToggle(_invDropMarksFor(owner),at,invEntryText(cs.inventory,at));', replace: 'cs.inventory.splice(at,1);saveAll();',/* #599 (b4): the entry's text through the module */
+    find: '_invDropMarks.by[owner]=invDropToggle(_invDropMarksFor(owner),at,invEntryName(cs.inventory,at));', replace: 'cs.inventory.splice(at,1);saveAll();',/* #599 (c): the entry's NAME through the module */
     mustFail: "the × marks a row" },
   { label: "the commit forgets to prune worn (a dropped worn sword rides every prompt)",
     find: '  if(typeof wornPrune==="function")wornPrune(cs);/* audit E4/#388: nothing is worn that is not carried — a dropped worn sword otherwise rode attireLine into every prompt */\n', replace: '',

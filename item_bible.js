@@ -6,7 +6,7 @@
 //
 // TYPE vs INSTANCE (the ruled schema constraint): this file defines the TYPE — what an
 // "alchemist's fire" IS. Instance state (charges left, provenance, owner, the "x5" count)
-// stays on the inventory entry string, never baked into a definition. An entry carrying
+// stays on the carried item (its row: name, count, equipped), never baked into a definition. An entry carrying
 // instance fields fails the engine build.
 //
 // Schema, fixed-attribute discipline (every entry carries the full set, "N/A" where
@@ -33,7 +33,7 @@
 // fine quality +50 gp, minor enchantment (L1-2) +100 gp, major enchantment (L3-5) +500 gp,
 // legendary work +2000 gp. A plain leather jerkin is 10 gp; a rare, finely made one carrying a
 // minor charm is 10+10+50+100 = 170 gp. `value` holds the PLAIN TYPE's price; instance
-// properties ride the inventory string and are added up at the counter. A [WARES:] price
+// properties ride the carried item and are added up at the counter. A [WARES:] price
 // outside 3x of `value` is warned about, never rewritten (tag_table.js).
 //
 // FORMAT RULES (the editor depends on them):

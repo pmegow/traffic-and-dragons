@@ -11,7 +11,7 @@ process.exit(sabotage.prove({ file: "tag_table.js", command: CMD, cases: [
     find: 'if(R.goldIn>0&&typeof kindDef==="function"&&kindDef().tradeOnlyInShops){var _sSim=', replace: 'if(false){var _sSim=',
     mustFail: "the repro" },
   { label: "the check runs on the real pack, not a copy",
-    find: "var _sSim=worldState.character.inventory.slice(),", replace: "var _sSim=worldState.character.inventory,",
+    find: "var _sSim=invSnapshot(worldState.character.inventory),", replace: "var _sSim=worldState.character.inventory,",/* #599 (c): the copy is detached (rows are objects) */
     mustFail: "the repro" },
   { label: "the check counts one unit per tag, so a short count slips through",
     find: "for(_sj=0;_sj<_sq.n;_sj++){if(!removeInventoryItem(_sSim,_sq.base))", replace: "for(_sj=0;_sj<1;_sj++){if(!removeInventoryItem(_sSim,_sq.base))",

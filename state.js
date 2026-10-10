@@ -527,6 +527,27 @@ function migrateAncestryNames(c){
   console.info("[migrate] ancestry rename on "+(c.name||"character")+": "+c.ancestry+" → "+next);
   c.ancestry=next;return true;
 }
+/* #599 (c): inventoryAdmitWorld(ws, door) → {ok, reason, changed}. THE LOAD DOOR for this campaign's own sheets — the hero,
+   every roster sheet, the pending legacy character, every parked fallen sheet (helpers.js worldSheetsOf) — through the ONE
+   admission registry (admission.js sheetAdmit) in SAME mode, in place: the pack becomes rows, worn folds into equipped, junk
+   is filed as evidence, the sheet is stamped (invHealSheet), and the world is stamped SAVE_VER once every sheet is through.
+   ALL OR NOTHING (§5.3): every sheet is CHECKED first (invSheetIssue, read-only); one refusal leaves every pack and the
+   world's version exactly as they were and says why — the readers tolerate strings, the writers refuse until the sheet is
+   healed. Runs at the local load, the .tnd import, the cloud reconcile and pull (all through migrateWorldState), the checkpoint
+   restore, map cleanup's load and the prompt capture (dev/capture-prompt.js). admission.js loads after this file and before
+   any of those run; a missing registry fails loudly, never skips (§5.3). */
+function inventoryAdmitWorld(ws,door){
+  var sheets=worldSheetsOf(ws),i,why="",changed=false,ctx;
+  for(i=0;i<sheets.length&&!why;i++)why=invSheetIssue(sheets[i].sheet);
+  if(why){if(typeof console!=="undefined")console.error("[inventory] "+(door||"load")+": the packs were NOT converted — "+why+"; the save stays at v"+(ws&&ws.ver!==undefined?ws.ver:"?")+" with every pack as it was");
+    if(typeof showToast==="function")showToast("⚠ "+why+" — this campaign's items were not converted; repair the sheet and reload",9000);return {ok:false,reason:why,changed:false};}
+  for(i=0;i<sheets.length;i++){ctx={door:(door||"load")+" "+sheets[i].who,mode:"same",detach:false,rel:sheets[i].rel,portable:sheets[i].portable,toast:false};
+    var a=sheetAdmit(sheets[i].sheet,ctx);
+    if(!a.ok){if(typeof console!=="undefined")console.error("[inventory] "+(door||"load")+": "+sheets[i].who+" refused after its pack check passed — "+a.reason);return {ok:false,reason:a.reason,changed:changed};}
+    if(ctx.healed)changed=true;}
+  if(ws&&(typeof ws.ver!=="number"||ws.ver<SAVE_VER)){ws.ver=SAVE_VER;changed=true;}
+  return {ok:true,reason:"",changed:changed};
+}
 function migrateWorldState(){
   keyedStores(worldState,"world");keyedStores(memory,"memory");
   if(!worldState||!worldState.character)return false;
@@ -652,19 +673,11 @@ function migrateWorldState(){
   // turn until the GM next re-emits the tag. clampNpcMood lives in memory.js (loaded after state.js
   // but present by the time this runs on load); guard for the edge where it isn't.
   if(typeof clampNpcMood==="function"){for(_pn=0;_pn<worldState.npcs.length;_pn++){var _cn=worldState.npcs[_pn];if(_cn&&_cn.status){var _cs=clampNpcMood(_cn.status);if(_cs!==_cn.status){_cn.status=_cs;_mig=true;}}}}
-  // #50(d) heal: fold byte-identical duplicate inventory entries into proper " xN" stacks. Only
-  // pre-v1.291 sheet generation could mint them (model arrays copied verbatim — the Frizwick t455
-  // adjacent-pairs shape); play-time writes always stacked. foldDuplicateInventory lives in api.js
-  // (loaded after state.js but present by the time this runs on load) — same guard as clampNpcMood.
-  if(typeof foldDuplicateInventory==="function"){
-    var _fdp=c.inventory?foldDuplicateInventory(c.inventory):0;
-    if(_fdp){_mig=true;if(typeof console!=="undefined")console.warn("[migrate] #50d: folded "+_fdp+" duplicate inventory entr"+(_fdp===1?"y":"ies")+" on "+(c.name||"the player"));}
-    for(_pn=0;_pn<worldState.npcs.length;_pn++){var _fdn=worldState.npcs[_pn];
-      if(_fdn&&_fdn.charSheet&&_fdn.charSheet.inventory){
-        var _fdc=foldDuplicateInventory(_fdn.charSheet.inventory);
-        if(_fdc){_mig=true;if(typeof console!=="undefined")console.warn("[migrate] #50d: folded "+_fdc+" duplicate inventory entr"+(_fdc===1?"y":"ies")+" on "+_fdn.name);}
-      }}
-  }
+  /* #599 (c): THE LOAD IS A DOOR — this campaign's own sheets enter the admission registry in SAME mode, in place
+     (inventoryAdmitWorld): the pack becomes rows, worn folds into equipped, junk is filed as evidence, the sheet is stamped,
+     and the world is stamped v11 once every sheet is through. The #50(d) duplicate fold lives in that heal now (invRows
+     folds same-key entries). A refusal is said and leaves every pack and the world's version as they were. */
+  var _lsa=inventoryAdmitWorld(worldState,"load");if(_lsa.changed)_mig=true;
   // B3 (v1.361): NPC death became a first-class flag — stamp it from legacy death statuses so old
   // saves' dead NPCs join the DECEASED canon (they were roster-hidden by a status regex before).
   // dead=true means "died before the flag existed" (turn unknown). Statuses the new detection
@@ -849,6 +862,12 @@ function checkpointRestore(snap,opts){
     if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — the camp's LONG-TERM MEMORY could not be healed; the live campaign is rolled back untouched:",e);
     return {ok:false,reason:"the camp's long-term memory could not be prepared ("+((e&&e.message)||"unknown")+")"};
   }}
+  /* #599 (c): a camp taken before the row form holds string packs — the restored world's sheets enter the registry in SAME
+     mode (the load door), all or nothing; a refusal rolls the live campaign back untouched, like the memory heal above. */
+  var _cia=inventoryAdmitWorld(worldState,"checkpoint restore");
+  if(!_cia.ok){worldState=prevWs;sessionLog=prevSl;memory=prevMem;
+    if(typeof console!=="undefined")console.error("[checkpoint] restore REFUSED — a sheet's pack could not be prepared ("+_cia.reason+"); the live campaign is rolled back untouched");
+    return {ok:false,reason:"the camp's items could not be prepared ("+_cia.reason+")"};}
   /* Committed from here: the dead branch is marked only once the restore can no longer refuse
      (the marks ride the LIVE transcript array — a refusal after this point would leave the
      surviving campaign's history stamped dead). */

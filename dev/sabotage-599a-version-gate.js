@@ -24,7 +24,7 @@ prove("helpers.js", [
     find: "function versionNewer(v,mine){return typeof v===\"number\"&&v>mine;}", replace: "function versionNewer(v,mine){return typeof v===\"number\"&&isFinite(v)&&v>mine;}",
     mustFail: REVIEW_EDGES },
   { label: "a companion's sheet stamp is not read by the world gate",
-    find: "  for(i=0;i<ns.length;i++){s=sheetVersionIssue(ns[i]&&ns[i].charSheet);if(s)return s;}\n", replace: "",
+    find: "  var ss=worldSheetsOf(ws),i,s;for(i=0;i<ss.length;i++){s=sheetVersionIssue(ss[i].sheet);if(s)return s;}", replace: "  var s=sheetVersionIssue(ws.character);if(s)return s;",/* #599 (c): one walker (worldSheetsOf) — the mutation reads the hero alone */
     mustFail: RULE },
   { label: "the portable copy is not stamped",
     find: "  copy.sheetVer=SHEET_VER;/* #599 (a): every portable copy says which build wrote it, so an older build can refuse it */\n", replace: "",

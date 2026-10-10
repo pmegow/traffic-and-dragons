@@ -148,7 +148,7 @@ test("E4 the batch drop prunes worn[] — a dropped sword is not still being wor
   c.inventory = ["Longsword", "Chain shirt"]; c.worn = ["Chain shirt"];
   markInvItem("", 1, null); dropMarkedItems("", null);/* #429: the × marks, the button commits — no confirm on the path */
   assert.equal(c.inventory.length, 1, "the item was not dropped");
-  assert.equal(c.worn.length, 0, "a dropped item is still listed as worn — attireLine would inject it into every prompt");
+  assert.equal(invEquippedNames(c).length, 0, "a dropped item is still listed as worn — attireLine would inject it into every prompt (#599 (c): the flag left with its row)");
 });
 
 // ── E5 · validator rule ⑧ stops eating mundane moves ─────────────────────────

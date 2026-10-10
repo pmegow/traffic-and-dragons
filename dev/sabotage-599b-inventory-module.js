@@ -46,7 +46,7 @@ prove("inventory.js", [
     find: "frag=JSON.parse(JSON.stringify(row));frag.qty=take;", replace: "frag={name:row.name,qty:take,equipped:row.equipped};",
     mustFail: ROWS },
   { label: "a rename onto an existing key is allowed (two rows, one key)",
-    find: "  for(j=0;j<rows.length;j++)if(j!==i&&itemKey(rows[j].name)===t)return {ok:false,reason:\"'\"+nm+\"' already on the sheet\"};\n", replace: "",
+    find: "  for(j=0;j<rows.length;j++)if(j!==i&&_invIsRow(rows[j])&&itemKey(rows[j].name)===t)return {ok:false,reason:\"'\"+nm+\"' already on the sheet\"};\n", replace: "",
     mustFail: ROWS },
   { label: "the detached copy is not validated (a cycle throws, a Date stringifies)",
     find: "function invDetach(rows){var ji=invJsonIssue(rows);if(ji)return {ok:false,reason:ji,rows:null};", replace: "function invDetach(rows){",

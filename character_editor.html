@@ -13,7 +13,7 @@
   Contracts (CHARACTER EDITOR CONTRACT, dev/run-tests.js):
    · never touches live campaign state — no loadState/saveCore/saveAll, no game.js, no ui-*.js;
      the only localStorage key it writes is its own draft slot (CE_DRAFT_K);
-   · the .char wrapper is the game's own ({ver:10,type:"character",character}) — files round-trip
+   · the .char wrapper is the game's own ({ver:SAVE_VER,type:"character",character} — v11 since #599 (c): the inventory is ROWS) — files round-trip
      with File ▸ Import Character byte-for-byte in meaning;
    · every v10 field is reachable through ONE field registry (FIELDS) + ONE list registry
      (LISTS) — adding a field is one entry, never a hand-built form;
@@ -139,6 +139,10 @@ table.list td.x button:hover{color:var(--dng);}
     if(!c.skills)c.skills=(typeof initSkills==="function")?initSkills():{};
     if(typeof initSkills==="function"){var base=initSkills(),k;for(k in base)if(c.skills[k]==null)c.skills[k]=0;}
     ["inventory","abilities","spells","languages","conditions","relationships","saveModifiers","storyBeats","coreMemories","motivationHistory"].forEach(function(k){if(!Array.isArray(c[k]))c[k]=[];});
+    /* #599 (c): the pack becomes rows here — strings decode through the stored grammar, worn folds into equipped, junk is
+       filed as evidence on the sheet (the module's heal, the same one every game door runs); a refusal is SAID and the pack
+       is left as it was (the row editor then shows nothing editable for it — fix the file, reload) */
+    var _ih=invHealSheet(c);if(!_ih.ok){setStatus("Inventory not converted: "+_ih.reason,"err");if(typeof console!=="undefined")console.error("[editor] "+_ih.reason);}
     if(!c.stats)c.stats={};STAT_IDS.forEach(function(s){if(typeof c.stats[s]!=="number")c.stats[s]=10;});
     if(c.portrait===undefined)c.portrait=null;
     if(typeof migrateAncestryNames==="function")migrateAncestryNames(c);
@@ -182,7 +186,9 @@ table.list td.x button:hover{color:var(--dng);}
   var LISTS=[
     {k:"abilities",title:"Abilities",cols:[{k:"nm",l:"Name",w:"34%"},{k:"ds",l:"Effect"}],blank:function(){return {nm:"",ds:""};},check:function(r){return r.nm&&!capabilityLookup(r.nm)?"not in the capability bible — the GM gets only your text":"";}},
     {k:"spells",title:"Spells",cols:[{k:"nm",l:"Name",w:"40%"},{k:"lvl",l:"Tier",t:"num",w:"64px"},{k:"used",l:"Used",t:"bool",w:"54px"},{k:"racial",l:"Racial",t:"bool",w:"60px"}],blank:function(){return {nm:"",lvl:1,used:false};},check:function(r){return r.nm&&!capabilityLookup(r.nm)?"not in the capability bible — no canon will inject":"";}},
-    {k:"inventory",title:"Inventory",scalar:true,cols:[{k:"$",l:"Item (\"Name — note\" keeps a description; \"x3\" a count)"}],blank:function(){return "";},check:function(s){var e=itemLookup(s);return s&&!e?"no item-bible entry (fine — the GM defines it in play)":"";}},
+    /* #599 (c): the ROW editor — name, count and the equipped tick (DOC/DESIGN_599_inventory_rows.md §4.4); a loaded .char or
+       draft from before the row form heals into rows on load (healChar → invHealSheet), and every save writes rows */
+    {k:"inventory",title:"Inventory",cols:[{k:"name",l:"Item (\"Name — note\" keeps a description)"},{k:"qty",l:"Count",t:"num",w:"70px"},{k:"equipped",l:"Equipped",t:"bool",w:"84px"}],blank:function(){return {name:"",qty:1,equipped:false};},check:function(r){var e=r&&r.name?itemLookup(r.name):null;return r&&r.name&&!e?"no item-bible entry (fine — the GM defines it in play)":"";},hint:"One row per item; the count is a number, never part of the name. Equipped marks what is worn or held ready."},
     {k:"languages",title:"Languages",cols:[{k:"name",l:"Language",w:"60%"},{k:"broken",l:"Broken",t:"bool",w:"70px"}],blank:function(){return {name:"",broken:false};}},
     {k:"conditions",title:"Conditions",cols:[{k:"name",l:"Condition",w:"60%"},{k:"duration",l:"Duration"}],blank:function(){return {name:"",duration:""};}},
     {k:"relationships",title:"Relationships",cols:[{k:"entity",l:"Who",w:"30%"},{k:"bond",l:"Bond (durable)"},{k:"dynamic",l:"Dynamic (current)"}],blank:function(){return {entity:"",bond:"",dynamic:""};},hint:"W7 axes: bond is the durable fact (kin, oath, enmity); dynamic is today's posture. Turn stamps are set by the game."},
@@ -307,6 +313,12 @@ table.list td.x button:hover{color:var(--dng);}
     if(ch.hp>ch.maxHp)warns.push("HP exceeds Max HP.");
     try{if(!classDef(ch.cls))warns.push("Class '"+ch.cls+"' is not in the class bible — the game will not know its ladder.");}catch(e){}
     (ch.spells||[]).forEach(function(s){if(s.nm&&!capabilityLookup(s.nm))warns.push("Spell '"+s.nm+"' is not in the capability bible.");});
+    /* #599 (c): a row needs a name and a whole count of 1…INV_QTY_MAX (the game's invRows refuses less); two rows under one
+       item key would fold on admission — said here so the author decides which spelling stays */
+    var _ik={};(ch.inventory||[]).forEach(function(r,i){if(!r||typeof r!=="object"){errs.push("Inventory row "+(i+1)+" is not a row.");return;}
+      if(!r.name||!String(r.name).trim())errs.push("Inventory row "+(i+1)+" has no name.");
+      if(typeof r.qty!=="number"||r.qty!==Math.floor(r.qty)||r.qty<1||r.qty>INV_QTY_MAX)errs.push("Inventory row "+(i+1)+" ("+(r.name||"?")+"): the count must be a whole number from 1 to "+INV_QTY_MAX+".");
+      var k=itemKey(r.name||"");if(k){if(_ik[k])warns.push("'"+r.name+"' and '"+_ik[k]+"' are one item to the game — they will fold into one row.");else _ik[k]=r.name;}});
     return {errors:errs,warnings:warns};
   }
 

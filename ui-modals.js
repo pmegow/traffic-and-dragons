@@ -218,7 +218,11 @@ function showSyncModal(){
       var loc2=document.getElementById("sc-loc").value.trim(),tm2=document.getElementById("sc-time").value.trim(),wx2=document.getElementById("sc-weather").value.trim();
       var _scSub=document.getElementById("sc-sub"),sub2=_scSub?_scSub.value.trim():((w2.sublocation)||"");
       var rawInv=document.getElementById("sc-inv").value.trim();
-      var inv2=invFromLines(rawInv);/* #599 (b4): the ONE free-text parser — this modal is the only free-text inventory writer */
+      /* #599 (b4): the ONE free-text parser — this modal is the only free-text inventory writer. (c) §4.3: the lines are
+         mapped back onto the SOURCE rows (invApplyLines): an unchanged line keeps its exact row, an edited line keeps the
+         row it still names (its flag and fields), a new line is a new row; an ambiguous edit refuses visibly and the pack
+         stays as it was — never rebuilt from its text alone. */
+      var _ia=invApplyLines(c2.inventory,invFromLines(rawInv)),inv2=_ia.ok?_ia.rows:null;
       var notes=[];/* audit E2: a refused or adjusted patch is reported in the modal, never silently dropped */
       if(!isNaN(mhp2)&&mhp2>0)c2.maxHp=mhp2;if(!isNaN(hp2))c2.hp=Math.min(c2.maxHp,Math.max(0,hp2));
       if(!isNaN(gld2))c2.coin=Math.max(0,gld2);if(!isNaN(xp2))c2.xp=Math.max(0,xp2);
@@ -240,7 +244,8 @@ function showSyncModal(){
         for(_li=0;_li<_lm.length;_li++)if(mutLineWarns(_lm[_li]))notes.push(String(_lm[_li]));}/* #481 A7: the glyph marks a refusal */
       if(tm2)w2.time=tm2;if(wx2)w2.weather=wx2;
       var _scMana=document.getElementById("sc-mana");if(_scMana){var mn2=parseInt(_scMana.value);if(!isNaN(mn2))c2.mana=Math.max(0,Math.min(manaMax(c2),mn2));}/* #110 */
-      c2.inventory=inv2;/* always assign so emptying the textarea actually clears inventory (audit E63) */
+      if(inv2)c2.inventory=inv2;/* always assign so emptying the textarea actually clears inventory (audit E63); (c): a refused mapping keeps the pack and says so below */
+      else{notes.push("Inventory not changed — "+_ia.reason+".");if(typeof console!=="undefined")console.warn("[sync] inventory edit refused: "+_ia.reason);}
       if(typeof wornPrune==="function")wornPrune(c2);/* audit E4/#388: nothing is worn that is not carried */
       syncUI();saveAll();renderSync();
       var msg=document.getElementById("sc-msg");if(msg){msg.textContent=notes.length?("Applied. "+notes.join(" ")):"Applied.";msg.style.color=notes.length?"var(--warn)":"var(--grn)";}

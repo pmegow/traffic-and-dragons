@@ -29,8 +29,9 @@
    The context is a value, never a label: an entry's `applies` reads it, never the door's name.
 
    THE ENTRIES are the registry. Adding a per-sheet rule is adding an entry; the ADMISSION CONTRACT in run-tests.js refuses a
-   hand-run step at any door and a door without sheetAdmit. The inventory entry is the legacy adapter in (b) — release (c)
-   swaps its run for invHealSheet and nothing else moves. */
+   hand-run step at any door and a door without sheetAdmit. Release (c) made the inventory entry the row heal (invHealSheet)
+   behind its own gate (inventoryCheck), and made THE LOAD a door too: state.js inventoryAdmitWorld runs this campaign's own
+   sheets through here in SAME mode, in place, all or nothing (§5.3) — the context's `healed` flag tells the load a pack moved. */
 var SHEET_ADMISSION=[
   {name:"version",phase:"gate",applies:function(){return true;},
    run:function(sheet){return sheetVersionIssue(sheet);},
@@ -40,6 +41,9 @@ var SHEET_ADMISSION=[
    say:function(why,ctx){if(ctx.toast===false){if(typeof console!=="undefined")console.warn("[identity] Character identity refused: "+why);}else identityAdmissionWarn(why);}},
   {name:"stash",phase:"gate",applies:function(ctx){return ctx.mode!=="same";},/* memory.js loads before this file in every host — a missing helper fails loudly, never skips the mark (§5.3) */
    run:function(sheet,ctx){try{ctx.stashMark=stashCopyMark(ctx.source);return "";}catch(e){ctx.stashMark=null;return (sheet.name||"the copy")+"'s stash history is unreadable ("+((e&&e.message)||e)+") — refused";}},/* read from the SOURCE: the mark says which moves the copy already holds (#481 D9); a corrupted mark REFUSES the copy (review (b) 13: stashJournalRefuse throws, and a throw mid-import would abort the whole list) */
+   say:function(why,ctx){if(typeof console!=="undefined")console.error("[admission] "+ctx.door+" refused — "+why);if(ctx.toast!==false&&typeof showToast==="function")showToast("⚠ "+why,9000);}},
+  {name:"inventoryCheck",phase:"gate",applies:function(){return true;},
+   run:function(sheet){return invSheetIssue(sheet);},/* (c): the pack can be prepared, or the whole sheet refuses — a count over the bound, two rows under one key with different fields, malformed evidence (§5.2) — before any heal touches the copy */
    say:function(why,ctx){if(typeof console!=="undefined")console.error("[admission] "+ctx.door+" refused — "+why);if(ctx.toast!==false&&typeof showToast==="function")showToast("⚠ "+why,9000);}},
   {name:"stores",phase:"prepare",applies:function(){return true;},
    run:function(sheet){keyedStores(sheet,"sheet");}},/* #545: name-keyed dictionaries never walk the prototype */
@@ -56,7 +60,7 @@ var SHEET_ADMISSION=[
   {name:"scene",phase:"prepare",applies:function(ctx){return ctx.mode!=="same";},
    run:function(sheet){sceneFieldsCross(sheet);}},/* #481 C5: the last campaign's scene stays there — NEVER on this campaign's own data (review 41 R2) */
   {name:"inventory",phase:"prepare",applies:function(){return true;},
-   run:function(sheet){if(!Array.isArray(sheet.inventory))sheet.inventory=[];if(sheet.worn!==undefined&&!Array.isArray(sheet.worn))sheet.worn=[];}},/* (b): the legacy form stays strings; (c) makes this invHealSheet */
+   run:function(sheet,ctx){var h=invHealSheet(sheet);if(h.ok){if(h.changed)ctx.healed=true;}else if(typeof console!=="undefined")console.error("[admission] "+ctx.door+" — the pack was not healed after its gate passed: "+h.reason);}},/* (c): rows installed, worn folded into equipped, junk filed as evidence, sheetVer stamped (invHealSheet); the gate above already proved it can succeed */
   {name:"itemDefs",phase:"publish",applies:function(ctx){return ctx.mode!=="same"&&ctx.stage!=="preview";},/* a preview (the import modal, quick start's pick) looks and heals but never publishes — its later door does */
    run:function(sheet){adoptSheetItemDefs(sheet);}},/* #81b: the travelling item canon joins the destination's bible — a WRITE, so after every gate */
   {name:"voices",phase:"publish",applies:function(ctx){return !!ctx.prev;},

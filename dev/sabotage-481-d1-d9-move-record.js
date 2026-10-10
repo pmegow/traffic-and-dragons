@@ -58,7 +58,7 @@ prove("game.js", "#481 D1", [
     find: "  ledgerLog(muts,\"undo\");", replace: "",
     mustFail: "never mind after a stow" },
   { label: "a take is undone on the pack alone (the ropes never reach the chest)",
-    find: "    fileLocationItem(e.name+qs,\"placed\",worldState.turn,null,null,{key:e.key});muts.push(\"Left: \"", replace: "    muts.push(\"Left: \"",
+    find: "    fileLocationItem(e.name,\"placed\",worldState.turn,null,null,{key:e.key,units:e.units});muts.push(\"Left: \"", replace: "    muts.push(\"Left: \"",/* #599 (c): the count rides as an argument */
     mustFail: "all three ropes go back in ONE undo" },
   { label: "a sibling place cannot be reached from where you stand",
     find: "  if(e.key!==curKey&&(!node.parent||R2(node.parent)!==curWorld))return", replace: "  if(e.key!==curKey)return",

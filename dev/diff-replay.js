@@ -54,6 +54,15 @@ engine.makeTestWorld({ campId:"replay", campName:"Replay", turn:0,
     trait:"", flaw:"", motivation:"", languages:[{name:"Common",broken:false}], skills:initSkills(),
     conditions:[], relationships:[], saveModifiers:[], portrait:null, storyBeats:[], partyMember:true },
   world:{ location:"The Crossroads of Ashenveil", region:"The Blighted Reach", time:"dusk", weather:"ash-fall", threat:"low", sublocation:null } });
+// #599 (c) — the ONE deliberate preparation of the frozen fixture (DOC/DESIGN_599_inventory_rows.md §8.2 gate 9): Vex's pack
+// becomes rows and the world is stamped SAVE_VER, NARROWLY, before the first response — the row heal alone (invHealSheet),
+// never the load migration (its unrelated repairs are not fixture preparation). Every writer prepares a legacy list on its
+// first write anyway; doing it here makes the end state independent of WHICH turn first touched the pack. The four committed
+// end states were regenerated once under gate 9's exact whitelist (dev/check-replay-rebaseline.js: ws.character.inventory as
+// rows printing back to the old strings, ws.ver 10→11, ws.character.sheetVer 11, nothing else).
+var _vexHeal = invHealSheet(worldState.character);
+if (!_vexHeal.ok) { console.error("fixture: Vex's pack could not be prepared — " + _vexHeal.reason); process.exit(1); }
+worldState.ver = SAVE_VER;
 
 var raws = corpus.raw || [];
 console.log("Smoke-replaying " + raws.length + " raw GM responses through the table parser…");

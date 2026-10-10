@@ -19,6 +19,11 @@ if(!save||!out){console.error("usage: node dev/capture-prompt.js <save.tnd> <out
 var raw=JSON.parse(fs.readFileSync(save,"utf8"));
 if(!raw.worldState||!raw.worldState.character){console.error("not a save (no worldState.character): "+save);process.exit(2);}
 worldState=inflateWorldStateSnapshot(raw.worldState);memory=raw.memory||memory;sessionLog=raw.sessionLog||[];
+/* #599 (c), gate 8: the capture prepares the packs EXPLICITLY on this detached in-memory world before any prompt line is built —
+   the same load door the game runs (state.js inventoryAdmitWorld: the registry in same mode, all or nothing), never the whole
+   load migration and never a hook inside the relationship adapter. A refusal is a failed capture, never a silent legacy prompt. */
+var _adm=inventoryAdmitWorld(worldState,"capture");
+if(!_adm.ok){console.error("capture-prompt: the packs could not be prepared — "+_adm.reason);process.exit(1);}
 var sys=buildSysPrompt();
 if(!sys||typeof sys.stable!=="string"||typeof sys.volatile!=="string"){console.error("buildSysPrompt did not return {stable, volatile} strings");process.exit(1);}
 fs.mkdirSync(out,{recursive:true});

@@ -26,8 +26,8 @@ prove("inventory.js", [
     find: "function itemPairKey(name){return itemBaseKey(", replace: "function itemPairKey(name){return itemKey(",
     mustFail: TABLE },
   { label: "a rename takes the first base match again instead of refusing two",
-    find: "  var nk=_invNorm(newName),i,hit=resolveInventoryName(inv,oldName),label=who?who+\": \":\"\";",
-    replace: "  var nk=_invNorm(newName),i,hit=-1,label=who?who+\": \":\"\";for(i=0;i<(inv||[]).length;i++){if(_invNorm(inv[i])===_invNorm(oldName)){hit=i;break;}}if(hit<0){for(i=0;i<(inv||[]).length;i++){if(itemBaseKey(_invBase(inv[i]))===itemBaseKey(_invBase(oldName))){hit=i;break;}}}_invLastMiss=null;",
+    find: "  var hit=_invLegacyFind(inv,oldName),miss=invFind.last;",
+    replace: "  var hit=invFind(inv,oldName),miss=null;if(hit<0){var _b=itemBaseKey(oldName),_j;for(_j=0;_j<inv.length;_j++){if(_invIsRow(inv[_j])&&itemBaseKey(inv[_j].name)===_b){hit=_j;break;}}}",/* #599 (c): the delegate resolves over rows — the mutation takes the first base match again */
     mustFail: RENAME },
 ]);
 prove("memory.js", [

@@ -173,9 +173,11 @@ var RESPAWNS_PER_CAMPAIGN=3;
 var CHECKPOINT_VER=1;
 /* #599 (a) — the shapes this build reads and writes: the world save (`worldState.ver`, written by startGame and the .char
    envelope) and a portable character sheet (`sheetVer`, stamped by portableSheet). A door that meets a FINITE number above
-   either refuses before any write (helpers.js worldVersionIssue / sheetVersionIssue); release (c) of the inventory-rows plan
-   raises both to 11 (DOC/DESIGN_599_inventory_rows.md §5.4, §12). */
-var SAVE_VER=10,SHEET_VER=10;
+   either refuses before any write (helpers.js worldVersionIssue / sheetVersionIssue). Release (c) of the inventory-rows plan
+   raised both to 11 (v1.1202): a v11 sheet carries ROWS {name, qty, equipped} and no worn list; the load heals a v10 save
+   into v11 (state.js inventoryAdmitWorld) and a v10 build refuses a v11 save before any write (DOC/DESIGN_599_inventory_rows.md
+   §5.4, §12). */
+var SAVE_VER=11,SHEET_VER=11;
 // #301 (owner design 2026-09-02): DEATH AS A CHARACTER. On a true death Death arrives, states the terms in
 // voice, and walks the player back to the last camp or onward. ONE question per death — the first
 // player turn in the scene IS the question, whatever it says; Death answers from what the world already
@@ -416,7 +418,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.1201";
+var APP_VERSION="v1.1202";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

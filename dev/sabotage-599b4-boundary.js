@@ -63,7 +63,7 @@ prove("inventory.js", [
 ]);
 prove("ui-panels.js", [
   { label: "the panel reads the count with its own pattern again",
-    find: "  var _qp=invStoredParse(s),_qty=_qp.qty>1?String(_qp.qty):null;s=_qp.name;", replace: "  var _qty=null,_qm=s.match(/^(.*?)\\s+x(\\d+)\\s*$/);if(_qm){s=_qm[1];_qty=_qm[2];}",
+    find: "  var _qty,_qp;if(typeof qty===\"number\"){_qty=qty>1?String(qty):null;}else{_qp=invStoredParse(s);_qty=_qp.qty>1?String(_qp.qty):null;s=_qp.name;}", replace: "  var _qty=null,_qm;if(typeof qty===\"number\"){_qty=qty>1?String(qty):null;}else{_qm=s.match(/^(.*?)\\s+x(\\d+)\\s*$/);if(_qm){s=_qm[1];_qty=_qm[2];}}",/* #599 (c): the row's count comes as an argument; a bare string still reads the ONE grammar */
     mustFail: CONTRACT },
 ]);
 prove("dev/run-tests.js", [

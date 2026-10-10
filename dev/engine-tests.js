@@ -300,9 +300,9 @@ function runEngineTests(R){
     if(h.indexOf("<em>bold</em>")<0)return "emphasis transform lost";
     return h.indexOf("</p><p>")>=0?true:"paragraph break lost";
   });
-  t("inventory stacking: case+plural stack to x2",function(){var inv=["Travel ration"];addInventoryItem(inv,"travel rations");return eq(inv.length,1)===true?eq(inv[0],"Travel ration x2"):"did not stack: "+JSON.stringify(inv);});
+  t("inventory stacking: case+plural stack to x2",function(){var inv=["Travel ration"];addInventoryItem(inv,"travel rations");return eq(inv.length,1)===true?eq(invTextList(inv)[0],"Travel ration x2"):"did not stack: "+JSON.stringify(inv);});
   t("inventory stacking: parenthetical qualifiers stay separate",function(){var inv=["Sword (rusty)"];addInventoryItem(inv,"Sword (enchanted)");return eq(inv.length,2);});
-  t("inventory removal: decrements and drops suffix at 1",function(){var inv=["Arrow x2"];removeInventoryItem(inv,"Arrow");if(inv[0]!=="Arrow")return "want bare Arrow got "+inv[0];removeInventoryItem(inv,"arrow");return eq(inv.length,0);});
+  t("inventory removal: decrements and drops suffix at 1",function(){var inv=["Arrow x2"];removeInventoryItem(inv,"Arrow");if(invTextList(inv)[0]!=="Arrow")return "want bare Arrow got "+invTextList(inv)[0];removeInventoryItem(inv,"arrow");return eq(inv.length,0);});
 
   section("capcapability_bible (TODO #10)");
   t("capBaseName strips the display parenthetical and lowercases",function(){return eq(capBaseName("Fire Bolt (d10 fire, 120ft)"),"fire bolt");});
@@ -914,7 +914,7 @@ function runEngineTests(R){
     var c={name:"Q",cls:"Rogue",backstory:big,appear:big,trait:big,inventory:[big,"Rope"],abilities:[{nm:"A",ds:big}],storyBeats:[{text:big,turn:1}]};
     var r=clampImportedCharacter(c);
     if(c.backstory.length>IMPORT_CAPS.backstory||c.appear.length>IMPORT_CAPS.field||c.trait.length>IMPORT_CAPS.field)return "prose uncapped";
-    if(c.inventory[0].length>IMPORT_CAPS.field||c.abilities[0].ds.length>IMPORT_CAPS.field||c.storyBeats[0].text.length>IMPORT_CAPS.field)return "list strings uncapped";
+    if(invTextList(c.inventory)[0].length>IMPORT_CAPS.field||c.abilities[0].ds.length>IMPORT_CAPS.field||c.storyBeats[0].text.length>IMPORT_CAPS.field)return "list strings uncapped";
     if(!r||!r.clamped||r.clamped<5)return "no receipt: "+JSON.stringify(r);
     var ok={name:"Q",cls:"Rogue",backstory:"fine",appear:"fine",inventory:["Rope"]};var r2=clampImportedCharacter(ok);
     return ok.backstory==="fine"&&r2.clamped===0?true:"sane sheet touched";
@@ -1107,7 +1107,7 @@ function runEngineTests(R){
     var tx=(worldState.canonTxns||[]).filter(function(x){return x.id==="txn_aldric_death_001";})[0];
     if(!tx||tx.status!=="committed")return "the envelope did not commit: "+JSON.stringify(tx)+" | "+warned.join(" / ").slice(0,260);
     if(worldState.character.coin!==4800)return "the purse did not land: gold "+worldState.character.coin;
-    if(worldState.character.inventory.indexOf("Iron Slaver's Key")<0)return "the key did not land: "+JSON.stringify(worldState.character.inventory);
+    if(invTextList(worldState.character.inventory).indexOf("Iron Slaver's Key")<0)return "the key did not land: "+JSON.stringify(worldState.character.inventory);
     if((worldState.questLog||[]).some(function(q){return q.title==="An Unwanted Reunion"&&q.status==="active";}))return "the quest is still active";
     var ald=wsNpcByName("Aldric Saltborn");if(!ald||!ald.dead)return "Aldric is not dead on the record: "+JSON.stringify(ald&&{status:ald.status,dead:ald.dead});
     if((worldState.identityConflicts||[]).length)return "a conflict was minted: "+JSON.stringify(worldState.identityConflicts).slice(0,200);
@@ -1759,28 +1759,28 @@ function runEngineTests(R){
     var v0=buildSysPrompt().volatile;if(/Wearing:/.test(v0))return "Wearing line present with nothing set";
     var warned="",_w=console.warn;console.warn=function(m){warned+=String(m)+" ";};var r;
     try{r=applyMuts("He buckles the scale. [WORN:Silas Morne|scale armor|on][WORN:Silas Morne|Shield|on][WORN:Nyla Lorrath|dagger|on][WORN:Nyla Lorrath|plate mail|on]");}finally{console.warn=_w;}
-    if(!c.worn||c.worn.join("|")!=="scale armor|shield")return "player worn: "+JSON.stringify(c.worn);/* the STORED inventory string is what lands, not the tag's casing */
-    if(!cs.worn||cs.worn.join("|")!=="dagger")return "companion worn: "+JSON.stringify(cs.worn);
+    if(invEquippedNames(c).join("|")!=="scale armor|shield")return "player worn: "+JSON.stringify(invEquippedNames(c));/* #599 (c): the flag on the row, read in pack order *//* the STORED inventory string is what lands, not the tag's casing */
+    if(invEquippedNames(cs).join("|")!=="dagger")return "companion worn: "+JSON.stringify(invEquippedNames(cs));
     if(!/plate mail/.test(warned)||!/not in Nyla Lorrath/.test(warned))return "uncarried item was not refused loudly: "+warned;
     if(!r.muts.some(function(x){return /Silas Morne wears scale armor/.test(x);})||!r.muts.some(function(x){return /Nyla Lorrath wears dagger/.test(x);}))return "no mutation line: "+JSON.stringify(r.muts);
-    applyMuts("[WORN:Silas Morne|scale armor|on]");if(c.worn.length!==2)return "re-donning duplicated the entry";
+    var rd=applyMuts("[WORN:Silas Morne|scale armor|on]");if(invEquippedNames(c).length!==2||rd.muts.some(function(x){return /wears scale armor/.test(x);}))return "re-donning duplicated the entry or said wears again: "+JSON.stringify(rd.muts);
     r=applyMuts("He strips. [WORN:Silas Morne|scale armor|off][OUTFIT:Silas Morne|nothing — armor and road clothes out for laundry][OUTFIT:Nyla Lorrath|a borrowed swan-down robe]");
-    if(c.worn.join("|")!=="shield")return "off did not remove: "+JSON.stringify(c.worn);
+    if(invEquippedNames(c).join("|")!=="shield")return "off did not remove: "+JSON.stringify(invEquippedNames(c));
     if(!c.outfit||c.outfit.turn!==113||!/laundry/.test(c.outfit.text))return "player outfit: "+JSON.stringify(c.outfit);
     if(!cs.outfit||!/robe/.test(cs.outfit.text))return "companion outfit: "+JSON.stringify(cs.outfit);
     if(!r.muts.some(function(x){return /Silas Morne removes scale armor/.test(x);})||!r.muts.some(function(x){return /Nyla Lorrath outfit:/.test(x);}))return "no off/outfit mutation line: "+JSON.stringify(r.muts);
     var v1=buildSysPrompt().volatile;
     if(v1.indexOf("Wearing: shield | Outfit (t113): nothing — armor and road clothes out for laundry")<0)return "player Wearing line missing: "+v1.slice(v1.indexOf("Inventory:")-20,v1.indexOf("Inventory:")+400);
     if(v1.indexOf("Wearing: dagger | Outfit (t113): a borrowed swan-down robe")<0)return "companion Wearing line missing";
-    applyMuts("[ITEM_LOST:shield][COMPANION_ITEM_LOST:Nyla Lorrath|dagger]");if(c.worn.length!==0||cs.worn.length!==0)return "ITEM_LOST did not prune worn: "+JSON.stringify([c.worn,cs.worn]);
+    applyMuts("[ITEM_LOST:shield][COMPANION_ITEM_LOST:Nyla Lorrath|dagger]");if(invEquippedNames(c).length!==0||invEquippedNames(cs).length!==0)return "ITEM_LOST did not prune worn: "+JSON.stringify([invEquippedNames(c),invEquippedNames(cs)]);
     var v2=buildSysPrompt().volatile;if(v2.indexOf("Wearing: no gear | Outfit (t113)")<0)return "empty worn with an outfit should read 'Wearing: no gear' (never 'nothing' — that reads as naked): "+v2.slice(v2.indexOf("Wearing"),v2.indexOf("Wearing")+80);
-    applyMuts("[ITEM_GAINED:iron ring][WORN:Silas Morne|iron ring|on]");if(c.worn.join("|")!=="iron ring")return "gain-then-wear in one response failed: "+JSON.stringify(c.worn);applyMuts("[ITEM_RENAMED:iron ring|ring of the drowned]");if(c.worn.join("|")!=="ring of the drowned")return "rename did not follow into worn: "+JSON.stringify(c.worn);
+    applyMuts("[ITEM_GAINED:iron ring][WORN:Silas Morne|iron ring|on]");if(invEquippedNames(c).join("|")!=="iron ring")return "gain-then-wear in one response failed: "+JSON.stringify(invEquippedNames(c));applyMuts("[ITEM_RENAMED:iron ring|ring of the drowned]");if(invEquippedNames(c).join("|")!=="ring of the drowned")return "rename did not follow into worn: "+JSON.stringify(invEquippedNames(c));
     delete c.worn;delete c.outfit;delete cs.worn;delete cs.outfit;c.inventory=["mace","scale armor","shield","holy symbol"];cs.inventory=["dagger","stolen breeches"];
     if(buildSysPrompt().volatile!==v0)return "clearing attire did not restore the byte-identical prompt";
     /* the extractor belt: a summarize that saw a change files the same fields; the player is NOT rejected here (npcUpdates does reject the player by design) */
     worldState.turn=117;applySummaryExtract({chapterSummary:"A bath.",attire:[{name:"Silas Morne",doffed:["scale armor"],outfit:"nothing; armor out for laundry"},{name:"Nyla Lorrath",donned:["dagger"],outfit:"a swan-down robe"},{name:"Zed",donned:["hat"]}]});
-    if(c.worn.length!==0||!c.outfit||c.outfit.turn!==117||!/laundry/.test(c.outfit.text))return "extractor: player attire not filed: "+JSON.stringify([c.worn,c.outfit]);
-    if(!cs.worn||cs.worn.join("|")!=="dagger"||!cs.outfit||!/robe/.test(cs.outfit.text))return "extractor: companion attire not filed: "+JSON.stringify([cs.worn,cs.outfit]);
+    if(invEquippedNames(c).length!==0||!c.outfit||c.outfit.turn!==117||!/laundry/.test(c.outfit.text))return "extractor: player attire not filed: "+JSON.stringify([invEquippedNames(c),c.outfit]);
+    if(invEquippedNames(cs).join("|")!=="dagger"||!cs.outfit||!/robe/.test(cs.outfit.text))return "extractor: companion attire not filed: "+JSON.stringify([invEquippedNames(cs),cs.outfit]);
     if(buildExtractPrompt("x",[],"","",null).indexOf('"attire":[{"name":"","donned":[')<0)return "extraction schema lacks attire";
     if(cleanTxt("x [WORN:Silas|shield|on] y [OUTFIT:Silas|a robe] z")!=="x  y  z"||TAG_STRIP_NAMES.indexOf("WORN")<0||TAG_STRIP_NAMES.indexOf("OUTFIT")<0)return "not stripped";
     var d=buildStateTagsDoc();if(d.indexOf("[WORN:Name|item|on]")<0||d.indexOf("[OUTFIT:Name|")<0)return "doc lacks the attire tags";
@@ -2613,7 +2613,7 @@ function runEngineTests(R){
     if(!worldState.mpFallen||worldState.mpFallen.length!==1||worldState.mpFallen[0].name!=="Bram")return "not in mpFallen";
     worldState.turn=25;checkpointCapture("rest");mpRejoinFallen();
     b=wsNpcByName("Bram");
-    return !npcIsDead(b)&&b.charSheet.hp===20&&b.charSheet.inventory[0]==="axe"&&(!worldState.mpFallen||!worldState.mpFallen.length)?true:"rejoin: "+JSON.stringify({dead:npcIsDead(b),hp:b.charSheet.hp,fallen:worldState.mpFallen});
+    return !npcIsDead(b)&&b.charSheet.hp===20&&invTextList(b.charSheet.inventory)[0]==="axe"&&(!worldState.mpFallen||!worldState.mpFallen.length)?true:"rejoin: "+JSON.stringify({dead:npcIsDead(b),hp:b.charSheet.hp,fallen:worldState.mpFallen});
   });
   section("#309 — note delivery budget");
   function withBudgetNotes(extra,fn){
@@ -3619,7 +3619,7 @@ function runEngineTests(R){
   t("GOLD parses '-5 gp' variant and floors at 0",function(){makeWorld();applyMuts("[GOLD:-5 gp]");if(worldState.character.coin!==2000)return "got "+worldState.character.coin;applyMuts("[GOLD:-999]");return eq(worldState.character.coin,0,"floor");});
   t("signed [XP:+25] parses (v1.144 regression)",function(){makeWorld();worldState.character.level=3;worldState.character.xp=CLASS_XP_LEVELS[2];applyMuts("[XP:+25]");return eq(worldState.character.xp,CLASS_XP_LEVELS[2]+25);});
   t("XP level-up applies HP gain",function(){makeWorld();worldState.character.xp=CLASS_XP_LEVELS[1]-5;applyMuts("[XP:10]");if(worldState.character.level!==1||worldState.character.levelReady!==2)return "#349: should be READY for 2, not landed: "+worldState.character.level;landOwedLevels();return eq(worldState.character.level,2)===true?(worldState.character.maxHp>14?true:"maxHp not raised"):"level "+worldState.character.level;});
-  t("ITEM_GAINED duplicate stacks to x2",function(){makeWorld();applyMuts("[ITEM_GAINED:Longsword]");var f=worldState.character.inventory.filter(function(x){return x.indexOf("Longsword")===0;});return eq(f.length,1)===true?eq(f[0],"Longsword x2"):"dup entries: "+JSON.stringify(f);});
+  t("ITEM_GAINED duplicate stacks to x2",function(){makeWorld();applyMuts("[ITEM_GAINED:Longsword]");var f=invTextList(worldState.character.inventory).filter(function(x){return x.indexOf("Longsword")===0;});return eq(f.length,1)===true?eq(f[0],"Longsword x2"):"dup entries: "+JSON.stringify(f);});
   t("NPC registers; pronoun in relation slot rerouted",function(){makeWorld();applyMuts("[NPC:Bram|wary|he/him]");var n=worldState.npcs[0];return n&&n.name==="Bram"&&n.pronouns==="he/him"&&n.rel!=="he/him"?true:"npc: "+JSON.stringify(n);});
   t("NPC_ALIAS keeps one memory entry across variants",function(){makeWorld();applyMuts("[NPC:Veyra|calm|ally][NPC_ALIAS:Veyra|The Grey Blade]");applyMuts("[NPC_NOTE:The Grey Blade|paid her debt]");var k=Object.keys(memory.npcs);return eq(k.length,1)===true?(memory.npcs["Veyra"].events.length===1?true:"note misfiled"):"forked: "+k.join(",");});
   t("offered quest: QUEST_STEP is ignored (v1.144 gate)",function(){makeWorld();applyMuts("[QUEST:The Toll|offered|pay or fight][QUEST_STEP:The Toll|Refuse to pay|false]");return eq(worldState.questLog[0].objectives.length,0);});
@@ -3856,17 +3856,17 @@ function runEngineTests(R){
     memory=blankMemory();
     worldState={character:{name:"P",cls:"Rogue",stats:{},maxHp:8},world:{location:"X"},
       npcs:[
-        {name:"BothSet",partyMember:true,portrait:"NPC_COPY",charSheet:{name:"BothSet",portrait:"SHEET_COPY"}},
-        {name:"NpcOnly",partyMember:true,portrait:"OLD_IMG",charSheet:{name:"NpcOnly",portrait:null}},
-        {name:"Sheetless",portrait:"KEEP_ME"}
+        {name:"BothSet",partyMember:true,portrait:"data:image/png;base64,NPCCOPY",charSheet:{name:"BothSet",portrait:"data:image/png;base64,SHEETCOPY"}},
+        {name:"NpcOnly",partyMember:true,portrait:"data:image/png;base64,OLDIMG",charSheet:{name:"NpcOnly",portrait:null}},
+        {name:"Sheetless",portrait:"data:image/png;base64,KEEPME"}/* #599 (c): the load is a door — the registry's portrait gate drops a non-image portrait, so the fixtures are images */
       ]};
     migrateWorldState();
     var n=worldState.npcs;
     if(n[0].portrait!==null)return "both-set: duplicate kept";
-    if(n[0].charSheet.portrait!=="SHEET_COPY")return "both-set: sheet copy overwritten";
+    if(n[0].charSheet.portrait!=="data:image/png;base64,SHEETCOPY")return "both-set: sheet copy overwritten";
     if(n[1].portrait!==null)return "npc-only: not cleared";
-    if(n[1].charSheet.portrait!=="OLD_IMG")return "npc-only: not moved into sheet";
-    return n[2].portrait==="KEEP_ME"?true:"sheet-less NPC portrait touched";
+    if(n[1].charSheet.portrait!=="data:image/png;base64,OLDIMG")return "npc-only: not moved into sheet";
+    return n[2].portrait==="data:image/png;base64,KEEPME"?true:"sheet-less NPC portrait touched";
   });
   t("xp floor: level-ahead-of-xp sheets are floored to the level threshold (the Morwen full-bar lie)",function(){
     memory=blankMemory();
@@ -7301,22 +7301,22 @@ function runEngineTests(R){
     makeWorld();
     worldState.character.inventory=["Torch","Cleaver","Rope x3"];
     applyMuts("[ITEM_RENAMED:Cleaver|Voice of the Forge]");
-    if(worldState.character.inventory[1]!=="Voice of the Forge")return "rename missed: "+JSON.stringify(worldState.character.inventory);
+    if(invTextList(worldState.character.inventory)[1]!=="Voice of the Forge")return "rename missed: "+JSON.stringify(worldState.character.inventory);
     applyMuts("[ITEM_RENAMED:Rope|Silverline]");
-    return worldState.character.inventory[2]==="Silverline x3"?true:"stack count lost: "+worldState.character.inventory[2];
+    return invTextList(worldState.character.inventory)[2]==="Silverline x3"?true:"stack count lost: "+invTextList(worldState.character.inventory)[2];
   });
   t("#176: renaming an item not on the sheet refuses loudly with zero mutation",function(){
     makeWorld();
     worldState.character.inventory=["Torch"];
     var R=applyMutsTable("[ITEM_RENAMED:Ghost Blade|Void Blade]");
-    if(worldState.character.inventory.length!==1||worldState.character.inventory[0]!=="Torch")return "inventory mutated";
+    if(worldState.character.inventory.length!==1||invTextList(worldState.character.inventory)[0]!=="Torch")return "inventory mutated";
     return /RENAME refused/.test((R&&R.muts||[]).join(" "))?true:"refusal not surfaced in the muts line";
   });
   t("#176: renaming ONTO an existing different entry refuses — a relabel is never a merge",function(){
     makeWorld();
     worldState.character.inventory=["Cleaver","Voice of the Forge"];
     var R=applyMutsTable("[ITEM_RENAMED:Cleaver|Voice of the Forge]");
-    if(worldState.character.inventory.join("|")!=="Cleaver|Voice of the Forge")return "entries changed: "+JSON.stringify(worldState.character.inventory);
+    if(invTextList(worldState.character.inventory).join("|")!=="Cleaver|Voice of the Forge")return "entries changed: "+JSON.stringify(worldState.character.inventory);
     return /RENAME refused/.test((R&&R.muts||[]).join(" "))?true:"collision refusal not surfaced";
   });
   t("#176: [COMPANION_ITEM_RENAMED:] renames the companion's item, never the player's",function(){
@@ -7324,8 +7324,8 @@ function runEngineTests(R){
     worldState.character.inventory=["Cleaver"];
     worldState.npcs.push({name:"Morwen",status:"steady",rel:"ally",met:1,partyMember:true,charSheet:{name:"Morwen",cls:"Rogue",level:2,hp:10,maxHp:10,xp:0,stats:{},abilities:[],inventory:["Cleaver"],spells:[],conditions:[]}});
     applyMuts("[COMPANION_ITEM_RENAMED:Morwen|Cleaver|Whisperfang]");
-    if(worldState.npcs[worldState.npcs.length-1].charSheet.inventory[0]!=="Whisperfang")return "companion item not renamed";
-    return worldState.character.inventory[0]==="Cleaver"?true:"player item mutated by the companion tag";
+    if(invTextList(worldState.npcs[worldState.npcs.length-1].charSheet.inventory)[0]!=="Whisperfang")return "companion item not renamed";
+    return invTextList(worldState.character.inventory)[0]==="Cleaver"?true:"player item mutated by the companion tag";
   });
   t("#176: cleanTxt strips both rename forms",function(){
     var s=cleanTxt("A [ITEM_RENAMED:Cleaver|Whisperfang] B [COMPANION_ITEM_RENAMED:Morwen|Cleaver|Whisperfang] C");
@@ -7703,14 +7703,14 @@ function runEngineTests(R){
   });
   t("ITEM_GAINED 'Rope x3' stores quantity 3 of 'Rope' (P14)",function(){
     makeWorld();applyMuts("[ITEM_GAINED:Rope x3]");
-    var f=worldState.character.inventory.filter(function(x){return _invNorm(x)==="rope";});
+    var f=invTextList(worldState.character.inventory).filter(function(x){return _invNorm(x)==="rope";});
     if(f.length!==1)return "entries: "+JSON.stringify(worldState.character.inventory);
     return _invBase(f[0])==="Rope"&&_invCount(f[0])===3?true:"stored as: "+f[0];
   });
   t("ITEM_GAINED 'Rope x3' onto an existing Rope yields 4, not 2 (the xN-as-name bug)",function(){
     makeWorld();worldState.character.inventory.push("Rope");
     applyMuts("[ITEM_GAINED:Rope x3]");
-    var f=worldState.character.inventory.filter(function(x){return _invNorm(x)==="rope";});
+    var f=invTextList(worldState.character.inventory).filter(function(x){return _invNorm(x)==="rope";});
     return f.length===1&&f[0]==="Rope x4"?true:"got "+JSON.stringify(f);
   });
   // ── #107: say out loud what actually reached the sheet ────────────────────
@@ -7756,15 +7756,15 @@ function runEngineTests(R){
   t("ITEM_LOST 'Rope x2' removes two copies (P14)",function(){
     makeWorld();worldState.character.inventory.push("Rope x3");
     applyMuts("[ITEM_LOST:Rope x2]");
-    var f=worldState.character.inventory.filter(function(x){return _invNorm(x)==="rope";});
+    var f=invTextList(worldState.character.inventory).filter(function(x){return _invNorm(x)==="rope";});
     if(!(f.length===1&&f[0]==="Rope"))return "got "+JSON.stringify(f);
     applyMuts("[ITEM_LOST:Rope x2]"); // over-remove: takes the last one, no crash, no negatives
-    return worldState.character.inventory.filter(function(x){return _invNorm(x)==="rope";}).length===0?true:"over-remove left residue";
+    return invTextList(worldState.character.inventory).filter(function(x){return _invNorm(x)==="rope";}).length===0?true:"over-remove left residue";
   });
   t("names where x is not a separate quantity token are left intact ('Potion of Hex')",function(){
     makeWorld();applyMuts("[ITEM_GAINED:Potion of Hex][ITEM_GAINED:Elixir of Styx]");
-    if(worldState.character.inventory.indexOf("Potion of Hex")<0)return "Potion of Hex mangled: "+JSON.stringify(worldState.character.inventory);
-    return worldState.character.inventory.indexOf("Elixir of Styx")>=0?true:"Elixir of Styx mangled: "+JSON.stringify(worldState.character.inventory);
+    if(invTextList(worldState.character.inventory).indexOf("Potion of Hex")<0)return "Potion of Hex mangled: "+JSON.stringify(worldState.character.inventory);
+    return invTextList(worldState.character.inventory).indexOf("Elixir of Styx")>=0?true:"Elixir of Styx mangled: "+JSON.stringify(worldState.character.inventory);
   });
 
   // ── 13. futureEvents hygiene (#29) ────────────────────────────────────────────
@@ -12156,11 +12156,11 @@ function runEngineTests(R){
   section("#50d duplicate inventory");
   t("sanitizeModelInventory: the Frizwick shape — adjacent pairs stack on arrival",function(){
     var out=sanitizeModelInventory(["Lockpicks","Lockpicks","Rope","Rope","Chalk","Chalk"]);
-    return out.join("|")==="Lockpicks x2|Rope x2|Chalk x2"?true:"got "+out.join("|");
+    return invTextList(out).join("|")==="Lockpicks x2|Rope x2|Chalk x2"?true:"got "+invTextList(out).join("|");
   });
   t("sanitizeModelInventory: quantity-aware stacking + non-strings dropped",function(){
     var out=sanitizeModelInventory(["Rope x3",7,null,"Rope x3","Torch",{nm:"bad"},"torch"]);
-    return out.join("|")==="Rope x6|Torch x2"?true:"got "+out.join("|");
+    return invTextList(out).join("|")==="Rope x6|Torch x2"?true:"got "+invTextList(out).join("|");
   });
   t("sanitizeModelInventory: cap counts UNIQUE entries",function(){
     var big=[],i;for(i=0;i<15;i++)big.push("Item "+i);
@@ -12170,13 +12170,13 @@ function runEngineTests(R){
     makeWorld();
     var s=normalizeCompanionSheet({inventory:["Lockpicks","Lockpicks","Shortbow"]},"Frizwick");
     if(!s)return "sheet not built";
-    return s.inventory.join("|")==="Lockpicks x2|Shortbow"?true:"got "+s.inventory.join("|");
+    return invTextList(s.inventory).join("|")==="Lockpicks x2|Shortbow"?true:"got "+invTextList(s.inventory).join("|");
   });
   t("foldDuplicateInventory: folds byte-identical entries, keeps first-occurrence order",function(){
     var inv=["Dagger","Rope","Dagger"];
     var n=foldDuplicateInventory(inv);
     if(n!==1)return "folded "+n;
-    return inv.join("|")==="Dagger x2|Rope"?true:"got "+inv.join("|");
+    return invTextList(inv).join("|")==="Dagger x2|Rope"?true:"got "+invTextList(inv).join("|");
   });
   // v1.385 (#75b) REVERSED the old "case-different entries untouched" assertion. That
   // conservatism was incoherent: addInventoryItem/removeInventoryItem have always stacked by
@@ -12187,20 +12187,20 @@ function runEngineTests(R){
   // norm keying merges the same 2 groups raw keying would have, both genuine dash twins.
   t("foldDuplicateInventory: folds by _invNorm — same sameness rule as the write path",function(){
     var a=["Dagger","dagger"];
-    if(foldDuplicateInventory(a)!==1||a.join("|")!=="Dagger x2")return "case-different entries not folded: "+a.join("|");
+    if(foldDuplicateInventory(a)!==1||invTextList(a).join("|")!=="Dagger x2")return "case-different entries not folded: "+invTextList(a).join("|");
     var b=["Torch x2","Torch x2"];
     foldDuplicateInventory(b);
-    return b.join("|")==="Torch x4"?true:"got "+b.join("|");
+    return invTextList(b).join("|")==="Torch x4"?true:"got "+invTextList(b).join("|");
   });
   t("#75b: dash variants of the same item fold; look-alikes with real differences do NOT",function(){
     // the t881 field pair — em-dash and hyphen spellings of the same three rings
     var a=["Iron ring — unmarked x3","Iron ring - unmarked x3"];
-    if(foldDuplicateInventory(a)!==1||a.join("|")!=="Iron ring — unmarked x6")return "dash twins did not fold: "+a.join("|");
+    if(foldDuplicateInventory(a)!==1||invTextList(a).join("|")!=="Iron ring — unmarked x6")return "dash twins did not fold: "+invTextList(a).join("|");
     // the FAILURE condition: superficially similar, genuinely different objects must survive
     var b=["Dark tooth cap — script reads 'Third' x2","Dark tooth cap — script reads 'Seventh'"];
-    if(foldDuplicateInventory(b)!==0||b.length!==2)return "DESTRUCTIVE MERGE — two different items were folded: "+b.join("|");
+    if(foldDuplicateInventory(b)!==0||b.length!==2)return "DESTRUCTIVE MERGE — two different items were folded: "+invTextList(b).join("|");
     var c=["Iron ring x2","Iron ring — unmarked x3"];
-    return (foldDuplicateInventory(c)===0&&c.length===2)?true:"qualified and unqualified rings were folded: "+c.join("|");
+    return (foldDuplicateInventory(c)===0&&c.length===2)?true:"qualified and unqualified rings were folded: "+invTextList(c).join("|");
   });
   t("#75b: _invNorm agrees across dash spellings but not across genuine differences",function(){
     if(_invNorm("Iron ring — unmarked")!==_invNorm("Iron ring - unmarked"))return "em-dash and hyphen still disagree";
@@ -12213,11 +12213,11 @@ function runEngineTests(R){
     worldState.character.inventory=["Longsword","Travel ration","Travel ration"];
     worldState.npcs=[{name:"Frizwick",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Frizwick",hp:20,maxHp:20,level:1,xp:0,inventory:["Lockpicks","Lockpicks","Rope","Rope","Chalk","Chalk"]}}];
     if(!migrateWorldState())return "migration reported no change";
-    if(worldState.character.inventory.join("|")!=="Longsword|Travel ration x2")return "player not healed: "+worldState.character.inventory.join("|");
+    if(invTextList(worldState.character.inventory).join("|")!=="Longsword|Travel ration x2")return "player not healed: "+invTextList(worldState.character.inventory).join("|");
     var ci=worldState.npcs[0].charSheet.inventory;
-    if(ci.join("|")!=="Lockpicks x2|Rope x2|Chalk x2")return "companion not healed: "+ci.join("|");
+    if(invTextList(ci).join("|")!=="Lockpicks x2|Rope x2|Chalk x2")return "companion not healed: "+invTextList(ci).join("|");
     migrateWorldState();
-    return ci.join("|")==="Lockpicks x2|Rope x2|Chalk x2"?true:"second migrate mangled stacks: "+ci.join("|");
+    return invTextList(ci).join("|")==="Lockpicks x2|Rope x2|Chalk x2"?true:"second migrate mangled stacks: "+invTextList(ci).join("|");
   });
 
   // ── B9 H1 playback-layer instrumentation (v1.430) ─────────────────────────────────────────
@@ -14684,7 +14684,7 @@ function runEngineTests(R){
     if(threw)return "commitGmTurn threw before applyMuts could run: "+threw;
     var tl=worldState.transcript;
     if(!tl.length||tl[tl.length-1].r!=="gm")return "turn did not commit (no gm transcript entry)";
-    if(worldState.character.inventory.indexOf("Copper coin")<0)return "the gain never landed";
+    if(invTextList(worldState.character.inventory).indexOf("Copper coin")<0)return "the gain never landed";
     return __toasts.join(" | ").indexOf("Copper coin")>=0?true:"gain landed but was not toasted: "+__toasts.join(" | ");
   });
   // Fable review 2026-07-30 (entry 8 ①): the four #105b unit tests all call logTranscript
@@ -20142,7 +20142,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();worldState.character.inventory=["The Stone Giant's Lair satchel"];
     applyMuts("[ITEM_GAINED:The Stone Giant's Lair satchel]");
     var a=worldState.tagLog[worldState.tagLog.length-1],am=(a.m||[]).join("|");
-    if(worldState.character.inventory[0]!=="The Stone Giant's Lair satchel x2")return "duplicate grant was blocked";
+    if(invTextList(worldState.character.inventory)[0]!=="The Stone Giant's Lair satchel x2")return "duplicate grant was blocked";
     if(am.indexOf("DUPLICATE ITEM")<0)return "duplicate grant was silent: "+JSON.stringify(a);
     makeWorld();worldState.character.inventory=[];applyMuts("[ITEM_GAINED:Torch][ITEM_GAINED:Torch][ITEM_GAINED:Torch]");
     var b=worldState.tagLog[worldState.tagLog.length-1];if((b.m||[]).join("|").indexOf("DUPLICATE ITEM")>=0)return "documented repeated-tag quantity warned";
@@ -20537,7 +20537,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn=43;var split=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[XP:25]");applyMuts(split+split);
     if(worldState.character.xp!==175)return "duplicate envelopes in one response paid more than once: "+worldState.character.xp;
     worldState.turn=44;var twins=w2Txn("mok-outcome","npc-death","Mokmurian","mok","The Giants of Jorgenfist","[ITEM_GAINED:Obsidian shard][ITEM_GAINED:Obsidian shard]");applyMuts(twins);applyMuts(twins);
-    var shards=worldState.character.inventory.filter(function(x){return _invNorm(x)==="obsidian shard";});
+    var shards=invTextList(worldState.character.inventory).filter(function(x){return _invNorm(x)==="obsidian shard";});
     if(shards.length!==1||_invCount(shards[0])!==2)return "same-transaction multiplicity was lost or replayed: "+JSON.stringify(shards);
     return worldState.questLog[0].objectives[0].done?true:"delayed objective did not commit";
   });
@@ -20568,7 +20568,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var good=w2Txn("courier-one","quest-outcome","-","-","Courier Run","[QUEST_STEP:Courier Run|Deliver the sealed letter|true][XP:50][GOLD:+10][ITEM_GAINED:Courier's token]");
     applyMuts(bad+good);
     if(npcIsDead(wsNpcByName("Mokmurian"))||worldState.character.xp!==50||worldState.character.coin!==3500)return "transaction isolation failed: "+JSON.stringify({dead:npcIsDead(wsNpcByName("Mokmurian")),xp:worldState.character.xp,gold:worldState.character.coin});
-    if(worldState.character.inventory.indexOf("Courier's token")<0||!worldState.questLog[0].objectives[0].done)return "valid unrelated envelope was swallowed";
+    if(invTextList(worldState.character.inventory).indexOf("Courier's token")<0||!worldState.questLog[0].objectives[0].done)return "valid unrelated envelope was swallowed";
     return true;
   });
 
@@ -21000,7 +21000,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     try{ok=rewardClaimAccept(id);}finally{showToast=_t;console.warn=_w;applyMuts=_am;}
     return {ok:ok,said:said.join(" | "),warned:warned.join(" | ")};
   }
-  function _rc273Count(inv,name){var i,n=0;for(i=0;i<(inv||[]).length;i++)if(_invNorm(inv[i])===_invNorm(name))n+=_invCount(inv[i]);return n;}
+  function _rc273Count(inv,name){return inventoryCountOf(inv,name);}/* #599 (c): both shapes through the module */
 
   t("#273 a claimed item the player ALREADY carries is reported AWARDED, and the stack count bumps",function(){
     makeWorld();
@@ -24088,7 +24088,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var res=worldState.npcs.filter(function(n){return n.resident;});if(res.length!==5)return "resident flag missing: "+res.length;
     if(res.some(function(n){return n.partyMember;}))return "a resident is not a party member";
     if(partyCompanionCount()!==0)return "residents must not count against the party cap: "+partyCompanionCount();
-    var am=wsNpcByName("Ammut");if(!am||!am.charSheet||am.charSheet.level!==13||am.charSheet.inventory[0]!=="Crown of Runelords")return "the resident's sheet is not the library sheet";
+    var am=wsNpcByName("Ammut");if(!am||!am.charSheet||am.charSheet.level!==13||invTextList(am.charSheet.inventory)[0]!=="Crown of Runelords")return "the resident's sheet is not the library sheet";
     if(am.charSheet===lib[1])return "the sheet must be a COPY — the village never mutates the library object";
     if(!memory.npcs["Ammut"])return "memory.npcs entry missing for a resident";
     var hk=villageHouseKey("Ammut"),node=memory.map.nodes[hk];if(!node)return "no house node for Ammut at "+hk;
@@ -24467,16 +24467,16 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#6F5 trade only in a shop, with a counterparty: village [GOLD:±N] lands only in a shop sub-location with a present living non-party NPC; elsewhere it is refused by name and an item riding the same response is refused with it; adventure gold untouched",function(){
     villageEF();var r=applyMuts("Frizwick takes your coin. [GOLD:-2][ITEM_GAINED:Smoked fish]");
-    if(worldState.character.coin!==2300||worldState.character.inventory.indexOf("Smoked fish")<0)return "a purchase in a shop with the keeper present must land: "+worldState.character.coin+" "+JSON.stringify(worldState.character.inventory);
+    if(worldState.character.coin!==2300||invTextList(worldState.character.inventory).indexOf("Smoked fish")<0)return "a purchase in a shop with the keeper present must land: "+worldState.character.coin+" "+JSON.stringify(worldState.character.inventory);
     worldState.world.sublocation="the Village Hall";var q=quiet(function(){return applyMuts("You pay the warden. [GOLD:-5][ITEM_GAINED:Relic]");});
     if(worldState.character.coin!==2300)return "gold moved at the Hall: "+worldState.character.coin;
-    if(worldState.character.inventory.indexOf("Relic")>=0)return "the item riding a refused trade must be refused with it";
+    if(invTextList(worldState.character.inventory).indexOf("Relic")>=0)return "the item riding a refused trade must be refused with it";
     if(!(q.r.muts||[]).some(function(m){return /Trade refused/.test(m);}))return "the log must name the refusal: "+JSON.stringify(q.r.muts);
     if(!q.warns.some(function(w){return /GOLD/.test(w)&&/shop|counterparty/i.test(w);}))return "console must warn";
     worldState.world.sublocation="the tavern";memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");
     var q2=quiet(function(){return applyMuts("You leave coin on the bar. [GOLD:-1]");});if(worldState.character.coin!==2300)return "a shop with no counterparty present must refuse: "+worldState.character.coin;
     if(!(q2.r.muts||[]).some(function(m){return /counterparty|no one/i.test(m);}))return "the refusal must say no counterparty: "+JSON.stringify(q2.r.muts);
-    worldState.world.sublocation=null;applyMuts("[ITEM_GAINED:Wild apple]");if(worldState.character.inventory.indexOf("Wild apple")<0)return "an item with no gold is a gift, never refused";
+    worldState.world.sublocation=null;applyMuts("[ITEM_GAINED:Wild apple]");if(invTextList(worldState.character.inventory).indexOf("Wild apple")<0)return "an item with no gold is a gift, never refused";
     var doc=buildStateTagsDoc();if(!/GOLD/.test(doc.slice(doc.indexOf("THE VILLAGE")))||!/shop/i.test(doc.slice(doc.indexOf("THE VILLAGE"))))return "the village tag doc must tell the GM where trade happens";
     makeWorld();delete worldState.kind;worldState.character.coin=2500;applyMuts("[GOLD:-5]");if(worldState.character.coin!==2000)return "adventure gold must still move";
     return true;
@@ -24602,7 +24602,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#6F10 the trade gate reads the response's OWN arrival and speakers: the handler table runs GOLD before SUBLOCATION, so a response that walks into the shop, has the keeper speak and sells in one breath must land — the arrival is the last [SUBLOCATION:] not followed by a leave, the keeper any rostered non-party living [SAY:] speaker; a response that arrives with nobody speaking still refuses (no counterparty); the state-only call (the fourth button) is unchanged",function(){
     villageEF();worldState.world.sublocation="the Village Hall";memory.npcs["Frizwick"].lastSeenAt=villageHouseKey("Frizwick");
     var r=applyMuts("You cross to the tavern. [SUBLOCATION:the tavern] [SAY:Frizwick]\"Two coppers.\" [GOLD:-2][ITEM_GAINED:Dried nettle]");
-    if(worldState.character.coin!==2300||worldState.character.inventory.indexOf("Dried nettle")<0)return "a same-response arrival with the keeper speaking must land: gold "+worldState.character.coin+" "+JSON.stringify(r.muts);
+    if(worldState.character.coin!==2300||invTextList(worldState.character.inventory).indexOf("Dried nettle")<0)return "a same-response arrival with the keeper speaking must land: gold "+worldState.character.coin+" "+JSON.stringify(r.muts);
     worldState.world.sublocation="the Village Hall";var r2=applyMuts("You cross to the tavern; it is empty. [SUBLOCATION:the tavern] [GOLD:-2]");
     if(worldState.character.coin!==2300||!(r2.muts||[]).some(function(m){return /counterparty|no one/i.test(m);}))return "an arrival with no speaker is still no counterparty: "+JSON.stringify(r2.muts);
     worldState.world.sublocation="the tavern";var r3=applyMuts("You step out. [SUBLOCATION_LEAVE] [SAY:Frizwick]\"Wait!\" [GOLD:-2]");
@@ -24870,7 +24870,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var newer=[{character:{name:"Frizwick",gender:"F",cls:"Rogue",level:12,inventory:["Bone-handled knife","Cleaver"],itemDefs:{cleaver:{category:"weapon",effect:"N/A"}}},updatedAt:2000},{character:{name:"Daeris",gender:"F",cls:"Cleric",level:3},updatedAt:900},{character:{name:heroNm,cls:"Cleric",level:99},updatedAt:5000}];
     var r=villageRefreshFromLibrary(newer);
     if(!r||r.refreshed.length!==2||r.refreshed[0]!=="Frizwick"||r.refreshed[1]!==heroNm||r.hero!==heroNm)return "the NEWER copies refresh — the resident and the hero: "+JSON.stringify(r);
-    fz=wsNpcByName("Frizwick");if(fz.charSheet.level!==12||fz.charSheet.inventory.indexOf("Cleaver")<0||fz.libraryAt!==2000)return "the refreshed sheet is the library's, stamped: "+JSON.stringify([fz.charSheet.level,fz.libraryAt]);
+    fz=wsNpcByName("Frizwick");if(fz.charSheet.level!==12||invTextList(fz.charSheet.inventory).indexOf("Cleaver")<0||fz.libraryAt!==2000)return "the refreshed sheet is the library's, stamped: "+JSON.stringify([fz.charSheet.level,fz.libraryAt]);
     if(fz.charSheet===newer[0].character)return "a copy, never the library object";
     if(!worldState.itemBible||!worldState.itemBible.cleaver)return "the refreshed sheet's item canon is adopted";
     if(wsNpcByName("Daeris").charSheet.level!==11)return "an OLDER library copy never overwrites";
@@ -24938,7 +24938,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     r=villageRefreshFromLibrary([__libEntry(nm,1000)]);if(r.hero||worldState.character.level!==17)return "an equal copy must be kept";
     r=villageRefreshFromLibrary([__libEntry(nm,null)]);if(r.hero||worldState.character.level!==17)return "an undated copy must be kept";
     var e=__libEntry(nm,2000);r=villageRefreshFromLibrary([e]);if(r.hero!==nm||r.refreshed.indexOf(nm)<0)return "a newer copy must refresh the hero: "+JSON.stringify(r);
-    var c=worldState.character;if(c.name!==nm||c.level!==18||c.coin!==50000||c.inventory[0]!=="Cleaver"||!c.coreMemories||c.coreMemories[0].text!=="Slew Karzoug.")return "the hero was not replaced wholesale: "+JSON.stringify({level:c.level,gold:c.coin});
+    var c=worldState.character;if(c.name!==nm||c.level!==18||c.coin!==50000||invTextList(c.inventory)[0]!=="Cleaver"||!c.coreMemories||c.coreMemories[0].text!=="Slew Karzoug.")return "the hero was not replaced wholesale: "+JSON.stringify({level:c.level,gold:c.coin});
     if(c===e.character)return "the hero must be a copy of the library entry";
     if(!c.skills||!c.conditions||!c.storyBeats)return "the v10 arrays must be ensured on the refreshed hero";
     if(worldState.heroLibraryAt!==2000)return "heroLibraryAt not stamped: "+worldState.heroLibraryAt;
@@ -25108,7 +25108,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     mpFallPC("Bram","a troll");
     var live=wsNpcByName("Bram").charSheet;live.speechifyVoiceId="picked-while-down";live.voiceDirection="hoarse, tired";delete live.voiceRate;live.inventory=[];
     mpRejoinFallen();var s=wsNpcByName("Bram").charSheet;
-    if(s.hp!==20||s.inventory[0]!=="axe")return "the parked sheet must come back: "+JSON.stringify({hp:s.hp,inv:s.inventory});
+    if(s.hp!==20||invTextList(s.inventory)[0]!=="axe")return "the parked sheet must come back: "+JSON.stringify({hp:s.hp,inv:s.inventory});
     var want=JSON.stringify(["old-piper","picked-while-down","","hoarse, tired",0]);
     return __voicePins(s)===want?true:"voice fields after the rejoin: "+__voicePins(s)+" (want "+want+")";
   });
@@ -25988,8 +25988,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("A5 [COMPANION_ITEM_GAINED/LOST:] ride the refused village trade with the hero's own item tags",function(){
     auditVillage();worldState.world.sublocation=null;var cs=auditComp("Frizwick");cs.inventory.push({name:"Lute",qty:1});
     var R=applyMuts("[GOLD:-5][ITEM_GAINED:Rope][COMPANION_ITEM_GAINED:Frizwick|Lantern][COMPANION_ITEM_LOST:Frizwick|Lute]");
-    if(cs.inventory.some(function(i){return /lantern/i.test(i.name||i);}))return "the companion gained through the refused trade";
-    if(!cs.inventory.some(function(i){return /lute/i.test(i.name||i);}))return "the companion lost through the refused trade";
+    if(invTextList(cs.inventory).some(function(i){return /lantern/i.test(i.name||i);}))return "the companion gained through the refused trade";
+    if(!invTextList(cs.inventory).some(function(i){return /lute/i.test(i.name||i);}))return "the companion lost through the refused trade";
     if(!R.muts.some(function(m){return /Trade refused/.test(m)&&/companion/i.test(m);}))return "the refusal must name the companion tags: "+JSON.stringify(R.muts);
     return true;
   });
@@ -26502,7 +26502,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     shopFixture();worldState.character.coin=6000;var res=shopTradeApply({sell:{"rope":3,"bone-handled knife":1},buy:{"healing potion":1}});
     if(!res.ok)return "apply: "+res.reason;
     if(worldState.character.coin!==6000-4550)return "60 gp − (buy 50 gp − sale 4 gp 5 sp) = 14 gp 5 sp, exactly (#598; the knife at its 3 gp offer, #481 D4): "+worldState.character.coin;
-    var inv=worldState.character.inventory.join("|");if(/Rope|Bone-handled/.test(inv)||!/Healing potion x2/.test(inv))return "inventory after: "+inv;
+    var inv=invTextList(worldState.character.inventory).join("|");if(/Rope|Bone-handled/.test(inv)||!/Healing potion x2/.test(inv))return "inventory after: "+inv;
     var node=memory.map.nodes["The Village|the trading post"],wn=node.wares.map(function(w){return w.item+"@"+w.price;}).join(",");
     if(/Healing potion/.test(wn))return "the bought potion must leave the shelf: "+wn;
     if(!/Rope@1 gp/.test(wn)||!/Bone-handled knife@2 gp/.test(wn))return "sold items join the shelf at canon: "+wn;
@@ -26513,8 +26513,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var en=buildEngineNotes();if(/TRADE DONE/.test(en))return "consumed pings do not reach the orchestrator";
     worldState.tradePing={turn:worldState.turn,keeper:"Frizwick",shop:"the trading post",hero:"Silas",sold:[],bought:["Rope (1 gp)"],netCp:100};
     if(!/TRADE DONE/.test(buildEngineNotes()))return "an armed ping reaches the GM through the orchestrator";
-    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";var g=worldState.character.coin,inv2=worldState.character.inventory.slice();
-    var r2=shopTradeApply({sell:{},buy:{"rope":1}});if(r2.ok||worldState.character.coin!==g||worldState.character.inventory.join("|")!==inv2.join("|"))return "keeper gone: nothing moves, and it says why: "+JSON.stringify(r2);
+    memory.npcs["Frizwick"].lastSeenAt="The Village|the tavern";var g=worldState.character.coin,inv2=invTextList(worldState.character.inventory);
+    var r2=shopTradeApply({sell:{},buy:{"rope":1}});if(r2.ok||worldState.character.coin!==g||invTextList(worldState.character.inventory).join("|")!==inv2.join("|"))return "keeper gone: nothing moves, and it says why: "+JSON.stringify(r2);
     return true;
   });
   t("#407 ④ registry and identity: buildTradeNote is a village-firing one-shot on tradePing; the adventure never opens the counter (no waresPerShop) and its prompt is untouched; the modal is a thin shell that plans and applies through the engine pair and never touches applyMuts itself",function(){
@@ -26538,7 +26538,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return true;
   });
   t("#407 ⑥ the ledger rows are sorted for the eye: unpriced sell rows sink to the bottom, priced rows keep their inventory order, worn rows keep their place greyed; buy rows likewise",function(){
-    shopFixture();worldState.character.inventory=["Longsword","Rope x3","Bruthazmus's head","Bone-handled knife","Healing potion"];var rows=shopLedgerRows(shopTradeCatalog());
+    shopFixture();worldState.character.inventory=["Longsword","Rope x3","Bruthazmus's head","Bone-handled knife","Healing potion"];wornSet(worldState.character,"Longsword",true);/* #599 (c): the flag rides the row, so a replaced pack is re-worn */var rows=shopLedgerRows(shopTradeCatalog());
     var order=rows.left.map(function(r){return r.label;}).join(",");if(order!=="Rope,Bone-handled knife,Healing potion,Longsword,Bruthazmus's head")return "unpriced rows sink, priced keep order: "+order;
     var ls=rows.left.filter(function(r){return r.label==="Longsword";})[0];if(!ls.off||!ls.worn||!/Worn/.test(ls.offReason))return "the worn longsword is off with its reason";
     if(rows.right.map(function(r){return r.label;}).join(",")!=="Rope,Healing potion,Lantern oil")return "word-priced ware sinks: "+rows.right.map(function(r){return r.label;}).join(",");
@@ -26585,11 +26585,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(p.lines.map(function(l){return l.kind+":"+l.name+":"+l.qty;}).join(",")!=="stow:Rope:3,take:Old boots:2"||p.stowed!==3||p.taken!==2||!p.ok)return "plan: "+JSON.stringify(p);
     if(stashTradePlan(cat,{stow:{},take:{}}).ok)return "empty plan is not completable";
     var res=quiet(function(){return stashTradeApply({stow:{"rope":2},take:{"old boots":1}});}).r;if(!res.ok)return "apply: "+res.reason;
-    var inv=worldState.character.inventory.join("|");if(!/Rope$|Rope\|/.test(inv)||/Rope x/.test(inv)||!/Old boots/.test(inv))return "inventory after: "+inv;
+    var inv=invTextList(worldState.character.inventory).join("|");if(!/Rope$|Rope\|/.test(inv)||/Rope x/.test(inv)||!/Old boots/.test(inv))return "inventory after: "+inv;
     var st=villageStash(villageHouseKey("Silas")),m={};st.forEach(function(r){m[r.name]=r.qty;});if(m["Rope"]!==2||m["Old boots"]!==1)return "stash after: "+JSON.stringify(st);
     if(!/Silas stowed Rope x2 and took Old boots at Silas's house\./.test(res.line))return "the system line: "+res.line;
-    worldState.world.sublocation="Frizwick's house";var g=worldState.character.inventory.slice();var r2=stashTradeApply({stow:{"rope":1},take:{}});
-    if(r2.ok||worldState.character.inventory.join("|")!==g.join("|"))return "another house: nothing moves: "+JSON.stringify(r2);
+    worldState.world.sublocation="Frizwick's house";var g=invTextList(worldState.character.inventory).join("|");var r2=stashTradeApply({stow:{"rope":1},take:{}});
+    if(r2.ok||invTextList(worldState.character.inventory).join("|")!==g)return "another house: nothing moves: "+JSON.stringify(r2);
     return true;
   });
 
@@ -26699,7 +26699,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var text="He slides the bundles over. [GOLD:-2]",i;for(i=0;i<24;i++)text+="[ITEM_GAINED:Crossbow bolt]";
     var _am=addMsg,cap=[],r;addMsg=function(ty,h){if(ty==="system")cap.push(String(h));return _am(ty,h);};
     try{r=applyMuts(text);}finally{addMsg=_am;}
-    if(c.inventory.join("|")!=="Longsword|Crossbow bolt x24")return "the pack must stack the 24 gains: "+JSON.stringify(c.inventory);
+    if(invTextList(c.inventory).join("|")!=="Longsword|Crossbow bolt x24")return "the pack must stack the 24 gains: "+JSON.stringify(c.inventory);
     if(r.muts.filter(function(m){return m==="+Crossbow bolt";}).length!==24)return "R.muts must keep every label (the provenance ring reads it): "+r.muts.length;
     var line=cap[cap.length-1]||"";
     if(line.indexOf("+Crossbow bolt (x24)")<0)return "the line must say the gain once with its count: "+line.slice(0,160);
@@ -27081,7 +27081,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#544 hero claims never become merge proposals and ordinary new alias remains legal",function(){reveal544(false);worldState.character.aliases=["Bright One"];applyMuts("[NPC_ALIAS:player|the hooded man][NPC_ALIAS:Bright One|the hooded man][NPC_ALIAS:Aldern Foxglove|player]");if(worldState.pendingMergeHints||!memory.npcs["the hooded man"])return "hero entered proposal";applyMuts("[NPC_ALIAS:Aldern Foxglove|Masked Patron]");return resolveNpcName("Masked Patron")==="Aldern Foxglove"?true:"ordinary alias blocked";});
 
   t("#544 proposal delivery defers without spending and failed turns restore the exact queue",function(){reveal544(true);applyMuts("[NPC_ALIAS:Aldern Foxglove|the hooded man]");var old=NOTE_BUILDERS,cap=NOTE_DELIVERY_CAP,snap=snapshotNoteLatches(),queue=JSON.stringify(worldState.pendingMergeHints);try{NOTE_BUILDERS=[buildLocationFilingNudge,buildMergeConfirmNudge];worldState.locationFilingPing={place:"Mill",turn:9};NOTE_DELIVERY_CAP=1;buildEngineNotes();if(JSON.stringify(worldState.pendingMergeHints)!==queue||worldState.mergeConfirmArmed||worldState.mergeHintNudged)return "deferral spent confirmation";NOTE_DELIVERY_CAP=cap;NOTE_BUILDERS=[buildMergeConfirmNudge];var text=buildEngineNotes();if(text.indexOf("NPC_MERGE:Aldern Foxglove|the hooded man")<0||!worldState.mergeConfirmArmed)return "delivery failed";restoreNoteLatches(snap);noteLogDiscard();if(JSON.stringify(worldState.pendingMergeHints)!==queue||worldState.mergeConfirmArmed||worldState.mergeHintNudged)return "failed turn spent queue";return buildEngineNotes().indexOf("NPC_MERGE:Aldern Foxglove|the hooded man")>=0?true:"retry lost proposal";}finally{NOTE_BUILDERS=old;NOTE_DELIVERY_CAP=cap;noteLogDiscard();}});
-  t("#544 existing survivor sheet remains authoritative and unrelated no-scene merge keeps legacy behavior",function(){reveal544(false);var sheet=JSON.parse(JSON.stringify(worldState.character));sheet.name="Aldern Foxglove";sheet.hp=7;sheet.inventory=["Rope"];worldState.npcs[0].charSheet=sheet;applyMuts("[NPC_MERGE:Aldern Foxglove|the hooded man]");var n=wsNpcByName("Aldern Foxglove");return n&&n.charSheet===sheet&&n.charSheet.hp===7&&n.charSheet.inventory[0]==="Rope"&&!memory.npcs["the hooded man"]?true:"survivor replaced or unrelated legacy merge blocked";});
+  t("#544 existing survivor sheet remains authoritative and unrelated no-scene merge keeps legacy behavior",function(){reveal544(false);var sheet=JSON.parse(JSON.stringify(worldState.character));sheet.name="Aldern Foxglove";sheet.hp=7;sheet.inventory=["Rope"];worldState.npcs[0].charSheet=sheet;applyMuts("[NPC_MERGE:Aldern Foxglove|the hooded man]");var n=wsNpcByName("Aldern Foxglove");return n&&n.charSheet===sheet&&n.charSheet.hp===7&&invTextList(n.charSheet.inventory)[0]==="Rope"&&!memory.npcs["the hooded man"]?true:"survivor replaced or unrelated legacy merge blocked";});
   t("#544 shared alias adapter preserves raw hero epithet before NPC alias lookup",function(){reveal544(false);worldState.character.aliases=["Bone-boy"];memory.npcs["Aldern Foxglove"].aliases=["Bone-boy"];var before=JSON.stringify(memory);IDENTITY_DOMAINS.npc.registerAlias("Bone-boy","the hooded man",{muts:[],turn:10});if(worldState.pendingMergeHints||JSON.stringify(memory)!==before)return "raw hero remapped by shared adapter";applyMuts("[ALIAS:npc|Bone-boy|New Title]");return memoryNpcIsPlayer("New Title")&&(memory.npcs["Aldern Foxglove"].aliases||[]).indexOf("New Title")<0?true:"hero epithet did not stay hero-owned";});
   t("#544 accepted reveal preserves graph relationship and guestbook references with memory-only duplicate",function(){reveal544(true);worldState.npcs=worldState.npcs.filter(function(n){return n.name!=="the hooded man";});memory.npcGraph.edges=[{a:"the hooded man",b:"Tess",rel:"friend"}];worldState.character.relationships=[{entity:"the hooded man",bond:"Friend",dynamic:"wary"}];var node=memory.map.nodes.Ashfen;node.guestbook={"the hooded man":{turns:[3,5],resident:false}};applyMuts("[NPC_ALIAS:Aldern Foxglove|the hooded man]");buildMergeConfirmNudge();worldState.turn++;applyMuts("[NPC_MERGE:Aldern Foxglove|the hooded man]");return memory.npcGraph.edges[0].a==="Aldern Foxglove"&&worldState.character.relationships[0].entity==="Aldern Foxglove"&&node.guestbook["Aldern Foxglove"]&&!node.guestbook["the hooded man"]&&memory.archive.identityMerges[0].records.mem.knowledge[0]==="Helped us"?true:"accepted merge stranded references or archive";});
   t("#544 alias operands identify sheet-only names and case variants without creating another owner",function(){reveal544(false);worldState.npcs[0].charSheet={name:"Aldern Foxglove",aliases:["Masked Patron"]};worldState.npcs[1].charSheet.aliases=["Quiet Guest"];applyMuts("[NPC_ALIAS:Masked Patron|Quiet Guest]");var q=worldState.pendingMergeHints;if(!q||q.length!==1||q[0].canonical!=="Aldern Foxglove"||q[0].duplicate!=="the hooded man"||memory.npcs["Masked Patron"]||memory.npcs["Quiet Guest"])return "sheet-only operand not canonical";reveal544(false);applyMuts("[NPC_ALIAS:aldern foxglove|THE HOODED MAN]");q=worldState.pendingMergeHints;return q&&q[0].canonical==="Aldern Foxglove"&&q[0].duplicate==="the hooded man"?true:"case variant did not name exact records";});
@@ -27521,7 +27521,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(trapped)return "the parser was reached "+trapped+" time(s)";
     if(!st.ok||st.muts.join("|")!=="-Rope x2|Left: Rope ×2|+Lantern|Taken: Lantern")return "the chest lands with receipts: "+JSON.stringify(st);
     if(!un.ok||un.said!=="Rope x2 is back with you. Lantern is back where it was.")return "the undo lands and says what happened, oldest first: "+JSON.stringify(un);
-    if(c.inventory.join()!=="Rope x3,Old boots"||h.items[0].qty!==2)return "and everything is back: "+JSON.stringify(c.inventory)+" "+JSON.stringify(h.items);
+    if(invTextList(c.inventory).join()!=="Rope x3,Old boots"||h.items[0].qty!==2)return "and everything is back: "+JSON.stringify(c.inventory)+" "+JSON.stringify(h.items);
     shopFixture();worldState.character.coin=6000;_am=applyMuts;applyMuts=function(){trapped++;throw new Error("trap");};var sh;
     try{sh=quiet(function(){return shopTradeApply({sell:{"rope":3},buy:{"healing potion":1}});}).r;}finally{applyMuts=_am;}
     if(trapped||!sh.ok||worldState.character.coin!==6000-4850)return "the counter lands without the parser (50 gp − 1 gp 5 sp = 48 gp 5 sp, exactly): "+JSON.stringify(sh)+" coin "+worldState.character.coin;
@@ -27530,9 +27530,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#597 ② a stale plan is refused WHOLE: the pack shrank under the open counter — nothing moves and the reason names the row; the chest likewise; a short purse likewise",function(){
     shopFixture();worldState.character.coin=6000;var cat=shopTradeCatalog(),plan=shopTradePlan(cat,{sell:{"rope":3},buy:{"healing potion":1}});if(!plan.ok)return "fixture plan: "+plan.reason;
-    worldState.character.inventory=worldState.character.inventory.map(function(x){return x==="Rope x3"?"Rope":x;});var inv=worldState.character.inventory.slice();
+    removeInventoryItem(worldState.character.inventory,"Rope");removeInventoryItem(worldState.character.inventory,"Rope");/* #599 (c): the pack shrinks through the module (rows) */var inv=invTextList(worldState.character.inventory);
     var r=ledgerApply(plan,{key:cat.key});if(r.ok||!/only 1 of Rope x3 is in the pack/.test(r.reason))return "refused with the row named: "+JSON.stringify(r);
-    if(worldState.character.coin!==6000||worldState.character.inventory.join()!==inv.join())return "nothing moved: "+worldState.character.coin+" "+JSON.stringify(worldState.character.inventory);
+    if(worldState.character.coin!==6000||invTextList(worldState.character.inventory).join()!==inv.join())return "nothing moved: "+worldState.character.coin+" "+JSON.stringify(worldState.character.inventory);
     worldState.character.coin=1000;var r2=ledgerApply(shopTradePlan(cat,{buy:{"healing potion":1}}),{key:cat.key});if(r2.ok||!/short 40 gp/.test(r2.reason)||worldState.character.coin!==1000)return "a short purse refuses whole: "+JSON.stringify(r2);
     var h=quartetVillage(),c=worldState.character;c.inventory=[];h.items=[{name:"Lantern",placed:1,taken:false,qty:2,by:"Silas",min:0}];
     var sc=stashTradeCatalog(),sp=stashTradePlan(sc,{take:{"lantern":2}});h.items[0].qty=1;
@@ -27544,19 +27544,19 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!r.muts.some(function(m){return /^Want met: Bone-handled knife/.test(m);})||nodeWantedLive(node).length)return "the want retires at the counter (#481 D4): "+JSON.stringify(r.muts)+" "+JSON.stringify(node.wanted);
     var h=quartetVillage();c=worldState.character;c.inventory=["Rope","Cloak"];applyMuts("[WORN:Silas|Cloak|on]");
     quiet(function(){stashTradeApply({stow:{"rope":1}});});if(!worldState.stashUndoGrp)return "the stow arms the undo";
-    var r2=ledgerApply({netCp:0,lines:[{kind:"sell",name:"Cloak",qty:1}]},{key:null});if(!r2.ok||c.worn.length)return "a sold cloak is no longer worn (wornPrune): "+JSON.stringify(c.worn);
+    var r2=ledgerApply({netCp:0,lines:[{kind:"sell",name:"Cloak",qty:1}]},{key:null});if(!r2.ok||invEquippedNames(c).length)return "a sold cloak is no longer worn (the row left with its flag): "+JSON.stringify(invEquippedNames(c));
     return worldState.stashUndoGrp?"a trade ends the chance to undo what came before (#481 D1)":true;
   });
   t("#597 ④ the undo's sentence is the engine's: a row the story placed with no pack half leaves the record and nobody is told it is back with them; a companion's pack half is back with the companion (#519 remainder)",function(){
     var h=quartetVillage(),c=worldState.character;c.inventory=["Longsword"];
     applyMuts("[LOCATION_ITEM:Old boots|placed]");var u=quiet(function(){return undoLastItemMove();}).r;
     if(!u.ok||u.pack!==false||!/Old boots is off the record here/.test(u.said)||/back with/.test(u.said))return "a row-only undo says so: "+JSON.stringify(u);
-    if(c.inventory.join()!=="Longsword")return "and the pack is untouched: "+JSON.stringify(c.inventory);
+    if(invTextList(c.inventory).join()!=="Longsword")return "and the pack is untouched: "+JSON.stringify(c.inventory);
     worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:["Torch"]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
     worldState.stashMoves=[{name:"Torch",units:1,action:"placed",key:villageHouseKey("Silas"),by:"Bram",pack:{name:"Torch",units:1},turn:worldState.turn,grp:7}];worldState.stashUndoGrp=7;
     h.items.push({name:"Torch",placed:worldState.turn,taken:false,qty:1,by:"Bram",min:0});
     var u2=quiet(function(){return undoLastItemMove();}).r;
-    return (u2.ok&&u2.said==="Torch is back with Bram."&&findCompanionChar("Bram").inventory.join()==="Torch x2"&&c.inventory.join()==="Longsword")?true:"the companion's half returns to the companion: "+JSON.stringify(u2)+" "+JSON.stringify(findCompanionChar("Bram").inventory);
+    return (u2.ok&&u2.said==="Torch is back with Bram."&&invTextList(findCompanionChar("Bram").inventory).join()==="Torch x2"&&invTextList(c.inventory).join()==="Longsword")?true:"the companion's half returns to the companion: "+JSON.stringify(u2)+" "+JSON.stringify(findCompanionChar("Bram").inventory);
   });
   t("#597 ⑤ Car Mode speaks the engine's sentence for the undo and words nothing itself",function(){
     var cm=__fsForTests.readFileSync(__rootForTests+"/ui-carmode.js","utf8"),br=cm.slice(cm.indexOf("cmd.kind === \"undoItem\""),cm.indexOf("cmd.kind === \"roll\""));
@@ -27609,19 +27609,19 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#518 a gift bounded by the loss: [ITEM_LOST:Torch x3] with ONE torch held gives the companion one torch, said; a full stack gives the full count; an unpaired gift is untouched",function(){
     makeWorld();worldState.character.inventory=["Torch"];worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
-    var r=applyMuts("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3]"),inv=findCompanionChar("Bram").inventory;
+    var r=applyMuts("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3]"),inv=invTextList(findCompanionChar("Bram").inventory);
     if(inv.join()!=="Torch")return "one torch out of the pack means one torch into Bram's: "+JSON.stringify(inv)+" "+JSON.stringify(r.muts);
     if(!r.muts.some(function(m){return /cut to/.test(m)&&/Torch/.test(m);}))return "the short gift must be said: "+JSON.stringify(r.muts);
     worldState.character.inventory=["Torch x3"];findCompanionChar("Bram").inventory=[];applyMuts("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3]");
-    if(findCompanionChar("Bram").inventory.join()!=="Torch x3")return "a full stack moves whole: "+JSON.stringify(findCompanionChar("Bram").inventory);
+    if(invTextList(findCompanionChar("Bram").inventory).join()!=="Torch x3")return "a full stack moves whole: "+JSON.stringify(findCompanionChar("Bram").inventory);
     findCompanionChar("Bram").inventory=[];applyMuts("[COMPANION_ITEM_GAINED:Bram|Torch x2]");
-    if(findCompanionChar("Bram").inventory.join()!=="Torch x2")return "a gift with no loss half (found, bought) is not capped: "+JSON.stringify(findCompanionChar("Bram").inventory);
+    if(invTextList(findCompanionChar("Bram").inventory).join()!=="Torch x2")return "a gift with no loss half (found, bought) is not capped: "+JSON.stringify(findCompanionChar("Bram").inventory);
     return true;
   });
   t("#518 ② the take pair is bounded by what the companion held: [COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3] with Bram holding one gives the hero ONE (said); with Bram holding none nothing moves; a gift at home of a potion held in the pack AND the chest takes one from the pack only",function(){
     makeWorld();var c=worldState.character;c.inventory=[];worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:["Torch"]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
     var r=quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3]");}).r;
-    if(c.inventory.join()!=="Torch"||findCompanionChar("Bram").inventory.length)return "one torch out of Bram's pack means one torch into the hero's: "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
+    if(invTextList(c.inventory).join()!=="Torch"||findCompanionChar("Bram").inventory.length)return "one torch out of Bram's pack means one torch into the hero's: "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
     if(!r.muts.some(function(m){return /cut to one/.test(m)&&/Torch/.test(m);}))return "the short take is said: "+JSON.stringify(r.muts);
     c.inventory=[];r=quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3]");}).r;
     if(c.inventory.length)return "Bram holding none: nothing moves, the hero keeps nothing: "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
@@ -27629,7 +27629,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var h=quartetVillage();c=worldState.character;c.inventory=["Healing potion"];h.items=[{name:"Healing potion",placed:1,taken:false,qty:1,by:"Silas",min:0}];
     worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
     r=quiet(function(){return applyMuts("[ITEM_LOST:Healing potion][COMPANION_ITEM_GAINED:Bram|Healing potion]");}).r;
-    if(findCompanionChar("Bram").inventory.join()!=="Healing potion"||c.inventory.length)return "the gift moves one potion from the pack: "+JSON.stringify([c.inventory,findCompanionChar("Bram").inventory,r.muts]);
+    if(invTextList(findCompanionChar("Bram").inventory).join()!=="Healing potion"||c.inventory.length)return "the gift moves one potion from the pack: "+JSON.stringify([c.inventory,findCompanionChar("Bram").inventory,r.muts]);
     return (h.items[0].qty===1&&!h.items[0].taken)?true:"the chest's potion stays — the gift came from the pack, not the chest: "+JSON.stringify(h.items)+" "+JSON.stringify(r.muts);
   });
   t("#519 the spoken undo after a hero swap: the stowed spear stays in the chest and the undo refuses with the reason, instead of returning ok with the spear in nobody's pack",function(){
@@ -27654,7 +27654,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(worldState.world.sublocation!=="the trading post")return "and the party ends in the shop";
     worldState.character.coin=1000;worldState.character.inventory=[];worldState.world.sublocation=null;
     r=quiet(function(){return applyMuts("[GOLD:-2][ITEM_GAINED:Brass comb][SUBLOCATION:the trading post]");}).r;
-    if(worldState.character.coin!==800||worldState.character.inventory.indexOf("Brass comb")<0)return "the coin and its rider ahead of the arrival are judged in the shop: "+worldState.character.coin+" "+JSON.stringify(r.muts);
+    if(worldState.character.coin!==800||invTextList(worldState.character.inventory).indexOf("Brass comb")<0)return "the coin and its rider ahead of the arrival are judged in the shop: "+worldState.character.coin+" "+JSON.stringify(r.muts);
     worldState.world.sublocation=null;node.wares=[];
     r=quiet(function(){return applyMuts("[WARES:Tin cup|1 sp|Frizwick] You push through the door. [SUBLOCATION:the trading post]");}).r;
     if((node.wares||[]).some(function(w){return w.item==="Tin cup";})||!r.muts.some(function(m){return /Wares refused/.test(m);}))return "prose between the tags breaks the block — the ware is judged where it was written (outside): "+JSON.stringify(r.muts);
@@ -28345,7 +28345,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#481 A2 the resolver: a short name reaches the one provenance-rich entry; two candidates refuse loudly and remove nothing",function(){
     makeWorld();var c=worldState.character;c.inventory=["Signet ring (from Sheriff Hemlock)","Rope — mountain grade, 50ft"];
     var q=quiet(function(){return applyMuts("[ITEM_LOST:Signet ring]");});
-    if(c.inventory.indexOf("Signet ring (from Sheriff Hemlock)")>=0)return "the unique base name must resolve: "+JSON.stringify(c.inventory);
+    if(invTextList(c.inventory).indexOf("Signet ring (from Sheriff Hemlock)")>=0)return "the unique base name must resolve: "+JSON.stringify(c.inventory);
     c.inventory=["Rope — mountain grade, 50ft","Rope (spare coil)"];
     q=quiet(function(){return applyMuts("[ITEM_LOST:Rope]");});
     if(c.inventory.length!==2)return "an ambiguous name must remove nothing: "+JSON.stringify(c.inventory);
@@ -28354,7 +28354,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#481 A2 a stow whose placement is refused leaves the item in the pack (the t216 destroyed core)",function(){
     villageEF();var c=worldState.character;c.inventory=["Tomb-iron siphon core x2"];
     var q=quiet(function(){return applyMuts("[ITEM_LOST:Tomb-iron siphon core][LOCATION_ITEM:Tomb-iron siphon core|placed|the well house]");});
-    if(c.inventory[0]!=="Tomb-iron siphon core x2")return "the refused placement must put the unit back: "+JSON.stringify(c.inventory)+" "+JSON.stringify(q.r.muts);
+    if(invTextList(c.inventory)[0]!=="Tomb-iron siphon core x2")return "the refused placement must put the unit back: "+JSON.stringify(c.inventory)+" "+JSON.stringify(q.r.muts);
     return (q.r.muts||[]).some(function(m){return /^⚠/.test(m)&&/stays in the pack|put back/i.test(m);})?true:"the put-back must be said: "+JSON.stringify(q.r.muts);
   });
   t("#481 A2 a loss that matched nothing places nothing, gives nothing, and a refused village trade rider places nothing",function(){
@@ -28364,7 +28364,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.world.sublocation=null;/* outside every shop: the coin is refused, so its riders are misses */
     quiet(function(){return applyMuts("[GOLD:-1][ITEM_LOST:Lantern][LOCATION_ITEM:Lantern|placed|Silas's house]");});
     if(memory.map.nodes[villageHouseKey("Silas")].items.some(function(it){return it.name==="Lantern";}))return "a refused trade rider must not be placed (the satchel in pack AND chest)";
-    if(c.inventory.indexOf("Lantern")<0)return "the lantern stays in the pack";
+    if(invTextList(c.inventory).indexOf("Lantern")<0)return "the lantern stays in the pack";
     makeWorld();a2Comp([]);worldState.character.inventory=[];
     quiet(function(){return applyMuts("[ITEM_LOST:Bottle of wine][COMPANION_ITEM_GAINED:Bram|Bottle of wine]");});
     return (findCompanionChar("Bram").inventory||[]).length===0?true:"a gift the hero never held must not reach the companion";
@@ -28372,13 +28372,13 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#481 A2 a gift to someone who is not a party member stays in the pack (the vanishing bottle)",function(){
     makeWorld();worldState.character.inventory=["Bottle of wine"];
     var q=quiet(function(){return applyMuts("[ITEM_LOST:Bottle of wine][COMPANION_ITEM_GAINED:Nyla Lorrath|Bottle of wine]");});
-    if(worldState.character.inventory.indexOf("Bottle of wine")<0)return "the bottle must stay in the pack: "+JSON.stringify(q.r.muts);
+    if(invTextList(worldState.character.inventory).indexOf("Bottle of wine")<0)return "the bottle must stay in the pack: "+JSON.stringify(q.r.muts);
     return (q.r.muts||[]).some(function(m){return /^⚠/.test(m)&&/Bottle of wine/.test(m);})?true:"the put-back must be said: "+JSON.stringify(q.r.muts);
   });
   t("#481 A2 a take from a companion whose loss misses gives the hero nothing; the resolver lets the real take land",function(){
     makeWorld();a2Comp(["Small corked vial, violet residue (half full)"]);var c=worldState.character;c.inventory=[];
     quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Iron key][ITEM_GAINED:Iron key]");});
-    if(c.inventory.some(function(x){return /Iron key/.test(x);}))return "a key Bram never held must not reach the hero: "+JSON.stringify(c.inventory);
+    if(invTextList(c.inventory).some(function(x){return /Iron key/.test(x);}))return "a key Bram never held must not reach the hero: "+JSON.stringify(c.inventory);
     quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Small corked vial, violet residue][ITEM_GAINED:Small corked vial, violet residue]");});
     if((findCompanionChar("Bram").inventory||[]).length!==0)return "the short name must reach Bram's one vial (no x2 duplicate): "+JSON.stringify(findCompanionChar("Bram").inventory);
     return c.inventory.length===1?true:"the hero holds the one vial: "+JSON.stringify(c.inventory);
@@ -28422,7 +28422,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     quiet(function(){return applyMuts("[COMPANION_ITEM_GAINED:Morwen|Traveling clothes]");});
     var row=memory.map.nodes[villageHouseKey("Silas")].items.filter(function(it){return it.name==="Traveling clothes";})[0];
     if(!row||!(row.taken||row.qty===0))return "the household take must decrement the hero's chest: "+JSON.stringify(row);
-    if((findCompanionChar("Morwen").inventory||[]).indexOf("Traveling clothes")<0)return "Morwen holds the clothes";
+    if(!invHolds(findCompanionChar("Morwen").inventory,"Traveling clothes"))return "Morwen holds the clothes";
     worldState.world.sublocation="Frizwick's house";
     quiet(function(){return applyMuts("[LOCATION_ITEM:Silver comb|placed]");});
     var q=quiet(function(){return applyMuts("[COMPANION_ITEM_GAINED:Morwen|Silver comb]");});
@@ -28438,22 +28438,22 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   section("#481 D3 quantity grammar");
   t("#481 D3 the hero: x12 and x10 move twelve and ten; x1 is one unit, never a name; an absurd count is clamped LOUDLY",function(){
     makeWorld();var c=worldState.character;c.inventory=["Arrow x13"];
-    var r=applyMuts("[ITEM_GAINED:Arrows x12]");if(c.inventory[0]!=="Arrow x25")return "x12 onto 13 must give 25: "+JSON.stringify(c.inventory);
+    var r=applyMuts("[ITEM_GAINED:Arrows x12]");if(invTextList(c.inventory)[0]!=="Arrow x25")return "x12 onto 13 must give 25: "+JSON.stringify(c.inventory);
     if(!(r.muts||[]).some(function(m){return m==="+Arrows x12";}))return "the receipt names twelve: "+JSON.stringify(r.muts);
-    r=applyMuts("[ITEM_LOST:Arrow x10]");if(c.inventory[0]!=="Arrow x15")return "x10 must remove ten: "+JSON.stringify(c.inventory);
-    c.inventory=[];applyMuts("[ITEM_GAINED:Rope x1]");if(c.inventory.join()!=="Rope")return "x1 is one unit, not a name: "+JSON.stringify(c.inventory);
+    r=applyMuts("[ITEM_LOST:Arrow x10]");if(invTextList(c.inventory)[0]!=="Arrow x15")return "x10 must remove ten: "+JSON.stringify(c.inventory);
+    c.inventory=[];applyMuts("[ITEM_GAINED:Rope x1]");if(invTextList(c.inventory).join()!=="Rope")return "x1 is one unit, not a name: "+JSON.stringify(c.inventory);
     c.inventory=[];var q=quiet(function(){return applyMuts("[ITEM_GAINED:Arrow x5000]");});
-    if(_invCount(c.inventory[0])!==QTY_MAX)return "an absurd count is clamped to QTY_MAX: "+JSON.stringify(c.inventory);
+    if(_invCount(invTextList(c.inventory)[0])!==QTY_MAX)return "an absurd count is clamped to QTY_MAX: "+JSON.stringify(c.inventory);
     return (q.r.muts||[]).some(function(m){return /clamp/i.test(m)&&m.indexOf(String(QTY_MAX))>=0;})?true:"the clamp must be said with the bound named: "+JSON.stringify(q.r.muts);
   });
   t("#481 D3 the companion twins read the count: Torch x3 onto one torch gives four with no duplicate alarm; x2 removes two",function(){
     makeWorld();worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:["Torch"]}});
     delete worldState.dupItemPending;
-    var r=applyMuts("[COMPANION_ITEM_GAINED:Bram|Torch x3]");var inv=findCompanionChar("Bram").inventory;
+    var r=applyMuts("[COMPANION_ITEM_GAINED:Bram|Torch x3]");var inv=invTextList(findCompanionChar("Bram").inventory);
     if(inv[0]!=="Torch x4")return "three more torches must give four: "+JSON.stringify(inv);
     if(worldState.dupItemPending||(r.muts||[]).some(function(m){return /DUPLICATE/.test(m);}))return "three torches granted is not a duplicate of one: "+JSON.stringify(r.muts);
     applyMuts("[COMPANION_ITEM_LOST:Bram|Torch x2]");
-    return findCompanionChar("Bram").inventory[0]==="Torch x2"?true:"x2 must remove two: "+JSON.stringify(findCompanionChar("Bram").inventory);
+    return invTextList(findCompanionChar("Bram").inventory)[0]==="Torch x2"?true:"x2 must remove two: "+JSON.stringify(findCompanionChar("Bram").inventory);
   });
   t("#481 D3 the counter lands a stack of thirteen in one line (#597: ledgerApply, no tag text)",function(){
     makeWorld();var c=worldState.character;c.inventory=["Arrow x13"];
@@ -28476,12 +28476,12 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var ring=h.items.filter(function(it){return it.name==="Iron ring";})[0];
     if(!ring||!(ring.taken||ring.qty===0))return "both rings must leave the chest: "+JSON.stringify(ring);
     if(Rg.muts.indexOf("From the stash: Iron ring ×2")<0)return "the receipt names the two units the chest gave: "+JSON.stringify(Rg.muts);
-    if(c.inventory.join()!=="Iron ring x2")return "the pack holds two: "+JSON.stringify(c.inventory);
+    if(invTextList(c.inventory).join()!=="Iron ring x2")return "the pack holds two: "+JSON.stringify(c.inventory);
     c.inventory=["Hemp rope x2"];applyMuts("[ITEM_LOST:Hemp rope x2][LOCATION_ITEM:Hemp rope x2|placed]");
     var rope=h.items.filter(function(it){return stashKey(it.name)==="hemp rope";});
     if(rope.length!==1||rope[0].name!=="Hemp rope"||rope[0].qty!==2)return "one row named 'Hemp rope' holding two: "+JSON.stringify(rope);
     quiet(function(){stashTradeApply({take:{"hemp rope":1}});stashTradeApply({take:{"hemp rope":1}});stashTradeApply({take:{"hemp rope":1}});});
-    return (c.inventory.join()==="Hemp rope x2"&&(rope[0].qty===0||rope[0].taken))?true:"three takes of a two-rope row give two, never more: "+JSON.stringify(c.inventory)+" "+JSON.stringify(rope[0]);
+    return (invTextList(c.inventory).join()==="Hemp rope x2"&&(rope[0].qty===0||rope[0].taken))?true:"three takes of a two-rope row give two, never more: "+JSON.stringify(c.inventory)+" "+JSON.stringify(rope[0]);
   });
   t("#481 D2 a counted take on the record moves that many units, never more than the row holds",function(){
     var h=d2House();h.items=[{name:"Hemp rope",placed:1,taken:false,qty:3,by:"Silas",min:0}];
@@ -28512,7 +28512,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var h=d2House(),c=worldState.character;c.inventory=["Iron ring","Moonlit bone charm"];h.items=[{name:"Iron ring",placed:1,taken:false,qty:1,by:"Silas",min:0},{name:"Moonlit bone charm",placed:1,taken:false,qty:1,by:"Silas",min:0}];
     delete worldState.dupItemPending;delete worldState.itemDefCandidate;var n0=(worldState.tagLog||[]).length;
     var res=quiet(function(){return stashTradeApply({take:{"iron ring":1,"moonlit bone charm":1}});}).r;
-    if(!res.ok||c.inventory.join()!=="Iron ring x2,Moonlit bone charm x2")return "the take lands: "+JSON.stringify(res)+" "+JSON.stringify(c.inventory);
+    if(!res.ok||invTextList(c.inventory).join()!=="Iron ring x2,Moonlit bone charm x2")return "the take lands: "+JSON.stringify(res)+" "+JSON.stringify(c.inventory);
     if((res.muts||[]).some(function(m){return /DUPLICATE ITEM/.test(m);}))return "a ledger take is no duplicate grant: "+JSON.stringify(res.muts);
     if(worldState.dupItemPending)return "no DUPLICATE ITEM GRANT nudge is armed: "+JSON.stringify(worldState.dupItemPending);
     if(worldState.itemDefCandidate)return "a ledger move asks the GM to define nothing: "+JSON.stringify(worldState.itemDefCandidate);
@@ -28523,7 +28523,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#481 D6 buying a second salve at the counter is no duplicate grant",function(){
     shopFixture();delete worldState.dupItemPending;worldState.character.coin=6000;
     var res=quiet(function(){return shopTradeApply({sell:{},buy:{"healing potion":1}});}).r;
-    if(!res.ok||worldState.character.inventory.indexOf("Healing potion x2")<0)return "the buy lands: "+JSON.stringify(res)+" "+JSON.stringify(worldState.character.inventory);
+    if(!res.ok||invTextList(worldState.character.inventory).indexOf("Healing potion x2")<0)return "the buy lands: "+JSON.stringify(res)+" "+JSON.stringify(worldState.character.inventory);
     return ((res.muts||[]).some(function(m){return /DUPLICATE ITEM/.test(m);})||worldState.dupItemPending)?"a counter buy is no duplicate grant: "+JSON.stringify(res.muts):true;
   });
   t("#481 D6 the same grant from the GM still raises the alarm (#597: the GM is applyMuts's only source now — no policy table)",function(){
@@ -28556,7 +28556,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[ITEM_LOST:Sihedron ritual spear][LOCATION_ITEM:Sihedron ritual spear|placed]");
     quiet(function(){stashTradeApply({take:{"iron ring":1}});});
     var lib=JSON.parse(JSON.stringify(c));lib.inventory=["Sihedron ritual spear","Longsword","Healing potion"];delete lib.stashMarks;
-    var r=quiet(function(){return villageRefreshFromLibrary([{character:lib,updatedAt:Date.now()+5000}]);}).r,inv=worldState.character.inventory.join("|");
+    var r=quiet(function(){return villageRefreshFromLibrary([{character:lib,updatedAt:Date.now()+5000}]);}).r,inv=invTextList(worldState.character.inventory).join("|");
     if(r.hero!=="Silas")return "the hero refreshed: "+JSON.stringify(r);
     if(/Sihedron/.test(inv))return "the spear stays in the chest, not back in the pack: "+inv;
     if(!/Iron ring/.test(inv)||!/Healing potion/.test(inv))return "the ring taken from the chest stays in the pack, and the library copy brings its new potion: "+inv;
@@ -28566,11 +28566,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#481 D9 a refresh from the village own export re-applies nothing it already holds (no second charge lost)",function(){
     var h=d9Village(),c=worldState.character;worldState.heroLibraryAt=1000;c.inventory=["Blasting charge x5"];
     quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});
-    if(c.inventory.join()!=="Blasting charge x4")return "the stow: "+JSON.stringify(c.inventory);
+    if(invTextList(c.inventory).join()!=="Blasting charge x4")return "the stow: "+JSON.stringify(c.inventory);
     var lib=portableSheet(c);
     var r=quiet(function(){return villageRefreshFromLibrary([{character:lib,updatedAt:Date.now()+5000}]);}).r;
     if(r.hero!=="Silas")return "refreshed: "+JSON.stringify(r);
-    return worldState.character.inventory.join()==="Blasting charge x4"?true:"a copy that already reflects the stow must not lose a second charge: "+JSON.stringify(worldState.character.inventory);
+    return invTextList(worldState.character.inventory).join()==="Blasting charge x4"?true:"a copy that already reflects the stow must not lose a second charge: "+JSON.stringify(worldState.character.inventory);
   });
   t("#481 D9 stash rows stowed before the record existed are not re-applied; they are counted once, loudly",function(){
     var h=d9Village(),c=worldState.character;worldState.heroLibraryAt=1000;
@@ -28604,19 +28604,19 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[ITEM_LOST:Sihedron ritual spear][LOCATION_ITEM:Sihedron ritual spear|placed]");
     var u=quiet(function(){return undoLastItemMove();}).r;
     if(!u.ok)return "the undo lands: "+JSON.stringify(u);
-    if(c.inventory.indexOf("Sihedron ritual spear")<0)return "the spear is back with you: "+JSON.stringify(c.inventory);
+    if(invTextList(c.inventory).indexOf("Sihedron ritual spear")<0)return "the spear is back with you: "+JSON.stringify(c.inventory);
     var row=h.items.filter(function(it){return stashKey(it.name)==="sihedron ritual spear";})[0];
     if(row&&!(row.taken||row.qty===0))return "and no longer in the chest: "+JSON.stringify(row);
     if(worldState.stashMoves.length)return "the undone move leaves the record (a refresh must not replay it): "+JSON.stringify(worldState.stashMoves);
     var e=worldState.tagLog[worldState.tagLog.length-1];if(e.src!=="undo")return "the inverse rides the log as an undo: "+JSON.stringify(e);
     quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});
     var u2=quiet(function(){return undoLastItemMove();}).r;
-    return (u2.ok&&c.inventory.indexOf("Blasting charge x5")>=0)?true:"a ledger stow undoes too, no charge destroyed: "+JSON.stringify(u2)+" "+JSON.stringify(c.inventory);
+    return (u2.ok&&invTextList(c.inventory).indexOf("Blasting charge x5")>=0)?true:"a ledger stow undoes too, no charge destroyed: "+JSON.stringify(u2)+" "+JSON.stringify(c.inventory);
   });
   t("#481 D1 never mind after a chest take puts it back in the chest; a ledger plan of three is ONE move",function(){
     var h=d9Village(),c=worldState.character;c.inventory=[];h.items=[{name:"Rope",placed:1,taken:false,qty:3,by:"Silas",min:0}];
     quiet(function(){stashTradeApply({take:{"rope":3}});});
-    if(c.inventory.join()!=="Rope x3")return "the take: "+JSON.stringify(c.inventory);
+    if(invTextList(c.inventory).join()!=="Rope x3")return "the take: "+JSON.stringify(c.inventory);
     var u=quiet(function(){return undoLastItemMove();}).r;
     return (u.ok&&u.action==="taken"&&c.inventory.length===0&&h.items[0].qty===3&&!h.items[0].taken)?true:"all three ropes go back in ONE undo: "+JSON.stringify(u)+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(h.items[0]);
   });
@@ -28634,7 +28634,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var h=d9Village(),c=worldState.character;c.inventory=["Longsword"];
     applyMuts("[LOCATION_ITEM:Old boots|placed]");
     var u=quiet(function(){return undoLastItemMove();}).r;
-    if(!u.ok||c.inventory.join()!=="Longsword")return "the pack is untouched: "+JSON.stringify(u)+" "+JSON.stringify(c.inventory);
+    if(!u.ok||invTextList(c.inventory).join()!=="Longsword")return "the pack is untouched: "+JSON.stringify(u)+" "+JSON.stringify(c.inventory);
     var row=h.items.filter(function(it){return it.name==="Old boots";})[0];if(row&&!(row.taken||row.qty===0))return "the boots leave the chest: "+JSON.stringify(row);
     worldState.lastItemMove={name:"Sihedron ritual spear",action:"placed",key:villageHouseKey("Silas"),turn:86};
     var u2=undoLastItemMove();return u2.ok?"the retired pointer must not drive an undo: "+JSON.stringify(u2):true;
@@ -28651,7 +28651,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     applyMuts("[ITEM_LOST:Tomb-iron core][LOCATION_ITEM:Tomb-iron core|placed|Village Hall]");
     var hall=memory.map.nodes["The Village|the Village Hall"];if(!hall.items.length)return "the core lands in the hall: "+JSON.stringify(hall.items);
     var u=quiet(function(){return undoLastItemMove();}).r;
-    return (u.ok&&c.inventory.join()==="Tomb-iron core"&&(hall.items[0].taken||hall.items[0].qty===0))?true:"the core comes back from the hall: "+JSON.stringify(u)+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(hall.items);
+    return (u.ok&&invTextList(c.inventory).join()==="Tomb-iron core"&&(hall.items[0].taken||hall.items[0].qty===0))?true:"the core comes back from the hall: "+JSON.stringify(u)+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(hall.items);
   });
 
   section("#481 A4 the place sequencer");
@@ -29044,7 +29044,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(q.r.ok||!/combat/i.test(q.r.reason))return "stale marked trade landed during combat: "+JSON.stringify(q.r);
     if(JSON.stringify([worldState,memory])!==before)return "refusal mutated coin, pack, wares, wants, ping or provenance";
     if(!q.warns.some(function(w){return /combat/i.test(w);}))return "trade refusal was not logged";
-    worldState.combat=null;var ok=shopTradeApply(marks);return ok.ok&&worldState.character.inventory.indexOf("Bone-handled knife")<0?true:"peace did not restore the legitimate trade: "+JSON.stringify(ok);
+    worldState.combat=null;var ok=shopTradeApply(marks);return ok.ok&&invTextList(worldState.character.inventory).indexOf("Bone-handled knife")<0?true:"peace did not restore the legitimate trade: "+JSON.stringify(ok);
   });
   t("#527 combat counter policy leaves the home chest and adventure gold untouched",function(){
     shopFixture();var hero=worldState.character.name;villageHouseEnsure(hero);worldState.world.sublocation=locDisplayLeaf(villageHouseKey(hero));combatShop527();
@@ -29461,7 +29461,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#481 D5 → #598 in the village a coin in silver is a sale like any other: 5 sp leaves the purse and the bread arrives",function(){
     shopFixture();var c=worldState.character,g=c.coin,n=c.inventory.length;
     var r=quiet(function(){return applyMuts("[GOLD:-5 sp][ITEM_GAINED:Bread]");}).r;
-    if(c.coin!==g-50||c.inventory.length!==n+1||!c.inventory.some(function(x){return /bread/i.test(x);}))return "5 sp and the bread both move: "+c.coin+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
+    if(c.coin!==g-50||c.inventory.length!==n+1||!invTextList(c.inventory).some(function(x){return /bread/i.test(x);}))return "5 sp and the bread both move: "+c.coin+" "+JSON.stringify(c.inventory)+" "+JSON.stringify(r.muts);
     return (r.muts||[]).indexOf("-5 sp")>=0?true:"the receipt in silver: "+JSON.stringify(r.muts);
   });
   t("#481 D5 the counter trades in silver and copper: rations sell by the unit, a 25 cp cake is buyable, a bundle of arrows buys by the arrow; small sums read as sp/cp",function(){
@@ -29509,7 +29509,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var res=quiet(function(){return shopTradeApply({sell:{"carved whistle":1},buy:{}});}).r;
     if(!res.ok||c.coin!==g+30)return "+3 sp: "+c.coin+" "+JSON.stringify(res);
     if(res.muts.indexOf("+3 sp")<0)return "the receipt in silver: "+JSON.stringify(res.muts);
-    return c.inventory.some(function(x){return /whistle x2/i.test(x);})?"one whistle leaves":true;
+    return invTextList(c.inventory).some(function(x){return /whistle x2/i.test(x);})?"one whistle leaves":true;
   });
   t("#481 D7 → #598 a mixed plan with a tiny line lands whole: whistle (3 sp) and rope (5 sp) sell for 8 sp",function(){
     d7Fixture();var c=worldState.character,g=c.coin;
@@ -29543,7 +29543,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // ONE allowance per wanted offer governs the whole plan; marking past it refuses the trade, loudly, and nothing moves.
   t("#577 one wanted offer pays once across every row that meets it: two decorated rings marked are refused with the reason and nothing moves; one ring sells at the offer and the want retires",function(){
     var n=d4Fixture(),c=worldState.character;c.inventory.push("Warded ring — taken from the crypt","Warded ring (cracked)");
-    var g=c.coin,inv0=c.inventory.slice(),cat=shopTradeCatalog();
+    var g=c.coin,inv0=invTextList(c.inventory),cat=shopTradeCatalog();
     var rings=cat.sell.filter(function(r){return /^Warded ring/.test(r.name);});
     if(rings.length!==3||!rings.every(function(r){return r.wanted&&r.sellCp===4000;}))return "three rows meet the one want at its offer: "+JSON.stringify(rings);
     var three={sell:{"warded ring":1,"warded ring — taken from the crypt":1,"warded ring (cracked)":1},buy:{}};
@@ -29551,7 +29551,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(p.ok)return "one 40 gp want must not pay three times: "+JSON.stringify(p);
     if(!/Frizwick/.test(p.reason)||!/Warded ring/.test(p.reason))return "the refusal names the keeper and the item: "+p.reason;
     var res=quiet(function(){return shopTradeApply(three);}).r;
-    if(res.ok||c.coin!==g||c.inventory.join("|")!==inv0.join("|")||d4Wants(n).indexOf("Warded ring")<0)return "a refused trade moves nothing: "+JSON.stringify(res)+" coin "+c.coin+" inv "+JSON.stringify(c.inventory)+" wants "+JSON.stringify(n.wanted);
+    if(res.ok||c.coin!==g||invTextList(c.inventory).join("|")!==inv0.join("|")||d4Wants(n).indexOf("Warded ring")<0)return "a refused trade moves nothing: "+JSON.stringify(res)+" coin "+c.coin+" inv "+JSON.stringify(c.inventory)+" wants "+JSON.stringify(n.wanted);
     if(shopTradePlan(cat,{sell:{"warded ring":2},buy:{}}).ok)return "two units from one stack spend the same one allowance";
     var mixed=shopTradePlan(cat,{sell:{"warded ring (cracked)":1,"bone-handled knife":1},buy:{}});
     if(!mixed.ok||mixed.sellCp!==4300)return "a different want keeps its own allowance (ring 40 gp + knife 3 gp): "+JSON.stringify(mixed);
@@ -29766,7 +29766,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#481 C5 the boundary: an incoming sheet leaves its outfit and dynamics at the door (worn and bonds stay); an outfit stamped as THIS campaign's crosses",function(){
     villageEF();importVillageResidents([{name:"Tamsin",gender:"F",cls:"Bard",inventory:["Cloak"],worn:["Cloak"],outfit:{text:"a masquerade gown",turn:169},relationships:[{entity:"Silas",bond:"friend",bondTurn:3,dynamic:"sulking",dynamicTurn:40}]}]);
     var cs=wsNpcByName("Tamsin").charSheet;if(cs.outfit)return "the resident's old outfit crossed: "+JSON.stringify(cs.outfit);
-    if(!cs.worn||cs.worn[0]!=="Cloak")return "worn is untouched: "+JSON.stringify(cs.worn);
+    if(!isWorn(cs,"Cloak")||cs.worn!==undefined)return "the equipped flag crosses the door on its row (the worn list folds in): "+JSON.stringify(cs.inventory);
     var rr=(cs.relationships||[]).filter(function(r){return r.entity==="Silas";})[0];if(!rr||rr.bond!=="friend"||rr.dynamic)return "the bond stays and the dynamic goes: "+JSON.stringify(rr);
     var nm=worldState.character.name,mine=__libCopy(nm,{});mine.outfit=campStampOn({text:"work clothes",turn:2});var r=libReplaceApply(nm,mine,5000);
     if(!r.ok||!worldState.character.outfit||worldState.character.outfit.text!=="work clothes")return "an outfit stamped as this campaign's crosses a same-campaign replace: "+JSON.stringify(worldState.character.outfit);
@@ -30645,7 +30645,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     for(i=0;i<orders.length;i++){
       villageEF();var c=worldState.character;c.inventory=["Dagger","Lantern"];var g0=c.coin;
       var q=quiet(function(){return applyMuts("You sell them to Frizwick at the counter. "+orders[i]);});
-      if(c.inventory.indexOf("Dagger")<0)return "order "+i+": the Dagger left the pack for nothing: "+JSON.stringify(c.inventory)+" "+JSON.stringify(q.r.muts);
+      if(invTextList(c.inventory).indexOf("Dagger")<0)return "order "+i+": the Dagger left the pack for nothing: "+JSON.stringify(c.inventory)+" "+JSON.stringify(q.r.muts);
       if(c.coin!==g0)return "order "+i+": the coin must go back: "+g0+" -> "+c.coin;
       var m=JSON.stringify(q.r.muts);
       if(!/Sale withheld/.test(m)||!/Old boot/.test(m))return "order "+i+": the withheld sale names the missing item: "+m;
@@ -30657,7 +30657,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   t("#510 a count the pack cannot cover refuses the sale whole: ten arrows held, twelve sold — all ten stay",function(){
     villageEF();var c=worldState.character;c.inventory=["Arrow x10"];var g0=c.coin;
     var q=quiet(function(){return applyMuts("[GOLD:+1][ITEM_LOST:Arrow x12]");});
-    if(c.inventory[0]!=="Arrow x10"||c.coin!==g0)return "the pack and the purse must be as before: "+JSON.stringify(c.inventory)+" gold "+c.coin;
+    if(invTextList(c.inventory)[0]!=="Arrow x10"||c.coin!==g0)return "the pack and the purse must be as before: "+JSON.stringify(c.inventory)+" gold "+c.coin;
     var m=JSON.stringify(q.r.muts);return /Arrow x12. is more than the sheet holds/.test(m)?true:"a short count is said as one: "+m;
   });
   t("#510 the refused sale's items are misses for pairing: a gift riding with it does not mint the item for the companion",function(){
@@ -30665,8 +30665,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.npcs.push({name:"Bram",status:"steady",rel:"ally",partyMember:true,charSheet:{name:"Bram",cls:"Warrior",level:3,inventory:[]}});
     var q=quiet(function(){return applyMuts("[GOLD:+10][ITEM_LOST:Dagger][ITEM_LOST:Old boot][COMPANION_ITEM_GAINED:Bram|Dagger]");});
     var b=wsNpcByName("Bram").charSheet.inventory;
-    if(b.indexOf("Dagger")>=0)return "the companion was given a Dagger that never left the hero: "+JSON.stringify(b)+" "+JSON.stringify(q.r.muts);
-    return c.inventory.indexOf("Dagger")>=0?true:"the hero keeps the Dagger";
+    if(invHolds(b,"Dagger"))return "the companion was given a Dagger that never left the hero: "+JSON.stringify(b)+" "+JSON.stringify(q.r.muts);
+    return invTextList(c.inventory).indexOf("Dagger")>=0?true:"the hero keeps the Dagger";
   });
   t("#510 an ambiguous name in a village sale is said, and the sale is withheld whole",function(){
     villageEF();var c=worldState.character;c.inventory=["Dagger (silver)","Dagger (bone)","Lantern"];var g0=c.coin;
@@ -30678,7 +30678,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     villageEF();var c=worldState.character;c.inventory=["Dagger","Lantern","Rope"];var g0=c.coin;
     var q=quiet(function(){return applyMuts("[GOLD:+10][ITEM_LOST:Dagger][ITEM_LOST:Lantern]");});
     if(c.coin!==g0+1000)return "the coin must arrive: "+g0+" -> "+c.coin+" "+JSON.stringify(q.r.muts);
-    return JSON.stringify(c.inventory)==='["Rope"]'?true:"both items leave: "+JSON.stringify(c.inventory);
+    return JSON.stringify(invTextList(c.inventory))==='["Rope"]'?true:"both items leave: "+JSON.stringify(c.inventory);
   });
 
 
@@ -31006,27 +31006,27 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   function imported581(){var data={worldState:parseWorldState(serializeWorldState(worldState)),memory:JSON.parse(JSON.stringify(memory)),sessionLog:[]};makeWorld();setActiveCampId(null);return quiet(function(){return importSaveData(data);}).r;}
   function legacy581(mark){village581();worldState.character.inventory=["Blasting charge x4"];worldState.character.stashMarks={camp_V:mark};worldState.stashMoves=[{name:"Blasting charge",units:1,action:"placed",key:villageHouseKey("Silas"),by:"Silas",pack:{name:"Blasting charge",units:1},turn:5,grp:1,at:mark}];delete worldState.stashJournal;}
   t("#581 exact repro: stow one of five, export four, rekey, refresh still holds four",function(){
-    village581();quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});var lib=portableSheet(worldState.character),key=stashMarkKey();if(lib.inventory.join()!=="Blasting charge x4")return "fixture stow failed";worldState.campId="rekeyed581";refresh581(lib);
-    return worldState.character.inventory.join()==="Blasting charge x4"&&stashMarkKey()===key?true:"reflected stow replayed after rekey: "+worldState.character.inventory.join();
+    village581();quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});var lib=portableSheet(worldState.character),key=stashMarkKey();if(invTextList(lib.inventory).join()!=="Blasting charge x4")return "fixture stow failed";worldState.campId="rekeyed581";refresh581(lib);
+    return invTextList(worldState.character.inventory).join()==="Blasting charge x4"&&stashMarkKey()===key?true:"reflected stow replayed after rekey: "+invTextList(worldState.character.inventory).join();
   });
   t("#581 real serialized import and rehome preserve journal and reflected hero moves",function(){
-    village581();quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});var lib=portableSheet(worldState.character),key=stashMarkKey(),plan=imported581();if(!plan.reminted)return "fixture import must rekey";refresh581(lib);if(worldState.character.inventory.join()!=="Blasting charge x4")return "import replayed reflected stow";
-    quiet(function(){rehomeCampaign("581 test");});refresh581(lib);worldState=parseWorldState(serializeWorldState(worldState));return stashMarkKey()===key&&worldState.character.inventory.join()==="Blasting charge x4"?true:"rehome/reload lost journal identity";
+    village581();quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});var lib=portableSheet(worldState.character),key=stashMarkKey(),plan=imported581();if(!plan.reminted)return "fixture import must rekey";refresh581(lib);if(invTextList(worldState.character.inventory).join()!=="Blasting charge x4")return "import replayed reflected stow";
+    quiet(function(){rehomeCampaign("581 test");});refresh581(lib);worldState=parseWorldState(serializeWorldState(worldState));return stashMarkKey()===key&&invTextList(worldState.character.inventory).join()==="Blasting charge x4"?true:"rehome/reload lost journal identity";
   });
   t("#581 legacy marks migrate before import rekeys and old exports remain authoritative",function(){
-    legacy581(100);var lib=portableSheet(worldState.character),plan=imported581();if(!plan.reminted)return "fixture must remint";refresh581(lib);if(worldState.character.inventory.join()!=="Blasting charge x4")return "legacy import lost old mark";
+    legacy581(100);var lib=portableSheet(worldState.character),plan=imported581();if(!plan.reminted)return "fixture must remint";refresh581(lib);if(invTextList(worldState.character.inventory).join()!=="Blasting charge x4")return "legacy import lost old mark";
     var key=stashMarkKey();worldState.stashMoves.push({name:"Blasting charge",units:1,action:"placed",key:villageHouseKey("Silas"),by:"Silas",pack:{name:"Blasting charge",units:1},turn:6,grp:2,at:200});lib.inventory=["Blasting charge x3"];lib.stashMarks.camp_V=200;refresh581(lib);
-    if(worldState.character.inventory.join()!=="Blasting charge x3")return "newer old-version export mark ignored";lib.stashMarks[key]=0;refresh581(lib);return worldState.character.inventory.join()==="Blasting charge"?true:"explicit stable zero must outrank legacy mark";
+    if(invTextList(worldState.character.inventory).join()!=="Blasting charge x3")return "newer old-version export mark ignored";lib.stashMarks[key]=0;refresh581(lib);return invTextList(worldState.character.inventory).join()==="Blasting charge"?true:"explicit stable zero must outrank legacy mark";
   });
   t("#581 independent legacy migrations share an origin and new journals isolate reused campaign ids",function(){
     legacy581(100);var a=stashMarkKey(),snap=JSON.stringify(worldState);for(var i=0;i<10;i++)stashMarkKey();if(JSON.stringify(worldState)!==snap)return "migration is not idempotent";
     legacy581(200);var b=stashMarkKey();if(a!==b)return "same legacy origin diverged across devices";
     village581();quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});var newA=stashMarkKey(),copy=portableSheet(worldState.character);village581();quiet(function(){stashTradeApply({stow:{"blasting charge":1}});});var newB=stashMarkKey();if(newA===newB)return "unrelated new journals share origin because campId matches";
-    copy.inventory=["Blasting charge x5"];refresh581(copy);return worldState.character.inventory.join()==="Blasting charge x4"?true:"foreign journal mark suppressed current move";
+    copy.inventory=["Blasting charge x5"];refresh581(copy);return invTextList(worldState.character.inventory).join()==="Blasting charge x4"?true:"foreign journal mark suppressed current move";
   });
   t("#581 companion marks and foreign marks survive rehome without replay or rewriting",function(){
     village581();var n=wsNpcByName("Frizwick");n.charSheet.inventory=["Blasting charge x4"];stashMoveRecord({turn:5},{name:"Blasting charge",units:1,action:"placed",key:villageHouseKey("Frizwick"),by:"Frizwick",pack:{name:"Blasting charge",units:1}});n.charSheet.stashMarks.foreign=77;var lib=portableSheet(n.charSheet),key=stashMarkKey();imported581();n=wsNpcByName("Frizwick");adoptLibraryCompanion(n,lib,9999);
-    return n.charSheet.inventory.join()==="Blasting charge x4"&&n.charSheet.stashMarks[key]===lib.stashMarks[key]&&n.charSheet.stashMarks.foreign===77?true:"companion import mark lost or foreign mark changed";
+    return invTextList(n.charSheet.inventory).join()==="Blasting charge x4"&&n.charSheet.stashMarks[key]===lib.stashMarks[key]&&n.charSheet.stashMarks.foreign===77?true:"companion import mark lost or foreign mark changed";
   });
   t("#581 empty legacy ring and local mark retain identity without unbounded migration growth",function(){
     legacy581(100);worldState.campId=null;worldState.stashMoves=[];worldState.character.stashMarks={local:100,foreign:50};var key=stashMarkKey(),before=JSON.stringify(worldState);for(var i=0;i<50;i++){worldState.campId="id_"+i;if(stashMarkKey()!==key)return "journal followed storage id";}worldState.campId=null;
@@ -31034,16 +31034,16 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   t("#581 raw legacy import and rehome freeze the old key before storage id changes",function(){
-    legacy581(100);var lib=portableSheet(worldState.character),data=JSON.parse(JSON.stringify({worldState:worldState,memory:memory,sessionLog:[]}));makeWorld();setActiveCampId(null);var p=quiet(function(){return importSaveData(data);}).r;if(!p.reminted)return "raw fixture did not remint";refresh581(lib);if(worldState.character.inventory.join()!=="Blasting charge x4")return "raw import missed original key";
-    legacy581(100);lib=portableSheet(worldState.character);setActiveCampId("camp_V");quiet(function(){rehomeCampaign("581 legacy");});refresh581(lib);return worldState.character.inventory.join()==="Blasting charge x4"?true:"legacy rehome missed original key";
+    legacy581(100);var lib=portableSheet(worldState.character),data=JSON.parse(JSON.stringify({worldState:worldState,memory:memory,sessionLog:[]}));makeWorld();setActiveCampId(null);var p=quiet(function(){return importSaveData(data);}).r;if(!p.reminted)return "raw fixture did not remint";refresh581(lib);if(invTextList(worldState.character.inventory).join()!=="Blasting charge x4")return "raw import missed original key";
+    legacy581(100);lib=portableSheet(worldState.character);setActiveCampId("camp_V");quiet(function(){rehomeCampaign("581 legacy");});refresh581(lib);return invTextList(worldState.character.inventory).join()==="Blasting charge x4"?true:"legacy rehome missed original key";
   });
   t("#581 local load and campaign bootstrap freeze local marks before assigning active ids",function(){
-    legacy581(100);worldState.campId=null;worldState.character.stashMarks={local:100};var lib=portableSheet(worldState.character);setActiveCampId("active581");quiet(function(){migrateWorldState();});refresh581(lib);if(worldState.character.inventory.join()!=="Blasting charge x4")return "load lost local legacy mark";
-    legacy581(100);worldState.campId=null;worldState.character.stashMarks={local:100};lib=portableSheet(worldState.character);setActiveCampId(null);quiet(function(){migrateToCampaigns();});refresh581(lib);return worldState.character.inventory.join()==="Blasting charge x4"?true:"campaign bootstrap lost local key";
+    legacy581(100);worldState.campId=null;worldState.character.stashMarks={local:100};var lib=portableSheet(worldState.character);setActiveCampId("active581");quiet(function(){migrateWorldState();});refresh581(lib);if(invTextList(worldState.character.inventory).join()!=="Blasting charge x4")return "load lost local legacy mark";
+    legacy581(100);worldState.campId=null;worldState.character.stashMarks={local:100};lib=portableSheet(worldState.character);setActiveCampId(null);quiet(function(){migrateToCampaigns();});refresh581(lib);return invTextList(worldState.character.inventory).join()==="Blasting charge x4"?true:"campaign bootstrap lost local key";
   });
   t("#581 detached server inflate and checkpoint restore freeze provenance before rekey",function(){
-    legacy581(100);var lib=portableSheet(worldState.character),incoming=JSON.parse(JSON.stringify(worldState));makeWorld();var outgoing=JSON.stringify(worldState);var restored=inflateWorldStateSnapshot(incoming);if(JSON.stringify(worldState)!==outgoing)return "inflater migrated active campaign instead of detached input";restored.campId="server581";worldState=restored;refresh581(lib);if(worldState.character.inventory.join()!=="Blasting charge x4")return "server inflater lost original key";
-    legacy581(100);lib=portableSheet(worldState.character);var snap=checkpointCapture("test"),old=snap.campId;worldState.campId="after-rehome581";snap.campId=worldState.campId;var r=quiet(function(){return checkpointRestore(snap,{cause:"fixture"});}).r;if(!r.ok)return "checkpoint refused: "+JSON.stringify(r);refresh581(lib);return worldState.character.inventory.join()==="Blasting charge x4"?true:"checkpoint replaced "+old+" before origin migration";
+    legacy581(100);var lib=portableSheet(worldState.character),incoming=JSON.parse(JSON.stringify(worldState));makeWorld();var outgoing=JSON.stringify(worldState);var restored=inflateWorldStateSnapshot(incoming);if(JSON.stringify(worldState)!==outgoing)return "inflater migrated active campaign instead of detached input";restored.campId="server581";worldState=restored;refresh581(lib);if(invTextList(worldState.character.inventory).join()!=="Blasting charge x4")return "server inflater lost original key";
+    legacy581(100);lib=portableSheet(worldState.character);var snap=checkpointCapture("test"),old=snap.campId;worldState.campId="after-rehome581";snap.campId=worldState.campId;var r=quiet(function(){return checkpointRestore(snap,{cause:"fixture"});}).r;if(!r.ok)return "checkpoint refused: "+JSON.stringify(r);refresh581(lib);return invTextList(worldState.character.inventory).join()==="Blasting charge x4"?true:"checkpoint replaced "+old+" before origin migration";
   });
   t("#581 explicit stable marks beat legacy aliases and malformed provenance refuses loudly",function(){
     legacy581(100);var key=stashMarkKey(),c=worldState.character;c.stashMarks[key]=0;if(stashCopyMark(c)!==0)return "zero stable mark discarded";c.stashMarks[key]=50;if(stashCopyMark(c)!==50)return "older explicit stable mark overwritten";
@@ -31140,7 +31140,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
   t("#545 inflated own reserved keys survive the next mutation and serialization",function(){return clean545(function(){makeWorld();worldState.capabilityBible=JSON.parse('{"__proto__":{"nm":"Odd spell","lvl":1},"constructor":{"nm":"Other spell","lvl":1}}');var raw=JSON.stringify(worldState),loaded=inflateWorldStateSnapshot(JSON.parse(raw));if(Object.getPrototypeOf(loaded.capabilityBible)!==null)return "inflated overlay regained prototype";return JSON.stringify(loaded.capabilityBible)===JSON.stringify(worldState.capabilityBible)?true:"legal own keys lost";});});
   t("#545 detached memory clone keeps dictionary semantics and arrays",function(){makeWorld();memory.npcs=JSON.parse('{"__proto__":{"knowledge":[],"events":[],"aliases":[]}}');var copy=_w2Copy(memory,"memory");if(Object.getPrototypeOf(copy.npcs)!==null)return "detached clone regained prototype";return Array.isArray(copy.npcs.__proto__.events)&&Array.isArray(copy.archive.lore)?true:"record arrays reshaped";});
 
-  t("#545 item pairing and split-place grouping accept reserved names",function(){return clean545(function(){makeWorld();itemPairNote({},"igHits","constructor","constructor");var r=quiet(function(){return applyMuts("[ITEM_GAINED:constructor][NPC:Kira|calm|ally][PARTY_SPLIT:Kira|constructor]");});if(r.r.muts.some(function(m){return /error/i.test(m);})||worldState.character.inventory.indexOf("constructor")<0)return "reserved item failed";return buildSysPrompt().volatile?true:"split location prompt failed";});});
+  t("#545 item pairing and split-place grouping accept reserved names",function(){return clean545(function(){makeWorld();itemPairNote({},"igHits","constructor","constructor");var r=quiet(function(){return applyMuts("[ITEM_GAINED:constructor][NPC:Kira|calm|ally][PARTY_SPLIT:Kira|constructor]");});if(r.r.muts.some(function(m){return /error/i.test(m);})||invTextList(worldState.character.inventory).indexOf("constructor")<0)return "reserved item failed";return buildSysPrompt().volatile?true:"split location prompt failed";});});
   t("#545 unknown reserved item categories use ordinary fallback",function(){makeWorld();quiet(function(){applyMuts("[ITEM_DEF:Lantern|category=constructor|effect=light]");});return worldState.pendingItemDefs[0].entry.category==="tool"?true:"inherited category admitted";});
   t("#545 duplicate layout names and held ware checks use own entries",function(){makeWorld();var ware={item:"constructor"};return firstWareNotHeld([ware],[])===ware?true:"uncarried reserved ware falsely held";});
 
@@ -31397,19 +31397,190 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var bad={name:"Torch",qty:1};bad.me=bad;d=invDetach([bad]);if(d.ok||!/cycle/.test(d.reason)||d.rows!==null)return "a cycle refuses to detach: "+JSON.stringify(d);
     d=invDetach([{name:"T",qty:1,at:new Date()}]);return (!d.ok&&/unsupported object type/.test(d.reason))?true:"a Date refuses (JSON would stringify it): "+JSON.stringify(d);
   });
-  t("#599b the legacy form is untouched by the move: stacking, counting, the resolver, the pair and stash keys, worn, sanitation and folding behave as they did (a frozen table of cases)",function(){
-    var inv=["Torch x1","Rope"];addInventoryItem(inv,"rope");if(inv.join("|")!=="Torch x1|Rope x2")return "an untouched spelling survives a write ('Torch x1' stays): "+inv.join("|");
-    addInventoryItem(inv,"Rope");if(inv[1]!=="Rope x3")return "stacking";
-    if(inventoryCountOf(inv,"ropes")!==3||_invCount("Rope x3")!==3||_invBase("Rope x3")!=="Rope")return "counting";
-    if(!removeInventoryItem(inv,"Rope")||inv[1]!=="Rope x2"||removeInventoryItem.last!=="Rope")return "removing one";
-    if(resolveInventoryName(["Signet ring (from Sheriff Hemlock)"],"Signet ring")!==0||resolveInventoryName(["Rope (a)","Rope (b)"],"Rope")!==-1||!_invLastMiss||_invLastMiss.why!=="ambiguous")return "the resolver";
+  t("#599b→c the legacy names are DELEGATES over rows: a write prepares a string list in place (strings become rows, 'Torch x1' is one torch), then stacks, counts, resolves, removes, wears, sanitizes and folds through the row functions — same answers, one implementation",function(){
+    var inv=["Torch x1","Rope"];if(!addInventoryItem(inv,"rope"))return "the write landed";if(invTextList(inv).join("|")!=="Torch|Rope x2")return "the list is rows now and prints back: "+invTextList(inv).join("|");
+    if(typeof inv[0]!=="object"||inv[0].name!=="Torch"||inv[0].qty!==1||inv[0].equipped!==false)return "prepared in place as rows: "+JSON.stringify(inv[0]);
+    addInventoryItem(inv,"Rope");if(invTextList(inv)[1]!=="Rope x3")return "stacking";
+    if(inventoryCountOf(inv,"ropes")!==3||inventoryCountOf(["Rope x3"],"rope")!==3||_invCount("Rope x3")!==3||_invBase("Rope x3")!=="Rope")return "counting, both shapes";
+    if(!removeInventoryItem(inv,"Rope")||invTextList(inv)[1]!=="Rope x2"||removeInventoryItem.last!=="Rope")return "removing one";
+    if(resolveInventoryName(["Signet ring (from Sheriff Hemlock)"],"Signet ring")!==0||resolveInventoryName(["Rope (a)","Rope (b)"],"Rope")!==-1||!_invLastMiss||_invLastMiss.why!=="ambiguous")return "the resolver reads strings";
+    if(resolveInventoryName(inv,"ropes")!==1||resolveInventoryName([{name:"Rope (a)",qty:1,equipped:false},{name:"Rope (b)",qty:1,equipped:false}],"Rope")!==-1||_invLastMiss.why!=="ambiguous")return "the resolver reads rows";
     if(itemPairKey("Signet ring (from Sheriff Hemlock) x2")!=="signet ring"||stashKey("Iron ring — unmarked x3")!=="iron ring-unmarked")return "the pair and stash keys";
     var q=_qtyParse("Arrow x1000");if(q.n!==999||!q.clamped)return "the TAG grammar still clamps at QTY_MAX";
-    var cs={name:"T",inventory:["Chainmail","Shield"],worn:[]};var w=wornSet(cs,"chainmail",true);if(!w.ok||cs.worn[0]!=="Chainmail"||!isWorn(cs,"Chainmail"))return "worn";
+    var cs={name:"T",inventory:["Chainmail","Shield"],worn:[]};var w=wornSet(cs,"chainmail",true);if(!w.ok||w.item!=="Chainmail"||cs.worn!==undefined||cs.inventory[0].equipped!==true||!isWorn(cs,"Chainmail")||isWorn(cs,"Shield"))return "worn is the row's flag; the worn list is gone: "+JSON.stringify(cs);
     w=wornSet(cs,"Helm",true);if(w.ok||w.reason!=="not carried")return "nothing uncarried is worn";
-    cs.inventory=["Shield"];if(wornPrune(cs)!==1||cs.worn.length)return "prune follows the pack";
-    if(sanitizeModelInventory(["Rope x3","rope x3",7,"Torch"]).join("|")!=="Rope x6|Torch")return "sanitation stacks on arrival";
-    var f=["Dagger","Dagger","Iron ring — unmarked","Iron ring - unmarked"];if(foldDuplicateInventory(f)!==2||f.join("|")!=="Dagger x2|Iron ring — unmarked x2")return "folding heals the stock: "+f.join("|");
+    w=wornSet(cs,"Chainmail",true);if(w.ok||w.reason!=="already worn")return "re-wearing says so";w=wornSet(cs,"Shield",false);if(w.ok||w.reason!=="not worn")return "removing what is not worn says so";
+    if(!removeInventoryItem(cs.inventory,"Chainmail")||cs.inventory.length!==1||isWorn(cs,"Chainmail")||wornPrune(cs)!==0)return "a removed row takes its flag with it; prune has nothing to do";
+    var leg={name:"L",inventory:["Longsword","Cloak"],worn:["Cloak"]};if(!isWorn(leg,"cloak")||isWorn(leg,"Longsword")||invEquippedNames(leg).join("|")!=="Cloak")return "an unhealed legacy sheet still reads its worn list";
+    var sm=sanitizeModelInventory(["Rope x3","rope x3",7,"Torch"]);if(invTextList(sm).join("|")!=="Rope x6|Torch"||typeof sm[0]!=="object")return "sanitation stacks on arrival, as rows: "+JSON.stringify(sm);
+    var f=["Dagger","Dagger","Iron ring — unmarked","Iron ring - unmarked"];if(foldDuplicateInventory(f)!==2||invTextList(f).join("|")!=="Dagger x2|Iron ring — unmarked x2")return "folding heals the stock: "+invTextList(f).join("|");
+    var lit=[{name:"Torch x2",qty:1,equipped:false},{name:"Torch",qty:3,equipped:false}];if(!removeInventoryItem(lit,"Torch x2")||lit.length!==1||lit[0].name!=="Torch"||lit[0].qty!==3)return "a legacy operand tries the LITERAL row first (I3): "+JSON.stringify(lit);
+    if(!removeInventoryItem(lit,"Torch x1")||lit[0].qty!==2)return "then the decoded name";
+    var junk=["Torch",null];if(!addInventoryItem(junk,"Rope")||junk.length!==3||junk[0].name!=="Torch"||junk.indexOf(null)<0||!junk.some(function(x){return x&&x.name==="Rope";}))return "a bare list keeps its junk VERBATIM beside the rows (a bare list cannot file evidence; the sheet heal does) and the write lands: "+JSON.stringify(junk);
+    if(invTextList(junk).join("|")!=="Torch||Rope"||invEntries(junk).length!==2)return "the readers skip the junk as before: "+JSON.stringify(invTextList(junk));
+    var rep=[{name:"Lamp",qty:"3"}];if(addInventoryItem(rep,"Rope")||rep.length!==1||rep[0].qty!=="3")return "an entry that needs REPAIR refuses the write on a bare list (its evidence has nowhere to go) and nothing changes";
+    return true;
+  });
+
+  // ── #599 (c): THE SHAPE FLIP — rows installed at every door, the load a door, worn folded into equipped, save v11
+  //    (DOC/DESIGN_599_inventory_rows.md §5, §8.2 gates 1–5, 7, 9, 14; §12 row c). Each test name is a battery anchor. ──
+  section("#599 (c) the shape flip — rows at every door, the load a door, worn folded into equipped, save v11");
+  function c599World(){makeWorld();var ws=worldState;ws.ver=10;ws.character.inventory=["Longsword","Travel ration x3","Cloak"];ws.character.worn=["Cloak","Longsword"];delete ws.character.sheetVer;
+    ws.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",cls:"Rogue",level:1,hp:8,maxHp:8,stats:{},inventory:["Dagger","dagger","Lute"],worn:["Lute"]}});
+    ws.pendingLegacy={name:"Old Hal",cls:"Warrior",level:4,inventory:["Axe x2"],relationships:[]};
+    ws.mpFallen=[{name:"Wren",sheet:{name:"Wren",cls:"Bard",level:2,hp:6,maxHp:6,stats:{},inventory:["Flute"],worn:["Flute"]},turn:3,cause:"a wolf"}];
+    memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};return ws;}
+  t("#599c the heal: a legacy sheet becomes rows (worn folded into equipped and deleted, junk filed once with its original, sheetVer stamped), a second heal changes nothing, a refusal leaves the sheet untouched and names why, and a door refuses it at the inventoryCheck gate",function(){
+    var s={name:"T",inventory:["Torch x3","Rope",null,"rope",{name:"Lamp",qty:2,slot:"hand"}],worn:["Rope","Ghost"]},h=quiet(function(){return invHealSheet(s);}).r;
+    if(!h.ok||!h.changed||h.filed!==2)return "healed with two pieces of evidence (the null, the uncarried worn name): "+JSON.stringify(h);
+    if(invTextList(s.inventory).join("|")!=="Torch x3|Rope x2|Lamp x2"||s.inventory[1].equipped!==true||s.inventory[2].slot!=="hand"||s.inventory[2].equipped!==false)return "rows: worn folded by key, the unknown field kept: "+JSON.stringify(s.inventory);
+    if(s.worn!==undefined||s.sheetVer!==SHEET_VER)return "the worn list is gone and the sheet is stamped: "+JSON.stringify([s.worn,s.sheetVer]);
+    if(!Array.isArray(s.inventoryJunk)||s.inventoryJunk.length!==2||s.inventoryJunk[0].original!==null||s.inventoryJunk[1].original!=="Ghost")return "the evidence carries each complete original: "+JSON.stringify(s.inventoryJunk);
+    var bytes=JSON.stringify(s),h2=invHealSheet(s);if(!h2.ok||h2.changed||h2.filed||JSON.stringify(s)!==bytes)return "a second heal of fixed input changes nothing and adds no bytes: "+JSON.stringify(h2);
+    s.inventory.push(null);var h3=quiet(function(){return invHealSheet(s);}).r;if(!h3.ok||h3.filed!==0||s.inventoryJunk.length!==2||s.inventory.length!==3)return "evidence already on record is never filed twice (a stale device writing the same junk back): "+JSON.stringify([h3,s.inventoryJunk.length]);
+    var bad={name:"B",inventory:["Torch x10000"],worn:["Torch"]},snap=JSON.stringify(bad),hb=invHealSheet(bad);
+    if(hb.ok||!/above 9999/.test(hb.reason)||JSON.stringify(bad)!==snap)return "a refusal names why and touches nothing: "+JSON.stringify([hb,bad]);
+    var mal={name:"M",inventory:["Torch"],inventoryJunk:"not a list"},hm=invHealSheet(mal);if(hm.ok||!/evidence is malformed/.test(hm.reason)||mal.inventoryJunk!=="not a list")return "malformed evidence refuses instead of being overwritten: "+JSON.stringify(hm);
+    var r=sheetAdmit(bad,{door:"test",mode:"cross",rel:null,toast:false});if(r.ok||r.gate!=="inventoryCheck"||JSON.stringify(bad)!==snap)return "a door refuses at the inventoryCheck gate with the source untouched: "+JSON.stringify(r);
+    var okd=sheetAdmit({name:"D",inventory:["Rope x2"],worn:["Rope"]},{door:"test",mode:"cross",rel:null,toast:false});if(!okd.ok||typeof okd.sheet.inventory[0]!=="object"||okd.sheet.inventory[0].equipped!==true||okd.sheet.worn!==undefined||okd.sheet.sheetVer!==SHEET_VER)return "an admitted copy carries rows, the flag and the stamp: "+JSON.stringify(okd.sheet);
+    return true;
+  });
+  t("#599c the load is a door: a v10 save loads to rows on every sheet (the hero, the roster, the pending legacy, the parked fallen) and is stamped v11 once; one unpreparable sheet leaves every pack and the version as they were, loudly; the checkpoint restore rides the same door",function(){
+    var ws=c599World(),before=JSON.stringify(ws);
+    if(!migrateWorldState())return "the load reported no change";
+    if(ws.ver!==SAVE_VER)return "the world is stamped v"+SAVE_VER+": "+ws.ver;
+    var c=ws.character;if(invTextList(c.inventory).join("|")!=="Longsword|Travel ration x3|Cloak"||!c.inventory[0].equipped||!c.inventory[2].equipped||c.inventory[1].equipped||c.worn!==undefined||c.sheetVer!==SHEET_VER)return "the hero: rows, the two flags, no worn list, the stamp: "+JSON.stringify(c.inventory)+" "+JSON.stringify([c.worn,c.sheetVer]);
+    var b=ws.npcs[0].charSheet;if(invTextList(b.inventory).join("|")!=="Dagger x2|Lute"||!b.inventory[1].equipped||b.worn!==undefined||b.sheetVer!==SHEET_VER)return "the roster sheet: the #50d fold rides the heal, the flag, the stamp: "+JSON.stringify(b.inventory);
+    if(typeof ws.pendingLegacy.inventory[0]!=="object"||ws.pendingLegacy.inventory[0].qty!==2||ws.pendingLegacy.sheetVer!==SHEET_VER)return "the pending legacy character: "+JSON.stringify(ws.pendingLegacy.inventory);
+    var f=ws.mpFallen[0].sheet;if(typeof f.inventory[0]!=="object"||!f.inventory[0].equipped||f.worn!==undefined||f.sheetVer!==SHEET_VER)return "the parked fallen sheet heals too (it rejoins by an internal transfer): "+JSON.stringify(f);
+    if(invEquippedNames(c).join("|")!=="Longsword|Cloak")return "the Wearing line now reads PACK order: "+invEquippedNames(c).join("|");
+    var again=JSON.stringify(ws);migrateWorldState();if(JSON.stringify(ws)!==again)return "a second load changes nothing";
+    /* ALL OR NOTHING: one sheet the heal refuses leaves every pack and the version exactly as they were */
+    ws=c599World();ws.npcs[0].charSheet.inventory=["Dagger x10000"];before=JSON.stringify([ws.ver,ws.character.inventory,ws.character.worn,ws.npcs[0].charSheet.inventory,ws.pendingLegacy.inventory,ws.mpFallen[0].sheet.inventory]);
+    var errs=[],_ce=console.error;console.error=function(m){errs.push(String(m));};var q;try{q=quiet(function(){return migrateWorldState();});}finally{console.error=_ce;}
+    if(JSON.stringify([ws.ver,ws.character.inventory,ws.character.worn,ws.npcs[0].charSheet.inventory,ws.pendingLegacy.inventory,ws.mpFallen[0].sheet.inventory])!==before)return "a refused sheet must leave EVERY pack and the version untouched: "+JSON.stringify([ws.ver,ws.character.inventory]);
+    if(!errs.some(function(x){return /NOT converted/.test(x)&&/above 9999/.test(x);}))return "the refusal is said on the console with the reason: "+JSON.stringify(errs);
+    if(buildSysPrompt().volatile.indexOf("Inventory: Longsword, Travel ration x3, Cloak")<0)return "the readers still serve the legacy strings after a refused load";
+    /* the checkpoint restore: a camp taken before the row form */
+    ws=c599World();ws.ver=SAVE_VER;var camp=JSON.parse(JSON.stringify(ws));camp.character.inventory=["Rope x2","Hat"];camp.character.worn=["Hat"];camp.ver=10;delete camp.mpFallen;
+    var res=checkpointRestore({v:1,ws:JSON.stringify(camp),sl:"[]",mem:JSON.stringify(blankMemory()),turn:2,reason:"rest",at:0,location:"camp"},{cause:"test"});
+    if(!res.ok)return "the restore landed: "+JSON.stringify(res);
+    c=worldState.character;if(typeof c.inventory[0]!=="object"||invTextList(c.inventory).join("|")!=="Rope x2|Hat"||!c.inventory[1].equipped||c.worn!==undefined||worldState.ver!==SAVE_VER)return "the restored world's sheets are rows at v"+SAVE_VER+": "+JSON.stringify([c.inventory,c.worn,worldState.ver]);
+    var st=__fsForTests.readFileSync(__rootForTests+"/state.js","utf8"),sa=__fsForTests.readFileSync(__rootForTests+"/storage-adapter.js","utf8"),mc=__fsForTests.readFileSync(__rootForTests+"/map_cleanup.html","utf8"),cap=__fsForTests.readFileSync(__rootForTests+"/dev/capture-prompt.js","utf8");
+    if(st.indexOf('inventoryAdmitWorld(worldState,"load")')<0||st.indexOf('inventoryAdmitWorld(worldState,"checkpoint restore")')<0)return "state.js runs the door at the load and at the restore";
+    if(st.indexOf("migrateWorldState();/* relationship re-keying")<0||sa.indexOf("migrateWorldState();")<0||mc.indexOf("migrateWorldState();")<0)return "the .tnd import, the cloud pull and map cleanup still ride migrateWorldState (the door inside it)";
+    if(cap.indexOf('inventoryAdmitWorld(worldState,"capture")')<0)return "the prompt capture prepares the packs through the same door (gate 8)";
+    return true;
+  });
+  t("#599c gate 3, the handlers over rows: gains and losses with counts, a lost item loses its flag, a rename keeps it, a REFUSED rename moves nothing (#606), WORN still lands, the give pair keeps its per-unit meaning",function(){
+    makeWorld();var c=worldState.character;c.inventory=["Torch","Chainmail"];
+    worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    var r=applyMuts("[WORN:Tess|Chainmail|on][ITEM_GAINED:Arrow x12]");
+    if(typeof c.inventory[0]!=="object"||invTextList(c.inventory).join("|")!=="Torch|Chainmail|Arrow x12"||!c.inventory[1].equipped||c.worn!==undefined)return "the first write prepares the pack as rows; WORN sets the flag: "+JSON.stringify(c.inventory);
+    if(!r.muts.some(function(m){return /Tess wears Chainmail/.test(m);}))return "the WORN receipt: "+JSON.stringify(r.muts);
+    applyMuts("[ITEM_LOST:Arrow x5]");if(c.inventory[2].qty!==7)return "a counted loss: "+JSON.stringify(c.inventory[2]);
+    applyMuts("[ITEM_RENAMED:Chainmail|Mail of the Deep]");if(c.inventory[1].name!=="Mail of the Deep"||!c.inventory[1].equipped)return "a rename keeps the row and its flag: "+JSON.stringify(c.inventory[1]);
+    var q=quiet(function(){return applyMuts("[ITEM_RENAMED:Mail of the Deep|Torch]");});if(c.inventory[1].name!=="Mail of the Deep"||!c.inventory[1].equipped||!q.r.muts.some(function(m){return /already on the sheet/.test(m);}))return "a REFUSED rename moves nothing — the flag stays where it was (#606): "+JSON.stringify(c.inventory);
+    applyMuts("[ITEM_LOST:Mail of the Deep]");if(c.inventory.length!==2||invEquippedNames(c).length)return "a lost item takes its flag with it: "+JSON.stringify(c.inventory);
+    r=applyMuts("[ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Bram|Torch]");var b=findCompanionChar("Bram");
+    if(invTextList(c.inventory).join("|")!=="Arrow x7"||invTextList(b.inventory).join("|")!=="Torch"||typeof b.inventory[0]!=="object")return "the give pair moves one unit, as rows, on both sheets: "+JSON.stringify([c.inventory,b.inventory]);
+    applyMuts("[WORN:Bram|Torch|on]");if(!b.inventory[0].equipped||!isWorn(b,"torch"))return "a companion's WORN lands on its row";
+    var w=quiet(function(){return applyMuts("[WORN:Tess|Helm|on]");});if(invEquippedNames(c).length||!w.warns.some(function(x){return /not in Tess/.test(x);}))return "nothing uncarried is worn, loudly: "+JSON.stringify(w.warns);
+    return true;
+  });
+  t("#599c gate 14, copy ownership: the ledger precheck and the #510 sale precheck read DETACHED copies — a refused trade leaves the live rows exactly as they were; the Sync diff's before-copy reads the before",function(){
+    makeWorld();var c=worldState.character;c.inventory=["Rope x3","Hat"];invHealSheet(c);var live=c.inventory[0];
+    var r=ledgerApply({netCp:0,lines:[{kind:"sell",name:"Rope",qty:5}]},{key:null});
+    if(r.ok||!/only 3 of Rope x5/.test(r.reason))return "a short sale refuses whole: "+JSON.stringify(r);
+    if(c.inventory[0]!==live||live.qty!==3||c.inventory.length!==2)return "the LIVE row was decremented through a shared copy (gate 14): "+JSON.stringify(c.inventory);
+    shopFixture();c=worldState.character;invHealSheet(c);var rope=c.inventory.filter(function(x){return x.name==="Rope";})[0],coin=c.coin;
+    var q=quiet(function(){return applyMuts("[GOLD:+5][ITEM_LOST:Rope x9]");});
+    if(!q.r.muts.some(function(m){return /Sale withheld/.test(m);}))return "the #510 whole-sale check withholds: "+JSON.stringify(q.r.muts);
+    if(rope.qty!==3||c.inventory.indexOf(rope)<0||c.coin!==coin)return "the withheld sale's check ran on a DETACHED copy — the live row still holds three: "+JSON.stringify([rope,c.coin,coin]);
+    var before=invSnapshot(c.inventory);rope.qty=1;var d=invDiffLines(before,c.inventory);if(d.join("|")!=="−Rope x2")return "the before-copy is detached, so the diff sees the change: "+JSON.stringify(d);
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(!/var invBefore=\{player:invSnapshot\(worldState\.character\.inventory\)\};/.test(g))return "syncCharSheet's before-copies are detached (invSnapshot)";
+    return true;
+  });
+  t("#599c the Wearing line reads the equipped rows in PACK order on a healed sheet and the worn list on a legacy one — the only prompt difference (c) allows (gate 8); the portrait prompt's join is byte-identical",function(){
+    var leg={name:"L",inventory:["Shield","Chainmail","Ring"],worn:["Ring","Chainmail"],outfit:null};
+    if(attireLine(leg)!=="Wearing: Ring, Chainmail")return "a legacy sheet reads its worn list in donning order: "+attireLine(leg);
+    invHealSheet(leg);if(attireLine(leg)!=="Wearing: Chainmail, Ring")return "a healed sheet reads pack order: "+attireLine(leg);
+    if(attireRenderText(leg)!=="currently wearing: Chainmail, Ring")return "the render text agrees: "+attireRenderText(leg);
+    if(attireLine({name:"N",inventory:["Hat"]})!=="")return "nothing on, no outfit: no line";
+    var mixed={name:"M",inventory:[{name:"Boots",qty:1,equipped:true},"Cloak"],worn:["Cloak","Boots"]};if(invEquippedNames(mixed).join("|")!=="Boots|Cloak")return "a mixed sheet (a stale device wrote beside the rows) reads both, never twice: "+invEquippedNames(mixed).join("|");
+    if(invTextList(["Leather armor","Twin daggers"]).join(", ")!=="Leather armor, Twin daggers")return "strings print verbatim";
+    return true;
+  });
+  t("#599c the Sync modal's lines map back onto the SOURCE rows: an unchanged line keeps its row and flag, an edited count keeps the row, a new line is a new row, an emptied box clears, two rows that print alike refuse the edit with both names and the pack stays",function(){
+    var rows=invRows([{name:"Torch",qty:3,equipped:true,slot:"hand"},{name:"Rope",qty:1,equipped:false},{name:"Hat",qty:1,equipped:true}]).rows;
+    var a=invApplyLines(rows,["Torch x3","Rope","Hat"]);if(!a.ok||!invDeepEqual(a.rows,rows))return "unchanged lines keep every row exactly: "+JSON.stringify(a);
+    var b=invApplyLines(rows,["Torch x5","Rope","Hat"]);if(!b.ok||b.rows[0].qty!==5||b.rows[0].equipped!==true||b.rows[0].slot!=="hand")return "an edited count keeps the row, its flag and its fields: "+JSON.stringify(b.rows[0]);
+    var c=invApplyLines(rows,["Torch x3","Hat","Lantern x2"]);if(!c.ok||c.rows.length!==3||c.rows[2].name!=="Lantern"||c.rows[2].qty!==2||c.rows[2].equipped!==false||c.rows.some(function(r){return r.name==="Rope";}))return "a dropped line drops its row, a new line is a new row: "+JSON.stringify(c.rows);
+    var d=invApplyLines(rows,[]);if(!d.ok||d.rows.length)return "an emptied box clears the pack";
+    var e=invApplyLines(rows,["torch x2","Rope","Hat"]);if(!e.ok||e.rows[0].name!=="torch"||e.rows[0].qty!==2||e.rows[0].equipped!==true||e.rows[0].slot!=="hand")return "a respelled line still names its row by key and keeps the flag: "+JSON.stringify(e.rows[0]);
+    var alike=invRows([{name:"Torch x2",qty:1,equipped:false},{name:"Torch",qty:2,equipped:true}]).rows,snap=JSON.stringify(alike),f=invApplyLines(alike,["Torch x2"]);
+    if(f.ok||!/print alike/.test(f.reason)||!/Torch x2 ×1/.test(f.reason)||!/Torch ×2/.test(f.reason)||JSON.stringify(alike)!==snap)return "two rows that print alike refuse the edit, naming both, and the source stays: "+JSON.stringify(f);
+    var g=invApplyLines(rows,["Torch x3","Rope","Hat","Torch x10000"]);if(g.ok||!/above 9999/.test(g.reason))return "a line over the bound refuses whole";
+    var um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");if(um.indexOf("var _ia=invApplyLines(c2.inventory,invFromLines(rawInv)),inv2=_ia.ok?_ia.rows:null;")<0||um.indexOf("if(inv2)c2.inventory=inv2;")<0)return "the Sync modal applies its lines through invApplyLines and keeps the pack on a refusal";
+    return true;
+  });
+  t("#599c the delete marks name their row by KEY: a mark survives a splice, a respelled name still finds its row, two marks never claim one row, and the sheet hands the entry's NAME to the mark",function(){
+    var inv=invRows(["Torch x2","Rope","Hat"]).rows;
+    if(invMarkResolve(inv,1,"rope")!==1||invMarkResolve(inv,0,"Torch")!==0)return "a mark resolves by key, never by the whole entry";
+    inv.splice(0,1);if(invMarkResolve(inv,1,"Rope")!==0)return "after a splice the name finds its row at the new index: "+invMarkResolve(inv,1,"Rope");
+    var plan=invDropPlan(inv,{"1|Rope":true,"0|ropes":true,"5|Hat":true});if(plan.count!==2||plan.drop.map(function(d){return d.idx;}).join()!=="0,1"||plan.stale.join()!=="ropes")return "two marks for one row claim it once (the second is stale); a moved row is found by name: "+JSON.stringify(plan);
+    var us=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8");if(us.indexOf("invDropToggle(_invDropMarksFor(owner),at,invEntryName(cs.inventory,at))")<0||us.indexOf('data-name="\'+escHtml(invEntryName(c.inventory,_row.sourceIndex))')<0)return "the sheet marks by the entry's NAME (invEntryName), never its text";
+    if(invEntryName(["Torch x3",{name:"Rope x2",qty:1}],0)!=="Torch"||invEntryName(["Torch x3",{name:"Rope x2",qty:1}],1)!=="Rope x2")return "invEntryName decodes a string and keeps a row's name literal";
+    return true;
+  });
+  t("#599c the model faucets and the starting kit arrive as rows: sanitizeModelInventory, normalizeCompanionSheet and the new-game hero's kit (two first-aid kits fold to one row of two, 'Short blades x2' is two blades)",function(){
+    var sm=sanitizeModelInventory(["Rope x3",7,null,"Rope x3","Torch",{nm:"bad"},"torch"]);if(invTextList(sm).join("|")!=="Rope x6|Torch x2"||!sm.every(function(r){return typeof r==="object"&&r.equipped===false;}))return "the faucet stacks on arrival as rows: "+JSON.stringify(sm);
+    makeWorld();var s=normalizeCompanionSheet({inventory:["Lockpicks","Lockpicks","Shortbow"]},"Frizwick");if(!s||typeof s.inventory[0]!=="object"||invTextList(s.inventory).join("|")!=="Lockpicks x2|Shortbow")return "the recruit faucet: "+JSON.stringify(s&&s.inventory);
+    var kit={name:"Kit",cls:"Rogue",inventory:["Short blades x2","Leather armor","first aid kit","First aid kit"],stats:{},relationships:[]};
+    var ad=sheetAdmit(kit,{door:"new game hero",mode:"cross",detach:false,rel:null,typed:true,toast:false});
+    if(!ad.ok||invTextList(kit.inventory).join("|")!=="Short blades x2|Leather armor|first aid kit x2"||kit.inventory[0].qty!==2||kit.inventory[2].qty!==2)return "the kit through the hero's door: "+JSON.stringify(kit.inventory);
+    return true;
+  });
+  t("#599c gate 7: the census tool heals a fixture save through the ENGINE and judges it by its own oracle — a worn item is equipped, a mixed sheet FAILS coverage (never skipped into OK)",function(){
+    var os=__osForTests,fs=__fsForTests,cp=__cpForTests,base=fs.mkdtempSync(os.tmpdir()+"/tnd-599c-census-"),out="";
+    try{
+      fs.mkdirSync(base+"/a");fs.writeFileSync(base+"/a/f.tnd",JSON.stringify({worldState:{character:{name:"F",inventory:["Shield","Torch x2"],worn:["Torch"]},npcs:[]}}));
+      var r=cp.spawnSync(process.execPath,[__rootForTests+"/dev/census-inventory-rows.js",base+"/a","--all"],{cwd:__rootForTests,encoding:"utf8"});out=String(r.stdout)+String(r.stderr);
+      if(r.status!==0||out.indexOf("CENSUS OK")<0||out.indexOf("equipped sheets 1 (1 names)")<0)return "a legacy sheet with a worn item passes with its flag counted: "+out.split("\n").filter(function(l){return !/^\[/.test(l);}).join(" / ");
+      fs.mkdirSync(base+"/b");fs.writeFileSync(base+"/b/f.tnd",JSON.stringify({worldState:{character:{name:"F",inventory:["Shield",{name:"Torch",qty:2,equipped:false}]},npcs:[]}}));
+      r=cp.spawnSync(process.execPath,[__rootForTests+"/dev/census-inventory-rows.js",base+"/b","--all"],{cwd:__rootForTests,encoding:"utf8"});out=String(r.stdout)+String(r.stderr);
+      if(r.status!==1||out.indexOf("CENSUS FAILED")<0||out.indexOf("mixed or unreadable")<0)return "a mixed sheet fails coverage: "+out.split("\n").filter(function(l){return !/^\[/.test(l);}).join(" / ");
+      return true;
+    }finally{try{fs.rmSync(base,{recursive:true,force:true});}catch(e){}}
+  });
+  t("#599c the satellites: the character editor's inventory is a ROW editor (name, count, equipped) over the module's heal, its envelope writes SAVE_VER; map cleanup loads the registry; the home samples stay strings and heal on adoption",function(){
+    var ce=__fsForTests.readFileSync(__rootForTests+"/character_editor.html","utf8");
+    if(ce.indexOf('{k:"inventory",title:"Inventory",cols:[{k:"name",')<0||ce.indexOf('{k:"qty",l:"Count",t:"num"')<0||ce.indexOf('{k:"equipped",l:"Equipped",t:"bool"')<0)return "the LISTS inventory entry is a row editor";
+    if(ce.indexOf("var _ih=invHealSheet(c);if(!_ih.ok)")<0)return "healChar runs the module's heal (and says a refusal)";
+    if(ce.indexOf('return {ver:SAVE_VER,type:"character",character:ch};')<0)return "the .char envelope writes SAVE_VER";
+    if(ce.indexOf("Inventory row ")<0)return "validate() checks the rows (a name, a whole count in range)";
+    var mc=__fsForTests.readFileSync(__rootForTests+"/map_cleanup.html","utf8");if(mc.indexOf('<script src="admission.js"></script>')<0)return "map cleanup loads admission.js (its migrateWorldState runs the load door)";
+    var cat=JSON.parse(__fsForTests.readFileSync(__rootForTests+"/samples/characters/catalog.json","utf8")),i;
+    for(i=0;i<cat.length;i++){var w=JSON.parse(__fsForTests.readFileSync(__rootForTests+"/samples/characters/"+cat[i].file,"utf8")),sh=JSON.parse(JSON.stringify(w.character));
+      if(!Array.isArray(sh.inventory)||!sh.inventory.every(function(x){return typeof x==="string";}))return cat[i].file+" keeps a string inventory (the heal converts it on adoption)";
+      var ad=sheetAdmit(sh,{door:"quick start",mode:"cross",stage:"preview",rel:null,toast:false});if(!ad.ok||!ad.sheet.inventory.every(function(x){return typeof x==="object";}))return cat[i].file+" heals to rows on adoption: "+JSON.stringify(ad.reason);}
+    return true;
+  });
+  t("#599c what this build stamps: SAVE_VER and SHEET_VER are 11; a new world, a portable sheet and a healed sheet say so; the version gate refuses 12 and passes 10",function(){
+    if(SAVE_VER!==11||SHEET_VER!==11)return "the (c) shape is v11: "+SAVE_VER+"/"+SHEET_VER;
+    if(portableSheet({name:"P",inventory:["Rope"]}).sheetVer!==11)return "portableSheet stamps 11";
+    if(worldVersionIssue({ver:12,character:{name:"x"}})===""||worldVersionIssue({ver:10,character:{name:"x",inventory:["Rope"]}})!==""||sheetVersionIssue({name:"s",sheetVer:12})===""||sheetVersionIssue({name:"s",sheetVer:11})!=="")return "the gate refuses 12 and passes 10 and 11";
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(g.indexOf("worldState={ver:SAVE_VER,")<0)return "startGame stamps SAVE_VER";
+    if(worldSheetsOf({character:{name:"h"},npcs:[{name:"n",charSheet:{name:"n"}},{name:"bare"}],pendingLegacy:{name:"p"},mpFallen:[{name:"f",sheet:{name:"f"}}]}).map(function(x){return x.who;}).join("|")!=="hero|roster n|pending legacy p|fallen f")return "worldSheetsOf walks every sheet a world carries";
+    return true;
+  });
+  t("#599c the place writer takes the unit count as an ARGUMENT (the ledger, the undo): a literal name ending in ' x2' stows as that item, never as two",function(){
+    villageEF();villageHouseEnsure("Silas",null);var k=villageHouseKey("Silas");
+    var r=fileLocationItem("Torch x2","placed",worldState.turn,null,null,{key:k,units:1});if(!r.ok)return "filed: "+JSON.stringify(r);
+    var row=memory.map.nodes[k].items.filter(function(it){return it.name==="Torch x2";})[0];if(!row||row.qty!==1)return "the literal name is the row's name and the argument is its count: "+JSON.stringify(memory.map.nodes[k].items);
+    var r2=fileLocationItem("Rope","placed",worldState.turn,null,null,{key:k,units:3});var row2=memory.map.nodes[k].items.filter(function(it){return it.name==="Rope";})[0];if(!r2.ok||!row2||row2.qty!==3)return "three units by argument: "+JSON.stringify(row2);
+    var r3=fileLocationItem("Lamp x2","placed",worldState.turn,null,null,{key:k});var row3=memory.map.nodes[k].items.filter(function(it){return it.name==="Lamp";})[0];if(!r3.ok||!row3||row3.qty!==2)return "a TAG still parses its count: "+JSON.stringify(row3);
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(g.indexOf('fileLocationItem(ln.name,"placed",R.turn,null,null,{key:key,units:n})')<0||g.indexOf('fileLocationItem(e.name,"taken",worldState.turn,null,null,{key:e.key,units:e.units})')<0)return "the ledger and the undo pass the count as an argument";
     return true;
   });
 
@@ -31508,13 +31679,13 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
   });
   t("#599b3 a rename resolves through the one resolver: the exact key, then a UNIQUE provenance-free base; two bases for one name refuse LOUDLY, naming both, and nothing is relabelled; the collision refusal stands",function(){
     var inv=["Signet ring (from Sheriff Hemlock) x2","Rope (spare)","Rope (coil)","Torch"],R={muts:[]};
-    if(!quiet(function(){return renameInventoryItem(inv,"Signet ring","Sheriff's signet",R);}).r||inv[0]!=="Sheriff's signet x2")return "a unique base renames and keeps the stack: "+inv.join("|");
-    var snap=inv.join("|");R={muts:[]};var q=quiet(function(){return renameInventoryItem(inv,"Rope","Cord",R);});
-    if(q.r!==false||inv.join("|")!==snap)return "two bases for 'Rope' refuse and relabel nothing: "+inv.join("|");
+    if(!quiet(function(){return renameInventoryItem(inv,"Signet ring","Sheriff's signet",R);}).r||invTextList(inv)[0]!=="Sheriff's signet x2")return "a unique base renames and keeps the stack: "+invTextList(inv).join("|");/* (c): the list is rows after the first write; the text projection is what the old strings were */
+    var snap=invTextList(inv).join("|");R={muts:[]};var q=quiet(function(){return renameInventoryItem(inv,"Rope","Cord",R);});
+    if(q.r!==false||invTextList(inv).join("|")!==snap)return "two bases for 'Rope' refuse and relabel nothing: "+inv.join("|");
     if(!R.muts.some(function(m){return /matches 2 items/.test(m)&&/Rope \(spare\), Rope \(coil\)/.test(m);})||!q.warns.some(function(w){return /matches 2 items/.test(w);}))return "the refusal names both candidates on the receipt and the console: "+JSON.stringify([R.muts,q.warns]);
-    R={muts:[]};if(!quiet(function(){return renameInventoryItem(inv,"TORCH","Lantern",R);}).r||inv[3]!=="Lantern")return "the exact key is case-blind: "+inv.join("|");
+    R={muts:[]};if(!quiet(function(){return renameInventoryItem(inv,"TORCH","Lantern",R);}).r||invTextList(inv)[3]!=="Lantern")return "the exact key is case-blind: "+invTextList(inv).join("|");
     R={muts:[]};q=quiet(function(){return renameInventoryItem(inv,"Lantern","Rope (spare)",R);});
-    return (q.r===false&&inv[3]==="Lantern"&&R.muts.some(function(m){return /already on the sheet/.test(m);}))?true:"a relabel onto an existing entry still refuses: "+JSON.stringify([inv,R.muts]);
+    return (q.r===false&&invTextList(inv)[3]==="Lantern"&&R.muts.some(function(m){return /already on the sheet/.test(m);}))?true:"a relabel onto an existing entry still refuses: "+JSON.stringify([invTextList(inv),R.muts]);
   });
   t("#599b3 the want match is provenance-free and plural/dash-blind: the counter folds 'Wolf pelts' and 'Wolf pelt' into ONE row (first spelling, units summed) that meets the keeper's want for 'Wolf pelt' at the stated offer, 'Rope (spare)' and 'Rope' stay two rows, and selling the plural retires the singular want",function(){
     shopFixture();worldState.character.inventory=["Wolf pelts","Wolf pelt","Rope (spare)","Rope","Bone-handled knife"];
