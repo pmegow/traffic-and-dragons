@@ -120,13 +120,13 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 .psb{padding:0 10px 10px;display:flex;flex-direction:column;gap:4px}.pss.col .psb{display:none}
 .ii{font-size:11px;color:var(--t1);padding:5px 7px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ii.gear{border-color:var(--blue);color:var(--acc)}
-.ii.eqp,.inv-name.eqp{color:var(--t0)}.inv-eqp{color:var(--acc);font-size:9px;margin-right:1px;vertical-align:1px}/* #599 (d) §3.5: the equipped mark — the glyph in the accent, the name in the bright tone (after .ii.gear so an equipped weapon reads in --t0); unequipped rows keep --t1; the word lives in the tooltip and the aria-label */
-/* #157: inventory category headings — side panel (.inv-cat, collapsible) + sheets (.cs-inv-cat).
+.ii.eqp,.inv-name.eqp{color:var(--t0)}.inv-eqp{color:var(--acc);font-size:9px;margin-right:1px;vertical-align:1px}.inv-eqp-word{color:var(--t2);font-size:10px}/* #599 (d) §3.5: the equipped mark — the glyph in the accent, the name in the bright tone (after .ii.gear so an equipped weapon reads in --t0); unequipped rows keep --t1; the word lives in the tooltip and the aria-label */
+/* #157: inventory category headings — side panel (.inv-cat, collapsible) + sheets (.cs-inv-cat). Owner's call 2026-10-10: half again as large (10 → 15, 10.5 → 16) — they were getting lost under the sorted lists.
    Unclassified (.unc) is a restrained warning tint: missing knowledge, not an error state. */
-.inv-cat{margin:7px 0 2px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--acc);cursor:pointer;border-bottom:1px solid var(--brd);padding-bottom:2px;user-select:none}
+.inv-cat{margin:7px 0 2px;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:var(--acc);cursor:pointer;border-bottom:1px solid var(--brd);padding-bottom:2px;user-select:none}
 .inv-cat.unc{color:#c8763a}
 .inv-cat-n{color:var(--t2);font-weight:normal}
-.cs-inv-cat{margin:9px 0 3px;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--acc);border-bottom:1px solid var(--brd);padding-bottom:2px}
+.cs-inv-cat{margin:9px 0 3px;font-size:16px;letter-spacing:1px;text-transform:uppercase;color:var(--acc);border-bottom:1px solid var(--brd);padding-bottom:2px}
 .cs-inv-cat.unc{color:#c8763a}
 .ai{font-size:11px;padding:5px 7px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r)}.ai.nw{border-color:var(--blue)}.ai.act:hover{border-color:var(--acc)}
 .an{font-weight:bold;font-size:11px;color:var(--t0);display:block}.ad{font-size:10px;color:var(--t2);margin-top:2px;display:block;line-height:1.4}

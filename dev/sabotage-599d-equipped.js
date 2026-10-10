@@ -78,6 +78,9 @@ prove("ui-panels.js", [
   { label: "the panel drops the .eqp class (an equipped name stays dim)",
     find: "+(eqp?' eqp':'')+'\" data-item=\"'+escHtml(row.text)", replace: "+'\" data-item=\"'+escHtml(row.text)",
     mustFail: MARK },
+  { label: "the panel drops the small (equipped) word after the name (owner 2026-10-10)",
+    find: "+invItemHtml(row.name,row.qty)+(eqp?invEquippedTailHtml():'')+'</div>'", replace: "+invItemHtml(row.name,row.qty)+'</div>'",
+    mustFail: "#599d3" },
   { label: "the panel's tooltip loses the word",
     find: "+(eqp?\"\\n\"+INV_EQUIPPED_WORD:\"\"))+'\">'", replace: ")+'\">'",
     mustFail: MARK }
@@ -91,6 +94,9 @@ prove("ui-sheets.js", [
     mustFail: MARK }
 ]);
 prove("index.html", [
+  { label: "the sheet's category headings shrink back to the size that got lost (owner 2026-10-10)",
+    find: ".cs-inv-cat{margin:9px 0 3px;font-size:16px;", replace: ".cs-inv-cat{margin:9px 0 3px;font-size:10.5px;",
+    mustFail: "#599d3" },
   { label: "the equipped name loses its bright tone",
     find: ".ii.eqp,.inv-name.eqp{color:var(--t0)}", replace: ".ii.eqp,.inv-name.eqp{color:var(--t1)}",
     mustFail: MARK },

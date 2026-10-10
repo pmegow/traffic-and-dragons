@@ -326,7 +326,7 @@ function updateInvPanel(){
       /* #295: every item row opens the item-bible click-card (showItemCard, ui-sheets) — same
          canon as the hover tooltip, readable on touch where title-tooltips need a long-press. */
       var eqp=!!row.equipped;/* #599 (d) §3.5: the ◆ mark before the name, the name lifted by .eqp, the word in the tooltip; (d2) review 5: decided by groupInventory for both shapes */
-      h+='<div class="ii has-tip'+(gear?' gear':'')+(eqp?' eqp':'')+'" data-item="'+escHtml(row.text)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;" title="'+escHtml(itemTip(row.text)+_invTipCats(row,grp.id)+(eqp?"\n"+INV_EQUIPPED_WORD:""))+'">'+(eqp?invEquippedMarkHtml():'')+invItemHtml(row.name,row.qty)+'</div>';/* #388: no pill (the no-borders rule); #599 (c): the badge and the mark read the ROW (name, qty, flag) */
+      h+='<div class="ii has-tip'+(gear?' gear':'')+(eqp?' eqp':'')+'" data-item="'+escHtml(row.text)+'" onclick="showItemCard(this.dataset.item)" style="cursor:pointer;" title="'+escHtml(itemTip(row.text)+_invTipCats(row,grp.id)+(eqp?"\n"+INV_EQUIPPED_WORD:""))+'">'+(eqp?invEquippedMarkHtml():'')+invItemHtml(row.name,row.qty)+(eqp?invEquippedTailHtml():'')+'</div>';/* #388: no pill (the no-borders rule); #599 (c): the badge and the mark read the ROW (name, qty, flag) */
     }
   }
   /* #6 E8 → #431 (owner 2026-09-21): the "Your house" item group left this panel — what lies at the current node now

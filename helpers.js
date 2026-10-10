@@ -2019,6 +2019,9 @@ function itemInvCategories(entry){
    keep --t1; the word lives only in the tooltip and the screen-reader text (no pill, no border, no new colour). Pure. */
 var INV_EQUIPPED_GLYPH="◆",INV_EQUIPPED_WORD="Equipped";
 function invEquippedMarkHtml(){return '<span class="inv-eqp" role="img" aria-label="'+INV_EQUIPPED_WORD.toLowerCase()+'" title="'+INV_EQUIPPED_WORD+'">'+INV_EQUIPPED_GLYPH+'</span> ';}
+/* owner's call 2026-10-10 (seen on the sheet): the small word stays AFTER the name too — "◆ Chainmail (equipped)" in the dim small
+   text the old "· worn" used — so the mark reads at a glance without the tooltip. The same ONE renderer serves both shells. */
+function invEquippedTailHtml(){return ' <span class="inv-eqp-word" aria-hidden="true">('+INV_EQUIPPED_WORD.toLowerCase()+')</span>';}
 // ── #157: exact alias index (Sol §3.6 — never substring, never stemming, never inference) ──
 // One collision-checked map alias→canonical over the static bible + campaign overlay. Cached;
 // the memo key is the two stores' entry counts (overlay entries are write-once, the static

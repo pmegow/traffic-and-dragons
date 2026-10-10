@@ -32138,4 +32138,16 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
 
+  section("#599 (d3) the owner's calls of 2026-10-10 on the (d) display — the small (equipped) word after the name beside the ◆, the category headings half again as large");
+  t("#599d3 the small word returns: invEquippedTailHtml() is the ONE dim '(equipped)' after the name; both shells append it after invItemHtml only on an equipped row; the mark before the name is unchanged; the panel heading is 15px and the sheet heading 16px",function(){
+    var tail=invEquippedTailHtml();if(tail.indexOf("(equipped)")<0||tail.indexOf('class="inv-eqp-word"')<0||tail.indexOf('aria-hidden="true"')<0)return "the tail: "+tail;
+    if(invEquippedMarkHtml().indexOf("◆")<0)return "the mark before the name stays";
+    var fs=__fsForTests,R=__rootForTests,p=fs.readFileSync(R+"/ui-panels.js","utf8"),s=fs.readFileSync(R+"/ui-sheets.js","utf8"),x=fs.readFileSync(R+"/index.html","utf8");
+    if(p.indexOf("+(eqp?invEquippedMarkHtml():'')+invItemHtml(row.name,row.qty)+(eqp?invEquippedTailHtml():'')+'</div>'")<0)return "the panel: mark, name, then the word";
+    if(s.indexOf("+(_eqp?invEquippedMarkHtml():'')+invItemHtml(_row.name,_row.qty)+(_eqp?invEquippedTailHtml():'')+'</span>")<0)return "the sheet: mark, name, then the word";
+    if(x.indexOf(".inv-eqp-word{color:var(--t2);font-size:10px}")<0)return "the word is the old dim small text";
+    if(x.indexOf(".cs-inv-cat{margin:9px 0 3px;font-size:16px;")<0||x.indexOf(".inv-cat{margin:7px 0 2px;font-size:15px;")<0)return "the headings grew by half (10.5 → 16, 10 → 15)";
+    return true;
+  });
+
 }
