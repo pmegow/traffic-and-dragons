@@ -13,8 +13,12 @@
  #hud-cls{font-size:10px}
  #hud-stats{flex:0 0 100%!important;flex-wrap:nowrap!important;justify-content:center;font-size:11px!important;gap:12px!important;white-space:nowrap}
  #hud-btns{position:absolute;right:11px;top:max(7px,env(safe-area-inset-top,0px));gap:0!important}
- #hud-btns>button,#file-btn,#hud-ways,#hud-ways-more{display:none!important}
- #mobile-file{display:block;width:49px;height:24px;font-size:10px!important;padding:0 2px}
+ #hud-btns>button,#hud-ways,#hud-ways-more{display:none!important}
+ #file-btn{display:block;width:49px;height:24px;font-size:10px!important;padding:0 2px;border-radius:6px}
+ /* Reuse the generated menu and its tap-to-expand groups; constrain the whole dropdown. */
+ #file-menu{width:min(280px,calc(100vw - 22px));max-height:calc(100dvh - 60px);overflow-y:auto;overscroll-behavior:contain}
+ #file-menu .fm-sub{margin-left:10px;border-left:1px solid var(--brd2)}
+ #file-menu button,#file-menu label{min-height:36px;white-space:normal}
  #mobile-place{display:block;width:100%;min-width:0;border-top:1px solid var(--brd);padding-top:6px;font-size:11px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  #mobile-ways{display:block;width:100%;height:28px;padding:0 9px;font-size:12px!important}
  .mobile-select{background:var(--bg2);color:var(--t1);border:1px solid var(--brd);border-radius:6px;font-family:var(--font);min-width:0}

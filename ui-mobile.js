@@ -41,39 +41,10 @@ function mobileRenderStatus(act,day){
   mobileEl("mobile-clock").textContent=day.replace(/^\s*\|\s*/,"");mobileEl("mobile-version").textContent=APP_VERSION;
   mobileEl("hud-cls").title=mobileEl("hud-cls").textContent;
 }
-// Native File options are projected from buildFileMenus' ONE generated menu. Invoke its existing
-// controls, including checkbox/file-input handlers, rather than maintaining a second action list.
-function mobileRenderFile(){
-  if(!mobileUI.ready)return;
-  var sel=mobileEl("mobile-file"),menu=mobileEl("file-menu"),targets=[];sel.innerHTML="";sel.appendChild(new Option("File",""));
-  function walk(host,prefix){Array.prototype.forEach.call(host.children,function(el){
-    if(el.classList.contains("fm-dev-only")&&getComputedStyle(el).display==="none")return;
-    if(el.classList.contains("fm-subwrap")){var title=el.firstElementChild.textContent.replace(/▶/g,"").trim();walk(el.lastElementChild,prefix+title+" / ");return;}
-    var tag=el.tagName,input=tag==="LABEL"?el.querySelector("input"):null;
-    if(tag==="BUTTON"||input||tag==="INPUT"){
-      if(el.style.display==="none"&&!el.classList.contains("fm-mobile-only"))return;
-      var target=input||el;if(tag==="INPUT"&&target.type==="checkbox")return;
-      var label=input?el.textContent.trim():tag==="INPUT"?(el.parentNode.textContent.trim()):el.textContent.trim();
-      var option=new Option(prefix+(target.type==="checkbox"?(target.checked?"✓ ":"○ "):"")+label,String(targets.length));
-      option.disabled=!!target.disabled||el.style.pointerEvents==="none";targets.push(target);sel.appendChild(option);return;
-    }
-    if(tag!=="LABEL"&&el.id!=="fm-version"&&el.style.display!=="none")walk(el,prefix);
-  });}
-  walk(menu,"");
-  sel.onchange=function(){if(sel.value==="")return;var target=targets[Number(sel.value)];sel.value="";closeAllMenus();
-    if(target.type==="range"||target.type==="number"){
-      var modal=modalShell("mobile-setting-modal","<label id='mobile-setting-label'></label><div style='margin:16px 0' id='mobile-setting-control'></div><button class='ib' id='mobile-setting-close'>Done</button>",{closeId:"mobile-setting-close",outside:true});
-      modal.querySelector("#mobile-setting-label").textContent=target.parentNode.textContent.trim();var copy=target.cloneNode();copy.removeAttribute("id");copy.value=target.value;copy.addEventListener("input",function(){target.value=copy.value;target.dispatchEvent(new Event("input",{bubbles:true}));});copy.addEventListener("change",function(){target.value=copy.value;target.dispatchEvent(new Event("change",{bubbles:true}));});modal.querySelector("#mobile-setting-control").appendChild(copy);copy.focus();
-    }else target.click();
-    mobileRenderFile();
-  };
-}
 function mobileInit(){
   if(mobileUI.ready)return;mobileUI.ready=true;
-  var top=mobileEl("topbar"),place=document.createElement("div"),ways=document.createElement("select"),file=document.createElement("select"),status=document.createElement("span");
+  var top=mobileEl("topbar"),place=document.createElement("div"),ways=document.createElement("select"),status=document.createElement("span");
   place.id="mobile-place";place.className="mobile-only";ways.id="mobile-ways";ways.className="mobile-only mobile-select";ways.setAttribute("aria-label","Connected locations");top.appendChild(place);top.appendChild(ways);
-  file.id="mobile-file";file.className="mobile-only mobile-select";file.setAttribute("aria-label","File");mobileEl("file-btn").parentNode.appendChild(file);
-  file.addEventListener("pointerdown",mobileRenderFile);file.addEventListener("focus",mobileRenderFile);
   status.id="mobile-status";status.className="mobile-only";status.innerHTML="<span id='mobile-act'></span><span id='mobile-clock'></span><span id='mobile-version'></span>";mobileEl("membar").insertBefore(status,mobileEl("healthdot"));
   var grip=document.createElement("div");grip.id="mobile-grip";grip.className="mobile-only";
   grip.innerHTML="<button id='mobile-grab' type='button' role='separator' aria-label='Resize side panel' aria-orientation='vertical' aria-valuemin='0' aria-valuenow='0' title='Drag to resize; double tap to open or close; arrow keys also resize'></button>";
@@ -95,7 +66,7 @@ function mobileInit(){
   });
   grab.addEventListener("pointercancel",function(){drag=null;lastTap=null;});grab.addEventListener("lostpointercapture",function(){if(drag)lastTap=null;drag=null;});
   grab.addEventListener("keydown",function(e){var delta={ArrowLeft:10,ArrowRight:-10};lastTap=null;if(delta[e.key]){mobileDrawerWidth(mobileUI.width+delta[e.key]);e.preventDefault();}else if(e.key==="Home"){mobileDrawerWidth(0);e.preventDefault();}else if(e.key==="End"){mobileDrawerWidth(Infinity);e.preventDefault();}else if(e.key==="Enter"||e.key===" "){mobileToggleDrawer();e.preventDefault();}});
-  mobileSelectPanel("party");mobileLayout();mobileRenderFile();window.addEventListener("resize",mobileLayout);
+  mobileSelectPanel("party");mobileLayout();window.addEventListener("resize",mobileLayout);
 }
 // Enemy cards read the live foe and exact-name bestiary entry. No fuzzy identity joins and no
 // headcounts guessed from aggregate HP. Counts explicitly authored in a name stay intact.

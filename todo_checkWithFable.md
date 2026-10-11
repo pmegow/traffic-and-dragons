@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-10 · #611 File hierarchy · Codex: owner-reported flattened phone File menu; removed the native-select projection and reused the existing generated menu, actions and tap-to-expand submenus. Phone-only sizing/scrolling, red-first browser regression and hierarchy/viewport mutation guards. No protected engine edits.
+
 - 2026-10-10 · #611 follow-up · Codex: owner-requested drawer hit area, fully closing tab rail and double-tap sizing; UI-only item-definition acceptance now refreshes the inventory panel. No canon writer or classification rule changed. Real-browser red-first Wooden Staff and closed-drawer reproductions, touch gestures and mutation proofs.
 
 - 2026-10-10 · #611 · Codex: owner-approved phone UI, thin DOM/CSS over existing ways, File actions, combat and drift-health readers; no game-state writes. 2,939 engine assertions and real-browser layout/interactions checked. Enemy headcount schema deferred explicitly to #612; no count guessed from aggregate HP. Physical-phone voice tap remains owner verification (Chrome driver omits compatibility clicks even on a plain test button).
