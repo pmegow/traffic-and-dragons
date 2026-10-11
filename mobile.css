@@ -34,12 +34,14 @@
  #story-narrative .msg,#story-tabletalk .msg{padding:5px 3px;font-size:16px;line-height:1.8;overflow-wrap:anywhere}
  #story-narrative::-webkit-scrollbar,#story-tabletalk::-webkit-scrollbar{width:6px}
  #mobile-grip{display:flex;align-self:stretch;align-items:center;justify-content:center;flex:0 0 8px;width:8px;background:transparent;position:relative}
- #mobile-grab{width:8px;height:80px;padding:0;border:0;background:transparent;cursor:col-resize;touch-action:none;display:flex;align-items:center;justify-content:center;flex-shrink:0}
- #mobile-grab:after{content:'';width:5px;height:36px;border-radius:3px;background:#777;pointer-events:none}
+ #mobile-grab{position:absolute;right:0;z-index:2;width:44px;height:96px;padding:0;border:0;background:transparent;cursor:col-resize;touch-action:none;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+ #mobile-grab:after{content:'';position:absolute;right:1.5px;width:5px;height:36px;border-radius:3px;background:#777;pointer-events:none}
  #mobile-grab:focus-visible{outline:1px solid var(--t1);outline-offset:-1px}
- #rpanel,#rpanel.col,#rpanel:not(.col){width:calc(var(--mobile-drawer,0px) + 32px);transition:none;overflow:hidden;position:relative;border-left:1px solid var(--brd);padding-right:31px}
+ #rpanel,#rpanel.col,#rpanel:not(.col){width:var(--mobile-drawer,0px);transition:none;overflow:hidden;position:relative;border:0;padding:0}
+ #rpanel.mobile-open{border-left:1px solid var(--brd)}
+ #rpanel:not(.mobile-open) #mobile-panel-tabs,#rpanel:not(.mobile-open) .pss.mobile-selected{display:none!important}
  #panel-tog{display:none}
- #rpanel .pss{display:none!important;width:var(--mobile-drawer,0px);height:100%;overflow:auto;border:0}
+ #rpanel .pss{display:none!important;width:max(0px,calc(var(--mobile-drawer,0px) - 32px));height:100%;overflow:auto;border:0}
  #rpanel .pss.mobile-selected{display:block!important}
  #rpanel .pss .psh{padding:9px 8px;justify-content:space-between}
  #rpanel .pss .pst{display:block!important;color:var(--acc);font-size:12px;text-transform:none;letter-spacing:0}

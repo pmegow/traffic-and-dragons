@@ -781,7 +781,7 @@ function showItemDefConfirmModal(opts){/* #382: opts.returnToSheet — opened fr
         for(_ci2=0;_ci2<INVENTORY_CATEGORY_REGISTRY.length;_ci2++){if(_checked[INVENTORY_CATEGORY_REGISTRY[_ci2].id])_arr.push(INVENTORY_CATEGORY_REGISTRY[_ci2].id);}
         _pp.entry.inventoryCategories=_arr;
       }
-      if(itemDefAccept(k))showToast("⚗ Item canon accepted");
+      if(itemDefAccept(k)){updateInvPanel();showToast("⚗ Item canon accepted");}/* Classification changes immediately, even while more proposals keep this dialog open. */
       pend=(worldState&&worldState.pendingItemDefs)||[];
       if(!pend.length){done();return;}
       document.getElementById("idf-rows").innerHTML=rowsHtml();wire();
