@@ -1,0 +1,35 @@
+{"command":["node","dev/sabotage-481-d5-coin.js"],"status":0,"signal":null,"ms":33278}
+
+  sabotage — helpers.js
+   ✓ caught      silver and copper count as gold again (#598: every unit is copper)
+   ✓ caught      a bundle prices each unit at the whole bundle
+   ✓ caught      mixed units no longer sum (1 gp 5 sp reads as 1 gp)
+   ✓ caught      itemValueCp reads every value as gold
+   ✓ caught      the purse reads a GOLD tag in gold whatever its unit
+   ✓ caught      the counter buys one arrow of a bundle at most
+   ✓ caught      the bundle row offers one
+   ✓ caught      a bundle line charges the whole bundle for any share
+   ✓ caught      small sums read as whole gold again (fmtCoin drops the small coins)
+   ✓ caught      a reward in silver is lost (goldRewardIn reads gold only)
+   ✓ file restored byte-identical
+   10/10 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      the receipt names the ask, not what moved
+   ✓ caught      the overspend goes unsaid
+   ✓ caught      the band receipt shows canon as bare copper
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      a pinned ware reads as a fraction of gold
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the payout verifier counts a silver token as nothing (the sum loses the 50 sp)
+   ✓ file restored byte-identical
+   1/1 clauses proven

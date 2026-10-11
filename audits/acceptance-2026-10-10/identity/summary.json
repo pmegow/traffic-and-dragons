@@ -1,0 +1,86 @@
+[
+  {
+    "label": "prior-acceptance",
+    "args": [
+      "audits/verification-530-531-2026-10-08/acceptance.cjs"
+    ],
+    "status": 0,
+    "elapsedMs": 123
+  },
+  {
+    "label": "entry38",
+    "args": [
+      "audits/verification-530-531-2026-10-08/entry38-objective.cjs"
+    ],
+    "status": 0,
+    "elapsedMs": 391
+  },
+  {
+    "label": "section504",
+    "args": [
+      "dev/run-tests.js",
+      "#504"
+    ],
+    "status": 0,
+    "elapsedMs": 1061
+  },
+  {
+    "label": "prior-mutations",
+    "args": [
+      "audits/verification-530-531-2026-10-08/prove.cjs"
+    ],
+    "status": 0,
+    "elapsedMs": 5485
+  },
+  {
+    "label": "battery504",
+    "args": [
+      "dev/sabotage-504-title-question.js"
+    ],
+    "status": 0,
+    "elapsedMs": 80114
+  },
+  {
+    "label": "fuzz4242",
+    "args": [
+      "dev/fuzz-npc-identity.js",
+      "4000",
+      "4242"
+    ],
+    "status": 0,
+    "elapsedMs": 2692
+  },
+  {
+    "label": "fuzz7",
+    "args": [
+      "dev/fuzz-npc-identity.js",
+      "2000",
+      "7",
+      "swap"
+    ],
+    "status": 0,
+    "elapsedMs": 1505
+  },
+  {
+    "label": "fuzz99",
+    "args": [
+      "dev/fuzz-npc-identity.js",
+      "6000",
+      "99",
+      "swap"
+    ],
+    "status": 0,
+    "elapsedMs": 3771
+  },
+  {
+    "label": "fuzz31337",
+    "args": [
+      "dev/fuzz-npc-identity.js",
+      "4000",
+      "31337",
+      "swap"
+    ],
+    "status": 0,
+    "elapsedMs": 2694
+  }
+]

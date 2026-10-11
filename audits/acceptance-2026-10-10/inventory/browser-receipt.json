@@ -1,0 +1,55 @@
+{
+  "started": "2026-10-11T06:52:07.346Z",
+  "finished": "2026-10-11T06:52:08.754Z",
+  "clientCommit": "08faa2c45b09d00f92d767ee8c78ddea2cc7d3fb",
+  "serverCommit": "65f996ee68f3667bfa62417e713faa6bc19045f5",
+  "checks": [
+    "legacy .tnd import preserves hero/companion units and equipment through the real admission door",
+    "checkpoint restore preserves quantities, equipped flags, literal count names and nested extras",
+    "actual File Save handler exports row data without flattening nested fields",
+    "two .tnd reimports and 100 fixed-input heals preserve rows without persistent growth",
+    "real library POST/GET across separate browser profiles preserves rows, equipment, extras and persona fields",
+    "library-to-new-campaign admission preserves data and detaches nested row ownership",
+    "actual cloud push and independent-profile GET preserve the row world",
+    "manual cloud pull installs the same hero and companion rows through real load/admission",
+    "visible post-pull inventory displays all row names without object-string corruption",
+    "synthetic library cleanup and zero browser page errors"
+  ],
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/api/characters"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    },
+    {
+      "method": "POST",
+      "path": "/api/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/campaigns/camp_1791701528558_8889"
+    },
+    {
+      "method": "GET",
+      "path": "/api/campaigns/camp_1791701528558_8889/checkpoint"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/characters/portable_rowan"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/campaigns/camp_1791701528558_8889"
+    },
+    {
+      "method": "GET",
+      "path": "/api/characters"
+    }
+  ],
+  "blocked": [],
+  "pageErrors": [],
+  "scope": "Two disposable browser profiles; real client state/UI/HTTP paths; actual local server and disposable SQLite. File-save download sink captured as bytes. No authenticated production access, provider calls or user data."
+}

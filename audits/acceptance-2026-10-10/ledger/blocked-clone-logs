@@ -1,0 +1,4 @@
+{"command":["node","dev/sabotage-quartet-ledger.js"],"status":1,"signal":null,"ms":264}
+
+sabotage: scratch clone failed: error: could not write config file C:/Users/hannu/AppData/Local/Packages/sandbox.{9ed138c0-8809-46ad-882a-8967152efe1e}/AC/Temp/tnd-sabotage-proof-M3Gmgd/.git/config: Permission denied
+fatal: could not set 'core.repositoryformatversion' to '0'

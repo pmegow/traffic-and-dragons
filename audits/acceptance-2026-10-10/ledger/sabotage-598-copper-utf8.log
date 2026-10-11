@@ -1,0 +1,44 @@
+{"command":["node","dev/sabotage-598-copper.js"],"status":0,"signal":null,"ms":36310}
+
+  sabotage — helpers.js
+   ✓ caught      the heal keeps the old gold field beside the new coin
+   ✓ caught      the heal converts gold one-for-one (12 gp becomes 12 cp)
+   ✓ caught      a sheet carrying both fields loses its copper to the old gold
+   ✓ caught      fmtCoin shows whole gold only (the small coins vanish from every display)
+   ✓ caught      the old quest record's gold is read as copper (a 10 gp reward becomes 10 cp)
+   ✓ file restored byte-identical
+   5/5 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      a sheet entering through the adapter keeps its whole-gold purse
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      the boot heal skips the companions
+   ✓ caught      a model-written companion's gold is held as gold
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      a ware is filed without its copper (the counter reads nothing)
+   ✓ caught      a want is filed without its copper
+   ✓ caught      a row filed before copper is parsed on every read (and never keeps it)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      the GOLD handler reads copper as gold again
+   ✓ caught      the quest record keeps paid gold in gold
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the prompt's sheet line shows the purse in bare copper
+   ✓ file restored byte-identical
+   1/1 clauses proven

@@ -1,0 +1,92 @@
+
+  sabotage — inventory.js
+   ✓ caught      the heal leaves the worn list beside the flags (two truths)
+   ✓ caught      the heal files the same evidence again on every load (bytes grow)
+   ✓ caught      the heal does not stamp the sheet
+   ✓ caught      malformed evidence is overwritten instead of refused
+   ✓ caught      the worn fold erases the flag (every equipped item lost on the switch)
+   ✓ caught      the Wearing line reads only the rows (a legacy sheet's worn list is dropped)
+   ✓ caught      an ambiguous Sync line takes the first row that prints alike
+   ✓ caught      an edited Sync line becomes a NEW row (the flag and the fields are lost)
+   ✓ caught      a mark matches the whole entry again (a row is never equal to a name)
+   ✓ caught      the model faucet pushes the raw strings again
+   ✓ caught      a refused rename moves the flag with it (#606 reopened: the mark follows a name the pack refused)
+   ✓ file restored byte-identical
+   11/11 clauses proven
+
+
+  sabotage — admission.js
+   ✓ caught      the inventory entry is the (b) adapter again (no rows installed at any door)
+   ✓ caught      the inventoryCheck gate passes everything (a count over the bound enters)
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      the world is never stamped v11 (every later load re-heals a v10 world)
+   ✓ caught      all-or-nothing is lost: the sheets before a refused one are converted anyway
+   ✓ caught      the checkpoint restore skips the door (a pre-(c) camp restores string packs into a v11 world)
+   ✓ caught      the load no longer runs the door
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — helpers.js
+   ✓ caught      the world's sheet walk forgets the parked fallen (a rejoining sheet comes back as strings)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      the ledger precheck runs on the LIVE rows (a refused sale decrements the pack)
+   ✓ caught      the stow hands the count baked into the name again
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the Wearing line reads the worn list alone (a healed sheet wears nothing)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      the #510 sale precheck shares the live rows (a withheld sale still empties the pack)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — memory.js
+   ✓ caught      the place writer ignores the unit argument and parses the name
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — ui-modals.js
+   ✓ caught      the Sync modal rebuilds the pack from its text (every flag and field lost on Apply)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — ui-sheets.js
+   ✓ caught      the × hands the mark the entry's TEXT again (a stacked row's mark never resolves)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — globals.js
+   ✓ caught      the world shape is written as v10 again (a (c) save passes a (b) build's gate)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — character_editor.html
+   ✓ caught      the editor's healChar skips the module's heal (an old .char opens as strings in a row editor)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      a shallow copy of the pack grows back (the boundary contract must see it before any test does)
+   ✓ file restored byte-identical
+   1/1 clauses proven

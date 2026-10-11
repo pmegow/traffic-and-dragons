@@ -1,0 +1,189 @@
+{
+  "worldState": {
+    "ver": 11,
+    "campId": null,
+    "campName": "PlaytestHarness_identity_acceptance",
+    "legacyCharsUsed": [],
+    "pendingLegacy": null,
+    "character": {
+      "name": "Tess",
+      "gender": "F",
+      "age": "30",
+      "appear": "",
+      "mark": "",
+      "backstory": "",
+      "ancestry": "Human",
+      "subrace": "northlander",
+      "subraceNm": "Northlander",
+      "heritageVariant": "",
+      "cls": "Warrior",
+      "stats": {
+        "STR": 15,
+        "DEX": 12,
+        "CON": 14,
+        "INT": 10,
+        "WIS": 10,
+        "CHA": 10
+      },
+      "hp": 14,
+      "maxHp": 14,
+      "coin": 2500,
+      "inventory": [
+        {
+          "name": "Longsword",
+          "qty": 1,
+          "equipped": false
+        },
+        {
+          "name": "Travel ration",
+          "qty": 1,
+          "equipped": false
+        }
+      ],
+      "level": 1,
+      "xp": 0,
+      "abilities": [],
+      "spells": [
+        {
+          "nm": "Faerie Fire (racial, 1/day)",
+          "lvl": 1,
+          "used": false
+        }
+      ],
+      "archetype": "",
+      "archetypeNm": "",
+      "statedAlignment": "True Neutral",
+      "actualAlignment": "True Neutral",
+      "alignLaw": 0,
+      "alignGood": 0,
+      "deity": "",
+      "trait": "",
+      "flaw": "",
+      "motivation": "",
+      "languages": [
+        {
+          "name": "Common",
+          "broken": false
+        }
+      ],
+      "skills": {
+        "Jumping": 0,
+        "Sprinting": 0,
+        "Lifting": 0,
+        "Grappling": 0,
+        "Climbing": 0,
+        "Swimming": 0,
+        "Distance Running": 0,
+        "Riding": 0,
+        "Hold Breath": 0,
+        "Endure Pain": 0,
+        "Tolerate Alcohol/Drugs": 0,
+        "Foraging": 0,
+        "Cooking": 0,
+        "Survival": 0,
+        "Animal Handling": 0,
+        "Navigation": 0,
+        "Tracking": 0,
+        "Arcana": 0,
+        "Lore": 0,
+        "Investigation": 0,
+        "Nature": 0,
+        "First Aid": 0,
+        "Alchemy": 0,
+        "Smithing": 0,
+        "Handcraft": 0,
+        "Explosives": 0,
+        "Persuasion": 0,
+        "Deception": 0,
+        "Intimidation": 0,
+        "Performance": 0,
+        "Trading": 0,
+        "Stealth": 0,
+        "Sleight of Hand": 0,
+        "Lockpicking": 0,
+        "Gambling": 0,
+        "Perception": 0,
+        "Insight": 0
+      },
+      "conditions": [],
+      "relationships": [],
+      "saveModifiers": [],
+      "portrait": null,
+      "storyBeats": [],
+      "coreMemories": [],
+      "partyMember": true,
+      "voiceLines": [],
+      "manner": "",
+      "sheetVer": 11
+    },
+    "world": {
+      "location": "Ashfen",
+      "region": "The Reach",
+      "time": "dusk",
+      "weather": "rain",
+      "threat": "low",
+      "sublocation": null
+    },
+    "npcs": [],
+    "questLog": [],
+    "eventHistory": [],
+    "combat": null,
+    "turn": 85,
+    "transcript": [],
+    "ragMemory": false,
+    "tone": {
+      "name": "Sword and Sorcery",
+      "voice": ""
+    }
+  },
+  "memory": {
+    "npcs": {},
+    "locations": {},
+    "quests": {},
+    "lore": [],
+    "keyDecisions": [],
+    "futureEvents": [],
+    "chapters": [],
+    "eras": [],
+    "nameIdx": 0,
+    "attitudeSpec": 2,
+    "map": {
+      "nodes": {
+        "Ashfen": {
+          "firstVisit": 1,
+          "visits": 1,
+          "parent": null,
+          "npcs": [],
+          "items": []
+        }
+      },
+      "edges": [],
+      "lastArrivalFrom": null
+    },
+    "npcGraph": {
+      "edges": [],
+      "factions": {},
+      "factionEdges": [],
+      "npcFactions": {}
+    },
+    "archive": {
+      "lore": [],
+      "decisions": [],
+      "chapters": [],
+      "superseded": [],
+      "coreMemories": [],
+      "expiredSchedules": [],
+      "npcKnowledge": [],
+      "npcEvents": [],
+      "retconPins": [],
+      "locationStates": [],
+      "futureEvents": [],
+      "npcForgotten": [],
+      "identityMerges": [],
+      "identityQuarantines": [],
+      "relDowngrades": [],
+      "npcDeathCorrections": [],
+      "quarantinedReceipts": []
+    }
+  }
+}

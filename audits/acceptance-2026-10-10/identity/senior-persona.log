@@ -1,0 +1,20 @@
+[persona] Acceptance Resident: 4 voice lines captured from Source Acceptance
+PASS export captures 4 OWN lines and source camp, detached from live sheet
+PASS hero with 4 real lines is not captured
+[persona] Acceptance Resident: 2 usable line(s) in this campaign — the carried voice lines stay
+PASS exactly 2 usable lines preserve carried evidence byte for byte
+[persona] Acceptance Resident: 3 voice lines captured from Source Acceptance
+PASS exactly 3 usable lines replace carried evidence
+PASS adventure: real resident admission preserves voice/manner exactly and does not seed attitude
+PASS adventure: present roster serves authored personality and last three voice lines only, resident stable clean
+PASS adventure: mentioned but absent roster stays bare and stable bytes unchanged
+PASS adventure: companion intentionally serves voice in stable block and never doubles roster
+PASS adventure: companion stable bytes identical across turn/action/weather
+PASS adventure: legacy serves carried evidence in volatile only
+PASS village: real resident admission preserves voice/manner exactly and does not seed attitude
+PASS village: present roster serves authored personality and last three voice lines only, resident stable clean
+PASS village: mentioned but absent roster stays bare and stable bytes unchanged
+PASS village: companion intentionally serves voice in stable block and never doubles roster
+PASS village: companion stable bytes identical across turn/action/weather
+PASS village: legacy serves carried evidence in volatile only
+ACCEPTANCE GREEN: 16 checks

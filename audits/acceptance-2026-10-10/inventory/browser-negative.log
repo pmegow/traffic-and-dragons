@@ -1,0 +1,19 @@
+FAIL acceptance: AssertionError [ERR_ASSERTION]: legacy import preserves equipped membership
++ actual - expected
+
+  [
+    {
+      equipped: false,
+      name: 'Torch',
+      qty: 12
+    },
+    {
++     equipped: false,
+-     equipped: true,
+      name: 'Longsword',
+      qty: 1
+    },
+    {
+      equipped: false,
+
+    at C:\Users\hannu\AppData\Local\Temp\tnd-acceptance-2026-10-10-f1f6384f\audits\acceptance-2026-10-10\inventory\browser-roundtrip.cjs:17:9

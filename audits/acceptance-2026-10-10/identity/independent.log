@@ -1,0 +1,131 @@
+PASS #504 independent forward same
+PASS #504 independent forward keep
+PASS #504 independent forward rename
+PASS #504 independent mirror same
+PASS #504 independent mirror keep
+PASS #504 independent mirror rename
+PASS #531 independent mirror reported
+PASS #531 independent mirror bind
+PASS #531 independent mirror reveal
+PASS #531 independent mirror combat
+{
+  "version": "v1.1220",
+  "results": [
+    {
+      "name": "#504 independent forward same",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Queen Underbough\" was named, and the names alone cannot say whether that is the established \"Wilhelmina Underbough\" under a title or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Wilhelmina Underbough|Queen Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Queen Underbough] — \"Queen Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Wilhelmina Underbough",
+        "keys": [
+          "Wilhelmina Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#504 independent forward keep",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Queen Underbough\" was named, and the names alone cannot say whether that is the established \"Wilhelmina Underbough\" under a title or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Wilhelmina Underbough|Queen Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Queen Underbough] — \"Queen Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Queen Underbough",
+        "keys": [
+          "Wilhelmina Underbough",
+          "Queen Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#504 independent forward rename",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Queen Underbough\" was named, and the names alone cannot say whether that is the established \"Wilhelmina Underbough\" under a title or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Wilhelmina Underbough|Queen Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Queen Underbough] — \"Queen Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Isolde Underbough",
+        "keys": [
+          "Wilhelmina Underbough",
+          "Isolde Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#504 independent mirror same",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Wilhelmina Underbough\" was named, and the names alone cannot say whether that is the established \"Queen Underbough\" by a given name or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Queen Underbough|Wilhelmina Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Wilhelmina Underbough] — \"Wilhelmina Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Queen Underbough",
+        "keys": [
+          "Queen Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#504 independent mirror keep",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Wilhelmina Underbough\" was named, and the names alone cannot say whether that is the established \"Queen Underbough\" by a given name or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Queen Underbough|Wilhelmina Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Wilhelmina Underbough] — \"Wilhelmina Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Wilhelmina Underbough",
+        "keys": [
+          "Queen Underbough",
+          "Wilhelmina Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#504 independent mirror rename",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Wilhelmina Underbough\" was named, and the names alone cannot say whether that is the established \"Queen Underbough\" by a given name or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Queen Underbough|Wilhelmina Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Wilhelmina Underbough] — \"Wilhelmina Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Isolde Underbough",
+        "keys": [
+          "Queen Underbough",
+          "Isolde Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#531 independent mirror reported",
+      "ok": true,
+      "value": {
+        "keys": [
+          "Queen Underbough",
+          "Wilhelmina Underbough"
+        ],
+        "daughterDead": true
+      }
+    },
+    {
+      "name": "#531 independent mirror bind",
+      "ok": true,
+      "value": {
+        "keys": [
+          "Queen Underbough",
+          "Wilhelmina Underbough"
+        ],
+        "daughterDead": true
+      }
+    },
+    {
+      "name": "#531 independent mirror reveal",
+      "ok": true,
+      "value": {
+        "keys": [
+          "Queen Underbough",
+          "Wilhelmina Underbough"
+        ],
+        "daughterDead": true
+      }
+    },
+    {
+      "name": "#531 independent mirror combat",
+      "ok": true,
+      "value": {
+        "keys": [
+          "Queen Underbough",
+          "Wilhelmina Underbough"
+        ],
+        "daughterDead": false
+      }
+    }
+  ],
+  "passed": 10,
+  "failed": 0
+}

@@ -1,0 +1,117 @@
+PASS #504 independent forward same
+PASS #504 independent forward keep
+PASS #504 independent forward rename
+PASS #504 independent mirror same
+PASS #504 independent mirror keep
+PASS #504 independent mirror rename
+PASS #531 independent mirror reported
+ROUTE-STATE bind {"names":["Queen Underbough"],"roster":[{"name":"Queen Underbough","status":"present","rel":"neutral","pronouns":"she/her","met":1,"partyMember":false,"aliases":[]}],"refs":{"serial":1,"active":{"scene":1,"node":"Ashfen","startTurn":85,"actors":[{"handle":"daughter","entity":"Wilhelmina Underbough","sourceTurn":85,"authority":"state_tag","epistemic":"explicit","revealed":false,"present":true}],"negatives":[],"observed":[],"acknowledged":false},"sealed":[],"overflow":null}}
+ROUTE-STATE reveal {"names":["Queen Underbough"],"roster":[{"name":"Queen Underbough","status":"present","rel":"neutral","pronouns":"she/her","met":1,"partyMember":false,"aliases":[]}],"refs":{"serial":1,"active":{"scene":1,"node":"Ashfen","startTurn":85,"actors":[{"handle":"daughter","entity":"Wilhelmina Underbough","sourceTurn":85,"authority":"state_tag","epistemic":"explicit","revealed":true,"present":true,"revealTurn":85}],"negatives":[],"observed":[],"acknowledged":false},"sealed":[],"overflow":null}}
+[presence] 'Wilhelmina Underbough' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+ROUTE-STATE combat {"names":["Queen Underbough"],"roster":[{"name":"Queen Underbough","status":"present","rel":"neutral","pronouns":"she/her","met":1,"partyMember":false,"aliases":[]}],"refs":{"serial":1,"active":{"scene":1,"node":"Ashfen","startTurn":85,"actors":[],"negatives":[],"observed":[],"acknowledged":false},"sealed":[],"overflow":null}}
+{
+  "version": "v1.1220",
+  "results": [
+    {
+      "name": "#504 independent forward same",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Queen Underbough\" was named, and the names alone cannot say whether that is the established \"Wilhelmina Underbough\" under a title or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Wilhelmina Underbough|Queen Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Queen Underbough] — \"Queen Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Wilhelmina Underbough",
+        "keys": [
+          "Wilhelmina Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#504 independent forward keep",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Queen Underbough\" was named, and the names alone cannot say whether that is the established \"Wilhelmina Underbough\" under a title or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Wilhelmina Underbough|Queen Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Queen Underbough] — \"Queen Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Queen Underbough",
+        "keys": [
+          "Wilhelmina Underbough",
+          "Queen Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#504 independent forward rename",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Queen Underbough\" was named, and the names alone cannot say whether that is the established \"Wilhelmina Underbough\" under a title or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Wilhelmina Underbough|Queen Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Queen Underbough] — \"Queen Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Isolde Underbough",
+        "keys": [
+          "Wilhelmina Underbough",
+          "Isolde Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#504 independent mirror same",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Wilhelmina Underbough\" was named, and the names alone cannot say whether that is the established \"Queen Underbough\" by a given name or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Queen Underbough|Wilhelmina Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Wilhelmina Underbough] — \"Wilhelmina Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Queen Underbough",
+        "keys": [
+          "Queen Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#504 independent mirror keep",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Wilhelmina Underbough\" was named, and the names alone cannot say whether that is the established \"Queen Underbough\" by a given name or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Queen Underbough|Wilhelmina Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Wilhelmina Underbough] — \"Wilhelmina Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Wilhelmina Underbough",
+        "keys": [
+          "Queen Underbough",
+          "Wilhelmina Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#504 independent mirror rename",
+      "ok": true,
+      "value": {
+        "note": "[ENGINE NOTE — NAME COLLISION, DECIDE (not a player action): \"Wilhelmina Underbough\" was named, and the names alone cannot say whether that is the established \"Queen Underbough\" by a given name or another person of the same family. It is filed PROVISIONALLY under that name so the established record stays clean. Decide from the STORY in THIS response: if they are the SAME person, emit [NPC_MERGE:Queen Underbough|Wilhelmina Underbough] with that EXACT name (a short form or a title is not read as an answer). If they are a DIFFERENT person, emit [MERGE:npc|<Their Proper Name>|Wilhelmina Underbough] — \"Wilhelmina Underbough\" itself will do when the story gives them no other name. This note re-fires until one tag lands.]",
+        "target": "Isolde Underbough",
+        "keys": [
+          "Queen Underbough",
+          "Isolde Underbough"
+        ]
+      }
+    },
+    {
+      "name": "#531 independent mirror reported",
+      "ok": true,
+      "value": {
+        "keys": [
+          "Queen Underbough",
+          "Wilhelmina Underbough"
+        ],
+        "daughterDead": true
+      }
+    },
+    {
+      "name": "#531 independent mirror bind",
+      "ok": false,
+      "error": "TypeError: Cannot read properties of null (reading 'dead')\n    at C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-acceptance-2026-10-10-f1f6384f\\audits\\acceptance-2026-10-10\\identity\\independent.cjs:9:1066\n    at test (C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-acceptance-2026-10-10-f1f6384f\\audits\\acceptance-2026-10-10\\identity\\independent.cjs:7:60)\n    at Object.<anonymous> (C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-acceptance-2026-10-10-f1f6384f\\audits\\acceptance-2026-10-10\\identity\\independent.cjs:9:58)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)"
+    },
+    {
+      "name": "#531 independent mirror reveal",
+      "ok": false,
+      "error": "TypeError: Cannot read properties of null (reading 'dead')\n    at C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-acceptance-2026-10-10-f1f6384f\\audits\\acceptance-2026-10-10\\identity\\independent.cjs:9:1066\n    at test (C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-acceptance-2026-10-10-f1f6384f\\audits\\acceptance-2026-10-10\\identity\\independent.cjs:7:60)\n    at Object.<anonymous> (C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-acceptance-2026-10-10-f1f6384f\\audits\\acceptance-2026-10-10\\identity\\independent.cjs:9:58)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)"
+    },
+    {
+      "name": "#531 independent mirror combat",
+      "ok": false,
+      "error": "TypeError: Cannot read properties of undefined (reading 'lastSeenTurn')\n    at C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-acceptance-2026-10-10-f1f6384f\\audits\\acceptance-2026-10-10\\identity\\independent.cjs:10:110\n    at test (C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-acceptance-2026-10-10-f1f6384f\\audits\\acceptance-2026-10-10\\identity\\independent.cjs:7:60)\n    at Object.<anonymous> (C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-acceptance-2026-10-10-f1f6384f\\audits\\acceptance-2026-10-10\\identity\\independent.cjs:9:58)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)"
+    }
+  ],
+  "passed": 7,
+  "failed": 3
+}
+FAIL #531 independent mirror bind Cannot read properties of null (reading 'dead')
+FAIL #531 independent mirror reveal Cannot read properties of null (reading 'dead')
+FAIL #531 independent mirror combat Cannot read properties of undefined (reading 'lastSeenTurn')

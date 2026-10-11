@@ -1,0 +1,9 @@
+Read-only owner corpus census; runtime 08faa2c4 v1.1220
+  saves 79 · sheets 527 (legacy 527, rows 0) · items 11911 · counted (x2+) 1950 · largest count 34
+  equipped sheets 63 (147 names) · Equipped-line order changes 30 · worn with no carried item 0
+  folds 0 · grammar splits 0 · rows printing back differently 0 · units lost or gained 0
+  equipped mismatches 0 · not idempotent 0 · heals refused 0 · skipped (no inventory field) 0
+  invalid diagnostics 0
+CENSUS OK — every selected sheet heals to rows that print back exactly, keep every unit and every equipped flag, and heal again to the same rows
+
+Exit: 0; selected files unchanged: true

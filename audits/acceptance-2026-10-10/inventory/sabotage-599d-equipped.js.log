@@ -1,0 +1,67 @@
+
+  sabotage — tag_table.js
+   ✓ caught      the WORN alias is dropped from the handler's match (a [WORN:] reply loses its equip in silence)
+   ✓ caught      'equip' is no longer an on-word
+   ✓ caught      'unequip' is no longer an off-word
+   ✓ caught      the receipts go back to 'wears' / 'removes'
+   ✓ caught      the handler re-registers under WORN (the taught name has no handler of record)
+   ✓ caught      the EQUIPPED near-miss is no longer registered (a two-field tag vanishes again)
+   ✓ caught      an uncarried item is refused without a ⚠ line again
+   ✓ caught      EQUIPPED leaves the strip registry (the tag would print in the story)
+   ✓ caught      the doc teaches WORN again
+   ✓ caught      the doc line ends 'as Wearing:' again
+   ✓ file restored byte-identical
+   10/10 clauses proven
+
+
+  sabotage — inventory.js
+   ✓ caught      the READ resolver (_invEntryFind: invHolds, isWorn, resolveInventoryName) loses its unique base-name step (d2 review 4b)
+   ✓ caught      an unhealed legacy sheet no longer reads its worn list (cleanup 1 folded _wornIdx into isWorn; the preview's mark and order lose it)
+   ✓ caught      wornSet forgets the spelling the GM used (the console says WORN for an [EQUIPPED:] refusal)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — battery-targets.js
+   ✓ caught      the sweep stops reading the prove("file", …) wrapper (78 batteries go invisible again)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the prompt label reverts to Wearing:
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — helpers.js
+   ✓ caught      the counter's row says 'Worn — take it off first' again
+   ✓ caught      the chest's row says 'Worn — take it off first' again
+   ✓ caught      the mark loses its screen-reader word
+   ✓ caught      the mark prints the word in the row instead of the glyph
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — ui-panels.js
+   ✓ caught      the panel drops the mark
+   ✓ caught      the panel drops the .eqp class (an equipped name stays dim)
+   ✓ caught      the panel drops the small (equipped) word after the name (owner 2026-10-10)
+   ✓ caught      the panel's tooltip loses the word
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — ui-sheets.js
+   ✓ caught      the sheet drops the mark
+   ✓ caught      the sheet drops the .eqp class
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — index.html
+   ✓ caught      the sheet's category headings shrink back to the size that got lost (owner 2026-10-10)
+   ✓ caught      the equipped name loses its bright tone
+   ✓ caught      the .eqp rule moves ahead of .ii.gear (an equipped weapon reads in the gear accent, not --t0)
+   ✓ file restored byte-identical
+   3/3 clauses proven

@@ -1,0 +1,22 @@
+
+  sabotage — helpers.js
+   ✓ caught      another speaker's lines are taken too (the speaker map is ignored)
+   ✓ caught      a comma-split span is no longer joined back into one line
+   ✓ caught      aliases stop counting as the character
+   ✓ caught      a one-word line counts as speech worth carrying
+   ✓ caught      a repeated line is carried twice
+   ✓ caught      the hero is captured like a resident
+   ✓ caught      a quiet cameo (too few lines) erases the carried voice
+   ✓ caught      the camp stamp is dropped from a captured line
+   ✓ caught      voiceLines leave the camp-stamped walk
+   ✓ caught      the renderer serves every line instead of the last three
+   ✓ caught      a blank manner line serves anyway
+   ✓ file restored byte-identical
+   11/11 clauses proven
+
+
+  sabotage — api.js
+   ✓ caught      the present resident's roster line loses the voice
+   ✓ caught      the companion block loses the voice
+   ✓ file restored byte-identical
+   2/2 clauses proven

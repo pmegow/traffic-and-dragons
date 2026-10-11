@@ -1,0 +1,20 @@
+{"command":["node","dev/sabotage-518-pair-block.js"],"status":0,"signal":null,"ms":17164}
+
+  sabotage — helpers.js
+   ✓ caught      every tag of a reply is one block again (prose no longer splits the spans — reply-wide pairing returns)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — inventory.js
+   ✓ caught      the pair note's key drops the block (a loss anywhere in the reply is the gift's half again)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      the hero's gain is noted outside every block (the in-block take can no longer find it)
+   ✓ caught      the take pair reads the gain without its block (the in-block protection is lost)
+   ✓ caught      the gift's bound reads a loss from any block
+   ✓ file restored byte-identical
+   3/3 clauses proven

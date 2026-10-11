@@ -1,0 +1,78 @@
+
+  sabotage — inventory.js
+   ✓ caught      invAdd merges a fragment into a stack with DIFFERENT fields (the give overwrites nothing but the fields are lost)
+   ✓ caught      invAdd drops a fragment's fields from the new row it creates
+   ✓ caught      a worn value that is not a list is deleted without evidence again
+   ✓ caught      a worn entry that is not a name is skipped without evidence again
+   ✓ caught      the Sync mapper maps a source holding junk (a '7' row, an '[object Object]' row)
+   ✓ caught      prepare classifies junk by invEntryRow again (a nameless object is neither converted nor kept)
+   ✓ caught      addInventoryItem ignores the fragment it is handed
+   ✓ caught      removeInventoryItem exposes no fragment (a transfer has nothing to carry)
+   ✓ caught      the model faucet empties the whole pack over one count past the bound again
+   ✓ caught      invCarryFields puts a fragment's fields onto a plain stack the hero already held (no restore)
+   ✓ file restored byte-identical
+   10/10 clauses proven
+
+
+  sabotage — state.js
+   ✓ caught      inventoryStampWorld never stamps
+   ✓ caught      the camp is captured without the stamp
+   ✓ caught      saveCore serializes without the stamp
+   ✓ caught      the load door drops portraits with only a console line again
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — admission.js
+   ✓ caught      the portrait entry stops counting what it dropped
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      a refused ITEM_GAINED prints its receipt anyway
+   ✓ caught      ITEM_LOST notes no fragment for the pair
+   ✓ caught      a stow of a row with fields is filed in the chest (the fields are lost)
+   ✓ caught      a gift's refused unit vanishes instead of returning to the hero
+   ✓ caught      the take pair hands the unit over although the hero's gain was refused (the item is destroyed)
+   ✓ caught      a take onto a plain stack keeps the move (the companion's fields are lost)
+   ✓ file restored byte-identical
+   6/6 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      the ledger lands a buy the pack refuses and charges the coin
+   ✓ caught      the ledger stows a row with fields (the chest row cannot hold them)
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — ui-files.js
+   ✓ caught      File ▸ Save exports a row-bearing world without the stamp
+   ✓ caught      the #424 copy exports a row-bearing world without the stamp
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — storage-adapter.js
+   ✓ caught      the wire form goes out without the stamp
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — check-replay-rebaseline.js
+   ✓ caught      the re-baseline checker accepts rows carrying extra fields again
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — playtest-harness.js
+   ✓ caught      the playtest harness reads consumables by index again (none on a row campaign)
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — item-bible-coverage.js
+   ✓ caught      the coverage tool walks the raw entries again (every row a miss)
+   ✓ file restored byte-identical
+   1/1 clauses proven

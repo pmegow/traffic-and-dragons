@@ -1,0 +1,29 @@
+{
+  "transport": "intercepted HTTP; actual editor and storageAdapter; no server persistence claimed",
+  "posts": 1,
+  "gets": 1,
+  "voiceLines": [
+    {
+      "text": "I kept my promise when the road went dark.",
+      "turn": 1,
+      "camp": "Source Acceptance"
+    },
+    {
+      "text": "The road owes nobody a gentle welcome.",
+      "turn": 2,
+      "camp": "Source Acceptance"
+    },
+    {
+      "text": "Ask me plainly and I will answer plainly.",
+      "turn": 3,
+      "camp": "Source Acceptance"
+    },
+    {
+      "text": "I count debts twice and promises once!",
+      "turn": 4,
+      "camp": "Source Acceptance"
+    }
+  ],
+  "manner": "Dry wit; a deliberate pause before the last word.",
+  "errors": []
+}

@@ -1,0 +1,10 @@
+PASS legacy .tnd import preserves hero/companion units and equipment through the real admission door
+PASS checkpoint restore preserves quantities, equipped flags, literal count names and nested extras
+PASS actual File Save handler exports row data without flattening nested fields
+PASS two .tnd reimports and 100 fixed-input heals preserve rows without persistent growth
+PASS real library POST/GET across separate browser profiles preserves rows, equipment, extras and persona fields
+PASS library-to-new-campaign admission preserves data and detaches nested row ownership
+PASS actual cloud push and independent-profile GET preserve the row world
+PASS manual cloud pull installs the same hero and companion rows through real load/admission
+PASS rendered post-pull inventory contains no object-string corruption
+PASS synthetic library cleanup and zero browser page errors

@@ -1,0 +1,36 @@
+{"command":["node","dev/sabotage-quartet-ledger.js"],"status":0,"signal":null,"ms":31773}
+
+  sabotage — helpers.js
+   ✓ caught      #511 ② prose between the tags no longer breaks the block (a ware written outside files on the shop)
+   ✓ caught      #511 ② the coin is judged where it was written, not at its block's arrival
+   ✓ caught      #517 ① → #598 the net is rounded to whole gold again (the whistles are given away)
+   ✓ caught      #517 ② the plural coin word fails the boundary again ('3 coppers' reads as 3 gp)
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      #511 ② the trade tags read their own offset again (a ware ahead of the arrival files on the street)
+   ✓ caught      #511 ② a description joins the block rule (it describes the place being entered)
+   ✓ caught      #518 the gift is no longer bounded by what left the pack
+   ✓ caught      #518 ② the take pair gives the hero the full count again (Bram held one, the hero gets three)
+   ✓ caught      #518 ② a total miss takes back one unit only (the hero keeps two)
+   ✓ caught      #518 ② a gift from the pack also takes from the chest again (the potion destroyed)
+   ✓ caught      #518 the cut is applied but not said
+   ✓ caught      #511 a re-stated world still counts as the last arrival (the tavern becomes passed-through)
+   ✓ file restored byte-identical
+   8/8 clauses proven
+
+
+  sabotage — identity.js
+   ✓ caught      #511 the timeline never marks a re-statement (the footer clears the sub-location again)
+   ✓ caught      #511 a lone same-world footer with no arrival before it is treated as a re-statement too (the old reading is lost)
+   ✓ file restored byte-identical
+   2/2 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      #519 the undo no longer refuses when the recorded actor is neither hero nor companion
+   ✓ caught      #519 the refusal no longer names who the item belonged to
+   ✓ file restored byte-identical
+   2/2 clauses proven

@@ -1,0 +1,34 @@
+{
+  "name": "Acceptance Resident",
+  "gender": "F",
+  "cls": "Rogue",
+  "inventory": [],
+  "trait": "Speaks with exact blunt words.",
+  "flaw": "Distrusts promises.",
+  "appear": "Copper braid.",
+  "motivation": "Keep the road open.",
+  "manner": "Clipped sentences; no greeting.",
+  "voiceLines": [
+    {
+      "text": "Keep your boots off my table, stranger.",
+      "turn": 1,
+      "camp": "Source Acceptance"
+    },
+    {
+      "text": "The road owes nobody a gentle welcome.",
+      "turn": 2,
+      "camp": "Source Acceptance"
+    },
+    {
+      "text": "Ask me plainly and I will answer plainly.",
+      "turn": 3,
+      "camp": "Source Acceptance"
+    },
+    {
+      "text": "I count debts twice and promises once!",
+      "turn": 4,
+      "camp": "Source Acceptance"
+    }
+  ],
+  "sheetVer": 11
+}

@@ -1,0 +1,29 @@
+{
+  "before": [
+    {
+      "name": "Torch",
+      "qty": 1,
+      "equipped": false,
+      "origin": {
+        "batch": "synthetic",
+        "marks": [
+          1,
+          2
+        ]
+      }
+    }
+  ],
+  "after": [
+    {
+      "name": "Torch",
+      "qty": 1,
+      "equipped": false
+    }
+  ],
+  "muts": [
+    "-Torch",
+    "⚠ 'Torch' stays in the pack — no party member 'Absent' to give it to"
+  ],
+  "errors": [],
+  "preserved": false
+}

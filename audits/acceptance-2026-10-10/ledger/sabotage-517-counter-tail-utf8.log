@@ -1,0 +1,25 @@
+{"command":["node","dev/sabotage-517-counter-tail.js"],"status":0,"signal":null,"ms":23293}
+
+  sabotage — memory.js
+   ✓ caught      the ware's name keeps its count ("Arrow x20" is a one-unit ware again — 400 arrows for 1 gp)
+   ✓ caught      the count is stripped but the price is not made per the bundle (twenty arrows for 1 gp each)
+   ✓ caught      the want forgets its bundle (per 1 again)
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — helpers.js
+   ✓ caught      the catalog drops the want's bundle
+   ✓ caught      the plan's allowance is one unit regardless of the bundle
+   ✓ caught      the refusal names one when the bundle is five
+   ✓ caught      the ledger row's maximum is one unit
+   ✓ file restored byte-identical
+   4/4 clauses proven
+
+
+  sabotage — tag_table.js
+   ✓ caught      the GOLD handler forgets what the block spent
+   ✓ caught      the take that moved nothing no longer returns the block's coin
+   ✓ caught      the refund ignores the block's other item tags (a rope bought in the same block gets the coin back too)
+   ✓ file restored byte-identical
+   3/3 clauses proven

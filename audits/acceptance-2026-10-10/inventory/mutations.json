@@ -1,0 +1,34 @@
+[
+  {
+    "file": "sabotage-599c-shape-flip.js",
+    "status": 0,
+    "verdict": "ok",
+    "skipLines": [],
+    "secs": 56,
+    "flake": false
+  },
+  {
+    "file": "sabotage-599c2-review.js",
+    "status": 0,
+    "verdict": "ok",
+    "skipLines": [],
+    "secs": 57,
+    "flake": false
+  },
+  {
+    "file": "sabotage-599d-equipped.js",
+    "status": 0,
+    "verdict": "ok",
+    "skipLines": [],
+    "secs": 50,
+    "flake": false
+  },
+  {
+    "file": "sabotage-599-legacy-census.js",
+    "status": 0,
+    "verdict": "ok",
+    "skipLines": [],
+    "secs": 11,
+    "flake": false
+  }
+]
