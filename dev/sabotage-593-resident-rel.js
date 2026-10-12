@@ -21,8 +21,8 @@ prove("data.js", [
     mustFail: ROW }
 ]);
 prove("helpers.js", [
-  { label: "no word is cold (every write lands)",
-    find: "function residentRelAdverse(rel){return RESIDENT_REL_ADVERSE_RE.test(String(rel||\"\"));}", replace: "function residentRelAdverse(rel){return false;}",
+  { label: "every word is in good standing (every write lands)",
+    find: "function residentRelGood(rel){return RESIDENT_REL_GOOD_RE.test(String(rel||\"\"));}", replace: "function residentRelGood(rel){return true;}",
     mustFail: ROW },
   { label: "a same-response duplicate confirms",
     find: "if(p.turn>=turn){", replace: "if(p.turn>turn){",
@@ -31,7 +31,7 @@ prove("helpers.js", [
     find: "if(p.prev!==prev){q.splice(q.indexOf(p),1);", replace: "if(false){q.splice(q.indexOf(p),1);",
     mustFail: ROW },
   { label: "a different colder proposal confirms the first",
-    find: "if(p.next!==next){if(R&&R.muts)R.muts.push(", replace: "if(false){if(R&&R.muts)R.muts.push(",
+    find: "if(p.next.toLowerCase()!==next.toLowerCase()){if(R&&R.muts)R.muts.push(", replace: "if(false){if(R&&R.muts)R.muts.push(",
     mustFail: ROW },
   { label: "a proposal never expires",
     find: "if(turn-q[i].turn>=RESIDENT_REL_EXPIRE_TURNS){", replace: "if(false){",

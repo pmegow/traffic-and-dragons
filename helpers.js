@@ -3611,16 +3611,17 @@ function shopOpenNow(node,min){/* #527 (8): `min` = the clock minute to judge at
    RETURN change, the whispers facts and the Car Mode recap. */
 /* #593 (owner ruling 2026-10-11, "confirm to commit"; precedent: the W7 staged bond write, identity.js): a Village RESIDENT's
    standing with the hero moves only through play that earns it. The NPC handler asks residentRelWrite before it lands a relation:
-   when the kind says so (residentRelConfirm) and the NPC is a resident, a COLDER word (the antagonist vocabulary the scene-cast
-   screen reads, widened to the cold and the wary) is STAGED on worldState.residentRelChanges with a receipt and a toast, canon
+   when the kind says so (residentRelConfirm) and the NPC is a resident, a word OUTSIDE the good-standing vocabulary (RESIDENT_REL_GOOD_RE:
+   the warm words and the baseline — the 2026-10-12 acceptance showed a closed COLDER list lets any unlisted synonym through) written over
+   a standing INSIDE it is STAGED on worldState.residentRelChanges with a receipt and a toast, canon
    unchanged; the SAME relation written again on a LATER response commits it (a same-response duplicate cannot confirm; a staged
    preimage that moved is dropped and said; a different colder proposal while one waits is refused and said); a proposal nobody
    repeats for RESIDENT_REL_EXPIRE_TURNS turns is dropped, said once, at the next relation write. A warmer word, a restatement, a
    visitor and the adventure land at once. No prompt note asks for the confirmation on purpose: sustained friction IS the earning.
    The one case this does not see is a relation written by something other than the NPC tag (none today). */
-var RESIDENT_REL_ADVERSE_RE=/hostil|enem|wary|suspici|distrust|mistrust|cold|angry|anger|furious|resent|bitter|estrang|rival|\bfoe|hate|loath|unfriend|guarded|grudg|spurn|shun|afraid|fear|contempt|disdain|betray|wants? (?:you|him|her|them) (?:dead|gone)|out for blood|sworn against/i;
+var RESIDENT_REL_GOOD_RE=/\b(?:resident|residents|acquaintance|acquaintances|neutral|unknown|stranger|ally|allies|allied|friend|friends|friendly|friendship|befriended|trusted|trusting|trusts|trust|fond|fondness|love|loves|loved|loving|lover|lovers|beloved|sweetheart|betrothed|spouse|wife|husband|partner|partners|kin|kinsman|kinswoman|family|sister|brother|mother|father|daughter|son|cousin|aunt|uncle|grandmother|grandfather|niece|nephew|mentor|mentors|teacher|student|apprentice|protege|prot\u00e9g\u00e9|neighbou?r|neighbou?rs|neighbou?rly|welcome|welcoming|warm|warming|warmly|warmed|cordial|kind|kindly|respect|respects|respected|respectful|admires?|admired|admiring|adores?|adored|dear|close|comrade|comrades|companion|companions|owes? you|indebted|grateful|gratitude|thankful|loyal|loyalty|devoted|devotion|protective|protector|patron|benefactor|supporter|supportive|amused|cheerful|pleased|glad|happy|at ease|easy|relaxed|open|frank|honest|fair|regular|customer|client|employer|employee|colleague|business partner|guest|host|hostess)\b/i;
 var RESIDENT_REL_EXPIRE_TURNS=12,RESIDENT_REL_CAP=8;
-function residentRelAdverse(rel){return RESIDENT_REL_ADVERSE_RE.test(String(rel||""));}
+function residentRelGood(rel){return RESIDENT_REL_GOOD_RE.test(String(rel||""));}/* a standing in good order: a warm word, or the baseline; anything outside the vocabulary counts as colder, so no unlisted synonym can land unasked (the 2026-10-12 acceptance's fourteen) */
 function residentRelPending(name){var q=(typeof worldState!=="undefined"&&worldState)?worldState.residentRelChanges:null,i;if(!q)return null;for(i=0;i<q.length;i++)if(q[i].name===name)return q[i];return null;}
 function residentRelExpire(R,turn){
   var q=(typeof worldState!=="undefined"&&worldState)?worldState.residentRelChanges:null,i;if(!q||!q.length)return;
@@ -3635,8 +3636,8 @@ function residentRelWrite(npc,next,R){
   if(!def||!def.residentRelConfirm||!npc||!npc.resident)return true;/* the kind lets relations move freely, or this is no resident */
   var prev=String(npc.rel||"");next=String(next||"");
   if(next===prev)return true;/* a restatement */
-  if(!residentRelAdverse(next)||residentRelAdverse(prev)){
-    /* a warmer word, or a colder word on a standing that is already cold: lands; a waiting proposal for this resident is moot */
+  if(residentRelGood(next)||!residentRelGood(prev)){
+    /* a word in good standing, or any word over a standing that is already outside it: lands; a waiting proposal for this resident is moot */
     var old=residentRelPending(npc.name);if(old){var q0=worldState.residentRelChanges;q0.splice(q0.indexOf(old),1);if(!q0.length)delete worldState.residentRelChanges;if(R&&R.muts)R.muts.push("Resident relation proposal withdrawn (the standing was written anew): "+npc.name+" (\""+old.next+"\" dropped)");}
     return true;}
   var p=residentRelPending(npc.name),q;
@@ -3644,7 +3645,7 @@ function residentRelWrite(npc,next,R){
     q=worldState.residentRelChanges;
     if(p.turn>=turn){if(R&&R.muts)R.muts.push("⚠ Resident relation change NOT confirmed (same-response duplicate): "+npc.name+" \u2014 write it again on a later turn");return false;}
     if(p.prev!==prev){q.splice(q.indexOf(p),1);if(!q.length)delete worldState.residentRelChanges;if(R&&R.muts)R.muts.push("⚠ Resident relation proposal DROPPED (the standing moved since staging: \""+p.prev+"\" is now \""+prev+"\") \u2014 "+npc.name+" stays \""+prev+"\"; write it again to restage");return false;}
-    if(p.next!==next){if(R&&R.muts)R.muts.push("⚠ Resident relation change refused \u2014 a different change is already awaiting confirmation: "+npc.name+" (\""+p.next+"\" staged t"+p.turn+", \""+next+"\" written)");return false;}
+    if(p.next.toLowerCase()!==next.toLowerCase()){if(R&&R.muts)R.muts.push("⚠ Resident relation change refused \u2014 a different change is already awaiting confirmation: "+npc.name+" (\""+p.next+"\" staged t"+p.turn+", \""+next+"\" written)");return false;}
     q.splice(q.indexOf(p),1);if(!q.length)delete worldState.residentRelChanges;
     if(R&&R.muts)R.muts.push(npc.name+": relation "+next+" (confirmed \u2014 written again at t"+turn+", staged t"+p.turn+"; was \""+prev+"\")");
     if(typeof showToast==="function")showToast(npc.name+"'s standing is now \""+next+"\" \u2014 written twice, so it stands (#593)");
