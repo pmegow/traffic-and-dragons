@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-12 · #518 #613 · Opus 5.5 fix lane under Fable (drift surface: the item-pair handlers, the one item key): the stow shares the pair rule, the auto-take skips a same-block take, a take consumes its gain units, the short take restores first, itemKey folds a sibilant -es. Acceptance 20/20 + two sweeps, battery 17/17, 111 targeted batteries green. Fable reviewed every engine line and landed it.
+
 - 2026-10-11 · #615 · Codex: owner-requested dedicated sign-up page and homepage link; thin DOM shell over the existing authentication adapter, no auth protocol or campaign-state changes. Shared satellite palette/network-first delivery and version bumps; signup fixtures, browser QA and mutation proof. v1.1229 reads access through the existing account API before offering play; pending approval uses the owner’s requested wording and can be checked again. v1.1230 adds the owner-requested affirmative signup choice before provider authentication or saved-session continuation.
 
 - 2026-10-11 · #518 · Opus 5.5 lane under Fable (drift surface: the companion gift and the pair notes): a counted gift to a missing recipient puts back every unit; a loss unit pairs once (`itemPairMissed`, per-unit consumption by gifts and stows). Tests +3, battery 10 clauses, one A2 clause re-anchored. Fable reviewed every engine line and landed it; #613 filed for the take-pair twin.

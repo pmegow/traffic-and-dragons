@@ -30,7 +30,7 @@ prove("tag_table.js", [
     find: "if(_gHits!==null&&_gHits<cIq.n){", replace: "if(false){",
     mustFail: "#518 a gift bounded" },
   { label: "#518 ② the take pair gives the hero the full count again (Bram held one, the hero gets three)",
-    find: "    if(cIlHit&&cIlHit<cIlq.n){var _tsh=cIlq.n-cIlHit,_tsb=0,_tsx;", replace: "    if(false){var _tsh=cIlq.n-cIlHit,_tsb=0,_tsx;",
+    find: "_tsh=(cIlHit&&cIlHit<cIlq.n)?Math.min(cIlq.n-cIlHit,_tlG-_tlP):0;", replace: "_tsh=0;",/* #518 ⑭ re-anchor: the shortfall take-back runs before the I5 carry now */
     mustFail: "#518 ② the take pair" },
   { label: "#518 ② a total miss takes back one unit only (the hero keeps two)",
     find: "var _tpb=itemPairTake(R,\"igHits\",cIlm[2],_tlB),_tpn=0;while(_tpb){removeInventoryItem(worldState.character.inventory,_tpb);_tpn++;_tpb=itemPairTake(R,\"igHits\",cIlm[2],_tlB);}", replace: "var _tpb=itemPairTake(R,\"igHits\",cIlm[2],_tlB),_tpn=0;if(_tpb){removeInventoryItem(worldState.character.inventory,_tpb);_tpn++;}",/* #518 */

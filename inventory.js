@@ -14,13 +14,18 @@
      the list as it was — §2.4 "writers prepare before mutation") and then calls the row function. Never a second
      implementation. The names retire in a later explicit cleanup commit once callers, tests and anchors have moved.
 
-   ONE KEY. itemKey(name) is the pack rule — case, spaces, dash variants, a trailing plural "s" — on a COUNT-FREE name. A
+   ONE KEY. itemKey(name) is the pack rule — case, spaces, dash variants, a sibilant "-es"/"-e" (#518 ⑫), a trailing plural "s" — on a COUNT-FREE name. A
    legacy string decodes its count first (invStoredParse, invStoredKey); an object row's name is literal (I3: a row named
    "Torch x2" is an item called "Torch x2"). Where a provenance-free match is wanted (wants, the pair key, bible lookups)
    itemBaseKey projects the clause away — "(from …)" and " — …" — never a count. The TAG grammar (_qtyParse, QTY_MAX=999)
    reads what the GM writes and keeps its own bound; INV_QTY_MAX bounds stored rows (§5.2 ②). */
 var INV_QTY_MAX=9999;
-function itemKey(name){return String(name==null?"":name).toLowerCase().replace(/[—–−‑]/g,"-").replace(/\s*-\s*/g,"-").replace(/\s+/g," ").trim().replace(/s$/,"");}
+/* #518 ⑫ (acceptance 2026-10-12): a SIBILANT stem — ch, sh, ss — folds both its "-es" plural and an "-e" singular onto the stem
+   before the plural "s" goes: "Torches" and "Torch" are one key ("torch"), so are "Pouches"/"Pouch", "Brushes"/"Brush",
+   "Glasses"/"Glass" ("glas", as the "s" rule always made it); "Cache" and "Caches" stay together ("cach"). Deliberately NOT
+   folded (each would split a pair that matches today): a single s ("Horses"/"Horse", "Cases"/"Case"), x ("Axes"/"Axe") and z
+   ("Prizes"/"Prize", "Adzes"/"Adze") — "Boxes" still misses "Box". "Clothes" stays "clothe", never "Cloth". "Arrows" → "arrow". */
+function itemKey(name){return String(name==null?"":name).toLowerCase().replace(/[—–−‑]/g,"-").replace(/\s*-\s*/g,"-").replace(/\s+/g," ").trim().replace(/(ch|sh|ss)es?$/,"$1").replace(/s$/,"");}
 /* the provenance-free projection of a COUNT-FREE name: the first spaced dash begins a clause, a parenthesis is one too */
 function itemProvenanceFree(name){var s=String(name==null?"":name),cut=s.search(/\s+[—–-]\s+/);if(cut>=0)s=s.slice(0,cut);s=s.replace(/\s*\(.*\)/,"");return s.replace(/\s+/g," ").trim();}
 function itemBaseKey(name){return itemKey(itemProvenanceFree(name));}

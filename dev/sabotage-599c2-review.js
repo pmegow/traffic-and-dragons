@@ -79,7 +79,7 @@ prove("tag_table.js", [
     find: "_tlMiss=itemPairMissWhy(R,\"igMiss\",cIlq.base,_tlB);if(_tlMiss){", replace: "_tlMiss=itemPairMissWhy(R,\"igMiss\",cIlq.base,_tlB);if(false){",/* #518 */
     mustFail: R2 },
   { label: "a take onto a plain stack keeps the move (the companion's fields are lost)",
-    find: "if(cIlHit&&_tlG>0&&invFragsHaveFields(_tlF)){", replace: "if(false){",
+    find: "if(_tlP>0&&invFragsHaveFields(_tlF)){", replace: "if(false){",/* #613 re-anchor: the carry reads the gain units this take pairs */
     mustFail: R4B },
 ]);
 prove("game.js", [

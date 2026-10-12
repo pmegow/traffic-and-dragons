@@ -28199,6 +28199,257 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     acc593();var r=acc593Turn("[NPC:Nyla||hostile]",6);
     if(acc593Rel("Nyla")!=="resident")return "a write in the new world never confirms the old world's proposal: "+acc593Rel("Nyla")+" "+JSON.stringify(r.muts);
     var q=worldState.residentRelChanges;return q&&q.length===1&&q[0].turn===6&&acc593Lines(r,/staged: Nyla/).length===1?true:"it stages afresh: "+JSON.stringify(q);});
+  /* Acceptance 2026-10-12 for #518 (◉ ready to test): objective probes written to BREAK the row before the owner closes it. They
+     cover every original Thursday case, both 2026-10-10 conservation cases, the 2026-10-11 ruling (a gift to NOBODY voids its
+     block's loss), counts, two recipients, a gift beside a stow, casing and plurals, fragments (I5) on the give and the take, the
+     stow twins of the gift rules, a take beside the same item on the floor, the known #613 shape (red until #613 lands, never
+     counted against #518) and a seeded randomized conservation sweep. A red probe here is a FINDING, recorded with its mechanism
+     in the acceptance report; this section changes no engine code. Units are counted across the pack, both companions and the
+     floor; a place's rows count their qty (an adventure toggle row counts one while it lies there). */
+  section("acceptance 2026-10-12 — #518 item pairs");
+  function acc518Comp(name,inv){worldState.npcs.push({name:name,status:"ally",rel:"companion",partyMember:true,charSheet:{name:name,inventory:inv||[]}});memory.npcs[name]={knowledge:[],events:[],aliases:[],partyMember:true};}
+  function acc518Rows(name,n){return n>0?[{name:name,qty:n,equipped:false}]:[];}
+  function acc518Adv(heroN){makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    worldState.character.inventory=acc518Rows("Torch",heroN);acc518Comp("Bram",[]);acc518Comp("Cara",[]);return memory.map.nodes["Sandpoint"];}
+  function acc518Village(heroN){makeWorld();worldState.kind="village";worldState.character.name="Silas";worldState.world.location="The Village";worldState.world.sublocation=null;
+    memory.map={nodes:{"The Village":{firstVisit:1,visits:1,parent:null,npcs:[],items:[]}},edges:[],lastArrivalFrom:null};
+    importVillageResidents([{name:"Frizwick",gender:"F",cls:"Rogue",inventory:[],coreMemories:[]}]);villageHouseEnsure("Silas",null);
+    worldState.world.sublocation="Silas's house";worldState.stashMoves=[];worldState.character.inventory=acc518Rows("Torch",heroN);acc518Comp("Bram",[]);acc518Comp("Cara",[]);
+    return memory.map.nodes[villageHouseKey("Silas")];}
+  function acc518Floor(node,name){var n=0,k=stashKey(name);((node&&node.items)||[]).forEach(function(it){if(stashKey(it.name)===k&&!it.taken&&it.qty!==0)n+=(typeof it.qty==="number"?it.qty:1);});return n;}
+  function acc518Units(name,node){var h=inventoryCountOf(worldState.character.inventory,name),b=inventoryCountOf(findCompanionChar("Bram").inventory,name),c=inventoryCountOf(findCompanionChar("Cara").inventory,name),f=node?acc518Floor(node,name):0;
+    return {hero:h,bram:b,cara:c,floor:f,total:h+b+c+f};}
+  function acc518Run(text){return quiet(function(){return applyMuts(text);}).r;}
+  function acc518Said(muts,re){return (muts||[]).some(function(m){return re.test(m);});}
+  function acc518Blessed(n){return [{name:"Torch",qty:n,equipped:false,blessed:"by Pelor"}];}
+  t("#518 acceptance ① the Thursday gift: [ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3] with the pack holding 0, 1, 2, 3 or 4 gives Bram min(held,3) and never a unit more; every unit is in the pack or with Bram; an empty or short gift is said — both tag orders",function(){
+    var held,rev,tags,r,u,want,lab;
+    for(held=0;held<=4;held++)for(rev=0;rev<2;rev++){
+      acc518Adv(held);tags=["[ITEM_LOST:Torch x3]","[COMPANION_ITEM_GAINED:Bram|Torch x3]"];if(rev)tags.reverse();
+      r=acc518Run(tags.join(""));u=acc518Units("Torch");want=Math.min(held,3);lab="held "+held+(rev?" (reversed)":"")+": ";
+      if(u.total!==held)return lab+"units conserve ("+held+" in, "+u.total+" out): "+JSON.stringify([u,r.muts]);
+      if(u.bram!==want||u.hero!==held-want)return lab+"Bram gets "+want+", the hero keeps "+(held-want)+": "+JSON.stringify([u,r.muts]);
+      if(held===0&&!acc518Said(r.muts,/^⚠ Nothing given — 'Torch x3'/))return lab+"the empty gift is said: "+JSON.stringify(r.muts);
+      if(held>0&&held<3&&!acc518Said(r.muts,new RegExp("^⚠ Gift of Torch x3 cut to "+(held>1?"x"+held:"one")+" — the pack held "+held)))return lab+"the cut is said: "+JSON.stringify(r.muts);
+    }
+    return true;
+  });
+  t("#518 acceptance ② the Thursday take: [COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3] with Bram holding 0–4 and the hero already holding 0 or 2 moves min(Bram's,3) to the hero and never a unit from nowhere; an empty or short take is said — both tag orders",function(){
+    var bh,hh,rev,tags,r,u,want,lab;
+    for(bh=0;bh<=4;bh++)for(hh=0;hh<=2;hh+=2)for(rev=0;rev<2;rev++){
+      acc518Adv(hh);findCompanionChar("Bram").inventory=acc518Rows("Torch",bh);tags=["[COMPANION_ITEM_LOST:Bram|Torch x3]","[ITEM_GAINED:Torch x3]"];if(rev)tags.reverse();
+      r=acc518Run(tags.join(""));u=acc518Units("Torch");want=Math.min(bh,3);lab="Bram "+bh+", hero "+hh+(rev?" (reversed)":"")+": ";
+      if(u.total!==bh+hh)return lab+"units conserve ("+(bh+hh)+" in, "+u.total+" out): "+JSON.stringify([u,r.muts]);
+      if(u.hero!==hh+want||u.bram!==bh-want)return lab+"the hero gains "+want+": "+JSON.stringify([u,r.muts]);
+      if(bh===0&&!acc518Said(r.muts,/^⚠ Nothing moved — 'Torch x3' is not on Bram's sheet/))return lab+"the empty take is said: "+JSON.stringify(r.muts);
+      if(bh>0&&bh<3&&!acc518Said(r.muts,new RegExp("^⚠ Take of Torch x3 cut to "+(bh>1?"x"+bh:"one")+" — Bram held "+bh)))return lab+"the short take is said: "+JSON.stringify(r.muts);
+    }
+    return true;
+  });
+  t("#518 acceptance ③ the Thursday gift at home: a potion held in the pack AND the chest moves ONE, from the pack, in both tag orders — the chest keeps its potion and no stash take is claimed; a counted gift (pack 1, chest 2, x2) is cut to the pack's one and the chest keeps both",function(){
+    var P="Healing potion",rev,tags,h,r,u;
+    for(rev=0;rev<2;rev++){
+      h=acc518Village(0);worldState.character.inventory=acc518Rows(P,1);h.items=[{name:P,placed:1,taken:false,qty:1,by:"Silas",min:0}];
+      tags=["[ITEM_LOST:"+P+"]","[COMPANION_ITEM_GAINED:Bram|"+P+"]"];if(rev)tags.reverse();r=acc518Run(tags.join(""));u=acc518Units(P,h);
+      if(u.hero!==0||u.bram!==1||u.floor!==1)return (rev?"reversed: ":"")+"one potion from the pack to Bram, the chest's stays (hero 0, Bram 1, chest 1): "+JSON.stringify([u,h.items,r.muts]);
+      if(acc518Said(r.muts,/From the stash/))return (rev?"reversed: ":"")+"no stash take is claimed: "+JSON.stringify(r.muts);
+    }
+    h=acc518Village(0);worldState.character.inventory=acc518Rows(P,1);h.items=[{name:P,placed:1,taken:false,qty:2,by:"Silas",min:0}];
+    r=acc518Run("[ITEM_LOST:"+P+" x2][COMPANION_ITEM_GAINED:Bram|"+P+" x2]");u=acc518Units(P,h);
+    return (u.hero===0&&u.bram===1&&u.floor===2&&acc518Said(r.muts,/cut to one — the pack held 1/))?true:"the counted gift at home is cut to the pack's one and the chest keeps both: "+JSON.stringify([u,h.items,r.muts]);
+  });
+  t("#518 acceptance ④ the Thursday loot/throw collision across prose: the hero who loots a Dagger (or two) while Bram throws an untracked Dagger keeps the loot, in both orders; when Bram does hold one, the throw and the loot are two events (Bram −1, hero +1)",function(){
+    var cases=[["You loot a dagger. [ITEM_GAINED:Dagger] Bram throws his dagger. [COMPANION_ITEM_LOST:Bram|Dagger]",0,1,0],
+      ["Bram throws his dagger. [COMPANION_ITEM_LOST:Bram|Dagger] You loot a dagger. [ITEM_GAINED:Dagger]",0,1,0],
+      ["You loot two daggers. [ITEM_GAINED:Dagger x2] Bram throws his. [COMPANION_ITEM_LOST:Bram|Dagger]",0,2,0],
+      ["You loot a dagger. [ITEM_GAINED:Dagger] Bram throws his dagger. [COMPANION_ITEM_LOST:Bram|Dagger]",1,1,0]],i,r,u;
+    for(i=0;i<cases.length;i++){acc518Adv(0);findCompanionChar("Bram").inventory=acc518Rows("Dagger",cases[i][1]);r=acc518Run(cases[i][0]);u=acc518Units("Dagger");
+      if(u.hero!==cases[i][2]||u.bram!==cases[i][3])return "case "+i+" ("+cases[i][0]+", Bram held "+cases[i][1]+"): hero "+cases[i][2]+", Bram "+cases[i][3]+": "+JSON.stringify([u,r.muts]);
+      if(acc518Said(r.muts,/Nothing moved/))return "case "+i+": no take is read across the prose: "+JSON.stringify(r.muts);}
+    return true;
+  });
+  t("#518 acceptance ⑤ the 2026-10-10 case one: the hero holding Torch x3 who writes [ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch x3] keeps all three, and the receipt says x3",function(){
+    acc518Adv(3);var r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch x3]"),u=acc518Units("Torch");
+    if(u.hero!==3||u.total!==3)return "all three back in the pack: "+JSON.stringify([u,r.muts]);
+    return acc518Said(r.muts,/^⚠ 'Torch' x3 stays in the pack — no party member 'Absent'/)?true:"said with the count: "+JSON.stringify(r.muts);
+  });
+  t("#518 acceptance ⑥ the 2026-10-10 case two: [ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Bram|Torch] written twice in one block with one torch held gives Bram that torch — never zero, never two — and the second pair's refusal is said",function(){
+    acc518Adv(1);var r=acc518Run("[ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Bram|Torch][ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Bram|Torch]"),u=acc518Units("Torch");
+    if(u.total!==1||u.bram!==1)return "one torch in, one out, with Bram: "+JSON.stringify([u,r.muts]);
+    return acc518Said(r.muts,/^⚠ Nothing given — 'Torch'/)?true:"the second refusal is said: "+JSON.stringify(r.muts);
+  });
+  t("#518 acceptance ⑦ the 2026-10-11 ruling — a gift to NOBODY voids its block's loss: every unit still standing returns, said as xN, whatever count the gift names (x1, x2, x3, x5); a short loss returns what it took; a loss split over two tags returns all; after an earlier gift to Bram or a stow in the same block the REST returns; written before Bram's gift it voids all three and Bram's gift gives nothing, said",function(){
+    var asks=["Torch","Torch x2","Torch x3","Torch x5"],i,r,u,h,bad=[];
+    for(i=0;i<asks.length;i++){acc518Adv(3);r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|"+asks[i]+"]");u=acc518Units("Torch");
+      if(u.hero!==3||u.total!==3||!acc518Said(r.muts,/^⚠ 'Torch' x3 stays in the pack — no party member 'Absent'/))bad.push("a gift of '"+asks[i]+"' to nobody returns all three, said x3: "+JSON.stringify([u,r.muts]));}
+    acc518Adv(2);r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch x3]");u=acc518Units("Torch");
+    if(u.hero!==2||!acc518Said(r.muts,/^⚠ 'Torch' x2 stays in the pack — no party member 'Absent'/))bad.push("a short loss of two returns its two, said x2: "+JSON.stringify([u,r.muts]));
+    acc518Adv(3);r=acc518Run("[ITEM_LOST:Torch x2][ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Absent|Torch]");u=acc518Units("Torch");
+    if(u.hero!==3||!acc518Said(r.muts,/^⚠ 'Torch' x3 stays in the pack — no party member 'Absent'/))bad.push("a loss split over two tags returns all three: "+JSON.stringify([u,r.muts]));
+    acc518Adv(3);r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch][COMPANION_ITEM_GAINED:Absent|Torch]");u=acc518Units("Torch");
+    if(u.bram!==1||u.hero!==2||!acc518Said(r.muts,/^⚠ 'Torch' x2 stays in the pack — no party member 'Absent'/))bad.push("after Bram's one the two still standing return, said x2: "+JSON.stringify([u,r.muts]));
+    acc518Adv(3);r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x2][COMPANION_ITEM_GAINED:Absent|Torch x3]");u=acc518Units("Torch");
+    if(u.bram!==2||u.hero!==1||!acc518Said(r.muts,/^⚠ 'Torch' stays in the pack — no party member 'Absent'/))bad.push("after Bram's two the one still standing returns: "+JSON.stringify([u,r.muts]));
+    h=acc518Adv(3);r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch][LOCATION_ITEM:Torch|placed]");u=acc518Units("Torch",h);
+    if(u.floor!==1||u.hero!==2||u.total!==3||!acc518Said(r.muts,/^⚠ 'Torch' x2 stays in the pack — no party member 'Absent'/))bad.push("after a stow of one the two still standing return, said x2: "+JSON.stringify([u,h.items,r.muts]));
+    acc518Adv(3);r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch][COMPANION_ITEM_GAINED:Bram|Torch]");u=acc518Units("Torch");
+    if(u.hero!==3||u.bram!==0||!acc518Said(r.muts,/^⚠ Nothing given — 'Torch'/))bad.push("written first, the gift to nobody voids all three and Bram's later gift gives nothing, said: "+JSON.stringify([u,r.muts]));
+    return bad.length?bad.join(" || "):true;
+  });
+  t("#518 acceptance ⑧ counts 1, 2, 3 and more than held: a give of N∈{1,2,3,5,12} from a pack of H∈{1,2,3} lands min(N,H) with Bram and the rest stays in the pack; a take of N from Bram holding H lands min(N,H) with the hero and the rest stays with Bram",function(){
+    var Ns=[1,2,3,5,12],H,i,n,r,u,nm,bad=[];
+    for(H=1;H<=3;H++)for(i=0;i<Ns.length;i++){n=Ns[i];nm=n>1?"Torch x"+n:"Torch";
+      acc518Adv(H);r=acc518Run("[ITEM_LOST:"+nm+"][COMPANION_ITEM_GAINED:Bram|"+nm+"]");u=acc518Units("Torch");
+      if(u.total!==H||u.bram!==Math.min(n,H)||u.hero!==H-Math.min(n,H))bad.push("give '"+nm+"' from "+H+": "+JSON.stringify([u,r.muts]));
+      acc518Adv(0);findCompanionChar("Bram").inventory=acc518Rows("Torch",H);r=acc518Run("[COMPANION_ITEM_LOST:Bram|"+nm+"][ITEM_GAINED:"+nm+"]");u=acc518Units("Torch");
+      if(u.total!==H||u.hero!==Math.min(n,H)||u.bram!==H-Math.min(n,H))bad.push("take '"+nm+"' from Bram's "+H+": "+JSON.stringify([u,r.muts]));}
+    return bad.length?bad.join(" || "):true;
+  });
+  t("#518 acceptance ⑨ gifts to two companions from one loss: a loss of three → Bram x2 + Cara x2 gives Bram two and Cara one (cut, said); a loss of two → Bram one, Cara one; a loss of two → Bram x2 + Cara x1 leaves Cara nothing (said); one held → the first gift written gets it; never more than the loss took",function(){
+    var r,u,bad=[];
+    acc518Adv(3);r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x2][COMPANION_ITEM_GAINED:Cara|Torch x2]");u=acc518Units("Torch");
+    if(u.total!==3||u.bram!==2||u.cara!==1||!acc518Said(r.muts,/^⚠ Gift of Torch x2 cut to one — the pack held 1/))bad.push("three lost: Bram two, Cara one (cut, said): "+JSON.stringify([u,r.muts]));
+    acc518Adv(2);r=acc518Run("[ITEM_LOST:Torch x2][COMPANION_ITEM_GAINED:Bram|Torch][COMPANION_ITEM_GAINED:Cara|Torch]");u=acc518Units("Torch");
+    if(u.total!==2||u.bram!==1||u.cara!==1||u.hero!==0)bad.push("two lost: one each: "+JSON.stringify([u,r.muts]));
+    acc518Adv(2);r=acc518Run("[ITEM_LOST:Torch x2][COMPANION_ITEM_GAINED:Bram|Torch x2][COMPANION_ITEM_GAINED:Cara|Torch]");u=acc518Units("Torch");
+    if(u.total!==2||u.bram!==2||u.cara!==0||!acc518Said(r.muts,/^⚠ Nothing given — 'Torch'/))bad.push("two lost, both to Bram: Cara's gift has no unit left (said): "+JSON.stringify([u,r.muts]));
+    acc518Adv(1);r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Cara|Torch x3][COMPANION_ITEM_GAINED:Bram|Torch x3]");u=acc518Units("Torch");
+    if(u.total!==1||u.cara!==1||u.bram!==0)bad.push("one held, two gifts of x3: the first written gets the one torch: "+JSON.stringify([u,r.muts]));
+    return bad.length?bad.join(" || "):true;
+  });
+  t("#518 acceptance ⑩ a gift and a stow from one loss: two lost → Bram one and the floor one (village chest and adventure floor); one lost → the unit reaches exactly ONE partner (the stow, which the table runs first) and the other's refusal is said",function(){
+    var kinds=["village","adventure"],k,h,r,u,bad=[];
+    for(k=0;k<kinds.length;k++){
+      h=kinds[k]==="village"?acc518Village(2):acc518Adv(2);r=acc518Run("[ITEM_LOST:Torch x2][COMPANION_ITEM_GAINED:Bram|Torch][LOCATION_ITEM:Torch|placed]");u=acc518Units("Torch",h);
+      if(u.total!==2||u.bram!==1||u.floor!==1||u.hero!==0)bad.push(kinds[k]+", two lost: Bram one, the floor one: "+JSON.stringify([u,h.items,r.muts]));
+      h=kinds[k]==="village"?acc518Village(1):acc518Adv(1);r=acc518Run("[ITEM_LOST:Torch x2][COMPANION_ITEM_GAINED:Bram|Torch][LOCATION_ITEM:Torch|placed]");u=acc518Units("Torch",h);
+      if(u.total!==1||u.bram+u.floor!==1||!acc518Said(r.muts,/^⚠ Nothing given — 'Torch'|^⚠ Nothing placed — 'Torch'/))bad.push(kinds[k]+", one lost: the unit reaches one partner and the other's refusal is said: "+JSON.stringify([u,h.items,r.muts]));
+    }
+    return bad.length?bad.join(" || "):true;
+  });
+  t("#518 acceptance ⑪ casing and the plural s are one item: [ITEM_LOST:torch x2][COMPANION_ITEM_GAINED:Bram|TORCH x2] with one held gives one (cut, said); 'Arrows' and 'arrow' pair the same way; a gift of 'arrow' to nobody voids a loss of 'Arrows x3'; a take written 'TORCH' / 'torch' is bounded by Bram's one",function(){
+    var r,u,bad=[];
+    acc518Adv(1);r=acc518Run("[ITEM_LOST:torch x2][COMPANION_ITEM_GAINED:Bram|TORCH x2]");u=acc518Units("Torch");
+    if(u.total!==1||u.bram!==1||!acc518Said(r.muts,/cut to one/))bad.push("casing: one held, one given, the cut said: "+JSON.stringify([u,r.muts]));
+    acc518Adv(0);worldState.character.inventory=acc518Rows("Arrow",2);r=acc518Run("[ITEM_LOST:Arrows x3][COMPANION_ITEM_GAINED:Bram|arrow x3]");u=acc518Units("Arrow");
+    if(u.total!==2||u.bram!==2||!acc518Said(r.muts,/cut to x2/))bad.push("plural s: two held, two given, the cut said: "+JSON.stringify([u,r.muts]));
+    acc518Adv(0);worldState.character.inventory=acc518Rows("Arrow",3);r=acc518Run("[ITEM_LOST:Arrows x3][COMPANION_ITEM_GAINED:Absent|arrow]");u=acc518Units("Arrow");
+    if(u.hero!==3||!acc518Said(r.muts,/x3 stays in the pack — no party member 'Absent'/))bad.push("plural s, a gift to nobody: all three back, said x3: "+JSON.stringify([u,r.muts]));
+    acc518Adv(0);findCompanionChar("Bram").inventory=acc518Rows("Torch",1);r=acc518Run("[COMPANION_ITEM_LOST:Bram|TORCH x3][ITEM_GAINED:torch x3]");u=acc518Units("Torch");
+    if(u.total!==1||u.hero!==1||!acc518Said(r.muts,/cut to one — Bram held 1/))bad.push("casing on the take: the hero gains Bram's one: "+JSON.stringify([u,r.muts]));
+    return bad.length?bad.join(" || "):true;
+  });
+  t("#518 acceptance ⑫ a plural written -es is the same item: with one 'Torch' held, [ITEM_LOST:Torch x2][COMPANION_ITEM_GAINED:Bram|Torches x2] gives Bram ONE; [ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torches x3] puts all three back; Bram holding one, [COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torches x3] gives the hero ONE (units counted over both spellings)",function(){
+    /* #518 ⑫ fix (2026-10-12): once the two spellings share the item key, acc518Units("Torch") already counts every unit under
+       either spelling — adding acc518Units("Torches") would count each unit twice; the second count runs only while the keys differ */
+    function both(){var s=acc518Units("Torch"),p=itemKey("Torches")===itemKey("Torch")?{hero:0,bram:0,total:0}:acc518Units("Torches");return {hero:s.hero+p.hero,bram:s.bram+p.bram,total:s.total+p.total};}
+    var r,u,bad=[];
+    acc518Adv(1);r=acc518Run("[ITEM_LOST:Torch x2][COMPANION_ITEM_GAINED:Bram|Torches x2]");u=both();
+    if(u.total!==1||u.bram!==1)bad.push("one torch held, a gift spelled 'Torches x2': 1 in, "+u.total+" out (Bram "+u.bram+"): "+JSON.stringify(r.muts));
+    acc518Adv(3);r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torches x3]");u=both();
+    if(u.hero!==3)bad.push("a gift spelled 'Torches x3' to nobody: 3 in, "+u.total+" out (hero "+u.hero+"): "+JSON.stringify(r.muts));
+    acc518Adv(0);findCompanionChar("Bram").inventory=acc518Rows("Torch",1);r=acc518Run("[COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torches x3]");u=both();
+    if(u.total!==1||u.hero!==1)bad.push("Bram holding one, a gain spelled 'Torches x3': 1 in, "+u.total+" out (hero "+u.hero+"): "+JSON.stringify(r.muts));
+    return bad.length?bad.join(" || "):true;
+  });
+  t("#518 acceptance ⑬ a fragment rides the GIVE (I5): two of a blessed Torch row reach Bram's fresh row WITH the field; onto Bram's plain Torch the gift is refused and both units return WITH the field (said); a gift to nobody returns all three WITH it; a stow of blessed torches stays in the pack (said)",function(){
+    var r,b,c,h,bad=[];
+    acc518Adv(0);worldState.character.inventory=acc518Blessed(3);r=acc518Run("[ITEM_LOST:Torch x2][COMPANION_ITEM_GAINED:Bram|Torch x2]");b=findCompanionChar("Bram").inventory;c=worldState.character.inventory;
+    if(JSON.stringify(b)!==JSON.stringify(acc518Blessed(2))||JSON.stringify(c)!==JSON.stringify(acc518Blessed(1)))bad.push("the field rides the gift: "+JSON.stringify([c,b,r.muts]));
+    acc518Adv(0);worldState.character.inventory=acc518Blessed(3);findCompanionChar("Bram").inventory=acc518Rows("Torch",1);r=acc518Run("[ITEM_LOST:Torch x2][COMPANION_ITEM_GAINED:Bram|Torch x2]");b=findCompanionChar("Bram").inventory;c=worldState.character.inventory;
+    if(JSON.stringify(c)!==JSON.stringify(acc518Blessed(3))||JSON.stringify(b)!==JSON.stringify(acc518Rows("Torch",1))||!acc518Said(r.muts,/^⚠ 'Torch' x2 stays in the pack — 'Torch' carries different fields/))bad.push("onto a plain row: refused, both units back with the field, Bram's row untouched, said: "+JSON.stringify([c,b,r.muts]));
+    acc518Adv(0);worldState.character.inventory=acc518Blessed(3);r=acc518Run("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch]");c=worldState.character.inventory;
+    if(JSON.stringify(c)!==JSON.stringify(acc518Blessed(3)))bad.push("a gift to nobody returns every unit with its field: "+JSON.stringify([c,r.muts]));
+    h=acc518Village(0);worldState.character.inventory=acc518Blessed(2);r=acc518Run("[ITEM_LOST:Torch x2][LOCATION_ITEM:Torch x2|placed]");c=worldState.character.inventory;
+    if(JSON.stringify(c)!==JSON.stringify(acc518Blessed(2))||acc518Floor(h,"Torch")!==0||!acc518Said(r.muts,/stays in the pack — it carries fields the chest cannot hold/))bad.push("a stow of blessed torches stays in the pack with the field (said): "+JSON.stringify([c,h.items,r.muts]));
+    return bad.length?bad.join(" || "):true;
+  });
+  t("#518 acceptance ⑭ a fragment rides the TAKE (I5): Bram's two blessed torches land on the hero's fresh row WITH the field; onto the hero's plain Torch stack the take is restored on both sides (said); a SHORT take of a blessed row (x3, Bram holding 1 or 2) moves what Bram held with the field, or restores both sides — never a plain torch from nowhere",function(){
+    var r,b,c,u,bh,bad=[];
+    acc518Adv(0);findCompanionChar("Bram").inventory=acc518Blessed(2);r=acc518Run("[COMPANION_ITEM_LOST:Bram|Torch x2][ITEM_GAINED:Torch x2]");c=worldState.character.inventory;b=findCompanionChar("Bram").inventory;
+    if(JSON.stringify(c)!==JSON.stringify(acc518Blessed(2))||b.length)bad.push("the field rides the take: "+JSON.stringify([c,b,r.muts]));
+    acc518Adv(1);findCompanionChar("Bram").inventory=acc518Blessed(2);r=acc518Run("[COMPANION_ITEM_LOST:Bram|Torch x2][ITEM_GAINED:Torch x2]");c=worldState.character.inventory;b=findCompanionChar("Bram").inventory;
+    if(JSON.stringify(c)!==JSON.stringify(acc518Rows("Torch",1))||JSON.stringify(b)!==JSON.stringify(acc518Blessed(2))||!acc518Said(r.muts,/^⚠ Nothing moved — 'Torch x2' carries fields/))bad.push("onto a plain stack: both sides as they were, said: "+JSON.stringify([c,b,r.muts]));
+    for(bh=1;bh<=2;bh++){acc518Adv(0);findCompanionChar("Bram").inventory=acc518Blessed(bh);r=acc518Run("[COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch x3]");u=acc518Units("Torch");c=worldState.character.inventory;b=findCompanionChar("Bram").inventory;
+      var moved=JSON.stringify(c)===JSON.stringify(acc518Blessed(bh))&&!b.length,restored=!c.length&&JSON.stringify(b)===JSON.stringify(acc518Blessed(bh));
+      if(u.total!==bh||!(moved||restored))bad.push("Bram holding "+bh+" blessed, a take of x3: "+bh+" in, "+u.total+" out (hero "+JSON.stringify(c)+", Bram "+JSON.stringify(b)+"): "+JSON.stringify(r.muts));}
+    return bad.length?bad.join(" || "):true;
+  });
+  t("#518 acceptance ⑮ the stow pairs a loss unit ONCE, as the gift does: one torch lost and two gifts of it in one block give ONE (the gift rule); one torch lost and two placements of it in ONE block (village chest) leave ONE torch on the floor and the second placement's refusal is said",function(){
+    acc518Adv(1);var r=acc518Run("[ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Bram|Torch][COMPANION_ITEM_GAINED:Bram|Torch]"),u=acc518Units("Torch");
+    if(u.total!==1)return "the gift twin: one torch in, "+u.total+" out: "+JSON.stringify([u,r.muts]);
+    var h=acc518Village(1);r=acc518Run("[ITEM_LOST:Torch][LOCATION_ITEM:Torch|placed][LOCATION_ITEM:Torch|placed]");u=acc518Units("Torch",h);
+    if(u.total!==1)return "one torch lost, two placements: 1 in, "+u.total+" out (pack "+u.hero+", floor "+u.floor+"): "+JSON.stringify([h.items,r.muts]);
+    return acc518Said(r.muts,/^⚠ Nothing placed — 'Torch'/)?true:"the second placement's refusal is said: "+JSON.stringify(r.muts);
+  });
+  t("#518 acceptance ⑯ a counted stow is cut to what its loss took, as the gift is: [ITEM_LOST:Torch x3][LOCATION_ITEM:Torch x3|placed] with ONE torch held (village chest) leaves one torch on the floor, not three; a loss of two with placements of one and of two leaves two",function(){
+    var h=acc518Village(1),r=acc518Run("[ITEM_LOST:Torch x3][LOCATION_ITEM:Torch x3|placed]"),u=acc518Units("Torch",h),bad=[];
+    if(u.total!==1)bad.push("one torch held, a placement of x3: 1 in, "+u.total+" out (pack "+u.hero+", floor "+u.floor+"): "+JSON.stringify([h.items,r.muts]));
+    h=acc518Village(2);r=acc518Run("[ITEM_LOST:Torch x2][LOCATION_ITEM:Torch|placed][LOCATION_ITEM:Torch x2|placed]");u=acc518Units("Torch",h);
+    if(u.total!==2)bad.push("two lost, placements of one and two: 2 in, "+u.total+" out (floor "+u.floor+"): "+JSON.stringify([h.items,r.muts]));
+    return bad.length?bad.join(" || "):true;
+  });
+  t("#518 acceptance ⑰ a TAKE takes from the companion only — the mirror of the gift at home: Bram hands the hero his potion while the hero's chest holds one (village) and the chest keeps it; Bram hands the hero his torch while a torch lies here (adventure) and the floor keeps it",function(){
+    var P="Healing potion",h=acc518Village(0),r,u,bad=[];h.items=[{name:P,placed:1,taken:false,qty:1,by:"Silas",min:0}];findCompanionChar("Bram").inventory=acc518Rows(P,1);
+    r=acc518Run("[COMPANION_ITEM_LOST:Bram|"+P+"][ITEM_GAINED:"+P+"]");u=acc518Units(P,h);
+    if(u.total!==2||u.floor!==1||u.hero!==1)bad.push("village: 2 potions in (Bram 1, chest 1), "+u.total+" out (hero "+u.hero+", Bram "+u.bram+", chest "+u.floor+"): "+JSON.stringify([h.items,r.muts]));
+    h=acc518Adv(0);h.items=[{name:"Torch",placed:1,taken:false}];findCompanionChar("Bram").inventory=acc518Rows("Torch",1);
+    r=acc518Run("[COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch]");u=acc518Units("Torch",h);
+    if(u.total!==2||u.floor!==1||u.hero!==1)bad.push("adventure: 2 torches in (Bram 1, floor 1), "+u.total+" out (hero "+u.hero+", Bram "+u.bram+", floor "+u.floor+"): "+JSON.stringify([h.items,r.muts]));
+    return bad.length?bad.join(" || "):true;
+  });
+  t("#518 acceptance — KNOWN #613 (open; never counted against #518): Bram holds one torch; [COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch] written twice in one block should leave the hero that torch — red until #613 lands, and the message says whether the shape is still as filed",function(){
+    acc518Adv(0);findCompanionChar("Bram").inventory=acc518Rows("Torch",1);
+    var r=acc518Run("[COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch][COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch]"),u=acc518Units("Torch");
+    if(u.total===1&&u.hero===1)return true;
+    return (u.hero===0&&u.bram===0?"KNOWN #613 — still exactly as filed: hero 0, Bram 0, one torch destroyed":"KNOWN #613 — the shape CHANGED from the filing (hero 0, Bram 0): hero "+u.hero+", Bram "+u.bram)+": "+JSON.stringify(r.muts);
+  });
+  /* THE SWEEP. A seeded generator (Park–Miller, so the run is reproducible in node and the browser) writes one- and two-block
+     replies of ONE item: each block holds 1–2 [ITEM_LOST:] tags and 1–3 partners — a gift to Bram, to Cara, to the absent
+     'Absent', and (stows on) a [LOCATION_ITEM:…|placed] — counts 1–3, casing varied, shuffled inside the block; blocks are split
+     by prose. No take pair is generated (the #613 shape is excluded by construction).
+     THE INVARIANT. H0 = every unit of the item before the reply (pack + Bram + Cara + floor). The table runs every ITEM_LOST
+     before any partner, in text order across the reply, so block b's loss took R_b = Σ over its tags of min(asked, what the pack
+     still held). D_b = the units block b's partners name (gifts to Bram or Cara, placements). Units leave the world only as a
+     loss's UNPAIRED remainder max(0, R_b − D_b), and a block holding a gift to NOBODY spends none of its loss (the 2026-10-11
+     ruling: every unit still standing returns). With C = Σ of that remainder over the other blocks, after the reply the units T
+     in the same four places must satisfy  H0 − C ≤ T ≤ H0  — no unit minted (every partner shares a block with a loss of the item,
+     so none is an outside source) and none destroyed. */
+  function acc518Rng(seed){var s=seed%2147483647;if(s<=0)s+=2147483646;return function(){s=s*16807%2147483647;return (s-1)/2147483646;};}
+  function acc518Pick(rnd,a){return a[Math.floor(rnd()*a.length)];}
+  function acc518Seq(rnd,stows){
+    var s={hero:1+Math.floor(rnd()*3),bram:rnd()<0.25?1:0,cara:rnd()<0.25?1:0,floor:(stows&&rnd()<0.25)?1:0,blocks:[]},nb=1+Math.floor(rnd()*2),b,i,j,x;
+    for(b=0;b<nb;b++){var tags=[],nl=1+Math.floor(rnd()*2),np=1+Math.floor(rnd()*3);
+      for(i=0;i<nl;i++)tags.push({k:"loss",n:1+Math.floor(rnd()*3)});
+      for(i=0;i<np;i++){var who=acc518Pick(rnd,stows?["Bram","Cara","Absent","stow","stow"]:["Bram","Cara","Absent"]);tags.push({k:who==="stow"?"stow":"gift",who:who,n:1+Math.floor(rnd()*3)});}
+      for(i=tags.length-1;i>0;i--){j=Math.floor(rnd()*(i+1));x=tags[i];tags[i]=tags[j];tags[j]=x;}
+      for(i=0;i<tags.length;i++)tags[i].nm=acc518Pick(rnd,["Torch","torch","TORCH"]);
+      s.blocks.push(tags);}
+    return s;
+  }
+  function acc518Text(s){return s.blocks.map(function(tags){return tags.map(function(tg){var nm=tg.nm+(tg.n>1?" x"+tg.n:"");return tg.k==="loss"?"[ITEM_LOST:"+nm+"]":(tg.k==="stow"?"[LOCATION_ITEM:"+nm+"|placed]":"[COMPANION_ITEM_GAINED:"+tg.who+"|"+nm+"]");}).join("");}).join("\nLater, on the road.\n");}
+  function acc518Bounds(s){var rem=s.hero,C=0,over=false;
+    s.blocks.forEach(function(tags){var R=0,D=0,S=0,voids=false;tags.forEach(function(tg){if(tg.k==="loss"){var took=Math.min(tg.n,rem);rem-=took;R+=took;}else if(tg.who==="Absent")voids=true;else{D+=tg.n;if(tg.k==="stow")S+=tg.n;}});
+      if(!voids)C+=Math.max(0,R-D);if(R>0&&S>R)over=true;});
+    return {H0:s.hero+s.bram+s.cara+s.floor,C:C,stowOverdraw:over};}
+  function acc518Sweep(seed,count,stows){
+    var rnd=acc518Rng(seed),fails=[],i;
+    for(i=0;i<count;i++){var s=acc518Seq(rnd,stows),text=acc518Text(s),h=stows?acc518Village(s.hero):acc518Adv(s.hero);
+      findCompanionChar("Bram").inventory=acc518Rows("Torch",s.bram);findCompanionChar("Cara").inventory=acc518Rows("Torch",s.cara);
+      if(s.floor)h.items.push({name:"Torch",placed:1,taken:false,qty:1,by:"Silas",min:0});
+      var r=acc518Run(text),u=acc518Units("Torch",h),bd=acc518Bounds(s);
+      if(u.total>bd.H0||u.total<bd.H0-bd.C)fails.push({i:i,start:{hero:s.hero,bram:s.bram,cara:s.cara,floor:s.floor},text:text,end:u,bounds:bd,muts:r.muts});}
+    return fails;
+  }
+  t("#518 acceptance ⑲ the randomized conservation sweep, gifts only (adventure): seed 20261012, 300 one- and two-block replies of ITEM_LOST + COMPANION_ITEM_GAINED (Bram, Cara, the absent 'Absent'), counts 1–3, 1–3 held — every reply keeps H0 − C ≤ T ≤ H0 (the invariant above acc518Bounds)",function(){
+    var f=acc518Sweep(20261012,300,false);
+    return f.length?f.length+" of 300 replies broke conservation; the first: #"+f[0].i+" "+JSON.stringify(f[0]):true;
+  });
+  t("#518 acceptance ⑳ the randomized conservation sweep, gifts AND stows (village chest): seed 20261012, 300 one- and two-block replies of ITEM_LOST + COMPANION_ITEM_GAINED + LOCATION_ITEM placed, counts 1–3, 1–3 held — every reply keeps H0 − C ≤ T ≤ H0",function(){
+    var f=acc518Sweep(20261012,300,true),over=f.filter(function(x){return x.bounds.stowOverdraw;}),rest=f.filter(function(x){return !x.bounds.stowOverdraw;});
+    if(!f.length)return true;
+    return f.length+" of 300 replies broke conservation — "+over.length+" hold a block whose placements name more units than its loss took (the ⑮/⑯ shape), "+rest.length+" do not; the first: #"+f[0].i+" "+JSON.stringify(f[0])+(rest.length?" ; the first WITHOUT a placement overdraw: #"+rest[0].i+" "+JSON.stringify(rest[0]):"");
+  });
   section("#518 block — an item pair is TWO TAGS IN ONE BLOCK (owner ruling 2026-10-10; the pair notes are the protocol)");
   function blockComp(inv){worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:inv||[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};}
   t("#518 block the loot/throw collision: a hero who loots a Dagger in the same reply that a companion throws an untracked Dagger KEEPS the loot — the two tags sit in two blocks, so neither is the other's half",function(){
@@ -28273,6 +28524,24 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(blockTorches(c)+left!==1)return "conservation — the torch is in the pack or on the floor (pack "+blockTorches(c)+", placed "+left+"): "+JSON.stringify(r.muts);
     if(left!==1)return "the successful loss's unit is placed: "+JSON.stringify([c.inventory,node&&node.items,r.muts]);
     return r.muts.some(function(m){return /^⚠ Nothing placed — 'Torch'/.test(m);})?true:"the second placement's refusal is said: "+JSON.stringify(r.muts);
+  });
+  /* #613 (filed 2026-10-11, fixed 2026-10-12): COMPANION_ITEM_LOST's success path never consumed the gain unit it paired, so a
+     second take in the block that missed took back EVERY gain unit — the first pair's included — and a short take's shortfall
+     could reach the units the companion did hand over. A take now consumes the gain units it pairs, per unit actually taken. */
+  t("#518 block #613 a take pair consumes the gain units it pairs: Bram holding one torch, [COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch] written twice in one block leaves the hero that torch and the second take says Nothing moved; two companions (Bram one, Cara none) and one gain of two leave the hero Bram's torch; a gain of one beside a take of x3 from Bram's one keeps it",function(){
+    makeWorld();var c=worldState.character;c.inventory=[];blockComp([{name:"Torch",qty:1,equipped:false}]);var bram=findCompanionChar("Bram");
+    var r=quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch][COMPANION_ITEM_LOST:Bram|Torch][ITEM_GAINED:Torch]");}).r;
+    var h=blockTorches(c),b=blockTorches(bram);
+    if(h+b!==1||h!==1)return "#613 two take pairs, Bram holding one: the hero keeps that torch, none is destroyed (hero "+h+", Bram "+b+"): "+JSON.stringify(r.muts);
+    if(r.muts.filter(function(m){return m==="Bram: -Torch";}).length!==1||!r.muts.some(function(m){return /^⚠ Nothing moved — 'Torch' is not on Bram's sheet/.test(m);}))return "#613 one take lands, the second says Nothing moved: "+JSON.stringify(r.muts);
+    c.inventory=[];bram.inventory=[{name:"Torch",qty:1,equipped:false}];worldState.npcs.push({name:"Cara",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Cara",inventory:[]}});memory.npcs["Cara"]={knowledge:[],events:[],aliases:[],partyMember:true};
+    r=quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Torch][COMPANION_ITEM_LOST:Cara|Torch][ITEM_GAINED:Torch x2]");}).r;
+    h=blockTorches(c);b=blockTorches(bram);
+    if(h!==1||b!==0)return "#613 two companions, one gain of two: the hero keeps Bram's torch (hero "+h+", Bram "+b+"): "+JSON.stringify(r.muts);
+    c.inventory=[];bram.inventory=[{name:"Torch",qty:1,equipped:false}];
+    r=quiet(function(){return applyMuts("[COMPANION_ITEM_LOST:Bram|Torch x3][ITEM_GAINED:Torch]");}).r;
+    h=blockTorches(c);b=blockTorches(bram);
+    return (h===1&&b===0)?true:"#613 a gain of one beside a take of x3 from Bram's one: the shortfall never takes back the unit Bram handed over (hero "+h+", Bram "+b+"): "+JSON.stringify(r.muts);
   });
   /* #606 (verified and pinned 2026-10-11): the row was filed when a WORN LIST existed — both rename handlers called wornRename
      whatever renameInventoryItem returned, so a rename REFUSED for a collision still re-pointed the worn list at the item it

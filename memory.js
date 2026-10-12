@@ -1044,6 +1044,16 @@ function autoTakeLocationItem(itemName,actor,units,atKey){
     it.taken=true;return {taken:true,name:it.name,key:key};}/* #481 D9/D1: the node rides the result, for the move record */
   return null;
 }
+/* #518 ⑰: READ-ONLY — the name of an untaken row of this item lying at the node (the auto-take's own node and identity rule), or
+   null. ITEM_GAINED asks it when a same-block take covered the gain and the auto-take was skipped, so the skip is said only when
+   a unit was actually left lying. Moves nothing. */
+function locationItemLying(itemName,atKey){
+  if(!memory.map||!worldState||!worldState.world)return null;
+  var key=atKey||currentNodeKey();if(typeof locResolve==="function")key=locResolve(key);
+  var node=memory.map.nodes[key],_tk=stashKey(itemName),i;if(!node||!node.items)return null;
+  for(i=0;i<node.items.length;i++){var it=node.items[i];if(!it.taken&&it.qty!==0&&stashKey(it.name)===_tk)return it.name;}
+  return null;
+}
 /* ═══ #194: the presence split — mapNpcLocation is DELETED, its two conflated jobs separated ═══
    A mention must never teleport a character (owner fixed point 1, ruled 2026-08-17): measured at
    t1903, the mention channel had made 37 of 39 living NPCs killable by bare name — statusTurn/
