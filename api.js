@@ -3847,6 +3847,16 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
     if(typeof showToast==="function")showToast("⚠ Response hit the length limit — its tail was cut");
     if(typeof erCrumb==="function")erCrumb("turn-truncated",{p:prov.id,f:_fin,k:_kind});
   }}catch(e3){console.warn("[truncation] parseFinish threw — the truncation warning for this "+prov.id+" response was LOST (a scissored tag may have gone unreported, #132): "+(e3&&e3.message));}}/* audit B9: the only channel that reports a cut response must never itself vanish silently */
+  /* B43: an early stop that is NOT the cap is as loud as the cap — a RECITATION/SAFETY/OTHER finish hands back a partial candidate
+     that parseResponse accepts as success (the Frizwick skeleton ended inside an array that way and nothing said so). The finish
+     rides back to the caller on opts.finish, so a JSON consumer can refuse a cut candidate instead of parsing it. */
+  var _fi=finishInfo(prov,data);
+  if(_fi.cut&&!_fi.cap){
+    console.warn("[truncation] "+prov.id+" response ended early (finish: "+_fi.reason+", kind: "+_kind+") — the candidate may be partial (B43)");
+    if(typeof showToast==="function")showToast("⚠ Response ended early ("+_fi.reason+") — its tail may be missing");
+    if(typeof erCrumb==="function")erCrumb("response-cut",{p:prov.id,f:_fi.reason,k:_kind});
+  }
+  if(opts&&typeof opts==="object")opts.finish=_fi;
   return prov.parseResponse(data);
 }
 

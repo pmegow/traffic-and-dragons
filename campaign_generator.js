@@ -200,3 +200,20 @@ async function generateBlueprintDraft(opts,model){
   validateSkeletonStructure(draft); // the premise+acts core shares the skeleton schema
   return draft;
 }
+
+/* B43 (owner 2026-10-12, the Frizwick campaign: one Gemini skeleton draft ended inside an array at ~4.3 KB, no cap hit, and
+   generateSkeleton parsed it bare — the campaign began FREEFORM and stayed spineless). The draft goes through ONE parser that
+   knows a cut candidate is unusable even when its text parses; the ONE re-ask sends the draft back for the COMPLETE document
+   (the model keeps what it already wrote; the client never closes a bracket itself — a half spine passing validation is worse
+   than freeform); a second failure throws a named error whose evidence the Begin reporter ships (the #16c policy: crash detail
+   may carry app-generated content). All pure. */
+function skeletonDraftEvidence(raw,finish,err){var s=String(raw||""),m=/position (\d+)/.exec(String(err||"")),pos=m?parseInt(m[1],10):-1;
+  return {finish:(finish&&finish.reason)||null,cut:!!(finish&&finish.cut),chars:s.length,head:s.slice(0,200),tail:s.slice(-200),at:pos>=0?s.slice(Math.max(0,pos-100),pos+100):""};}
+function skeletonDraftParse(raw,finish){
+  if(finish&&finish.cut)return {error:"the response ended early (finish: "+finish.reason+")",evidence:skeletonDraftEvidence(raw,finish,"")};
+  try{return {skel:JSON.parse(repairModelJson(raw))};}catch(e){return {error:String((e&&e.message)||e),evidence:skeletonDraftEvidence(raw,finish,e&&e.message)};}
+}
+function buildSkeletonRetryPrompt(prompt,draft,why){
+  return prompt+"\n\nYOUR PREVIOUS ANSWER WAS NOT USABLE ("+why+"). Here it is, exactly as received:\n"+String(draft||"")+"\n\nReturn the COMPLETE, corrected document as ONE JSON object — every act, every arc, every field — and nothing else.";
+}
+function skeletonEvidenceText(list){var out=[],i;for(i=0;i<(list||[]).length;i++){var e=list[i]||{};out.push("draft "+(i+1)+": finish "+(e.finish||"?")+(e.cut?" (cut)":"")+", "+e.chars+" chars\n  HEAD: "+e.head+"\n  TAIL: "+e.tail+(e.at?"\n  AT THE ERROR: "+e.at:""));}return out.join("\n");}

@@ -140,6 +140,47 @@ async function test(name, fn) {
     assert.equal(fs.readFileSync(save + ".bak", "utf8"), before, "the .bak is the byte-identical original");
     assert.ok(/applied 1/.test(r3.stdout), r3.stdout);
   });
+  // B43 (owner 2026-10-12, Frizwick): the first draft is unusable — a broken document, or a candidate the provider cut short —
+  // and the generator asks ONCE for the complete document with the draft sent back; a second failure throws, named, with evidence.
+  var BROKEN = JSON.stringify(CLEAN).slice(0, 180);
+  function scriptB43(responses) {
+    var calls = [];
+    global.callGM = async function (msg, sys, max, model, opts) {
+      calls.push({ msg: String(msg), sys: String(sys || ""), opts: opts });
+      if (!responses.length) throw new Error("scripted callGM ran dry after " + calls.length + " calls");
+      var r = responses.shift(); if (r && typeof r === "object") { if (opts) opts.finish = r.finish; return r.text; } return r;
+    };
+    return calls;
+  }
+  await test("B43 ① a broken first draft: ONE re-ask that sends the draft back and asks for the complete document; the clean answer lands", async function () {
+    delete worldState.skeleton;
+    var calls = scriptB43([BROKEN, JSON.stringify(CLEAN), REVIEW_CLEAN]);
+    var seen = []; await generateSkeleton(function (t) { seen.push(t); });
+    assert.equal(calls.length, 3, "draft, re-ask, review — nothing more");
+    assert.ok(calls[1].msg.indexOf(calls[0].msg) === 0, "the re-ask starts with the first prompt byte for byte");
+    assert.ok(calls[1].msg.indexOf(BROKEN) >= 0 && /COMPLETE/.test(calls[1].msg), "the re-ask carries the broken draft and asks for the complete document: " + calls[1].msg.slice(-300));
+    assert.ok(calls[0].opts && calls[0].opts.noHistory === true && calls[1].opts && calls[1].opts.noHistory === true, "both skeleton calls send no history");
+    assert.ok(seen.some(function (t) { return /incomplete|whole document/i.test(t); }), "the status line says why: " + JSON.stringify(seen));
+    assert.equal(worldState.skeleton.premise, CLEAN.premise, "the clean second draft is the skeleton on file");
+  });
+  await test("B43 ② a candidate the provider cut short (RECITATION) is unusable even though its text parses: the re-ask runs, the whole answer lands", async function () {
+    delete worldState.skeleton;
+    var calls = scriptB43([{ text: JSON.stringify(CLEAN), finish: { reason: "RECITATION", cap: false, cut: true } }, { text: JSON.stringify(CLEAN), finish: { reason: "STOP", cap: false, cut: false } }, REVIEW_CLEAN]);
+    await generateSkeleton(function () {});
+    assert.equal(calls.length, 3, "draft, re-ask, review");
+    assert.ok(/ended early/.test(calls[1].msg) && /RECITATION/.test(calls[1].msg), "the re-ask names the cut: " + calls[1].msg.slice(-300));
+    assert.equal(worldState.skeleton.premise, CLEAN.premise);
+  });
+  await test("B43 ③ two unusable drafts: a NAMED error carrying both drafts' evidence, no skeleton on file, no third generate", async function () {
+    delete worldState.skeleton;
+    var calls = scriptB43([BROKEN, BROKEN + "]]"]);
+    var err = null; try { await generateSkeleton(function () {}); } catch (e) { err = e; }
+    assert.ok(err && /skeleton JSON unusable twice/.test(err.message), "named: " + (err && err.message));
+    assert.equal(calls.length, 2, "exactly one re-ask");
+    assert.ok(err.skeletonEvidence && err.skeletonEvidence.length === 2 && err.skeletonEvidence[0].chars === BROKEN.length && /\]\]$/.test(err.skeletonEvidence[1].tail), "the evidence carries both drafts: " + JSON.stringify(err.skeletonEvidence));
+    assert.equal(worldState.skeleton, undefined, "no half spine lands");
+    var txt = skeletonEvidenceText(err.skeletonEvidence); assert.ok(/draft 1/.test(txt) && /draft 2/.test(txt), txt);
+  });
   console.log((failed ? "FAILED" : "ALL GREEN") + " — " + passed + " #459 register-gate groups");
   process.exitCode = failed ? 1 : 0;
 })().catch(function (e) { console.error(e); process.exitCode = 1; });

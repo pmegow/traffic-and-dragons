@@ -35,7 +35,7 @@ them here).
 ## Open
 
 ## B43 — The campaign skeleton generator parses the model's one JSON draft with no guard, re-ask or evidence — a malformed document throws, the campaign starts FREEFORM and stays spineless for good (v1.1241, production; the owner's Frizwick campaign, now at t11)
-**Status:** findings-ready
+**Status:** fixed
 **Kind:** crash · **First seen:** 2026-10-12 (v1.1241) · **Last seen:** 2026-10-12 (v1.1241) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** —
 **Fingerprint:** `crash · skeleton · v1.1241 · Expected ',' or ']' after array element in JSON at position 4321 (line 1 column 4322)`
 **Report ids:** 0fcb0841-460e-46f6-9fba-e43a05c05964
@@ -74,6 +74,8 @@ PREVIOUS page (ended cleanly):
 - **Observations (not fixed):** a Gemini candidate with partial text and a non-STOP, non-MAX_TOKENS finish (RECITATION / SAFETY / OTHER) returns as success with no warn or crumb (globals.js:403-405, 415) — gameplay turns miss the #132 cut-tag warning in that case too; `repairModelJson`'s last-brace slice and control-char swap erase diagnosability (api.js:3035, 3037); `generateSkeleton`'s call lacks `noHistory:true` while every sibling passes it (harmless today, in:2202 shows an empty history); the designer's `generateDraftBlueprint` (campaign_generator.js:198-199) and `reviewCampaignSkeleton` (:155) share the unguarded pattern; no in-game affordance forges a spine for a running campaign and a spineless-by-failure campaign is unmarked in its save (an owner design question); the row's first TLDR ("never started") was wrong and is corrected above; parse-error messages embed positions, so a re-arrival with a different position is this row (the B19 fingerprint-variance rule).
 
 ### Action log
+
+- 2026-10-12 · v1.1244 · commit fix(B43) · Fable — mechanism re-verified (the bare `JSON.parse` at game.js:3527, the freeform fallback at game.js:70, the Frizwick t11 save with no spine and one 932-token skeleton call under a 32,768 cap; the owner ruled out "a typo" and the early-stop blind spot was promoted from observation to the fix). Fix: `finishInfo` + per-provider `finishRaw`/`finishNormal` (globals.js), callGM loud on an early stop and handing `opts.finish` back (api.js), `skeletonDraftParse` / `buildSkeletonRetryPrompt` / `skeletonEvidenceText` (campaign_generator.js), the one re-ask with the draft sent back and the named second-failure error in `generateSkeleton`, the drafts' evidence on the Begin reporter (game.js). Tests red first; battery 10/10. Live verification pending (the next skeleton that stops early will carry its finish reason and tail).
 
 ## B38 — Gemini's safety filter (PROHIBITED_CONTENT) blocks the chapter extractor on consecutive turns — each summary is dropped and nothing falls back (The Long Walk, Silas Morne, Runelords, the Village; v1.838–v1.951)
 **Status:** fixed (v1.962, 2026-09-21 — the elision ladder: when both extractor shapes are refused, each exchange is probed once, the blocked ones are withheld from both halves, the rest is extracted; v1.960's no-replay half stands)

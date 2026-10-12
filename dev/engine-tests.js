@@ -18251,6 +18251,51 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(PROVIDERS.gemini.parseFinish({candidates:[{finishReason:"STOP"}]}))return "gemini STOP false-positived";
     return PROVIDERS.anthropic.parseFinish({})?"empty payload must not report truncation":true;
   });
+  t("B43: finishInfo classifies every provider's finish — the cap is a cut, an early non-normal stop is a cut, a normal stop is not, an absent reason is not",function(){
+    /* The owner's Frizwick skeleton (2026-10-12, v1.1241): one Gemini draft ended inside an array at ~4.3 KB with no cap hit; the
+       client took the partial candidate as success and never read the finish reason. */
+    if(typeof finishInfo!=="function")return "finishInfo missing";
+    var g=PROVIDERS.gemini,a=PROVIDERS.anthropic,o=PROVIDERS.openai,r;
+    r=finishInfo(g,{candidates:[{finishReason:"STOP"}]});if(r.reason!=="STOP"||r.cap||r.cut)return "gemini STOP is a normal finish: "+JSON.stringify(r);
+    r=finishInfo(g,{candidates:[{finishReason:"MAX_TOKENS"}]});if(!r.cap||!r.cut)return "gemini MAX_TOKENS is the cap and a cut: "+JSON.stringify(r);
+    r=finishInfo(g,{candidates:[{finishReason:"RECITATION"}]});if(r.cap||!r.cut||r.reason!=="RECITATION")return "gemini RECITATION is a cut that is not the cap: "+JSON.stringify(r);
+    r=finishInfo(g,{candidates:[{finishReason:"SAFETY"}]});if(!r.cut)return "gemini SAFETY is a cut";
+    r=finishInfo(g,{candidates:[{}]});if(r.reason!==null||r.cut)return "an absent reason is not a cut: "+JSON.stringify(r);
+    r=finishInfo(g,{});if(r.cut||r.reason!==null)return "no candidates: no cut (parseResponse throws its own error)";
+    r=finishInfo(a,{stop_reason:"end_turn"});if(r.cut)return "anthropic end_turn is normal";
+    r=finishInfo(a,{stop_reason:"max_tokens"});if(!r.cap||!r.cut)return "anthropic max_tokens is the cap";
+    r=finishInfo(a,{stop_reason:"refusal"});if(!r.cut||r.cap)return "anthropic refusal is a cut";
+    r=finishInfo(o,{choices:[{finish_reason:"stop"}]});if(r.cut)return "openai stop is normal";
+    r=finishInfo(o,{choices:[{finish_reason:"length"}]});if(!r.cap)return "openai length is the cap";
+    r=finishInfo(o,{choices:[{finish_reason:"content_filter"}]});if(!r.cut||r.cap)return "openai content_filter is a cut";
+    r=finishInfo({},{});if(r.cut||r.reason!==null)return "a provider without the readers: nothing to say";
+    var ap=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
+    if(ap.indexOf("if(opts&&typeof opts===\"object\")opts.finish=_fi;")<0)return "callGM must hand the finish back on opts.finish";
+    if(!/erCrumb\("response-cut",\{p:prov\.id,f:_fi\.reason,k:_kind\}\)/.test(ap))return "callGM must crumb an early stop as response-cut";
+    return true;
+  });
+  t("B43: the skeleton draft is parsed through ONE helper that knows a cut, the one re-ask sends the draft back for the COMPLETE document, and the evidence text carries finish, size, head, tail and the bytes at the error",function(){
+    if(typeof skeletonDraftParse!=="function"||typeof buildSkeletonRetryPrompt!=="function"||typeof skeletonEvidenceText!=="function")return "helpers missing";
+    var good=JSON.stringify({premise:"p",acts:[]}),d;
+    d=skeletonDraftParse(good,{reason:"STOP",cap:false,cut:false});if(!d.skel||d.skel.premise!=="p"||d.error)return "a whole document parses: "+JSON.stringify(d);
+    d=skeletonDraftParse(good,null);if(!d.skel)return "no finish info is not a cut";
+    var broken="{\"premise\":\"p\",\"acts\":[{\"title\":\"One\",\"arcs\":[{\"title\":\"Maw\"}";
+    d=skeletonDraftParse(broken,{reason:"STOP",cap:false,cut:false});
+    if(d.skel||!/Expected|Unexpected|JSON/.test(String(d.error)))return "an unterminated array fails with the parser's message: "+JSON.stringify(d);
+    if(!d.evidence||d.evidence.chars!==broken.length||d.evidence.head.indexOf("{\"premise\"")!==0||d.evidence.tail.slice(-6)!=="\"Maw\"}")return "evidence: chars, head and tail: "+JSON.stringify(d.evidence);
+    if(typeof d.evidence.at!=="string")return "evidence carries the bytes at the error position";
+    d=skeletonDraftParse(good,{reason:"RECITATION",cap:false,cut:true});
+    if(d.skel||!/ended early/.test(String(d.error))||!/RECITATION/.test(String(d.error))||!d.evidence||d.evidence.finish!=="RECITATION"||!d.evidence.cut)return "a cut candidate is unusable even when its text parses: "+JSON.stringify(d);
+    var rp=buildSkeletonRetryPrompt("THE PROMPT",broken,"Expected ',' or ']' after array element");
+    if(rp.indexOf("THE PROMPT")!==0)return "the re-ask starts with the original prompt, byte for byte";
+    if(rp.indexOf(broken)<0||!/COMPLETE/.test(rp)||!/after array element/.test(rp))return "the re-ask sends the draft back, names the fault and asks for the complete document";
+    var txt=skeletonEvidenceText([d.evidence,skeletonDraftParse(broken,null).evidence]);
+    if(!/draft 1/.test(txt)||!/draft 2/.test(txt)||!/RECITATION/.test(txt)||!/"Maw"\}/.test(txt)||!/chars/.test(txt))return "the evidence text names both drafts with finish, size and tail: "+txt;
+    var gm=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    if(gm.indexOf("buildSkeletonRetryPrompt(prompt,resp,_d.error)")<0||!/skeleton JSON unusable twice/.test(gm))return "generateSkeleton re-asks once through buildSkeletonRetryPrompt and names a second failure";
+    if(gm.indexOf("skeletonEvidenceText(e.skeletonEvidence)")<0)return "the Begin reporter ships the drafts' evidence";
+    return true;
+  });
 
   // ── #130 — storyBeats carry a campaign stamp (the #63 core-memory pattern) ──────────────────
   // Field case: Ammut's sheet carries 111 beats from his pre-Runelords campaign, one stamped

@@ -239,6 +239,11 @@ var OPENAI_USAGE=function(data){var u=data.usage;if(!u)return null;var _cached=(
 // string ONLY when the response was cut at the output-token cap, else null — callGM warns loudly
 // on truthy (a cut response may have lost a state tag mid-emission; the B21 [SCH case).
 var OPENAI_FINISH=function(data){var c=data.choices&&data.choices[0];return (c&&c.finish_reason==="length")?"length":null;};
+/* B43 (the Frizwick skeleton, 2026-10-12): HOW the provider's answer ended, classified. {reason, cap, cut}: cap = the output-token
+   ceiling (parseFinish, #132); cut = any finish that is not the provider's normal stop — the cap, or a RECITATION / SAFETY /
+   OTHER stop that hands back a PARTIAL candidate parseResponse would accept as success. An absent or unknown reason is not a
+   cut. Each provider names its readers (finishRaw, finishNormal); callGM hands the result back on opts.finish. Pure. */
+function finishInfo(prov,data){var reason=null,cap=false;try{reason=(prov&&prov.finishRaw)?prov.finishRaw(data):null;}catch(e){reason=null;}try{cap=!!(prov&&prov.parseFinish&&prov.parseFinish(data));}catch(e2){cap=false;}var normal=(prov&&prov.finishNormal)||[];return {reason:reason,cap:cap,cut:cap||!!(reason&&normal.indexOf(reason)<0)};}
 // $/MTok — used by usageCost() (api.js) for the Dev Mode running-cost estimate (TODO #21).
 // Anthropic rates verified 2026-07-02; cache write = 1.25x input (5min TTL), cache read = 0.1x input.
 // Keyed by model-ID prefix so dated IDs (claude-haiku-4-5-20251001) still match.
@@ -313,6 +318,7 @@ var PROVIDERS={
     },
     parseResponse:function(data){var i;if(data.content)for(i=0;i<data.content.length;i++){if(data.content[i]&&data.content[i].type!=="thinking"&&typeof data.content[i].text==="string"&&data.content[i].text.trim())return data.content[i].text;}throw new Error("Empty response");}, // tolerant of thinking-bearing responses: first NON-EMPTY non-thinking text block wins (the opus-5 lesson; #198 adds the trim — ""/whitespace blocks fall through to the loud throw instead of committing an empty turn)
     parseFinish:function(data){return data.stop_reason==="max_tokens"?"max_tokens":null;},
+    finishRaw:function(data){return (data&&data.stop_reason)||null;},finishNormal:["end_turn","stop_sequence","tool_use"],/* B43 */
     // Anthropic: input_tokens EXCLUDES cached tokens (a turn's real input = in + cacheRead).
     // Prompt caching is LIVE (#11, v1.151) — healthy play shows cacheRead >> in on turn calls.
     parseUsage:function(data){var u=data.usage;if(!u)return null;return {in:u.input_tokens||0,out:u.output_tokens||0,cacheRead:u.cache_read_input_tokens||0,cacheWrite:u.cache_creation_input_tokens||0};},
@@ -361,6 +367,7 @@ var PROVIDERS={
     parseResponse:function(data){if(!data.choices||!data.choices[0]||!data.choices[0].message||typeof data.choices[0].message.content!=="string"||!data.choices[0].message.content.trim())throw new Error("Empty response");return data.choices[0].message.content;}, // #198: ""/whitespace THROWS — reasoning exhausting the budget returned content:"" and the turn committed EMPTY (field t2002); loud beats silent
     parseUsage:OPENAI_USAGE,
     parseFinish:OPENAI_FINISH,
+    finishRaw:function(data){var c=data&&data.choices&&data.choices[0];return (c&&c.finish_reason)||null;},finishNormal:["stop","tool_calls","function_call"],/* B43 */
     reinforce:TAG_REINFORCE
   },
   gemini:{
@@ -413,12 +420,13 @@ var PROVIDERS={
       e.emptyTransient=!e.modelRefusal;throw e;}, // (#198: the empty-turn commit class, field t2002)
     parseUsage:function(data){var u=data.usageMetadata;if(!u)return null;return {in:u.promptTokenCount||0,out:(u.candidatesTokenCount||0)+(u.thoughtsTokenCount||0),cacheRead:u.cachedContentTokenCount||0,cacheWrite:0};}, // thoughtsTokenCount folded into out (probe 2026-08-16: gemini-3.7-flash thinks MANDATORILY — 745 thought tokens per 51 output on a trivial call, billed as output, previously invisible to the meter)
     parseFinish:function(data){var c=data.candidates&&data.candidates[0];return (c&&c.finishReason==="MAX_TOKENS")?"MAX_TOKENS":null;},
+    finishRaw:function(data){var c=data&&data.candidates&&data.candidates[0];return (c&&c.finishReason)||null;},finishNormal:["STOP"],/* B43 */
     reinforce:TAG_REINFORCE,
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
 var carMode=false;
-var APP_VERSION="v1.1243";
+var APP_VERSION="v1.1244";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

@@ -67,7 +67,7 @@ function startGame(char,toneName,toneVoice,authorId){
        a modal at Begin; blank means the generator decides under the #425 guards. A DOM-less host forges straight away. */
     var _forge=function(){
       var _skMsg=addMsg("thinking","Forging the campaign...");
-      generateSkeleton(function(tx){try{setThinking(_skMsg,tx);}catch(_e){}}).then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);if(typeof reportError==="function")reportError("skeleton",reason,(e&&e.stack)||"");beginAdventure();});
+      generateSkeleton(function(tx){try{setThinking(_skMsg,tx);}catch(_e){}}).then(function(){_skMsg.remove();beginAdventure();}).catch(function(e){_skMsg.remove();var reason=e&&e.message?e.message:"unknown error";showToast("Skeleton failed ("+reason+") — playing freeform",6000);if(typeof console!=="undefined")console.warn("[skeleton] "+reason);if(typeof reportError==="function")reportError("skeleton",reason,((e&&e.stack)||"")+(e&&e.skeletonEvidence?"\n--- B43 drafts ---\n"+skeletonEvidenceText(e.skeletonEvidence):""));/* B43: the drafts ride the report (#16c) */beginAdventure();});
     };
     if(typeof showStakeModal==="function"&&stakeAskWanted(worldState.character))showStakeModal(_forge);else _forge();
   }
@@ -3523,8 +3523,20 @@ async function generateSkeleton(statusFn,_attempt){/* #459 ①: _attempt is the 
   var _skelDNA="",_skelPaId=(worldState&&worldState.proseAuthor!=null)?worldState.proseAuthor:(typeof proseAuthor!=="undefined"?proseAuthor:"");
   if(_skelPaId&&typeof AUTHORS!=="undefined"){for(var _spi=0;_spi<AUTHORS.length;_spi++){if(AUTHORS[_spi].id===_skelPaId&&AUTHORS[_spi].contentDNA){_skelDNA=AUTHORS[_spi].contentDNA;break;}}}
   var prompt=buildSkeletonPrompt(c,w,t,_skelDNA,worldState.stake);/* #425: one pure builder, engine-pinned; #426: the player's stake rides along */
-  var resp=await callGM(prompt,SKELETON_ARCHITECT_SYS,8192,upgradeModelFor(),{kind:"skeleton"});/* v1.249: shared escalation helper (was an inline twin) */
-  var skel=JSON.parse(repairModelJson(resp)); // shared cleanup (api.js) — covered by test.html
+  var _o={kind:"skeleton",noHistory:true},resp=await callGM(prompt,SKELETON_ARCHITECT_SYS,8192,upgradeModelFor(),_o);/* v1.249: shared escalation helper (was an inline twin); B43: noHistory like every sibling call, and the finish rides back */
+  /* B43: the draft is parsed through the one helper (a cut candidate is unusable even when it parses); an unusable draft is sent
+     back ONCE for the complete document; a second failure throws, named, with both drafts' evidence — never a client-side bracket
+     repair. The throw sits outside the review catch: Begin toasts it and plays freeform, as before, but now with the evidence. */
+  var _d=skeletonDraftParse(resp,_o.finish),skel=_d.skel;
+  if(!skel){
+    if(typeof console!=="undefined")console.warn("[skeleton] the first draft is unusable ("+_d.error+") — asking once for the complete document (B43)");
+    if(typeof erCrumb==="function")erCrumb("skeleton-json-retry",{why:String(_d.error).slice(0,60)});
+    if(statusFn)statusFn("The campaign draft came back incomplete — asking for the whole document...");
+    var _o2={kind:"skeleton",noHistory:true},resp2=await callGM(buildSkeletonRetryPrompt(prompt,resp,_d.error),SKELETON_ARCHITECT_SYS,8192,upgradeModelFor(),_o2);
+    var _d2=skeletonDraftParse(resp2,_o2.finish);
+    if(!_d2.skel){var _e2=new Error("skeleton JSON unusable twice — first: "+_d.error+"; second: "+_d2.error);_e2.skeletonEvidence=[_d.evidence,_d2.evidence];throw _e2;}
+    skel=_d2.skel;
+  }
   validateSkeletonStructure(skel);
   // ONE review pass + auto-correction (#59, v1.290) — the Blueprint Designer's reviewer
   // discipline, scoped to the skeleton schema (campaign_generator.js). Both extra calls ride
