@@ -484,12 +484,13 @@ function updateCombat(){
       _ms.style.cssText="position:absolute;visibility:hidden;width:auto;max-width:none;";
       _cp.appendChild(_ms);
       var _mw=80,_mn=[],_mi;
-      for(_mi=0;_mi<ordered.length&&_mi<4;_mi++)_mn.push((cm.engaged===ordered[_mi].name?"◆ ":"")+ordered[_mi].name);
+      for(_mi=0;_mi<ordered.length&&_mi<4;_mi++)_mn.push((cm.engaged===ordered[_mi].name?"◆ ":"")+foeLabel(ordered[_mi]));/* #612: the RENDERED label — the count rides it */
       _mn.push((pc&&pc.name)||"You");
       for(_mi=0;_mi<_mn.length;_mi++){_ms.textContent=_mn[_mi];var _w=_ms.offsetWidth;if(_w>_mw)_mw=_w;}
       _cp.removeChild(_ms);
-      var _cap=Math.floor(_cp.clientWidth*0.45)||_mw;
-      _cp.style.setProperty("--cnw",Math.min(_mw+2,_cap)+"px");/* +2: breathing room so the widest name never kisses its own ellipsis */
+      /* owner 2026-10-12 (#612): the full enemy name ALWAYS shows — the column is the widest label, never capped; the bar's 0 side
+         slides right to make room (the 45% cap and the ellipsis cut "Fen Marauder (8)" to "Fen Marauder (…"). */
+      _cp.style.setProperty("--cnw",(_mw+2)+"px");/* +2: breathing room past the widest label */
     }
     for(fi=0;fi<ordered.length&&fi<4;fi++){var f=ordered[fi];
       if(!f.down&&f.hp>0){

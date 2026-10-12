@@ -4,7 +4,9 @@
 // ONE renderer the tracker row, the prompt's combat line and the enemy card read; the tag strips and is taught. Each rule is
 // mutated back and the #612 engine test must go red.
 //   node dev/sabotage-612-group-count.js
-var sabotage = require("./sabotage.js");
+var sabotage = require("./sabotage.js"), verdict = require("./battery-verdict.js");
+var chrome = require("./cdp-browser.js").locateChrome();
+var BROWSER = ["node", ["dev/tests-611-mobile-browser.js"]];
 var CMD = ["node", ["dev/run-tests.js", "multi-enemy combat (UA26+UA2)"]];
 var T = "#612 a group's headcount is authored";
 var code = 0;
@@ -58,4 +60,14 @@ code |= sabotage.prove({ file: "ui-mobile.js", command: CMD, cases: [
     find: "  if(typeof foe.count===\"number\")row(\"Group size\",foe.count);/* #612: the authored headcount */\n  else if(", replace: "  if(",
     mustFail: T }
 ] });
+// The tracker column, in a real browser (the mobile suite): measured from the rendered label, never capped.
+code |= sabotage.prove({ file: "ui-panels.js", skip: !chrome.path, command: BROWSER, cases: [
+  { label: "the name column is measured from the bare name again: a counted pack is cut to 'Pack (…'",
+    find: "+foeLabel(ordered[_mi]));/* #612: the RENDERED label — the count rides it */", replace: "+ordered[_mi].name);",
+    mustFail: "a counted pack: the full enemy name shows" },
+  { label: "the 45% cap is back: a long name on a phone is cut",
+    find: "      _cp.style.setProperty(\"--cnw\",(_mw+2)+\"px\");", replace: "      _cp.style.setProperty(\"--cnw\",Math.min(_mw+2,Math.floor(_cp.clientWidth*0.45)||_mw)+\"px\");",
+    mustFail: "a long counted name on a phone: the full enemy name shows" }
+] });
+if (!chrome.path && !code) { verdict.reportSkip("sabotage-612-group-count.js", 2, chrome.why); process.exit(verdict.SKIP_EXIT); }
 process.exit(code);
