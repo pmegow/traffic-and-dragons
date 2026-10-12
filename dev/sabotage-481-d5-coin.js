@@ -51,7 +51,10 @@ prove("tag_table.js", [
 prove("memory.js", [
   { label: "a pinned ware reads as a fraction of gold",
     find: "var _pinTo=String(_pc.value).trim(),", replace: "var _pinTo=_pg+\" gp\",",
-    mustFail: "a pinned ware keeps canon's own words" }
+    mustFail: "a pinned ware keeps canon's own words" },
+  { label: "#578: the bundle stays in the ware's name — [WARES:Arrow x20|1 gp] files \"Arrow x20\" at 1 gp per 20, and twenty bought land \"Arrow x20\" twenty times",
+    find: "if(_wq.n>1){it=_wq.base;", replace: "if(_wq.n>1){",
+    mustFail: "#578 a counted ware and a per-N price are ONE bundle" }
 ]);
 prove("api.js", [
   { label: "the payout verifier counts a silver token as nothing (the sum loses the 50 sp)",

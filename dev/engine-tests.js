@@ -28050,6 +28050,41 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(tagBlockSpans("[A:1]\n[B:2]").length!==1)return "a line break alone is still one block";
     return true;
   });
+  /* #606 (verified and pinned 2026-10-11): the row was filed when a WORN LIST existed — both rename handlers called wornRename
+     whatever renameInventoryItem returned, so a rename REFUSED for a collision still re-pointed the worn list at the item it
+     collided with. v1.1209 retired wornRename: the equipped flag lives ON the row, and a refused rename writes no row. These
+     pin that a refusal moves nothing, in both directions and on both sheets, and that an accepted rename keeps the flag. */
+  section("#606 refused rename — a rename refused for a collision moves nothing; the equipped flag stays on its own row");
+  function rename606(){makeWorld();delete worldState.kind;var c=worldState.character;c.inventory=[{name:"Sword",qty:1,equipped:true},{name:"Blade",qty:2,equipped:false}];
+    worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:[{name:"Sword",qty:1,equipped:true},{name:"Blade",qty:2,equipped:false}]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};return c;}
+  var ROWS606=JSON.stringify([{name:"Sword",qty:1,equipped:true},{name:"Blade",qty:2,equipped:false}]);
+  function refused606(muts,who,from,to){var want="⚠ "+(who?who+": ":"")+"RENAME refused: '"+to+"' already on the sheet — if the two are one item, emit [ITEM_LOST:"+from+"] instead",i;for(i=0;i<(muts||[]).length;i++)if(muts[i]===want&&mutLineWarns(muts[i]))return "";return "the refusal has its visible receipt ("+want+"): "+JSON.stringify(muts);}
+  t("#606 refused rename on the hero: [ITEM_RENAMED:Blade|Sword] and the old defect's own shape [ITEM_RENAMED:Sword|Blade] (the EQUIPPED item renamed onto a carried one) are refused with a receipt; both rows keep their names, counts and flags, and the equipped names do not move",function(){
+    var cases=[["Blade","Sword"],["Sword","Blade"]],i;
+    for(i=0;i<cases.length;i++){var from=cases[i][0],to=cases[i][1],c=rename606(),eq0=JSON.stringify(invEquippedNames(c));
+      var r=quiet(function(){return applyMuts("[ITEM_RENAMED:"+from+"|"+to+"]");}).r,why=refused606(r.muts,null,from,to);if(why)return from+"→"+to+": "+why;
+      if(r.muts.some(function(m){return m.indexOf(" → ")>=0;}))return from+"→"+to+": no rename receipt for a refused rename: "+JSON.stringify(r.muts);
+      if(JSON.stringify(c.inventory)!==ROWS606)return from+"→"+to+": the rows are exactly as they were (Sword ×1 equipped, Blade ×2 not): "+JSON.stringify(c.inventory);
+      if(JSON.stringify(invEquippedNames(c))!==eq0||eq0!=='["Sword"]')return from+"→"+to+": the sheet still wears the Sword and only the Sword: "+JSON.stringify(invEquippedNames(c));}
+    return true;
+  });
+  t("#606 refused rename on a companion: [COMPANION_ITEM_RENAMED:Bram|Blade|Sword] and [COMPANION_ITEM_RENAMED:Bram|Sword|Blade] are refused with Bram's receipt; Bram's rows and equipped names do not move, and the hero's sheet is untouched",function(){
+    var cases=[["Blade","Sword"],["Sword","Blade"]],i;
+    for(i=0;i<cases.length;i++){var from=cases[i][0],to=cases[i][1],c=rename606(),b=findCompanionChar("Bram"),eq0=JSON.stringify(invEquippedNames(b));
+      var r=quiet(function(){return applyMuts("[COMPANION_ITEM_RENAMED:Bram|"+from+"|"+to+"]");}).r,why=refused606(r.muts,"Bram",from,to);if(why)return from+"→"+to+": "+why;
+      if(JSON.stringify(b.inventory)!==ROWS606)return from+"→"+to+": Bram's rows are exactly as they were: "+JSON.stringify(b.inventory);
+      if(JSON.stringify(invEquippedNames(b))!==eq0||eq0!=='["Sword"]')return from+"→"+to+": Bram still wears the Sword and only the Sword: "+JSON.stringify(invEquippedNames(b));
+      if(JSON.stringify(c.inventory)!==ROWS606)return from+"→"+to+": the hero's rows are not Bram's: "+JSON.stringify(c.inventory);}
+    return true;
+  });
+  t("#606 refused rename's twin, the accepted rename: [ITEM_RENAMED:Sword|Runed sword] and [COMPANION_ITEM_RENAMED:Bram|Sword|Runed sword] relabel the row in place and the flag goes with it — still equipped, same count, same place",function(){
+    var c=rename606(),r=quiet(function(){return applyMuts("[ITEM_RENAMED:Sword|Runed sword]");}).r,want=JSON.stringify([{name:"Runed sword",qty:1,equipped:true},{name:"Blade",qty:2,equipped:false}]);
+    if(r.muts.indexOf("Sword → Runed sword")<0)return "the rename has its receipt: "+JSON.stringify(r.muts);
+    if(JSON.stringify(c.inventory)!==want||JSON.stringify(invEquippedNames(c))!=='["Runed sword"]')return "the hero's renamed row is still equipped: "+JSON.stringify(c.inventory)+" "+JSON.stringify(invEquippedNames(c));
+    var b=findCompanionChar("Bram");r=quiet(function(){return applyMuts("[COMPANION_ITEM_RENAMED:Bram|Sword|Runed sword]");}).r;
+    if(r.muts.indexOf("Bram: Sword → Runed sword")<0)return "the companion's rename has its receipt: "+JSON.stringify(r.muts);
+    return (JSON.stringify(b.inventory)===want&&JSON.stringify(invEquippedNames(b))==='["Runed sword"]')?true:"Bram's renamed row is still equipped: "+JSON.stringify(b.inventory)+" "+JSON.stringify(invEquippedNames(b));
+  });
   section("#459 / #460 — records never recited; the sheet outranks the GM's memory (owner field reports 2026-09-25)");
   /* the owner's real Necrotic Dungeon skeleton (t35 save), shortened: the register lives in the premise, the act goals, a
      turning point, an arc objective and an arc title — the exact lines the GM later pasted into Nyla's mouth at the hearth */
@@ -29905,6 +29940,28 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation=null;memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
     var r=quiet(function(){return applyMuts("[WARES:Bottle of wine|2 gp]");}).r;
     return (r.muts||[]).some(function(m){return /Bottle of wine/.test(m)&&/\(canon 2 sp\)/.test(m);})?true:"the band receipt quotes canon: "+JSON.stringify(r.muts);
+  });
+  /* #578 (verified and pinned 2026-10-11): the row's last defect was the bundle kept IN the ware's name — [WARES:Arrow x20|1 gp]
+     read as "1 gp per 20" while the ware stayed "Arrow x20", so buying twenty wrote "+Arrow x20 x20" and the pack ended at
+     Arrow x39 for a 1 gp charge. #517 (b) (v1.1212) splits the bundle where the ware is filed (fileWare). This walks the whole
+     road for BOTH spellings of the bundle: the tag path, the GM's FOR SALE line, the counter's row, the plan and ledgerApply. */
+  t("#578 a counted ware and a per-N price are ONE bundle end to end: [WARES:Arrow x20|1 gp] and [WARES:Arrow|1 gp per 20] each file Arrow at 1 gp per 20; the counter buys twenty for 1 gp onto ONE pack row Arrow ×20 (it used to write +Arrow x20 x20 and end at Arrow x39); a second bundle stacks on the same row",function(){
+    var forms=["[WARES:Arrow x20|1 gp]","[WARES:Arrow|1 gp per 20]"],i;
+    for(i=0;i<forms.length;i++){var f=forms[i],n=quartetShop(),c=worldState.character;c.inventory=[];c.coin=1000;
+      var r=quiet(function(){return applyMuts(f);}).r;
+      if(n.wares.length!==1||n.wares[0].item!=="Arrow"||n.wares[0].price!=="1 gp per 20"||n.wares[0].cp!==100||n.wares[0].per!==20)return f+": the ware is Arrow at 1 gp per 20 (100 cp for 20), the count out of its name: "+JSON.stringify(n.wares);
+      if(r.muts.indexOf("For sale: Arrow — 1 gp per 20")<0)return f+": the ware readout says 1 gp per 20: "+JSON.stringify(r.muts);
+      if(buildGeoBlock().indexOf("FOR SALE HERE: Arrow — 1 gp per 20")<0)return f+": the GM's shelf line reads Arrow — 1 gp per 20: "+(buildGeoBlock().match(/FOR SALE HERE:[^\n]*/)||["(no FOR SALE line)"])[0];
+      var cat=shopTradeCatalog();if(!cat.ok)return f+": the counter opens: "+cat.reason;
+      var row=shopLedgerRows(cat).right[0];if(!row||row.label!=="Arrow"||row.max!==20||row.unit!==5||row.hint!=="1 gp per 20")return f+": the counter row is Arrow, up to twenty at 5 cp each, 1 gp per 20: "+JSON.stringify(row);
+      var plan=shopTradePlan(cat,{buy:{arrow:20}});
+      if(!plan.ok||plan.netCp!==100||plan.lines.length!==1||plan.lines[0].name!=="Arrow"||plan.lines[0].qty!==20||plan.lines[0].unitCp!==5)return f+": one bundle is twenty Arrow for 100 cp: "+JSON.stringify(plan);
+      var a=ledgerApply(plan,{key:cat.key});
+      if(!a.ok||a.muts.join("|")!=="+Arrow x20|-1 gp")return f+": the receipts are +Arrow x20 and -1 gp, never +Arrow x20 x20: "+JSON.stringify(a);
+      if(JSON.stringify(c.inventory)!==JSON.stringify([{name:"Arrow",qty:20,equipped:false}])||c.coin!==900)return f+": the pack holds ONE row named Arrow with qty 20, and the purse paid 100 cp: "+JSON.stringify(c.inventory)+" coin "+c.coin;
+      var cat2=shopTradeCatalog(),a2=ledgerApply(shopTradePlan(cat2,{buy:{arrow:20}}),{key:cat2.key});
+      if(!a2.ok||JSON.stringify(c.inventory)!==JSON.stringify([{name:"Arrow",qty:40,equipped:false}])||c.coin!==800)return f+": a second bundle stacks on the same row (Arrow ×40 for 2 gp): "+JSON.stringify([a2,c.inventory,c.coin]);}
+    return true;
   });
 
   // ── #481 D7 (audit 2026-09-29, ruled) → #598 (owner ruling 2026-10-03): the half-gold floor existed because the purse was

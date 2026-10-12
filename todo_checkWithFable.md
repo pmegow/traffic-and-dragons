@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-11 · #578 #606 · Opus 5.5 lane under Fable: verification probes (both defects gone on the tree), pinned with tests and batteries (the `#578` end-to-end bundle test + a D5 clause; the `#606 refused rename` section + a 5-clause battery). No engine change. Fable reviewed the diff and landed it.
+
 - 2026-10-10 · #611 File hierarchy · Codex: owner-reported flattened phone File menu; removed the native-select projection and reused the existing generated menu, actions and tap-to-expand submenus. Phone-only sizing/scrolling, red-first browser regression and hierarchy/viewport mutation guards. No protected engine edits.
 
 - 2026-10-10 · #611 follow-up · Codex: owner-requested drawer hit area, fully closing tab rail and double-tap sizing; UI-only item-definition acceptance now refreshes the inventory panel. No canon writer or classification rule changed. Real-browser red-first Wooden Staff and closed-drawer reproductions, touch gestures and mutation proofs.
