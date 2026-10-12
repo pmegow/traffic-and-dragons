@@ -1014,6 +1014,15 @@ function healMemory(){
       }
     }
   }
+  /* #618: the #481 C11 start stamp runs at game START only, so a campaign begun before it kept its start world at
+     visits 0 for life — every turn's MEMORY DIRECTORY said "KNOWN OF (not yet visited): The Village" beside
+     "Location: The Village" (the Village t291 at v1.1238). The load heal stamps the CURRENT world's RESOLVED node
+     (#156B: a raw pointer on a repaired map may be a dead alias) and never mints — a missing node is the P9 bridge's
+     case, and a mint here could re-create a tombstoned twin. Idempotent: a visited node is untouched. */
+  if(worldState&&worldState.world&&worldState.world.location&&memory.map&&memory.map.nodes){
+    var _swK=(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location,_swN=memory.map.nodes[_swK];
+    if(_swN&&!(_swN.visits>0)){_swN.visits=1;if(_swN.firstVisit==null)_swN.firstVisit=0;if(typeof console!=="undefined")console.warn("[heal] #618 start world \""+_swK+"\" stamped visited — a campaign begun before #481 C11 kept it at 0 visits");}
+  }
 }
 // ── Campaign management ───────────────────────────────────────────────────────
 var CAMP_META_K="tnd_camps_v1";var ACTIVE_CAMP_K="tnd_active_v1";var LEGACY_ON_K="tnd_legacy_on_v1";var LEGACY_PCT_K="tnd_legacy_pct_v1";

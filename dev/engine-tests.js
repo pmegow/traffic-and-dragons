@@ -31687,6 +31687,24 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),sg=g.slice(g.indexOf("function startGame("),g.indexOf("function startGame(")+6000);
     return /startNodeStamp\(\)/.test(sg)?true:"startGame must stamp through startNodeStamp";
   });
+  t("#618 a campaign begun before #481 C11 has its start world stamped visited at LOAD (healMemory): resolved, idempotent, never minted",function(){
+    villageEF();var v=memory.map.nodes["The Village"];v.visits=0;v.firstVisit=null;
+    healMemory();
+    v=memory.map.nodes["The Village"];
+    if(!(v&&v.visits===1&&v.firstVisit===0))return "#618 the load heal did not stamp the start world visited: "+JSON.stringify(v);
+    if(/KNOWN OF \(not yet visited\):[^\n]*The Village/.test(buildSysPrompt().volatile))return "#618 the start place is still 'known of, not yet visited' after the load heal";
+    v.visits=7;v.firstVisit=3;healMemory();
+    if(v.visits!==7||v.firstVisit!==3)return "#618 the load heal touched a start world that was already visited: "+JSON.stringify(v);
+    delete memory.map.nodes["The Village"];healMemory();
+    if(memory.map.nodes["The Village"])return "#618 the load heal minted a missing start node (a raw pointer on a repaired map could re-mint a tombstoned twin)";
+    villageEF();v=memory.map.nodes["The Village"];v.visits=0;v.firstVisit=null;
+    worldState.world.location="Village Town";memory.map.identity={entries:{"Village Town":{mergedInto:"The Village"}}};/* merge residue: the pointer is a dead alias (the #464 fixture shape) */
+    if(locResolve("Village Town")!=="The Village")return "fixture: the alias does not resolve to the canonical";
+    healMemory();
+    if(memory.map.nodes["Village Town"])return "#618 the load heal minted the pointer's raw key instead of stamping the canonical";
+    v=memory.map.nodes["The Village"];
+    return (v.visits===1&&v.firstVisit===0)?true:"#618 an aliased pointer did not stamp the canonical start world: "+JSON.stringify(v);
+  });
   t("#481 C11 the location line names a region only when it differs from the place",function(){
     villageEF();worldState.world.region="The Village";var vol=buildSysPrompt().volatile;
     if(/Location: The Village, The Village/.test(vol))return "the region repeats the place";
