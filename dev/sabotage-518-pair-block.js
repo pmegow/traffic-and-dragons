@@ -37,7 +37,7 @@ prove("tag_table.js", [
     find: 'var _gHits=itemPairCount(R,"ilHits",cIq.base,_cgBlk);', replace: 'var _gHits=itemPairCount(R,"ilHits",cIq.base,null)!==null?itemPairCount(R,"ilHits",cIq.base,null):(function(){var k,n=null;for(k in (R.ilHits||{}))if(k.indexOf(itemPairKey(cIq.base)+"\\u0000")===0)n=(n||0)+R.ilHits[k].length;return n;})();',
     mustFail: BLOCK },
   { label: "#518 conservation: a counted gift to a missing recipient puts back one unit again (Torch x3 leaves the hero one)",
-    find: 'for(_gpi=0;_gpi<_gpq.n;_gpi++){', replace: 'for(_gpi=0;_gpi<1;_gpi++){',
+    find: 'for(_gpi=0;;_gpi++){', replace: 'for(_gpi=0;_gpi<1;_gpi++){',
     mustFail: MISSING },
   { label: "#518 conservation: a gift no longer consumes the loss unit it pairs (one torch lost, two given)",
     find: 'if(_gHits!==null)itemPairTake(R,"ilHits",cIq.base,_cgBlk);/* #518: the gift consumes', replace: '/* #518: the gift consumes',

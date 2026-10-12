@@ -28061,8 +28061,8 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!r.muts.some(function(m){return /^⚠ 'Torch' x3 stays in the pack — no party member 'Absent' to give it to/.test(m);}))return "the receipt states the count put back: "+JSON.stringify(r.muts);
     c.inventory=[{name:"Torch",qty:3,equipped:false}];
     r=quiet(function(){return applyMuts("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch]");}).r;
-    if(blockTorches(c)!==1)return "the gift pairs the units it names — one back, the other two are the loss's own: "+JSON.stringify([c.inventory,r.muts]);
-    return r.muts.some(function(m){return /^⚠ 'Torch' stays in the pack — no party member 'Absent'/.test(m);})?true:"the single put-back is said: "+JSON.stringify(r.muts);
+    if(blockTorches(c)!==3)return "a gift to nobody voids its block's loss (owner ruling 2026-10-11): all three back, whatever count the gift names: "+JSON.stringify([c.inventory,r.muts]);
+    return r.muts.some(function(m){return /^⚠ 'Torch' x3 stays in the pack — no party member 'Absent'/.test(m);})?true:"the whole put-back is said with its count: "+JSON.stringify(r.muts);
   });
   t("#518 block a loss unit pairs ONCE: two short gift pairs in one block with one torch held give Bram that torch and the second pair gives nothing (said) — the torch is never destroyed; one loss with two gifts never mints a second",function(){
     makeWorld();var c=worldState.character;c.inventory=[{name:"Torch",qty:1,equipped:false}];blockComp([]);var bram=findCompanionChar("Bram");
