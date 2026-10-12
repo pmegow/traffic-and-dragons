@@ -25,6 +25,15 @@ const root=path.resolve(__dirname,'..'),shots=process.env.SIGNUP_SHOTS;
   await page.waitForFunction(()=>typeof initState==='function'&&document.getElementById('api-screen').style.display==='none');
   await shot('before-signup-opens-wizard');console.log('REPRODUCED: homepage Sign up skips authentication with saved credentials');return;
  }
+ await page.waitForFunction(()=>document.getElementById('invitation')&&!document.getElementById('invitation').hidden);
+ assert.equal(await page.evaluate(()=>document.getElementById('heading').textContent),'Would you like to sign up?');
+ assert.equal(await page.evaluate(()=>document.getElementById('providers').hidden&&document.getElementById('account').hidden),true);
+ await shot('signup-invitation-desktop');
+ for(const width of [390,320]){await page.setViewportSize({width,height:850});await shot('signup-invitation-'+width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'invitation fits '+width);}
+ await page.locator('#signup-decline').click();assert.equal(await page.evaluate(()=>location.hostname),'trafficanddragons.com');
+ await page.locator('.module-return a').click();await page.waitForFunction(()=>!document.getElementById('invitation').hidden);
+ await page.locator('#signup-confirm').click();
+ await page.setViewportSize({width:1200,height:900});
  await page.waitForFunction(()=>document.getElementById('account')&&!document.getElementById('account').hidden);
  assert.equal(await page.evaluate(()=>location.pathname),'/signup.html','Sign up always lands on its own page');
  assert.equal(await page.evaluate(()=>typeof initState),'undefined','signup does not boot game');
@@ -38,7 +47,9 @@ const root=path.resolve(__dirname,'..'),shots=process.env.SIGNUP_SHOTS;
  entitled=false;await page.evaluate(()=>window.__signupTest.refresh());await page.waitForFunction(()=>!document.getElementById('check-access').hidden);
  assert.equal(await page.evaluate(()=>document.getElementById('account-home').hidden),true);
  await page.setViewportSize({width:1200,height:900});
- await page.locator('#signout').click();await page.waitForFunction(()=>!document.getElementById('providers').hidden);
+ await page.locator('#signout').click();await page.waitForFunction(()=>!document.getElementById('invitation').hidden);
+ assert.equal(await page.evaluate(()=>document.getElementById('providers').hidden),true);
+ await page.locator('#signup-confirm').click();await page.waitForFunction(()=>!document.getElementById('providers').hidden);
  await shot('signup-fresh-desktop');
  for(const width of [390,320]){await page.setViewportSize({width,height:850});await shot('signup-fresh-'+width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow at '+width);}
  await page.evaluate(()=>{window.open=function(url){window.__opened=url;return null;};});

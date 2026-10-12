@@ -3,6 +3,8 @@ rc|=sabotage.prove({file:'website/index.html',command:command,cases:[
  {label:'Sign up returns to the boot-skipping game URL',mustFail:'Sign up has a dedicated destination even with saved credentials',find:'href="https://traffic-and-dragons.pages.dev/signup.html">Sign up',replace:'href="https://traffic-and-dragons.pages.dev/">Sign up'}
 ]});
 rc|=sabotage.prove({file:'signup.html',command:command,cases:[
+ {label:'signup consent is assumed on arrival',mustFail:'every visit asks whether to sign up before proceeding, including saved sessions',find:'pending=false,deadline=null,signupConfirmed=false;',replace:'pending=false,deadline=null,signupConfirmed=true;'},
+ {label:'provider sign-in skips explicit signup consent',mustFail:'sign-in and refresh cannot skip signup confirmation',find:'    if(!signupConfirmed){view("invite");status("Choose Yes, sign me up to continue.");return;}',replace:''},
  {label:'unapproved account is offered play',mustFail:'account without access shows awaiting-access wording and no play links',find:'view(info.entitled?"account":"awaiting")',replace:'view("account")'},
  {label:'missing access status is treated as approved',mustFail:'access must be explicitly verified before offering play',find:'||typeof info.entitled!=="boolean"',replace:''},
  {label:'existing session automatically enters play',mustFail:'signup page cannot boot or write a campaign',find:'$("account-name").textContent=info.username;',replace:'$("account-name").textContent=info.username;location.href="index.html";'},

@@ -2,7 +2,7 @@ const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('ass
 const root=path.resolve(__dirname,'..'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
 let passed=0,failed=0;
 function test(name,fn){try{fn();console.log('PASS '+name);passed++;}catch(e){console.error('FAIL '+name+': '+e.message);failed++;}}
-function fixture(connected=false){
+function fixture(connected=false,confirm=true){
  const elements={},warns=[],calls=[],timers=new Map();let seq=0;
  const get=id=>elements[id]||(elements[id]={hidden:false,disabled:false,textContent:'',addEventListener(){}});
  const adapter={isServerMode:()=>connected,whoAmI:cb=>{calls.push('identity');adapter.identity=cb;},
@@ -13,6 +13,7 @@ function fixture(connected=false){
   setTimeout:fn=>{timers.set(++seq,fn);return seq;},clearTimeout:id=>timers.delete(id)};
  vm.createContext(box);const html=read('signup.html');
  for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(m[1].trim())vm.runInContext(m[1],box);
+ if(confirm)box.window.__signupTest.confirmSignup();
  return {elements,adapter,calls,warns,timers,seam:box.window.__signupTest};
 }
 test('Sign up has a dedicated destination even with saved credentials',()=>{
@@ -25,7 +26,7 @@ test('signup page cannot boot or write a campaign',()=>{
  assert(!/src="(?:game|ui-boot|ui-campaigns)\.js"|\b(?:init|newGame|saveAll|syncToServer)\s*\(|location\.(?:href|replace|assign)/.test(h));
  assert(!/tnd_server_tok|localStorage/.test(h),'authentication storage belongs to the shared adapter');
 });
-test('fresh visit waits for an explicit provider choice',()=>{const f=fixture();assert.equal(f.elements.providers.hidden,false);assert.deepEqual(f.calls,[]);assert.equal(f.elements.account.hidden,true);});
+test('confirmed signup waits for an explicit provider choice',()=>{const f=fixture();assert.equal(f.elements.providers.hidden,false);assert.deepEqual(f.calls,[]);assert.equal(f.elements.account.hidden,true);});
 test('saved session waits for identity and never auto-continues',()=>{const f=fixture(true);assert.equal(f.elements.providers.hidden,true);assert.equal(f.elements.account.hidden,true);f.adapter.identity(null,{username:'Peter',entitled:true});assert.equal(f.elements.account.hidden,false);assert.equal(f.elements['account-name'].textContent,'Peter');assert.equal(f.elements.providers.hidden,true);});
 test('failed session verification offers retry and sign-out without account continuation',()=>{const f=fixture(true);f.adapter.identity('HTTP 401: expired');assert.equal(f.elements.account.hidden,true);assert.equal(f.elements.recovery.hidden,false);assert.match(f.elements.status.textContent,/401/);assert.equal(f.warns.length,1);f.seam.refresh();assert.equal(f.calls.length,2);});
 test('malformed identity cannot authorize continuation',()=>{const f=fixture(true);f.adapter.identity(null,{});assert.equal(f.elements.account.hidden,true);assert.match(f.elements.status.textContent,/identity/);});
@@ -33,9 +34,13 @@ test('both providers use the shared login adapter',()=>{for(const provider of ['
 test('blocked and cancelled popup errors remain visible and allow retry',()=>{for(const error of ['Popup blocked','Login cancelled']){const f=fixture();f.seam.signIn('google');f.adapter.login(error);assert.match(f.elements.status.textContent,new RegExp(error));assert.equal(f.elements['signup-google'].disabled,false);assert.equal(f.warns.length,1);assert.equal(f.timers.size,0);}});
 test('double click and unsupported provider cannot start a second login',()=>{const f=fixture();f.seam.signIn('microsoft');assert.equal(f.calls.length,0);f.seam.signIn('google');f.seam.signIn('github');assert.equal(f.calls.length,1);});
 test('abandoned login has a visible deadline and can be retried',()=>{const f=fixture();f.seam.signIn('google');[...f.timers.values()][0]();assert.match(f.elements.status.textContent,/timed out/);assert.equal(f.elements['signup-google'].disabled,false);});
-test('sign-out is explicit and server failure is visible',()=>{const f=fixture(true);f.adapter.identity(null,{username:'Peter',entitled:true});assert(!f.calls.includes('logout'));f.seam.signOut();f.adapter.logout('Server session may still be active');assert.equal(f.elements.account.hidden,true);assert.equal(f.elements.providers.hidden,false);assert.match(f.elements.status.textContent,/still be active/);assert.equal(f.warns.length,1);});
+test('sign-out is explicit and server failure is visible',()=>{const f=fixture(true);f.adapter.identity(null,{username:'Peter',entitled:true});assert(!f.calls.includes('logout'));f.seam.signOut();f.adapter.logout('Server session may still be active');assert.equal(f.elements.account.hidden,true);assert.equal(f.elements.providers.hidden,true);assert.equal(f.elements.invitation.hidden,false);assert.match(f.elements.status.textContent,/still be active/);assert.equal(f.warns.length,1);});
 test('untrusted account names are rendered as text',()=>{const f=fixture(true);const name='<img src=x onerror=alert(1)>';f.adapter.identity(null,{username:name,entitled:true});assert.equal(f.elements['account-name'].textContent,name);assert(!/innerHTML/.test(read('signup.html')));});
 test('account without access shows awaiting-access wording and no play links',()=>{const f=fixture(true);f.adapter.identity(null,{username:'Test player',entitled:false});assert.equal(f.elements.heading.textContent,'Account requested — awaiting access');assert.equal(f.elements.account.hidden,false);assert.equal(f.elements['account-home'].hidden,true);assert.equal(f.elements['continue-game'].hidden,true);assert.equal(f.elements['check-access'].hidden,false);});
 test('access must be explicitly verified before offering play',()=>{for(const entitled of [undefined,null,'true',1]){const f=fixture(true);f.adapter.identity(null,{username:'Test player',entitled});assert.equal(f.elements.account.hidden,true);assert.equal(f.elements.recovery.hidden,false);assert.equal(f.elements['continue-game'].hidden,true);assert.equal(f.warns.length,1);}});
 test('checking access again handles both a grant and a revocation',()=>{const f=fixture(true);f.adapter.identity(null,{username:'Test player',entitled:false});f.seam.refresh();assert.equal(f.elements['account-home'].hidden,true);f.adapter.identity(null,{username:'Test player',entitled:true});assert.equal(f.elements['account-home'].hidden,false);assert.equal(f.elements['continue-game'].hidden,false);f.seam.refresh();f.adapter.identity(null,{username:'Test player',entitled:false});assert.equal(f.elements['account-home'].hidden,true);assert.equal(f.elements['continue-game'].hidden,true);});
+test('every visit asks whether to sign up before proceeding, including saved sessions',()=>{for(const connected of [false,true]){const f=fixture(connected,false);assert.equal(f.elements.heading.textContent,'Would you like to sign up?');assert.equal(f.elements.invitation.hidden,false);assert.equal(f.elements.providers.hidden,true);assert.equal(f.elements.account.hidden,true);assert.deepEqual(f.calls,[]);}});
+test('sign-in and refresh cannot skip signup confirmation',()=>{const f=fixture(false,false);f.seam.signIn('google');f.seam.refresh();assert.deepEqual(f.calls,[]);assert.equal(f.elements.invitation.hidden,false);});
+test('only the affirmative choice exposes providers or checks the saved account',()=>{for(const connected of [false,true]){const f=fixture(connected,false);assert.equal(typeof f.seam.confirmSignup,'function');f.seam.confirmSignup();assert.equal(f.elements.invitation.hidden,true);assert.equal(f.elements.providers.hidden,connected);assert.deepEqual(f.calls,connected?['identity']:[]);}});
+test('declining signup has a plain return-home link and never invokes authentication',()=>{assert(read('signup.html').includes('<a id="signup-decline" class="primary" href="https://trafficanddragons.com/">Not now</a>'));});
 console.log(`${passed} sign-up checks passed, ${failed} failed`);process.exitCode=failed?1:0;
