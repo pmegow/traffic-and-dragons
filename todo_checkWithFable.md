@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-11 · #518 · Opus 5.5 lane under Fable (drift surface: the companion gift and the pair notes): a counted gift to a missing recipient puts back every unit; a loss unit pairs once (`itemPairMissed`, per-unit consumption by gifts and stows). Tests +3, battery 10 clauses, one A2 clause re-anchored. Fable reviewed every engine line and landed it; #613 filed for the take-pair twin.
+
 - 2026-10-11 · #577 #591 · Opus 5.5 lane under Fable (drift surface: the ITEM_LOST/GOLD write path, the want tier): the paid offer is the retired offer (`wantKey` from the catalog through the plan into `ledgerApply`; `wantedFor` the one matcher) and a want retires only from a payment in the loss own tag block (`wantedSaleSettle`). Tests +4, D4 battery 17 clauses, four batteries re-anchored. Fable reviewed every engine line and landed it; the candidate rulings are on the rows.
 
 - 2026-10-11 · #578 #606 · Opus 5.5 lane under Fable: verification probes (both defects gone on the tree), pinned with tests and batteries (the `#578` end-to-end bundle test + a D5 clause; the `#606 refused rename` section + a 5-clause battery). No engine change. Fable reviewed the diff and landed it.

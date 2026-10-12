@@ -28050,6 +28050,42 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(tagBlockSpans("[A:1]\n[B:2]").length!==1)return "a line break alone is still one block";
     return true;
   });
+  /* #518 (Astra's acceptance 2026-10-10, audits/acceptance-2026-10-10/ledger/report.md): two conservation failures inside the
+     per-block pair notes. A counted gift to a missing recipient put back ONE unit of the three the loss took; a block with one
+     successful loss and one missed loss of the same item refused EVERY gift, so the unit that left the pack reached nobody. */
+  function blockTorches(c){return inventoryCountOf(c.inventory,"Torch");}
+  t("#518 block a counted gift to a MISSING recipient conserves every unit: the hero holding Torch x3 who writes [ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch x3] keeps all three and the receipt says x3; a gift of one from a loss of three puts back the one it names",function(){
+    makeWorld();var c=worldState.character;c.inventory=[{name:"Torch",qty:3,equipped:false}];blockComp([]);
+    var r=quiet(function(){return applyMuts("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch x3]");}).r;
+    if(blockTorches(c)!==3)return "every unit the counted loss took is back in the pack (3 in, 3 out): "+JSON.stringify([c.inventory,r.muts]);
+    if(!r.muts.some(function(m){return /^⚠ 'Torch' x3 stays in the pack — no party member 'Absent' to give it to/.test(m);}))return "the receipt states the count put back: "+JSON.stringify(r.muts);
+    c.inventory=[{name:"Torch",qty:3,equipped:false}];
+    r=quiet(function(){return applyMuts("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch]");}).r;
+    if(blockTorches(c)!==1)return "the gift pairs the units it names — one back, the other two are the loss's own: "+JSON.stringify([c.inventory,r.muts]);
+    return r.muts.some(function(m){return /^⚠ 'Torch' stays in the pack — no party member 'Absent'/.test(m);})?true:"the single put-back is said: "+JSON.stringify(r.muts);
+  });
+  t("#518 block a loss unit pairs ONCE: two short gift pairs in one block with one torch held give Bram that torch and the second pair gives nothing (said) — the torch is never destroyed; one loss with two gifts never mints a second",function(){
+    makeWorld();var c=worldState.character;c.inventory=[{name:"Torch",qty:1,equipped:false}];blockComp([]);var bram=findCompanionChar("Bram");
+    var r=quiet(function(){return applyMuts("[ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Bram|Torch][ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Bram|Torch]");}).r;
+    var h=blockTorches(c),b=blockTorches(bram);
+    if(h+b!==1)return "conservation — one torch in, one out (hero "+h+", Bram "+b+"): "+JSON.stringify(r.muts);
+    if(h!==0||b!==1)return "the successful loss's unit reaches Bram: "+JSON.stringify([c.inventory,bram.inventory,r.muts]);
+    if(r.muts.filter(function(m){return m==="Bram: +Torch";}).length!==1||!r.muts.some(function(m){return /^⚠ Nothing given — 'Torch'/.test(m);}))return "one gift lands and the second pair's refusal is said: "+JSON.stringify(r.muts);
+    c.inventory=[{name:"Torch",qty:1,equipped:false}];bram.inventory=[];
+    r=quiet(function(){return applyMuts("[ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Bram|Torch][COMPANION_ITEM_GAINED:Bram|Torch]");}).r;
+    h=blockTorches(c);b=blockTorches(bram);
+    if(h+b!==1||b!==1)return "one loss unit is one gift — the block's second gift has no unit left (hero "+h+", Bram "+b+"): "+JSON.stringify(r.muts);
+    return r.muts.some(function(m){return /^⚠ Nothing given — 'Torch'/.test(m);})?true:"the second gift's refusal is said: "+JSON.stringify(r.muts);
+  });
+  t("#518 block the stow pair shares the rule: two short stow pairs in one block with one torch held place that torch and the second placement places nothing (said) — the torch is never destroyed",function(){
+    makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";memory.map.nodes["Sandpoint"]={firstVisit:1,visits:1,description:null,parent:null,npcs:[],items:[],size:"medium",travelMins:null};
+    var c=worldState.character;c.inventory=[{name:"Torch",qty:1,equipped:false}];
+    var r=quiet(function(){return applyMuts("[ITEM_LOST:Torch][LOCATION_ITEM:Torch|placed][ITEM_LOST:Torch][LOCATION_ITEM:Torch|placed]");}).r;
+    var node=memory.map.nodes["Sandpoint"],left=node.items.filter(function(it){return it.name==="Torch"&&!it.taken;}).length;
+    if(blockTorches(c)+left!==1)return "conservation — the torch is in the pack or on the floor (pack "+blockTorches(c)+", placed "+left+"): "+JSON.stringify(r.muts);
+    if(left!==1)return "the successful loss's unit is placed: "+JSON.stringify([c.inventory,node&&node.items,r.muts]);
+    return r.muts.some(function(m){return /^⚠ Nothing placed — 'Torch'/.test(m);})?true:"the second placement's refusal is said: "+JSON.stringify(r.muts);
+  });
   /* #606 (verified and pinned 2026-10-11): the row was filed when a WORN LIST existed — both rename handlers called wornRename
      whatever renameInventoryItem returned, so a rename REFUSED for a collision still re-pointed the worn list at the item it
      collided with. v1.1209 retired wornRename: the equipped flag lives ON the row, and a refused rename writes no row. These

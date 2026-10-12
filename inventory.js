@@ -402,7 +402,12 @@ function invFromLines(text){return String(text==null?"":text).split("\n").map(fu
    never a whole-string indexOf: "Rope x2" holds "Rope", "rope" holds "Rope"; two bases for one name is not a hold */
 function invHolds(inv,name){return resolveInventoryName(inv,name)>=0;}
 function itemPairTake(R,field,name,blk){var l=itemPairList(R,field,name,blk);return (l&&l.length)?l.pop():null;}
-function itemPairMissed(R,name,blk){return !!itemPairMissWhy(R,"ilMiss",name,blk);}
+/* itemPairMissed: the partner of a loss (a gift, a stow) has NO unit to pair — the block's loss of the item missed AND no unit
+   its successful losses took is still standing. #518 (Astra's acceptance 2026-10-10): the miss alone used to refuse every
+   partner in the block, so [ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Bram|Torch]×2 with one torch held destroyed the torch —
+   the second loss's miss refused the first gift too. The partners consume the units they pair (itemPairTake), so a miss
+   refuses only the partners the block has no successful loss unit left for. */
+function itemPairMissed(R,name,blk){return !!itemPairMissWhy(R,"ilMiss",name,blk)&&!(itemPairCount(R,"ilHits",name,blk)>0);}
 // ── #50(d): model-inventory sanitation + duplicate healing (v1.291) ────────────
 // Byte-identical duplicate inventory entries can only be MINTED where a model-emitted array is
 // copied verbatim — sheet generation (normalizeCompanionSheet) and regeneration (generateNpcSheet).

@@ -31,7 +31,7 @@ prove("tag_table.js", [
     find: 'if(itemPairMissed(R,cIgm[2],_cgBlk)){', replace: 'if(false){',/* #518 */
     mustFail: "a loss that matched nothing places nothing" },
   { label: "a gift to a non-member vanishes again",
-    find: 'var _gpb=itemPairTake(R,"ilHits",cIgm[2],_cgBlk);if(_gpb){', replace: 'var _gpb=null;if(_gpb){',/* #518 */
+    find: '_gpx=itemPairTake(R,"ilHits",cIgm[2],_cgBlk);if(!_gpx)break;', replace: '_gpx=null;if(!_gpx)break;',/* #518 re-anchor (Astra's acceptance 2026-10-10): the put-back is a per-unit loop now */
     mustFail: "a gift to someone who is not a party member" },
   { label: "a take the companion never held reaches the hero",
     find: 'var _tpb=itemPairTake(R,"igHits",cIlm[2],_tlB),_tpn=0;while(_tpb){', replace: 'var _tpb=null,_tpn=0;while(_tpb){',/* #518 */
