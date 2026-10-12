@@ -19,6 +19,8 @@ var MENU_ID_PREFIXES=["","cs-","api-"];
 function applyMenuTier(){
   var acct=(typeof serverAccount!=="undefined")?serverAccount:null;
   var signed=(typeof storageAdapter!=="undefined")&&storageAdapter.isServerMode();
+  /* The console requires a confirmed operator even when local developer tools are visible. */
+  eachMenuEl("admin-console",function(link){link.style.display=signed&&acct&&acct.isAdmin===true?"block":"none";});
   var hide=signed&&typeof menuTierHidesDev==="function"&&menuTierHidesDev(acct);
   var el=document.getElementById("fm-tier-css");
   if(hide&&!el){el=document.createElement("style");el.id="fm-tier-css";el.textContent=".fm-dev-only{display:none!important}";document.head.appendChild(el);}

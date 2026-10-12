@@ -1,5 +1,5 @@
 var sabotage=require("./sabotage.js"),bad=0;
-var common={command:["node",["dev/tests-292-admin-console.js"]],also:["admin_console.html","ui-boot.js","sw.js","dev/tests-292-admin-console.js"]};
+var common={command:["node",["dev/tests-292-admin-console.js"]],also:["admin_console.html","ui-boot.js","sw.js","dev/tests-292-admin-console.js","ui-shell.js"]};
 function prove(file,cases){bad|=sabotage.prove(Object.assign({},common,{file:file,cases:cases}));}
 prove("admin_console.html",[
   {label:"health response generation",find:"if(thisRefresh!==refreshId)return;",replace:"",mustFail:"#292 operator console > older health responses cannot replace a newer refresh"},
@@ -15,5 +15,6 @@ prove("storage-adapter.js",[
   {label:"admin transport route",find:'_apiJson("/api/admin/users", "GET", null, cb, true)',replace:'_apiJson("/api/account", "GET", null, cb, true)',mustFail:"#292 operator console > admin API methods share authenticated bounded transport"}
 ]);
 prove("sw.js",[{label:"network-first satellite",find:"|admin_console|",replace:"|",mustFail:"#292 operator console > satellite contracts:"}]);
-prove("ui-boot.js",[{label:"dev-only menu",find:'btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only"})',replace:'btn(p+"admin-console","Operator console&hellip;",0)',mustFail:"#292 operator console > satellite contracts:"}]);
+prove("ui-boot.js",[{label:"dev-only menu",find:'btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only",hidden:true})',replace:'btn(p+"admin-console","Operator console&hellip;",0)',mustFail:"#292 operator console > satellite contracts:"}]);
+prove("ui-shell.js",[{label:"confirmed operator only",find:'signed&&acct&&acct.isAdmin===true?"block":"none"',replace:'"block"',mustFail:"#292 operator console > console entry is top-level and hidden until an operator is confirmed"}]);
 process.exitCode=bad;

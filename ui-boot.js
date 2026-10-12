@@ -47,6 +47,7 @@ function buildFileMenus(){
     h+=btn(p+"campaigns","&#128193; Campaigns&hellip;",0,{color:"var(--acc)",extra:"font-weight:bold;"});
     h+=btn(p+"account","&#128100; Account&hellip;",0);/* §3 gateway: subscription status, turn allowance, GM routing, sign out */
     h+=btn(p+"home","&#127968; Home",0);/* #290: bibles, designer, curated shelf, the account library */
+    h+=btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only",hidden:true});
     h+=g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true});
     if(g)h+=btn("fm-reroll-mob","Re-roll last scene",0,{cls:"fm-mobile-only",hidden:true});
     if(g)h+=btn(p+"ending","&#9997; Write the ending&hellip;",0,{hidden:true,color:"var(--warn)",extra:"font-weight:bold;"});/* #364: shown by updateMemStatus while the tale is told and the campaign is open */
@@ -91,7 +92,6 @@ function buildFileMenus(){
       // security: every real gate stays on the server. Marking a row = one flag in this spec.
       +btn(p+"llm","🧠 Language Model&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"usage","📊 Usage &amp; cost&hellip;",0,{cls:"fm-dev-only"})
-      +btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"fal-key","🖼 Render Options&hellip;",0)
       +chk(p+"font-lg","Large text",0)
       +chk(p+"autosend","&#127908; Auto-send voice input",0)
