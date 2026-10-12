@@ -12,7 +12,7 @@
 </style>
 </head>
 <body>
-<header><a class="brand" href="https://trafficanddragons.com/">Traffic &amp; Dragons</a><a href="index.html">Continue your campaign →</a></header>
+<header><a class="brand" href="https://trafficanddragons.com/">Traffic &amp; Dragons</a><a id="continue-game" href="index.html" hidden>Continue your campaign →</a></header>
 <main>
 <p class="eyebrow">Your next adventure starts here</p>
 <h1 id="heading">Create your account</h1>
@@ -25,7 +25,8 @@
 <div id="account" hidden>
 <p class="account-label">You’re signed in to Traffic &amp; Dragons as</p>
 <p id="account-name" class="account-name"></p>
-<a class="primary" href="home.html">Go to your home →</a>
+<a id="account-home" class="primary" href="home.html" hidden>Go to your home →</a>
+<button id="check-access" type="button" hidden>Check access again</button>
 <button id="signout" type="button">Sign out to use another account</button>
 </div>
 <p id="status" role="status" aria-live="polite">Checking your game account…</p>
@@ -43,19 +44,31 @@
 <script>
 (function(){
   var providers={google:"Google",github:"GitHub"},pending=false,deadline=null;
+  var views={
+    checking:{heading:"Checking your account",intro:"Please wait while we check your access."},
+    providers:{heading:"Create your account",intro:"Choose how you’d like to sign in. We’ll create your account if you’re new, or reconnect you if you’ve played before."},
+    account:{heading:"You’re signed in",intro:"Continue with this account, or sign out to choose another.",account:true,play:true},
+    awaiting:{heading:"Account requested — awaiting access",intro:"Your account is awaiting approval. You can continue once access is enabled.",account:true,check:true},
+    recovery:{heading:"We couldn’t check your account",intro:"Try again, or sign out to choose another account."}
+  };
   function $(id){return document.getElementById(id);}
   function status(message,error){$("status").textContent=message||"";$("status").className=error?"error":"";if(error)console.warn("[signup] "+message);}
-  function busy(value){pending=value;Object.keys(providers).forEach(function(id){$("signup-"+id).disabled=value;});$("signout").disabled=value;$("retry").disabled=value;$("reset-session").disabled=value;}
-  function view(name){$("heading").textContent=name==="account"?"You’re signed in":"Create your account";$("intro").textContent=name==="account"?"Continue with this account, or sign out to choose another.":"Choose how you’d like to sign in. We’ll create your account if you’re new, or reconnect you if you’ve played before.";$("providers").hidden=name!=="providers";$("account").hidden=name!=="account";$("recovery").hidden=name!=="recovery";}
+  function busy(value){pending=value;Object.keys(providers).forEach(function(id){$("signup-"+id).disabled=value;});$("signout").disabled=value;$("retry").disabled=value;$("reset-session").disabled=value;$("check-access").disabled=value;}
+  function view(name){
+    var screen=views[name]||views.checking;
+    $("heading").textContent=screen.heading;$("intro").textContent=screen.intro;
+    $("providers").hidden=name!=="providers";$("account").hidden=!screen.account;$("recovery").hidden=name!=="recovery";
+    $("account-home").hidden=!screen.play;$("continue-game").hidden=!screen.play;$("check-access").hidden=!screen.check;
+  }
   function refresh(){
     if(pending)return;
     view("");
     if(!storageAdapter.isServerMode()){view("providers");status("");return;}
     busy(true);status("Checking your game account…");
-    storageAdapter.whoAmI(function(err,info){
+    storageAdapter.fetchAccount(function(err,info){
       busy(false);
-      if(err||!info||typeof info.username!=="string"||!info.username){view("recovery");status("Could not verify your account: "+(err||"the server returned no account identity")+". Try again or sign out to choose an account.",true);return;}
-      $("account-name").textContent=info.username;view("account");status("Choose when you’re ready to continue.");
+      if(err||!info||typeof info.username!=="string"||!info.username||typeof info.entitled!=="boolean"){view("recovery");status("Could not verify your account: "+(err||"the server returned no valid account identity or access status")+". Try again or sign out to choose an account.",true);return;}
+      $("account-name").textContent=info.username;view(info.entitled?"account":"awaiting");status(info.entitled?"Choose when you’re ready to continue.":"");
     });
   }
   function signIn(provider){
@@ -76,6 +89,7 @@
     storageAdapter.logoutFromServer(function(err){busy(false);view("providers");status(err?String(err):"Signed out. Choose an account to continue.",!!err);});
   }
   Object.keys(providers).forEach(function(id){$("signup-"+id).addEventListener("click",function(){signIn(id);});});
+  $("check-access").addEventListener("click",refresh);
   $("signout").addEventListener("click",signOut);$("reset-session").addEventListener("click",signOut);$("retry").addEventListener("click",refresh);
   window.addEventListener("pagehide",function(){if(deadline!==null){clearTimeout(deadline);deadline=null;}});
   window.addEventListener("pageshow",function(event){if(event.persisted)window.location.reload();});

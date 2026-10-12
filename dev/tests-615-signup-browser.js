@@ -3,11 +3,11 @@ const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..'),shots=process.env.SIGNUP_SHOTS;
 (async()=>{const browser=await chromium.launch({headless:true});try{
  const ctx=await browser.newContext({viewport:{width:1200,height:900},serviceWorkers:'block'});
- let identityError=false;
+ let identityError=false,entitled=false;
  await ctx.route('**/*',async r=>{const u=new URL(r.request().url());
   if(u.hostname==='traffic-and-dragons-server.fly.dev'){
-   const body=u.pathname==='/auth/me'?{username:'Peter (test account)'}:u.pathname==='/api/account'?{username:'Peter (test account)',entitled:false}:u.pathname==='/api/prefs/speaker_stars'?{value:[],rev:1}:{};
-   return r.fulfill({status:identityError&&u.pathname==='/auth/me'?401:200,contentType:'application/json',body:JSON.stringify(body)});
+   const body=u.pathname==='/auth/me'?{username:'Peter (test account)'}:u.pathname==='/api/account'?{username:'Peter (test account)',entitled:entitled}:u.pathname==='/api/prefs/speaker_stars'?{value:[],rev:1}:{};
+   return r.fulfill({status:identityError&&u.pathname==='/api/account'?401:200,contentType:'application/json',body:JSON.stringify(body)});
   }
   const folder=u.hostname==='trafficanddragons.com'?'website':u.hostname==='traffic-and-dragons.pages.dev'?'':null;
   if(folder===null)return r.abort();const file=path.resolve(root,folder,'.'+decodeURIComponent(u.pathname==='/'?'/index.html':u.pathname));
@@ -29,6 +29,15 @@ const root=path.resolve(__dirname,'..'),shots=process.env.SIGNUP_SHOTS;
  assert.equal(await page.evaluate(()=>location.pathname),'/signup.html','Sign up always lands on its own page');
  assert.equal(await page.evaluate(()=>typeof initState),'undefined','signup does not boot game');
  await shot('signup-existing-desktop');
+ if(process.argv.includes('--before-access')){console.log('REPRODUCED: unentitled account is offered home/game links');return;}
+ assert.equal(await page.evaluate(()=>document.getElementById('heading').textContent),'Account requested — awaiting access');
+ assert.equal(await page.evaluate(()=>document.getElementById('account-home').hidden&&document.getElementById('continue-game').hidden),true);
+ for(const width of [390,320]){await page.setViewportSize({width,height:850});await shot('signup-awaiting-'+width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'awaiting screen fits '+width);}
+ entitled=true;await page.locator('#check-access').click();await page.waitForFunction(()=>!document.getElementById('account-home').hidden);
+ await shot('signup-approved-320');
+ entitled=false;await page.evaluate(()=>window.__signupTest.refresh());await page.waitForFunction(()=>!document.getElementById('check-access').hidden);
+ assert.equal(await page.evaluate(()=>document.getElementById('account-home').hidden),true);
+ await page.setViewportSize({width:1200,height:900});
  await page.locator('#signout').click();await page.waitForFunction(()=>!document.getElementById('providers').hidden);
  await shot('signup-fresh-desktop');
  for(const width of [390,320]){await page.setViewportSize({width,height:850});await shot('signup-fresh-'+width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow at '+width);}
@@ -42,6 +51,8 @@ const root=path.resolve(__dirname,'..'),shots=process.env.SIGNUP_SHOTS;
  await page.waitForFunction(()=>!document.getElementById('account').hidden);
  assert.equal(await page.evaluate(()=>location.pathname),'/signup.html','OAuth success waits for explicit continuation');
  assert.equal(await page.evaluate(()=>localStorage.getItem('tnd_server_tok_v1')),'TEST_NEW','shared adapter persists session on game origin');
+ assert.equal(await page.evaluate(()=>document.getElementById('heading').textContent),'Account requested — awaiting access');
+ assert.equal(await page.evaluate(()=>document.getElementById('account-home').hidden),true);
  await shot('signup-success-320');
  identityError=true;await page.evaluate(()=>window.__signupTest.refresh());await page.waitForFunction(()=>!document.getElementById('recovery').hidden);
  assert.equal(await page.evaluate(()=>document.getElementById('account').hidden),true);await shot('signup-expired-320');

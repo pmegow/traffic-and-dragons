@@ -331,7 +331,7 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
-- 2026-10-11 · #615 · Codex: owner-requested dedicated sign-up page and homepage link; thin DOM shell over the existing authentication adapter, no auth protocol or campaign-state changes. Shared satellite palette/network-first delivery and version bumps; signup fixtures, browser QA and mutation proof.
+- 2026-10-11 · #615 · Codex: owner-requested dedicated sign-up page and homepage link; thin DOM shell over the existing authentication adapter, no auth protocol or campaign-state changes. Shared satellite palette/network-first delivery and version bumps; signup fixtures, browser QA and mutation proof. v1.1229 reads access through the existing account API before offering play; pending approval uses the owner’s requested wording and can be checked again.
 
 - 2026-10-11 · #518 · Opus 5.5 lane under Fable (drift surface: the companion gift and the pair notes): a counted gift to a missing recipient puts back every unit; a loss unit pairs once (`itemPairMissed`, per-unit consumption by gifts and stows). Tests +3, battery 10 clauses, one A2 clause re-anchored. Fable reviewed every engine line and landed it; #613 filed for the take-pair twin.
 

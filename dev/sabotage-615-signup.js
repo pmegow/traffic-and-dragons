@@ -3,7 +3,9 @@ rc|=sabotage.prove({file:'website/index.html',command:command,cases:[
  {label:'Sign up returns to the boot-skipping game URL',mustFail:'Sign up has a dedicated destination even with saved credentials',find:'href="https://traffic-and-dragons.pages.dev/signup.html">Sign up',replace:'href="https://traffic-and-dragons.pages.dev/">Sign up'}
 ]});
 rc|=sabotage.prove({file:'signup.html',command:command,cases:[
- {label:'existing session automatically enters play',mustFail:'signup page cannot boot or write a campaign',find:'$("account-name").textContent=info.username;view("account");',replace:'$("account-name").textContent=info.username;view("account");location.href="index.html";'},
+ {label:'unapproved account is offered play',mustFail:'account without access shows awaiting-access wording and no play links',find:'view(info.entitled?"account":"awaiting")',replace:'view("account")'},
+ {label:'missing access status is treated as approved',mustFail:'access must be explicitly verified before offering play',find:'||typeof info.entitled!=="boolean"',replace:''},
+ {label:'existing session automatically enters play',mustFail:'signup page cannot boot or write a campaign',find:'$("account-name").textContent=info.username;',replace:'$("account-name").textContent=info.username;location.href="index.html";'},
  {label:'identity error exposes account continuation',mustFail:'failed session verification offers retry and sign-out without account continuation',find:'view("recovery");status("Could not verify your account: "',replace:'view("account");status("Could not verify your account: "'},
  {label:'popup error is swallowed',mustFail:'blocked and cancelled popup errors remain visible and allow retry',find:'if(err){status(String(err),true);return;}',replace:'if(err){return;}'},
  {label:'account name can inject HTML',mustFail:'untrusted account names are rendered as text',find:'$("account-name").textContent=info.username;',replace:'$("account-name").innerHTML=info.username;'},
