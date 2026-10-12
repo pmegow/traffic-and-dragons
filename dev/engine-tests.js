@@ -24618,9 +24618,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
        files, pinned at the source; the behaviour is the browser suite's) */
     var up=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8"),us=__fsForTests.readFileSync(__rootForTests+"/ui-shell.js","utf8"),ub=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8");
     if(up.indexOf("var _so=(typeof shopOpportunity===\"function\"&&typeof showShopModal===\"function\")?shopOpportunity():null;")<0)return "the inventory panel's Trade row must read shopOpportunity";
-    if(up.indexOf("if(typeof syncShopButton===\"function\")syncShopButton();")<0)return "syncUI must repaint the Shop button";
-    if(us.indexOf("if(type===\"narrator\")syncShopButton();")<0)return "a narration landing must move the Shop button";
-    if(us.indexOf("b.onclick=function(ev){ev.stopPropagation();invLedgerOpen(\"showShopModal\");};")<0)return "the Shop button must open the counter through invLedgerOpen";
+    if(up.indexOf("if(typeof syncFrameButtons===\"function\")syncFrameButtons();")<0)return "syncUI must repaint the frame buttons (#620: the one painter)";
+    if(us.indexOf("if(type===\"narrator\")syncFrameButtons();")<0)return "a narration landing must move the frame buttons";
+    if(us.indexOf("b.onclick=(function(name){return function(ev){ev.stopPropagation();invLedgerOpen(name);};})(d.opener);")<0)return "every frame button must open its door through invLedgerOpen (the one click-time gate)";
     if(ub.indexOf("engineActionOpener")>=0)return "the long-press handler must not ask for an opener any more";
     /* the adventure: no counter, no opportunity; its buy text and its ladder are unchanged */
     makeWorld();delete worldState.kind;worldState.world.location="Sandpoint";worldState.world.sublocation="the market";var ac=worldState.character;ac.hp=ac.maxHp;ac.inventory=["Longsword"];ac.coin=1000;worldState.questLog=[];worldState.turn=3;
@@ -24630,6 +24630,29 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(shopOpportunity())return "the adventure has no counter: no opportunity";
     var adv=engineFourthAction();if(!adv||adv.kind!=="buy"||adv.text!=="Buy the Ale (1 gp).")return "the adventure buy text must not change: "+JSON.stringify(adv);
     ac.coin=0;var adv2=engineFourthAction();if(adv2&&(adv2.kind==="sell"||adv2.kind==="shop"))return "the adventure ladder has no sell or shop rung";
+    return true;
+  });
+  t("#620 the chest is reached from the narration's own Chest button, by ONE rule (chestOpportunity: a kind with a stash, the hero in their OWN house); the inventory panel's Stow-and-take row reads the same rule; the frame buttons are one table",function(){
+    /* Owner 2026-10-12: "add a 'storage chest' button to the players' cottage in the village, it should function like the shop
+       button, opening the chest interface." The Shop button's three layers again: a pure rule (helpers), a row in the one
+       table-driven painter (FRAME_BUTTONS, ui-shell), the click through invLedgerOpen. Its DOM half is in
+       dev/tests-501-shop-button-browser.js (the #620 cases). */
+    villageEF();var c=worldState.character,o;worldState.turn=3;
+    if(typeof chestOpportunity!=="function")return "chestOpportunity missing";
+    villageHouseEnsure(c.name,"The Village");worldState.world.sublocation=c.name+"'s house";
+    o=chestOpportunity();if(!o||o.house!==c.name+"'s house")return "in the hero's own house: an opportunity naming the house: "+JSON.stringify(o);
+    if(shopOpportunity())return "the hero's house is no shop";
+    worldState.world.sublocation="Daeris's house";if(chestOpportunity())return "another resident's house: no chest for the hero";
+    worldState.world.sublocation="the tavern";if(chestOpportunity())return "the tavern is no chest";
+    worldState.world.sublocation=null;if(chestOpportunity())return "the square is no chest";
+    worldState.world.sublocation=c.name+"'s house";worldState.kind="adventure";if(chestOpportunity())return "a kind without a stash has no chest";
+    worldState.kind="village";if(!chestOpportunity())return "back in the village, in the hero's house: the chest";
+    var up=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8"),us=__fsForTests.readFileSync(__rootForTests+"/ui-shell.js","utf8");
+    if(up.indexOf("var _co=(typeof chestOpportunity===\"function\"&&typeof showStashModal===\"function\")?chestOpportunity():null;")<0)return "the inventory panel's Stow-and-take row must read chestOpportunity";
+    if(!/rule:"chestOpportunity",opener:"showStashModal"/.test(us))return "FRAME_BUTTONS must carry the Chest door (rule chestOpportunity, opener showStashModal)";
+    if(!/rule:"shopOpportunity",opener:"showShopModal"/.test(us))return "FRAME_BUTTONS must carry the Shop door";
+    if(!/for\(k=0;k<FRAME_BUTTONS\.length;k\+\+\)/.test(us))return "syncFrameButtons must paint every door from the table";
+    if(/function syncShopButton\(/.test(us))return "the one painter is syncFrameButtons — no second painter";
     return true;
   });
   t("#492 the Buy button names the first ware the hero does not hold: a just-bought item is not offered again, and when every ware is held the buy rung steps aside",function(){
@@ -26620,7 +26643,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(!/igold/.test(body))return "the hero's gold rides under the name in the gold style";
     if(!/\.shop-col\+\.shop-col\{border-left:1px solid var\(--brd\)\}/.test(html)||!/\.shop-party\{text-align:center/.test(html))return "a centre rule divides the halves and each party is centred over their column";
     var pn=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8");if(!/\?shopOpportunity\(\):null;[^\n]*if\(_so\)h\+=_invLedgerRow\("showShopModal"/.test(pn))return "the inventory panel opens the counter only where the gate is open (through the one rule, shopOpportunity — #501)";
-    if(!/stashTradeCatalog\(\)\.ok\)h\+=/.test(pn))return "the inventory panel opens the chest only in the hero's own house";
+    if(!/\?chestOpportunity\(\):null;[^\n]*if\(_co\)h\+=_invLedgerRow\("showStashModal"/.test(pn))return "the inventory panel opens the chest only in the hero's own house (through the one rule, chestOpportunity — #620)";
     if(!/\.shop-row\.sel-sell\{background:rgba\(122,168,106/.test(html)||!/\.shop-row\.sel-buy\{background:rgba\(214,112,140/.test(html))return "green sell / pink buy rows";
     return true;
   });

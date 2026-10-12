@@ -3388,6 +3388,14 @@ function shopOpportunity(){
   var t=shopCounterContext();
   return (t&&t.ok&&t.shop)?{shop:t.shop,keeper:t.keeper}:null;
 }
+/* #620 (owner 2026-10-12: "a storage chest button at the player's cottage, like the shop button"): is there a chest to open
+   RIGHT NOW? The ONE rule both doors read — the narration's Chest button (FRAME_BUTTONS, ui-shell.js) and the inventory
+   panel's Stow-and-take row (ui-panels.js): the stash gate is open (stashTradeCatalog: a kind with a stash, the hero in
+   their OWN house). Returns {house}, or null. Pure over the live state, so nothing about it is stored with a turn. */
+function chestOpportunity(){
+  var c=(typeof stashTradeCatalog==="function")?stashTradeCatalog():null;
+  return (c&&c.ok)?{house:c.house}:null;
+}
 
 /* #511 ②: a tag's BLOCK — the run of tags with nothing but whitespace between them that starts at `off` — and the offset just
    past its LAST movement tag ([LOCATION:], [SUBLOCATION:], [SUBLOCATION_LEAVE]); `off` itself when the block moves nowhere.

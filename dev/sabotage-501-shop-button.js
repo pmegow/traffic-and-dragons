@@ -2,7 +2,7 @@
 // the narrative window … on the bottom row where the 'render' button is, but connect it to the right side of the panel. Only
 // draw the button if there's a shopping opportunity … and turn the button off once a new scene is written"; ruled the same day:
 // the fourth suggestion button goes back to its ladder). The rule is ONE pure function (shopOpportunity); the button is painted
-// from the live state. The browser clauses drive the real index.html through dev/cdp-browser.js; with no Chrome they are SKIPPED
+// from the live state — since #620 by the table-driven syncFrameButtons (FRAME_BUTTONS, ui-shell.js), one row per door. The browser clauses drive the real index.html through dev/cdp-browser.js; with no Chrome they are SKIPPED
 // out loud (exit 78 + one SABOTAGE SKIPPED line) — never passed. Each mutation runs in a disposable clone.
 //   node dev/sabotage-501-shop-button.js
 var sabotage = require("./sabotage.js"), verdict = require("./battery-verdict.js");
@@ -38,35 +38,35 @@ failed += sabotage.prove({ file: "ui-panels.js", command: NODE, cases: [
 ]});
 failed += sabotage.prove({ file: "ui-shell.js", command: NODE, cases: [
   { label: "the Shop button calls the counter directly, past the click-time gate",
-    find: "b.onclick=function(ev){ev.stopPropagation();invLedgerOpen(\"showShopModal\");};", replace: "b.onclick=function(ev){ev.stopPropagation();showShopModal();};",
+    find: "b.onclick=(function(name){return function(ev){ev.stopPropagation();invLedgerOpen(name);};})(d.opener);", replace: "b.onclick=(function(name){return function(ev){ev.stopPropagation();window[name]();};})(d.opener);",
     mustFail: T }
 ]});
 // The button itself, in a real browser.
 failed += sabotage.prove({ file: "ui-panels.js", skip: !chrome.path, command: BROWSER, cases: [
   { label: "a repaint no longer refreshes the Shop button (walking out leaves it on)",
-    find: "if(typeof syncShopButton===\"function\")syncShopButton();/* #501: the narration's Shop button follows the live state */", replace: "/* #501: the narration's Shop button follows the live state */",
+    find: "if(typeof syncFrameButtons===\"function\")syncFrameButtons();/* #501/#620: the narration's frame buttons (Shop, Chest) follow the live state */", replace: "/* #501/#620: the narration's frame buttons (Shop, Chest) follow the live state */",
     mustFail: "walking out turns it off" }
 ]});
 failed += sabotage.prove({ file: "ui-shell.js", skip: !chrome.path, command: BROWSER, cases: [
   { label: "a narration landing no longer moves the button (a reload shows none)",
-    find: "if(type===\"narrator\")syncShopButton();", replace: "",
+    find: "if(type===\"narrator\")syncFrameButtons();", replace: "",
     mustFail: "after a reload in a shop with its keeper" },
   { label: "the scene before keeps its button when a new scene is written",
-    find: "  for(i=0;i<old.length;i++)if(!op||old[i].parentNode!==newest)old[i].parentNode.removeChild(old[i]);", replace: "  for(i=0;i<old.length;i++)if(!op)old[i].parentNode.removeChild(old[i]);",
+    find: "    for(i=0;i<old.length;i++)if(!op||old[i].parentNode!==newest)old[i].parentNode.removeChild(old[i]);", replace: "    for(i=0;i<old.length;i++)if(!op)old[i].parentNode.removeChild(old[i]);",
     mustFail: "a new scene written in the shop takes the button" },
   { label: "the button is drawn with no shopping opportunity",
-    find: "  var op=(typeof shopOpportunity===\"function\"&&typeof worldState!==\"undefined\"&&worldState)?shopOpportunity():null;", replace: "  var op={shop:\"anywhere\",keeper:\"anyone\"};",
+    find: "    var op=(typeof ruleFn===\"function\"&&typeof worldState!==\"undefined\"&&worldState)?ruleFn():null;", replace: "    var op={shop:\"anywhere\",keeper:\"anyone\",house:\"anywhere\"};",
     mustFail: "walking out turns it off" },
   { label: "a narrator line that is not a scene takes the button",
     find: "  var frames=story.querySelectorAll(\".msg.narrator[data-turn]\"),newest=", replace: "  var frames=story.querySelectorAll(\".msg.narrator\"),newest=",
     mustFail: "a narrator line that is not a scene" },
   { label: "a re-made button lands under the suggestions instead of on the Render row",
-    find: "    if(row&&row.parentNode===newest)newest.insertBefore(wrap,row.nextSibling);else newest.appendChild(wrap);}", replace: "    newest.appendChild(wrap);}",
+    find: "      if(row&&row.parentNode===newest)newest.insertBefore(wrap,row.nextSibling);else newest.appendChild(wrap);}", replace: "      newest.appendChild(wrap);}",
     mustFail: "the keeper leaving turns it off" }
 ]});
 failed += sabotage.prove({ file: "index.html", skip: !chrome.path, command: BROWSER, cases: [
   { label: "the button loses its place at the panel's right edge",
-    find: ".frame-shop-wrap{float:right}", replace: ".frame-shop-wrap{}",
+    find: ".frame-ledger-wrap{float:right;margin-left:6px}", replace: ".frame-ledger-wrap{margin-left:6px}",
     mustFail: "after a reload in a shop with its keeper" }
 ]});
 if (!chrome.path && !failed) { verdict.reportSkip("sabotage-501-shop-button.js", 7, chrome.why); process.exit(verdict.SKIP_EXIT); }

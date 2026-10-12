@@ -14,7 +14,7 @@ Status: ✅
 
 Moved here from CLAUDE.md's file table on 2026-10-03 (the clutter pass): the stamps are the record as written.
 
-toasts, screen switching, message log (`showToast`, `addMsg`, `showGame`/`showChar`, `switchTab`, `closeAllMenus`) — loads first; called by nearly every other file. **#501:** `syncShopButton()` keeps ONE Shop button on the newest scene's Render row while `shopOpportunity()` holds — painted from the live state by `syncUI` and by `addMsg` for a narration, never stored with a turn
+toasts, screen switching, message log (`showToast`, `addMsg`, `showGame`/`showChar`, `switchTab`, `closeAllMenus`) — loads first; called by nearly every other file. **#620 (v1.1240, owner 2026-10-12):** the frame buttons are ONE table — `FRAME_BUTTONS` (ui-shell.js), one row per door: its class, label, pure rule (helpers.js), global opener and tooltip. `syncFrameButtons()` paints every row the same way on the newest scene's Render row, and the Chest row joined Shop: `chestOpportunity()` is the stash gate (`stashTradeCatalog`: a kind with a stash, the hero in their OWN house), its opener `showStashModal`; the inventory panel's Stow-and-take row reads the same rule (one rule, two doors). Adding a door = adding a row. Proven by the `#620` engine test, the `#620` cases of `dev/tests-501-shop-button-browser.js` and `dev/sabotage-620-chest-button.js`. **#501:** `syncFrameButtons()` keeps ONE Shop button on the newest scene's Render row while `shopOpportunity()` holds — painted from the live state by `syncUI` and by `addMsg` for a narration, never stored with a turn
 
 ### ui-panels.js
 

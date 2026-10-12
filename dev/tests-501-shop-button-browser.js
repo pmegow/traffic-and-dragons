@@ -59,8 +59,8 @@ function fixture() {
     }, fx);
     const shot = async name => { if (SHOTS) { await page.evaluate(() => { var s = document.getElementById('story-narrative'); s.scrollTop = s.scrollHeight; }); await page.waitForTimeout(150); await page.screenshot({ path: path.join(SHOTS, name) }); } };
     // every fact about the button the eye would check, measured from the render
-    const facts = () => page.evaluate(() => {
-      var frames = document.querySelectorAll('#story-narrative .msg.narrator[data-turn]'), all = document.querySelectorAll('#story-narrative .frame-shop'), newest = frames[frames.length - 1];
+    const facts = (door = 'frame-shop') => page.evaluate(d => {
+      var frames = document.querySelectorAll('#story-narrative .msg.narrator[data-turn]'), all = document.querySelectorAll('#story-narrative .' + d), newest = frames[frames.length - 1];
       var b = all.length ? all[all.length - 1] : null, o = { count: all.length, frames: frames.length };
       if (!b) return o;
       var host = b.closest('.msg'), r = b.getBoundingClientRect(), hr = host.getBoundingClientRect(), cs = getComputedStyle(host);
@@ -72,11 +72,11 @@ function fixture() {
       o.rightOfRender = rr ? r.left >= rr.right : null;
       o.belowGap = sr ? Math.round(sr.top - r.bottom) : null; o.suggestWidth = sr ? Math.round(sr.width) : null; o.innerWidth = Math.round(inner);
       return o;
-    });
-    const placed = (f, where) => {
-      assert.equal(f.count, 1, where + ': exactly one Shop button in the story: ' + JSON.stringify(f));
+    }, door);
+    const placed = (f, where, label = 'Shop') => {
+      assert.equal(f.count, 1, where + ': exactly one ' + label + ' button in the story: ' + JSON.stringify(f));
       assert.equal(f.onNewest, true, where + ': it sits on the newest scene: ' + JSON.stringify(f));
-      assert.equal(f.text, 'Shop'); assert.equal(f.visible, true, where + ': it is visible');
+      assert.equal(f.text, label); assert.equal(f.visible, true, where + ': it is visible');
       assert.ok(f.gapRight >= 0 && f.gapRight <= 2, where + ': it meets the right edge of the panel (gap ' + f.gapRight + 'px)');
       assert.equal(f.rightOfRender, true, where + ': it is to the right of Render');
       assert.ok(f.rowOffset !== null && f.rowOffset <= 3, where + ': it is on the Render row (centres ' + f.rowOffset + 'px apart)');
@@ -153,6 +153,44 @@ function fixture() {
       await shot('501_phone.png');
       await page.setViewportSize({ width: 1000, height: 760 });
     });
+    // #620 (owner 2026-10-12): the Chest door — the second row of FRAME_BUTTONS, painted by the same painter. The hero's own
+    // house is minted the way the village mints every house (villageHouseEnsure); the walk is the real tag path.
+    const doors = () => page.evaluate(() => ({ shop: document.querySelectorAll('#story-narrative .frame-shop').length, chest: document.querySelectorAll('#story-narrative .frame-chest').length,
+      trade: document.querySelectorAll('.inv-ledger[data-open="showShopModal"]').length, stash: document.querySelectorAll('.inv-ledger[data-open="showStashModal"]').length }));
+    await test('#620 in the hero\'s own house the newest scene carries ONE Chest button on the Render row at the right edge, and no Shop button', async () => {
+      await page.evaluate(() => { villageHouseEnsure('Silas', 'The Village'); applyMuts('[SUBLOCATION_LEAVE]'); applyMuts("[SUBLOCATION:Silas's house]"); });
+      const f = await facts('frame-chest'); placed(f, 'own house', 'Chest');
+      assert.match(f.title, /Silas's house/, 'the tooltip names the house: ' + f.title);
+      assert.deepEqual(await doors(), { shop: 0, chest: 1, trade: 0, stash: 1 }, 'one rule, two doors: the Chest button and the Stow-and-take row, no Shop');
+      await shot('620_house.png');
+    });
+    await test('#620 a real click opens the chest: the stash ledger between the hero and the house, no turn sent', async () => {
+      await page.locator('#story-narrative .frame-chest').click(); await page.waitForTimeout(300);
+      const r = await page.evaluate(() => ({ modal: !!document.querySelector('#stash-modal'), who: Array.prototype.map.call(document.querySelectorAll('#stash-modal .shop-who'), e => e.textContent), sent: window.__sent.slice() }));
+      assert.equal(r.modal, true, 'the chest is open'); assert.deepEqual(r.who, ['Silas', "Silas's house"]); assert.deepEqual(r.sent, []);
+      await shot('620_chest.png');
+      await page.evaluate(() => { var x = document.getElementById('ledger-x'); if (x) x.click(); });
+    });
+    await test('#620 while a turn is in flight the click waits: a toast, no chest', async () => {
+      await page.evaluate(() => { busy = true; window.__toasts.length = 0; });
+      await page.locator('#story-narrative .frame-chest').click(); await page.waitForTimeout(200);
+      const r = await page.evaluate(() => { var o = { modal: !!document.getElementById('stash-modal'), toasts: window.__toasts.slice() }; busy = false; return o; });
+      assert.equal(r.modal, false, 'no chest opens under a turn'); assert.match(r.toasts.join(' | '), /Wait for the turn to finish/);
+    });
+    await test('#620 another resident\'s house is no chest for the hero: neither door; the square neither', async () => {
+      await page.evaluate(() => { applyMuts('[SUBLOCATION_LEAVE]'); applyMuts("[SUBLOCATION:Daeris's house]"); });
+      assert.deepEqual(await doors(), { shop: 0, chest: 0, trade: 0, stash: 0 }, "Daeris's house");
+      await page.evaluate(() => { applyMuts('[SUBLOCATION_LEAVE]'); });
+      assert.deepEqual(await doors(), { shop: 0, chest: 0, trade: 0, stash: 0 }, 'the square');
+    });
+    await test('#620 a new scene written in the house takes the Chest button; the scene before loses it; the tavern swaps it for Shop', async () => {
+      await page.evaluate(() => { applyMuts("[SUBLOCATION:Silas's house]"); worldState.turn = 243; addMsg('narrator', '<p>Your own door closes behind you.</p>', { replayText: 'Your own door closes behind you.', turn: 243, ck: clockNow() }); });
+      const f = await facts('frame-chest'); placed(f, 'new scene at home', 'Chest'); assert.equal(f.hostTurn, '243');
+      assert.equal(await page.evaluate(() => document.querySelectorAll('#story-narrative .msg.narrator[data-turn="242"] .frame-chest-wrap').length), 0, 'the old scene lost it');
+      await page.evaluate(() => { applyMuts('[SUBLOCATION_LEAVE]'); applyMuts('[SUBLOCATION:the tavern]'); });
+      assert.deepEqual(await doors(), { shop: 1, chest: 0, trade: 1, stash: 0 }, 'back in the tavern: Shop on, Chest off');
+      placed(await facts(), 'the tavern again');
+    });
     // #527(24): exact live-combat fixture, plus a counter opened while peaceful and committed after combat starts.
     const combatFixture = JSON.parse(JSON.stringify(fx));
     combatFixture.world.character.coin = 6000;
@@ -191,7 +229,7 @@ function fixture() {
       await page.locator('#story-narrative .frame-shop').click();
       await page.locator('#shop-modal .shop-row[data-side="right"][data-key="smoked fish"]').click();
       await page.locator('#ledger-go').click();
-      assert.deepEqual(await page.evaluate(() => ({ coin: worldState.character.coin, bought: worldState.character.inventory.indexOf('Smoked fish') >= 0, modal: !!document.getElementById('shop-modal') })), { coin: 5900, bought: true, modal: false });
+      assert.deepEqual(await page.evaluate(() => ({ coin: worldState.character.coin, bought: invHolds(worldState.character.inventory, 'Smoked fish'), /* #599 (c): the inventory is rows */ modal: !!document.getElementById('shop-modal') })), { coin: 5900, bought: true, modal: false });
     });
     await test('no page error', async () => { assert.deepEqual(errors, []); });
   } finally { await browser.close(); }
