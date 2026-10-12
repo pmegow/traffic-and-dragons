@@ -75,13 +75,14 @@ function wireEnemyDetails(ordered){
   Array.prototype.forEach.call(rows.querySelectorAll(".cname.en"),function(el,i){var foe=ordered[i];el.setAttribute("role","button");el.tabIndex=0;el.setAttribute("aria-label","Details for "+foe.name);el.onclick=function(){showEnemyDetails(foe);};el.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();showEnemyDetails(foe);}};});
 }
 function showEnemyDetails(foe){
-  var h="<h2 style='font-size:18px;color:var(--acc)'>"+escHtml(foe.name)+"</h2><dl class='enemy-facts'>";
+  var h="<h2 style='font-size:18px;color:var(--acc)'>"+escHtml(foeLabel(foe))+"</h2><dl class='enemy-facts'>";
   function row(label,v){if(v!==undefined&&v!==null&&v!=="")h+="<dt>"+escHtml(label)+"</dt><dd>"+escHtml(Array.isArray(v)?v.join(", "):String(v))+"</dd>";}
   row("HP",foe.hp+" / "+foe.maxHp);
   [{key:"ac",label:"Armor class"},{key:"atk",label:"Attack"},{key:"dmg",label:"Damage"},{key:"morale",label:"Morale"},{key:"down",label:"State"},{key:"immune",label:"Immune"},{key:"resist",label:"Resistant"},{key:"vuln",label:"Vulnerable"}].forEach(function(x){row(x.label,foe[x.key]);});
   if(foe.stats)Object.keys(foe.stats).forEach(function(k){row(k,foe.stats[k]);});
   var record=null;(worldState.bestiary||[]).some(function(b){if(String(b.name).toLowerCase()===String(foe.name).toLowerCase()){record=b;return true;}return false;});
   if(record)[{key:"kind",label:"Type"},{key:"threat",label:"Threat"},{key:"desc",label:"Description"},{key:"notes",label:"Creature notes"}].forEach(function(x){row(x.label,record[x.key]);});
-  if(/\b(pack|gang|swarm|mob|horde)\b/i.test(foe.name)&&!/[\(\[]\s*\d+\s*[\)\]]/.test(foe.name))row("Group size","Not recorded");
+  if(typeof foe.count==="number")row("Group size",foe.count);/* #612: the authored headcount */
+  else if(/\b(pack|gang|swarm|mob|horde)\b/i.test(foe.name)&&!/[\(\[]\s*\d+\s*[\)\]]/.test(foe.name))row("Group size","Not recorded");
   h+="</dl><button class='ib' id='enemy-close'>Close</button>";modalShell("enemy-modal",h,{closeId:"enemy-close",outside:true,maxWidth:420});
 }

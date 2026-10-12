@@ -3388,6 +3388,10 @@ function shopOpportunity(){
   var t=shopCounterContext();
   return (t&&t.ok&&t.shop)?{shop:t.shop,keeper:t.keeper}:null;
 }
+/* #612: a foe's label — the name, and the recorded group headcount in parentheses ("Blight Husk Pack (8)", owner 2026-10-12).
+   ONE renderer for the tracker row (ui-panels.js), the prompt's combat line (api.js) and the enemy card (ui-mobile.js); a foe
+   with no recorded count (every pre-#612 save) is its bare name. Pure. */
+function foeLabel(foe){return String(foe&&foe.name||"")+(foe&&typeof foe.count==="number"?" ("+foe.count+")":"");}
 /* #620 (owner 2026-10-12: "a storage chest button at the player's cottage, like the shop button"): is there a chest to open
    RIGHT NOW? The ONE rule both doors read — the narration's Chest button (FRAME_BUTTONS, ui-shell.js) and the inventory
    panel's Stow-and-take row (ui-panels.js): the stash gate is open (stashTradeCatalog: a kind with a stash, the hero in
