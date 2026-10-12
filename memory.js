@@ -2199,6 +2199,10 @@ function _ragCarriedScore(inputText,pool,fp){
    KNOWN NPCs ride the line (buildSysPrompt passes the roster rule: recent, HERE, mentioned or in the party); the rest are
    counted, their full records stay in memory.npcs and return through the detail block the moment they are mentioned.
    No opts (Table Talk) = the full list, byte-identical to before. */
+/* #464: the same rule for places. On the GM turn (opts passed) VISITED lists every world but at most TOC_SUB_CAP visited
+   sub-locations: the most recently visited (node.lastVisit, else firstVisit), kept in their listed order; the rest are
+   counted, and GEOGRAPHY names a sub-location in place whenever the party is there. No opts (Table Talk) = every place. */
+var TOC_SUB_CAP=30;
 function memoryTOC(opts){
   var lines=[],i;
   // RAG flag ON puts the TOC on a diet (same flag as retrieval — RAG_MEMORY.md §3.4):
@@ -2214,25 +2218,36 @@ function memoryTOC(opts){
   // the GM the party had already been to end-game sites (familiarity/spoiler drift). Split
   // on the map node's visit count; entries with NO node data are legacy saves — keep them
   // VISITED so old campaigns don't change behavior. Intentional change to BOTH rag paths.
-  // #269③ (f39): keys are STORAGE, never names. The raw key list served literal pipe keys as if
-  // they were location names (t2097: three of them) — and the stable-half NAMING clause ("the
-  // same name IS the same entity") makes a served key an invitation to re-emit it. Resolve each
-  // key through the identity overlay (deduping resolved twins — alias-repair residue included),
-  // render pipe paths with the " — " convention (the buildChangedLocationsBlock precedent, ALL
-  // segments), honor a repair-set display name for the leaf, and join with "; " so a
-  // comma-bearing name ("Residential Quarter, Sandpoint") survives as one entry.
+  // #269③ (f39): keys are STORAGE, never names — a served key invites the GM to re-emit it (the
+  // stable-half NAMING clause). Each key resolves through the identity overlay (resolved twins and
+  // merge residue dedupe), pipe paths render " — " over ALL segments with a repair-set display name
+  // for the leaf, and entries join "; " so a comma-bearing name stays one entry. Pipe keys reach
+  // memory.locations only from legacy saves and blueprint seeding.
+  // #464: the node store is the record of visited places (sub-locations and every world node minted
+  // without fileLocation live ONLY there); memory.locations is the P9 bridge. The key set is the
+  // union, legacy keys first so a world-only campaign's lines stay byte-identical. An unvisited
+  // sub-location is left out: it is local knowledge the geo block serves in place.
   var lk=Object.keys(memory.locations);
+  if(memory.map&&memory.map.nodes)lk=lk.concat(Object.keys(memory.map.nodes));
   if(lk.length){
-    var _vis=[],_known=[],_locSeen=keyedDict(),_vk;
+    var _vis=[],_known=[],_locSeen=keyedDict(),_vk,_subs=[],_subCap=opts?TOC_SUB_CAP:Infinity,_subFold=0;
     for(_vk=0;_vk<lk.length;_vk++){
       var _lkR=(typeof locResolve==="function")?locResolve(lk[_vk]):lk[_vk];
       if(_locSeen[_lkR])continue;_locSeen[_lkR]=1;
       var _vn=memory.map&&memory.map.nodes?memory.map.nodes[_lkR]:null;
+      if(_vn&&!(_vn.visits>0)&&_vn.parent)continue;
       var _lkP=_lkR.lastIndexOf("|"),_lkLeaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(_lkR):(_lkP<0?_lkR:_lkR.slice(_lkP+1));
       var _lkD=_lkP<0?_lkLeaf:_lkR.slice(0,_lkP).split("|").join(" — ")+" — "+_lkLeaf;
       if(_vn&&!(_vn.visits>0))_known.push(_lkD);else _vis.push(_lkD);
+      if(_vn&&_vn.visits>0&&_vn.parent)_subs.push({i:_vis.length-1,r:_vn.lastVisit||_vn.firstVisit||0});
     }
-    if(_vis.length)lines.push("VISITED: "+_vis.join("; "));
+    if(_subs.length>_subCap){/* selection decides membership, not order: the folded entries drop out of the listed order */
+      _subs.sort(function(a,b){return (b.r-a.r)||(a.i-b.i);});
+      for(_vk=_subCap;_vk<_subs.length;_vk++)_vis[_subs[_vk].i]=null;
+      _subFold=_subs.length-_subCap;
+      _vis=_vis.filter(function(x){return x!==null;});
+    }
+    if(_vis.length||_subFold)lines.push("VISITED: "+_vis.join("; ")+(_subFold?(_vis.length?"; ":"")+"+"+_subFold+" more visited place"+(_subFold===1?"":"s")+" on record (named in GEOGRAPHY when the party is there)":""));
     if(_known.length)lines.push("KNOWN OF (not yet visited): "+_known.join("; "));
   }
   var fe=memory.futureEvents.filter(function(e){return !e.resolved;}).slice(-8);

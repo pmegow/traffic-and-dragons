@@ -5790,6 +5790,92 @@ function runEngineTests(R){
     if(visLine.indexOf("Omu")>=0)return "unvisited blueprint location still lies under VISITED: "+visLine;
     return knownLine.indexOf("Omu")>=0?true:"unvisited location missing from KNOWN OF: "+knownLine;
   });
+  /* #464: the TOC reads the node store too. Only fileLocation and blueprint seeding write memory.locations, so a sub-location
+     visited twenty times and a world node minted without fileLocation (Ammut t67: an EMPTY legacy store) named no place. */
+  var toc464=function(opts){
+    var tl=memoryTOC(opts).split("\n"),o={vis:"",known:""},i;
+    for(i=0;i<tl.length;i++){if(tl[i].indexOf("VISITED: ")===0)o.vis=tl[i];if(tl[i].indexOf("KNOWN OF (not yet visited): ")===0)o.known=tl[i];}
+    return o;
+  };
+  t("#464: a visited sub-location reaches the TOC as 'World — Leaf' under VISITED, never under KNOWN OF",function(){
+    makeWorld();
+    applyMuts("[LOCATION:Sandpoint]");
+    applyMuts("[SUBLOCATION:The Rusty Dragon]");
+    var sk=Object.keys(memory.map.nodes).filter(function(k){return memory.map.nodes[k].parent;});
+    if(sk.length!==1||!(memory.map.nodes[sk[0]].visits>0))return "fixture: the visited sub node was not filed: "+JSON.stringify(Object.keys(memory.map.nodes));
+    if(memory.locations[sk[0]])return "fixture: the sub reached the legacy store — the test no longer exercises the node-only path";
+    var L=toc464();
+    if(L.vis.indexOf("Sandpoint — The Rusty Dragon")<0)return "#464 a visited sub-location is missing from VISITED: "+(L.vis||"(no VISITED line)");
+    return L.known.indexOf("Rusty Dragon")<0?true:"#464 a visited sub-location listed under KNOWN OF: "+L.known;
+  });
+  t("#464: a world node minted without fileLocation (empty legacy store) is named under VISITED",function(){
+    makeWorld();
+    ensureMapNode("Harrowgate",1,null);memory.map.nodes["Harrowgate"].visits=1;
+    if(Object.keys(memory.locations).length)return "fixture: the legacy store is not empty";
+    var L=toc464();
+    return L.vis.indexOf("Harrowgate")>=0?true:"#464 a visited world node outside the legacy store names no place: "+(L.vis||"(no VISITED line)");
+  });
+  t("#464: an unvisited sub-location is omitted from both lines; an unvisited world node stays KNOWN OF",function(){
+    makeWorld();
+    applyMuts("[LOCATION:Sandpoint]");
+    ensureMapNode("Sandpoint|Wyla's Shop",1,"Sandpoint");
+    ensureMapNode("Omu",1,null);
+    if(memory.map.nodes["Sandpoint|Wyla's Shop"].visits||memory.map.nodes["Omu"].visits)return "fixture: a node counts a visit";
+    var L=toc464();
+    if((L.vis+"\n"+L.known).indexOf("Wyla")>=0)return "#464 an unvisited sub-location was listed in the global TOC: "+L.vis+" / "+L.known;
+    if(L.vis.indexOf("Omu")>=0)return "#464 an unvisited world node listed as VISITED: "+L.vis;
+    return L.known.indexOf("Omu")>=0?true:"#464 an unvisited world node is missing from KNOWN OF: "+(L.known||"(no KNOWN OF line)");
+  });
+  t("#464: a merged duplicate present in both stores is listed once, under its canonical name",function(){
+    makeWorld();
+    applyMuts("[LOCATION:Sandpoint]");
+    memory.locations["Sandpoint Town"]={visited:[2],notes:[]};
+    ensureMapNode("Sandpoint Town",2,null).visits=1;
+    memory.map.identity={entries:{"Sandpoint Town":{mergedInto:"Sandpoint"}}};/* merge residue: the tombstone without the fold (the #269③ fixture shape) */
+    if(locResolve("Sandpoint Town")!=="Sandpoint")return "fixture: the duplicate does not resolve to the canonical";
+    var L=toc464();
+    if((L.vis+"\n"+L.known).indexOf("Sandpoint Town")>=0)return "#464 a merged duplicate served under its dead name: "+L.vis+" / "+L.known;
+    var n=L.vis.split("Sandpoint").length-1;
+    return n===1?true:"#464 the merged canonical is listed "+n+" times: "+L.vis;
+  });
+  /* #464 cap (the audit 2026-09-18 B2 shape for places): on the GM turn (opts passed) visited sub-locations are listed up to
+     TOC_SUB_CAP, the most recently visited kept, rendered in insertion order, the rest COUNTED; worlds are always listed;
+     the bare memoryTOC() (Table Talk) lists everything. Subs are inserted in a scrambled order so insertion != recency. */
+  var subs464=function(n){
+    var k,order=[];
+    applyMuts("[LOCATION:Sandpoint]");
+    for(k=0;k<n;k++){var i=((k*13)%n)+1,nm="Place "+(i<10?"0":"")+i,nd=ensureMapNode("Sandpoint|"+nm,1,"Sandpoint");nd.visits=1;nd.lastVisit=i;order.push(nm);}
+    return order;
+  };
+  var GM464={npcFilter:function(){return true;}};/* the shape buildSysPrompt passes */
+  var FOLD464=" more visited place";
+  t("#464: the GM-turn TOC caps visited sub-locations at TOC_SUB_CAP — newest kept in insertion order, the rest counted, the world always listed",function(){
+    makeWorld();
+    var order=subs464(32),L=toc464(GM464),i;
+    var listed=L.vis.split("Sandpoint — Place ").length-1;
+    if(listed!==30)return "#464 the sub cap did not fold to 30 on the GM turn: "+listed+" listed — "+L.vis;
+    if(L.vis.indexOf("Sandpoint — Place 01")>=0||L.vis.indexOf("Sandpoint — Place 02")>=0)return "#464 the cap kept an older place over a newer one (Place 01/02 have the smallest lastVisit): "+L.vis;
+    var tail="; +2 more visited places on record (named in GEOGRAPHY when the party is there)";
+    if(L.vis.slice(-tail.length)!==tail)return "#464 the folded remainder is not counted at the end of VISITED: "+L.vis.slice(-120);
+    if(L.vis.indexOf("VISITED: Sandpoint; ")!==0)return "#464 the world entry was not listed first: "+L.vis.slice(0,80);
+    var last=-1;
+    for(i=0;i<order.length;i++){if(order[i]==="Place 01"||order[i]==="Place 02")continue;var at=L.vis.indexOf("Sandpoint — "+order[i]+";");if(at<0)at=L.vis.indexOf("Sandpoint — "+order[i]);if(at<=last)return "#464 the kept subs were re-sorted ("+order[i]+" out of insertion order): "+L.vis;last=at;}
+    var B=toc464();
+    var all=B.vis.split("Sandpoint — Place ").length-1;
+    if(all!==32||B.vis.indexOf(FOLD464)>=0)return "#464 the bare memoryTOC() (Table Talk) was capped: "+all+" listed — "+B.vis.slice(-120);
+    return true;
+  });
+  t("#464: the sub cap folds nothing at exactly TOC_SUB_CAP and counts a single fold in the singular",function(){
+    makeWorld();subs464(30);
+    var L=toc464(GM464);
+    if(L.vis.indexOf(FOLD464)>=0)return "#464 a fold was written at exactly 30 visited subs: "+L.vis.slice(-120);
+    if(L.vis.split("Sandpoint — Place ").length-1!==30)return "#464 thirty subs did not all list";
+    makeWorld();subs464(31);
+    L=toc464(GM464);
+    var tail="; +1 more visited place on record (named in GEOGRAPHY when the party is there)";
+    if(L.vis.slice(-tail.length)!==tail)return "#464 a single folded place is not counted in the singular: "+L.vis.slice(-120);
+    return L.vis.indexOf("Sandpoint — Place 01")<0?true:"#464 the oldest of 31 subs was kept: "+L.vis;
+  });
 
   // ── 10. RAG episodic memory (#27 Phase 1 — RAG_MEMORY.md) ────────────────────
   section("RAG episodic memory");
