@@ -134,6 +134,14 @@ async function main() {
     c.adapter.held("HTTP 409 — No subscription to extend");
     assert(c.elements.status.textContent.indexOf("No subscription") >= 0); assert.equal(c.elements.refresh.disabled, false);
   });
+  await test("approval email status stays visible and retries do not re-grant access", function () {
+    var c=pageFixture();c.adapter.connected=true;
+    c.adapter.users=[{userId:"u",username:"Tester",email:"verified@example.com",tier:"tester",approvalEmail:{status:"rejected",message:"Cloudflare HTTP 403",retryable:true},usage30d:[]}];
+    c.seam.refresh();assert(c.elements.users.textContent.indexOf("verified@example.com")>=0);assert(c.elements.users.textContent.indexOf("Cloudflare HTTP 403")>=0);assert(c.elements.users.textContent.indexOf("Retry approval email")>=0);
+    c.seam.applyAction("u","email","tester",0);assert.deepEqual(c.sent[0],{userId:"u",action:"email"});
+    c.adapter.users[0].approvalEmail={status:"uncertain",message:"Check Email Logs",retryable:false};c.seam.refresh();
+    assert(c.elements.users.textContent.indexOf("Check Email Logs")>=0);assert(c.elements.users.textContent.indexOf("Retry approval email")<0);
+  });
   if (failures.length) { failures.forEach(function (f) { console.error(f); }); process.exitCode = 1; }
   console.log("#292 operator console: " + passed + " passed, " + failures.length + " failed");
 }

@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-12 · #617 (thin UI) · Console renders server-owned verified email and delivery receipt, with the existing authenticated subscription transport carrying a separate email retry action; 13 console checks, 14 mutation proofs and desktop/mobile before/after fixture renders. No engine or storage-adapter changes.
+
 - 2026-10-12 · #617 (thin UI) · File → Operator console promoted from Settings and gated on server-confirmed operator identity even in local mode; 12 console checks and 12 mutation proofs, isolated before/after browser renders. Email setup remains separate.
 
 - 2026-10-12 · #577 #591 · Opus 5.5 fix lane under Fable (drift surface: the ITEM_LOST/GOLD settle, the post-handler seam, the want match and payment): a voided loss restores the want, blocks settle in order, a loss is the sheet item, one payment rule, the clause-free reading. Acceptance 32/32, D4 battery 29/29, 13 related batteries green. Fable reviewed every engine line and landed it.

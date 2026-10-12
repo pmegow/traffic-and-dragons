@@ -2,6 +2,8 @@ var sabotage=require("./sabotage.js"),bad=0;
 var common={command:["node",["dev/tests-292-admin-console.js"]],also:["admin_console.html","ui-boot.js","sw.js","dev/tests-292-admin-console.js","ui-shell.js"]};
 function prove(file,cases){bad|=sabotage.prove(Object.assign({},common,{file:file,cases:cases}));}
 prove("admin_console.html",[
+  {label:"email receipt is visible",find:'row.appendChild(el("p",email.message+',replace:'row.appendChild(el("p",""+',mustFail:"#292 operator console > approval email status stays visible and retries do not re-grant access"},
+  {label:"uncertain email cannot retry",find:'if(email.retryable===true&&u.tier)',replace:'if(u.tier)',mustFail:"#292 operator console > approval email status stays visible and retries do not re-grant access"},
   {label:"health response generation",find:"if(thisRefresh!==refreshId)return;",replace:"",mustFail:"#292 operator console > older health responses cannot replace a newer refresh"},
   {label:"operator identity gate",find:"a.isAdmin!==true",replace:"false",mustFail:"#292 operator console > signed-out and non-admin views cannot mutate accounts"},
   {label:"unpriced models stay visible",find:"total.unpriced.push(String(u.provider)+\"/\"+String(u.model));",replace:"",mustFail:"#292 operator console > cached and uncached tokens are priced once; unknown models are not free"},

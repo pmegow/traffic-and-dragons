@@ -63,6 +63,7 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
     list.forEach(function(u){
       var row=el("article",undefined,"user"),top=el("div",undefined,"user-top"),identity=el("div"),plan=el("div"),usage=el("div"),s=summarizeUsage(u.usage30d);
       identity.appendChild(el("h3",u.username||u.userId));identity.appendChild(el("div",u.userId,"meta"));
+      identity.appendChild(el("div",u.email||"No verified email — player must sign in again.","meta"));
       identity.appendChild(el("div","Joined "+dateText(u.createdAt),"meta"));identity.appendChild(el("div",u.lastActive?"Last metered: "+dateText(u.lastActive):"No metered activity","meta"));
       plan.appendChild(el("div",u.tier?(tiers[u.tier]?tiers[u.tier].label:u.tier):"No subscription","value"));
       plan.appendChild(el("div",u.tier?(u.status||"unknown")+" · expires "+dateText(u.periodEnd):"Grant access below.","meta"));
@@ -81,6 +82,11 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
         var b=el("button",spec.label,spec.action==="revoke"?"danger":"");b.type="button";b.blocked=spec.action!=="grant"&&!u.tier;b.disabled=!!b.blocked;
         b.addEventListener("click",function(){applyAction(u.userId,spec.action,select.value,days.value);});controls.push(b);actions.appendChild(b);
       });
+      if(u.approvalEmail){
+        var email=u.approvalEmail;
+        row.appendChild(el("p",email.message+(email.recipient?" Recipient: "+email.recipient:""),email.status==="accepted"?"meta":"meta error"));
+        if(email.retryable===true&&u.tier){var retry=el("button","Retry approval email");retry.type="button";retry.addEventListener("click",function(){applyAction(u.userId,"email","",0);});controls.push(retry);actions.appendChild(retry);}
+      }
       row.appendChild(actions);
       if((u.usage30d||[]).length){var detail=el("details");detail.appendChild(el("summary","Token breakdown"));u.usage30d.forEach(function(m){detail.appendChild(el("div",m.provider+" / "+m.model+": input "+number(m.tokIn)+", output "+number(m.tokOut)+", cache read "+number(m.cacheRead)+", cache write "+number(m.cacheWrite),"model"));});row.appendChild(detail);}
       $("users").appendChild(row);
@@ -110,13 +116,13 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
   function applyAction(userId,action,tier,days){
     if(pending)return;
     if(!authorized){status("Sign in with an operator account before changing access.",true);return;}
-    var n=Number(days),names={grant:"Grant / replace",extend:"Extend",revoke:"Revoke"};
+    var n=Number(days),names={grant:"Grant / replace",extend:"Extend",revoke:"Revoke",email:"Retry approval email"};
     if(!Object.prototype.hasOwnProperty.call(names,action)){status("Unknown subscription action.",true);return;}
-    if(action!=="revoke"&&(!isFinite(n)||Math.floor(n)!==n||n<1||n>3650)){status("Days must be an integer from 1 to 3650.",true);return;}
+    if((action==="grant"||action==="extend")&&(!isFinite(n)||Math.floor(n)!==n||n<1||n>3650)){status("Days must be an integer from 1 to 3650.",true);return;}
     var user=roster.filter(function(u){return u.userId===userId;})[0],name=user?user.username:userId;
-    var explanation=action==="revoke"?"Remove access immediately?":action==="extend"?"Add "+n+" days to the existing expiry (or today if expired), keeping the current tier?":"Set "+tier+" access for "+n+" days from today? This replaces any existing tier and expiry.";
+    var explanation=action==="email"?"Retry the pending approval email? This does not change account access.":action==="revoke"?"Remove access immediately?":action==="extend"?"Add "+n+" days to the existing expiry (or today if expired), keeping the current tier?":"Set "+tier+" access for "+n+" days from today? This replaces any existing tier and expiry. An approval email will be attempted if this account has not already been notified.";
     if(!window.confirm(names[action]+" for "+name+" ("+userId+")\n\n"+explanation))return;
-    var change={userId:userId,action:action};if(action!=="revoke")change.days=n;if(action==="grant")change.tier=tier;
+    var change={userId:userId,action:action};if(action==="grant"||action==="extend")change.days=n;if(action==="grant")change.tier=tier;
     setPending(true);status("Submitting "+action+"…",false);
     storageAdapter.updateSubscription(change,function(err,data){
       setPending(false);
