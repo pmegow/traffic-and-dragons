@@ -143,26 +143,35 @@ function npcRecordWords(k){
   return out;
 }
 // Pure. "" = no question; otherwise the title that raises it. The name must be BARE — one distinctive word, and it closes a
-// candidate that has more (a surname shared with someone who has a given name) — and the title must stand before that word
-// ("Marla King" is a surname, as in npcNameSays) and be one the record is not already known by.
+// candidate that has more (a surname shared with someone who has a given name) — and the title must be one the record is not
+// already known by. #504 (acceptance 2026-10-12): the title may stand on EITHER side of the family word — "the Underbough Queen"
+// is "Queen Underbough". Every other word of a one-word core is a stop word, so the family word is the only word that can be a
+// name; a title written after it used to fuse the queen onto the princess in silence. ("Marla King" never reaches this branch:
+// there "marla" is the record's GIVEN name, and it does not close the candidate.)
 function npcTitleQuestion(name,k,inCore){
   var kCore=npcCoreTokens(k);
   /* #504 mirror (owner ruling 2026-10-10): the record on file is the bare titled one and the ARRIVING name carries a given name on the
      same family name with no title of its own — "Wilhelmina Underbough" beside "Queen Underbough" — the same question the other way
      round (the queen by her given name, or her daughter). A name that carries the record's own title ("Queen Wilhelmina Underbough")
-     is her, as before; an office title on the record ("Sheriff Hemlock") raises nothing, as before. */
-  if(inCore.length>=2&&kCore.length===1&&inCore[inCore.length-1]===kCore[0]){var kt=npcKeyTitle(k);if(!kt)return "";var nw=npcNameWords(name),ni;for(ni=0;ni<nw.length;ni++)if(_npcAskWord(nw[ni])===_npcAskWord(kt))return "";return kt;}
+     is her, as before; an office title on the record ("Sheriff Hemlock") raises nothing, as before.
+     #504 (acceptance 2026-10-12): the family word may stand ANYWHERE among the arrival's distinctive words, not only last —
+     "Wilhelmina Underbough, the queen's daughter", "… the Younger", "… II", "… of Elderwood", "Wilhelmina Underbough-Vane",
+     "Underbough Wilhelmina". The bare record's one token is a subset of every name that holds it, so in this direction NOT asking
+     is the fusion (consolidation has already chosen her); a false question costs one note. */
+  if(inCore.length>=2&&kCore.length===1&&inCore.indexOf(kCore[0])>=0){var kt=npcKeyTitle(k);if(!kt)return "";var nw=npcNameWords(name),ni;for(ni=0;ni<nw.length;ni++)if(_npcAskWord(nw[ni])===_npcAskWord(kt))return "";return kt;}
   if(inCore.length!==1||kCore.length<2||kCore[kCore.length-1]!==inCore[0])return "";
   var ws=npcNameWords(name),at=ws.indexOf(inCore[0]),known=npcRecordWords(k),i;
-  for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];
+  for(i=0;i<ws.length;i++)if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];
   return "";
 }
 // The title a record's own KEY carries ("Queen Underbough" -> "queen"; "Wilhelmina Underbough" -> ""), or "". The shape the
-// question files under: one distinctive word with a kin or rank title before it.
+// question files under: one distinctive word with a kin or rank title beside it — on either side, as npcTitleQuestion reads a
+// name (#504 acceptance 2026-10-12: a bare record keyed "the Underbough Queen" is the titled record a given name is asked about,
+// and the record a later "Queen Underbough" spelling finds).
 function npcKeyTitle(k){
   var core=npcCoreTokens(k);if(core.length!==1)return "";
   var ws=npcNameWords(k),at=ws.indexOf(core[0]),i;
-  for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1)return ws[i];
+  for(i=0;i<ws.length;i++)if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1)return ws[i];
   return "";
 }
 // A name that names a titled record on file, by the record's own title and surname however the rest is written ("Old Queen

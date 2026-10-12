@@ -18,11 +18,11 @@ prove("memory.js", [
     find: "  if(c.ask)return name;\n", replace: "",
     mustFail: REPRO },
   { label: "the question ignores the title: any one-word name closing a longer one asks",
-    find: "  for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];\n  return \"\";\n}\n// The title a record's own KEY carries",
+    find: "  for(i=0;i<ws.length;i++)if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];\n  return \"\";\n}\n// The title a record's own KEY carries",/* re-aimed 2026-10-12: the title is read on either side of the family word */
     replace: "  return at>=0?\"title\":\"\";\n}\n// The title a record's own KEY carries",
     mustFail: NOT },
   { label: "a record already known by the title is asked about anyway",
-    find: "if(_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];", replace: "if(_NPC_ASK_TITLES[ws[i]]===1)return ws[i];",
+    find: "if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];", replace: "if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1)return ws[i];",/* re-aimed 2026-10-12 */
     mustFail: NOT },
   { label: "a title beside a GIVEN name asks too (Lady Threnna Voss is a question)",
     find: "  if(inCore.length!==1||kCore.length<2||kCore[kCore.length-1]!==inCore[0])return \"\";\n  var ws=npcNameWords(name),at=ws.indexOf(inCore[0]),known=npcRecordWords(k),i;",
@@ -118,10 +118,10 @@ prove("identity.js", [
     find: "  if(mem.provisional)return resolved;/* #504: a question already open is never split again", replace: "  if(false)return resolved;/* #504: a question already open is never split again",
     mustFail: FUZZ },
   { label: "the hero is merged away (her old alias names her after a swap)",
-    find: "  if(isP(duplicate)||(d&&isP(d)))return {kind:\"refused\",dupe:null,", replace: "  if(false)return {kind:\"refused\",dupe:null,",
+    find: "  if(isP(duplicate)||(d&&isP(d)))return {kind:\"refused\",dupe:oq(c),", replace: "  if(false)return {kind:\"refused\",dupe:oq(c),",/* re-aimed 2026-10-12: the refusal names the open question it answered */
     mustFail: FUZZ },
   { label: "a plain merge into the hero is allowed",
-    find: "  if(isP(canonical)||(c&&isP(c)))return {kind:\"refused\",dupe:null,", replace: "  if(false)return {kind:\"refused\",dupe:null,",
+    find: "  if(isP(canonical)||(c&&isP(c)))return {kind:\"refused\",dupe:oq(d),", replace: "  if(false)return {kind:\"refused\",dupe:oq(d),",/* re-aimed 2026-10-12 */
     mustFail: FUZZ },
   { label: "a folded ° key as an operand is read as a name on no record (the reversed repeated answer folds the established person into a new ° record)",
     find: "var f=npcFormerKey(x);return (f&&f!==x)?f:null;}", replace: "return null;}",
@@ -150,7 +150,7 @@ prove("tag_table.js", [
     find: "R.muts.push(\"⚠ NPC merge: '\"+mgDupe+\"' is not on file — nothing merged\");continue;}", replace: "R.muts.push(\"⚠ NPC merge: '\"+mgDupe+\"' is not on file — nothing merged\");}",
     mustFail: EXTRACT },
   { label: "the renamed record is not settled (asked about again the same reply)",
-    find: "if(_mgAns.kind===\"new\"&&memory.npcs[mgCanon])memory.npcs[mgCanon].titleSettled=R.turn;", replace: "",
+    find: "if(_mgAns.kind!==\"plain\"&&memory.npcs[mgCanon])memory.npcs[mgCanon].titleSettled=R.turn;", replace: "",/* re-aimed 2026-10-12: every landed answer settles its survivor */
     mustFail: EXTRACT },
   { label: "the alias handler creates a record under an existing alias (the alias-shadow class)",
     find: "_alOwn=_alRef.key;/* #604", replace: "_alOwn=null;/* #604",
@@ -193,7 +193,7 @@ prove("identity.js",[{label:"the alias handler reads a folded ° canonical as a 
 var MIRROR = "#504 mirror (owner ruling 2026-10-10)", MIRROR_NOTE = "#504 mirror the note reads", MIRROR_NOT = "#504 mirror who is NOT asked";
 prove("memory.js", [
   { label: "the mirror branch is gone (a given name beside the titled record folds again)",
-    find: 'if(inCore.length>=2&&kCore.length===1&&inCore[inCore.length-1]===kCore[0]){var kt=npcKeyTitle(k);if(!kt)return "";', replace: 'if(false){var kt=npcKeyTitle(k);if(!kt)return "";',
+    find: 'if(inCore.length>=2&&kCore.length===1&&inCore.indexOf(kCore[0])>=0){var kt=npcKeyTitle(k);if(!kt)return "";', replace: 'if(false){var kt=npcKeyTitle(k);if(!kt)return "";',/* re-aimed 2026-10-12: the family word anywhere among the arrival's words */
     mustFail: MIRROR },
   { label: "the own-title guard is gone (Queen Wilhelmina Underbough is asked about instead of being the Queen)",
     find: 'for(ni=0;ni<nw.length;ni++)if(_npcAskWord(nw[ni])===_npcAskWord(kt))return "";return kt;}', replace: 'return kt;}',
@@ -209,5 +209,64 @@ prove("identity.js", [
   { label: "the note loses its direction (the titled record is said to be under a title)",
     find: '(_mir?" by a given name":" under a title")', replace: '" under a title"',
     mustFail: MIRROR_NOTE }
+]);
+/* Acceptance 2026-10-12: the six mechanisms the nine red probes named, each guarded. The probes' names begin "#504 acceptance",
+   "#530 acceptance", "#531 acceptance", "#534 acceptance"; where a fix has two halves that each turn a probe green alone, the
+   section "#504 fixes 2026-10-12" proves the other half ("#504 fix", "#530 fix", "#534 fix"). */
+var ACC_AFTER = "#504 acceptance a rank title AFTER the family name", ACC_SHAPES = "#504 acceptance the mirror case in the shapes GM prose writes",
+    ACC_HERO = "#504 acceptance the hero as an answer operand is said back", ACC_ARMOR = "#531 acceptance a reported death by title followed by the SAME answer",
+    ACC_SELF = "#534 acceptance the SAME answer never leaves a person linked to herself", ACC_SETTLED = "#534 acceptance a settled identity stays settled",
+    FIX_KEYTITLE = "#504 fix a bare titled record keyed with the title AFTER", FIX_REKEY = "#530 fix the merge re-keys the scene handles",
+    FIX_STRANDED = "#530 fix a scene handle a merge stranded", FIX_SAME = "#534 fix a SAME answer settles its survivor";
+prove("memory.js", [
+  { label: "the forward question reads a title BEFORE the family word only again (the Underbough Queen lands on the princess)",
+    find: "  for(i=0;i<ws.length;i++)if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];", replace: "  for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];",
+    mustFail: ACC_AFTER },
+  { label: "the mirror question needs the family word to close the arrival again (… the Younger, Underbough Wilhelmina fuse onto the Queen)",
+    find: "inCore.indexOf(kCore[0])>=0){var kt=npcKeyTitle(k);", replace: "inCore[inCore.length-1]===kCore[0]){var kt=npcKeyTitle(k);",
+    mustFail: ACC_SHAPES },
+  { label: "the record-side title reads before the family word only again (a given name folds onto 'the Underbough Queen')",
+    find: "  for(i=0;i<ws.length;i++)if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1)return ws[i];", replace: "  for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1)return ws[i];",
+    mustFail: FIX_KEYTITLE }
+]);
+prove("identity.js", [
+  { label: "a hero refusal names no open question (the reason is never said back, the cooldown never cleared)",
+    find: "var oq=function(x){return (x&&!isP(x)&&memory.npcs[x]&&memory.npcs[x].provisional)?x:null;};", replace: "var oq=function(x){return null;};",
+    mustFail: ACC_HERO },
+  { label: "a rebind compares the handle's stored key as a raw string again (a stranded handle conflicts with the survivor)",
+    find: "if(a.actor.entity&&canon&&!_sceneRefEntitySame(a.actor.entity,canon)){", replace: "if(a.actor.entity&&canon&&a.actor.entity!==canon){",
+    mustFail: FIX_STRANDED },
+  { label: "the death gate compares the handle's stored key as a raw string again (a death through a stranded handle is quarantined)",
+    find: "if(!canon)return true;if(!_sceneRefEntitySame(hit.actor.entity,canon))return false;", replace: "if(!canon)return true;if(hit.actor.entity!==canon)return false;",
+    mustFail: FIX_STRANDED },
+  { label: "the death executor compares the handle's stored key as a raw string again (the authorized death rolls back)",
+    find: "if(subj&&!_sceneRefEntitySame(hit.actor.entity,subj)){", replace: "if(subj&&hit.actor.entity!==subj){",
+    mustFail: FIX_STRANDED },
+  { label: "a stranded explicit negative stops guarding the survivor (compared as a lower-cased raw string again)",
+    find: "(String(ns[i].entity).toLowerCase()===e||_sceneRefEntitySame(ns[i].entity,entity))", replace: "String(ns[i].entity).toLowerCase()===e",
+    mustFail: FIX_STRANDED },
+  { label: "the stored key is read by consolidation (a name's shape reaches her: 'Underbough' authorizes her death)",
+    find: "var k=(typeof npcExactKey===\"function\")?npcExactKey(entity):null;", replace: "var k=resolveNpcName(entity);",
+    mustFail: FIX_STRANDED },
+  { label: "the re-key leaves the explicit negatives on the folded key",
+    find: "for(j=0;j<ns.length;j++)if(ns[j]&&ns[j].entity===duplicate){ns[j].entity=canonical;n++;}", replace: "",
+    mustFail: FIX_REKEY }
+]);
+prove("tag_table.js", [
+  { label: "the merge leaves the scene handles on the folded key",
+    find: "var _mgSr=(typeof sceneRefsRekeyEntity===\"function\")?sceneRefsRekeyEntity(mgCanon,mgDupe):0;", replace: "var _mgSr=0;",
+    mustFail: FIX_REKEY },
+  { label: "the merge carries a death onto an armored survivor without consulting plot armor",
+    find: ",_mgArmorHold=!!(", replace: ",_mgArmorHold=false&&!!(",
+    mustFail: ACC_ARMOR },
+  { label: "a link between the two operands survives the fold as a self-link",
+    find: "if(!_mgSe||_mgSe.a!==_mgSe.b)continue;", replace: "if(!_mgSe||_mgSe.a!==_mgSe.b||true)continue;",
+    mustFail: ACC_SELF },
+  { label: "a plain merge drops the duplicate's settled flag (the answered relative is asked about again)",
+    find: "if(memory.npcs[mgDupe].titleSettled&&!memory.npcs[mgCanon].titleSettled)memory.npcs[mgCanon].titleSettled=memory.npcs[mgDupe].titleSettled;", replace: "",
+    mustFail: ACC_SETTLED },
+  { label: "only a new-name answer settles its survivor again (a SAME survivor refined by a plain merge is asked about again)",
+    find: "if(_mgAns.kind!==\"plain\"&&memory.npcs[mgCanon])memory.npcs[mgCanon].titleSettled=R.turn;", replace: "if(_mgAns.kind===\"new\"&&memory.npcs[mgCanon])memory.npcs[mgCanon].titleSettled=R.turn;",
+    mustFail: FIX_SAME }
 ]);
 process.exit(code);

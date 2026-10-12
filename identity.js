@@ -990,8 +990,12 @@ function _npcMergeOperand(x){var k=npcExactKey(x,true);if(k)return k;var f=npcFo
 function npcMergeAnswer(tag,canonical,duplicate){
   var isP=(typeof memoryNpcIsPlayer==="function")?memoryNpcIsPlayer:function(){return false;};
   var c=_npcMergeOperand(canonical),d=_npcMergeOperand(duplicate);
-  if(isP(canonical)||(c&&isP(c)))return {kind:"refused",dupe:null,why:"nobody is merged into the hero (player identity belongs to the character sheet)"};/* plain merges too (#538's NPC_MERGE leg) */
-  if(isP(duplicate)||(d&&isP(d)))return {kind:"refused",dupe:null,why:"the hero is never merged away (player identity belongs to the character sheet)"};/* after a hero swap her old aliases name the hero */
+  /* #504 (acceptance 2026-10-12): a hero refusal names the OPEN QUESTION it answered, when the other operand is one, so npcMergeRefuse
+     latches the reason and clears the cooldown as for every refused answer (identity.md). It returned dupe:null, and the next note
+     re-asked five turns later without saying why. A plain merge with the hero has no question to say it back to: null, as before. */
+  var oq=function(x){return (x&&!isP(x)&&memory.npcs[x]&&memory.npcs[x].provisional)?x:null;};
+  if(isP(canonical)||(c&&isP(c)))return {kind:"refused",dupe:oq(d),why:"nobody is merged into the hero (player identity belongs to the character sheet)"};/* plain merges too (#538's NPC_MERGE leg) */
+  if(isP(duplicate)||(d&&isP(d)))return {kind:"refused",dupe:oq(c),why:"the hero is never merged away (player identity belongs to the character sheet)"};/* after a hero swap her old aliases name the hero */
   var pc=c&&memory.npcs[c]&&memory.npcs[c].provisional,pd=d&&memory.npcs[d]&&memory.npcs[d].provisional;
   if(!pc&&!pd)return {kind:"plain",canon:c||canonical,dupe:d||duplicate};
   if(pc&&pd&&c!==d)return {kind:"refused",dupe:d,why:"'"+canonical+"' and '"+duplicate+"' are both open questions; answer each against the established person"};
@@ -1070,7 +1074,7 @@ function _sceneRefActor(handle,sourceTurn){
 }
 function _sceneRefExplicitNegative(frame,handle,entity){
   var ns=(frame&&frame.negatives)||[],h=w2HandleKey(handle),e=String(entity||"").toLowerCase(),i;
-  for(i=0;i<ns.length;i++)if(!ns[i].resolved&&ns[i].mode==="explicit"&&w2HandleKey(ns[i].handle)===h&&String(ns[i].entity).toLowerCase()===e)return ns[i];
+  for(i=0;i<ns.length;i++)if(!ns[i].resolved&&ns[i].mode==="explicit"&&w2HandleKey(ns[i].handle)===h&&(String(ns[i].entity).toLowerCase()===e||_sceneRefEntitySame(ns[i].entity,entity)))return ns[i];/* #530: a negative a merge stranded on the old key still guards the survivor */
   return null;
 }
 function _sceneRefOverflow(kind){var s=sceneRefsEnsure();if(!s.overflow)s.overflow={kind:kind,turn:worldState.turn,node:s.active.node,scene:s.active.scene};if(typeof console!=="undefined")console.warn("[identity] scene evidence overflow ("+kind+") - accepted evidence preserved; irreversible identity writes fail closed");}
@@ -1310,10 +1314,34 @@ function _observedFact(canon,lim){
     }}
   return null;
 }
+/* #530 (acceptance 2026-10-12): a scene handle stores the KEY of the person it binds, and a merge retires that key. The NPC_MERGE
+   tail re-keyed graph edges, factions, relationships and the guestbook but never this store, so a handle the GM bound under the
+   called name ("queen" -> "Queen Underbough") stayed bound to a key nobody holds after the answer: binding it again to the answered
+   person was an identity conflict, and a witnessed death through it was quarantined ("scene evidence does not bind the claimed
+   victim"). The merge re-keys every frame's actors AND explicit negatives — a negative left on the old key would stop guarding the
+   survivor once the actors moved (a fail-open). Returns how many entries moved; the merge says so. */
+function sceneRefsRekeyEntity(canonical,duplicate){
+  if(!worldState||!worldState.sceneRefs||!canonical||canonical===duplicate)return 0;
+  var fs=_sceneRefFrames(),i,j,n=0;
+  for(i=0;i<fs.length;i++){if(!fs[i])continue;var as=fs[i].actors||[],ns=fs[i].negatives||[];
+    for(j=0;j<as.length;j++)if(as[j]&&as[j].entity===duplicate){as[j].entity=canonical;n++;}
+    for(j=0;j<ns.length;j++)if(ns[j]&&ns[j].entity===duplicate){ns[j].entity=canonical;n++;}}
+  return n;
+}
+/* #530 (acceptance 2026-10-12): THE comparison of a handle's stored entity with a resolved name — equal, or the stored key read
+   EXACTLY (npcExactKey: a live key or a registered alias; npcFormerKey: where a folded ° key went) names that person, so a handle a
+   merge stranded before the re-key above existed heals on read. Never consolidation: a death gate must not reach a person by the
+   shape of a name (the #175bR lesson). */
+function _sceneRefEntitySame(entity,canon){
+  if(!entity||!canon)return false;if(entity===canon)return true;
+  var k=(typeof npcExactKey==="function")?npcExactKey(entity):null;
+  if(!k&&typeof npcFormerKey==="function"){var f=npcFormerKey(entity);if(f&&f!==entity)k=f;}
+  return k===canon;
+}
 function sceneRefBind(handle,entity,R){
   var s=sceneRefsEnsure(),h=String(handle||"").trim(),raw=String(entity||"").trim();if(!h||s.overflow)return false;
   var a=_sceneRefActor(h),canon=(raw==="?"||raw==="-"||!raw)?null:resolveNpcName(raw);
-  if(a&&a.frame===s.active){if(a.actor.entity&&canon&&a.actor.entity!==canon){_w2Conflict(canon,h,"scene handle already binds to "+a.actor.entity);return false;}if(!a.actor.entity&&canon)a.actor.entity=canon;return true;}
+  if(a&&a.frame===s.active){if(a.actor.entity&&canon&&!_sceneRefEntitySame(a.actor.entity,canon)){_w2Conflict(canon,h,"scene handle already binds to "+a.actor.entity);return false;}if(!a.actor.entity&&canon)a.actor.entity=canon;return true;}
   if(s.active.actors.length>=SCENE_REF_ACTOR_CAP){_sceneRefOverflow("actors");return false;}
   s.active.actors.push({handle:h,entity:canon,sourceTurn:worldState.turn,authority:"state_tag",epistemic:"explicit",revealed:false,present:true});if(R)R.muts.push("Scene ref: "+h+" -> "+(canon||"anonymous"));return true;
 }
@@ -1336,7 +1364,7 @@ function sceneRefReveal(handle,entity,R){
        caps the whole dispute at IDENTITY_CONFLICT_STALE_ATTEMPTS. */
     if(canon)_w2ArmDeathValve(canon,true);
     return false;}
-  if(hit.actor.entity&&hit.actor.entity!==canon){_w2Conflict(canon,handle,"reveal conflicts with established binding to "+hit.actor.entity);return false;}
+  if(hit.actor.entity&&!_sceneRefEntitySame(hit.actor.entity,canon)){_w2Conflict(canon,handle,"reveal conflicts with established binding to "+hit.actor.entity);return false;}/* #530: compared through the exact resolver */
   hit.actor.entity=canon;hit.actor.revealed=true;hit.actor.revealTurn=worldState.turn;
   for(i=0;i<s.active.negatives.length;i++)if(w2HandleKey(s.active.negatives[i].handle)===w2HandleKey(hit.actor.handle)&&s.active.negatives[i].entity===canon)s.active.negatives[i].resolved=true;/* #201 */
   _w2ResolveConflicts(canon,hit.actor.handle);if(R)R.muts.push("Scene reveal: "+hit.actor.handle+" -> "+canon);return true;
@@ -1371,7 +1399,7 @@ function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);
     _w2Conflict(subj||"unknown",handle,"death names no observed handle");
     if(subj&&R&&R.errors)R.errors.push("SCENE_DEATH: handle does not resolve to the transaction subject");
     return false;}
-  if(subj&&hit.actor.entity!==subj){
+  if(subj&&!_sceneRefEntitySame(hit.actor.entity,subj)){/* #530: the stored key read exactly (a merge's survivor is the subject) */
     /* #175bR: the bound scene actor is not the envelope's victim — a same-response [SCENE_REF:]/
        [SCENE_NOT:] changed the handle's meaning after the preflight authorized. Failing the handler
        rolls the whole envelope back (api.js) instead of killing the wrong corpse or paying rewards
@@ -1389,7 +1417,7 @@ function sceneRefDeath(handle,R){var hit=_sceneRefActor(handle);
 // and the quest his envelope named ("The Descent") stripped of every completion for 17 turns.
 function _w2SameTurnNameFallback(hit,canon,sourceTurn){
   if(!canon||!hit||!hit.actor)return false;
-  if(hit.actor.entity&&hit.actor.entity!==canon)return false;
+  if(hit.actor.entity&&!_sceneRefEntitySame(hit.actor.entity,canon))return false;/* #530 */
   return !!w2NamedPresenceEvidence(canon,sourceTurn);
 }
 function w2DeathAuthorized(name,handle,sourceTurn){
@@ -1404,11 +1432,11 @@ function w2DeathAuthorized(name,handle,sourceTurn){
        when the gate runs — or never) is noise beside a NAMED subject the record already places in the
        scene; the name path decides, exactly as it would for the bare [NPC:name|dead] form. No subject
        (the #318 combat shape) or no prior named evidence → refused as before. */
-    if(!hit)return canon?!!w2NamedPresenceEvidence(canon,sourceTurn):false;if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return _w2SameTurnNameFallback(hit,canon,sourceTurn);/* #324 */ /* #168R6 (entry-13 review): the summary path passes an explicit sourceTurn — same-turn evidence must refuse exactly like the tag path, else a summary can cite the very response that armed it */if(sourceTurn==null&&(hit.actor.sourceTurn>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return _w2SameTurnNameFallback(hit,canon,sourceTurn);/* #324 */if(!canon)return true;if(hit.actor.entity!==canon)return false;if(_sceneRefExplicitNegative(hit.frame,hit.actor.handle,canon)&&!hit.actor.revealed)return false;return true;}
+    if(!hit)return canon?!!w2NamedPresenceEvidence(canon,sourceTurn):false;if(sourceTurn!=null&&(Number(sourceTurn)>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return _w2SameTurnNameFallback(hit,canon,sourceTurn);/* #324 */ /* #168R6 (entry-13 review): the summary path passes an explicit sourceTurn — same-turn evidence must refuse exactly like the tag path, else a summary can cite the very response that armed it */if(sourceTurn==null&&(hit.actor.sourceTurn>=worldState.turn||(hit.actor.revealed&&hit.actor.revealTurn>=worldState.turn)))return _w2SameTurnNameFallback(hit,canon,sourceTurn);/* #324 */if(!canon)return true;if(!_sceneRefEntitySame(hit.actor.entity,canon))return false;/* #530: the handle's stored key read exactly, never as a raw string a merge stranded */if(_sceneRefExplicitNegative(hit.frame,hit.actor.handle,canon)&&!hit.actor.revealed)return false;return true;}
   if(!canon)return false;/* #175bR: the frame scan honors a summary's cited sourceTurn exactly like
      the evidence limbs — a binding recorded AFTER the cited death turn cannot vouch for it. */
   var _nmLim=(sourceTurn!=null&&Number(sourceTurn)<worldState.turn)?Number(sourceTurn):worldState.turn;
-  fs=_sceneRefFrames();for(i=0;i<fs.length;i++){var j,as=fs[i].actors||[];for(j=0;j<as.length;j++)if(as[j].sourceTurn<_nmLim&&(!as[j].revealed||as[j].revealTurn<_nmLim)&&as[j].entity===canon&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon))return true;}
+  fs=_sceneRefFrames();for(i=0;i<fs.length;i++){var j,as=fs[i].actors||[];for(j=0;j<as.length;j++)if(as[j].sourceTurn<_nmLim&&(!as[j].revealed||as[j].revealTurn<_nmLim)&&_sceneRefEntitySame(as[j].entity,canon)&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon))return true;}/* #530: _sceneRefEntitySame */
   return !!w2NamedPresenceEvidence(canon,sourceTurn);
 }
 /* #175b — STRUCTURED PRESENCE, the NAME path's second source of positive binding (owner ruling

@@ -12,12 +12,12 @@ rc|=sabotage.prove({
   cases:[
     {label:"explicit scene exclusion stops blocking the claimed identity",
     mustFail:"W2 an explicit exclusion also blocks a later bare named death despite ",
-      find:"as[j].entity===canon&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon)",
-      replace:"as[j].entity===canon"},
+      find:"_sceneRefEntitySame(as[j].entity,canon)&&!_sceneRefExplicitNegative(fs[i],as[j].handle,canon)",
+      replace:"_sceneRefEntitySame(as[j].entity,canon)"},/* re-aimed 2026-10-12 (#530: the stored key is compared through _sceneRefEntitySame) */
     {label:"same-response scene evidence can self-authorize a combat death",
     mustFail:"W2 combat-close propagation cannot bypass a scene exclusion, but a pri",
-      find:"as[j].sourceTurn<_nmLim&&(!as[j].revealed||as[j].revealTurn<_nmLim)&&as[j].entity===canon",
-      replace:"as[j].entity===canon"},
+      find:"as[j].sourceTurn<_nmLim&&(!as[j].revealed||as[j].revealTurn<_nmLim)&&_sceneRefEntitySame(as[j].entity,canon)",
+      replace:"_sceneRefEntitySame(as[j].entity,canon)"},/* re-aimed 2026-10-12 */
     {label:"the frame scan stops honoring a summary's cited sourceTurn (#175bR)",
     mustFail:"#175bR: a scene binding newer than the summary's cited sourceTurn cann",
       find:"var _nmLim=(sourceTurn!=null&&Number(sourceTurn)<worldState.turn)?Number(sourceTurn):worldState.turn;",
@@ -28,7 +28,7 @@ rc|=sabotage.prove({
       replace:"if(false){"},
     {label:"the executor stops pinning the bound scene actor to the transaction subject (#175bR)",
     mustFail:"#175bR: a same-response scene binding to a different NPC quarantines t",
-      find:"if(subj&&hit.actor.entity!==subj){",
+      find:"if(subj&&!_sceneRefEntitySame(hit.actor.entity,subj)){",/* re-aimed 2026-10-12 */
       replace:"if(false){"},
     {label:"the co-location evidence limb loses its turn stamp (#175bR)",
     mustFail:"#175bR: a lastSeenAt stamp written THIS turn cannot authorize its own ",
