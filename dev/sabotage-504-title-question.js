@@ -24,12 +24,12 @@ prove("memory.js", [
   { label: "a record already known by the title is asked about anyway",
     find: "if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];", replace: "if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1)return ws[i];",/* re-aimed 2026-10-12 */
     mustFail: NOT },
-  { label: "a title beside a GIVEN name asks too (Lady Threnna Voss is a question)",
-    find: "  if(inCore.length!==1||kCore.length<2||kCore[kCore.length-1]!==inCore[0])return \"\";\n  var ws=npcNameWords(name),at=ws.indexOf(inCore[0]),known=npcRecordWords(k),i;",
-    replace: "  if(kCore.length<2||kCore[kCore.length-1]!==inCore[inCore.length-1])return \"\";\n  var ws=npcNameWords(name),at=ws.indexOf(inCore[inCore.length-1]),known=npcRecordWords(k),i;",
+  { label: "a title beside a GIVEN name asks too (Lady Threnna Voss is a question)",/* re-aimed 2026-10-12 (#616): the forward guard reads a closing RUN; the mutation still drops "the record has more" and matches the last word only */
+    find: "  if(!inF.length||kF.length<=inF.length||kF.slice(kF.length-inF.length).join(\" \")!==inF.join(\" \"))return \"\";",
+    replace: "  if(!inF.length||kF[kF.length-1]!==inF[inF.length-1])return \"\";",
     mustFail: NOT },
-  { label: "a record with no given name is asked about (Lady Vane beside Mother Vane)",
-    find: "  if(inCore.length!==1||kCore.length<2||kCore[kCore.length-1]!==inCore[0])return \"\";", replace: "  if(inCore.length!==1||kCore[kCore.length-1]!==inCore[0])return \"\";",
+  { label: "a record with no given name is asked about (Lady Vane beside Mother Vane)",/* re-aimed 2026-10-12 (#616): same mutation, drops "the record has more" */
+    find: "  if(!inF.length||kF.length<=inF.length||kF.slice(", replace: "  if(!inF.length||kF.length<inF.length||kF.slice(",
     mustFail: NOT },
   { label: "an office joins the table (Sheriff Hemlock becomes a question)",
     find: "  father:1,mother:1,brother:1,sister:1,husband:1,wife:1});", replace: "  father:1,mother:1,brother:1,sister:1,husband:1,wife:1,sheriff:1});",
@@ -193,7 +193,7 @@ prove("identity.js",[{label:"the alias handler reads a folded ° canonical as a 
 var MIRROR = "#504 mirror (owner ruling 2026-10-10)", MIRROR_NOTE = "#504 mirror the note reads", MIRROR_NOT = "#504 mirror who is NOT asked";
 prove("memory.js", [
   { label: "the mirror branch is gone (a given name beside the titled record folds again)",
-    find: 'if(inCore.length>=2&&kCore.length===1&&inCore.indexOf(kCore[0])>=0){var kt=npcKeyTitle(k);if(!kt)return "";', replace: 'if(false){var kt=npcKeyTitle(k);if(!kt)return "";',/* re-aimed 2026-10-12: the family word anywhere among the arrival's words */
+    find: 'if(inCore.length>kCore.length&&_npcCovers(inCore,kCore)){var kt=npcKeyTitle(k);if(!kt)return "";', replace: 'if(false){var kt=npcKeyTitle(k);if(!kt)return "";',/* re-aimed 2026-10-12: the family word anywhere among the arrival's words; again (#616): the record's family name may be several words */
     mustFail: MIRROR },
   { label: "the own-title guard is gone (Queen Wilhelmina Underbough is asked about instead of being the Queen)",
     find: 'for(ni=0;ni<nw.length;ni++)if(_npcAskWord(nw[ni])===_npcAskWord(kt))return "";return kt;}', replace: 'return kt;}',
@@ -223,7 +223,7 @@ prove("memory.js", [
     find: "  for(i=0;i<ws.length;i++)if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];", replace: "  for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];",
     mustFail: ACC_AFTER },
   { label: "the mirror question needs the family word to close the arrival again (… the Younger, Underbough Wilhelmina fuse onto the Queen)",
-    find: "inCore.indexOf(kCore[0])>=0){var kt=npcKeyTitle(k);", replace: "inCore[inCore.length-1]===kCore[0]){var kt=npcKeyTitle(k);",
+    find: "&&_npcCovers(inCore,kCore)){var kt=npcKeyTitle(k);", replace: "&&inCore[inCore.length-1]===kCore[kCore.length-1]){var kt=npcKeyTitle(k);",/* re-aimed 2026-10-12 (#616): same mutation, the family word must close the arrival */
     mustFail: ACC_SHAPES },
   { label: "the record-side title reads before the family word only again (a given name folds onto 'the Underbough Queen')",
     find: "  for(i=0;i<ws.length;i++)if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1)return ws[i];", replace: "  for(i=0;i<at;i++)if(_NPC_ASK_TITLES[ws[i]]===1)return ws[i];",
@@ -268,5 +268,73 @@ prove("tag_table.js", [
   { label: "only a new-name answer settles its survivor again (a SAME survivor refined by a plain merge is asked about again)",
     find: "if(_mgAns.kind!==\"plain\"&&memory.npcs[mgCanon])memory.npcs[mgCanon].titleSettled=R.turn;", replace: "if(_mgAns.kind===\"new\"&&memory.npcs[mgCanon])memory.npcs[mgCanon].titleSettled=R.turn;",
     mustFail: FIX_SAME }
+]);
+/* #616 (owner ruling 2026-10-12: ASK on all four). The section "#616 four shapes ask (owner ruling 2026-10-12)" does not match the "#504"
+   filter, so these clauses run it by its own name. Each mustFail names ONE test of that section, so a red elsewhere in it can never be
+   read as a catch: a mutation is "caught" only when the named test fails. Shape 2's forward case asks only when a registered alias gives
+   the name order (owner's call 2026-10-12, option b); the bare family-name-first record keeps the pinned fold, a recorded limit. */
+var CMD616 = ["node", ["dev/run-tests.js", "#616"]];
+function prove616(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD616, cases: cases }); }
+var S1F = "#616 shape 1 forward", S1M = "#616 shape 1 mirror", S2M = "#616 shape 2 mirror", S2F = "#616 shape 2 forward", S3 = "#616 shape 3 the record's own title", S3M = "#616 shape 3 mirror",
+    S4 = "#616 shape 4 a possessive", S4W = "#616 shape 4 the possessor's words", OPEN616 = "#616 while a question of the new shapes is open";
+prove616("memory.js", [
+  { label: "shape 1: the forward question reads one family word only again (Queen Underbough-Vane lands on Wilhelmina Underbough-Vane)",
+    find: "  if(!inF.length||kF.length<=inF.length||kF.slice(kF.length-inF.length).join(\" \")!==inF.join(\" \"))return \"\";",
+    replace: "  if(inF.length!==1||kF.length<=inF.length||kF.slice(kF.length-inF.length).join(\" \")!==inF.join(\" \"))return \"\";",
+    mustFail: S1F },
+  { label: "shape 1: a record's family name is one word again (the bare 'Queen Underbough-Vane' has no title, so a given name folds onto her)",
+    find: "var core=_npcNoGen(npcCoreTokens(k));if(!npcFamilyUnit(k,core))return \"\";", replace: "var core=_npcNoGen(npcCoreTokens(k));if(core.length!==1)return \"\";",
+    mustFail: S1M },
+  { label: "shape 1: a particle-led family name is not read as one ('Anneke Van Helsing' folds onto the bare 'Queen Van Helsing')",
+    find: "  if(i===core.length-1)return true;", replace: "",
+    mustFail: S1M },
+  { label: "shape 1: a hyphenated family name is not read as one ('Wilhelmina Underbough-Vane' folds onto the bare 'Queen Underbough-Vane')",
+    find: "  for(j=0;j<raw.length;j++)if(raw[j].indexOf(\"-\")>=0&&", replace: "  for(j=0;j<0;j++)if(raw[j].indexOf(\"-\")>=0&&",
+    mustFail: S1M },
+  { label: "shape 2: the mirror question skips a family name written first ('Underbough Wilhelmina' folds onto the bare 'Queen Underbough')",
+    find: "&&_npcCovers(inCore,kCore)){var kt=npcKeyTitle(k);", replace: "&&_npcCovers(inCore,kCore)&&inCore[0]!==kCore[0]){var kt=npcKeyTitle(k);",
+    mustFail: S2M },
+  { label: "shape 2: the record's aliases are not read for the name order ('Queen Underbough' folds onto 'Underbough Wilhelmina' known as 'Wilhelmina Underbough')",
+    find: "for(i=0;i<al.length;i++){a=_npcNoGen(npcCoreTokens(al[i]));", replace: "for(i=0;i<0;i++){a=_npcNoGen(npcCoreTokens(al[i]));",
+    mustFail: S2F },
+  { label: "shape 2: the roster-side aliases are not read for the name order (a roster alias 'Mina Underbough' says nothing)",
+    find: "al=(m.aliases||[]).concat((w&&w.aliases)||[]),i,a;", replace: "al=(m.aliases||[]),i,a;",
+    mustFail: S2F },
+  { label: "shape 2: the first alias holding the family word sets the order (a family-first alias 'Underbough Mina' listed first hides 'Wilhelmina Underbough')",
+    find: "a.slice(a.length-inF.length).join(\" \")===inF.join(\" \")", replace: "a.indexOf(inF[0])>=0",
+    mustFail: S2F },
+  { label: "shape 3: a generation word is not asked about (the own-title rule folds 'Queen Underbough the Younger' onto the queen)",
+    find: "var gk=npcKeyTitle(k);if(gk&&npcGenWords(name)!==npcGenWords(k)&&", replace: "var gk=npcKeyTitle(k);if(false&&gk&&npcGenWords(name)!==npcGenWords(k)&&",
+    mustFail: S3 },
+  { label: "shape 3: a spelling of another generation finds the titled record ('Queen Underbough the Elder' is read as her)",
+    find: "if(npcCoreTokens(k).join(\" \")!==ic||npcGenWords(k)!==g)continue;", replace: "if(npcCoreTokens(k).join(\" \")!==ic)continue;",
+    mustFail: S3 },
+  { label: "shape 3: a record's generation word is read as a name (the bare 'Queen Underbough' folds onto 'Queen Underbough the Younger')",
+    find: "var core=_npcNoGen(npcCoreTokens(k));if(!npcFamilyUnit(k,core))return \"\";", replace: "var core=npcCoreTokens(k);if(!npcFamilyUnit(k,core))return \"\";",
+    mustFail: S3M },
+  { label: "a titled record is found by its first family word again ('Queen Underbough' gathers on the open 'Queen Underbough-Vane')",
+    find: "if(npcCoreTokens(k).join(\" \")!==ic||", replace: "if(npcCoreTokens(k)[0]!==inCore[0]||",
+    mustFail: OPEN616 },
+  { label: "shape 4: the possessor's words reach a candidate again (the champion folds onto the queen)",
+    find: "    if(!(inP&&kP&&!inP.length&&!kP.length)&&(!_npcPossReaches(inP,shortT)||!_npcPossReaches(kP,shortT))){if(!poss)poss=k;continue;}\n", replace: "",
+    mustFail: S4 },
+  { label: "shape 4: a possessive record is a candidate for its possessor again (the queen folds into her champion's record)",
+    find: "||!_npcPossReaches(kP,shortT))", replace: ")",
+    mustFail: S4 },
+  { label: "shape 4: the possessor's title is the name's again (the champion reads as 'she' and is kept off the Aldric on file)",
+    find: "  var a=npcNameSays(npcPossessed(name)),b=", replace: "  var a=npcNameSays(name),b=",
+    mustFail: S4 },
+  { label: "shape 4: a possessive record's key speaks for him ('Aldric', he/him, is kept off 'Queen Underbough's champion Aldric' as 'she')",
+    find: "  var s=npcNameSays(npcPossessed(k)),m=", replace: "  var s=npcNameSays(k),m=",
+    mustFail: S4 },
+  { label: "shape 4: the receipt is silent (a possessive filed apart from the possessor says nothing)",
+    find: "  if(c.poss)return raw+", replace: "  if(false)return raw+",
+    mustFail: S4 },
+  { label: "shape 4: an appositive possessor is read as the name ('Aldric, Queen Underbough's champion' folds onto the queen)",
+    find: "  for(c=0;c<cl.length;c++){", replace: "  for(c=0;c<Math.min(cl.length,1);c++){",
+    mustFail: S4W },
+  { label: "shape 4: two role-word possessives are kept apart (\"Tam's old mother\" forks off \"Tam's mother\")",
+    find: "if(!(inP&&kP&&!inP.length&&!kP.length)&&(", replace: "if((",
+    mustFail: S4W }
 ]);
 process.exit(code);

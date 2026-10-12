@@ -27279,7 +27279,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
   t("#527 resolver protects only current hero names, aliases and player before exact NPC aliases",function(){
     heroCast527();var nm="Ammut's old master",forms=["Ammut"," aMMuT ","Bone-boy","PLAYER"],i;
-    memory.npcs[nm].aliases=["Bone-boy","player"];
+    memory.npcs[nm].aliases=["Bone-boy","player","Ammut"];/* #616 (2026-10-12): "Ammut" used to reach the master by consolidation, through the possessor's word of "Ammut's old master" — a possessive names someone of Ammut's, never Ammut, so the former hero's NAME now reaches him the way "Bone-boy" does, as an exact NPC alias the shield must outrank while she is the hero */
     for(i=0;i<forms.length;i++)if(resolveNpcName(forms[i])!==forms[i])return "hero identity resolved into NPC: "+forms[i];
     if(resolveNpcName(nm)!==nm)return "full NPC name lost";
     worldState.character.name="Thessa";worldState.character.aliases=[];
@@ -28935,6 +28935,129 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     worldState.turn=87;var r=quiet(function(){return applyMuts("[NPC_MERGE:Queen Mother Underbough|Queen Underbough]");});
     var k="Queen Mother Underbough";if(!memory.npcs[k])return "fixture: the plain merge lands: "+keysA12()+" | "+mutsA12(r);
     return !provA12(k)?true:"the answered queen is asked about again, as a question of Hilda: "+JSON.stringify(provA12(k))+" | "+mutsA12(r);
+  });
+  section("#616 four shapes ask (owner ruling 2026-10-12)");
+  /* TODO #616 (owner ruling 2026-10-12: ASK on all four). The #504 fixes of 2026-10-12 left four name shapes folding in silence onto a
+     titled record under the one-distinctive-word rule (audits/acceptance-2026-10-12/fix-identity-report.md §1): a family name of several
+     words, a record written family-name-first, the record's own title with a generation word, and a possessive of the titled record. For
+     each shape, forward and mirror where it applies: a PROVISIONAL question is filed under the name as called (not a merge, not a silent
+     fork), the receipt says so naming both, the established record is byte-identical, and the SAME / ANOTHER answers land as for the
+     plain shapes. A possessive names ANOTHER person: filed as their own record (or the one on file), never as the possessor, and nobody
+     is asked about the possessor. Fixtures are the acceptance section's (hoisted). */
+  function ask616(estab,arrival,title,mirror,setup){
+    wA12(estab,"she/her");wsNpcByName(estab).status="holding court";memory.npcs[estab].knowledge=["rules from the amber hall"];if(setup)setup();
+    var pre=recA12(estab),note;worldState.turn=85;worldState.combat=null;
+    var r=quiet(function(){return applyMuts("A woman of the house is announced. [NPC:"+arrival+"|composed|neutral]");}),m=mutsA12(r),p=provA12(arrival);
+    if(recA12(estab)!==pre)return {err:"'"+arrival+"' beside '"+estab+"': the established record was written: "+recA12(estab)+" | "+m};
+    if(Object.keys(memory.npcs).length!==2)return {err:"'"+arrival+"' beside '"+estab+"': exactly one new record (no fold, no second fork): "+keysA12()+" | "+m};
+    if(!p||p.of!==estab||p.called!==arrival||p.title!==title)return {err:"'"+arrival+"' beside '"+estab+"': a PROVISIONAL question of her ("+title+"), keyed by the name as called: "+keysA12()+" "+JSON.stringify(p)+" | "+m};
+    if(/Merged: /.test(m))return {err:"'"+arrival+"': nothing merges: "+m};
+    if(!/possible name collision/.test(m)||m.indexOf(arrival)<0||m.indexOf(estab)<0)return {err:"'"+arrival+"': the receipt says so, naming both: "+m};
+    note=buildProvisionalNudge();
+    if(note.indexOf("[NPC_MERGE:"+estab+"|"+arrival+"]")<0||note.indexOf("[MERGE:npc|<Their Proper Name>|"+arrival+"]")<0)return {err:"'"+arrival+"': the note asks with both exact tags: "+note};
+    if(mirror!==undefined&&/by a given name/.test(note)!==mirror)return {err:"'"+arrival+"': the note reads "+(mirror?"'by a given name' (the established record is the titled one)":"'under a title'")+": "+note};
+    return {err:"",pre:pre};
+  }
+  function answers616(estab,arrival,title,mirror,another,setup){
+    var a=ask616(estab,arrival,title,mirror,setup),r;if(a.err)return a.err;
+    worldState.turn=86;r=quiet(function(){return applyMuts("The same woman. [NPC_MERGE:"+estab+"|"+arrival+"]");});
+    if(memory.npcs[arrival]||!memory.npcs[estab]||memory.npcs[estab].provisional)return "SAME [NPC_MERGE:"+estab+"|"+arrival+"] folds the arrival into her: "+keysA12()+" | "+mutsA12(r);
+    if((memory.npcs[estab].aliases||[]).indexOf(arrival)<0||resolveNpcName(arrival)!==estab)return "SAME: the called name becomes her alias and finds her: "+resolveNpcName(arrival)+" "+JSON.stringify(memory.npcs[estab].aliases);
+    worldState.turn=99;if(buildProvisionalNudge()!=="")return "SAME: the question is asked once";
+    a=ask616(estab,arrival,title,mirror,setup);if(a.err)return "(asked again, for ANOTHER) "+a.err;
+    worldState.turn=86;r=quiet(function(){return applyMuts("Another of the house. [MERGE:npc|"+another+"|"+arrival+"]");});
+    if(!memory.npcs[another]||memory.npcs[another].provisional||!memory.npcs[another].titleSettled)return "ANOTHER [MERGE:npc|"+another+"|"+arrival+"] files another person, settled: "+JSON.stringify(memory.npcs[another])+" | "+keysA12()+" | "+mutsA12(r);
+    if(another!==arrival&&memory.npcs[arrival])return "ANOTHER: the provisional is folded into the name she was given: "+keysA12();
+    if(recA12(estab)!==a.pre)return "ANOTHER: the established record is untouched: "+recA12(estab)+" | "+mutsA12(r);
+    return resolveNpcName(another)===another?"":"ANOTHER: the other person resolves to herself: "+resolveNpcName(another);
+  }
+  t("#616 shape 1 forward: a family name of several words — 'Queen Underbough-Vane' or 'the Underbough-Vane Queen' beside Wilhelmina Underbough-Vane, 'Queen Van Helsing' beside Anneke Van Helsing — is a provisional question of her, said in the receipt, her record untouched; SAME and ANOTHER land as for the plain shape",function(){
+    var cases=[["Wilhelmina Underbough-Vane","Queen Underbough-Vane","Isolde Underbough-Vane"],["Wilhelmina Underbough-Vane","the Underbough-Vane Queen","Isolde Underbough-Vane"],["Anneke Van Helsing","Queen Van Helsing","Lucy Van Helsing"]],i,e;
+    for(i=0;i<cases.length;i++){e=answers616(cases[i][0],cases[i][1],"queen",false,cases[i][2]);if(e)return e;}
+    return true;
+  });
+  t("#616 shape 1 mirror: a given name on a family name of several words — 'Wilhelmina Underbough-Vane' beside the bare 'Queen Underbough-Vane', 'Anneke Van Helsing' beside the bare 'Queen Van Helsing' — is asked about by a given name; SAME and ANOTHER land; a name that carries her own title is still her, unasked",function(){
+    var cases=[["Queen Underbough-Vane","Wilhelmina Underbough-Vane"],["Queen Van Helsing","Anneke Van Helsing"]],i,e;
+    for(i=0;i<cases.length;i++){e=answers616(cases[i][0],cases[i][1],"queen",true,cases[i][1]);if(e)return e;}
+    wA12("Queen Underbough-Vane","she/her");worldState.turn=85;quiet(function(){applyMuts("[NPC:Queen Wilhelmina Underbough-Vane|calm|neutral]");});
+    if(Object.keys(memory.npcs).length!==1||wsNpcByName("Queen Underbough-Vane").status!=="calm"||buildProvisionalNudge()!=="")return "her own title on the fuller name is her, unasked: "+keysA12()+" "+roster503();
+    return true;
+  });
+  t("#616 shape 2 mirror: a given name written family-name-first ('Underbough Wilhelmina') beside the bare 'Queen Underbough' is asked about by a given name; SAME and ANOTHER land",function(){
+    var e=answers616(KA12,"Underbough Wilhelmina","queen",true,"Underbough Wilhelmina");return e?e:true;
+  });
+  t("#616 shape 2 forward — a family-name-first record with a registered alias asks; the bare record (no alias) still folds by the pinned 'title + her first word is her' rule (documented limit)",function(){
+    /* Owner's call 2026-10-12 (option b): the name ORDER is read from the record's registered aliases, on either store. "Queen Underbough"
+       beside "Underbough Wilhelmina" known also as "Wilhelmina Underbough" is the title question; SAME and ANOTHER land. With no such alias
+       the names cannot say which word is the family name — the shape of "Princess Wilhelmina" beside "Wilhelmina Underbough", pinned as
+       her (#504 who is NOT asked) — so the bare record keeps that fold: a documented limit, asserted here so a change to it is seen. */
+    var F="Underbough Wilhelmina",e;
+    e=answers616(F,KA12,"queen",false,"Isolde Underbough",function(){memory.npcs[F].aliases=["Wilhelmina Underbough"];});if(e)return "memory alias: "+e;
+    e=answers616(F,KA12,"queen",false,"Isolde Underbough",function(){wsNpcByName(F).aliases=["Mina Underbough"];});if(e)return "roster alias: "+e;
+    e=answers616(F,KA12,"queen",false,"Isolde Underbough",function(){memory.npcs[F].aliases=["Underbough Mina","Wilhelmina Underbough"];});if(e)return "an alias written family-first listed before the one that gives the order: "+e;
+    wA12(F,"she/her");memory.npcs[F].aliases=["Lady Wilhelmina","Underbough Mina"];worldState.turn=85;
+    var r=quiet(function(){return applyMuts("[NPC:Queen Underbough|composed|neutral]");});
+    if(memory.npcs[KA12]||provA12(KA12)||wsNpcByName(F).status!=="composed")return "an alias that does not end with the family word says nothing of the order — the pinned fold stands: "+keysA12()+" | "+mutsA12(r);
+    wA12(F,"she/her");worldState.turn=85;r=quiet(function(){return applyMuts("[NPC:Queen Underbough|composed|neutral]");});
+    if(Object.keys(memory.npcs).length!==1||wsNpcByName(F).status!=="composed"||buildProvisionalNudge()!=="")return "the documented limit: the bare family-name-first record takes 'Queen Underbough' by the pinned rule (if this now asks, the limit is closed — update identity.md and TODO #616): "+keysA12()+" | "+mutsA12(r);
+    return true;
+  });
+  t("#616 shape 3 the record's own title with a generation word — 'Queen Underbough the Younger', '… the Elder', '… II', 'Queen Wilhelmina Underbough the Younger' beside the bare 'Queen Underbough' — is asked about, never folded onto her; SAME and ANOTHER land; 'Old Queen Underbough', 'the Queen Underbough' and 'Queen Wilhelmina Underbough' are still her, unasked",function(){
+    var cases=[["Queen Underbough the Younger","Queen Underbough the Younger"],["Queen Underbough the Elder","Isolde Underbough"],["Queen Underbough II","Queen Underbough II"],["Queen Wilhelmina Underbough the Younger","Isolde Underbough"]],i,e,nm;
+    for(i=0;i<cases.length;i++){e=answers616(KA12,cases[i][0],"queen",undefined,cases[i][1]);if(e)return e;}
+    var same=["Old Queen Underbough","the Queen Underbough","Queen Wilhelmina Underbough"];
+    for(i=0;i<same.length;i++){wA12(KA12,"she/her");worldState.turn=85;nm=same[i];quiet(function(){applyMuts("[NPC:"+nm+"|calm|neutral]");});
+      if(Object.keys(memory.npcs).length!==1||wsNpcByName(KA12).status!=="calm"||buildProvisionalNudge()!=="")return "'"+nm+"' is still her, unasked: "+keysA12()+" "+roster503();}
+    return true;
+  });
+  t("#616 shape 3 mirror: the bare 'Queen Underbough' beside a record that carries a generation word ('Queen Underbough the Younger', 'Queen Underbough the Elder') is asked about, never folded onto her; SAME and ANOTHER land",function(){
+    var cases=["Queen Underbough the Younger","Queen Underbough the Elder"],i,e;
+    for(i=0;i<cases.length;i++){e=answers616(cases[i],KA12,"queen",undefined,KA12);if(e)return e;}
+    return true;
+  });
+  t("#616 while a question of the new shapes is open, a spelling that carries the title gathers on the provisional and nothing else does: 'the Queen Underbough-Vane', 'Old Queen Underbough-Vane' find it, 'Queen Underbough' is neither her nor it; 'Old Queen Underbough the Younger' finds the Younger, 'Old Queen Underbough' the queen on file, '… the Elder' neither",function(){
+    var a=ask616("Wilhelmina Underbough-Vane","Queen Underbough-Vane","queen",false),Q="Queen Underbough-Vane",forms=["the Queen Underbough-Vane","Old Queen Underbough-Vane","queen underbough-vane"],i,e;
+    if(a.err)return "fixture: "+a.err;
+    for(i=0;i<forms.length;i++)if(resolveNpcName(forms[i])!==Q)return "'"+forms[i]+"' finds the open question: "+resolveNpcName(forms[i]);
+    if(resolveNpcName("Wilhelmina Underbough-Vane")!=="Wilhelmina Underbough-Vane")return "her own name still finds her";
+    if(resolveNpcName(KA12)!==KA12)return "'Queen Underbough' (another family name) is neither her nor the open question: "+resolveNpcName(KA12);
+    a=ask616(KA12,"Queen Underbough the Younger","queen");if(a.err)return "fixture: "+a.err;
+    if(resolveNpcName("Old Queen Underbough the Younger")!=="Queen Underbough the Younger")return "the Younger's own spelling finds her question: "+resolveNpcName("Old Queen Underbough the Younger");
+    if(resolveNpcName("Old Queen Underbough")!==KA12)return "the queen on file keeps her own spelling: "+resolveNpcName("Old Queen Underbough");
+    e=resolveNpcName("Queen Underbough the Elder");
+    return e!==KA12&&e!=="Queen Underbough the Younger"?true:"'Queen Underbough the Elder' is neither of them: "+e;
+  });
+  t("#616 shape 4 a possessive of the titled record names ANOTHER person — 'Queen Underbough's champion Aldric' beside the bare 'Queen Underbough' is Aldric's own record (or the Aldric on file), never the queen's, and nobody is asked about her; the receipt says why; the queen arriving beside the champion's record is her own person",function(){
+    var C="Queen Underbough's champion Aldric";
+    wA12(KA12,"she/her");wsNpcByName(KA12).status="holding court";memory.npcs[KA12].knowledge=["rules from the amber hall"];var pre=recA12(KA12);worldState.turn=85;
+    var r=quiet(function(){return applyMuts("Her champion steps forward. [NPC:"+C+"|grim|neutral] [NPC_NOTE:"+C+"|guards the door]");}),m=mutsA12(r);/* no pronoun: #503's sex veto must not be what keeps him off her */
+    if(recA12(KA12)!==pre)return "the champion landed on the queen: "+recA12(KA12)+" | "+m;
+    if(Object.keys(memory.npcs).length!==2||!memory.npcs[C]||memory.npcs[C].provisional)return "the champion is his own record, unasked: "+keysA12()+" "+JSON.stringify(memory.npcs[C]);
+    if(buildProvisionalNudge()!==""||/possible name collision/.test(m))return "nobody is asked about the queen: "+m;
+    if(m.indexOf(C+" is not "+KA12)<0||!/possessive/.test(m))return "the receipt says why he is not the queen: "+m;
+    worldState.turn=86;r=quiet(function(){return applyMuts("[NPC:Aldric|alert|neutral] [NPC_PRONOUN:Aldric|he/him]");});/* his record states no pronouns yet: the key's possessor ("Queen") must not read as his sex */
+    if(recA12(KA12)!==pre||Object.keys(memory.npcs).length!==2||!wsNpcByName(C)||wsNpcByName(C).status!=="alert"||wsNpcByName(C).pronouns!=="he/him"||(memory.npcs[C].events||[]).length!==1)return "a later 'Aldric' (he/him) is the champion, on his own record: "+keysA12()+" "+roster503()+" | "+mutsA12(r);
+    wA12(KA12,"she/her");on503("Aldric","he/him");pre=recA12(KA12);worldState.turn=85;
+    r=quiet(function(){return applyMuts("[NPC:"+C+"|grim|neutral]");});
+    if(recA12(KA12)!==pre||Object.keys(memory.npcs).length!==2||wsNpcByName("Aldric").status!=="grim"||buildProvisionalNudge()!=="")return "with an Aldric on file the champion is HIM, never the queen: "+keysA12()+" "+roster503()+" | "+mutsA12(r);
+    w503();on503(C,null);var preC=recA12(C);worldState.turn=85;/* no pronouns on his record: "she, not he" must not be what keeps the queen out of it */
+    r=quiet(function(){return applyMuts("[NPC:Queen Underbough|furious|hostile]");});
+    if(recA12(C)!==preC||!memory.npcs[KA12]||provA12(KA12)||wsNpcByName(KA12).status!=="furious")return "the queen arriving beside her champion's record is her own person, unasked: "+keysA12()+" "+roster503()+" | "+mutsA12(r);
+    return true;
+  });
+  t("#616 shape 4 the possessor's words never name the person, wherever the possessive stands: 'Aldric, Queen Underbough's champion' is not the queen; 'Tam's mother' is not Tam; 'Underbough's daughter' is not 'Tam's daughter'; 'Tam's old mother' is still 'Tam's mother'; 'The Queen's Champion Aldric', 'Aldric, the Queen's champion' and 'Aldric the Queen's champion' are Aldric",function(){
+    wA12(KA12,"she/her");var pre=recA12(KA12);worldState.turn=85;
+    var r=quiet(function(){return applyMuts("[NPC:Aldric, Queen Underbough's champion|grim|neutral]");});
+    if(recA12(KA12)!==pre||Object.keys(memory.npcs).length!==2||buildProvisionalNudge()!=="")return "the appositive champion is not the queen, and nobody is asked about her: "+keysA12()+" | "+mutsA12(r);
+    w503();on503("Tam",null);pre=recA12("Tam");worldState.turn=85;/* no pronouns: "mother" against he/him would keep them apart by #503 alone */
+    r=quiet(function(){return applyMuts("[NPC:Tam's mother|worried|neutral]");});
+    if(recA12("Tam")!==pre||!memory.npcs["Tam's mother"])return "Tam's mother is not Tam: "+keysA12()+" "+roster503()+" | "+mutsA12(r);
+    if(resolveNpcName("Tam's old mother")!=="Tam's mother")return "a spelling of the same description still finds her: "+resolveNpcName("Tam's old mother");
+    w503();on503("Tam's daughter","she/her");
+    if(resolveNpcName("Underbough's daughter")!=="Underbough's daughter")return "two possessors, two daughters: "+resolveNpcName("Underbough's daughter");
+    w503();on503("Aldric","he/him");var forms=["The Queen's Champion Aldric","Aldric, the Queen's champion","Aldric the Queen's champion","Aldric, Queen Underbough's champion"],i;
+    for(i=0;i<forms.length;i++)if(resolveNpcName(forms[i])!=="Aldric")return "'"+forms[i]+"' names Aldric by his own name: "+resolveNpcName(forms[i]);
+    return true;
   });
   // ── acceptance 2026-10-12 (objective acceptance of #577 and #591, both ◉; no engine change rides with it). The rulings under
   // test: a met want retires and the counter pays the keeper's stated offer (2026-09-29); the paid offer is the retired offer
@@ -31934,6 +32057,9 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(resolveNpcName("Old Tom")!=="Tom Young")return "'Young' is Tom's surname: "+resolveNpcName("Old Tom");
     w503();on503("Aldric","he/him");
     if(resolveNpcName("The Queen's Champion Aldric")!=="Aldric")return "the Queen's champion is not a queen: "+resolveNpcName("The Queen's Champion Aldric");
+    /* #616 (2026-10-12): the resolver now drops the possessor phrase before the name is read, so the line above holds even if the tokenizer
+       reads "queen's" as "queen"; the tokenizer itself is still read raw (a record's aliases, a trailing possessive) — pinned here */
+    if(npcNameSays("The Queen's Champion Aldric").sex!==null)return "the tokenizer reads 'queen's' as someone else's title: "+JSON.stringify(npcNameSays("The Queen's Champion Aldric"));
     w503();on503("Morwen Zethran","she/her");
     return resolveNpcName("Morwen (King Aldric's court)")==="Morwen Zethran"?true:"a parenthetical describes, it does not title: "+resolveNpcName("Morwen (King Aldric's court)");
   });

@@ -68,6 +68,34 @@ function npcNameWords(name){
   for(i=0;i<raw.length;i++){var w=raw[i].replace(/[^a-z]/g,"");if(w)ws.push(w);}
   return ws;
 }
+// #616 shape 4 (owner ruling 2026-10-12): a possessive names the thing it owns, never the possessor. "Queen Underbough's champion
+// Aldric" is Aldric (or someone new), "Tam's mother" is not Tam. Before this the possessor's words were read as the name's own:
+// "underbough's" tokenizes to "underbough", the one Underbough on file was the single candidate, the own-title rule read "Queen" as her
+// title — and the champion folded onto the queen in silence. The possessor phrase is dropped from each clause (commas split clauses):
+// from the clause's start, or from the nearest article before it ("the Queen's"), or from just after the nearest preposition ("of the
+// Queen's"), through the last possessive word that has a word after it in that clause. So "Aldric, Queen Underbough's champion" and
+// "Aldric the Queen's champion" are "Aldric, champion" and "Aldric champion": Aldric either way. A quoted nickname ("'Jess'") is no
+// possessive. Parentheticals are not read. Returns the name itself when nothing is dropped. Memoized like npcCoreTokens (a pure
+// function of an immutable string; null-prototype map).
+var _NPC_POSS_ARTICLE=npcWordTable({the:1,a:1,an:1}),_NPC_POSS_BREAK=npcWordTable({of:1,and:1,or:1,to:1,"for":1,from:1,"with":1,at:1,"in":1,on:1,by:1});
+var _npcPossMemo=Object.create(null);
+function npcPossessed(name){
+  var key=String(name||""),hit=_npcPossMemo[key];if(hit!==undefined)return hit;
+  var cl=key.replace(/\(.*?\)/g," ").split(","),dropped=false,c,ws,i,s,w;
+  for(c=0;c<cl.length;c++){
+    ws=cl[c].split(/\s+/).filter(function(x){return !!x;});
+    for(i=ws.length-2;i>=0;i--)if(/[A-Za-z](?:['\u2019]s|s['\u2019])$/.test(ws[i])&&!/^['\u2018\u2019"]/.test(ws[i]))break;
+    if(i<0){cl[c]=ws.join(" ");continue;}
+    for(s=i-1;s>=0;s--){w=ws[s].toLowerCase();if(_NPC_POSS_ARTICLE[w]===1)break;if(_NPC_POSS_BREAK[w]===1){s++;break;}}
+    if(s<0)s=0;
+    ws.splice(s,i-s+1);cl[c]=ws.join(" ");dropped=true;
+  }
+  var out=dropped?cl.filter(function(x){return !!x;}).join(", "):key;
+  _npcPossMemo[key]=out;return out;
+}
+// The distinctive words left once the possessor phrases are dropped ("Queen Underbough's champion Aldric" -> [champion, aldric];
+// "Tam's mother" -> []), or null when the name has no possessive.
+function npcPossessedCore(name){var p=npcPossessed(name);return p===String(name||"")?null:npcCoreTokens(p);}
 function npcNameSays(name){
   var ws=npcNameWords(name),i;
   var out={sex:null,crown:null,age:null},last=ws.length-1;
@@ -90,7 +118,7 @@ function npcSexOfPronouns(p){
 // What the RECORD says: its key and its aliases (an alias "Princess Wilhelmina" states her rank), then its own
 // pronouns on either store — stated pronouns outrank whatever a title suggests.
 function npcRecordSays(k){
-  var s=npcNameSays(k),m=memory.npcs[k]||{},w=(typeof wsNpcByName==="function")?wsNpcByName(k):null;
+  var s=npcNameSays(npcPossessed(k)),m=memory.npcs[k]||{},w=(typeof wsNpcByName==="function")?wsNpcByName(k):null;/* #616: a record keyed "Queen Underbough's champion Aldric" says nothing of a queen */
   var al=(m.aliases||[]).concat((w&&w.aliases)||[]),F=["sex","crown","age"],i,f;
   for(i=0;i<al.length;i++){var x=npcNameSays(al[i]);for(f=0;f<3;f++){if(!x[F[f]])continue;if(!s[F[f]])s[F[f]]=x[F[f]];else if(s[F[f]]!==x[F[f]])s[F[f]]="?";}}
   for(f=0;f<3;f++){if(s[F[f]]==="?")s[F[f]]=null;}
@@ -115,7 +143,7 @@ function npcEndResponse(prev){_npcSaid=prev||null;}
 // surname-only overlap (one shared token, and it closes the longer name): "King Underbough" beside "Prince Aldric
 // Underbough" is father and son, but "King Aldric" beside him is the same man, crowned.
 function npcKeptApart(name,k,shortT,longT){
-  var a=npcNameSays(name),b=npcRecordSays(k),said=_npcSaid?npcSexOfPronouns(_npcSaid[String(name).trim()]):null;
+  var a=npcNameSays(npcPossessed(name)),b=npcRecordSays(k),said=_npcSaid?npcSexOfPronouns(_npcSaid[String(name).trim()]):null;/* #616: the possessor's title is not the name's */
   if(said)a.sex=said;
   if(a.sex&&b.sex&&a.sex!==b.sex)return (a.sex==="m"?"he":"she")+", not "+(b.sex==="m"?"he":"she");
   if(a.age&&b.age&&a.age!==b.age)return a.age+", not "+b.age;
@@ -142,6 +170,41 @@ function npcRecordWords(k){
   for(i=0;i<all.length;i++){var ws=npcNameWords(all[i]);for(j=0;j<ws.length;j++)out[_npcAskWord(ws[j])]=1;}
   return out;
 }
+// #616 shape 3 (owner ruling 2026-10-12): a GENERATION word ("the Younger", "the Elder", "II") says there is another of the name, so
+// "Queen Underbough the Younger" beside the bare "Queen Underbough" is another queen of the house, or her: a question, never her by
+// the title alone. Read as the set of such words in a name; stripped from a core where the question reads the family name. Single
+// letters (v, x) are left out: an initial is not a generation.
+var _NPC_GEN_WORDS=npcWordTable({elder:1,eldest:1,older:1,younger:1,youngest:1,senior:1,sr:1,junior:1,jr:1,first:1,second:1,third:1,fourth:1,fifth:1,
+  ii:1,iii:1,iv:1,vi:1,vii:1,viii:1,ix:1});
+function npcGenWords(name){var ws=npcNameWords(name),out=[],i;for(i=0;i<ws.length;i++)if(_NPC_GEN_WORDS[ws[i]]===1&&out.indexOf(ws[i])<0)out.push(ws[i]);return out.sort().join(" ");}
+function _npcNoGen(core){var out=[],i;for(i=0;i<core.length;i++)if(_NPC_GEN_WORDS[core[i]]!==1)out.push(core[i]);return out;}
+function _npcCovers(a,b){var i;for(i=0;i<b.length;i++)if(a.indexOf(b[i])<0)return false;return true;}
+function _npcSaysTitle(name,t){var nw=npcNameWords(name),i;for(i=0;i<nw.length;i++)if(_npcAskWord(nw[i])===_npcAskWord(t))return true;return false;}
+// #616 shape 1 (owner ruling 2026-10-12): a family name of SEVERAL words, as a record's key can show it — one hyphenated word
+// ("Queen Underbough-Vane") or a name led by family particles ("Queen Van Helsing", "Lady de la Cruz"). True for a one-word core.
+// "Queen Wilhelmina Underbough" is not one: two plain words are a given name and a family name, and the key cannot say otherwise.
+var _NPC_FAMILY_PARTICLES=npcWordTable({van:1,von:1,de:1,del:1,della:1,der:1,den:1,di:1,du:1,da:1,dos:1,das:1,la:1,le:1,ter:1,ten:1,mac:1,mc:1,ap:1,zu:1});
+function npcFamilyUnit(k,core){
+  if(core.length<2)return core.length===1;
+  var i,j,raw;for(i=0;i<core.length-1;i++)if(_NPC_FAMILY_PARTICLES[core[i]]!==1)break;
+  if(i===core.length-1)return true;
+  if(String(k||"").indexOf("-")<0)return false;/* the common case: two plain words, no hyphen — read on every resolve, so no split */
+  raw=String(k||"").toLowerCase().replace(/\(.*?\)/g," ").split(/[\s_]+/);
+  for(j=0;j<raw.length;j++)if(raw[j].indexOf("-")>=0&&_npcNoGen(npcCoreTokens(raw[j])).join(" ")===core.join(" "))return true;
+  return false;
+}
+// #616 shape 2 (owner's call 2026-10-12, option b): the ORDER of a record's words, read from its registered aliases (both stores).
+// A record keyed family-name-first ("Underbough Wilhelmina") does not close with its family word, so the forward question never saw
+// "Queen Underbough" beside it. An alias whose distinctive words END with the arrival's and hold more ("Wilhelmina Underbough") is
+// the GM's own word for which word is the family name: the forward question reads that alias's words instead. With no such alias
+// the key's own words stand, and the bare family-name-first record keeps the pinned fold — "Queen Underbough" beside a bare
+// "Underbough Wilhelmina" has exactly the shape of "Princess Wilhelmina" beside "Wilhelmina Underbough", which is her (a recorded limit).
+function npcFamilyOrder(k,kF,inF){
+  if(!inF.length||(kF.length>inF.length&&kF.slice(kF.length-inF.length).join(" ")===inF.join(" ")))return kF;
+  var m=memory.npcs[k]||{},w=(typeof wsNpcByName==="function")?wsNpcByName(k):null,al=(m.aliases||[]).concat((w&&w.aliases)||[]),i,a;
+  for(i=0;i<al.length;i++){a=_npcNoGen(npcCoreTokens(al[i]));if(a.length>inF.length&&a.slice(a.length-inF.length).join(" ")===inF.join(" "))return a;}
+  return kF;
+}
 // Pure. "" = no question; otherwise the title that raises it. The name must be BARE — one distinctive word, and it closes a
 // candidate that has more (a surname shared with someone who has a given name) — and the title must be one the record is not
 // already known by. #504 (acceptance 2026-10-12): the title may stand on EITHER side of the family word — "the Underbough Queen"
@@ -149,7 +212,12 @@ function npcRecordWords(k){
 // name; a title written after it used to fuse the queen onto the princess in silence. ("Marla King" never reaches this branch:
 // there "marla" is the record's GIVEN name, and it does not close the candidate.)
 function npcTitleQuestion(name,k,inCore){
-  var kCore=npcCoreTokens(k);
+  var kCore=npcCoreTokens(k),inF=_npcNoGen(inCore),kF=_npcNoGen(kCore);
+  /* #616 shape 3 (owner ruling 2026-10-12): the record's OWN title with a generation word that one name has and the other lacks —
+     "Queen Underbough the Younger", "… the Elder", "… II" beside the bare "Queen Underbough", or the bare name beside a record that
+     carries one — is another of the house, or her. The own-title rule of the mirror below reads it as her and folded it in silence
+     (and "elder" is a stop word, so "… the Elder" was her exact core); the generation word is asked about first. */
+  var gk=npcKeyTitle(k);if(gk&&npcGenWords(name)!==npcGenWords(k)&&_npcSaysTitle(name,gk)&&_npcCovers(inF,kF))return gk;
   /* #504 mirror (owner ruling 2026-10-10): the record on file is the bare titled one and the ARRIVING name carries a given name on the
      same family name with no title of its own — "Wilhelmina Underbough" beside "Queen Underbough" — the same question the other way
      round (the queen by her given name, or her daughter). A name that carries the record's own title ("Queen Wilhelmina Underbough")
@@ -157,9 +225,17 @@ function npcTitleQuestion(name,k,inCore){
      #504 (acceptance 2026-10-12): the family word may stand ANYWHERE among the arrival's distinctive words, not only last —
      "Wilhelmina Underbough, the queen's daughter", "… the Younger", "… II", "… of Elderwood", "Wilhelmina Underbough-Vane",
      "Underbough Wilhelmina". The bare record's one token is a subset of every name that holds it, so in this direction NOT asking
-     is the fusion (consolidation has already chosen her); a false question costs one note. */
-  if(inCore.length>=2&&kCore.length===1&&inCore.indexOf(kCore[0])>=0){var kt=npcKeyTitle(k);if(!kt)return "";var nw=npcNameWords(name),ni;for(ni=0;ni<nw.length;ni++)if(_npcAskWord(nw[ni])===_npcAskWord(kt))return "";return kt;}
-  if(inCore.length!==1||kCore.length<2||kCore[kCore.length-1]!==inCore[0])return "";
+     is the fusion (consolidation has already chosen her); a false question costs one note.
+     #616 shape 1 (owner ruling 2026-10-12): the record's family name may be several words — "Wilhelmina Underbough-Vane" beside the
+     bare "Queen Underbough-Vane", "Anneke Van Helsing" beside the bare "Queen Van Helsing" (npcKeyTitle reads a hyphenated or
+     particle-led family name as the one family word). The arrival holds every word of the record's and more. */
+  if(inCore.length>kCore.length&&_npcCovers(inCore,kCore)){var kt=npcKeyTitle(k);if(!kt)return "";var nw=npcNameWords(name),ni;for(ni=0;ni<nw.length;ni++)if(_npcAskWord(nw[ni])===_npcAskWord(kt))return "";return kt;}
+  /* Forward. #616 shape 1 (owner ruling 2026-10-12): the family name may be several words — the arrival's distinctive words
+     (generation words aside) are a CLOSING RUN of the candidate's, which has more: "Queen Underbough-Vane" beside "Wilhelmina
+     Underbough-Vane", "Queen Van Helsing" beside "Anneke Van Helsing". One word closing the candidate is the run of one.
+     #616 shape 2: a record keyed family-name-first is read in the order its registered aliases give (npcFamilyOrder). */
+  kF=npcFamilyOrder(k,kF,inF);
+  if(!inF.length||kF.length<=inF.length||kF.slice(kF.length-inF.length).join(" ")!==inF.join(" "))return "";
   var ws=npcNameWords(name),at=ws.indexOf(inCore[0]),known=npcRecordWords(k),i;
   for(i=0;i<ws.length;i++)if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1&&!known[_npcAskWord(ws[i])])return ws[i];
   return "";
@@ -169,7 +245,7 @@ function npcTitleQuestion(name,k,inCore){
 // name (#504 acceptance 2026-10-12: a bare record keyed "the Underbough Queen" is the titled record a given name is asked about,
 // and the record a later "Queen Underbough" spelling finds).
 function npcKeyTitle(k){
-  var core=npcCoreTokens(k);if(core.length!==1)return "";
+  var core=_npcNoGen(npcCoreTokens(k));if(!npcFamilyUnit(k,core))return "";/* #616: the family word may be several ("Queen Underbough-Vane", "Queen Van Helsing") and a generation word is no name ("Queen Underbough the Younger") */
   var ws=npcNameWords(k),at=ws.indexOf(core[0]),i;
   for(i=0;i<ws.length;i++)if(i!==at&&_NPC_ASK_TITLES[ws[i]]===1)return ws[i];
   return "";
@@ -179,13 +255,13 @@ function npcKeyTitle(k){
 // null — never a guess. A record filed under a title is reached this way whether its question is open or settled, so a
 // spelling the exact step misses lands on it and not on the person it was split from (the #534 review's second finding).
 function npcTitledRecord(name){
-  var inCore=npcCoreTokens(name),ws,k,hit=null,n=0;
-  if(inCore.length!==1)return null;
-  ws=npcNameWords(name);
+  var inCore=npcCoreTokens(name),ws,k,hit=null,n=0,ic,g;
+  if(!inCore.length)return null;
+  ws=npcNameWords(name);ic=inCore.join(" ");g=npcGenWords(name);
   for(k in memory.npcs){
     if(k===name)continue;
     var t=npcKeyTitle(k);if(!t)continue;
-    if(npcCoreTokens(k)[0]!==inCore[0])continue;
+    if(npcCoreTokens(k).join(" ")!==ic||npcGenWords(k)!==g)continue;/* #616: the WHOLE family name ("Queen Underbough" is no spelling of "Queen Underbough-Vane") and the same generation ("Queen Underbough the Elder" is no spelling of "Queen Underbough") */
     var i,has=false;for(i=0;i<ws.length;i++)if(_npcAskWord(ws[i])===_npcAskWord(t)){has=true;break;}
     if(!has)continue;
     n++;if(n>1)return null;hit=k;
@@ -195,11 +271,12 @@ function npcTitledRecord(name){
 // THE consolidation scan (one copy — the resolver and the receipt both read it). key = the single candidate nothing
 // contradicts; apart = the single candidate a contradiction ruled out. A ruled-out candidate still COUNTS: with two
 // people on file the name was ambiguous before #503 and stays ambiguous — the veto never steers a name onto the survivor.
-// ask (#504) = the title that makes the single match a question instead of an answer.
+// ask (#504) = the title that makes the single match a question instead of an answer. poss (#616) = the record that only a
+// possessor's words pointed at, when nothing else was a candidate (the receipt names it).
 function npcConsolidation(name){
-  var out={key:null,apart:null,why:"",ask:""},inCore=npcCoreTokens(name);
+  var out={key:null,apart:null,why:"",ask:"",poss:null},inCore=npcCoreTokens(name);
   if(!inCore.length)return out;
-  var k,cnt=0,match=null,apart=null,why="";
+  var k,cnt=0,match=null,apart=null,why="",poss=null,inP=npcPossessedCore(name);
   for(k in memory.npcs){
     if(k===name)continue;
     var kCore=npcCoreTokens(k);
@@ -209,13 +286,21 @@ function npcConsolidation(name){
     var subset=true,ti;
     for(ti=0;ti<shortT.length;ti++){if(longT.indexOf(shortT[ti])<0){subset=false;break;}}
     if(!subset)continue;
+    /* #616 shape 4: the words two names share must reach past a possessor on either side — "Queen Underbough's champion Aldric"
+       shares only the possessor's word with "Queen Underbough", so she is no candidate (and the champion's own record is no candidate
+       for "Queen Underbough"); "Aldric" is reached. Not a candidate at all, so it does not count toward the one. Two possessives whose
+       owned words are all role words ("Tam's mother", "Tam's old mother") are compared as before. */
+    var kP=npcPossessedCore(k);
+    if(!(inP&&kP&&!inP.length&&!kP.length)&&(!_npcPossReaches(inP,shortT)||!_npcPossReaches(kP,shortT))){if(!poss)poss=k;continue;}
     cnt++;if(cnt>1)break;
     var w=npcKeptApart(name,k,shortT,longT);
     if(w){apart=k;why=w;}else match=k;
   }
-  if(cnt===1){out.key=match;out.apart=apart;out.why=why;if(match)out.ask=npcTitleQuestion(name,match,inCore);}
+  if(cnt===1){out.key=match;out.apart=apart;out.why=why;if(match)out.ask=npcTitleQuestion(inP?npcPossessed(name):name,match,inP||inCore);}
+  else if(!cnt)out.poss=poss;
   return out;
 }
+function _npcPossReaches(p,shared){if(!p)return true;var i;for(i=0;i<shared.length;i++)if(p.indexOf(shared[i])>=0)return true;return false;}
 // #504: the title that makes this name a question for the GM, or "". An exact name and a registered alias are answers already.
 function npcTitleAsk(name){
   if(!memory.npcs||npcExactKey(name))return "";
@@ -256,6 +341,7 @@ function npcFormerKey(name,depth){
 function npcApartLine(raw){
   if(!memory.npcs||memory.npcs[raw])return "";
   var c=npcConsolidation(raw);
+  if(c.poss)return raw+" is not "+c.poss+" (a possessive: it names someone of theirs) — filed as a separate person";/* #616 shape 4 */
   return c.apart?raw+" is not "+c.apart+" ("+c.why+") — filed as a separate person":"";
 }
 function resolveNpcName(name){
