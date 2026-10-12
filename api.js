@@ -2577,7 +2577,7 @@ function buildSysPrompt(){
       if(cf.down||cf.hp<=0){cbDown.push(cf.name+" ("+(cf.down||"slain")+")");continue;}
       var cbStats="";if(cf.stats)cbStats=" | STR:"+cf.stats.STR+" DEX:"+cf.stats.DEX+" CON:"+cf.stats.CON+" INT:"+cf.stats.INT+" WIS:"+cf.stats.WIS+" CHA:"+cf.stats.CHA+" CR:"+cf.stats.CR;
       var cbDmgMod="";if(cf.immune&&cf.immune.length)cbDmgMod+=" | Immune:"+cf.immune.join(",");if(cf.resist&&cf.resist.length)cbDmgMod+=" | Resist:"+cf.resist.join(",");if(cf.vuln&&cf.vuln.length)cbDmgMod+=" | Vuln:"+cf.vuln.join(",");
-      cbLines.push("Enemy: "+foeLabel(cf)+(cm.engaged===cf.name?" [ENGAGED with the player]":"")+" HP:"+cf.hp+"/"+cf.maxHp+" AC:"+cf.ac+" Atk:+"+cf.atk+" Dmg:"+cf.dmg+" Morale:"+cf.morale+cbStats+cbDmgMod);}
+      cbLines.push("Enemy: "+foeLabel(cf)+(cm.engaged===cf.name?" [ENGAGED with the player]":"")+" HP:"+cf.hp+"/"+cf.maxHp+" AC:"+cf.ac+" Atk:+"+cf.atk+" Dmg:"+cf.dmg+" Morale:"+cf.morale+cbStats+cbDmgMod+(foeGroupUnrecorded(cf)?" | Headcount: unrecorded \u2014 emit [COMBAT_GROUP:"+cf.name+"|N] with how many are up":""));}/* #612: an unrecorded pack is asked, every turn, until it files */
     cb="COMBAT ACTIVE (Round "+cm.round+(cfs.length>1?"; "+cfs.length+" foes — use [ENEMY_HP:Name|-X] to address each":"")+"):\n"+cbLines.join("\n")+(cbDown.length?"\nOut of the fight: "+cbDown.join(", "):"")+"\n\n";}
   var hist=worldState.eventHistory.length?"STORY SO FAR:\n"+worldState.eventHistory.join("\n")+"\n\n":"";
   var erasBlock=buildErasBlock();/* #148 Phase 2 — the always-on spine ABOVE the recent-chapter window; "" until the first era compiles */

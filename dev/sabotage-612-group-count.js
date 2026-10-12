@@ -29,12 +29,21 @@ code |= sabotage.prove({ file: "tag_table.js", command: CMD, cases: [
     mustFail: T }
 ] });
 code |= sabotage.prove({ file: "helpers.js", command: CMD, cases: [
+  { label: "an unrecorded pack is no longer asked for its headcount (the predicate is always false)",
+    find: "function foeGroupUnrecorded(foe){var n=String(foe&&foe.name||\"\");return /", replace: "function foeGroupUnrecorded(foe){var n=String(foe&&foe.name||\"\");return false&&/",
+    mustFail: T },
+  { label: "the predicate ignores a recorded count: a counted pack is asked forever",
+    find: "&&!(foe&&typeof foe.count===\"number\");}", replace: ";}",
+    mustFail: T },
   { label: "the label drops the count (the name alone, as before #612)",
     find: "function foeLabel(foe){return String(foe&&foe.name||\"\")+(foe&&typeof foe.count===\"number\"?\" (\"+foe.count+\")\":\"\");}",
     replace: "function foeLabel(foe){return String(foe&&foe.name||\"\");}",
     mustFail: T }
 ] });
 code |= sabotage.prove({ file: "api.js", command: CMD, cases: [
+  { label: "the prompt's combat line stops asking for an unrecorded headcount",
+    find: "+(foeGroupUnrecorded(cf)?\" | Headcount: unrecorded", replace: "+(false?\" | Headcount: unrecorded",
+    mustFail: T },
   { label: "the prompt's combat line names the foe without its count",
     find: "cbLines.push(\"Enemy: \"+foeLabel(cf)+", replace: "cbLines.push(\"Enemy: \"+cf.name+",
     mustFail: T }

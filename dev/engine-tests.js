@@ -11291,7 +11291,20 @@ function runEngineTests(R){
     if(um.indexOf("escHtml(foeLabel(foe))")<0||!/row\("Group size",foe\.count\)/.test(um))return "the enemy card names the foe through foeLabel and shows the recorded group size";
     /* mid-fight, one living foe: the bare form routes like the other attributes */
     makeWorld();applyMuts("[COMBAT_START:Wolf Pack|40|12|+3|1d6|skittish]");applyMuts("[COMBAT_GROUP:5]");
-    return worldState.combat.foes[0].count===5?true:"a lone bare update reaches the single living foe: "+worldState.combat.foes[0].count;
+    if(worldState.combat.foes[0].count!==5)return "a lone bare update reaches the single living foe: "+worldState.combat.foes[0].count;
+    /* a fight declared before the tag existed (the owner's Blight Husk Pack at v1.1240): a pack-worded foe with no count is ASKED
+       for its headcount on the prompt's combat line, every turn until it files; a recorded count or a non-pack name is never asked */
+    if(typeof foeGroupUnrecorded!=="function")return "foeGroupUnrecorded missing";
+    makeWorld();applyMuts("[COMBAT_START:Blight Husk Pack|132|13|+4|1d8+2|unyielding][COMBAT_START:Husk Shaman|20|12|+2|1d6|craven]");
+    var ask="Headcount: unrecorded \u2014 emit [COMBAT_GROUP:Blight Husk Pack|N] with how many are up",pv2=buildSysPrompt().volatile;
+    if(pv2.indexOf(ask)<0)return "an unrecorded pack is asked for its headcount: "+pv2.split("\n").filter(function(l){return l.indexOf("Enemy: Blight")===0;}).join(" / ");
+    if(/Enemy: Husk Shaman[^\n]*Headcount/.test(pv2))return "a foe without a pack word is never asked";
+    if(!foeGroupUnrecorded(worldState.combat.foes[0])||foeGroupUnrecorded(worldState.combat.foes[1]))return "the predicate: pack-worded and uncounted";
+    if(foeGroupUnrecorded({name:"Raider Gang (5)",hp:1}))return "a count authored in the name is a record";
+    applyMuts("[COMBAT_GROUP:Blight Husk Pack|8]");pv2=buildSysPrompt().volatile;
+    if(pv2.indexOf("Headcount: unrecorded")>=0||pv2.indexOf("Enemy: Blight Husk Pack (8) ")<0)return "once filed, the ask is gone and the label carries the count";
+    if(__fsForTests.readFileSync(__rootForTests+"/ui-mobile.js","utf8").indexOf("else if(foeGroupUnrecorded(foe))row(\"Group size\",\"Not recorded\");")<0)return "the enemy card reads the same predicate";
+    return true;
   });
   // ── P3-F1 (v1.272): positional adjacency binding — the multi-foe-single-response class the
   // v1.271 playtest caught live at t10 (foe #1's stats landed on foe #N, the rest dropped) ──

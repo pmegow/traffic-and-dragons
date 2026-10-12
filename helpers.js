@@ -3392,6 +3392,10 @@ function shopOpportunity(){
    ONE renderer for the tracker row (ui-panels.js), the prompt's combat line (api.js) and the enemy card (ui-mobile.js); a foe
    with no recorded count (every pre-#612 save) is its bare name. Pure. */
 function foeLabel(foe){return String(foe&&foe.name||"")+(foe&&typeof foe.count==="number"?" ("+foe.count+")":"");}
+/* #612: is this foe a pooled group whose headcount nobody has recorded? A pack word in the name, no count authored in the name
+   ("Raider Gang (5)"), no foe.count. ONE predicate: the prompt's combat line ASKS the GM for the number while this holds (a fight
+   declared before the tag existed, or a GM that skipped it), and the enemy card says "Not recorded". Pure. */
+function foeGroupUnrecorded(foe){var n=String(foe&&foe.name||"");return /\b(pack|gang|swarm|mob|horde)\b/i.test(n)&&!/[\(\[]\s*\d+\s*[\)\]]/.test(n)&&!(foe&&typeof foe.count==="number");}
 /* #620 (owner 2026-10-12: "a storage chest button at the player's cottage, like the shop button"): is there a chest to open
    RIGHT NOW? The ONE rule both doors read — the narration's Chest button (FRAME_BUTTONS, ui-shell.js) and the inventory
    panel's Stow-and-take row (ui-panels.js): the stash gate is open (stashTradeCatalog: a kind with a stash, the hero in
