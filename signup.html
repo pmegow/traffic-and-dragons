@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign up — Traffic &amp; Dragons</title>
+<meta name="description" content="Create your Traffic and Dragons account, or choose the account you want to continue with.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="satellite.css">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg0);color:var(--t0);font-family:var(--font);min-height:100vh;padding:30px 22px}a{color:var(--acc);text-underline-offset:4px}header{max-width:980px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:24px;padding-bottom:22px;border-bottom:1px solid var(--brd)}.brand{text-decoration:none;font-size:20px;font-weight:bold}header>a:last-child{font:13px Arial,sans-serif}main{max-width:480px;margin:80px auto 40px}.eyebrow{color:var(--acc);font:12px Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;margin:0 0 18px}h1{font-size:42px;line-height:1.1;font-weight:normal;margin:0 0 20px}.intro{color:var(--t1);font-size:18px;line-height:1.6;margin:0 0 30px}button,.primary{display:block;width:100%;min-height:50px;padding:14px 18px;border:1px solid var(--brd2);border-radius:4px;background:var(--bg2);color:var(--t0);font:15px Arial,sans-serif;text-align:center;text-decoration:none;cursor:pointer;margin:12px 0}button:hover{background:var(--bg3)}button:disabled{opacity:.55;cursor:wait}.primary{background:var(--acc);color:var(--on-acc);font-weight:bold}.primary:hover{filter:brightness(1.1)}button:focus-visible,a:focus-visible{outline:3px solid var(--acc);outline-offset:4px}.note{font:14px/1.65 Arial,sans-serif;color:var(--t1)}.account-name{font-size:24px;line-height:1.4;overflow-wrap:anywhere;margin:4px 0 24px}.account-label{margin:0;color:var(--t1);font:13px Arial,sans-serif}.fine-print{margin-top:30px;padding-top:22px;border-top:1px solid var(--brd);font:13px/1.65 Arial,sans-serif;color:var(--t1)}#status{font:14px/1.6 Arial,sans-serif;overflow-wrap:anywhere}#status.error{color:var(--hp)}[hidden]{display:none!important}@media(max-width:520px){body{padding:22px 20px}header{align-items:flex-start;gap:16px}.brand{max-width:160px;font-size:18px}header>a:last-child{max-width:130px;text-align:right;line-height:1.5}main{margin-top:48px}h1{font-size:36px}.intro{font-size:17px}}
+</style>
+</head>
+<body>
+<header><a class="brand" href="https://trafficanddragons.com/">Traffic &amp; Dragons</a><a href="index.html">Continue your campaign →</a></header>
+<main>
+<p class="eyebrow">Your next adventure starts here</p>
+<h1 id="heading">Create your account</h1>
+<p id="intro" class="intro">Choose how you’d like to sign in. We’ll create your account if you’re new, or reconnect you if you’ve played before.</p>
+<div id="providers" hidden>
+<button id="signup-google" type="button">Continue with Google</button>
+<button id="signup-github" type="button">Continue with GitHub</button>
+<p class="note">Use the same sign-in method each time to find your campaigns.</p>
+</div>
+<div id="account" hidden>
+<p class="account-label">You’re signed in to Traffic &amp; Dragons as</p>
+<p id="account-name" class="account-name"></p>
+<a class="primary" href="home.html">Go to your home →</a>
+<button id="signout" type="button">Sign out to use another account</button>
+</div>
+<p id="status" role="status" aria-live="polite">Checking your game account…</p>
+<div id="recovery" hidden><button id="retry" type="button">Try again</button><button id="reset-session" type="button">Sign out and choose an account</button></div>
+<p class="fine-print">Your browser profile is separate from your game account. Signing into Edge with a Microsoft or Hotmail account doesn’t sign you into Traffic &amp; Dragons.</p>
+<noscript><p class="note">Turn on JavaScript to sign up or check your account.</p></noscript>
+</main>
+<!-- Same origin and shared adapter as the game; authentication never boots or loads a campaign here. -->
+<script src="globals.js"></script>
+<script src="data.js"></script>
+<script src="helpers.js"></script>
+<script src="inventory.js"></script>
+<script src="state.js"></script>
+<script src="storage-adapter.js"></script>
+<script>
+(function(){
+  var providers={google:"Google",github:"GitHub"},pending=false,deadline=null;
+  function $(id){return document.getElementById(id);}
+  function status(message,error){$("status").textContent=message||"";$("status").className=error?"error":"";if(error)console.warn("[signup] "+message);}
+  function busy(value){pending=value;Object.keys(providers).forEach(function(id){$("signup-"+id).disabled=value;});$("signout").disabled=value;$("retry").disabled=value;$("reset-session").disabled=value;}
+  function view(name){$("heading").textContent=name==="account"?"You’re signed in":"Create your account";$("intro").textContent=name==="account"?"Continue with this account, or sign out to choose another.":"Choose how you’d like to sign in. We’ll create your account if you’re new, or reconnect you if you’ve played before.";$("providers").hidden=name!=="providers";$("account").hidden=name!=="account";$("recovery").hidden=name!=="recovery";}
+  function refresh(){
+    if(pending)return;
+    view("");
+    if(!storageAdapter.isServerMode()){view("providers");status("");return;}
+    busy(true);status("Checking your game account…");
+    storageAdapter.whoAmI(function(err,info){
+      busy(false);
+      if(err||!info||typeof info.username!=="string"||!info.username){view("recovery");status("Could not verify your account: "+(err||"the server returned no account identity")+". Try again or sign out to choose an account.",true);return;}
+      $("account-name").textContent=info.username;view("account");status("Choose when you’re ready to continue.");
+    });
+  }
+  function signIn(provider){
+    if(pending||!Object.prototype.hasOwnProperty.call(providers,provider))return;
+    busy(true);status("Finish signing in with "+providers[provider]+" in the window that opens.");
+    // The shared adapter retires an abandoned popup after five minutes without a callback.
+    deadline=setTimeout(function(){deadline=null;busy(false);status("Sign-in timed out. Close the sign-in window and try again.",true);},310000);
+    storageAdapter.loginWithServer("https://traffic-and-dragons-server.fly.dev",function(err){
+      if(deadline!==null){clearTimeout(deadline);deadline=null;}
+      busy(false);
+      if(err){status(String(err),true);return;}
+      refresh();
+    },provider);
+  }
+  function signOut(){
+    if(pending)return;
+    busy(true);view("");status("Signing out…");
+    storageAdapter.logoutFromServer(function(err){busy(false);view("providers");status(err?String(err):"Signed out. Choose an account to continue.",!!err);});
+  }
+  Object.keys(providers).forEach(function(id){$("signup-"+id).addEventListener("click",function(){signIn(id);});});
+  $("signout").addEventListener("click",signOut);$("reset-session").addEventListener("click",signOut);$("retry").addEventListener("click",refresh);
+  window.addEventListener("pagehide",function(){if(deadline!==null){clearTimeout(deadline);deadline=null;}});
+  window.addEventListener("pageshow",function(event){if(event.persisted)window.location.reload();});
+  window.__signupTest={refresh:refresh,signIn:signIn,signOut:signOut};
+  refresh();
+})();
+</script>
+</body>
+</html>

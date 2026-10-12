@@ -1,6 +1,6 @@
 # Traffic & Dragons website
 
-Standalone public landing page, version 1.0.4. Open `index.html` to preview it locally.
+Standalone public landing page, version 1.0.5. Open `index.html` to preview it locally.
 No build, package installation, API keys, game files, or Codex runtime are required.
 
 The approved design uses parchment, brick-red lettering, the coffee version of the dragon-on-Beetle
@@ -8,9 +8,11 @@ artwork, and “Add a little fantasy to your gridlock.” The cover favors portr
 8.5:11 proportions, growing vertically on small screens to keep content readable.
 The surrounding background is 25% darker than the parchment (#b0a68b versus #eaddb9);
 the cover retains its original paper color and highlight.
-“Continue your Campaign” and “New Adventurer? Sign up” are the two entry links to the
-existing game at https://traffic-and-dragons.pages.dev/, which handles play and sign-in.
-There is no separate sign-in endpoint on this website.
+“Continue your Campaign” opens the existing game at https://traffic-and-dragons.pages.dev/.
+“New Adventurer? Sign up” always opens https://traffic-and-dragons.pages.dev/signup.html,
+even with saved credentials. That dedicated page uses the game’s existing authentication
+adapter on the game origin: Google/GitHub sign-in, verified account display, explicit
+continuation to Home, and sign-out. It never boots or loads a campaign.
 
 ## Live hosting
 
@@ -63,6 +65,7 @@ scoped permissions. Never store credentials in this repository.
 The layout and styles are in `index.html`; the displayed artwork is in
 `art/Dragon-on-beetle_coffee.jpeg`. Update the `website-version` meta value and the matching
 asset query versions whenever this website changes. No game service worker is used.
-If the game's destination changes, update both ordinary anchor links together.
+Keep the entry links distinct when changing destinations: Continue opens the game; Sign up
+opens signup.html on the game origin so the authenticated session is shared with play.
 The illustration failure handler reports to the page and console without blocking
 the entry links. This version uses one fixed illustration.
