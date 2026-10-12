@@ -3428,10 +3428,10 @@ function shopTradeCatalog(){
   for(i=0;i<_ce.length;i++){var base=_ce[i].name,n=_ce[i].qty,k=itemKey(base);
     if(!hero[k]){hero[k]={name:base,qty:0,equipped:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}
     hero[k].qty+=n;if(typeof isWorn==="function"&&isWorn(c,_ce[i].text))hero[k].equipped=true;}
-  var wanted=keyedDict(),wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */for(i=0;i<wl.length;i++){var _wk=itemBaseKey(wl[i].item);if(!wanted[_wk])wanted[_wk]=wl[i];}/* the FIRST live want per base — the same one retireWantedAt retires (review (b) 4: last-wins paid one want and retired another) */
+  var wl=(typeof nodeWantedLive==="function")?nodeWantedLive(vtc.node):(vtc.node.wanted||[]);/* #481 D4: live wants only */
   var sell=[];for(i=0;i<order.length;i++){var r=hero[order[i]],canon=(typeof itemLookup==="function")?itemLookup(r.name):null,cp=(typeof itemValueCp==="function")?itemValueCp(canon):null;
-    var w=wanted[itemBaseKey(r.name)]||null;
-    r.canonCp=cp;r.wanted=!!w;r.want=w?{key:itemBaseKey(w.item),item:String(w.item||""),by:w.by||"",per:Math.max(1,w.per|0)}:null;/* #577: the want this row meets; #517 (c): and its bundle */
+    var w=wantedFor(wl,r.name);/* #577: THE want match (memory.js) — the want for exactly this item first, so "Warded ring (silver)" is paid the silver offer, not the first same-base one (#599 b3 keyed every want by its base, and two offers of one base shared a price and an allowance) */
+    r.canonCp=cp;r.wanted=!!w;r.want=w?{key:wantedKey(w),item:String(w.item||""),by:w.by||"",per:Math.max(1,w.per|0)}:null;/* #577: the IDENTITY of the want this row meets — it rides the sale line to the retirement (review (b) 4's first-want rule now holds by construction); #517 (c): and its bundle */
     /* #481 D4 (ruled 2026-09-29; amends #407 ruling ①): a WANTED item sells at the keeper's STATED offer, parsed once when
        the want was filed (its `cp`), for ONE unit (the want retires when met); an offer in words is no counter price. */
     if(w){r.offer=String(w.offer||"");if(w.cp!=null)r.sellCp=w.cp;else r.offerWords=true;}
@@ -3446,7 +3446,7 @@ function shopTradePlan(cat,marks){
   marks=marks||{};var ms=marks.sell||{},mb=marks.buy||{},lines=[],sellCp=0,buyCp=0,i,k,wantLeft=keyedDict(),overWant=null;
   for(i=0;i<cat.sell.length;i++){var r=cat.sell[i];k=r.name.toLowerCase();var q=ms[k]|0;if(q<=0||r.equipped||r.sellCp==null)continue;q=Math.min(q,r.qty);
     if(r.want){var wl=(r.want.key in wantLeft)?wantLeft[r.want.key]:WANT_BUYS*r.want.per;if(q>wl&&!overWant)overWant=r.want;wantLeft[r.want.key]=wl-q;}/* #577: one allowance per want — #517 (c): the bundle ("1 gp per 5" buys five) */
-    lines.push({kind:"sell",name:r.name,qty:q,unitCp:r.sellCp,cp:r.sellCp*q});sellCp+=r.sellCp*q;}
+    var sl={kind:"sell",name:r.name,qty:q,unitCp:r.sellCp,cp:r.sellCp*q};if(r.want)sl.wantKey=r.want.key;/* #577: the line carries the want it was priced at, so ledgerApply retires THAT want and no other */lines.push(sl);sellCp+=r.sellCp*q;}
   for(i=0;i<cat.buy.length;i++){var b=cat.buy[i];k=b.name.toLowerCase();var bq=Math.min(mb[k]|0,b.per||1);if(bq<=0||b.cp==null)continue;var lc=Math.round(b.cp*bq/(b.per||1));lines.push({kind:"buy",name:b.name,qty:bq,unitCp:Math.round(b.cp/(b.per||1)),cp:lc,price:b.price});buyCp+=lc;}/* a bundle line is the bundle price times its share */
   var netCp=buyCp-sellCp,coinAfter=cat.coin-netCp,ok=lines.length>0&&coinAfter>=0;
   var why=!lines.length?"nothing marked":(coinAfter<0?"short "+fmtCoin(netCp-cat.coin):"");

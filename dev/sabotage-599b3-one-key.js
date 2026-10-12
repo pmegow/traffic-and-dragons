@@ -31,9 +31,9 @@ prove("inventory.js", [
     mustFail: RENAME },
 ]);
 prove("memory.js", [
-  { label: "the want match compares lower-cased text again (the plural never meets the singular want)",
-    find: "  var live=nodeWantedLive(node),base=itemBaseKey(_qtyParse(String(item==null?\"\":item)).base),i;\n  for(i=0;i<live.length;i++){if(itemBaseKey(_qtyParse(String(live[i].item==null?\"\":live[i].item)).base)!==base)continue;",
-    replace: "  var live=nodeWantedLive(node),base=String(item).toLowerCase(),i;\n  for(i=0;i<live.length;i++){if(String(live[i].item).toLowerCase()!==base)continue;",
+  { label: "the want match compares lower-cased text again (the plural never meets the singular want)",/* #577 re-anchor: the match is ONE function, wantedFor (memory.js), read by the counter and every retirement */
+    find: "  var k=itemKey(name),b=itemBaseKey(name),best=null,rank=0,i,r,wk;\n  for(i=0;i<(live||[]).length;i++){wk=wantedKey(live[i]);r=wk===k?3:wk===b?2:itemPairKey(live[i].item)===b?1:0;",
+    replace: "  var k=String(name).toLowerCase(),b=k,best=null,rank=0,i,r,wk;\n  for(i=0;i<(live||[]).length;i++){wk=String(live[i].item).toLowerCase();r=wk===k?3:0;",
     mustFail: WANT },
   { label: "a re-stated ware twins by spelling",
     find: "low=itemKey(it),i,row=null;/* #599 (b3): wares key through the one item key (§4.5) */\n  for(i=0;i<node.wares.length;i++)if(itemKey(node.wares[i].item)===low)",
@@ -50,7 +50,7 @@ prove("helpers.js", [
     replace: "k=base.toLowerCase();\n    if(!hero[k]){hero[k]={name:base,qty:0,equipped:false,canonCp:null,wanted:false,sellCp:null};order.push(k);}",
     mustFail: WANT },
   { label: "the counter looks a want up by the row's own spelling (the plural row misses the singular want)",
-    find: "    var w=wanted[itemBaseKey(r.name)]||null;", replace: "    var w=wanted[r.name.toLowerCase()]||null;",
+    find: "    var w=wantedFor(wl,r.name);", replace: "    var w=null;for(var _ws=0;_ws<wl.length;_ws++)if(String(wl[_ws].item).toLowerCase()===r.name.toLowerCase()){w=wl[_ws];break;}",/* #577 re-anchor: the lookup is wantedFor */
     mustFail: WANT },
 ]);
 prove("identity.js", [

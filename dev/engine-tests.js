@@ -30026,12 +30026,72 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(d4Wants(n).indexOf("Warded ring")>=0)return "the met want retires: "+JSON.stringify(n.wanted);
     return shopTradeCatalog().sell.some(function(r){return /^Warded ring/.test(r.name)&&r.wanted;})?"no ring is wanted once the want is met":true;
   });
+  // #577 (verification 2026-10-08, adjudicated FAIL): two wants that share a base but are DISTINCT offers — plain "Warded ring"
+  // at 40 gp, "Warded ring (silver)" at 60 gp. The counter priced one offer and the retirement removed the FIRST want with the
+  // same base, so the unpaid offer vanished and the paid one stayed payable; which one flipped with the filing order. The want's
+  // identity now rides the sale line from the catalog through the plan into ledgerApply, and only that want retires.
+  function d4Pair(silverFirst){var n=d4Fixture(),plain=n.wanted[n.wanted.length-1],silver={item:"Warded ring (silver)",offer:"60 gp",by:"Frizwick",t:1,min:clockNow()};
+    if(silverFirst)n.wanted.splice(n.wanted.indexOf(plain),0,silver);else n.wanted.push(silver);worldState.character.inventory.push("Warded ring (silver) x2");return n;}
+  function d4Mark(name){var o={};o[name.toLowerCase()]=1;return {sell:o,buy:{}};}
+  function d4PairCase(silverFirst){
+    var n=d4Pair(silverFirst),c=worldState.character,sold=silverFirst?"Warded ring":"Warded ring (silver)",other=silverFirst?"Warded ring (silver)":"Warded ring",paid=silverFirst?4000:6000,otherCp=silverFirst?6000:4000;
+    var cat=shopTradeCatalog(),both=shopTradePlan(cat,{sell:{"warded ring":1,"warded ring (silver)":1},buy:{}});
+    if(!both.ok||both.sellCp!==10000)return "each offer keeps its own allowance (40 gp + 60 gp): "+JSON.stringify([both.ok,both.sellCp,both.reason]);
+    var row=cat.sell.filter(function(r){return r.name===sold;})[0];
+    if(!row||!row.want||row.want.item!==sold||row.sellCp!==paid)return "the "+sold+" row is priced at its OWN offer ("+fmtCoin(paid)+"): "+JSON.stringify(row);
+    var pl=shopTradePlan(cat,d4Mark(sold));if(!pl.ok||!pl.lines[0]||pl.lines[0].wantKey!==itemKey(sold))return "the sale line carries the identity of the want it was priced at: "+JSON.stringify(pl.lines);
+    var g=c.coin,res=quiet(function(){return shopTradeApply(d4Mark(sold));}).r;
+    if(!res.ok||c.coin!==g+paid)return "the sale pays "+fmtCoin(paid)+": "+JSON.stringify(res&&res.muts)+" coin "+(c.coin-g);
+    if(d4Wants(n).join("|")!=="Bone-handled knife|"+other)return "the paid offer is the retired offer — "+other+" stays, "+sold+" goes: "+JSON.stringify(d4Wants(n));
+    if((res.muts||[]).indexOf("Want met: "+sold+" (Frizwick)")<0)return "the receipt names the paid want: "+JSON.stringify(res.muts);
+    var g2=c.coin,res2=quiet(function(){return shopTradeApply(d4Mark(sold));}).r,d=c.coin-g2,met=((res2&&res2.muts)||[]).filter(function(m){return /^Want met:/.test(m);});
+    if(res2.ok&&d===paid)return "a second "+sold+" is paid the "+fmtCoin(paid)+" premium again: "+JSON.stringify(res2.muts);
+    /* the second ring may meet the remaining want (the provenance-free rule, #599 b3) or none — either way the offer paid is the offer retired */
+    if(res2.ok&&met.length&&!(met.length===1&&met[0]==="Want met: "+other+" (Frizwick)"&&d===otherCp&&d4Wants(n).indexOf(other)<0))return "a second sale that meets a want pays exactly that want's offer and retires it: "+JSON.stringify(res2.muts)+" "+JSON.stringify(d4Wants(n));
+    if(res2.ok&&!met.length&&d4Wants(n).indexOf(other)<0)return "a second sale that meets no want retires none: "+JSON.stringify(d4Wants(n));
+    return true;
+  }
+  t("#577 the paid offer is the retired offer — the plain want filed first: selling the silver ring pays its 60 gp and retires the silver want; the plain 40 gp want stays, and the silver premium is never paid twice",function(){
+    return d4PairCase(false);
+  });
+  t("#577 the paid offer is the retired offer — the silver want filed first: selling the plain ring pays its 40 gp and retires the plain want; the silver 60 gp want stays; and a sale line priced at no offer retires none",function(){
+    var r=d4PairCase(true);if(r!==true)return r;
+    /* a stale plan (the probe's shape): the rope is planned at half canon with no want on file, then a want for rope is filed before
+       the plan lands — the ledger must not retire an offer it never paid */
+    var n=memory.map.nodes["The Village|the trading post"],cat=shopTradeCatalog(),stale=shopTradePlan(cat,{sell:{"rope":1},buy:{}});
+    if(!stale.ok||stale.lines.length!==1||stale.lines[0].wantKey!=null)return "fixture: one unwanted rope line: "+JSON.stringify(stale);
+    n.wanted.push({item:"Rope",offer:"2 gp",by:"Frizwick",t:1,min:clockNow()});
+    var lr=quiet(function(){return ledgerApply(stale,{key:cat.key});}).r;
+    return (lr.ok&&d4Wants(n).indexOf("Rope")>=0&&!(lr.muts||[]).some(function(m){return /Want met/.test(m);}))?true:"a line priced at no offer retires none: "+JSON.stringify(lr&&lr.muts)+" "+JSON.stringify(d4Wants(n));
+  });
   t("#591 a discarded or consumed wanted item retires nothing: [ITEM_LOST:] with no coin in the reply leaves the want standing; the next real sale still meets it",function(){
     var n=d4Fixture();var r=quiet(function(){return applyMuts("Frizwick watches as you toss the ring into the hearth. [ITEM_LOST:Warded ring]");}).r;
     if(d4Wants(n).indexOf("Warded ring")<0)return "a loss without a sale must not retire the want: "+JSON.stringify(r.muts);
     if((r.muts||[]).some(function(m){return /Want met/.test(m);}))return "no 'Want met' receipt without coin: "+JSON.stringify(r.muts);
     var r2=quiet(function(){return applyMuts("Frizwick counts out the coin. [SAY:Frizwick|pleased]Done.[/SAY] [GOLD:+40][ITEM_LOST:Warded ring]");}).r;
     return (d4Wants(n).indexOf("Warded ring")<0&&(r2.muts||[]).indexOf("Want met: Warded ring (Frizwick)")>=0)?true:"the real sale after it still meets the want: "+JSON.stringify(r2.muts)+" "+JSON.stringify(n.wanted);
+  });
+  // #591 (Astra's verification 2026-10-03, reproduced 2026-10-04): coin anywhere in the reply (R.goldIn>0) was read as this item's
+  // price — Frizwick returns 1 cp change, the hero throws the wanted ring away, and "Want met" retired the 40 gp offer. A want now
+  // retires on the GM's path only from an identified sale: a payment in the loss's own tag block that equals the offer for the
+  // units lost. Anything the tags cannot prove keeps the want, and a ⚠ receipt says why.
+  t("#591 unrelated coin is no sale: [GOLD:+1 cp][ITEM_LOST:Warded ring] (change returned, the ring thrown away) keeps the 40 gp want with a ⚠ receipt naming the coin and the offer; the exact offer paid in ANOTHER tag block proves nothing either",function(){
+    var n=d4Fixture(),c=worldState.character,g=c.coin;
+    var r=quiet(function(){return applyMuts("Frizwick returns one copper in change from an earlier purchase. You toss the ring into the hearth. [SAY:Frizwick|plain]Your change.[/SAY] [GOLD:+1 cp][ITEM_LOST:Warded ring]");}).r;
+    if(c.coin!==g+1)return "fixture: the change lands: "+(c.coin-g)+" "+JSON.stringify(r.muts);
+    if(d4Wants(n).indexOf("Warded ring")<0)return "a coin that does not match the offer must not retire the want: "+JSON.stringify(r.muts);
+    if((r.muts||[]).some(function(m){return /Want met/.test(m);}))return "no 'Want met' for unrelated change: "+JSON.stringify(r.muts);
+    var kept=(r.muts||[]).filter(function(m){return /^⚠ Want kept — Warded ring \(Frizwick\)/.test(m);});
+    if(kept.length!==1||!/1 cp/.test(kept[0])||!/40 gp/.test(kept[0])||!mutLineWarns(kept[0]))return "one ⚠ keep-receipt naming the coin and the offer: "+JSON.stringify(r.muts);
+    var ix=(r.muts||[]).indexOf("-Warded ring");if(ix<0||r.muts[ix+1]!==kept[0])return "the receipt sits beside the loss it judges: "+JSON.stringify(r.muts);
+    var r2=quiet(function(){return applyMuts("Frizwick drops forty gold on the counter for the lamp oil. [SAY:Frizwick|plain]For the oil.[/SAY] [GOLD:+40 gp] Later, alone, the other ring slips from your fingers into the well. [ITEM_LOST:Warded ring]");}).r;
+    if(d4Wants(n).indexOf("Warded ring")<0)return "the exact offer paid in another tag block is not this ring's price: "+JSON.stringify(r2.muts);
+    return (r2.muts||[]).some(function(m){return /^⚠ Want kept — Warded ring \(Frizwick\): no coin was paid in the same tag block/.test(m);})?true:"the receipt says the coin was not paid beside the item: "+JSON.stringify(r2.muts);
+  });
+  t("#591 a payment that matches the offer, in the loss's own tag block, is the sale: [GOLD:+40 gp][ITEM_LOST:Warded ring] retires the 40 gp want with its receipt and no keep line",function(){
+    var n=d4Fixture();var r=quiet(function(){return applyMuts("Frizwick counts out forty gold. [SAY:Frizwick|pleased]A fair trade.[/SAY] [GOLD:+40 gp][ITEM_LOST:Warded ring]");}).r;
+    if(d4Wants(n).indexOf("Warded ring")>=0)return "the identified sale retires the want: "+JSON.stringify(r.muts)+" "+JSON.stringify(d4Wants(n));
+    return ((r.muts||[]).indexOf("Want met: Warded ring (Frizwick)")>=0&&!(r.muts||[]).some(function(m){return /Want kept/.test(m);}))?true:"the receipt, and no keep line: "+JSON.stringify(r.muts);
   });
   t("#481 D4 a GM-narrated sale in the shop retires the want too",function(){
     var n=d4Fixture();var r=quiet(function(){return applyMuts("Frizwick turns the ring in the light and counts out the coin. [SAY:Frizwick|pleased]Done.[/SAY] [GOLD:+40][ITEM_LOST:Warded ring]");}).r;

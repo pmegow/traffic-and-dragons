@@ -21,7 +21,7 @@ prove("game.js", [
     find: "  if(net>0&&(Number(c.coin)||0)<net)return {ok:false,reason:\"short \"+fmtCoin(net-(Number(c.coin)||0))+\" — nothing moved\",muts:[]};/* #598: copper */", replace: "",
     mustFail: "#597 ② a stale plan is refused WHOLE" },
   { label: "a sale no longer retires the keeper's want",
-    find: "var w=(typeof retireWantedAt===\"function\")?retireWantedAt({key:key},ln.name):null;", replace: "var w=null;",
+    find: "var w=(ln.wantKey!=null&&typeof retireWantedAt===\"function\")?retireWantedAt({key:key},ln.name,ln.wantKey):null;", replace: "var w=null;",/* #577 re-anchor: the line retires the want it was priced at */
     mustFail: "#597 ③ what the tag path did for a sale is kept" },
   { label: "a sold row stays on the sheet with its flag (the removal no longer lands)",/* #599 (c2): on rows the flag leaves WITH the row, so the old wornPrune mutation changed nothing — a false proof since (c), found by the c2 sweep */
     find: "if(ln.kind===\"sell\"||ln.kind===\"stow\"){for(j=0;j<n;j++)removeInventoryItem(c.inventory,ln.name);muts.push(\"-\"+ln.name+qs);}", replace: "if(ln.kind===\"sell\"||ln.kind===\"stow\"){muts.push(\"-\"+ln.name+qs);}",

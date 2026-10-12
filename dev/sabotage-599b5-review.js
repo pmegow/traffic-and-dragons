@@ -36,10 +36,12 @@ prove("game.js", [
     find: "  if(!_ad.ok)return;pick=_ad.sheet;", replace: "  if(!_ad.ok)return;",
     mustFail: R7 },
 ]);
-prove("helpers.js", [
-  { label: "the counter's want map is last-wins again (one want paid, another retired)",
-    find: "if(!wanted[_wk])wanted[_wk]=wl[i];}", replace: "wanted[_wk]=wl[i];}",
+prove("memory.js", [
+  { label: "the want match ignores identity and is last-wins again (one want paid, another retired)",/* #577 re-anchor: the counter's base-keyed want map became ONE matcher, wantedFor (memory.js) */
+    find: "r=wk===k?3:wk===b?2:itemPairKey(live[i].item)===b?1:0;if(r>rank){best=live[i];rank=r;}", replace: "r=itemPairKey(live[i].item)===b?1:0;if(r&&r>=rank){best=live[i];rank=r;}",
     mustFail: R4 },
+]);
+prove("helpers.js", [
   { label: "the library update copies fields from the raw library sheet again",
     find: "  var d=libUpdateDiff(cur,_src),i,row;", replace: "  var d=libUpdateDiff(cur,lib),i,row;",
     mustFail: R7 },

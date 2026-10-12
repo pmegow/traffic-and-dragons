@@ -802,14 +802,37 @@ function wantedNodeAt(at){
   if(typeof kindDef==="function"&&kindDef().waresPerShop){key=(at&&at.key)?at.key:((typeof currentNodeKey==="function")?currentNodeKey():null);if(!key)return null;if(typeof locResolve==="function")key=locResolve(key);var n=memory.map.nodes[key];return (n&&typeof isShopNode==="function"&&isShopNode(key,n))?n:null;}
   key=(at&&at.world)?at.world:worldState.world.location;if(!key)return null;if(typeof locResolve==="function")key=locResolve(key);return memory.map.nodes[key]||null;
 }
-/* A met want leaves the list: the live want for `item` (base-name match) at the place `at`. Returns the row, or null. */
-function retireWantedAt(at,item){
+/* #577 (verification 2026-10-08): a want's IDENTITY is the one item key of its own name — fileWanted refreshes a re-stated want by
+   this key, so no two wants on a node share it. The counter records it on the row it prices (shopTradeCatalog → r.want.key), the
+   plan carries it on the sale line (shopTradePlan → line.wantKey) and the ledger retires exactly that want (ledgerApply). It used to
+   be lost between the price and the retirement: with a plain "Warded ring" at 40 gp and "Warded ring (silver)" at 60 gp, one offer
+   was paid and the FIRST want with the same base was retired, so the unpaid offer vanished and the paid one stayed payable. */
+function wantedKey(w){return itemKey(String(w&&w.item!=null?w.item:""));}
+/* #577: THE want match — the counter's price and every retirement read this one rule. A COUNT-FREE item name meets, in order: the
+   want for exactly this item (its own key); the want for the plain item ("Warded ring (cracked)" meets "Warded ring" whichever was
+   filed first); else the FIRST live want with the same provenance-free base (#599 b3, §2.2: the tag grammar decodes a count,
+   itemBaseKey projects the clause and applies the pack rule, so "Wolf pelts" meets "Wolf pelt" and "Signet ring (from Hemlock)"
+   meets "Signet ring"). Pure; null = no want. */
+function wantedFor(live,name){
+  var k=itemKey(name),b=itemBaseKey(name),best=null,rank=0,i,r,wk;
+  for(i=0;i<(live||[]).length;i++){wk=wantedKey(live[i]);r=wk===k?3:wk===b?2:itemPairKey(live[i].item)===b?1:0;if(r>rank){best=live[i];rank=r;}}
+  return best;
+}
+/* #591: what a want pays for `n` units, in copper — the offer as written (parseCoin: "40 gp" × n; a bundle, "1 gp per 5", by its
+   share), or null for an offer in words, which no payment can be matched against. */
+function wantedPayCp(w,n){
+  if(!w||w.cp==null)return null;var oc=parseCoin(w.offer);
+  return (oc&&oc.unit)?Math.round(oc.cp*n/Math.max(1,oc.per)):w.cp*n;
+}
+/* A met want leaves the list, at the place `at`. #577: `key` = the identity of the want the sale was PRICED at — only that want
+   retires, and a key no live want carries retires nothing (the paid offer is gone; a same-base neighbour never retires in its
+   place). Without a key (a caller that priced nothing) the want `item` meets by wantedFor. Returns the row, or null. */
+function retireWantedAt(at,item,key){
   var node=wantedNodeAt(at);if(!node)return null;
-  /* #599 (b3): the WANT MATCH is provenance-free (§2.2) — the tag grammar decodes a count, itemBaseKey projects the clause and
-     applies the pack rule, so "Wolf pelts" and "Iron ring - unmarked" now meet "Wolf pelt" and "Iron ring — unmarked" */
-  var live=nodeWantedLive(node),base=itemBaseKey(_qtyParse(String(item==null?"":item)).base),i;
-  for(i=0;i<live.length;i++){if(itemBaseKey(_qtyParse(String(live[i].item==null?"":live[i].item)).base)!==base)continue;var ix=node.wanted.indexOf(live[i]);if(ix>=0)node.wanted.splice(ix,1);return live[i];}
-  return null;
+  var live=nodeWantedLive(node),w=null,i;
+  if(key!=null){for(i=0;i<live.length;i++){if(wantedKey(live[i])===key){w=live[i];break;}}}
+  else w=wantedFor(live,_qtyParse(String(item==null?"":item)).base);
+  if(!w)return null;var ix=node.wanted.indexOf(w);if(ix>=0)node.wanted.splice(ix,1);return w;
 }
 function fileWanted(item,offer,by,turn,at){
   var node=waresNodeFor(turn,at);if(!node)return null;
