@@ -3623,6 +3623,20 @@ var RESIDENT_REL_GOOD_RE=/\b(?:resident|residents|acquaintance|acquaintances|neu
 var RESIDENT_REL_EXPIRE_TURNS=12,RESIDENT_REL_CAP=8;
 function residentRelGood(rel){return RESIDENT_REL_GOOD_RE.test(String(rel||""));}/* a standing in good order: a warm word, or the baseline; anything outside the vocabulary counts as colder, so no unlisted synonym can land unasked (the 2026-10-12 acceptance's fourteen) */
 function residentRelPending(name){var q=(typeof worldState!=="undefined"&&worldState)?worldState.residentRelChanges:null,i;if(!q)return null;for(i=0;i<q.length;i++)if(q[i].name===name)return q[i];return null;}
+/* #614 (owner ruling 2026-10-12): a proposal is keyed by the resident's NAME and an NPC merge retires the duplicate's name — the proposal used to
+   wait under the dead key until it expired. The NPC_MERGE handler (both merge vocabularies) hands it to the survivor: the name changes; the
+   preimage and the staging turn stay, so a repeat on the staging turn is still a same-response duplicate, and a survivor whose standing is not
+   the preimage drops it at the repeat (the moved-preimage rule) — never a commit onto a standing nobody reviewed. When the survivor has a
+   proposal of its own, the survivor's waits on and the duplicate's is dropped. Both branches are said in R.muts. */
+function residentRelRekey(canonical,duplicate,R){
+  var p=residentRelPending(duplicate);if(!p||canonical===duplicate)return;
+  var what=" (\""+p.prev+"\" → \""+p.next+"\", staged t"+p.turn+")";
+  if(residentRelPending(canonical)){var q=worldState.residentRelChanges;q.splice(q.indexOf(p),1);/* the survivor's own proposal remains, so the queue is never empty here */
+    if(R&&R.muts)R.muts.push("⚠ Resident relation proposal DROPPED (merged into "+canonical+", whose own proposal waits): "+duplicate+what);
+    if(typeof console!=="undefined")console.warn("[npc] #614 the merge of "+duplicate+" into "+canonical+" dropped "+duplicate+"'s waiting relation proposal — "+canonical+"'s own waits on");return;}
+  p.name=canonical;
+  if(R&&R.muts)R.muts.push("Resident relation proposal re-keyed: "+duplicate+" -> "+canonical+what);
+}
 function residentRelExpire(R,turn){
   var q=(typeof worldState!=="undefined"&&worldState)?worldState.residentRelChanges:null,i;if(!q||!q.length)return;
   for(i=q.length-1;i>=0;i--){if(turn-q[i].turn>=RESIDENT_REL_EXPIRE_TURNS){if(R&&R.muts)R.muts.push("Resident relation proposal expired unconfirmed: "+q[i].name+" (\""+q[i].prev+"\" \u2192 \""+q[i].next+"\", staged t"+q[i].turn+", "+(turn-q[i].turn)+" quiet turns) \u2014 the standing stays \""+q[i].prev+"\"");if(typeof console!=="undefined")console.log("[npc] #593 resident relation proposal for "+q[i].name+" expired unconfirmed after "+(turn-q[i].turn)+" turns");q.splice(i,1);}}

@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-12 · #614 · Opus 5.5 build lane under Fable (drift surface: the NPC_MERGE record fold, the #593 queue): a merge carries the resident mark and the adopted sheet stamp and re-keys a waiting standing proposal, said. Test-first (10 cases), 9 clauses, batteries 593/504/identity/w2/537/532/544/w7 green, fuzzer clean. Fable reviewed every engine line and landed it.
+
 - 2026-10-12 · #617 (thin UI) · Console renders server-owned verified email and delivery receipt, with the existing authenticated subscription transport carrying a separate email retry action; 13 console checks, 14 mutation proofs and desktop/mobile before/after fixture renders. No engine or storage-adapter changes.
 
 - 2026-10-12 · #617 (thin UI) · File → Operator console promoted from Settings and gated on server-confirmed operator identity even in local mode; 12 console checks and 12 mutation proofs, isolated before/after browser renders. Email setup remains separate.

@@ -28199,6 +28199,106 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     acc593();var r=acc593Turn("[NPC:Nyla||hostile]",6);
     if(acc593Rel("Nyla")!=="resident")return "a write in the new world never confirms the old world's proposal: "+acc593Rel("Nyla")+" "+JSON.stringify(r.muts);
     var q=worldState.residentRelChanges;return q&&q.length===1&&q[0].turn===6&&acc593Lines(r,/staged: Nyla/).length===1?true:"it stages afresh: "+JSON.stringify(q);});
+  /* #614 (owner ruling 2026-10-12; found by the #593 acceptance lane, predates #593): an NPC merge folds the duplicate's roster record into
+     the survivor's, and the fold never carried the Village RESIDENT mark, nor the library stamp that names the copy an adopted sheet came
+     from — a merged or renamed resident became a visitor, so a colder word landed on the neighbour at once (#593's guard keys on the mark).
+     A standing proposal waiting under the duplicate's name was never re-keyed: it waited under a dead name until it expired. Both merge
+     vocabularies run the ONE NPC_MERGE handler ([MERGE:npc|…] routes into it), so the cases below drive both. */
+  section("#614 a merge keeps the resident (owner ruling 2026-10-12)");
+  var AT614=1760000000000;
+  function res614(nm,rel,at){worldState.npcs.push({name:nm,status:"",statusTurn:0,rel:rel||"resident",met:0,partyMember:false,resident:true,pronouns:"she/her",portrait:null,charSheet:{name:nm,inventory:[],relationships:[]},libraryAt:at});memory.npcs[nm]={knowledge:["lives in the village"],events:[{t:1,e:"moved in"}],aliases:[]};}
+  function w614(visRel){makeWorld();worldState.kind="village";worldState.world.location="The Village";delete worldState.world.sublocation;worldState.turn=5;
+    res614("Nyla Brightwater","resident",AT614);
+    worldState.npcs.push({name:"The Weaver",status:"",statusTurn:0,rel:visRel||"unknown",met:3,partyMember:false,pronouns:null,portrait:null});memory.npcs["The Weaver"]={knowledge:["works the loom at night"],events:[],aliases:[]};/* a visitor: no resident mark, no sheet */}
+  function turn614(text,turn){worldState.turn=turn;var _st=showToast,_cl=console.log,got=[],r;showToast=function(m){got.push(String(m));};console.log=function(){};
+    try{r=quiet(function(){return applyMuts(text);}).r;}finally{showToast=_st;console.log=_cl;}r.toasts=got;return r;}
+  function rel614(n){var x=wsNpcByName(n);return x?x.rel:null;}
+  function has614(r,re){return (r.muts||[]).filter(function(m){return re.test(m);}).length;}
+  function noKey614(){return !Object.prototype.hasOwnProperty.call(worldState,"residentRelChanges");}
+  function staged614(nm,r){var q=worldState.residentRelChanges;return !!(q&&q.length===1&&q[0].name===nm&&has614(r,new RegExp("^Resident relation change staged: "+nm))===1);}
+  t("#614 (a) a resident merged as the DUPLICATE into a visitor's record: the survivor is a resident — the mark, the sheet and the sheet's library stamp carried — and the merge summary says so",function(){
+    w614();var r=turn614("[NPC_MERGE:The Weaver|Nyla Brightwater]",5),s=wsNpcByName("The Weaver");
+    if(!has614(r,/^Merged: Nyla Brightwater -> The Weaver$/)||wsNpcByName("Nyla Brightwater"))return "fixture: the merge lands and the duplicate leaves the roster: "+JSON.stringify(r.muts);
+    if(!s||s.resident!==true)return "the survivor carries the resident mark (#614): "+JSON.stringify(s);
+    if(!s.charSheet||s.charSheet.name!=="The Weaver")return "the sheet is carried under the survivor's name: "+JSON.stringify(s.charSheet);
+    if(s.libraryAt!==AT614)return "the library stamp rides with the sheet it stamps (#614): "+s.libraryAt;
+    return has614(r,/^Resident carried: Nyla Brightwater -> The Weaver$/)===1?true:"the merge summary says the residency moved (#614): "+JSON.stringify(r.muts);});
+  t("#614 (a) a visitor that holds a sheet of its own absorbs the resident: the mark is carried, the survivor's own sheet stays, and the duplicate's library stamp is NOT taken (a stamp names the copy a sheet came from — partyUploadAhead)",function(){
+    w614();wsNpcByName("The Weaver").charSheet={name:"The Weaver",inventory:[],relationships:[]};
+    var r=turn614("[NPC_MERGE:The Weaver|Nyla Brightwater]",5),s=wsNpcByName("The Weaver");
+    if(!has614(r,/^Merged: Nyla Brightwater -> The Weaver$/))return "fixture: the merge lands: "+JSON.stringify(r.muts);
+    if(!s||s.resident!==true)return "the survivor carries the resident mark (#614): "+JSON.stringify(s);
+    if(s.libraryAt!==undefined)return "the survivor keeps its own sheet, so it takes no stamp of a sheet it did not adopt (#614): "+s.libraryAt;
+    return has614(r,/^Resident carried: Nyla Brightwater -> The Weaver$/)===1?true:"said (#614): "+JSON.stringify(r.muts);});
+  t("#614 (b) the resident as the CANONICAL with a visitor duplicate stays a resident: the mark, its own sheet and stamp stay, and no residency line is printed",function(){
+    w614();wsNpcByName("The Weaver").charSheet={name:"The Weaver",inventory:[],relationships:[]};/* a visitor's generated sheet folds into the resident's; the resident's own sheet and stamp win */
+    var r=turn614("[NPC_MERGE:Nyla Brightwater|The Weaver]",5),s=wsNpcByName("Nyla Brightwater");
+    if(!has614(r,/^Merged: The Weaver -> Nyla Brightwater$/)||wsNpcByName("The Weaver"))return "fixture: the merge lands: "+JSON.stringify(r.muts);
+    if(!s||s.resident!==true||s.libraryAt!==AT614||!s.charSheet||s.charSheet.name!=="Nyla Brightwater")return "the resident keeps the mark, the sheet and the stamp (#614): "+JSON.stringify({res:s&&s.resident,at:s&&s.libraryAt,sheet:s&&s.charSheet&&s.charSheet.name});
+    return has614(r,/^Resident carried/)?"nothing moved, nothing to say (#614): "+JSON.stringify(r.muts):true;});
+  t("#614 (c) [MERGE:npc|Nyla Stormwater|Nyla Brightwater] renames a resident: the new record is a resident with the sheet, its stamp and the standing, said",function(){
+    w614();var r=turn614("[MERGE:npc|Nyla Stormwater|Nyla Brightwater]",5),s=wsNpcByName("Nyla Stormwater");
+    if(!has614(r,/^Merged: Nyla Brightwater -> Nyla Stormwater$/)||wsNpcByName("Nyla Brightwater"))return "fixture: the rename lands: "+JSON.stringify(r.muts);
+    if(!s||s.resident!==true)return "the renamed record is a resident (#614): "+JSON.stringify(s);
+    if(!s.charSheet||s.charSheet.name!=="Nyla Stormwater"||s.libraryAt!==AT614)return "the sheet and its stamp come along (#614): "+JSON.stringify({sheet:s.charSheet&&s.charSheet.name,at:s.libraryAt});
+    if(s.rel!=="resident")return "the standing comes along: "+s.rel;
+    return has614(r,/^Resident carried: Nyla Brightwater -> Nyla Stormwater$/)===1?true:"said (#614): "+JSON.stringify(r.muts);});
+  t("#614 (d) a colder proposal waiting under the old name is RE-KEYED to the survivor on both merge paths, said, and the same relation under the NEW name on a later response commits it",function(){
+    var paths=[["[NPC_MERGE:The Weaver|Nyla Brightwater]","The Weaver"],["[MERGE:npc|Nyla Stormwater|Nyla Brightwater]","Nyla Stormwater"]],i,r,q,nm;
+    for(i=0;i<paths.length;i++){nm=paths[i][1];
+      w614();turn614("[NPC:Nyla Brightwater||hostile]",5);if(!residentRelPending("Nyla Brightwater"))return "fixture: staged under the old name";
+      r=turn614(paths[i][0],6);q=worldState.residentRelChanges;
+      if(!q||q.length!==1||q[0].name!==nm||q[0].prev!=="resident"||q[0].next!=="hostile"||q[0].turn!==5)return nm+": the proposal follows the person, its preimage and staging turn kept (#614): "+JSON.stringify(q);
+      if(residentRelPending("Nyla Brightwater"))return nm+": nothing waits under the dead name (#614)";
+      if(has614(r,new RegExp("^Resident relation proposal re-keyed: Nyla Brightwater -> "+nm+" "))!==1)return nm+": the re-key is said (#614): "+JSON.stringify(r.muts);
+      r=turn614("[NPC:"+nm+"||hostile]",7);
+      if(rel614(nm)!=="hostile"||!noKey614()||has614(r,new RegExp("^"+nm+": relation hostile \\(confirmed"))!==1)return nm+": the repeat under the new name commits (#614): "+rel614(nm)+" "+JSON.stringify(r.muts);}
+    /* the merge and the repeat in ONE later response: the staging turn rides the re-key, so the repeat is a later response's */
+    w614();turn614("[NPC:Nyla Brightwater||hostile]",5);r=turn614("[MERGE:npc|Nyla Stormwater|Nyla Brightwater] [NPC:Nyla Stormwater||hostile]",6);
+    return rel614("Nyla Stormwater")==="hostile"&&noKey614()?true:"the merge and the repeat in a later response commit (#614): "+rel614("Nyla Stormwater")+" "+JSON.stringify(r.muts);});
+  t("#614 (d) a same-response duplicate still cannot confirm across a merge: the stage, the merge and the repeat in one response leave one proposal under the survivor; a repeat on the re-keyed proposal's own staging turn is a duplicate too",function(){
+    w614();var r=turn614("[NPC:Nyla Brightwater||hostile] [MERGE:npc|Nyla Stormwater|Nyla Brightwater] [NPC:Nyla Stormwater||hostile]",5),q=worldState.residentRelChanges;
+    if(rel614("Nyla Stormwater")!=="resident")return "canon unchanged (#614): "+rel614("Nyla Stormwater")+" "+JSON.stringify(r.muts);
+    if(!q||q.length!==1||q[0].name!=="Nyla Stormwater"||q[0].turn!==5)return "one proposal, under the survivor (#614): "+JSON.stringify(q);
+    if(has614(r,/NOT confirmed \(same-response duplicate\): Nyla Stormwater/)!==1)return "the duplicate is said (#614): "+JSON.stringify(r.muts);
+    w614();turn614("[NPC:Nyla Brightwater||hostile]",5);r=turn614("[MERGE:npc|Nyla Stormwater|Nyla Brightwater] [NPC:Nyla Stormwater||hostile]",5);
+    return rel614("Nyla Stormwater")==="resident"&&residentRelPending("Nyla Stormwater")&&has614(r,/NOT confirmed \(same-response duplicate\): Nyla Stormwater/)===1?true:"the staging turn rides the re-key (#614): "+rel614("Nyla Stormwater")+" "+JSON.stringify(r.muts);});
+  t("#614 (d) a re-keyed proposal whose preimage the merge moved (the visitor's own standing won the fold) never confirms onto a standing nobody reviewed: the repeat drops it, said, and the next write restages",function(){
+    w614("acquaintance");turn614("[NPC:Nyla Brightwater||hostile]",5);turn614("[NPC_MERGE:The Weaver|Nyla Brightwater]",6);
+    if(rel614("The Weaver")!=="acquaintance")return "fixture: the canonical's standing wins the fold: "+rel614("The Weaver");
+    var r=turn614("[NPC:The Weaver||hostile]",7);
+    if(rel614("The Weaver")!=="acquaintance")return "no commit onto a moved standing (#614): "+rel614("The Weaver")+" "+JSON.stringify(r.muts);
+    if(has614(r,/Resident relation proposal DROPPED \(the standing moved since staging: "resident" is now "acquaintance"\)/)!==1||!noKey614())return "dropped and said (#614): "+JSON.stringify(r.muts);
+    r=turn614("[NPC:The Weaver||hostile]",8);
+    return staged614("The Weaver",r)&&worldState.residentRelChanges[0].prev==="acquaintance"?true:"the next write restages from the survivor's standing (#614): "+JSON.stringify(worldState.residentRelChanges)+" "+JSON.stringify(r.muts);});
+  t("#614 (e) after every merge shape a colder word on the survivor is STAGED, not landed — the #593 guard holds on the surviving record",function(){
+    var cases=[["a resident into a visitor","[NPC_MERGE:The Weaver|Nyla Brightwater]","The Weaver","acquaintance"],["a visitor into the resident","[NPC_MERGE:Nyla Brightwater|The Weaver]","Nyla Brightwater","acquaintance"],["a rename","[MERGE:npc|Nyla Stormwater|Nyla Brightwater]","Nyla Stormwater",null],["MERGE into a visitor","[MERGE:npc|The Weaver|Nyla Brightwater]","The Weaver","acquaintance"]],i,c,r,before;
+    for(i=0;i<cases.length;i++){c=cases[i];w614(c[3]);turn614(c[1],5);before=rel614(c[2]);
+      if(!before)return c[0]+": fixture: the survivor is on the roster";
+      r=turn614("[NPC:"+c[2]+"||hostile]",6);
+      if(rel614(c[2])!==before||!staged614(c[2],r))return c[0]+": staged, canon unchanged (#614): "+before+" -> "+rel614(c[2])+" "+JSON.stringify(r.muts);}
+    return true;});
+  t("#614 (f) a merge between two residents keeps ONE resident: no duplicate on the roster, the survivor's own sheet and stamp, the duplicate's waiting proposal dropped with the glyph and said while the survivor's own waits on",function(){
+    w614();res614("Bram",null,AT614+5);
+    turn614("[NPC:Nyla Brightwater||hostile] [NPC:Bram||wary]",5);if((worldState.residentRelChanges||[]).length!==2)return "fixture: two proposals wait";
+    var r=turn614("[NPC_MERGE:Nyla Brightwater|Bram]",6),rows=worldState.npcs.filter(function(n){return n.name==="Nyla Brightwater"||n.name==="Bram";}),s=wsNpcByName("Nyla Brightwater");
+    if(!has614(r,/^Merged: Bram -> Nyla Brightwater$/))return "fixture: the merge lands: "+JSON.stringify(r.muts);
+    if(rows.length!==1||rows[0]!==s)return "one record on the roster: "+JSON.stringify(rows.map(function(n){return n.name;}));
+    if(s.resident!==true||s.libraryAt!==AT614||!s.charSheet||s.charSheet.name!=="Nyla Brightwater")return "the survivor keeps its mark, its own sheet and its own stamp (#614): "+JSON.stringify({res:s.resident,at:s.libraryAt,sheet:s.charSheet&&s.charSheet.name});
+    if(has614(r,/^Resident carried/))return "both were residents — nothing moved, nothing to say (#614): "+JSON.stringify(r.muts);
+    var q=worldState.residentRelChanges;if(!q||q.length!==1||q[0].name!=="Nyla Brightwater"||q[0].next!=="hostile")return "the survivor's own proposal waits on, alone (#614): "+JSON.stringify(q);
+    var d=(r.muts||[]).filter(function(m){return /Resident relation proposal DROPPED/.test(m)&&/Bram/.test(m)&&/"wary"/.test(m);});
+    if(d.length!==1||!mutLineWarns(d[0]))return "the duplicate's proposal is dropped with the glyph, said (#614): "+JSON.stringify(r.muts);
+    r=turn614("[NPC:Nyla Brightwater||hostile]",7);
+    return rel614("Nyla Brightwater")==="hostile"&&noKey614()?true:"the survivor's own repeat commits: "+rel614("Nyla Brightwater")+" "+JSON.stringify(r.muts);});
+  t("#614 (g) the re-keyed proposal and the carried mark ride the save round trip (serializeWorldState → parseWorldState → migrateWorldState); the repeat under the new name after the load commits",function(){
+    w614();turn614("[NPC:Nyla Brightwater||hostile]",5);turn614("[MERGE:npc|Nyla Stormwater|Nyla Brightwater]",6);
+    worldState=parseWorldState(serializeWorldState(worldState));quiet(function(){migrateWorldState();});
+    var s=wsNpcByName("Nyla Stormwater"),q=worldState.residentRelChanges;
+    if(!s||s.resident!==true||s.libraryAt!==AT614)return "the survivor's residency rides the save (#614): "+JSON.stringify(s&&{res:s.resident,at:s.libraryAt});
+    if(!q||q.length!==1||q[0].name!=="Nyla Stormwater"||q[0].prev!=="resident"||q[0].next!=="hostile"||q[0].turn!==5)return "the re-keyed proposal rides the save (#614): "+JSON.stringify(q);
+    var r=turn614("[NPC:Nyla Stormwater||hostile]",7);
+    return rel614("Nyla Stormwater")==="hostile"&&noKey614()?true:"the repeat after the load commits (#614): "+rel614("Nyla Stormwater")+" "+JSON.stringify(r.muts);});
   /* Acceptance 2026-10-12 for #518 (◉ ready to test): objective probes written to BREAK the row before the owner closes it. They
      cover every original Thursday case, both 2026-10-10 conservation cases, the 2026-10-11 ruling (a gift to NOBODY voids its
      block's loss), counts, two recipients, a gift beside a stow, casing and plurals, fragments (I5) on the give and the take, the
