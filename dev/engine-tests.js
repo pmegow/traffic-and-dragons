@@ -27945,6 +27945,72 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var cs2=cleric23([],[],5),l2=companionAutoPickSpells(cs2,spellUnlocksCrossed("Cleric",null,4,5));
     return l2[0]==="Spiritual Weapon"?true:"without the ability the bench order stands: "+JSON.stringify(l2);
   });
+  section("#593 resident standing \u2014 confirm to commit (owner ruling 2026-10-11): a colder relation on a Village resident is staged, canon unchanged, and commits only when written again on a later response");
+  function village593(){makeWorld();worldState.kind="village";worldState.world.location="The Village";delete worldState.world.sublocation;worldState.turn=5;
+    worldState.npcs.push({name:"Nyla",status:"",statusTurn:0,rel:"resident",met:0,partyMember:false,resident:true,pronouns:null,portrait:null,charSheet:{name:"Nyla",inventory:[],relationships:[]}});memory.npcs["Nyla"]={knowledge:[],events:[],aliases:[]};
+    worldState.npcs.push({name:"Orrin",status:"",statusTurn:0,rel:"acquaintance",met:2,partyMember:false,pronouns:null,portrait:null});memory.npcs["Orrin"]={knowledge:[],events:[],aliases:[]};/* a visitor: no resident mark (and not the hero, whom makeWorld names Tess) */}
+  function npc593(n){return wsNpcByName(n);}
+  function turn593(text,turn){if(typeof turn==="number")worldState.turn=turn;return quiet(function(){return applyMuts(text);}).r;}
+  t("#593 a colder word on a resident is STAGED: the relation stays as recorded, the receipt and the toast say so, the proposal rides the save",function(){
+    village593();var _stT=showToast,got=[];showToast=function(m){got.push(String(m));};var r;try{r=turn593("Nyla bristles. [NPC:Nyla|wary|hostile]",5);}finally{showToast=_stT;}
+    if(npc593("Nyla").rel!=="resident")return "canon unchanged: "+npc593("Nyla").rel;
+    if(!r.muts.some(function(m){return /Resident relation change staged: Nyla/.test(m)&&/"resident".*"hostile"/.test(m);}))return "the staging receipt: "+JSON.stringify(r.muts);
+    var q=worldState.residentRelChanges;if(!q||q.length!==1||q[0].name!=="Nyla"||q[0].prev!=="resident"||q[0].next!=="hostile"||q[0].turn!==5)return "the proposal on the save: "+JSON.stringify(q);
+    if(!got.some(function(m){return /Nyla/.test(m)&&/#593/.test(m);}))return "the toast: "+JSON.stringify(got);
+    return true;});
+  t("#593 the same relation on a LATER response commits it: the relation lands, the receipt says confirmed, the queue is gone",function(){
+    village593();turn593("[NPC:Nyla||hostile]",5);var r=turn593("[NPC:Nyla||hostile]",6);
+    if(npc593("Nyla").rel!=="hostile")return "confirmed relation lands: "+npc593("Nyla").rel;
+    if(!r.muts.some(function(m){return /Nyla: relation hostile \(confirmed/.test(m);}))return "the confirmation receipt: "+JSON.stringify(r.muts);
+    return worldState.residentRelChanges===undefined?true:"the queue is cleared: "+JSON.stringify(worldState.residentRelChanges);});
+  t("#593 a same-response duplicate cannot confirm (the two tags of one reply are one moment)",function(){
+    village593();var r=turn593("[NPC:Nyla||hostile] … [NPC:Nyla||hostile]",5);
+    if(npc593("Nyla").rel!=="resident")return "canon unchanged: "+npc593("Nyla").rel;
+    if(!r.muts.some(function(m){return /NOT confirmed \(same-response duplicate\): Nyla/.test(m);}))return "said: "+JSON.stringify(r.muts);
+    return (worldState.residentRelChanges||[]).length===1?true:"one proposal stays staged: "+JSON.stringify(worldState.residentRelChanges);});
+  t("#593 a warmer word, a restatement, a visitor and the adventure all land at once \u2014 the kind decides, never a call site",function(){
+    village593();turn593("[NPC:Nyla||old friend]",5);if(npc593("Nyla").rel!=="old friend"||worldState.residentRelChanges)return "a warmer word lands: "+npc593("Nyla").rel+" "+JSON.stringify(worldState.residentRelChanges);
+    turn593("[NPC:Nyla||old friend]",6);if(npc593("Nyla").rel!=="old friend"||worldState.residentRelChanges)return "a restatement is free";
+    var __r=turn593("[NPC:Orrin||hostile]",6);if(npc593("Orrin").rel!=="hostile")return "a visitor (no resident mark) lands at once: "+npc593("Orrin").rel+" "+JSON.stringify(__r.muts);
+    village593();delete worldState.kind;turn593("[NPC:Nyla||hostile]",5);if(npc593("Nyla").rel!=="hostile"||worldState.residentRelChanges)return "the adventure kind lands at once: "+npc593("Nyla").rel;
+    if(CAMPAIGN_KINDS.adventure.residentRelConfirm!==false||CAMPAIGN_KINDS.village.residentRelConfirm!==true)return "the flag is the kind's";
+    return true;});
+  t("#593 a colder word on a standing that is already cold lands at once (hostile \u2192 bitter rival is no downgrade from a neighbour)",function(){
+    village593();turn593("[NPC:Nyla||hostile]",5);turn593("[NPC:Nyla||hostile]",6);var r=turn593("[NPC:Nyla||bitter rival]",7);
+    return npc593("Nyla").rel==="bitter rival"&&!worldState.residentRelChanges?true:"lands: "+npc593("Nyla").rel+" "+JSON.stringify(r.muts);});
+  t("#593 a DIFFERENT colder proposal while one waits is refused and said; the first stays staged",function(){
+    village593();turn593("[NPC:Nyla||hostile]",5);var r=turn593("[NPC:Nyla||bitter rival]",6);
+    if(npc593("Nyla").rel!=="resident")return "canon unchanged: "+npc593("Nyla").rel;
+    if(!r.muts.some(function(m){return /different change is already awaiting confirmation: Nyla/.test(m)&&/"hostile" staged t5/.test(m);}))return "said: "+JSON.stringify(r.muts);
+    var q=worldState.residentRelChanges;return q&&q.length===1&&q[0].next==="hostile"?true:"the first proposal stays: "+JSON.stringify(q);});
+  t("#593 a proposal nobody repeats expires after RESIDENT_REL_EXPIRE_TURNS quiet turns, said once at the next relation write; the standing stays",function(){
+    village593();turn593("[NPC:Nyla||hostile]",5);var r1=turn593("[NPC:Orrin||cheerful]",5+RESIDENT_REL_EXPIRE_TURNS-1);
+    if(!worldState.residentRelChanges)return "one turn short of expiry it still waits";
+    var r=turn593("[NPC:Orrin||cheerful]",5+RESIDENT_REL_EXPIRE_TURNS);
+    if(worldState.residentRelChanges)return "expired entry dropped: "+JSON.stringify(worldState.residentRelChanges);
+    if(!r.muts.some(function(m){return /Resident relation proposal expired unconfirmed: Nyla/.test(m);}))return "said once: "+JSON.stringify(r.muts);
+    if(npc593("Nyla").rel!=="resident")return "the standing stays: "+npc593("Nyla").rel;
+    var r2=turn593("[NPC:Nyla||hostile]",5+RESIDENT_REL_EXPIRE_TURNS+1);return npc593("Nyla").rel==="resident"&&/staged/.test(r2.muts.join("|"))?true:"after expiry a new write stages afresh, never confirms: "+npc593("Nyla").rel+" "+JSON.stringify(r2.muts);});
+  t("#593 the staged preimage MOVED (a warmer word landed in between): the stale proposal is dropped and said, the next colder write stages afresh",function(){
+    village593();turn593("[NPC:Nyla||hostile]",5);turn593("[NPC:Nyla||dear friend]",6);
+    if(npc593("Nyla").rel!=="dear friend")return "the warmer word landed: "+npc593("Nyla").rel;
+    if(worldState.residentRelChanges)return "a warmer write withdraws the waiting proposal: "+JSON.stringify(worldState.residentRelChanges);
+    var r=turn593("[NPC:Nyla||hostile]",7);
+    return npc593("Nyla").rel==="dear friend"&&(worldState.residentRelChanges||[]).length===1&&worldState.residentRelChanges[0].prev==="dear friend"&&/staged/.test(r.muts.join("|"))?true:"restaged from the new standing: "+JSON.stringify(worldState.residentRelChanges)+" "+JSON.stringify(r.muts);});
+  t("#593 an OUT-OF-BAND move of the standing (the sheet editor, the Sync modal, a merge) between staging and the repeat drops the stale proposal and never confirms onto a value nobody reviewed",function(){
+    village593();turn593("[NPC:Nyla||hostile]",5);npc593("Nyla").rel="dear friend";/* a writer that never asked residentRelWrite */
+    var r=turn593("[NPC:Nyla||hostile]",6);
+    if(npc593("Nyla").rel!=="dear friend")return "no commit onto a moved standing: "+npc593("Nyla").rel;
+    if(!r.muts.some(function(m){return /Resident relation proposal DROPPED \(the standing moved since staging: "resident" is now "dear friend"\)/.test(m);}))return "said: "+JSON.stringify(r.muts);
+    if(worldState.residentRelChanges)return "the stale proposal is gone: "+JSON.stringify(worldState.residentRelChanges);
+    var r2=turn593("[NPC:Nyla||hostile]",7);return (worldState.residentRelChanges||[]).length===1&&worldState.residentRelChanges[0].prev==="dear friend"&&/staged/.test(r2.muts.join("|"))?true:"the next write restages from the moved standing: "+JSON.stringify(worldState.residentRelChanges);});
+  t("#593 the mood half of the tag still lands on the turn the relation is staged (only the relation waits)",function(){
+    village593();turn593("[NPC:Nyla|wary, short with you|hostile]",5);
+    return npc593("Nyla").status==="wary, short with you"&&npc593("Nyla").rel==="resident"?true:"status lands, relation waits: "+JSON.stringify({status:npc593("Nyla").status,rel:npc593("Nyla").rel});});
+  t("#593 the village teaches the rule in its STATE TAGS note; the adventure's note is untouched",function(){
+    if(!/A RESIDENT'S STANDING/.test(CAMPAIGN_KINDS.village.tagDocNote))return "the village note";
+    if(/A RESIDENT'S STANDING/.test(CAMPAIGN_KINDS.adventure.tagDocNote))return "the adventure note stays byte-free of it";
+    return /write the same relation again on a later turn/.test(CAMPAIGN_KINDS.village.tagDocNote)?true:"the note says how to commit";});
   section("#518 block — an item pair is TWO TAGS IN ONE BLOCK (owner ruling 2026-10-10; the pair notes are the protocol)");
   function blockComp(inv){worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:inv||[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};}
   t("#518 block the loot/throw collision: a hero who loots a Dagger in the same reply that a companion throws an untracked Dagger KEEPS the loot — the two tags sit in two blocks, so neither is the other's half",function(){

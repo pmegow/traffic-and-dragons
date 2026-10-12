@@ -821,7 +821,7 @@ var TAG_TABLE=[
      is now allowed to be honestly blank (the roster render skips empty parts). `rel` keeps
      "unknown" because that IS a legitimate category for a relationship we haven't established. */
   else{worldState.npcs.push({name:npName,status:npStatus||"",statusTurn:npStatus?R.turn:0,rel:npRel||"unknown",pronouns:npPron||null,met:R.turn,partyMember:false,portrait:null,aliases:[]});_npN=worldState.npcs[worldState.npcs.length-1];if(typeof checkLegacyCharacter==="function")checkLegacyCharacter();}
-  if(_npN){if(npRel)_npN.rel=npRel;if(npPron)_npN.pronouns=npPron;
+  if(_npN){if(npRel&&residentRelWrite(_npN,npRel,R))_npN.rel=npRel;/* #593: a resident's colder standing is staged until written again (residentRelWrite, helpers.js); everyone else lands */if(npPron)_npN.pronouns=npPron;
     /* npcDeadStatus internally rejects resurrection phrasing ("raised from the dead" contains a
        death word) — so this stamp can never re-kill what the resurrection branch just cleared */
     /* audit 2026-09-18 A4: the Pax gate covered HP, COMPANION_HP and the reported death, but not the bare [NPC:name|dead|…]

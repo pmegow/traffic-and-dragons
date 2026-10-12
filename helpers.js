@@ -3609,6 +3609,53 @@ function shopOpenNow(node,min){/* #527 (8): `min` = the clock minute to judge at
 /* #481 B6: ONE renderer for a resident's whereabouts — "<name> is at home" / "<name> is at <place>". The RESIDENTS note used to
    join a name and a place with a bare "is" ("Thessa Saltborn is the animal handler's yard"). Serves RESIDENTS ABOUT, the
    RETURN change, the whispers facts and the Car Mode recap. */
+/* #593 (owner ruling 2026-10-11, "confirm to commit"; precedent: the W7 staged bond write, identity.js): a Village RESIDENT's
+   standing with the hero moves only through play that earns it. The NPC handler asks residentRelWrite before it lands a relation:
+   when the kind says so (residentRelConfirm) and the NPC is a resident, a COLDER word (the antagonist vocabulary the scene-cast
+   screen reads, widened to the cold and the wary) is STAGED on worldState.residentRelChanges with a receipt and a toast, canon
+   unchanged; the SAME relation written again on a LATER response commits it (a same-response duplicate cannot confirm; a staged
+   preimage that moved is dropped and said; a different colder proposal while one waits is refused and said); a proposal nobody
+   repeats for RESIDENT_REL_EXPIRE_TURNS turns is dropped, said once, at the next relation write. A warmer word, a restatement, a
+   visitor and the adventure land at once. No prompt note asks for the confirmation on purpose: sustained friction IS the earning.
+   The one case this does not see is a relation written by something other than the NPC tag (none today). */
+var RESIDENT_REL_ADVERSE_RE=/hostil|enem|wary|suspici|distrust|mistrust|cold|angry|anger|furious|resent|bitter|estrang|rival|\bfoe|hate|loath|unfriend|guarded|grudg|spurn|shun|afraid|fear|contempt|disdain|betray|wants? (?:you|him|her|them) (?:dead|gone)|out for blood|sworn against/i;
+var RESIDENT_REL_EXPIRE_TURNS=12,RESIDENT_REL_CAP=8;
+function residentRelAdverse(rel){return RESIDENT_REL_ADVERSE_RE.test(String(rel||""));}
+function residentRelPending(name){var q=(typeof worldState!=="undefined"&&worldState)?worldState.residentRelChanges:null,i;if(!q)return null;for(i=0;i<q.length;i++)if(q[i].name===name)return q[i];return null;}
+function residentRelExpire(R,turn){
+  var q=(typeof worldState!=="undefined"&&worldState)?worldState.residentRelChanges:null,i;if(!q||!q.length)return;
+  for(i=q.length-1;i>=0;i--){if(turn-q[i].turn>=RESIDENT_REL_EXPIRE_TURNS){if(R&&R.muts)R.muts.push("Resident relation proposal expired unconfirmed: "+q[i].name+" (\""+q[i].prev+"\" \u2192 \""+q[i].next+"\", staged t"+q[i].turn+", "+(turn-q[i].turn)+" quiet turns) \u2014 the standing stays \""+q[i].prev+"\"");if(typeof console!=="undefined")console.log("[npc] #593 resident relation proposal for "+q[i].name+" expired unconfirmed after "+(turn-q[i].turn)+" turns");q.splice(i,1);}}
+  if(!q.length)delete worldState.residentRelChanges;
+}
+/* true = the caller may land `next` as the relation now; false = staged, confirmed-elsewhere or refused — every branch is said in R.muts. */
+function residentRelWrite(npc,next,R){
+  var turn=(R&&typeof R.turn==="number")?R.turn:((typeof worldState!=="undefined"&&worldState&&worldState.turn)||0);
+  residentRelExpire(R,turn);
+  var def=(typeof kindDef==="function")?kindDef():null;
+  if(!def||!def.residentRelConfirm||!npc||!npc.resident)return true;/* the kind lets relations move freely, or this is no resident */
+  var prev=String(npc.rel||"");next=String(next||"");
+  if(next===prev)return true;/* a restatement */
+  if(!residentRelAdverse(next)||residentRelAdverse(prev)){
+    /* a warmer word, or a colder word on a standing that is already cold: lands; a waiting proposal for this resident is moot */
+    var old=residentRelPending(npc.name);if(old){var q0=worldState.residentRelChanges;q0.splice(q0.indexOf(old),1);if(!q0.length)delete worldState.residentRelChanges;if(R&&R.muts)R.muts.push("Resident relation proposal withdrawn (the standing was written anew): "+npc.name+" (\""+old.next+"\" dropped)");}
+    return true;}
+  var p=residentRelPending(npc.name),q;
+  if(p){
+    q=worldState.residentRelChanges;
+    if(p.turn>=turn){if(R&&R.muts)R.muts.push("⚠ Resident relation change NOT confirmed (same-response duplicate): "+npc.name+" \u2014 write it again on a later turn");return false;}
+    if(p.prev!==prev){q.splice(q.indexOf(p),1);if(!q.length)delete worldState.residentRelChanges;if(R&&R.muts)R.muts.push("⚠ Resident relation proposal DROPPED (the standing moved since staging: \""+p.prev+"\" is now \""+prev+"\") \u2014 "+npc.name+" stays \""+prev+"\"; write it again to restage");return false;}
+    if(p.next!==next){if(R&&R.muts)R.muts.push("⚠ Resident relation change refused \u2014 a different change is already awaiting confirmation: "+npc.name+" (\""+p.next+"\" staged t"+p.turn+", \""+next+"\" written)");return false;}
+    q.splice(q.indexOf(p),1);if(!q.length)delete worldState.residentRelChanges;
+    if(R&&R.muts)R.muts.push(npc.name+": relation "+next+" (confirmed \u2014 written again at t"+turn+", staged t"+p.turn+"; was \""+prev+"\")");
+    if(typeof showToast==="function")showToast(npc.name+"'s standing is now \""+next+"\" \u2014 written twice, so it stands (#593)");
+    return true;}
+  q=worldState.residentRelChanges||(worldState.residentRelChanges=[]);
+  if(q.length>=RESIDENT_REL_CAP){if(R&&R.muts)R.muts.push("⚠ Resident relation change REFUSED ("+RESIDENT_REL_CAP+" proposals already waiting): "+npc.name+" stays \""+prev+"\"");if(typeof console!=="undefined")console.warn("[npc] #593 resident relation queue full \u2014 "+npc.name+" stayed '"+prev+"'");return false;}
+  q.push({name:npc.name,prev:prev,next:next,turn:turn});
+  if(R&&R.muts)R.muts.push("Resident relation change staged: "+npc.name+" (\""+prev+"\" \u2192 \""+next+"\"; canon unchanged \u2014 the same relation on a later response commits it)");
+  if(typeof showToast==="function")showToast("⚠ "+npc.name+"'s standing was written \""+next+"\" \u2014 a resident's relation moves only through sustained play; it stands if the GM writes it again (#593)");
+  return false;
+}
 function residentWhereText(name,wh){if(!wh)return "";return name+" is "+(wh.home?"at home":"at "+wh.place);}
 /* #481 B6: the ONE leading-travel parse — validateSuggestion's rule ⑦ and the RESIDENTS note's travel wait both read it.
    Returns the named destination, or null. Pure. */
