@@ -810,12 +810,12 @@ function wantedNodeAt(at){
 function wantedKey(w){return itemKey(String(w&&w.item!=null?w.item:""));}
 /* #577: THE want match — the counter's price and every retirement read this one rule. A COUNT-FREE item name meets, in order: the
    want for exactly this item (its own key); the want for the plain item ("Warded ring (cracked)" meets "Warded ring" whichever was
-   filed first); else the FIRST live want with the same provenance-free base (#599 b3, §2.2: the tag grammar decodes a count,
+   filed first); NEVER a want with its own qualifier (owner ruling 2026-10-11, ONE-WAY — "Warded ring" meets "Warded ring", not "Warded ring (silver)"; the pack rule inside itemKey and the clause-free base still serve the item side (#599 b3, §2.2: the tag grammar decodes a count,
    itemBaseKey projects the clause and applies the pack rule, so "Wolf pelts" meets "Wolf pelt" and "Signet ring (from Hemlock)"
    meets "Signet ring"). Pure; null = no want. */
 function wantedFor(live,name){
   var k=itemKey(name),b=itemBaseKey(name),best=null,rank=0,i,r,wk;
-  for(i=0;i<(live||[]).length;i++){wk=wantedKey(live[i]);r=wk===k?3:wk===b?2:itemPairKey(live[i].item)===b?1:0;if(r>rank){best=live[i];rank=r;}}
+  for(i=0;i<(live||[]).length;i++){wk=wantedKey(live[i]);r=wk===k?3:wk===b?2:0;if(r>rank){best=live[i];rank=r;}}/* #577 (owner ruling 2026-10-11, ONE-WAY): no same-base third rank — a plain item never meets a want with its own qualifier */
   return best;
 }
 /* #591: what a want pays for `n` units, in copper — the offer as written (parseCoin: "40 gp" × n; a bundle, "1 gp per 5", by its

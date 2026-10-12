@@ -71,4 +71,9 @@ prove("game.js", [
     find: "var w=(ln.wantKey!=null&&typeof retireWantedAt===\"function\")?", replace: "var w=(typeof retireWantedAt===\"function\")?",
     mustFail: PAID }
 ]);
+prove("memory.js", [
+  { label: "#577 a plain item meets a qualified want again (the same-base third rank returns; the plain ring is paid the silver offer)",
+    find: "r=wk===k?3:wk===b?2:0;", replace: "r=wk===k?3:wk===b?2:itemPairKey(live[i].item)===b?1:0;",
+    mustFail: "#577 ONE-WAY" }
+]);
 process.exit(code);

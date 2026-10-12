@@ -30100,6 +30100,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var lr=quiet(function(){return ledgerApply(stale,{key:cat.key});}).r;
     return (lr.ok&&d4Wants(n).indexOf("Rope")>=0&&!(lr.muts||[]).some(function(m){return /Want met/.test(m);}))?true:"a line priced at no offer retires none: "+JSON.stringify(lr&&lr.muts)+" "+JSON.stringify(d4Wants(n));
   });
+  t("#577 ONE-WAY (owner ruling 2026-10-11): a plain item never meets a qualified want — with only the silver want on file the plain ring is unwanted at the counter and the GM's plain-ring sale keeps the silver want; a qualified item still meets the plain want",function(){
+    var n=d4Fixture("40 gp");n.wanted.length=0;n.wanted.push({item:"Warded ring (silver)",offer:"60 gp",by:"Frizwick",t:1,min:clockNow()});
+    if(wantedFor(nodeWantedLive(n),"Warded ring")!==null)return "the plain ring meets no qualified want: "+JSON.stringify(wantedFor(nodeWantedLive(n),"Warded ring"));
+    var cat=shopTradeCatalog(),row=cat.ok?cat.sell.filter(function(r){return r.name==="Warded ring";})[0]:null;
+    if(!cat.ok||!row||row.wanted||row.want)return "the counter row for the plain ring is unwanted: "+JSON.stringify(cat.ok?row:cat.reason);
+    var r=quiet(function(){return applyMuts("Frizwick pays for the ring. [GOLD:+60 gp][ITEM_LOST:Warded ring]");}).r;
+    if(d4Wants(n).indexOf("Warded ring (silver)")<0||(r.muts||[]).some(function(m){return /Want met/.test(m);}))return "the GM's plain-ring sale keeps the silver want: "+JSON.stringify([r.muts,d4Wants(n)]);
+    n.wanted.length=0;n.wanted.push({item:"Warded ring",offer:"40 gp",by:"Frizwick",t:1,min:clockNow()});
+    var w=wantedFor(nodeWantedLive(n),"Warded ring (silver)");
+    return w&&w.item==="Warded ring"?true:"a qualified item still meets the plain want: "+JSON.stringify(w);
+  });
   t("#591 a discarded or consumed wanted item retires nothing: [ITEM_LOST:] with no coin in the reply leaves the want standing; the next real sale still meets it",function(){
     var n=d4Fixture();var r=quiet(function(){return applyMuts("Frizwick watches as you toss the ring into the hearth. [ITEM_LOST:Warded ring]");}).r;
     if(d4Wants(n).indexOf("Warded ring")<0)return "a loss without a sale must not retire the want: "+JSON.stringify(r.muts);
