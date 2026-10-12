@@ -556,7 +556,7 @@ var TAG_TABLE=[
       worldState.tradeRefusedPing={turn:R.turn,reason:_sWhy.replace("the sheet","the hero's sheet"),items:true};R.goldIn=0;
       ilTags.forEach(function(t0,i0){var m0=t0.match(/\[ITEM_LOST:([^\]]+)\]/);if(m0)itemPairMiss(R,"ilMiss",m0[1],m0[1].trim(),rBlockAt(R,text,ilOff[i0]));});
       if(typeof console!=="undefined")console.warn("[tags] ITEM_LOST: the village sale is withheld whole — "+_sWhy+"; nothing removed (#510)");return;}}
-  for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;var ilq=_qtyParse(ilm[1]),ilqi,ilHit=0,_ilB=rBlockAt(R,text,ilOff[ili]);/* #518: the pair notes are this tag's block's */for(ilqi=0;ilqi<ilq.n;ilqi++){if(removeInventoryItem(worldState.character.inventory,ilq.base)){ilHit++;itemPairNote(R,"ilHits",ilq.base,removeInventoryItem.last,_ilB);/* #481 A2: the loss half, with the exact sheet name */itemPairNote(R,"ilFrags",ilq.base,removeInventoryItem.lastRow,_ilB);/* #599 (c2), review 4: the unit's FRAGMENT (its unknown fields) rides the pair to the gift or the stow (I5) */}}if(ilHit){R.muts.push("-"+ilq.base+(ilHit>1?" x"+ilHit:"")+(ilq.clamped?" (⚠ count clamped to "+QTY_MAX+")":""));/* #481 D3 */_wLoss.push({blk:_ilB,off:ilOff[ili],name:ilq.base,n:ilHit,pos:R.muts.length});/* #481 D4 / #591: whether this loss MET a want is settled after the loop, per tag block — only a payment beside it that equals the offer retires (wantedSaleSettle); "Want met" or the ⚠ keep line lands right here, after its receipt (the counter retires through ledgerApply) */_clearConsumablePending(null,ilq.base);/* cleanup 1: the lost row took its flag with it (wornPrune retired) *//* #388: nothing is worn that is not carried */}else{
+  for(ili=0;ili<ilTags.length;ili++){var ilm=ilTags[ili].match(/\[ITEM_LOST:([^\]]+)\]/);if(!ilm)continue;var ilq=_qtyParse(ilm[1]),ilqi,ilHit=0,_ilB=rBlockAt(R,text,ilOff[ili]),_ilSheet=[];/* #518: the pair notes are this tag's block's; #591 (acceptance 2026-10-12, probe 29): _ilSheet = the sheet name each unit was taken from */for(ilqi=0;ilqi<ilq.n;ilqi++){if(removeInventoryItem(worldState.character.inventory,ilq.base)){ilHit++;_ilSheet.push(removeInventoryItem.last);itemPairNote(R,"ilHits",ilq.base,removeInventoryItem.last,_ilB);/* #481 A2: the loss half, with the exact sheet name */itemPairNote(R,"ilFrags",ilq.base,removeInventoryItem.lastRow,_ilB);/* #599 (c2), review 4: the unit's FRAGMENT (its unknown fields) rides the pair to the gift or the stow (I5) */}}if(ilHit){R.muts.push("-"+ilq.base+(ilHit>1?" x"+ilHit:"")+(ilq.clamped?" (⚠ count clamped to "+QTY_MAX+")":""));/* #481 D3 */wantedLossRecords(_wLoss,_ilB,ilOff[ili],_ilSheet,R.muts.length);/* #481 D4 / #591: whether this loss MET a want is settled after the loop, per tag block — only a payment beside it that equals the offer retires (wantedSaleSettle); "Want met" or the ⚠ keep line lands right here, after its receipt, at the post-handler seam (wantedSaleLand; the counter retires through ledgerApply). #591 acceptance 2026-10-12 (probe 29): recorded under the SHEET names the units came from */_clearConsumablePending(null,ilq.base);/* cleanup 1: the lost row took its flag with it (wornPrune retired) *//* #388: nothing is worn that is not carried */}else{
     itemPairMiss(R,"ilMiss",ilq.base,ilq.base,_ilB);
     /* #481 A2 (a): an ambiguous name is refused LOUDLY — two sheet entries share its base name */
     if(_invLastMiss&&_invLastMiss.why==="ambiguous")R.muts.push("⚠ Nothing lost — '"+ilq.base+"' is ambiguous: the sheet has "+_invLastMiss.names.join(" and ")+" (which one?)");
@@ -565,7 +565,7 @@ var TAG_TABLE=[
     /* #510: where trade is gated the sale was checked whole above, so a miss with coin in is an adventure's: the coin is kept */
     if(R.goldIn>0){R.muts.push("⚠ '"+ilq.base+"' is not on the sheet — coin kept");worldState.itemNotHeldPing={turn:R.turn,item:ilq.base};}
     if(typeof console!=="undefined")console.warn("[tags] ITEM_LOST: no inventory entry matches '"+ilq.base+"' — nothing removed, no receipt minted (#136⑤, the live t1530 -none class)");}}
-  wantedSaleSettle(R,text,_wLoss);}},
+  if(_wLoss.length)R.wantSettle=wantedSaleSettle(R,text,_wLoss);/* #591 (acceptance 2026-10-12, probe 30): settled here — the retirements land now, as before — and LANDED at the post-handler seam (wantedSaleLand), which settles again if a later handler put a unit back */}},
 // #60b: the CONSUMABLE CHECK's negative answer. Not a sheet mutation — it records that the GM
 // confirmed "not spent" at the item's current count, so the check stops re-asking (see
 // _stampItemKept, api.js, for the feedback loop this closes). Ordered AFTER ITEM_LOST so the
@@ -655,11 +655,11 @@ var TAG_TABLE=[
   if(_lact==="placed"){var _lHits=itemPairCount(R,"ilHits",_lnm,_liB),_lq=_qtyParse(_lnm);
     if(_lHits===0){R.muts.push("⚠ Nothing placed — '"+_lq.base+"': every unit this block's [ITEM_LOST:] took is already given, placed or back in the pack (#518)");if(typeof console!=="undefined")console.warn("[tags] LOCATION_ITEM placed withheld for '"+_lnm+"': the block's loss units are all paired (#518)");continue;}
     if(_lHits!==null&&_lHits<_lq.n){R.muts.push("⚠ Placement of "+_lq.base+" x"+_lq.n+" cut to "+(_lHits>1?"x"+_lHits:"one")+" — "+_lHits+" of this block's lost unit"+(_lHits>1?"s":"")+" left to place (#518)");_lnm=_lq.base+(_lHits>1?" x"+_lHits:"");}}
-  if(_lact==="placed"&&invFragsHaveFields(itemPairList(R,"ilFrags",_lnm,_liB))){var _lfb=0,_lfx;while((_lfx=itemPairTake(R,"ilFrags",_lnm,_liB))){itemPairTake(R,"ilHits",_lnm,_liB);if(addInventoryItem(worldState.character.inventory,_lfx.name,_lfx))_lfb++;}R.muts.push("⚠ '"+_lnm+"'"+(_lfb>1?" x"+_lfb:"")+" stays in the pack — it carries fields the chest cannot hold");if(typeof console!=="undefined")console.warn("[tags] LOCATION_ITEM placed refused for '"+_lnm+"': the row carries unknown fields the chest cannot hold — every unit back in the pack with them (#599 c2, I5)");continue;}/* #599 (c2), review 4c: the chest row is name and count — a fragment with fields never downgrades */
+  if(_lact==="placed"&&invFragsHaveFields(itemPairList(R,"ilFrags",_lnm,_liB))){var _lfb=0,_lfx;while((_lfx=itemPairTake(R,"ilFrags",_lnm,_liB))){itemPairTake(R,"ilHits",_lnm,_liB);wantedLossVoid(R,_liB,_lfx.name);/* #591 (acceptance 2026-10-12, probe 30): the unit goes back — its loss sold nothing */if(addInventoryItem(worldState.character.inventory,_lfx.name,_lfx))_lfb++;}R.muts.push("⚠ '"+_lnm+"'"+(_lfb>1?" x"+_lfb:"")+" stays in the pack — it carries fields the chest cannot hold");if(typeof console!=="undefined")console.warn("[tags] LOCATION_ITEM placed refused for '"+_lnm+"': the row carries unknown fields the chest cannot hold — every unit back in the pack with them (#599 c2, I5)");continue;}/* #599 (c2), review 4c: the chest row is name and count — a fragment with fields never downgrades */
   var _lst=fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom,rPlaceAtBlock(R,text,liOff[lii]));/* #481 A4: filed where the tag happened (place-then-leave files in the house) */
   if(!_lst||!_lst.ok){var _lwhy=(_lst&&_lst.reason)||"unknown";R.muts.push("⚠ Stash refused — "+_lnm+" ("+(_lplace||"here")+"): "+_lwhy);if(typeof console!=="undefined")console.warn("[tags] LOCATION_ITEM "+_lact+" refused for '"+_lnm+"' at "+(_lplace||"the current node")+": "+_lwhy+" — nothing mutated");
     /* #481 A2 (d): the stow pair's other half — a refused placement puts back the unit THIS reply's [ITEM_LOST:] removed (Village t216: the core left the pack and landed nowhere) */
-    if(_lact==="placed"){var _lpb=null,_lpn=(typeof _qtyParse==="function")?_qtyParse(_lnm).n:1,_lpu=0,_lpi;for(_lpi=0;_lpi<_lpn;_lpi++){var _lpx=itemPairTake(R,"ilHits",_lnm,_liB);if(!_lpx)break;_lpb=_lpx;addInventoryItem(worldState.character.inventory,_lpx,itemPairTake(R,"ilFrags",_lnm,_liB));_lpu++;}/* #599 (c2): the unit returns with its fragment */if(_lpb){R.muts.push("⚠ '"+_lpb+"'"+(_lpu>1?" x"+_lpu:"")+" stays in the pack — the placement was refused");}}/* #481 D2: a counted placement puts back every unit */
+    if(_lact==="placed"){var _lpb=null,_lpn=(typeof _qtyParse==="function")?_qtyParse(_lnm).n:1,_lpu=0,_lpi;for(_lpi=0;_lpi<_lpn;_lpi++){var _lpx=itemPairTake(R,"ilHits",_lnm,_liB);if(!_lpx)break;_lpb=_lpx;wantedLossVoid(R,_liB,_lpx);/* #591 (acceptance 2026-10-12, probe 30): the refused placement voids the loss — no sale */addInventoryItem(worldState.character.inventory,_lpx,itemPairTake(R,"ilFrags",_lnm,_liB));_lpu++;}/* #599 (c2): the unit returns with its fragment */if(_lpb){R.muts.push("⚠ '"+_lpb+"'"+(_lpu>1?" x"+_lpu:"")+" stays in the pack — the placement was refused");}}/* #481 D2: a counted placement puts back every unit */
     worldState.stashRefusedPing={turn:R.turn,item:_lnm,action:_lact,place:_lplace||null,reason:_lwhy};/* #481 A3: the GM is told, once */
     continue;}
   if(_lst.roomRefused)R.muts.push("⚠ room refused for "+_lnm+" — "+_lst.roomRefused);/* #408 ④ */
@@ -1700,7 +1700,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     /* #518 (Astra's acceptance 2026-10-10): a COUNTED gift to a missing recipient put back ONE unit — [ITEM_LOST:Torch x3]
        [COMPANION_ITEM_GAINED:Absent|Torch x3] left the hero one torch of three. Every unit the gift names that its block's loss
        took goes back, each with its fragment (I5), and the receipt says how many. */
-    if(!cIgCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cOwner+"' — companion tag dropped (#136③)");var _gpi,_gpx,_gpb=null,_gpu=0,_gpW=null;for(_gpi=0;;_gpi++){/* #518 (owner ruling 2026-10-11): a gift to NOBODY voids its block's loss — every unit still standing goes back, whatever count the gift names */_gpx=itemPairTake(R,"ilHits",cIgm[2],_cgBlk);if(!_gpx)break;_gpb=_gpx;if(addInventoryItem(worldState.character.inventory,_gpx,itemPairTake(R,"ilFrags",cIgm[2],_cgBlk)))_gpu++;else _gpW=addInventoryItem.lastRefusal||"the pack refused it";}if(_gpu)R.muts.push("⚠ '"+_gpb+"'"+(_gpu>1?" x"+_gpu:"")+" stays in the pack — no party member '"+cOwner+"' to give it to");if(_gpW){R.muts.push("⚠ '"+_gpb+"' could not go back in the pack — "+_gpW);if(typeof console!=="undefined")console.warn("[tags] COMPANION_ITEM_GAINED to a missing recipient: '"+_gpb+"' could not go back in the pack — "+_gpW+" (#518)");}continue;}if(!cIgCs.inventory)cIgCs.inventory=[];var cIq=_qtyParse(cIgm[2]),cIqi;/* #481 D3: the companion twin reads the count */
+    if(!cIgCs){if(typeof console!=="undefined")console.warn("[tags] no party member matches '"+cOwner+"' — companion tag dropped (#136③)");var _gpi,_gpx,_gpb=null,_gpu=0,_gpW=null;for(_gpi=0;;_gpi++){/* #518 (owner ruling 2026-10-11): a gift to NOBODY voids its block's loss — every unit still standing goes back, whatever count the gift names */_gpx=itemPairTake(R,"ilHits",cIgm[2],_cgBlk);if(!_gpx)break;_gpb=_gpx;wantedLossVoid(R,_cgBlk,_gpx);/* #591 (acceptance 2026-10-12, probe 30): a gift to nobody voids the loss — no sale */if(addInventoryItem(worldState.character.inventory,_gpx,itemPairTake(R,"ilFrags",cIgm[2],_cgBlk)))_gpu++;else _gpW=addInventoryItem.lastRefusal||"the pack refused it";}if(_gpu)R.muts.push("⚠ '"+_gpb+"'"+(_gpu>1?" x"+_gpu:"")+" stays in the pack — no party member '"+cOwner+"' to give it to");if(_gpW){R.muts.push("⚠ '"+_gpb+"' could not go back in the pack — "+_gpW);if(typeof console!=="undefined")console.warn("[tags] COMPANION_ITEM_GAINED to a missing recipient: '"+_gpb+"' could not go back in the pack — "+_gpW+" (#518)");}continue;}if(!cIgCs.inventory)cIgCs.inventory=[];var cIq=_qtyParse(cIgm[2]),cIqi;/* #481 D3: the companion twin reads the count */
     /* #518 (Astra's fixture 2026-10-02): the loss half took what the pack HELD (one torch of the three asked) and the gift half gave
        what the tag ASKED (three) — two torches from nowhere. When the loss was short, the gift is bounded by the units that
        actually left the pack, and the cut is said. A gift with no loss half (found, bought, handed by an NPC) is untouched. */
@@ -1709,7 +1709,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
        each gift consumes one per unit it gives (the loop below), so a loss unit is given ONCE: one torch lost and two gifts of
        it used to give two. A block whose loss units are all given or placed has none for this gift, and that is said. */
     if(_gHits===0){R.muts.push("⚠ Nothing given — '"+cIq.base+"': every unit this block's [ITEM_LOST:] took is already given or placed (#518)");if(typeof console!=="undefined")console.warn("[tags] COMPANION_ITEM_GAINED withheld for "+cOwner+": '"+cIq.base+"' — the block's loss units are all paired (#518)");continue;}
-    if(_gHits!==null&&_gHits<cIq.n){R.muts.push("⚠ Gift of "+cIq.base+" x"+cIq.n+" cut to "+(_gHits>1?"x"+_gHits:"one")+" — the pack held "+_gHits+" (#518)");cIq.n=_gHits;}duplicateItemGrantWarning(cIgCs.inventory,cIq.base,cIgCounts[cOwner+"|"+itemBaseName(cIq.base)],cOwner,R,text);var _cgL=0,_cgB=0,_cgF,_cgW=null;for(cIqi=0;cIqi<cIq.n;cIqi++){_cgF=itemPairTake(R,"ilFrags",cIq.base,_cgBlk);if(_gHits!==null)itemPairTake(R,"ilHits",cIq.base,_cgBlk);/* #518: the gift consumes the loss unit it pairs — given or put back, it is never paired again */if(addInventoryItem(cIgCs.inventory,cIq.base,_cgF)){_cgL++;continue;}_cgW=addInventoryItem.lastRefusal||"the pack refused it";if(_gHits!==null){if(addInventoryItem(worldState.character.inventory,_cgF?_cgF.name:cIq.base,_cgF))_cgB++;while((_cgF=itemPairTake(R,"ilFrags",cIq.base,_cgBlk))){itemPairTake(R,"ilHits",cIq.base,_cgBlk);if(addInventoryItem(worldState.character.inventory,_cgF.name,_cgF))_cgB++;}}break;}/* #599 (c2), reviews 2 and 4a: a refused unit lands no receipt; a GIFT's refused units go back to the hero WITH their fragments (I5) */if(_cgL)R.muts.push(cOwner+": +"+cIq.base+(_cgL>1?" x"+_cgL:"")+(cIq.clamped?" (⚠ count clamped to "+QTY_MAX+")":""));if(_cgW){R.muts.push("⚠ "+(_cgB?"'"+cIq.base+"'"+(_cgB>1?" x"+_cgB:"")+" stays in the pack":"Nothing gained — "+cOwner+": '"+cIq.base+"'")+" — "+_cgW);if(typeof console!=="undefined")console.warn("[tags] COMPANION_ITEM_GAINED refused for "+cOwner+": '"+cIq.base+"' — "+_cgW+" (#599 c2)");}if(!_cgL)continue;
+    if(_gHits!==null&&_gHits<cIq.n){R.muts.push("⚠ Gift of "+cIq.base+" x"+cIq.n+" cut to "+(_gHits>1?"x"+_gHits:"one")+" — the pack held "+_gHits+" (#518)");cIq.n=_gHits;}duplicateItemGrantWarning(cIgCs.inventory,cIq.base,cIgCounts[cOwner+"|"+itemBaseName(cIq.base)],cOwner,R,text);var _cgL=0,_cgB=0,_cgF,_cgW=null;for(cIqi=0;cIqi<cIq.n;cIqi++){_cgF=itemPairTake(R,"ilFrags",cIq.base,_cgBlk);if(_gHits!==null)itemPairTake(R,"ilHits",cIq.base,_cgBlk);/* #518: the gift consumes the loss unit it pairs — given or put back, it is never paired again */if(addInventoryItem(cIgCs.inventory,cIq.base,_cgF)){_cgL++;continue;}_cgW=addInventoryItem.lastRefusal||"the pack refused it";if(_gHits!==null)wantedLossVoid(R,_cgBlk,_cgF?_cgF.name:cIq.base);/* #591 (acceptance 2026-10-12, probe 30): every unit the companion's pack refused goes back — its loss sold nothing */if(_gHits!==null){if(addInventoryItem(worldState.character.inventory,_cgF?_cgF.name:cIq.base,_cgF))_cgB++;while((_cgF=itemPairTake(R,"ilFrags",cIq.base,_cgBlk))){itemPairTake(R,"ilHits",cIq.base,_cgBlk);wantedLossVoid(R,_cgBlk,_cgF.name);if(addInventoryItem(worldState.character.inventory,_cgF.name,_cgF))_cgB++;}}break;}/* #599 (c2), reviews 2 and 4a: a refused unit lands no receipt; a GIFT's refused units go back to the hero WITH their fragments (I5) */if(_cgL)R.muts.push(cOwner+": +"+cIq.base+(_cgL>1?" x"+_cgL:"")+(cIq.clamped?" (⚠ count clamped to "+QTY_MAX+")":""));if(_cgW){R.muts.push("⚠ "+(_cgB?"'"+cIq.base+"'"+(_cgB>1?" x"+_cgB:"")+" stays in the pack":"Nothing gained — "+cOwner+": '"+cIq.base+"'")+" — "+_cgW);if(typeof console!=="undefined")console.warn("[tags] COMPANION_ITEM_GAINED refused for "+cOwner+": '"+cIq.base+"' — "+_cgW+" (#599 c2)");}if(!_cgL)continue;
     /* #481 A3 (owner ruling: the household counts): a companion's gain takes the item from where it lies, as the hero's does —
        the hero's own chest releases it to a companion who lives there; another resident's house keeps it (said) */
     /* #518 ②: a gift whose loss half left the pack this reply came FROM the pack — the auto-take (a gain takes from where it lies)
@@ -1832,17 +1832,58 @@ function rPlaceAtBlock(R,text,off){return rPlaceAt(R,(typeof tagBlockEnd==="func
    [ITEM_LOST:Warded ring]" (change handed back, the ring thrown away) printed "Want met" and the 40 gp offer was gone. A want the
    tags cannot prove is KEPT, and when coin did come in a ⚠ line says why (no silent outcome); with no coin at all the loss is
    plainly no sale and nothing more is said. An offer in words names no amount, so no payment proves it — it waits for its clock.
-   `losses` = [{blk,off,name,n,pos}] from ITEM_LOST; each verdict lands right after its loss's receipt (pos), where "Want met" stood. */
+   `losses` = [{blk,off,name,n,pos}] from ITEM_LOST (wantedLossRecords; the first settle adds at/node/live); each verdict lands
+   right after its loss's receipt (pos), where "Want met" stood.
+   Acceptance 2026-10-12 (#577 #591) — the settle now:
+   · reads the SHEET's item (probe 29): a loss is recorded under the name removeInventoryItem took, so "[GOLD:+60 gp][ITEM_LOST:
+     Warded ring]" that took the only (silver) ring meets the silver want — the tag's words met no want and the keep was silent;
+   · settles the tag blocks IN TEXT ORDER (probe 28): a block's losses meet the wants still standing after the blocks before it
+     retired theirs, so a second silver ring sold for 40 gp in a later block meets the plain want, as it does a reply later — it
+     used to be matched to the silver want the first block had just retired, priced at 60 gp, and dropped without a line;
+   · prices each want ONCE per block (probe 31): the units of the block's losses that meet one want are summed and priced by
+     wantedPayCp, so three "[ITEM_LOST:Arrow]" pay a "1 gp per 3" offer exactly, as one "[ITEM_LOST:Arrow x3]" does (each tag
+     was rounded alone: 3 × 33 cp);
+   · counts only the units that LEFT the pack (probe 30): L.void, see wantedLossVoid.
+   It retires as it decides and returns {losses, retired, out, voided}; wantedSaleLand inserts the lines at the post-handler seam. */
+function wantedLossRecords(list,blk,off,sheetNames,pos){
+  var seen=keyedDict(),i,s;
+  for(i=0;i<sheetNames.length;i++){s=sheetNames[i];if(!seen[s]){seen[s]={blk:blk,off:off,name:s,n:0,pos:pos};list.push(seen[s]);}seen[s].n++;}
+}
+function wantedSaleAvail(live,gone){var o=[],i;for(i=0;i<(live||[]).length;i++)if(gone.indexOf(live[i])<0)o.push(live[i]);return o;}
 function wantedSaleSettle(R,text,losses){
-  if(!losses||!losses.length)return;var i,L,pc,owe=keyedDict(),cnt=keyedDict(),words=keyedDict(),said=keyedDict(),out=[];
-  for(i=0;i<losses.length;i++){L=losses[i];L.at=rPlaceAtBlock(R,text,L.off);L.node=wantedNodeAt(L.at);L.w=L.node?wantedFor(nodeWantedLive(L.node),L.name):null;if(!L.w)continue;
-    cnt[L.blk]=(cnt[L.blk]||0)+1;pc=wantedPayCp(L.w,L.n);if(pc==null)words[L.blk]=1;else owe[L.blk]=(owe[L.blk]||0)+pc;}
-  for(i=0;i<losses.length;i++){L=losses[i];if(!L.w)continue;
-    var paid=(R.goldInAt&&R.goldInAt[L.blk])||0,due=owe[L.blk]||0,who=L.w.item+(L.w.by?" ("+L.w.by+")":""),sk=wantedKey(L.w)+"|"+L.blk;
-    if(!words[L.blk]&&paid>0&&paid===due){var met=retireWantedAt(L.at,L.name,wantedKey(L.w));if(met)out.push({pos:L.pos,line:"Want met: "+who});continue;}
-    if(!(R.goldIn>0)||said[sk]||nodeWantedLive(L.node).indexOf(L.w)<0)continue;said[sk]=1;/* no coin: no sale to doubt; one line per want per block; a want an earlier block met is not "kept" */
-    out.push({pos:L.pos,line:"⚠ Want kept — "+who+": "+(words[L.blk]?"the offer is in words (“"+L.w.offer+"”), so no payment can be matched to it":!paid?"no coin was paid in the same tag block as the item":fmtCoin(paid)+" came in beside it, "+(cnt[L.blk]>1?"the offers come to ":"the offer is ")+fmtCoin(due))+" — not read as its sale"});}
-  for(i=out.length-1;i>=0;i--)R.muts.splice(out[i].pos,0,out[i].line);
+  var S={losses:losses||[],retired:[],out:[],voided:false},i,j,L,pc,wi,gone=[],blks=[],byBlk=keyedDict(),said=keyedDict();
+  for(i=0;i<S.losses.length;i++){L=S.losses[i];if(!byBlk[L.blk]){byBlk[L.blk]=[];blks.push(L.blk);}byBlk[L.blk].push(L);
+    if(!L.live){L.at=rPlaceAtBlock(R,text,L.off);L.node=wantedNodeAt(L.at);L.live=L.node?nodeWantedLive(L.node).slice():[];}}/* the place, node and live wants the loss SAW, read once at the first settle (the end of ITEM_LOST) — a resettle at the seam reads these, never what later handlers moved */
+  for(j=0;j<blks.length;j++){var B=byBlk[blks[j]],ws=[],us=[],due=0,words=false,cnt=0;
+    for(i=0;i<B.length;i++){L=B[i];L.left=L.n-Math.min(L.n,L.void|0);L.w=wantedFor(wantedSaleAvail(L.live,gone),L.name);if(!L.w||!L.left)continue;/* the wants an earlier block retired are gone for this one */
+      cnt++;wi=ws.indexOf(L.w);if(wi<0){wi=ws.length;ws.push(L.w);us.push(0);}us[wi]+=L.left;}
+    for(i=0;i<ws.length;i++){pc=wantedPayCp(ws[i],us[i]);if(pc==null)words=true;else due+=pc;}/* one price per want per block */
+    var paid=(R.goldInAt&&R.goldInAt[blks[j]])||0;
+    for(i=0;i<B.length;i++){L=B[i];if(!L.w)continue;var who=L.w.item+(L.w.by?" ("+L.w.by+")":""),sk=wantedKey(L.w)+"|"+L.blk;
+      if(L.left&&!words&&paid>0&&paid===due){if(gone.indexOf(L.w)<0){gone.push(L.w);S.retired.push({node:L.node,row:L.w,ix:retireWantedRow(L.node,L.w)});S.out.push({pos:L.pos,line:"Want met: "+who});}continue;}
+      if(!(R.goldIn>0)||said[sk])continue;said[sk]=1;/* no coin: no sale to doubt; one line per want per block */
+      S.out.push({pos:L.pos,line:"⚠ Want kept — "+who+": "+(!L.left?"the loss was voided (it went back in the pack)":words?"the offer is in words (“"+L.w.offer+"”), so no payment can be matched to it":!paid?"no coin was paid in the same tag block as the item":fmtCoin(paid)+" came in beside it, "+(cnt>1?"the offers come to ":"the offer is ")+fmtCoin(due))+" — not read as its sale"});}}
+  return S;
+}
+/* #591 (acceptance 2026-10-12, probe 30): a VOIDED loss is no sale. The settle runs inside ITEM_LOST, but a handler later in the
+   table can put the unit BACK in the pack: a gift to nobody (COMPANION_ITEM_GAINED's missing recipient, #518), a gift the
+   companion's pack refused, a placement refused or carrying fields the chest cannot hold (LOCATION_ITEM). Each put-back calls
+   wantedLossVoid with the sheet name it took from the pair notes. At the post-handler seam wantedSaleLand undoes a settle that
+   saw a voided unit — every row it retired goes back where it stood (restoreWantedRow; a same-reply re-statement stands) — and
+   settles again from the same snapshot counting only the units that left, then inserts the lines. A reply with no void lands
+   its first settle unchanged, so the retirement still happens before a same-reply [WANTED:] files (its refresh and its cap see
+   what they always saw). The ring given to nobody beside +40 gp used to print "Want met" and retire the 40 gp offer while the
+   ring sat in the pack; now the want stays and, with coin in, a ⚠ line says the loss was voided. */
+function wantedLossVoid(R,blk,name){
+  var S=R&&R.wantSettle,i,L,k=itemKey(name);if(!S)return false;
+  for(i=0;i<S.losses.length;i++){L=S.losses[i];if(L.blk===blk&&itemKey(L.name)===k&&(L.void|0)<L.n){L.void=(L.void|0)+1;S.voided=true;return true;}}
+  return false;
+}
+function wantedSaleLand(R,text){
+  var S=R.wantSettle,i;if(!S)return;R.wantSettle=null;
+  if(S.voided){for(i=S.retired.length-1;i>=0;i--)restoreWantedRow(S.retired[i].node,S.retired[i].row,S.retired[i].ix);S=wantedSaleSettle(R,text,S.losses);}
+  for(i=0;i<S.out.length;i++)S.out[i].k=i;S.out.sort(function(a,b){return (a.pos-b.pos)||(a.k-b.k);});
+  for(i=S.out.length-1;i>=0;i--)R.muts.splice(S.out[i].pos,0,S.out[i].line);
 }
 /* #481 A4 (audit 2026-09-29, Fable-approved): THE movement walker. [LOCATION:], [SUBLOCATION:] and [SUBLOCATION_LEAVE] are ONE
    sequence in TEXT order — the place timeline (placeTimeline, identity.js) built once at the top of applyMutsTable — so a
@@ -1966,6 +2007,8 @@ function applyMutsTable(text,opts){
     }
     catch(e){R.errors.push(TAG_TABLE[i].t+": "+(e&&e.message));console.warn("[tags] table handler "+TAG_TABLE[i].t+" threw:",e&&e.message);}
   }
+  /* #591 (acceptance 2026-10-12, probe 30): the GM path's want verdicts land once every handler that can put a lost unit back has run */
+  if(R.wantSettle){try{wantedSaleLand(R,text);}catch(e){R.errors.push("ITEM_LOST want settle: "+(e&&e.message));console.warn("[tags] the want settle threw:",e&&e.message);}}
   if(R.pendingShopKeepers)for(var ki=0;ki<R.pendingShopKeepers.length;ki++){
     try{applyShopKeeper(R.pendingShopKeepers[ki],text,R,true);}
     catch(e){R.errors.push("SHOP_KEEPER: "+(e&&e.message));console.warn("[tags] deferred SHOP_KEEPER threw:",e&&e.message);}

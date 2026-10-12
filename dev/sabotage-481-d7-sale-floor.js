@@ -6,7 +6,7 @@ var sabotage = require("./sabotage.js"), code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: ["node", ["dev/run-tests.js", "#481 D7"]], cases: cases }); }
 prove("helpers.js", [
   { label: "the sale side is rounded to whole gold again (a 3 sp whistle sells for nothing)",
-    find: "lines.push(sl);sellCp+=r.sellCp*q;}", replace: "lines.push(sl);sellCp+=Math.round(r.sellCp*q/100)*100;}",/* #577 re-anchor: the sell line is built as `sl` (it carries the want's identity) */
+    find: "lines.push(sl);sellCp+=sl.cp;}", replace: "lines.push(sl);sellCp+=Math.round(sl.cp/100)*100;}",/* #577 re-anchor: the sell line is built as `sl` (it carries the want's identity); acceptance 2026-10-12 re-anchor: the total sums the line's own cp (a wanted line is priced by wantedPayCp) */
     mustFail: "a lone 3 sp whistle sells for 3 sp" },
   { label: "a line under a gold piece is dropped from the plan",
     find: "var q=ms[k]|0;if(q<=0||r.equipped||r.sellCp==null)continue;", replace: "var q=ms[k]|0;if(q<=0||r.equipped||r.sellCp==null||r.sellCp*q<100)continue;",

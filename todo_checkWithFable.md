@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-12 · #577 #591 · Opus 5.5 fix lane under Fable (drift surface: the ITEM_LOST/GOLD settle, the post-handler seam, the want match and payment): a voided loss restores the want, blocks settle in order, a loss is the sheet item, one payment rule, the clause-free reading. Acceptance 32/32, D4 battery 29/29, 13 related batteries green. Fable reviewed every engine line and landed it.
+
 - 2026-10-12 · #504 #530 #531 #534 · Opus 5.5 fix lane under Fable (drift surface: the identity layer): the title question reads a title on either side of the family word and the family word anywhere in the arrival; a merge re-keys scene handles, respects plot armor, drops self-links and settles its survivor; a hero refusal is said back. Acceptance 22/22, battery 504 76/76, fuzzer 0 at 50k. Fable reviewed every engine line and landed it; #616 filed for the four shapes that still fold.
 
 - 2026-10-12 · #518 #613 · Opus 5.5 fix lane under Fable (drift surface: the item-pair handlers, the one item key): the stow shares the pair rule, the auto-take skips a same-block take, a take consumes its gain units, the short take restores first, itemKey folds a sibilant -es. Acceptance 20/20 + two sweeps, battery 17/17, 111 targeted batteries green. Fable reviewed every engine line and landed it.

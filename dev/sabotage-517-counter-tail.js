@@ -20,7 +20,7 @@ prove("memory.js", [
 ]);
 prove("helpers.js", [
   { label: "the catalog drops the want's bundle",
-    find: 'by:w.by||"",per:Math.max(1,w.per|0)}:null;', replace: 'by:w.by||"",per:1}:null;',
+    find: 'by:w.by||"",per:Math.max(1,w.per|0),offer:', replace: 'by:w.by||"",per:1,offer:',/* acceptance 2026-10-12 re-anchor: the row's want carries its offer too */
     mustFail: WANT },
   { label: "the plan's allowance is one unit regardless of the bundle",
     find: 'wantLeft[r.want.key]:WANT_BUYS*r.want.per;', replace: 'wantLeft[r.want.key]:WANT_BUYS;',

@@ -28836,6 +28836,285 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var k="Queen Mother Underbough";if(!memory.npcs[k])return "fixture: the plain merge lands: "+keysA12()+" | "+mutsA12(r);
     return !provA12(k)?true:"the answered queen is asked about again, as a question of Hilda: "+JSON.stringify(provA12(k))+" | "+mutsA12(r);
   });
+  // ── acceptance 2026-10-12 (objective acceptance of #577 and #591, both ◉; no engine change rides with it). The rulings under
+  // test: a met want retires and the counter pays the keeper's stated offer (2026-09-29); the paid offer is the retired offer
+  // (v1.1223); the match is ONE-WAY — a qualified item meets its own want or the plain want, a plain item never meets a
+  // qualified want (2026-10-11, v1.1225); on the GM's path a want retires only when the coin paid in the loss's OWN tag block
+  // equals the offer for the units lost, otherwise it stays with a ⚠ line when coin came in (#591, v1.1223). Wants are filed
+  // through the real filer (fileWanted, or the [WANTED:] tag), not pushed as rows. The still-valid expectations of
+  // audits/verification-577-2026-10-08/probe.cjs are ported; its three stale ones are written as the ruled behaviour (rows,
+  // not legacy strings, since #599 (c); a second qualified sale meets the plain want; a second plain sale meets no qualified
+  // want). A test here that fails is a finding of the acceptance, kept failing on purpose — see the acceptance report.
+  section("acceptance 2026-10-12 — #577 #591 wants");
+  var ACC12_SHOP="The Village|the trading post";
+  function acc12Shop(wants,inv){shopFixture();var n=memory.map.nodes[ACC12_SHOP];n.wanted=[];
+    (wants||[]).forEach(function(w){fileWanted(w[0],w[1],w[2]||"Frizwick",worldState.turn,{key:ACC12_SHOP});});
+    worldState.character.inventory=(inv||[]).slice();return n;}
+  function acc12Wants(n){return (n.wanted||[]).map(function(w){return w.item;}).join("|");}
+  function acc12Mark(name){var o={};o[name.toLowerCase()]=1;return o;}
+  function acc12Sell(o){return quiet(function(){return shopTradeApply({sell:o,buy:{}});}).r;}
+  function acc12Gm(txt){return quiet(function(){return applyMuts(txt);}).r;}
+  function acc12Met(muts){return (muts||[]).filter(function(m){return /^Want met:/.test(m);});}
+  function acc12Kept(muts){return (muts||[]).filter(function(m){return /^⚠ Want kept/.test(m);});}
+  function acc12Row(cat,name){return (cat&&cat.ok)?(cat.sell.filter(function(r){return r.name===name;})[0]||null):null;}
+  function acc12State(){return JSON.stringify({ws:worldState,m:memory});}
+  function acc12After(muts,line){var ix=(muts||[]).indexOf(line);return ix>=0?muts[ix+1]:undefined;}
+  var ACC12_CANON={"warded ring":{category:"treasure",effect:"N/A",uses:"N/A",value:"200 gp"}};
+
+  // ── the counter (#577) ──
+  t("#577 acceptance both filing orders through the counter (wants filed by fileWanted): the paid offer retires and the other survives; the second sale pays no second premium — plain filed first, the second silver ring meets the plain want and pays ITS 40 gp; silver filed first, the second plain ring meets no qualified want (ONE-WAY) and the silver want waits for a silver ring",function(){
+    var orders=[false,true],oi;
+    for(oi=0;oi<orders.length;oi++){var silverFirst=orders[oi],tag=silverFirst?"silver filed first: ":"plain filed first: ";
+      var n=acc12Shop(silverFirst?[["Warded ring (silver)","60 gp"],["Warded ring","40 gp"]]:[["Warded ring","40 gp"],["Warded ring (silver)","60 gp"]],["Warded ring x2","Warded ring (silver) x2"]),c=worldState.character;
+      var cat=shopTradeCatalog(),both=shopTradePlan(cat,{sell:{"warded ring":1,"warded ring (silver)":1},buy:{}});
+      if(!both.ok||both.sellCp!==10000)return tag+"each offer keeps its own allowance (40 gp + 60 gp): "+JSON.stringify([both.ok,both.sellCp,both.reason]);
+      var sold=silverFirst?"Warded ring":"Warded ring (silver)",other=silverFirst?"Warded ring (silver)":"Warded ring",paid=silverFirst?4000:6000;
+      var g=c.coin,r=acc12Sell(acc12Mark(sold));
+      if(!r.ok||c.coin-g!==paid)return tag+"selling the "+sold+" pays "+fmtCoin(paid)+": "+JSON.stringify([r.ok,r.reason,fmtCoin(c.coin-g)]);
+      if(acc12Wants(n)!==other)return tag+"the paid offer retires, the other survives: "+acc12Wants(n);
+      if(acc12Met(r.muts).join("|")!=="Want met: "+sold+" (Frizwick)")return tag+"one receipt, naming the paid want: "+JSON.stringify(r.muts);
+      var g2=c.coin,r2=acc12Sell(acc12Mark(sold)),d2=c.coin-g2;
+      if(!silverFirst){
+        if(!r2.ok||d2!==4000||acc12Wants(n)!==""||acc12Met(r2.muts).join("|")!=="Want met: Warded ring (Frizwick)")return tag+"the second silver ring meets the plain want: it pays the plain 40 gp (never the 60 gp premium again) and retires the plain want: "+JSON.stringify([r2.ok,r2.reason,fmtCoin(d2),r2.muts,acc12Wants(n)]);
+      }else{
+        if(r2.ok||d2!==0||acc12Wants(n)!=="Warded ring (silver)")return tag+"the second plain ring is unwanted (no canon, so no price) — refused, nothing paid, the silver want stays: "+JSON.stringify([r2.ok,r2.reason,fmtCoin(d2),acc12Wants(n)]);
+        var row=acc12Row(shopTradeCatalog(),"Warded ring");if(!row||row.wanted||row.want||row.sellCp!=null)return tag+"the plain row is unwanted and unpriced: "+JSON.stringify(row);
+        var g3=c.coin,r3=acc12Sell(acc12Mark("Warded ring (silver)"));
+        if(!r3.ok||c.coin-g3!==6000||acc12Wants(n)!==""||acc12Met(r3.muts).join("|")!=="Want met: Warded ring (silver) (Frizwick)")return tag+"a silver ring still meets its own 60 gp want: "+JSON.stringify([r3.ok,fmtCoin(c.coin-g3),r3.muts,acc12Wants(n)]);
+      }
+    }
+    return true;
+  });
+  t("#577 acceptance three wants of one base — plain 40 gp, (silver) 60 gp, (cracked) 25 gp: each ring sold alone pays and retires exactly its own offer; all three in one trade pay 125 gp and retire all three, one receipt each",function(){
+    var ws=[["Warded ring","40 gp"],["Warded ring (silver)","60 gp"],["Warded ring (cracked)","25 gp"]],inv=["Warded ring","Warded ring (silver)","Warded ring (cracked)"],pay=[4000,6000,2500],i;
+    for(i=0;i<inv.length;i++){var n=acc12Shop(ws,inv),c=worldState.character,g=c.coin,r=acc12Sell(acc12Mark(inv[i])),me=inv[i];
+      var left=inv.filter(function(x){return x!==me;}).join("|");
+      if(!r.ok||c.coin-g!==pay[i])return me+" pays its own offer ("+fmtCoin(pay[i])+"): "+JSON.stringify([r.ok,r.reason,fmtCoin(c.coin-g)]);
+      if(acc12Wants(n)!==left)return me+" retires exactly its own want — left should be "+left+": "+acc12Wants(n);
+      if(acc12Met(r.muts).join("|")!=="Want met: "+me+" (Frizwick)")return me+" receipt: "+JSON.stringify(r.muts);}
+    var n2=acc12Shop(ws,inv),c2=worldState.character,g2=c2.coin,all=acc12Sell({"warded ring":1,"warded ring (silver)":1,"warded ring (cracked)":1});
+    return (all.ok&&c2.coin-g2===12500&&acc12Wants(n2)===""&&acc12Met(all.muts).length===3)?true:"all three in one trade pay 125 gp and retire all three: "+JSON.stringify([all.ok,all.reason,fmtCoin(c2.coin-g2),all.muts,acc12Wants(n2)]);
+  });
+  t("#577 acceptance ONE-WAY: with only the (silver) and (cracked) wants on file the plain ring is unwanted and sells at half its 200 gp canon (100 gp); both qualified wants survive the sale",function(){
+    var n=acc12Shop([["Warded ring (silver)","60 gp"],["Warded ring (cracked)","25 gp"]],["Warded ring"]);worldState.itemBible=JSON.parse(JSON.stringify(ACC12_CANON));
+    var row=acc12Row(shopTradeCatalog(),"Warded ring");
+    if(!row||row.wanted||row.want||row.sellCp!==10000)return "the plain ring is unwanted, priced at half canon (100 gp): "+JSON.stringify(row);
+    var c=worldState.character,g=c.coin,r=acc12Sell(acc12Mark("Warded ring"));
+    if(!r.ok||c.coin-g!==10000)return "the sale pays 100 gp: "+JSON.stringify([r.ok,r.reason,fmtCoin(c.coin-g)]);
+    return (acc12Wants(n)==="Warded ring (silver)|Warded ring (cracked)"&&!acc12Met(r.muts).length)?true:"both qualified wants survive, no receipt: "+JSON.stringify([r.muts,acc12Wants(n)]);
+  });
+  t("#577 acceptance the pack rule: carried \"Wolf pelts\" meets the want \"Wolf pelt\", and carried \"Wolf pelt\" meets the want \"Wolf pelts\" — at the counter and on the GM's path",function(){
+    var cases=[["Wolf pelts","Wolf pelt"],["Wolf pelt","Wolf pelts"]],i;
+    for(i=0;i<cases.length;i++){var carried=cases[i][0],want=cases[i][1],tag=carried+" vs want "+want+": ";
+      var n=acc12Shop([[want,"2 gp"]],[carried+" x3"]),row=acc12Row(shopTradeCatalog(),carried);
+      if(!row||!row.wanted||row.sellCp!==200||!row.want||row.want.item!==want)return tag+"the counter row meets the want at 2 gp: "+JSON.stringify(row);
+      var c=worldState.character,g=c.coin,r=acc12Sell(acc12Mark(carried));
+      if(!r.ok||c.coin-g!==200||acc12Wants(n)!==""||acc12Met(r.muts).join("|")!=="Want met: "+want+" (Frizwick)")return tag+"the counter sale pays 2 gp and retires the want: "+JSON.stringify([r.ok,r.reason,fmtCoin(c.coin-g),r.muts,acc12Wants(n)]);
+      var n2=acc12Shop([[want,"2 gp"]],[carried+" x3"]),r2=acc12Gm("Frizwick counts out two gold. [GOLD:+2 gp][ITEM_LOST:"+carried+"]");
+      if(acc12Wants(n2)!==""||acc12Met(r2.muts).join("|")!=="Want met: "+want+" (Frizwick)")return tag+"the GM's sale meets the want: "+JSON.stringify([r2.muts,acc12Wants(n2)]);}
+    return true;
+  });
+  t("#577 acceptance a bundle want filed by [WANTED:Arrow|1 gp per 5|Frizwick]: the counter offers up to five, refuses six with the reason, pays 1 gp for five and retires the want; the sixth arrow is no longer wanted; the GM's [GOLD:+1 gp][ITEM_LOST:Arrow x5] meets the same want",function(){
+    var n=acc12Shop([],["Arrow x12"]);acc12Gm("Frizwick eyes your quiver. [WANTED:Arrow|1 gp per 5|Frizwick]");
+    var w=n.wanted[0];if(n.wanted.length!==1||w.cp!==20||w.per!==5)return "the filer stores 2 sp a unit in a bundle of five: "+JSON.stringify(n.wanted);
+    var cat=shopTradeCatalog(),lr=shopLedgerRows(cat).left.filter(function(x){return x.label==="Arrow";})[0];
+    if(!lr||lr.max!==5)return "the counter offers up to five: "+JSON.stringify(lr);
+    var p6=shopTradePlan(cat,{sell:{"arrow":6},buy:{}});if(p6.ok||!/Frizwick wants 5 Arrow/.test(p6.reason))return "six arrows are past the bundle, refused with the reason: "+JSON.stringify([p6.ok,p6.reason]);
+    var c=worldState.character,g=c.coin,r=acc12Sell({"arrow":5});
+    if(!r.ok||c.coin-g!==100||acc12Wants(n)!==""||acc12Met(r.muts).join("|")!=="Want met: Arrow (Frizwick)")return "five arrows pay 1 gp and retire the want: "+JSON.stringify([r.ok,r.reason,fmtCoin(c.coin-g),r.muts,acc12Wants(n)]);
+    var row=acc12Row(shopTradeCatalog(),"Arrow");if(!row||row.wanted||row.want)return "the sixth arrow is no longer wanted: "+JSON.stringify(row);
+    var n2=acc12Shop([["Arrow","1 gp per 5"]],["Arrow x12"]),r2=acc12Gm("Frizwick pays a gold for five. [GOLD:+1 gp][ITEM_LOST:Arrow x5]");
+    return (acc12Wants(n2)===""&&acc12Met(r2.muts).join("|")==="Want met: Arrow (Frizwick)")?true:"the GM's bundle sale meets the want: "+JSON.stringify([r2.muts,acc12Wants(n2)]);
+  });
+  t("#577 acceptance a bundle that does not divide evenly — the want \"Arrow | 1 gp per 3\": the counter pays the stated 1 gp for the three, as the GM's [GOLD:+1 gp][ITEM_LOST:Arrow x3] already does",function(){
+    var n=acc12Shop([["Arrow","1 gp per 3"]],["Arrow x7"]),c=worldState.character,cat=shopTradeCatalog(),p=shopTradePlan(cat,{sell:{"arrow":3},buy:{}}),g=c.coin,r=acc12Sell({"arrow":3}),d=c.coin-g;
+    var n2=acc12Shop([["Arrow","1 gp per 3"]],["Arrow x7"]),r2=acc12Gm("Frizwick pays a gold for three. [GOLD:+1 gp][ITEM_LOST:Arrow x3]");
+    if(acc12Wants(n2)!==""||acc12Met(r2.muts).length!==1)return "control: the GM's 1 gp for three meets the stated offer: "+JSON.stringify([r2.muts,acc12Wants(n2)]);
+    return (r.ok&&p.sellCp===100&&d===100)?true:"the counter pays the stated 1 gp for the bundle of three — observed: plan "+fmtCoin(p.sellCp)+", paid "+fmtCoin(d)+", receipts "+JSON.stringify(r.muts)+", stored want "+JSON.stringify({cp:n.wanted.length?n.wanted[0].cp:"(retired)"});
+  });
+  t("#577 acceptance an offer in words at the counter: the row is off with the reason quoting the offer, nothing sells and the want stays",function(){
+    var n=acc12Shop([["Warded ring","a fair price, she says"]],["Warded ring"]),cat=shopTradeCatalog(),lr=shopLedgerRows(cat).left.filter(function(x){return x.label==="Warded ring";})[0];
+    if(!lr||!lr.off||lr.offReason!=="Wanted, but the offer is in words (“a fair price, she says”) — ask Frizwick")return "the row is off with the reason: "+JSON.stringify(lr);
+    var c=worldState.character,g=c.coin,r=acc12Sell(acc12Mark("Warded ring"));
+    return (!r.ok&&c.coin===g&&acc12Wants(n)==="Warded ring")?true:"nothing sells, the want stays: "+JSON.stringify([r.ok,r.reason,acc12Wants(n)]);
+  });
+  t("#577 acceptance a qualified item with a provenance clause — carried \"Warded ring (silver) — taken from the crypt\" — meets its own (silver) want at its 60 gp offer, at the counter and on the GM's path",function(){
+    var nm="Warded ring (silver) — taken from the crypt";
+    var n=acc12Shop([["Warded ring (silver)","60 gp"]],[nm]),row=acc12Row(shopTradeCatalog(),nm);
+    var counterOk=!!(row&&row.wanted&&row.want&&row.want.item==="Warded ring (silver)"&&row.sellCp===6000);
+    var n2=acc12Shop([["Warded ring (silver)","60 gp"]],[nm]),r2=acc12Gm("Frizwick pays sixty for the crypt ring. [GOLD:+60 gp][ITEM_LOST:"+nm+"]");
+    var gmOk=acc12Wants(n2)===""&&acc12Met(r2.muts).join("|")==="Want met: Warded ring (silver) (Frizwick)";
+    return (counterOk&&gmOk)?true:"the silver crypt ring meets no want — observed: counter row "+JSON.stringify(row&&{wanted:row.wanted,want:row.want,sellCp:row.sellCp})+" (wantedFor: "+JSON.stringify(wantedFor(nodeWantedLive(n),nm))+"); GM receipts "+JSON.stringify(r2.muts)+", wants after "+JSON.stringify(acc12Wants(n2));
+  });
+  t("#577 acceptance plural with a qualifier — carried \"Wolf pelts (prime)\" meets the want \"Wolf pelt (prime)\", as \"Wolf pelts\" meets \"Wolf pelt\"",function(){
+    var n=acc12Shop([["Wolf pelt (prime)","5 gp"]],["Wolf pelts (prime)"]),row=acc12Row(shopTradeCatalog(),"Wolf pelts (prime)");
+    var n2=acc12Shop([["Wolf pelt (prime)","5 gp"]],["Wolf pelts (prime)"]),r2=acc12Gm("Frizwick pays five for the prime pelt. [GOLD:+5 gp][ITEM_LOST:Wolf pelts (prime)]");
+    return (row&&row.wanted&&row.sellCp===500&&acc12Wants(n2)==="")?true:"observed: counter row "+JSON.stringify(row&&{wanted:row.wanted,sellCp:row.sellCp})+" (itemKey "+JSON.stringify(itemKey("Wolf pelts (prime)"))+" vs the want's "+JSON.stringify(itemKey("Wolf pelt (prime)"))+"); GM receipts "+JSON.stringify(r2.muts)+", wants after "+JSON.stringify(acc12Wants(n2));
+  });
+  t("#577 acceptance the counter's receipts: each \"Want met\" lands right after its own loss receipt, and the coin line comes last",function(){
+    acc12Shop([["Warded ring","40 gp"],["Warded ring (silver)","60 gp"]],["Warded ring","Warded ring (silver)","Rope x2"]);
+    var r=acc12Sell({"warded ring":1,"warded ring (silver)":1}),want=["-Warded ring","Want met: Warded ring (Frizwick)","-Warded ring (silver)","Want met: Warded ring (silver) (Frizwick)","+100 gp"];
+    return (r.ok&&JSON.stringify(r.muts)===JSON.stringify(want))?true:"receipts in order: "+JSON.stringify(r.muts);
+  });
+  t("#577 acceptance the place decides: the wanted ring sold in ANOTHER shop (Daeris's smithy) meets nothing and says nothing; sold in the trading post before walking out to the smithy in the same reply, it meets the want",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2"]),sm=memory.map.nodes["The Village|the smithy"];sm.keeper="Daeris";sm.wares=[];sm.wanted=[];memory.npcs["Daeris"].lastSeenAt="The Village|the smithy";worldState.world.sublocation="the smithy";
+    var c=worldState.character,g=c.coin,r=acc12Gm("Daeris weighs the ring and pays. [SAY:Daeris|plain]Forty.[/SAY] [GOLD:+40 gp][ITEM_LOST:Warded ring]");
+    if(c.coin-g!==4000)return "fixture: the smithy trade lands: "+JSON.stringify(r.muts);
+    if(acc12Wants(n)!=="Warded ring"||acc12Met(r.muts).length||acc12Kept(r.muts).length)return "a sale in another shop meets nothing there and says nothing: "+JSON.stringify([r.muts,acc12Wants(n)]);
+    worldState.world.sublocation="the trading post";
+    var r2=acc12Gm("Frizwick pays forty. [GOLD:+40 gp][ITEM_LOST:Warded ring] You step out and cross to the forge. [SUBLOCATION:the smithy]");
+    return (acc12Wants(n)===""&&acc12Met(r2.muts).join("|")==="Want met: Warded ring (Frizwick)"&&worldState.world.sublocation==="the smithy")?true:"pay, then leave: the want is met in the shop it was paid in: "+JSON.stringify([r2.muts,acc12Wants(n),worldState.world.sublocation]);
+  });
+  t("#577 acceptance the 7-day expiry: a want is live a minute short of seven days (the GM is told, the counter pays its offer) and gone at seven days — the GM is not told, the counter pays no offer, and the GM's exact payment meets nothing and says nothing",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2"]);clockAdvance(7*MIN_PER_DAY-1);
+    var row=acc12Row(shopTradeCatalog(),"Warded ring");if(!row||!row.wanted||row.sellCp!==4000)return "a minute short of a week the want is live at its offer: "+JSON.stringify(row);
+    if(!/WANTED HERE:[^\n]*Warded ring/.test(buildGeoBlock()))return "a minute short of a week the GM is still told";
+    clockAdvance(1);
+    if(nodeWantedLive(n).length)return "at seven days the want is not live: "+JSON.stringify(nodeWantedLive(n));
+    if(/WANTED HERE/.test(buildGeoBlock()))return "the geo block serves an expired want";
+    row=acc12Row(shopTradeCatalog(),"Warded ring");if(!row||row.wanted||row.sellCp!=null)return "the counter pays no expired offer: "+JSON.stringify(row);
+    var r=acc12Gm("Frizwick pays forty. [GOLD:+40 gp][ITEM_LOST:Warded ring]");
+    return (!acc12Met(r.muts).length&&!acc12Kept(r.muts).length)?true:"an expired want is neither met nor kept: "+JSON.stringify(r.muts);
+  });
+  t("#577 acceptance save round trip: a shop's bundle want, plain want and offer in words survive the memory save path (JSON, then healMemory — what loadState does) byte-identical with cp/per intact, and the counter prices and retires them the same after the reload",function(){
+    var n=acc12Shop([["Arrow","1 gp per 5"],["Warded ring","40 gp"],["Lucky coin","a fair price"]],["Arrow x6","Warded ring","Lucky coin"]),before=JSON.stringify(n.wanted);
+    memory=JSON.parse(JSON.stringify(memory));healMemory();
+    var n2=memory.map.nodes[ACC12_SHOP];if(!n2||JSON.stringify(n2.wanted)!==before)return "the wants survive byte-identical: "+JSON.stringify(n2&&n2.wanted)+" vs "+before;
+    var w=n2.wanted;if(w[0].cp!==20||w[0].per!==5||w[1].cp!==4000||w[1].per!==1||w[2].cp!==null||w[2].per!==1)return "cp/per intact: "+JSON.stringify(w);
+    var cat=shopTradeCatalog(),a=acc12Row(cat,"Arrow"),ring=acc12Row(cat,"Warded ring"),lc=acc12Row(cat,"Lucky coin");
+    if(!a||a.sellCp!==20||!a.want||a.want.per!==5||!ring||ring.sellCp!==4000||!lc||!lc.offerWords||lc.sellCp!=null)return "the counter reads the reloaded wants: "+JSON.stringify([a,ring,lc]);
+    var r=acc12Sell({"arrow":5});return (r.ok&&acc12Wants(n2)==="Warded ring|Lucky coin")?true:"the reloaded bundle sells and retires: "+JSON.stringify([r.ok,r.reason,acc12Wants(n2)]);
+  });
+  t("#577 acceptance the counter's sale then the GM's sale of the same item: no second \"Want met\", and the plain want is not retired in the silver one's place (the 60 gp the GM pays for the second silver ring is not the plain 40 gp offer — ⚠ kept); the GM's sale first, then the counter pays no premium",function(){
+    var n=acc12Shop([["Warded ring","40 gp"],["Warded ring (silver)","60 gp"]],["Warded ring","Warded ring (silver) x2"]),r=acc12Sell(acc12Mark("Warded ring (silver)"));
+    if(!r.ok||acc12Wants(n)!=="Warded ring")return "fixture: the counter sells the silver ring and retires the silver want: "+JSON.stringify([r.ok,r.reason,acc12Wants(n)]);
+    var r2=acc12Gm("Frizwick, as agreed at the counter, takes the silver ring. [GOLD:+60 gp][ITEM_LOST:Warded ring (silver)]");
+    if(acc12Met(r2.muts).length)return "no second Want met: "+JSON.stringify(r2.muts);
+    if(acc12Wants(n)!=="Warded ring")return "the plain want stays: "+acc12Wants(n);
+    var k=acc12Kept(r2.muts);if(k.length!==1||k[0]!=="⚠ Want kept — Warded ring (Frizwick): 60 gp came in beside it, the offer is 40 gp — not read as its sale")return "the ⚠ line: "+JSON.stringify(r2.muts);
+    var n3=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2"]),r3=acc12Gm("Frizwick pays forty. [GOLD:+40 gp][ITEM_LOST:Warded ring]");
+    if(acc12Wants(n3)!=="")return "fixture: the GM's sale retires the want: "+JSON.stringify(r3.muts);
+    var row=acc12Row(shopTradeCatalog(),"Warded ring");return (row&&!row.wanted&&row.sellCp==null)?true:"the counter pays no premium for a want the GM's sale met: "+JSON.stringify(row);
+  });
+  t("#577 acceptance probe.cjs port — three decorated rings meet ONE plain want under one key; marking all three, or two units from one stack, refuses with the reason and leaves world and memory byte-identical",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2","Warded ring — taken from the crypt","Warded ring (cracked)"]),cat=shopTradeCatalog();
+    var keys=cat.sell.filter(function(r){return /^Warded ring/.test(r.name);}).map(function(r){return r.want&&r.want.key;});
+    if(keys.join("|")!=="warded ring|warded ring|warded ring")return "three rows, one offer key: "+JSON.stringify(keys);
+    var marks={"warded ring":1,"warded ring — taken from the crypt":1,"warded ring (cracked)":1},before=acc12State(),p=shopTradePlan(cat,{sell:marks,buy:{}}),r=acc12Sell(marks);
+    if(p.ok||r.ok||!/Frizwick.*Warded ring.*once/.test(r.reason||""))return "three marks refuse with the named reason: "+JSON.stringify([p.ok,r.ok,r.reason]);
+    if(acc12State()!==before)return "the refusal leaves world and memory byte-identical";
+    var b2=acc12State(),r2=acc12Sell({"warded ring":2});
+    return (!r2.ok&&acc12State()===b2&&acc12Wants(n)==="Warded ring")?true:"two units from one stack refuse atomically: "+JSON.stringify([r2.ok,r2.reason]);
+  });
+  t("#577 acceptance probe.cjs port — each decorated ring sold alone pays the 40 gp offer once and leaves only itself (the pack read through invTextList: rows since #599 (c), the probe's stale string compare); the next ring is unpriced and refused with nothing changed; with 200 gp canon the next unit pays half canon",function(){
+    var names=["Warded ring","Warded ring — taken from the crypt","Warded ring (cracked)"],i;
+    for(i=0;i<names.length;i++){var me=names[i],n=acc12Shop([["Warded ring","40 gp"]],names),c=worldState.character,g=c.coin,r=acc12Sell(acc12Mark(me)),left=names.filter(function(x){return x!==me;}).join("|");
+      if(!r.ok||r.plan.lines.length!==1||c.coin-g!==4000||invTextList(c.inventory).join("|")!==left||acc12Wants(n)!=="")return me+" alone: "+JSON.stringify([r.ok,r.reason,fmtCoin(c.coin-g),invTextList(c.inventory),acc12Wants(n)]);}
+    var n2=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2","Warded ring — taken from the crypt","Warded ring (cracked)"]),c2=worldState.character,g2=c2.coin,one=acc12Sell({"warded ring (cracked)":1});
+    if(!one.ok||c2.coin-g2!==4000||invTextList(c2.inventory).join("|")!=="Warded ring x2|Warded ring — taken from the crypt"||acc12Wants(n2)!=="")return "one cracked ring: "+JSON.stringify([one.ok,fmtCoin(c2.coin-g2),invTextList(c2.inventory),acc12Wants(n2)]);
+    var b3=acc12State(),r3=acc12Sell({"warded ring":1});if(r3.ok||acc12State()!==b3)return "the next ring is unpriced, refused, nothing changes: "+JSON.stringify([r3.ok,r3.reason]);
+    acc12Shop([["Warded ring","40 gp"]],["Warded ring x3"]);worldState.itemBible=JSON.parse(JSON.stringify(ACC12_CANON));
+    var c4=worldState.character,g4=c4.coin,a=acc12Sell({"warded ring":1});if(!a.ok||c4.coin-g4!==4000)return "the first unit pays the offer: "+JSON.stringify([a.ok,fmtCoin(c4.coin-g4)]);
+    var g5=c4.coin,b=acc12Sell({"warded ring":1});
+    return (b.ok&&b.plan.sellCp===10000&&c4.coin-g5===10000)?true:"the next unit pays half canon: "+JSON.stringify([b.ok,b.plan&&b.plan.sellCp,fmtCoin(c4.coin-g5)]);
+  });
+  t("#577 acceptance probe.cjs port — a ledger plan whose item vanished before it landed is refused, world and memory unchanged, the want standing",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2"]),cat=shopTradeCatalog(),p=shopTradePlan(cat,{sell:{"warded ring":1},buy:{}});
+    worldState.character.inventory=[];var before=acc12State(),r=quiet(function(){return ledgerApply(p,{key:cat.key});}).r;
+    return (!r.ok&&acc12State()===before&&acc12Wants(n)==="Warded ring")?true:"refused, nothing moved: "+JSON.stringify(r);
+  });
+
+  // ── the GM's path (#591) ──
+  t("#591 acceptance the exact offer paid in the loss's own block retires the want — coin tag before or after the item tag — with the receipts \"+40 gp\", \"-Warded ring\", \"Want met: Warded ring (Frizwick)\" and no ⚠ line",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2"]),r=acc12Gm("Frizwick counts out forty gold. [GOLD:+40 gp][ITEM_LOST:Warded ring]");
+    if(acc12Wants(n)!==""||r.muts.indexOf("+40 gp")<0||acc12After(r.muts,"-Warded ring")!=="Want met: Warded ring (Frizwick)"||acc12Kept(r.muts).length)return "coin first: "+JSON.stringify([r.muts,acc12Wants(n)]);
+    var n2=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2"]),r2=acc12Gm("You slide the ring across; Frizwick pays. [ITEM_LOST:Warded ring][GOLD:+40 gp]");
+    return (acc12Wants(n2)===""&&acc12After(r2.muts,"-Warded ring")==="Want met: Warded ring (Frizwick)"&&!acc12Kept(r2.muts).length)?true:"coin after the item, same block: "+JSON.stringify([r2.muts,acc12Wants(n2)]);
+  });
+  t("#591 acceptance the exact offer plus 1 cp in the same block ([GOLD:+40 gp][GOLD:+1 cp]) keeps the want; the ⚠ line names the 40 gp 1 cp that came in and the 40 gp offer",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2"]),c=worldState.character,g=c.coin,r=acc12Gm("Frizwick pays forty and a copper for luck. [GOLD:+40 gp][GOLD:+1 cp][ITEM_LOST:Warded ring]");
+    if(c.coin-g!==4001)return "fixture: both coins land: "+fmtCoin(c.coin-g);
+    if(acc12Wants(n)!=="Warded ring"||acc12Met(r.muts).length)return "40 gp 1 cp is not the 40 gp offer — the want stays: "+JSON.stringify([r.muts,acc12Wants(n)]);
+    var k=acc12Kept(r.muts);
+    return (k.length===1&&k[0]==="⚠ Want kept — Warded ring (Frizwick): 40 gp 1 cp came in beside it, the offer is 40 gp — not read as its sale"&&mutLineWarns(k[0])&&acc12After(r.muts,"-Warded ring")===k[0])?true:"one ⚠ line after the loss, naming the coin and the offer: "+JSON.stringify(r.muts);
+  });
+  t("#591 acceptance the exact offer paid in ANOTHER block keeps the want, whether the coin's block comes before or after the item's; the ⚠ line says no coin was paid in the item's block",function(){
+    var texts=["Frizwick pays forty gold for the lamp oil. [GOLD:+40 gp] Later, alone, the ring slips into the well. [ITEM_LOST:Warded ring]","The ring slips into the well. [ITEM_LOST:Warded ring] Frizwick, on other business, pays you forty gold for the lamp oil. [GOLD:+40 gp]"],i;
+    for(i=0;i<texts.length;i++){var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2"]),r=acc12Gm(texts[i]),k=acc12Kept(r.muts);
+      if(acc12Wants(n)!=="Warded ring"||acc12Met(r.muts).length)return (i?"coin after: ":"coin before: ")+"the want stays: "+JSON.stringify([r.muts,acc12Wants(n)]);
+      if(k.length!==1||k[0]!=="⚠ Want kept — Warded ring (Frizwick): no coin was paid in the same tag block as the item — not read as its sale")return (i?"coin after: ":"coin before: ")+"the ⚠ line: "+JSON.stringify(r.muts);}
+    return true;
+  });
+  t("#591 acceptance a haggled price (35 gp for the 40 gp offer, same block) keeps the want with the ⚠ line naming both",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2"]),r=acc12Gm("You haggle Frizwick down to thirty-five. [GOLD:+35 gp][ITEM_LOST:Warded ring]"),k=acc12Kept(r.muts);
+    return (acc12Wants(n)==="Warded ring"&&!acc12Met(r.muts).length&&k.length===1&&k[0]==="⚠ Want kept — Warded ring (Frizwick): 35 gp came in beside it, the offer is 40 gp — not read as its sale")?true:"kept with the line: "+JSON.stringify([r.muts,acc12Wants(n)]);
+  });
+  t("#591 acceptance two wanted losses in one block paid by ONE coin tag equal to the sum (40 gp + 3 gp = 43 gp) retire both, each \"Want met\" right after its own loss",function(){
+    var n=acc12Shop([["Warded ring","40 gp"],["Bone-handled knife","3 gp"]],["Warded ring","Bone-handled knife"]),r=acc12Gm("Frizwick takes both for forty-three. [GOLD:+43 gp][ITEM_LOST:Warded ring][ITEM_LOST:Bone-handled knife]");
+    return (acc12Wants(n)===""&&acc12After(r.muts,"-Warded ring")==="Want met: Warded ring (Frizwick)"&&acc12After(r.muts,"-Bone-handled knife")==="Want met: Bone-handled knife (Frizwick)"&&!acc12Kept(r.muts).length)?true:"both retire: "+JSON.stringify([r.muts,acc12Wants(n)]);
+  });
+  t("#591 acceptance one wanted and one unwanted loss paid by one combined coin (45 gp for the 40 gp ring and a rope) keep the want, with the ⚠ line",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring","Rope x2"]),r=acc12Gm("Frizwick takes the ring and a rope for forty-five. [GOLD:+45 gp][ITEM_LOST:Warded ring][ITEM_LOST:Rope]"),k=acc12Kept(r.muts);
+    return (acc12Wants(n)==="Warded ring"&&!acc12Met(r.muts).length&&k.length===1&&k[0]==="⚠ Want kept — Warded ring (Frizwick): 45 gp came in beside it, the offer is 40 gp — not read as its sale"&&acc12After(r.muts,"-Warded ring")===k[0])?true:"kept with the line: "+JSON.stringify([r.muts,acc12Wants(n)]);
+  });
+  t("#591 acceptance a loss with no coin says nothing extra — no \"Want met\", no ⚠ line, the want stands — and neither does a loss beside coin the hero PAID ([GOLD:-5 gp])",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring x3"]),r=acc12Gm("You toss the ring into the hearth. [ITEM_LOST:Warded ring]");
+    var about=function(m){return /Warded ring|Want/.test(m);};
+    if(acc12Wants(n)!=="Warded ring"||JSON.stringify(r.muts.filter(about))!==JSON.stringify(["-Warded ring"]))return "no coin: "+JSON.stringify([r.muts,acc12Wants(n)]);
+    var r2=acc12Gm("You pay Frizwick five gold for a whetstone, and drop a ring through the floorboards. [GOLD:-5 gp][ITEM_LOST:Warded ring]");
+    return (acc12Wants(n)==="Warded ring"&&JSON.stringify(r2.muts.filter(about))===JSON.stringify(["-Warded ring"]))?true:"coin paid OUT is no sale: "+JSON.stringify([r2.muts,acc12Wants(n)]);
+  });
+  t("#591 acceptance an offer in words: the GM's sale keeps the want, with the ⚠ line quoting the words",function(){
+    var n=acc12Shop([["Warded ring","a fair price, she says"]],["Warded ring x2"]),r=acc12Gm("Frizwick pays forty. [GOLD:+40 gp][ITEM_LOST:Warded ring]"),k=acc12Kept(r.muts);
+    return (acc12Wants(n)==="Warded ring"&&!acc12Met(r.muts).length&&k.length===1&&k[0]==="⚠ Want kept — Warded ring (Frizwick): the offer is in words (“a fair price, she says”), so no payment can be matched to it — not read as its sale")?true:"kept with the words line: "+JSON.stringify([r.muts,acc12Wants(n)]);
+  });
+  t("#591 acceptance the receipts across two blocks: \"-Warded ring\", \"Want met: Warded ring (Frizwick)\", \"-Bone-handled knife\", then the knife's ⚠ line — each verdict right after its own loss",function(){
+    acc12Shop([["Warded ring","40 gp"],["Bone-handled knife","3 gp"]],["Warded ring","Bone-handled knife"]);
+    var r=acc12Gm("Frizwick pays forty for the ring. [GOLD:+40 gp][ITEM_LOST:Warded ring] Then two gold for the knife. [GOLD:+2 gp][ITEM_LOST:Bone-handled knife]");
+    var tail=r.muts.slice(r.muts.indexOf("-Warded ring")),want=["-Warded ring","Want met: Warded ring (Frizwick)","-Bone-handled knife","⚠ Want kept — Bone-handled knife (Frizwick): 2 gp came in beside it, the offer is 3 gp — not read as its sale"];
+    return JSON.stringify(tail)===JSON.stringify(want)?true:"receipts in order: "+JSON.stringify(r.muts);
+  });
+  t("#591 acceptance in an adventure (the want on the world node, no counter): unrelated coin beside the loss keeps the want with the ⚠ line; the exact offer in the same block meets it",function(){
+    makeWorld();worldState.character.inventory=["Warded ring x2"];var loc=worldState.world.location;acc12Gm("Gazz eyes your ring. [WANTED:Warded ring|40 gp|Gazz]");var node=memory.map.nodes[loc];
+    if(!node||acc12Wants(node)!=="Warded ring")return "fixture: the want files on the world node: "+JSON.stringify(node&&node.wanted);
+    var r=acc12Gm("Gazz flips you a copper of change; the ring rolls into the gutter. [GOLD:+1 cp][ITEM_LOST:Warded ring]"),k=acc12Kept(r.muts);
+    if(acc12Wants(node)!=="Warded ring"||k.length!==1||k[0]!=="⚠ Want kept — Warded ring (Gazz): 1 cp came in beside it, the offer is 40 gp — not read as its sale")return "unrelated coin keeps: "+JSON.stringify([r.muts,acc12Wants(node)]);
+    var r2=acc12Gm("Gazz pays forty. [GOLD:+40 gp][ITEM_LOST:Warded ring]");
+    return (acc12Wants(node)===""&&acc12After(r2.muts,"-Warded ring")==="Want met: Warded ring (Gazz)")?true:"the exact offer meets it: "+JSON.stringify([r2.muts,acc12Wants(node)]);
+  });
+  t("#591 acceptance two sales in two blocks of ONE reply: the first silver ring at 60 gp meets the silver want; the second silver ring at 40 gp then meets the plain want — as the same two sales do in two replies",function(){
+    var first="Frizwick pays sixty for the first. [GOLD:+60 gp][ITEM_LOST:Warded ring (silver)]",second=" Then forty for the second. [GOLD:+40 gp][ITEM_LOST:Warded ring (silver)]";
+    var n2=acc12Shop([["Warded ring","40 gp"],["Warded ring (silver)","60 gp"]],["Warded ring (silver) x2"]),a=acc12Gm(first),b=acc12Gm(second.trim());
+    if(acc12Wants(n2)!==""||acc12Met(a.muts.concat(b.muts)).length!==2)return "control: in two replies both wants retire: "+JSON.stringify([a.muts,b.muts,acc12Wants(n2)]);
+    var n=acc12Shop([["Warded ring","40 gp"],["Warded ring (silver)","60 gp"]],["Warded ring (silver) x2"]),r=acc12Gm(first+second);
+    return (acc12Wants(n)===""&&acc12Met(r.muts).length===2)?true:"one reply, two blocks — observed receipts "+JSON.stringify(r.muts)+", wants after "+JSON.stringify(acc12Wants(n))+(acc12Kept(r.muts).length?"":" (no ⚠ line for the second sale)");
+  });
+  t("#591 acceptance the GM names the base while the pack holds only the silver ring: [GOLD:+60 gp][ITEM_LOST:Warded ring] takes the silver ring at exactly its 60 gp offer, so the silver want retires — and is never kept in silence",function(){
+    var n=acc12Shop([["Warded ring (silver)","60 gp"]],["Warded ring (silver)"]),c=worldState.character,g=c.coin,r=acc12Gm("Frizwick pays sixty for your silver ring. [GOLD:+60 gp][ITEM_LOST:Warded ring]");
+    if(invTextList(c.inventory).length!==0||c.coin-g!==6000)return "fixture: the silver ring left and 60 gp came in: "+JSON.stringify([invTextList(c.inventory),fmtCoin(c.coin-g),r.muts]);
+    return (acc12Wants(n)===""&&acc12Met(r.muts).join("|")==="Want met: Warded ring (silver) (Frizwick)")?true:"the silver ring sold at its exact offer — observed receipts "+JSON.stringify(r.muts)+", wants after "+JSON.stringify(acc12Wants(n))+(acc12Kept(r.muts).length?"":" (kept with NO line)");
+  });
+  t("#591 acceptance a voided loss is no sale: a gift to nobody ([COMPANION_ITEM_GAINED:Frizwick|Warded ring], #518) or a refused placement puts the ring back in the pack — the want must stay and no \"Want met\" is printed",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring"]),r=acc12Gm("Frizwick takes the ring and pays. [GOLD:+40 gp][ITEM_LOST:Warded ring][COMPANION_ITEM_GAINED:Frizwick|Warded ring]");
+    if(invTextList(worldState.character.inventory).join("|")!=="Warded ring")return "fixture: the gift to nobody voids the loss (#518) — the ring stays in the pack: "+JSON.stringify([r.muts,invTextList(worldState.character.inventory)]);
+    var gift=acc12Wants(n)==="Warded ring"&&!acc12Met(r.muts).length,giftSeen=JSON.stringify([r.muts,acc12Wants(n)]);
+    var n2=acc12Shop([["Warded ring","40 gp"]],["Warded ring"]),r2=acc12Gm("You leave the ring at the well house; Frizwick pays. [GOLD:+40 gp][ITEM_LOST:Warded ring][LOCATION_ITEM:Warded ring|placed|the well house]");
+    if(invTextList(worldState.character.inventory).join("|")!=="Warded ring")return "fixture: the refused placement puts the ring back: "+JSON.stringify([r2.muts,invTextList(worldState.character.inventory)]);
+    var stow=acc12Wants(n2)==="Warded ring"&&!acc12Met(r2.muts).length;
+    return (gift&&stow)?true:"the ring never left, yet — gift to nobody: "+giftSeen+"; refused placement: "+JSON.stringify([r2.muts,acc12Wants(n2)]);
+  });
+  t("#591 acceptance a bundle sold in separate loss tags of one block meets the want as one counted tag does — per 5 ([ITEM_LOST:Arrow x2][ITEM_LOST:Arrow x3] for 1 gp) and per 3 (three [ITEM_LOST:Arrow] for 1 gp)",function(){
+    var n=acc12Shop([["Arrow","1 gp per 5"]],["Arrow x7"]),r=acc12Gm("Frizwick pays a gold for five. [GOLD:+1 gp][ITEM_LOST:Arrow x2][ITEM_LOST:Arrow x3]");
+    if(acc12Wants(n)!==""||acc12Met(r.muts).length!==1)return "control (per 5, 2 + 3): "+JSON.stringify([r.muts,acc12Wants(n)]);
+    var n2=acc12Shop([["Arrow","1 gp per 3"]],["Arrow x7"]),r2=acc12Gm("Frizwick pays a gold for three. [GOLD:+1 gp][ITEM_LOST:Arrow][ITEM_LOST:Arrow][ITEM_LOST:Arrow]");
+    return (acc12Wants(n2)===""&&acc12Met(r2.muts).length===1)?true:"per 3 in three tags — observed receipts "+JSON.stringify(r2.muts)+", wants after "+JSON.stringify(acc12Wants(n2));
+  });
+  t("#591 acceptance probe.cjs port — a no-coin discard keeps the want, and 1 cp of change beside a discard keeps it too",function(){
+    var n=acc12Shop([["Warded ring","40 gp"]],["Warded ring x2"]);acc12Gm("Frizwick watches you discard it. [ITEM_LOST:Warded ring]");
+    if(acc12Wants(n)!=="Warded ring")return "no-coin discard: "+acc12Wants(n);
+    acc12Gm("Frizwick returns one copper in change from an earlier purchase. You discard the ring. [SAY:Frizwick|plain]Your change.[/SAY] [GOLD:+1 cp][ITEM_LOST:Warded ring]");
+    return acc12Wants(n)==="Warded ring"?true:"1 cp of change: "+acc12Wants(n);
+  });
   section("#518 block — an item pair is TWO TAGS IN ONE BLOCK (owner ruling 2026-10-10; the pair notes are the protocol)");
   function blockComp(inv){worldState.npcs.push({name:"Bram",status:"ally",rel:"companion",partyMember:true,charSheet:{name:"Bram",inventory:inv||[]}});memory.npcs["Bram"]={knowledge:[],events:[],aliases:[],partyMember:true};}
   t("#518 block the loot/throw collision: a hero who loots a Dagger in the same reply that a companion throws an untracked Dagger KEEPS the loot — the two tags sit in two blocks, so neither is the other's half",function(){
@@ -30999,6 +31278,38 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(/WANTED HERE/.test(buildGeoBlock()))return "the geo block serves an expired want";
     var ring=shopTradeCatalog().sell.filter(function(r){return r.name==="Warded ring";})[0];
     return (ring&&!ring.wanted)?true:"the counter pays no expired offer: "+JSON.stringify(ring);
+  });
+  // #577/#591 (acceptance 2026-10-12, probes 6 and 31): ONE payment rule for a want — wantedPayCp, the offer's bundle copper times
+  // the units over the bundle, rounded once — read by the counter's sale line, its row amount and the GM's settle. A whole bundle
+  // pays the offer exactly; a PARTIAL bundle (un-ruled; today's GM-path rule kept and pinned here) pays its share rounded to the
+  // copper and still retires the want, at the counter and on the GM's path.
+  function d4Arrows(offer){shopFixture();var n=memory.map.nodes["The Village|the trading post"];n.wanted=[];fileWanted("Arrow",offer,"Frizwick",worldState.turn,{key:"The Village|the trading post"});worldState.character.inventory=["Arrow x7"];return n;}
+  t("#577 one payment rule: a wanted row's amount is the plan's line — three of \"1 gp per 3\" are 1 gp on the row and in the plan; a partial bundle pays its share rounded once (two of \"1 gp per 3\" = 6 sp 7 cp, three of \"1 gp per 5\" = 6 sp) and retires the want, at the counter and on the GM's path",function(){
+    var n=d4Arrows("1 gp per 3"),cat=shopTradeCatalog(),lr=shopLedgerRows(cat).left.filter(function(x){return x.label==="Arrow";})[0];
+    var p3=shopTradePlan(cat,{sell:{"arrow":3},buy:{}}),p2=shopTradePlan(cat,{sell:{"arrow":2},buy:{}});
+    if(!lr||ledgerRowAmount(lr,3)!=="1 gp"||ledgerRowAmount(lr,2)!=="6 sp 7 cp")return "the row amount is the plan's line: "+JSON.stringify(lr)+" → "+(lr&&ledgerRowAmount(lr,3))+" / "+(lr&&ledgerRowAmount(lr,2));
+    if(!p3.ok||p3.sellCp!==100||!p2.ok||p2.sellCp!==67)return "the plan pays 1 gp for three and 67 cp for two: "+JSON.stringify([p3.sellCp,p2.sellCp]);
+    var c=worldState.character,g=c.coin,r=quiet(function(){return shopTradeApply({sell:{"arrow":2},buy:{}});}).r;
+    if(!r.ok||c.coin-g!==67||(n.wanted||[]).length)return "two arrows sell for 67 cp and retire the want: "+JSON.stringify([r.ok,r.reason,c.coin-g,r.muts,n.wanted]);
+    var n5=d4Arrows("1 gp per 5"),p35=shopTradePlan(shopTradeCatalog(),{sell:{"arrow":3},buy:{}});if(!p35.ok||p35.sellCp!==60)return "three of \"1 gp per 5\" pay 6 sp: "+JSON.stringify(p35);
+    var n2=d4Arrows("1 gp per 3"),k=quiet(function(){return applyMuts("Frizwick pays for two. [GOLD:+66 cp][ITEM_LOST:Arrow x2]");}).r;
+    if(!(n2.wanted||[]).length||(k.muts||[]).indexOf("⚠ Want kept — Arrow (Frizwick): 6 sp 6 cp came in beside it, the offer is 6 sp 7 cp — not read as its sale")<0)return "66 cp for two is not the 67 cp share: "+JSON.stringify([k.muts,n2.wanted]);
+    var m=quiet(function(){return applyMuts("Frizwick pays for two more. [GOLD:+67 cp][ITEM_LOST:Arrow x2]");}).r;
+    return (!(n2.wanted||[]).length&&(m.muts||[]).indexOf("Want met: Arrow (Frizwick)")>=0)?true:"67 cp for two meets the want on the GM's path: "+JSON.stringify([m.muts,n2.wanted]);
+  });
+  // #591 (acceptance 2026-10-12, probe 30): a loss a later handler of the same reply puts BACK in the pack sold nothing. The settle
+  // that saw it is undone at the post-handler seam (every want it retired returns to its place) and run again counting only the
+  // units that left — which can change a LATER block's match too.
+  t("#591 a voided loss says why, and its want keeps its place: a gift to nobody beside +40 gp prints the voided ⚠ line right after the loss; the order of the wants is unchanged; and a later block's sale of the same item is judged against the want the voided block left standing",function(){
+    var n=d4Fixture();n.wanted.push({item:"Lantern",offer:"5 gp",by:"Frizwick",t:1,min:clockNow()});var before=d4Wants(n).join("|");
+    var r=quiet(function(){return applyMuts("Frizwick takes the ring and pays. [GOLD:+40 gp][ITEM_LOST:Warded ring][COMPANION_ITEM_GAINED:Frizwick|Warded ring]");}).r,ix=(r.muts||[]).indexOf("-Warded ring");
+    if(ix<0||r.muts[ix+1]!=="⚠ Want kept — Warded ring (Frizwick): the loss was voided (it went back in the pack) — not read as its sale"||!mutLineWarns(r.muts[ix+1]))return "the voided ⚠ line sits right after the loss: "+JSON.stringify(r.muts);
+    if(d4Wants(n).join("|")!==before||(r.muts||[]).some(function(m){return /^Want met/.test(m);}))return "the want is back in its place, nothing met: "+JSON.stringify([d4Wants(n),before,r.muts]);
+    /* the first block's silver ring goes back, so the silver want still stands when the second block sells the other silver ring for
+       40 gp: that is a silver ring undersold (kept, ⚠), NOT a silver sale followed by a plain one — the two-reply reading */
+    var n2=d4Pair(false),r2=quiet(function(){return applyMuts("Frizwick reaches for the silver ring and pays. [GOLD:+60 gp][ITEM_LOST:Warded ring (silver)][COMPANION_ITEM_GAINED:Frizwick|Warded ring (silver)] Then he haggles the other silver ring down. [GOLD:+40 gp][ITEM_LOST:Warded ring (silver)]");}).r;
+    if((r2.muts||[]).some(function(m){return /^Want met/.test(m);})||d4Wants(n2).join("|")!=="Bone-handled knife|Warded ring|Warded ring (silver)")return "nothing is met — every want stays, in its place: "+JSON.stringify([r2.muts,d4Wants(n2)]);
+    return (r2.muts||[]).indexOf("⚠ Want kept — Warded ring (silver) (Frizwick): 40 gp came in beside it, the offer is 60 gp — not read as its sale")>=0?true:"the second block is judged against the silver want: "+JSON.stringify(r2.muts);
   });
 
   // ── #481 D8 (audit 2026-09-29, Fable-approved): the undefined-item question kept ONE slot per reply (the last item won),

@@ -821,14 +821,32 @@ function wantedKey(w){return itemKey(String(w&&w.item!=null?w.item:""));}
    want for exactly this item (its own key); the want for the plain item ("Warded ring (cracked)" meets "Warded ring" whichever was
    filed first); NEVER a want with its own qualifier (owner ruling 2026-10-11, ONE-WAY — "Warded ring" meets "Warded ring", not "Warded ring (silver)"; the pack rule inside itemKey and the clause-free base still serve the item side (#599 b3, §2.2: the tag grammar decodes a count,
    itemBaseKey projects the clause and applies the pack rule, so "Wolf pelts" meets "Wolf pelt" and "Signet ring (from Hemlock)"
-   meets "Signet ring"). Pure; null = no want. */
+   meets "Signet ring"). Pure; null = no want.
+   #577 (acceptance 2026-10-12, probes 8 and 9) — two more readings of the SAME item, never a looser want. The ranks are now 4 the
+   item as written, 3 the item without its provenance clause, 2 the plain want:
+   · rank 3, the item without its trailing provenance clause (itemClauseFree, inventory.js): "Warded ring (silver) — taken from the
+     crypt" is the silver ring and meets the (silver) want; under the old two ranks it met no want at all (its exact key carries the
+     clause, its base drops the qualifier with it).
+   · both readings compare through wantedMatchKey, the pack rule applied to the STEM before a qualifier: "Wolf pelts (prime)"
+     meets "Wolf pelt (prime)" as "Wolf pelts" meets "Wolf pelt" (itemKey drops only a trailing "s", which a qualifier hides).
+   A want's identity stays wantedKey (itemKey of its name) — the filer's refresh, the counter's allowance and every retirement key
+   through it; wantedMatchKey only reads names for this match. ONE-WAY holds: both readings keep the item's own qualifier, so a
+   plain item still never meets a qualified want. */
+function wantedMatchKey(name){var k=itemKey(name),p=k.indexOf("(");return p>0?k.slice(0,p).replace(/\s+$/,"").replace(/s$/,"")+" "+k.slice(p):k;}
 function wantedFor(live,name){
   var k=itemKey(name),b=itemBaseKey(name),best=null,rank=0,i,r,wk;
-  for(i=0;i<(live||[]).length;i++){wk=wantedKey(live[i]);r=wk===k?3:wk===b?2:0;if(r>rank){best=live[i];rank=r;}}/* #577 (owner ruling 2026-10-11, ONE-WAY): no same-base third rank — a plain item never meets a want with its own qualifier */
+  var km=wantedMatchKey(name),cm=wantedMatchKey(itemClauseFree(name)),wm;/* #577 acceptance 2026-10-12: the item as written, then without its provenance clause */
+  for(i=0;i<(live||[]).length;i++){wk=wantedKey(live[i]);wm=wantedMatchKey(live[i].item);r=wk===k||wm===km?4:wm===cm?3:wk===b?2:0;if(r>rank){best=live[i];rank=r;}}/* #577 (owner ruling 2026-10-11, ONE-WAY): no same-base rank — a plain item never meets a want with its own qualifier */
   return best;
 }
 /* #591: what a want pays for `n` units, in copper — the offer as written (parseCoin: "40 gp" × n; a bundle, "1 gp per 5", by its
-   share), or null for an offer in words, which no payment can be matched against. */
+   share), or null for an offer in words, which no payment can be matched against.
+   #577/#591 (acceptance 2026-10-12, probes 6 and 31): THE ONE PAYMENT RULE — the counter's sale line and row amount
+   (shopTradePlan, shopLedgerRows) and the GM's settle (wantedSaleSettle, once per want per tag block) all price through here:
+   the offer's own bundle copper times n over the bundle, rounded ONCE. A whole bundle pays exactly the offer ("1 gp per 3":
+   three arrows pay 1 gp — the counter used to pay 3 × the stored unit 33 cp = 9 sp 9 cp, and three separate loss tags were
+   priced 33 cp each); a partial bundle pays its share of the offer, rounded to the copper (two of "1 gp per 3" pay 67 cp,
+   three of "1 gp per 5" pay 6 sp) — the GM path's rule and the counter's buy side since #598. */
 function wantedPayCp(w,n){
   if(!w||w.cp==null)return null;var oc=parseCoin(w.offer);
   return (oc&&oc.unit)?Math.round(oc.cp*n/Math.max(1,oc.per)):w.cp*n;
@@ -842,6 +860,17 @@ function retireWantedAt(at,item,key){
   if(key!=null){for(i=0;i<live.length;i++){if(wantedKey(live[i])===key){w=live[i];break;}}}
   else w=wantedFor(live,_qtyParse(String(item==null?"":item)).base);
   if(!w)return null;var ix=node.wanted.indexOf(w);if(ix>=0)node.wanted.splice(ix,1);return w;
+}
+/* #591 (acceptance 2026-10-12, probe 30): the GM path's settle retires the exact want ROW it matched from the live list its loss
+   saw, and can put it back when a later handler of the same reply voids the loss (a gift to nobody, a refused placement — the
+   unit went back in the pack, so nothing was sold). retireWantedRow returns the row's stored index, or -1 when it is no longer
+   stored (a same-reply [WANTED:] re-stated it). restoreWantedRow puts it back at that index — unless a want with its identity is
+   stored again (the re-statement stands), and says false then. */
+function retireWantedRow(node,w){var ix=(node&&node.wanted)?node.wanted.indexOf(w):-1;if(ix>=0)node.wanted.splice(ix,1);return ix;}
+function restoreWantedRow(node,w,ix){
+  if(!node||!w||ix<0)return false;if(!node.wanted)node.wanted=[];
+  var k=wantedKey(w),i;for(i=0;i<node.wanted.length;i++)if(wantedKey(node.wanted[i])===k)return false;
+  node.wanted.splice(Math.min(ix,node.wanted.length),0,w);return true;
 }
 function fileWanted(item,offer,by,turn,at){
   var node=waresNodeFor(turn,at);if(!node)return null;

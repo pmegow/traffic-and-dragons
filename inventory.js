@@ -29,6 +29,12 @@ function itemKey(name){return String(name==null?"":name).toLowerCase().replace(/
 /* the provenance-free projection of a COUNT-FREE name: the first spaced dash begins a clause, a parenthesis is one too */
 function itemProvenanceFree(name){var s=String(name==null?"":name),cut=s.search(/\s+[—–-]\s+/);if(cut>=0)s=s.slice(0,cut);s=s.replace(/\s*\(.*\)/,"");return s.replace(/\s+/g," ").trim();}
 function itemBaseKey(name){return itemKey(itemProvenanceFree(name));}
+/* #577 (acceptance 2026-10-12, probe 8): the name without its ONE trailing provenance clause, every qualifier kept — the clause is
+   the spaced-dash tail ("Warded ring (silver) — taken from the crypt" → "Warded ring (silver)", the same first spaced dash
+   itemProvenanceFree cuts at) or, failing that, a final "(from …)" parenthesis ("Signet ring (silver) (from Hemlock)" →
+   "Signet ring (silver)"). Any other parenthesis is a qualifier and stays ("Warded ring (silver)" is returned whole), so a reader
+   of this projection still tells the silver ring from the plain one. Read by the want match only (wantedFor, memory.js). */
+function itemClauseFree(name){var s=String(name==null?"":name),cut=s.search(/\s+[—–-]\s+/);if(cut>=0)s=s.slice(0,cut);else s=s.replace(/\s*\(\s*from\s[^()]*\)\s*$/i,"");return s.replace(/\s+/g," ").trim();}
 /* the STORED grammar (§5.2 ②): a trailing " xN", N ≥ 1 with no leading zero, is a count; anything else is a literal name with
    one unit. It never clamps — a stored count above INV_QTY_MAX is the caller's refusal, never a silent cut. */
 function invStoredParse(s){var str=String(s==null?"":s).trim(),m=str.match(/^(.*\S)\s+x([1-9]\d*)$/i);return m?{name:m[1],qty:parseInt(m[2],10)}:{name:str,qty:1};}/* trimmed first: "Torch x3 " is three torches, as the old reader and the tag grammar read it (review (b) 6) */

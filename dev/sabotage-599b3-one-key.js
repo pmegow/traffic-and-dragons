@@ -32,8 +32,8 @@ prove("inventory.js", [
 ]);
 prove("memory.js", [
   { label: "the want match compares lower-cased text again (the plural never meets the singular want)",/* #577 re-anchor: the match is ONE function, wantedFor (memory.js), read by the counter and every retirement */
-    find: "  var k=itemKey(name),b=itemBaseKey(name),best=null,rank=0,i,r,wk;\n  for(i=0;i<(live||[]).length;i++){wk=wantedKey(live[i]);r=wk===k?3:wk===b?2:0;",
-    replace: "  var k=String(name).toLowerCase(),b=k,best=null,rank=0,i,r,wk;\n  for(i=0;i<(live||[]).length;i++){wk=String(live[i].item).toLowerCase();r=wk===k?3:0;",
+    find: "  var k=itemKey(name),b=itemBaseKey(name),best=null,rank=0,i,r,wk;\n  var km=wantedMatchKey(name),cm=wantedMatchKey(itemClauseFree(name)),wm;",/* acceptance 2026-10-12 re-anchor: the match reads two more names (the clause-free item, the pack rule inside a qualifier) — the mutation lower-cases every one of them */
+    replace: "  var k=String(name).toLowerCase(),b=k,best=null,rank=0,i,r,wk;\n  var km=k,cm=k,wm,wantedKey=function(w){return String(w.item).toLowerCase();},wantedMatchKey=function(s){return String(s).toLowerCase();};",
     mustFail: WANT },
   { label: "a re-stated ware twins by spelling",
     find: "low=itemKey(it),i,row=null;/* #599 (b3): wares key through the one item key (§4.5) */\n  for(i=0;i<node.wares.length;i++)if(itemKey(node.wares[i].item)===low)",
