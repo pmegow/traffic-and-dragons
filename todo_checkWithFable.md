@@ -544,6 +544,7 @@ When Fable is satisfied (or files follow-ups), move the entry's full record to
 
 ---
 - 2026-10-12 · #464 · Opus under a Fable plan, by owner instruction ("execute with Opus then double check their work"): memoryTOC reads the union of memory.locations and memory.map.nodes, visited sub-locations capped at 30 by recency on the GM turn (the B2 shape), Table Talk uncapped; writers untouched. Six tests (five red first), 9/9 battery, five-save prompt diff with the stable half byte-identical. DRIFT SURFACE — Fable wrote the plan, amended the cap after the #365 half-switch finding, re-ran the battery and the repaired-save capture, and reviewed every diff in-session (v1.1238).
+- 2026-10-12 · #465 · Opus, dev tooling only: dev/measure-accumulators.js, the read-only census of the per-campaign accumulators (latch maps, ledgers, map, guestbook, archive) with a --all MAX block and the #365 memory-owner check. No engine edits. Fable closed the row on its measurement.
 
 ## Pending Fable review
 
