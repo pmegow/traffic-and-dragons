@@ -1,10 +1,6 @@
-/* satellite.css — the ONE palette for every satellite page (#312 ②, 2026-09-03).
-   Tokens are index.html's, verbatim, so a player crossing from the game to the home page,
-   the reference or the editor sees one accent and one set of surfaces. A satellite links this
-   file and defines NO :root tokens of its own; page-specific rules stay inline below the link.
-   Aliases at the bottom cover the names older satellites grew on their own (--bg, --dim, --sub…)
-   so a conversion is a link plus a deleted :root block, never a rewrite. Reduced motion and
-   the 44px touch floor ride here too — the accessibility floor is shared, not per page. */
+/* Shared satellite palettes. Default tokens match the dark game palette; an explicit
+   data-theme="parchment" selects the landing-page colors. Palette values stay here,
+   while each page owns layout. Reduced motion and touch targets apply to both. */
 :root{
   /* typography */
   --font:Georgia,serif;
@@ -29,6 +25,16 @@
   /* aliases for the names satellites grew on their own */
   --bg:var(--bg0);--card:var(--bg1);--card2:var(--bg2);--dim:var(--t2);--dim2:var(--t2);--sub:var(--t1);--muted:var(--t2);--quiet:var(--t2);--line:var(--brd);--rule:var(--brd);--panel:var(--bg1);--fg:var(--t0);--ink:var(--t0);--bg4:#2c303b;
   --good:var(--grn);--bad:var(--dng);--info:var(--blue);--pend:var(--warn);--orange:var(--warn);--acc2:var(--gold);--acc-dim:rgba(154,176,200,.55);--acc-faint:rgba(154,176,200,.12);--mono:var(--font-mono);
+}
+/* Opt-in landing-page palette; the default dark palette remains available. */
+:root[data-theme="parchment"]{
+  color-scheme:light;
+  --bg0:#b0a68b;--bg1:#eaddb9;--bg2:#f6edcf;--bg3:#ded0aa;--bg4:#d5c59b;
+  --brd:#b6a17a;--brd2:#766548;--modal-bg:#eaddb9;
+  --t0:#302a20;--t1:#514534;--t2:#65563e;
+  --acc:#883c2d;--on-acc:#fff5d9;--acc-bg:#ecd4b5;
+  --acc-dim:rgba(136,60,45,.55);--acc-faint:rgba(136,60,45,.1);
+  --dng:#9c3026;--err:#9c3026;--hp:#9c3026;
 }
 *{box-sizing:border-box}
 html,body{background:var(--bg0);color:var(--t0);font-family:var(--font);font-variant-numeric:lining-nums}

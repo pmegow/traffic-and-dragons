@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="parchment">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -20,26 +20,28 @@
 -->
 <link rel="stylesheet" href="satellite.css">
 <style>
-  /* #312 ②: tokens come from satellite.css (linked in <head>) — one palette for every satellite; page rules below */
+  /* Palette tokens stay in satellite.css; this page selects the landing-page theme. */
 *{box-sizing:border-box;}
 html,body{margin:0;background:var(--bg0);color:var(--t0);font-family:var(--font);font-size:15px;min-height:100%;}
 a{color:var(--acc);}
-header{padding:28px 24px 12px;max-width:1040px;margin:0 auto;}
-header h1{margin:0;font-size:26px;letter-spacing:.14em;text-transform:uppercase;color:var(--t0);}
+body{max-width:1040px;margin:24px auto;border:1px solid var(--brd);background:radial-gradient(ellipse at 50% 0%,#fff7de66,transparent 65%),var(--bg1);}
+header{padding:32px 32px 16px;margin:0 auto;}
+header h1{margin:0;font-size:28px;letter-spacing:.07em;text-transform:uppercase;color:var(--acc);}
 header .tag{color:var(--t1);margin:6px 0 0;}
 #who{font-size:12.5px;color:var(--t2);margin-top:10px;}
-#who b{color:var(--t1);font-weight:normal;}
-main{max-width:1040px;margin:0 auto;padding:8px 24px 48px;}
-section{margin-top:28px;}
+#who b{color:var(--t1);font-weight:bold;}
+main{max-width:1040px;margin:0 auto;padding:8px 32px 40px;}
+section{margin-top:30px;}
+#play{margin-top:10px;}
 section h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin:0 0 10px;border-bottom:1px solid var(--brd);padding-bottom:6px;}
 .sub{color:var(--t1);font-size:13px;margin:0 0 12px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
-.card{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--rl);padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-height:120px;}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+.card{background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:20px 22px;display:flex;flex-direction:column;gap:6px;min-height:120px;}
 .card h3{margin:0;font-size:16px;color:var(--t0);font-weight:normal;}
 .card .meta{font-size:12px;color:var(--t2);}
 .card p{margin:0;font-size:13px;color:var(--t1);line-height:1.45;flex:1;}
 .card .acts{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
-button.b{font-family:var(--font);font-size:12.5px;padding:6px 12px;border-radius:var(--r);border:1px solid var(--brd2);background:var(--bg2);color:var(--t0);cursor:pointer;}
+button.b{font-family:var(--font);font-size:14px;padding:10px 18px;min-height:44px;border-radius:var(--r);border:1px solid var(--brd2);background:transparent;color:var(--acc);cursor:pointer;}
 button.b.p{background:var(--acc);color:var(--on-acc);border-color:var(--acc);}
 button.b:hover{border-color:var(--acc);}
 a.link{display:inline-block;font-size:13px;color:var(--acc);text-decoration:none;}
@@ -47,6 +49,13 @@ a.link:hover{text-decoration:underline;}
 .empty{color:var(--t2);font-size:13px;font-style:italic;}
 .err{color:var(--dng);}
 #status{position:fixed;left:0;right:0;bottom:0;padding:8px 24px;font-size:12px;color:var(--t1);background:var(--bg1);border-top:1px solid var(--brd);display:none;}
+#play .card{grid-column:span 2;padding:28px 30px;border-top:4px solid var(--acc);gap:12px;}
+#play h3{font-size:28px;color:var(--acc);}
+#play .card p{font-size:16px;max-width:620px;line-height:1.6;}
+#play .acts{margin-top:8px;gap:12px;}
+#play .b{min-width:160px;}
+.card h3,.card p{overflow-wrap:anywhere;}
+@media(max-width:680px){body{margin:12px;border:1px solid var(--brd);}header{padding:24px 20px 12px;}header h1{font-size:24px;letter-spacing:.04em;}main{padding:8px 20px 32px;}.grid{grid-template-columns:minmax(0,1fr);}#play .card{grid-column:auto;padding:22px 20px;}#play h3{font-size:24px;}#play .acts{flex-direction:column;}#play .b{width:100%;min-width:0;}.card{padding:18px;}.card .acts{gap:10px;}}
 </style>
 </head>
 <body>
@@ -56,25 +65,10 @@ a.link:hover{text-decoration:underline;}
   <div id="who">…</div>
 </header>
 <main>
-  <section id="quick">
-    <h2>Quick start</h2>
-    <p class="sub">Pick a hero, pick a story, play. Three clicks and the Game Master opens your first scene — the wizard below is the custom path.</p>
-    <div class="grid" id="hero-grid"><div class="empty">Loading heroes…</div></div>
-    <div class="acts" style="margin-top:10px;align-items:center;flex-wrap:wrap;gap:8px;">
-      <label style="font-size:12px;color:var(--t2);">Story:</label>
-      <select id="qs-story" style="font-family:var(--font);font-size:13px;padding:6px 8px;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:6px;min-width:220px;"></select>
-      <button class="b p" id="qs-go" disabled>Play</button>
-      <span id="qs-hint" style="font-size:11px;color:var(--t2);">Pick a hero first.</span>
-    </div>
-  </section>
   <section id="play">
     <h2>Play</h2>
     <div class="grid">
-      <div class="card"><h3>Continue or start a campaign</h3><p>Your saved campaigns follow your account. Start fresh, or pick a blueprint below and the character wizard opens with it loaded.</p><div class="acts"><button class="b p" id="go-play">Open the game</button></div></div>
-      <div class="card"><h3>Blueprint Designer</h3><p>Author a campaign of your own — premise, acts and arcs, seed NPCs and places. Saves to your account library; the AI can draft and review it for you.</p><div class="acts"><button class="b" id="go-designer">Open the designer</button></div></div>
-      <div class="card"><h3>Character Editor</h3><p>Build or revise a character outside any campaign — every field of the sheet, portrait included. Saves a .char file or straight to your account library.</p><div class="acts"><button class="b" id="go-editor">Open the editor</button></div></div>
-      <div class="card"><h3>Reference</h3><p>Every spell, ability, class ladder, skill and item the game knows, exactly as the game master reads them.</p><div class="acts"><a class="link" href="bible_study.html">Capability, class, skill &amp; item bibles →</a></div></div>
-      <div class="card"><h3>Mementos</h3><p>Read the stories you saved to your account. A keepsake stays with you even after its campaign is gone.</p><div class="acts"><a class="link" href="mementos.html">My saved stories →</a></div></div>
+      <div class="card"><h3>Continue or start a campaign</h3><p>Return to your adventure, or create a new character and begin a different story. Your saved campaigns stay in your account.</p><div class="acts"><button class="b p" id="go-play">Continue</button><button class="b" id="go-new">New Campaign</button></div></div>
     </div>
   </section>
   <section id="shelf">
@@ -86,6 +80,15 @@ a.link:hover{text-decoration:underline;}
     <h2>My blueprint library</h2>
     <p class="sub" id="mine-sub">Blueprints saved from the designer live on your account.</p>
     <div class="grid" id="mine-grid"><div class="empty">Sign in from the game to see your library.</div></div>
+  </section>
+  <section id="extras">
+    <h2>Extras</h2>
+    <div class="grid">
+      <div class="card"><h3>Blueprint Designer</h3><p>Author a campaign of your own — premise, acts and arcs, seed NPCs and places. Saves to your account library; the AI can draft and review it for you.</p><div class="acts"><button class="b" id="go-designer">Open the designer</button></div></div>
+      <div class="card"><h3>Character Editor</h3><p>Build or revise a character outside any campaign — every field of the sheet, portrait included. Saves a .char file or straight to your account library.</p><div class="acts"><button class="b" id="go-editor">Open the editor</button></div></div>
+      <div class="card"><h3>Reference</h3><p>Every spell, ability, class ladder, skill and item the game knows, exactly as the game master reads them.</p><div class="acts"><a class="link" href="bible_study.html">Capability, class, skill &amp; item bibles →</a></div></div>
+      <div class="card"><h3>Mementos</h3><p>Read the stories you saved to your account. A keepsake stays with you even after its campaign is gone.</p><div class="acts"><a class="link" href="mementos.html">My saved stories →</a></div></div>
+    </div>
   </section>
 </main>
 <div id="status"></div>
@@ -136,38 +139,6 @@ a.link:hover{text-decoration:underline;}
     el.querySelector("[data-act=design]").addEventListener("click",function(){openInDesigner(bp);});
     return el;
   }
-  // #307 QUICK START — a pre-made hero (samples/characters) + a curated story, handed to the game in ONE
-  // key (HOME_PENDING_QS_K, globals.js) and consumed at boot by consumeHomeQuickStart, which starts the
-  // campaign directly. Read-only here, like everything on this page.
-  var heroes=[],qsHero=null;
-  function heroCard(h){
-    var el=document.createElement("div");el.className="card";el.setAttribute("data-hero",h.file);
-    el.innerHTML="<h3>"+esc(h.name)+"</h3><div class='meta'>"+esc((h.ancestry||"")+" "+(h.cls||""))+"</div><p>"+esc(h.blurb||"")+"</p><div class='acts'><button class='b' data-act='pick'>Choose</button></div>";
-    el.querySelector("[data-act=pick]").addEventListener("click",function(){qsHero=h;renderHeroes();qsUpdate();});
-    if(qsHero&&qsHero.file===h.file){el.style.borderColor="var(--acc)";el.querySelector("[data-act=pick]").textContent="Chosen";}
-    return el;
-  }
-  function renderHeroes(){var g=$("hero-grid");g.innerHTML="";if(!heroes.length){g.innerHTML="<div class='empty'>No pre-made heroes yet.</div>";return;}heroes.forEach(function(h){g.appendChild(heroCard(h));});}
-  function qsUpdate(){var sel=$("qs-story");var ok=!!(qsHero&&qsHero.char&&sel.value);$("qs-go").disabled=!ok;$("qs-hint").textContent=ok?"Ready — "+qsHero.name+" in "+sel.options[sel.selectedIndex].textContent:(qsHero?"Pick a story.":"Pick a hero first.");}
-  /* #481 F4: a rebuild keeps the player's pick by catalog id (a tab return re-reads the catalog); the taster is only the
-     first-visit default. */
-  function qsStories(){var sel=$("qs-story"),prev=sel.selectedIndex>=0&&sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].getAttribute("data-id"):null,keep=-1;
-    sel.innerHTML="";catalog.forEach(function(c,i){if(!c.bp)return;var o=document.createElement("option");o.value=String(i);o.setAttribute("data-id",String(c.id));o.textContent=c.name;sel.appendChild(o);if(prev!==null&&String(c.id)===prev)keep=i;});
-    if(keep>=0){sel.value=String(keep);qsUpdate();return;}
-    var taster=-1;catalog.forEach(function(c,i){if(c.bp&&/taster/i.test(c.name)&&taster<0)taster=i;});if(taster>=0)sel.value=String(taster);qsUpdate();}
-  function loadHeroes(){
-    fetch("samples/characters/catalog.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(list){
-      heroes=list.map(function(x){return {name:x.name,file:x.file,cls:x.cls,ancestry:x.ancestry,blurb:x.blurb,char:null};});var pending=heroes.length;if(!pending){renderHeroes();return;}
-      heroes.forEach(function(h){fetch("samples/characters/"+h.file,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(w){h.char=(w&&w.character)||null;}).catch(function(e){h.blurb="(could not load: "+String(e&&e.message||e)+")";console.error("[home] hero failed: "+h.file,e);}).then(function(){pending--;if(!pending)renderHeroes();});});
-    }).catch(function(e){heroes=[];$("hero-grid").innerHTML="<div class='empty err'>Heroes unavailable: "+esc(e&&e.message||e)+"</div>";console.error("[home] hero catalog failed",e);});
-  }
-  function quickStart(){
-    var sel=$("qs-story"),c=catalog[parseInt(sel.value,10)];if(!qsHero||!qsHero.char||!c||!c.bp){status("Pick a hero and a story first.",true);return;}
-    try{localStorage.setItem(HOME_PENDING_QS_K,JSON.stringify({char:qsHero.char,bp:c.bp,at:Date.now()}));}
-    catch(e){status("Could not hand the quick start to the game (storage full?) — open the game and use the wizard instead.",true);return;}
-    location.href="index.html";
-  }
-  $("qs-go").addEventListener("click",quickStart);$("qs-story").addEventListener("change",qsUpdate);
   function renderShelf(){
     var g=$("shelf-grid");g.innerHTML="";
     if(!catalog.length){g.innerHTML="<div class='empty'>No curated blueprints yet.</div>";return;}
@@ -186,9 +157,9 @@ a.link:hover{text-decoration:underline;}
       if(read!==catalogRead)return;
       /* #481 F4: a failed RE-read keeps the last good shelf and says so; only a first load with nothing to show says unavailable */
       if(err&&catalog.length){console.error("[home] catalog refresh failed — keeping the last loaded shelf",err);status("Could not refresh the catalog ("+err+") — showing the last loaded shelf.",true);if(cb)cb();return;}
-      if(err){catalog=[];$("shelf-grid").innerHTML="<div class='empty err'>Catalog unavailable: "+esc(err)+"</div>";console.error("[home] catalog load failed",err);qsStories();if(cb)cb();return;}
+      if(err){catalog=[];$("shelf-grid").innerHTML="<div class='empty err'>Catalog unavailable: "+esc(err)+"</div>";console.error("[home] catalog load failed",err);if(cb)cb();return;}
       catalog=list.map(function(c){return {id:c.id,name:c.name,author:c.author,blurb:c.blurb,bp:c.blueprint};});
-      renderShelf();qsStories();if(cb)cb();
+      renderShelf();if(cb)cb();
     });
   }
   function loadLibrary(cb){
@@ -205,9 +176,10 @@ a.link:hover{text-decoration:underline;}
     storageAdapter.fetchAccount(function(err,a){if(err||!a)return;w.innerHTML="Signed in as <b>"+esc(a.username||"?")+"</b>"+(a.entitled?" · "+esc(a.tierLabel||a.tier)+" ("+esc(a.turnsUsed)+" of "+esc(a.turnsCap)+" turns this month)":" · no active subscription");});
   }
   $("go-play").addEventListener("click",function(){location.href="index.html";});
+  $("go-new").addEventListener("click",function(){location.href="index.html?campaign=new";});
   $("go-designer").addEventListener("click",function(){location.href="blueprint-designer.html";});
   $("go-editor").addEventListener("click",function(){location.href="character_editor.html";});
-  renderWho();loadCatalog(qsStories);loadLibrary();loadHeroes();
+  renderWho();loadCatalog();loadLibrary();
   document.addEventListener("visibilitychange",function(){if(!document.hidden)loadCatalog();});
 
   // Test seam — drives the page headlessly / in the preview pane (satellite testability rule).
@@ -216,10 +188,6 @@ a.link:hover{text-decoration:underline;}
     setLibrary:function(list){library=list;renderLibrary();},
     catalog:function(){return catalog;},
     handoffKey:HOME_PENDING_BP_K,
-    quickStartKey:HOME_PENDING_QS_K,
-    setHeroes:function(list){heroes=list;renderHeroes();qsUpdate();},
-    pickHero:function(file){qsHero=heroes.filter(function(h){return h.file===file;})[0]||null;renderHeroes();qsUpdate();},
-    quickStart:quickStart,
     handoff:handoff,openInDesigner:openInDesigner,
     reload:function(cb){loadCatalog(function(){loadLibrary(cb);});}
   };

@@ -406,6 +406,15 @@ function initReplaySession(){
     if(wbSrc)addMsg("narrator","<p><em>Previously:</em> "+escHtml(wbSrc)+"</p>");
   }
 }
+// Home navigation carries intent in the URL; only the existing New Game flow may save/switch campaigns.
+function consumeHomeCampaignAction(saved){
+  var url=new URL(location.href);
+  if(url.searchParams.get("campaign")!=="new")return false;
+  url.searchParams.delete("campaign");
+  history.replaceState(history.state,"",url.pathname+url.search+url.hash);
+  if(saved)newGame();
+  return true;
+}
 function initState(saved){
   if(saved&&worldState){
     if(!getActiveCampId())migrateToCampaigns();
@@ -454,12 +463,14 @@ function initState(saved){
         else store.del("tnd_carmode_v1");
       }
     }catch(e){store.del("tnd_carmode_v1");}
+    if(consumeHomeCampaignAction(true))return;
     if(typeof offerHomeHandoff==="function")offerHomeHandoff();/* #441: a story picked on Home is offered, never silently ignored, when a campaign is already saved */
   }else{
     /* #599 (a): a saved campaign this build could not read (written by a newer build) never gets the wizard — a new game
        would save over it. The refusal screen's only way on is a reload, which fetches the newer build. */
     if(typeof versionRefusedLoad==="function"&&versionRefusedLoad()){showVersionRefusedScreen(versionRefusedLoad());return;}
     showChar();
+    consumeHomeCampaignAction(false);
     if(typeof consumeHomeQuickStart==="function"&&consumeHomeQuickStart())return;/* #307: a hero + story picked on the home page — the campaign is already running */
     if(typeof consumeHomeBlueprint==="function")consumeHomeBlueprint();/* #290: a blueprint picked on the home page */
   }

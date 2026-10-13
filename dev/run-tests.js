@@ -1396,7 +1396,7 @@ try {
     if (!_hpFs.existsSync(_hpPath.join(__dirname, "..", "samples", c.file))) _hpFail("catalog entry file missing: " + c.file);
   });
   var _hpUb = _src("ui-browsers.js");
-  if (_hp.indexOf("HOME_PENDING_QS_K") < 0 || _hp.indexOf("samples/characters/catalog.json") < 0) _hpFail("the quick start must hand off through HOME_PENDING_QS_K (globals.js) and read the pre-made heroes from samples/characters/catalog.json (#307).");
+  if (/id="quick"|id="qs-go"|samples\/characters\/catalog.json/.test(_hp)) _hpFail("Quick Start was retired from Home by owner request; it must not render or load heroes.");
   var _hpHeroes = JSON.parse(_fsBE.readFileSync(_pathBE.join(__dirname, "..", "samples", "characters", "catalog.json"), "utf8"));
   if (!Array.isArray(_hpHeroes) || _hpHeroes.length < 3) _hpFail("the quick start needs three pre-made heroes (#307) — catalog has " + (_hpHeroes && _hpHeroes.length));
   _hpHeroes.forEach(function (h) { var _w = JSON.parse(_fsBE.readFileSync(_pathBE.join(__dirname, "..", "samples", "characters", h.file), "utf8")); if (!_w || _w.type !== "character" || !_w.character || !_w.character.name || !_w.character.cls) _hpFail("hero " + h.file + " is not a .char wrapper with a named, classed sheet"); });
