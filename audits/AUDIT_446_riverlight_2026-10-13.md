@@ -72,9 +72,8 @@ tag trace; no live campaign or model call was involved.
 
 ## Remaining first-time-player test
 
-**Provisional target: 30–45 minutes from the first narrated opening to a chosen
-ending.** This is a test hypothesis, awaiting the owner's preference, not a promised
-or advertised duration. Record character setup separately. If the player continues
+**Owner-selected target (2026-10-13): about one hour from the first narrated opening
+to a chosen ending.** This is a playtest target, not a promised or advertised duration. Record character setup separately. If the player continues
 past the target, record the actual duration and why rather than forcing an ending.
 
 Give the new player only the public catalog pitch. Do not show them this spoiler-bearing
