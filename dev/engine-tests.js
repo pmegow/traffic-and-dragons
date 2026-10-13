@@ -12141,6 +12141,10 @@ function runEngineTests(R){
     if(p.indexOf("CHARACTER: Ammut, Half-Fey Half-Blood Rogue [Arcane Trickster], Level 17\n")<0)return "CHARACTER line changed";
     if(p.indexOf("THE RECORD")<0||p.indexOf("Ammut and Morwen Zethran are married")<0)return "the record does not reach the generator";
     if(p.indexOf("THE RECORD IS CANON")<0||p.indexOf("never invent a personal past the record does not contain")<0)return "the canon rule is missing";
+    if(p.indexOf("The bonds in the record (spouses, family, sworn companions) are this character's people; a premise that forgets them is wrong")<0)return "the bonds rule is missing";
+    if(p.indexOf("UNLESS THE PLAYER'S OWN STAKE")>=0)return "with no stake written the bonds rule is unconditional (#426: a stakeless prompt never mentions one)";
+    var ps=buildSkeletonPrompt(__recordHero(),w,tone,"","I fled my family and will not go back.");
+    if(ps.indexOf("UNLESS THE PLAYER'S OWN STAKE parts them")<0||ps.indexOf("the stake decides where those people are")<0)return "with a stake written the bonds rule yields to it (owner ruling 2026-10-12: the family rides the opening unless the player parted them at the purpose question)";
     if(p.indexOf("NEVER DATE THE CHARACTER'S OWN PAST")<0||p.indexOf("centuries ago")<0)return "the never-date rule is missing";
     if(p.indexOf("THE PLAYER HAS NOT READ THIS PREMISE")<0||p.indexOf("Write it to be revealed, never assumed")<0)return "the reveal rule is missing";
     if(p.indexOf("Age:")>=0||p.indexOf("early twenties")>=0)return "age was injected (2026-08-10 ruling)";
