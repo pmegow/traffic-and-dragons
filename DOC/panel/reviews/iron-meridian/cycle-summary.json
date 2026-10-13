@@ -1,7 +1,7 @@
 {
   "source": "samples/the_iron_meridian.blueprint",
   "outcome": "The oppressive city, engineered indenture and leviathan crisis remain. Three revisions replace compulsory rescue, betrayal, confession and collapse with evidence, motivated bargains and consequential alternatives. Final review identified no further required editorial changes.",
-  "publication": "Prepared for publication after final checks; not yet published.",
+  "publication": "Published v1.0 Release Candidate as catalog revision 2; every field matches the reviewed source. The previous catalog entry was backed up. Existing campaigns keep their starting edition.",
   "changes": [
     "Optional Vessa bargain; independent purge survival, refusal and capture remain valid. Faction help follows disclosed terms and motives rather than inevitable betrayal.",
     "Forged tags can work. Detection depends on observed mismatches and accessible records; creatures and ledger manipulation share those limits.",
@@ -9,7 +9,7 @@
     "Ferrin evidence can be obtained from independent sources. Death, refusal and missing clues permit unresolved culpability without blocking the engine decision. Clank and memory resonance have explicit bounds.",
     "Creature prose shortened to the existing runtime cap. Pre-1.0 draft promoted to v1.0 Release Candidate; final promotion changes metadata only."
   ],
-  "verification": "All 14 perspectives reviewed each of four immutable snapshots (baseline plus three revisions). Actual normalization and isolated import preserved every authored field, seven NPCs, five locations, six rules and ten arcs. Report checked at desktop and 320/390px widths. The mandatory commit test gate must pass before shipment. No model narration or real player test was performed. The first commit gate failed because its legacy fixture hard-coded five secrets; Snipe makes six. The assertion now exercises every named dossier and proves both Ferrin and Snipe stay hidden until Act Three. A first test edit used Redd instead of Redd Salter; the full name was corrected before the passing run.",
+  "verification": "All 14 perspectives reviewed each of four immutable snapshots (baseline plus three revisions). Actual normalization and isolated import preserved every authored field, seven NPCs, five locations, six rules and ten arcs. Report checked at desktop and 320/390px widths. The mandatory commit gate passed all standalone suites and 3,106 engine assertions. No model narration or real player test was performed. The first commit gate failed because its legacy fixture hard-coded five secrets; Snipe makes six. The assertion now exercises every named dossier and proves both Ferrin and Snipe stay hidden until Act Three. A first test edit used Redd instead of Redd Salter; the full name was corrected before the passing run. Publication was held for an unrelated in-flight memory proof failure until its workstream repaired it; no unrelated changes were included.",
   "rounds": [
     "Baseline v0.01: panels identified forced rescue and confession, universal betrayal, perfect tag detection and a survival ending without a viable refuge.",
     "Round 1 v0.02: survival and alliances become contingent, tags have knowable rules, and the engine crisis has causally defined alternatives. Reviews identified dependent passages that still assumed the old forced events.",

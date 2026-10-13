@@ -1,0 +1,13 @@
+{
+  "catalogId": "the_iron_meridian",
+  "version": "1.0",
+  "releaseStatus": "release-candidate",
+  "catalogRevision": 2,
+  "publishedAt": "2026-10-13 21:46:44",
+  "sourceCommit": "75f736ec7f2968601f06b0d0713525b1755b089d",
+  "sourceFileSha256": "18401a3968fd276c847b114bc43755a9dbd1fa6faa3170b429958c2c3fffc61d",
+  "publicCatalogMatchesEveryBlueprintField": true,
+  "otherCatalogEntriesUnchangedDuringPublication": true,
+  "serverBackup": "/data/catalog-backups/the_iron_meridian-before-v1.0-revision1-20261013.json",
+  "method": "Normal operator API, existing session and revision guard; public readback verified."
+}
