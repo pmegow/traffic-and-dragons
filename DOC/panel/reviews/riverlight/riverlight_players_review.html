@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Player panel · five composite personas</title>
+<link rel="stylesheet" href="../../../../satellite.css">
+<style>body{max-width:1060px;margin:auto;padding:32px 24px 70px;line-height:1.6;font-size:17px}h1,h2,h3{color:var(--acc);line-height:1.22}h1{font-size:2.25rem;margin:.35em 0}h2{font-size:1.5rem;margin:1.8em 0 .6em}h3{font-size:1.15rem}header{border-bottom:2px solid var(--acc);padding-bottom:22px}nav{display:flex;flex-wrap:wrap;gap:8px 20px}.meta,.basis{color:var(--t1);font-size:.9em}section.overview,details.reviewer{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);padding:18px 22px;margin:20px 0}section.overview{border-left:4px solid var(--acc)}summary{cursor:pointer;color:var(--acc);font-weight:bold;padding:6px 0}article{border-top:1px solid var(--brd);margin-top:22px;padding-top:8px}p,li,dd,a,code{overflow-wrap:anywhere}li{margin:.45em 0}ul{padding-left:24px}dt{font-weight:bold;margin-top:.4em}dd{margin-left:18px}dd ul{margin-top:0}code{font-size:.8em}footer{border-top:1px solid var(--brd);margin-top:36px;padding-top:16px}@media(max-width:500px){body{padding:20px 14px;font-size:16px}h1{font-size:1.85rem}section.overview,details.reviewer{padding:14px}dd{margin-left:12px}}@media print{details{display:block}details>*{display:block}}</style>
+</head>
+<body>
+<header>
+<p class="meta">TASK 446 · 13 OCTOBER 2026 · SPOILERS</p>
+<h1>The Riverlight Masquerade</h1>
+<p>Player panel · five composite personas</p>
+<nav>
+<a href="riverlight_panel_review.html">Other panel report</a>
+<a href="../../../../audits/AUDIT_446_riverlight_2026-10-13.md">Readiness audit and test plan</a>
+<a href="../../../../samples/the_riverlight_masquerade_one-evening_taster.blueprint">Reviewed blueprint</a>
+</nav>
+</header>
+<section class="overview">
+<h2>Recommendation</h2>
+<p>
+<strong>Strong fit for players who enjoy an evidence-led mystery; short-session accessibility still needs observation.</strong> The clearest wording improvement is Act Two's “Two corroborating routes”: say corroborating evidence and name the existing alternatives, so it cannot suggest completing two whole branches.</p>
+<p>Offer one brief, optional player-authored closing action before asking whether to stop. Test re-entry after interruptions, what each discovered document proves, actual document custody and honest closure of skipped leads.</p>
+<p>Keep the dissent: Bert's accumulation preference and Nan's cozy preference are imperfect genre fits. They do not justify adding loot systems or removing the murder. Ines's appetite for depth can coexist with Rosa's quick exit.</p>
+</section>
+<h2>Scope and method</h2>
+<p>Three delegated review passes applied nine documented design/writing lenses and five composite player personas to the same v1.0 Release Candidate. These are rubric-based assessments, not participation by the named authors, interviews, votes or human playtests. This report contains 5 perspectives. Findings distinguish editorial opportunities, taste disagreements and unverified runtime risks. Existing mitigations remain visible.</p>
+<p>The stored rubrics supply source grades: ● primary, ◐ secondary, ○ inferred. These grades describe provenance, not certainty that a proposed change will improve play. Inferred preferences are not used as verdicts. Player evidence from other formats does not establish text-game behavior.</p>
+<p class="meta">Blueprint SHA-256: <code>e6eada2952a5369efd3f3ef095f0bf1aa8b42aa818cbdc94c3b5c82da4bcec15</code>. No blueprint, catalog, engine or player save changed in this review. Review scope is the authored source; generated prose and actual completion time remain unmeasured.</p>
+<h2>Individual reviews</h2>
+<details class="reviewer" id="review-1">
+<summary>Rosa Pike - the Commuter persona</summary>
+<p>
+<strong>Conditional fit for an audio mystery split across short sessions. One-hour total pacing does not establish comprehension after interruption.</strong>
+</p>
+<p class="basis">
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Read the source rubric</a>
+</p>
+<h3>What works</h3>
+<p>The opening supplies immediate actions instead of a narrated guest parade.</p>
+<div class="basis">
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R2; R6</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+<br>
+<strong>Blueprint:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].arcs[0].objective</dd>
+<dt>Quote</dt>
+<dd>Introduce other guests only as they approach</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].arcs[0].objective</dd>
+<dt>Quote</dt>
+<dd>Offer the coat, Brix, or introductions as immediate choices.</dd>
+</dl>
+</li>
+</ul>
+</div>
+<p>A listener can complete a useful case without catching the departing witness.</p>
+<div class="basis">
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R3; R6</dd>
+<dt>Source grade</dt>
+<dd>R3 primary Mudlet interruption source plus secondary Spotify source; R6 primary</dd>
+</dl>
+<br>
+<strong>Blueprint:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[0].objective</dd>
+<dt>Quote</dt>
+<dd>The annex plus Brix&#x27;s authenticated commission proves Devrin ordered the fraud without Mira or a confession.</dd>
+</dl>
+</li>
+</ul>
+</div>
+<h3>Feedback</h3>
+<article>
+<h3>Test spoken re-entry with the actually discovered evidence</h3>
+<p class="meta">P2 · verification</p>
+<div>
+<strong>Reason:</strong> People appear under given names, surname and masks; the annex, receipt and signed commission have different evidential roles. A resumed listener may need help reconnecting labels. This is a test hypothesis, not an observed audio failure.</div>
+<div>
+<strong>Recommendation:</strong> Pause an audio run after the coat and resume later. Ask who is implicated, what the document proves, who holds it and what to do next. If existing recap fails, add a short blueprint instruction to recap known name/role, evidence/custody and next action. Do not read a roster or disclose private truth.</div>
+<div>
+<strong>Mitigation:</strong> Staggered introductions, distinct masks, explicit proof rules and the no-Mira route already reduce load.</div>
+<div>
+<strong>Confidence:</strong> Medium; source-text assessment, no observed runtime failure</div>
+<div>
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R1; R2; R3</dd>
+<dt>Source grade</dt>
+<dd>R1 mixed primary/secondary; R2 primary; R3 mixed primary/secondary; vendor retention figures not used as thresholds</dd>
+</dl>
+</div>
+<div>
+<strong>Blueprint evidence:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[2].name</dd>
+<dt>Quote</dt>
+<dd>Master Devrin Sallowmere</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>Sallowmere planted it. Blue coat. He came back.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>Preserve discovered facts and the actual custody of documents and witnesses.</dd>
+</dl>
+</li>
+</ul>
+</div>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite, not an interview or real listener. R5 driving/no-danger fit and R10 voice inventory are inferred and do not drive this verdict. No runtime audio or recap inspected. No first-person driving text-RPG account exists in the persona sources.</dd>
+<dt>Dissent</dt>
+<dd>Rosa values brief recaps more than optional lore depth; that does not justify shortening every conversation for Ines.</dd>
+<dt>Verification question</dt>
+<dd>After resuming without transcript access, can the listener explain what their annex proves and name a next action?</dd>
+</dl>
+</details>
+<details class="reviewer" id="review-2">
+<summary>Ines Halloran - the Oracle-Keeper persona</summary>
+<p>
+<strong>Strong fit for a fixed-truth, consequence-driven solo mystery. Retain the causal structure and genuine refusals; clarify one evidence phrase and observe branch closure.</strong>
+</p>
+<p class="basis">
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Read the source rubric</a>
+</p>
+<h3>What works</h3>
+<p>Fixed guilt, motivated witnesses and correction of false accusations provide coherent pushback.</p>
+<div class="basis">
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I4; I9</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+<br>
+<strong>Blueprint:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>never move guilt to match a player&#x27;s accusation</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[10]</dd>
+<dt>Quote</dt>
+<dd>Unsupported claims prompt verification, not automatic punishment or a false confession.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[15]</dd>
+<dt>Quote</dt>
+<dd>Never make competent witnesses ignore a clue just to reserve its discovery for the player.</dd>
+</dl>
+</li>
+</ul>
+</div>
+<p>The player can choose depth or settlement without a compulsory room tour.</p>
+<div class="basis">
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I2; I3; I7</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+<br>
+<strong>Blueprint:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>An early solution moves to settlement, not a compulsory tour.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A player still pursuing a live question may continue it.</dd>
+</dl>
+</li>
+</ul>
+</div>
+<h3>Feedback</h3>
+<article>
+<h3>Use evidence consistently instead of two routes</h3>
+<p class="meta">P2 · editorial</p>
+<div>
+<strong>Reason:</strong> Routes usually mean alternate investigation paths here. The phrase can be read as needing two paths, although coat plus authenticated commission alone suffice. This is wording ambiguity, not proof the GM forces extra paths.</div>
+<div>
+<strong>Recommendation:</strong> Replace that phrase with: Corroborating evidence is enough for exposure: the annex plus the authenticated commission, or Mira&#x27;s account plus Orris&#x27;s note or the commission. Keep murder&#x27;s separate standard.</div>
+<div>
+<strong>Mitigation:</strong> The same goal says no arc is compulsory; premise, rules and settlement already state the correct short route.</div>
+<div>
+<strong>Confidence:</strong> High confidence in wording ambiguity; unknown behavioral impact</div>
+<div>
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I2</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+</div>
+<div>
+<strong>Blueprint evidence:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].goal</dd>
+<dt>Quote</dt>
+<dd>Two corroborating routes are enough for exposure</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[0].objective</dd>
+<dt>Quote</dt>
+<dd>The annex plus Brix&#x27;s authenticated commission proves Devrin ordered the fraud without Mira or a confession.</dd>
+</dl>
+</li>
+</ul>
+</div>
+</article>
+<article>
+<h3>Protect chosen depth without padding the hour</h3>
+<p class="meta">P2 · verification</p>
+<div>
+<strong>Reason:</strong> An approximately one-hour target should permit both early settlement and deliberate murder investigation. Neither compulsory completion of all visits nor an imposed stopwatch serves this lens.</div>
+<div>
+<strong>Recommendation:</strong> Record why the player continues beyond an hour. Separately test explicitly declining Mira and the murder: skipped leads must close honestly without invented knowledge. Add no automatic cutoff.</div>
+<div>
+<strong>Mitigation:</strong> Current pacing rules already require this; verify their execution rather than rewriting them.</div>
+<div>
+<strong>Confidence:</strong> Medium; source-text assessment, no observed runtime failure</div>
+<div>
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I3; I7; I9</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+</div>
+<div>
+<strong>Blueprint evidence:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A player still pursuing a live question may continue it.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A costly or partial outcome counts as a resolved decision.</dd>
+</dl>
+</li>
+</ul>
+</div>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite, not a solo-player trial. I1 world logic is sourced; the persistent home-base interpretation is inferred and unused. No timing or GM tag behavior measured here.</dd>
+<dt>Dissent</dt>
+<dd>Retain optional questioning that Rosa or Nan may skip. The short route should coexist with depth.</dd>
+<dt>Verification question</dt>
+<dd>If the player has enough to protect Petrell but declines Mira, can the case settle on that evidence while leaving voluntary later inquiry open?</dd>
+</dl>
+</details>
+<details class="reviewer" id="review-3">
+<summary>Bert Kovac - the Quartermaster persona</summary>
+<p>
+<strong>Limited genre fit: an evidence mystery does not provide an accumulation loop. That is not a defect. His useful lens is persistent object custody and an honest reward.</strong>
+</p>
+<p class="basis">
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Read the source rubric</a>
+</p>
+<h3>What works</h3>
+<p>Evidence is an object with actual custody, and copies or witnesses preserve discoveries.</p>
+<div class="basis">
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; Trust: what breaks it with an AI GM</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+<br>
+<strong>Blueprint:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>locations[4].description</dd>
+<dt>Quote</dt>
+<dd>Opening the pocket, examining the false annex and retaining it are separate choices; track actual custody.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>Secured or destroyed evidence cannot reappear. Copies and witnessed discoveries still count.</dd>
+</dl>
+</li>
+</ul>
+</div>
+<p>The reward is fixed and its condition understandable; essential clues require no hidden bribe.</p>
+<div class="basis">
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B9; Trust: what breaks it with an AI GM</dd>
+<dt>Source grade</dt>
+<dd>primary; extending known-value preference to a contract is review reasoning</dd>
+</dl>
+<br>
+<strong>Blueprint:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>offers 10 gold for an honest report</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[13]</dd>
+<dt>Quote</dt>
+<dd>Do not charge a bribe for an essential clue</dd>
+</dl>
+</li>
+</ul>
+</div>
+<h3>Feedback</h3>
+<article>
+<h3>Verify handovers remain legible to the player</h3>
+<p class="meta">P2 · verification</p>
+<div>
+<strong>Reason:</strong> The GM must track custody but is not explicitly instructed to acknowledge each handover. A vague narration might hide the consequences of giving away the only annex even with correct state. No inventory failure was observed.</div>
+<div>
+<strong>Recommendation:</strong> Test taking the annex, making a legitimate copy, handing the original to Brix and resuming later. If unclear, add a short instruction to acknowledge the holder when custody changes. Preserve only actually obtained copies and witness knowledge.</div>
+<div>
+<strong>Mitigation:</strong> Looking and taking are distinct; Devrin has no backup copy; secured evidence cannot reappear.</div>
+<div>
+<strong>Confidence:</strong> Medium; source-text assessment, no observed runtime failure</div>
+<div>
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+</div>
+<div>
+<strong>Blueprint evidence:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>Preserve discovered facts and the actual custody of documents and witnesses.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>including if the party gave it to him</dd>
+</dl>
+</li>
+</ul>
+</div>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite; evidence largely concerns visual CRPG inventories, not text mysteries. B8 second-economy evidence does not establish that evidence tracking is a second economy, so no such claim is made.</dd>
+<dt>Dissent</dt>
+<dd>Do not add loot, shops or gold sinks just to recruit this persona. He may prefer another adventure despite appreciating accurate custody.</dd>
+<dt>Verification question</dt>
+<dd>Can the player say where the original and legitimate copies are, and does the final accusation respect that custody?</dd>
+</dl>
+</details>
+<details class="reviewer" id="review-4">
+<summary>Nan Oyelaran - the Twenty-Minute Regular persona</summary>
+<p>
+<strong>Poor fit if offered as cozy recovery: murder, suspicion and a deadline are intentional genre choices. Conditional fit for a player who chooses this mystery and completes meaningful pieces across short visits.</strong>
+</p>
+<p class="basis">
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Read the source rubric</a>
+</p>
+<h3>What works</h3>
+<p>The opening gives a role to play and the ending names a concrete effect on ordinary people.</p>
+<div class="basis">
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+<br>
+<strong>Blueprint:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].arcs[0].objective</dd>
+<dt>Quote</dt>
+<dd>Offer the coat, Brix, or introductions as immediate choices.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>one concrete effect on the people trading there</dd>
+</dl>
+</li>
+</ul>
+</div>
+<p>The authored evening can end without perfect success or a compulsory next case.</p>
+<div class="basis">
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N6</dd>
+<dt>Source grade</dt>
+<dd>primary solo-RPG time-window advice; secondary vendor retention figures excluded</dd>
+</dl>
+<br>
+<strong>Blueprint:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A costly or partial outcome counts as a resolved decision.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Do not seed a compulsory new case</dd>
+</dl>
+</li>
+</ul>
+</div>
+<h3>Feedback</h3>
+<article>
+<h3>Test meaningful stopping points inside the hour</h3>
+<p class="meta">P2 · verification</p>
+<div>
+<strong>Reason:</strong> Several short visits are not equivalent to one uninterrupted hour unless the player recognizes each accomplishment and can resume. The evidence milestones are candidates, but no real short-session boundary was observed.</div>
+<div>
+<strong>Recommendation:</strong> Pause directed tests after identifying forgery and after authenticating the commission. Ask what finished and what remains. Verify fictional boat/toast deadlines do not advance just because the player is away overnight. Use existing pause/resume behavior, adding no mechanic without a demonstrated gap.</div>
+<div>
+<strong>Mitigation:</strong> Existing evidence milestones, honest partial endings, advance time warnings and the no-Mira route make interrupted play plausible.</div>
+<div>
+<strong>Confidence:</strong> Medium; source-text assessment, no observed runtime failure</div>
+<div>
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N6</dd>
+<dt>Source grade</dt>
+<dd>primary solo-RPG time-window source; no podcast threshold applied</dd>
+</dl>
+</div>
+<div>
+<strong>Blueprint evidence:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>the coat and counting-house support a short route</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Use elapsed fictional time, never a hidden message count.</dd>
+</dl>
+</li>
+</ul>
+</div>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite, not a phone playtest. N1 and Trust support cozy expectation mismatch, not removing murder from a mystery. Cozy sources are visual games. Public catalog pitch not reviewed, so no claim it conceals the murder.</dd>
+<dt>Dissent</dt>
+<dd>Nan may decline this genre while Ines and Gerry welcome the stakes. Do not convert poor fit into a consensus demand to lower stakes.</dd>
+<dt>Verification question</dt>
+<dd>Can a short-visit player point to one completed discovery or decision and return without believing their real-world absence cost the case?</dd>
+</dl>
+</details>
+<details class="reviewer" id="review-5">
+<summary>Gerry Fulmer - the Table Veteran persona</summary>
+<p>
+<strong>Strong fit for honest outcomes and named fate accounting. Add one small optional opportunity for the player to contribute to the epilogue.</strong>
+</p>
+<p class="basis">
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Read the source rubric</a>
+</p>
+<h3>What works</h3>
+<p>The ending records specific fates and separates protection from solving the killing.</p>
+<div class="basis">
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G6</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+<br>
+<strong>Blueprint:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>what happened to Devrin and Mira, and whether Orris&#x27;s killing was proved, referred for investigation or left unresolved</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[12]</dd>
+<dt>Quote</dt>
+<dd>while the commission and murder remain unresolved</dd>
+</dl>
+</li>
+</ul>
+</div>
+<p>Evidence earns outcomes without a forced confession, duel or revised culprit.</p>
+<div class="basis">
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G6; G7; Trust: what breaks it with an AI GM</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+<br>
+<strong>Blueprint:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[0].objective</dd>
+<dt>Quote</dt>
+<dd>No automatic duel, omniscient countermeasure or new mastermind rescues his scheme.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[10]</dd>
+<dt>Quote</dt>
+<dd>Allow a correction before ratification.</dd>
+</dl>
+</li>
+</ul>
+</div>
+<h3>Feedback</h3>
+<article>
+<h3>Invite a small player-authored closing moment</h3>
+<p class="meta">P2 · editorial</p>
+<div>
+<strong>Reason:</strong> The ending thoroughly specifies the GM&#x27;s epilogue and offers stop/continue, but does not explicitly invite the player&#x27;s own final act. Stop/continue is useful choice, not itself epilogue authorship.</div>
+<div>
+<strong>Recommendation:</strong> Before the end question, optionally ask: Before the lanterns fade, is there one last thing your character does or says? Keep it one brief contribution; respect established evidence, others&#x27; agency and consequences; no required sequel.</div>
+<div>
+<strong>Mitigation:</strong> Outcomes already reflect player choices, allow partial success and permit stopping. This enhances closure; it does not claim agency is absent.</div>
+<div>
+<strong>Confidence:</strong> High confidence explicit invitation is absent; experiential benefit untested</div>
+<div>
+<strong>Basis:</strong> <dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G3</dd>
+<dt>Source grade</dt>
+<dd>primary (thread/post read directly)</dd>
+</dl>
+</div>
+<div>
+<strong>Blueprint evidence:</strong> <ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>Give a short epilogue matching the outcome rules</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>Ask whether the player wants to end the taster; further play is optional.</dd>
+</dl>
+</li>
+</ul>
+</div>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite, not an interview or completed playtest. No claims about runtime exports, mementos or missing state. Retirement-specific positions are inapplicable here.</dd>
+<dt>Dissent</dt>
+<dd>Gerry values a personal final contribution while Rosa may want a fast stop; optionality respects both.</dd>
+<dt>Verification question</dt>
+<dd>On the no-Mira route, can the ending acknowledge a player-chosen final act while honestly leaving the murder unresolved when its proof was not gathered?</dd>
+</dl>
+</details>
+<h2>Panel synthesis</h2>
+<section>
+<h3>Player personas</h3>
+<h3>Agreement</h3>
+<ul>
+<li>The current no-Mira route is credible on paper: coat plus authenticated commission; losing Mira must not force a chase.</li>
+<li>Fixed truth, actual custody and honest partial endings are strengths across applicable lenses.</li>
+<li>One hour remains a test target. Observe real newcomer comprehension and separately test interrupted play and declined leads.</li>
+</ul>
+<h3>Disagreement</h3>
+<ul>
+<li>Rosa/Nan prioritize re-entry and completed short chunks; Ines welcomes optional depth. Preserve both.</li>
+<li>Bert&#x27;s accumulation and Nan&#x27;s cozy preferences are partial or poor genre fits, not reasons to add an economy or remove the stakes.</li>
+<li>Gerry&#x27;s preferred epilogue authorship should be brief and optional for players who want to stop.</li>
+</ul>
+<h3>Recommended next steps</h3>
+<ul>
+<li>Clarify Act Two&#x27;s two corroborating routes as corroborating evidence with explicit alternatives.</li>
+<li>Invite an optional one-sentence player epilogue contribution.</li>
+<li>Verify no-Mira settlement, evidence custody after handover, interrupted recall of names/evidence/next action, fictional deadlines across pauses, and honest unresolved murder. Add no UI or mechanics solely from this paper review.</li>
+</ul>
+</section>
+<footer>
+<p>Recommended order: clarify the scheme and evidence wording; consider the optional closing contribution; then run the blind newcomer test and directed route checks. Small characterization additions are optional. Keep task 446 open until actual play evidence is recorded.</p>
+</footer>
+</body>
+</html>

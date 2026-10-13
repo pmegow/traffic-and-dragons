@@ -110,3 +110,35 @@ cannot substitute for the blind newcomer-comprehension check.
 **Closure condition for #446:** attach a real first-player result against the chosen
 target, plus the no-Mira route evidence. Keep v1.0 as Release Candidate and retain
 its current public wording until those results justify a tighter duration claim.
+
+## Both-panel follow-up, 2026-10-13
+
+At the owner's request, three delegated review passes applied all nine stored
+design/writing lenses and all five composite player personas to the unchanged
+blueprint identified above. This is rubric-based editorial feedback, not author
+participation, interviews or a human playtest. Full evidence, source grades,
+mitigations and dissent are in the [design/writing report](../DOC/panel/reviews/riverlight/riverlight_panel_review.html)
+and [player report](../DOC/panel/reviews/riverlight/riverlight_players_review.html).
+
+The broader panel review adds two narrow clarifications to the initial readiness
+pass; neither calls for a structural rewrite:
+
+1. Explain why Devrin expects Petrell's exclusion to make his barges the main
+   carrier while all five holds must assent. Excluding a delegate need not exclude
+   a hold; specify the intended mechanism. Preserve the possibility his plan fails.
+2. Replace Act Two's “two corroborating routes” with corroborating evidence and
+   the already-authored alternatives. This is a wording risk, not observed forced play.
+
+Optional: invite a brief player-authored final act; give Orris one ordinary human
+detail, make freight costs tangible in an existing beat, or add Devrin's compact
+self-justification. These are nonblocking suggestions, not changes made. Keep
+Leiber's preference for the marvellous and Bert/Nan's genre mismatches as dissent;
+do not expand the taster to satisfy every preference.
+
+Add directed checks for interrupted audio comprehension, short-session milestones,
+document handovers/copies and fictional deadlines across real-world pauses. Use
+only discovered facts in recaps; inspect final arc states on the no-Mira route.
+No new model calls or play sessions occurred. One-hour acceptance remains open.
+
+This documentation adds two static reports; it introduces no accumulating runtime
+resources or new per-turn, session, campaign or device state.
