@@ -33,7 +33,7 @@ var EXEMPT = {
     { file: "game.js", literal: "Sign in (File → Account…) or set a fal.ai key (File → Render Options…) to generate images.", why: "not a status: a refusal naming two File-menu items whose labels end in an ellipsis" }
   ],
   palette: {
-    "index.html": "the game itself — its :root is the palette's source; satellite.css mirrors it",
+    "index.html": "the game itself — its :root defines the game palette; website/themes.css supplies satellite defaults",
     "piper-host.html": "the invisible synthesis iframe (B9) — no UI to colour",
     "test.html": "the engine test runner — plain result output, no themed UI"
   },

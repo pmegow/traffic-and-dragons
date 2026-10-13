@@ -229,7 +229,9 @@ function listeningPid(port) {
         "launcher server serves the page's own asset " + href + " with the right type", "status=" + asset.status + " type=" + ct);
     }
     const css = await get(port, "/satellite.css?fresh=fixture");
-    verdict(css.status === 200 && /--acc\s*:/.test(css.body), "launcher server serves satellite.css with the palette tokens", "status=" + css.status);
+    verdict(css.status === 200 && css.body.includes('@import url("website/themes.css");'), "launcher server serves satellite.css with the shared theme import", "status=" + css.status);
+    const theme = await get(port, "/website/themes.css?fresh=fixture");
+    verdict(theme.status === 200 && String(theme.headers["content-type"]).startsWith("text/css") && /--acc\s*:/.test(theme.body), "launcher server serves the imported palette tokens", "status=" + theme.status);
     const mismatch = await post(port, "/install", {
       "Content-Type": "text/plain",
       "Origin": "http://127.0.0.1:" + port,

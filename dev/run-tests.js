@@ -1353,11 +1353,13 @@ try {
 
 // ── SATELLITE PALETTE CONTRACT (#312 ②, v1.781) ─────────────────────────────
 // A satellite that links satellite.css defines NO :root tokens of its own (one palette, not
-// three accents across a two-click journey), and every token it uses is defined there.
+// three accents across a two-click journey), and every token it uses is defined in that stylesheet or its shared theme import.
 try {
   var _spFs = require("fs"), _spPath = require("path");
   var _spFail = function (msg) { console.error("SATELLITE PALETTE CONTRACT: " + msg); process.exit(1); };
   var _spCss = _src("satellite.css");
+  if (_spCss.indexOf('@import url("website/themes.css");') < 0) _spFail("satellite.css lost its shared themes import");
+  _spCss += "\n" + _src("website/themes.css");
   var _spDefined = {}; (_spCss.match(/(--[a-z0-9-]+)\s*:/g) || []).forEach(function (t) { _spDefined[t.replace(/\s*:$/, "")] = 1; });
   if (_spCss.indexOf("prefers-reduced-motion") < 0 || _spCss.indexOf("pointer:coarse") < 0) _spFail("satellite.css lost the accessibility floor (reduced motion / 44px targets)");
   var _spLinked = 0;

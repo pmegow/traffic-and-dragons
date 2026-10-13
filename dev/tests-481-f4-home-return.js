@@ -7,23 +7,38 @@ const rows=JSON.parse(fs.readFileSync(path.join(root,'samples/catalog.json'))).m
 let passed=0,failed=0;
 async function test(name,fn){try{await fn();passed++;console.log('PASS #481 F4 '+name);}catch(e){failed++;console.error('FAIL #481 F4 '+name+' — '+(e&&e.message||e));}}
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||(process.platform==='win32'?'C:/Program Files/Google/Chrome/Application/chrome.exe':undefined),headless:true});try{
- const ctx=await browser.newContext({viewport:{width:1000,height:900},serviceWorkers:'block'});let reads=0,fail=false;const errors=[];
+ const ctx=await browser.newContext({viewport:{width:1000,height:900},serviceWorkers:'block'});let reads=0,fail=false,themeEdit=false;const errors=[];
  await ctx.addInitScript(()=>{localStorage.setItem('tnd_server_url_v1','http://catalog.test');localStorage.setItem('tnd_server_tok_v1','fixture');});/* the adapter restores the URL only with a token */
- await ctx.route('**/*',async route=>{const u=new URL(route.request().url());if(u.hostname!=='catalog.test')return route.abort();
+ await ctx.route('**/*',async route=>{const u=new URL(route.request().url());if(!['catalog.test','landing.test'].includes(u.hostname))return route.abort();
+  if(u.hostname==='landing.test'){const f=path.resolve(root,'website','.'+(u.pathname==='/'?'/index.html':decodeURIComponent(u.pathname)));if(!f.startsWith(path.join(root,'website')+path.sep))return route.abort();try{return route.fulfill({status:200,contentType:f.endsWith('.html')?'text/html':f.endsWith('.css')?'text/css':f.endsWith('.jpeg')?'image/jpeg':'image/svg+xml',body:f.endsWith('.css')&&themeEdit?fs.readFileSync(f,'utf8').replace('#883c2d','#123456'):fs.readFileSync(f)});}catch(e){return route.fulfill({status:404,body:'Not found'});}}
   if(u.pathname==='/api/blueprints')return route.fulfill({status:200,contentType:'application/json',body:'[]'});
   if(u.pathname==='/api/account')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({username:'Adventurer',entitled:true,tierLabel:'Tester',turnsUsed:12,turnsCap:300})});
   if(u.pathname==='/index.html')return route.fulfill({status:200,contentType:'text/html',body:'<p>Game destination fixture</p>'});
   if(u.pathname==='/catalog/blueprints'){reads++;if(fail)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'fixture outage'})});return route.fulfill({status:200,contentType:'application/json',headers:{'Cache-Control':'no-store'},body:JSON.stringify(rows)});}
   const f=path.resolve(root,'.'+decodeURIComponent(u.pathname));if(!f.startsWith(root+path.sep))return route.abort();
-  try{return route.fulfill({status:200,contentType:f.endsWith('.html')?'text/html':f.endsWith('.js')?'application/javascript':f.endsWith('.css')?'text/css':'application/json',body:fs.readFileSync(f)});}catch(e){return route.fulfill({status:404,body:'Not found'});}});
+  try{return route.fulfill({status:200,contentType:f.endsWith('.html')?'text/html':f.endsWith('.js')?'application/javascript':f.endsWith('.css')?'text/css':'application/json',body:f.endsWith('themes.css')&&themeEdit?fs.readFileSync(f,'utf8').replace('#883c2d','#123456'):fs.readFileSync(f)});}catch(e){return route.fulfill({status:404,body:'Not found'});}});
  const home=await ctx.newPage();home.on('pageerror',e=>errors.push(e.message));
  await home.goto('http://catalog.test/home.html');await home.waitForFunction(()=>window.__homeTest&&__homeTest.catalog().length===8);
  const iron=rows.find(r=>/Iron Meridian/.test(r.name));assert.ok(iron,'fixture: The Iron Meridian is on the curated shelf');
  const back=async()=>{await home.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await home.waitForTimeout(400);};
  if(process.env.HOME_CAPTURE){for(const width of [1200,390]){await home.setViewportSize({width,height:950});await home.screenshot({path:process.env.HOME_CAPTURE+'-'+width+'.png',fullPage:true});}await home.setViewportSize({width:1200,height:950});}
+ if(process.env.HOME_CAPTURE){const landing=await ctx.newPage();await landing.goto('http://landing.test/');for(const width of [1200,390]){await landing.setViewportSize({width,height:950});await landing.screenshot({path:process.env.HOME_CAPTURE+'-landing-'+width+'.png',fullPage:true});}}
  await test('home focuses on campaigns with the landing palette and Extras',async()=>{
   const view=await home.evaluate(()=>({quick:!!document.querySelector('#quick'),title:document.querySelector('#play h3').textContent,continueLabel:document.querySelector('#go-play').textContent,newLabel:document.querySelector('#go-new')?.textContent,extras:[...document.querySelectorAll('#extras .card h3')].map(x=>x.textContent),ink:getComputedStyle(document.documentElement).getPropertyValue('--t0').trim(),paper:getComputedStyle(document.documentElement).getPropertyValue('--bg1').trim(),accent:getComputedStyle(document.documentElement).getPropertyValue('--acc').trim()}));
   assert.equal(view.quick,false,'Quick Start pane removed');assert.equal(view.continueLabel,'Continue');assert.equal(view.newLabel,'New Campaign');assert.deepEqual(view.extras,['Blueprint Designer','Character Editor','Reference','Mementos']);assert.equal(view.ink,'#302a20');assert.equal(view.paper,'#eaddb9');assert.equal(view.accent,'#883c2d');
+ });
+ await test('both deployments share named light and dark themes and one palette edit',async()=>{
+  for(const changed of [false,true]){
+   themeEdit=changed;
+   for(const [url,selector] of [['http://catalog.test/home.html','#play h3'],['http://landing.test/','.module-title']]){
+    const page=await ctx.newPage();await page.goto(url);
+    assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'light','both pages select light');
+    assert.equal(await page.evaluate(sel=>getComputedStyle(document.querySelector(sel)).color,selector),changed?'rgb(18, 52, 86)':'rgb(136, 60, 45)','one shared accent edit reaches the rendered heading');
+    await page.evaluate(()=>document.documentElement.dataset.theme='dark');
+    assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--bg0').trim()),'#0c0d11','dark remains selectable');
+   }
+  }
+  themeEdit=false;
  });
  await test('campaign panel is double wide and mobile has no overflow',async()=>{
   await home.setViewportSize({width:1200,height:950});

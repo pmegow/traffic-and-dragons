@@ -45,7 +45,8 @@ var EDITOR_ASSETS = {
   "/helpers.js": "helpers.js",
   "/inventory.js": "inventory.js",   // #599 (b5): helpers.js reads counts through inventory.js — served wherever helpers.js is
   "/class_bible.js": "class_bible.js",
-  "/satellite.css": "satellite.css"   // #312: the shared satellite palette — missing here = an unstyled editor (2026-09-03)
+  "/satellite.css": "satellite.css",
+  "/website/themes.css": "website/themes.css"   // satellite.css imports the shared palettes
 };
 var worksheetStores = Object.create(null);
 var WORKSHEETS = {"/capability-names":"./capability-names-store.js","/capability-review":"./capability-review-store.js","/capability-redraft":"./capability-redraft.js"};

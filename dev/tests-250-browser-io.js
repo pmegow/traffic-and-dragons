@@ -159,6 +159,16 @@ var chain = tAsync("restored render revokes its object URL when image decode fai
     });
   });
 }).then(function() {
+  return tAsync("shared theme refreshes a cached palette and retains offline fallback", function() {
+    var url = "https://game.test/website/themes.css", cached = responseFor(url), fresh = responseFor(url), offline = false, fetched = 0;
+    var sw = loadSw({ cache: { put: function() { return Promise.resolve(); } }, match: function() { return Promise.resolve(cached); }, fetch: function() { fetched++; return offline ? Promise.reject(new Error("offline")) : Promise.resolve(fresh); } });
+    return dispatchFetch(sw.handler, url).response().then(function(response) {
+      if (response !== fresh || fetched !== 1) return "the cached palette hid the latest colors";
+      offline = true;
+      return dispatchFetch(sw.handler, url).response().then(function(response) { return response === cached ? "" : "offline lost the cached palette"; });
+    });
+  });
+}).then(function() {
   return tAsync("network-first runtime cache writes are held by FetchEvent.waitUntil", function() {
     var put = deferred(), url = "https://game.test/bug_tracker.html";
     var sw = loadSw({ cache: { put: function() { return put.promise; } }, fetch: function() { return Promise.resolve(responseFor(url)); } });

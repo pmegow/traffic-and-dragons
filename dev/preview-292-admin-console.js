@@ -20,7 +20,7 @@ function fixture(mode){
   };
 }
 http.createServer(function(req,res){
-  var url=new URL(req.url,"http://localhost"),files={"/admin_console.html":"text/html","/satellite.css":"text/css","/globals.js":"text/javascript"};
+  var url=new URL(req.url,"http://localhost"),files={"/admin_console.html":"text/html","/satellite.css":"text/css","/website/themes.css":"text/css","/globals.js":"text/javascript"};
   if(!Object.prototype.hasOwnProperty.call(files,url.pathname)){res.writeHead(404);res.end("Not a fixture asset");return;}
   var body=fs.readFileSync(path.join(root,url.pathname.slice(1)),"utf8");
   if(url.pathname==="/admin_console.html")body=body.replace(/<script src="(?:data|helpers|state|storage-adapter)\.js"><\/script>/g,"").replace("<script>\n(function(){","<script>("+fixture.toString()+")("+JSON.stringify(url.searchParams.get("mode")||"roster")+");</script>\n<script>\n(function(){");

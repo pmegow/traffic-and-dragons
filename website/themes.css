@@ -1,0 +1,40 @@
+/* Shared color themes for the game satellites and public landing page.
+   Lives in website/ so both static deployments publish the same source file.
+   Select light or dark on <html data-theme="...">; unthemed satellites retain dark defaults.
+   Keep palette values here; page styles own layout and typography. */
+:root, :root[data-theme="dark"]{
+  --surface-glow:rgba(228,232,238,.04);--frame-inset:rgba(60,64,80,.33);
+  --title-shadow:var(--bg2);--art-bg:var(--bg2);--acc-border:var(--brd2);
+  --button-inset:rgba(255,255,255,.08);--button-shadow:var(--bg0);--caption:var(--t1);
+  /* surfaces */
+  --bg0:#0c0d11;--bg1:#13151c;--bg2:#1b1e27;--bg3:#242730;
+  --brd:#2c2f3a;--brd2:#3c4050;
+  --modal-bg:#181818;
+  /* text */
+  --t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;
+  /* accent */
+  --acc:#9ab0c8;--on-acc:#000;--acc-bg:#141c24;
+  /* semantic colours */
+  --gold:#c8a84a;
+  --hp:#e06060;
+  --mana:#4285f4;
+  --dng:#c04040;--on-dng:#fff;--dng-faint:rgba(192,64,64,.08);
+  --warn:#d8a04a;--wrn:#d8a04a;
+  --red:#8b2a2a;--blue:#3a6ab5;--grn:#3a7a5a;--ok:#3a7a5a;--err:#c04040;
+  /* aliases for the names satellites grew on their own */
+  --bg:var(--bg0);--card:var(--bg1);--card2:var(--bg2);--dim:var(--t2);--dim2:var(--t2);--sub:var(--t1);--muted:var(--t2);--quiet:var(--t2);--line:var(--brd);--rule:var(--brd);--panel:var(--bg1);--fg:var(--t0);--ink:var(--t0);--bg4:#2c303b;
+  --good:var(--grn);--bad:var(--dng);--info:var(--blue);--pend:var(--warn);--orange:var(--warn);--acc2:var(--gold);--acc-dim:rgba(154,176,200,.55);--acc-faint:rgba(154,176,200,.12);
+}
+:root[data-theme="dark"]{color-scheme:dark;}
+/* The light theme is shared by Home and the public landing page. */
+:root[data-theme="light"]{
+  color-scheme:light;
+  --surface-glow:#fff7de66;--frame-inset:#76654855;--title-shadow:#f8edcf;--art-bg:#656c55;
+  --acc-border:#572c22;--button-inset:#ffffff15;--button-shadow:#482619;--caption:#5e513b;
+  --bg0:#b0a68b;--bg1:#eaddb9;--bg2:#f6edcf;--bg3:#ded0aa;--bg4:#d5c59b;
+  --brd:#b6a17a;--brd2:#766548;--modal-bg:#eaddb9;
+  --t0:#302a20;--t1:#514534;--t2:#65563e;
+  --acc:#883c2d;--on-acc:#fff5d9;--acc-bg:#ecd4b5;
+  --acc-dim:rgba(136,60,45,.55);--acc-faint:rgba(136,60,45,.1);
+  --dng:#9c3026;--err:#9c3026;--hp:#9c3026;
+}

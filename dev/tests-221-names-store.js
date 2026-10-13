@@ -1,7 +1,7 @@
 // #221: write only the named project list, atomically; partial drafts are valid, stale saves are not.
 const fs=require('fs'),path=require('path'),os=require('os'),assert=require('assert/strict'),cp=require('child_process'),http=require('http');
 const root=path.resolve(__dirname,'..'),scratch=fs.mkdtempSync(path.join(os.tmpdir(),'tnd-names-store-'));
-const files=['capability-names.html','capability_bible.js','class_bible.js','data.js','helpers.js','ui-shell.js','satellite.css','dev/bible-server.js','dev/bible-editor-version.js','dev/bible-helper-version.js','dev/capability-names-store.js','dev/launch-bible-editor.js'];
+const files=['capability-names.html','capability_bible.js','class_bible.js','data.js','helpers.js','ui-shell.js','satellite.css','website/themes.css','dev/bible-server.js','dev/bible-editor-version.js','dev/bible-helper-version.js','dev/capability-names-store.js','dev/launch-bible-editor.js'];
 let failed=0,child;
 async function check(name,fn){try{await fn();console.log('PASS #221 '+name);}catch(e){failed++;console.error('FAIL #221 '+name+' — '+e.message);}}
 function request(port,method,body,origin,version){return new Promise((resolve,reject)=>{const headers={'Content-Type':'application/json','X-Bible-Helper-Version':version};if(origin!==undefined)headers.Origin=origin;

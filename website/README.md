@@ -1,12 +1,12 @@
 # Traffic & Dragons website
 
-Standalone public landing page, version 1.0.5. Open `index.html` to preview it locally.
+Standalone public landing page, version 1.0.6. Open `index.html` to preview it locally.
 No build, package installation, API keys, game files, or Codex runtime are required.
 
 The approved design uses parchment, brick-red lettering, the coffee version of the dragon-on-Beetle
 artwork, and “Add a little fantasy to your gridlock.” The cover favors portrait
 8.5:11 proportions, growing vertically on small screens to keep content readable.
-The surrounding background is 25% darker than the parchment (#b0a68b versus #eaddb9);
+The surrounding background is 25% darker than the parchment;
 the cover retains its original paper color and highlight.
 “Continue your Campaign” opens the existing game at https://traffic-and-dragons.pages.dev/.
 “New Adventurer? Sign up” always opens https://traffic-and-dragons.pages.dev/signup.html,
@@ -55,14 +55,18 @@ project's deployment and live page. For a manual upload to the same project:
 npx wrangler pages deploy website --project-name traffic-and-dragons-website --branch master
 ```
 
-Upload the whole folder, keeping `index.html`, `icon.svg`, and `art/` together.
+Upload the whole folder, keeping `index.html`, `themes.css`, `icon.svg`, and `art/` together.
 No game deployment or DNS changes are required for ordinary page edits. Use a
 Cloudflare login for Pages publishing; DNS/redirect administration requires separate
 scoped permissions. Never store credentials in this repository.
 
 ## Editing
 
-The layout and styles are in `index.html`; the displayed artwork is in
+The layout and typography are in `index.html`. **All palette values live in `themes.css`**,
+shared with game Home through the `satellite.css` import. Both pages select `data-theme="light"`;
+`dark` is also defined for a future mode selector. Edit colors there once, then push: both
+Pages projects deploy that same source file from their respective output directories.
+The displayed artwork is in
 `art/Dragon-on-beetle_coffee.jpeg`. Update the `website-version` meta value and the matching
 asset query versions whenever this website changes. No game service worker is used.
 Keep the entry links distinct when changing destinations: Continue opens the game; Sign up

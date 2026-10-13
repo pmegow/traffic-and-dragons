@@ -1,7 +1,7 @@
 const fs=require('fs'),path=require('path'),os=require('os'),assert=require('assert/strict'),cp=require('child_process');
 const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..'),scratch=fs.mkdtempSync(path.join(os.tmpdir(),'tnd-review-browser-'));
-const files=['audits/capability_vulnerabilities.html','audits/capability_vulnerabilities.json','satellite.css','dev/bible-server.js','dev/bible-editor-version.js','dev/bible-helper-version.js','dev/capability-review-store.js','dev/capability-redraft.js','dev/launch-bible-editor.js'];
+const files=['audits/capability_vulnerabilities.html','audits/capability_vulnerabilities.json','satellite.css','website/themes.css','dev/bible-server.js','dev/bible-editor-version.js','dev/bible-helper-version.js','dev/capability-review-store.js','dev/capability-redraft.js','dev/launch-bible-editor.js'];
 let browser,server,failed=0;
 async function check(name,fn){try{await fn();console.log('PASS #603 '+name);}catch(e){failed++;console.error('FAIL #603 '+name+' — '+e.stack);}}
 (async()=>{try{
