@@ -4,7 +4,12 @@ Status (2026-10-12, later the same day): BUILT to this design as game v1.1249 + 
 server deploy and the `SPEECHIFY_API_KEY` secret are the owner's (runbook: the server repo's
 `DEPLOY_1.10.0_tts_gateway.md`). One deviation, recorded: the catalog endpoint serves the RAW vendor
 voices and the client keeps the one actor mapper (the "compact list" wording below described the
-client's stored shape, which is still what the client derives). The first outside beta tester (2026-10-12)
+client's stored shape, which is still what the client derives). **Inworld joined the same night
+(game v1.1251 / server 1.11.0, owner: "add Inworld as the second reader when the credits allow"):**
+the reader table moved to the server's `tts-readers.js` with an Inworld TTS-2 entry, and the account
+readout's `narration.readers` lists the entries whose secret is set; the client lists a flagged
+reader for a keyless player only when the server names it, so Inworld turns on for testers the day
+`INWORLD_API_KEY` is set and costs nothing before. The first outside beta tester (2026-10-12)
 heard only Piper: Voice Settings is hidden from non-admins (owner ruling 2026-09-11, the modal carries
 key fields), and the cloud readers (Speechify, Inworld, Gemini TTS) synthesize and load their actor
 catalogs straight from the vendor on a key stored on the device. The same rider class as #621

@@ -24,6 +24,10 @@ rc|=sabotage.prove({file:"tts.js",command:SUITE,cases:[
    mustFail:"the route: a signed-in entitled keyless player rides the server",
    find:'if (typeof serverAccount === "undefined" || !serverAccount || !serverAccount.entitled) return null;',
    replace:'if (typeof serverAccount === "undefined" || !serverAccount) return null;'},
+  {label:"the server's reader list is ignored (a tester would be offered a reader that 501s)",
+   mustFail:"the route: a signed-in entitled keyless player rides the server",
+   find:'    if (!Array.isArray(readers) || readers.indexOf(id) < 0) return null;\n',
+   replace:''},
   {label:"the server route posts to the vendor endpoint",
    mustFail:"synthesis on the server route",
    find:'var url = route.server ? _voiceServerUrl("/api/tts/" + id) : m.endpoint;',
@@ -42,8 +46,8 @@ rc|=sabotage.prove({file:"tts.js",command:SUITE,cases:[
    replace:'!!_voiceKey(id)'},
   {label:"the validator demands a key on the server route",
    mustFail:"the validator passes a keyless draft on the server route",
-   find:'if (m.key && !_voiceRoute(d.primary, d.keys[d.primary])) return',
-   replace:'if (m.key && !String(d.keys[d.primary] || "").trim()) return'}
+   find:'if (m.key && !_voiceRoute(d.primary, d.keys[d.primary])) {',
+   replace:'if (m.key && !String(d.keys[d.primary] || "").trim()) {'}
 ]});
 
 rc|=sabotage.prove({file:"ui-boot.js",command:ENGINE,cases:[

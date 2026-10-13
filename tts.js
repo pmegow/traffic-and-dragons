@@ -690,7 +690,7 @@ var TTS = (function() {
     gemini: { label: "Google · Gemini TTS", key: true, credential: { store: "byok", key: "gemini", keepEmpty: true }, direction: true, languages: [""],
       note: "30 actors. Uses your existing Google key. Test bills that key. Backup Gemini model retains the cast.", catalog: function() { return GEMINI_VOICES; },
       defaults: function() { return { narrator: geminiNarratorVoice(), direction: geminiDirection() }; } },
-    inworld: { credential: { store: "voice", key: "inworld" }, keyHint: "Paste the encoded API key from Inworld, without the Basic prefix.", directionHint: " (write in English)", label: "Inworld · TTS-2", depth: 4,/* #463 (owner on the Builder plan, 2026-09-25): 50 concurrent requests — four groups in flight hide the seam at a voice change; a skip aborts them all */ key: true, direction: true, rate: true, unitRate: true, unitDirection: true,/* #481 E6 */ markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
+    inworld: { credential: { store: "voice", key: "inworld" }, keyHint: "Paste the encoded API key from Inworld, without the Basic prefix.", directionHint: " (write in English)", label: "Inworld · TTS-2", depth: 4, server: true,/* #622 (owner 2026-10-12, "the second reader when the credits allow"): the T&D server carries the entry; it is LISTED for a keyless player only while the account readout names it among narration.readers — i.e. once the operator sets INWORLD_API_KEY *//* #463 (owner on the Builder plan, 2026-09-25): 50 concurrent requests — four groups in flight hide the seam at a voice change; a skip aborts them all */ key: true, direction: true, rate: true, unitRate: true, unitDirection: true,/* #481 E6 */ markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
       delivery: ["STABLE", "BALANCED", "CREATIVE"],
       note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. Test bills your Inworld key.",
       defaults: function() { return { narrator: "", direction: "Speak naturally, as an understated storyteller.", delivery: "STABLE" }; },
@@ -791,6 +791,10 @@ var TTS = (function() {
     if (typeof storageAdapter === "undefined" || typeof storageAdapter.isServerMode !== "function" || typeof storageAdapter.hasToken !== "function") return null;
     if (!storageAdapter.isServerMode() || !storageAdapter.hasToken()) return null;
     if (typeof serverAccount === "undefined" || !serverAccount || !serverAccount.entitled) return null;
+    /* the server says which flagged readers it can serve right now (their secret set): narration.readers on the account
+       readout. A flag without the server's word is no route — a tester is never offered a reader that would 501. */
+    var readers = serverAccount.narration && serverAccount.narration.readers;
+    if (!Array.isArray(readers) || readers.indexOf(id) < 0) return null;
     return { server: true };
   }
   function _voiceServerUrl(path) { return String(storageAdapter.getServerUrl() || "").replace(/\/$/, "") + path; }
@@ -821,7 +825,10 @@ var TTS = (function() {
   function _voiceValidate(d) {
     if (!d || !VOICE_MODELS[d.primary]) return "Select a voice model.";
     var m = VOICE_MODELS[d.primary], c = d.models[d.primary];
-    if (m.key && !_voiceRoute(d.primary, d.keys[d.primary])) return "Enter a " + m.label.split(" · ")[0] + " API key" + (m.server ? ", or sign in to narrate through the T&D server." : ".");/* #622: a server route needs no key */
+    if (m.key && !_voiceRoute(d.primary, d.keys[d.primary])) {/* #622: a server route needs no key; the hint says why there is none */
+      var signed = typeof storageAdapter !== "undefined" && typeof storageAdapter.isServerMode === "function" && storageAdapter.isServerMode() && storageAdapter.hasToken();
+      return "Enter a " + m.label.split(" · ")[0] + " API key" + (!m.server ? "." : signed ? " (the T&D server does not offer this reader to your account)." : ", or sign in to narrate through the T&D server.");
+    }
     if (!c || m.languages.indexOf(c.language) < 0) return "Select a supported speech language.";
     if (m.rate && (!isFinite(c.rate) || c.rate < 0.8 || c.rate > 1.3)) return "Speech rate must be between 0.8 and 1.3.";
     if (m.delivery && m.delivery.indexOf(c.delivery) < 0) return "Select a delivery mode.";

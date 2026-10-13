@@ -34513,18 +34513,21 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
   });
 
   section("#622 — the server TTS gateway on the client: the flag table, the route seam and the dev-only key fields (owner rulings 2026-10-12)");
-  t("#622 ONE flag per reader: only Speechify declares server:true today; the settings seam exposes the route predicate and the picker filter; a reader without the flag has no server route even for a signed-in entitled player",function(){
+  t("#622 ONE flag per reader: Inworld and Speechify declare server:true; the settings seam exposes the route predicate and the picker filter; a flagged reader rides the server only while the account readout names it among narration.readers (its secret set), and an unflagged one never does",function(){
     var S=TTS.settings,ids=Object.keys(S.models),flagged=ids.filter(function(id){return S.models[id].server===true;});
-    if(flagged.join()!=="speechify")return "flagged readers: "+flagged.join();
+    if(flagged.join()!=="inworld,speechify")return "flagged readers: "+flagged.join();
     if(typeof S.route!=="function"||typeof S.visibleModels!=="function"||typeof S._providerAvailable!=="function")return "the seam is missing";
     var sa=serverAccount,pk=providerKeys,gr=gmRouting,cred=store.get(S._keys.credentials);
     try{
-      storageAdapter.setServer("https://unit.test","TOK_622");serverAccount={entitled:true};providerKeys={};gmRouting="auto";store.set(S._keys.credentials,"{}");
+      storageAdapter.setServer("https://unit.test","TOK_622");serverAccount={entitled:true,narration:{readers:["speechify"]}};providerKeys={};gmRouting="auto";store.set(S._keys.credentials,"{}");
       var r=S.route("speechify");if(!r||r.server!==true)return "speechify should ride the server: "+JSON.stringify(r);
-      if(S.route("inworld")!==null)return "inworld must not ride the server without its flag";
+      if(S.route("inworld")!==null)return "inworld must not ride the server while the readout does not name it";
       if(S.visibleModels(false).join()!=="speechify,local,native")return "non-admin picker: "+S.visibleModels(false).join();
       if(S.visibleModels(true).join()!==ids.join())return "admin picker lists every entry";
-      serverAccount={entitled:false};if(S.route("speechify")!==null)return "an unentitled account rides the server";
+      serverAccount={entitled:true,narration:{readers:["speechify","inworld"]}};if(!S.route("inworld")||S.visibleModels(false).join()!=="inworld,speechify,local,native")return "inworld named by the server should be a route and listed: "+S.visibleModels(false).join();
+      serverAccount={entitled:true,narration:{readers:["speechify","inworld","gemini"]}};if(S.route("gemini")!==null)return "an unflagged reader never rides the server, whatever the readout says";
+      serverAccount={entitled:true};if(S.route("speechify")!==null)return "a readout without readers names none";
+      serverAccount={entitled:false,narration:{readers:["speechify"]}};if(S.route("speechify")!==null)return "an unentitled account rides the server";
     }finally{storageAdapter.setServer(null,null);serverAccount=sa;providerKeys=pk;gmRouting=gr;if(cred==null)store.del(S._keys.credentials);else store.set(S._keys.credentials,cred);}
     return true;
   });

@@ -49,8 +49,8 @@ function reset(mode) {
   gmRouting = "auto";
   providerKeys = {};
   store.set(S._keys.credentials, "{}");   // no stored vendor keys
-  if (mode === "server") { storageAdapter.setServer(SERVER, "TOK_622"); serverAccount = { entitled: true, narration: { used: 1000, cap: 250000, remaining: 249000, resetsAt: null, exempt: false } }; }
-  else if (mode === "unentitled") { storageAdapter.setServer(SERVER, "TOK_622"); serverAccount = { entitled: false, reason: "none" }; }
+  if (mode === "server") { storageAdapter.setServer(SERVER, "TOK_622"); serverAccount = { entitled: true, narration: { used: 1000, cap: 250000, remaining: 249000, resetsAt: null, exempt: false, readers: ["speechify"] } }; }
+  else if (mode === "unentitled") { storageAdapter.setServer(SERVER, "TOK_622"); serverAccount = { entitled: false, reason: "none", narration: { readers: ["speechify"] } }; }/* readers named on purpose: entitlement must refuse on its own */
   else { storageAdapter.setServer(null, null); serverAccount = null; }
 }
 function group(text) { return { text: text, voice: "geffen", last: null }; }
@@ -77,7 +77,16 @@ async function test(name, fn) {
   await test("the route: a signed-in entitled keyless player rides the server for Speechify only; byok routing, no entitlement, no token or an unflagged reader → null", async function() {
     reset("server");
     assert.deepEqual(S.route("speechify"), { server: true }, "speechify rides the server");
-    assert.equal(S.route("inworld"), null, "inworld is not flagged yet");
+    assert.equal(S.route("inworld"), null, "inworld is flagged but the server does not name it among its readers (no INWORLD_API_KEY yet)");
+    serverAccount.narration.readers = ["speechify", "inworld"];
+    assert.deepEqual(S.route("inworld"), { server: true }, "once the server names inworld, it rides the server too");
+    assert.deepEqual(S.visibleModels(false), ["inworld", "speechify", "local", "native"], "and the non-admin picker lists it");
+    serverAccount.narration.readers = ["inworld"];
+    assert.equal(S.route("speechify"), null, "a flagged reader the server stopped naming is no route");
+    serverAccount.narration.readers = ["speechify", "gemini"];
+    assert.equal(S.route("gemini"), null, "an UNFLAGGED reader never rides the server, whatever the readout names");
+    serverAccount.narration.readers = ["speechify"];
+    delete serverAccount.narration; assert.equal(S.route("speechify"), null, "a readout without readers (an older server) names none"); reset("server");
     assert.equal(S.route("gemini"), null, "gemini TTS is BYOK");
     assert.deepEqual(S.route("speechify", "sk-own"), { own: true, key: "sk-own" }, "an own key still wins while signed in");
     gmRouting = "byok"; assert.equal(S.route("speechify"), null, "byok routing never rides the gateway"); gmRouting = "auto";
@@ -160,7 +169,11 @@ async function test(name, fn) {
     assert.ok(/Enter a Speechify API key, or sign in/.test(S._validate(d)), "no route: " + S._validate(d));
     d.primary = "inworld"; d.keys.inworld = ""; d.models.inworld.voices = [{ id: "a", label: "A" }]; d.models.inworld.narrator = "a";
     reset("server");
-    assert.ok(/Enter a Inworld API key\.$/.test(S._validate(d)), "inworld is not on the server: " + S._validate(d));
+    assert.ok(/Enter a Inworld API key \(the T&D server does not offer this reader to your account\)\.$/.test(S._validate(d)), "signed in, but the server does not name inworld: " + S._validate(d));
+    serverAccount.narration.readers = ["speechify", "inworld"];
+    assert.equal(S._validate(d), "", "named by the server → a keyless Inworld draft validates");
+    d.primary = "gemini"; d.keys.gemini = ""; d.models.gemini.narrator = S.catalog("gemini", d.models.gemini)[0].id; d.models.gemini.language = "";
+    assert.ok(/Enter a Google API key\.$/.test(S._validate(d)), "an unflagged reader's hint never mentions the server: " + S._validate(d));
     // available(): the ladder's speechify tier is reachable on the server route when it is the primary
     reset("server"); d = S.draft(); d.primary = "speechify"; d.keys.speechify = ""; d.models.speechify.voices = [{ id: "geffen", label: "Geffen", g: "M" }]; d.models.speechify.narrator = "geffen"; d.models.speechify.language = "en-US"; S.save(d);
     assert.equal(typeof S._providerAvailable, "function", "the test seam exists");
