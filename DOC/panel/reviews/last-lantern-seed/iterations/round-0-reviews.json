@@ -1,0 +1,641 @@
+[
+  {
+    "round": 0,
+    "blueprintSha256": "487890805224a558fd1f41003e0e02f924f0d4e83be22171d9e9af9cfabcde0b",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "The living star-road is a strong coherent image, but the central restoration mechanism and reveal facts need fixed foundations. These are rubric applications, not a review by Gary Gygax.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Define the three restoration requirements and what the rite actually does.",
+            "kind": "world-rule and completion-condition gap",
+            "severity": "high",
+            "basis": "5.3 primary uniformity; 7.2 secondary B:29 game logic.",
+            "blueprintEvidence": [
+              "acts[1].goal: \"a light to wake it, a hand to plant it, and a road cleared to carry it\".",
+              "acts[1].arcs[1].objective: lost elven rite needed for rooting.",
+              "acts[2].arcs[1].objective: perform rite and choose how road/kingdoms are remade.",
+              "locations[5]: trunk-spire is only place to relight whole road."
+            ],
+            "reason": "The three requirements sound load-bearing but do not identify acceptable light, qualifications of the planting hand, what counts as a cleared road, or the ritual action/cost. The narrator must invent the conditions of the campaign's final test, including whether preparations mattered.",
+            "recommendation": "Provide a concise fixed procedure with permissive equivalents: what each requirement means, what the party can learn in advance, and what happens when one is missing. Make physical passage/bypass sufficient where credible rather than requiring extermination merely because an arc is combat-typed. Keep restoration at the trunk-spire as the established geographical constraint.",
+            "mitigation": "The trunk-spire destination and archived rite already fix where to go and where operating knowledge can come from. Do not turn poetic high fantasy into engineering accounting; a handful of clear fictional conditions is enough.",
+            "confidence": "High for missing authored conditions; practical effect untested."
+          },
+          {
+            "title": "Fix the core betrayal identity and the witness's promised revelation before play.",
+            "kind": "mystery/canon underspecification",
+            "severity": "medium",
+            "basis": "7.2 secondary game logic; 5.3 primary consistency.",
+            "blueprintEvidence": [
+              "npcs[0].notes: Maren lost a partner-warden to a Hollow One and recognizes the betrayer's \"borrowed face\".",
+              "npcs[3].notes: Corwin is Maren's old friend who survived through a bargain; \"His true face is rarely seen\"; trusted advisor/guide before reveal.",
+              "npcs[4].notes: Pell witnessed \"something\" at the trunk-spire, never specified."
+            ],
+            "reason": "The text does not say whose face Corwin borrows, whether he is the lost partner or impersonates them, how the disguise works or can be disproved, or what Pell saw. These are not merely incidental details: they determine the betrayal evidence and the final approach's warning. There is a coherent possible interpretation, but no single authored one yet.",
+            "recommendation": "Name the fixed relationship/borrowed identity and limits or telltales of disguise; specify what Maren knows versus assumes and one concrete discoverable clue. Define Pell's witnessed fact with its limits. Do not imply Pell knows everything or Maren's grief proves the accusation.",
+            "mitigation": "Corwin is already the named villain with a clear ideological motive; this is not a request for a new culprit. The Hollow Ones' no-direct-dialogue rule also provides a useful boundary to preserve.",
+            "confidence": "High that particulars are absent; medium severity because a GM could supply consistent answers, but they would be improvisations."
+          }
+        ],
+        "uncertainty": "The premise's unopened blossom and first arc's bloomed seed may describe awakening versus full bloom; clarify within the requirements, not as a separate alleged contradiction. No demand for a hard mechanical magic system."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "The encroaching dark offers excellent visible pressure; its resource and escalation rules currently leave too much arbitrary consequence.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Make light loss a foreseeable consequence with defined limits.",
+            "kind": "risk/resource adjudication gap",
+            "severity": "high",
+            "basis": "1.3 primary predeclare position/effect; 3.3 and 3.5 primary threat progress reflects fiction; 7.4 primary telegraph.",
+            "blueprintEvidence": [
+              "rules[1]: fires, lanterns and seed \"can visibly gutter, brighten, or fail in response to events\"; GM tracks/narrates.",
+              "premise: every darkened league makes crossing harder; last living seed is sole restoration hope.",
+              "acts[0].turningPoint: spire goes dark while party is inside."
+            ],
+            "reason": "Light is called a resource but no baseline distinction explains ordinary fuel versus star-light versus the unique seed, what spends each, how warning/replenishment works, or when failure becomes irreversible. The GM can make the vital seed fail or a crossing collapse as a dramatic beat with no player-understandable cause.",
+            "recommendation": "Define a few fictional triggers, warning stages and available conservation/renewal methods. State time/resource risks before commitment and honor prior mitigation. Distinguish a guttering seed from destruction; specify an honest failure/evacuation ending if restoration really becomes impossible. Do not use a hidden turn count.",
+            "mitigation": "Light visibly guttering is already a natural warning channel, and the campaign's whole premise establishes worsening danger. Preserve that pressure; make its action consequences legible rather than guaranteeing the seed survives.",
+            "confidence": "High for absent rules and potentially terminal consequence; no live unfair-loss event observed."
+          }
+        ],
+        "uncertainty": "No need to import Blades stress or clock boxes. Qualitative named stages and tracked actual supplies may suffice. This is not a one-hour pacing review."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "Strong antagonistic impulse and human grief, but several scripted events declare player trust, failure or interpretation.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Prepare the betrayal and attacks without requiring trust or dismissing successful precautions.",
+            "kind": "player-agency/contingent-outcome issue",
+            "severity": "medium",
+            "basis": "1.3 primary play to find out; 2.1 primary honesty; 3.4 and 6.3 primary build on answers/player decisions.",
+            "blueprintEvidence": [
+              "acts[1].turningPoint: \"familiar, trusted face\" and betrayal forces every alliance to be tested.",
+              "acts[1].arcs[3].objective: track trail \"before realizing\" it leads to someone party trusts.",
+              "npcs[3].notes: Corwin moves as a trusted advisor/guide.",
+              "acts[0].turningPoint and arcs[2].objective require Larkenfall to fail with party inside and an escape from its dying spire.",
+              "npcs[1].notes: captured Hollow One secret \"surfaces as a crisis if the party ever needs Aldenmere's help directly\"."
+            ],
+            "reason": "An NPC may try to gain trust, and light may fail, but trust is not a fact the author can assign to a suspicious party. Likewise no described cause/timing permits the party to discover, avoid or mitigate the planned spire/vault crisis; danger fires because the story reached a beat.",
+            "recommendation": "Seed Corwin's appearances and attempted helpfulness while accepting distrust or early exposure. Tie Larkenfall failure and vault trouble to concrete enemy actions/conditions with warning and intervention opportunities. Let arcs resolve through earned prevention, retreat, exposure or survival, not only the scripted catastrophe.",
+            "mitigation": "The authored spine is intentionally directed and threats should act without waiting for permission. This does not require every disaster to be preventable, only that actual precautions and established facts matter and the player's feelings are not prescribed.",
+            "confidence": "High for guaranteed wording; medium severity as a craft/agency concern rather than a contradictory fact."
+          }
+        ],
+        "uncertainty": "Maren temporarily withholding recognition through grief is plausible characterization, not automatically a defect. Keep it bounded and make independent evidence possible instead of forcing her confession or dictating the player's sympathy."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "A clear journey spine with promising allies and competing goals, but a sole critical information route risks becoming an arbitrary access bottleneck.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Make the complete rite discoverable without a single unexplained access gate.",
+            "kind": "information-flow bottleneck",
+            "severity": "high",
+            "basis": "1.1, 1.2, 1.4, 1.7 primary core clues and credible alternate methods.",
+            "blueprintEvidence": [
+              "acts[1].arcs[1].objective: recover rite needed to root seed.",
+              "locations[4]: last complete rite in deepest chamber; archive \"reachable only through a stair\" flooding/draining to an \"old, forgotten rhythm\".",
+              "npcs[0].notes: Maren has fragments not fully understood.",
+              "npcs[4].notes: Pell mixes true scraps with unreliable tales."
+            ],
+            "reason": "The only complete instructions necessary for the finale sit behind a single access route whose pattern is neither fixed nor discoverable. Partial lore is evocative but no stated method reconstructs the rite or separates a required truth from folklore if access/record/witness is lost. This can halt progress on a failed check or an invented tide delay.",
+            "recommendation": "Provide observable tide signs/timing and multiple credible access methods honoring established abilities. Once the party deliberately inspects the archive, deliver required ritual facts without a single pass/fail roll; risk can affect time, safety or optional detail. Give an independent partial-record/testimony route that can reconstruct essential steps, or an explicit costly alternative when the original is unavailable.",
+            "mitigation": "The archive is already a concrete place and lore fragments already exist, so redundancy can grow from existing material. Optional risk and discovery remain desirable; do not hand out every answer without action.",
+            "confidence": "High that the required information has one authored full source; no actual stall observed."
+          }
+        ],
+        "uncertainty": "The Hollow nesting-ground can remain dangerous without being a mandatory kill-all gate if a cleared crossing can be bypassed. Include that permissiveness in the fixed requirement definitions, rather than adding another separate scene. Long-campaign scope preserved."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Songs, inherited stewardship and grief promise meaning beyond defeating monsters. The advertised final remaking choice needs a concrete human/political shape.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Give the final remaking choice distinct consequences the player can understand.",
+            "kind": "ending choice/payoff specification",
+            "severity": "medium",
+            "basis": "2.7 primary visible payoffs rather than obligations; 4.5 primary/secondary becoming; 4.6 primary meaningful arc outcome.",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].objective: \"choose how the road, and the kingdoms bound to it, will be remade\".",
+              "acts[2].turningPoint: road either wakes or goes dark forever.",
+              "npcs[1].notes: queen wants seed in her borders for legacy.",
+              "npcs[2].notes: king wants a weapon-beacon; only full relighting stops incursions permanently."
+            ],
+            "reason": "The final objective offers a choice beyond success/failure, but the blueprint only defines full restoration as the effective solution. It does not specify what choices can remake governance, access, stewardship or local protection, what each costs, or whether the rulers' alternatives can work at all. A model could offer cosmetic options or invent world-changing powers at the climax.",
+            "recommendation": "Define a small set of grounded final choices: their magical feasibility, ownership/access consequences and effects on people already encountered. Let the party negotiate or propose a compatible alternative; do not require allegiance to either crown. Show one concrete outcome for those helped, and optionally invite the hero's own final act without assigning feelings or transformation.",
+            "mitigation": "The monarchs already have conflicting, understandable goals, and the trunk-spire-only rule fixes whole-road restoration. Preserve these tensions; not every politically attractive proposal needs equal magical effectiveness.",
+            "confidence": "High that final consequences are unspecified; medium for preferred scope of ending choice, a craft recommendation."
+          }
+        ],
+        "uncertainty": "No need for emotional XP, mandatory character growth or pastoral redesign. Maren's grief and Pell's road-singing can matter through the existing adventure if their actions affect actual choices. No player emotional response measured."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Fix restoration requirements, ritual facts and feasible ending choices with knowable costs and partial/failure outcomes.",
+        "Define Corwin's borrowed identity/relationship and discoverable evidence; name the actual fact Pell witnessed.",
+        "Give light depletion/seed jeopardy observable causes, warnings, mitigation and honest failure closure.",
+        "Make scripted trust and crises contingent on actual play while keeping antagonist initiative.",
+        "Provide discoverable archive access and reliable/redundant acquisition of essential ritual knowledge."
+      ],
+      "dissent": [
+        "High-fantasy wonder, living light, a world-spanning quest and supernatural mystery are strengths; clarity need not mean numerical simulation or exhaustive lore.",
+        "Gygax emphasizes consistent magical constraints; Harper/Baker emphasize informed action and contingent outcomes; Laws protects necessary information flow; Moran asks what the final choice means to people. These are documented-rubric applications, not author endorsements.",
+        "Do not assign the prior Riverlight one-hour target to this campaign. No runtime behavior, playtest success, pacing or publication-readiness claim is made.",
+        "No gratuitous combat-system or new reward-economy changes are recommended."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "487890805224a558fd1f41003e0e02f924f0d4e83be22171d9e9af9cfabcde0b",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Living-light journey and gardening imagery support a strong high-fantasy story. The seed's state and rite need enough fixed meaning for choices to matter.",
+        "resolved": [
+          {
+            "text": "Care for a living seed is a legitimate heroic action, and rooted light gives the journey a coherent recurring image.",
+            "basis": "§4.1–4.5 alternatives to killer-story shape (◐), §1.7 deliberate echo (◐). This assesses the supplied motif, not generated prose.",
+            "blueprintEvidence": [
+              {
+                "path": "premise",
+                "quote": "a bridge of living starlight"
+              },
+              {
+                "path": "npcs[0].notes",
+                "quote": "having tended its dormant husk for thirty years"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Seed stages and the required rite are not defined",
+            "severity": "high",
+            "kind": "content causality and actionable objective",
+            "basis": "§3.4 power follows knowledge/need, §8.3 meaningful consequence and §9.1 consistent world (◐ secondary). Does not require a numerical magic system.",
+            "blueprintEvidence": [
+              {
+                "path": "premise",
+                "quote": "a single unopened blossom"
+              },
+              {
+                "path": "acts[0].arcs[0].objective",
+                "quote": "why the seed bloomed"
+              },
+              {
+                "path": "acts[1].goal",
+                "quote": "a light to wake it, a hand to plant it"
+              },
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "Perform the rite at the trunk-spire"
+              }
+            ],
+            "reason": "The recovered seed is unopened, the opening investigates why it bloomed, and Act Two gathers undefined light/hand requirements for full bloom. Awakening versus opening could resolve the apparent inconsistency, but no canonical distinction or usable rite tells the narrator what is required, what can substitute, or what changes if something is missing.",
+            "recommendation": "Define dormant/awake/planted states and the rite's few essential fictional requirements, discovery routes, meaningful cost and failure/partial outcome. Specify whether any willing planter can qualify. Preserve wonder and avoid a long mechanics manual.",
+            "mitigation": "The Sunken Archive holds a complete rite, so there is already a natural place for the needed lore. High fantasy can leave ultimate metaphysics mysterious while fixing the actions the climax depends on.",
+            "confidence": "High about omitted requirements and mixed state wording; no runtime failure observed."
+          }
+        ],
+        "uncertainty": "No generated corpus/audio reviewed; no claims about actual lyricism, pace or exposition. No one-hour constraint."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Wonder and dread are present in the setting itself. Central promises need authored payoff so the final revelation is more than an improvised new premise.",
+        "resolved": [
+          {
+            "text": "The failing light-road, memory-like water and silent intruders give the supernatural an active dramatic function.",
+            "basis": "§1.1/§5.1 supernatural distinction (●); §9.1 wonder and fear (●/◐).",
+            "blueprintEvidence": [
+              {
+                "path": "premise",
+                "quote": "step through into the world"
+              },
+              {
+                "path": "locations[4].description",
+                "quote": "The water here glows faintly, as if remembering light it no longer has."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The starving force and Pell's witnessed truth are still blank reveal slots",
+            "severity": "medium",
+            "kind": "content causal spine and promised payoff",
+            "basis": "§9.3 confirmation rather than arbitrary revelation (◐); §9.5 fiction must convince (●/◐); §10.1 a story resolves something (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "premise",
+                "quote": "something old and starving is already unmaking the road"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "making a bargain with what he found on the other side of the dark"
+              },
+              {
+                "path": "npcs[4].notes",
+                "quote": "having witnessed something there they've never told anyone"
+              }
+            ],
+            "reason": "The premise promises an active force destroying the road, Corwin's belief depends on its offer, and Pell has witnessed a climactic fact; none is specified. The GM must invent the central relationship among destruction, bargain and planting, and may make Pell's disclosure whatever the latest scene needs.",
+            "recommendation": "Fix the private causal truth: what is actually unmaking the road, what Corwin was offered or believes he was offered, and the concrete observation Pell can report. Let characters retain uncertainty. Ensure essential planting knowledge also exists if Pell does not guide the party.",
+            "mitigation": "Mystery and understatement should remain; there is no need for a full cosmology, speaking Hollow Ones, a new named villain or a forced Pell confession. The relevant truth can be a brief, bounded observation rather than an explanation of everything.",
+            "confidence": "High that these promises lack specified content; medium priority because a flexible GM can improvise, but that flexibility currently reaches the ending's premise."
+          }
+        ],
+        "uncertainty": "No objection to a large high-fantasy scope or chosen tone. Static configuration cannot certify the experienced fear/wonder balance."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Kingdoms have useful contrasting ambitions, but the advertised power to remake the road has no concrete alternatives or consequences yet.",
+        "resolved": [
+          {
+            "text": "Two rulers want genuinely different uses of the last seed, providing an existing basis for political choice.",
+            "basis": "§9.4 agency through contrasting orientations (WE ●); §3.5 resource allocation (GR ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[1].notes",
+                "quote": "wants the seed planted within her own borders"
+              },
+              {
+                "path": "npcs[2].notes",
+                "quote": "used as a weapon-beacon to burn out Hollow Ones"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The final choice to remake the kingdoms is unspecified",
+            "severity": "high",
+            "kind": "content agency and consequential ending",
+            "basis": "§9.1 restoration is not the only possible ending (WE ●), §9.3 choices alter outcome (WE ●), §3.5 resource allocation (GR ●). This does not forbid restoring a beloved road.",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "choose how the road, and the kingdoms bound to it, will be remade"
+              },
+              {
+                "path": "acts[2].turningPoint",
+                "quote": "the road either wakes or goes dark for good"
+              },
+              {
+                "path": "locations[5].description",
+                "quote": "the only place the last seed can be planted to relight the whole road"
+              }
+            ],
+            "reason": "The objective promises consequential authorship, while the fixed setting supplies only plant-at-heart success versus permanent darkness. No alternatives explain who tends/controls restored light, which communities benefit or pay, or what partial protection, refusal and failed planting mean. The player can be asked a moral choice whose consequences the narrator invents after selection.",
+            "recommendation": "Define a small set of causally distinct outcomes with costs, stewardship/consent and effects on ordinary communities, discoverable before commitment. Allow supported alternatives rather than binding to a menu. Include honest failure/refusal closure; successful restoration can remain the desired heroic result.",
+            "mitigation": "Monarchs' local planting/weapon desires already provide possible pressures, but they need not become equally valid magical solutions. Preserve the story's restoration ambition; do not require revolution or moral ambiguity for its own sake.",
+            "confidence": "High about promised undefined choice; no claim that the author must prefer systemic change to restoration."
+          }
+        ],
+        "uncertainty": "A lore explanation is not evidence of player understanding. No demand for didactic political speeches; short concrete consequences should carry the difference."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "Corwin has a self-justifying belief, but the betrayal relies on unresolved identity and prescribed player trust. Fix those facts before judging its emotional effect.",
+        "resolved": [
+          {
+            "text": "Corwin's error is motivated by a belief about what the other side offers; he is intended as a sorrowful enemy rather than cruelty without reason.",
+            "basis": "§5.4 and §6.1–6.3 understandable motives need not excuse harm (B:Fantasy-Hive ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[3].notes",
+                "quote": "mortals fear the Hollow Ones only because they don't understand what they offer"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "still believes he is right"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Borrowed face, lost partner and trusted identity are not reconciled",
+            "severity": "high",
+            "kind": "content identity/knowledge and earned betrayal",
+            "basis": "§5.1 situation-appropriate speech, §8.1 honesty (A:Advice ●), §5.6 characters and situations cause each other (B:Dark Matter Zine ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[0].notes",
+                "quote": "a partner-warden, lost to a Hollow One decades ago"
+              },
+              {
+                "path": "npcs[0].notes",
+                "quote": "recognizes the betrayer's borrowed face immediately"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "a star-warden's descendant and old friend to Maren Duskwillow"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "His true face is rarely seen"
+              },
+              {
+                "path": "acts[1].arcs[3].objective",
+                "quote": "someone the party already trusts"
+              }
+            ],
+            "reason": "It is unclear whether Corwin is the lost partner, wears that person's face, or is a separate old friend using another identity. Maren's recognition and grief cannot be consistently acted without that fact. The reveal also prescribes the party's trust even if it recognized danger, refused his guidance or exposed him early.",
+            "recommendation": "Fix Corwin's true identity, any disguise/borrowed face, Maren's precise knowledge and how the guide actually appears. Offer observable behavior that can earn trust; let suspicion or early exposure change later tactics instead of enforcing betrayal on a player who never trusted him. Maren's silence may be motivated but should not override direct questioning indefinitely.",
+            "mitigation": "A grief-frozen recognition can be powerful, and Corwin may plausibly deceive. This asks for a consistent private truth and earned relationship, not the removal of disguise or betrayal. No need for another mastermind.",
+            "confidence": "High about undefined identity relation and imposed trust wording; actual player response untested."
+          }
+        ],
+        "uncertainty": "Do not darken the hopeful high-fantasy ending merely to fit this lens's taste. Runtime dialogue, grief and betrayal impact are ungraded."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Define seed states and a concise actionable rite with alternatives/costs and meaningful failure.",
+        "Specify the true Corwin/Maren/borrowed-face relationship, then allow actual player trust or suspicion to govern the reveal.",
+        "Give the final remaking choice concrete, foreshadowed consequences and honest ending conditions.",
+        "Fill the central starving-force/Pell-observation promises with bounded private truth, preserving supernatural mystery."
+      ],
+      "dissent": [
+        "High-fantasy restoration and hopeful heroic success remain legitimate aims. Jemisin's restoration critique and Abercrombie's dark-ending taste are questions, not commands to invert this campaign.",
+        "No one-hour target, mandatory extra combat, full magic system or expanded cosmology is requested."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "487890805224a558fd1f41003e0e02f924f0d4e83be22171d9e9af9cfabcde0b",
+    "scope": "Last Lantern-Seed v0.01 baseline: five sourced composite personas, full source reread. Not interviews, real panel votes, runtime narration or playtest. High-fantasy campaign preserved; no one-hour constraint. Exact zero-based field anchors.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "Conditional audio fit: the single seed and visible road give a strong central task. No unique mandatory edit from this lens beyond the shared need for legible light/ritual state. Test re-entry rather than assuming complex names or a long quest defeat listeners.",
+        "resolved": [],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite persona, not a listener or playtest. R1 includes secondary recap sources; R5 driving suitability and R10 voice inventory are inferred and unused. No total-duration constraint.",
+          "dissent": "Keep the lyrical high-fantasy scope. Rosa needs a concise actionable recap, not replacement of the campaign with a short taster.",
+          "verificationQuestion": "After a pause, can the listener name who holds the seed, its known condition, the next reachable waypoint and a useful next action?",
+          "basis": {
+            "file": "DOC/panel/players/rosa_pike_persona.md",
+            "entry": "R1; R2; R6",
+            "sourceGrade": "R1 mixed primary/secondary; R2 and R6 primary"
+          },
+          "blueprintEvidence": [
+            {
+              "field": "premise",
+              "quote": "a single unopened blossom that can relight the Course if carried to the great trunk-spire at its heart"
+            },
+            {
+              "field": "rules[1]",
+              "quote": "the GM should track and narrate this throughout"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Strong potential for a coherent, hopeful quest with political pushback. Fix the author-side truth and make trust or revelations consequences of play, not required player feelings.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Fix Corwin’s identity and Pell’s observation as stable private facts",
+            "severity": "P1",
+            "kind": "fixed-truth",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[0].notes",
+                "quote": "she recognizes the betrayer's borrowed face immediately"
+              },
+              {
+                "field": "npcs[3].notes",
+                "quote": "a star-warden's descendant and old friend to Maren Duskwillow, who survived a Hollow One encounter decades ago"
+              },
+              {
+                "field": "npcs[4].notes",
+                "quote": "having witnessed something there they've never told anyone"
+              }
+            ],
+            "reason": "Maren’s lost partner and a borrowed face suggest impersonation, while Corwin’s dossier describes a survivor with his own motives; the relationship is not fixed. Pell’s withheld trunk-spire observation is also unspecified. These can be mysteries to the player, but the GM needs one stable account to avoid changing the revelation to fit suspicions.",
+            "recommendation": "State whether Corwin is himself, a disguised survivor or an impersonator; name the relation to Maren’s lost partner and what she can actually know. Define exactly what Pell witnessed, what it supports and what remains uncertain. Give discoverable evidence that can expose the facts without mandatory testimony or a particular reveal timing.",
+            "mitigation": "Corwin’s motive, history and guidance of the Hollow Ones are already concrete. Preserve them if intended; no extra mastermind or mythology is needed.",
+            "confidence": "High confidence in source omission or directive; generated behavior not observed."
+          },
+          {
+            "title": "Do not require the player to trust the future enemy or wait for the appointed reveal",
+            "severity": "P1",
+            "kind": "agency-and-evidence",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I4; I9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].turningPoint",
+                "quote": "a familiar, trusted face"
+              },
+              {
+                "field": "acts[1].arcs[3].objective",
+                "quote": "before realizing the trail leads to someone the party already trusts"
+              },
+              {
+                "field": "npcs[3].notes",
+                "quote": "he moves through the story as a trusted advisor or guide figure before the revelation in Act Two"
+              }
+            ],
+            "reason": "The blueprint prescribes trust and then its betrayal. A suspicious player, an early identification, refusal of Corwin’s help or his death leaves the stated transition with no honest basis. Moral pushback is welcome; inventing player trust or undoing early success is not necessary for it.",
+            "recommendation": "Introduce Corwin under a fixed identity and an offer the party can accept or refuse. Let investigation establish his actions when evidence supports them, including early exposure; describe betrayal only if actual trust existed. Keep his plans bounded by knowledge, access and survival, and permit other leads to carry the journey if he is absent.",
+            "mitigation": "The watcher trail already provides an investigation structure and the two monarchs have persuadable motives. Those support suspicion and choice without a scripted emotional response.",
+            "confidence": "High confidence in source omission or directive; generated behavior not observed."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite source review; no real solo-player or model run. I1/I5 address stable logic and continuity, not a demand to reveal all mysteries immediately.",
+          "dissent": "Retain Corwin’s sincere dangerous beliefs and the rulers’ competing aims. A coherent world can still refuse the player.",
+          "verificationQuestion": "If the player distrusts Corwin at their first meeting or exposes him before Act Two, does the same underlying history remain true and can the quest continue?"
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "Partial genre fit. Resource stewardship can be meaningful here, but the only resource rule currently authorizes change without enough terms to plan around it.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Define what changes light and seed condition before making them scarce resources",
+            "severity": "P1",
+            "kind": "resource-and-custody",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9; B8",
+              "sourceGrade": "primary; applying possession permanence and known-cost principles to magical light is review reasoning"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[1]",
+                "quote": "Light is a resource, not scenery"
+              },
+              {
+                "field": "rules[1]",
+                "quote": "fires, lanterns, and the seed itself can visibly gutter, brighten, or fail in response to events"
+              },
+              {
+                "field": "premise",
+                "quote": "the last living lantern-seed"
+              }
+            ],
+            "reason": "The text declares a managed resource but specifies no consumption/restoration triggers, seed failure conditions, or distinction between ordinary fuel and the unique quest object. The GM can change the last seed’s viability or punish a long discussion without an intelligible causal cost, making careful planning impossible.",
+            "recommendation": "Define a few fiction-level triggers: what consumes ordinary fuel, what strains or restores the seed, and whether any loss is permanent. Announce observable danger and action costs before commitment; track the actual custodian and earned restoration. If the seed is lost or destroyed, honor that outcome with a viable search/recovery only when established, or an honest failure ending. Do not invent a replacement last seed or add a second bookkeeping economy.",
+            "mitigation": "The rule already asks for visible narration, and the premise supplies a deteriorating road as an external constraint. Build on those rather than adding a detailed meter or shop system.",
+            "confidence": "High confidence in source omission or directive; generated behavior not observed."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite; most inventory evidence concerns visual games. No actual resource mutation, save loss or surprise depletion observed.",
+          "dissent": "Do not add loot, shops or currency loops solely for Bert. A clearly bounded seed/light contract is enough for this review.",
+          "verificationQuestion": "Can the player predict the consequence of a proposed long crossing or use of seed light from facts already learned, and is the seed still held where they left it?"
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "Heroic peril is a deliberate contrast with cozy recovery, so this is a conditional/poor fit rather than a reason to soften the world. One source-level pressure issue does matter beyond taste: accepting court help automatically creates a crisis.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Make the captured Hollow One’s crisis depend on its actual containment",
+            "severity": "P2",
+            "kind": "agency-and-causality",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary; participation and consequences rooted in the world support this inference"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[1].notes",
+                "quote": "a captured, dormant Hollow One in a sealed vault for study, which surfaces as a crisis if the party ever needs Aldenmere's help directly"
+              }
+            ],
+            "reason": "Needing the queen’s help is the sole written crisis trigger. It offers no failing seal, dangerous study or enemy intervention that causes the problem, so a negotiated alliance can become an automatic penalty for requesting help, regardless of precautions. The concern is arbitrary escalation, not the presence of a monster.",
+            "recommendation": "Give the vault a concrete instability or planned act that can be discovered, prevented or allowed to happen. The queen may demand help or conceal a danger for an established motive, but requesting aid should not itself force a breach. Honor good containment and refusal, and keep the queen’s political conditions distinct from that physical hazard.",
+            "mitigation": "The vault is a specific location and the queen’s pragmatic wish to protect her crown already supplies a motive. A short causal trigger and honest alternative are enough.",
+            "confidence": "High confidence in source omission or directive; generated behavior not observed."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite, not a cozy or phone playtest. N1/Trust explain genre mismatch but do not establish that every suspense beat is bad. No twenty-minute or one-hour completion demand.",
+          "dissent": "Keep real danger and the campaign’s ambitious journey. Nan can choose another adventure; the shared improvement is meaningful local action rather than guaranteed comfort.",
+          "verificationQuestion": "If the party discovers and secures the queen’s vault before asking for aid, does that achievement hold, and can one local decision finish meaningfully before a pause?"
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "A strong ending premise: the road can genuinely be renewed. The authored rite, choice consequences and unsuccessful exits are too undefined to judge whether that outcome is earned.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Specify the rite’s inputs, fallback access and the meaning of the final choice",
+            "severity": "P1",
+            "kind": "completion-and-payoff",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G6; G7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].goal",
+                "quote": "a light to wake it, a hand to plant it, and a road cleared to carry it"
+              },
+              {
+                "field": "locations[4].description",
+                "quote": "the last complete rite for waking a lantern-seed"
+              },
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "choose how the road, and the kingdoms bound to it, will be remade"
+              }
+            ],
+            "reason": "The three requirements are metaphors without defined sources or eligibility; the only complete rite is a single archive record, and the final power to remake kingdoms has no specified limits or outcome alternatives. A GM must invent both the conditions for success and what choice the player was supposedly making. Losing a clue, refusing a monarch or reaching the trunk with partial knowledge has no stated disposition.",
+            "recommendation": "Define the light source, who may willingly plant, the actual rite steps and observable completion/failure criteria. Essential information should survive one failed search or be recoverable from established inscriptions/testimony; keep archive exploration meaningful. State a small number of achievable final choices and their costs, who consents to political commitments, and what facts determine results. End on actual fates and allow one optional player final contribution; let refusal, withdrawal or a failed seed conclude honestly without forced sequel or fabricated success.",
+            "mitigation": "The trunk is already the sole whole-road planting site and the Hollow Ones’ communication limits are fixed. Those constraints support a precise rite and avoid treating every wish as possible.",
+            "confidence": "High confidence in source omission or directive; generated behavior not observed."
+          },
+          {
+            "title": "Let known precautions or alternate approaches matter at the first spire",
+            "severity": "P2",
+            "kind": "choice-and-progression",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G6; G7; G1",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "The waypoint spire at Larkenfall goes dark while the party is inside it"
+              },
+              {
+                "field": "acts[0].arcs[2].objective",
+                "quote": "escape Larkenfall as its spire dies"
+              }
+            ],
+            "reason": "The transition guarantees both party location and collapse. A party scouting outside, evacuating early, stabilizing the light by an established ability or bypassing entry cannot satisfy that exact set piece without the GM reversing a legitimate precaution. There is no stated reason that the spire must fail despite all possible intervention.",
+            "recommendation": "Make deterioration and the enemy approach observable, with consequences based on timing and what the party can actually do. If collapse truly cannot be stopped, establish that limit before their commitment; do not force entry to demonstrate the threat. Resolve through survival, avoidance, protection or a witnessed/reported loss, preserving earned information and casualties.",
+            "mitigation": "The road is already failing and rope bridges are frayed, so peril is well telegraphed in broad terms. Keep that threat; align the turning point with actual approach rather than abolishing the encounter.",
+            "confidence": "High confidence in source omission or directive; generated behavior not observed."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite source review, not a played ending or an engine verification. No claim that mementos, state or UI are missing. The issue is absent authored terms for meaningful decisions.",
+          "dissent": "A high-fantasy restoration can be triumphant; do not import Iron Meridian’s mandatory losses. Costs and consent should be understood, not maximized.",
+          "verificationQuestion": "Can a party that refuses both monarchs and loses access to one lore source still make an informed, supported choice—or reach an honest incomplete/failure ending—without the GM inventing a rite or allegiance?"
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Fix private truth for Corwin/Maren and Pell, then let actual discoveries and trust govern revelation.",
+        "Define seed/light costs and custody, rite requirements, consent and attainable final choices without adding a complex economy.",
+        "Support refusal and unavailable sources with earned alternatives or honest incomplete/failure endings.",
+        "Give the spire threat and queen-vault crisis causal triggers that can honor actual precautions.",
+        "Verify these behaviors in real play after editing; paper review proves neither pacing nor player comprehension."
+      ],
+      "dissent": [
+        "Nan’s cozy preference and Bert’s accumulation preference are not requirements to change this heroic fantasy into a cozy hub or loot loop.",
+        "Ines wants coherent opposition and genuine surprise, while Rosa needs understandable re-entry; do not remove lore and factions merely to shorten listening.",
+        "Gerry accepts a triumphant restoration; no need to import compulsory bitterness or losses from Iron Meridian."
+      ]
+    }
+  }
+]

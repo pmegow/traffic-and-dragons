@@ -1,0 +1,21 @@
+{
+  "source": "samples/the_last_lantern-seed.blueprint",
+  "outcome": "The hopeful star-road journey retains its scope and wonder. The rite, seed stages, disguise and threatened waypoints now have fixed causes and usable alternatives. Three revision cycles resolved the editorial findings while retaining differing player preferences.",
+  "publication": "Prepared for publication after final checks; not yet published.",
+  "changes": [
+    "The seed is a dormant husk, then an awake closed bud, then a rooted open lantern. Light loss has visible causes, mitigation and honest loss outcomes.",
+    "The planting needs living light, the learned rite and any willing planter. The archive has readable instructions and observable access; Maren's copy plus trunk inscriptions offers an independent route.",
+    "Corwin is a living saboteur using a bounded glamour of Maren's dead partner Edris. His supposed bargain is his interpretation of silent visions. Trust, discovery and later opposition follow play. Pell has a concrete, limited observation.",
+    "Spire failure and the queen's vault crisis follow physical damage and neglected containment. Preparation, refusal, bypass and successful prevention matter.",
+    "Joined roots restore the network but need willing tenders at each waypoint. Severed roots concentrate a refuge maintainable by one community, losing the road. Both close the central breach; distant dark and unrepaired crossings have actual consequences.",
+    "Pre-1.0 draft promoted to v1.0 Release Candidate after the final review; metadata promotion changes no story content."
+  ],
+  "verification": "Four immutable snapshots each received all fourteen perspectives. Actual normalization and isolated import preserved 64 authored fields, five NPCs, six locations, five rules and nine arcs. Report links and desktop/mobile rendering were checked before shipment. The mandatory commit gate must pass. No narrated session or real-player test was run.",
+  "rounds": [
+    "Baseline v0.01: missing rite and outcome definitions, forced trust and crises, unbounded light loss, and unresolved identity/revelation promises.",
+    "Round 1 v0.02: fixed world facts and contingent paths, specified rite and endings, explicit light limits and alternatives. One writing lens requested an explicit upkeep advantage for the smaller refuge; other lenses found the implied distinction sufficient.",
+    "Round 2 v0.03: made distributed versus concentrated tending explicit. Two lenses caught an accidental omission: the replacement wording no longer explicitly said the refuge seals the central breach. The player pass found no mandatory change; this dissent is retained.",
+    "Round 3 v0.04: restored breach closure for the refuge in both the rule and final arc hint. Final full review found no further required source changes. Final v1.0 promotion changes only version and status."
+  ],
+  "remaining": "Ready for actual playtesting, not declared Released. Exercise early distrust/exposure of Corwin, saved Larkenfall bonds, prevented vault breach, archive bypass, interrupted planting, lost-seed closure and both root choices. Confirm players understand upkeep and irreversible consequences before choosing; do not infer narration behavior or duration from editorial review."
+}

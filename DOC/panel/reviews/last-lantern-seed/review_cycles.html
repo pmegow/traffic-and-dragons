@@ -1,0 +1,5138 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Last Lantern-Seed — panel revision record</title>
+<link rel="stylesheet" href="../../../../satellite.css">
+<style>body{max-width:1060px;margin:auto;padding:32px 24px 70px;line-height:1.6;font-size:17px}h1,h2,h3{color:var(--acc);line-height:1.22}h1{font-size:2.25rem;margin:.35em 0}h2{font-size:1.5rem;margin:1.8em 0 .6em}h3{font-size:1.15rem}header{border-bottom:2px solid var(--acc);padding-bottom:22px}nav{display:flex;flex-wrap:wrap;gap:8px 20px}.meta,.basis{color:var(--t1);font-size:.9em}section.overview,details.reviewer{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);padding:18px 22px;margin:20px 0}section.overview{border-left:4px solid var(--acc)}summary{cursor:pointer;color:var(--acc);font-weight:bold;padding:6px 0}article{border-top:1px solid var(--brd);margin-top:22px;padding-top:8px}p,li,dd,a,code{overflow-wrap:anywhere}li{margin:.45em 0}ul{padding-left:24px}dt{font-weight:bold;margin-top:.4em}dd{margin-left:18px}dd ul{margin-top:0}code{font-size:.8em}footer{border-top:1px solid var(--brd);margin-top:36px;padding-top:16px}@media(max-width:500px){body{padding:20px 14px;font-size:16px}h1{font-size:1.85rem}section.overview,details.reviewer{padding:14px}dd{margin-left:12px}}@media print{details{display:block}details>*{display:block}}</style>
+</head>
+<body>
+<header>
+<p class="meta">TASK 626 · 13 OCTOBER 2026 · SPOILERS</p>
+<h1>The Last Lantern-Seed</h1>
+<p>Three edit-and-review cycles · final v1.0 Release Candidate</p>
+<nav>
+<a href="../../../../samples/the_last_lantern-seed.blueprint">Final blueprint</a>
+<a href="iterations/final.blueprint">Final snapshot</a>
+<a href="#round-0">Baseline</a>
+<a href="#round-1">Round 1</a>
+<a href="#round-2">Round 2</a>
+<a href="#round-3">Round 3</a>
+</nav>
+</header>
+<section class="overview">
+<h2>Outcome</h2>
+<p>The hopeful star-road journey retains its scope and wonder. The rite, seed stages, disguise and threatened waypoints now have fixed causes and usable alternatives. Three revision cycles resolved the editorial findings while retaining differing player preferences.</p>
+<p>Prepared for publication after final checks; not yet published.</p>
+</section>
+<h2>Method</h2>
+<p>Three delegated passes apply five design lenses, four writing lenses and five composite player personas to the same snapshot at baseline and after each of three revision cycles. All fourteen perspectives reread each candidate. These are rubric applications, not participation by the named authors, interviews or human playtests. Source grades, evidence, mitigations and dissent remain visible below. No one-hour target was imposed on this campaign.</p>
+<h2>Changes and verification</h2>
+<ul>
+<li>The seed is a dormant husk, then an awake closed bud, then a rooted open lantern. Light loss has visible causes, mitigation and honest loss outcomes.</li>
+<li>The planting needs living light, the learned rite and any willing planter. The archive has readable instructions and observable access; Maren&#x27;s copy plus trunk inscriptions offers an independent route.</li>
+<li>Corwin is a living saboteur using a bounded glamour of Maren&#x27;s dead partner Edris. His supposed bargain is his interpretation of silent visions. Trust, discovery and later opposition follow play. Pell has a concrete, limited observation.</li>
+<li>Spire failure and the queen&#x27;s vault crisis follow physical damage and neglected containment. Preparation, refusal, bypass and successful prevention matter.</li>
+<li>Joined roots restore the network but need willing tenders at each waypoint. Severed roots concentrate a refuge maintainable by one community, losing the road. Both close the central breach; distant dark and unrepaired crossings have actual consequences.</li>
+<li>Pre-1.0 draft promoted to v1.0 Release Candidate after the final review; metadata promotion changes no story content.</li>
+</ul>
+<p>Four immutable snapshots each received all fourteen perspectives. Actual normalization and isolated import preserved 64 authored fields, five NPCs, six locations, five rules and nine arcs. Report links and desktop/mobile rendering were checked before shipment. The mandatory commit gate must pass. No narrated session or real-player test was run.</p>
+<p class="meta">Final file SHA-256: <code>4a6156a3e330228a9d4c5da259b48807ca4b0b6758cddad972d0d1a4ea255c81</code>
+</p>
+<section id="round-0">
+<h2>Baseline assessment</h2>
+<p>Baseline v0.01: missing rite and outcome definitions, forced trust and crises, unbounded light loss, and unresolved identity/revelation promises.</p>
+<p>
+<a href="iterations/round-0.blueprint">Exact snapshot</a> · <a href="iterations/round-0-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>487890805224a558fd1f41003e0e02f924f0d4e83be22171d9e9af9cfabcde0b</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>The living star-road is a strong coherent image, but the central restoration mechanism and reveal facts need fixed foundations. These are rubric applications, not a review by Gary Gygax.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Define the three restoration requirements and what the rite actually does.</dd>
+<dt>Kind</dt>
+<dd>world-rule and completion-condition gap</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Basis</dt>
+<dd>5.3 primary uniformity; 7.2 secondary B:29 game logic.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].goal: &quot;a light to wake it, a hand to plant it, and a road cleared to carry it&quot;.</li>
+<li>acts[1].arcs[1].objective: lost elven rite needed for rooting.</li>
+<li>acts[2].arcs[1].objective: perform rite and choose how road/kingdoms are remade.</li>
+<li>locations[5]: trunk-spire is only place to relight whole road.</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The three requirements sound load-bearing but do not identify acceptable light, qualifications of the planting hand, what counts as a cleared road, or the ritual action/cost. The narrator must invent the conditions of the campaign&#x27;s final test, including whether preparations mattered.</dd>
+<dt>Recommendation</dt>
+<dd>Provide a concise fixed procedure with permissive equivalents: what each requirement means, what the party can learn in advance, and what happens when one is missing. Make physical passage/bypass sufficient where credible rather than requiring extermination merely because an arc is combat-typed. Keep restoration at the trunk-spire as the established geographical constraint.</dd>
+<dt>Mitigation</dt>
+<dd>The trunk-spire destination and archived rite already fix where to go and where operating knowledge can come from. Do not turn poetic high fantasy into engineering accounting; a handful of clear fictional conditions is enough.</dd>
+<dt>Confidence</dt>
+<dd>High for missing authored conditions; practical effect untested.</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Fix the core betrayal identity and the witness&#x27;s promised revelation before play.</dd>
+<dt>Kind</dt>
+<dd>mystery/canon underspecification</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>7.2 secondary game logic; 5.3 primary consistency.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[0].notes: Maren lost a partner-warden to a Hollow One and recognizes the betrayer&#x27;s &quot;borrowed face&quot;.</li>
+<li>npcs[3].notes: Corwin is Maren&#x27;s old friend who survived through a bargain; &quot;His true face is rarely seen&quot;; trusted advisor/guide before reveal.</li>
+<li>npcs[4].notes: Pell witnessed &quot;something&quot; at the trunk-spire, never specified.</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The text does not say whose face Corwin borrows, whether he is the lost partner or impersonates them, how the disguise works or can be disproved, or what Pell saw. These are not merely incidental details: they determine the betrayal evidence and the final approach&#x27;s warning. There is a coherent possible interpretation, but no single authored one yet.</dd>
+<dt>Recommendation</dt>
+<dd>Name the fixed relationship/borrowed identity and limits or telltales of disguise; specify what Maren knows versus assumes and one concrete discoverable clue. Define Pell&#x27;s witnessed fact with its limits. Do not imply Pell knows everything or Maren&#x27;s grief proves the accusation.</dd>
+<dt>Mitigation</dt>
+<dd>Corwin is already the named villain with a clear ideological motive; this is not a request for a new culprit. The Hollow Ones&#x27; no-direct-dialogue rule also provides a useful boundary to preserve.</dd>
+<dt>Confidence</dt>
+<dd>High that particulars are absent; medium severity because a GM could supply consistent answers, but they would be improvisations.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>The premise&#x27;s unopened blossom and first arc&#x27;s bloomed seed may describe awakening versus full bloom; clarify within the requirements, not as a separate alleged contradiction. No demand for a hard mechanical magic system.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>The encroaching dark offers excellent visible pressure; its resource and escalation rules currently leave too much arbitrary consequence.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Make light loss a foreseeable consequence with defined limits.</dd>
+<dt>Kind</dt>
+<dd>risk/resource adjudication gap</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Basis</dt>
+<dd>1.3 primary predeclare position/effect; 3.3 and 3.5 primary threat progress reflects fiction; 7.4 primary telegraph.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[1]: fires, lanterns and seed &quot;can visibly gutter, brighten, or fail in response to events&quot;; GM tracks/narrates.</li>
+<li>premise: every darkened league makes crossing harder; last living seed is sole restoration hope.</li>
+<li>acts[0].turningPoint: spire goes dark while party is inside.</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>Light is called a resource but no baseline distinction explains ordinary fuel versus star-light versus the unique seed, what spends each, how warning/replenishment works, or when failure becomes irreversible. The GM can make the vital seed fail or a crossing collapse as a dramatic beat with no player-understandable cause.</dd>
+<dt>Recommendation</dt>
+<dd>Define a few fictional triggers, warning stages and available conservation/renewal methods. State time/resource risks before commitment and honor prior mitigation. Distinguish a guttering seed from destruction; specify an honest failure/evacuation ending if restoration really becomes impossible. Do not use a hidden turn count.</dd>
+<dt>Mitigation</dt>
+<dd>Light visibly guttering is already a natural warning channel, and the campaign&#x27;s whole premise establishes worsening danger. Preserve that pressure; make its action consequences legible rather than guaranteeing the seed survives.</dd>
+<dt>Confidence</dt>
+<dd>High for absent rules and potentially terminal consequence; no live unfair-loss event observed.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No need to import Blades stress or clock boxes. Qualitative named stages and tracked actual supplies may suffice. This is not a one-hour pacing review.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>Strong antagonistic impulse and human grief, but several scripted events declare player trust, failure or interpretation.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Prepare the betrayal and attacks without requiring trust or dismissing successful precautions.</dd>
+<dt>Kind</dt>
+<dd>player-agency/contingent-outcome issue</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>1.3 primary play to find out; 2.1 primary honesty; 3.4 and 6.3 primary build on answers/player decisions.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].turningPoint: &quot;familiar, trusted face&quot; and betrayal forces every alliance to be tested.</li>
+<li>acts[1].arcs[3].objective: track trail &quot;before realizing&quot; it leads to someone party trusts.</li>
+<li>npcs[3].notes: Corwin moves as a trusted advisor/guide.</li>
+<li>acts[0].turningPoint and arcs[2].objective require Larkenfall to fail with party inside and an escape from its dying spire.</li>
+<li>npcs[1].notes: captured Hollow One secret &quot;surfaces as a crisis if the party ever needs Aldenmere&#x27;s help directly&quot;.</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>An NPC may try to gain trust, and light may fail, but trust is not a fact the author can assign to a suspicious party. Likewise no described cause/timing permits the party to discover, avoid or mitigate the planned spire/vault crisis; danger fires because the story reached a beat.</dd>
+<dt>Recommendation</dt>
+<dd>Seed Corwin&#x27;s appearances and attempted helpfulness while accepting distrust or early exposure. Tie Larkenfall failure and vault trouble to concrete enemy actions/conditions with warning and intervention opportunities. Let arcs resolve through earned prevention, retreat, exposure or survival, not only the scripted catastrophe.</dd>
+<dt>Mitigation</dt>
+<dd>The authored spine is intentionally directed and threats should act without waiting for permission. This does not require every disaster to be preventable, only that actual precautions and established facts matter and the player&#x27;s feelings are not prescribed.</dd>
+<dt>Confidence</dt>
+<dd>High for guaranteed wording; medium severity as a craft/agency concern rather than a contradictory fact.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>Maren temporarily withholding recognition through grief is plausible characterization, not automatically a defect. Keep it bounded and make independent evidence possible instead of forcing her confession or dictating the player&#x27;s sympathy.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>A clear journey spine with promising allies and competing goals, but a sole critical information route risks becoming an arbitrary access bottleneck.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Make the complete rite discoverable without a single unexplained access gate.</dd>
+<dt>Kind</dt>
+<dd>information-flow bottleneck</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2, 1.4, 1.7 primary core clues and credible alternate methods.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].arcs[1].objective: recover rite needed to root seed.</li>
+<li>locations[4]: last complete rite in deepest chamber; archive &quot;reachable only through a stair&quot; flooding/draining to an &quot;old, forgotten rhythm&quot;.</li>
+<li>npcs[0].notes: Maren has fragments not fully understood.</li>
+<li>npcs[4].notes: Pell mixes true scraps with unreliable tales.</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The only complete instructions necessary for the finale sit behind a single access route whose pattern is neither fixed nor discoverable. Partial lore is evocative but no stated method reconstructs the rite or separates a required truth from folklore if access/record/witness is lost. This can halt progress on a failed check or an invented tide delay.</dd>
+<dt>Recommendation</dt>
+<dd>Provide observable tide signs/timing and multiple credible access methods honoring established abilities. Once the party deliberately inspects the archive, deliver required ritual facts without a single pass/fail roll; risk can affect time, safety or optional detail. Give an independent partial-record/testimony route that can reconstruct essential steps, or an explicit costly alternative when the original is unavailable.</dd>
+<dt>Mitigation</dt>
+<dd>The archive is already a concrete place and lore fragments already exist, so redundancy can grow from existing material. Optional risk and discovery remain desirable; do not hand out every answer without action.</dd>
+<dt>Confidence</dt>
+<dd>High that the required information has one authored full source; no actual stall observed.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>The Hollow nesting-ground can remain dangerous without being a mandatory kill-all gate if a cleared crossing can be bypassed. Include that permissiveness in the fixed requirement definitions, rather than adding another separate scene. Long-campaign scope preserved.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>Songs, inherited stewardship and grief promise meaning beyond defeating monsters. The advertised final remaking choice needs a concrete human/political shape.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Give the final remaking choice distinct consequences the player can understand.</dd>
+<dt>Kind</dt>
+<dd>ending choice/payoff specification</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>2.7 primary visible payoffs rather than obligations; 4.5 primary/secondary becoming; 4.6 primary meaningful arc outcome.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[2].arcs[1].objective: &quot;choose how the road, and the kingdoms bound to it, will be remade&quot;.</li>
+<li>acts[2].turningPoint: road either wakes or goes dark forever.</li>
+<li>npcs[1].notes: queen wants seed in her borders for legacy.</li>
+<li>npcs[2].notes: king wants a weapon-beacon; only full relighting stops incursions permanently.</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The final objective offers a choice beyond success/failure, but the blueprint only defines full restoration as the effective solution. It does not specify what choices can remake governance, access, stewardship or local protection, what each costs, or whether the rulers&#x27; alternatives can work at all. A model could offer cosmetic options or invent world-changing powers at the climax.</dd>
+<dt>Recommendation</dt>
+<dd>Define a small set of grounded final choices: their magical feasibility, ownership/access consequences and effects on people already encountered. Let the party negotiate or propose a compatible alternative; do not require allegiance to either crown. Show one concrete outcome for those helped, and optionally invite the hero&#x27;s own final act without assigning feelings or transformation.</dd>
+<dt>Mitigation</dt>
+<dd>The monarchs already have conflicting, understandable goals, and the trunk-spire-only rule fixes whole-road restoration. Preserve these tensions; not every politically attractive proposal needs equal magical effectiveness.</dd>
+<dt>Confidence</dt>
+<dd>High that final consequences are unspecified; medium for preferred scope of ending choice, a craft recommendation.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No need for emotional XP, mandatory character growth or pastoral redesign. Maren&#x27;s grief and Pell&#x27;s road-singing can matter through the existing adventure if their actions affect actual choices. No player emotional response measured.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Fix restoration requirements, ritual facts and feasible ending choices with knowable costs and partial/failure outcomes.</li>
+<li>Define Corwin&#x27;s borrowed identity/relationship and discoverable evidence; name the actual fact Pell witnessed.</li>
+<li>Give light depletion/seed jeopardy observable causes, warnings, mitigation and honest failure closure.</li>
+<li>Make scripted trust and crises contingent on actual play while keeping antagonist initiative.</li>
+<li>Provide discoverable archive access and reliable/redundant acquisition of essential ritual knowledge.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>High-fantasy wonder, living light, a world-spanning quest and supernatural mystery are strengths; clarity need not mean numerical simulation or exhaustive lore.</li>
+<li>Gygax emphasizes consistent magical constraints; Harper/Baker emphasize informed action and contingent outcomes; Laws protects necessary information flow; Moran asks what the final choice means to people. These are documented-rubric applications, not author endorsements.</li>
+<li>Do not assign the prior Riverlight one-hour target to this campaign. No runtime behavior, playtest success, pacing or publication-readiness claim is made.</li>
+<li>No gratuitous combat-system or new reward-economy changes are recommended.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Living-light journey and gardening imagery support a strong high-fantasy story. The seed&#x27;s state and rite need enough fixed meaning for choices to matter.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Care for a living seed is a legitimate heroic action, and rooted light gives the journey a coherent recurring image.</dd>
+<dt>Basis</dt>
+<dd>§4.1–4.5 alternatives to killer-story shape (◐), §1.7 deliberate echo (◐). This assesses the supplied motif, not generated prose.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>a bridge of living starlight</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>having tended its dormant husk for thirty years</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Seed stages and the required rite are not defined</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Kind</dt>
+<dd>content causality and actionable objective</dd>
+<dt>Basis</dt>
+<dd>§3.4 power follows knowledge/need, §8.3 meaningful consequence and §9.1 consistent world (◐ secondary). Does not require a numerical magic system.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>a single unopened blossom</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[0].arcs[0].objective</dd>
+<dt>Quote</dt>
+<dd>why the seed bloomed</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].goal</dd>
+<dt>Quote</dt>
+<dd>a light to wake it, a hand to plant it</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>Perform the rite at the trunk-spire</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The recovered seed is unopened, the opening investigates why it bloomed, and Act Two gathers undefined light/hand requirements for full bloom. Awakening versus opening could resolve the apparent inconsistency, but no canonical distinction or usable rite tells the narrator what is required, what can substitute, or what changes if something is missing.</dd>
+<dt>Recommendation</dt>
+<dd>Define dormant/awake/planted states and the rite&#x27;s few essential fictional requirements, discovery routes, meaningful cost and failure/partial outcome. Specify whether any willing planter can qualify. Preserve wonder and avoid a long mechanics manual.</dd>
+<dt>Mitigation</dt>
+<dd>The Sunken Archive holds a complete rite, so there is already a natural place for the needed lore. High fantasy can leave ultimate metaphysics mysterious while fixing the actions the climax depends on.</dd>
+<dt>Confidence</dt>
+<dd>High about omitted requirements and mixed state wording; no runtime failure observed.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No generated corpus/audio reviewed; no claims about actual lyricism, pace or exposition. No one-hour constraint.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Wonder and dread are present in the setting itself. Central promises need authored payoff so the final revelation is more than an improvised new premise.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The failing light-road, memory-like water and silent intruders give the supernatural an active dramatic function.</dd>
+<dt>Basis</dt>
+<dd>§1.1/§5.1 supernatural distinction (●); §9.1 wonder and fear (●/◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>step through into the world</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[4].description</dd>
+<dt>Quote</dt>
+<dd>The water here glows faintly, as if remembering light it no longer has.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The starving force and Pell&#x27;s witnessed truth are still blank reveal slots</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Kind</dt>
+<dd>content causal spine and promised payoff</dd>
+<dt>Basis</dt>
+<dd>§9.3 confirmation rather than arbitrary revelation (◐); §9.5 fiction must convince (●/◐); §10.1 a story resolves something (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>something old and starving is already unmaking the road</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>making a bargain with what he found on the other side of the dark</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>having witnessed something there they&#x27;ve never told anyone</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The premise promises an active force destroying the road, Corwin&#x27;s belief depends on its offer, and Pell has witnessed a climactic fact; none is specified. The GM must invent the central relationship among destruction, bargain and planting, and may make Pell&#x27;s disclosure whatever the latest scene needs.</dd>
+<dt>Recommendation</dt>
+<dd>Fix the private causal truth: what is actually unmaking the road, what Corwin was offered or believes he was offered, and the concrete observation Pell can report. Let characters retain uncertainty. Ensure essential planting knowledge also exists if Pell does not guide the party.</dd>
+<dt>Mitigation</dt>
+<dd>Mystery and understatement should remain; there is no need for a full cosmology, speaking Hollow Ones, a new named villain or a forced Pell confession. The relevant truth can be a brief, bounded observation rather than an explanation of everything.</dd>
+<dt>Confidence</dt>
+<dd>High that these promises lack specified content; medium priority because a flexible GM can improvise, but that flexibility currently reaches the ending&#x27;s premise.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No objection to a large high-fantasy scope or chosen tone. Static configuration cannot certify the experienced fear/wonder balance.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Kingdoms have useful contrasting ambitions, but the advertised power to remake the road has no concrete alternatives or consequences yet.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Two rulers want genuinely different uses of the last seed, providing an existing basis for political choice.</dd>
+<dt>Basis</dt>
+<dd>§9.4 agency through contrasting orientations (WE ●); §3.5 resource allocation (GR ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>wants the seed planted within her own borders</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[2].notes</dd>
+<dt>Quote</dt>
+<dd>used as a weapon-beacon to burn out Hollow Ones</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The final choice to remake the kingdoms is unspecified</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Kind</dt>
+<dd>content agency and consequential ending</dd>
+<dt>Basis</dt>
+<dd>§9.1 restoration is not the only possible ending (WE ●), §9.3 choices alter outcome (WE ●), §3.5 resource allocation (GR ●). This does not forbid restoring a beloved road.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>choose how the road, and the kingdoms bound to it, will be remade</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].turningPoint</dd>
+<dt>Quote</dt>
+<dd>the road either wakes or goes dark for good</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>the only place the last seed can be planted to relight the whole road</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The objective promises consequential authorship, while the fixed setting supplies only plant-at-heart success versus permanent darkness. No alternatives explain who tends/controls restored light, which communities benefit or pay, or what partial protection, refusal and failed planting mean. The player can be asked a moral choice whose consequences the narrator invents after selection.</dd>
+<dt>Recommendation</dt>
+<dd>Define a small set of causally distinct outcomes with costs, stewardship/consent and effects on ordinary communities, discoverable before commitment. Allow supported alternatives rather than binding to a menu. Include honest failure/refusal closure; successful restoration can remain the desired heroic result.</dd>
+<dt>Mitigation</dt>
+<dd>Monarchs&#x27; local planting/weapon desires already provide possible pressures, but they need not become equally valid magical solutions. Preserve the story&#x27;s restoration ambition; do not require revolution or moral ambiguity for its own sake.</dd>
+<dt>Confidence</dt>
+<dd>High about promised undefined choice; no claim that the author must prefer systemic change to restoration.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>A lore explanation is not evidence of player understanding. No demand for didactic political speeches; short concrete consequences should carry the difference.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>Corwin has a self-justifying belief, but the betrayal relies on unresolved identity and prescribed player trust. Fix those facts before judging its emotional effect.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Corwin&#x27;s error is motivated by a belief about what the other side offers; he is intended as a sorrowful enemy rather than cruelty without reason.</dd>
+<dt>Basis</dt>
+<dd>§5.4 and §6.1–6.3 understandable motives need not excuse harm (B:Fantasy-Hive ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>mortals fear the Hollow Ones only because they don&#x27;t understand what they offer</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>still believes he is right</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Borrowed face, lost partner and trusted identity are not reconciled</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Kind</dt>
+<dd>content identity/knowledge and earned betrayal</dd>
+<dt>Basis</dt>
+<dd>§5.1 situation-appropriate speech, §8.1 honesty (A:Advice ●), §5.6 characters and situations cause each other (B:Dark Matter Zine ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>a partner-warden, lost to a Hollow One decades ago</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>recognizes the betrayer&#x27;s borrowed face immediately</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>a star-warden&#x27;s descendant and old friend to Maren Duskwillow</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>His true face is rarely seen</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[3].objective</dd>
+<dt>Quote</dt>
+<dd>someone the party already trusts</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>It is unclear whether Corwin is the lost partner, wears that person&#x27;s face, or is a separate old friend using another identity. Maren&#x27;s recognition and grief cannot be consistently acted without that fact. The reveal also prescribes the party&#x27;s trust even if it recognized danger, refused his guidance or exposed him early.</dd>
+<dt>Recommendation</dt>
+<dd>Fix Corwin&#x27;s true identity, any disguise/borrowed face, Maren&#x27;s precise knowledge and how the guide actually appears. Offer observable behavior that can earn trust; let suspicion or early exposure change later tactics instead of enforcing betrayal on a player who never trusted him. Maren&#x27;s silence may be motivated but should not override direct questioning indefinitely.</dd>
+<dt>Mitigation</dt>
+<dd>A grief-frozen recognition can be powerful, and Corwin may plausibly deceive. This asks for a consistent private truth and earned relationship, not the removal of disguise or betrayal. No need for another mastermind.</dd>
+<dt>Confidence</dt>
+<dd>High about undefined identity relation and imposed trust wording; actual player response untested.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>Do not darken the hopeful high-fantasy ending merely to fit this lens&#x27;s taste. Runtime dialogue, grief and betrayal impact are ungraded.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Define seed states and a concise actionable rite with alternatives/costs and meaningful failure.</li>
+<li>Specify the true Corwin/Maren/borrowed-face relationship, then allow actual player trust or suspicion to govern the reveal.</li>
+<li>Give the final remaking choice concrete, foreshadowed consequences and honest ending conditions.</li>
+<li>Fill the central starving-force/Pell-observation promises with bounded private truth, preserving supernatural mystery.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>High-fantasy restoration and hopeful heroic success remain legitimate aims. Jemisin&#x27;s restoration critique and Abercrombie&#x27;s dark-ending taste are questions, not commands to invert this campaign.</li>
+<li>No one-hour target, mandatory extra combat, full magic system or expanded cosmology is requested.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>Conditional audio fit: the single seed and visible road give a strong central task. No unique mandatory edit from this lens beyond the shared need for legible light/ritual state. Test re-entry rather than assuming complex names or a long quest defeat listeners.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite persona, not a listener or playtest. R1 includes secondary recap sources; R5 driving suitability and R10 voice inventory are inferred and unused. No total-duration constraint.</dd>
+<dt>Dissent</dt>
+<dd>Keep the lyrical high-fantasy scope. Rosa needs a concise actionable recap, not replacement of the campaign with a short taster.</dd>
+<dt>Verification question</dt>
+<dd>After a pause, can the listener name who holds the seed, its known condition, the next reachable waypoint and a useful next action?</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R1; R2; R6</dd>
+<dt>Source grade</dt>
+<dd>R1 mixed primary/secondary; R2 and R6 primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>a single unopened blossom that can relight the Course if carried to the great trunk-spire at its heart</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>the GM should track and narrate this throughout</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>Strong potential for a coherent, hopeful quest with political pushback. Fix the author-side truth and make trust or revelations consequences of play, not required player feelings.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Fix Corwin’s identity and Pell’s observation as stable private facts</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Kind</dt>
+<dd>fixed-truth</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>she recognizes the betrayer&#x27;s borrowed face immediately</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>a star-warden&#x27;s descendant and old friend to Maren Duskwillow, who survived a Hollow One encounter decades ago</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>having witnessed something there they&#x27;ve never told anyone</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>Maren’s lost partner and a borrowed face suggest impersonation, while Corwin’s dossier describes a survivor with his own motives; the relationship is not fixed. Pell’s withheld trunk-spire observation is also unspecified. These can be mysteries to the player, but the GM needs one stable account to avoid changing the revelation to fit suspicions.</dd>
+<dt>Recommendation</dt>
+<dd>State whether Corwin is himself, a disguised survivor or an impersonator; name the relation to Maren’s lost partner and what she can actually know. Define exactly what Pell witnessed, what it supports and what remains uncertain. Give discoverable evidence that can expose the facts without mandatory testimony or a particular reveal timing.</dd>
+<dt>Mitigation</dt>
+<dd>Corwin’s motive, history and guidance of the Hollow Ones are already concrete. Preserve them if intended; no extra mastermind or mythology is needed.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in source omission or directive; generated behavior not observed.</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Do not require the player to trust the future enemy or wait for the appointed reveal</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Kind</dt>
+<dd>agency-and-evidence</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I4; I9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>a familiar, trusted face</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].objective</dd>
+<dt>Quote</dt>
+<dd>before realizing the trail leads to someone the party already trusts</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>he moves through the story as a trusted advisor or guide figure before the revelation in Act Two</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The blueprint prescribes trust and then its betrayal. A suspicious player, an early identification, refusal of Corwin’s help or his death leaves the stated transition with no honest basis. Moral pushback is welcome; inventing player trust or undoing early success is not necessary for it.</dd>
+<dt>Recommendation</dt>
+<dd>Introduce Corwin under a fixed identity and an offer the party can accept or refuse. Let investigation establish his actions when evidence supports them, including early exposure; describe betrayal only if actual trust existed. Keep his plans bounded by knowledge, access and survival, and permit other leads to carry the journey if he is absent.</dd>
+<dt>Mitigation</dt>
+<dd>The watcher trail already provides an investigation structure and the two monarchs have persuadable motives. Those support suspicion and choice without a scripted emotional response.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in source omission or directive; generated behavior not observed.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite source review; no real solo-player or model run. I1/I5 address stable logic and continuity, not a demand to reveal all mysteries immediately.</dd>
+<dt>Dissent</dt>
+<dd>Retain Corwin’s sincere dangerous beliefs and the rulers’ competing aims. A coherent world can still refuse the player.</dd>
+<dt>Verification question</dt>
+<dd>If the player distrusts Corwin at their first meeting or exposes him before Act Two, does the same underlying history remain true and can the quest continue?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>Partial genre fit. Resource stewardship can be meaningful here, but the only resource rule currently authorizes change without enough terms to plan around it.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Define what changes light and seed condition before making them scarce resources</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Kind</dt>
+<dd>resource-and-custody</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B9; B8</dd>
+<dt>Source grade</dt>
+<dd>primary; applying possession permanence and known-cost principles to magical light is review reasoning</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>Light is a resource, not scenery</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>fires, lanterns, and the seed itself can visibly gutter, brighten, or fail in response to events</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>the last living lantern-seed</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The text declares a managed resource but specifies no consumption/restoration triggers, seed failure conditions, or distinction between ordinary fuel and the unique quest object. The GM can change the last seed’s viability or punish a long discussion without an intelligible causal cost, making careful planning impossible.</dd>
+<dt>Recommendation</dt>
+<dd>Define a few fiction-level triggers: what consumes ordinary fuel, what strains or restores the seed, and whether any loss is permanent. Announce observable danger and action costs before commitment; track the actual custodian and earned restoration. If the seed is lost or destroyed, honor that outcome with a viable search/recovery only when established, or an honest failure ending. Do not invent a replacement last seed or add a second bookkeeping economy.</dd>
+<dt>Mitigation</dt>
+<dd>The rule already asks for visible narration, and the premise supplies a deteriorating road as an external constraint. Build on those rather than adding a detailed meter or shop system.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in source omission or directive; generated behavior not observed.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite; most inventory evidence concerns visual games. No actual resource mutation, save loss or surprise depletion observed.</dd>
+<dt>Dissent</dt>
+<dd>Do not add loot, shops or currency loops solely for Bert. A clearly bounded seed/light contract is enough for this review.</dd>
+<dt>Verification question</dt>
+<dd>Can the player predict the consequence of a proposed long crossing or use of seed light from facts already learned, and is the seed still held where they left it?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Heroic peril is a deliberate contrast with cozy recovery, so this is a conditional/poor fit rather than a reason to soften the world. One source-level pressure issue does matter beyond taste: accepting court help automatically creates a crisis.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Make the captured Hollow One’s crisis depend on its actual containment</dd>
+<dt>Severity</dt>
+<dd>P2</dd>
+<dt>Kind</dt>
+<dd>agency-and-causality</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary; participation and consequences rooted in the world support this inference</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>a captured, dormant Hollow One in a sealed vault for study, which surfaces as a crisis if the party ever needs Aldenmere&#x27;s help directly</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>Needing the queen’s help is the sole written crisis trigger. It offers no failing seal, dangerous study or enemy intervention that causes the problem, so a negotiated alliance can become an automatic penalty for requesting help, regardless of precautions. The concern is arbitrary escalation, not the presence of a monster.</dd>
+<dt>Recommendation</dt>
+<dd>Give the vault a concrete instability or planned act that can be discovered, prevented or allowed to happen. The queen may demand help or conceal a danger for an established motive, but requesting aid should not itself force a breach. Honor good containment and refusal, and keep the queen’s political conditions distinct from that physical hazard.</dd>
+<dt>Mitigation</dt>
+<dd>The vault is a specific location and the queen’s pragmatic wish to protect her crown already supplies a motive. A short causal trigger and honest alternative are enough.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in source omission or directive; generated behavior not observed.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite, not a cozy or phone playtest. N1/Trust explain genre mismatch but do not establish that every suspense beat is bad. No twenty-minute or one-hour completion demand.</dd>
+<dt>Dissent</dt>
+<dd>Keep real danger and the campaign’s ambitious journey. Nan can choose another adventure; the shared improvement is meaningful local action rather than guaranteed comfort.</dd>
+<dt>Verification question</dt>
+<dd>If the party discovers and secures the queen’s vault before asking for aid, does that achievement hold, and can one local decision finish meaningfully before a pause?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>A strong ending premise: the road can genuinely be renewed. The authored rite, choice consequences and unsuccessful exits are too undefined to judge whether that outcome is earned.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Specify the rite’s inputs, fallback access and the meaning of the final choice</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Kind</dt>
+<dd>completion-and-payoff</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].goal</dd>
+<dt>Quote</dt>
+<dd>a light to wake it, a hand to plant it, and a road cleared to carry it</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>locations[4].description</dd>
+<dt>Quote</dt>
+<dd>the last complete rite for waking a lantern-seed</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>choose how the road, and the kingdoms bound to it, will be remade</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The three requirements are metaphors without defined sources or eligibility; the only complete rite is a single archive record, and the final power to remake kingdoms has no specified limits or outcome alternatives. A GM must invent both the conditions for success and what choice the player was supposedly making. Losing a clue, refusing a monarch or reaching the trunk with partial knowledge has no stated disposition.</dd>
+<dt>Recommendation</dt>
+<dd>Define the light source, who may willingly plant, the actual rite steps and observable completion/failure criteria. Essential information should survive one failed search or be recoverable from established inscriptions/testimony; keep archive exploration meaningful. State a small number of achievable final choices and their costs, who consents to political commitments, and what facts determine results. End on actual fates and allow one optional player final contribution; let refusal, withdrawal or a failed seed conclude honestly without forced sequel or fabricated success.</dd>
+<dt>Mitigation</dt>
+<dd>The trunk is already the sole whole-road planting site and the Hollow Ones’ communication limits are fixed. Those constraints support a precise rite and avoid treating every wish as possible.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in source omission or directive; generated behavior not observed.</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Let known precautions or alternate approaches matter at the first spire</dd>
+<dt>Severity</dt>
+<dd>P2</dd>
+<dt>Kind</dt>
+<dd>choice-and-progression</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G6; G7; G1</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>The waypoint spire at Larkenfall goes dark while the party is inside it</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].arcs[2].objective</dd>
+<dt>Quote</dt>
+<dd>escape Larkenfall as its spire dies</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The transition guarantees both party location and collapse. A party scouting outside, evacuating early, stabilizing the light by an established ability or bypassing entry cannot satisfy that exact set piece without the GM reversing a legitimate precaution. There is no stated reason that the spire must fail despite all possible intervention.</dd>
+<dt>Recommendation</dt>
+<dd>Make deterioration and the enemy approach observable, with consequences based on timing and what the party can actually do. If collapse truly cannot be stopped, establish that limit before their commitment; do not force entry to demonstrate the threat. Resolve through survival, avoidance, protection or a witnessed/reported loss, preserving earned information and casualties.</dd>
+<dt>Mitigation</dt>
+<dd>The road is already failing and rope bridges are frayed, so peril is well telegraphed in broad terms. Keep that threat; align the turning point with actual approach rather than abolishing the encounter.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in source omission or directive; generated behavior not observed.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite source review, not a played ending or an engine verification. No claim that mementos, state or UI are missing. The issue is absent authored terms for meaningful decisions.</dd>
+<dt>Dissent</dt>
+<dd>A high-fantasy restoration can be triumphant; do not import Iron Meridian’s mandatory losses. Costs and consent should be understood, not maximized.</dd>
+<dt>Verification question</dt>
+<dd>Can a party that refuses both monarchs and loses access to one lore source still make an informed, supported choice—or reach an honest incomplete/failure ending—without the GM inventing a rite or allegiance?</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Fix private truth for Corwin/Maren and Pell, then let actual discoveries and trust govern revelation.</li>
+<li>Define seed/light costs and custody, rite requirements, consent and attainable final choices without adding a complex economy.</li>
+<li>Support refusal and unavailable sources with earned alternatives or honest incomplete/failure endings.</li>
+<li>Give the spire threat and queen-vault crisis causal triggers that can honor actual precautions.</li>
+<li>Verify these behaviors in real play after editing; paper review proves neither pacing nor player comprehension.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan’s cozy preference and Bert’s accumulation preference are not requirements to change this heroic fantasy into a cozy hub or loot loop.</li>
+<li>Ines wants coherent opposition and genuine surprise, while Rosa needs understandable re-entry; do not remove lore and factions merely to shorten listening.</li>
+<li>Gerry accepts a triumphant restoration; no need to import compulsory bitterness or losses from Iron Meridian.</li>
+</ul>
+</dd>
+</dl>
+</details>
+</section>
+<section id="round-1">
+<h2>Revision and review 1</h2>
+<p>Round 1 v0.02: fixed world facts and contingent paths, specified rite and endings, explicit light limits and alternatives. One writing lens requested an explicit upkeep advantage for the smaller refuge; other lenses found the implied distinction sufficient.</p>
+<p>
+<a href="iterations/round-1.blueprint">Exact snapshot</a> · <a href="iterations/round-1-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>80a4fd75ca734af9f1bd874464375613caaa0397ff37458e1df7e006db556374</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>Baseline world-rule and reveal gaps are resolved on the page. No new material finding in this full reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Restoration requirements now specify actual fictional conditions rather than undefined poetic gates.</dd>
+<dt>Basis</dt>
+<dd>5.3 primary uniformity; 7.2 secondary B:29 game logic.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[1]: dormant husk, carried closed bud, rooted open lantern stages.</li>
+<li>rules[2]: living bud, steady living lantern/cutting, willing knowledgeable planter; bowl, light, words and roots; interruption permits retry if seed survives.</li>
+<li>acts[1].arcs[2].dnaHint: passage, not extermination, is the requirement.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Central identities and observation are fixed with knowledge limits.</dd>
+<dt>Basis</dt>
+<dd>5.3 primary; 7.2 secondary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[0].notes: Edris dead partner; Corwin former colleague; resemblance is not proof.</li>
+<li>npcs[3].notes: clasp projects only Edris face/voice, no memories or new bodies; cover/break ends glamour.</li>
+<li>npcs[4].notes: Pell saw a cut root preserve a local canopy while outward span darkened; archive repeats observation.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The starving force no longer requires a last-minute hidden master.</dd>
+<dt>Basis</dt>
+<dd>7.2 secondary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>locations[5]: Hollow feeding plus Corwin sabotage accelerates loss after neglected maintenance; no hidden master.</li>
+<li>rules[0]: no binding bargain; Corwin interpreted silent visions.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No runtime consistency test. Living cuttings can sustain local light while the last seed uniquely renews the root network; no contradiction established by their coexistence. Preserve high-fantasy explanation rather than requiring a biological treatise.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Light pressure is now foreseeable and bounded. No further material risk/adjudication finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ordinary fuel, living light, seed exposure and destruction have distinct rules.</dd>
+<dt>Basis</dt>
+<dd>1.3, 3.3, 3.5, 7.4 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[0]: flame illuminates without repelling; joined canopies repel; sensing limited to sight/open connected reach.</li>
+<li>rules[1]: no seed decay by turn count, visible direct-contact drain, break contact/shelter recovery, physical destruction after established danger/opportunity.</li>
+<li>rules[1]: actual lamp fuel, announced travel/hazard costs, reserves honored.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Crises now offer warning and causal intervention.</dd>
+<dt>Basis</dt>
+<dd>7.4 and 2.2 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>locations[1]: fraying bonds, tremors, repairable crossing, maintenance stair.</li>
+<li>npcs[1].notes: sick vault cuttings reveal a real failure condition; replacement prevents breach.</li>
+<li>rules[4]: repairs, avoidance and early exposure change events.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No claim that a model will apply qualitative light states or fuel consistently in play. The exact urgency can remain situational if announced; no imported numerical clock is required.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>Prepared attacks and attempted trust-building are now separated from player reactions. No new material finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Corwin can seek trust without the narrator assigning it.</dd>
+<dt>Basis</dt>
+<dd>1.3, 2.1, 3.4, 6.3 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].turningPoint: betrayal only if trust existed; early exposure/capture/death changes approach.</li>
+<li>acts[1].arcs[3].dnaHint: useful advice, refusal/suspicion from outset, no appointed reveal.</li>
+<li>npcs[3].notes: possible surrender/reconsideration/hostility follows play.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Set-piece threats are real events with alternatives rather than guaranteed catastrophes.</dd>
+<dt>Basis</dt>
+<dd>1.3 and 2.1 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[0].turningPoint: protect bonds, retreat, bypass or witness loss outside; no forced entry/collapse.</li>
+<li>npcs[1].notes: vault breach follows loss of living ring, not asking for aid.</li>
+<li>acts[2].arcs[0].dnaHint: Corwin only interferes if free/alive/able, seed custody follows events.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Recognition and grief no longer reserve the truth for a scripted confession.</dd>
+<dt>Basis</dt>
+<dd>3.2 primary make people human; 2.1 primary honesty.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[0].notes: direct questions answered; grief neither proves guilt nor prevents evidence.</li>
+<li>acts[1].arcs[3].dnaHint: knots/repair kit and road-worker sightings supply independent investigation.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Actual narration could still overplay Corwin or Maren; no such behavior observed here. Fixed pre-play sabotage and a quest spine remain legitimate authored prep, not reasons to remove antagonist initiative.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>The critical information bottleneck is resolved with inspectable access and independent reconstruction. No further material editorial finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Archive access is observable and supports alternate methods.</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2, 1.4, 1.7 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>locations[4]: dawn/dusk sluice, marks/gauge, stated return window, diving/magic/sluice repair.</li>
+<li>locations[4]: once inspected, essential instructions readable without failed-search withholding.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Losing a witness or access route does not remove essential knowledge.</dd>
+<dt>Basis</dt>
+<dd>1.7 primary alternate methods.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].arcs[1].objective/dnaHint: archive OR garden copy plus matching trunk inscriptions.</li>
+<li>locations[5]: labeled joined/severed root diagrams preserve missing rite half.</li>
+<li>npcs[4].notes: Pell observation repeated in archive; declining him does not erase clue.</li>
+<li>acts[0].arcs[0].dnaHint: Maren records/road markings remain if she cannot help.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Skipped routes preserve honest knowledge and consequences.</dd>
+<dt>Basis</dt>
+<dd>7.2 primary unused prep.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[4]: close bypassed/declined parallel leads without inventing information or aid.</li>
+<li>acts[2].arcs[0]: protect retreat if restoration impossible.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Static alternatives are not proof of actual engine arc closure or model clue delivery. Lost-seed/refused-crown/archive-bypass routes deserve later play checks. No one-hour or other duration target applies.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>The final choice now has a visible human/world consequence without prescribing allegiance or feeling. No new material finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The root arrangement and political aftermath are distinct choices with stated limits.</dd>
+<dt>Basis</dt>
+<dd>2.7 primary payoff not obligation; 4.5 primary/secondary becoming; 4.6 primary meaningful arc close.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[2].arcs[1].dnaHint and rules[3]: joined surviving network versus severed local refuge; elsewhere only garden light; consequences before irreversible cut.</li>
+<li>rules[3]: stewardship/tolls follow actual agreements and power, not magical decree.</li>
+<li>acts[2].arcs[1].dnaHint: concrete effects on helped people and optional final player act.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Refusal and ordinary people&#x27;s agency remain live.</dd>
+<dt>Basis</dt>
+<dd>2.7 and 7.3 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>premise and acts[0].goal: carrying seed chosen.</li>
+<li>rules[2]: any willing planter, no bloodline/royal permission/sacrifice or imposed oath.</li>
+<li>npcs[2].notes: growers/quarry families, no automatic consent to king&#x27;s terms.</li>
+<li>rules[4]: lost seed permits rescue/refuge/withdrawal without promising every kingdom survives.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Whether joined-road and refuge options feel tempting depends on actual damage, risk and relationships established in play; no claim of equal appeal is needed. The local-refuge option is a legitimate costly alternative, not a demand that players choose it. No emotion-XP or mandatory growth import.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>No further material blueprint edit requested by these five lenses in this first edited snapshot. Later mandated passes should seek regressions rather than invent new requirements.</li>
+<li>High-fantasy wonder and meaningful danger remain; clarity does not require numerical light accounting, compulsory combat or a perfectly balanced ending menu.</li>
+<li>These are documented craft-lens applications, not statements by the named authors.</li>
+<li>Actual model clue handling, lost-seed ending/arc closure and emotional effect remain untested. Root import checks, if performed, are technical preservation evidence only.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Seed states and the essential rite are now coherent, bounded and compatible with wonder. Prior finding closed.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Awakening is distinct from opening, and the rite specifies action, knowledge and willing hands without bloodline/sacrifice gating.</dd>
+<dt>Basis</dt>
+<dd>§3.4 knowledge and need, §8.3 consequence and §9.1 consistency (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>awake closed bud (carried)</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>any willing planter who knows the words and root arrangement.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Bloodline, royal permission and sacrifice are unnecessary.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Interruption permits another attempt if the bud survives, and consent remains actual rather than a magically assigned bond.</dd>
+<dt>Basis</dt>
+<dd>§4.6 story versus imposed plot (●); §4.1–4.5 care as story (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>allows another attempt if it survives.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[0].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Do not assign the party a bond, oath or feeling.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>This is private-canon review, not a corpus judgment of rhythm, exposition or experienced delight. No runtime claims.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Starving cause and Pell&#x27;s observation now have concrete payoff. No new content finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The hunger is the feeders&#x27; actual behavior accelerated by sabotage, not an unspecified extra antagonist introduced at the climax.</dd>
+<dt>Basis</dt>
+<dd>§9.3 confirmation architecture (◐); §9.5 convincing fiction (●/◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>This feeding, aided by Corwin&#x27;s sabotage, is the starving force</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>no hidden master replaces it.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Pell witnessed a severed root concentrate light while a span died; an archive account preserves the clue without forcing his guidance.</dd>
+<dt>Basis</dt>
+<dd>§9.3 seeded confirmation (◐); §10.1 story payoff (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>a severed root send its light into a little surviving canopy</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>refusing their company does not erase the clue.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The brief causal truth need not expand into cosmology. Silence and strange visions retain mystery. Actual fear/wonder performance remains unobserved.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Specific outcomes and social stewardship now exist. One remaining clarity issue concerns why severed refuge is a meaningful alternative to full joining.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ending now separates network restoration, local refuge and off-trunk garden light; governing power follows actual agreements rather than an enchanted political decree.</dd>
+<dt>Basis</dt>
+<dd>§9.3 consequences for choices (WE ●); §3.5 resource allocation (GR ●); §9.1 restoration alternatives (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Who tends the road and who charges tolls depends on actual agreements and power</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Allow compatible alternatives and honest refusal or failure endings.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ordinary families and workers have interests distinct from crowns; help is practical and negotiated.</dd>
+<dt>Basis</dt>
+<dd>§3.5 labour/resources (GR ●); §3.4 no default oppression requirement (CORNELL ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[2].notes</dd>
+<dt>Quote</dt>
+<dd>People under his rule include growers and quarry families as well as soldiers</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Refugees and road-workers also have practical reasons to help.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The severed refuge&#x27;s compensating advantage remains implicit</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Kind</dt>
+<dd>ending decision clarity, not demand for equal outcomes</dd>
+<dt>Basis</dt>
+<dd>§9.3 choice should alter the plot (WE ●), §3.5 resource allocation (GR ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Joined roots relight surviving branches and close the breach</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>damaged spans still need repair and voluntary wardens</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>a lasting refuge around the trunk and closes its breach, ending the old star-road</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>Both arrangements use the same bud, living light and planter, and both close the breach. Joining also restores surviving branches, while severing destroys the road. A lasting refuge versus a network needing wardens hints at a maintenance tradeoff, but the specific benefit of concentrating the bloom is not clearly stated before an irreversible sacrifice.</dd>
+<dt>Recommendation</dt>
+<dd>If intended as a meaningful dilemma, make one compact resource/upkeep distinction explicit in rite diagrams and outcomes—for example, what sustaining a network asks of available wardens versus what the concentrated canopy can sustain. Keep the hopeful restoration option; do not artificially nerf it or make every alternative equally attractive.</dd>
+<dt>Mitigation</dt>
+<dd>A player may knowingly prefer local safety or reject the old road for political reasons, and unequal outcomes can be legitimate. Existing maintenance wording partly supports that choice. This is a request to clarify the implied advantage, not another structural rewrite.</dd>
+<dt>Confidence</dt>
+<dd>High about shared prerequisites and asymmetric stated results; medium about whether the implied maintenance difference already suffices for a table.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>Actual comprehension of the choice is untested. The lens&#x27;s restoration critique remains dissent: a successful restored road can be this campaign&#x27;s best and desired outcome.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>Corwin&#x27;s identity and grief manipulation now have a fixed truth while trust and betrayal remain earned. Prior finding closed.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Corwin is himself; Edris is Maren&#x27;s dead partner; a bounded clasp projects face and voice without memories. Maren answers direct questions.</dd>
+<dt>Basis</dt>
+<dd>§5.1 plausible speech and §8.1 honesty (A:Advice ●); §5.6 character/situation causality (B:Dark Matter Zine ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>His small mirrored clasp projects the face and voice of Edris</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>it grants no memories, new bodies or other faces</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>she will answer direct questions about the resemblance.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Suspicion and early exposure change events, and Corwin&#x27;s self-justifying interpretation remains distinct from a true bargain.</dd>
+<dt>Basis</dt>
+<dd>§6.1–6.3 motive without excuse (B:Fantasy-Hive ●); §8.1 honesty (A:Advice ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Call this betrayal only if trust actually existed.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>no Hollow One actually spoke or made a binding bargain.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No requirement to force sorrow, trust or a dark ending. Runtime dialogue and grief impact unmeasured; intentional high-fantasy hope preserved.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Clarify the already implied concentrated-refuge versus maintained-network tradeoff before the root cut, if the ending is intended to pose that dilemma.</li>
+<li>All other baseline craft findings are closed; retain current bounded magic, contingent trust and concrete alternate evidence.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Restoring the road can remain the hopeful best outcome; alternatives need not be mechanically equal.</li>
+<li>No one-hour target or demand for more combat, cosmology or gloom.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>No new required editorial fix from the audio lens. The stable bud state, observable light and source-based route information give clearer material for re-entry; actual spoken comprehension is still untested.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>The central carried object has a clear identity and state</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R1; R2; R6</dd>
+<dt>Source grade</dt>
+<dd>R1 mixed primary/secondary; R2/R6 primary; no vendor duration threshold used</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>awake closed bud (carried)</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>The bud does not lose life merely because turns pass.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite persona, not a listener or playtest. R1 includes secondary recap sources; R5 driving suitability and R10 voice inventory are inferred and unused. No total-duration constraint.</dd>
+<dt>Dissent</dt>
+<dd>Keep the lyrical high-fantasy scope. Rosa needs a concise actionable recap, not replacement of the campaign with a short taster.</dd>
+<dt>Verification question</dt>
+<dd>After a pause, can the listener name who holds the seed, its known condition, the next reachable waypoint and a useful next action?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>Baseline fixed-truth and imposed-trust issues resolved. A consistent living antagonist can be exposed early, while the world crisis persists for concrete reasons. No new mandatory source edit identified.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Corwin, Edris and Maren now have one fixed identity account</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>her partner Edris died in a Hollow One attack decades ago.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>His small mirrored clasp projects the face and voice of Edris, Maren&#x27;s dead partner; it grants no memories, new bodies or other faces</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>no Hollow One actually spoke or made a binding bargain.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Pell’s observation has concrete limits and an alternate source</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>Pell has seen a severed root send its light into a little surviving canopy while the span beyond went dark.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>Their observation is also recorded in the archive&#x27;s maintenance account</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Trust and the timing of exposure follow play</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I3; I4; I9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Call this betrayal only if trust actually existed.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Earlier discovery, his capture or death changes the final approach</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>No required trust, confession or appointed reveal turn.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite source review; no real solo-player or model run. I1/I5 address stable logic and continuity, not a demand to reveal all mysteries immediately.</dd>
+<dt>Dissent</dt>
+<dd>Retain Corwin’s sincere dangerous beliefs and the rulers’ competing aims. A coherent world can still refuse the player.</dd>
+<dt>Verification question</dt>
+<dd>If the player distrusts Corwin at their first meeting or exposes him before Act Two, does the same underlying history remain true and can the quest continue?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>Resource and seed-custody findings resolved at the authored-rule level. States, depletion, recovery and permanent destruction now have causal terms, while ordinary fuel is separate. No new required edit; execution remains unverified.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Scarcity has visible triggers, recovery and limits</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B9; B8</dd>
+<dt>Source grade</dt>
+<dd>primary; applying inventory/known-cost evidence to magical light is review reasoning</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>Direct Hollow contact drains its glow with visible chilling and closing petals</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>break contact and shelter it beside a living cutting to recover.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>Ordinary lamps need actual fuel; announce travel or hazard costs before commitment and honor reserves.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>If the seed is taken, pursue its established custodian</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite; most inventory evidence concerns visual games. No actual resource mutation, save loss or surprise depletion observed.</dd>
+<dt>Dissent</dt>
+<dd>Do not add loot, shops or currency loops solely for Bert. A clearly bounded seed/light contract is enough for this review.</dd>
+<dt>Verification question</dt>
+<dd>Can the player predict the consequence of a proposed long crossing or use of seed light from facts already learned, and is the seed still held where they left it?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Queen-vault escalation is now causal and preventable; local help can matter. The campaign remains high fantasy with danger and is still a conditional cozy fit. No new mandatory edit from this lens.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>A request for aid no longer automatically causes a monster crisis</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>Two cuttings have sickened; gardeners can show the symptoms and offer healthy replacements.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>A breach follows actual loss of the ring, not asking her for aid.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>prevention works and political demands remain negotiable.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite, not a cozy or phone playtest. N1/Trust explain genre mismatch but do not establish that every suspense beat is bad. No twenty-minute or one-hour completion demand.</dd>
+<dt>Dissent</dt>
+<dd>Keep real danger and the campaign’s ambitious journey. Nan can choose another adventure; the shared improvement is meaningful local action rather than guaranteed comfort.</dd>
+<dt>Verification question</dt>
+<dd>If the party discovers and secures the queen’s vault before asking for aid, does that achievement hold, and can one local decision finish meaningfully before a pause?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>The rite now has learnable inputs, repeatable interrupted attempts, explicit geographic limits and meaningful ending consequences. Spire precautions are respected. No further mandatory editorial fix identified; actual closure and comprehension remain to be observed.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Rite terms and consent are explicit</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>any willing planter who knows the words and root arrangement.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Bloodline, royal permission and sacrifice are unnecessary.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Interrupted light or speech leaves the bud unrooted and allows another attempt if it survives.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Maren&#x27;s copy plus the trunk inscriptions supplies the same essential instructions if the archive is inaccessible.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Final restoration, refuge and local planting have honest distinct effects</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3; G6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Cutting outward roots before planting yields a durable local refuge canopy and seals the breach but sacrifices the connecting road.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Outside the trunk, the seed can grow only a small local light; it cannot close the breach.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Who tends the road and who charges tolls depends on actual agreements and power, not a magical decree.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>invite, but never require, one final player act.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>First-spire danger permits a meaningful approach choice</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G6; G7; G1</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Protecting the bonds can preserve a crossing; retreat, bypass or witnessing the loss from outside also resolve this stage.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>locations[1].description</dd>
+<dt>Quote</dt>
+<dd>travelers can observe the damage from outside without entering the tower.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite source review, not a played ending or an engine verification. No claim that mementos, state or UI are missing. The issue is absent authored terms for meaningful decisions.</dd>
+<dt>Dissent</dt>
+<dd>A high-fantasy restoration can be triumphant; do not import Iron Meridian’s mandatory losses. Costs and consent should be understood, not maximized.</dd>
+<dt>Verification question</dt>
+<dd>Can a party that refuses both monarchs and loses access to one lore source still make an informed, supported choice—or reach an honest incomplete/failure ending—without the GM inventing a rite or allegiance?</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>No further mandatory source edit identified by this player-panel pass; baseline findings have concrete mitigations and resolutions.</li>
+<li>Carry forward real-play checks: distrust/expose Corwin early; preserve Larkenfall and queen-vault containment; decline both courts and Pell; access essential rite without the archive; interrupt the rite; honor seed custody and permanent loss; obtain an honest refuge or failure ending.</li>
+<li>Verify the player can explain joined-road versus trunk-refuge versus outside-trunk local light before irreversible planting. This is a comprehension test, not an assertion that current prose already failed.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan’s cozy preference and Bert’s accumulation preference are not requirements to change this heroic fantasy into a cozy hub or loot loop.</li>
+<li>Ines wants coherent opposition and genuine surprise, while Rosa needs understandable re-entry; do not remove lore and factions merely to shorten listening.</li>
+<li>Gerry accepts a triumphant restoration; no need to import compulsory bitterness or losses from Iron Meridian.</li>
+</ul>
+</dd>
+</dl>
+</details>
+</section>
+<section id="round-2">
+<h2>Revision and review 2</h2>
+<p>Round 2 v0.03: made distributed versus concentrated tending explicit. Two lenses caught an accidental omission: the replacement wording no longer explicitly said the refuge seals the central breach. The player pass found no mandatory change; this dissent is retained.</p>
+<p>
+<a href="iterations/round-2.blueprint">Exact snapshot</a> · <a href="iterations/round-2-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>6d5a647b10233419f6c6f46dd2e76ae5ac3836c71168479bd21b3ccd63a864c0</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>Upkeep makes the choice more concrete, but the rewrite drops an explicit magical effect from the refuge branch.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Distributed network care and concentrated refuge care now have a clear practical distinction.</dd>
+<dt>Basis</dt>
+<dd>1.2 primary consequential upkeep; 7.2 secondary B:29 game logic.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[2].arcs[1].dnaHint and rules[3]: each waypoint needs willing tenders; neglected reaches dim; one community can tend the concentrated refuge.</li>
+<li>locations[5]: diagrams contrast the two care demands.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Restore or explicitly revise whether the severed refuge closes the breach.</dd>
+<dt>Kind</dt>
+<dd>ending-rule omission introduced in revision</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>5.3 primary uniformity; 7.2 secondary game logic.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>round1 acts[2].arcs[1].dnaHint: severed refuge &quot;closes its breach&quot;.</li>
+<li>round1 rules[3]: refuge &quot;seals the breach&quot;.</li>
+<li>round2 acts[2].arcs[1].dnaHint and rules[3]: joined roots explicitly close/seal central breach, but the severed-refuge clause only mentions concentrated reserve, local refuge and lost connecting road.</li>
+<li>locations[5] says planting can close the breach without distinguishing which root arrangement.</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The new care distinction is useful, but replacing both operative outcome passages removed the previous explicit guarantee that refuge planting also seals the central breach. Readers can now infer that only joined restoration closes it, or import the earlier meaning; this changes a material choice consequence unintentionally if upkeep was the only intended change.</dd>
+<dt>Recommendation</dt>
+<dd>Add a short clause to the refuge outcome confirming that it also closes the central breach, if retaining the earlier rule. If the author intentionally changes that effect, state the new consequence plainly and align all ending descriptions before the player chooses.</dd>
+<dt>Mitigation</dt>
+<dd>The act turning point still contrasts restoration with smaller refuge, and the trunk description broadly permits planting to close the breach. Neither explicitly fixes the refuge effect, although a GM may infer the old rule.</dd>
+<dt>Confidence</dt>
+<dd>High that explicit refuge breach closure was removed from both operative passages; medium that a model would misinterpret it.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>Static wording review only. No actual malformed ending observed. Magical conditions otherwise remain consistent and need no new mechanism.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Upkeep tradeoffs improve informed commitment. Supports the single breach-closure clarification; no separate finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The cost of each planting choice is disclosed before irreversible commitment.</dd>
+<dt>Basis</dt>
+<dd>1.3 and 7.4 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[3]: explain care demands/consequences from inscriptions, records or informed testimony before commitment.</li>
+<li>acts[2].arcs[1].dnaHint: explain root choice before cutting; maintenance and unsafe remote reaches named.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Light dangers and mitigation remain finite and scene-bound.</dd>
+<dt>Basis</dt>
+<dd>3.5 and 7.4 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[0..1]: sensing limits, visible contact drain, seed recovery, announced fuel/hazard costs.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Gygax finding identifies the one omitted consequence needing disclosure; do not count it twice. No actual light/resource or upkeep behavior tested.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>No additional material finding. Upkeep is a future obligation that must be agreed, not automatic loyalty.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Caretaking follows actual willing participants rather than a prescribed political victory.</dd>
+<dt>Basis</dt>
+<dd>6.3 and 2.1 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[3]: willing waypoint tenders; stewardship/tolls depend on actual agreements and power.</li>
+<li>rules[2]: volunteers agree; no imposed oath.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Earlier fixes preserve contingent attacks and player-defined trust.</dd>
+<dt>Basis</dt>
+<dd>1.3 and 2.1 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].turningPoint: betrayal only if trust existed; capture/death changes final approach.</li>
+<li>rules[4]: repair/avoidance/early exposure change crises.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Real compliance remains untested. The restored final fact should describe physical consequence without forcing the party to choose either arrangement.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>No additional information-flow finding. The care distinction is available through established sources rather than a new required errand.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>New upkeep information has a named player-accessible delivery surface.</dd>
+<dt>Basis</dt>
+<dd>1.2, 1.8 primary core information/contextual exposition.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>locations[5]: joined/severed diagrams now contrast distributed tending and one-community refuge.</li>
+<li>rules[3]: inscriptions/records/informed testimony supply precommitment care demands.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Essential ritual routes remain redundant and inspectable.</dd>
+<dt>Basis</dt>
+<dd>1.1 and 1.7 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].arcs[1]: archive or garden copy plus trunk inscriptions.</li>
+<li>locations[4]: observable sluice cycle, alternate access, essential instructions not hidden behind failed search.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Refuge breach effect is a shared clarity issue recorded once. No claim that actual players understand or complete the choice; no campaign-duration constraint introduced.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>The revised care burden gives the final choice a stronger human distinction. Restore the omitted physical effect without adding forced community obligations.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The refuge now offers a concrete advantage, limited to the community that can tend it, while the network asks wider cooperation.</dd>
+<dt>Basis</dt>
+<dd>2.7 primary visible payoffs; 4.6 primary meaningful close; 7.3 primary empathetic interests.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[2].arcs[1].dnaHint: distributed willing tenders versus one-community refuge and lost connections.</li>
+<li>rules[3]: neglected reaches dim, remote dark unsafe, agreements determine political control.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The ending still honors actual helped people and voluntary expression.</dd>
+<dt>Basis</dt>
+<dd>4.5 primary/secondary becoming; 4.6 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[2].arcs[1].dnaHint: show effects on helped people; final player act invited, not required.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No emotional-response evidence or presumption of equal popularity between choices. Care is a meaningful consequence, not a demand for a new management subsystem or compulsory epilogue quests.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Clarify the severed-refuge branch still closes the central breach, if preserving round1 intent; the upkeep edit dropped that explicit effect from both operative outcome passages.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>The new upkeep tradeoff is useful and should remain.</li>
+<li>No additional scenes, mechanics or mandatory tending quests are recommended.</li>
+<li>This is a static editorial review by documented design lenses, not runtime validation, player feedback or an endorsement from the named designers.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Seed/rite remain coherent, but the upkeep rewrite drops the refuge outcome&#x27;s explicit breach-closure consequence.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Awakening is distinct from opening, and the rite specifies action, knowledge and willing hands without bloodline/sacrifice gating.</dd>
+<dt>Basis</dt>
+<dd>§3.4 knowledge and need, §8.3 consequence and §9.1 consistency (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>awake closed bud (carried)</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>any willing planter who knows the words and root arrangement.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Bloodline, royal permission and sacrifice are unnecessary.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Interruption permits another attempt if the bud survives, and consent remains actual rather than a magically assigned bond.</dd>
+<dt>Basis</dt>
+<dd>§4.6 story versus imposed plot (●); §4.1–4.5 care as story (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>allows another attempt if it survives.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[0].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Do not assign the party a bond, oath or feeling.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Refuge planting no longer explicitly closes the central breach</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Kind</dt>
+<dd>round-two semantic propagation regression</dd>
+<dt>Basis</dt>
+<dd>§9.1 consistency of the world (◐ secondary); §8.4 consequences knowable before action (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>planting at the trunk restores surviving branches and seals the central breach.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Cutting outward roots first concentrates the reserve into a durable local refuge</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>while ending the old star-road and leaving distant dark reaches unsafe.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>Round one explicitly said severed refuge also seals the breach in both the final arc hint and outcome rule. Round two replaces both passages: only the joined-root clause now promises closure. A durable local canopy might repel feeders without closing their source, so the intended central outcome has become ambiguous exactly when the player must compare options.</dd>
+<dt>Recommendation</dt>
+<dd>If the intended consequence remains as in round one, explicitly restore central breach closure to the severed-refuge outcome in rule and final hint. If deliberately changing it, state the open-breach consequence and its implications consistently; do not let it be decided after the choice.</dd>
+<dt>Mitigation</dt>
+<dd>The trunk description still says planting here can close the breach, and the first review established both options doing so. A small wording restoration fixes this; no broader plot change needed.</dd>
+<dt>Confidence</dt>
+<dd>High about lost explicit clauses across round comparison; medium about runtime inference. This is ambiguity introduced by editing, not observed model failure.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>This is private-canon review, not a corpus judgment of rhythm, exposition or experienced delight. No runtime claims.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Starving cause and Pell&#x27;s observation now have concrete payoff. No new content finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The hunger is the feeders&#x27; actual behavior accelerated by sabotage, not an unspecified extra antagonist introduced at the climax.</dd>
+<dt>Basis</dt>
+<dd>§9.3 confirmation architecture (◐); §9.5 convincing fiction (●/◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>This feeding, aided by Corwin&#x27;s sabotage, is the starving force</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>no hidden master replaces it.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Pell witnessed a severed root concentrate light while a span died; an archive account preserves the clue without forcing his guidance.</dd>
+<dt>Basis</dt>
+<dd>§9.3 seeded confirmation (◐); §10.1 story payoff (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>a severed root send its light into a little surviving canopy</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>refusing their company does not erase the clue.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The brief causal truth need not expand into cosmology. Silence and strange visions retain mystery. Actual fear/wonder performance remains unobserved.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Explicit distributed upkeep versus one-community refuge resolves the prior choice-clarity finding. No further social-design change requested.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ending now separates network restoration, local refuge and off-trunk garden light; governing power follows actual agreements rather than an enchanted political decree.</dd>
+<dt>Basis</dt>
+<dd>§9.3 consequences for choices (WE ●); §3.5 resource allocation (GR ●); §9.1 restoration alternatives (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Who tends the road and who charges tolls depends on actual agreements and power</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Allow compatible alternatives and honest refusal or failure endings.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ordinary families and workers have interests distinct from crowns; help is practical and negotiated.</dd>
+<dt>Basis</dt>
+<dd>§3.5 labour/resources (GR ●); §3.4 no default oppression requirement (CORNELL ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[2].notes</dd>
+<dt>Quote</dt>
+<dd>People under his rule include growers and quarry families as well as soldiers</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Refugees and road-workers also have practical reasons to help.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The network requires willing tenders at each waypoint; concentrated refuge can be supported by one community. This makes the implied resource tradeoff legible before commitment.</dd>
+<dt>Basis</dt>
+<dd>§3.5 resource allocation (GR ●) and §9.3 consequences of choice (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>each waypoint needs willing tenders; neglected reaches will dim again.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>a durable local refuge tended by one small community</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>The diagrams contrast distributed waypoint tending with a concentrated refuge supported by one community.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Actual comprehension of the choice is untested. The lens&#x27;s restoration critique remains dissent: a successful restored road can be this campaign&#x27;s best and desired outcome.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>Corwin&#x27;s identity and grief manipulation now have a fixed truth while trust and betrayal remain earned. Prior finding closed.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Corwin is himself; Edris is Maren&#x27;s dead partner; a bounded clasp projects face and voice without memories. Maren answers direct questions.</dd>
+<dt>Basis</dt>
+<dd>§5.1 plausible speech and §8.1 honesty (A:Advice ●); §5.6 character/situation causality (B:Dark Matter Zine ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>His small mirrored clasp projects the face and voice of Edris</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>it grants no memories, new bodies or other faces</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>she will answer direct questions about the resemblance.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Suspicion and early exposure change events, and Corwin&#x27;s self-justifying interpretation remains distinct from a true bargain.</dd>
+<dt>Basis</dt>
+<dd>§6.1–6.3 motive without excuse (B:Fantasy-Hive ●); §8.1 honesty (A:Advice ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Call this betrayal only if trust actually existed.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>no Hollow One actually spoke or made a binding bargain.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No requirement to force sorrow, trust or a dark ending. Runtime dialogue and grief impact unmeasured; intentional high-fantasy hope preserved.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Restore or explicitly revise severed refuge&#x27;s breach-closure consequence consistently; the upkeep rewrite otherwise resolves the prior finding.</li>
+<li>No other new findings across the four lenses after full reread. Preserve hopeful restoration and contingent refusal.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Restoring the road can remain the hopeful best outcome; alternatives need not be mechanically equal.</li>
+<li>No one-hour target or demand for more combat, cosmology or gloom.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>No required editorial change identified. The final choice has clearer terms for a spoken recap, but comprehension of distributed versus local upkeep remains an actual-listening question.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>The central carried object has a clear identity and state</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R1; R2; R6</dd>
+<dt>Source grade</dt>
+<dd>R1 mixed primary/secondary; R2/R6 primary; no vendor duration threshold used</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>awake closed bud (carried)</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>The bud does not lose life merely because turns pass.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite persona, not a listener or playtest. R1 includes secondary recap sources; R5 driving suitability and R10 voice inventory are inferred and unused. No total-duration constraint.</dd>
+<dt>Dissent</dt>
+<dd>Keep the lyrical high-fantasy scope. Rosa needs a concise actionable recap, not replacement of the campaign with a short taster.</dd>
+<dt>Verification question</dt>
+<dd>After a pause, can the listener name who holds the seed, its known condition, the next reachable waypoint and a useful next action?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>No new contradiction or agency regression identified. Ongoing stewardship follows coherent world logic and willing labor; a local refuge is now a distinct strategic choice rather than merely less restoration.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Corwin, Edris and Maren now have one fixed identity account</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>her partner Edris died in a Hollow One attack decades ago.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>His small mirrored clasp projects the face and voice of Edris, Maren&#x27;s dead partner; it grants no memories, new bodies or other faces</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>no Hollow One actually spoke or made a binding bargain.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Pell’s observation has concrete limits and an alternate source</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>Pell has seen a severed root send its light into a little surviving canopy while the span beyond went dark.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>Their observation is also recorded in the archive&#x27;s maintenance account</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Trust and the timing of exposure follow play</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I3; I4; I9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Call this betrayal only if trust actually existed.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Earlier discovery, his capture or death changes the final approach</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>No required trust, confession or appointed reveal turn.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Network recovery requires sustained consent and work</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I4; I9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>each waypoint needs willing tenders; neglected reaches will dim again.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Who tends the road and who charges tolls depends on actual agreements and power, not a magical decree.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite source review; no real solo-player or model run. I1/I5 address stable logic and continuity, not a demand to reveal all mysteries immediately.</dd>
+<dt>Dissent</dt>
+<dd>Retain Corwin’s sincere dangerous beliefs and the rulers’ competing aims. A coherent world can still refuse the player.</dd>
+<dt>Verification question</dt>
+<dd>If the player distrusts Corwin at their first meeting or exposes him before Act Two, does the same underlying history remain true and can the quest continue?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>No required editorial change identified. Ending upkeep costs are stated before irreversible commitment and distinguish the two maintenance burdens; no new meter or second economy is implied.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Scarcity has visible triggers, recovery and limits</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B9; B8</dd>
+<dt>Source grade</dt>
+<dd>primary; applying inventory/known-cost evidence to magical light is review reasoning</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>Direct Hollow contact drains its glow with visible chilling and closing petals</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>break contact and shelter it beside a living cutting to recover.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>Ordinary lamps need actual fuel; announce travel or hazard costs before commitment and honor reserves.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>If the seed is taken, pursue its established custodian</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Care costs are part of the known decision terms</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B9; B8</dd>
+<dt>Source grade</dt>
+<dd>primary; upkeep application is an explicit analogy</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Explain the care demands and consequences from inscriptions, records or informed testimony before commitment.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>The diagrams contrast distributed waypoint tending with a concentrated refuge supported by one community.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite; most inventory evidence concerns visual games. No actual resource mutation, save loss or surprise depletion observed.</dd>
+<dt>Dissent</dt>
+<dd>Do not add loot, shops or currency loops solely for Bert. A clearly bounded seed/light contract is enough for this review.</dd>
+<dt>Verification question</dt>
+<dd>Can the player predict the consequence of a proposed long crossing or use of seed light from facts already learned, and is the seed still held where they left it?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>No new required edit. A small community can maintain the local refuge, but distant danger and severed connections remain honest costs. This preserves a meaningful local outcome without recasting the campaign as cozy play.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>A request for aid no longer automatically causes a monster crisis</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>Two cuttings have sickened; gardeners can show the symptoms and offer healthy replacements.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>A breach follows actual loss of the ring, not asking her for aid.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>prevention works and political demands remain negotiable.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite, not a cozy or phone playtest. N1/Trust explain genre mismatch but do not establish that every suspense beat is bad. No twenty-minute or one-hour completion demand.</dd>
+<dt>Dissent</dt>
+<dd>Keep real danger and the campaign’s ambitious journey. Nan can choose another adventure; the shared improvement is meaningful local action rather than guaranteed comfort.</dd>
+<dt>Verification question</dt>
+<dd>If the party discovers and secures the queen’s vault before asking for aid, does that achievement hold, and can one local decision finish meaningfully before a pause?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>No new required edit. The ending distinguishes renewed opportunity from guaranteed permanent safety, and gives the concentrated-refuge choice a concrete upkeep advantage with explicit losses. Actual ending satisfaction remains untested.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Rite terms and consent are explicit</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>any willing planter who knows the words and root arrangement.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Bloodline, royal permission and sacrifice are unnecessary.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Interrupted light or speech leaves the bud unrooted and allows another attempt if it survives.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Maren&#x27;s copy plus the trunk inscriptions supplies the same essential instructions if the archive is inaccessible.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Final restoration, refuge and local planting have honest distinct effects</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3; G6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Cutting outward roots first concentrates the reserve into a durable local refuge tended by one small community, while sacrificing the connecting road.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Outside the trunk, planting gives only a small garden light and cannot close the breach.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Who tends the road and who charges tolls depends on actual agreements and power, not a magical decree.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>invite, but never require, one final player act.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>First-spire danger permits a meaningful approach choice</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G6; G7; G1</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Protecting the bonds can preserve a crossing; retreat, bypass or witnessing the loss from outside also resolve this stage.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>locations[1].description</dd>
+<dt>Quote</dt>
+<dd>travelers can observe the damage from outside without entering the tower.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Final alternatives now carry a durable, understandable stewardship difference</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>each waypoint needs willing tenders; neglected reaches will dim again.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>a lasting trunk refuge tended by one small community, while ending the old star-road and leaving distant dark reaches unsafe.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite source review, not a played ending or an engine verification. No claim that mementos, state or UI are missing. The issue is absent authored terms for meaningful decisions.</dd>
+<dt>Dissent</dt>
+<dd>A high-fantasy restoration can be triumphant; do not import Iron Meridian’s mandatory losses. Costs and consent should be understood, not maximized.</dd>
+<dt>Verification question</dt>
+<dd>Can a party that refuses both monarchs and loses access to one lore source still make an informed, supported choice—or reach an honest incomplete/failure ending—without the GM inventing a rite or allegiance?</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>No mandatory editorial change identified after the full round2 reread.</li>
+<li>In play, verify that the root choice is explained before cutting and that the player can state each option’s reach, upkeep and remaining risks. Honor actual willing tenders; do not invent labor or force a follow-on campaign to validate an ending.</li>
+<li>Keep the existing refusal, custody, early-exposure and alternate-lore checks; editorial clarity does not prove their runtime execution.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan’s cozy preference and Bert’s accumulation preference are not requirements to change this heroic fantasy into a cozy hub or loot loop.</li>
+<li>Ines wants coherent opposition and genuine surprise, while Rosa needs understandable re-entry; do not remove lore and factions merely to shorten listening.</li>
+<li>Gerry accepts a triumphant restoration; no need to import compulsory bitterness or losses from Iron Meridian.</li>
+</ul>
+</dd>
+</dl>
+</details>
+</section>
+<section id="round-3">
+<h2>Revision and review 3</h2>
+<p>Round 3 v0.04: restored breach closure for the refuge in both the rule and final arc hint. Final full review found no further required source changes. Final v1.0 promotion changes only version and status.</p>
+<p>
+<a href="iterations/round-3.blueprint">Exact snapshot</a> · <a href="iterations/round-3-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>c67ae5c2bc7cb46965af873036f9b7a589ea3a0bb859d9a67945a5cf9abe1945</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>Clean final editorial result; refuge breach-closure omission is resolved.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Both root arrangements explicitly close the central breach, with different reach and care requirements.</dd>
+<dt>Basis</dt>
+<dd>5.3 primary uniformity; 7.2 secondary B:29 game logic.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[3]: refuge &quot;and seals the central breach&quot;; joined network separately seals it.</li>
+<li>acts[2].arcs[1].dnaHint repeats refuge closure and its sacrificed road/unsafe distant reaches.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Restoration stages and central reveal remain fixed.</dd>
+<dt>Basis</dt>
+<dd>5.3 primary; 7.2 secondary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[1..2]: closed living bud, living light, willing informed planter and retry after interruption.</li>
+<li>npcs[3].notes: specific Edris glamour limits; visions are not a binding Hollow bargain.</li>
+<li>locations[5]: feeding and sabotage, no hidden mastermind.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No runtime magical consistency claim. Clear fictional constraints preserve high fantasy without requiring a numeric simulation.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Clean final editorial result. Full consequences are now stated before irreversible commitment.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The refuge&#x27;s protection, central-breach closure and outside losses are unambiguous.</dd>
+<dt>Basis</dt>
+<dd>1.3 and 7.4 primary predeclared stakes/telegraphing.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[3]: both outcomes close breach; refuge loses connections, outside remains unsafe; care demands explained before commitment.</li>
+<li>acts[2].arcs[1].dnaHint: root choice before cutting.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Light danger and crises retain observable causes and counterplay.</dd>
+<dt>Basis</dt>
+<dd>3.5 and 7.4 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[0..1]: bounded sensing/contact drain, recovery, known fuel costs, opportunity to respond to destructive danger.</li>
+<li>npcs[1].notes: vault ring sickness/replacement; no crisis merely for requesting help.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No actual resource or threat-clock test. Different endings need not have identical appeal; they must be understood and follow actual commitments.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>Clean final editorial result. Fixed world facts and voluntary player responses remain separate.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Final outcome follows a chosen physical arrangement rather than assigned allegiance or emotion.</dd>
+<dt>Basis</dt>
+<dd>2.1 and 6.3 primary honesty/player decisions.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[2]: volunteers agree, no imposed oath.</li>
+<li>rules[3]: governance/tolls follow agreements and power.</li>
+<li>acts[2].arcs[1].dnaHint: invited, not required, final player act.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The antagonist may act and seek trust but cannot force an interpretation or prescribed crisis.</dd>
+<dt>Basis</dt>
+<dd>1.3, 3.4 and 6.3 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].turningPoint: betrayal only if trust existed; early exposure/capture/death changes approach.</li>
+<li>acts[0].turningPoint: repair, bypass, retreat or outside witness resolve Larkenfall.</li>
+<li>acts[2].arcs[0].dnaHint: actual Corwin access and seed custody matter.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No observed model adherence. The directed adventure spine and threatening world remain intentional format choices, not unresolved findings.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>Clean final editorial result. Necessary facts and outcome distinctions have multiple discoverable sources.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ritual essentials and care tradeoffs are available through existing routes.</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2, 1.7 primary.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].arcs[1]: archive or Maren copy plus trunk inscriptions.</li>
+<li>locations[4]: observable access windows, alternate access methods, deliberate inspection supplies essentials.</li>
+<li>locations[5]: labeled diagrams include distributed versus concentrated tending.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Loss/refusal need not fabricate information or a miraculous replacement.</dd>
+<dt>Basis</dt>
+<dd>7.2 primary unused prep; 1.7 primary alternatives.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[4]: bypassed/declined leads keep actual knowledge only; lost seed permits rescue/refuge/withdrawal.</li>
+<li>acts[2].arcs[0]: escort actual seed or protect retreat; no invented second last seed.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Narrated ending and actual engine arc closure are distinct; neither has been empirically established here. No campaign-duration assumption or timing certification.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>Clean final editorial result. A wide restoration requiring distributed care and a smaller refuge supported by one community now form a legible human choice.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Restored closure clause preserves the refuge&#x27;s benefit while retaining its cost.</dd>
+<dt>Basis</dt>
+<dd>2.7 primary payoffs; 4.6 primary meaningful close.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[3]: one-community refuge seals central breach, gives up connecting road and leaves dark reaches unsafe.</li>
+<li>acts[2].arcs[1].dnaHint: waypoint tenders versus concentrated reserve, effects on people actually helped.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Human texture and consent remain supported without mandatory transformation.</dd>
+<dt>Basis</dt>
+<dd>7.3 primary empathy; 4.5 primary/secondary becoming.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[0].notes: gardener&#x27;s ordinary care and grief without compulsory silence.</li>
+<li>npcs[4].notes: road-singer&#x27;s specific witness memory, guidance may be declined.</li>
+<li>rules[2] and final hint: willing participants and optional final act.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No emotional-response evidence. The obligations should inform the ending rather than require a new management subsystem or compulsory sequel.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>No additional material blueprint edits requested by these five lenses after the third full review.</li>
+<li>Keep the high-fantasy wonder, danger, limited refuge and voluntary care commitments; clarity is not a demand for numerical resource accounting or identical outcomes.</li>
+<li>These are documented-rubric applications, not personal reviews or endorsements by the named designers.</li>
+<li>No live model narration, player comprehension, engine completion, emotional effect or duration claim is made.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Refuge breach closure is restored in both governing descriptions. Seed, rite and costs remain consistent. No remaining editorial finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Awakening is distinct from opening, and the rite specifies action, knowledge and willing hands without bloodline/sacrifice gating.</dd>
+<dt>Basis</dt>
+<dd>§3.4 knowledge and need, §8.3 consequence and §9.1 consistency (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>awake closed bud (carried)</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>any willing planter who knows the words and root arrangement.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Bloodline, royal permission and sacrifice are unnecessary.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Interruption permits another attempt if the bud survives, and consent remains actual rather than a magically assigned bond.</dd>
+<dt>Basis</dt>
+<dd>§4.6 story versus imposed plot (●); §4.1–4.5 care as story (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>allows another attempt if it survives.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[0].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Do not assign the party a bond, oath or feeling.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Both the outcome rule and the final hint again state that the severed refuge seals the central breach. Local upkeep advantage and loss of the wider road are retained.</dd>
+<dt>Basis</dt>
+<dd>§9.1 world consistency and §8.4 knowable consequences (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>one small community and seals the central breach, while sacrificing the connecting road.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>one small community and seals the central breach</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>This is private-canon review, not a corpus judgment of rhythm, exposition or experienced delight. No runtime claims.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Starving cause and Pell&#x27;s observation now have concrete payoff. No new content finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The hunger is the feeders&#x27; actual behavior accelerated by sabotage, not an unspecified extra antagonist introduced at the climax.</dd>
+<dt>Basis</dt>
+<dd>§9.3 confirmation architecture (◐); §9.5 convincing fiction (●/◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>This feeding, aided by Corwin&#x27;s sabotage, is the starving force</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>no hidden master replaces it.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Pell witnessed a severed root concentrate light while a span died; an archive account preserves the clue without forcing his guidance.</dd>
+<dt>Basis</dt>
+<dd>§9.3 seeded confirmation (◐); §10.1 story payoff (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>a severed root send its light into a little surviving canopy</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>refusing their company does not erase the clue.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The brief causal truth need not expand into cosmology. Silence and strange visions retain mystery. Actual fear/wonder performance remains unobserved.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Explicit distributed upkeep versus one-community refuge resolves the prior choice-clarity finding. No further social-design change requested.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ending now separates network restoration, local refuge and off-trunk garden light; governing power follows actual agreements rather than an enchanted political decree.</dd>
+<dt>Basis</dt>
+<dd>§9.3 consequences for choices (WE ●); §3.5 resource allocation (GR ●); §9.1 restoration alternatives (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Who tends the road and who charges tolls depends on actual agreements and power</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Allow compatible alternatives and honest refusal or failure endings.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ordinary families and workers have interests distinct from crowns; help is practical and negotiated.</dd>
+<dt>Basis</dt>
+<dd>§3.5 labour/resources (GR ●); §3.4 no default oppression requirement (CORNELL ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[2].notes</dd>
+<dt>Quote</dt>
+<dd>People under his rule include growers and quarry families as well as soldiers</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Refugees and road-workers also have practical reasons to help.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The network requires willing tenders at each waypoint; concentrated refuge can be supported by one community. This makes the implied resource tradeoff legible before commitment.</dd>
+<dt>Basis</dt>
+<dd>§3.5 resource allocation (GR ●) and §9.3 consequences of choice (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>each waypoint needs willing tenders; neglected reaches will dim again.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>a durable local refuge tended by one small community</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>The diagrams contrast distributed waypoint tending with a concentrated refuge supported by one community.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Actual comprehension of the choice is untested. The lens&#x27;s restoration critique remains dissent: a successful restored road can be this campaign&#x27;s best and desired outcome.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>Corwin&#x27;s identity and grief manipulation now have a fixed truth while trust and betrayal remain earned. Prior finding closed.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Corwin is himself; Edris is Maren&#x27;s dead partner; a bounded clasp projects face and voice without memories. Maren answers direct questions.</dd>
+<dt>Basis</dt>
+<dd>§5.1 plausible speech and §8.1 honesty (A:Advice ●); §5.6 character/situation causality (B:Dark Matter Zine ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>His small mirrored clasp projects the face and voice of Edris</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>it grants no memories, new bodies or other faces</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>she will answer direct questions about the resemblance.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Suspicion and early exposure change events, and Corwin&#x27;s self-justifying interpretation remains distinct from a true bargain.</dd>
+<dt>Basis</dt>
+<dd>§6.1–6.3 motive without excuse (B:Fantasy-Hive ●); §8.1 honesty (A:Advice ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Call this betrayal only if trust actually existed.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>no Hollow One actually spoke or made a binding bargain.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No requirement to force sorrow, trust or a dark ending. Runtime dialogue and grief impact unmeasured; intentional high-fantasy hope preserved.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>No further editorial edits requested after full final reread through all four writing lenses.</li>
+<li>All baseline and iteration findings are closed. Runtime narration, player comprehension and actual campaign pacing remain untested.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Restoring the road can remain the hopeful best outcome; alternatives need not be mechanically equal.</li>
+<li>No one-hour target or demand for more combat, cosmology or gloom.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>Final editorial result: no further required edit identified. Both trunk outcomes now explicitly close the central breach, giving a clearer concise comparison while retaining different reach and upkeep. Listening comprehension remains untested.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>The central carried object has a clear identity and state</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R1; R2; R6</dd>
+<dt>Source grade</dt>
+<dd>R1 mixed primary/secondary; R2/R6 primary; no vendor duration threshold used</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>awake closed bud (carried)</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>The bud does not lose life merely because turns pass.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite persona, not a listener or playtest. R1 includes secondary recap sources; R5 driving suitability and R10 voice inventory are inferred and unused. No total-duration constraint.</dd>
+<dt>Dissent</dt>
+<dd>Keep the lyrical high-fantasy scope. Rosa needs a concise actionable recap, not replacement of the campaign with a short taster.</dd>
+<dt>Verification question</dt>
+<dd>After a pause, can the listener name who holds the seed, its known condition, the next reachable waypoint and a useful next action?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>Final editorial result: no further required edit identified. The restored refuge closure is consistent with the rite and does not erase remote hazards or maintenance differences. World logic and voluntary roles remain coherent on paper.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Corwin, Edris and Maren now have one fixed identity account</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>her partner Edris died in a Hollow One attack decades ago.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>His small mirrored clasp projects the face and voice of Edris, Maren&#x27;s dead partner; it grants no memories, new bodies or other faces</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>no Hollow One actually spoke or made a binding bargain.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Pell’s observation has concrete limits and an alternate source</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>Pell has seen a severed root send its light into a little surviving canopy while the span beyond went dark.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>Their observation is also recorded in the archive&#x27;s maintenance account</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Trust and the timing of exposure follow play</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I3; I4; I9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Call this betrayal only if trust actually existed.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Earlier discovery, his capture or death changes the final approach</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>No required trust, confession or appointed reveal turn.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Network recovery requires sustained consent and work</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I4; I9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>each waypoint needs willing tenders; neglected reaches will dim again.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Who tends the road and who charges tolls depends on actual agreements and power, not a magical decree.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite source review; no real solo-player or model run. I1/I5 address stable logic and continuity, not a demand to reveal all mysteries immediately.</dd>
+<dt>Dissent</dt>
+<dd>Retain Corwin’s sincere dangerous beliefs and the rulers’ competing aims. A coherent world can still refuse the player.</dd>
+<dt>Verification question</dt>
+<dd>If the player distrusts Corwin at their first meeting or exposes him before Act Two, does the same underlying history remain true and can the quest continue?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>Final editorial result: no further required edit identified. Restoration makes the refuge payoff explicit alongside its known sacrifice; resource and custody rules remain unchanged and require behavior testing.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Scarcity has visible triggers, recovery and limits</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B9; B8</dd>
+<dt>Source grade</dt>
+<dd>primary; applying inventory/known-cost evidence to magical light is review reasoning</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>Direct Hollow contact drains its glow with visible chilling and closing petals</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>break contact and shelter it beside a living cutting to recover.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>Ordinary lamps need actual fuel; announce travel or hazard costs before commitment and honor reserves.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>If the seed is taken, pursue its established custodian</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Care costs are part of the known decision terms</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B9; B8</dd>
+<dt>Source grade</dt>
+<dd>primary; upkeep application is an explicit analogy</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Explain the care demands and consequences from inscriptions, records or informed testimony before commitment.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>The diagrams contrast distributed waypoint tending with a concentrated refuge supported by one community.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite; most inventory evidence concerns visual games. No actual resource mutation, save loss or surprise depletion observed.</dd>
+<dt>Dissent</dt>
+<dd>Do not add loot, shops or currency loops solely for Bert. A clearly bounded seed/light contract is enough for this review.</dd>
+<dt>Verification question</dt>
+<dd>Can the player predict the consequence of a proposed long crossing or use of seed light from facts already learned, and is the seed still held where they left it?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Final editorial result: no further required edit identified. A locally maintained refuge can close its central danger while other communities remain exposed. This is a meaningful local outcome, not universal cozy safety; genre dissent stands.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>A request for aid no longer automatically causes a monster crisis</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>Two cuttings have sickened; gardeners can show the symptoms and offer healthy replacements.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>A breach follows actual loss of the ring, not asking her for aid.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>prevention works and political demands remain negotiable.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite, not a cozy or phone playtest. N1/Trust explain genre mismatch but do not establish that every suspense beat is bad. No twenty-minute or one-hour completion demand.</dd>
+<dt>Dissent</dt>
+<dd>Keep real danger and the campaign’s ambitious journey. Nan can choose another adventure; the shared improvement is meaningful local action rather than guaranteed comfort.</dd>
+<dt>Verification question</dt>
+<dd>If the party discovers and secures the queen’s vault before asking for aid, does that achievement hold, and can one local decision finish meaningfully before a pause?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>Final editorial result: no further required edit identified. The refuge now explicitly closes the central breach in both authoritative outcome instructions, preserving a real completed result without guaranteeing every distant community’s survival.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Rite terms and consent are explicit</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>any willing planter who knows the words and root arrangement.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Bloodline, royal permission and sacrifice are unnecessary.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Interrupted light or speech leaves the bud unrooted and allows another attempt if it survives.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Maren&#x27;s copy plus the trunk inscriptions supplies the same essential instructions if the archive is inaccessible.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Final restoration, refuge and local planting have honest distinct effects</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3; G6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Cutting outward roots first concentrates the reserve into a durable local refuge tended by one small community and seals the central breach, while sacrificing the connecting road.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Outside the trunk, planting gives only a small garden light and cannot close the breach.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Who tends the road and who charges tolls depends on actual agreements and power, not a magical decree.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>invite, but never require, one final player act.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>First-spire danger permits a meaningful approach choice</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G6; G7; G1</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>Protecting the bonds can preserve a crossing; retreat, bypass or witnessing the loss from outside also resolve this stage.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>locations[1].description</dd>
+<dt>Quote</dt>
+<dd>travelers can observe the damage from outside without entering the tower.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Final alternatives now carry a durable, understandable stewardship difference</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>each waypoint needs willing tenders; neglected reaches will dim again.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>a lasting trunk refuge tended by one small community and seals the central breach, while ending the old star-road and leaving distant dark reaches unsafe.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Refuge breach closure explicitly restored in both outcome instructions</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>a lasting trunk refuge tended by one small community and seals the central breach</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>a durable local refuge tended by one small community and seals the central breach</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Other dark reaches remain unsafe.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite source review, not a played ending or an engine verification. No claim that mementos, state or UI are missing. The issue is absent authored terms for meaningful decisions.</dd>
+<dt>Dissent</dt>
+<dd>A high-fantasy restoration can be triumphant; do not import Iron Meridian’s mandatory losses. Costs and consent should be understood, not maximized.</dd>
+<dt>Verification question</dt>
+<dd>Can a party that refuses both monarchs and loses access to one lore source still make an informed, supported choice—or reach an honest incomplete/failure ending—without the GM inventing a rite or allegiance?</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>No further mandatory editorial change identified after the full round3 player-panel reread. Refuge closure is now explicit in both final hint and rules.</li>
+<li>Retain actual-play checks: explain all ending costs before commitment; respect willing tenders and planter, early Corwin exposure, repaired crises, alternative rite access, seed custody and honest loss/refusal.</li>
+<li>Do not equate source-review convergence with successful runtime completion, player understanding, pacing or universal audience fit.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan’s cozy preference and Bert’s accumulation preference are not requirements to change this heroic fantasy into a cozy hub or loot loop.</li>
+<li>Ines wants coherent opposition and genuine surprise, while Rosa needs understandable re-entry; do not remove lore and factions merely to shorten listening.</li>
+<li>Gerry accepts a triumphant restoration; no need to import compulsory bitterness or losses from Iron Meridian.</li>
+</ul>
+</dd>
+</dl>
+</details>
+</section>
+<footer>
+<p>Ready for actual playtesting, not declared Released. Exercise early distrust/exposure of Corwin, saved Larkenfall bonds, prevented vault breach, archive bypass, interrupted planting, lost-seed closure and both root choices. Confirm players understand upkeep and irreversible consequences before choosing; do not infer narration behavior or duration from editorial review.</p>
+<p>No engine code or runtime resource accumulation was added. Existing saves retain their starting edition. Editorial and import checks cannot establish player satisfaction or actual GM behavior.</p>
+</footer>
+</body>
+</html>

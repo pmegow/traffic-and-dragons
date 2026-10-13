@@ -1,0 +1,184 @@
+{
+  "name": "The Last Lantern-Seed",
+  "tone": "high",
+  "startingLocation": "Windrest Hollow",
+  "startingRegion": "The Silverspan Vale, beneath the dying star-road called the Aurelith Course",
+  "premise": "Long ago the elves grew the Aurelith Course, a bridge of living starlight between kingdoms, and planted lantern-trees whose blossoms held the dark beyond it. Now the lanterns fail and the silent Hollow Ones step through. In Windrest Hollow, Maren's thirty-year-dormant seed has awakened into a luminous, closed bud: the last living lantern-seed. She asks the party to carry it to the great trunk-spire, where it can open and relight the Course. Failing reaches and rival crowns stand between them and the root. Something is cutting the road's living bonds from the far end. Accepting the journey is a choice; others can offer aid, but nobody owns the bearer's will.",
+  "acts": [
+    {
+      "title": "Act One: The Seed Wakes",
+      "goal": "Learn why the closed lantern-seed has awakened, choose whether to carry it, and seek a safe route toward the trunk-spire before more waypoints fail.",
+      "turningPoint": "At Larkenfall, cut root-bonds and a stalking Hollow One reveal a deliberate attack. Warning tremors and dimming threads precede the danger. Protecting the bonds can preserve a crossing; retreat, bypass or witnessing the loss from outside also resolve this stage. No forced entry or collapse.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Gardener's Warning",
+          "objective": "Speak with Maren or inspect her garden records to learn the seed stages and the route toward Larkenfall. Decide who, if anyone, will carry it.",
+          "type": "investigation",
+          "dnaHint": "The seed is awake but unopened. Loss of the neighboring lanterns sent their remaining light into its dormant husk. Maren can teach care and identify the three planting requirements, but her rite is incomplete. Leave her records and road markings available if she cannot help. Do not assign the party a bond, oath or feeling."
+        },
+        {
+          "title": "Road to Larkenfall",
+          "objective": "Travel the failing lower reach of the star-road to reach the waypoint spire, navigating a stretch where the light is already thin.",
+          "type": "exploration",
+          "dnaHint": "Show frayed crossings before commitment. Surface paths, climbing, repairs and established abilities may replace the star-road. Warn of added travel exposure and fuel needs; preserve successful preparations."
+        },
+        {
+          "title": "The Thing in the Spire",
+          "objective": "Respond to the Hollow One approaching the damaged Larkenfall bonds: defend, distract, repair, avoid or escape it while protecting whoever the party has chosen to help.",
+          "type": "combat",
+          "dnaHint": "Corwin has cut some bonds; loose pale fibers and his recognizable knotwork are evidence, not proof of every motive. A working blossom can keep the crossing lit if the remaining bonds are secured. The Hollow One seeks the brightest living light it can sense, not an omniscient seed location. Resolve the actual encounter or credible bypass."
+        }
+      ]
+    },
+    {
+      "title": "Act Two: The Kingdoms Under One Dying Sky",
+      "goal": "Find steady living light, learn how any willing hand can plant the seed, and secure physical passage to the trunk-spire. Negotiate aid, investigate the sabotage or pursue an independent route; neither crown must be served.",
+      "turningPoint": "Clues may expose Corwin cutting root-bonds and luring Hollow Ones. Call this betrayal only if trust actually existed. Earlier discovery, his capture or death changes the final approach; the breach remains a physical threat without him.",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Court of Two Crowns",
+          "objective": "Win the aid, or at least the neutrality, of the rival monarchs of the Silverspan Vale, who each want the seed planted in their own domain instead of at the road's true heart.",
+          "type": "social",
+          "dnaHint": "Isolde offers boats, oil and river workers for a promise of local protection; Thessaly offers escorts and beacon mirrors for border security. Their demands are negotiable. Aid need not require planting for a crown. Refugees and road-workers also have practical reasons to help. Their effort must be earned or agreed, never conjured."
+        },
+        {
+          "title": "The Deep Archive",
+          "objective": "Learn the complete planting rite from the archive, or reconstruct its essentials from Maren's garden copy and the matching trunk-spire inscriptions.",
+          "type": "investigation",
+          "dnaHint": "Careful inspection yields essential rite text without one pass/fail roll. Flooding, damaged access and pursuit can cost time or threaten optional records. The archive explains both root arrangements and retains old maintenance maps; Maren's copy plus the trunk inscriptions supplies the same essential instructions if the archive is inaccessible."
+        },
+        {
+          "title": "The Starving Ground",
+          "objective": "Secure passage through or around the darkened nesting reach: fight, draw the Hollow Ones away with living light, shore up a crossing or find a ground route.",
+          "type": "combat",
+          "dnaHint": "Hollow Ones follow exposed living light and withdraw from a joined lantern canopy. A shielded seed and ordinary fire can aid evasion but do not erase tracks or create safe footing. Passage, not extermination, is the requirement. Honor a secured route and the people who maintain it."
+        },
+        {
+          "title": "The Watcher's Trail",
+          "objective": "Investigate root cuts and sightings of a warden-faced guide; establish who is actually sabotaging the road.",
+          "type": "exploration",
+          "dnaHint": "Corwin offers accurate route advice to gain access. The party may refuse or suspect him from the start. His distinctive three-loop knots occur on the cut bonds and his repair kit; road-workers may have seen him working there. Track, question or compare records. No required trust, confession or appointed reveal turn."
+        }
+      ]
+    },
+    {
+      "title": "Act Three: The Trunk-Spire",
+      "goal": "Reach the root with the actual seed, light and willing help available. Choose a feasible planting or an honest retreat before the remaining supports fail.",
+      "turningPoint": "Resolve the chosen root arrangement, any interrupted rite and the seed's actual fate. Restoration closes the central breach; a refuge planting saves a smaller area at the cost of the old road. A destroyed seed or refusal cannot become an unexplained victory.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Procession",
+          "objective": "Carry the seed along the passage actually secured, or protect a retreat if restoration has become impossible.",
+          "type": "combat",
+          "dnaHint": "Corwin can interfere only if free, alive and able to reach the route; he knows only what he learned. Hollow Ones remain dangerous without him. Previous repairs, negotiated escorts and a successful disguise or diversion matter. If the seed is taken, pursue its established custodian; do not invent its return or another last seed."
+        },
+        {
+          "title": "The Planting",
+          "objective": "At the root bowl, use steady living light and a willing planter to perform the learned rite. Choose a joined road, a severed refuge canopy or another solution supported by the same facts.",
+          "type": "social",
+          "dnaHint": "Explain the root choice before cutting. Joined roots relight surviving branches and close the central breach, but damaged spans need repair and each waypoint needs willing tenders; neglected reaches will dim again. Severing outward roots first concentrates the reserve into a lasting trunk refuge tended by one small community and seals the central breach, while ending the old star-road and leaving distant dark reaches unsafe. Planting elsewhere gives only a small garden light, not a cure. Show effects on people actually helped; invite, but never require, one final player act."
+        }
+      ]
+    }
+  ],
+  "deepTime": [
+    {
+      "name": "The Rootfall",
+      "when": "beyond the oldest elven records, some four thousand years past",
+      "note": "the first elven star-singers grew the seed-trees that would one day become the Aurelith Course, coaxing light itself to take root"
+    },
+    {
+      "name": "The Raising of the Aurelith Course",
+      "when": "roughly a thousand years ago",
+      "note": "the star-road was fully grown and strung between the kingdoms, and the elven star-wardens who tended it founded the order that maintained it for centuries"
+    },
+    {
+      "name": "The Warden's Silence",
+      "when": "three hundred years ago",
+      "note": "the last star-wardens vanished or died without successors, and the kingdoms of the Vale rose to fill the governance the wardens left behind, no longer understanding what they had inherited"
+    },
+    {
+      "name": "The Dimming",
+      "when": "within the last two years, living memory",
+      "note": "lanterns along the star-road began failing one by one and the Hollow Ones started walking through, culminating in the awakening of the last living seed"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Maren Duskwillow",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "An old gardener descended from star-wardens, Maren kept the seed husk for thirty years beside beans and chipped seed trays. She mends travel cloaks with the same patient stitches she uses on plant supports. She knows seed care and has a partial rite copy. Her former fellow warden Corwin is an old friend; her partner Edris died in a Hollow One attack decades ago. Seeing Edris's face on Corwin's glamour unsettles her, but she will answer direct questions about the resemblance. Grief does not prove his guilt or prevent other evidence."
+    },
+    {
+      "name": "Queen Isolde Farrow",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "notes": "Aldenmere's practical queen wants the seed within her borders, where families already crowd the canal shelters. She can support restoration if its benefits and immediate protection are credible. She keeps a dormant Hollow One in a vault: a ring of living lantern cuttings holds it still. Two cuttings have sickened; gardeners can show the symptoms and offer healthy replacements. A breach follows actual loss of the ring, not asking her for aid. She may conceal the risk to protect her authority, but prevention works and political demands remain negotiable."
+    },
+    {
+      "name": "King Thessaly Vane",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "notes": "The former soldier ruling Cindermoor wants a weapon-beacon to protect the border, where he has quietly evacuated a breached garrison. His fear is real, but a local beacon repels nearby Hollow Ones without closing their source. Survivors and empty ration wagons can reveal the loss he concealed. He can offer escorts and mirrors, accept a restoration bargain or refuse. People under his rule include growers and quarry families as well as soldiers; do not turn their loyalty into automatic consent to his terms."
+    },
+    {
+      "name": "Corwin Ashgrave",
+      "role": "villain",
+      "pronouns": "he/him",
+      "notes": "A living descendant of star-wardens and Maren's former colleague. Corwin offers useful directions to gain access to root-bonds, then cuts them to guide incursions. His small mirrored clasp projects the face and voice of Edris, Maren's dead partner; it grants no memories, new bodies or other faces, and covering or breaking the clasp ends it. Maren knows the resemblance, not his every act. He believes silent visions beyond the breach promised reunion; no Hollow One actually spoke or made a binding bargain. He interprets their appetite as release from grief. Evidence may expose him early. He can surrender, reconsider or remain hostile according to play; no obligatory trusted-guide role."
+    },
+    {
+      "name": "Pell",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "notes": "A road-singer who trades songs for meals and pauses to ask each host which road-name they use. Pell has seen a severed root send its light into a little surviving canopy while the span beyond went dark. They fear repeating that loss at the trunk, but can describe exactly what they saw if asked, without knowing the full rite. They may guide for agreed help or decline. Their observation is also recorded in the archive's maintenance account; refusing their company does not erase the clue."
+    }
+  ],
+  "locations": [
+    {
+      "name": "Windrest Hollow",
+      "description": "A quiet dell at the low end of the Aurelith Course, where the star-road touches the ground in a tangle of pale roots and pooled light. Maren Duskwillow's garden grows here in defiance of the surrounding dark, ringed by dead lantern-trees that once marked the road's beginning. The air still smells faintly of starlight when the wind comes down off the road above."
+    },
+    {
+      "name": "Larkenfall Spire",
+      "description": "A grown elven tower with a living lantern-blossom at its crown. Some root-bonds have been cut, leaving loose pale fibers and a three-loop repair knot. Flickering threads and shuddering floors warn before another bond tears. Anchoring the remaining bonds can save a crossing. A narrow maintenance stair reaches solid ground; travelers can observe the damage from outside without entering the tower."
+    },
+    {
+      "name": "Aldenmere",
+      "description": "A river-kingdom of canal-cities and grey stone bridges, ruled from a palace built into a cliff overlooking the confluence of three rivers. Its people are practical and wary of elven relics, having inherited stewardship of a stretch of the star-road they only half understand. A sealed vault beneath the palace holds Queen Isolde's most dangerous secret."
+    },
+    {
+      "name": "Cindermoor",
+      "description": "A highland kingdom of terraced fortresses and beacon-towers built into volcanic stone, ruled by King Thessaly Vane from a hall warmed by captive firelight. Growers and quarry families supply its watch-forts, and the border garrisons watch the darkening edges of the star-road with growing dread. Smoke from watch-beacons is visible for miles."
+    },
+    {
+      "name": "The Sunken Archive",
+      "description": "A drowned library below the Vale's oldest lake. At dawn and dusk an old sluice exposes the stair for a short crossing; tide marks and a working float gauge make the cycle observable. Divers, suitable magic or repairing the sluice offer other access. State the actual return window before entry. The shelves hold the complete rite, root diagrams and maintenance accounts. Once reached and examined, essential instructions are readable; dangerous access does not require withholding them behind a failed search."
+    },
+    {
+      "name": "The Trunk-Spire",
+      "description": "The vast junction of the Aurelith Course. Hollow Ones feed through a widening breach on exposed root-bonds, accelerating the fading after centuries without maintenance. This feeding, aided by Corwin's sabotage, is the starving force; no hidden master replaces it. The central bowl and labeled joined/severed root diagrams preserve the missing half of Maren's rite. A shielded living cutting survives beside the bowl unless actual events destroy it. Cracked supports warn before failure and can be braced. Planting here can close the breach; its root arrangement determines how far the light returns. The diagrams contrast distributed waypoint tending with a concentrated refuge supported by one community."
+    }
+  ],
+  "rules": [
+    "The Hollow Ones are silent feeders on living starlight, not diplomats. Corwin interpreted visions as a promise; they made no enforceable bargain. They sense exposed living light within sight or an open connected root reach, not every seed location. Ordinary flame illuminates but does not repel them. Joined living canopies repel them; shielding or diversion can hide or redirect a lure. Keep their access and attention tied to the scene.",
+    "The seed has three states: dormant husk (past), awake closed bud (carried), and rooted open lantern (after the rite). The bud does not lose life merely because turns pass. Direct Hollow contact drains its glow with visible chilling and closing petals; break contact and shelter it beside a living cutting to recover. Physical destruction is permanent and must follow established danger and opportunity to respond. Ordinary lamps need actual fuel; announce travel or hazard costs before commitment and honor reserves. Do not silently erase supplies, the seed or prior protection.",
+    "The rite needs the living closed bud, steady light from any surviving living lantern or healthy cutting, and any willing planter who knows the words and root arrangement. Bloodline, royal permission and sacrifice are unnecessary. Place the bud in the bowl, bathe it in living light and speak the rite while seating its roots. Interrupted light or speech leaves the bud unrooted and allows another attempt if it survives. Maren's partial copy plus the trunk inscriptions supplies the essentials; the archive has the complete rite. Volunteers must agree to their roles; no magically imposed oath.",
+    "With outward roots joined, planting at the trunk restores surviving branches and seals the central breach. Damaged spans still need repair and each waypoint needs willing tenders; neglected reaches will dim again. Cutting outward roots first concentrates the reserve into a durable local refuge tended by one small community and seals the central breach, while sacrificing the connecting road. Other dark reaches remain unsafe. Outside the trunk, planting gives only a small garden light and cannot close the breach. Explain the care demands and consequences from inscriptions, records or informed testimony before commitment. Who tends the road and who charges tolls depends on actual agreements and power, not a magical decree. Allow compatible alternatives and honest refusal or failure endings.",
+    "Crises follow actual causes and opportunities. Telegraph root failure, vault instability and approaching enemies; successful repair, avoidance or early exposure changes events. Do not force trust in Corwin or a betrayal scene. Close bypassed or declined parallel leads honestly, retaining only information and aid actually obtained. If the seed is irretrievably lost, resolve rescue, refuge or withdrawal without inventing a replacement. Established living groves can shelter people locally; do not promise that every kingdom survives."
+  ],
+  "format": "tnd-blueprint-v1",
+  "author": "",
+  "proseAuthor": "",
+  "narratorVoice": "",
+  "creatures": [],
+  "customClasses": [],
+  "designerVersion": "v0.40",
+  "version": "1.0",
+  "releaseStatus": "release-candidate",
+  "catalogId": "the_last_lantern-seed"
+}

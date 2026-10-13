@@ -1,0 +1,701 @@
+[
+  {
+    "round": 2,
+    "blueprintSha256": "6d5a647b10233419f6c6f46dd2e76ae5ac3836c71168479bd21b3ccd63a864c0",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Upkeep makes the choice more concrete, but the rewrite drops an explicit magical effect from the refuge branch.",
+        "resolved": [
+          {
+            "text": "Distributed network care and concentrated refuge care now have a clear practical distinction.",
+            "basis": "1.2 primary consequential upkeep; 7.2 secondary B:29 game logic.",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].dnaHint and rules[3]: each waypoint needs willing tenders; neglected reaches dim; one community can tend the concentrated refuge.",
+              "locations[5]: diagrams contrast the two care demands."
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Restore or explicitly revise whether the severed refuge closes the breach.",
+            "kind": "ending-rule omission introduced in revision",
+            "severity": "medium",
+            "basis": "5.3 primary uniformity; 7.2 secondary game logic.",
+            "blueprintEvidence": [
+              "round1 acts[2].arcs[1].dnaHint: severed refuge \"closes its breach\".",
+              "round1 rules[3]: refuge \"seals the breach\".",
+              "round2 acts[2].arcs[1].dnaHint and rules[3]: joined roots explicitly close/seal central breach, but the severed-refuge clause only mentions concentrated reserve, local refuge and lost connecting road.",
+              "locations[5] says planting can close the breach without distinguishing which root arrangement."
+            ],
+            "reason": "The new care distinction is useful, but replacing both operative outcome passages removed the previous explicit guarantee that refuge planting also seals the central breach. Readers can now infer that only joined restoration closes it, or import the earlier meaning; this changes a material choice consequence unintentionally if upkeep was the only intended change.",
+            "recommendation": "Add a short clause to the refuge outcome confirming that it also closes the central breach, if retaining the earlier rule. If the author intentionally changes that effect, state the new consequence plainly and align all ending descriptions before the player chooses.",
+            "mitigation": "The act turning point still contrasts restoration with smaller refuge, and the trunk description broadly permits planting to close the breach. Neither explicitly fixes the refuge effect, although a GM may infer the old rule.",
+            "confidence": "High that explicit refuge breach closure was removed from both operative passages; medium that a model would misinterpret it."
+          }
+        ],
+        "uncertainty": "Static wording review only. No actual malformed ending observed. Magical conditions otherwise remain consistent and need no new mechanism."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Upkeep tradeoffs improve informed commitment. Supports the single breach-closure clarification; no separate finding.",
+        "resolved": [
+          {
+            "text": "The cost of each planting choice is disclosed before irreversible commitment.",
+            "basis": "1.3 and 7.4 primary.",
+            "blueprintEvidence": [
+              "rules[3]: explain care demands/consequences from inscriptions, records or informed testimony before commitment.",
+              "acts[2].arcs[1].dnaHint: explain root choice before cutting; maintenance and unsafe remote reaches named."
+            ]
+          },
+          {
+            "text": "Light dangers and mitigation remain finite and scene-bound.",
+            "basis": "3.5 and 7.4 primary.",
+            "blueprintEvidence": [
+              "rules[0..1]: sensing limits, visible contact drain, seed recovery, announced fuel/hazard costs."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Gygax finding identifies the one omitted consequence needing disclosure; do not count it twice. No actual light/resource or upkeep behavior tested."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "No additional material finding. Upkeep is a future obligation that must be agreed, not automatic loyalty.",
+        "resolved": [
+          {
+            "text": "Caretaking follows actual willing participants rather than a prescribed political victory.",
+            "basis": "6.3 and 2.1 primary.",
+            "blueprintEvidence": [
+              "rules[3]: willing waypoint tenders; stewardship/tolls depend on actual agreements and power.",
+              "rules[2]: volunteers agree; no imposed oath."
+            ]
+          },
+          {
+            "text": "Earlier fixes preserve contingent attacks and player-defined trust.",
+            "basis": "1.3 and 2.1 primary.",
+            "blueprintEvidence": [
+              "acts[1].turningPoint: betrayal only if trust existed; capture/death changes final approach.",
+              "rules[4]: repair/avoidance/early exposure change crises."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Real compliance remains untested. The restored final fact should describe physical consequence without forcing the party to choose either arrangement."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "No additional information-flow finding. The care distinction is available through established sources rather than a new required errand.",
+        "resolved": [
+          {
+            "text": "New upkeep information has a named player-accessible delivery surface.",
+            "basis": "1.2, 1.8 primary core information/contextual exposition.",
+            "blueprintEvidence": [
+              "locations[5]: joined/severed diagrams now contrast distributed tending and one-community refuge.",
+              "rules[3]: inscriptions/records/informed testimony supply precommitment care demands."
+            ]
+          },
+          {
+            "text": "Essential ritual routes remain redundant and inspectable.",
+            "basis": "1.1 and 1.7 primary.",
+            "blueprintEvidence": [
+              "acts[1].arcs[1]: archive or garden copy plus trunk inscriptions.",
+              "locations[4]: observable sluice cycle, alternate access, essential instructions not hidden behind failed search."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Refuge breach effect is a shared clarity issue recorded once. No claim that actual players understand or complete the choice; no campaign-duration constraint introduced."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "The revised care burden gives the final choice a stronger human distinction. Restore the omitted physical effect without adding forced community obligations.",
+        "resolved": [
+          {
+            "text": "The refuge now offers a concrete advantage, limited to the community that can tend it, while the network asks wider cooperation.",
+            "basis": "2.7 primary visible payoffs; 4.6 primary meaningful close; 7.3 primary empathetic interests.",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].dnaHint: distributed willing tenders versus one-community refuge and lost connections.",
+              "rules[3]: neglected reaches dim, remote dark unsafe, agreements determine political control."
+            ]
+          },
+          {
+            "text": "The ending still honors actual helped people and voluntary expression.",
+            "basis": "4.5 primary/secondary becoming; 4.6 primary.",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].dnaHint: show effects on helped people; final player act invited, not required."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No emotional-response evidence or presumption of equal popularity between choices. Care is a meaningful consequence, not a demand for a new management subsystem or compulsory epilogue quests."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Clarify the severed-refuge branch still closes the central breach, if preserving round1 intent; the upkeep edit dropped that explicit effect from both operative outcome passages."
+      ],
+      "dissent": [
+        "The new upkeep tradeoff is useful and should remain.",
+        "No additional scenes, mechanics or mandatory tending quests are recommended.",
+        "This is a static editorial review by documented design lenses, not runtime validation, player feedback or an endorsement from the named designers."
+      ]
+    }
+  },
+  {
+    "round": 2,
+    "blueprintSha256": "6d5a647b10233419f6c6f46dd2e76ae5ac3836c71168479bd21b3ccd63a864c0",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Seed/rite remain coherent, but the upkeep rewrite drops the refuge outcome's explicit breach-closure consequence.",
+        "resolved": [
+          {
+            "text": "Awakening is distinct from opening, and the rite specifies action, knowledge and willing hands without bloodline/sacrifice gating.",
+            "basis": "§3.4 knowledge and need, §8.3 consequence and §9.1 consistency (◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[1]",
+                "quote": "awake closed bud (carried)"
+              },
+              {
+                "path": "rules[2]",
+                "quote": "any willing planter who knows the words and root arrangement."
+              },
+              {
+                "path": "rules[2]",
+                "quote": "Bloodline, royal permission and sacrifice are unnecessary."
+              }
+            ]
+          },
+          {
+            "text": "Interruption permits another attempt if the bud survives, and consent remains actual rather than a magically assigned bond.",
+            "basis": "§4.6 story versus imposed plot (●); §4.1–4.5 care as story (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[2]",
+                "quote": "allows another attempt if it survives."
+              },
+              {
+                "path": "acts[0].arcs[0].dnaHint",
+                "quote": "Do not assign the party a bond, oath or feeling."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Refuge planting no longer explicitly closes the central breach",
+            "severity": "medium",
+            "kind": "round-two semantic propagation regression",
+            "basis": "§9.1 consistency of the world (◐ secondary); §8.4 consequences knowable before action (◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[3]",
+                "quote": "planting at the trunk restores surviving branches and seals the central breach."
+              },
+              {
+                "path": "rules[3]",
+                "quote": "Cutting outward roots first concentrates the reserve into a durable local refuge"
+              },
+              {
+                "path": "acts[2].arcs[1].dnaHint",
+                "quote": "while ending the old star-road and leaving distant dark reaches unsafe."
+              }
+            ],
+            "reason": "Round one explicitly said severed refuge also seals the breach in both the final arc hint and outcome rule. Round two replaces both passages: only the joined-root clause now promises closure. A durable local canopy might repel feeders without closing their source, so the intended central outcome has become ambiguous exactly when the player must compare options.",
+            "recommendation": "If the intended consequence remains as in round one, explicitly restore central breach closure to the severed-refuge outcome in rule and final hint. If deliberately changing it, state the open-breach consequence and its implications consistently; do not let it be decided after the choice.",
+            "mitigation": "The trunk description still says planting here can close the breach, and the first review established both options doing so. A small wording restoration fixes this; no broader plot change needed.",
+            "confidence": "High about lost explicit clauses across round comparison; medium about runtime inference. This is ambiguity introduced by editing, not observed model failure."
+          }
+        ],
+        "uncertainty": "This is private-canon review, not a corpus judgment of rhythm, exposition or experienced delight. No runtime claims."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Starving cause and Pell's observation now have concrete payoff. No new content finding.",
+        "resolved": [
+          {
+            "text": "The hunger is the feeders' actual behavior accelerated by sabotage, not an unspecified extra antagonist introduced at the climax.",
+            "basis": "§9.3 confirmation architecture (◐); §9.5 convincing fiction (●/◐).",
+            "blueprintEvidence": [
+              {
+                "path": "locations[5].description",
+                "quote": "This feeding, aided by Corwin's sabotage, is the starving force"
+              },
+              {
+                "path": "locations[5].description",
+                "quote": "no hidden master replaces it."
+              }
+            ]
+          },
+          {
+            "text": "Pell witnessed a severed root concentrate light while a span died; an archive account preserves the clue without forcing his guidance.",
+            "basis": "§9.3 seeded confirmation (◐); §10.1 story payoff (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[4].notes",
+                "quote": "a severed root send its light into a little surviving canopy"
+              },
+              {
+                "path": "npcs[4].notes",
+                "quote": "refusing their company does not erase the clue."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The brief causal truth need not expand into cosmology. Silence and strange visions retain mystery. Actual fear/wonder performance remains unobserved."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Explicit distributed upkeep versus one-community refuge resolves the prior choice-clarity finding. No further social-design change requested.",
+        "resolved": [
+          {
+            "text": "Ending now separates network restoration, local refuge and off-trunk garden light; governing power follows actual agreements rather than an enchanted political decree.",
+            "basis": "§9.3 consequences for choices (WE ●); §3.5 resource allocation (GR ●); §9.1 restoration alternatives (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[3]",
+                "quote": "Who tends the road and who charges tolls depends on actual agreements and power"
+              },
+              {
+                "path": "rules[3]",
+                "quote": "Allow compatible alternatives and honest refusal or failure endings."
+              }
+            ]
+          },
+          {
+            "text": "Ordinary families and workers have interests distinct from crowns; help is practical and negotiated.",
+            "basis": "§3.5 labour/resources (GR ●); §3.4 no default oppression requirement (CORNELL ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[2].notes",
+                "quote": "People under his rule include growers and quarry families as well as soldiers"
+              },
+              {
+                "path": "acts[1].arcs[0].dnaHint",
+                "quote": "Refugees and road-workers also have practical reasons to help."
+              }
+            ]
+          },
+          {
+            "text": "The network requires willing tenders at each waypoint; concentrated refuge can be supported by one community. This makes the implied resource tradeoff legible before commitment.",
+            "basis": "§3.5 resource allocation (GR ●) and §9.3 consequences of choice (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[3]",
+                "quote": "each waypoint needs willing tenders; neglected reaches will dim again."
+              },
+              {
+                "path": "rules[3]",
+                "quote": "a durable local refuge tended by one small community"
+              },
+              {
+                "path": "locations[5].description",
+                "quote": "The diagrams contrast distributed waypoint tending with a concentrated refuge supported by one community."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Actual comprehension of the choice is untested. The lens's restoration critique remains dissent: a successful restored road can be this campaign's best and desired outcome."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "Corwin's identity and grief manipulation now have a fixed truth while trust and betrayal remain earned. Prior finding closed.",
+        "resolved": [
+          {
+            "text": "Corwin is himself; Edris is Maren's dead partner; a bounded clasp projects face and voice without memories. Maren answers direct questions.",
+            "basis": "§5.1 plausible speech and §8.1 honesty (A:Advice ●); §5.6 character/situation causality (B:Dark Matter Zine ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[3].notes",
+                "quote": "His small mirrored clasp projects the face and voice of Edris"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "it grants no memories, new bodies or other faces"
+              },
+              {
+                "path": "npcs[0].notes",
+                "quote": "she will answer direct questions about the resemblance."
+              }
+            ]
+          },
+          {
+            "text": "Suspicion and early exposure change events, and Corwin's self-justifying interpretation remains distinct from a true bargain.",
+            "basis": "§6.1–6.3 motive without excuse (B:Fantasy-Hive ●); §8.1 honesty (A:Advice ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[1].turningPoint",
+                "quote": "Call this betrayal only if trust actually existed."
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "no Hollow One actually spoke or made a binding bargain."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No requirement to force sorrow, trust or a dark ending. Runtime dialogue and grief impact unmeasured; intentional high-fantasy hope preserved."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Restore or explicitly revise severed refuge's breach-closure consequence consistently; the upkeep rewrite otherwise resolves the prior finding.",
+        "No other new findings across the four lenses after full reread. Preserve hopeful restoration and contingent refusal."
+      ],
+      "dissent": [
+        "Restoring the road can remain the hopeful best outcome; alternatives need not be mechanically equal.",
+        "No one-hour target or demand for more combat, cosmology or gloom."
+      ]
+    }
+  },
+  {
+    "round": 2,
+    "blueprintSha256": "6d5a647b10233419f6c6f46dd2e76ae5ac3836c71168479bd21b3ccd63a864c0",
+    "scope": "Full source reread of Last Lantern-Seed v0.03 through all five stored composite personas. No actual interviews, real playtesting, runtime or pacing assurances. No one-hour constraint. Zero-based field anchors.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "uncertainty": {
+          "limits": "Composite persona, not a listener or playtest. R1 includes secondary recap sources; R5 driving suitability and R10 voice inventory are inferred and unused. No total-duration constraint.",
+          "dissent": "Keep the lyrical high-fantasy scope. Rosa needs a concise actionable recap, not replacement of the campaign with a short taster.",
+          "verificationQuestion": "After a pause, can the listener name who holds the seed, its known condition, the next reachable waypoint and a useful next action?"
+        },
+        "resolved": [
+          {
+            "title": "The central carried object has a clear identity and state",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R1; R2; R6",
+              "sourceGrade": "R1 mixed primary/secondary; R2/R6 primary; no vendor duration threshold used"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[1]",
+                "quote": "awake closed bud (carried)"
+              },
+              {
+                "field": "rules[1]",
+                "quote": "The bud does not lose life merely because turns pass."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "verdict": "No required editorial change identified. The final choice has clearer terms for a spoken recap, but comprehension of distributed versus local upkeep remains an actual-listening question."
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "uncertainty": {
+          "limits": "Composite source review; no real solo-player or model run. I1/I5 address stable logic and continuity, not a demand to reveal all mysteries immediately.",
+          "dissent": "Retain Corwin’s sincere dangerous beliefs and the rulers’ competing aims. A coherent world can still refuse the player.",
+          "verificationQuestion": "If the player distrusts Corwin at their first meeting or exposes him before Act Two, does the same underlying history remain true and can the quest continue?"
+        },
+        "resolved": [
+          {
+            "title": "Corwin, Edris and Maren now have one fixed identity account",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[0].notes",
+                "quote": "her partner Edris died in a Hollow One attack decades ago."
+              },
+              {
+                "field": "npcs[3].notes",
+                "quote": "His small mirrored clasp projects the face and voice of Edris, Maren's dead partner; it grants no memories, new bodies or other faces"
+              },
+              {
+                "field": "npcs[3].notes",
+                "quote": "no Hollow One actually spoke or made a binding bargain."
+              }
+            ]
+          },
+          {
+            "title": "Pell’s observation has concrete limits and an alternate source",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[4].notes",
+                "quote": "Pell has seen a severed root send its light into a little surviving canopy while the span beyond went dark."
+              },
+              {
+                "field": "npcs[4].notes",
+                "quote": "Their observation is also recorded in the archive's maintenance account"
+              }
+            ]
+          },
+          {
+            "title": "Trust and the timing of exposure follow play",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I3; I4; I9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].turningPoint",
+                "quote": "Call this betrayal only if trust actually existed."
+              },
+              {
+                "field": "acts[1].turningPoint",
+                "quote": "Earlier discovery, his capture or death changes the final approach"
+              },
+              {
+                "field": "acts[1].arcs[3].dnaHint",
+                "quote": "No required trust, confession or appointed reveal turn."
+              }
+            ]
+          },
+          {
+            "title": "Network recovery requires sustained consent and work",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I4; I9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[3]",
+                "quote": "each waypoint needs willing tenders; neglected reaches will dim again."
+              },
+              {
+                "field": "rules[3]",
+                "quote": "Who tends the road and who charges tolls depends on actual agreements and power, not a magical decree."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "verdict": "No new contradiction or agency regression identified. Ongoing stewardship follows coherent world logic and willing labor; a local refuge is now a distinct strategic choice rather than merely less restoration."
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "uncertainty": {
+          "limits": "Composite; most inventory evidence concerns visual games. No actual resource mutation, save loss or surprise depletion observed.",
+          "dissent": "Do not add loot, shops or currency loops solely for Bert. A clearly bounded seed/light contract is enough for this review.",
+          "verificationQuestion": "Can the player predict the consequence of a proposed long crossing or use of seed light from facts already learned, and is the seed still held where they left it?"
+        },
+        "resolved": [
+          {
+            "title": "Scarcity has visible triggers, recovery and limits",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9; B8",
+              "sourceGrade": "primary; applying inventory/known-cost evidence to magical light is review reasoning"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[1]",
+                "quote": "Direct Hollow contact drains its glow with visible chilling and closing petals"
+              },
+              {
+                "field": "rules[1]",
+                "quote": "break contact and shelter it beside a living cutting to recover."
+              },
+              {
+                "field": "rules[1]",
+                "quote": "Ordinary lamps need actual fuel; announce travel or hazard costs before commitment and honor reserves."
+              },
+              {
+                "field": "acts[2].arcs[0].dnaHint",
+                "quote": "If the seed is taken, pursue its established custodian"
+              }
+            ]
+          },
+          {
+            "title": "Care costs are part of the known decision terms",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B9; B8",
+              "sourceGrade": "primary; upkeep application is an explicit analogy"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[3]",
+                "quote": "Explain the care demands and consequences from inscriptions, records or informed testimony before commitment."
+              },
+              {
+                "field": "locations[5].description",
+                "quote": "The diagrams contrast distributed waypoint tending with a concentrated refuge supported by one community."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "verdict": "No required editorial change identified. Ending upkeep costs are stated before irreversible commitment and distinguish the two maintenance burdens; no new meter or second economy is implied."
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "uncertainty": {
+          "limits": "Composite, not a cozy or phone playtest. N1/Trust explain genre mismatch but do not establish that every suspense beat is bad. No twenty-minute or one-hour completion demand.",
+          "dissent": "Keep real danger and the campaign’s ambitious journey. Nan can choose another adventure; the shared improvement is meaningful local action rather than guaranteed comfort.",
+          "verificationQuestion": "If the party discovers and secures the queen’s vault before asking for aid, does that achievement hold, and can one local decision finish meaningfully before a pause?"
+        },
+        "resolved": [
+          {
+            "title": "A request for aid no longer automatically causes a monster crisis",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[1].notes",
+                "quote": "Two cuttings have sickened; gardeners can show the symptoms and offer healthy replacements."
+              },
+              {
+                "field": "npcs[1].notes",
+                "quote": "A breach follows actual loss of the ring, not asking her for aid."
+              },
+              {
+                "field": "npcs[1].notes",
+                "quote": "prevention works and political demands remain negotiable."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "verdict": "No new required edit. A small community can maintain the local refuge, but distant danger and severed connections remain honest costs. This preserves a meaningful local outcome without recasting the campaign as cozy play."
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "uncertainty": {
+          "limits": "Composite source review, not a played ending or an engine verification. No claim that mementos, state or UI are missing. The issue is absent authored terms for meaningful decisions.",
+          "dissent": "A high-fantasy restoration can be triumphant; do not import Iron Meridian’s mandatory losses. Costs and consent should be understood, not maximized.",
+          "verificationQuestion": "Can a party that refuses both monarchs and loses access to one lore source still make an informed, supported choice—or reach an honest incomplete/failure ending—without the GM inventing a rite or allegiance?"
+        },
+        "resolved": [
+          {
+            "title": "Rite terms and consent are explicit",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G6; G7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[2]",
+                "quote": "any willing planter who knows the words and root arrangement."
+              },
+              {
+                "field": "rules[2]",
+                "quote": "Bloodline, royal permission and sacrifice are unnecessary."
+              },
+              {
+                "field": "rules[2]",
+                "quote": "Interrupted light or speech leaves the bud unrooted and allows another attempt if it survives."
+              },
+              {
+                "field": "acts[1].arcs[1].dnaHint",
+                "quote": "Maren's copy plus the trunk inscriptions supplies the same essential instructions if the archive is inaccessible."
+              }
+            ]
+          },
+          {
+            "title": "Final restoration, refuge and local planting have honest distinct effects",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3; G6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[3]",
+                "quote": "Cutting outward roots first concentrates the reserve into a durable local refuge tended by one small community, while sacrificing the connecting road."
+              },
+              {
+                "field": "rules[3]",
+                "quote": "Outside the trunk, planting gives only a small garden light and cannot close the breach."
+              },
+              {
+                "field": "rules[3]",
+                "quote": "Who tends the road and who charges tolls depends on actual agreements and power, not a magical decree."
+              },
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "invite, but never require, one final player act."
+              }
+            ]
+          },
+          {
+            "title": "First-spire danger permits a meaningful approach choice",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G6; G7; G1",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "Protecting the bonds can preserve a crossing; retreat, bypass or witnessing the loss from outside also resolve this stage."
+              },
+              {
+                "field": "locations[1].description",
+                "quote": "travelers can observe the damage from outside without entering the tower."
+              }
+            ]
+          },
+          {
+            "title": "Final alternatives now carry a durable, understandable stewardship difference",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "each waypoint needs willing tenders; neglected reaches will dim again."
+              },
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "a lasting trunk refuge tended by one small community, while ending the old star-road and leaving distant dark reaches unsafe."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "verdict": "No new required edit. The ending distinguishes renewed opportunity from guaranteed permanent safety, and gives the concentrated-refuge choice a concrete upkeep advantage with explicit losses. Actual ending satisfaction remains untested."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "No mandatory editorial change identified after the full round2 reread.",
+        "In play, verify that the root choice is explained before cutting and that the player can state each option’s reach, upkeep and remaining risks. Honor actual willing tenders; do not invent labor or force a follow-on campaign to validate an ending.",
+        "Keep the existing refusal, custody, early-exposure and alternate-lore checks; editorial clarity does not prove their runtime execution."
+      ],
+      "dissent": [
+        "Nan’s cozy preference and Bert’s accumulation preference are not requirements to change this heroic fantasy into a cozy hub or loot loop.",
+        "Ines wants coherent opposition and genuine surprise, while Rosa needs understandable re-entry; do not remove lore and factions merely to shorten listening.",
+        "Gerry accepts a triumphant restoration; no need to import compulsory bitterness or losses from Iron Meridian."
+      ]
+    }
+  }
+]
