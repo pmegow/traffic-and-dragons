@@ -29701,6 +29701,26 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     h=blockTorches(c);b=blockTorches(bram);
     return (h===1&&b===0)?true:"#613 a gain of one beside a take of x3 from Bram's one: the shortfall never takes back the unit Bram handed over (hero "+h+", Bram "+b+"): "+JSON.stringify(r.muts);
   });
+  /* #599 I5 (Astra's acceptance 2026-10-10, audits/acceptance-2026-10-10/inventory/senior.md — the one defect that held #599 open):
+     a refused single-unit gift to an absent companion restored the Torch from its NAME and dropped the row's nested `origin` field
+     while the receipt said it stayed in the pack. The #518 fix of 2026-10-11 (v1.1224) made the missing-recipient rollback ride the
+     removed fragment; this is the suite's own assertion of it — Astra's regression lived in audits/ and no battery clause pinned it.
+     Order-insensitive compare: the rebuilt row's key order is the fragment's business, its fields are the contract. */
+  function blockCanon(v){if(Array.isArray(v))return "["+v.map(blockCanon).join(",")+"]";if(v&&typeof v==="object")return "{"+Object.keys(v).sort().map(function(k){return JSON.stringify(k)+":"+blockCanon(v[k]);}).join(",")+"}";return JSON.stringify(v);}
+  t("#518 block #599 I5 a refused gift keeps the row's unknown fields: the hero's Torch carrying a nested origin field, lost and given to NOBODY in one block, is back in the pack with origin intact (the rollback rides the removed fragment, never the name) — the same row given to Bram arrives whole, and a counted loss of three keeps the field on the one restored row",function(){
+    var row={name:"Torch",qty:1,equipped:false,origin:{batch:"synthetic",marks:[1,2]}};
+    makeWorld();var c=worldState.character;c.inventory=[JSON.parse(JSON.stringify(row))];blockComp([]);var bram=findCompanionChar("Bram");
+    var r=quiet(function(){return applyMuts("[ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Bram|Torch]");}).r;
+    if(blockCanon(bram.inventory)!==blockCanon([row])||c.inventory.length)return "positive control — the whole row reaches Bram: "+JSON.stringify([c.inventory,bram.inventory,r.muts]);
+    c.inventory=[JSON.parse(JSON.stringify(row))];bram.inventory=[];
+    r=quiet(function(){return applyMuts("[ITEM_LOST:Torch][COMPANION_ITEM_GAINED:Absent|Torch]");}).r;
+    if(r.errors&&r.errors.length)return "no handler error on the refusal: "+JSON.stringify(r.errors);
+    if(blockCanon(c.inventory)!==blockCanon([row]))return "the refused gift restores the FRAGMENT — origin survives the rollback: "+JSON.stringify([c.inventory,r.muts]);
+    if(!r.muts.some(function(m){return /^⚠ 'Torch' stays in the pack — no party member 'Absent'/.test(m);}))return "the refusal is said: "+JSON.stringify(r.muts);
+    var three=JSON.parse(JSON.stringify(row));three.qty=3;c.inventory=[JSON.parse(JSON.stringify(three))];
+    r=quiet(function(){return applyMuts("[ITEM_LOST:Torch x3][COMPANION_ITEM_GAINED:Absent|Torch x3]");}).r;
+    return blockCanon(c.inventory)===blockCanon([three])?true:"the counted rollback keeps the field on the one restored row (3 in, 3 out, origin intact): "+JSON.stringify([c.inventory,r.muts]);
+  });
   /* #606 (verified and pinned 2026-10-11): the row was filed when a WORN LIST existed — both rename handlers called wornRename
      whatever renameInventoryItem returned, so a rename REFUSED for a collision still re-pointed the worn list at the item it
      collided with. v1.1209 retired wornRename: the equipped flag lives ON the row, and a refused rename writes no row. These

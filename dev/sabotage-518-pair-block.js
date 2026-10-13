@@ -13,6 +13,7 @@ var code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 var BLOCK = "#518 block";
 var MISSING = "a counted gift to a MISSING recipient", ONCE = "a loss unit pairs ONCE", STOW = "the stow pair shares the rule", TAKE613 = "#613 a take pair consumes the gain units it pairs";
+var FIELDS = "#599 I5 a refused gift keeps the row's unknown fields";
 prove("helpers.js", [
   { label: "every tag of a reply is one block again (prose no longer splits the spans — reply-wide pairing returns)",
     find: "if(cur&&!/\\S/.test(t.slice(cur[1],m.index)))cur[1]=m.index+m[0].length;", replace: "if(cur)cur[1]=m.index+m[0].length;",
@@ -53,7 +54,10 @@ prove("tag_table.js", [
     mustFail: TAKE613 },
   { label: "#613: the short take's shortfall reaches the units the companion handed over again (a gain of one beside a take of x3 from Bram's one takes back Bram's torch)",
     find: 'Math.min(cIlq.n-cIlHit,_tlG-_tlP)', replace: 'Math.min(cIlq.n-cIlHit,_tlG)',
-    mustFail: TAKE613 }
+    mustFail: TAKE613 },
+  { label: "#599 I5 (Astra's acceptance 2026-10-10): the missing-recipient rollback rebuilds the unit from its NAME again — the removed fragment is dropped, the row's unknown fields vanish while the receipt says it stays in the pack",
+    find: 'if(addInventoryItem(worldState.character.inventory,_gpx,itemPairTake(R,"ilFrags",cIgm[2],_cgBlk)))_gpu++;', replace: 'if(addInventoryItem(worldState.character.inventory,_gpx))_gpu++;',
+    mustFail: FIELDS }
 ]);
 /* The acceptance of 2026-10-12 (the "acceptance 2026-10-12 — #518 item pairs" section, 20 probes): each fix it forced is mutated
    back to the defect its probe named — the stow that pairs a loss unit twice (⑮) and files the tag's count (⑯), the gain that
