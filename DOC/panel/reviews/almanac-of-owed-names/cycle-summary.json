@@ -1,7 +1,7 @@
 {
   "source": "samples/the_almanac_of_owed_names.blueprint",
   "outcome": "Bellmere retains its grief, borrowed dead and permanent fog. The Compact now has a fixed chronology, specific permissions and disclosed costs; the mystery has stable evidence, and the climax offers distinct, consequential routes.",
-  "publication": "Prepared for publication after final checks; not yet published.",
+  "publication": "Published v1.0 Release Candidate as catalog revision 2; every field matches the reviewed source. The previous catalog entry was backed up. Existing campaigns keep their starting edition. Source commit is local; the shared-branch Git push awaits approval because unrelated location-display and test commits are ancestors.",
   "changes": [
     "One annual Setting occurs at the recorded third-night high tide. Act One's occupied chair is a separate household supper; postponing dinner cannot change expiry.",
     "Entries, face licenses, threshold invitations and life/name pledges are distinct. Reading or mentioning a name does not bind anyone. Civic renewal costs one voluntarily pledged year of life; Perce's ten-year rejuvenations are separate.",
@@ -10,7 +10,7 @@
     "Ordinary renewal can lawfully omit all dead names. Negotiation can further limit the living giver's licensed face. Severance ends protection at the next tide, whereas nonrenewal keeps the current term until its fixed expiry. Departure and prepared evacuation can work; the permanent fog survives.",
     "Pre-1.0 draft promoted to v1.0 Release Candidate after final review, with no story changes in that metadata promotion."
   ],
-  "verification": "Four immutable snapshots each received all fourteen perspectives. Actual normalization and isolated import preserved 69 authored fields, six NPCs, six locations, seven rules and nine arcs. Report links and desktop/mobile rendering are checked before shipment. The mandatory commit gate must pass. No narrated session, consent-recognition behavior or real-player test was run.",
+  "verification": "Four immutable snapshots each received all fourteen perspectives. Actual normalization and isolated import preserved 69 authored fields, six NPCs, six locations, seven rules and nine arcs. Report links and desktop/mobile rendering were checked before shipment. The mandatory commit gate passed all standalone suites and 3,106 engine assertions. No narrated session, consent-recognition behavior or real-player test was run.",
   "rounds": [
     "Baseline v0.01: the annual dinner occupied two positions in the timeline; naming, payment and exit rules were undefined; Wick and the dead-hand entry lacked fixed truths, and corpses conflicted with non-resurrection.",
     "Round 1 v0.02: fixed the chronology, Compact, evidence and endings. Design/player reviews found two remaining ambiguities: early refusal versus early severance, and indoor invitation for a licensed living face. Writing lenses found no new material issue.",

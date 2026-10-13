@@ -1,0 +1,13 @@
+{
+  "catalogId": "the_almanac_of_owed_names",
+  "version": "1.0",
+  "releaseStatus": "release-candidate",
+  "catalogRevision": 2,
+  "publishedAt": "2026-10-13 22:12:25",
+  "sourceCommit": "ea3b5151046fc4c7290bd21edeb7d61db737d4f3",
+  "sourceFileSha256": "b950a118bbd2292d88f1bb7e3fc59cf9c6b5cf0f4ea10f59e9dd1d1e7bb90562",
+  "publicCatalogMatchesEveryBlueprintField": true,
+  "otherCatalogEntriesUnchangedDuringPublication": true,
+  "serverBackup": "/data/catalog-backups/the_almanac_of_owed_names-before-v1.0-revision1-20261013.json",
+  "method": "Normal operator API, existing session and revision guard; public readback verified."
+}
