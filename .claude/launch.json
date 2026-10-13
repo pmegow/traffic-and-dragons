@@ -14,6 +14,13 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["dev/static-server.js"],
       "port": 8123
+    },
+    {
+      "name": "cx5-bench",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["../cx5-stereo-emulator/server.cjs"],
+      "port": 8765,
+      "url": "http://127.0.0.1:8765"
     }
   ]
 }
