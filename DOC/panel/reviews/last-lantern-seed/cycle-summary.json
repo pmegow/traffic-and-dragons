@@ -1,7 +1,7 @@
 {
   "source": "samples/the_last_lantern-seed.blueprint",
   "outcome": "The hopeful star-road journey retains its scope and wonder. The rite, seed stages, disguise and threatened waypoints now have fixed causes and usable alternatives. Three revision cycles resolved the editorial findings while retaining differing player preferences.",
-  "publication": "Published v1.0 Release Candidate as catalog revision 2; every field matches the reviewed source. The previous catalog entry was backed up. Existing campaigns keep their starting edition. Source commit is local; its Git push awaits approval because an unrelated shared-work commit is an ancestor.",
+  "publication": "Published v1.0 Release Candidate as catalog revision 2; every field matches the reviewed source. The previous catalog entry was backed up. Existing campaigns keep their starting edition. Source and publication records are committed and present on GitHub master.",
   "changes": [
     "The seed is a dormant husk, then an awake closed bud, then a rooted open lantern. Light loss has visible causes, mitigation and honest loss outcomes.",
     "The planting needs living light, the learned rite and any willing planter. The archive has readable instructions and observable access; Maren's copy plus trunk inscriptions offers an independent route.",
