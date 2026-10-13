@@ -1,0 +1,13 @@
+{
+  "catalogId": "the_last_lantern-seed",
+  "version": "1.0",
+  "releaseStatus": "release-candidate",
+  "catalogRevision": 2,
+  "publishedAt": "2026-10-13 21:53:36",
+  "sourceCommit": "7fc344e3d08a037de28a3668e061b2d06a114320",
+  "sourceFileSha256": "4a6156a3e330228a9d4c5da259b48807ca4b0b6758cddad972d0d1a4ea255c81",
+  "publicCatalogMatchesEveryBlueprintField": true,
+  "otherCatalogEntriesUnchangedDuringPublication": true,
+  "serverBackup": "/data/catalog-backups/the_last_lantern-seed-before-v1.0-revision1-20261013.json",
+  "method": "Normal operator API, existing session and revision guard; public readback verified."
+}
