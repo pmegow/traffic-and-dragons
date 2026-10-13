@@ -5893,7 +5893,13 @@ function runEngineTests(R){
     var w=ensureMapNode("Sandpoint",1,null);w.visits=3;var s=ensureMapNode("Sandpoint Town|Cathedral",5,"Sandpoint");s.visits=2;s.lastVisit=9;
     var L=toc464(GM464);
     if(L.vis.indexOf("Sandpoint Town")>=0)return "#464 a sub-location's place derives from its PARENT pointer, not its key — the dead world prefix was served: "+L.vis;
-    return L.vis.indexOf("Sandpoint — Cathedral")>=0?true:"#464 the sub-location is not listed under its canonical world: "+L.vis;
+    if(L.vis.indexOf("Sandpoint — Cathedral")<0)return "#464 the sub-location is not listed under its canonical world: "+L.vis;
+    /* the parent POINTER itself may be the tombstoned key (an older-device blob, a repair that merged the world after the child
+       was filed): the chain resolves every hop before it names the place */
+    var c=ensureMapNode("Sandpoint Town|Chapel",6,"Sandpoint Town");c.visits=1;c.lastVisit=10;c.parent="Sandpoint Town";/* the raw tombstoned pointer, whatever the minter resolved */
+    L=toc464(GM464);
+    if(L.vis.indexOf("Sandpoint Town")>=0)return "#464 a tombstoned parent pointer must resolve before it names the place: "+L.vis;
+    return L.vis.indexOf("Sandpoint — Chapel")>=0?true:"#464 the child of a tombstoned parent pointer is not listed under the canonical world: "+L.vis;
   });
   t("#464: a sub-location keyed by a bare name with a parent, and a room whose key names a road but whose parent is a tavern, both list by their parent chain",function(){
     makeWorld();memory.locations={};memory.map={nodes:keyedDict(),edges:[]};

@@ -41,8 +41,8 @@ rc |= sabotage.prove({
       find: "    if((edges[i].a===player&&bonded[edges[i].b])||(edges[i].b===player&&bonded[edges[i].a]))continue;",
       replace: "    if(false)continue;" },
 
-    { label: "TOC key resolution is dropped — a tombstoned key serves under its dead name again (#269③)",
-      mustFail: "tombstoned key still served under its dead name",
+    { label: "TOC key resolution is dropped — a tombstoned key no longer dedupes onto its canonical, which lists twice (#269③; since #464's parent-chain renderer resolves the name itself, the loop's resolve is the DEDUPE guard — re-attributed 2026-10-13)",
+      mustFail: "#464 the merged canonical is listed",
       find: "      var _lkR=(typeof locResolve===\"function\")?locResolve(lk[_vk]):lk[_vk];",
       replace: "      var _lkR=lk[_vk];" },
 
