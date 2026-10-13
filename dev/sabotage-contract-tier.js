@@ -759,7 +759,7 @@ rc |= sabotage.prove({
     {
       label: "#113 §4b the loud one-retry model fallback is gone — a bad primary is a dead mic",
       mustFail: "the model constants / fallback retry are gone",
-      find: "        return _transcribeOnce(blob, ext, key, STT_CLOUD_FALLBACK);",
+      find: "        return _transcribeOnce(blob, ext, route, STT_CLOUD_FALLBACK, audioMs);",/* #625: the route and the take's duration ride the retry */
       replace: "        throw e;"
     },
     {

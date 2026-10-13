@@ -2460,7 +2460,7 @@ try {
     process.exit(1);
   }
   // §4b — primary model constant + the loud one-retry fallback path.
-  if (!/STT_CLOUD_MODEL\s*=/.test(_stt) || !/STT_CLOUD_FALLBACK\s*=/.test(_stt) || !/_transcribeOnce\(blob,\s*ext,\s*key,\s*STT_CLOUD_FALLBACK\)/.test(_stt)) {
+  if (!/STT_CLOUD_MODEL\s*=/.test(_stt) || !/STT_CLOUD_FALLBACK\s*=/.test(_stt) || !/_transcribeOnce\(blob,\s*ext,\s*route,\s*STT_CLOUD_FALLBACK,\s*audioMs\)/.test(_stt)) {/* #625: the route and the take's duration ride the retry */
     console.error("STT UPGRADES: the model constants / fallback retry are gone — a primary-model failure now means a silently dead mic (#113 §4b).");
     process.exit(1);
   }

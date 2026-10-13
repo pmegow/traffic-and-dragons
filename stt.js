@@ -485,6 +485,7 @@ var STT = (function() {
   var _cloudChunks = [];
   var _cloudMime   = "";
   var _cloudTimer  = null;  // STT_MAX_RECORD_MS auto-stop (the endpointing backstop)
+  var _cloudStartedAt = 0;  // #625: when the recorder started — the take's duration rides the gateway request as X-TND-Audio-Ms (what the server meters)
   var _nbToasted   = false; // §4d: narrowband-mic warning shown at most once per page load
   var _cloudGeneration = 0, _cloudActiveGeneration = 0, _cloudBaseText = "";
   // audit F2 — the ACQUISITION window: from _cloudStart until getUserMedia resolves there is no
@@ -511,10 +512,23 @@ var STT = (function() {
     return true;
   }
 
+  /* #625 (owner 2026-10-13, "serve that key the same way we do all the others"): THE route for a transcription — an own
+     OpenAI key wins (BYOK unchanged, the fal/#622 precedent); else a signed-in ENTITLED player rides the T&D server's
+     dictation proxy when the account readout says the server holds the key (transcription.available); else null. Every
+     key question on the cloud path dispatches through it. */
+  function _sttRoute() {
+    var own = (typeof providerKeys !== "undefined" && providerKeys && providerKeys.openai) ? String(providerKeys.openai).trim() : "";
+    if (own) return { own: true, key: own };
+    if (typeof gmRouting !== "undefined" && gmRouting === "byok") return null;
+    if (typeof storageAdapter === "undefined" || typeof storageAdapter.isServerMode !== "function" || typeof storageAdapter.hasToken !== "function") return null;
+    if (!storageAdapter.isServerMode() || !storageAdapter.hasToken()) return null;
+    if (typeof serverAccount === "undefined" || !serverAccount || !serverAccount.entitled) return null;
+    if (!serverAccount.transcription || serverAccount.transcription.available !== true) return null;
+    return { server: true };
+  }
   function _cloudAvailable() {
     return !!(typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia &&
-      typeof MediaRecorder !== "undefined" &&
-      typeof providerKeys !== "undefined" && providerKeys && providerKeys.openai);
+      typeof MediaRecorder !== "undefined" && _sttRoute());
   }
 
   // Integration seam (orchestrator, post-lane review): Car Mode's tap must FINISH a cloud
@@ -585,6 +599,7 @@ var STT = (function() {
 
       try {
         _cloudRec.start();
+        _cloudStartedAt = Date.now();/* #625 */
       } catch(e) {
         _cloudTeardownStream();
         _cloudRec = null;
@@ -714,15 +729,16 @@ var STT = (function() {
     if (!chunks.length) return; // nothing captured
 
     var blob = new Blob(chunks, { type: mime || "audio/webm" });
-    _cloudUpload(blob, mime, generation, baseText);
+    var audioMs = _cloudStartedAt ? Math.max(0, Date.now() - _cloudStartedAt) : 0; _cloudStartedAt = 0;/* #625 */
+    _cloudUpload(blob, mime, generation, baseText, audioMs);
   }
 
-  function _cloudUpload(blob, mime, generation, baseText) {
-    var key = (typeof providerKeys !== "undefined" && providerKeys) ? providerKeys.openai : null;
-    if (!key) {
-      if (typeof showToast === "function") showToast("Voice input needs an OpenAI API key.");
-      if (typeof carNotify === "function") carNotify("warn", "Voice input needs an OpenAI API key"); /* final-pass #32 */
-      console.warn("[stt] cloud upload skipped: no OpenAI key");
+  function _cloudUpload(blob, mime, generation, baseText, audioMs) {
+    var route = _sttRoute();/* #625: an own key, or the T&D server's dictation proxy for a signed-in entitled player */
+    if (!route) {
+      if (typeof showToast === "function") showToast("Voice input needs an OpenAI API key, or a signed-in account the T&D server transcribes for.");
+      if (typeof carNotify === "function") carNotify("warn", "Voice input needs an OpenAI API key, or a signed-in account the T&D server transcribes for"); /* final-pass #32 */
+      console.warn("[stt] cloud upload skipped: no route (no OpenAI key, not signed in, or the server holds no key)");
       return Promise.resolve(false);
     }
     if (typeof carNotify === "function") carNotify("info", "Transcribing…");
@@ -730,15 +746,18 @@ var STT = (function() {
     var ext = (mime && mime.indexOf("mp4") >= 0) ? "mp4" : "webm";
     // §4b: primary model with ONE loud fallback retry — a model-id rot or a 4xx on the newer
     // endpoint must degrade to yesterday's behavior, never to a silently dead mic.
-    return _transcribeOnce(blob, ext, key, STT_CLOUD_MODEL)
+    // #625: an ACCOUNT refusal from the server (the daily cap, a lapsed subscription, an expired
+    // sign-in) is terminal — retrying the fallback model would only pay a second refusal.
+    return _transcribeOnce(blob, ext, route, STT_CLOUD_MODEL, audioMs)
       ["catch"](function(e) {
         if (generation !== _cloudGeneration) {
           console.info("[stt] stale transcription failure ignored for generation " + generation + " (current " + _cloudGeneration + ")");
           return null;
         }
+        if (e && e.terminal) throw e;
         console.warn("[stt] " + STT_CLOUD_MODEL + " failed (" + (e && e.message) + ") — retrying with " + STT_CLOUD_FALLBACK);
         if (typeof erCrumb === "function") erCrumb("stt-fallback", { m: STT_CLOUD_MODEL, err: String((e && e.message) || "?").slice(0, 40) });
-        return _transcribeOnce(blob, ext, key, STT_CLOUD_FALLBACK);
+        return _transcribeOnce(blob, ext, route, STT_CLOUD_FALLBACK, audioMs);
       })
       .then(function(json) {
         if (generation !== _cloudGeneration) {
@@ -764,7 +783,7 @@ var STT = (function() {
   // win — Whisper decodes toward vocabulary it has been told to expect, so the campaign's
   // proper nouns (party, roster, places, quests) finally count as words. sttCorrectNames
   // stays downstream as the second net.
-  function _transcribeOnce(blob, ext, key, model) {
+  function _transcribeOnce(blob, ext, route, model, audioMs) {
     var form = new FormData();
     form.append("file", blob, "speech." + ext);
     form.append("model", model);
@@ -780,14 +799,31 @@ var STT = (function() {
     }
     var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
     var timedOut = false, tid = null;
+    /* #625: the SAME multipart on either route — the server forwards the bytes and the boundary verbatim and attaches the
+       operator's key; the own-key request is byte-identical to the pre-#625 one. The session header never carries a
+       vendor key, nor the reverse. The take's duration rides the gateway request: it is what the server meters. */
+    var headers = route.server
+      ? (function() { var h = { "X-TND-Audio-Ms": String(Math.round(audioMs || 0)) }; try { var a = storageAdapter.authHeader(); for (var k in a) h[k] = a[k]; } catch (e0) {} return h; })()
+      : { "Authorization": "Bearer " + route.key };
+    var url = route.server ? String(storageAdapter.getServerUrl() || "").replace(/\/$/, "") + "/api/stt/transcribe" : "https://api.openai.com/v1/audio/transcriptions";
     var opts = {
       method: "POST",
-      headers: { "Authorization": "Bearer " + key },
+      headers: headers,
       body: form
     };
     if (ctrl) opts.signal = ctrl.signal;
-    var network = fetch("https://api.openai.com/v1/audio/transcriptions", opts).then(function(resp) {
-      if (!resp.ok) throw new Error("HTTP " + resp.status + " (" + model + ")");
+    var network = fetch(url, opts).then(function(resp) {
+      if (!resp.ok) {
+        if (route.server && (resp.status === 401 || resp.status === 402 || resp.status === 429)) {
+          /* an account refusal carries its own sentence and ends the attempt — no fallback model, no second refusal */
+          return Promise.resolve(typeof resp.json === "function" ? resp.json() : null)["catch"](function() { return null; }).then(function(j) {
+            var msg = (j && (typeof j.error === "string" ? j.error : (j.error && j.error.message))) || (j && j.message) || ("HTTP " + resp.status);
+            if (j && j.error === "subscription") msg = "Your account has no active subscription for dictation" + (j.reason ? " (" + j.reason + ")" : "");
+            var te = new Error(msg); te.terminal = true; throw te;
+          });
+        }
+        throw new Error("HTTP " + resp.status + " (" + model + ")");
+      }
       return resp.json();
     });
     var deadline = new Promise(function(resolve, reject) {
@@ -859,6 +895,7 @@ var STT = (function() {
       begin: _cloudBeginGeneration,
       upload: _cloudUpload,
       transcribeOnce: _transcribeOnce,
+      route: _sttRoute, available: _cloudAvailable,/* #625 */
       generation: function() { return _cloudGeneration; },
       timeoutMs: STT_UPLOAD_TIMEOUT_MS
     }
