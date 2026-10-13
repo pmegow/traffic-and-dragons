@@ -51,6 +51,8 @@ var SUITES = [
   "dev/tests-29-callgm-transport.js",
   "dev/tests-621-portrait-vision.js",
   "dev/tests-622-tts-gateway.js",/* #622: a keyless signed-in player's Speechify rides the T&D server; own keys win; the picker lists reachable readers */
+  "dev/tests-418-schedule-retire.js",/* #418: ONE schedule-and-retire for every decoded buffer — the three read loops share it */
+  "dev/tests-419-vad-context.js",/* #419: the STT analyser rides sound.js's one AudioContext; the fallback is one lazy context per page */
   "dev/tests-41f-gemini-model-ladder.js",
   "dev/tests-233-tts-body-deadlines.js",
   "dev/tests-401-voice-settings.js",

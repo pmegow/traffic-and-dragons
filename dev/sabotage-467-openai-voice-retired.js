@@ -35,8 +35,9 @@ var carried = [
     find: "if (DEFAULT_SPEAKER_STARS[i].id === voiceId)", replace: "if (false)",
     mustFail: "unstarred shipped pin lost its gender" },
   { label: "the cloud reader keeps decoded PCM after a group ends (was #398)",
-    find: "        try { mySrc.buffer = null; } catch (e) {}\n        var ix = _sources.indexOf(mySrc); if (ix >= 0) _sources.splice(ix, 1);\n        if (loopDone && activeSrcs === 0",
-    replace: "        var ix = _sources.indexOf(mySrc); if (ix >= 0) _sources.splice(ix, 1);\n        if (loopDone && activeSrcs === 0",
+    /* #418: the retire moved from the cloud lane into the ONE helper (_scheduleDecoded); the clause follows it */
+    find: "      try { src.buffer = null; } catch (e) {}\n      var ix = _sources.indexOf(src); if (ix >= 0) _sources.splice(ix, 1);",
+    replace: "      var ix = _sources.indexOf(src); if (ix >= 0) _sources.splice(ix, 1);",
     mustFail: "a finished group kept its decoded audio" },
   { label: "Skip leaves a cloud audition's Test pulse stuck (was #398)",
     find: "    _stopCurrent();\n    _auditionPhase(\"idle\");\n    _playing = false;",

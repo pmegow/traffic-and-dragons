@@ -527,8 +527,8 @@ rc |= sabotage.prove({
     {
       label: "v1.430 the onended handler stops detaching the source buffer (Safari #718 retention)",
       mustFail: "no longer nulls the source's buffer",
-      find: /mySrc\.buffer = null/g,
-      replace: "mySrc.bufferRETAINED = null"
+      find: /src\.buffer = null/g,/* #418: the detach lives in _scheduleDecoded now */
+      replace: "src.bufferRETAINED = null"
     },
     {
       label: "v1.430 the healthy-context recycle is gone from recoverAudio (B9's prime suspect uncapped)",

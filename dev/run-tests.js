@@ -1897,7 +1897,10 @@ try {
 try {
   var _fsP = require("fs"), _pathP = require("path");
   var _ttsP = _src("tts.js");
-  if (_stripComments(_ttsP).indexOf("mySrc.buffer = null") < 0) {
+  /* #418: the onended handler lives in ONE place now — _scheduleDecoded — so the detach is pinned there, not in three lanes */
+  var _schedP = _stripComments((_ttsP.match(/function _scheduleDecoded\([\s\S]*?\n  \}\n/) || [""])[0]);
+  if (!_schedP) { console.error("PLAYBACK RECYCLE CONTRACT: _scheduleDecoded not found — the one schedule-and-retire helper (#418) is gone."); process.exit(1); }
+  if (_schedP.indexOf("src.buffer = null") < 0) {
     console.error("PLAYBACK RECYCLE CONTRACT: the onended handler no longer nulls the source's buffer — Safari retains a source's decoded PCM after disconnect unless the buffer is explicitly detached (standardized-audio-context #718, v1.430).");
     process.exit(1);
   }

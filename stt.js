@@ -631,12 +631,23 @@ var STT = (function() {
   // analyser are disconnected in _vadStop, which every teardown path runs. Degrades safely:
   // a noisy cabin whose floor never drops below the threshold simply rides to the hard cap —
   // the pre-§4c behavior with a longer window, never a cut-off.
-  var _vadCtx = null, _vadSrc = null, _vadAnalyser = null, _vadPoll = null, _vadBuf = null;
+  var _vadCtx = null, _vadOwnCtx = null, _vadSrc = null, _vadAnalyser = null, _vadPoll = null, _vadBuf = null;
   function _vadStart(stream) {
     try {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      if (!_vadCtx) _vadCtx = new AC();
+      /* #419 (audit F4, built 2026-10-12): the analyser rides sound.js's ONE AudioContext when it is on the page (the game
+         loads sound.js after stt.js; this runs at mic time, long after load) — iOS caps concurrent contexts and this was
+         the page's third. The mic analyser needs no rate of its own: createMediaStreamSource resamples the mic to the
+         context, whatever its rate. A page without sound.js (a satellite) or a context sound.js cannot mint keeps the lazy
+         singleton below — ONE for the page, never one per take. Neither is ever closed here: sound.js owns the shared one
+         (it dooms and rebuilds it itself), and the fallback lives for the page. */
+      var shared = (typeof Sound !== "undefined" && Sound && typeof Sound.context === "function") ? Sound.context() : null;
+      if (shared) _vadCtx = shared;
+      else {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        if (!_vadOwnCtx) _vadOwnCtx = new AC();
+        _vadCtx = _vadOwnCtx;
+      }
       if (_vadCtx.state === "suspended" || _vadCtx.state === "interrupted") { if (typeof resumeObserved === "function") resumeObserved(_vadCtx, "vad"); else { try { _vadCtx.resume(); } catch(e) {} } }/* B39: observed, never a discarded promise */
       _vadSrc = _vadCtx.createMediaStreamSource(stream);
       _vadAnalyser = _vadCtx.createAnalyser();
@@ -843,6 +854,7 @@ var STT = (function() {
     loadSettings:  loadSettings,
     // Cloud-path internals, exported ONLY for the headless engine tests (same contract as tts.js's
     // _textPrep/_serverTest): the underscore marks them as not part of the player-facing surface.
+    _vadTest: { start: _vadStart, stop: _vadStop, ctx: function() { return _vadCtx; }, own: function() { return _vadOwnCtx; } },/* #419: engine-tests-only seam, underscore-marked like _cloudTest */
     _cloudTest: {
       begin: _cloudBeginGeneration,
       upload: _cloudUpload,

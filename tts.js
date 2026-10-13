@@ -2929,6 +2929,30 @@ var TTS = (function() {
       if (tid) clearTimeout(tid);
     }
   }
+  /* #418 (audit F9, built 2026-10-12): ONE schedule-and-retire for every decoded buffer. The server, cloud and Piper read
+     loops each carried this block, so the retention-critical steps — disconnect, `buffer = null` (Safari keeps a source's
+     decoded PCM after disconnect unless the buffer is detached: standardized-audio-context #718), the _sources splice —
+     had three landing sites, and the tests pinned function text to keep them aligned. Schedules `buf` at or after
+     `nextStart` (never in the past), counts it on the current context (B9 H1, crumb cs), tracks it in _sources so stop()/
+     skip() can stop the still-pending ones, and on end releases it and calls `onEnded` — the lane's own bookkeeping
+     (activeSrcs, onAllDone) stays in the lane. Returns the next start time (start + duration + the lane's tiered gap). */
+  function _scheduleDecoded(ctx, buf, nextStart, gap, onEnded) {
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    var startAt = Math.max(nextStart, ctx.currentTime + 0.03);
+    src.start(startAt);
+    _ctxSynths++;
+    _sources.push(src);
+    src.onended = function() {
+      try { src.disconnect(); } catch (e) {}
+      try { src.buffer = null; } catch (e) {}
+      var ix = _sources.indexOf(src); if (ix >= 0) _sources.splice(ix, 1);
+      if (typeof onEnded === "function") onEnded();
+    };
+    return startAt + buf.duration + gap;
+  }
+
   async function _speakServer(text, voiceId, voices) {
     var myEpoch = ++_piperEpoch;
 
@@ -3002,24 +3026,12 @@ var TTS = (function() {
       }
 
       anyOk = true;
-      var src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(ctx.destination);
-      var startAt = Math.max(nextStart, ctx.currentTime + 0.03);
-      src.start(startAt);
-      _ctxSynths++;   // B9 H1: playback sources on the current ctx — same accounting as local Piper
-      nextStart  = startAt + buf.duration + unitGap(u);
-      _nextStart = nextStart;
-
       activeSrcs++;
-      _sources.push(src);
-      src.onended = (function(mySrc) { return function() {
+      nextStart = _scheduleDecoded(ctx, buf, nextStart, unitGap(u), function() {/* #418: the one retire; this lane's bookkeeping */
         activeSrcs--;
-        try { mySrc.disconnect(); } catch (e) {}
-        try { mySrc.buffer = null; } catch (e) {}   // Safari #718 — detach or the decoded PCM is retained
-        var ix = _sources.indexOf(mySrc); if (ix >= 0) _sources.splice(ix, 1);
         if (loopDone && activeSrcs === 0 && _piperEpoch === myEpoch) onAllDone();
-      }; })(src);
+      });
+      _nextStart = nextStart;
     }
 
     loopDone = true;
@@ -3257,24 +3269,12 @@ var TTS = (function() {
 
       if (!anyOk) _auditionPhase("playing");   // FIRST scheduled audio — the pulse has done its job
       anyOk = true;
-      var src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(ctx.destination);
-      var startAt = Math.max(nextStart, ctx.currentTime + 0.03);
-      src.start(startAt);
-      _ctxSynths++;
-      nextStart  = startAt + buf.duration + unitGap(g.last);
-      _nextStart = nextStart;
-
       activeSrcs++;
-      _sources.push(src);
-      src.onended = (function(mySrc) { return function() {
+      nextStart = _scheduleDecoded(ctx, buf, nextStart, unitGap(g.last), function() {/* #418: the one retire; this lane's bookkeeping */
         activeSrcs--;
-        try { mySrc.disconnect(); } catch (e) {}
-        try { mySrc.buffer = null; } catch (e) {}
-        var ix = _sources.indexOf(mySrc); if (ix >= 0) _sources.splice(ix, 1);
         if (loopDone && activeSrcs === 0 && _piperEpoch === myEpoch) onAllDone();
-      }; })(src);
+      });
+      _nextStart = nextStart;
     }
 
     loopDone = true;
@@ -3475,32 +3475,15 @@ var TTS = (function() {
       }
 
       anyOk = true;
-      var src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(ctx.destination);
-      var startAt = Math.max(nextStart, ctx.currentTime + 0.03);   // never schedule in the past
       if (_curItem && _curItem.audition) _auditionPhase("playing");
-      src.start(startAt);
-      _ctxSynths++;   // B9 H1 (v1.430): one more source started on the current context (crumb: cs)
-      nextStart  = startAt + buf.duration + unitGap(u);   // tiered: comma/clause/fullstop/paragraph (see PAUSE_* above)
-      _nextStart = nextStart;
-
       activeSrcs++;
-      _sources.push(src);
-      src.onended = (function(mySrc) { return function() {
+      /* #418: the one schedule-and-retire (v1.320 free-as-you-go + the v1.430 Safari #718 detach live in _scheduleDecoded);
+         the tiered gap (comma/clause/fullstop/paragraph, PAUSE_* above) and this lane's bookkeeping stay here */
+      nextStart = _scheduleDecoded(ctx, buf, nextStart, unitGap(u), function() {
         activeSrcs--;
-        // Free the played buffer (v1.320): disconnect + drop our reference so the decoded PCM can
-        // GC as playback progresses — with the backpressure above, memory stays ~constant however
-        // long the passage is. stop()/skip() only need the still-pending sources.
-        // v1.430 (B9 H1): ALSO null the node's buffer ref — Safari is documented to retain a
-        // source's decoded PCM after disconnect unless the buffer is explicitly detached
-        // (standardized-audio-context #718); disconnect+deref alone was the one release step
-        // this path skipped.
-        try { mySrc.disconnect(); } catch(e) {}
-        try { mySrc.buffer = null; } catch(e) {}
-        var ix = _sources.indexOf(mySrc); if (ix >= 0) _sources.splice(ix, 1);
         if (loopDone && activeSrcs === 0 && _piperEpoch === myEpoch) onAllDone();
-      }; })(src);
+      });
+      _nextStart = nextStart;
     }
 
     loopDone = true;
@@ -4650,7 +4633,12 @@ var TTS = (function() {
       piperOptionsSrc: function() { return String(_buildPiperVoiceOptions); },
       speakPiperSrc:   function() { return String(_speakPiper); },
       speakServerSrc:  function() { return String(_speakServer); },
-      speakGeminiSrc:  function() { return String(_speakGemini); }
+      speakGeminiSrc:  function() { return String(_speakGemini); },
+      /* #418: the one schedule-and-retire, its source, and the live accounting it writes */
+      scheduleDecoded:    _scheduleDecoded,
+      scheduleDecodedSrc: function() { return String(_scheduleDecoded); },
+      sources:            function() { return _sources.slice(); },
+      ctxSynths:          function() { return _ctxSynths; }
     }
   };
 
