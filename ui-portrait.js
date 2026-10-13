@@ -220,7 +220,7 @@ async function showPortraitModal(refreshFn,opts){
     +"</div>"
     +"<input type='file' id='pm-file' accept='image/*' style='display:none;'>"
     // ── Describe appearance from the image (vision; reverse of Generate) ────
-    +(hasPortrait?"<button id='pm-describe' style='display:block;width:100%;margin-top:6px;padding:9px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);' title='Use Claude vision to read this image into the appearance field'>&#128269; Describe appearance from image</button>":"")
+    +(hasPortrait?"<button id='pm-describe' style='display:block;width:100%;margin-top:6px;padding:9px;font-size:12px;font-family:var(--font);border-radius:var(--r);cursor:pointer;text-align:center;box-sizing:border-box;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);' title='Read this image into the appearance field with the vision model'>&#128269; Describe appearance from image</button>":"")
     // ── 2. Generate from scratch ───────────────────────────────────────────
     +div("or generate from scratch")
     +lbl("Additional details (optional):")
@@ -296,7 +296,7 @@ async function showPortraitModal(refreshFn,opts){
     discardBtn.addEventListener("click",function(){status.innerHTML="";});
   }
 
-  // ── Describe appearance FROM the image (Claude vision; reverse of Generate) ──
+  // ── Describe appearance FROM the image (the vision model through the GM transport, #621; reverse of Generate) ──
   async function runDescribe(){
     var status=document.getElementById("pm-status");
     var src=getPort();if(!src)return;

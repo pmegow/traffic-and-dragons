@@ -316,6 +316,15 @@ var PROVIDERS={
       }
       return body;
     },
+    // #621: the ONE multimodal request shape for this vendor — a system prompt, one user text and one
+    // base64 image (describePortraitImage). Lives beside buildBody so the vendor's image grammar stays
+    // with its adapter; buildBody itself is byte-untouched (sweep-pinned). An adapter without a
+    // `vision` builder is simply not a portrait route (PORTRAIT_VISION_ORDER, api.js).
+    vision:function(sys,text,mime,b64,maxTok,model){
+      var body={model:model,max_tokens:maxTok,system:sys,messages:[{role:"user",content:[{type:"text",text:text},{type:"image",source:{type:"base64",media_type:mime,data:b64}}]}]};
+      if(/^claude-(sonnet|opus)-5/.test(model))body.thinking={type:"disabled"};/* the same adaptive-thinking guard as buildBody */
+      return body;
+    },
     parseResponse:function(data){var i;if(data.content)for(i=0;i<data.content.length;i++){if(data.content[i]&&data.content[i].type!=="thinking"&&typeof data.content[i].text==="string"&&data.content[i].text.trim())return data.content[i].text;}throw new Error("Empty response");}, // tolerant of thinking-bearing responses: first NON-EMPTY non-thinking text block wins (the opus-5 lesson; #198 adds the trim — ""/whitespace blocks fall through to the loud throw instead of committing an empty turn)
     parseFinish:function(data){return data.stop_reason==="max_tokens"?"max_tokens":null;},
     finishRaw:function(data){return (data&&data.stop_reason)||null;},finishNormal:["end_turn","stop_sequence","tool_use"],/* B43 */
@@ -401,6 +410,10 @@ var PROVIDERS={
     // and MORE narration (thinking-on spends its budget deliberating instead of writing).
     // ⚠ "minimal" is NOT a legal tightening — this model rejects it with HTTP 400.
     buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={thinkingConfig:{thinkingLevel:"low"}};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
+    // #621 (owner ruling 2026-10-12, "just use Gemini for this"): the vendor's image grammar is an inlineData
+    // part beside the text part; the system prompt rides systemInstruction exactly as buildBody sends it, and
+    // thinking stays low (the mandatory-thinking cost lesson above). buildBody is byte-untouched.
+    vision:function(sys,text,mime,b64,maxTok,model){var gc={thinkingConfig:{thinkingLevel:"low"}};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sys}]},contents:[{role:"user",parts:[{text:text},{inlineData:{mimeType:mime,data:b64}}]}],generationConfig:gc};},
     // #198: ""/whitespace THROWS. #335 (the t189 tub, 2026-09-04): three "EMPTY RESPONSE" in a row told the
     // player nothing — the old guard read parts[0] only and discarded the reason. Now EVERY text part is
     // joined (thought parts skipped — gemini 3 may lead with a signature or an empty part), and an empty
@@ -426,7 +439,7 @@ var PROVIDERS={
   }
 };
 var carMode=false;
-var APP_VERSION="v1.1245";
+var APP_VERSION="v1.1246";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

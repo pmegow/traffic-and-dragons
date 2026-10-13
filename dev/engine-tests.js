@@ -12076,7 +12076,10 @@ function runEngineTests(R){
     // this one function, so the constant reaching the request body is what fixes both surfaces
     var src=String(describePortraitImage);
     if(src.indexOf("PORTRAIT_DESC_SYS")<0)return "the request no longer uses PORTRAIT_DESC_SYS — a local prompt would silently diverge from the tested one";
-    return /system:\s*PORTRAIT_DESC_SYS/.test(src)?true:"PORTRAIT_DESC_SYS is referenced but not passed as the system prompt";
+    /* #621: the constant reaches the body through each adapter's vision builder (system / systemInstruction are the vendors' names for it) */
+    if(!/\.vision\(\s*PORTRAIT_DESC_SYS\s*,/.test(src))return "PORTRAIT_DESC_SYS is referenced but not handed to the vision builder as the system prompt";
+    var g=PROVIDERS.gemini.vision(PORTRAIT_DESC_SYS,"x","image/jpeg","QUJD",100,"gemini-3.8-flash"),a=PROVIDERS.anthropic.vision(PORTRAIT_DESC_SYS,"x","image/jpeg","QUJD",100,"claude-sonnet-5");
+    return g.systemInstruction.parts[0].text===PORTRAIT_DESC_SYS&&a.system===PORTRAIT_DESC_SYS?true:"a vision builder does not carry PORTRAIT_DESC_SYS as the system prompt";
   });
   t("skeletonHasDna detects a dnaHint on any arc",function(){
     if(skeletonHasDna({acts:[{arcs:[{}]},{arcs:[{}]},{arcs:[{}]}]}))return "false positive";
@@ -34398,6 +34401,48 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var p=shopTradePlan(cat,{sell:{"longsword":1},buy:{}});if(p.ok||p.lines.length)return "the plan skips an equipped row";
     var st=stashLedgerRows({carried:[{name:"Longsword",qty:1,equipped:true}],stored:[{name:"Rope",qty:2,room:"hall"}]});if(!st.left[0].equipped||!st.left[0].off||st.right[0].equipped!==false||"worn" in st.left[0]||"worn" in st.right[0])return "the chest rows: "+JSON.stringify(st);
     var h=__fsForTests.readFileSync(__rootForTests+"/helpers.js","utf8");if(/\bworn\s*:|\.worn\b/.test(h.replace(/\/\*[\s\S]*?\*\//g,"")))return "helpers.js still names a worn field";
+    return true;
+  });
+
+  section("#621 — the portrait describer rides the GM transport, Gemini first (the first outside tester, 2026-10-12)");
+  t("#621 the vision builders: Gemini carries the system prompt as systemInstruction, the text and the image as an inlineData part under thinking low; Claude carries it as system with a base64 image block and thinking disabled; OpenAI has no builder",function(){
+    var g=PROVIDERS.gemini.vision("SYS","Describe.","image/jpeg","QUJD",1600,"gemini-3.8-flash");
+    if(!g.systemInstruction||g.systemInstruction.parts[0].text!=="SYS")return "gemini system: "+JSON.stringify(g.systemInstruction);
+    var p=g.contents&&g.contents[0]&&g.contents[0].parts;if(!p||g.contents.length!==1||g.contents[0].role!=="user"||p.length!==2||p[0].text!=="Describe."||!p[1].inlineData||p[1].inlineData.mimeType!=="image/jpeg"||p[1].inlineData.data!=="QUJD")return "gemini parts: "+JSON.stringify(g.contents);
+    if(!g.generationConfig||g.generationConfig.thinkingConfig.thinkingLevel!=="low"||g.generationConfig.maxOutputTokens!==1600)return "gemini generationConfig: "+JSON.stringify(g.generationConfig);
+    var a=PROVIDERS.anthropic.vision("SYS","Describe.","image/png","QUJD",400,"claude-sonnet-5");
+    if(a.system!=="SYS"||a.model!=="claude-sonnet-5"||a.max_tokens!==400||!a.thinking||a.thinking.type!=="disabled")return "claude envelope: "+JSON.stringify(a);
+    var c=a.messages&&a.messages[0]&&a.messages[0].content;if(!c||a.messages.length!==1||a.messages[0].role!=="user"||c.length!==2||c[0].type!=="text"||c[0].text!=="Describe."||c[1].type!=="image"||c[1].source.type!=="base64"||c[1].source.media_type!=="image/png"||c[1].source.data!=="QUJD")return "claude content: "+JSON.stringify(c);
+    if(typeof PROVIDERS.openai.vision==="function")return "openai gained a vision builder — add it to the route test before it becomes a route";
+    return true;
+  });
+  t("#621 the route: a signed-in player rides the gateway on Gemini with no key; BYOK picks Gemini over Claude when both keys exist, Claude when it is the only key, the active provider's bare apiKey counts; an OpenAI-only player and a keyless unsigned player have no route",function(){
+    var via=gmViaServer,pk=providerKeys,ak=apiKey,ap=activeProvider,pm=providerModels;
+    function show(r){return JSON.stringify(r&&{id:r.prov.id,key:r.key,server:r.server,model:r.model});}
+    try{
+      if(PORTRAIT_VISION_ORDER.join()!=="gemini,anthropic")return "the order is the owner's: "+PORTRAIT_VISION_ORDER.join();
+      gmViaServer=function(){return true;};providerKeys={anthropic:"sk-a",gemini:"AIza-g"};apiKey="sk-a";activeProvider="anthropic";providerModels={};
+      var r=portraitVisionRoute();if(!r||r.prov.id!=="gemini"||r.key!==""||r.server!==true||r.model!==PROVIDERS.gemini.defaultModel)return "gateway route (an own key never rides the gateway request — the server attaches its own): "+show(r);
+      gmViaServer=function(){return false;};providerKeys={anthropic:"sk-a",gemini:"AIza-g"};apiKey="sk-a";providerModels={gemini:"gemini-3.7-flash"};
+      r=portraitVisionRoute();if(!r||r.prov.id!=="gemini"||r.key!=="AIza-g"||r.server!==false||r.model!=="gemini-3.7-flash")return "both keys: "+show(r);
+      providerKeys={anthropic:"sk-a"};providerModels={};r=portraitVisionRoute();if(!r||r.prov.id!=="anthropic"||r.key!=="sk-a"||r.model!==PROVIDERS.anthropic.defaultModel)return "claude only: "+show(r);
+      providerKeys={};apiKey="sk-bare";activeProvider="anthropic";r=portraitVisionRoute();if(!r||r.prov.id!=="anthropic"||r.key!=="sk-bare")return "bare apiKey on the active provider: "+show(r);
+      providerKeys={openai:"sk-o"};apiKey="sk-o";activeProvider="openai";if(portraitVisionRoute()!==null)return "an OpenAI-only player has no vision route";
+      providerKeys={};apiKey="";if(portraitVisionRoute()!==null)return "no key and no sign-in is a null route";
+      return true;
+    }finally{gmViaServer=via;providerKeys=pk;apiKey=ak;activeProvider=ap;providerModels=pm;}
+  });
+  t("#621 describePortraitImage: the Claude-key gate is gone, the body comes from the chosen adapter's vision builder, the request rides gmTransport under kind portrait, a gateway 401/402 becomes the account message, usage records the gateway flag; the two call sites still share the one function",function(){
+    var src=String(describePortraitImage);
+    if(/Needs a Claude/.test(src)||/providerKeys\.anthropic/.test(src))return "the describer still gates on a Claude key";
+    if(!/portraitVisionRoute\(\)/.test(src)||!/\.vision\(\s*PORTRAIT_DESC_SYS\s*,/.test(src))return "the route or the builder is bypassed";
+    if(!/gmTransport\(\s*prov\s*,\s*model\s*,\s*r\.key\s*,\s*"portrait"/.test(src))return "the request does not ride gmTransport under kind portrait";
+    if(!/_tp\.server&&\(res\.status===402\|\|res\.status===401\)/.test(src)||!/gmServerRefusalMessage\(/.test(src))return "a gateway refusal would read as a vendor error";
+    if(!/recordUsage\(\s*_u\s*,\s*"portrait"\s*,\s*model\s*,\s*0\s*,\s*_tp\.server\s*\)/.test(src))return "usage does not carry the gateway flag";
+    if(!/Sign in, or add a Gemini or Claude key/.test(src))return "a null route is not told what to do";
+    var fs=__fsForTests,R=__rootForTests,cc=fs.readFileSync(R+"/char-creation.js","utf8"),up=fs.readFileSync(R+"/ui-portrait.js","utf8");
+    if(cc.indexOf("await describePortraitImage(cs.portrait,cs.name)")<0||up.indexOf("await describePortraitImage(src,c.name)")<0)return "a call site stopped sharing the one function";
+    if(/Claude vision/.test(up))return "the portrait modal still promises Claude";
     return true;
   });
 

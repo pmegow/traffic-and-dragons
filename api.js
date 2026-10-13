@@ -3877,23 +3877,37 @@ var PORTRAIT_DESC_SYS="You are a character artist's eye for a dark fantasy RPG. 
  +"DO NOT tie the description to this one image. No specific garments, garment colours, armour pieces or accessories (never 'an olive hood', 'a red cloak', 'a silver brooch'), and no pose, gesture, facial expression, background, weather or lighting.\n"
  +"A general style REGISTER is fine and useful, because it survives a change of outfit: 'dressed for hard travel', 'carries herself like someone used to armour', 'in the sober cut of a city clerk'. A named colour or a named item is not.\n"
  +"Write it in the third person as an appearance entry. Output ONLY the description -- no preamble, no quotes.";
+// #621 (owner ruling 2026-10-12, the first outside beta tester): the describer rides the SAME transport as the
+// GM — Gemini first, through the operator's gateway for a signed-in player (the gateway holds the vendor key)
+// and on the player's own key otherwise; a Claude key is the BYOK fallback. Until v1.1245 it was a fourth
+// silent BYOK rider (#288 §3.7 counted two): it went straight to Anthropic on providerKeys.anthropic and told
+// a keyless tester "Needs a Claude (Anthropic) key." — the paste-a-key remedy a subscription player cannot act
+// on. The order is the owner's: Gemini is the route; Claude stays only so a Claude-only BYOK player is not
+// stranded. An adapter joins this list by gaining a `vision` builder (globals.js) — nothing else.
+var PORTRAIT_VISION_ORDER=["gemini","anthropic"];
+function portraitVisionRoute(){
+  var server=gmViaServer(),i,id,prov,own;
+  for(i=0;i<PORTRAIT_VISION_ORDER.length;i++){
+    id=PORTRAIT_VISION_ORDER[i];prov=PROVIDERS[id];if(!prov||typeof prov.vision!=="function")continue;
+    own=server?"":(((typeof providerKeys!=="undefined"&&providerKeys[id])||(activeProvider===id?apiKey:""))||"");
+    if(server||own)return {prov:prov,key:own,server:server,model:(typeof providerModels!=="undefined"&&providerModels[id])||prov.defaultModel};
+  }
+  return null;
+}
 async function describePortraitImage(base64Url,charName){
-  var key=(typeof providerKeys!=="undefined"&&providerKeys.anthropic)?providerKeys.anthropic:(activeProvider==="anthropic"?apiKey:"");
-  if(!key)throw new Error("Needs a Claude (Anthropic) key.");
+  var r=portraitVisionRoute();
+  if(!r)throw new Error("Sign in, or add a Gemini or Claude key via File ▸ Settings ▸ Language Model.");
   var mm=base64Url.match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
   if(!mm)throw new Error("Portrait must be a base64 image.");
-  var model=(typeof providerModels!=="undefined"&&providerModels.anthropic)||PROVIDERS.anthropic.defaultModel;
-  var body={model:model,max_tokens:400,system:PORTRAIT_DESC_SYS,messages:[{role:"user",content:[
-    {type:"text",text:"Describe this character's appearance for their sheet."+(charName?" Their name is "+charName+".":"")},
-    {type:"image",source:{type:"base64",media_type:mm[1],data:mm[2]}}
-  ]}]};
-  /* audit 2026-09-18 B6: this was the one model call outside the transport contract — no deadline (a hung vision call hung
-     forever), no providerHttpError (an exhausted balance surfaced as "Claude 400", the B15 class), no recordUsage (every
-     description's tokens were invisible to the usage panel, the #30 undercount class). Same guarantees as callGM now. */
-  var prov=PROVIDERS.anthropic;
-  var res=await _fetchTextDeadline(prov.endpoint,{method:"POST",headers:prov.headers(key),body:JSON.stringify(body)},(typeof CALLGM_TIMEOUT_MS==="number")?CALLGM_TIMEOUT_MS:60000);
-  if(!res.ok){var _pm=String(res.raw||"").slice(0,400);throw providerHttpError(prov,res.status,_pm);}
-  var data;try{data=JSON.parse(res.raw);}catch(e){throw new Error("Claude returned an unreadable portrait description ("+(e&&e.message)+")");}
-  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,"portrait",model);}catch(e2){console.warn("[usage] portrait-description telemetry parse failed — this call is uncounted: "+(e2&&e2.message));}}
+  var prov=r.prov,model=r.model,_tok=400;if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);/* the callGM headroom rule */
+  var body=prov.vision(PORTRAIT_DESC_SYS,"Describe this character's appearance for their sheet."+(charName?" Their name is "+charName+".":""),mm[1],mm[2],_tok,model);
+  /* audit 2026-09-18 B6: same guarantees as callGM — a deadline, providerHttpError (B15), recordUsage (#30). #621 adds the
+     gateway route and its account refusals, shown as callGM shows them (never auth-shaped: the paste-a-key box is wrong here). */
+  var _tp=gmTransport(prov,model,r.key,"portrait",PORTRAIT_DESC_SYS);
+  var res=await _fetchTextDeadline(_tp.url,{method:"POST",headers:_tp.headers,body:JSON.stringify(body)},(typeof CALLGM_TIMEOUT_MS==="number")?CALLGM_TIMEOUT_MS:60000);
+  if(_tp.server&&(res.status===402||res.status===401)){var _sp=null;try{_sp=JSON.parse(res.raw);}catch(e8){}try{if(typeof storageAdapter!=="undefined"&&storageAdapter.fetchAccount)storageAdapter.fetchAccount(null);}catch(e9){}throw new Error(gmServerRefusalMessage(res.status,_sp));}
+  if(!res.ok){var _em="";try{var _ej=JSON.parse(res.raw);_em=(_ej.error&&_ej.error.message)||(typeof _ej.error==="string"?_ej.error:"")||_ej.message||"";}catch(e3){}throw providerHttpError(prov,res.status,_em||String(res.raw||"").slice(0,400));}
+  var data;try{data=JSON.parse(res.raw);}catch(e){throw new Error(prov.label+" returned an unreadable portrait description ("+(e&&e.message)+")");}
+  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,"portrait",model,0,_tp.server);}catch(e2){console.warn("[usage] portrait-description telemetry parse failed — this call is uncounted: "+(e2&&e2.message));}}
   return (prov.parseResponse(data)||"").trim();
 }

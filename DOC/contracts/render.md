@@ -68,6 +68,8 @@ Parameters: `aspect_ratio:"4:3"`, `resolution:"1K"`. `genderWord` derived from `
 
 `character.portrait` — null or base64 data URL. Compressed via `compressPortrait()` (Canvas resize to max 400×600px, JPEG 0.8) before storage to avoid localStorage quota overflow.
 
+**Describe appearance from image (#621, v1.1246 — owner ruling 2026-10-12: Gemini is the route).** `describePortraitImage` (api.js) rides the GM transport: `portraitVisionRoute()` picks the first reachable adapter in `PORTRAIT_VISION_ORDER` (Gemini, then Claude) — a signed-in player goes through the gateway (`gmTransport`, kind `portrait`, no vendor key, the account refusals shown as callGM shows them), BYOK uses the player's own key; no route is one honest sentence and no request. Each adapter's `vision(sys,text,mime,b64,maxTok,model)` builder (globals.js) is the ONE multimodal body shape for that vendor — `buildBody` stays byte-untouched; an adapter without a builder is not a route. The durable-appearance rule lives in `PORTRAIT_DESC_SYS`. Pinned by the #621 engine section, `dev/tests-621-portrait-vision.js` and `dev/sabotage-621-portrait-vision.js`. Until v1.1245 this was a silent BYOK rider that told a keyless tester to paste a Claude key.
+
 Set from three paths:
 1. Scene render → portrait button on render output
 2. Portrait modal → "Use as Portrait" button
