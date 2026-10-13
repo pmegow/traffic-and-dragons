@@ -5696,15 +5696,22 @@ function runEngineTests(R){
     fileNpcAuthored(memory.npcs.Lyle,new Array(3001).join("x"));
     return memoryNpcDetail("Lyle").indexOf("TWIST_SENTINEL")>=0?true:"secret-only seed lost or authored budget starved secret";
   });
-  t("#333 Iron Meridian migration gates the Lyle twist and all five timed dossiers",function(){
+  t("#333 Iron Meridian gates every timed dossier, including Snipe and the Lyle twist",function(){
     if(typeof __fsForTests==="undefined")return true;
     makeWorld();var bp=JSON.parse(__fsForTests.readFileSync(__rootForTests+"/samples/the_iron_meridian.blueprint","utf8"));applyBlueprint(normalizeBlueprint(bp));
     var lyle=bp.npcs.filter(function(n){return n.name==="Ambassador Ferrin Lyle";})[0];
-    if(!lyle.secret||lyle.revealAct!==3||bp.npcs.filter(function(n){return !!n.secret;}).length!==5)return "sample still embeds secrets in notes";
+    var timed=["Vessa Corrow","Redd Salter","Overseer Kolm","The Cartographer","Ambassador Ferrin Lyle","Snipe"];
+    for(var i=0;i<timed.length;i++){
+      var dossier=bp.npcs.filter(function(n){return n.name===timed[i];})[0];
+      if(!dossier||!dossier.secret||dossier.revealAct<2)return "missing timed dossier: "+timed[i];
+      if(memoryNpcDetail(dossier.name).indexOf(dossier.secret)>=0)return "Act One leaked "+dossier.name;
+    }
+    var snipe=bp.npcs.filter(function(n){return n.name==="Snipe";})[0];
+    if(lyle.revealAct!==3||snipe.revealAct!==3)return "Act Three reveal gate missing";
     var p=buildSysPrompt().volatile+bp.npcs.map(function(n){return memoryNpcDetail(n.name);}).join("\n");
-    if(p.indexOf("manufactured the player's indenture")>=0||p.indexOf("true hand moving the pieces")>=0)return "Lyle twist still in early-visible guidance";
-    worldState.skeleton.acts[0].arcs.forEach(function(a){a.status="completed";});applyMuts("[ACT_COMPLETE:Ballast and Breath]");if(memoryNpcDetail(lyle.name).indexOf(lyle.secret)>=0)return "Act Two opened Lyle's gate early";
-    worldState.skeleton.acts[1].arcs.forEach(function(a){a.status="completed";});applyMuts("[ACT_COMPLETE:Threads in the Smoke]");return memoryNpcDetail(lyle.name).indexOf(lyle.secret)>=0?true:"real ACT_COMPLETE executor did not open Act Three gate";
+    if(p.indexOf(lyle.secret)>=0||p.indexOf(snipe.secret)>=0)return "Act Three dossier still in early-visible guidance";
+    worldState.skeleton.acts[0].arcs.forEach(function(a){a.status="completed";});applyMuts("[ACT_COMPLETE:Ballast and Breath]");if(memoryNpcDetail(lyle.name).indexOf(lyle.secret)>=0||memoryNpcDetail(snipe.name).indexOf(snipe.secret)>=0)return "Act Two opened an Act Three gate early";
+    worldState.skeleton.acts[1].arcs.forEach(function(a){a.status="completed";});applyMuts("[ACT_COMPLETE:Threads in the Smoke]");return memoryNpcDetail(lyle.name).indexOf(lyle.secret)>=0&&memoryNpcDetail(snipe.name).indexOf(snipe.secret)>=0?true:"real ACT_COMPLETE executor did not open Act Three gates";
   });
 
   section("blueprint import hygiene (P7/P8/P9)");

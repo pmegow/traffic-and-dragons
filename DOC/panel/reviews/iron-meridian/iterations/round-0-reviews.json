@@ -1,0 +1,788 @@
+[
+  {
+    "round": 0,
+    "blueprintSha256": "a02afd394871760a222a6c2516a026a61fa5de10a9ff5864f3c49de84203185e",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Strong physical setting and concrete adversary affordances, but fixed truth and ending physics need reconciliation. This rubric application is not a review by Gary Gygax.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Name Vessa and Ferrin explicitly in the confrontation hint.",
+            "kind": "ambiguous character referent, not a proven contradictory culprit",
+            "severity": "medium",
+            "basis": "5.3 (primary uniformity); 7.2 (secondary B:29 game logic).",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].objective: \"Force Ferrin Lyle to admit he manufactured your indenture\".",
+              "acts[2].arcs[1].dnaHint: \"Your patron is neither savior nor mastermind but a middle-piece like you, and the true hand is someone you'd dismissed as scenery\".",
+              "npcs[0].notes: Vessa buys the indenture and saves the player.",
+              "npcs[4].secret: Ferrin \"is the true hand moving the pieces\" and manufactured the indenture."
+            ],
+            "reason": "Vessa can legitimately be the patron/middle-piece and Ferrin the scenery figure/true hand, consistent with the dossiers. However, the hint is attached to an objective that explicitly confronts Ferrin and then says the patron is not the mastermind, leaving the actor mapping implicit. The smallest fix is to name both rather than inviting a narrator to demote Ferrin or invent another higher mastermind.",
+            "recommendation": "Name Vessa as the patron/middle-piece and Ferrin as the formerly overlooked architect in this arc hint. Preserve the established hierarchy and seeded appearances; no culprit rewrite is warranted.",
+            "mitigation": "Ferrin's notes already seed him in Acts One and Two; Vessa's secret already says she followed orders. The necessary roles exist; the arc hint needs alignment.",
+            "confidence": "High that explicit names remove ambiguity; medium that a model would misread the existing intended pairing. Not a demonstrated contradiction."
+          },
+          {
+            "title": "Define a coherent final survival state and the available descent mechanisms.",
+            "kind": "content/ending causality gap",
+            "severity": "high",
+            "basis": "7.2 (secondary game logic); 1.2 (primary time must make actual consequences bite).",
+            "blueprintEvidence": [
+              "acts[2].turningPoint: engines give out; city may \"fall, float, or land\".",
+              "acts[2].arcs[2].dnaHint: \"ending on a landing that is survival, not victory\".",
+              "locations[4].description: slow-settling hull is corroded \"until it sinks\"; highest tiers/evacuating outer wards buys survival, but no final destination or continuing flotation is established.",
+              "locations[3].description: city hauls leviathan skyward; acts[1].turningPoint says it is \"holding something down\".",
+              "startingRegion/premise use Blackened Sea; multiple acts/locations use Ashen Sea without identifying them as aliases."
+            ],
+            "reason": "The promised outcome menu and fixed corrosion facts do not yet produce a stable authored ending: higher decks buy time above a dissolving hull, not durable safety; continued floating lacks a defined means after engine failure. The bound entity's direction and two sea names add avoidable ambiguity.",
+            "recommendation": "Establish one consistent sea name/alias and restraint geometry. Give each retained final option a concrete mechanism, cost and endpoint; for a slow landing name a reachable refuge/evacuation means or explicitly end with precarious temporary survival instead of implying safety. Remove an advertised option if the fiction cannot support it.",
+            "mitigation": "Hard-fall lethality, lower-tier vulnerability and slow-versus-fast descent are already concrete. Preserve those harsh tradeoffs; the missing part is what the characters can actually do with them and where survivors end up.",
+            "confidence": "High for missing mechanisms/end-state ambiguity; medium for literal down/up phrasing because \"holding down\" might mean containment figuratively."
+          }
+        ],
+        "uncertainty": "No live simulation or model play inspected. A grim campaign may legitimately end precariously; the recommendation is to state that outcome honestly, not guarantee rescue. Section 8's broad dissent from directed stories is a settled format difference."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Gritty pressure and specific creature counters fit well, but automatic discovery and universally hidden aid prices narrow meaningful risk decisions.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Separate readable tag status from perfect detection of every forgery.",
+            "kind": "player-agency/adjudication problem",
+            "severity": "medium",
+            "basis": "1.1 (primary roll only with doubt and stakes); 1.3 (primary establish position/effect); 1.6 (primary fictional action/position).",
+            "blueprintEvidence": [
+              "rules[0]: \"the player cannot simply hide their status without removing or forging it\".",
+              "rules[0]: \"Any faction operative who reads a forged or absent tag immediately exposes the player\"; \"automatic detection with no roll\".",
+              "creatures[0].notes: Tag-Shrike can be spoofed by swapping tags.",
+              "creatures[2].notes: intact Manifest-Warden drum lets you rewrite the condemning records."
+            ],
+            "reason": "Forging is offered as an approach, then any operative automatically knows the forgery regardless of quality, records, concealment or relevant ability. The setting has specific verification tools and record-changing affordances; the blanket rule overrides all those distinctions.",
+            "recommendation": "Keep genuine visible evidence dangerous, but define which inspection/instrument can detect what. Announce scrutiny and consequences; let convincing forgery, substituted records, distraction or established abilities affect detection. A missing exposed tag may be clear evidence without every false tag being magically obvious.",
+            "mitigation": "Trigger currently requires an operative to read the tag and pursuit can be fled, bought off or survived. This limits universal omniscience, but not perfect forgery recognition once read.",
+            "confidence": "High for rule wording; medium for practical impact without a run."
+          },
+          {
+            "title": "Allow a player to understand or refuse some prices of help.",
+            "kind": "choice architecture / deliberate-tone tradeoff",
+            "severity": "medium",
+            "basis": "1.7 (primary named freely accepted bargain); 7.4 (primary telegraph threat); 2.1 (primary consequence variety).",
+            "blueprintEvidence": [
+              "rules[1]: whenever any ally aids, immediately and silently record a future cost, then \"must cash in\" when interests diverge.",
+              "npcs[1].notes: Redd genuinely likes the player but trades safety for syndicate goals.",
+              "npcs[5].notes: Snipe helps for scraps/protection and may vanish when danger outweighs profit."
+            ],
+            "reason": "Every act of assistance becomes an unavoidable retroactive liability. That makes bargains unreadable and all relationships structurally identical even when an ally already named a price. Grit does not require every accepted kindness to incur an additional concealed charge.",
+            "recommendation": "Keep opportunism and some concealed loyalties. Let established NPC wants determine when help is costly; state negotiable terms where knowable and permit refusal, repayment or earned alignment. Reserve surprise betrayal for seeded motives rather than a universal debt per helpful action.",
+            "mitigation": "The rule specifically locates collection at diverging interests, giving motives a foothold, and the genre intentionally treats factions as self-interested. Preserve that pressure; do not convert all allies into unconditional friends.",
+            "confidence": "High that cost is mandatory and hidden; medium as a design judgment rather than contradiction."
+          }
+        ],
+        "uncertainty": "No need to transplant stress, crew economy or downtime machinery. Settled authored structure remains; warnings and choices can be improved in blueprint text. No session-length target inferred."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "Threat impulses and a manipulated-protagonist theme are strong. A few authored revelations prescribe player failure/success rather than letting manipulation meet player choices.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Make rescue and permitted theft contingent outcomes, not compulsory explanations of player success.",
+            "kind": "player-agency/branching constraint",
+            "severity": "medium",
+            "basis": "1.3 and 6.3 (primary play to find out / decisions in player hands); 2.1 (primary honesty); 5.1 (primary NPC impulses).",
+            "blueprintEvidence": [
+              "acts[0].arcs[2].dnaHint: \"not a fight you win by strength\"; survival comes from watcher intervening at last second.",
+              "acts[0].turningPoint and npcs[0].notes require Vessa to buy the contract to spare execution.",
+              "acts[1].arcs[2].objective requires stealing for whichever faction pays first.",
+              "npcs[3].notes: Meridian deliberately allow theft \"so the player believes they outmaneuvered the order rather than serving it\"."
+            ],
+            "reason": "The faction motive is legitimate prep, but the text insists on the player's dependence and mistaken belief even if they escape, expose the purge, decline a buyer, spot the trap or defeat guards. The theme can show attempted manipulation without declaring every actual success secretly granted.",
+            "recommendation": "Frame Vessa's purchase and the Cartographer's leak as plans available if circumstances support them. Add closure for independent survival/refused patronage and for recognizing/refusing the planted fragment. Preserve evidence and faction reactions instead of inventing dependence or prescribing what the player believes.",
+            "mitigation": "The city deliberately starts the hero coerced; that is an authorized premise, not itself a defect. Concrete foes have counterplay and parallel Act Two permits order freedom. Those strengths should remain meaningful at these major turning points.",
+            "confidence": "High for compulsory phrasing; medium for severity because a flexible GM might already honor alternatives."
+          }
+        ],
+        "uncertainty": "No objection to fixed past crimes or NPCs planning to manipulate. The distinction is between an NPC plan and a narrator guarantee about outcomes or player belief. The fixed-skeleton dispute is settled; no architecture change requested."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "Atmosphere and evidence sources support a long investigative campaign. The final confrontation still uses a confession as a hard gate despite a good fallback pattern elsewhere.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Do not require Ferrin's living cooperation to finish the personal mystery.",
+            "kind": "information/completion bottleneck",
+            "severity": "high",
+            "basis": "1.1, 1.2, 1.7 (primary necessary evidence cannot be a stall; alternate methods); 7.2 (primary unused prep legitimate).",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].objective: \"Force Ferrin Lyle to admit he manufactured your indenture, then decide whether to kill, expose, or bargain\".",
+              "npcs[4].secret: manufacture revealed \"only in the Act Three confrontation\".",
+              "npcs[2].secret: if Kolm dies/is never spared, records or Vessa preserve the fraud link.",
+              "acts[1].arcs[1].dnaHint: the clerk is \"silenced before they can tell you who really moves you\"."
+            ],
+            "reason": "The objective requires an admission before resolution; a dead, escaped or stubborn Ferrin can block it even if the party has sufficient documentary proof or simply chooses rescue over revenge. The earlier Kolm fallback demonstrates the intended solution but does not remove the final admission gate.",
+            "recommendation": "Let the arc close through corroborated proof, informed bargaining/exposure, or an explicit decision to leave culpability unresolved while addressing the crisis. Name independent evidence of Ferrin's role and permit earned early deductions; do not force the clerk's death or a confession to preserve the reveal.",
+            "mitigation": "Kolm already has redundant evidence delivery and Ferrin is seeded before Act Three. These are strengths, but evidence of Guild fraud is not explicitly enough to meet the admission wording.",
+            "confidence": "High: explicit objective and reveal restriction; actual engine/model stall not observed."
+          }
+        ],
+        "uncertainty": "Act Two parallel order does not by itself establish optional arcs; do not infer a runtime failure without testing. This is not a one-hour taster review, and shortening the campaign is not the goal."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Human cost and compromised loyalties fit the intended story. The ending should recognize what the player chose to protect without requiring an allegiance the player never accepted.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Do not convert the final rescue choice automatically into faction allegiance.",
+            "kind": "ending agency / outcome specification",
+            "severity": "medium",
+            "basis": "2.7 (primary payoff not obligation); 4.5 (primary plus secondary character becoming); 4.6 (primary substantive meaning at arc close).",
+            "blueprintEvidence": [
+              "acts[2].goal: \"Choose which faction's version of Cassivel's future to serve\".",
+              "acts[2].arcs[2].dnaHint: \"Completing this choice locks in the party's chosen faction alignment as the campaign's ending state\".",
+              "acts[2].arcs[2].objective: decide fates of thousands of indentured/citizens.",
+              "npcs[3].secret: Meridian favors controlled fall; equivalent concrete population/core policy for Guild and Undertow is not stated."
+            ],
+            "reason": "Saving people, freeing tags, ceding temporary core access and endorsing a faction are distinct decisions. The ending merges them and does not give equally concrete descriptions of the proposed futures. A player who rejects all manipulators can choose a rescue without an authored end state that honors that refusal.",
+            "recommendation": "State the factions' concrete proposed actions/costs at the crisis and distinguish control of the core, civilian survival, legal freedom and voluntary allegiance in the ending. Allow independence or a temporary coalition if earned, with established costs; do not grant it guaranteed success. Include one brief human consequence tied to those actually helped.",
+            "mitigation": "The final hint already tracks freedom, survival and core control, a useful substantive outcome inventory. No faction must win cleanly is consistent with the gritty tone. Retain that cost and avoid mandatory uplifting transformation.",
+            "confidence": "High for automatic-alignment wording; medium for preferred independence support, which is a craft recommendation."
+          }
+        ],
+        "uncertainty": "The all-aid hidden-price rule also reduces room for earned connection (7.3 primary empathy), but this is shared dissent with Harper rather than another finding. No shared/emotional XP subsystem or mandatory companion arc recommended."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Make the intended Vessa-patron/Ferrin-mastermind references explicit, and specify the physical ending: consistent sea/leviathan facts, concrete routes and an honest survivor endpoint.",
+        "Replace the final confession requirement with evidence/choice-based closure, including dead/refusing/absent Ferrin and earned early deductions.",
+        "Preserve manipulation as NPC intent while permitting independent survival, recognized/refused traps and voluntary final allegiance.",
+        "Specify tag inspection capabilities instead of universal perfect forgery detection.",
+        "Make help costs arise from established wants and some knowable terms rather than a mandatory surprise debt for every kindness."
+      ],
+      "dissent": [
+        "Grit, coercive starting status, betrayal, physical danger and a costly ending are intentional strengths, not defects to remove.",
+        "Gygax prioritizes fixed world logic; Harper/Baker prioritize actionable risk and outcomes; Laws protects information flow; Moran asks what the choices mean for people. These are rubric applications, not statements that the named authors reviewed the blueprint.",
+        "Keep the existing long-campaign scope. No one-hour target, advertised duration, runtime result or publication-readiness claim follows from this static baseline.",
+        "The embedded review history is not evidence that every marked fix still matches current prose: this review assesses actual authored fields only."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "a02afd394871760a222a6c2516a026a61fa5de10a9ff5864f3c49de84203185e",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Powerful material setting, but fixed treachery and a universal helper narrow the space for earned human outcomes.",
+        "resolved": [
+          {
+            "text": "The copper-tag and furnace imagery connect institutions to bodily routine; resistance need not be reduced to a succession of villains.",
+            "basis": "§4.5 relational story (◐); §7.1 physical reality carried in prose (●). This endorses supplied imagery, not unobserved runtime sentence quality.",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].arcs[0].dnaHint",
+                "quote": "the crushing gears, the ration lines"
+              },
+              {
+                "path": "locations[0].description",
+                "quote": "the copper indenture-tag at your throat marks you as property"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Every act of aid must secretly turn against the player",
+            "kind": "authored agency and relationship constraint",
+            "severity": "medium",
+            "basis": "§4.1–4.5 narrative need not collapse to killer/conflict shape (◐); §4.6 story serves lived progression rather than compulsory plot (●). Application to player agency is reviewer extrapolation.",
+            "blueprintEvidence": [
+              {
+                "path": "rules[1]",
+                "quote": "the GM must immediately and silently note a specific future cost"
+              },
+              {
+                "path": "rules[1]",
+                "quote": "The GM must cash in that noted cost"
+              },
+              {
+                "path": "rules[1]",
+                "quote": "forcing the player to pay the price"
+              }
+            ],
+            "reason": "This is stronger than a gritty world of transactional factions: even an earned local act of care is required to become future leverage at a moment of divergence. Relationships cannot surprise positively or stay honestly transactional; the rule pre-decides their meaning regardless of play.",
+            "recommendation": "Keep dangerous, self-interested factions and real debts, but tie costs to the helper's established motive and actual bargain. Permit freely given or already-paid aid when earned; foreshadow material risk and allow the player to refuse a later demand with consequences.",
+            "mitigation": "Gritty political betrayal is the intended tone and should remain. The concern is compulsory universality and hidden forced payment, not the presence of treachery or a requirement to supply a loyal best friend.",
+            "confidence": "High about absolute rule; medium about aesthetic judgment. No live-play relationship outcome observed."
+          },
+          {
+            "title": "Clank can supply any needed answer without an authored limit",
+            "kind": "content causality and consequence risk",
+            "severity": "medium",
+            "basis": "§3.4 power follows knowledge and need, §9.1 consistent world, §9.3 meaningful cost (all ◐).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[6].notes",
+                "quote": "always capable of finding exactly what is needed in a given situation"
+              }
+            ],
+            "reason": "The universal claim can override scarcity, dangerous access and the final hard tradeoffs. Nothing defines what Clank can locate, why, or what remains beyond the ability, leaving miracle rescue as easy as arbitrary refusal.",
+            "recommendation": "Bound the gift to plausible existing maintenance parts/routes or known machinery, with a visible limit or cost. Preserve the automaton's innocent mystery; it need not know its origin or solve the leviathan's fate.",
+            "mitigation": "This is one brief whimsical dossier in an otherwise concrete setting; the runtime narrator may already interpret it modestly. A bounded knack can retain the charm without revealing the whole explanation.",
+            "confidence": "High about unbounded wording; medium about actual model exploitation, untested."
+          }
+        ],
+        "uncertainty": "No corpus: sound, rhythm and generated exposition are ungraded per §17. No one-hour constraint applied."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Trade-built city, sinister machinery and local bargains fit the lens strongly. The stated survival ending needs a physically sustainable endpoint.",
+        "resolved": [
+          {
+            "text": "Trades, ration lines, ducts and classed tiers make the city an adventure environment; sorcery is genuinely threatening rather than an ability list.",
+            "basis": "§2.1–2.2 city as adventure and occupations (◐/● as stored); §1.1 and §5.1 supernatural element (●).",
+            "blueprintEvidence": [
+              {
+                "path": "locations[1].description",
+                "quote": "A honeycomb of ductwork, service shafts, and dead spaces"
+              },
+              {
+                "path": "locations[2].description",
+                "quote": "scrambles the recent memory of any intruder who lingers unmasked"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The controlled landing only postpones an otherwise total loss",
+            "kind": "content closure and physical causality",
+            "severity": "high",
+            "basis": "§10.1 a story should resolve something (◐); §9.5 fiction must convince (●/◐ as stored rubric); this is consistency, not a demand for a happy ending.",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[2].dnaHint",
+                "quote": "ending on a landing that is survival, not victory"
+              },
+              {
+                "path": "locations[4].description",
+                "quote": "anything that settles onto it slowly is corroded from below until it sinks"
+              },
+              {
+                "path": "locations[4].description",
+                "quote": "its people to reach the highest tiers or evacuate the outer wards"
+              }
+            ],
+            "reason": "Moving survivors upward does not yield lasting safety when the whole hull inevitably corrodes and sinks. The blueprint names neither a durable refuge nor a means/destination of evacuation, yet treats surviving population fate as settled. The narrator must invent the central reason this is survival rather than a slower death.",
+            "recommendation": "Define one reachable durable refuge or concrete limit of corrosion/engine stabilization that can genuinely preserve survivors, and make access depend on established descent/evacuation choices. Keep losses and unequal risk. Alternatively call this a knowingly temporary reprieve, but then do not declare the population's fate settled.",
+            "mitigation": "The text correctly establishes that a hard fall is catastrophic and lower wards flood first. Emergency movement buys time; it does not by itself establish the promised completed survival ending.",
+            "confidence": "High: explicit corrosion rule and completed-survival claim lack a linking physical condition."
+          }
+        ],
+        "uncertainty": "No rating of actual wonder, humour or fear without narration. No demand to shrink campaign ambition or guarantee all survive."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Structural oppression has real material machinery, but player agency is subordinated to predetermined rescue and faction allegiance; final futures need actionable differences.",
+        "resolved": [
+          {
+            "text": "Labour, citizenship and survival are allocated through an institution rather than an isolated evil ruler alone.",
+            "basis": "§3.2 self-maintaining systems (LS ●), §3.5 resource allocation including labour (GR ●).",
+            "blueprintEvidence": [
+              {
+                "path": "premise",
+                "quote": "your name struck from the citizen rolls"
+              },
+              {
+                "path": "creatures[1].notes",
+                "quote": "their body is fed to the furnaces to hide the accounting"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Surviving the purge requires the patron's last-second intervention",
+            "kind": "authored agency and causality bottleneck",
+            "severity": "high",
+            "basis": "§9.3 choices should alter plot (WE ●); §10.3 creator is not in control of experience (SPIN ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].arcs[2].dnaHint",
+                "quote": "by being worth more alive to a watcher who intervenes at the last second"
+              },
+              {
+                "path": "acts[0].turningPoint",
+                "quote": "A patron buys your contract to spare you an execution you didn't earn"
+              }
+            ],
+            "reason": "The opening's major turning point is mandated dependency, regardless of successful escape, resistance, bribery, cooperation with workers or patron absence. It risks invalidating player ingenuity and asks the narrator to engineer a rescue even when the physical conditions no longer support it.",
+            "recommendation": "Make Vessa's offer one contingent route. Define completion as surviving/escaping/settling the purge threat and learning enough about manufactured debt to proceed. Preserve refused or failed patronage, and provide another existing witness/record route to the debt clue.",
+            "mitigation": "Starting as an oppressed indentured person is a legitimate authored premise. Agency need not mean power or victory, but choices made after that start should not be annulled to restore a fixed rescue.",
+            "confidence": "High about prescribed rescue; actual enforcement by model untested."
+          },
+          {
+            "title": "The final faction choice lacks sufficiently distinct, knowable futures",
+            "kind": "content decision support and closure",
+            "severity": "high",
+            "basis": "§3.5 resource allocation (GR ●), §9.3 choices alter outcomes (WE ●), §9.4 agency by contrasting characters' orientations (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].goal",
+                "quote": "Choose which faction's version of Cassivel's future to serve"
+              },
+              {
+                "path": "acts[2].arcs[2].dnaHint",
+                "quote": "locks in the party's chosen faction alignment"
+              },
+              {
+                "path": "npcs[3].secret",
+                "quote": "chosen to let it fall in a controlled way"
+              }
+            ],
+            "reason": "Meridian has a limited known plan; Guild and Undertow mostly seek leverage/control, without clear policies for the bound leviathan, labour freedom or civilian rescue. The final choice promises faction-specific population consequences but does not supply the causal alternatives. It also presumes the party must serve a faction even after learning every faction exploits them.",
+            "recommendation": "Give each faction a concise, materially distinct desired core/leviathan/population outcome and leverage/cost, made discoverable before commitment. Allow the party to oppose all three, combine parts of plans, or fail—subject to resources and risks. Resolve actual actions, not allegiance label alone.",
+            "mitigation": "Faction affiliation can be an appropriate strategic compromise. Keep betrayals, class pressure and constrained options; do not turn every party into benevolent equals or require a costless independent solution.",
+            "confidence": "High about absent comparative final policies and mandatory alignment wording; specific new policy design is owner/editor choice."
+          }
+        ],
+        "uncertainty": "Structural critique concerns authored choices, not claimed runtime railroading. No requirement for message-writing, universal solidarity or painless freedom."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "The physical grit has consequences, but the antagonist confrontation demands a confession and some role language risks muddying a usable reveal.",
+        "resolved": [
+          {
+            "text": "The lower-class wards bear the immediate physical cost of descent, and the eventual choice need not be a clean victory.",
+            "basis": "§3.1 consequences justify detail (◐); §2.5–2.6 grit needs meaningful contrast, not quantity (●).",
+            "blueprintEvidence": [
+              {
+                "path": "locations[4].description",
+                "quote": "the deeper districts like Sump Row, bolted to the underhull, flood and corrode first"
+              },
+              {
+                "path": "acts[2].arcs[2].dnaHint",
+                "quote": "No faction can win this cleanly"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Ferrin's admission is the mandatory climax gate",
+            "kind": "content agency and completion bottleneck",
+            "severity": "high",
+            "basis": "§5.1 speech should suit the person and situation (A:Advice ●), §5.4 people understand themselves (B:Fantasy-Hive ●), §8.1 honesty (A:Advice ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "Force Ferrin Lyle to admit he manufactured your indenture"
+              },
+              {
+                "path": "npcs[4].secret",
+                "quote": "This surfaces only in the Act Three confrontation"
+              }
+            ],
+            "reason": "A manipulator need not confess; he could die, flee, lie or be exposed by records. The objective makes his speech a prerequisite to deciding his fate and finishing the story, creating pressure for an unearned admission or a stalled arc.",
+            "recommendation": "Let credible evidence establish responsibility without confession, and close the confrontation when the party acts on what it knows or knowingly leaves the question unresolved. Seed an existing signed instruction/witness route; keep Ferrin capable of denial and flight. Do not swap the culprit to suit guesses.",
+            "mitigation": "Kolm already has alternate evidence routes, which is a good pattern. Ferrin's early appearances provide recognition but not yet sufficient proof. A voluntary earned confession can remain one satisfying route.",
+            "confidence": "High about explicit confession gate; model behavior not tested."
+          },
+          {
+            "title": "Name Vessa directly when contrasting patron and true hand",
+            "kind": "content clarity, not established contradiction",
+            "severity": "low",
+            "basis": "§8.1 honesty and §8.4 a few telling details (A:Advice ●), applied to usable character causality.",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[1].dnaHint",
+                "quote": "Your patron is neither savior nor mastermind but a middle-piece like you"
+              },
+              {
+                "path": "npcs[4].secret",
+                "quote": "He is the true hand moving the pieces"
+              },
+              {
+                "path": "npcs[0].notes",
+                "quote": "she buys the player's indenture"
+              }
+            ],
+            "reason": "These can be consistent: Vessa is patron/middle-piece, Ferrin the inconspicuous organizer. But the Ferrin-named objective immediately followed by unnamed 'Your patron' creates an avoidable antecedent ambiguity at the reveal.",
+            "recommendation": "Name Vessa in the hint and Ferrin as the established organizer; distinguish each person's knowledge and evidence. No new mastermind or plot reversal is needed.",
+            "mitigation": "Dossiers already identify the two roles correctly; this is wording cleanup, not a reason to alter the authored culprit.",
+            "confidence": "High about adjacency; medium about likely misreading."
+          }
+        ],
+        "uncertainty": "Do not equate darker with better. The critique does not require more violence, universal happy endings or a sympathetic Ferrin. Actual dialogue and emotional payoff remain unobserved."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Repair the durable-survival endpoint and define the causal choices over core/leviathan/population before treating the descent as completed.",
+        "Make purge rescue and final confession contingent rather than required; add or reuse evidence/continuation paths for refusal, death and escape.",
+        "Replace compulsory secret future payment for every act of aid with motive-grounded bargains/consequences; retain genuinely dangerous faction politics.",
+        "Bound Clank's helpfulness and clarify Vessa/Ferrin naming without inventing a new mastermind."
+      ],
+      "dissent": [
+        "A bleak campaign and compromised alliances are supported. These findings target causal gaps and compulsory outcomes, not the gritty tone.",
+        "No one-hour target applies; preserve the campaign's larger ambition."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "a02afd394871760a222a6c2516a026a61fa5de10a9ff5864f3c49de84203185e",
+    "scope": "Iron Meridian baseline v0.01: full source review by five sourced COMPOSITE personas, not interviews or actual playtests. No one-hour constraint; this is a campaign. Source grades refer to stored persona evidence, not new web research. Zero-based field paths. The blueprint review history is historical data, not authority overriding current authored fields.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "Conditional audio fit across sessions; the setting is vivid, but inconsistent sea naming adds avoidable uncertainty to an already dense intrigue. No duration target is imposed.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Identify Blackened Sea and Ashen Sea as the same place, or distinguish them",
+            "severity": "P2",
+            "kind": "continuity",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R1; R2",
+              "sourceGrade": "R1 mixed primary next-action evidence and secondary recap sources; R2 primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "startingRegion",
+                "quote": "above the Blackened Sea"
+              },
+              {
+                "field": "locations[4].name",
+                "quote": "The Blackened Sea"
+              },
+              {
+                "field": "acts[2].turningPoint",
+                "quote": "The engines give out over the Ashen Sea"
+              }
+            ],
+            "reason": "The start and location record name Blackened Sea, while the climax repeatedly names Ashen Sea without identifying an alias or a journey. A listener resuming the campaign cannot know whether the city changed region. This is a source ambiguity, not an observed TTS failure.",
+            "recommendation": "Use one canonical name, or state the alias once in the location record and use it consistently. Preserve the poisoned-sea stakes.",
+            "mitigation": "The same physical ocean appears intended throughout; this needs a naming fix, not new travel scenes.",
+            "confidence": "High confidence in textual mechanism; runtime impact not observed"
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite review only. Audio delivery, recap and pacing are untested. R5 driving/no-danger and R10 voice inventory are inferred and do not drive this verdict.",
+          "dissent": "Do not simplify every faction or remove the long campaign just to fit short listening sessions.",
+          "verificationQuestion": "After a break, can a listener locate Cassivel, name their current obligation and distinguish what they know from what a faction claims?",
+          "supportedPositive": {
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R6",
+              "sourceGrade": "primary (source thread or post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[0].objective",
+                "quote": "Fight or slip through the three-army chokehold"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Promising faction logic and moral pressure, but several instructions make the player a predetermined witness. Fix imposed outcomes and contradictory authorship of the conspiracy, without making the factions friendly.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Let the Purge Rotation respond to the player instead of guaranteeing rescue",
+            "severity": "P1",
+            "kind": "agency",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I4; I9",
+              "sourceGrade": "primary (source thread or post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].arcs[2].dnaHint",
+                "quote": "This is not a fight you win by strength but by being worth more alive to a watcher who intervenes at the last second"
+              },
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "A patron buys your contract to spare you an execution you didn't earn"
+              },
+              {
+                "field": "npcs[0].notes",
+                "quote": "she buys the player's indenture to spare them the culling execution"
+              }
+            ],
+            "reason": "The authored resolution credits Vessa regardless of an earned escape, victory, bargaining plan, or her absence. Harsh constraints can support agency; an outcome that must occur despite the player’s action turns survival into witnessing the plot.",
+            "recommendation": "Make Vessa’s offer one motivated intervention, with conditions and possible refusal, alongside earned escape, resistance or bargains. State how the next act proceeds if the player avoids purchase or Vessa cannot intervene; retain consequences and danger.",
+            "mitigation": "Later arcs already allow fight-or-slip and competing faction work; extend that existing flexibility to the opening transition.",
+            "confidence": "High confidence in textual mechanism; runtime impact not observed"
+          },
+          {
+            "title": "Fix who actually engineered the indenture before play",
+            "severity": "P1",
+            "kind": "continuity",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary (source thread or post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[4].secret",
+                "quote": "He is the true hand moving the pieces, engineering debts and disasters to consolidate control of the engine core."
+              },
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "Your patron is neither savior nor mastermind but a middle-piece like you, and the true hand is someone you'd dismissed as scenery"
+              }
+            ],
+            "reason": "Vessa is the established purchasing patron, while this arc’s objective names Lyle; its hint can demote the confronted Lyle to a middle-piece even though his dossier calls him the true hand. It leaves a GM-facing choice about the central answer and can spawn an unearned extra mastermind.",
+            "recommendation": "State the causal chain plainly in the confrontation: Vessa bought the contract under orders; Ferrin engineered it and is the previously backgrounded liaison. If a further mastermind is intended instead, name and support that truth consistently before play. Do not invent another hand at the reveal.",
+            "mitigation": "Lyle already has early appearances; those can support the intended revelation once the arc names who is patron and who is planner.",
+            "confidence": "High confidence in textual mechanism; runtime impact not observed"
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite, not a real solo-player trial. The motive/logic evidence is primary; inferred persistent-home-base claims are unused.",
+          "dissent": "Retain optional faction investigation and meaningful hostile pushback. Removing every betrayal would destroy the intended campaign.",
+          "verificationQuestion": "If the player outsmarts the purge or identifies Lyle early, does the established world respond without undoing their success?",
+          "supportedPositive": {
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3",
+              "sourceGrade": "primary (source thread or post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[3].objective",
+                "quote": "Hold a collapsing district together during an engine tremor"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "Partial genre fit, with useful tangible rewards and evidence machinery. The tag rules currently nullify advertised counterplay and the ally rule makes every benefit carry an unknowable mandatory liability.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Make successful record or tag alteration a meaningful earned outcome",
+            "severity": "P1",
+            "kind": "rules-and-reward",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9",
+              "sourceGrade": "primary; applying reliable possessions/known-value principles to tag status is explicit review reasoning"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[0]",
+                "quote": "Any faction operative who reads a forged or absent tag immediately exposes the player as an escapee"
+              },
+              {
+                "field": "rules[0]",
+                "quote": "automatic detection with no roll"
+              },
+              {
+                "field": "creatures[2].notes",
+                "quote": "tearing that drum free intact lets you rewrite the very records that damn you"
+              }
+            ],
+            "reason": "A valuable salvage reward promises rewriting the records, but every forged tag is automatically recognized on sight by every faction operative. The player cannot tell whether authentic altered records affect status at all; a successful technical approach can be made worthless by the blanket rule.",
+            "recommendation": "Define separate cases for absent/visibly invalid tags, plausible forged credentials, and genuinely amended registry records. State who can check which evidence and honor achieved changes. Keep discovery dangerous; remove universal knowledge of falsity from unaudited visual inspection.",
+            "mitigation": "The rule already permits fleeing, buying off or surviving pursuit, and the Warden provides a concrete countermeasure. These are foundations to reconcile, not new mechanics to add wholesale.",
+            "confidence": "High confidence in textual mechanism; runtime impact not observed"
+          },
+          {
+            "title": "Replace mandatory hidden debts for all help with motivated, contestable demands",
+            "severity": "P2",
+            "kind": "agency-and-cost",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B9; B8",
+              "sourceGrade": "primary; economy evidence applied by analogy, not a claim that favor tracking is literally a second currency"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[1]",
+                "quote": "Whenever an ally NPC (Redd Salter, Pell, or any other) aids the player, the GM must immediately and silently note a specific future cost"
+              },
+              {
+                "field": "rules[1]",
+                "quote": "forcing the player to pay the price precisely when the ally's goals turn against their own"
+              }
+            ],
+            "reason": "Every aid event creates an unavoidable liability that the player cannot price or decline; even negotiated payment cannot settle the transaction under this blanket rule. This is broader than a particular deceptive NPC and can erase earned trust or fair bargains.",
+            "recommendation": "Keep self-interested aid and some concealed motives, but root later demands in established wants and agreements. Telegraph leverage where knowable; let players refuse, negotiate, expose deception or pay an agreed price. Do not require betrayal or an extra debt for every help event.",
+            "mitigation": "Individual dossiers already specify self-interested motives. Redd’s conflicted affection and Snipe’s paid protection are enough to support hard bargains without universal retroactive charges.",
+            "confidence": "High textual confidence; unknown play impact. Intentional deception itself is not condemned."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite; inventory evidence largely comes from visual CRPGs. This campaign need not become a loot loop. No actual inventory or reward execution tested.",
+          "dissent": "Do not add shopping or guaranteed windfalls to appease this lens; make the already advertised tools and costs coherent.",
+          "verificationQuestion": "When the player takes a Warden drum intact and changes records, what precisely changes, and can an agreed favor ever be settled?",
+          "supportedPositive": {
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9",
+              "sourceGrade": "primary (source thread or post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "creatures[2].notes",
+                "quote": "the Undertow pays dearly for one taken whole"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "Poor cozy-recovery fit by design: enslavement, culling and unavoidable faction pressure are the premise. That mismatch is not a reason to soften the campaign. The universal all-help-must-betray rule is a distinct agency concern shared with Bert, not merely a taste objection.",
+        "resolved": [],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite, not a phone or short-session playtest. N1 and the Trust section support expectation mismatch; N6 supports completed chunks, not a required short total campaign or fixed duration. Her review adds no separate mandatory edit beyond the shared established-motives concern.",
+          "dissent": "Keep the gritty genre. Nan can prefer another blueprint while recognizing that saving particular people is participatory and consequential. Do not turn the campaign into cozy downtime.",
+          "verificationQuestion": "Can a return visit acknowledge whom the player actually saved and a completed local action without immediately inventing a new obligatory betrayal?",
+          "supportedPositive": {
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary (source thread or post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[3].dnaHint",
+                "quote": "Save who you can while the powers above use the disaster as cover"
+              },
+              {
+                "field": "acts[2].arcs[2].dnaHint",
+                "quote": "whether the indentured are freed of their copper tags"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "Strong potential for a consequential campaign ending, but mandatory confession and undefined final control options undermine earned closure. Preserve a harsh ending while making what the player can actually decide and achieve explicit.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Resolve the Lyle confrontation without requiring his confession",
+            "severity": "P1",
+            "kind": "completion",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G6",
+              "sourceGrade": "primary (source thread or post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "Force Ferrin Lyle to admit he manufactured your indenture, then decide whether to kill, expose, or bargain with him"
+              }
+            ],
+            "reason": "The arc requires an admission before a decision. If Lyle denies, dies, flees or is unavailable, recovered proof and an informed player decision cannot satisfy the literal objective. This can force endless confrontation or a fabricated confession.",
+            "recommendation": "Let evidence establish his role, and resolve when the party chooses how to act on it, including proceeding while his whereabouts or guilt remain genuinely uncertain. Use documents/witnesses already authored; do not make confession, capture or survival necessary.",
+            "mitigation": "Kolm’s dossier already supplies alternate ledgers or Vessa testimony; extend that redundancy through the final confrontation.",
+            "confidence": "High confidence in textual mechanism; runtime impact not observed"
+          },
+          {
+            "title": "Define attainable descent options and a real survival endpoint",
+            "severity": "P1",
+            "kind": "ending-and-payoff",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3; G6",
+              "sourceGrade": "primary (source thread or post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].turningPoint",
+                "quote": "whether the city falls, floats, or lands"
+              },
+              {
+                "field": "acts[2].arcs[2].dnaHint",
+                "quote": "your choice is which betrayal to accept and which lives are worth the weight"
+              },
+              {
+                "field": "acts[2].arcs[2].dnaHint",
+                "quote": "locks in the party's chosen faction alignment"
+              },
+              {
+                "field": "locations[4].description",
+                "quote": "anything that settles onto it slowly is corroded from below until it sinks"
+              }
+            ],
+            "reason": "The climax advertises float/land/fall but supplies no conditions connecting player preparations or controls to those outcomes. Slow landing still ends in corrosion and sinking; reaching upper tiers buys time without specifying a viable refuge. The finale also assumes a chosen faction and a betrayal, excluding a player who rejects all three. The GM must invent whether success was possible and what the advertised choice meant.",
+            "recommendation": "Define a small set of feasible operations with observable prerequisites and tradeoffs, including what actually protects/evacuates survivors after landing. Permit earned nonalignment without a guaranteed clean victory. Resolve on the chosen operation and actual consequences; add brief named NPC/population fates and optional player final contribution rather than requiring every faction objective.",
+            "mitigation": "The blueprint already defines hard-fall lethality, lower-ward exposure and liberation/core-control outcomes. Use those concrete stakes; this need not become a new strategic system or a happy ending.",
+            "confidence": "High confidence in textual mechanism; runtime impact not observed"
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite, not a completed campaign. No assertion about engine arc tags, actual mementos or narration. The source establishes possible closure problems; execution remains untested.",
+          "dissent": "Gerry wants specific lasting consequences; Rosa may want a concise recap. Provide a short factual ending with optional detail, not a mandatory lengthy history.",
+          "verificationQuestion": "If Lyle is dead and the party refuses all factions, can their prepared descent still reach an honest, specific ending with a known fate for the survivors?",
+          "supportedPositive": {
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G2; G6",
+              "sourceGrade": "primary (source thread or post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[2].dnaHint",
+                "quote": "the surviving population's fate is set"
+              },
+              {
+                "field": "npcs[2].secret",
+                "quote": "ledgers recovered from the boiler wards"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Preserve the gritty faction campaign while replacing guaranteed rescue, mandatory confession and all-aid-must-betray with responsive, motivated consequences.",
+        "Fix the Vessa/Ferrin causal chain and the Blackened/Ashen naming ambiguity.",
+        "Reconcile automatic tag detection with forged credentials and the promised record-rewriting reward.",
+        "Specify viable descent choices, meaningful nonalignment and what makes any surviving population actually survive; keep losses and uncertainty honest.",
+        "After source edits, test actual choices and continuity in play. Do not infer duration, player comprehension or successful endings from this paper review."
+      ],
+      "dissent": [
+        "Nan is an intentional poor cozy fit and Bert a partial accumulation fit; neither warrants a genre rewrite.",
+        "Ines supports hostile pushback and complex motives; the problem is predetermined outcomes, not difficulty or morally compromised allies.",
+        "Rosa needs coherent re-entry, not a short total campaign or removal of faction depth."
+      ]
+    }
+  }
+]

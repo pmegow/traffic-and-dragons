@@ -620,3 +620,5 @@ zero 2026-07-27 and again 2026-07-30.
 - 2026-10-13 · #446 · Codex, docs only: owner-requested nine-lens and five-persona Riverlight review; source evidence and dissent retained. No blueprint, engine or catalog changes; first-player acceptance stays open. Reports: DOC/panel/reviews/riverlight/.
 
 - 2026-10-13 · #446 · Codex, owner-requested blueprint revision: three edit/panel cycles, final v1.04 candidate; isolated normalization/import checks catch and resolve three overflows. No engine or live-catalog change. Full record: DOC/panel/reviews/riverlight/riverlight_three_cycles.html.
+
+- 2026-10-13 · #626 · Codex, owner-requested Iron Meridian blueprint review: baseline plus three complete panel cycles, v1.0 candidate, conditional evidence and causal escape/engine routes. Content and review records only; no engine change. Record: DOC/panel/reviews/iron-meridian/review_cycles.html.

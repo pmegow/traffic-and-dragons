@@ -1,0 +1,690 @@
+[
+  {
+    "round": 3,
+    "blueprintSha256": "a69466121887d9ca9549dbf86997fcda44111a43aade54df8265905ece3fba0b",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Clean editorial result under this lens; no further material finding.",
+        "resolved": [
+          {
+            "text": "Acquired evidence is distinguished from authored truth in both opening and witness fallback.",
+            "basis": "5.3 primary uniformity; 7.2 secondary B:29 game logic.",
+            "blueprintEvidence": [
+              "acts[0].turningPoint: \"The transfer order, if obtained\".",
+              "npcs[2].secret: records/testimony establish particular links only if recovered or obtained."
+            ]
+          },
+          {
+            "text": "The world constraints and ending costs remain consistent after the final narrow changes.",
+            "basis": "7.2 secondary; 1.2 primary consequential time.",
+            "blueprintEvidence": [
+              "locations[3..4] and rules[3]: coupled lift/restraint, resource-dependent bypass, release costs marine poison, finite evacuation to dry Crown Shoal.",
+              "rules[0] and creatures[2]: record-matched forgery and local-only ledger editing remain possible."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No live physical-resolution or campaign playtest. Fixed authored constraints are coherent; implementation of them in narrated play remains empirical. Broad directed-story dissent stays a settled genre/format difference."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Clean editorial result; no new risk/choice issue.",
+        "resolved": [
+          {
+            "text": "Threat telegraphing and meaningful counterplay survive unchanged.",
+            "basis": "1.3, 1.6, 7.4 primary.",
+            "blueprintEvidence": [
+              "acts[0].arcs[2].dnaHint: culling/exits telegraphed; actual escape, bargain, resistance or capture.",
+              "locations[2]: resonance warnings and masks/shielding/relay counters.",
+              "rules[0]: records/opportunity govern scrutiny; discovery means pursuit, not automatic capture."
+            ]
+          },
+          {
+            "text": "Bargains and endings reflect actual commitments.",
+            "basis": "1.7 and 7.3 primary.",
+            "blueprintEvidence": [
+              "rules[1]: agreed prices, earned/free help and motivated betrayal.",
+              "rules[4]: faction demands are opening positions; worker consent and independent leadership remain."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No actual inspection, threat-clock or intervention transcript inspected. The fairer terms leave severe consequences intact; this is not a difficulty or duration certification."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "Clean editorial result. Fixed intentions and uncertain player-facing events are now separated coherently.",
+        "resolved": [
+          {
+            "text": "Kolm's fallback no longer fabricates Vessa's testimony or an automatic discovery.",
+            "basis": "2.1 primary honesty; 6.3 primary decisions in player hands.",
+            "blueprintEvidence": [
+              "npcs[2].secret: Kolm available/willing, ledgers recovered, Vessa letter/testimony/core authorization actually obtained; no guaranteed discovery.",
+              "npcs[0].secret: refusal/unavailability allowed, no compulsory confession."
+            ]
+          },
+          {
+            "text": "Earlier revisions retain genuine responses to attempted manipulation.",
+            "basis": "1.3, 5.1, 6.3 primary.",
+            "blueprintEvidence": [
+              "acts[0].arcs[2] permits independent survival/refused patron.",
+              "acts[1].arcs[2].dnaHint allows recognized/rejected setup.",
+              "npcs[5].secret ties Snipe's consequences to actual messages/forces rather than invented combat."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The fixed crime and gritty coerced start are intentional prep, not a complaint. No observation that a model actually honors all branches yet. No new subsystem needed."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "Clean editorial result; the final evidence cross-reference finding is closed.",
+        "resolved": [
+          {
+            "text": "Alternate evidence remains available without compulsory delivery or a confession gate.",
+            "basis": "1.1, 1.2, 1.7 primary; 7.2 primary unused prep.",
+            "blueprintEvidence": [
+              "npcs[2].secret: recovered ledgers establish Guild role, obtained letter/testimony/core authorization establish Ferrin role; unresolved culpability does not block engine choice.",
+              "acts[2].arcs[1].objective: confession and Ferrin survival unnecessary; unresolved choice legitimate."
+            ]
+          },
+          {
+            "text": "The act handoffs now respect alternative methods and what the player actually found.",
+            "basis": "1.7 and 7.2 primary.",
+            "blueprintEvidence": [
+              "acts[0].turningPoint conditions transfer-order knowledge on obtaining it.",
+              "acts[1].turningPoint accepts schematic, worker testimony or inspection and no required fragment."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Editorial optionality does not establish runtime arc closure. Directed no-patron/no-confession/declined-faction routes and real player comprehension remain useful future checks; no one-hour target applies."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Clean editorial result. Human consequences and voluntary allegiance remain distinct.",
+        "resolved": [
+          {
+            "text": "Final character expression and material/political outcomes remain earned rather than assigned.",
+            "basis": "2.7 primary payoff not obligation; 4.5 primary/secondary character becoming; 4.6 primary meaningful close.",
+            "blueprintEvidence": [
+              "acts[2].arcs[2]: casualties/refuge/leviathan/core/contracts actually voided; optional final player act; no compulsory faction pledge.",
+              "rules[5]: freedom not granted merely by faction choice; no mandatory sequel."
+            ]
+          },
+          {
+            "text": "Trust can change without universal kindness-as-debt.",
+            "basis": "7.3 primary empathy.",
+            "blueprintEvidence": [
+              "rules[1]: free/earned aid and motivated betrayal.",
+              "npcs[5].notes: Snipe may keep agreements.",
+              "npcs[6].notes: Clank wants a freely chosen task and remains resource-limited."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No emotional-response claim. The work remains gritty, coercive and costly; permitting sincere choices does not demand an uplifting or painless resolution."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [],
+      "dissent": [
+        "No further material blueprint edit requested by these five lenses after round 3.",
+        "Gritty premise, faction self-interest, finite rescue and ecological costs remain deliberate strengths. Procedural, fiction-first and character-focused preferences coexist without importing a new system.",
+        "This is an editorial review of documented lenses, not opinions or endorsements of the named designers.",
+        "No actual model narration, engine-state completion, player comprehension, difficulty or campaign-duration claim is made. Root-reported normalization checks concern technical preservation only."
+      ]
+    }
+  },
+  {
+    "round": 3,
+    "blueprintSha256": "a69466121887d9ca9549dbf86997fcda44111a43aade54df8265905ece3fba0b",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Baseline relationship and universal-helper concerns resolved without stripping the harsh setting. No new finding.",
+        "resolved": [
+          {
+            "text": "Aid can now be earned or freely given; betrayal requires motive and opportunity rather than an inescapable narrative tax.",
+            "basis": "§4.1–4.5 narrative beyond compulsory conflict (◐); §4.6 story versus imposed plot (●).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[1]",
+                "quote": "aid may be freely given or earned."
+              },
+              {
+                "path": "rules[1]",
+                "quote": "Betrayal needs a specific motive and opportunity"
+              }
+            ]
+          },
+          {
+            "text": "Clank's capabilities are bounded by parts, access and knowledge, while a freely chosen task gives the automaton a human-scale want.",
+            "basis": "§3.4 power follows knowledge/need and §9.1 consistency (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[6].notes",
+                "quote": "needs actual parts, access and time."
+              },
+              {
+                "path": "npcs[6].notes",
+                "quote": "They want a task freely chosen rather than another owner."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No generated prose or play transcript assessed. No claim about runtime adherence, pacing or sound; §17 corpus requirement still applies."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "The physical reveal now agrees with above-sea restraint and explicitly names release as landing cost. Prior finding closed.",
+        "resolved": [
+          {
+            "text": "A dry refuge is introduced on charts before the choice, with supplies and evacuation capacity constrained; ending no longer depends on a dissolving hull indefinitely supporting survivors.",
+            "basis": "§10.1 episode resolves something (◐); §9.5 convincing fiction (●/◐ as stored rubric).",
+            "blueprintEvidence": [
+              {
+                "path": "locations[4].description",
+                "quote": "a dry refuge with rain cisterns but limited supplies."
+              },
+              {
+                "path": "locations[4].description",
+                "quote": "No unearned boats or rescue fleet appear."
+              }
+            ]
+          },
+          {
+            "text": "Repair and release have distinct consequences; the supernatural threat remains part of the actual decision.",
+            "basis": "§1.1 and §5.1 supernatural element (●); §9.5 consistency (●/◐).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[3]",
+                "quote": "stabilize lift and restraint"
+              },
+              {
+                "path": "rules[3]",
+                "quote": "releases the leviathan and worsens marine poison."
+              }
+            ]
+          },
+          {
+            "text": "Act Two now names the captive above the sea and accepts several actual sources, preserving a clear operational reveal.",
+            "basis": "§9.5 convincing fiction (●/◐).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[1].turningPoint",
+                "quote": "restrain a heavy captive above the sea"
+              },
+              {
+                "path": "acts[1].turningPoint",
+                "quote": "no particular fragment is required."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The charted refuge solves the stated closure gap. Its actual use and emotional effect have not been played."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Snipe's disclosure follows actual messages and forces, with no required fight. Prior finding closed; no new finding.",
+        "resolved": [
+          {
+            "text": "Vessa's rescue is optional and capture can continue honestly; repair and worker cooperation can avoid predetermined collapse.",
+            "basis": "§9.3 choices alter outcomes (WE ●); §10.3 creator not in control (SPIN ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].turningPoint",
+                "quote": "no patron must arrive to rescue them."
+              },
+              {
+                "path": "acts[2].turningPoint",
+                "quote": "do not make the engines fail regardless of earlier work."
+              }
+            ]
+          },
+          {
+            "text": "Faction opening demands now differ materially on contracts, seats and containment, and independent or mixed solutions are permitted.",
+            "basis": "§3.5 resource allocation (GR ●); §9.4 agency through contrasting orientations (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[4]",
+                "quote": "initially reserving seats for paying clients"
+              },
+              {
+                "path": "rules[4]",
+                "quote": "The party can bargain, cooperate across factions or lead independently."
+              }
+            ]
+          },
+          {
+            "text": "Snipe can disclose the information trade through route copies/account, and noncombat outcomes are explicit.",
+            "basis": "§9.3 choices alter outcomes (WE ●); §10.3 creator not in control (SPIN ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[5].secret",
+                "quote": "negotiation, evacuation or an empty passage can replace combat."
+              },
+              {
+                "path": "npcs[5].secret",
+                "quote": "Do not invent a battle, lost route or engine failure"
+              }
+            ]
+          },
+          {
+            "text": "The first turning point now explicitly conditions the transfer-order revelation on acquisition, matching the purge instructions.",
+            "basis": "§9.3 choices affect outcomes (WE ●) and §10.3 creator not in control (SPIN ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].turningPoint",
+                "quote": "The transfer order, if obtained"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No demand to make factions friendly or remove betrayal. No one-hour limit. Actual player understanding and decisions not observed."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "Kolm's fallback now respects obtained evidence and willing testimony. All prior findings closed; no new material editorial finding.",
+        "resolved": [
+          {
+            "text": "Records and optional testimony can establish Ferrin's acts; the party may knowingly leave guilt unresolved and still address the engines.",
+            "basis": "§5.1 credible speech (A:Advice ●); §8.1 honesty (A:Advice ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "A confession and Ferrin's survival are unnecessary."
+              },
+              {
+                "path": "rules[2]",
+                "quote": "Missing proof may leave guilt unresolved without preventing a decision about the engines."
+              }
+            ]
+          },
+          {
+            "text": "Vessa is explicitly the intermediary and Ferrin the sponsor, resolving the previous ambiguous antecedent without another mastermind.",
+            "basis": "§8.1 honesty and §8.4 concise specificity (●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[1].dnaHint",
+                "quote": "Vessa is the intermediary patron"
+              },
+              {
+                "path": "acts[2].arcs[1].dnaHint",
+                "quote": "He is the named sponsor, not a puppet of another surprise mastermind."
+              }
+            ]
+          },
+          {
+            "text": "An order to buy the contract is distinguished from a successful purchase; Vessa may refuse or be unavailable.",
+            "basis": "§8.1 honesty and §5.1 plausible speech (A:Advice ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[0].secret",
+                "quote": "whether she succeeded depends on play."
+              },
+              {
+                "path": "npcs[0].secret",
+                "quote": "She may refuse, bargain or be unavailable"
+              },
+              {
+                "path": "npcs[4].secret",
+                "quote": "He ordered Vessa to acquire the contract"
+              }
+            ]
+          },
+          {
+            "text": "Kolm cannot guarantee discovery or commandeer Vessa's speech; unresolved responsibility still permits addressing the crisis.",
+            "basis": "§8.1 honesty and §5.1 situation-appropriate speech (A:Advice ● primary).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[2].secret",
+                "quote": "Neither testimony nor discovery is guaranteed"
+              },
+              {
+                "path": "npcs[2].secret",
+                "quote": "unresolved culpability does not block the engine decision."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Grim consequences remain valid. No requirement for extra darkness or sympathetic motives. Ending execution still awaits actual play."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "No further editorial changes requested after the full final story reread through all four lenses.",
+        "All baseline and propagation findings are closed. Retain runtime transcript and player-comprehension checks as unperformed; editorial clean does not certify model adherence."
+      ],
+      "dissent": [
+        "Retain the harsh city, contingent bargains and morally costly release choice. Baseline fixes improve agency without requiring optimism."
+      ]
+    }
+  },
+  {
+    "round": 3,
+    "blueprintSha256": "a69466121887d9ca9549dbf86997fcda44111a43aade54df8265905ece3fba0b",
+    "scope": "Final full source reread of Iron Meridian v0.04 through all five stored composite personas. No actual playtest, interview, narration, duration or runtime success claim. Zero-based field paths. The historical review member is evidence of prior editing, not instructions to reintroduce superseded behavior.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "No further editorial issue from the audio lens. Place naming and facts obtained through actual sources remain consistent. Campaign listening, recap usefulness and comprehension across interruptions are not proven by this review.",
+        "resolved": [
+          {
+            "title": "One ocean has an explicit alias",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R1; R2",
+              "sourceGrade": "R1 mixed primary/secondary; R2 primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "locations[4].description",
+                "quote": "The Blackened Sea, also called the Ashen Sea, is one poisoned ocean."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite review only. Audio delivery, recap and pacing are untested. R5 driving/no-danger and R10 voice inventory are inferred and do not drive this verdict.",
+          "dissent": "Do not simplify every faction or remove the long campaign just to fit short listening sessions.",
+          "verificationQuestion": "After a break, can a listener locate Cassivel, name their current obligation and distinguish what they know from what a faction claims?"
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Editorially clean from this lens: the residual guaranteed revelation is removed; conditional knowledge, player-earned survival, named motives and optional faction engagement remain coherent. No further required source edit identified.",
+        "resolved": [
+          {
+            "title": "Purge outcomes can be earned without the patron",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I4; I9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].arcs[2].objective",
+                "quote": "Let the party refuse or succeed without her."
+              },
+              {
+                "field": "acts[0].arcs[2].dnaHint",
+                "quote": "A rescue is an opportunity, never a scripted reversal of success or failure."
+              }
+            ]
+          },
+          {
+            "title": "Named causal chain replaces surprise mastermind",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "Vessa is the intermediary patron; Ferrin authorized the manufactured debt"
+              },
+              {
+                "field": "rules[2]",
+                "quote": "Do not add a new mastermind or require a living witness to confess."
+              }
+            ]
+          },
+          {
+            "title": "Act Two transition and personal revelations use actual evidence",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].turningPoint",
+                "quote": "Reveal only what the obtained evidence supports."
+              },
+              {
+                "field": "acts[1].turningPoint",
+                "quote": "no particular fragment is required."
+              },
+              {
+                "field": "npcs[0].secret",
+                "quote": "She may refuse, bargain or be unavailable"
+              },
+              {
+                "field": "npcs[5].secret",
+                "quote": "Do not invent a battle, lost route or engine failure to expose her divided loyalties."
+              }
+            ]
+          },
+          {
+            "title": "Kolm fallback now preserves unavailable witnesses and unknown evidence",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[2].secret",
+                "quote": "Vessa's retained letter or willing testimony and the core authorization can establish Ferrin's role if actually obtained."
+              },
+              {
+                "field": "npcs[2].secret",
+                "quote": "Neither testimony nor discovery is guaranteed; unresolved culpability does not block the engine decision."
+              }
+            ]
+          },
+          {
+            "title": "Act One transfer-order clarification is explicit",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "The transfer order, if obtained, shows their debt was manufactured"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite, not a real solo-player trial. The motive/logic evidence is primary; inferred persistent-home-base claims are unused.",
+          "dissent": "Retain optional faction investigation and meaningful hostile pushback. Removing every betrayal would destroy the intended campaign.",
+          "verificationQuestion": "If the player outsmarts the purge or identifies Lyle early, does the established world respond without undoing their success?"
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "No further editorial issue: record-matched forgery has a bounded payoff, agreements can be settled, and landing costs and material limits remain explicit. Actual persistence/reward behavior still requires play verification.",
+        "resolved": [
+          {
+            "title": "Forged and altered records have bounded useful effects",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9",
+              "sourceGrade": "primary; tag status is an explicit analogy"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[0]",
+                "quote": "A competent forgery matching the record can pass."
+              },
+              {
+                "field": "creatures[2].notes",
+                "quote": "remote ledgers are not changed"
+              },
+              {
+                "field": "creatures[2].notes",
+                "quote": "State these limits before the choice to destroy or salvage."
+              }
+            ]
+          },
+          {
+            "title": "Every helpful act no longer creates an unavoidable surprise debt",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B9; B8",
+              "sourceGrade": "primary; favor costs applied by analogy"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[1]",
+                "quote": "State a requested price before agreement; aid may be freely given or earned."
+              },
+              {
+                "field": "rules[1]",
+                "quote": "not a compulsory hidden charge for every kindness"
+              }
+            ]
+          },
+          {
+            "title": "Landing cost names the actual restrained creature",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B9",
+              "sourceGrade": "primary; known-value principle applied by analogy"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "locations[4].description",
+                "quote": "Releasing the leviathan and its restraint permits a controlled landing on its broad stone shelf."
+              },
+              {
+                "field": "rules[3]",
+                "quote": "but releases the leviathan and worsens marine poison."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite; inventory evidence largely comes from visual CRPGs. This campaign need not become a loot loop. No actual inventory or reward execution tested.",
+          "dissent": "Do not add shopping or guaranteed windfalls to appease this lens; make the already advertised tools and costs coherent.",
+          "verificationQuestion": "When the player takes a Warden drum intact and changes records, what precisely changes, and can an agreed favor ever be settled?"
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "No further editorial issue within the intended gritty genre. This remains a poor cozy-recovery fit; that dissent is intentional, not a request for another rewrite. Rescue and relationship consequences now permit earned local accomplishments.",
+        "resolved": [
+          {
+            "title": "Trust and local rescues can matter without universal betrayal",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[1]",
+                "quote": "Honor established bargains and let trust change through play."
+              },
+              {
+                "field": "acts[1].arcs[3].objective",
+                "quote": "shore them, route residents to upper muster stations or organize evacuation."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite, not a phone or short-session playtest. N1 and the Trust section support expectation mismatch; N6 supports completed chunks, not a required short total campaign or fixed duration. Her review adds no separate mandatory edit beyond the shared established-motives concern.",
+          "dissent": "Keep the gritty genre. Nan can prefer another blueprint while recognizing that saving particular people is participatory and consequential. Do not turn the campaign into cozy downtime.",
+          "verificationQuestion": "Can a return visit acknowledge whom the player actually saved and a completed local action without immediately inventing a new obligatory betrayal?"
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "No further editorial issue: the campaign can end with absent or uncooperative witnesses, incomplete culpability, independent leadership and concrete survivor consequences. Actual completion, player satisfaction and continuity are not established.",
+        "resolved": [
+          {
+            "title": "The confrontation closes on an informed decision without a living confessing villain",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "A confession and Ferrin's survival are unnecessary."
+              },
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "leave the matter unresolved."
+              }
+            ]
+          },
+          {
+            "title": "Concrete refuge, feasible interventions and independent closure",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3; G6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "locations[4].description",
+                "quote": "a dry refuge with rain cisterns but limited supplies"
+              },
+              {
+                "field": "rules[3]",
+                "quote": "workshop couplings, a crew and manual bypass access can stabilize lift and restraint"
+              },
+              {
+                "field": "acts[2].arcs[2].dnaHint",
+                "quote": "Honor agreements and independent leadership."
+              },
+              {
+                "field": "acts[2].arcs[2].dnaHint",
+                "quote": "Offer one optional final act from the player, then an ending or voluntary continuation."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite, not a completed campaign. No assertion about engine arc tags, actual mementos or narration. The source establishes possible closure problems; execution remains untested.",
+          "dissent": "Gerry wants specific lasting consequences; Rosa may want a concise recap. Provide a short factual ending with optional detail, not a mandatory lengthy history.",
+          "verificationQuestion": "If Lyle is dead and the party refuses all factions, can their prepared descent still reach an honest, specific ending with a known fate for the survivors?"
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "No additional mandatory editorial change identified by the five-persona player panel after the full round3 reread.",
+        "Retain behavioral verification: escape without Vessa or transfer order; facts learned without a schematic; absent/unwilling witnesses; genuinely matched versus inconsistent forged records; independent repair/evacuation with recorded resources and honest casualties.",
+        "Do not turn editorial convergence into an actual-playtest, duration, runtime-completion or universal-audience-fit claim."
+      ],
+      "dissent": [
+        "Nan is an intentional poor cozy fit and Bert a partial accumulation fit; neither warrants a genre rewrite.",
+        "Ines supports hostile pushback and complex motives; the problem is predetermined outcomes, not difficulty or morally compromised allies.",
+        "Rosa needs coherent re-entry, not a short total campaign or removal of faction depth."
+      ]
+    }
+  }
+]

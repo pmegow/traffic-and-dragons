@@ -1,0 +1,439 @@
+{
+  "format": "tnd-blueprint-v1",
+  "designerVersion": "v0.35",
+  "name": "The Iron Meridian",
+  "tone": "gritty",
+  "startingLocation": "The Bilge Wards",
+  "startingRegion": "The floating city of Cassivel, adrift above the Blackened Sea",
+  "premise": "You were sold to settle a debt you never made, your name struck from the citizen rolls and burned into a copper indenture-tag worn at the throat. Now you labor in Cassivel, a mountain of brass and boiler-smoke that drifts eternal above the poisoned Blackened Sea, kept aloft by the guarded engines of the Ascendant Guild. But Cassivel is a battlefield disguised as a city: the Guild that owns your contract, the smuggler-syndicate called the Undertow that owns the shadows, and a silent order of engineers called the Meridian who alone know why the city truly flies — all three are pulling threads, and every threat you're handed to answer is a piece someone above you is moving. You are a tool. The question that will keep you alive is whose.",
+  "acts": [
+    {
+      "title": "Ballast and Breath",
+      "goal": "Survive the Bilge Wards, learn the shape of Cassivel's power, and discover that your indenture was engineered, not incurred",
+      "turningPoint": "The party survives or escapes the purge through its own plan, Vessa's offer, or other earned help. A retained transfer order shows their debt was manufactured to place labor in the engine wards. If captured, continue from that cost; no patron must arrive to rescue them.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Copper Tag",
+          "objective": "Endure your first work-rotations in the boiler wards and stay off the overseers' punishment list",
+          "type": "exploration",
+          "dnaHint": "Let the city teach cruelty through routine — the crushing gears, the ration lines, the informant beside you at the furnace who reports every complaint and smiles while doing it."
+        },
+        {
+          "title": "The Missing Manifest",
+          "objective": "Investigate why your indenture-tag lists a debt to a merchant house nobody in the wards has ever heard of",
+          "type": "investigation",
+          "dnaHint": "Every clue points to a paperwork error until it doesn't — the trail leads to a Guild clerk who was told to file you here, and killing the trail matters more to someone than killing you."
+        },
+        {
+          "title": "The Purge Rotation",
+          "objective": "Survive, evade or interrupt Kolm's purge. A posted transfer list and coolant-service passage offer leads for a forged transfer, escape or exposing the skimming; fighting and bargaining remain possible. Vessa may offer to buy the contract with named terms. Let the party refuse or succeed without her.",
+          "type": "combat",
+          "dnaHint": "Telegraph the culling and the available exits before sealing the wards. Resolve through the actual escape, bargain, resistance or capture. A rescue is an opportunity, never a scripted reversal of success or failure. Keep the transfer order as evidence only if obtained."
+        }
+      ]
+    },
+    {
+      "title": "Threads in the Smoke",
+      "goal": "Choose which, if any, faction jobs to undertake while investigating the engineered debt and failing engines. Leads may be declined or superseded; close each honestly without inventing visits or discoveries. The party can combine evidence or organize workers independently.",
+      "goal2": "",
+      "turningPoint": "Through a schematic, worker testimony or inspection, the party learns the engines share a failing coolant circuit and restrain a heavy captive above the sea. Reveal only what the obtained evidence supports. Identifying the crisis and choosing a response advances play; no particular fragment is required.",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Undertow's Errand",
+          "objective": "Run contraband through the ventilation maze for the smuggler-syndicate in exchange for the truth about who bought your debt",
+          "type": "social",
+          "dnaHint": "The Undertow offers the buyer's transfer record for a specified contraband delivery. Disclose whom the cargo may endanger before commitment. Renegotiation, refusal or finding the record through the Guild clerk remain possible; do not invent a later price for help already earned."
+        },
+        {
+          "title": "The Guild's Loyal Hand",
+          "objective": "Consider Guild security work for a provisional citizen's tag. The written terms name its ward access and duration. An order targeting the manifest clerk can be investigated, refused, exposed or carried out; rescuing the clerk or securing their records preserves evidence of the debt scheme.",
+          "type": "combat",
+          "dnaHint": "The Guild calls its targets saboteurs, but evidence can contradict it. Do not kill the clerk merely because the party protects them. Orders and transfer records can survive the clerk's death; do not fabricate a confession or make one faction job mandatory."
+        },
+        {
+          "title": "The Silent Engineers",
+          "objective": "Seek a schematic through trade, cooperation or infiltration. It shows lift and restraint share a coolant circuit, and a manual bypass can stop the cascade. The workshop evacuation chart marks Crown Shoal, a dry basalt refuge within emergency steering range; copies also hang at Bilge muster stations.",
+          "type": "investigation",
+          "dnaHint": "The Cartographer may leave an accessible fragment to influence another faction. The party may recognize the setup, refuse delivery, copy it or propose cooperation. Success is not secretly failure: the fragment contains real operating information whichever route obtains it."
+        },
+        {
+          "title": "The Falling Ward",
+          "objective": "Respond to Sump Row's failing braces: shore them, route residents to upper muster stations or organize evacuation. The tremor comes from a fractured coolant manifold, not rebels. Muster charts show Crown Shoal; worker crews can demonstrate the manual bypass. State available labor, materials and time before choices.",
+          "type": "exploration",
+          "dnaHint": "Save who you can while the powers above use the disaster as cover — the tremor is real, the sabotage story is a lie, and the people you save will owe loyalties that pull you in three directions."
+        }
+      ]
+    },
+    {
+      "title": "The Weight Below",
+      "goal": "Determine who controls the engines and contracts, and choose a supported response to the coolant cascade. Faction backing is optional; an independent coalition may work. Stabilization, controlled landing, evacuation and failure have distinct physical and political consequences.",
+      "turningPoint": "The fractured manifold nears failure. Show the warning gauges and time each proposed intervention needs. Repairs or evacuation may succeed before collapse; do not make the engines fail regardless of earlier work.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Convergence in the Core",
+          "objective": "Reach the engine core through fighting, stealth, negotiation or the service passage on the schematic. Inspect the restrained leviathan and coolant failure. Compare actual resources with the repair, landing and evacuation plans; recovered schematics and worker testimony can supply the same operating facts.",
+          "type": "exploration",
+          "dnaHint": "Faction forces pursue competing objectives and know only what they learned. They may cooperate or withdraw; do not reveal that all were secretly allied against the party. Preserve any route, personnel or equipment secured earlier."
+        },
+        {
+          "title": "Whose Hand Moves You",
+          "objective": "Resolve the case against Ferrin Lyle using discovered records or testimony. His signed purchase authorization in the core office matches the Bilge transfer order; Vessa can identify her instructions if available. Decide whether to expose, bargain, detain, attack or leave the matter unresolved. A confession and Ferrin's survival are unnecessary.",
+          "type": "social",
+          "dnaHint": "Vessa is the intermediary patron; Ferrin authorized the manufactured debt to recruit disposable engine labor and tighten his control. He is the named sponsor, not a puppet of another surprise mastermind. Evidence of his acts survives his refusal or death; no automatic confession."
+        },
+        {
+          "title": "The Descent",
+          "objective": "Choose and carry out an achievable repair, controlled landing or evacuation, with or without a faction. Establish people, parts, access and timing from prior play; the workers and schematic explain requirements. Record casualties, refuge, the leviathan's restraint or release, core control and whether indentures were actually voided.",
+          "type": "combat",
+          "dnaHint": "Resolve the chosen intervention, not a compulsory battle or faction pledge. State actual costs, survivors and remaining dangers; no universal death claim if people escaped. Honor agreements and independent leadership. Offer one optional final act from the player, then an ending or voluntary continuation."
+        }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Vessa Corrow",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "notes": "A Guild broker, warm in public and ambitious. During the purge she may offer to purchase the party's contracts in exchange for specified security work. State those terms; she cannot erase an independent escape or compel acceptance. She wants promotion and control of useful labor, but may honor a bargain when it serves her.",
+      "secret": "Ferrin ordered her to acquire the party's contract; whether she succeeded depends on play. In Act Three her retained instruction letter or willing testimony can establish the order. She knows her assignment, not Ferrin's whole scheme. She may refuse, bargain or be unavailable; the core authorization and Bilge record remain independent evidence. No compulsory confession.",
+      "revealAct": 3
+    },
+    {
+      "name": "Redd Salter",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "A weathered furnace-worker in the Bilge Wards who takes the player under his wing and speaks for the Undertow. He is the worker seated beside the player at the furnace in Act One's 'The Copper Tag' arc — the one whose warmth and easy talk mask an informant's habits, who smiles while reporting every complaint to the overseers. He genuinely likes the player but will trade their safety for the syndicate's goals without hesitation.",
+      "secret": "His secret is that during a past purge, before the player arrived, Redd played that same smiling-informant role in earnest to survive, selling out a previous indentured to the overseers, and he still slips into it under pressure. It surfaces in Act Two when the player realizes the warning Redd gave them about informants was really a confession about who he himself had once been — and still is.",
+      "revealAct": 2
+    },
+    {
+      "name": "Overseer Kolm",
+      "role": "villain",
+      "pronouns": "they/them",
+      "notes": "The brutal punishment-master of the boiler wards who orchestrates the culling rotations. They want to bury an accounting fraud that skims the indentured rolls.",
+      "secret": "Their secret is that the fraud isn't theirs — they were ordered to run it by the Guild, and they resent being the visible hand that takes the blame; this surfaces if the player spares them in Act Two. If Kolm dies or is never spared, the Guild-ordered-fraud link surfaces instead through ledgers recovered from the boiler wards' punishment records or through Vessa Corrow's Act Three confession, so the connection to Ferrin Lyle's scheme always reaches the player.",
+      "revealAct": 2
+    },
+    {
+      "name": "The Cartographer",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "notes": "Masked Meridian representative, communicating in diagrams and terse written conditions. Wants the leviathan contained. May trade a real schematic for help repairing the coolant circuit, or leave a fragment accessible to influence a faction. The party may notice and reject the manipulation. The fragment also marks safe service routes; no omniscient countermeasure defeats a successful infiltration.",
+      "secret": "In Act Three the Cartographer offers to bypass the fractured coolant manifold by cutting industrial heat and staffing manual valves. The plan can preserve lift and restraint, but risks abandoned outer wards unless others arrange rescue. They favor containment over civilian comfort; the party can negotiate labor and evacuation safeguards.",
+      "revealAct": 3
+    },
+    {
+      "name": "Ambassador Ferrin Lyle",
+      "role": "villain",
+      "pronouns": "he/him",
+      "notes": "A charming, seemingly minor liaison between the Guild and the city's absent aristocracy, easily dismissed as decoration. Appears in Acts One and Two as a bland, forgettable liaison exchanging pleasantries and paperwork; plant him in minor scenes without emphasis — waved through a checkpoint, signing a manifest near the Guild clerk, offering a distracted greeting during the Falling Ward.",
+      "secret": "Ferrin signed the false debt and transfer orders to staff dangerous engine work with disposable labor while consolidating Guild control. He ordered Vessa to acquire the contract; success depends on the party accepting or on actual events. His purchase authorization remains in the core office; compare it with the Bilge transfer record or Vessa's testimony. These establish his acts without confession, survival or an unnamed higher mastermind.",
+      "revealAct": 3
+    },
+    {
+      "name": "Snipe",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "An indentured gremlin messenger who knows the ventilation maze. Snipe helps for agreed scraps, payment or protection and may retreat when the risk exceeds her bargain. She can suggest routes she actually knows, not conjure access or supplies. Her loyalties may change; she can keep an agreement without an inevitable betrayal.",
+      "secret": "She has sold information to all three factions. In Act Three, compare her route copies or obtain her account to learn which instructions each side received. Apply only consequences supported by the messages and forces actually present; negotiation, evacuation or an empty passage can replace combat. Do not invent a battle, lost route or engine failure to expose her divided loyalties.",
+      "revealAct": 3
+    },
+    {
+      "name": "Clank",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "notes": "A wandering automaton with patchy memories of serving engine crews. Clank can recognize maintenance fittings, retrieve tools from known stores and explain a repair diagram, but needs actual parts, access and time. They cannot conjure a missing object, reveal unknown secrets or solve the crisis alone. They want a task freely chosen rather than another owner."
+    }
+  ],
+  "locations": [
+    {
+      "name": "The Bilge Wards",
+      "description": "Cassivel's lowest tier: boilers, ration lines and iron dormitories. Overseers patrol catwalks with punishment ledgers. Sump Row hangs from the underhull and houses the newest indentured; fractured coolant braces endanger it during the Falling Ward. Transfer lists sit beside the punishment office. Muster charts mark upper refuge stations, service exits and Crown Shoal. Captive skiffs have limited seats: establish their working number and capacity before an evacuation decision."
+    },
+    {
+      "name": "The Ventilation Maze",
+      "description": "A honeycomb of ductwork, service shafts, and dead spaces threading between Cassivel's tiers, unmapped by any official chart. The Undertow smuggle contraband and secrets through its crawlspaces, and only the small and the desperate know its true routes. Sound carries strangely here, and a wrong turn drops you into a furnace intake or a Guild patrol's arms."
+    },
+    {
+      "name": "The Meridian Workshops",
+      "description": "Brass workshops beside the core. A humming resonance disorients prolonged unprotected visitors; warning plates and discarded protective masks disclose the danger before exposure. Masks, shielding or disabling a relay offer counters. State exposure time and symptoms; do not silently erase player memories or secured evidence. The Cartographer may permit access but cannot decide every theft was secretly intended. Schematics explain the shared lift/restraint coolant circuit, manual bypass and routes to Crown Shoal."
+    },
+    {
+      "name": "The Engine Core",
+      "description": "Pistons and shielded wells restrain a luminous leviathan above the sea; its exudate poisoned the water. The same coolant circuit serves lift and restraint, and a fractured manifold is cascading. A bypass using workshop couplings and worker crews can preserve both at reduced output. Releasing the load permits a steered landing at Crown Shoal but returns the creature and its poison to the sea. The signed purchase authorization in Ferrin's office links the manufactured debt to his labor scheme."
+    },
+    {
+      "name": "The Blackened Sea",
+      "description": "The Blackened Sea, also called the Ashen Sea, is one poisoned ocean. Its water burns flesh and dissolves exposed hull within hours; upper decks on a floating wreck only buy time. Crown Shoal is a charted basalt ridge above the water within emergency steering range, a dry refuge with rain cisterns but limited supplies. It appears on Bilge muster and workshop charts. Releasing the leviathan and its restraint permits a controlled landing on its broad stone shelf. Evacuation skiffs can reach it before collapse if time and capacity permit; establish both before commitment. No unearned boats or rescue fleet appear."
+    }
+  ],
+  "rules": [
+    "Tags: ordinary readers see a tag's stated identity and ward, not magical truth. An absent tag or mismatch with a held manifest creates suspicion; inspection needs actual records and opportunity. A competent forgery matching the record can pass. Tag-Shrikes track the specific tag frequency, so swapping tags can redirect pursuit but endanger the other holder. Announce inspection risks; discovery can start pursuit, not automatic capture or death.",
+    "Allies have motives, knowledge and limits. State a requested price before agreement; aid may be freely given or earned. Betrayal needs a specific motive and opportunity, not a compulsory hidden charge for every kindness. Honor established bargains and let trust change through play.",
+    "Fixed scheme: Vessa is a contract-buying intermediary; Ferrin authorized the engineered debt. His core-office authorization, Bilge transfer record and available testimony support exposure. Do not add a new mastermind or require a living witness to confess. Missing proof may leave guilt unresolved without preventing a decision about the engines.",
+    "Final options: workshop couplings, a crew and manual bypass access can stabilize lift and restraint by diverting industrial heat. Warn which wards lose services and organize their rescue. Cutting the restraint lightens the city for a steered landing on Crown Shoal, but releases the leviathan and worsens marine poison. Skiffs offer evacuation only for their established capacity and available trips. Earlier repairs and preparations count; no guaranteed collapse.",
+    "Faction offers: Ferrin's Guild funds the bypass but seeks continued contract ownership; the Undertow offers skiffs and favors release/landing to escape Guild power, initially reserving seats for paying clients; the Meridian offers engineering but prioritizes containment over outer wards. These are opening demands, not forced outcomes. The party can bargain, cooperate across factions or lead independently. Ordinary workers have their own consent and interests.",
+    "Progress and endings: optional faction leads can be investigated, declined, unavailable or superseded; state why and close their actual arcs without inventing evidence. Resolve capture, escape or chosen settlement honestly. The ending accounts for survivors, refuge, contracts, core and leviathan using actual actions. Do not grant freedom merely for choosing a faction or require a sequel."
+  ],
+  "author": "",
+  "proseAuthor": "cook",
+  "creatures": [
+    {
+      "name": "Tag-Shrike",
+      "kind": "construct",
+      "threat": "moderate",
+      "notes": "A crow-sized brass automaton loosed by overseers to hunt indentured whose copper tags stray from their assigned wards; it homes on the resonance of a specific tag-frequency, shrieking a location-marker whistle that summons enforcers within minutes. It rarely kills — it perches just out of reach, screaming, forcing the target to either flee into worse trouble or destroy it and be flagged as a runaway. Silence it by muffling or smashing its bellows-throat, or spoof it by swapping tags with another indenture; but a dead Tag-Shrike broadcasts a final alarm burst, so timing and a quiet corner are everything."
+    },
+    {
+      "name": "Boiler-Choked",
+      "kind": "undead",
+      "threat": "moderate",
+      "notes": "Workers burned to hide purge fraud sometimes rise with copper tags fused to scorched throats. Slow packs shuffle through smoke, vent scalding steam and grapple victims against hot brass; they gather near purge furnaces. Open ground allows escape. Coolant quenches their steam, and breaking the tag stills the body. Sea water also quenches them but is corrosive to flesh and equipment; disclose that hazard. They embody the crime's cost, not a compulsory fight."
+    },
+    {
+      "name": "Manifest-Warden",
+      "kind": "construct",
+      "threat": "moderate",
+      "notes": "A clockwork clerk with copper reading-lenses compares visible tags with its held ledger-drum. On a real mismatch it clamps the tag, shocks the wearer and calls enforcers; it cannot know a good record-matched forgery is false. Destroying the drum disables it. Taking it intact permits documented edits and matching replacement tags at its punch station; remote ledgers are not changed, so copied records may later expose inconsistencies. State these limits before the choice to destroy or salvage."
+    },
+    {
+      "name": "Gremlin",
+      "kind": "goblinkin",
+      "threat": "low",
+      "notes": "Gremlins are slave adjacent maintenance creatures with the inate ability to fix a complex system with a minimum of tools and tech.  They personify fixing a machine by doing nothing more than 'hitting it with a wrench and swearing at it'.  Surly but unthreatening, they would much rather run than fight.  Remarkably agile, there just as much at home deep in a bilge pipe as they are high up in an airship's rigging."
+    },
+    {
+      "name": "Murder Gull",
+      "kind": "beast",
+      "threat": "moderate",
+      "notes": "Curious but ill tempered, murder gulls travel in flocks.  Small groups are known to attack humans, while an individual may steal anything shiny the victim may have exposed.  Armed with both sharp talons and beaks, a single gull is not a problem, a 10-20 certainly are.   The orgainic inpiration for the TAG-Shrike."
+    },
+    {
+      "name": "Steam Elemental",
+      "kind": "Elemental",
+      "threat": "Deadly",
+      "notes": "Born through the same process as the Boiler-Choked, the Steam Elemental is sentient steam, it's scalding attacks blister skin.  They are immunty to all piercing and slashing attacks.  Blunt weapons do 1/2 damage.  They're particularly vulnerable to cold and wind based attacks."
+    }
+  ],
+  "review": {
+    "findings": [
+      {
+        "sev": "HIGH",
+        "section": "Act 3 arc 'Convergence in the Core'",
+        "issue": "Objective is 'reach the engine core' — a place plus a passive revelation, not a completable action the engine can verify.",
+        "fixes": [
+          "Rewrite objective to 'Fight or slip through the three-army chokehold in the corridors to breach the core chamber and expose the imprisoned thing below to the party.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Rewrote 'Convergence in the Core' objective into a completable action: breach the core chamber and expose the imprisoned thing."
+      },
+      {
+        "sev": "HIGH",
+        "section": "npcs / Ferrin Lyle vs. Vessa Corrow",
+        "issue": "Lyle is 'the true hand' but there is no run-instruction telling the GM how he acts on-screen before Act Three, so the GM must improvise all his earlier appearances despite him being scenery the player dismisses.",
+        "fixes": [
+          "Extend Ferrin Lyle's notes with early-act behavior: e.g. 'Appears in Acts One and Two as a bland, forgettable liaison exchanging pleasantries and paperwork; the GM should plant him in minor scenes without emphasis so his Act Three reveal recasts them.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added early-act on-screen behavior for Ferrin Lyle so the GM can plant him before the Act Three reveal."
+      },
+      {
+        "sev": "HIGH",
+        "section": "locations — Engine Core",
+        "issue": "The 'thing below' that the city imprisons — the campaign's central revelation (Act Three) — is never named or described in the Core, only hinted; the GM must improvise what the chains hold.",
+        "fixes": [
+          "Extend the Engine Core description with a verbatim canonical statement of what the chains restrain beneath the shielded wells, matching The Cartographer's and Convergence-in-the-Core secrets, so the GM has fixed truth for the reveal."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Named and described the chained Ashen Sea leviathan in the Engine Core, matching the Cartographer's and Convergence secrets."
+      },
+      {
+        "sev": "MED",
+        "section": "Act 3 arc 'The Descent' (climactic arc)",
+        "issue": "Final climactic arc names no concrete reward for completing the campaign's defining choice.",
+        "fixes": [
+          "Extend the dnaHint to state the reward: the party's chosen faction alignment locks in and the surviving population's fate (indentured freed, city landed, faction in power) is set as the campaign's ending state."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended The Descent dnaHint to name the campaign's concrete ending reward: locked faction alignment and set population fate."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs / The Cartographer",
+        "issue": "The Cartographer's secret surfaces 'in Act Three's core' but the notes give no behavioral trigger or interaction pattern for the Meridian arcs in Act Two where the player infiltrates the workshops.",
+        "fixes": [
+          "Extend The Cartographer's notes to specify Act Two behavior: they let the player steal the fragment deliberately via terse schematic-only conditions, revealing nothing of the doomed-city plan until the Act Three core."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended The Cartographer's notes with Act Two workshop-infiltration behavior: deliberate theft via terse schematic-only conditions, withholding the doomed-city plan until Act Three."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs / Overseer Kolm",
+        "issue": "Kolm's secret surfaces only 'if the player spares them in Act Two,' but no notes cover what happens if the player kills or never confronts Kolm, leaving the ordered-fraud link to Lyle unrevealable and forcing GM improv.",
+        "fixes": [
+          "Extend Kolm's notes with an alternate delivery: if Kolm dies or is never spared, the Guild-ordered-fraud link surfaces through recovered ledgers or Vessa's Act Three confession instead."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added alternate delivery for Kolm's Guild-ordered-fraud secret via recovered ledgers or Vessa's Act Three confession."
+      },
+      {
+        "sev": "MED",
+        "section": "locations — Meridian Workshops",
+        "issue": "'rarely return with their memories intact' implies a memory-wiping mechanism the GM must invent on every intrusion, and the Act Two infiltration depends on how the Meridian handle intruders.",
+        "fixes": [
+          "Add to the Meridian Workshops description the concrete means by which the order strips or damages intruders' memories and why they let the player steal the fragment unharmed, aligning with The Cartographer's notes."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added the Meridian's memory-scrambling resonance ward and their deliberate reason for letting the player steal the fragment unharmed, aligned with The Cartographer's notes."
+      },
+      {
+        "sev": "MED",
+        "section": "locations",
+        "issue": "Acts reference distinct districts (boiler wards, ration lines, iron dormitories, the collapsing 'Falling Ward', catwalks) but only the Bilge Wards is defined as one blanket tier, leaving 'The Falling Ward' collapse location undefined.",
+        "fixes": [
+          "Extend the Bilge Wards description to name and locate the specific district that collapses during the Act Two engine tremor so 'The Falling Ward' arc has a fixed setting."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added Sump Row to Bilge Wards as the fixed setting for the Falling Ward collapse."
+      },
+      {
+        "sev": "MED",
+        "section": "creatures",
+        "issue": "The creatures array is empty, yet the blueprint's combat arcs and setting lean on physical threats (overseer enforcers in the Purge Rotation, Guild security squads, Undertow agents) that the GM will improvise inconsistently across a long campaign.",
+        "fixes": [
+          "Add a creature entry for Guild overseer enforcers describing them as armored catwalk-patrol wardens with punishment-ledgers and shock-prods, hunting the tagged indentured.",
+          "Add a creature entry for Undertow smuggler-agents describing them as knife-quick ventilation runners who fight dirty and flee when outmatched.",
+          "Add a creature entry for Meridian sentries describing them as masked, wordless workshop guardians whose touch scrambles intruders' memories."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "MED",
+        "section": "rules[0] (copper tag)",
+        "issue": "The rule states forging/removing the tag is 'a crime punishable by culling' but gives no directive for how the GM adjudicates a player attempting it — leaving detection odds, who catches it, and consequences to improvisation.",
+        "fixes": [
+          "Extend rule[0] to state that any faction operative reading a forged or absent tag exposes the player as an escapee and triggers an immediate culling order enforced by Overseer Kolm's rotations."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended rule[0] to specify that reading a forged/absent tag exposes the player as an escapee and triggers Overseer Kolm's culling order."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs (Vessa Corrow) vs Act One turningPoint",
+        "issue": "The Act One turning point says a patron buys the contract to spare an execution, but Vessa's notes say she buys it to spare the player generically — and the 'execution you didn't earn' maps to the Purge Rotation arc, leaving unclear that Vessa is the intervening watcher in that arc.",
+        "fixes": [
+          "Edit Vessa's notes to state she is the watcher who intervenes at the last second in the Purge Rotation arc, buying the player's contract to spare them the culling execution."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Vessa's notes now identify her as the Purge Rotation watcher who intervenes to spare the player the culling execution."
+      },
+      {
+        "sev": "LOW",
+        "section": "Act 3 arc 'Whose Hand Moves You'",
+        "issue": "Objective 'confront the patron and the true hand' lacks a completion trigger — confrontation can be endless dialogue with no resolution.",
+        "fixes": [
+          "Rewrite objective to 'Force Ferrin Lyle to admit he manufactured your indenture, then decide whether to kill, expose, or bargain with him before the core gives out.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Rewrote the arc objective to include a concrete completion trigger: extract Lyle's admission, then kill/expose/bargain before the core fails."
+      },
+      {
+        "sev": "LOW",
+        "section": "npcs / Pell",
+        "issue": "Pell's wildcard secret (feeding all three factions the same info) has no surfacing trigger or consequence, so the GM never knows when or whether to reveal it.",
+        "fixes": [
+          "Extend Pell's notes with a trigger: her triple-agent role surfaces during Act Three's Convergence when her information is shown to have misled a faction, forcing the player to weigh her loyalty."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added a surfacing trigger and consequence for Pell's triple-agent secret in Act Three's Convergence."
+      },
+      {
+        "sev": "LOW",
+        "section": "npcs / Redd Salter",
+        "issue": "Redd's secret is that he 'informed on a previous indentured,' but the informant at the furnace in Act One arc 'The Copper Tag' is described generically, leaving unclear whether Redd is that informant or a separate one.",
+        "fixes": [
+          "Extend Redd's notes to clarify he is not the Act One furnace informant but confesses in Act Two that he once played that same role during a past purge to survive."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Clarified Redd is not the Act One furnace informant but confesses he once played that role during a past purge."
+      },
+      {
+        "sev": "LOW",
+        "section": "locations — Ashen Sea",
+        "issue": "The final act lands the city on or into the Ashen Sea, but the description gives no fixed fact about whether anything survives contact, forcing the GM to improvise the ending's physical stakes.",
+        "fixes": [
+          "Add to the Ashen Sea description a concrete fact about what happens to structures and people that reach its surface, so The Descent's 'landing that is survival, not victory' has fixed physical consequences."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added concrete corrosion/immersion consequences to the Ashen Sea surface to fix The Descent's physical stakes."
+      },
+      {
+        "sev": "LOW",
+        "section": "creatures",
+        "issue": "The Ashen Sea and Engine Core wells are described as menacing 'something below' the city is built to imprison, but no creature represents that imprisoned thing, so the Act Three revelation has no canonical form and the GM must invent it.",
+        "fixes": [
+          "Add a creature entry for the imprisoned entity beneath the Ashen Sea describing it as the vast poisoned force the engines strain to hold down, felt in tremors, revealed at the Engine Core in Act Three."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Added the imprisoned entity beneath the Ashen Sea as a canonical creature for the Act Three revelation."
+      },
+      {
+        "sev": "LOW",
+        "section": "rules[1] (no true friend)",
+        "issue": "The phrase 'every act of aid should carry an unspoken price that surfaces later' is a vague authorial aspiration, not an actionable directive — it tells the GM a mood, not when or how to invoke the price.",
+        "fixes": [
+          "Rewrite rule[1] to direct the GM that when any ally NPC helps the player, the GM must silently note a specific future cost and cash it in during a later scene where the player's and ally's interests diverge."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Rewrote rule[1] into an actionable GM directive: note a specific cost on each ally's aid and cash it in during a later divergence scene."
+      },
+      {
+        "sev": "LOW",
+        "section": "premise vs acts/npcs",
+        "issue": "The premise names the smuggler-syndicate 'the Undertow' and the engineer order 'the Meridian', but 'the Ascendant Guild' is the only faction never given a dedicated NPC-independent identity beyond membership references — this is consistent, not a name-drop violation, so no true gap exists here.",
+        "fixes": [
+          "No change required; all three factions (Ascendant Guild, Undertow, Meridian) are referenced consistently across premise, arcs, npcs, and locations."
+        ],
+        "status": ""
+      },
+      {
+        "sev": "LOW",
+        "section": "npcs (Redd Salter) vs Act One dnaHint (The Copper Tag)",
+        "issue": "The Copper Tag dnaHint describes 'the informant beside you at the furnace who reports every complaint and smiles', and Redd's secret is that he was once such an informant, but the notes never link Redd to this furnace-informant scene, risking the GM improvising a separate unnamed informant.",
+        "fixes": [
+          "Edit Redd's notes to specify he is the furnace-side worker from The Copper Tag arc whose warmth masks his informant past, tying the smiling-informant imagery to him."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Tied Redd to the furnace-side smiling-informant of The Copper Tag arc."
+      }
+    ],
+    "sections": 6,
+    "failedSections": 0
+  },
+  "narratorVoice": "",
+  "version": "0.03",
+  "releaseStatus": "draft",
+  "catalogId": "the_iron_meridian"
+}
