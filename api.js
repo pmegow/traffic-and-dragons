@@ -750,6 +750,22 @@ function buildMarketNote(){
 // on recruit/death/import/regeneration (one deliberate cache re-write each), never per turn — nothing
 // here may read HP, location, splitLoc or the turn. ""-clean when no living companion carries any of
 // the four fields, so legacy saves and companion-less campaigns stay byte-identical.
+/* #623: PEOPLE OF THE RECORD — the hero's own people who are NOT in the party, as their library sheets have them (seated by
+   seatRecordPeople, game.js). STABLE half: reads the seated sheets and the hero's bond rows only — never HP, location or the
+   turn; it changes on a seat, a join, a death or a bond change, one deliberate cache re-write each. ""-clean when nobody is
+   seated, so every other campaign stays byte-identical. Nothing is guessed: a bonded person without a sheet is not listed. */
+function buildRecordPeopleBlock(){
+  if(!worldState||!worldState.npcs||!worldState.character)return"";
+  var rows=(typeof relationshipRows==="function")?relationshipRows(worldState.character,null):[],bond=keyedDict(),i;
+  for(i=0;i<rows.length;i++)if(rows[i].bond)bond[String(rows[i].entity).toLowerCase()]=rows[i].bond;
+  var L=[];
+  for(i=0;i<worldState.npcs.length;i++){var n=worldState.npcs[i];if(!n||!n.recordPerson||n.partyMember||!n.charSheet||(typeof npcIsDead==="function"&&npcIsDead(n)))continue;
+    var cs=n.charSheet,who=[];if(cs.subraceNm)who.push(cs.subraceNm);if(cs.ancestry)who.push(cs.ancestry);if(cs.cls)who.push(cs.cls);
+    var pr=n.pronouns||(cs.gender?pronounsForGender(cs.gender):""),b=bond[String(n.name).toLowerCase()];
+    L.push("- "+n.name+(b?" ("+b+")":"")+": "+(who.join(" ")||"on record")+(pr?", "+pr:"")+(cs.appear?". Look: "+String(cs.appear).slice(0,140):""));}
+  if(!L.length)return"";
+  return "PEOPLE OF THE RECORD \u2014 the hero's own people, as their sheets have them. They are not with the party right now; when one appears, describe them FROM THIS, never invented \u2014 their look, their past and their standing are canon; file [PARTY_MEMBER:Name|true] only when they travel with the party:\n"+L.join("\n")+"\n\n";
+}
 function buildPartyHistoriesBlock(){
   if(!worldState)return"";
   var party=(worldState.npcs&&worldState.npcs.length)?livingPartyCompanions():[],L=[],i;
@@ -2708,7 +2724,8 @@ function buildSysPrompt(){
     +buildStateTagsDoc()
     +buildNamingClause()/* #156: the identity-discipline clause — campaign-constant by construction (assembled from IDENTITY_DOMAINS namingRules + fixed literals), so it is cache-safe in the stable half; engine-tested for call-stability */
     +buildDeepTimeBlock()/* #227: the world age ladder — written once at campaign start and never mutated in play, so it is cache-safe in the stable half; ""-clean for every campaign without a ladder, which keeps legacy saves byte-identical */
-    +buildPartyHistoriesBlock();/* #341: companions' authored past — constant between recruit/death/import, ""-clean without one */
+    +buildPartyHistoriesBlock()/* #341: companions' authored past — constant between recruit/death/import, ""-clean without one */
+    +buildRecordPeopleBlock();/* #623: the hero's own people who are NOT in the party, from their library sheets — ""-clean when nobody is seated */
   var volatile_=identity+switchBlock+mpEndBlock+abandonBlock+wallSweepBlock+leftBlock+buildCompanionInitiativeLine()/* #386: "" outside the window — byte-identical */
     +"CHARACTER: "+c.name+" ("+genderDisplay+"), "+(c.subraceNm?c.subraceNm+" ":"")+c.ancestry+" "+c.cls+(c.archetypeNm?" ["+c.archetypeNm+"]":"")+", Level "+c.level+" ("+c.xp+" XP, next: "+nextXP+")\n"
     +"HP: "+c.hp+"/"+c.maxHp+" | Gold: "+fmtCoin(c.coin)+" | Alignment: "+(c.actualAlignment||c.statedAlignment||"Neutral")+"\n"

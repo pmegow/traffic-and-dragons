@@ -246,6 +246,7 @@ function _applyLoadedCampaign(){
   addMsg("system",worldState.world.location+" | Turn "+worldState.turn+" | "+Object.keys(memory.npcs).length+" NPCs in memory");
   initReplaySession(); // shared with init() — was a near-identical inline copy (audit #26)
   if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}
+  if(typeof seatRecordPeopleFromLibrary==="function")seatRecordPeopleFromLibrary();/* #623 */
   if(typeof migratePendingCompanionSheets==="function")migratePendingCompanionSheets();// backfill sheet-less party members in existing saves (audit P2)
 }
 /* Audit D5, the download half: `JSON.stringify(data.memory||{})` wrote the STRING "{}" into the

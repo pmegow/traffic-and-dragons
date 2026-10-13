@@ -5877,6 +5877,72 @@ function runEngineTests(R){
     return L.vis.indexOf("Sandpoint — Place 01")<0?true:"#464 the oldest of 31 subs was kept: "+L.vis;
   });
 
+  // ── #623 the people of the record (owner field report 2026-10-12: Daeris, a dark-skinned Vashari cleric on her library
+  //    sheet, narrated "pale" before she joined; a GM-side join never looked in the library) ──
+  section("#623 people of the record");
+  function __bondedHero(){var c=worldState.character;c.name="Frizwick";c.relationships=[
+    {entity:"Ammut",bond:"Wife — beloved family",bondTurn:1,dynamic:"",dynamicTurn:null},
+    {entity:"Daeris",bond:"Wife — chosen family",bondTurn:1,dynamic:"",dynamicTurn:null},
+    {entity:"Morwen Zethran",bond:"Wife — leaned on, not alone",bondTurn:1,dynamic:"",dynamicTurn:null}];return c;}
+  function __libSheet(name,extra){var c=JSON.parse(JSON.stringify(worldState.character));c.name=name;c.relationships=[];delete c.coreMemories;delete c.storyBeats;var k;for(k in extra)c[k]=extra[k];return c;}
+  function __lib(){return [
+    {character:__libSheet("Daeris",{gender:"F",ancestry:"Human",subraceNm:"Vashari",cls:"Cleric",appear:"Dark-skinned, close-cropped silver hair, a curved blade at her hip and ash-grey eyes that miss nothing."}),updatedAt:1700000000000},
+    {character:__libSheet("Ammut",{gender:"M",ancestry:"Half-Blood",subraceNm:"Half-Fey",cls:"Rogue",appear:"Massive forearms, a scar across the brow."}),updatedAt:1700000000001}];}
+  t("#623 recordPeopleCandidates: every bonded entity not yet on the roster, the hero excluded, names compared without case",function(){
+    makeWorld();var c=__bondedHero();
+    if(typeof recordPeopleCandidates!=="function"||typeof libraryEntryFor!=="function")return "helpers missing";
+    var k=recordPeopleCandidates(c,worldState.npcs);
+    if(k.length!==3||k[0].name!=="Ammut"||k[0].bond!=="Wife — beloved family"||k[2].name!=="Morwen Zethran")return "three bonded people: "+JSON.stringify(k);
+    worldState.npcs.push({name:"ammut",status:"",statusTurn:0,rel:"companion",met:3,partyMember:true});
+    k=recordPeopleCandidates(c,worldState.npcs);if(k.length!==2||k[0].name!=="Daeris")return "a roster entry (any case) is not a candidate: "+JSON.stringify(k);
+    var e=libraryEntryFor(__lib(),"daeris ");if(!e||e.character.name!=="Daeris")return "the library entry is found without case or whitespace";
+    return libraryEntryFor(__lib(),"Nobody")===null?true:"an absent name is null";
+  });
+  t("#623 seatRecordPeople: a bonded person with a library sheet is seated known-not-present with the ADMITTED sheet; one without stays missing (loud); a second seat adds nothing; a party member is untouched",function(){
+    makeWorld();__bondedHero();memory.npcs={};
+    if(typeof seatRecordPeople!=="function")return "seatRecordPeople missing";
+    var r=seatRecordPeople(__lib());
+    if(r.seated.join(",")!=="Ammut,Daeris"||r.missing.join(",")!=="Morwen Zethran"||r.refused.length)return "seated the two with sheets, named the one without: "+JSON.stringify(r);
+    var d=wsNpcByName("Daeris");if(!d||d.partyMember||d.met!==0||!d.recordPerson||!d.charSheet||d.charSheet.cls!=="Cleric"||!/Dark-skinned/.test(d.charSheet.appear)||d.libraryAt!==1700000000000||d.pronouns!=="she/her")return "the seat: known-not-present, the library sheet, its stamp and pronouns: "+JSON.stringify(d).slice(0,300);
+    if(!memory.npcs["Daeris"]||memory.npcs["Daeris"].partyMember)return "a memory record is opened, not a party one";
+    var before=worldState.npcs.length;r=seatRecordPeople(__lib());if(worldState.npcs.length!==before||r.seated.length)return "idempotent";
+    makeWorld();__bondedHero();memory.npcs={};var newer=__lib();newer.push({character:__libSheet("Morwen Zethran",{sheetVer:9999}),updatedAt:5});
+    r=seatRecordPeople(newer);if(r.refused.join(",")!=="Morwen Zethran"||r.seated.join(",")!=="Ammut,Daeris")return "a sheet from a newer build is refused at the door and said so: "+JSON.stringify(r);
+    if(wsNpcByName("Morwen Zethran"))return "a refused sheet leaves no wrapper on the roster";
+    makeWorld();__bondedHero();memory.npcs={};worldState.npcs.push({name:"Ammut",status:"ally",statusTurn:0,rel:"companion",met:1,partyMember:true,charSheet:__libSheet("Ammut",{cls:"Bard"})});
+    r=seatRecordPeople(__lib());if(r.seated.join(",")!=="Daeris"||wsNpcByName("Ammut").charSheet.cls!=="Bard")return "a party member keeps his sheet and is not re-seated: "+JSON.stringify(r);
+    return true;
+  });
+  t("#623 PEOPLE OF THE RECORD rides the STABLE half from the seated sheets (bond, ancestry, class, pronouns, look), byte-identical across turns, leaves on a join, ''-clean when nobody is seated",function(){
+    makeWorld();var p0=buildSysPrompt();if(p0.stable.indexOf("PEOPLE OF THE RECORD")>=0)return "nobody seated: no block";
+    __bondedHero();memory.npcs={};seatRecordPeople(__lib());
+    var p1=buildSysPrompt(),i=p1.stable.indexOf("PEOPLE OF THE RECORD");if(i<0)return "the block is missing from the stable half";
+    if(p1.stable.indexOf("- Daeris (Wife — chosen family): Vashari Human Cleric, she/her. Look: Dark-skinned, close-cropped silver hair")<0)return "Daeris is described from her sheet: "+p1.stable.slice(i,i+600);
+    if(p1.stable.indexOf("- Ammut (Wife — beloved family): Half-Fey Half-Blood Rogue, he/him. Look: Massive forearms")<0)return "Ammut too";
+    if(p1.stable.indexOf("Morwen")>=0)return "a person without a sheet is not described (nothing invented)";
+    if(p1.stable.indexOf("never invented")<0)return "the rule rides with the block";
+    worldState.turn+=3;worldState.character.hp-=2;worldState.world.location="Elsewhere";var p2=buildSysPrompt();if(p2.stable!==p1.stable)return "the stable half moved with the turn";
+    applyMuts("[PARTY_MEMBER:Daeris|true]");var d=wsNpcByName("Daeris");
+    if(!d.partyMember||d.sheetPending||!d.charSheet||d.charSheet.cls!=="Cleric")return "a join promotes the seated entry with its library sheet, nothing pending: "+JSON.stringify(d).slice(0,200);
+    var p3=buildSysPrompt();if(p3.stable.indexOf("- Daeris (")>=0||p3.stable.indexOf("- Ammut (")<0)return "a party member leaves the block; the other stays";
+    if(p3.volatile.indexOf("Daeris")<0)return "the party block carries her now";
+    var ap=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");if(!/buildPartyHistoriesBlock\(\)\+buildRecordPeopleBlock\(\)/.test(ap.replace(/\/\*[\s\S]*?\*\//g,"").replace(/\s+/g,"")))return "the block sits in the STABLE half right after the party histories";
+    return true;
+  });
+  t("#623 a joiner with a library sheet takes it — processPendingCompanionSheets adopts from the cache and generates only for a stranger; startGame, the boot and the campaign load seat the people",function(){
+    makeWorld();__bondedHero();memory.npcs={};legacyLibCache=__lib();
+    worldState.npcs.push({name:"Ammut",status:"",statusTurn:0,rel:"unknown",met:4,partyMember:true,sheetPending:true,aliases:[]});
+    worldState.npcs.push({name:"Stranger",status:"",statusTurn:0,rel:"unknown",met:4,partyMember:true,sheetPending:true,aliases:[]});
+    var gen=[],_g=generateCompanionSheet;generateCompanionSheet=function(n){gen.push(n);};
+    try{processPendingCompanionSheets();}finally{generateCompanionSheet=_g;legacyLibCache=null;}
+    var a=wsNpcByName("Ammut");if(!a.charSheet||a.charSheet.cls!=="Rogue"||a.sheetPending||a.libraryAt!==1700000000001)return "the library sheet is adopted on join: "+JSON.stringify(a).slice(0,200);
+    if(gen.join(",")!=="Stranger")return "only the stranger is generated: "+JSON.stringify(gen);
+    var gm=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),ub=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),uc=__fsForTests.readFileSync(__rootForTests+"/ui-campaigns.js","utf8");
+    var sg=gm.slice(gm.indexOf("function startGame("),gm.indexOf("function startGame(")+9000);if(sg.indexOf("seatRecordPeopleFromLibrary();")<0)return "startGame seats the people of the record";
+    if(ub.indexOf("seatRecordPeopleFromLibrary();")<0||uc.indexOf("seatRecordPeopleFromLibrary();")<0)return "the boot and the campaign load seat them too";
+    return true;
+  });
+
   // ── 10. RAG episodic memory (#27 Phase 1 — RAG_MEMORY.md) ────────────────────
   section("RAG episodic memory");
   t("RAG defaults ON when the flag is unset (v1.230) — every existing save + new campaign, no migration",function(){

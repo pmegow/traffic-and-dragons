@@ -3388,6 +3388,20 @@ function shopOpportunity(){
   var t=shopCounterContext();
   return (t&&t.ok&&t.shop)?{shop:t.shop,keeper:t.keeper}:null;
 }
+/* #623 (owner field report 2026-10-12: Daeris, a dark-skinned Vashari cleric on her library sheet, narrated "pale" before she
+   joined): the hero's OWN PEOPLE — every entity the hero's sheet carries a bond to — who are not yet on the roster. The seat
+   (seatRecordPeople, game.js) gives each one with a library sheet a known-not-present roster entry; the stable-half block
+   (buildRecordPeopleBlock, api.js) describes the seated ones from their sheets. Pure; names compare without case. */
+function recordPeopleCandidates(hero,roster){
+  var rows=[],seen=keyedDict(),out=[],i;
+  try{rows=(hero&&typeof relationshipRows==="function")?(relationshipRows(hero,null)||[]):[];}catch(e){if(typeof console!=="undefined")console.warn("[record] #623 the hero's relationship rows could not be read ("+((e&&e.message)||e)+") — nobody to seat");rows=[];}
+  for(i=0;i<(roster||[]).length;i++){if(roster[i]&&roster[i].name)seen[String(roster[i].name).toLowerCase()]=1;}
+  if(hero&&hero.name)seen[String(hero.name).toLowerCase()]=1;
+  for(i=0;i<rows.length;i++){var r=rows[i];if(!r||!r.bond||!r.entity)continue;var k=String(r.entity).toLowerCase();if(seen[k])continue;seen[k]=1;out.push({name:r.entity,bond:r.bond});}
+  return out;
+}
+/* #623: the library list's entry for a name ({character, updatedAt} rows, as listCharacterLibrary returns them), or null. Pure. */
+function libraryEntryFor(list,name){var k=String(name||"").toLowerCase().trim(),i;for(i=0;i<(list||[]).length;i++){var e=list[i],c=e&&e.character;if(c&&c.name&&String(c.name).toLowerCase().trim()===k)return e;}return null;}
 /* #612: a foe's label — the name, and the recorded group headcount in parentheses ("Blight Husk Pack (8)", owner 2026-10-12).
    ONE renderer for the tracker row (ui-panels.js), the prompt's combat line (api.js) and the enemy card (ui-mobile.js); a foe
    with no recorded count (every pre-#612 save) is its bare name. Pure. */

@@ -452,6 +452,7 @@ function initState(saved){
     }
     if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}
     if(typeof migratePendingCompanionSheets==="function")migratePendingCompanionSheets();// backfill sheet-less party members in existing saves (audit P2)
+    if(typeof seatRecordPeopleFromLibrary==="function")seatRecordPeopleFromLibrary();/* #623: the hero's people from the library (idempotent) */
     // rank 13 (todo_carplay) — restore Car Mode across a reload/tab-reclaim mid-drive; flag
     // expires after 6h so a desktop session weeks later doesn't boot back into the car UI. The
     // × close button (hideCarMode) always clears the flag, so it stays the escape hatch either way.

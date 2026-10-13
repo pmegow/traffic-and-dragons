@@ -43,6 +43,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // travel, so first-visit [LOCATION_DESC/SIZE/ITEM] and NPC last-seen stamps at the opening
   // location were silently dropped (fileLocationDesc/etc. early-return with no node).
   startNodeStamp();/* #481 C11: visited from turn 0 even when a village or blueprint minted the node first */
+  seatRecordPeopleFromLibrary();/* #623: the hero's own people, from their library sheets, before the opening is written */
   if(typeof guestbookSeedStart==="function")guestbookSeedStart();/* #173: the creation-time party stands at the opening node — turn-0 provenance (runs even when a blueprint pre-seeded the node: the party is there either way) */
   saveAll();showGame();syncUI();initAbilities();initSpells();
   if(typeof takeCheckpoint==="function")takeCheckpoint("campaign start");/* #300: the campaign start is the first camp — a hero who dies before ever resting has somewhere to wake */
@@ -1922,8 +1923,45 @@ function processPendingCompanionSheets(){
   if(!worldState||!worldState.npcs)return;
   var i;for(i=0;i<worldState.npcs.length;i++){
     var n=worldState.npcs[i];
-    if(n.partyMember&&n.sheetPending&&!n.charSheet)generateCompanionSheet(n.name);
+    if(!(n.partyMember&&n.sheetPending&&!n.charSheet))continue;
+    /* #623: a joiner with a library sheet TAKES it — a model-written sheet is for a stranger only (the owner's Daeris joined
+       with an invented sheet while her own sat in the library). The cache is warm whenever the seat below has run. */
+    var e=(typeof libraryEntryFor==="function")?libraryEntryFor(legacyLibCache,n.name):null;
+    if(e&&adoptLibraryCompanion(n,e.character,(typeof e.updatedAt==="number")?e.updatedAt:null)){delete n.sheetPending;if(typeof console!=="undefined")console.info("[party] #623 "+n.name+" joins with their library sheet");saveAll();continue;}
+    generateCompanionSheet(n.name);
   }
+}
+/* #623: SEAT THE PEOPLE OF THE RECORD. Every bonded entity on the hero's sheet with a sheet in the Character Library gets a
+   known-not-present roster entry carrying that sheet (admitted through the one door, adoptLibraryCompanion) — so the prompt
+   describes them from the record before they ever appear, and a join promotes the entry instead of inventing a sheet. One
+   without a library sheet is named on the console and left to the bond alone (nothing is guessed). Idempotent. */
+function seatRecordPeople(list){
+  var out={seated:[],missing:[],refused:[]};
+  if(!worldState||!worldState.character||!(list instanceof Array))return out;
+  if(!worldState.npcs)worldState.npcs=[];
+  var cands=recordPeopleCandidates(worldState.character,worldState.npcs),i;
+  for(i=0;i<cands.length;i++){var cd=cands[i],e=libraryEntryFor(list,cd.name);
+    if(!e){out.missing.push(cd.name);continue;}
+    var n={name:String(e.character.name),status:"",statusTurn:0,rel:"ally",met:0,partyMember:false,portrait:null,aliases:[],recordPerson:true};
+    worldState.npcs.push(n);
+    if(!adoptLibraryCompanion(n,e.character,(typeof e.updatedAt==="number")?e.updatedAt:null)){worldState.npcs.pop();out.refused.push(cd.name);if(typeof console!=="undefined")console.warn("[record] #623 "+cd.name+" has a library sheet but it was refused at the door — not seated");continue;}
+    if(!memory.npcs[n.name])memory.npcs[n.name]={attitude:"",knowledge:[],events:[],aliases:[],partyMember:false,pronouns:n.pronouns};
+    out.seated.push(n.name);}
+  if(out.seated.length){if(typeof console!=="undefined")console.info("[record] #623 seated "+out.seated.length+" of the hero's people from the library: "+out.seated.join(", "));if(typeof showToast==="function")showToast("On record: "+out.seated.join(", ")+" \u2014 their sheets travel with you",5000);}
+  if(out.missing.length&&typeof console!=="undefined")console.info("[record] #623 no library sheet for "+out.missing.join(", ")+" \u2014 the GM has only the bond");
+  return out;
+}
+var _recordSeatAsked=false;
+function seatRecordPeopleFromLibrary(){
+  if(!worldState||!worldState.character||(typeof busy!=="undefined"&&busy))return;
+  try{_seatRecordPeopleFromLibrary();}catch(e){if(typeof console!=="undefined")console.warn("[record] #623 the seat failed ("+((e&&e.message)||e)+") — the campaign goes on without it");}
+}
+function _seatRecordPeopleFromLibrary(){
+  if(typeof recordPeopleCandidates!=="function"||!recordPeopleCandidates(worldState.character,worldState.npcs||[]).length)return;/* nobody to seat: no call */
+  if(legacyLibCache){if(seatRecordPeople(legacyLibCache).seated.length){saveAll();if(typeof syncUI==="function")syncUI();}return;}
+  if(typeof storageAdapter==="undefined"||!storageAdapter.listCharacterLibrary||!storageAdapter.isServerMode||!storageAdapter.isServerMode()||_recordSeatAsked)return;
+  _recordSeatAsked=true;
+  storageAdapter.listCharacterLibrary(function(err,list){_recordSeatAsked=false;if(err||!(list instanceof Array)){if(typeof console!=="undefined")console.warn("[record] #623 the library could not be read ("+(err||"no list")+") \u2014 the hero's people stay unseated this session");return;}legacyLibCache=list;if(typeof busy!=="undefined"&&busy)return;if(seatRecordPeople(list).seated.length){saveAll();if(typeof syncUI==="function")syncUI();}});
 }
 // Lazy migration for existing saves (called from initState/_applyLoadedCampaign): flag any
 // sheet-less living party member, then kick generation unless a turn is in flight — the flags
