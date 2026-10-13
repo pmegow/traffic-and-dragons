@@ -36,6 +36,9 @@ code |= sabotage.prove({ file: "memory.js", command: CMD, cases: [
     find: "_subCap=opts?TOC_SUB_CAP:Infinity", replace: "_subCap=TOC_SUB_CAP" },
   { label: "the folded count is always plural: one folded place reads '+1 more visited places' (#464 cap)",
     mustFail: "#464 a single folded place is not counted in the singular",
-    find: "\" more visited place\"+(_subFold===1?\"\":\"s\")", replace: "\" more visited places\"" }
+    find: "\" more visited place\"+(_subFold===1?\"\":\"s\")", replace: "\" more visited places\"" },
+  { label: "a sub-location's place reads its KEY prefix again, not its parent pointer — a re-pointed room lists under the road it was first named from, a merged world's dead name is served (#464 parent chain, 2026-10-13)",
+    mustFail: "#464 a sub-location's place derives from its PARENT pointer, not its key",
+    find: "      var _lkD=tocPlacePath(_lkR);", replace: "      var _lkP=_lkR.lastIndexOf(\"|\"),_lkLeaf=(typeof locDisplayLeaf===\"function\")?locDisplayLeaf(_lkR):(_lkP<0?_lkR:_lkR.slice(_lkP+1));var _lkD=_lkP<0?_lkLeaf:_lkR.slice(0,_lkP).split(\"|\").join(\" — \")+\" — \"+_lkLeaf;" }
 ]});
 process.exit(code ? 1 : 0);

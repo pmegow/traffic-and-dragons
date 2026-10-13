@@ -5883,6 +5883,34 @@ function runEngineTests(R){
     if(L.vis.slice(-tail.length)!==tail)return "#464 a single folded place is not counted in the singular: "+L.vis.slice(-120);
     return L.vis.indexOf("Sandpoint — Place 01")<0?true:"#464 the oldest of 31 subs was kept: "+L.vis;
   });
+  /* #464 (2026-10-13, the acceptance deep dive): a merge or repair moves a sub-location's PARENT pointer and freezes its key
+     (locReparent: "children by key — only the parent pointer moves"), so the key's prefix can be a dead world, an alias, or the
+     road the place was first named from. The TOC rendered that prefix: Runelords t2477_REPAIRED served "Varisia - North Road —
+     Charred Barrel - Common Room" for a room under Sandpoint — Charred Barrel, and "Sandpoint Temple — Corven Coldwater's Shop"
+     for a shop under Sandpoint — Sandpoint Temple. WHERE a place is listed derives from its parent chain, never its key. */
+  t("#464: a visited sub-location whose key keeps a merged world's prefix lists under its PARENT (the canonical world), never the dead prefix",function(){
+    makeWorld();memory.locations={};memory.map={nodes:keyedDict(),edges:[],identity:{entries:{"Sandpoint Town":{mergedInto:"Sandpoint"}}}};
+    var w=ensureMapNode("Sandpoint",1,null);w.visits=3;var s=ensureMapNode("Sandpoint Town|Cathedral",5,"Sandpoint");s.visits=2;s.lastVisit=9;
+    var L=toc464(GM464);
+    if(L.vis.indexOf("Sandpoint Town")>=0)return "#464 a sub-location's place derives from its PARENT pointer, not its key — the dead world prefix was served: "+L.vis;
+    return L.vis.indexOf("Sandpoint — Cathedral")>=0?true:"#464 the sub-location is not listed under its canonical world: "+L.vis;
+  });
+  t("#464: a sub-location keyed by a bare name with a parent, and a room whose key names a road but whose parent is a tavern, both list by their parent chain",function(){
+    makeWorld();memory.locations={};memory.map={nodes:keyedDict(),edges:[]};
+    var w=ensureMapNode("Sandpoint",1,null);w.visits=3;
+    var g=ensureMapNode("Sandpoint Glassworks",2,"Sandpoint");g.visits=1;g.lastVisit=2;/* the repaired map's bare-keyed sub */
+    var b=ensureMapNode("Sandpoint|Charred Barrel",3,"Sandpoint");b.visits=2;b.lastVisit=4;
+    var r=ensureMapNode("Varisia - North Road|Charred Barrel - Common Room",4,"Sandpoint|Charred Barrel");r.visits=1;r.lastVisit=4;/* the key under a road, the parent the tavern */
+    var L=toc464(GM464);
+    if(L.vis.indexOf("Sandpoint — Sandpoint Glassworks")<0)return "#464 a sub-location's place derives from its PARENT pointer, not its key — the bare-keyed sub lost its world: "+L.vis;
+    if(L.vis.indexOf("Varisia - North Road")>=0)return "#464 a sub-location's place derives from its PARENT pointer, not its key — the key's road prefix was served over the parent tavern: "+L.vis;
+    if(L.vis.indexOf("Sandpoint — Charred Barrel — Charred Barrel - Common Room")<0)return "#464 the re-pointed room is not listed under its parent chain: "+L.vis;
+    /* the unchanged shapes stay byte-identical: a world, a world|leaf sub under its own prefix, a legacy key with no node */
+    makeWorld();memory.locations={"Old Keep|Gatehouse":{notes:[]}};memory.map={nodes:keyedDict(),edges:[]};
+    var w2=ensureMapNode("Sandpoint",1,null);w2.visits=1;var s2=ensureMapNode("Sandpoint|Rusty Dragon",2,"Sandpoint");s2.visits=1;s2.lastVisit=2;
+    L=toc464(GM464);
+    return L.vis==="VISITED: Old Keep — Gatehouse; Sandpoint; Sandpoint — Rusty Dragon"?true:"#464 an unchanged shape moved: "+L.vis;
+  });
 
   // ── #623 the people of the record (owner field report 2026-10-12: Daeris, a dark-skinned Vashari cleric on her library
   //    sheet, narrated "pale" before she joined; a GM-side join never looked in the library) ──

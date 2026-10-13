@@ -48,8 +48,8 @@ rc |= sabotage.prove({
 
     { label: "TOC pipe rendering is dropped — raw storage keys teach the GM key syntax again (#269③)",
       mustFail: "raw pipe key served to the GM",
-      find: "      var _lkD=_lkP<0?_lkLeaf:_lkR.slice(0,_lkP).split(\"|\").join(\" — \")+\" — \"+_lkLeaf;",
-      replace: "      var _lkD=_lkR;" },
+      find: "      var _lkD=tocPlacePath(_lkR);",
+      replace: "      var _lkD=_lkR;" },/* re-anchored 2026-10-13: #464's parent-chain renderer (tocPlacePath) replaced the inline pipe split */
 
     { label: "the pending-event fold stops archiving what it swallows — a distinct thread dies traceless again (#269④)",
       mustFail: "swallowed thread not archived",

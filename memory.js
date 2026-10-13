@@ -2203,6 +2203,26 @@ function _ragCarriedScore(inputText,pool,fp){
    sub-locations: the most recently visited (node.lastVisit, else firstVisit), kept in their listed order; the rest are
    counted, and GEOGRAPHY names a sub-location in place whenever the party is there. No opts (Table Talk) = every place. */
 var TOC_SUB_CAP=30;
+/* #464 (2026-10-13, the acceptance deep dive): WHERE a place is listed derives from its PARENT pointer, never its key. A merge or
+   a repair moves the pointer and freezes the key (locReparent: "children by key — only the parent pointer moves"), so a key's
+   prefix can be a dead world, an alias, or the road the place was first named from. Runelords t2477_REPAIRED served
+   "Varisia - North Road — Charred Barrel - Common Room" for a room under Sandpoint — Charred Barrel, and "Sandpoint Temple —
+   Corven Coldwater's Shop" for a shop under Sandpoint — Sandpoint Temple (the #269③ NAMING clause: a served name invites the GM
+   to re-emit it). The chain follows resolved parents up to the world; a node without a parent, and a key with no node (a legacy
+   store key, P9), render the key the legacy way — byte-identical to before on every save without a re-pointed node. */
+function tocPlacePath(key){
+  var out=[],cur=key,guard=0,seen=keyedDict();
+  while(cur!=null&&cur!==""&&guard++<12){
+    var r=String((typeof locResolve==="function")?locResolve(cur):cur);
+    if(seen[r]){if(typeof console!=="undefined")console.warn("[memory] place chain CYCLE at '"+r+"' — the parent pointers loop; listing what resolved");break;}
+    seen[r]=1;
+    var p=r.lastIndexOf("|"),leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(r):(p<0?r:r.slice(p+1));
+    var n=memory.map&&memory.map.nodes?memory.map.nodes[r]:null;
+    if(n&&n.parent){out.unshift(leaf);cur=n.parent;continue;}
+    out.unshift(p<0?leaf:r.slice(0,p).split("|").join(" — ")+" — "+leaf);break;
+  }
+  return out.join(" — ");
+}
 function memoryTOC(opts){
   var lines=[],i;
   // RAG flag ON puts the TOC on a diet (same flag as retrieval — RAG_MEMORY.md §3.4):
@@ -2236,8 +2256,7 @@ function memoryTOC(opts){
       if(_locSeen[_lkR])continue;_locSeen[_lkR]=1;
       var _vn=memory.map&&memory.map.nodes?memory.map.nodes[_lkR]:null;
       if(_vn&&!(_vn.visits>0)&&_vn.parent)continue;
-      var _lkP=_lkR.lastIndexOf("|"),_lkLeaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(_lkR):(_lkP<0?_lkR:_lkR.slice(_lkP+1));
-      var _lkD=_lkP<0?_lkLeaf:_lkR.slice(0,_lkP).split("|").join(" — ")+" — "+_lkLeaf;
+      var _lkD=tocPlacePath(_lkR);/* #464 (2026-10-13): the parent chain names the place, never the key's prefix */
       if(_vn&&!(_vn.visits>0))_known.push(_lkD);else _vis.push(_lkD);
       if(_vn&&_vn.visits>0&&_vn.parent)_subs.push({i:_vis.length-1,r:_vn.lastVisit||_vn.firstVisit||0});
     }
