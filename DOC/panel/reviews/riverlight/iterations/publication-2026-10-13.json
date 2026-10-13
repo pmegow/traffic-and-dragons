@@ -1,0 +1,15 @@
+{
+  "publishedAt": "2026-10-13 21:19:10",
+  "catalogId": "the_riverlight_masquerade_one-evening_taster",
+  "version": "1.04",
+  "releaseStatus": "release-candidate",
+  "catalogRevision": 3,
+  "sourceCommit": "4ee2aab5",
+  "sourceFileSha256": "e087f38302019167524fb86d81db30110d7a76ee3079cbea1773b8eb87bab687",
+  "publicCatalogMatchesEveryBlueprintField": true,
+  "otherCatalogEntriesUnchangedDuringPublication": true,
+  "previousVersion": "1.0",
+  "previousRevision": 2,
+  "serverBackup": "/data/catalog-backups/riverlight-before-v1.04-revision2-20261013.json",
+  "method": "Existing operator session; normal POST /api/admin/catalog with revision 2; read-only public GET verified after write."
+}

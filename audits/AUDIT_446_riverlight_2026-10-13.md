@@ -176,3 +176,17 @@ The one-hour target and prior first-player closure conditions still apply.
 The source candidate is updated; a read-only server catalog check still returned
 v1.0 Release Candidate, revision 2. No catalog publication or existing-save mutation
 was performed in these revision cycles.
+
+## Owner-authorized publication, 2026-10-13
+
+Following the owner's explicit request to commit and publish, source commit
+`4ee2aab5` was already pushed. Published **v1.04 Release Candidate, catalog revision 3**
+through the normal operator API using its existing session and revision-2 guard.
+The previous catalog entry is backed up on the server at
+`/data/catalog-backups/riverlight-before-v1.04-revision2-20261013.json`.
+No credentials were printed or exported and no replacement session was created.
+
+The public catalog subsequently matched **every blueprint field** in the committed
+source. Other catalog entries were unchanged by publication. Existing campaigns
+retain their starting edition. [Publication receipt](../DOC/panel/reviews/riverlight/iterations/publication-2026-10-13.json).
+Release Candidate status and first-player acceptance remain unchanged.
