@@ -71,7 +71,7 @@ function buildFileMenus(){
       +chk(p+"inband-cb","Buttons ride the GM's turn",0,p+"inband-label")/* #328 — off = the separate suggestion call (rollback) */
       +chk(p+"dice-cb","Player rolls own dice",0,p+"dice-label")/* #329 — off (default) = the GM rolls */
       +chk(p+"stake-cb","Name the stake before a roll",0,p+"stake-label");/* #371 — off = the pre-#371 MECHANICS line (rollback) */
-    var dm=btn(p+"tts-settings","🔊 Voice Settings&hellip;",0,{cls:"fm-dev-only"})/* owner ruling 2026-09-11: dev-only — the modal carries BYOK key fields (Speechify/Inworld/OpenAI) a non-admin player should not see */
+    var dm=btn(p+"tts-settings","🔊 Voice Settings&hellip;",0)/* #622 (owner ruling 2026-10-12, amends 2026-09-11): the ROW is for everyone — a keyless tester picks the server's Speechify here; the KEY FIELDS inside the modal carry fm-dev-only instead (ui-voice-settings.js), and a non-admin's picker lists only reachable readers */
       // TODO #7: UI sound library toggle + test. Deliberately NOT inside the Voice Settings modal
       // (that modal lives in ui-voice-settings.js since #401; the sound toggle stays a menu row) — lives here
       // as an inline menu row instead, matching this file's own established pattern for a boolean

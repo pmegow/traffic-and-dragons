@@ -1634,17 +1634,24 @@ try {
   var _mtFail = function (msg) { console.error("MENU TIER CONTRACT: " + msg); process.exit(1); };
   var _mtBoot = _src("ui-boot.js");
   var _mtSpec = _mtBoot.slice(_mtBoot.indexOf("function buildFileMenus"), _mtBoot.indexOf("function wireButtons"));
-  ["llm", "usage", "set-folder", "clear-folder", "server-connect", "server-disconnect", "tts-settings"/* owner ruling 2026-09-11: BYOK key fields */, "clearcache\""].forEach(function (id) {
+  ["llm", "usage", "set-folder", "clear-folder", "server-connect", "server-disconnect", "clearcache\""].forEach(function (id) {
     var re = new RegExp("btn\\(p\\+\"" + id.replace(/"/g, "") + "\"[^\n]*fm-dev-only");
     if (!re.test(_mtSpec)) _mtFail("operator row '" + id.replace(/"/g, "") + "' is not marked fm-dev-only — a beta tester would see it.");
   });
+  /* #622 (owner ruling 2026-10-12, amends the 2026-09-11 "tts-settings is dev-only" row): the Voice Settings ROW is for everyone —
+     a keyless tester picks the server's Speechify there; the KEY FIELDS inside the modal are what stay dev-only, and the
+     picker filters a non-admin's entries to the reachable readers through the one route predicate. */
+  if (/btn\(p\+"tts-settings"[^\n]*\{cls:"fm-dev-only"\}/.test(_mtSpec)) _mtFail("the Voice Settings row is marked fm-dev-only again — a keyless tester could not reach the server's narration (#622).");
+  var _mtVs = _src("ui-voice-settings.js");
+  if (_mtVs.indexOf("<div class='fm-dev-only'><div class='tts-connection'>") < 0) _mtFail("the Voice Settings key block lost its fm-dev-only wrapper — a beta tester would see a key field (#622; owner ruling 2026-09-11).");
+  if (_mtVs.indexOf("S.visibleModels(!restrictedViewer())") < 0 || _mtVs.indexOf("<select id='tts-model'>\" + modelChoices(draft).map(") < 0) _mtFail("the Voice Settings model picker no longer filters through TTS.settings.visibleModels at the picker itself — a non-admin would see unreachable readers (#622 ruling 5).");
   if (_mtSpec.indexOf("<div class='fm-dev-only'>") < 0 || _mtSpec.indexOf("legacy-cb") < 0) _mtFail("the Legacy-characters block lost its fm-dev-only wrapper.");
   if (_mtSpec.indexOf("applyMenuTier()") < 0) _mtFail("buildFileMenus no longer applies the tier after building.");
   var _mtSa = _src("storage-adapter.js");
   if (!/serverAccount = data;[^\n]*\n[^\n]*applyMenuTier\(\)/.test(_mtSa)) _mtFail("fetchAccount no longer re-applies the tier when the account lands — menus built before the answer keep the wrong tier.");
   var _mtShell = _src("ui-shell.js");
   if (_mtShell.indexOf("menuTierHidesDev(acct)") < 0) _mtFail("applyMenuTier no longer decides through the pure menuTierHidesDev helper.");
-  console.log("[#289] menu tier contract OK — 8 operator rows flagged, toggle re-applied on account load");
+  console.log("[#289] menu tier contract OK — 7 operator rows flagged, the Voice Settings row open with its key fields dev-only (#622), toggle re-applied on account load");
 } catch (e) { console.error("MENU TIER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── IMPORT OWNERSHIP CONTRACT (#423, v1.953) ─────────────────────────────────────────────

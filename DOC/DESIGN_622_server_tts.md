@@ -1,6 +1,10 @@
 # #622 — Operator-paid narration for keyless players: the server TTS gateway (design, 2026-10-12)
 
-Status (2026-10-12): DESIGNED, rulings complete, NOT built. The first outside beta tester (2026-10-12)
+Status (2026-10-12, later the same day): BUILT to this design as game v1.1249 + server 1.10.0; the
+server deploy and the `SPEECHIFY_API_KEY` secret are the owner's (runbook: the server repo's
+`DEPLOY_1.10.0_tts_gateway.md`). One deviation, recorded: the catalog endpoint serves the RAW vendor
+voices and the client keeps the one actor mapper (the "compact list" wording below described the
+client's stored shape, which is still what the client derives). The first outside beta tester (2026-10-12)
 heard only Piper: Voice Settings is hidden from non-admins (owner ruling 2026-09-11, the modal carries
 key fields), and the cloud readers (Speechify, Inworld, Gemini TTS) synthesize and load their actor
 catalogs straight from the vendor on a key stored on the device. The same rider class as #621

@@ -7,6 +7,18 @@ var VoiceSettings = (function() {
   function option(id, label, selected) { return "<option value='" + e(id) + "'" + (id === selected ? " selected" : "") + ">" + e(label) + "</option>"; }
   function field(id, label, html) { return "<div class='tts-field'><label for='" + id + "'>" + label + "</label>" + html + "</div>"; }
   function select(id, values, current, labels) { return "<select id='" + id + "'>" + values.map(function(v) { return option(v, labels ? labels[v] : v || "Natural", current); }).join("") + "</select>"; }
+  /* #622 ruling 5: a signed-in non-admin picks only among reachable readers (the operator's Speechify, Piper, the device);
+     an admin — or a player who is not signed in — sees every entry. The saved pick always stays listed, so a choice made
+     before the account changed is never silently moved: Save refuses it through the validator instead. */
+  function restrictedViewer() { return typeof storageAdapter !== "undefined" && typeof storageAdapter.isServerMode === "function" && storageAdapter.isServerMode() && typeof menuTierHidesDev === "function" && menuTierHidesDev(typeof serverAccount !== "undefined" ? serverAccount : null); }
+  function modelChoices(draft) { var S = TTS.settings, ids = S.visibleModels(!restrictedViewer()); if (ids.indexOf(draft.primary) < 0 && S.models[draft.primary]) ids.push(draft.primary); return ids; }
+  /* #622: the server line — what the operator's account has left this week, from the account readout (serverAccount.narration) */
+  function narrationLine() {
+    var n = (typeof serverAccount !== "undefined" && serverAccount && serverAccount.narration) || null;
+    if (!n) return "Narration through the T&D server on the operator's account.";
+    if (n.exempt) return "Narration through the T&D server · " + Number(n.used).toLocaleString() + " characters this week (operator, uncapped).";
+    return "Narration through the T&D server · " + Number(n.used).toLocaleString() + " of " + Number(n.cap).toLocaleString() + " characters this week" + (n.remaining <= 0 ? " — used up; the on-device voice continues" + (n.resetsAt ? " until " + new Date(n.resetsAt).toLocaleDateString() : "") : "") + ".";
+  }
   function actorLabel(v, compact) { return v.label + (v.g ? " · " + (v.g === "M" ? "Male" : "Female") : " · Unspecified") + (!compact && v.note ? " · " + v.note : ""); }
   function matchesActor(v, query) { query = query.trim().toLowerCase(); if (query === "male") return v.g === "M"; if (query === "female") return v.g === "F"; return actorLabel(v).toLowerCase().indexOf(query) >= 0; }
   function actors(ctx, selected, automatic, compact) {
@@ -26,10 +38,13 @@ var VoiceSettings = (function() {
     var m = ctx.model(), c = ctx.config(), html = "";
     Object.keys(ctx.d.models || {}).forEach(function(id) { var issue = ctx.d.models[id]._catalogIssue; if (issue) html += "<p class='tts-help' role='alert'>" + e(issue) + " <button type='button' id='tts-clear-catalog-" + e(id) + "'>Clear cached catalog</button></p>"; });
     if (m.key) {
-      var key = ctx.d.keys[ctx.id], saved = ctx.initial.keys[ctx.id];
-      html += "<div class='tts-connection'><span>" + (key ? (key === saved ? "API key saved" : "API key staged — Save to keep") : "API key needed") + "</span>";
+      var key = ctx.d.keys[ctx.id], saved = ctx.initial.keys[ctx.id], route = (typeof ctx.route === "function") ? ctx.route(ctx.id, key) : null;/* #622: the route rides the ctx (the renderer is sandboxed by tests-404) */
+      /* #622: a server route paints the operator line; the KEY BLOCK is dev-only — the 2026-09-11 ruling (no key field for a
+         non-admin) is honoured by hiding the fields, not the modal (applyMenuTier's one rule hides .fm-dev-only everywhere). */
+      if (route && route.server) html += "<p class='tts-help' id='tts-server-route'>" + e(ctx.serverLine ? ctx.serverLine() : "") + "</p>";
+      html += "<div class='fm-dev-only'><div class='tts-connection'><span>" + (key ? (key === saved ? "API key saved" : "API key staged — Save to keep") : (route && route.server ? "Own API key optional" : "API key needed")) + "</span>";
       if (key) html += "<button id='tts-key-change' class='tts-link' type='button'>Change key</button>";
-      html += "</div>" + "<div id='tts-key-wrap'" + (key ? " hidden" : "") + ">" + field("tts-api-key", m.label.split(" · ")[0] + " API key", "<input id='tts-api-key' type='password' autocomplete='off' spellcheck='false' placeholder='Paste API key' value='" + e(key === saved ? "" : key) + "'/>") + "<p class='tts-help'>" + e(m.keyHint || "Stored on this device, like your existing API keys.") + "</p></div>";
+      html += "</div>" + "<div id='tts-key-wrap'" + (key ? " hidden" : "") + ">" + field("tts-api-key", m.label.split(" · ")[0] + " API key", "<input id='tts-api-key' type='password' autocomplete='off' spellcheck='false' placeholder='Paste API key' value='" + e(key === saved ? "" : key) + "'/>") + "<p class='tts-help'>" + e(m.keyHint || "Stored on this device, like your existing API keys.") + "</p></div></div>";
     }
     html += "<p class='tts-help'>" + e(m.note) + "</p>";
     if (m.catalogUrl) html += "<div class='tts-load'><button id='tts-load-voices' type='button'>Load / refresh voices</button><span id='tts-catalog-status' role='status'>" + ctx.catalog().length + " actors loaded</span></div>";
@@ -84,7 +99,7 @@ var VoiceSettings = (function() {
     var previousFocus = document.activeElement;
     var style = "<style>#tts-modal .tts-main{overflow-y:auto;min-height:0;padding:4px 0 14px}#tts-modal .tts-field{margin:12px 0}#tts-modal label{display:block;color:var(--t1);font-size:12px;margin-bottom:6px}#tts-modal input:not([type=range]),#tts-modal select,#tts-modal textarea{width:100%;min-width:0;box-sizing:border-box;background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:5px;padding:10px;font:inherit;font-size:13px}#tts-modal select{height:42px;text-overflow:ellipsis}#tts-modal textarea{resize:vertical;line-height:1.5}#tts-modal input[type=range]{width:100%;accent-color:var(--acc);height:26px}#tts-modal button{min-height:38px;padding:7px 12px;border:1px solid var(--brd);border-radius:5px;background:var(--bg2);color:var(--t0);cursor:pointer;font:inherit;font-size:12px}#tts-modal button:hover{border-color:var(--acc)}#tts-modal button:focus-visible,#tts-modal select:focus-visible,#tts-modal textarea:focus-visible,#tts-modal input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}#tts-modal .tts-help{color:var(--t2);font-size:12px;line-height:1.55;margin:8px 0}#tts-modal .tts-head,#tts-modal .tts-connection,#tts-modal .tts-load,#tts-modal .tts-cast-meta,#tts-modal .tts-actions{display:flex;align-items:center;justify-content:space-between;gap:10px}#tts-modal .tts-head h2{font-size:17px;margin:0}#tts-modal .tts-tabs{display:flex;border-bottom:1px solid var(--brd);gap:16px;margin-top:4px}#tts-modal .tts-tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;padding:10px 0;color:var(--t2)}#tts-modal .tts-tabs button[aria-selected=true]{border-bottom-color:var(--acc);color:var(--acc)}#tts-modal .tts-connection{font-size:12px;margin-top:12px;color:var(--t1)}#tts-modal button.tts-link{border:0;background:none;color:var(--acc)}#tts-modal .tts-load{font-size:11px;color:var(--t2);flex-wrap:wrap}#tts-modal .tts-cast-row{border-bottom:1px solid var(--brd);padding-bottom:12px}#tts-modal .tts-cast-meta{font-size:11px;color:var(--t2)}#tts-modal .tts-cast-meta span{min-width:0;overflow-wrap:anywhere}#tts-modal .tts-cast-meta button{flex-shrink:0}#tts-modal details{border-top:1px solid var(--brd);margin-top:18px;padding-top:14px}#tts-modal summary{cursor:pointer;font-size:12px;color:var(--t2)}#tts-modal .tts-actions{padding-top:14px;border-top:1px solid var(--brd)}#tts-modal #tts-save-btn{background:var(--acc);color:var(--on-acc,#111);font-weight:bold;flex:1}#tts-modal #tts-status{font-size:12px;color:var(--acc);line-height:1.4;margin:8px 0;overflow-wrap:anywhere}#tts-modal [hidden]{display:none!important}#tts-modal .tts-test-buttons{display:flex;align-items:center;gap:8px}#tts-modal #tts-test-status{font-size:12px;color:var(--t2)}@media(max-width:500px){#tts-modal{padding:10px!important}#tts-modal>div{padding:16px!important;max-height:calc(100dvh - 20px)!important}#tts-modal button{min-height:44px}#tts-modal .tts-tabs{gap:18px}}</style>";
     var html = style + "<div class='tts-head'><h2>Voice Settings</h2><button id='tts-modal-x' aria-label='Close voice settings' type='button'>×</button></div>"
-      + field("tts-model", "Primary voice model", "<select id='tts-model'>" + Object.keys(S.models).map(function(id) { return option(id, S.models[id].label, draft.primary); }).join("") + "</select>")
+      + field("tts-model", "Primary voice model", "<select id='tts-model'>" + modelChoices(draft).map(function(id) { return option(id, S.models[id].label, draft.primary); }).join("") + "</select>")
       + "<p class='tts-help' style='margin:0 0 8px'>Changes apply to gameplay only after Save.</p><div class='tts-tabs' role='tablist' aria-label='Voice settings tabs'>"
       + Object.keys(TABS).map(function(id) { return "<button type='button' id='tts-tab-" + id + "' role='tab' aria-selected='" + (id === tab) + "' aria-controls='tts-tab-panel' tabindex='" + (id === tab ? "0" : "-1") + "'>" + TABS[id].label + "</button>"; }).join("")
       + "</div><div class='tts-main'><div id='tts-tab-panel' role='tabpanel' aria-labelledby='tts-tab-settings'></div>"
@@ -103,6 +118,7 @@ var VoiceSettings = (function() {
     activeClose = close;
     var ctx = { S: S, d: draft, initial: initial, id: draft.primary, panel: el("tts-tab-panel"), el: el, bind: bind,
       catalog: function() { return ctx.actorList; }, model: function() { return S.models[ctx.id]; }, config: function() { return draft.models[ctx.id]; },
+      route: function(id, key) { return S.route(id, key); }, serverLine: narrationLine,/* #622 */
       clearCatalog: function(id) { cancelCatalog(); stopTest(); S.clearCatalog(draft, id); paint(); el("tts-status").textContent = "Cached catalog cleared in this draft. Assigned voices are kept. Save to keep this change, or Cancel to discard it."; },
       test: function(actor) {
         stopTest(); el("tts-status").textContent = "";
@@ -114,8 +130,8 @@ var VoiceSettings = (function() {
         }); } catch (err) { ownsAudio = false; el("tts-status").textContent = err.message; console.warn("[tts settings] " + err.message); }
       },
       load: function() {
-        cancelCatalog(); var token = generation, id = ctx.id, key = draft.keys[id].trim(), c = ctx.config();
-        if (!key) { el("tts-status").textContent = "Enter an API key before loading voices."; return; }
+        cancelCatalog(); var token = generation, id = ctx.id, key = draft.keys[id].trim(), c = ctx.config(), lr = S.route(id, key);
+        if (!key && !(lr && lr.server)) { el("tts-status").textContent = "Enter an API key before loading voices."; return; }/* #622: a server route loads the operator's cached list */
         var btn = el("tts-load-voices"); btn.disabled = true; el("tts-status").textContent = "";
         catalogTicker = elapsedTicker(el("tts-catalog-status"), "Loading actors", { text: true });
         S.loadCatalog(id, key, function(ctrl) { catalogCtrl = ctrl; if (closed || token !== generation) ctrl.abort(); }).then(function(list) {
@@ -130,7 +146,8 @@ var VoiceSettings = (function() {
       TABS[tab].render(ctx); el("tts-tab-panel").setAttribute("aria-labelledby", "tts-tab-" + tab);
       Object.keys(TABS).forEach(function(id) { el("tts-tab-" + id).setAttribute("aria-selected", String(id === tab)); el("tts-tab-" + id).tabIndex = id === tab ? 0 : -1; });
       el("tts-test-btn").hidden = tab !== "settings";
-      el("tts-test-billing").textContent = ctx.model().key ? "Test auditions the unsaved settings and bills the selected service's API key." : "Test auditions the unsaved settings.";
+      var bRoute = ctx.model().key ? S.route(ctx.id, draft.keys[ctx.id]) : null;/* #622: name who pays for the audition */
+      el("tts-test-billing").textContent = bRoute && bRoute.server ? "Test auditions the unsaved settings through the T&D server and counts toward your weekly narration." : ctx.model().key ? "Test auditions the unsaved settings and bills the selected service's API key." : "Test auditions the unsaved settings.";
     }
     bind("tts-model", "change", function(node) { cancelCatalog(); stopTest(); draft.primary = node.value; ctx.id = node.value; el("tts-status").textContent = ""; paint(); });
     Object.keys(TABS).forEach(function(id) {

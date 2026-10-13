@@ -479,6 +479,7 @@ function showAccountModal(){
       h+=line("Subscription","<b style='color:var(--grn)'>"+(a.tierLabel||a.tier)+"</b> ("+a.status+")");
       h+=line("Turns used","<b>"+a.turnsUsed+"</b> of "+a.turnsCap+" in the last 30 days");
       if(a.renders)h+=line("Images",a.renders.exempt?"<b>"+a.renders.used+"</b> this week — operator, uncapped":"<b>"+a.renders.used+"</b> of "+a.renders.cap+" this week"+(a.renders.resetsAt&&a.renders.used>0?" — the oldest frees up "+new Date(a.renders.resetsAt).toLocaleDateString():"")+(a.renders.remaining<=0?" <span style='color:var(--acc)'>— add your own fal.ai key under Render Options to keep rendering</span>":""));/* #381 */
+      if(a.narration)h+=line("Narration",a.narration.exempt?"<b>"+Number(a.narration.used).toLocaleString()+"</b> characters this week — operator, uncapped":"<b>"+Number(a.narration.used).toLocaleString()+"</b> of "+Number(a.narration.cap).toLocaleString()+" characters this week"+(a.narration.resetsAt&&a.narration.used>0?" — the oldest frees up "+new Date(a.narration.resetsAt).toLocaleDateString():"")+(a.narration.remaining<=0?" <span style='color:var(--acc)'>— the on-device voice continues meanwhile</span>":""));/* #622 */
       if(a.periodEnd)h+=line("Access through",new Date(a.periodEnd).toLocaleDateString());
     }else{
       var why=a.reason==="lapsed"?"subscription lapsed — your story is safe; renew to keep playing":"no subscription on this account yet";

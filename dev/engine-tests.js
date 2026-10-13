@@ -34446,4 +34446,30 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
 
+  section("#622 — the server TTS gateway on the client: the flag table, the route seam and the dev-only key fields (owner rulings 2026-10-12)");
+  t("#622 ONE flag per reader: only Speechify declares server:true today; the settings seam exposes the route predicate and the picker filter; a reader without the flag has no server route even for a signed-in entitled player",function(){
+    var S=TTS.settings,ids=Object.keys(S.models),flagged=ids.filter(function(id){return S.models[id].server===true;});
+    if(flagged.join()!=="speechify")return "flagged readers: "+flagged.join();
+    if(typeof S.route!=="function"||typeof S.visibleModels!=="function"||typeof S._providerAvailable!=="function")return "the seam is missing";
+    var sa=serverAccount,pk=providerKeys,gr=gmRouting,cred=store.get(S._keys.credentials);
+    try{
+      storageAdapter.setServer("https://unit.test","TOK_622");serverAccount={entitled:true};providerKeys={};gmRouting="auto";store.set(S._keys.credentials,"{}");
+      var r=S.route("speechify");if(!r||r.server!==true)return "speechify should ride the server: "+JSON.stringify(r);
+      if(S.route("inworld")!==null)return "inworld must not ride the server without its flag";
+      if(S.visibleModels(false).join()!=="speechify,local,native")return "non-admin picker: "+S.visibleModels(false).join();
+      if(S.visibleModels(true).join()!==ids.join())return "admin picker lists every entry";
+      serverAccount={entitled:false};if(S.route("speechify")!==null)return "an unentitled account rides the server";
+    }finally{storageAdapter.setServer(null,null);serverAccount=sa;providerKeys=pk;gmRouting=gr;if(cred==null)store.del(S._keys.credentials);else store.set(S._keys.credentials,cred);}
+    return true;
+  });
+  t("#622 the surfaces: the Voice Settings menu row carries no fm-dev-only, the modal's key block does, the picker filters through visibleModels, the Account modal paints narration, and the run-tests contract pins the row",function(){
+    var fs=__fsForTests,R=__rootForTests,boot=fs.readFileSync(R+"/ui-boot.js","utf8"),vs=fs.readFileSync(R+"/ui-voice-settings.js","utf8"),um=fs.readFileSync(R+"/ui-modals.js","utf8"),rt=fs.readFileSync(R+"/dev/run-tests.js","utf8");
+    if(/btn\(p\+"tts-settings"[^\n]*\{cls:"fm-dev-only"\}/.test(boot))return "the Voice Settings row is dev-only again";
+    if(vs.indexOf("<div class='fm-dev-only'><div class='tts-connection'>")<0)return "the key block is not dev-only";
+    if(vs.indexOf("<select id='tts-model'>\" + modelChoices(draft).map(")<0||vs.indexOf("S.visibleModels(!restrictedViewer())")<0)return "the picker does not filter at the picker itself";
+    if(vs.indexOf("narrationLine()")<0||um.indexOf("a.narration")<0)return "the narration readout is not painted";
+    if(rt.indexOf("the Voice Settings row is marked fm-dev-only again")<0)return "the run-tests contract no longer pins the row";
+    return true;
+  });
+
 }

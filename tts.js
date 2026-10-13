@@ -705,6 +705,7 @@ var TTS = (function() {
       note: "English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate. Simba 3.2 honours speaking rate but not emotion tags, so there is no Emotion control here.",
       defaults: function() { return { narrator: "", language: "en-US" }; },/* #481 E10: the dead emotion default is gone (#454) */
       auth: "Bearer", accept: "audio/pcm", endpoint: "https://api.speechify.ai/v1/audio/stream", catalogUrl: "https://api.speechify.ai/v1/voices?locale=en&model=simba-3.2&limit=200",
+      server: true,/* #622 (owner ruling 2026-10-12): the T&D server carries this reader for a signed-in entitled player with no key — ONE flag per entry; Inworld joins by flipping its own once the server has its entry */
       request: function(g, c) {
         var text = escHtml(g.text);
         // Speechify percentages are adjustments to normal speed, not multipliers.
@@ -775,6 +776,28 @@ var TTS = (function() {
     return result;
   }
   function _voiceKey(id) { var spec = VOICE_MODELS[id].credential; if (!spec) return ""; var stores = { byok: (typeof providerKeys !== "undefined" && providerKeys) || {}, voice: _voiceRead(VOICE_KEYS_K) }; return stores[spec.store][spec.key] || ""; }
+  /* #622 (owner rulings 2026-10-12, DOC/DESIGN_622_server_tts.md): THE route predicate for a reader — every key test in the
+     voice stack dispatches through it (the fetch, the catalog, available(), the validator, the picker). An own key wins
+     (BYOK unchanged — the fal precedent); else a keyless reader (Piper, the device) is always reachable; else a signed-in
+     ENTITLED player on a reader the server carries (`server: true` on its entry) rides the operator's gateway; else null.
+     `key` is the key in hand (a draft's staged key); pass nothing to read the store. */
+  function _voiceRoute(id, key) {
+    var m = VOICE_MODELS[id]; if (!m) return null;
+    var own = String(key == null ? _voiceKey(id) : key).trim();
+    if (own) return { own: true, key: own };
+    if (!m.key) return { local: true };
+    if (!m.server) return null;
+    if (typeof gmRouting !== "undefined" && gmRouting === "byok") return null;
+    if (typeof storageAdapter === "undefined" || typeof storageAdapter.isServerMode !== "function" || typeof storageAdapter.hasToken !== "function") return null;
+    if (!storageAdapter.isServerMode() || !storageAdapter.hasToken()) return null;
+    if (typeof serverAccount === "undefined" || !serverAccount || !serverAccount.entitled) return null;
+    return { server: true };
+  }
+  function _voiceServerUrl(path) { return String(storageAdapter.getServerUrl() || "").replace(/\/$/, "") + path; }
+  function _voiceServerHeaders(h) { h = h || {}; try { var a = storageAdapter.authHeader(); for (var k in a) h[k] = a[k]; } catch (e) {} return h; }
+  /* #622 ruling 5: which entries a player may pick — an admin (or a player who is not signed in) sees every entry; a
+     signed-in non-admin only the reachable ones, so no control is dead. */
+  function _voiceModelsVisible(all) { return Object.keys(VOICE_MODELS).filter(function(id) { return !!all || !!_voiceRoute(id); }); }
   function _voiceCatalog(id, c) {
     var m = VOICE_MODELS[id];
     if (m.catalogUrl) {
@@ -798,7 +821,7 @@ var TTS = (function() {
   function _voiceValidate(d) {
     if (!d || !VOICE_MODELS[d.primary]) return "Select a voice model.";
     var m = VOICE_MODELS[d.primary], c = d.models[d.primary];
-    if (m.key && !String(d.keys[d.primary] || "").trim()) return "Enter a " + m.label.split(" · ")[0] + " API key.";
+    if (m.key && !_voiceRoute(d.primary, d.keys[d.primary])) return "Enter a " + m.label.split(" · ")[0] + " API key" + (m.server ? ", or sign in to narrate through the T&D server." : ".");/* #622: a server route needs no key */
     if (!c || m.languages.indexOf(c.language) < 0) return "Select a supported speech language.";
     if (m.rate && (!isFinite(c.rate) || c.rate < 0.8 || c.rate > 1.3)) return "Speech rate must be between 0.8 and 1.3.";
     if (m.delivery && m.delivery.indexOf(c.delivery) < 0) return "Select a delivery mode.";
@@ -885,6 +908,8 @@ var TTS = (function() {
             var descriptions = { concurrency_limit_reached: "too many simultaneous speech requests for this account", rate_limited: "account request-rate limit reached" };
             var code = body && body.error && body.error.code;
             if (Object.prototype.hasOwnProperty.call(descriptions, code)) reason = descriptions[code];
+            /* #622: the T&D server's narration refusals (the weekly allowance payload, the daily cap) carry their own sentence */
+            if (body && typeof body.error === "string") reason = (typeof body.message === "string" && body.message) ? body.message : body.error;
             var retry = r.headers && typeof r.headers.get === "function" ? Number(r.headers.get("Retry-After")) : 0;
             if (isFinite(retry) && retry > 0 && retry <= 86400) reason += "; try again in " + Math.ceil(retry) + "s";
           }
@@ -922,17 +947,33 @@ var TTS = (function() {
     return out;
   }
   function _voiceFetch(id, g, c, key, regCtrl, direction) {
-    var m = VOICE_MODELS[id];
-    if (!key) return Promise.resolve({ fail: "No API key" });
-    return _voiceRequest(m.endpoint, { method: "POST", headers: { "Content-Type": "application/json", "Accept": m.accept, "Authorization": m.auth + " " + key }, body: JSON.stringify(m.request(_markupGroup(m, g), c, direction)) }, m.audio, regCtrl)
+    var m = VOICE_MODELS[id], route = _voiceRoute(id, key);
+    if (!route) return Promise.resolve({ fail: "No API key" });
+    /* #622: the SAME body on either route — the server forwards it verbatim and attaches the operator's key, so the own-key
+       request is byte-identical to the pre-#622 one. The session header never carries a vendor key, nor the reverse. */
+    var url = route.server ? _voiceServerUrl("/api/tts/" + id) : m.endpoint;
+    var headers = route.server ? _voiceServerHeaders({ "Content-Type": "application/json", "Accept": m.accept }) : { "Content-Type": "application/json", "Accept": m.accept, "Authorization": m.auth + " " + route.key };
+    return _voiceRequest(url, { method: "POST", headers: headers, body: JSON.stringify(m.request(_markupGroup(m, g), c, direction)) }, m.audio, regCtrl)
       .then(function(bytes) {
         if (!bytes.length || bytes.length % 2 || bytes.length > 6000000) return { fail: "Invalid PCM audio response" };
         return { bytes: bytes, rate: 24000 };
       }, function(e) { return { fail: e.message }; });
   }
   async function _voiceLoadCatalog(id, key, regCtrl) {
-    var m = VOICE_MODELS[id], next = "", seen = {}, voices = [], pages = 0;
-    if (!m.catalogUrl || !key) throw new Error("Enter an API key before loading voices.");
+    var m = VOICE_MODELS[id], next = "", seen = {}, voices = [], pages = 0, route = m.catalogUrl ? _voiceRoute(id, key) : null;
+    if (!route) throw new Error("Enter an API key before loading voices.");
+    function admit(v) { var actor = m.actor(v); if (actor && typeof actor.id === "string" && actor.id && !seen["v:" + actor.id]) { seen["v:" + actor.id] = true; voices.push(actor); } }
+    if (route.server) {
+      /* #622: the server walked the vendor's pages on the operator's key and cached the RAW list (a day); the mapper below
+         is the one the own-key walk uses — the server stores vendor shape and never interprets it. */
+      var sj = await _voiceRequest(_voiceServerUrl("/api/tts/" + id + "/voices"), { headers: _voiceServerHeaders({}) }, function(r) { return r.json(); }, regCtrl);
+      if (!sj || !Array.isArray(sj.voices)) throw new Error("Invalid voice catalog response");
+      sj.voices.forEach(admit);
+      if (voices.length > 4000) throw new Error("Voice catalog exceeds 4000 actors");
+      if (!voices.length) throw new Error("No compatible actors returned for this model.");
+      return _voiceCompactActors(id, voices);
+    }
+    key = route.key;
     do {
       if (++pages > 20) throw new Error("Voice catalog exceeds 20 pages; narrow the workspace catalog.");
       var j = await _voiceRequest(m.catalogUrl + (next ? "&" + m.cursor + "=" + encodeURIComponent(next) : ""),
@@ -1118,9 +1159,9 @@ var TTS = (function() {
       degrade: function(reason) { _voiceErrors[id] = { at: Date.now(), reason: reason }; console.warn("[tts " + id + "] " + reason); if (typeof showToast === "function") showToast(m.label + " unavailable: " + reason + " — using local voice", 8000); }
     };
     TTS_PROVIDERS[id] = { id: id, label: m.label,
-      available: function() { var err = _voiceErrors[id]; return _voicePrimary() === id && !!_voiceKey(id) && !(typeof navigator !== "undefined" && navigator.onLine === false) && (!err || Date.now() - err.at >= 60000); },
+      available: function() { var err = _voiceErrors[id]; return _voicePrimary() === id && !!_voiceRoute(id)/* #622: an own key OR the server route */ && !(typeof navigator !== "undefined" && navigator.onLine === false) && (!err || Date.now() - err.at >= 60000); },
       enqueue: function(text) { return { text: text, cloud: id, voiceId: resolvePiperVoice() }; },
-      fallbackReason: function() { return _voiceErrors[id] ? _voiceErrors[id].reason : "Model is not selected or has no API key"; }
+      fallbackReason: function() { return _voiceErrors[id] ? _voiceErrors[id].reason : "Model is not selected or has no route (no API key, not signed in)"; }
     };
   });
 
@@ -4448,6 +4489,8 @@ var TTS = (function() {
     // ui-voice-settings.js — the one production consumer of this object — touches none of them.
     settings: { models: VOICE_MODELS, draft: _voiceDraft, save: _voiceCommit,
       catalog: _voiceCatalog, clearCatalog: _voiceClearCatalog, loadCatalog: _voiceLoadCatalog, actor: _voiceActor, castSlots: _voiceCastSlots, test: _voiceTest,
+      route: _voiceRoute, visibleModels: _voiceModelsVisible,/* #622: the one route predicate and the picker's entry filter */
+      _providerAvailable: function(id) { return TTS_PROVIDERS[id] ? TTS_PROVIDERS[id].available() : null; },/* #622 test seam: the ladder tier's own answer */
       sample: GEMINI_TEST_LINE,
       _validate: _voiceValidate, _fetch: _voiceFetch,
       _keys: { settings: VOICE_SETTINGS_K, credentials: VOICE_KEYS_K },
