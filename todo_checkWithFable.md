@@ -624,3 +624,5 @@ zero 2026-07-27 and again 2026-07-30.
 - 2026-10-13 · #626 · Codex, owner-requested Iron Meridian blueprint review: baseline plus three complete panel cycles, v1.0 candidate, conditional evidence and causal escape/engine routes. Content and review records only; no engine change. Record: DOC/panel/reviews/iron-meridian/review_cycles.html.
 
 - 2026-10-13 · #626 · Codex, owner-requested Last Lantern-Seed blueprint review: three complete edit/panel cycles after baseline; v1.0 candidate with fixed rite, bounded light, contingent threats and explicit restoration/refuge consequences. Content and review records only; no engine change. Record: DOC/panel/reviews/last-lantern-seed/review_cycles.html.
+
+- 2026-10-13 · #626 · Codex, owner-requested Almanac of Owed Names blueprint review: three complete edit/panel cycles after baseline; v1.0 candidate with fixed Compact chronology, evidence, invitation/pledge rules and costly ending routes. Content and review records only; no engine change. Record: DOC/panel/reviews/almanac-of-owed-names/review_cycles.html.

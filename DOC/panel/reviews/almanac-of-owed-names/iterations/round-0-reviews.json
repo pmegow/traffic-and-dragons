@@ -1,0 +1,659 @@
+[
+  {
+    "round": 0,
+    "blueprintSha256": "e9c04b3f1eef5b24b2c60ea6ebf4b0ab24c9bc5c66acaabdd80c27b960711590",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "The records, domestic threshold and recurring dinner form a strong horror structure, but the Compact's operative rules and chronology need stable author truth.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Connect the Almanac, spoken invitations and Compact payment in one causal rule.",
+            "kind": "world-rule/causality gap",
+            "severity": "high",
+            "basis": "5.3 primary uniformity; 7.2 secondary B:29 game logic.",
+            "blueprintEvidence": [
+              "premise: Almanac is a contract; changing names affects what is owed; bargain keeps something worse outside.",
+              "deepTime[0]: Compact protects harbor from flooding.",
+              "npcs[0].notes: falsified entries keep daughter's name off Almanac.",
+              "npcs[2].notes: each life renewal requires a fresh name added to debt.",
+              "npcs[4].notes: names offered willingly and spoken at a set table allow the Guest to wear them.",
+              "rules[0]: a name spoken in invitation permits home/hall entry."
+            ],
+            "reason": "The plot treats writing, speaking, inviting, wearing a name and renewing a life as related powers without saying which act authorizes which effect. A forged ledger entry can appear to bypass the freely offered name rule; ordinary home invitations may or may not pay the same debt as the annual dinner. Harbor protection's exact condition is also unknown, making proposed countermeasures arbitrary.",
+            "recommendation": "Define a compact sequence in fictional terms: what an entry nominates or binds, who can offer which name, what speech/setting/intent triggers a claim or entry, how copies/forgery/destruction affect it, what a renewal takes, and what withholding/breaking the Compact actually releases or ends. Keep coercion, deceit and exploitation if intended, but make their operation consistent. Distinguish permanent fog from its licensed manifestations and harbor protection.",
+            "mitigation": "The text already separates record from contract and fixes an invitation threshold; these are valuable constraints. The ambiguity of whether the Guest believes itself human can remain existential rather than a substitute for operative rules.",
+            "confidence": "High for missing causal links; no runtime contradiction asserted."
+          },
+          {
+            "title": "Give the one annual Setting a single clear place on the campaign timeline.",
+            "kind": "timeline ambiguity",
+            "severity": "medium",
+            "basis": "1.1 and 1.2 primary time records/consequences; 5.3 primary consistency.",
+            "blueprintEvidence": [
+              "acts[0].turningPoint: \"that night, an empty chair at the Setting is occupied\".",
+              "acts[2].goal: \"before the coming Setting dinner\".",
+              "acts[2].turningPoint: climactic Setting dinner.",
+              "locations[2].description: hall used \"only once a year\" for autumn Setting.",
+              "premise: census twice yearly, Setting each autumn."
+            ],
+            "reason": "The first turning point appears to enact the same annual dinner that the final act still treats as upcoming. The intervening investigation could occur during one long dinner, before a delayed formal rite, or a year later, but none is established. This changes how urgent preparations and invitations are.",
+            "recommendation": "Fix an explicit relative chronology: for example, make Act I's occupied chair a household rehearsal/supper with limited effects, and reserve the annual formal Setting for Act III; alternatively state that investigation occurs during an interrupted dinner. Explain any postponement and what advances the threat.",
+            "mitigation": "Act I's third arc already permits preparations rather than attendance, so a small wording distinction can preserve the early manifestation and the final ritual. Twice-yearly counting is not itself a contradiction with annual dining.",
+            "confidence": "High that chronology is unstated; medium impact because a GM could infer an intended schedule."
+          }
+        ],
+        "uncertainty": "Do not require legalistic minutiae or a fully knowable cosmic entity. Stable operational rules can coexist with unknowable motives and dread. No duration target inferred."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Strong potential for visible costs and threatening thresholds. Supports the Compact clarification; no separate broad-system demand.",
+        "resolved": [],
+        "findings": [],
+        "uncertainty": "Apply 1.3 and 7.4 (primary) within the Compact fix: let earlier witnessed invitations, refusals, ledger discrepancies or salt-water changes show what risks a name/table action can carry before the climax. Do not turn ordinary introductions into an arbitrary unavoidable trap unless the fiction establishes that trigger. Horror can include hidden facts; this asks for evidence and a response window, not safety or advance disclosure of every surprise. The permanent-fog rule remains a valid established limit; characters can still bargain, evade or deal with manifestations. No stress/clock subsystem import or actual-play claim."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "The desire to keep loved ones and the Guest's unstable selfhood are potent stakes. Fix prior identity facts while leaving rescue, trust and moral judgment open.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Distinguish Wick's fixed prior condition from his uncertain future.",
+            "kind": "identity/canon underspecification",
+            "severity": "medium",
+            "basis": "1.1 and 2.1 primary world reality/honesty; 1.3 primary open outcomes.",
+            "blueprintEvidence": [
+              "npcs[5].notes: boy set extra place last year, changed since; \"Whether he is an early, incomplete Guest, a warning sign, or something the party can still save is left open for the table to discover.\"",
+              "rules[0]: dead do not rise; manifestations arrive as guests.",
+              "acts[1].arcs[2].objective: fishermen dispose of \"bodies that don't stay buried\".",
+              "npcs[1].notes and locations[4]: a husband-shaped being has lived at home for a decade."
+            ],
+            "reason": "Wick's nature is framed as several incompatible possible past facts, while salvageability is a future question. Without fixing what happened last year and what tests mean, evidence can drift to validate a player accusation. The relationship between recurring bodies and the no-rising-dead rule likewise needs a stable manifestation explanation; it need not imply multiple separate monsters if the author intends one.",
+            "recommendation": "Choose or explicitly lock Wick's prior condition before presenting clues; define observable signs and limits without deciding whether the party saves him. State whether the husband, dinner guest and recurring bodies are one shifting presence, projections or other bounded manifestations, and why the fishermen's corpses return despite the no-resurrection rule. Preserve uncertainty for the player and the Guest's interior, not contradictory GM facts.",
+            "mitigation": "The Guest is already the named primary entity; its belief that it is the layered dead can remain ambiguous. Wick's final fate and others' reactions should still depend on play; no compulsory happy rescue or predetermined damnation recommended.",
+            "confidence": "High that alternatives are open in prep; medium as a design concern because this could be intentional emergence, but a fixed mystery needs evidentiary consistency."
+          }
+        ],
+        "uncertainty": "Baker's play-to-find-out supports uncertain outcomes, not a demand that all backstory be fixed in every game. This recommendation is scoped to this investigative scenario's promised identity evidence. Coercion and loss remain compatible with horror."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "The archive, widow and fishermen provide promising intersecting leads, but several apparently central clues have no authored answer or knowledge limits.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Give the core clues exact provenance and independent paths to the bargain's essentials.",
+            "kind": "mystery evidence/discoverability gap",
+            "severity": "high",
+            "basis": "1.1, 1.2, 1.3, 1.7 primary essential information, interpretation and alternate routes.",
+            "blueprintEvidence": [
+              "acts[0].turningPoint: fresh entry in handwriting of someone dead eleven years, identity never named.",
+              "npcs[3].notes: Hesper altered one page out of pity, but whose entry/what change/effect unspecified.",
+              "npcs[0].notes: private ledger reveals daughter/falsification.",
+              "acts[1].arcs[0].objective: earn widow's trust for hidden return truth.",
+              "locations[0]: lower floor sealed for decades and rumored unread; npcs[3] lives below and knows older books."
+            ],
+            "reason": "The dead writer and Hesper's altered page look like causal evidence, but there is no specified fact for the player to infer. Corentin and Perce also alter entries; without an attribution map the GM can collapse separate human concealments into supernatural editing. Necessary contract knowledge risks depending on a confession while water/access conditions are also left to invention.",
+            "recommendation": "Name the dead writer and the actual cause of the fresh writing; specify Hesper's changed entry and consequence, Corentin's edits and Perce's renewal records. Identify what each accessible document/witness can prove and what remains uncertain; make Compact essentials obtainable by deliberate investigation even if a witness refuses/dies. Give Hesper's actual access route and observable flood windows so the sealed-floor rumor can be false in a coherent way.",
+            "mitigation": "Multiple archives and witnesses already exist, so redundancy can use them rather than adding a new exposition character. The upper-floor description says the unread archive is a rumor, not incontrovertible truth; clarify the access route rather than calling that a proven contradiction.",
+            "confidence": "High for unspecified clue particulars; medium for access risk without a play trace."
+          }
+        ],
+        "uncertainty": "Do not guarantee all secrets or motives are exposed. Needed operating facts differ from optional emotional confessions. Early discovery should be honored rather than blocked solely because a note says Act III; no timing or novice-comprehension claim."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Grief, kindness and borrowed identity offer a compelling human center. The finale promises choices but does not yet state their possible human costs or limits.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Make the climax's possible resolutions actionable without dispelling the horror.",
+            "kind": "ending feasibility/consequence gap",
+            "severity": "high",
+            "basis": "2.7 primary visible payoffs not obligations; 4.6 primary meaningful arc close; 7.3 primary empathy.",
+            "blueprintEvidence": [
+              "acts[2].goal: stop or renegotiate before Guest claims \"full due\".",
+              "acts[2].turningPoint: expose, destroy or strike new bargain.",
+              "acts[2].arcs[1].objective: merely confront the entity.",
+              "rules[1]: fog cannot be dispelled, only avoided, bargained with or fed.",
+              "premise: breaking bargain may release something worse; no concrete resulting state described."
+            ],
+            "reason": "Confrontation alone gives no resolvable decision, and exposure, destruction and renegotiation have neither procedures nor defined effects. It is unclear whether destroying a manifestation changes the debt, whether refusal floods the harbor, what the Guest can accept, or whether Wick and the husband-shaped return are affected. A model must invent the cost after the player chooses.",
+            "recommendation": "Define a small set of feasible resolutions consistent with the Compact: what can be revoked/paid/limited, whether a body can be defeated without destroying the fog, what enforcing or breaking a term does, and what evacuation/refusal leaves unresolved. Show discoverable costs before irreversible commitment and conclude with actual human fates and surviving danger. Leave compatible player proposals open and allow a tragic or compromised end without a compulsory sequel.",
+            "mitigation": "Permanent fog can remain untouchable and the Guest's belief can remain unsettling. A meaningful ending does not require restoring loved ones, curing Wick, eliminating grief or saving the whole town.",
+            "confidence": "High for absent final procedures and effects; no prediction of player dissatisfaction."
+          }
+        ],
+        "uncertainty": "No need for pastoral mechanics, emotional XP or a redemptive interpretation of the Guest. The optional interior ambiguity is valuable; make consequences consistent without telling players whom they must forgive."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Define the Compact's operative chain from written names to invited manifestations, renewal and harbor protection, with bounded ways to interfere.",
+        "Make the annual Setting chronology explicit while preserving an early uncanny visitation.",
+        "Fix Wick's prior condition and the relation among borrowed bodies; keep future rescue/judgment open.",
+        "Specify core clue provenance and independent discovery routes, including human edits versus supernatural ones.",
+        "Author feasible costly resolutions and honest partial/failure endings that retain the fog and horror where intended."
+      ],
+      "dissent": [
+        "Horror, coercion, uncertain identity, grief and potentially devastating consequences are intentional; the review does not demand safety or satisfaction by removing them.",
+        "Operational consistency is different from explaining away the cosmic mystery. The Guest's self-belief and ultimate nature may remain uncertain.",
+        "Gygax emphasizes fixed rules; Harper emphasizes legible risks; Baker distinguishes prior facts from future choice; Laws protects investigation; Moran asks for human consequences. These are documented lenses, not author endorsements.",
+        "No one-hour target, actual play result, runtime proof or publication-readiness claim."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "e9c04b3f1eef5b24b2c60ea6ebf4b0ab24c9bc5c66acaabdd80c27b960711590",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Names, grief and household ritual have strong relational weight. Their causal force needs a consistent private definition, not more exposition.",
+        "resolved": [
+          {
+            "text": "Setting a place, feeding a visitor and keeping names make care itself the event and the risk.",
+            "basis": "§4.2–4.5 container/relational story (◐); §3.2 names as power (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[1].notes",
+                "quote": "stories, meals, secrets about the town"
+              },
+              {
+                "path": "locations[4].description",
+                "quote": "a place is still set for a man who drowned ten years ago"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "A name's owner, offerer and price are undefined",
+            "severity": "high",
+            "kind": "private supernatural rules and knowable consequence",
+            "basis": "§3.2 names carry power, §8.3–8.4 cost and consequence, §9.1 world consistency (all ◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[4].notes",
+                "quote": "names, offered willingly, spoken aloud at a set table"
+              },
+              {
+                "path": "npcs[4].notes",
+                "quote": "a name given at the Setting is a name it may wear"
+              },
+              {
+                "path": "rules[0]",
+                "quote": "if a name is spoken aloud in invitation"
+              }
+            ],
+            "reason": "The fiction does not settle whose willingness counts when a mourner offers another person's name, whether an ordinary spoken invitation grants only entry or identity rights, how long a right lasts, or what the named living/dead person loses. The Almanac is a contract but edits, speech and physical possession have no defined relationship. Players can accidentally choose an arbitrary cost the GM invents afterward.",
+            "recommendation": "Write a short private causal contract distinguishing inscription, invited entry and surrender of a name: valid offerer, relevant consent, rights gained, limits/duration and cost. Make enough knowable before irreversible action, while retaining uncertainty about the Guest's ultimate nature. Do not require benevolent or modern contractual ethics; define this bargain's actual cruel rules.",
+            "mitigation": "Strong images and the table/name condition already bound some magic. Horror may conceal information at first, but an ethical climax cannot rely on changing the price after commitment.",
+            "confidence": "High about missing operational terms; no demand for a numerical magic system."
+          },
+          {
+            "title": "The corpse investigation conflicts with the non-resurrection rule",
+            "severity": "medium",
+            "kind": "content consistency and clue meaning",
+            "basis": "§9.1 consistent world (◐); §4.6 story/plot relation (●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].goal",
+                "quote": "dead are not resting where they were buried"
+              },
+              {
+                "path": "acts[1].arcs[2].objective",
+                "quote": "disposing of bodies that don't stay buried"
+              },
+              {
+                "path": "rules[0]",
+                "quote": "The dead in Bellmere Hollow do not rise from graves"
+              }
+            ],
+            "reason": "The main investigation presupposes displaced/unquiet buried bodies while canon forbids dead rising and describes arrivals as masks of grief. Grave tampering, artificial shells or repeated manifestations could reconcile this, but none is chosen, so the same physical clue can imply incompatible truths.",
+            "recommendation": "Define what the fishermen actually recover and dispose of, who moves genuine bodies if any, and what examination can establish. Keep the rule that a borrowed person is not the resurrected dead unless deliberately revising it.",
+            "mitigation": "Apparent contradiction can be excellent horror when private truth explains it. The request is that explanation for the GM, not an immediate answer for players.",
+            "confidence": "High about conflicting implications; actual corpse mechanics omitted."
+          }
+        ],
+        "uncertainty": "No generated corpus/audio: prose rhythm, atmosphere and emotional effect ungraded. No one-hour constraint."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Domestic familiarity under supernatural dread is effective source material. The ending's protection and prices must exist before they can be terrifying choices.",
+        "resolved": [
+          {
+            "text": "The tidy house with inward fog and the uncounted extra settings make dread arise from familiar civic life.",
+            "basis": "§2.5 inhabited places with a night self (◐); §9.1 wonder/fear and §9.2 understatement (●/◐).",
+            "blueprintEvidence": [
+              {
+                "path": "locations[4].description",
+                "quote": "The windows are always fogged from the inside"
+              },
+              {
+                "path": "locations[2].description",
+                "quote": "the extra chairs are never counted aloud"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Breaking, feeding and destroying the bargain have no defined ending consequences",
+            "severity": "high",
+            "kind": "causal climax and closure",
+            "basis": "§9.3 confirmation rather than arbitrary revelation (◐); §9.5 convincing fiction (●/◐); §10.1 a story resolves something (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "premise",
+                "quote": "kept something worse than death outside the harbor"
+              },
+              {
+                "path": "deepTime[0].note",
+                "quote": "to keep the harbor from flooding"
+              },
+              {
+                "path": "acts[2].turningPoint",
+                "quote": "expose, destroy, or strike a new bargain"
+              },
+              {
+                "path": "rules[1]",
+                "quote": "at great cost, fed"
+              }
+            ],
+            "reason": "The original protection is flood prevention, the premise threatens an unspecified worse-than-death exclusion, and the rule says fog cannot be dispelled while the finale offers destruction. These can coexist, but no private truth states their relation, the concrete 'full due,' what destruction can affect, or the consequences of refusing/renegotiating. The apparent moral dilemma currently has blank sides.",
+            "recommendation": "Specify the ward's actual benefit, the due becoming enforceable this Setting, and bounded outcomes for exposure, destroying a manifestation, breaking or renegotiating the Compact and withdrawing. Show an obtainable source for relevant costs before commitment. The fog's ultimate origin may remain unknown, and some outcomes may remain bleak.",
+            "mitigation": "Undispellable fog is a legitimate horror constraint, not itself a flaw. Destroying an avatar can differ from erasing the fog if the text says so. Do not make every outcome safe or every mystery comprehensible.",
+            "confidence": "High about undefined consequences; no requirement to defeat the supernatural permanently."
+          }
+        ],
+        "uncertainty": "The Guest's uncertainty about its own origin can remain interpretive horror. This finding concerns actionable price/protection, not exhaustive cosmology."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Civic ritual and unequal access to renewed life create a useful power structure. The single annual dinner needs one coherent timeline before investigation and choice can carry weight.",
+        "resolved": [
+          {
+            "text": "The Alderman's private longevity and the townspeople's public mourning identify an institutional benefit and its unequal burden.",
+            "basis": "§3.2 self-maintaining systems (LS ●) and §3.5 allocation of resources (GR ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[2].notes",
+                "quote": "his own long life has been quietly extended by it"
+              },
+              {
+                "path": "npcs[2].notes",
+                "quote": "each renewal requiring a fresh name added to the debt"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The annual Setting occurs in Act I and is still upcoming in Act III",
+            "severity": "high",
+            "kind": "timeline and staged agency",
+            "basis": "§5.1 planned structure (WE ●); §9.3 choices have actual consequences (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].turningPoint",
+                "quote": "that night, an empty chair at the Setting is occupied"
+              },
+              {
+                "path": "acts[2].goal",
+                "quote": "before the coming Setting dinner"
+              },
+              {
+                "path": "locations[2].description",
+                "quote": "used only once a year for the autumn Setting dinner"
+              }
+            ],
+            "reason": "The first turning point appears to spend the annual dinner, but the middle investigation is followed by preparation for that same still-coming dinner. Without a defined preliminary supper, multi-stage ritual or next-year transition, the GM must repeat an event, rewind time or compress major investigations into an unannounced dinner interval.",
+            "recommendation": "Choose one calendar: a preparatory invitation/first arrival before the annual Setting, or clear phases of one extended ritual with time to investigate. Name the final trigger and allow early intervention to alter it; do not force a second identical arrival merely to preserve the outline.",
+            "mitigation": "Twice-yearly records do not conflict with an annual dinner. A deliberately recursive horror timeline could also work, but the blueprint currently does not establish one. A simple chronology clarification preserves scope.",
+            "confidence": "High: explicit annual constraint and duplicated coming/occurred event."
+          }
+        ],
+        "uncertainty": "No recommendation to remove the coercive civic structure or convert the ending into compulsory revolution. The institution's costs need clarity, not a moral lecture."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "Human compromises give horror weight. Fix the child's private situation and the central act of tampering so inquiry can reveal truth rather than create it retroactively.",
+        "resolved": [
+          {
+            "text": "Mireille's continued kindness and Corentin's falsification arise from comprehensible grief, without automatically excusing their harms.",
+            "basis": "§5.4 and §6.1–6.3 understandable reasons do not absolve (B:Fantasy-Hive ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[1].notes",
+                "quote": "believing it keeps her husband's 'better half' alive somewhere inside it"
+              },
+              {
+                "path": "npcs[0].notes",
+                "quote": "falsifying entries for years to keep her name off the Almanac"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Wick's identity and saveability are deferred until discovery",
+            "severity": "high",
+            "kind": "private character truth and consequential harm",
+            "basis": "§8.1 honesty (A:Advice ●); §3.1 consequences justify detail (B:Walter ◐); §5.6 characters and situations cause one another (B:Dark Matter Zine ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[5].notes",
+                "quote": "Whether he is an early, incomplete Guest, a warning sign"
+              },
+              {
+                "path": "npcs[5].notes",
+                "quote": "is left open for the table to discover"
+              }
+            ],
+            "reason": "The player may decide to protect, confront or harm a twelve-year-old whose underlying condition and prospect of rescue have no fixed private answer. Discovery can therefore cause the GM to choose whichever truth best dramatizes the preceding action, rather than actions having consequences grounded in an existing person.",
+            "recommendation": "Set a private state for Wick before play: living child or replacement, what changed last year, what he knows, and whether/how intervention can help. Keep evidence incomplete and the experience frightening. Uncertainty for characters is compatible with a fixed GM truth.",
+            "mitigation": "The Guest's uncertain self-belief can remain ambiguous; that differs from changing whether the child is alive after the player acts. Rescue need not be easy, complete or even possible, but its limits should be real.",
+            "confidence": "High about explicitly deferred fact; no actual harmful runtime outcome observed."
+          },
+          {
+            "title": "The fresh dead-hand entry has no fixed author or alteration mechanism",
+            "severity": "medium",
+            "kind": "mystery causality and evidence integrity",
+            "basis": "§8.1 honesty (A:Advice ●); §5.6 character action produces situation (B:Dark Matter Zine ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].turningPoint",
+                "quote": "written in the hand of someone who has been dead for eleven years"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "they altered one page themselves once, out of pity"
+              },
+              {
+                "path": "premise",
+                "quote": "something in the fog has been quietly changing the names on it"
+              }
+            ],
+            "reason": "Corentin, Hesper, the Alderman and the fog have different kinds of involvement, but the inciting fresh entry has no named deceased handwriting-owner, writer, access mechanism or intended effect. Several true motives can coexist; the missing causal event lets the mystery's central evidence change meaning between scenes.",
+            "recommendation": "Fix the specific new entry's text/handwriting identity, actual author or copying process, access and purpose, and distinguish it from the humans' earlier edits. Seed independent corroboration and permit the players to leave some history unresolved.",
+            "mitigation": "Not every old ledger discrepancy needs an answer. One concrete inciting alteration and limited evidence are enough; avoid sprawling conspiracy or another mastermind.",
+            "confidence": "High about undefined inciting event; medium severity because a flexible GM can improvise, but that currently reaches the mystery's core."
+          }
+        ],
+        "uncertainty": "No demand to spare everyone, remove grief or make a comforting ending. Actual dialogue and emotional payoff remain untested."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Fix the one-Setting timeline and a compact private bargain defining invitation, name-rights, due, ward benefit and consequences.",
+        "Give Wick a fixed underlying state and bounded intervention possibilities before player choices.",
+        "Specify the inciting dead-hand entry and distinguish corpse disposal from true resurrection.",
+        "Preserve unsettling self-belief, grief and incomplete character knowledge; do not replace horror with exhaustive explanation."
+      ],
+      "dissent": [
+        "Moral discomfort and irreversible loss are legitimate. These findings target changeable hidden facts and undefined prices, not bleakness.",
+        "No one-hour constraint, compulsory successful rescue or demand that supernatural fog be destroyable."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "e9c04b3f1eef5b24b2c60ea6ebf4b0ab24c9bc5c66acaabdd80c27b960711590",
+    "scope": "Almanac of Owed Names v0.01 baseline: full source reread through five sourced composite player personas. Not interviews, actual playtests or runtime assurances. Horror and campaign scope preserved; no one-hour constraint. Exact zero-based field paths.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "Conditional fit for attentive listening, with a particularly important speech-trigger boundary. Horror is allowed to be dangerous; the player still needs to know whether a spoken name is an action or a discussion of an action.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Separate an intentional in-fiction invitation from mentioning or asking about a name",
+            "severity": "P2",
+            "kind": "input-and-action",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R4; R2",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[0]",
+                "quote": "can only enter a home or hall if a name is spoken aloud in invitation."
+              },
+              {
+                "field": "npcs[4].notes",
+                "quote": "names, offered willingly, spoken aloud at a set table"
+              }
+            ],
+            "reason": "The rules make speech consequential but do not distinguish a character intentionally inviting someone from quotation, investigation, refusal, or a voice transcription mistake. A name-heavy census will repeatedly mention names; interpreting every mention as consent would make discovery itself a hidden trap.",
+            "recommendation": "Define the positive fictional act that grants invitation and let questions, quotations and explicit refusal remain ordinary speech. In an ambiguous command, establish what the character is doing before applying an irreversible consequence. This concerns resolved character intent, not microphone keywords. Preserve deliberate, possibly deceptive invitations as horror choices.",
+            "mitigation": "The existing words in invitation and willingly already point toward intentional action; this is a targeted boundary clarification, not proof that the current runtime treats mere speech as permission.",
+            "confidence": "High confidence in source gap or contradiction; generated play behavior untested."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite, not an audio playtest. R4 provides primary evidence of misheard commands; applying that to name magic is a design inference. R5 driving suitability and R10 voice inventory are inferred and unused.",
+          "dissent": "Keep the name-centered horror and investigative depth; do not eliminate dangerous invitations solely to make audio effortless.",
+          "verificationQuestion": "Can a listener ask whether speaking a name would invite the Guest without that question itself opening a threshold?"
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Strong atmospheric and social premise, but timeline and operational truth need to be fixed before the player can reason reliably. Keep the Guest’s ultimate metaphysical origin uncertain if desired; do not leave the effects of actions undecided.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Give the annual Setting one consistent place in the timeline",
+            "severity": "P1",
+            "kind": "continuity",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "and that night, an empty chair at the Setting is occupied"
+              },
+              {
+                "field": "acts[2].goal",
+                "quote": "before the coming Setting dinner"
+              },
+              {
+                "field": "locations[2].description",
+                "quote": "used only once a year for the autumn Setting dinner"
+              }
+            ],
+            "reason": "Act I appears to hold this year’s Setting before the investigation, while Act III still awaits that same upcoming annual event. A newcomer cannot know what deadline remains or whether another year has passed.",
+            "recommendation": "Fix a concrete relative schedule. Make Act I’s manifestation a distinct private supper or preparation event, or make the entire investigation occur before/within one clearly identified Setting with a legible remaining clock. Keep the autumn dinner annual and state which invitation permits each earlier manifestation.",
+            "mitigation": "The premise already distinguishes a twice-yearly census from an autumn Setting, so no extra festival or calendar system is needed.",
+            "confidence": "High confidence in source gap or contradiction; generated play behavior untested."
+          },
+          {
+            "title": "Fix the altered entry’s cause and Wick’s condition without explaining away the horror",
+            "severity": "P1",
+            "kind": "fixed-truth-and-evidence",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5; I9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "written in the hand of someone who has been dead for eleven years"
+              },
+              {
+                "field": "npcs[5].notes",
+                "quote": "Whether he is an early, incomplete Guest, a warning sign, or something the party can still save is left open for the table to discover."
+              },
+              {
+                "field": "npcs[2].notes",
+                "quote": "each renewal requiring a fresh name added to the debt"
+              },
+              {
+                "field": "npcs[3].notes",
+                "quote": "they altered one page themselves once, out of pity"
+              }
+            ],
+            "reason": "Several people alter records, but the inciting dead handwriting has no fixed actor, method or consequence. Wick’s ontology and possibility of rescue are explicitly undecided. If those facts change to fit player suspicions or their rescue attempt, evidence and choices lose causal meaning.",
+            "recommendation": "Choose the actual source and method of the fresh alteration, distinguish Corentin/Hesper/Nadault’s edits, and define how those documents connect to the Guest’s permission. Fix what happened to Wick and the limits of possible help before play; provide concrete discoverable evidence and alternate sources if a confidant refuses. The Guest’s own uncertainty about its original identity can remain genuine.",
+            "mitigation": "The human motives are already differentiated, and the Guest’s belief that it may be layered dead can remain atmospheric uncertainty. The required fix concerns actionable history, not a complete cosmology.",
+            "confidence": "High confidence in source gap or contradiction; generated play behavior untested."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite source review, not an actual solo investigation. No demand that the player receive private truths immediately or that all horror be rationally exhaustive.",
+          "dissent": "Preserve unreliable people and genuine moral conflict. Stable facts do not require friendly witnesses or a reassuring explanation.",
+          "verificationQuestion": "If the player saves or condemns Wick before the climax, was that result determined by previously fixed facts rather than by the desired dramatic twist?"
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "Partial genre fit. This is not an inventory campaign, but a supernatural contract demands reliable permissions, prices and persistence if weighing bargains is the central activity.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Define whose name can be offered and what the giver actually owes",
+            "severity": "P1",
+            "kind": "contract-and-cost",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B9; B5; B8",
+              "sourceGrade": "primary; economic-cost and permanence principles applied explicitly by analogy to a supernatural compact"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[4].notes",
+                "quote": "a name given at the Setting is a name it may wear"
+              },
+              {
+                "field": "npcs[2].notes",
+                "quote": "each renewal requiring a fresh name added to the debt"
+              },
+              {
+                "field": "premise",
+                "quote": "a bargain that has kept something worse than death outside the harbor"
+              },
+              {
+                "field": "rules[1]",
+                "quote": "at great cost, fed"
+              }
+            ],
+            "reason": "The Guest requires willingly offered names, but Nadault appears able to add somebody else’s name for his own extension. It is not specified whose willingness matters, what wearing a name does to its living owner, how long access lasts, what revokes it, or what feeding the fog costs. The player cannot compare honoring, refusing or revising the bargain on these terms.",
+            "recommendation": "Fix eligibility and authority: who may invite a shape, who may pledge their own or another’s identity, what an unconsenting victim’s entry can and cannot do, and what existing grants permit. Define finite payment, duration and revocation terms, with observable clues before a binding choice. Keep deception possible through established false claims; do not invent new clauses retroactively or make every refused deal a surprise penalty.",
+            "mitigation": "The Guest’s desire for names and the named officials’ motives already provide a compact foundation. A few bounded rules can supply the stakes without turning horror into an accounting minigame.",
+            "confidence": "High confidence in source gap or contradiction; generated play behavior untested."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite; known-price sources largely concern games’ economies. The analogy supports legible costs, not a claim that supernatural grief equals currency or that all mystery must be priced upfront.",
+          "dissent": "Do not add loot or shops. Known terms at commitment can coexist with a frightening process of discovering what those terms really are.",
+          "verificationQuestion": "Before accepting a renewal or feeding the fog, can the player explain who pays, what changes, for how long, and what happens if they decline?"
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "Poor cozy-recovery fit by intentional horror genre. That is not a defect. Her applicable contribution is whether help for specific people is recognized rather than converted into mandatory escalation or an endless obligation.",
+        "resolved": [],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite persona, not a real player’s emotional response. N1/Trust support the genre mismatch; N3/N4/N7 support participatory, locally consequential help. No requested short total duration or sanitized grief.",
+          "dissent": "Keep grief, impersonation and the possibility of a costly outcome. Nan may prefer another blueprint while the other lenses find this campaign compelling.",
+          "verificationQuestion": "Can a local action such as protecting a household or getting Wick to safety remain a real accomplishment even if the player declines the town-wide bargain?",
+          "basis": {
+            "file": "DOC/panel/players/nan_oyelaran_persona.md",
+            "entry": "N3; N4; N7",
+            "sourceGrade": "primary"
+          },
+          "blueprintEvidence": [
+            {
+              "field": "npcs[1].notes",
+              "quote": "whether she's mad or complicit"
+            },
+            {
+              "field": "npcs[5].notes",
+              "quote": "He wants to be normal again"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "Strong potential for a specific, consequential horror ending. The advertised choices currently lack procedures and completion conditions, so the GM must improvise whether the player’s solution was ever possible.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Make the climax’s promised alternatives attainable and able to finish",
+            "severity": "P1",
+            "kind": "ending-and-rules",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3; G6; G7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].turningPoint",
+                "quote": "must expose, destroy, or strike a new bargain"
+              },
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "Confront the entity"
+              },
+              {
+                "field": "rules[1]",
+                "quote": "cannot be dispelled by any means the party discovers"
+              },
+              {
+                "field": "premise",
+                "quote": "kept something worse than death outside the harbor"
+              }
+            ],
+            "reason": "Confrontation alone has no stopping condition. Expose/destroy/renegotiate are promised but have no stated evidence threshold, vulnerability, negotiation bounds or aftermath. The absolute fog immunity makes it unclear how destroying the Guest relates to its source, and the supposed worse threat outside has no defined effect if the compact ends. Refusal or evacuation also has no authored resolution.",
+            "recommendation": "Define the relation between Guest, fog and harbor protection and the practical procedure/cost for each supported ending. Exposure should mean a specific consequence, not automatically victory; destruction needs a real discoverable vulnerability or should cease being advertised; renegotiation needs bounded terms. Allow informed refusal, departure or partial protection to conclude with honest limits. Record actual NPC fates and invitation/name status, and invite one optional final player contribution rather than forcing a sequel.",
+            "mitigation": "The setting already has ledgers, thresholds, an annual table and competing human interests that can ground distinct outcomes. The fog may remain beyond direct combat without making every strategy arbitrary or requiring a happy ending.",
+            "confidence": "High confidence in source gap or contradiction; generated play behavior untested."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite source review, not engine completion or actual play. Does not claim that the product lacks ending/memento UI. G7 supports stable adjudication; it does not demand every monster be killable.",
+          "dissent": "A costly or unresolved horror ending can satisfy this lens if it is an earned, specific conclusion. Do not guarantee rescue or a clean moral answer.",
+          "verificationQuestion": "If the party refuses to offer names and leaves with willing residents, can the campaign state what was preserved and lost and actually end without making them attend a compulsory dinner?"
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Fix the single annual Setting timeline and distinguish earlier private invitations or manifestations.",
+        "Define the compact’s permissions, name ownership, finite costs and operational effects; distinguish intentional invitation from investigation speech.",
+        "Fix Wick’s condition and the dead-hand entry’s actual origin, while permitting uncertainty about the monster’s ultimate origin.",
+        "Specify supported exposure/destruction/renegotiation procedures and honest refusal/evacuation/partial endings with known costs and actual fates.",
+        "After editing, test hostile interpretations and missing witnesses in play; this review proves neither horror effectiveness nor runtime completion."
+      ],
+      "dissent": [
+        "Nan’s poor cozy fit is intentional, not a demand to remove horror or grief.",
+        "Bert’s known-cost lens requires terms before commitment, not a shopping loop or full disclosure of the mystery at the opening.",
+        "Ines welcomes hostile uncertainty and Gerry accepts costly endings; stable operational truth should not become a guaranteed safe resolution.",
+        "Rosa needs reliable speech intent, not a ban on dangerous deliberate invitations."
+      ]
+    }
+  }
+]

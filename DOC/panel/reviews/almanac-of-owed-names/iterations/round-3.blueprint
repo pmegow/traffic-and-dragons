@@ -1,0 +1,187 @@
+{
+  "name": "The Almanac of Owed Names",
+  "tone": "horror",
+  "startingLocation": "The Tallow Registry",
+  "startingRegion": "The Bellmere Coast, a fog-locked stretch of drowned fishing villages",
+  "premise": "Bellmere Hollow counts its dead twice a year and holds one autumn Setting, a dinner with chairs for those listed as owed a return. The party arrives as Corentin Vasse's census assistants three days before that dinner. He offers work, not an oath; they may investigate, refuse or leave. The Almanac is a contract whose yearly payment keeps storm tides and the hungry sea-fog outside the low harbor. Its borrowed dead have lived at local tables for years. Someone is adding names in a dead clerk's handwriting, hoping the living will turn ink into permission. The approaching Setting will renew those permissions or let them expire. Saving the town may mean paying a known price, losing a beloved imitation, or abandoning the place the bargain protected.",
+  "acts": [
+    {
+      "title": "Act I: The Counting",
+      "goal": "Investigate the autumn count and the discrepancies between buried people and their supposed returns; the annual Setting is still three days away.",
+      "turningPoint": "The current Almanac gains an entry in the dead clerk Eloi Marr's hand: \"Wick Talmadge — return renewed; Perce Nadault — renewal due.\" At an ordinary Ancoux supper, Mireille may invite her husband's borrowed shape into its usual chair. This is not the annual Setting. Prevention or absence changes the scene; the entry and older records remain investigable.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Taking the Count",
+          "objective": "Visit willing households or compare public records to establish who is living, buried, missing or listed for a return.",
+          "type": "social",
+          "dnaHint": "Do not require every house or a census oath. Date the coming Setting and the fixed high tide aloud. Questions, quoted names and reading records are not invitations. Let residents show practical life among the unease: mended nets, damp schoolbooks and a meal kept warm for someone who should be gone."
+        },
+        {
+          "title": "The Ledger's Weight",
+          "objective": "Examine the current Almanac, its stitched Compact leaf and the burial register; find which entries nominate faces and which signatures actually pledge a name.",
+          "type": "investigation",
+          "dnaHint": "Deliberate inspection yields the payment, invitation, expiry and severance terms without a single pass/fail clue gate. The original Compact is stitched into the current book; older books are records, not competing magical contracts. Hesper has a transcription and fishermen keep tide/renewal logs. Theft or obstruction changes access, not the facts."
+        },
+        {
+          "title": "A Chair Too Many",
+          "objective": "Investigate the Ancoux supper or other evidence of an invited return while the town prepares for the one annual Setting.",
+          "type": "investigation",
+          "dnaHint": "Mireille has repeatedly renewed a household invitation to the shape of her drowned husband Marcel. If she declines supper or the party prevents entry, do not seat the Guest anyway. Her account, two handwriting samples and the fishermen's report can still establish a borrowed shape. Preserve actual invitations and their scope."
+        }
+      ]
+    },
+    {
+      "title": "Act II: What Is Owed",
+      "goal": "Learn how the Compact works, establish who changed which entries, and choose what the living are willing to preserve or surrender before the dated high tide.",
+      "turningPoint": "Evidence can establish that the returned bodies are the Guest's borrowed forms, not raised corpses. Its memories may be sincere, but sincerity does not restore the dead. The party may reach a decision with some motives unresolved; no compulsory confession.",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Widow's Confession",
+          "objective": "Hear Mireille's experience, inspect evidence she permits, or pursue another source if she refuses. Help her decide whether to maintain her invitation.",
+          "type": "social",
+          "dnaHint": "Stories and meals have taught the shape Marcel's habits; neither kindness nor a secret casually told is a fresh pledge. She may value its care and still reject what sustains it. Do not assign her consent or the hero's feelings. Her testimony is useful, not the only route to the Compact."
+        },
+        {
+          "title": "The Drowned Registry",
+          "objective": "Reach the lower archive by its known service access and compare Hesper's transcript, Wick's altered entry and the old renewal records.",
+          "type": "exploration",
+          "dnaHint": "The service stair is usable at low tide; a wall gauge shows the return window. Hesper sleeps on a dry mezzanine reached through a courtyard hatch. The sealed-for-decades story is Perce's deterrent. Careful examination yields the essential records; flooding threatens time, safety or papers actually exposed, not every clue automatically."
+        },
+        {
+          "title": "The Hollow Watch",
+          "objective": "Investigate the fishermen's disposal of borrowed bodies and negotiate access to their tide and renewal logs; force is an option, not a requirement.",
+          "type": "combat",
+          "dnaHint": "The Hollow Watch protects crews and fears losing the harbor ward. It has sunk salt-pale husks left when a Guest-form was injured or dismissed; these do not rise from graves. The same face can recur from fog while its license lasts. Burial records and examination distinguish husks from intact human remains. The Watch may trade records for evacuation help, accept exposure or resist according to events."
+        },
+        {
+          "title": "Who Keeps the Fog",
+          "objective": "Establish the fog boundary, the ward's actual protection and the cost of its lapse using tide marks, Compact terms or informed testimony.",
+          "type": "investigation",
+          "dnaHint": "The fog's ultimate origin remains unknown. The Compact excludes its hunger and storm surge from the low harbor; cliff ground above the old tide mark is outside the flooding reach. A marked cliff road allows departure if kept open. A failed expedition need not erase the terms already available in the Registry."
+        }
+      ]
+    },
+    {
+      "title": "Act III: The Last Setting",
+      "goal": "Before the recorded third-night high tide, choose renewal, negotiated limits, severance or withdrawal, using only actual consent, evidence and preparations.",
+      "turningPoint": "The annual Setting or an earlier intervention resolves the Compact's current term. Renewed terms, a severed seal or expiry determine the ward and licensed faces. No second compulsory dinner, forced bargain or victory over the entire fog.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Setting the Table",
+          "objective": "Share what can be proved, arrange voluntary support or evacuation, and prepare the chosen response to the Compact.",
+          "type": "social",
+          "dnaHint": "Exposure can deprive Perce of support and stop an uninformed pledge; it is not a magical victory. Present the recorded prices before anyone commits. No person, child or companion can be pledged by another. If the party intervened early, resolve the consequences of that intervention rather than resetting the table. Delisting dead names needs no bargain with the Guest; negotiate only for further restrictions on the living face if desired."
+        },
+        {
+          "title": "The Guest's Due",
+          "objective": "Resolve the bargain at the set table or through the earlier action the party actually took: renew, negotiate bounded terms, sever its seal or let it expire while people withdraw.",
+          "type": "social",
+          "dnaHint": "Combat disperses a body and buys time, not victory over the fog. Ordinary renewal can lawfully omit every dead face; the stated year-of-life price still licenses the giver's face. Negotiation can restrict that face further, such as one supervised visit before dawn, without shortening the renewed ward. Refusal adds no penalty. Cutting the seal ends ward and bodies at the next high tide; without renewal they expire at the recorded third-night tide. Honor evacuation, household revocations and Wick's treatment. End on actual survivors, lost homes and remaining names; invite one optional final player act."
+        }
+      ]
+    }
+  ],
+  "deepTime": [
+    {
+      "name": "The Tideward Compact",
+      "when": "over six hundred years ago",
+      "note": "a coastal alliance of fishing clans who bargained with something in the deep fog to keep the harbor from flooding, sealing the first Almanac as its written proof"
+    },
+    {
+      "name": "The Hollowing",
+      "when": "roughly two hundred years ago",
+      "note": "a plague year when half the town drowned in a single storm tide, after which the survivors began the tradition of the autumn Setting to formally 'invite back' the drowned to the table"
+    },
+    {
+      "name": "The Quiet Decade",
+      "when": "ending eleven years ago",
+      "note": "a period when the Almanac's entries stopped matching burial records, though no one in living memory admitted noticing until now"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Corentin Vasse",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "A meticulous census-taker who hired the party and keeps spare dry socks beside his ledgers. His daughter Lucette died of fever eleven years ago. He once invited her shape, recognized borrowed habits rather than a resurrection, and withdrew it. He has since omitted her dead name from renewal lists. His private ledger records her burial and that withdrawal; it does not control other people's names. He fears admitting the fraud but may cooperate, flee or refuse. His testimony is not required: the Compact and burial register support the distinction."
+    },
+    {
+      "name": "Mireille Ancoux",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "For ten years Mireille has welcomed the shape of her drowned husband Marcel, renewing its household invitation each year. It knows his habits because she has taught them through meals and stories. She wants someone to tell her whether love for that presence is complicity; do not answer that moral question for her. She can withdraw her home's invitation or keep it, within the current license. Kindness does not secretly pledge a name or life. Marcel's burial record and a salt husk washed ashore support what her experience cannot prove alone."
+    },
+    {
+      "name": "Alderman Perce Nadault",
+      "role": "villain",
+      "pronouns": "he/him",
+      "notes": "Bellmere's paternal public official, over ninety, has obtained three private renewals: on each occasion a living adult spoke their own pledge and surrendered ten years of life to restore ten years to him. His victims were pressured through debt and false promises, not empowered to pledge anyone else. Birth records and signed supplementary receipts document those acts. He now seeks another volunteer under the cover of the annual one-year harbor payment. Exposing him may break his political support, but neither kills the Guest nor undoes years already paid."
+    },
+    {
+      "name": "Hesper Coll",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "notes": "The lower archive's stubborn clerk lives on its dry mezzanine and uses a courtyard hatch; the main service stair floods at high tide. Hesper changed Wick's status from missing to presumed dead out of pity for his family before last year's Setting. His mother invited the presumed dead child; Wick then returned alive. Hesper concealed the mistake instead of correcting the entry and withdrawing that invitation. Their transcript explains those repairs and the Compact terms. Their guilt is specific; records can expose it without a confession."
+    },
+    {
+      "name": "The Guest",
+      "role": "villain",
+      "pronouns": "it/it, but answers to whatever name is offered",
+      "notes": "One fog-born mind can sustain separate bodies in currently licensed names; each learns only what it witnesses or is told. Damaged bodies leave salt husks; replacement costs time until the next dusk and needs a still-valid invitation to enter. It wrote the new entry in Eloi Marr's borrowed hand after entering the Registry under the clerk's standing invitation, hoping humans would renew Wick and pay for Perce. It cannot turn ink into consent. It may believe its layered memories are the dead themselves; its origin remains unknown. It values permission to live among people and can negotiate within the Compact's stated bounds."
+    },
+    {
+      "name": "Wick Talmadge",
+      "role": "wildcard",
+      "pronouns": "he/him",
+      "notes": "Wick is the same living twelve-year-old who went missing at sea and returned last year. Hesper's false death entry and his mother's intentional invitation left a misdirected claim: cold hands and echoes of old names, not replacement or ownership. He wants to keep his own memories and go fishing again. Correcting his status to living in the current Almanac and withdrawing the household invitation to his supposed dead form lets the echoes fade at the next low tide. If his mother is unavailable, Wick can reject that invitation himself; a child cannot make a valid life/name pledge. He may remain frightened, but no new secret identity negates a successful repair."
+    }
+  ],
+  "locations": [
+    {
+      "name": "The Tallow Registry",
+      "description": "A narrow stone building near the harbor, smelling of lamp oil and old paper. The current Almanac with its stitched Compact leaf is kept upstairs beside the burial register; assistants are given rooms, not ritual obligations. The lower stair floods at high tide. Perce claims the basement has been sealed for decades, but Hesper's courtyard hatch reaches a dry mezzanine. A public tide board dates the annual Setting's third-night high tide. The ordinary Ancoux supper on the first night is a separate event."
+    },
+    {
+      "name": "Bellmere Hollow",
+      "description": "A fishing town wedged between black cliffs and a harbor that never fully clears of fog, its houses built close and shuttered tight against sea-damp and unspoken things. Lanterns are kept lit year-round on windowsills facing the water, a custom no one can explain except to say it is 'for whoever's coming back.' Streets are quiet in a way that feels rehearsed rather than peaceful."
+    },
+    {
+      "name": "The Setting Hall",
+      "description": "The long timber hall where the annual autumn Setting is held on the third night after the party arrives. Preparations occupy the earlier days; empty chairs and framed dead names line the room. The marked high tide, not whether guests actually sit down, ends the current Compact year. Postponing dinner does not stop it. The current Almanac must be brought from the Registry for a renewal; its stitched terms and seal remain readable. A canceled or prevented dinner is a valid outcome."
+    },
+    {
+      "name": "The Drowned Registry",
+      "description": "The flooded lower archive beneath the Tallow Registry. A wall gauge and tide marks disclose when the service stair is safe and how long before it floods. The courtyard hatch reaches Hesper's dry mezzanine even at high tide. Old Almanacs, signed renewal receipts and a Compact transcript preserve evidence; they cannot enact new claims. The records contradict the public story because people altered entries, not because the past changes to match the investigators' suspicions."
+    },
+    {
+      "name": "The Ancoux House",
+      "description": "A narrow harborside home kept unnaturally tidy, where a place is still set for a man who drowned ten years ago and yet sits at supper most evenings. The windows are always fogged from the inside, regardless of weather, and the front room smells faintly of low tide even at high noon."
+    },
+    {
+      "name": "The Fogline",
+      "description": "A permanent bank of sea-fog half a mile beyond the harbor. Wind and ordinary attacks cannot disperse it. The Compact holds its hunger and the storm tide outside the low town; when the ward lapses the next high tide reaches the old flood marks. The marked cliff road leads above that reach and away from the harbor. Departure can succeed, though homes and people left below remain at risk. Show water levels, cold and disorientation before exposure becomes harmful; the fog does not invent a new boundary to defeat an earned escape."
+    }
+  ],
+  "rules": [
+    "The current Almanac alone carries the Compact seal. An entry nominates a dead face or records a proposed living pledge; writing, forgery or reading it cannot supply consent. Old books and copies are evidence only. An authorized host or building custodian who personally knows or knew the named person can intentionally invite its licensed shape across that building's threshold, whether the person is living or dead. This grants entry, not ownership or a new pledge. A living giver's face license alone grants no indoor access. Mentioning, quoting or asking about names is ordinary speech. Clarify ambiguous player intent before applying an invitation. A host can withdraw the invitation; the living person wrongly named as dead may reject their own mistaken invitation.",
+    "At the annual Setting, one living adult must intentionally speak their own name and the pledge of one year of life over the open current Almanac at a set table. The price visibly ages the giver one year and cannot be paid with another person's life. This renews the harbor ward and the listed dead-face licenses until next autumn's dated high tide; the giver also licenses their own face for that term. State the price and permissions before a player commits. Coercive politics and false promises exist, but no casual sentence, substitute speaker, child or forced utterance makes a valid pledge. Refusal itself adds no penalty.",
+    "The Guest is one mind with distinct borrowed bodies, not resurrected humans. Each body knows only its experience and information actually shared with it. A valid license permits a form outdoors; a deliberate, current invitation is still required to enter each home or hall. Removing a dead name from the current list ends that face license at expiry, not the ward immediately. Household withdrawal bars or expels that manifestation from that home. Salt husks from damaged bodies cannot rise; another body in a still-licensed face can form at the next dusk. No omniscient face-reading or unlimited new names.",
+    "The party arrives three days before the one annual Setting. The first-night Ancoux supper uses an existing household invitation and existing license. The current Compact expires at the recorded third-night high tide whether dinner happens or not. Announce elapsed fictional time and impending tide before choices with significant travel or delay; questions and table discussion do not advance a hidden turn clock. Early exposure, prevention or departure changes events. Unvisited parallel leads can close as declined or superseded without granting their clues.",
+    "Removing all dead names before ordinary renewal is lawful: the one-year payment renews the ward and only the willing giver's face, without the Guest's approval. Negotiation can further restrict that face, for example to one supervised Setting Hall visit before dawn, for the same one-year life price while the ward lasts until next autumn. The Guest may accept or refuse; refusal adds no cost, advances no deadline and cannot invalidate a lawful ordinary renewal. Sever or destroy the current book's seal: the ward and licensed bodies end at the next high tide. Withholding renewal instead leaves the current term intact until the recorded third-night high tide. The sea-fog survives either ending; surge and hunger reclaim the low harbor. The stitched terms, Hesper's transcript and tide records disclose these consequences before irreversible action. Compatible proposals may be negotiated; agreement is not guaranteed.",
+    "Perce's personal rejuvenation is separate from harbor renewal: a supplementary pledge trades ten years from one willing adult's life for ten restored to him and a one-year license for the giver's face. It is optional, recorded, and cannot be hidden inside the one-year civic price when resolving player consent. Past victims may have believed his false promises. Exposure can stop a future payment; killing a body or burning a copy cannot restore life already spent. Revoke a particular household invitation or defeat a body to buy local safety, not to destroy the permanent fog.",
+    "A falsely recorded living child is not a valid dead face or a willing giver. Wick's mistaken entry plus invitation caused cold hands and borrowed-name echoes, not a replacement. Correct his current entry and withdraw or reject the mistaken invitation; his symptoms fade at the next low tide. Ending the whole Compact also ends that misdirected claim. Keep his past and remedy fixed. Endings report actual invitations, payments, survivors and refuge preparations; no automatic town rescue, compulsory sacrifice or sequel. The cliff road and high ground permit an earned withdrawal, with losses left honestly unresolved."
+  ],
+  "format": "tnd-blueprint-v1",
+  "author": "",
+  "proseAuthor": "",
+  "narratorVoice": "",
+  "creatures": [],
+  "customClasses": [],
+  "designerVersion": "v0.40",
+  "version": "0.04",
+  "releaseStatus": "draft",
+  "catalogId": "the_almanac_of_owed_names"
+}

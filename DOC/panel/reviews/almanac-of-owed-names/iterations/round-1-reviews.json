@@ -1,0 +1,641 @@
+[
+  {
+    "round": 1,
+    "blueprintSha256": "d24a2c98091646ed08bcbbadd998d15c99f5d48ce66e3520c5f23cd843ee6d02",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Core Compact, identity and chronology gaps are resolved, with one remaining deadline distinction to align.",
+        "resolved": [
+          {
+            "text": "Ink nominates rather than supplies consent; civic and private payments have separate prices and effects.",
+            "basis": "5.3 primary uniformity; 7.2 secondary B:29 game logic.",
+            "blueprintEvidence": [
+              "rules[0..2]: current sealed book, evidence-only copies, intended own-adult pledge, ward/face licenses, household invitation.",
+              "rules[5]: separate ten-year rejuvenation, no restoration of years already paid."
+            ]
+          },
+          {
+            "text": "There is one annual Setting and an earlier ordinary supper.",
+            "basis": "1.1 and 1.2 primary time/consequences.",
+            "blueprintEvidence": [
+              "premise and rules[3]: arrival three days before formal dinner.",
+              "acts[0].turningPoint and locations[0]: first-night Ancoux supper distinct from annual rite.",
+              "locations[2]: dated third-night high tide, postponement does not stop expiry."
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Separate early severance from non-renewal at the scheduled deadline.",
+            "kind": "deadline ambiguity across operative rules",
+            "severity": "medium",
+            "basis": "1.1 and 1.2 primary time; 5.3 primary uniformity.",
+            "blueprintEvidence": [
+              "rules[3]: \"expires at the recorded third-night high tide whether dinner happens or not\".",
+              "rules[4]: \"Sever the current book's Compact seal, destroy that seal, or withhold renewal: at the next high tide the ward and all licensed bodies end.\"",
+              "acts[2].arcs[1].dnaHint: cutting seal or allowing expiry ends ward/bodies at next high tide."
+            ],
+            "reason": "The grouped non-renewal clause can be read as making an explicit refusal on the first day end the term at that day's next high tide. That conflicts with the dated third-night expiry and the promise that refusal itself adds no penalty. Early physical severance may legitimately accelerate consequences; mere failure to renew should have its stated deadline.",
+            "recommendation": "State two cases: severing/destroying the seal ends protection at the next high tide; absent renewal the intact Compact expires at the recorded third-night high tide. Align the final hint so it does not add another tide after the actual expiry.",
+            "mitigation": "The dated deadline is repeated in premise, hall description and rules[3], and refusal carries no penalty. A GM could resolve the ambiguity correctly from those; the operative severance sentence should not require that inference.",
+            "confidence": "High for the two possible readings; no live early-expiry event observed."
+          }
+        ],
+        "uncertainty": "Permanent fog remains a valid horror constraint. A readable Compact need not explain the fog's ultimate origin or the Guest's selfhood. No runtime timing claim."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Risk and consent triggers are materially clearer. Supports the single deadline correction; no separate finding.",
+        "resolved": [
+          {
+            "text": "Ordinary language does not secretly become a pledge or invitation; ambiguous intent is clarified.",
+            "basis": "1.3 and 7.4 primary stakes/telegraphing; 1.7 primary named freely chosen price.",
+            "blueprintEvidence": [
+              "rules[0]: mentioning/quoting/asking names ordinary speech, clarify ambiguous intent.",
+              "rules[1]: own-adult pledge, visible one-year aging and face permission stated before player commitment.",
+              "rules[5]: Perce's ten-year trade cannot be hidden inside civic price."
+            ]
+          },
+          {
+            "text": "Refusal, body combat and evacuation have bounded effects.",
+            "basis": "2.1, 2.2 and 7.4 primary.",
+            "blueprintEvidence": [
+              "rules[4]: negotiation may fail without surcharge/deadline acceleration.",
+              "rules[5]: disperse body for local safety, fog survives.",
+              "locations[5]: water/cold/disorientation warnings, established cliff exit not moved to defeat escape."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Clarifying the exact expiry tide is necessary for these choices to remain legible; recorded once under Gygax. The horror still permits exploitation, losses and a known life price; no demand for danger-free choices."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "Fixed prior facts now support genuinely open rescue and moral judgment. No new material identity finding.",
+        "resolved": [
+          {
+            "text": "Wick is a living child with a fixed past, specific mistaken claim and achievable remedy.",
+            "basis": "1.1 and 2.1 primary world reality/honesty; 1.3 primary uncertain future.",
+            "blueprintEvidence": [
+              "npcs[5].notes and rules[6]: same child returned alive; correction plus withdrawal/rejection; symptoms fade next low tide; no later identity reversal.",
+              "npcs[3].notes: Hesper false presumption of death and concealment are fixed."
+            ]
+          },
+          {
+            "text": "Borrowed bodies and discarded husks no longer imply literal grave resurrection.",
+            "basis": "1.1 and 2.1 primary.",
+            "blueprintEvidence": [
+              "npcs[4].notes/rules[2]: one mind, distinct forms, local knowledge and next-dusk replacement.",
+              "acts[1].arcs[2].dnaHint: fishermen sink husks, buried human remains stay human remains."
+            ]
+          },
+          {
+            "text": "Player/resident consent and motives are not prescribed emotional outcomes.",
+            "basis": "3.2 and 6.3 primary.",
+            "blueprintEvidence": [
+              "npcs[1].notes: moral question not answered for Mireille, invitation can be retained/withdrawn.",
+              "acts[1].turningPoint: sincere borrowed memory does not restore dead; unresolved motives permitted."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The Guest's interior can remain ambiguous while its permissions remain fixed. No actual symptom resolution or model identity persistence tested."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "The central clues now have provenance and essential rules can be learned without compulsory confessions. No additional material finding.",
+        "resolved": [
+          {
+            "text": "Dead handwriting and human edits have separate authored causes.",
+            "basis": "1.2 and 1.3 primary core clues/interpretation.",
+            "blueprintEvidence": [
+              "acts[0].turningPoint: Eloi Marr handwriting and exact Wick/Perce entry.",
+              "npcs[4].notes: Guest used Eloi form to write entry, ink cannot create consent.",
+              "npcs[3].notes: Hesper wrongly listed missing Wick dead.",
+              "npcs[0].notes: Corentin omitted Lucette after withdrawing her shape.",
+              "npcs[2].notes: signed receipts show Perce private rejuvenations."
+            ]
+          },
+          {
+            "text": "Core operating knowledge and access have independent routes.",
+            "basis": "1.1 and 1.7 primary.",
+            "blueprintEvidence": [
+              "acts[0].arcs[1].dnaHint: current stitched terms, Hesper transcript, fishermen logs; deliberate inspection supplies essentials.",
+              "acts[1].arcs[1].dnaHint and locations[3]: tide gauge, low-tide stair, dry hatch access, specific exposed-paper risk.",
+              "acts[1].arcs[0]: refusal by widow permits another source."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Essential-rule availability is not automatic discovery of every secret. Actual clue delivery, optional-arc closure and understanding remain playtest questions; no timing certification."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "The climax now offers costly, actionable human consequences without erasing the horror. No additional material finding.",
+        "resolved": [
+          {
+            "text": "Renewal, limited revision and withdrawal/severance differ in life cost, presence and lost protection.",
+            "basis": "2.7 primary visible payoffs; 4.6 primary meaningful close.",
+            "blueprintEvidence": [
+              "rules[1,4,5]: one-year civic life/face permission, limited living-face alternative, separate ten-year private trade; severance/expiry loses harbor ward without killing fog.",
+              "acts[2].arcs[1]: actual survivors, homes, remaining names and optional final player act."
+            ]
+          },
+          {
+            "text": "Affection and grief do not predetermine complicity or force a restorative ending.",
+            "basis": "7.3 primary empathy; 4.5 primary/secondary becoming.",
+            "blueprintEvidence": [
+              "npcs[1]: loving an imitation remains Mireille's question, not narrator verdict.",
+              "npcs[4]: layered memories may be sincerely experienced.",
+              "rules[6]: no automatic town rescue, sacrifice or sequel; withdrawal may leave losses unresolved."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The ethical and emotional impact remains untested. Predictable contract terms do not make a known sacrifice or abandoned home benign; no soothing epilogue or universal survival demanded."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Align the single remaining deadline distinction: early seal destruction takes effect next high tide; non-renewal of an intact Compact takes effect at its already recorded third-night expiry."
+      ],
+      "dissent": [
+        "The major baseline issues are resolved in authored text. Do not add further lore or mechanics without a concrete need.",
+        "Preserve horror in the life price, borrowed love, political coercion, persistent fog and possible loss of the harbor.",
+        "No runtime behavior, successful playtest, duration or publication-readiness claim; these are documented design-lens applications, not statements from the named designers."
+      ]
+    }
+  },
+  {
+    "round": 1,
+    "blueprintSha256": "d24a2c98091646ed08bcbbadd998d15c99f5d48ce66e3520c5f23cd843ee6d02",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Naming, invitation, cost and false return now have a stable private meaning. Baseline findings resolved; no new material finding.",
+        "resolved": [
+          {
+            "text": "The text distinguishes inscription from consent, threshold entry from ownership, and one's own life pledge from another person's name. The annual cost and permission are disclosed before player commitment.",
+            "basis": "§3.2 names and power, §8.3–8.4 cost/consequence, §9.1 consistency (all ◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[0]",
+                "quote": "writing, forgery or reading it cannot supply consent."
+              },
+              {
+                "path": "rules[1]",
+                "quote": "The price visibly ages the giver one year"
+              },
+              {
+                "path": "rules[1]",
+                "quote": "cannot be paid with another person's life."
+              }
+            ]
+          },
+          {
+            "text": "Disposed bodies are salt husks from damaged borrowed forms; genuine human remains do not rise. Reappearance has a bounded cause rather than contradictory resurrection.",
+            "basis": "§9.1 consistent world (◐); §4.6 story versus imposed plot (●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[1].arcs[2].dnaHint",
+                "quote": "salt-pale husks left when a Guest-form was injured or dismissed"
+              },
+              {
+                "path": "rules[2]",
+                "quote": "another body in a still-licensed face can form at the next dusk."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "This review assesses private causal coherence, not generated prose. §17 corpus requirement prevents claims about rhythm, experienced grief or actual exposition. Horror remains possible through a knowingly costly attachment."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "The ward's benefit, bounded endings and distinction between body and permanent fog resolve the baseline ending gap. No new finding.",
+        "resolved": [
+          {
+            "text": "Renewal, restricted presence and severance/expiry now have concrete prices and consequences; physical attack can win local time without magically destroying all fog.",
+            "basis": "§9.3 confirmation (◐), §9.5 convincing fiction (●/◐), §10.1 story resolution (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[1].dnaHint",
+                "quote": "Combat can disperse a body and buy time, not kill the fog."
+              },
+              {
+                "path": "rules[4]",
+                "quote": "The sea-fog survives; surge and hunger reclaim the low harbor."
+              }
+            ]
+          },
+          {
+            "text": "Marked high ground supplies a possible earned ending outside the protected harbor, while abandoned homes and unrescued people retain their cost.",
+            "basis": "§10.1 completed episode (◐); §9.5 convincing consequences (●/◐).",
+            "blueprintEvidence": [
+              {
+                "path": "locations[5].description",
+                "quote": "The marked cliff road leads above that reach and away from the harbor."
+              },
+              {
+                "path": "locations[5].description",
+                "quote": "homes and people left below remain at risk."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No demand for a final answer to the fog's origin or the Guest's self-belief; both may remain unknown. No assertion that players experienced dread or that any escape succeeded in play."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "One annual deadline, differentiated prices and actual civic consent give the institution intelligible consequences. Baseline timeline finding closed; no new finding.",
+        "resolved": [
+          {
+            "text": "An ordinary first-night household supper no longer consumes the annual Setting. The dated third-night high tide governs expiry even if dinner is canceled.",
+            "basis": "§5.1 planned structure (WE ●); §9.3 consequential choices (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].turningPoint",
+                "quote": "This is not the annual Setting."
+              },
+              {
+                "path": "rules[3]",
+                "quote": "expires at the recorded third-night high tide whether dinner happens or not."
+              }
+            ]
+          },
+          {
+            "text": "Perce's exploitation is distinct from the civic ward price, with documentation and agency for future payers; exposure changes political support rather than magically erasing loss.",
+            "basis": "§3.2 structural power (LS ●), §3.5 allocation (GR ●), §9.3 choices alter outcome (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[2].notes",
+                "quote": "under the cover of the annual one-year harbor payment"
+              },
+              {
+                "path": "rules[5]",
+                "quote": "cannot be hidden inside the one-year civic price when resolving player consent."
+              },
+              {
+                "path": "rules[5]",
+                "quote": "Exposure can stop a future payment"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "A clearer contract does not resolve whether preserving familiar manifestations is morally desirable; that remains with characters and player. No requirement to topple an institution or always save the town."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "Wick and the inciting alteration now have fixed private facts. Grief remains morally uncomfortable without arbitrary retrospective identity. Baseline findings closed.",
+        "resolved": [
+          {
+            "text": "Wick is a living child with a specific misdirected claim and a known remedy; successful repair cannot be undone by a surprise identity swap.",
+            "basis": "§8.1 honesty (A:Advice ●); §3.1 consequences justify detail (B:Walter ◐).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[5].notes",
+                "quote": "Wick is the same living twelve-year-old"
+              },
+              {
+                "path": "npcs[5].notes",
+                "quote": "no new secret identity negates a successful repair."
+              },
+              {
+                "path": "rules[6]",
+                "quote": "his symptoms fade at the next low tide."
+              }
+            ]
+          },
+          {
+            "text": "The new entry has a named copied hand, writer, access and purpose, while Corentin's and Hesper's earlier edits have separate motives. Investigation now uncovers established acts.",
+            "basis": "§8.1 honesty (A:Advice ●); §5.6 actions cause situations (B:Dark Matter Zine ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[4].notes",
+                "quote": "It wrote the new entry in Eloi Marr's borrowed hand"
+              },
+              {
+                "path": "npcs[4].notes",
+                "quote": "after entering the Registry under the clerk's standing invitation"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "Hesper changed Wick's status from missing to presumed dead"
+              }
+            ]
+          },
+          {
+            "text": "Mireille's attachment remains a genuine unresolved moral question; the revision does not order the player to dismiss her love as delusion or celebrate loss.",
+            "basis": "§5.4 self-understanding (B:Fantasy-Hive ●); §8.1 honesty (A:Advice ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[1].notes",
+                "quote": "do not answer that moral question for her."
+              },
+              {
+                "path": "acts[1].arcs[0].dnaHint",
+                "quote": "She may value its care and still reject what sustains it."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No runtime dialogue or grief response measured. A living Wick with a remedy does not require a comforting outcome for the whole town; retain known costs, uncertainty and choice."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "No new material editorial changes requested by these four lenses after a complete round-one reread.",
+        "Retain the documented private truths and distinguish them from the intentionally unresolved supernatural origin and moral interpretation.",
+        "Subsequent cycles should check propagation or new changes, not invent extra darkness or rules. Actual narration, player comprehension and pacing remain untested."
+      ],
+      "dissent": [
+        "The fog need not be defeatable, and severance need not save every person or home.",
+        "Readable consequences do not require morally comfortable choices. Preserve horror and grief without arbitrarily changing hidden facts."
+      ]
+    }
+  },
+  {
+    "round": 1,
+    "blueprintSha256": "d24a2c98091646ed08bcbbadd998d15c99f5d48ce66e3520c5f23cd843ee6d02",
+    "scope": "Almanac v0.02 full reread through all five sourced composite personas. Not interviews, actual playtesting, live narration or runtime guarantees. Horror and full campaign scope preserved; no one-hour constraint. Exact zero-based field anchors.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "uncertainty": {
+          "limits": "Composite, not an audio playtest. R4 provides primary evidence of misheard commands; applying that to name magic is a design inference. R5 driving suitability and R10 voice inventory are inferred and unused.",
+          "dissent": "Keep the name-centered horror and investigative depth; do not eliminate dangerous invitations solely to make audio effortless.",
+          "verificationQuestion": "Can a listener ask whether speaking a name would invite the Guest without that question itself opening a threshold?"
+        },
+        "resolved": [
+          {
+            "title": "Talking about a name is distinct from inviting a manifestation",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R4; R2",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[0]",
+                "quote": "Mentioning, quoting or asking about names is ordinary speech."
+              },
+              {
+                "field": "rules[0]",
+                "quote": "Clarify ambiguous player intent before applying an invitation."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "verdict": "Speech-intent boundary resolved explicitly. Names can be investigated without involuntary invitations. No additional required edit from this audio lens; actual recognition and recap behavior remain untested."
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "uncertainty": {
+          "limits": "Composite source review, not an actual solo investigation. No demand that the player receive private truths immediately or that all horror be rationally exhaustive.",
+          "dissent": "Preserve unreliable people and genuine moral conflict. Stable facts do not require friendly witnesses or a reassuring explanation.",
+          "verificationQuestion": "If the player saves or condemns Wick before the climax, was that result determined by previously fixed facts rather than by the desired dramatic twist?"
+        },
+        "resolved": [
+          {
+            "title": "One annual Setting is distinct from the earlier private supper",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "This is not the annual Setting."
+              },
+              {
+                "field": "locations[2].description",
+                "quote": "the annual autumn Setting is held on the third night after the party arrives."
+              }
+            ]
+          },
+          {
+            "title": "Fresh alteration and Wick’s actual condition no longer move with suspicion",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5; I9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[4].notes",
+                "quote": "It wrote the new entry in Eloi Marr's borrowed hand"
+              },
+              {
+                "field": "npcs[5].notes",
+                "quote": "Wick is the same living twelve-year-old who went missing at sea and returned last year."
+              },
+              {
+                "field": "npcs[5].notes",
+                "quote": "no new secret identity negates a successful repair."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Keep refusing renewal distinct from early severance timing",
+            "severity": "P2",
+            "kind": "contract-timeline",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[3]",
+                "quote": "The current Compact expires at the recorded third-night high tide whether dinner happens or not."
+              },
+              {
+                "field": "rules[4]",
+                "quote": "Sever the current book's Compact seal, destroy that seal, or withhold renewal: at the next high tide the ward and all licensed bodies end."
+              },
+              {
+                "field": "rules[1]",
+                "quote": "Refusal itself adds no penalty."
+              }
+            ],
+            "reason": "The current term has a fixed third-night expiry, but the combined sever/destroy/withhold sentence can read as ending it at the very next tide when the player refuses on day one. Those differ when an early decision precedes the dated tide, changing evacuation time and casualties.",
+            "recommendation": "Separate the clocks explicitly: early seal destruction/severance takes effect at its defined next high tide, while declining or failing to renew leaves the current term intact until its already recorded third-night expiry. Announce the appropriate actual date before an irreversible action. If the intended severance clock differs, state it consistently instead.",
+            "mitigation": "The premise, tide board and main clock rule already establish the fixed expiry; this is alignment of one compound clause, not a new timeline.",
+            "confidence": "High confidence in ambiguous early-refusal reading; no observed accelerated-tide runtime behavior."
+          }
+        ],
+        "verdict": "Timeline, culprit and Wick facts are now fixed, with epistemic limits that preserve horror. One timing clause still risks overriding the dated annual expiry and should be aligned."
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "uncertainty": {
+          "limits": "Composite; known-price sources largely concern games’ economies. The analogy supports legible costs, not a claim that supernatural grief equals currency or that all mystery must be priced upfront.",
+          "dissent": "Do not add loot or shops. Known terms at commitment can coexist with a frightening process of discovering what those terms really are.",
+          "verificationQuestion": "Before accepting a renewal or feeding the fog, can the player explain who pays, what changes, for how long, and what happens if they decline?"
+        },
+        "resolved": [
+          {
+            "title": "Prices, ownership and past expenditures are distinguished",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B9; B5; B8",
+              "sourceGrade": "primary; supernatural costs are reviewed by analogy, not as a demand for a currency game"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[1]",
+                "quote": "The price visibly ages the giver one year and cannot be paid with another person's life."
+              },
+              {
+                "field": "rules[5]",
+                "quote": "a supplementary pledge trades ten years from one willing adult's life for ten restored to him"
+              },
+              {
+                "field": "rules[5]",
+                "quote": "killing a body or burning a copy cannot restore life already spent."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Specify threshold permission for a living giver’s licensed face",
+            "severity": "P2",
+            "kind": "contract-permissions",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B9; B5",
+              "sourceGrade": "primary; known-terms principle applied by analogy"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[0]",
+                "quote": "A host who knew the dead person can intentionally invite its licensed shape across a named household threshold"
+              },
+              {
+                "field": "rules[1]",
+                "quote": "the giver also licenses their own face for that term."
+              },
+              {
+                "field": "rules[4]",
+                "quote": "ending dead-face licenses, in exchange for one willing adult's own face for one year"
+              },
+              {
+                "field": "rules[2]",
+                "quote": "a deliberate, current invitation is still required to enter each home or hall."
+              }
+            ],
+            "reason": "The bargain explicitly licenses a living adult’s face, especially in the revision that ends all dead-face licenses, but the defined valid host only knew a dead person. It is unclear whether a host may invite the licensed living likeness, whether only its giver can do so, or whether that form must remain outside. Those are materially different permissions being sold.",
+            "recommendation": "State who may invite a currently licensed living giver’s likeness and how the host identifies that actual licensed form. Alternatively state plainly that this form has no indoor permission if that is intentional. Keep a face license separate from threshold invitation and include the living-giver rule in the pre-pledge disclosure.",
+            "mitigation": "Outdoor form permission, each-house threshold scope and deliberate invitation are already clear; one bounded eligibility rule can finish the definition without expanding the monster’s powers.",
+            "confidence": "High confidence in missing living-face host case; no observed runtime access exploit."
+          }
+        ],
+        "verdict": "Most contract costs and permissions are now concrete: the civic payment, personal rejuvenation and invitation are distinct. One living-giver face permission remains incomplete and matters to the offered revision bargain."
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "uncertainty": {
+          "limits": "Composite persona, not a real player’s emotional response. N1/Trust support the genre mismatch; N3/N4/N7 support participatory, locally consequential help. No requested short total duration or sanitized grief.",
+          "dissent": "Keep grief, impersonation and the possibility of a costly outcome. Nan may prefer another blueprint while the other lenses find this campaign compelling.",
+          "verificationQuestion": "Can a local action such as protecting a household or getting Wick to safety remain a real accomplishment even if the player declines the town-wide bargain?"
+        },
+        "resolved": [
+          {
+            "title": "Small protective actions can have lasting acknowledged consequences",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[6]",
+                "quote": "Correct his current entry and withdraw or reject the mistaken invitation; his symptoms fade at the next low tide."
+              },
+              {
+                "field": "rules[2]",
+                "quote": "Household withdrawal bars or expels that manifestation from that home."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "verdict": "Horror remains an intentional poor cozy fit. Wick’s fixed remedy and genuine household revocation now let local help remain real without forced town-wide sacrifice. No additional required edit from this lens."
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "uncertainty": {
+          "limits": "Composite source review, not engine completion or actual play. Does not claim that the product lacks ending/memento UI. G7 supports stable adjudication; it does not demand every monster be killable.",
+          "dissent": "A costly or unresolved horror ending can satisfy this lens if it is an earned, specific conclusion. Do not guarantee rescue or a clean moral answer.",
+          "verificationQuestion": "If the party refuses to offer names and leaves with willing residents, can the campaign state what was preserved and lost and actually end without making them attend a compulsory dinner?"
+        },
+        "resolved": [
+          {
+            "title": "The climax is an actual decision with bounded outcomes",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3; G6; G7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "renew, negotiate bounded terms, sever its seal or let it expire while people withdraw."
+              },
+              {
+                "field": "rules[4]",
+                "quote": "The sea-fog survives; surge and hunger reclaim the low harbor."
+              },
+              {
+                "field": "locations[5].description",
+                "quote": "Departure can succeed, though homes and people left below remain at risk."
+              },
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "End with actual survivors, lost homes and remaining names; invite one optional final player act."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "verdict": "Attainable ending procedures and consent-based withdrawal substantially resolve the baseline. The shared timing/access clarifications should be made, but no distinct additional ending defect identified; actual completion remains untested."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Distinguish early severance timing from refusing renewal under the already dated current term.",
+        "Define the host/invitation case for the licensed face of a living adult, particularly under the revised bargain that ends dead-face licenses.",
+        "Retain behavior tests for accidental name mentions, withheld testimony, actual record custody, early refusal/evacuation, revoked household invitations and Wick’s fixed remedy. Do not treat source clarity as proof of execution."
+      ],
+      "dissent": [
+        "Nan’s poor cozy fit is intentional, not a demand to remove horror or grief.",
+        "Bert’s known-cost lens requires terms before commitment, not a shopping loop or full disclosure of the mystery at the opening.",
+        "Ines welcomes hostile uncertainty and Gerry accepts costly endings; stable operational truth should not become a guaranteed safe resolution.",
+        "Rosa needs reliable speech intent, not a ban on dangerous deliberate invitations."
+      ]
+    }
+  }
+]
