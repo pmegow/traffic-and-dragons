@@ -34,50 +34,6 @@ them here).
 
 ## Open
 
-## B43 — The campaign skeleton generator parses the model's one JSON draft with no guard, re-ask or evidence — a malformed document throws, the campaign starts FREEFORM and stays spineless for good (v1.1241, production; the owner's Frizwick campaign, now at t11)
-**Status:** verified
-**Kind:** crash · **First seen:** 2026-10-12 (v1.1241) · **Last seen:** 2026-10-12 (v1.1241) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** —
-**Fingerprint:** `crash · skeleton · v1.1241 · Expected ',' or ']' after array element in JSON at position 4321 (line 1 column 4322)`
-**Report ids:** 0fcb0841-460e-46f6-9fba-e43a05c05964
-**Screenshot URL:** —
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-Expected ',' or ']' after array element in JSON at position 4321 (line 1 column 4322)
-SyntaxError: Expected ',' or ']' after array element in JSON at position 4321 (line 1 column 4322)
-    at JSON.parse (<anonymous>)
-    at generateSkeleton (https://traffic-and-dragons.pages.dev/game.js:3527:17)
-
---- diag ---
-session s1q6fuk-re1 · report 1/10 · up 43s
-audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=running
-this page:
-  +0s boot
-PREVIOUS page (ended cleanly):
-  +0s boot
-  +22s unload
-```
-
-### Findings
-
-**2026-10-12 — bug-investigator (read-only), spot-verified by Fable (game.js:3526-3527, game.js:68-72, the Frizwick t11 save).**
-
-- **Verdict:** root-caused. The exact byte shape of the one bad Gemini response is unrecoverable — nothing kept it.
-- **Mechanism:** `generateSkeleton` (game.js:3526-3527) makes ONE model call and parses it bare: `JSON.parse(repairModelJson(resp))` — no try/catch, no re-ask, no capture. The review/correction try/catch (3537-3548) and the #459 register regeneration (3549-3558) sit AFTER that line, so a first-draft parse failure escapes on the first attempt. The deployed frame `game.js:3527:17` is that `JSON.parse` token, not the review/correction parses in campaign_generator.js. The throw lands in the only caller, startGame's `_forge` (game.js:68-72): the forging line is removed, a 6-second toast "Skeleton failed (…) — playing freeform" shows, `reportError("skeleton", reason, e.stack)` fires, and `beginAdventure()` runs. So the campaign DID start — with no `worldState.skeleton`, no acts, arcs or deepTime, nothing for `buildSkeletonBlock` — and there is no later path that forges a spine.
-- **Evidence:** the owner's save `Campaigns/Frizwick/saves/Frizwick_Frizwick_t11.tnd` is at turn 11 with `worldState.skeleton` absent and `usage.byKind.skeleton = {in:2202, out:932, calls:1, costUSD:0.0051465}` — the cost arithmetic matches the gemini-3.8-flash rates exactly, and `calls:1` means only the first draft was ever requested. NOT an output-cap cut: the call asks 8192 and the Gemini entry scales ×4 (maxOutputTokens 32,768) while the recorded output was 932 tokens including thoughts; a cap cut would have left a `turn-truncated` crumb (api.js:3845-3849) and the report shows only `+0s boot`. NOT a transport truncation: callGM is non-streaming; the gateway returns the vendor body verbatim (server gateway.js:251-256) and an upstream abort is a 408 JSON error, never a partial body. The remaining shapes are the model's: an early non-MAX_TOKENS stop with an incomplete document (`parseFinish`, globals.js:415, flags only MAX_TOKENS; any non-empty candidate returns as success), which `repairModelJson`'s last-brace slice (api.js:3035) re-shapes into "after array element"; or a bracket/comma error at the very end of a complete ~4.3 KB document (932 tokens ≈ 4.0-4.5 KB). `repairModelJson` cannot break a valid document. "line 1 column 4322" is meaningless: api.js:3037 swaps every control character for a space before parsing. The B11 evidence lesson (RESPONSE HEAD in the report, memory.js:3147-3162) was applied to the extractor reporter only; the skeleton reporter carries `e.stack` alone. B19 is the same malformed-mid-document class on the extractor, absorbed there by the next-turn retry — the skeleton has no second turn.
-- **Fix sketch (root cause, not a bandage):** ONE bounded re-ask at the first-draft parse in `generateSkeleton` (and the same shape at `correctCampaignSkeleton`'s parse, campaign_generator.js:166): on SyntaxError, `console.warn` + `erCrumb("skeleton-json-retry")`, call again — the FIRST call stays byte-identical (engine-tests.js:12198 pins `buildSkeletonPrompt`), the re-ask may append a short note quoting the parser message and asking for the COMPLETE document — parse once more; a second failure throws a NAMED error ("skeleton JSON unparseable twice") whose `reportError` detail carries the parser message plus the response HEAD and ~200 chars around the error position (app-generated content is allowed in crash detail, the #16c policy at memory.js:3147). Never salvage or auto-close brackets: a half document can pass `validateSkeletonStructure` (3 acts with ≥1 arc) while missing authored arcs or the deepTime ladder — the B19 ruling against tolerant salvage applies. Keep the re-ask before and separate from the #459 `_attempt` loop, bounded to one per draft (worst case 2×2 generate calls). Optional second layer, registry-shaped: a `jsonMode` capability on the Gemini provider entry (`responseMimeType: application/json`; OpenAI `response_format`; Anthropic none) selected by an `opts.json` flag in callGM for the skeleton kind only — constrained decoding removes the bracket/comma class at the source, but it changes callGM/PROVIDERS request bodies and so defaults to Fable.
-- **Tests:** `dev/tests-459-register-gate.js` already drives `generateSkeleton` over a scripted callGM (lines 22-30). Add (a) `[TRUNCATED, CLEAN, REVIEW_CLEAN]` → resolves, three calls, `worldState.skeleton.premise` is CLEAN's; (b) `[TRUNCATED, TRUNCATED]` → the named error, `worldState.skeleton` undefined, a stubbed `reportError` received the response tail; (c) the #459 ordering contract (engine-tests.js:29652-29661) still green. Sabotage: the re-ask dropped → (a) red; the tail dropped from the detail → (b) red.
-- **Drift-surface flag:** NO for the re-ask + evidence fix (generateSkeleton's parse and the correction parse only; the skeleton schema, `stampSkeletonStatus` and `buildSkeletonBlock` untouched — campaign_generator.js:13-15 keeps the schema frozen under the #59 pre-review). The optional JSON-mode layer touches callGM/PROVIDERS → Fable by default.
-- **Risk:** a tolerant repair would land truncated spines silently (fewer arcs than authored, no age ceiling) — worse than freeform; an unbounded or mis-nested retry would multiply skeleton calls under the #459 loop; changing the first call's prompt breaks the `buildSkeletonPrompt` pin; JSON mode on any non-skeleton kind would hit gameplay turns (prose + tags) or the summarize tier.
-- **Confidence:** high on the defect (an unguarded single-shot parse, no re-ask, no evidence, a permanently spineless campaign) and on ruling out the output cap and the transport; medium on which malformation Gemini produced — the next report carries the head and tail once the fix lands.
-- **Observations (not fixed):** a Gemini candidate with partial text and a non-STOP, non-MAX_TOKENS finish (RECITATION / SAFETY / OTHER) returns as success with no warn or crumb (globals.js:403-405, 415) — gameplay turns miss the #132 cut-tag warning in that case too; `repairModelJson`'s last-brace slice and control-char swap erase diagnosability (api.js:3035, 3037); `generateSkeleton`'s call lacks `noHistory:true` while every sibling passes it (harmless today, in:2202 shows an empty history); the designer's `generateDraftBlueprint` (campaign_generator.js:198-199) and `reviewCampaignSkeleton` (:155) share the unguarded pattern; no in-game affordance forges a spine for a running campaign and a spineless-by-failure campaign is unmarked in its save (an owner design question); the row's first TLDR ("never started") was wrong and is corrected above; parse-error messages embed positions, so a re-arrival with a different position is this row (the B19 fingerprint-variance rule).
-
-### Action log
-
-- 2026-10-12 · v1.1244 · commit fix(B43) · Fable — mechanism re-verified (the bare `JSON.parse` at game.js:3527, the freeform fallback at game.js:70, the Frizwick t11 save with no spine and one 932-token skeleton call under a 32,768 cap; the owner ruled out "a typo" and the early-stop blind spot was promoted from observation to the fix). Fix: `finishInfo` + per-provider `finishRaw`/`finishNormal` (globals.js), callGM loud on an early stop and handing `opts.finish` back (api.js), `skeletonDraftParse` / `buildSkeletonRetryPrompt` / `skeletonEvidenceText` (campaign_generator.js), the one re-ask with the draft sent back and the named second-failure error in `generateSkeleton`, the drafts' evidence on the Begin reporter (game.js). Tests red first; battery 10/10. Live verification pending (the next skeleton that stops early will carry its finish reason and tail).
-- 2026-10-12 · v1.1244 · verified live — the owner started a fresh campaign with the same hero and it forged cleanly ("started up smoothly"); the re-ask and the evidence paths are test-proven and will show themselves on the next early-stopped draft.
-
 ## B38 — Gemini's safety filter (PROHIBITED_CONTENT) blocks the chapter extractor on consecutive turns — each summary is dropped and nothing falls back (The Long Walk, Silas Morne, Runelords, the Village; v1.838–v1.951)
 **Status:** fixed (v1.962, 2026-09-21 — the elision ladder: when both extractor shapes are refused, each exchange is probed once, the blocked ones are withheld from both halves, the rest is extracted; v1.960's no-replay half stands)
 **Kind:** crash · **First seen:** 2026-09-07 (v1.838) · **Last seen:** 2026-09-18 (v1.951) · **Count:** 9 · **Campaign:** The Long Walk ×3, Rise of the Runelords (Ammut) ×1, Silas Morne ×3, The Village (Ammut) ×2 · **Turn:** 18, 19, 20, 2456, 39, 40, 41, 57, 65
@@ -1053,6 +1009,50 @@ _Every verified and ignored row lives inside this collapsible container, newest 
 
 <details>
 <summary><strong>Completed bugs (19 rows) — click to expand</strong></summary>
+## B43 — The campaign skeleton generator parses the model's one JSON draft with no guard, re-ask or evidence — a malformed document throws, the campaign starts FREEFORM and stays spineless for good (v1.1241, production; the owner's Frizwick campaign, now at t11)
+**Status:** verified
+**Kind:** crash · **First seen:** 2026-10-12 (v1.1241) · **Last seen:** 2026-10-12 (v1.1241) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** —
+**Fingerprint:** `crash · skeleton · v1.1241 · Expected ',' or ']' after array element in JSON at position 4321 (line 1 column 4322)`
+**Report ids:** 0fcb0841-460e-46f6-9fba-e43a05c05964
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Expected ',' or ']' after array element in JSON at position 4321 (line 1 column 4322)
+SyntaxError: Expected ',' or ']' after array element in JSON at position 4321 (line 1 column 4322)
+    at JSON.parse (<anonymous>)
+    at generateSkeleton (https://traffic-and-dragons.pages.dev/game.js:3527:17)
+
+--- diag ---
+session s1q6fuk-re1 · report 1/10 · up 43s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=running
+this page:
+  +0s boot
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +22s unload
+```
+
+### Findings
+
+**2026-10-12 — bug-investigator (read-only), spot-verified by Fable (game.js:3526-3527, game.js:68-72, the Frizwick t11 save).**
+
+- **Verdict:** root-caused. The exact byte shape of the one bad Gemini response is unrecoverable — nothing kept it.
+- **Mechanism:** `generateSkeleton` (game.js:3526-3527) makes ONE model call and parses it bare: `JSON.parse(repairModelJson(resp))` — no try/catch, no re-ask, no capture. The review/correction try/catch (3537-3548) and the #459 register regeneration (3549-3558) sit AFTER that line, so a first-draft parse failure escapes on the first attempt. The deployed frame `game.js:3527:17` is that `JSON.parse` token, not the review/correction parses in campaign_generator.js. The throw lands in the only caller, startGame's `_forge` (game.js:68-72): the forging line is removed, a 6-second toast "Skeleton failed (…) — playing freeform" shows, `reportError("skeleton", reason, e.stack)` fires, and `beginAdventure()` runs. So the campaign DID start — with no `worldState.skeleton`, no acts, arcs or deepTime, nothing for `buildSkeletonBlock` — and there is no later path that forges a spine.
+- **Evidence:** the owner's save `Campaigns/Frizwick/saves/Frizwick_Frizwick_t11.tnd` is at turn 11 with `worldState.skeleton` absent and `usage.byKind.skeleton = {in:2202, out:932, calls:1, costUSD:0.0051465}` — the cost arithmetic matches the gemini-3.8-flash rates exactly, and `calls:1` means only the first draft was ever requested. NOT an output-cap cut: the call asks 8192 and the Gemini entry scales ×4 (maxOutputTokens 32,768) while the recorded output was 932 tokens including thoughts; a cap cut would have left a `turn-truncated` crumb (api.js:3845-3849) and the report shows only `+0s boot`. NOT a transport truncation: callGM is non-streaming; the gateway returns the vendor body verbatim (server gateway.js:251-256) and an upstream abort is a 408 JSON error, never a partial body. The remaining shapes are the model's: an early non-MAX_TOKENS stop with an incomplete document (`parseFinish`, globals.js:415, flags only MAX_TOKENS; any non-empty candidate returns as success), which `repairModelJson`'s last-brace slice (api.js:3035) re-shapes into "after array element"; or a bracket/comma error at the very end of a complete ~4.3 KB document (932 tokens ≈ 4.0-4.5 KB). `repairModelJson` cannot break a valid document. "line 1 column 4322" is meaningless: api.js:3037 swaps every control character for a space before parsing. The B11 evidence lesson (RESPONSE HEAD in the report, memory.js:3147-3162) was applied to the extractor reporter only; the skeleton reporter carries `e.stack` alone. B19 is the same malformed-mid-document class on the extractor, absorbed there by the next-turn retry — the skeleton has no second turn.
+- **Fix sketch (root cause, not a bandage):** ONE bounded re-ask at the first-draft parse in `generateSkeleton` (and the same shape at `correctCampaignSkeleton`'s parse, campaign_generator.js:166): on SyntaxError, `console.warn` + `erCrumb("skeleton-json-retry")`, call again — the FIRST call stays byte-identical (engine-tests.js:12198 pins `buildSkeletonPrompt`), the re-ask may append a short note quoting the parser message and asking for the COMPLETE document — parse once more; a second failure throws a NAMED error ("skeleton JSON unparseable twice") whose `reportError` detail carries the parser message plus the response HEAD and ~200 chars around the error position (app-generated content is allowed in crash detail, the #16c policy at memory.js:3147). Never salvage or auto-close brackets: a half document can pass `validateSkeletonStructure` (3 acts with ≥1 arc) while missing authored arcs or the deepTime ladder — the B19 ruling against tolerant salvage applies. Keep the re-ask before and separate from the #459 `_attempt` loop, bounded to one per draft (worst case 2×2 generate calls). Optional second layer, registry-shaped: a `jsonMode` capability on the Gemini provider entry (`responseMimeType: application/json`; OpenAI `response_format`; Anthropic none) selected by an `opts.json` flag in callGM for the skeleton kind only — constrained decoding removes the bracket/comma class at the source, but it changes callGM/PROVIDERS request bodies and so defaults to Fable.
+- **Tests:** `dev/tests-459-register-gate.js` already drives `generateSkeleton` over a scripted callGM (lines 22-30). Add (a) `[TRUNCATED, CLEAN, REVIEW_CLEAN]` → resolves, three calls, `worldState.skeleton.premise` is CLEAN's; (b) `[TRUNCATED, TRUNCATED]` → the named error, `worldState.skeleton` undefined, a stubbed `reportError` received the response tail; (c) the #459 ordering contract (engine-tests.js:29652-29661) still green. Sabotage: the re-ask dropped → (a) red; the tail dropped from the detail → (b) red.
+- **Drift-surface flag:** NO for the re-ask + evidence fix (generateSkeleton's parse and the correction parse only; the skeleton schema, `stampSkeletonStatus` and `buildSkeletonBlock` untouched — campaign_generator.js:13-15 keeps the schema frozen under the #59 pre-review). The optional JSON-mode layer touches callGM/PROVIDERS → Fable by default.
+- **Risk:** a tolerant repair would land truncated spines silently (fewer arcs than authored, no age ceiling) — worse than freeform; an unbounded or mis-nested retry would multiply skeleton calls under the #459 loop; changing the first call's prompt breaks the `buildSkeletonPrompt` pin; JSON mode on any non-skeleton kind would hit gameplay turns (prose + tags) or the summarize tier.
+- **Confidence:** high on the defect (an unguarded single-shot parse, no re-ask, no evidence, a permanently spineless campaign) and on ruling out the output cap and the transport; medium on which malformation Gemini produced — the next report carries the head and tail once the fix lands.
+- **Observations (not fixed):** a Gemini candidate with partial text and a non-STOP, non-MAX_TOKENS finish (RECITATION / SAFETY / OTHER) returns as success with no warn or crumb (globals.js:403-405, 415) — gameplay turns miss the #132 cut-tag warning in that case too; `repairModelJson`'s last-brace slice and control-char swap erase diagnosability (api.js:3035, 3037); `generateSkeleton`'s call lacks `noHistory:true` while every sibling passes it (harmless today, in:2202 shows an empty history); the designer's `generateDraftBlueprint` (campaign_generator.js:198-199) and `reviewCampaignSkeleton` (:155) share the unguarded pattern; no in-game affordance forges a spine for a running campaign and a spineless-by-failure campaign is unmarked in its save (an owner design question); the row's first TLDR ("never started") was wrong and is corrected above; parse-error messages embed positions, so a re-arrival with a different position is this row (the B19 fingerprint-variance rule).
+
+### Action log
+
+- 2026-10-12 · v1.1244 · commit fix(B43) · Fable — mechanism re-verified (the bare `JSON.parse` at game.js:3527, the freeform fallback at game.js:70, the Frizwick t11 save with no spine and one 932-token skeleton call under a 32,768 cap; the owner ruled out "a typo" and the early-stop blind spot was promoted from observation to the fix). Fix: `finishInfo` + per-provider `finishRaw`/`finishNormal` (globals.js), callGM loud on an early stop and handing `opts.finish` back (api.js), `skeletonDraftParse` / `buildSkeletonRetryPrompt` / `skeletonEvidenceText` (campaign_generator.js), the one re-ask with the draft sent back and the named second-failure error in `generateSkeleton`, the drafts' evidence on the Begin reporter (game.js). Tests red first; battery 10/10. Live verification pending (the next skeleton that stops early will carry its finish reason and tail).
+- 2026-10-12 · v1.1244 · verified live — the owner started a fresh campaign with the same hero and it forged cleanly ("started up smoothly"); the re-ask and the evidence paths are test-proven and will show themselves on the next early-stopped draft.
+
 ## B30 — Gemini "high demand" HTTP 503 bursts (Aug 16–19) reported as crashes on turn, actions and summarize
 **Status:** ignored
 **Kind:** crash · **First seen:** 2026-08-17 (v1.645) · **Last seen:** 2026-09-15 (v1.932) · **Count:** 13 · **Campaign:** Rise of the Runelords (Ammut) ×12, The Village (Ammut) ×1 · **Turn:** 1901, 1903, 1903, 1903, 1903, 1904, 1904, 1905, 1941, 1950, 1953, 1954, 23
