@@ -1,0 +1,14 @@
+{
+  "blueprintSha256": "e087f38302019167524fb86d81db30110d7a76ee3079cbea1773b8eb87bab687",
+  "finding": "Round 3 Baker lens: preserve the choice to decline the fee.",
+  "verdict": "Closed. The exact targeted wording correction restores the agreement condition; no other content changed.",
+  "evidence": {
+    "changedContentField": "acts[2].arcs[1].objective",
+    "before": "Threnna pays 10 gold for an honest report, even after failure.",
+    "after": "Threnna pays the agreed 10 gold for an honest report, even after failure.",
+    "otherChange": "version 1.03 to 1.04",
+    "openingRetained": "Declining the fee does not end play: they may help voluntarily, mingle or leave. Offer an epilogue only when they choose to leave or end the evening.",
+    "basis": "DOC/panel/baker_lens.md 2.1 and 6.3 (primary)"
+  },
+  "limits": "Targeted diff verification only, not a fourth broad panel cycle. No independent runtime narration, actual payment, arc completion or one-hour pacing test. Parent reports normalization/import passes."
+}

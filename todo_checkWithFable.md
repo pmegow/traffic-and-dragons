@@ -618,3 +618,5 @@ zero 2026-07-27 and again 2026-07-30.
 - 2026-10-07 · #437 · Codex: character-editor DOM action over the existing motivationSettle helper, lifecycle/browser proofs and shipping markers; protected summary changes implemented by Astra and independently reviewed by a second Astra. Both fixes approved; full row remains open for #527 lead (10). Receipt: audits/VERIFY_437_2026-10-07.html.
 
 - 2026-10-13 · #446 · Codex, docs only: owner-requested nine-lens and five-persona Riverlight review; source evidence and dissent retained. No blueprint, engine or catalog changes; first-player acceptance stays open. Reports: DOC/panel/reviews/riverlight/.
+
+- 2026-10-13 · #446 · Codex, owner-requested blueprint revision: three edit/panel cycles, final v1.04 candidate; isolated normalization/import checks catch and resolve three overflows. No engine or live-catalog change. Full record: DOC/panel/reviews/riverlight/riverlight_three_cycles.html.

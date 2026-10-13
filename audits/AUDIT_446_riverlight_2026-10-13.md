@@ -142,3 +142,37 @@ No new model calls or play sessions occurred. One-hour acceptance remains open.
 
 This documentation adds two static reports; it introduces no accumulating runtime
 resources or new per-turn, session, campaign or device state.
+
+## Three authorized revision-and-panel cycles
+
+The owner requested implementation followed by both panels, repeated three times.
+That loop is complete; [full cycle record](../DOC/panel/reviews/riverlight/riverlight_three_cycles.html)
+contains all 42 lens/persona assessments, exact snapshots, source grades and dissent.
+
+- **Round 1, v1.01:** clarified the carrier bid/vote distinction and fallible coercion;
+  specified evidence combinations; added Orris's paper-boat memory, Devrin's
+  self-justification, visible freight pressure and an optional player-authored close.
+  Panels found a remaining ending-language propagation issue.
+- **Round 2, v1.02:** aligned carrier eligibility and all-five assent in the endings.
+  Panels found no further editorial issue. Full runtime normalization separately
+  exposed three over-limit fields (1,004/898/878 characters against 800).
+- **Round 3, v1.03:** compressed those fields without dropping substantive guidance.
+  Panels accepted the compression; one lens caught the lost payment qualifier.
+- **Final v1.04 Release Candidate:** restored “the agreed 10 gold”. The originating
+  reviewer verified that this and the edition were the only post-round-3 changes.
+  This targeted closure was not a fourth broad panel cycle.
+
+Final file SHA-256: `e087f38302019167524fb86d81db30110d7a76ee3079cbea1773b8eb87bab687`.
+The full normalize → validate → apply path preserves every authored text field, all
+seven NPC dossiers, six location descriptions and sixteen rules. Eight arc records
+and no plot armor remain. No new scenes, locations, NPCs or mechanics were added.
+
+Probe limitations were corrected openly: the first probe treated the authored-entry
+array as an object; after correction it checked direct application but bypassed
+normalization. Adding normalization revealed the overflows, which are now resolved.
+No engine code was changed. No narration or real-player timing test was performed.
+The one-hour target and prior first-player closure conditions still apply.
+
+The source candidate is updated; a read-only server catalog check still returned
+v1.0 Release Candidate, revision 2. No catalog publication or existing-save mutation
+was performed in these revision cycles.

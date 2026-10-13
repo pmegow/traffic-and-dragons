@@ -1,0 +1,670 @@
+[
+  {
+    "round": 2,
+    "blueprintSha256": "9d8efcc180d80a1f97d6aec1d522f1e36fb6bcb78f2c10bfb0bae5efef3fe0cd",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Clean in this static pass. The remaining wording ambiguity is resolved without guaranteeing success.",
+        "resolved": [
+          {
+            "text": "Carrier eligibility, clearance of the false charge and political assent are now distinct ending facts.",
+            "basis": "5.3 (primary uniformity); 7.2 (secondary B:29 game logic).",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].objective: \"whether Petrell was cleared of the false charge and whether their barges remain eligible for the carrier bid (eligibility does not guarantee the contract)\"."
+            ]
+          },
+          {
+            "text": "The partial-evidence outcome repeats the five-hold requirement and its failure branch.",
+            "basis": "5.3 (primary).",
+            "blueprintEvidence": [
+              "rules[12]: \"only with all five holds' assent; any missing assent delays it\".",
+              "premise and npcs[2].notes: Devrin gambles on pressured assent; Petrell can refuse."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No runtime/clock/play-duration claim. Broad dissent about directed/computer play remains a settled format difference, not a fresh defect."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Clean in this static pass. Clarification preserves uncertain results, partial success and fair consequences.",
+        "resolved": [
+          {
+            "text": "Eligibility is not a guaranteed prize; exposed fraud does not compel another person's assent.",
+            "basis": "7.6 (primary do not pre-decide outcomes); 7.3 (primary follow consequences).",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].objective distinguishes cleared accusation, eligibility and actual treaty assent.",
+              "rules[12]: no forced delegate signature; a missing assent delays."
+            ]
+          },
+          {
+            "text": "The opening still provides direct action and the scheduled threats retain clear warning requirements.",
+            "basis": "5.1 and 7.4 (primary).",
+            "blueprintEvidence": [
+              "acts[0].arcs[0].objective: coat, Brix or introductions immediately.",
+              "rules[2]: announce approaching events and costly action deadlines."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Static reread finds no regression. Actual telegraphing and clock delivery remain model behavior to observe. No extra machinery or imported crew economy justified."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "Clean in this static pass. Villain intent and the undecided consequences remain coherent after the ending alignment.",
+        "resolved": [
+          {
+            "text": "The author no longer leaves the ending to conflate exclusion from a commercial bid with lost political consent.",
+            "basis": "1.1 and 2.1 (primary real world and prep/honesty).",
+            "blueprintEvidence": [
+              "premise: barges disqualified, hold vote retained, debt/shame coercion may fail.",
+              "acts[2].arcs[1].objective: separate eligibility and assent; no promised contract.",
+              "rules[12]: all five holds required."
+            ]
+          },
+          {
+            "text": "Human detail and player ownership survive intact.",
+            "basis": "3.2 and 6.3 (primary; AW 2e material co-authored by Meguey and Vincent Baker).",
+            "blueprintEvidence": [
+              "npcs[6].notes: Brix's paper-boat memory, explicitly not proof.",
+              "acts[2].arcs[1].objective: optional player final action; no assigned feelings or growth."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No transcript or mechanical behavior assessed. The fixed pre-play crime is legitimate prep in this application; future choices remain open. No need to invent an additional stakes subsystem."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "Clean in this static pass. Revised endings preserve meaningful distinctions while the short investigation still has independent evidence routes.",
+        "resolved": [
+          {
+            "text": "The outcome summary asks what was actually established, not an automatic best-case reward.",
+            "basis": "1.3 (primary interpretation); 4.5 (primary remove boring failure, keep interesting failure).",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].objective: false-charge clearance, carrier eligibility, assent, and unresolved murder stated separately.",
+              "rules[12]: unidentified commissioner may remain unresolved even when all five holds ratify."
+            ]
+          },
+          {
+            "text": "Core evidence and optional lead closure remain unchanged and adequate on the page.",
+            "basis": "1.1, 1.7, 7.2 (primary).",
+            "blueprintEvidence": [
+              "acts[1].arcs[1].objective: authenticated order available without Mira.",
+              "rules[4]: deliberate inspection reveals core clues without rolls.",
+              "acts[1].arcs[0..3].dnaHint: investigated/declined/unavailable/superseded leads may close without invented evidence."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Eight-arc/no-Mira closure and one-hour novice comprehension/pacing still require observed evidence. This is a carried validation limit, not grounds for another speculative prose edit."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Clean in this static pass. Personal texture and voluntary reflection remain intact; the ending does not assign a character transformation.",
+        "resolved": [
+          {
+            "text": "The player-owned final contribution remains optional after the factual outcome.",
+            "basis": "4.5 (primary plus secondary), 4.6 and 8.1 (primary).",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].objective: \"one last thing your character does or says\"; respect established facts/others' agency; assign no feelings/growth; skip on requested stop."
+            ]
+          },
+          {
+            "text": "Empathy does not grant absolution or erase costs.",
+            "basis": "7.3 (primary empathy).",
+            "blueprintEvidence": [
+              "rules[8]: Mira not automatically pardoned.",
+              "npcs[3].notes: clearing Petrell does not cancel debt.",
+              "npcs[6].notes: Orris's human memory is not evidence."
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Solo translation is player-owned expression, not shared XP or a required emotional arc. Emotional effect cannot be verified from prose alone."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [],
+      "dissent": [
+        "No additional blueprint edit is warranted by these five lenses in round 2.",
+        "Do not equate a clean static pass with runtime closure, novice comprehension or an achieved one-hour duration; those previously identified validation needs remain.",
+        "Procedural rigor, narrative openness and room for a chosen human moment remain distinct preferences. The changes reconcile them without importing a new subsystem or revisiting the settled spine."
+      ]
+    }
+  },
+  {
+    "round": 2,
+    "blueprintSha256": "9d8efcc180d80a1f97d6aec1d522f1e36fb6bcb78f2c10bfb0bae5efef3fe0cd",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Round-one ending-label ambiguity resolved. Earlier human-context improvement retained. No new content finding or observed static regression.",
+        "resolved": [
+          {
+            "text": "Closing instruction now distinguishes false-charge clearance, barge eligibility and all-five assent; eligibility is explicitly not a guaranteed contract. This closes the prior propagation gap.",
+            "basis": "§9.1 world consistency and §5.4 communication (both ◐ secondary); these are authored semantics, not a runtime performance claim.",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "whether Petrell was cleared of the false charge"
+              },
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "whether their barges remain eligible for the carrier bid"
+              },
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "eligibility does not guarantee the contract"
+              }
+            ]
+          },
+          {
+            "text": "Orris now has a non-forensic human connection through Brix, without requiring a new scene or inventing grief for the player.",
+            "basis": "§4.5 relational story and §8.1 what killer-story shape excludes (both ◐ secondary). Authored affordance only; §17 runtime prose verdict remains unavailable.",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[6].notes",
+                "quote": "Brix remembers them folding paper boats for his daughter while waiting for supper"
+              },
+              {
+                "path": "npcs[6].notes",
+                "quote": "this memory proves nothing about the crime."
+              }
+            ]
+          },
+          {
+            "text": "Optional final contribution leaves the player room to place their own emotional emphasis; it does not force a response or growth.",
+            "basis": "§4.6 story versus plot (● primary); §4.1 broader shapes than conflict (◐ secondary), applied to interactive choice as reviewer extrapolation.",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "assign no feelings or growth."
+              },
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "Skip this if they already want to stop."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No generated narration or audio reviewed. Cannot certify rhythm, restraint or emotional effect. Detail additions remain compact and optional."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Local venal caper and voluntary ending remain coherent. No content finding; supernatural point remains dissent only.",
+        "resolved": [
+          {
+            "text": "Carrier exclusion versus assent clarifies Devrin's local, venal gamble without making him an omnipotent plot machine.",
+            "basis": "§10.3 local venal villains and §1.4 personal scale (both ◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[2].notes",
+                "quote": "He wants Petrell's barges excluded from the carrier bid, not their hold's vote"
+              },
+              {
+                "path": "premise",
+                "quote": "Petrell can refuse; his gamble may delay the whole alliance."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Existing low-priority genre dissent remains: required events are mundane political detection, consistent with tone='politic'; §1.1/§1.3/§5.1 (● as stored rubric grades them) distinguish supernatural adventure from historical caper but do not require sorcery in every session. Do not add magic merely to satisfy this lens. No runtime humour, wonder or duration claim."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Consent now has an explicit all-five outcome rule, consistent with the premise. Prior concrete economic context retained. No additional finding.",
+        "resolved": [
+          {
+            "text": "The secured-annex partial outcome cannot silently ratify with a willing subset. Missing assent is now explicitly consequential.",
+            "basis": "§9.3 choices change outcome (WE ● primary); §3.5 society as resource allocation (GR ● primary).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[12]",
+                "quote": "only with all five holds' assent"
+              },
+              {
+                "path": "rules[12]",
+                "quote": "any missing assent delays it"
+              }
+            ]
+          },
+          {
+            "text": "Freight pressure has an observable material manifestation during the existing opening, before the player's settlement decision, and the text prevents instant economic cure.",
+            "basis": "§3.5 resource allocation (GR ● primary); §7.1 context carries exposition (WB ● primary).",
+            "blueprintEvidence": [
+              {
+                "path": "locations[0].description",
+                "quote": "A server divides a small loaf into thin slices"
+              },
+              {
+                "path": "locations[0].description",
+                "quote": "An agreement tonight cannot lower those tolls at once."
+              }
+            ]
+          },
+          {
+            "text": "Debt and shame are mechanisms of attempted coercion; the threatened delegate can still refuse. This makes the scheme and agency legible without imposing universal corruption.",
+            "basis": "§3.2 structural power (LS ● primary); §9.3 attitudinal choices change outcomes (WE ● primary); §3.4 oppression not default (CORNELL ● primary).",
+            "blueprintEvidence": [
+              {
+                "path": "premise",
+                "quote": "He expects debt and public shame to pressure Petrell into assenting"
+              },
+              {
+                "path": "premise",
+                "quote": "Petrell can refuse; his gamble may delay the whole alliance."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The loaf detail is an authored opportunity, not evidence players feel the economic consequences. Avoid a further explanatory speech; existing scene should carry it. First-player comprehension and actual duration remain open."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "Earned outcomes and unresolved costs remain intact; no new finding.",
+        "resolved": [
+          {
+            "text": "The antagonist now explains his entitlement to himself without excusing the fraud or murder. Fallible coercion gives negotiation a specific pressure point.",
+            "basis": "§5.4 and §6.1–6.3 villains understand themselves without being excused (B:Fantasy-Hive ● primary).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[2].notes",
+                "quote": "He tells himself that risking his fleet entitles him to control the trade."
+              },
+              {
+                "path": "npcs[2].notes",
+                "quote": "They can refuse."
+              }
+            ]
+          },
+          {
+            "text": "The ending gives room for a character's last act without prescribing healing, growth or an added grim twist.",
+            "basis": "§3.3–3.4 earned endings (A:Ending Like an Avalanche ● primary); §8.1 honesty (A:Advice ● primary); §2.5 grit devalues with volume (A:Grit ● primary).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "Respect established facts and others' agency; assign no feelings or growth."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Actual dialogue specificity and ending impact still depend on runtime narration and player choices. No claim about one-hour pacing. A dark ending remains taste, not a requirement to spoil earned success."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "No further blueprint change is requested by these four lenses after reading the full round-two snapshot.",
+        "Retain the separate runtime/no-Mira and blind newcomer checks; static review does not certify prose quality or about-one-hour pacing."
+      ],
+      "dissent": [
+        "Leiber's supernatural concern remains a nonblocking genre preference, with politic tone and one-hour scope supporting the current choice.",
+        "Quiet cooperative endings remain legitimate despite Abercrombie's darker-ending preference."
+      ]
+    }
+  },
+  {
+    "round": 2,
+    "blueprintSha256": "9d8efcc180d80a1f97d6aec1d522f1e36fb6bcb78f2c10bfb0bae5efef3fe0cd",
+    "scope": "Source review by five sourced composite personas; not interviews, votes or actual playtesting. No timing, runtime persistence or completion behavior proven. About one hour remains the total target with setup separate. Exact zero-based blueprint paths.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "No new required edit from the audio lens. The more precise ending distinguishes outcomes without adding a mandatory investigation. Re-entry comprehension remains an unperformed test, not a proven failure.",
+        "resolved": [
+          {
+            "title": "Added closing contribution does not become mandatory listening",
+            "basis": {
+              "entry": "R2; R3",
+              "sourceGrade": "R2 primary; R3 mixed primary/secondary",
+              "file": "DOC/panel/players/rosa_pike_persona.md"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "Skip this if they already want to stop."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Test spoken re-entry with the actually discovered evidence",
+            "severity": "P2",
+            "kind": "verification",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R1; R2; R3",
+              "sourceGrade": "R1 mixed primary/secondary; R2 primary; R3 mixed primary/secondary; vendor retention figures not used as thresholds"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[2].name",
+                "quote": "Master Devrin Sallowmere"
+              },
+              {
+                "field": "acts[0].arcs[1].objective",
+                "quote": "Sallowmere planted it. Blue coat. He came back."
+              },
+              {
+                "field": "rules[4]",
+                "quote": "Preserve discovered facts and the actual custody of documents and witnesses."
+              }
+            ],
+            "reason": "People appear under given names, surname and masks; the annex, receipt and signed commission have different evidential roles. A resumed listener may need help reconnecting labels. This is a test hypothesis, not an observed audio failure.",
+            "recommendation": "Pause an audio run after the coat and resume later. Ask who is implicated, what the document proves, who holds it and what to do next. If existing recap fails, add a short blueprint instruction to recap known name/role, evidence/custody and next action. Do not read a roster or disclose private truth.",
+            "mitigation": "Staggered introductions, distinct masks, explicit proof rules and the no-Mira route already reduce load.",
+            "confidence": "Medium; source-text assessment, no observed runtime failure",
+            "status": "Carried-forward verification question; no observed failure and no mandatory content edit."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite, not an interview or real listener. R5 driving/no-danger fit and R10 voice inventory are inferred and do not drive this verdict. No runtime audio or recap inspected. No first-person driving text-RPG account exists in the persona sources.",
+          "dissent": "Rosa values brief recaps more than optional lore depth; that does not justify shortening every conversation for Ines.",
+          "verificationQuestion": "After resuming without transcript access, can the listener explain what their annex proves and name a next action?"
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Round 2 keeps fixed truth, the short evidence route and genuine NPC refusal. Explicit unanimity removes the alternate-ending ambiguity; no new actionable editorial defect identified.",
+        "resolved": [
+          {
+            "title": "Two routes wording resolved",
+            "basis": {
+              "entry": "I1; I2",
+              "sourceGrade": "primary",
+              "file": "DOC/panel/players/ines_halloran_persona.md"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].goal",
+                "quote": "The annex plus the authenticated fraudulent order, or Mira's planting account plus Orris's note or the order, exposes Devrin"
+              }
+            ]
+          },
+          {
+            "title": "Carrier plan preserves genuine NPC refusal",
+            "basis": {
+              "entry": "I1; I4; I9",
+              "sourceGrade": "primary",
+              "file": "DOC/panel/players/ines_halloran_persona.md"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "premise",
+                "quote": "not remove their hold's vote"
+              },
+              {
+                "field": "premise",
+                "quote": "Petrell can refuse; his gamble may delay the whole alliance."
+              }
+            ]
+          },
+          {
+            "title": "Partial-evidence ending honors the same five-hold consent rule",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I4",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[12]",
+                "quote": "only with all five holds' assent; any missing assent delays it"
+              },
+              {
+                "field": "premise",
+                "quote": "The treaty needs all five holds' assent."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Protect chosen depth without padding the hour",
+            "severity": "P2",
+            "kind": "verification",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I3; I7; I9",
+              "sourceGrade": "primary (thread/post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[3].dnaHint",
+                "quote": "A player still pursuing a live question may continue it."
+              },
+              {
+                "field": "acts[2].arcs[0].dnaHint",
+                "quote": "A costly or partial outcome counts as a resolved decision."
+              }
+            ],
+            "reason": "An approximately one-hour target should permit both early settlement and deliberate murder investigation. Neither compulsory completion of all visits nor an imposed stopwatch serves this lens.",
+            "recommendation": "Record why the player continues beyond an hour. Separately test explicitly declining Mira and the murder: skipped leads must close honestly without invented knowledge. Add no automatic cutoff.",
+            "mitigation": "Current pacing rules already require this; verify their execution rather than rewriting them.",
+            "confidence": "Medium; source-text assessment, no observed runtime failure",
+            "status": "Carried-forward verification question; no observed failure and no mandatory content edit."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite, not a solo-player trial. I1 world logic is sourced; the persistent home-base interpretation is inferred and unused. No timing or GM tag behavior measured here.",
+          "dissent": "Retain optional questioning that Rosa or Nan may skip. The short route should coexist with depth.",
+          "verificationQuestion": "If the player has enough to protect Petrell but declines Mira, can the case settle on that evidence while leaving voluntary later inquiry open?"
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "No new actionable defect. Explicit eligibility without guaranteed reward is consistent with honest bookkeeping. Custody safeguards remain intact and still require behavioral verification.",
+        "resolved": [
+          {
+            "title": "No automatic economic windfall added to the ending",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B9; B5",
+              "sourceGrade": "primary; application to narrative contract eligibility is review reasoning"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "eligibility does not guarantee the contract"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Verify handovers remain legible to the player",
+            "severity": "P2",
+            "kind": "verification",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5",
+              "sourceGrade": "primary (thread/post read directly)"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[4]",
+                "quote": "Preserve discovered facts and the actual custody of documents and witnesses."
+              },
+              {
+                "field": "rules[7]",
+                "quote": "including if the party gave it to him"
+              }
+            ],
+            "reason": "The GM must track custody but is not explicitly instructed to acknowledge each handover. A vague narration might hide the consequences of giving away the only annex even with correct state. No inventory failure was observed.",
+            "recommendation": "Test taking the annex, making a legitimate copy, handing the original to Brix and resuming later. If unclear, add a short instruction to acknowledge the holder when custody changes. Preserve only actually obtained copies and witness knowledge.",
+            "mitigation": "Looking and taking are distinct; Devrin has no backup copy; secured evidence cannot reappear.",
+            "confidence": "Medium; source-text assessment, no observed runtime failure",
+            "status": "Carried-forward verification question; no observed failure and no mandatory content edit."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite; evidence largely concerns visual CRPG inventories, not text mysteries. B8 second-economy evidence does not establish that evidence tracking is a second economy, so no such claim is made.",
+          "dissent": "Do not add loot, shops or gold sinks just to recruit this persona. He may prefer another adventure despite appreciating accurate custody.",
+          "verificationQuestion": "Can the player say where the original and legitimate copies are, and does the final accusation respect that custody?"
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "No new content regression. An honestly delayed treaty remains a resolved evening, and the optional stop remains intact. The existing short-session and genre-fit uncertainties are unchanged.",
+        "resolved": [
+          {
+            "title": "Consequences have a concrete everyday referent",
+            "basis": {
+              "entry": "N3; N4",
+              "sourceGrade": "primary; application to narrative detail is review reasoning",
+              "file": "DOC/panel/players/nan_oyelaran_persona.md"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "locations[0].description",
+                "quote": "A server divides a small loaf into thin slices; Threnna explains that upstream tolls have doubled its freight charge."
+              },
+              {
+                "field": "locations[0].description",
+                "quote": "An agreement tonight cannot lower those tolls at once."
+              }
+            ]
+          },
+          {
+            "title": "Delay remains a finish rather than forced further play",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N6",
+              "sourceGrade": "primary solo-RPG time-window advice; secondary vendor thresholds unused"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[0].dnaHint",
+                "quote": "A costly or partial outcome counts as a resolved decision."
+              },
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "Do not seed a compulsory new case"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Test meaningful stopping points inside the hour",
+            "severity": "P2",
+            "kind": "verification",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N6",
+              "sourceGrade": "primary solo-RPG time-window source; no podcast threshold applied"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[3]",
+                "quote": "the coat and counting-house support a short route"
+              },
+              {
+                "field": "rules[2]",
+                "quote": "Use elapsed fictional time, never a hidden message count."
+              }
+            ],
+            "reason": "Several short visits are not equivalent to one uninterrupted hour unless the player recognizes each accomplishment and can resume. The evidence milestones are candidates, but no real short-session boundary was observed.",
+            "recommendation": "Pause directed tests after identifying forgery and after authenticating the commission. Ask what finished and what remains. Verify fictional boat/toast deadlines do not advance just because the player is away overnight. Use existing pause/resume behavior, adding no mechanic without a demonstrated gap.",
+            "mitigation": "Existing evidence milestones, honest partial endings, advance time warnings and the no-Mira route make interrupted play plausible.",
+            "confidence": "Medium; source-text assessment, no observed runtime failure",
+            "status": "Carried-forward verification question; no observed failure and no mandatory content edit."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite, not a phone playtest. N1 and Trust support cozy expectation mismatch, not removing murder from a mystery. Cozy sources are visual games. Public catalog pitch not reviewed, so no claim it conceals the murder.",
+          "dissent": "Nan may decline this genre while Ines and Gerry welcome the stakes. Do not convert poor fit into a consensus demand to lower stakes.",
+          "verificationQuestion": "Can a short-visit player point to one completed discovery or decision and return without believing their real-world absence cost the case?"
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "Round 2 distinguishes clearing the false charge from eligibility and winning a contract. This improves specific, honest consequences while retaining optional player authorship. No new editorial finding.",
+        "resolved": [
+          {
+            "title": "Player-authored final contribution supplied",
+            "basis": {
+              "entry": "G3",
+              "sourceGrade": "primary",
+              "file": "DOC/panel/players/gerry_fulmer_persona.md"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "Before the lanterns fade, is there one last thing your character does or says?"
+              },
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "Skip this if they already want to stop."
+              }
+            ]
+          },
+          {
+            "title": "Specific human detail respects what it can prove",
+            "basis": {
+              "entry": "G6",
+              "sourceGrade": "primary",
+              "file": "DOC/panel/players/gerry_fulmer_persona.md"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[6].notes",
+                "quote": "Brix remembers them folding paper boats for his daughter while waiting for supper; this memory proves nothing about the crime."
+              }
+            ]
+          },
+          {
+            "title": "Epilogue does not award an unearned contract",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G2; G6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "whether Petrell was cleared of the false charge and whether their barges remain eligible for the carrier bid (eligibility does not guarantee the contract)"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite, not an interview or completed playtest. No claims about runtime exports, mementos or missing state. Retirement-specific positions are inapplicable here.",
+          "dissent": "Gerry values a personal final contribution while Rosa may want a fast stop; optionality respects both.",
+          "verificationQuestion": "On the no-Mira route, can the ending acknowledge a player-chosen final act while honestly leaving the murder unresolved when its proof was not gathered?"
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "No further mandatory editorial change identified by the player panel in round 2.",
+        "Keep behavior tests separate from editorial acceptance: no-Mira closure, interrupted recall/fictional deadlines, and actual evidence custody. Do not add content to generate another review round."
+      ],
+      "dissent": [
+        "Nan may decline this murder mystery for cozy recovery; Bert may prefer accumulation play. Do not repair deliberate genre choices to fit every persona.",
+        "Preserve optional investigative depth for Ines while allowing short stops for Rosa/Nan and an optional final authored moment for Gerry."
+      ]
+    }
+  }
+]
