@@ -1,0 +1,15 @@
+{
+  "catalogId": "the_princess_is_not_in_danger",
+  "version": "1.02",
+  "releaseStatus": "release-candidate",
+  "catalogRevision": 5,
+  "publishedAt": "2026-10-14 07:37:06",
+  "sourceCommit": "45f5823b11c23b874f651a91e178f6f386b62f48",
+  "sourceFileSha256": "bd1385a92ca8e47ab1b020fd36457b7ace568528806e406f0f5a9183d77e8921",
+  "publicCatalogMatchesEveryBlueprintField": true,
+  "otherCatalogEntriesUnchangedDuringPublication": true,
+  "serverBackup": "/data/catalog-backups/the_princess_is_not_in_danger-before-v1.02-revision4-20261014.json",
+  "method": "Normal operator API, existing session and revision guard; public readback verified.",
+  "cloudflareBundledSampleMatchesEveryBlueprintField": true,
+  "cloudflareVerification": "Verified through a real Chromium browser. Direct scripted HTTP was rejected by Cloudflare error 1010."
+}
