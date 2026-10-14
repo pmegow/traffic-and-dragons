@@ -1,0 +1,706 @@
+[
+  {
+    "round": 0,
+    "blueprintSha256": "429fe63738a639b8b122c9589d7f4b3fef5edc04218cb817aba84e65c9e97303",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Strong fit for mercenary danger, scarce water and an object that competing powers want; the decisive object rules need a stable operational basis.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "The key, seal states and promised ending procedures are undefined",
+            "kind": "content / causal rules",
+            "severity": "high",
+            "basis": "5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).",
+            "blueprintEvidence": [
+              "premise: \"bargain with anyone carrying the key\"",
+              "acts[0].turningPoint: \"The reliquary cracks during an ambush\"",
+              "acts[1].turningPoint: \"a rite that partially wakes the Coffered God\"",
+              "acts[2].turningPoint: \"reseal the Coffered God, deliver it to whichever faction the company has thrown in with, or break it open themselves\"",
+              "npcs[4].notes: \"speaks in fragments through cracks, dreams, and borrowed mouths\""
+            ],
+            "reason": "The premise introduces a key without assigning its custody or function. Cracking, partial waking, resealing and opening are distinct story milestones but have no defined triggers, limits or achievable procedures. The narrator must invent whether a precaution or attempted ending works and can change the box's powers to force the next milestone. This is missing operational information, not a demand to identify the entity's cosmic nature.",
+            "recommendation": "Add a compact common rule for intact/cracked/open states, the key's initial custody and exact use, what contact or possession permits, and at least one feasible resealing method with discoverable prerequisites and price. State the immediate practical difference between resealing, delivering an intact or damaged box, opening it and abandoning the job; keep later politics uncertain.",
+            "mitigation": "Ren knows sealing fragments, Sister Ash-Tongue has read sealing texts, and Two Thrones has actual reliquary vaults. These are credible existing anchors for the procedures. The final menu already offers multiple outcomes; it needs workings rather than additional endings.",
+            "confidence": "High"
+          }
+        ],
+        "uncertainty": "Do not turn the salt crossing into a detailed simulation or require a taxonomy for the God. No observation of travel resource tracking, import behavior or generated adjudication is claimed."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Strong faction wants and an honest but dangerous offer create useful choices; the cost instructions can currently turn those choices into retrospective permanent penalties.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "All magic can receive an undefined permanent surcharge after use",
+            "kind": "content / playable cost boundary",
+            "severity": "high",
+            "basis": "1.2 and 1.3 (S:action-roll / S:setting-position-effect, primary); 1.7 (S:action-roll, primary); 7.4 (LF, primary).",
+            "blueprintEvidence": [
+              "rules[0]: \"Sorcery in this world always extracts a cost paid in the caster's body, memory, or years\"",
+              "rules[0]: \"the GM should make that cost concrete and immediate whenever magic is used.\"",
+              "npcs[5].notes: \"magic lets her read weather and water in the Flats at a cost paid in her own memories\""
+            ],
+            "reason": "The campaign explicitly mandates an extra-seeming body, memory or lifespan payment on every magic use without defining whether ordinary spell-resource costs count, which effects require a further payment, how large it is or when the player learns it. A familiar healing or utility action can therefore acquire an invented irreversible loss after the player has acted. Ren demonstrates the intended harsh texture but does not establish playable boundaries for anyone else.",
+            "recommendation": "Define the scope of the sorcery price relative to normal character abilities, plus a small consistent method for pricing it. State the concrete loss or bounded risk before a player commits, allow them to decline, and record the paid cost consistently. If ordinary magic also exacts a bodily price, make that rule explicit from entry rather than silently exempting it. Memory loss should identify the agreed memory, not authorize retroactive identity rewriting.",
+            "mitigation": "The price is deliberate genre design, and the text does require a concrete immediate consequence. Preserve that cost and Ren's memory erosion; the correction is scope, amount and disclosure rather than free sorcery.",
+            "confidence": "High"
+          },
+          {
+            "title": "Every bargain must conceal a cost with no limit on its scope",
+            "kind": "content / bargain consequence boundary",
+            "severity": "medium",
+            "basis": "1.7 (S:action-roll, primary, free acceptance of named cost); 7.4 (LF, primary, evidence before danger).",
+            "blueprintEvidence": [
+              "rules[1]: \"every truth it offers is incomplete or double-edged\"",
+              "rules[1]: \"a real, honored upside alongside the hidden cost.\"",
+              "npcs[4].notes: \"none of its offers are outright lies\""
+            ],
+            "reason": "Honoring the upside is valuable, but the mandatory hidden cost has no ceiling, trigger or tie to established capabilities. Even a carefully negotiated offer can acquire an arbitrary additional loss after acceptance. This conflicts with informed sacrifice more directly than ordinary antagonist secrecy does; it is distinct from routine spell pricing.",
+            "recommendation": "Keep half-truths, sinister implications and discoverable omissions. Bound the actual payment and what the God can take or make happen; let players inspect, ask and refuse. Establish signs or a discoverable source for any serious concealed risk. Do not force a new secret permanent bodily, memory or lifespan surcharge merely because every offer must be double-edged.",
+            "mitigation": "The God cannot lie outright and must honor a real upside. Those protections should remain. Unknown long-term consequences and morally ugly choices can persist; this recommendation does not require revealing every future event or making the entity safe.",
+            "confidence": "High on the unbounded wording; medium on the practical likelihood of unfair adjudication."
+          }
+        ],
+        "uncertainty": "The Blades bargain principle is a design comparison, not a requirement to port Blades mechanics or prohibit deceptive swords-and-sorcery antagonists. The authored structure is the settled section 10 tradeoff."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "The company, rivals and dangerous landscape create pressures worth playing out; several turning points pre-decide results that should respond to intervention.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "The crack, awakening and final convergence happen regardless of prevention",
+            "kind": "content / contingent outcomes",
+            "severity": "high",
+            "basis": "1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).",
+            "blueprintEvidence": [
+              "acts[0].turningPoint: \"The reliquary cracks during an ambush\"",
+              "acts[1].turningPoint: \"The Cinder Chorus performs a rite that partially wakes the Coffered God\"",
+              "acts[2].goal: \"survive the collision of all three hunters at the gates\"",
+              "acts[2].arcs[0].objective: \"the converged forces of Hask Vane and the Cinder Chorus\""
+            ],
+            "reason": "These are stated as completed results, not threats with requirements. The party may protect the coffer, identify and stop the cult rite, convince Hask to withdraw, hand off the coffer earlier or take another route, yet the next act still demands the crack, awakening or convergence. The issue is these local guarantees, not the existence of an authored three-act structure.",
+            "recommendation": "Make each threat depend on named surviving actors, access to the coffer and actual preparation. Give the rite visible warning and a way to interrupt it. Preserve prevented damage, earlier bargains or departures and depleted factions in the final confrontation; close superseded leads without granting their discoveries.",
+            "mitigation": "Act II already allows combat, sabotage or parley; Hask can be persuaded by the truth or offer a competing contract; the ending offers different allegiances. These existing branches support the fix. Keep enemy initiative and costly failure when their conditions actually occur.",
+            "confidence": "High"
+          }
+        ],
+        "uncertainty": "The AW principles here are coauthored by Vincent and Meguey Baker. Do not guarantee survival, preserve every NPC or require that the company remain loyal. Theories shaping manifestation are not by themselves proof of a historical-retcon defect."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "The cast contains good explanatory sources and opposed motives; two clues currently ask the narrator to invent the load-bearing information.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "The employer-only name has no fixed identity or causal provenance",
+            "kind": "content / evidence",
+            "severity": "medium",
+            "basis": "1.2 and 1.3 (SRD, primary); 1.9 (INFO, primary).",
+            "blueprintEvidence": [
+              "acts[0].turningPoint: \"something inside speaks a name only the company's employer should know\"",
+              "npcs[0].notes: \"she stole it from a rival consul's tomb and needs it delivered quietly before the theft is discovered.\"",
+              "npcs[0].notes: \"She surfaces as untrustworthy the moment the company asks pointed questions\""
+            ],
+            "reason": "The name is the first supposed proof that the job is false, but neither the name nor its connection to the employer, the God's knowledge or independently checkable evidence is authored. The narrator can supply any secret that fits an accusation, while the employer record prescribes distrust rather than a specific discoverable discrepancy.",
+            "recommendation": "Choose one fixed name and underlying event the God could actually know; connect it to the tomb theft or another already established fact. Give the party one concrete record, mark or witness that can confirm the connection, including a route that survives preventing the ambush. Questions should reveal facts and evasions rather than automatically establish the desired conclusion.",
+            "mitigation": "Ysbet's theft and Sister Ash-Tongue's archival background provide possible anchors. The God's truthful fragments can remain ambiguous evidence requiring interpretation; no full confession is necessary.",
+            "confidence": "High"
+          },
+          {
+            "title": "The Dry Oracle route is unclear about who supplies the essential sealing knowledge",
+            "kind": "content / clue route and continuity",
+            "severity": "medium",
+            "basis": "1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).",
+            "blueprintEvidence": [
+              "acts[1].arcs[2].objective: \"Seek out a reclusive salt-witch who may know how the reliquary was sealed and what breaking it will cost\"",
+              "npcs[5].notes: \"A salt-witch hired as the company's guide\"",
+              "npcs[5].notes: \"her fading memory makes her an unreliable narrator of her own warnings.\"",
+              "locations[3].name: \"Ren Sallow's Cistern-House\"",
+              "npcs[2].notes: \"a former vault-city archivist who read the sealing texts\""
+            ],
+            "reason": "The arc reads as a search for a reclusive witch, while the only witch and matching home belong to the guide already hired into the company. This can be reconciled, but the blueprint does not say whether the arc means consulting Ren at her home or finding another person. More importantly, essential opening/resealing knowledge currently rests on someone who only may know and forgets, with no authored reliable corroboration.",
+            "recommendation": "Clarify whether the destination is Ren's own cistern workshop or a different named source. Once the object procedures are fixed, place the necessary operational facts in concrete reachable evidence, for example Ren's preserved notes or reliefs and the cult's copied sealing text; credible inspection yields the core facts while optional detail or access can remain costly. Preserve Ren's personal gaps without letting them erase every workable ending.",
+            "mitigation": "The cistern-house reliefs, old sealing texts, Ren's partial training and vault-city archives already supply plausible material. The text does not explicitly require a failed-roll clue gate, so this is an under-specified route and reliability risk, not an observed blocked session.",
+            "confidence": "High on source ambiguity; medium on risk of the information being withheld in actual play."
+          }
+        ],
+        "uncertainty": "A static outline does not establish that clues will be blocked or that the engine requires every parallel arc. No deadline, duration or session-length recommendation is inferred."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Good fit for compromised attachment inside harsh adventure: Corr's desired retirement, Ren's lost memories, Hask's mistaken belief and the bound God's desire all provide an interior. No additional independent correction beyond the concrete cost and ending issues above.",
+        "resolved": [],
+        "findings": [],
+        "uncertainty": "2.7 (S2, primary) supports offered payoffs rather than imposed obligations; 7.3 (S2, primary) supports the existing antagonist interiors; 4.6 (S1, primary) suggests ending on what the company actually changed or lost. These are strengths and a possible finishing emphasis, not grounds to require a new character arc, absolution, comfort or removal of the swords-and-sorcery price. No emotional effect has been observed."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Define the coffer's key, state changes, contact limits and achievable ending procedures while leaving its ultimate nature uncertain.",
+        "Bound and disclose player-facing sorcery payments; preserve real harsh prices and meaningful hidden implications without arbitrary retrospective permanent loss.",
+        "Make the ambush damage, cult rite and gate confrontation conditional on surviving threats and actual choices.",
+        "Anchor the employer-only name and clarify the oracle/source route so necessary operational knowledge has reliable, reachable evidence."
+      ],
+      "dissent": [
+        "The price of magic is an intended strength of this genre, not a defect to remove. Harper's informed-cost preference conflicts with an entirely unrestricted secret-price rule; the recommended compromise preserves deceit and dangerous consequences while making irreversible payment boundaries playable.",
+        "An authored campaign spine is an accepted tradeoff. Only specified results that can contradict successful prevention are flagged, not all predetermined locations or faction plans.",
+        "The God's ultimate identity and metaphysical origin can remain unknown. Its actionable powers and bargains need consistency; uncertainty alone is not a mystery defect.",
+        "No one-hour target applies. The long salt crossing, scarcity, mercenary motives and possible loss should remain. No human playtest, generated narration, normalization or runtime completion was performed by this review."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "429fe63738a639b8b122c9589d7f4b3fef5edc04218cb817aba84e65c9e97303",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Strong costly-magic premise; revision needed to give its decisive powers and prices consistent private causes. This applies documented rubric positions, not the author's participation or a runtime prose judgment.",
+        "resolved": [
+          {
+            "text": "Ren's weather and water magic binds practical need to an intimate loss, giving the journey more than combat stakes. Preserve that price rather than making her a free exposition source.",
+            "basis": "§3.4 knowledge serving need and §8.3 magic's moral cost (◐ secondary); §4.2–4.5 relational/container stories (◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[5].notes",
+                "quote": "at a cost paid in her own memories"
+              },
+              {
+                "path": "npcs[5].notes",
+                "quote": "a teacher she can no longer fully remember"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Promised sealing choices have no established mechanism or bounded bargain costs",
+            "kind": "authored causal gap",
+            "severity": "high",
+            "basis": "§8.3–8.4 cost and consequences, §9.1 consistent world and §9.3 meaningful magic (◐ secondary). Application to an interactive choice is the reviewer's inference.",
+            "blueprintEvidence": [
+              {
+                "path": "premise",
+                "quote": "bargain with anyone carrying the key"
+              },
+              {
+                "path": "acts[2].turningPoint",
+                "quote": "reseal the Coffered God"
+              },
+              {
+                "path": "rules[0]",
+                "quote": "cost paid in the caster's body, memory, or years"
+              },
+              {
+                "path": "rules[1]",
+                "quote": "a real, honored upside alongside the hidden cost"
+              }
+            ],
+            "reason": "The key has no assigned carrier, origin or operation; neither a resealing method nor the effect of opening is established. A general category of sorcery price cannot distinguish a feasible difficult choice from a new cost invented after commitment. The explicitly hidden bargain downside is genre-appropriate, but no private fixed exchange or clue constrains it.",
+            "recommendation": "Define the key and what damage, partial waking, opening and resealing each permit. Give at least one attainable resealing route with a fixed price and credible sources independent of Ren's unreliable recall. Establish bounded example bargains and discoverable signs of their hidden costs before acceptance; keep divine taxonomy uncertain and bargains dangerous.",
+            "mitigation": "Ren knows fragments, the Dry Oracle arc promises knowledge, and both rules demand real cost and an honored benefit. Those are useful intentions but do not supply a method, limits or a fixed exchange. This need not become an exhaustive magic system or disclose every twist.",
+            "confidence": "high"
+          }
+        ],
+        "uncertainty": "No corpus was assessed; §17 precludes claims about generated rhythm, diction or experienced emotional weight. The concern is missing authored causal support, not evidence that a model already mishandled a bargain."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "The salt road, venal employer and dangerous confined power fit the selected genre. The opening contract and clue need a more convincing causal chain.",
+        "resolved": [
+          {
+            "text": "Specific survival geography and competing venal interests already give the adventure a material texture; no need to replace the road with a city campaign or explain away the supernatural.",
+            "basis": "§2.2 occupational/material specificity (C:1 ●), §9.1 wonder/fear (A:5 ●/◐), §10.3 local venal antagonism (C:1 ◐).",
+            "blueprintEvidence": [
+              {
+                "path": "locations[0].description",
+                "quote": "built around a brackish well"
+              },
+              {
+                "path": "locations[2].description",
+                "quote": "pockets of shade and hidden cisterns"
+              },
+              {
+                "path": "npcs[1].notes",
+                "quote": "occasionally offer the company a better deal than their current employer"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The stolen relic's journey and employer-only name do not yet form an investigable lie",
+            "kind": "authored causal gap",
+            "severity": "medium",
+            "basis": "§9.3 confirmation of seeded suspicion (A:6 ◐), §9.5 convincing fiction (A:5 ●/◐), §10.3 specific venal motives (C:1 ◐).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[0].notes",
+                "quote": "she stole it from a rival consul's tomb"
+              },
+              {
+                "path": "npcs[0].notes",
+                "quote": "needs it delivered quietly before the theft is discovered"
+              },
+              {
+                "path": "premise",
+                "quote": "across the Ash Flats to the vault-city of Two Thrones"
+              },
+              {
+                "path": "acts[0].turningPoint",
+                "quote": "speaks a name only the company's employer should know"
+              }
+            ],
+            "reason": "Ysbet is a Two Thrones magistrate transporting a tomb theft to Two Thrones, but the tomb's location, reason for this route and intended quiet recipient/use are unspecified. The supposedly decisive name is unnamed, with no established secret or reason the god knows it. A theft and a shocking utterance can therefore become disconnected plot devices rather than evidence of the opening deception.",
+            "recommendation": "Fix where and why Ysbet stole the coffer, why it must cross the Flats now and what she expects at delivery. Name the secret utterance, its causal significance and how the god learned it; allow documents or testimony to expose the same relevant fact if the box never cracks.",
+            "mitigation": "Her theft is a concrete private fact, and questioning is invited. The issue is missing links, not an impossible journey or a demand for a long political history. The god's ultimate identity can remain unresolved.",
+            "confidence": "high"
+          }
+        ],
+        "uncertainty": "The atmosphere is assessed as authored material, not proven player dread. No demand for a universally defeatable god, a comfortable ending or a short campaign."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Different faction motives offer promising choices, but fixed escalations and unspecified social outcomes could erase their differences.",
+        "resolved": [
+          {
+            "text": "The setting already connects material scarcity, conquest and faction dependence, while Hask's mistaken belief creates leverage beyond killing him.",
+            "basis": "§3.5 society as resource allocation (GR ●) and §9.3 consequential choice (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "premise",
+                "quote": "water is currency and shade is a weapon"
+              },
+              {
+                "path": "npcs[1].notes",
+                "quote": "this ignorance can be turned into leverage"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Faction choices do not propagate into the scripted crack, awakening and final convergence",
+            "kind": "authored unconditional events",
+            "severity": "high",
+            "basis": "§5.1 planned structure (WE ●) and §9.3 choices must change the plot (WE ●); interactivity application is explicit.",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].turningPoint",
+                "quote": "The reliquary cracks during an ambush"
+              },
+              {
+                "path": "acts[1].turningPoint",
+                "quote": "The Cinder Chorus performs a rite that partially wakes the Coffered God"
+              },
+              {
+                "path": "acts[1].arcs[0].objective",
+                "quote": "combat, sabotage, or a dangerous parley"
+              },
+              {
+                "path": "acts[2].arcs[0].objective",
+                "quote": "the converged forces of Hask Vane and the Cinder Chorus"
+              }
+            ],
+            "reason": "The text offers sabotage, bargaining and investigation but guarantees the damage, successful cult rite and both armies at the gates. It supplies no conditions or substitute discovery paths if the ambush is avoided, the infiltrators stopped or a faction redirected. This is an authored mandate risk, not a demonstrated runtime failure.",
+            "recommendation": "Make each escalation conditional on actual access, damage and surviving faction plans. Preserve successful prevention and prior alliances at the gates; give evidence or a chosen bargain another route to relevant knowledge. Allow an earlier settled coffer decision to produce consequences rather than restoring a required final confrontation.",
+            "mitigation": "Several arc objectives already offer alternative tactics and the final choice names multiple options. Keep the three-act structure and active antagonists; the fix is causal propagation, not unlimited branching or a guarantee that every plan succeeds.",
+            "confidence": "high"
+          },
+          {
+            "title": "The final recipients and choices have no stated consequences for water, rule or the company",
+            "kind": "authored ending gap",
+            "severity": "medium",
+            "basis": "§3.2 self-maintaining power (LS ●), §3.5 resource allocation (GR ●), §9.1–9.3 changed endings and consequential choice (WE ●; §9.2 ◐).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].turningPoint",
+                "quote": "deliver it to whichever faction the company has thrown in with"
+              },
+              {
+                "path": "acts[2].arcs[1].objective",
+                "quote": "settle what becomes of it and the company"
+              },
+              {
+                "path": "npcs[1].notes",
+                "quote": "whose blessing would make his rule unquestionable"
+              },
+              {
+                "path": "npcs[2].notes",
+                "quote": "let something truer grow"
+              }
+            ],
+            "reason": "The ending promises a meaningful choice between resealing, handover and release, but neither the factions' practical use of the coffer nor the immediate aftermath is specified. Hask's legitimizing blessing is only his belief; the Chorus's new world is a slogan. The author has not yet stated how these alternatives affect the mercenaries or those living under salt-barony water control.",
+            "recommendation": "Provide concise conditional aftermaths for the established choices: who can actually hold/use the coffer, what Hask's discovery changes, what release immediately does, and one concrete consequence for water access or city/refugee life plus the company's payment/loyalties. Permit withdrawal or abandonment with consequences if earned. Do not promise regime repair merely because a leader falls.",
+            "mitigation": "Water scarcity, refugees and the city's soldiery already anchor possible consequences. No new faction hierarchy or utopian alternative is necessary, and outcomes can be harsh or incomplete.",
+            "confidence": "high"
+          }
+        ],
+        "uncertainty": "No demand to remove oppression from a deliberately harsh setting or restore an ideal past. The missing outcomes are on the page; actual player agency and comprehension are untested."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "The traveling company's conflicting self-interest is a strong foundation. Corr's central contradiction needs a motive that can cause behavior, rather than automatic deterioration.",
+        "resolved": [
+          {
+            "text": "Retirement, legitimacy and liberation are different wants, and antagonists have intelligible self-justifications without being excused. Preserve the road-company focus.",
+            "basis": "§5.4 understandable people (B:Fantasy-Hive ●), §5.5 small group on the road (B:Winter is Coming ●), §6.1–6.3 motives without exoneration (B:Fantasy-Hive ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[3].notes",
+                "quote": "retire to buy land far from salt and sorcery"
+              },
+              {
+                "path": "npcs[1].notes",
+                "quote": "He is ruthless but not stupid"
+              },
+              {
+                "path": "npcs[2].notes",
+                "quote": "became a convert rather than a scholar"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Corr's illness automatically produces suicidal risk without linking it to his retirement goal",
+            "kind": "authored motivation gap",
+            "severity": "medium",
+            "basis": "§5.4 self-understanding (B:Fantasy-Hive ●), §5.6 character/action causality (B:Dark Matter Zine ●), §8.1 honesty (A:Advice for Budding Fantasists ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[3].notes",
+                "quote": "finish this job clean and retire to buy land"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "he's dying of a wasting sickness"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "increasingly willing to take suicidal risks as the campaign goes on"
+              }
+            ],
+            "reason": "Wanting land while dying can be a powerful contradiction, but illness alone does not explain why Corr escalates toward suicidal choices rather than pursuing a cure, saving his comrades, denying the diagnosis or rushing retirement. The automatic progression lets a useful person collapse into a doomed-veteran plot function.",
+            "recommendation": "Choose the private link between his knowledge, land dream and risk: for example a cure he distrusts, provision for someone else, refusal to let a third company die, or a deliberate last useful act. Tie risk-taking and willingness to bargain to actual offers, trust and circumstances rather than campaign progress alone.",
+            "mitigation": "His two lost companies already supply an excellent motive and do not need another subplot. He need not be cured, likable or safe; illness can remain terminal and choices costly.",
+            "confidence": "medium"
+          }
+        ],
+        "uncertainty": "No dialogue corpus or experienced ending was tested. Keep genuine bleakness and self-deception; more gore or guaranteed betrayal would not address this finding."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Establish the coffer/key's private operation, attainable resealing route and bounded bargain prices while retaining supernatural ambiguity.",
+        "Connect Ysbet's theft, transport objective and secret-name clue into one fixed causal account.",
+        "Condition major escalations and the gate collision on what factions and the company actually did.",
+        "Give each feasible ending a concrete immediate political/material and company consequence.",
+        "Link Corr's illness-driven behavior to an intelligible private motive."
+      ],
+      "dissent": [
+        "Le Guin's preference for gathering and relational stories is not a veto on this chosen swords-and-sorcery escort campaign; travel, provisioning and company loyalties already support that shape.",
+        "Leiber permits an unknowable and dangerous supernatural entity. Fixed operational facts need not settle whether it is god, demon or bound king.",
+        "Abercrombie supports unsettling earned consequences; neither transparent authorship nor legible clues require safe bargains or a happy ending.",
+        "The Jemisin lens asks what choices change, not that every ending emancipate the region. Do not homogenize the factions into equally good options."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "429fe63738a639b8b122c9589d7f4b3fef5edc04218cb817aba84e65c9e97303",
+    "scope": "Coffered God v0.01 baseline, full independent source reread using all five sourced composite player personas. Not interviews, actual playtests or runtime/pacing assurances. Swords-and-sorcery cost and long campaign scope preserved; no Riverlight hour target. Exact zero-based field anchors.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "Conditional audio fit for a long, harsh journey. No separate mandatory source edit from this lens; the shared price/custody fixes must be explainable in a short spoken decision, without requiring a visual ledger.",
+        "resolved": [],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite, not a driving or audio playtest. R1 mixes primary and secondary evidence; R5/R10 inferred positions unused. No short-total-duration demand.",
+          "dissent": "Keep the long crossing and faction depth. Audio re-entry needs concise known state, not removal of consequential decisions.",
+          "verificationQuestion": "After a pause, can the listener identify the reliquary’s actual custodian, its known condition and the exact offered cost before agreeing to magic?",
+          "basis": {
+            "file": "DOC/panel/players/rosa_pike_persona.md",
+            "entry": "R1; R2; R4",
+            "sourceGrade": "R1 mixed primary/secondary; R2/R4 primary"
+          },
+          "blueprintEvidence": [
+            {
+              "field": "premise",
+              "quote": "a sealed iron-and-salt reliquary across the Ash Flats"
+            },
+            {
+              "field": "rules[0]",
+              "quote": "the caster's body, memory, or years"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Promising faction pressure and an honestly dangerous bargain. Fix operational truths and prevent the dramatic outline from undoing player precautions; uncertainty about the entity’s ultimate origin can remain.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Make damage, waking and converging enemies depend on actual events",
+            "severity": "P1",
+            "kind": "agency-and-causality",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I4; I9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "The reliquary cracks during an ambush"
+              },
+              {
+                "field": "acts[1].turningPoint",
+                "quote": "The Cinder Chorus performs a rite that partially wakes the Coffered God"
+              },
+              {
+                "field": "acts[2].arcs[0].objective",
+                "quote": "the converged forces of Hask Vane and the Cinder Chorus"
+              }
+            ],
+            "reason": "The outline guarantees damage, the cult’s successful rite and both factions at the gates. Avoiding the ambush, protecting the coffer, exposing infiltrators, stopping the rite or reaching an agreement can be nullified just to produce the next act. Harsh opposition need not make success secretly irrelevant.",
+            "recommendation": "Define how damage and partial waking occur, what access/materials/time the cult needs, and what changes if the party prevents them. Let evidence or another earned event reveal the stakes without forcing a crack. Only forces that remain capable and informed reach the gates; honor earlier defeats, cooperation, detours and delay.",
+            "mitigation": "Hask’s ignorance can already be used as leverage, and his arc allows parley. Extend that existing possibility to the transitions rather than softening his ruthlessness.",
+            "confidence": "High confidence in authored omission/directive; live behavior untested."
+          },
+          {
+            "title": "Fix the coffer’s actionable facts while leaving its ultimate nature uncertain",
+            "severity": "P1",
+            "kind": "fixed-truth",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "premise",
+                "quote": "bargain with anyone carrying the key"
+              },
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "a name only the company's employer should know"
+              },
+              {
+                "field": "npcs[4].notes",
+                "quote": "the GM should let players' theories shape how it manifests"
+              }
+            ],
+            "reason": "The key has no initial custodian or defined function, the revealing private name has no fixed referent/source, and manifestations may be shaped by player theories. Without a private operational baseline, a player cannot test security or infer knowledge without the facts changing behind them.",
+            "recommendation": "Specify the initial key/coffer custody, how ordinary damage differs from unlocking, the actual name and how the entity learned it, and the bounds of dreams/borrowed mouths. Keep those facts stable when players theorize. Their theories may affect interpretation or symbolic presentation, not retroactively supply powers, secrets or guilt. The god/demon/spirit classification can remain unresolved.",
+            "mitigation": "The bound entity and historical Binding Wars already supply a stable frame. No complete theology or extra mastermind is needed.",
+            "confidence": "High confidence in authored omission/directive; live behavior untested."
+          },
+          {
+            "title": "Clarify whether the Dry Oracle is the guide already accompanying the party",
+            "severity": "P2",
+            "kind": "continuity",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I2",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[2].objective",
+                "quote": "Seek out a reclusive salt-witch"
+              },
+              {
+                "field": "npcs[5].notes",
+                "quote": "A salt-witch hired as the company's guide"
+              },
+              {
+                "field": "locations[3].name",
+                "quote": "Ren Sallow's Cistern-House"
+              }
+            ],
+            "reason": "The obvious intended oracle is Ren, but the arc describes finding a recluse while her dossier already makes her the company’s hired guide. A model may introduce a duplicate oracle or require a pointless search for a present companion.",
+            "recommendation": "Name Ren in the arc and establish whether the party consults her and visits her workshop for records, or meets her there before she joins as guide. Keep her memory limits but supply actual notes/reliefs or another established source if she cannot recall the rite.",
+            "mitigation": "Her cistern-house is already authored and can preserve useful evidence without adding a new location or NPC.",
+            "confidence": "High confidence in authored omission/directive; live behavior untested."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite source review; no generated retcon or forced combat has been observed. Coherent operational truth does not mean explaining away sorcery.",
+          "dissent": "Retain self-interested factions, incomplete understanding and dangerous offers. The goal is real pushback responsive to play, not an agreeable world.",
+          "verificationQuestion": "If the ambush and cult rite are both prevented, what known evidence advances the problem, and does the coffer remain in the condition the party earned?"
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "Strong fit for provisioning and custody; severe magical prices can support deliberate tradeoffs. The current rules instead charge undefined losses after use and require an extra hidden cost for every bargain.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Disclose the concrete sorcery price and its scope before committing the act",
+            "severity": "P1",
+            "kind": "informed-cost",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9; B8",
+              "sourceGrade": "primary; possession/known-cost principles applied by analogy to body, memories and years"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[0]",
+                "quote": "Sorcery in this world always extracts a cost paid in the caster's body, memory, or years"
+              },
+              {
+                "field": "rules[0]",
+                "quote": "make that cost concrete and immediate whenever magic is used."
+              },
+              {
+                "field": "npcs[5].notes",
+                "quote": "at a cost paid in her own memories."
+              }
+            ],
+            "reason": "The universal rule states neither what counts as charged sorcery nor which loss a specific spell requires before the player casts. A routine ability, protective spell or attempt to conserve water can therefore trigger an invented permanent memory/body/lifespan loss. This undermines planning and the player’s established character record even if costly magic is the desired genre.",
+            "recommendation": "Preserve the price, but establish its applicability before play and state the exact proposed loss, permanence and effect before each new charged act. Let the caster decline or seek a mundane route. Use a consistent price for repeated comparable acts and respect recorded payments; do not select a personal memory or bodily change retrospectively. If an uncertain ritual has unknown danger, disclose its bounded uncertainty before acceptance rather than asserting it was an understood price. Ren’s own sacrifices require her agreement too.",
+            "mitigation": "Ren’s memory cost is already a specific thematic example and can demonstrate the rule. Water, shade and mundane travel options can make refusing magic consequential without making casting arbitrary.",
+            "confidence": "High confidence in authored omission/directive; live behavior untested."
+          },
+          {
+            "title": "Do not turn every honored bargain into an unlimited retroactive surcharge",
+            "severity": "P1",
+            "kind": "bargain-and-cost",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B9; B5",
+              "sourceGrade": "primary; known-price/persistence principle applied by analogy"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[1]",
+                "quote": "every truth it offers is incomplete or double-edged"
+              },
+              {
+                "field": "rules[1]",
+                "quote": "a real, honored upside alongside the hidden cost"
+              },
+              {
+                "field": "npcs[4].notes",
+                "quote": "none of its offers are outright lies"
+              }
+            ],
+            "reason": "A mandatory hidden cost on every bargain lets the GM invent any later personal loss even when the player asks precise questions or negotiates safeguards. Not lying is not enough to make a deal actionable if all possible careful choices still require a new undisclosed penalty.",
+            "recommendation": "Fix what the entity offers, wants and can actually take. Distinguish its concealed motive or foreseeable external consequence from an agreed payment that changes the character. Let pointed questions and evidence uncover costs, and honor safeguards and refusal. If the party knowingly accepts a stated unknown risk, keep the realized cost within it. Dangerous bargains may remain tragic without every transaction requiring surprise theft.",
+            "mitigation": "The rule already promises a real honored upside. Preserve that strength and the entity’s inability to lie while bounding its omissions; no need to make it benevolent.",
+            "confidence": "High confidence in authored omission/directive; live behavior untested."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite; resource sources largely come from game inventories/economies. No actual stat, lifespan, memory or inventory mutation observed. This is source-level informed-choice analysis.",
+          "dissent": "Do not abolish sacrifice, add free casting or optimize every bargain into a win. Harsh known costs can be exactly the interesting choice.",
+          "verificationQuestion": "Can the player state a spell’s chosen permanent price before casting, reject it without having paid it, and later verify both the promised benefit and the agreed loss?"
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "Poor cozy-recovery fit by intent: thirst, mercenary loyalty and sorcerous sacrifice define this campaign. No independent mandatory edit from this preference. Locally meaningful help should still be acknowledged.",
+        "resolved": [],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite, not a cozy or short-session playtest. N3/N4/N7 support meaningful local participation; N1/Trust explain taste mismatch, not a demand to remove danger.",
+          "dissent": "Keep the desert’s harshness, Corr’s illness and compromised choices. Nan may choose another blueprint rather than requiring this one to become comforting.",
+          "verificationQuestion": "If the party secures water, shade or a safe place for refugees, does that specific success hold even when the main bargain remains unresolved?",
+          "basis": {
+            "file": "DOC/panel/players/nan_oyelaran_persona.md",
+            "entry": "N3; N4; N7",
+            "sourceGrade": "primary"
+          },
+          "blueprintEvidence": [
+            {
+              "field": "locations[2].description",
+              "quote": "pockets of shade and hidden cisterns make them both a refuge and an ambush ground."
+            },
+            {
+              "field": "npcs[3].notes",
+              "quote": "retire to buy land far from salt and sorcery"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "The promised three-way fate of the coffer could make a strong costly ending. It needs discoverable procedures and concrete consequences so the player’s choice is more than a label the GM resolves arbitrarily.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Define attainable resealing, handover and release outcomes, including refusal",
+            "severity": "P1",
+            "kind": "ending-and-payoff",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3; G6; G7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].turningPoint",
+                "quote": "reseal the Coffered God, deliver it to whichever faction the company has thrown in with, or break it open themselves"
+              },
+              {
+                "field": "acts[2].arcs[1].objective",
+                "quote": "settle what becomes of it and the company"
+              },
+              {
+                "field": "acts[1].arcs[2].objective",
+                "quote": "how the reliquary was sealed and what breaking it will cost"
+              }
+            ],
+            "reason": "No actual resealing requirements, release effects, faction custody consequences or disposition for an abandoned job are specified. The key, personal cost and faction alignment could therefore become requirements invented at the climax, and conversation with the entity has no clear resolution threshold. Ren’s impaired memory risks being the only intended source for the missing facts.",
+            "recommendation": "Define learnable procedures, required resources, valid consenting participants and bounded effects for each feasible outcome. Preserve earned alternatives if Ren refuses, forgets or dies through existing workshop/vault records. A handover must use actual willing custodians; nonalignment or withdrawal should conclude honestly without universal rescue or a forced sequel. Resolve on the chosen action and resulting fate of coffer, company and people actually affected; offer an optional final player contribution.",
+            "mitigation": "The cistern-house, binding history and Two Thrones vaults already support durable records and physical procedures. Distinct faction desires provide consequences without requiring a new battle or guaranteed good ending.",
+            "confidence": "High confidence in authored omission/directive; live behavior untested."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite source review, not a completed campaign or engine test. No claim that UI, mementos or campaign-ending code is missing. G7 supports stable rules, not mechanically defeating every entity.",
+          "dissent": "A costly, morally compromised ending is appropriate. Preserve that harshness while making the cost attributable to actual decisions, not to an improvised final punishment.",
+          "verificationQuestion": "If the company refuses every faction and Ren cannot advise, can it still discover a supported action or choose an honest withdrawal and reach a specific ending?"
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Preserve sorcery’s price but disclose its scope and each concrete payment before the act; require the actual caster’s choice and respect established character facts.",
+        "Bound the god’s offers, permissions and hidden motives so safeguards or refusal can matter; no mandatory unlimited retroactive surcharge.",
+        "Make ambush damage, cult waking and faction convergence contingent on actual access, knowledge and player actions.",
+        "Fix key/coffer custody and operational lore, and clarify Ren’s guide/oracle role with durable alternate rite sources.",
+        "Specify feasible endings and their known costs; retain harsh consequences and honest withdrawal without forcing allegiance or a sequel.",
+        "After editing, test these deviations and costs in actual play. No source review proves pacing, comprehension or engine completion."
+      ],
+      "dissent": [
+        "Nan is an intentional poor cozy fit; that does not justify removing deprivation or moral discomfort.",
+        "Bert supports harsh prices that can be understood and chosen; he is not demanding free magic or a loot-centric redesign.",
+        "Ines welcomes hostile factions and uncertainty about divinity; stable operational truth need not remove wonder.",
+        "Gerry accepts tragic outcomes when specific and earned; Rosa needs coherent recaps, not a shorter campaign."
+      ]
+    }
+  }
+]

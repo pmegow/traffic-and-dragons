@@ -626,3 +626,5 @@ zero 2026-07-27 and again 2026-07-30.
 - 2026-10-13 · #626 · Codex, owner-requested Last Lantern-Seed blueprint review: three complete edit/panel cycles after baseline; v1.0 candidate with fixed rite, bounded light, contingent threats and explicit restoration/refuge consequences. Content and review records only; no engine change. Record: DOC/panel/reviews/last-lantern-seed/review_cycles.html.
 
 - 2026-10-13 · #626 · Codex, owner-requested Almanac of Owed Names blueprint review: three complete edit/panel cycles after baseline; v1.0 candidate with fixed Compact chronology, evidence, invitation/pledge rules and costly ending routes. Content and review records only; no engine change. Record: DOC/panel/reviews/almanac-of-owed-names/review_cycles.html.
+
+- 2026-10-13 · #627 · Codex, owner-requested Coffered God blueprint review: baseline and three full panel rereads, v1.0 candidate; bounded costly sorcery, physical seal/release procedures, causal theft evidence, conditional threats and catalog warning. Content/review records only; no engine change. Record: DOC/panel/reviews/coffered-god/review_cycles.html.

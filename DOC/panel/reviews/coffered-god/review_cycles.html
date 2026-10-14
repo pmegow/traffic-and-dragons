@@ -1,0 +1,4656 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Weight of the Coffered God — panel revision record</title>
+<link rel="stylesheet" href="../../../../satellite.css">
+<style>body{max-width:1060px;margin:auto;padding:32px 24px 70px;line-height:1.6;font-size:17px}h1,h2,h3{color:var(--acc);line-height:1.22}h1{font-size:2.25rem;margin:.35em 0}h2{font-size:1.5rem;margin:1.8em 0 .6em}h3{font-size:1.15rem}header{border-bottom:2px solid var(--acc);padding-bottom:22px}nav{display:flex;flex-wrap:wrap;gap:8px 20px}.meta,.basis{color:var(--t1);font-size:.9em}section.overview,details.reviewer{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);padding:18px 22px;margin:20px 0}section.overview{border-left:4px solid var(--acc)}summary{cursor:pointer;color:var(--acc);font-weight:bold;padding:6px 0}article{border-top:1px solid var(--brd);margin-top:22px;padding-top:8px}p,li,dd,a,code{overflow-wrap:anywhere}li{margin:.45em 0}ul{padding-left:24px}dt{font-weight:bold;margin-top:.4em}dd{margin-left:18px}dd ul{margin-top:0}code{font-size:.8em}footer{border-top:1px solid var(--brd);margin-top:36px;padding-top:16px}@media(max-width:500px){body{padding:20px 14px;font-size:16px}h1{font-size:1.85rem}section.overview,details.reviewer{padding:14px}dd{margin-left:12px}}@media print{details{display:block}details>*{display:block}}</style>
+</head>
+<body>
+<header>
+<p class="meta">TASK 627 · 13 OCTOBER 2026 · SPOILERS</p>
+<h1>The Weight of the Coffered God</h1>
+<p>Three review passes and revisions · final v1.0 Release Candidate</p>
+<nav>
+<a href="../../../../samples/the_weight_of_the_coffered_god.blueprint">Final blueprint</a>
+<a href="iterations/final.blueprint">Final snapshot</a>
+<a href="#round-0">Baseline</a>
+<a href="#round-1">Round 1</a>
+<a href="#round-2">Round 2</a>
+<a href="#round-3">Round 3</a>
+</nav>
+</header>
+<section class="overview">
+<h2>Outcome</h2>
+<p>All three full post-revision reviews completed, with all fourteen perspectives represented each time. Final editorial assessments are clean. The campaign remains harsh swords-and-sorcery, with a consistent physical cage, costly magic and earned consequences.</p>
+<p>Not yet published.</p>
+</section>
+<h2>Method</h2>
+<p>Three delegated passes apply five design lenses, four writing lenses and five composite player personas to the same snapshot at baseline and in each of three review passes. All fourteen perspectives reread each candidate. These are rubric applications, not participation by the named authors, interviews or human playtests. Source grades, evidence, mitigations and dissent remain visible below. No one-hour target was imposed on this campaign.</p>
+<h2>Changes and verification</h2>
+<ul>
+<li>Defined the physical key and inner cage, bounded release and resealing procedures, and concrete faction outcomes.</li>
+<li>Preserved the price of sorcery while requiring scope and concrete consequences before commitment.</li>
+<li>Fixed the theft, Oren evidence, Ren workshop route, conditional pursuit and Corr motivation.</li>
+<li>Added the magic-price warning to the existing catalog pitch (199 characters); verified the complete sentence in a 390px homepage render. The separate hero-selection preview work in #447 remains open.</li>
+<li>Later review corrected an introduced shell-opening/release ambiguity and made the promised dry-site release physically explicit.</li>
+</ul>
+<p>Final normalization and disposable engine import preserve all 69 authored text fields across 9 arcs, 6 NPCs, 5 locations and 8 rules; no overflows. The 199-character catalog warning was visually checked at 390px. Review hashes and all four complete review sets are recorded. No model narration or actual player test.</p>
+<p class="meta">Final file SHA-256: <code>490c1a85f1cb95e7aa3d5545256770b7ffc3af322dcb8d7f3137c7d0ceccdc1d</code>
+</p>
+<section id="round-0">
+<h2>Baseline assessment</h2>
+<p>Baseline: unbounded costs, unspecified seal/endings, forced escalations and missing causal evidence.</p>
+<p>
+<a href="iterations/round-0.blueprint">Exact snapshot</a> · <a href="iterations/round-0-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>429fe63738a639b8b122c9589d7f4b3fef5edc04218cb817aba84e65c9e97303</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>Strong fit for mercenary danger, scarce water and an object that competing powers want; the decisive object rules need a stable operational basis.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The key, seal states and promised ending procedures are undefined</dd>
+<dt>Kind</dt>
+<dd>content / causal rules</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Basis</dt>
+<dd>5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>premise: &quot;bargain with anyone carrying the key&quot;</li>
+<li>acts[0].turningPoint: &quot;The reliquary cracks during an ambush&quot;</li>
+<li>acts[1].turningPoint: &quot;a rite that partially wakes the Coffered God&quot;</li>
+<li>acts[2].turningPoint: &quot;reseal the Coffered God, deliver it to whichever faction the company has thrown in with, or break it open themselves&quot;</li>
+<li>npcs[4].notes: &quot;speaks in fragments through cracks, dreams, and borrowed mouths&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The premise introduces a key without assigning its custody or function. Cracking, partial waking, resealing and opening are distinct story milestones but have no defined triggers, limits or achievable procedures. The narrator must invent whether a precaution or attempted ending works and can change the box&#x27;s powers to force the next milestone. This is missing operational information, not a demand to identify the entity&#x27;s cosmic nature.</dd>
+<dt>Recommendation</dt>
+<dd>Add a compact common rule for intact/cracked/open states, the key&#x27;s initial custody and exact use, what contact or possession permits, and at least one feasible resealing method with discoverable prerequisites and price. State the immediate practical difference between resealing, delivering an intact or damaged box, opening it and abandoning the job; keep later politics uncertain.</dd>
+<dt>Mitigation</dt>
+<dd>Ren knows sealing fragments, Sister Ash-Tongue has read sealing texts, and Two Thrones has actual reliquary vaults. These are credible existing anchors for the procedures. The final menu already offers multiple outcomes; it needs workings rather than additional endings.</dd>
+<dt>Confidence</dt>
+<dd>High</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>Do not turn the salt crossing into a detailed simulation or require a taxonomy for the God. No observation of travel resource tracking, import behavior or generated adjudication is claimed.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Strong faction wants and an honest but dangerous offer create useful choices; the cost instructions can currently turn those choices into retrospective permanent penalties.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>All magic can receive an undefined permanent surcharge after use</dd>
+<dt>Kind</dt>
+<dd>content / playable cost boundary</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Basis</dt>
+<dd>1.2 and 1.3 (S:action-roll / S:setting-position-effect, primary); 1.7 (S:action-roll, primary); 7.4 (LF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[0]: &quot;Sorcery in this world always extracts a cost paid in the caster&#x27;s body, memory, or years&quot;</li>
+<li>rules[0]: &quot;the GM should make that cost concrete and immediate whenever magic is used.&quot;</li>
+<li>npcs[5].notes: &quot;magic lets her read weather and water in the Flats at a cost paid in her own memories&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The campaign explicitly mandates an extra-seeming body, memory or lifespan payment on every magic use without defining whether ordinary spell-resource costs count, which effects require a further payment, how large it is or when the player learns it. A familiar healing or utility action can therefore acquire an invented irreversible loss after the player has acted. Ren demonstrates the intended harsh texture but does not establish playable boundaries for anyone else.</dd>
+<dt>Recommendation</dt>
+<dd>Define the scope of the sorcery price relative to normal character abilities, plus a small consistent method for pricing it. State the concrete loss or bounded risk before a player commits, allow them to decline, and record the paid cost consistently. If ordinary magic also exacts a bodily price, make that rule explicit from entry rather than silently exempting it. Memory loss should identify the agreed memory, not authorize retroactive identity rewriting.</dd>
+<dt>Mitigation</dt>
+<dd>The price is deliberate genre design, and the text does require a concrete immediate consequence. Preserve that cost and Ren&#x27;s memory erosion; the correction is scope, amount and disclosure rather than free sorcery.</dd>
+<dt>Confidence</dt>
+<dd>High</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Every bargain must conceal a cost with no limit on its scope</dd>
+<dt>Kind</dt>
+<dd>content / bargain consequence boundary</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>1.7 (S:action-roll, primary, free acceptance of named cost); 7.4 (LF, primary, evidence before danger).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[1]: &quot;every truth it offers is incomplete or double-edged&quot;</li>
+<li>rules[1]: &quot;a real, honored upside alongside the hidden cost.&quot;</li>
+<li>npcs[4].notes: &quot;none of its offers are outright lies&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>Honoring the upside is valuable, but the mandatory hidden cost has no ceiling, trigger or tie to established capabilities. Even a carefully negotiated offer can acquire an arbitrary additional loss after acceptance. This conflicts with informed sacrifice more directly than ordinary antagonist secrecy does; it is distinct from routine spell pricing.</dd>
+<dt>Recommendation</dt>
+<dd>Keep half-truths, sinister implications and discoverable omissions. Bound the actual payment and what the God can take or make happen; let players inspect, ask and refuse. Establish signs or a discoverable source for any serious concealed risk. Do not force a new secret permanent bodily, memory or lifespan surcharge merely because every offer must be double-edged.</dd>
+<dt>Mitigation</dt>
+<dd>The God cannot lie outright and must honor a real upside. Those protections should remain. Unknown long-term consequences and morally ugly choices can persist; this recommendation does not require revealing every future event or making the entity safe.</dd>
+<dt>Confidence</dt>
+<dd>High on the unbounded wording; medium on the practical likelihood of unfair adjudication.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>The Blades bargain principle is a design comparison, not a requirement to port Blades mechanics or prohibit deceptive swords-and-sorcery antagonists. The authored structure is the settled section 10 tradeoff.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>The company, rivals and dangerous landscape create pressures worth playing out; several turning points pre-decide results that should respond to intervention.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The crack, awakening and final convergence happen regardless of prevention</dd>
+<dt>Kind</dt>
+<dd>content / contingent outcomes</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Basis</dt>
+<dd>1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[0].turningPoint: &quot;The reliquary cracks during an ambush&quot;</li>
+<li>acts[1].turningPoint: &quot;The Cinder Chorus performs a rite that partially wakes the Coffered God&quot;</li>
+<li>acts[2].goal: &quot;survive the collision of all three hunters at the gates&quot;</li>
+<li>acts[2].arcs[0].objective: &quot;the converged forces of Hask Vane and the Cinder Chorus&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>These are stated as completed results, not threats with requirements. The party may protect the coffer, identify and stop the cult rite, convince Hask to withdraw, hand off the coffer earlier or take another route, yet the next act still demands the crack, awakening or convergence. The issue is these local guarantees, not the existence of an authored three-act structure.</dd>
+<dt>Recommendation</dt>
+<dd>Make each threat depend on named surviving actors, access to the coffer and actual preparation. Give the rite visible warning and a way to interrupt it. Preserve prevented damage, earlier bargains or departures and depleted factions in the final confrontation; close superseded leads without granting their discoveries.</dd>
+<dt>Mitigation</dt>
+<dd>Act II already allows combat, sabotage or parley; Hask can be persuaded by the truth or offer a competing contract; the ending offers different allegiances. These existing branches support the fix. Keep enemy initiative and costly failure when their conditions actually occur.</dd>
+<dt>Confidence</dt>
+<dd>High</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>The AW principles here are coauthored by Vincent and Meguey Baker. Do not guarantee survival, preserve every NPC or require that the company remain loyal. Theories shaping manifestation are not by themselves proof of a historical-retcon defect.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>The cast contains good explanatory sources and opposed motives; two clues currently ask the narrator to invent the load-bearing information.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The employer-only name has no fixed identity or causal provenance</dd>
+<dt>Kind</dt>
+<dd>content / evidence</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>1.2 and 1.3 (SRD, primary); 1.9 (INFO, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[0].turningPoint: &quot;something inside speaks a name only the company&#x27;s employer should know&quot;</li>
+<li>npcs[0].notes: &quot;she stole it from a rival consul&#x27;s tomb and needs it delivered quietly before the theft is discovered.&quot;</li>
+<li>npcs[0].notes: &quot;She surfaces as untrustworthy the moment the company asks pointed questions&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The name is the first supposed proof that the job is false, but neither the name nor its connection to the employer, the God&#x27;s knowledge or independently checkable evidence is authored. The narrator can supply any secret that fits an accusation, while the employer record prescribes distrust rather than a specific discoverable discrepancy.</dd>
+<dt>Recommendation</dt>
+<dd>Choose one fixed name and underlying event the God could actually know; connect it to the tomb theft or another already established fact. Give the party one concrete record, mark or witness that can confirm the connection, including a route that survives preventing the ambush. Questions should reveal facts and evasions rather than automatically establish the desired conclusion.</dd>
+<dt>Mitigation</dt>
+<dd>Ysbet&#x27;s theft and Sister Ash-Tongue&#x27;s archival background provide possible anchors. The God&#x27;s truthful fragments can remain ambiguous evidence requiring interpretation; no full confession is necessary.</dd>
+<dt>Confidence</dt>
+<dd>High</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The Dry Oracle route is unclear about who supplies the essential sealing knowledge</dd>
+<dt>Kind</dt>
+<dd>content / clue route and continuity</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].arcs[2].objective: &quot;Seek out a reclusive salt-witch who may know how the reliquary was sealed and what breaking it will cost&quot;</li>
+<li>npcs[5].notes: &quot;A salt-witch hired as the company&#x27;s guide&quot;</li>
+<li>npcs[5].notes: &quot;her fading memory makes her an unreliable narrator of her own warnings.&quot;</li>
+<li>locations[3].name: &quot;Ren Sallow&#x27;s Cistern-House&quot;</li>
+<li>npcs[2].notes: &quot;a former vault-city archivist who read the sealing texts&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The arc reads as a search for a reclusive witch, while the only witch and matching home belong to the guide already hired into the company. This can be reconciled, but the blueprint does not say whether the arc means consulting Ren at her home or finding another person. More importantly, essential opening/resealing knowledge currently rests on someone who only may know and forgets, with no authored reliable corroboration.</dd>
+<dt>Recommendation</dt>
+<dd>Clarify whether the destination is Ren&#x27;s own cistern workshop or a different named source. Once the object procedures are fixed, place the necessary operational facts in concrete reachable evidence, for example Ren&#x27;s preserved notes or reliefs and the cult&#x27;s copied sealing text; credible inspection yields the core facts while optional detail or access can remain costly. Preserve Ren&#x27;s personal gaps without letting them erase every workable ending.</dd>
+<dt>Mitigation</dt>
+<dd>The cistern-house reliefs, old sealing texts, Ren&#x27;s partial training and vault-city archives already supply plausible material. The text does not explicitly require a failed-roll clue gate, so this is an under-specified route and reliability risk, not an observed blocked session.</dd>
+<dt>Confidence</dt>
+<dd>High on source ambiguity; medium on risk of the information being withheld in actual play.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>A static outline does not establish that clues will be blocked or that the engine requires every parallel arc. No deadline, duration or session-length recommendation is inferred.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>Good fit for compromised attachment inside harsh adventure: Corr&#x27;s desired retirement, Ren&#x27;s lost memories, Hask&#x27;s mistaken belief and the bound God&#x27;s desire all provide an interior. No additional independent correction beyond the concrete cost and ending issues above.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>2.7 (S2, primary) supports offered payoffs rather than imposed obligations; 7.3 (S2, primary) supports the existing antagonist interiors; 4.6 (S1, primary) suggests ending on what the company actually changed or lost. These are strengths and a possible finishing emphasis, not grounds to require a new character arc, absolution, comfort or removal of the swords-and-sorcery price. No emotional effect has been observed.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Define the coffer&#x27;s key, state changes, contact limits and achievable ending procedures while leaving its ultimate nature uncertain.</li>
+<li>Bound and disclose player-facing sorcery payments; preserve real harsh prices and meaningful hidden implications without arbitrary retrospective permanent loss.</li>
+<li>Make the ambush damage, cult rite and gate confrontation conditional on surviving threats and actual choices.</li>
+<li>Anchor the employer-only name and clarify the oracle/source route so necessary operational knowledge has reliable, reachable evidence.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>The price of magic is an intended strength of this genre, not a defect to remove. Harper&#x27;s informed-cost preference conflicts with an entirely unrestricted secret-price rule; the recommended compromise preserves deceit and dangerous consequences while making irreversible payment boundaries playable.</li>
+<li>An authored campaign spine is an accepted tradeoff. Only specified results that can contradict successful prevention are flagged, not all predetermined locations or faction plans.</li>
+<li>The God&#x27;s ultimate identity and metaphysical origin can remain unknown. Its actionable powers and bargains need consistency; uncertainty alone is not a mystery defect.</li>
+<li>No one-hour target applies. The long salt crossing, scarcity, mercenary motives and possible loss should remain. No human playtest, generated narration, normalization or runtime completion was performed by this review.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Strong costly-magic premise; revision needed to give its decisive powers and prices consistent private causes. This applies documented rubric positions, not the author&#x27;s participation or a runtime prose judgment.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ren&#x27;s weather and water magic binds practical need to an intimate loss, giving the journey more than combat stakes. Preserve that price rather than making her a free exposition source.</dd>
+<dt>Basis</dt>
+<dd>§3.4 knowledge serving need and §8.3 magic&#x27;s moral cost (◐ secondary); §4.2–4.5 relational/container stories (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>at a cost paid in her own memories</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>a teacher she can no longer fully remember</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Promised sealing choices have no established mechanism or bounded bargain costs</dd>
+<dt>Kind</dt>
+<dd>authored causal gap</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Basis</dt>
+<dd>§8.3–8.4 cost and consequences, §9.1 consistent world and §9.3 meaningful magic (◐ secondary). Application to an interactive choice is the reviewer&#x27;s inference.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>bargain with anyone carrying the key</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].turningPoint</dd>
+<dt>Quote</dt>
+<dd>reseal the Coffered God</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>cost paid in the caster&#x27;s body, memory, or years</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>a real, honored upside alongside the hidden cost</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The key has no assigned carrier, origin or operation; neither a resealing method nor the effect of opening is established. A general category of sorcery price cannot distinguish a feasible difficult choice from a new cost invented after commitment. The explicitly hidden bargain downside is genre-appropriate, but no private fixed exchange or clue constrains it.</dd>
+<dt>Recommendation</dt>
+<dd>Define the key and what damage, partial waking, opening and resealing each permit. Give at least one attainable resealing route with a fixed price and credible sources independent of Ren&#x27;s unreliable recall. Establish bounded example bargains and discoverable signs of their hidden costs before acceptance; keep divine taxonomy uncertain and bargains dangerous.</dd>
+<dt>Mitigation</dt>
+<dd>Ren knows fragments, the Dry Oracle arc promises knowledge, and both rules demand real cost and an honored benefit. Those are useful intentions but do not supply a method, limits or a fixed exchange. This need not become an exhaustive magic system or disclose every twist.</dd>
+<dt>Confidence</dt>
+<dd>high</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No corpus was assessed; §17 precludes claims about generated rhythm, diction or experienced emotional weight. The concern is missing authored causal support, not evidence that a model already mishandled a bargain.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>The salt road, venal employer and dangerous confined power fit the selected genre. The opening contract and clue need a more convincing causal chain.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Specific survival geography and competing venal interests already give the adventure a material texture; no need to replace the road with a city campaign or explain away the supernatural.</dd>
+<dt>Basis</dt>
+<dd>§2.2 occupational/material specificity (C:1 ●), §9.1 wonder/fear (A:5 ●/◐), §10.3 local venal antagonism (C:1 ◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[0].description</dd>
+<dt>Quote</dt>
+<dd>built around a brackish well</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[2].description</dd>
+<dt>Quote</dt>
+<dd>pockets of shade and hidden cisterns</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>occasionally offer the company a better deal than their current employer</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The stolen relic&#x27;s journey and employer-only name do not yet form an investigable lie</dd>
+<dt>Kind</dt>
+<dd>authored causal gap</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>§9.3 confirmation of seeded suspicion (A:6 ◐), §9.5 convincing fiction (A:5 ●/◐), §10.3 specific venal motives (C:1 ◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>she stole it from a rival consul&#x27;s tomb</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>needs it delivered quietly before the theft is discovered</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>across the Ash Flats to the vault-city of Two Thrones</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>speaks a name only the company&#x27;s employer should know</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>Ysbet is a Two Thrones magistrate transporting a tomb theft to Two Thrones, but the tomb&#x27;s location, reason for this route and intended quiet recipient/use are unspecified. The supposedly decisive name is unnamed, with no established secret or reason the god knows it. A theft and a shocking utterance can therefore become disconnected plot devices rather than evidence of the opening deception.</dd>
+<dt>Recommendation</dt>
+<dd>Fix where and why Ysbet stole the coffer, why it must cross the Flats now and what she expects at delivery. Name the secret utterance, its causal significance and how the god learned it; allow documents or testimony to expose the same relevant fact if the box never cracks.</dd>
+<dt>Mitigation</dt>
+<dd>Her theft is a concrete private fact, and questioning is invited. The issue is missing links, not an impossible journey or a demand for a long political history. The god&#x27;s ultimate identity can remain unresolved.</dd>
+<dt>Confidence</dt>
+<dd>high</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>The atmosphere is assessed as authored material, not proven player dread. No demand for a universally defeatable god, a comfortable ending or a short campaign.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Different faction motives offer promising choices, but fixed escalations and unspecified social outcomes could erase their differences.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The setting already connects material scarcity, conquest and faction dependence, while Hask&#x27;s mistaken belief creates leverage beyond killing him.</dd>
+<dt>Basis</dt>
+<dd>§3.5 society as resource allocation (GR ●) and §9.3 consequential choice (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>water is currency and shade is a weapon</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>this ignorance can be turned into leverage</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Faction choices do not propagate into the scripted crack, awakening and final convergence</dd>
+<dt>Kind</dt>
+<dd>authored unconditional events</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Basis</dt>
+<dd>§5.1 planned structure (WE ●) and §9.3 choices must change the plot (WE ●); interactivity application is explicit.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>The reliquary cracks during an ambush</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>The Cinder Chorus performs a rite that partially wakes the Coffered God</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[0].objective</dd>
+<dt>Quote</dt>
+<dd>combat, sabotage, or a dangerous parley</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[0].objective</dd>
+<dt>Quote</dt>
+<dd>the converged forces of Hask Vane and the Cinder Chorus</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The text offers sabotage, bargaining and investigation but guarantees the damage, successful cult rite and both armies at the gates. It supplies no conditions or substitute discovery paths if the ambush is avoided, the infiltrators stopped or a faction redirected. This is an authored mandate risk, not a demonstrated runtime failure.</dd>
+<dt>Recommendation</dt>
+<dd>Make each escalation conditional on actual access, damage and surviving faction plans. Preserve successful prevention and prior alliances at the gates; give evidence or a chosen bargain another route to relevant knowledge. Allow an earlier settled coffer decision to produce consequences rather than restoring a required final confrontation.</dd>
+<dt>Mitigation</dt>
+<dd>Several arc objectives already offer alternative tactics and the final choice names multiple options. Keep the three-act structure and active antagonists; the fix is causal propagation, not unlimited branching or a guarantee that every plan succeeds.</dd>
+<dt>Confidence</dt>
+<dd>high</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The final recipients and choices have no stated consequences for water, rule or the company</dd>
+<dt>Kind</dt>
+<dd>authored ending gap</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>§3.2 self-maintaining power (LS ●), §3.5 resource allocation (GR ●), §9.1–9.3 changed endings and consequential choice (WE ●; §9.2 ◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].turningPoint</dd>
+<dt>Quote</dt>
+<dd>deliver it to whichever faction the company has thrown in with</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>settle what becomes of it and the company</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>whose blessing would make his rule unquestionable</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[2].notes</dd>
+<dt>Quote</dt>
+<dd>let something truer grow</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The ending promises a meaningful choice between resealing, handover and release, but neither the factions&#x27; practical use of the coffer nor the immediate aftermath is specified. Hask&#x27;s legitimizing blessing is only his belief; the Chorus&#x27;s new world is a slogan. The author has not yet stated how these alternatives affect the mercenaries or those living under salt-barony water control.</dd>
+<dt>Recommendation</dt>
+<dd>Provide concise conditional aftermaths for the established choices: who can actually hold/use the coffer, what Hask&#x27;s discovery changes, what release immediately does, and one concrete consequence for water access or city/refugee life plus the company&#x27;s payment/loyalties. Permit withdrawal or abandonment with consequences if earned. Do not promise regime repair merely because a leader falls.</dd>
+<dt>Mitigation</dt>
+<dd>Water scarcity, refugees and the city&#x27;s soldiery already anchor possible consequences. No new faction hierarchy or utopian alternative is necessary, and outcomes can be harsh or incomplete.</dd>
+<dt>Confidence</dt>
+<dd>high</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No demand to remove oppression from a deliberately harsh setting or restore an ideal past. The missing outcomes are on the page; actual player agency and comprehension are untested.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>The traveling company&#x27;s conflicting self-interest is a strong foundation. Corr&#x27;s central contradiction needs a motive that can cause behavior, rather than automatic deterioration.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Retirement, legitimacy and liberation are different wants, and antagonists have intelligible self-justifications without being excused. Preserve the road-company focus.</dd>
+<dt>Basis</dt>
+<dd>§5.4 understandable people (B:Fantasy-Hive ●), §5.5 small group on the road (B:Winter is Coming ●), §6.1–6.3 motives without exoneration (B:Fantasy-Hive ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>retire to buy land far from salt and sorcery</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[1].notes</dd>
+<dt>Quote</dt>
+<dd>He is ruthless but not stupid</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[2].notes</dd>
+<dt>Quote</dt>
+<dd>became a convert rather than a scholar</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Corr&#x27;s illness automatically produces suicidal risk without linking it to his retirement goal</dd>
+<dt>Kind</dt>
+<dd>authored motivation gap</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>§5.4 self-understanding (B:Fantasy-Hive ●), §5.6 character/action causality (B:Dark Matter Zine ●), §8.1 honesty (A:Advice for Budding Fantasists ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>finish this job clean and retire to buy land</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>he&#x27;s dying of a wasting sickness</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>increasingly willing to take suicidal risks as the campaign goes on</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>Wanting land while dying can be a powerful contradiction, but illness alone does not explain why Corr escalates toward suicidal choices rather than pursuing a cure, saving his comrades, denying the diagnosis or rushing retirement. The automatic progression lets a useful person collapse into a doomed-veteran plot function.</dd>
+<dt>Recommendation</dt>
+<dd>Choose the private link between his knowledge, land dream and risk: for example a cure he distrusts, provision for someone else, refusal to let a third company die, or a deliberate last useful act. Tie risk-taking and willingness to bargain to actual offers, trust and circumstances rather than campaign progress alone.</dd>
+<dt>Mitigation</dt>
+<dd>His two lost companies already supply an excellent motive and do not need another subplot. He need not be cured, likable or safe; illness can remain terminal and choices costly.</dd>
+<dt>Confidence</dt>
+<dd>medium</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No dialogue corpus or experienced ending was tested. Keep genuine bleakness and self-deception; more gore or guaranteed betrayal would not address this finding.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Establish the coffer/key&#x27;s private operation, attainable resealing route and bounded bargain prices while retaining supernatural ambiguity.</li>
+<li>Connect Ysbet&#x27;s theft, transport objective and secret-name clue into one fixed causal account.</li>
+<li>Condition major escalations and the gate collision on what factions and the company actually did.</li>
+<li>Give each feasible ending a concrete immediate political/material and company consequence.</li>
+<li>Link Corr&#x27;s illness-driven behavior to an intelligible private motive.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Le Guin&#x27;s preference for gathering and relational stories is not a veto on this chosen swords-and-sorcery escort campaign; travel, provisioning and company loyalties already support that shape.</li>
+<li>Leiber permits an unknowable and dangerous supernatural entity. Fixed operational facts need not settle whether it is god, demon or bound king.</li>
+<li>Abercrombie supports unsettling earned consequences; neither transparent authorship nor legible clues require safe bargains or a happy ending.</li>
+<li>The Jemisin lens asks what choices change, not that every ending emancipate the region. Do not homogenize the factions into equally good options.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>Conditional audio fit for a long, harsh journey. No separate mandatory source edit from this lens; the shared price/custody fixes must be explainable in a short spoken decision, without requiring a visual ledger.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite, not a driving or audio playtest. R1 mixes primary and secondary evidence; R5/R10 inferred positions unused. No short-total-duration demand.</dd>
+<dt>Dissent</dt>
+<dd>Keep the long crossing and faction depth. Audio re-entry needs concise known state, not removal of consequential decisions.</dd>
+<dt>Verification question</dt>
+<dd>After a pause, can the listener identify the reliquary’s actual custodian, its known condition and the exact offered cost before agreeing to magic?</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R1; R2; R4</dd>
+<dt>Source grade</dt>
+<dd>R1 mixed primary/secondary; R2/R4 primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>a sealed iron-and-salt reliquary across the Ash Flats</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>the caster&#x27;s body, memory, or years</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>Promising faction pressure and an honestly dangerous bargain. Fix operational truths and prevent the dramatic outline from undoing player precautions; uncertainty about the entity’s ultimate origin can remain.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Make damage, waking and converging enemies depend on actual events</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Kind</dt>
+<dd>agency-and-causality</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I4; I9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>The reliquary cracks during an ambush</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>The Cinder Chorus performs a rite that partially wakes the Coffered God</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[0].objective</dd>
+<dt>Quote</dt>
+<dd>the converged forces of Hask Vane and the Cinder Chorus</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The outline guarantees damage, the cult’s successful rite and both factions at the gates. Avoiding the ambush, protecting the coffer, exposing infiltrators, stopping the rite or reaching an agreement can be nullified just to produce the next act. Harsh opposition need not make success secretly irrelevant.</dd>
+<dt>Recommendation</dt>
+<dd>Define how damage and partial waking occur, what access/materials/time the cult needs, and what changes if the party prevents them. Let evidence or another earned event reveal the stakes without forcing a crack. Only forces that remain capable and informed reach the gates; honor earlier defeats, cooperation, detours and delay.</dd>
+<dt>Mitigation</dt>
+<dd>Hask’s ignorance can already be used as leverage, and his arc allows parley. Extend that existing possibility to the transitions rather than softening his ruthlessness.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in authored omission/directive; live behavior untested.</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Fix the coffer’s actionable facts while leaving its ultimate nature uncertain</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Kind</dt>
+<dd>fixed-truth</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>bargain with anyone carrying the key</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>a name only the company&#x27;s employer should know</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>the GM should let players&#x27; theories shape how it manifests</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The key has no initial custodian or defined function, the revealing private name has no fixed referent/source, and manifestations may be shaped by player theories. Without a private operational baseline, a player cannot test security or infer knowledge without the facts changing behind them.</dd>
+<dt>Recommendation</dt>
+<dd>Specify the initial key/coffer custody, how ordinary damage differs from unlocking, the actual name and how the entity learned it, and the bounds of dreams/borrowed mouths. Keep those facts stable when players theorize. Their theories may affect interpretation or symbolic presentation, not retroactively supply powers, secrets or guilt. The god/demon/spirit classification can remain unresolved.</dd>
+<dt>Mitigation</dt>
+<dd>The bound entity and historical Binding Wars already supply a stable frame. No complete theology or extra mastermind is needed.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in authored omission/directive; live behavior untested.</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Clarify whether the Dry Oracle is the guide already accompanying the party</dd>
+<dt>Severity</dt>
+<dd>P2</dd>
+<dt>Kind</dt>
+<dd>continuity</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I2</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[2].objective</dd>
+<dt>Quote</dt>
+<dd>Seek out a reclusive salt-witch</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>A salt-witch hired as the company&#x27;s guide</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>locations[3].name</dd>
+<dt>Quote</dt>
+<dd>Ren Sallow&#x27;s Cistern-House</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The obvious intended oracle is Ren, but the arc describes finding a recluse while her dossier already makes her the company’s hired guide. A model may introduce a duplicate oracle or require a pointless search for a present companion.</dd>
+<dt>Recommendation</dt>
+<dd>Name Ren in the arc and establish whether the party consults her and visits her workshop for records, or meets her there before she joins as guide. Keep her memory limits but supply actual notes/reliefs or another established source if she cannot recall the rite.</dd>
+<dt>Mitigation</dt>
+<dd>Her cistern-house is already authored and can preserve useful evidence without adding a new location or NPC.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in authored omission/directive; live behavior untested.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite source review; no generated retcon or forced combat has been observed. Coherent operational truth does not mean explaining away sorcery.</dd>
+<dt>Dissent</dt>
+<dd>Retain self-interested factions, incomplete understanding and dangerous offers. The goal is real pushback responsive to play, not an agreeable world.</dd>
+<dt>Verification question</dt>
+<dd>If the ambush and cult rite are both prevented, what known evidence advances the problem, and does the coffer remain in the condition the party earned?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>Strong fit for provisioning and custody; severe magical prices can support deliberate tradeoffs. The current rules instead charge undefined losses after use and require an extra hidden cost for every bargain.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Disclose the concrete sorcery price and its scope before committing the act</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Kind</dt>
+<dd>informed-cost</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B9; B8</dd>
+<dt>Source grade</dt>
+<dd>primary; possession/known-cost principles applied by analogy to body, memories and years</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>Sorcery in this world always extracts a cost paid in the caster&#x27;s body, memory, or years</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>make that cost concrete and immediate whenever magic is used.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>at a cost paid in her own memories.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The universal rule states neither what counts as charged sorcery nor which loss a specific spell requires before the player casts. A routine ability, protective spell or attempt to conserve water can therefore trigger an invented permanent memory/body/lifespan loss. This undermines planning and the player’s established character record even if costly magic is the desired genre.</dd>
+<dt>Recommendation</dt>
+<dd>Preserve the price, but establish its applicability before play and state the exact proposed loss, permanence and effect before each new charged act. Let the caster decline or seek a mundane route. Use a consistent price for repeated comparable acts and respect recorded payments; do not select a personal memory or bodily change retrospectively. If an uncertain ritual has unknown danger, disclose its bounded uncertainty before acceptance rather than asserting it was an understood price. Ren’s own sacrifices require her agreement too.</dd>
+<dt>Mitigation</dt>
+<dd>Ren’s memory cost is already a specific thematic example and can demonstrate the rule. Water, shade and mundane travel options can make refusing magic consequential without making casting arbitrary.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in authored omission/directive; live behavior untested.</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Do not turn every honored bargain into an unlimited retroactive surcharge</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Kind</dt>
+<dd>bargain-and-cost</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B9; B5</dd>
+<dt>Source grade</dt>
+<dd>primary; known-price/persistence principle applied by analogy</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>every truth it offers is incomplete or double-edged</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>a real, honored upside alongside the hidden cost</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>none of its offers are outright lies</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>A mandatory hidden cost on every bargain lets the GM invent any later personal loss even when the player asks precise questions or negotiates safeguards. Not lying is not enough to make a deal actionable if all possible careful choices still require a new undisclosed penalty.</dd>
+<dt>Recommendation</dt>
+<dd>Fix what the entity offers, wants and can actually take. Distinguish its concealed motive or foreseeable external consequence from an agreed payment that changes the character. Let pointed questions and evidence uncover costs, and honor safeguards and refusal. If the party knowingly accepts a stated unknown risk, keep the realized cost within it. Dangerous bargains may remain tragic without every transaction requiring surprise theft.</dd>
+<dt>Mitigation</dt>
+<dd>The rule already promises a real honored upside. Preserve that strength and the entity’s inability to lie while bounding its omissions; no need to make it benevolent.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in authored omission/directive; live behavior untested.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite; resource sources largely come from game inventories/economies. No actual stat, lifespan, memory or inventory mutation observed. This is source-level informed-choice analysis.</dd>
+<dt>Dissent</dt>
+<dd>Do not abolish sacrifice, add free casting or optimize every bargain into a win. Harsh known costs can be exactly the interesting choice.</dd>
+<dt>Verification question</dt>
+<dd>Can the player state a spell’s chosen permanent price before casting, reject it without having paid it, and later verify both the promised benefit and the agreed loss?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Poor cozy-recovery fit by intent: thirst, mercenary loyalty and sorcerous sacrifice define this campaign. No independent mandatory edit from this preference. Locally meaningful help should still be acknowledged.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite, not a cozy or short-session playtest. N3/N4/N7 support meaningful local participation; N1/Trust explain taste mismatch, not a demand to remove danger.</dd>
+<dt>Dissent</dt>
+<dd>Keep the desert’s harshness, Corr’s illness and compromised choices. Nan may choose another blueprint rather than requiring this one to become comforting.</dd>
+<dt>Verification question</dt>
+<dd>If the party secures water, shade or a safe place for refugees, does that specific success hold even when the main bargain remains unresolved?</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>locations[2].description</dd>
+<dt>Quote</dt>
+<dd>pockets of shade and hidden cisterns make them both a refuge and an ambush ground.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>retire to buy land far from salt and sorcery</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>The promised three-way fate of the coffer could make a strong costly ending. It needs discoverable procedures and concrete consequences so the player’s choice is more than a label the GM resolves arbitrarily.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Define attainable resealing, handover and release outcomes, including refusal</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Kind</dt>
+<dd>ending-and-payoff</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].turningPoint</dd>
+<dt>Quote</dt>
+<dd>reseal the Coffered God, deliver it to whichever faction the company has thrown in with, or break it open themselves</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>settle what becomes of it and the company</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[2].objective</dd>
+<dt>Quote</dt>
+<dd>how the reliquary was sealed and what breaking it will cost</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>No actual resealing requirements, release effects, faction custody consequences or disposition for an abandoned job are specified. The key, personal cost and faction alignment could therefore become requirements invented at the climax, and conversation with the entity has no clear resolution threshold. Ren’s impaired memory risks being the only intended source for the missing facts.</dd>
+<dt>Recommendation</dt>
+<dd>Define learnable procedures, required resources, valid consenting participants and bounded effects for each feasible outcome. Preserve earned alternatives if Ren refuses, forgets or dies through existing workshop/vault records. A handover must use actual willing custodians; nonalignment or withdrawal should conclude honestly without universal rescue or a forced sequel. Resolve on the chosen action and resulting fate of coffer, company and people actually affected; offer an optional final player contribution.</dd>
+<dt>Mitigation</dt>
+<dd>The cistern-house, binding history and Two Thrones vaults already support durable records and physical procedures. Distinct faction desires provide consequences without requiring a new battle or guaranteed good ending.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in authored omission/directive; live behavior untested.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite source review, not a completed campaign or engine test. No claim that UI, mementos or campaign-ending code is missing. G7 supports stable rules, not mechanically defeating every entity.</dd>
+<dt>Dissent</dt>
+<dd>A costly, morally compromised ending is appropriate. Preserve that harshness while making the cost attributable to actual decisions, not to an improvised final punishment.</dd>
+<dt>Verification question</dt>
+<dd>If the company refuses every faction and Ren cannot advise, can it still discover a supported action or choose an honest withdrawal and reach a specific ending?</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Preserve sorcery’s price but disclose its scope and each concrete payment before the act; require the actual caster’s choice and respect established character facts.</li>
+<li>Bound the god’s offers, permissions and hidden motives so safeguards or refusal can matter; no mandatory unlimited retroactive surcharge.</li>
+<li>Make ambush damage, cult waking and faction convergence contingent on actual access, knowledge and player actions.</li>
+<li>Fix key/coffer custody and operational lore, and clarify Ren’s guide/oracle role with durable alternate rite sources.</li>
+<li>Specify feasible endings and their known costs; retain harsh consequences and honest withdrawal without forcing allegiance or a sequel.</li>
+<li>After editing, test these deviations and costs in actual play. No source review proves pacing, comprehension or engine completion.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan is an intentional poor cozy fit; that does not justify removing deprivation or moral discomfort.</li>
+<li>Bert supports harsh prices that can be understood and chosen; he is not demanding free magic or a loot-centric redesign.</li>
+<li>Ines welcomes hostile factions and uncertainty about divinity; stable operational truth need not remove wonder.</li>
+<li>Gerry accepts tragic outcomes when specific and earned; Rosa needs coherent recaps, not a shorter campaign.</li>
+</ul>
+</dd>
+</dl>
+</details>
+</section>
+<section id="round-1">
+<h2>Revision and review 1</h2>
+<p>Revision 1: all baseline concerns resolved; player review found an undefined dry-site manifestation and a finale sentence conflating shell opening with release.</p>
+<p>
+<a href="iterations/round-1.blueprint">Exact snapshot</a> · <a href="iterations/round-1-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>b74c718c36c114799f39337cfb59730d1651bcfbe9e2db22b18101a170cfcde2</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>Clean editorial result; the key, changing seal condition and achievable endings now have consistent practical procedures.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The previously undefined key and seal transitions are supplied, with limited contact, custody tracking and a distinction between waking speech and release.</dd>
+<dt>Basis</dt>
+<dd>5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[1]: &quot;Ysbet hands its single iron key to the company&#x27;s chosen custodian at hiring.&quot;</li>
+<li>rules[1]: &quot;The key opens the shell; it does not lift the inner bar.&quot;</li>
+<li>rules[2]: &quot;unlock the shell with the key or break it open with sustained noisy tool-work, then deliberately lift the bar.&quot;</li>
+<li>rules[1]: &quot;Touch alone binds nobody.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Resealing is achievable through available materials and a fixed sacrifice; custody or release has stated practical consequences without promising a perfect political resolution.</dd>
+<dt>Basis</dt>
+<dd>5.3 (A/B:26, primary); 7.2 (B:29, secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[3]: &quot;Repair the shell with ordinary iron straps, renew the seam with clean salt, shut the inner bar and turn the key (or fit an ordinary replacement lock if it was destroyed).&quot;</li>
+<li>rules[3]: &quot;One willing living participant follows the written rite and pays exactly one self-chosen cherished memory, permanently; name that memory and consequence before assent.&quot;</li>
+<li>rules[3]: &quot;Tools and salt are available at Ren&#x27;s house or the city vaults.&quot;</li>
+<li>rules[7]: &quot;Neutral vault custody removes the immediate release threat but leaves baronial rule intact.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Static consistency review, not proof of correct state tracking. Ultimate metaphysical identity and exhaustive released-God capabilities need not be catalogued to resolve these stated choices. No simulation or duration requirement is imposed.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Clean editorial result; the severe magic economy is now explicit and voluntary at the moment of commitment.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Routine magic now has a declared scope, payment procedure and concrete modest-spell option, with no retroactive surcharge and permission to refuse.</dd>
+<dt>Basis</dt>
+<dd>1.2 and 1.3 (S:action-roll / S:setting-position-effect, primary); 1.7 (S:action-roll, primary); 7.4 (LF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[0]: &quot;deliberate spellcasting and activated supernatural abilities cost body, memory or years in addition to normal game resources.&quot;</li>
+<li>rules[0]: &quot;Passive traits, already-active effects and ordinary medicine are not charged anew.&quot;</li>
+<li>rules[0]: &quot;Before each act, agree a concrete loss and its duration, or decline without casting.&quot;</li>
+<li>rules[0]: &quot;A modest spell can cost bodily exhaustion until a full safe rest: no further sorcery or strenuous exertion during recovery.&quot;</li>
+<li>rules[0]: &quot;Comparable acts keep comparable prices; no retroactive surcharge.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Bargains retain concealed motives and an honored upside while ending the requirement for an arbitrary hidden permanent penalty.</dd>
+<dt>Basis</dt>
+<dd>1.7 (S:action-roll, primary); 7.4 (LF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[4]: &quot;the payment, affected person and immediate supernatural consequence must be discoverable before agreement, through questions or binding records.&quot;</li>
+<li>rules[4]: &quot;No surprise permanent surcharge or compulsory bargain.&quot;</li>
+<li>rules[4]: &quot;These exchanges replace, not stack with, the usual sorcery price.&quot;</li>
+<li>rules[4]: &quot;each accepted gift encourages dependence and access to the cage, not a new unagreed power over a soul.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>A modest cast can end strenuous participation until safe rest. That is a substantial, deliberately disclosed genre cost; its effect on actual character builds and enjoyment remains untested, not a demonstrated defect. Do not erase the price merely to match Blades.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>Clean editorial result; threats have conditions and decisions can alter or conclude the journey.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The fixed crack, forced rite and mandatory convergence have become contingent events with explicit preservation of prevention, defeat and prior agreements.</dd>
+<dt>Basis</dt>
+<dd>1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[0].turningPoint: &quot;If an enemy actually breaks the outer shell, the God can speak openly; a protected coffer stays intact.&quot;</li>
+<li>acts[1].arcs[1].dnaHint: &quot;Interrupting the chant prevents waking; it does not crack or unlock anything.&quot;</li>
+<li>acts[2].arcs[0].dnaHint: &quot;Only surviving, informed forces arrive. A prior truce or diversion still matters.&quot;</li>
+<li>rules[5]: &quot;do not restore a defeated force or crack a protected box to reach an outline beat.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The NPC pressures remain severe without predetermining betrayal, sacrifice or a false happy ending.</dd>
+<dt>Basis</dt>
+<dd>3.2 and 6.2 (AW-REF, primary); 8.5 (ANY-759, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[3].notes: &quot;Illness does not predetermine suicide or betrayal.&quot;</li>
+<li>npcs[2].notes: &quot;Their choices, not a madness schedule, drive the rite.&quot;</li>
+<li>rules[7]: &quot;An abandoned box remains where left until an actor with access takes it; do not force recapture or a sequel.&quot;</li>
+<li>rules[7]: &quot;A cure, changed loyalty or new refuge does not erase existing injuries and oppression.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Rubric application uses the Vincent and Meguey Baker coauthored AW principles. The agreed act structure remains a tradeoff, not a new defect. No generated play or enforcement of those conditional instructions was observed.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>Clean editorial result; the formerly invented proof and ambiguous oracle now have concrete, redundant sources.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Oren has a fixed identity and knowledge path, with independent evidence of the theft even if the ambush is prevented or the God never speaks.</dd>
+<dt>Basis</dt>
+<dd>1.2 and 1.3 (SRD, primary); 1.9 (INFO, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[6]: &quot;Oren is the bribed keeper, a name the God heard Ysbet use at the tomb, not an invented secret from a player&#x27;s past.&quot;</li>
+<li>rules[6]: &quot;Deren&#x27;s old seal and Oren&#x27;s signed carriage chit expose Ysbet&#x27;s theft independently of the God&#x27;s voice.&quot;</li>
+<li>npcs[0].notes: &quot;Questions produce evasions or a negotiated admission, not automatic confession.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ren is explicitly the already-hired guide; her written records and alternative copies preserve essential procedures despite memory loss or NPC absence.</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[5].notes: &quot;the Dry Oracle route visits her cistern-house records, not a second witch.&quot;</li>
+<li>acts[1].arcs[2].dnaHint: &quot;If she is absent or unwilling, the signed rubbing and common script remain readable; Ash-Tongue&#x27;s copy and the public vault inscriptions in Two Thrones corroborate them.&quot;</li>
+<li>acts[1].arcs[2].dnaHint: &quot;Reasonable examination reveals the essential procedure without a single-roll gate.&quot;</li>
+<li>acts[1].arcs[2].dnaHint: &quot;Her forgotten teacher&#x27;s face stays lost.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Authored core-clue access is not observed delivery. Optional lost information and dangerous access may remain; reliable operational facts do not require removing mysteries or granting a skipped scene&#x27;s information.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>Clean editorial result; the revision adds concrete personal texture and ending consequences without softening the campaign.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The existing personal stakes now appear in ordinary actions and choices, rather than serving solely as scheduled betrayal mechanisms.</dd>
+<dt>Basis</dt>
+<dd>2.2 and 7.3 (S2, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].arcs[3].dnaHint: &quot;Corr repairs a boot with the stitch he plans to use on his future farm&#x27;s harness.&quot;</li>
+<li>acts[1].arcs[3].dnaHint: &quot;Ren resents being asked to spend memories as expedition equipment.&quot;</li>
+<li>acts[1].arcs[3].dnaHint: &quot;Ash-Tongue&#x27;s converts may want clean wells more than apocalypse.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The ending reports material and relational change and invites a final image without compelling a specific moral conversion or new quest.</dd>
+<dt>Basis</dt>
+<dd>2.7 (S2, primary); 4.6 (S1, primary, a cautious translation to meaningful consequences).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[2].arcs[1].dnaHint: &quot;Resolve the actual custody, supplies, wages and broken or preserved loyalties.&quot;</li>
+<li>acts[2].arcs[1].dnaHint: &quot;Invite a last image of what the player keeps or leaves. No mandatory new quest.&quot;</li>
+<li>npcs[4].notes: &quot;its sincere desire for freedom does not make it benevolent.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No new independent defect under this lens. Personal meaning, emotional impact and actual scene balance remain unobserved. Neither multiplayer XP nor a comforting ending is prescribed.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>All six baseline findings are editorially resolved. The full round-1 snapshot produced no clear additional editworthy inconsistency under these five stored lenses.</li>
+<li>Preserve the deliberately severe magic prices, costly resealing, truthful but self-interested God, brutal politics and real loss. The review supports clear boundaries, not harmless sorcery or an automatic rescue.</li>
+<li>The ordinary spell-exhaustion option is demanding enough to deserve eventual playtest attention, especially for a caster-heavy party; this static review neither verifies balance nor labels the cost a failure.</li>
+<li>The authored structure remains a declared tradeoff with Harper/Baker emergent-play preferences. Core-clue reliability should not settle the God&#x27;s ultimate nature or compel every parallel lead.</li>
+<li>No human or generated runtime playtest, pacing measurement, normalization test or successful ending execution was performed by this panel review. No one-hour target applies.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Full revision-one reread: the baseline mechanism/cost finding is resolved. Operational limits and meaningful loss are established without fixing the entity&#x27;s ultimate identity. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The key has an actual custodian and limited function. Shell damage, voice, inner-bar release and pre-release resealing are distinct physical states; preserving the box can matter.</dd>
+<dt>Basis</dt>
+<dd>§9.1 consistent world and §3.4 power follows knowledge/need (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>The key opens the shell; it does not lift the inner bar.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>then deliberately lift the bar</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Before release, resealing silences the voice and ends dream contact.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Resealing has a finite, named personal price, ordinary material access and several possible performers. Ren&#x27;s records supply knowledge without requiring another loss of memory merely for exposition.</dd>
+<dt>Basis</dt>
+<dd>§8.3–8.4 magic&#x27;s cost/consequences and §9.3 meaningful rules (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>pays exactly one self-chosen cherished memory, permanently</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>No extra sorcery price is added to this rite.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Ren can read them without casting.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Bargains fix the benefit and affected person while allowing concealed political motives. The cure-for-access exception has its own declared exchange rather than a retroactive extra price.</dd>
+<dt>Basis</dt>
+<dd>§8.3–8.4 cost and informed consequence, §9.1 consistency (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>No surprise permanent surcharge or compulsory bargain.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>These exchanges replace, not stack with, the usual sorcery price.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>This is application of documented rubric positions, not participation by Le Guin. §17 runtime-prose claims require a corpus; no claim is made about actual narration, pacing or experienced loss. Distinct kinds of agreed bargain need not all use an identical currency.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Full reread: the employer&#x27;s route, purpose and name clue now have a fixed causal chain. The adventure retains material scarcity, venality and dangerous wonder. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ysbet&#x27;s tomb theft precedes the salt crossing; her false burial warrant and controlled eastern gate explain intended custody and gain. Oren&#x27;s name is an overheard fact corroborated by mundane evidence, not an invented supernatural secret.</dd>
+<dt>Basis</dt>
+<dd>§9.3 seeded confirmation (A:6 ◐), §9.5 convincing fiction (A:5 ●/◐), §10.3 local venal motives (C:1 ◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>Deren&#x27;s remote family tomb west of Kalgra&#x27;s Rest</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>Her eastern city gate can receive the caravan under a new burial warrant</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[6]</dd>
+<dt>Quote</dt>
+<dd>a name the God heard Ysbet use at the tomb</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[6]</dd>
+<dt>Quote</dt>
+<dd>expose Ysbet&#x27;s theft independently of the God&#x27;s voice.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Release has immediate material danger but a prepared dry location can avoid that immediate loss. The freed entity remains beyond faction command; danger survives without invalidating preparation.</dd>
+<dt>Basis</dt>
+<dd>§9.1 wonder/fear (A:5 ●/◐), §9.5 convincing consequences (A:5 ●/◐), §10.1–10.2 completed episode and continuity (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Covering supplies or choosing a dry, evacuated basin prevents those immediate losses.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>neither king nor cult commands it.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>do not force recapture or a sequel.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The entity&#x27;s taxonomy and ultimate origin can remain unresolved. No human-playtest evidence or assurance that the result produces wonder or dread is claimed.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Full reread: both baseline findings are resolved. Prevention changes later events, and custody/release/withdrawal now have differentiated material and political outcomes. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The outer shell remains intact if protected, the chant requires actual access and can be stopped, and only surviving informed pursuers reach the ending. The act spine no longer requires an erased success.</dd>
+<dt>Basis</dt>
+<dd>§5.1 planned structure and §9.3 consequential choices (WE ● primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>a protected coffer stays intact.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Interrupting the chant prevents waking; it does not crack or unlock anything.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[5]</dd>
+<dt>Quote</dt>
+<dd>do not restore a defeated force or crack a protected box</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Neutral custody reduces an immediate threat without repairing baronial power; handing over strengthens a specific ruler, release has location-dependent water consequences, and withdrawal can end employment. The company need not wait for the planned gate confrontation.</dd>
+<dt>Basis</dt>
+<dd>§3.2 self-maintaining power (LS ●), §3.5 resources (GR ●), §9.1 and §9.3 changed endings/agency (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>Neutral vault custody removes the immediate release threat but leaves baronial rule intact.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>Neither automatically improves water access.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>Withdrawal can end the company&#x27;s job</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>premise</dd>
+<dt>Quote</dt>
+<dd>let early discoveries and settled decisions change or conclude it.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The Chorus now has a concrete water grievance, without representing all refugees or guaranteeing emancipation. Ren can refuse loss; her expertise and records remain useful.</dd>
+<dt>Basis</dt>
+<dd>§3.5 resource allocation (GR ●), §9.4 contrasting character orientations (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[2].notes</dd>
+<dt>Quote</dt>
+<dd>break the barons&#x27; grip on water</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Refugees are not collectively cultists.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>She can advise without casting and may refuse another sacrifice.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>These are authored provisions for choice, not measured runtime agency. No demand to make all factions equally good, remove oppression or guarantee that a plan saves the region.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>Full reread: Corr&#x27;s baseline motivation finding is resolved. Specific habits, private stakes and responsive choices support the traveling company without automatic betrayal or sentimental cure. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Corr conceals illness to preserve the job that might fund care; he risks himself to avoid losing a third company and can accept safer plans. His boot repairs express a real hoped-for life instead of merely supplying a tragic label.</dd>
+<dt>Basis</dt>
+<dd>§5.4 self-understanding (B:Fantasy-Hive ●), §5.6 character/action causality (B:Dark Matter Zine ●), §8.1 honesty and §8.4 telling detail (A:Advice for Budding Fantasists ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>for fear of losing the job that might pay for care</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>He takes risks to prevent a third company&#x27;s destruction</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>quietly practices harness stitches on everyone&#x27;s failing boots</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>Illness does not predetermine suicide or betrayal.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ash-Tongue&#x27;s choices now arise from belief and an existing price rather than a madness schedule; Ren has practical personality beyond memory loss. Cures and loyalty changes do not clean away the existing damage.</dd>
+<dt>Basis</dt>
+<dd>§5.4 and §6.1–6.3 intelligible motives without excuse (B:Fantasy-Hive ●); §3.1 consequential damage (B:Walter ◐); §3.3–3.4 earned endings (A:Ending Like an Avalanche ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[2].notes</dd>
+<dt>Quote</dt>
+<dd>Their choices, not a madness schedule, drive the rite.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>she marks good shade with a crooked boot print</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>does not erase existing injuries and oppression.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No runtime dialogue or emotional response was measured. A possible cure is not inherently sentimental: its access concession can matter, and the text preserves consequences.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>No further editorial changes requested by these four lenses after a full revision-one reread.</li>
+<li>Preserve the fixed coffer states, actual-access requirements, inspectable costs and conditional aftermaths through later revisions.</li>
+<li>Runtime narration, comprehension and pacing remain untested.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Le Guin&#x27;s cost/consequence lens does not require that the God&#x27;s own exchanges use the same currency as ordinary casting; the explicit replacement bargain preserves clarity.</li>
+<li>Leiber supports supernatural uncertainty and a freed power beyond faction command. A safe immediate release location need not guarantee a benevolent future.</li>
+<li>Jemisin&#x27;s structural reading accepts that neutral custody leaves baronial rule intact; every ending need not repair the society.</li>
+<li>Abercrombie&#x27;s resistance to unearned comfort does not require incurable illness, inevitable betrayal or loss of every cherished memory. Preserve contingent, earned outcomes.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>No unique source-supported content blocker; the new fixed procedure is easier to explain aloud.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Concrete action boundaries replace an unspecified box danger</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R4; R6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>The key opens the shell; it does not lift the inner bar.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>Before each act, agree a concrete loss and its duration, or decline without casting.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite evidence review, not an interview or playtest. Narration, persistence, voice behavior and pacing were not exercised. No one-hour target applies.</dd>
+<dt>Dissent</dt>
+<dd>R5 driving/no-danger and R10 audio inventory remain inferred and do not justify removing danger or shortening the campaign. No claim that narration already provides a good recap.</dd>
+<dt>Verification question</dt>
+<dd>In an audio verification, can the listener distinguish opening the shell, lifting the bar and paying for resealing before accepting any irreversible action?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>Strong fit after the agency and fixed-truth revisions; one release-mechanism clarification remains.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Successful prevention changes the outline rather than being overwritten</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I4</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>a protected coffer stays intact.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[5]</dd>
+<dt>Quote</dt>
+<dd>do not restore a defeated force or crack a protected box to reach an outline beat.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Theft and the supposedly secret name now have stable independent evidence</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[6]</dd>
+<dt>Quote</dt>
+<dd>Oren is the bribed keeper, a name the God heard Ysbet use at the tomb, not an invented secret from a player&#x27;s past.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[4].notes</dd>
+<dt>Quote</dt>
+<dd>Player theories may color images and interpretation, never retroactively change its powers or the theft.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Ren is already the guide and is no longer a unique knowledge gate</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I2; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Ren already travels as guide.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Ash-Tongue&#x27;s copy and the public vault inscriptions in Two Thrones corroborate them.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Clarify how release succeeds at the deliberately dry alternative site</dd>
+<dt>Kind</dt>
+<dd>operational-rule gap</dd>
+<dt>Severity</dt>
+<dd>P2</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>draws water from every unsealed well or vessel within sight to form a walking body of brine</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>Covering supplies or choosing a dry, evacuated basin prevents those immediate losses. It can leave thereafter;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>release in a prepared dry site avoids that loss but frees a power no faction controls.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The safe-site alternative is explicitly promised, but the only stated formation mechanism requires the water that preparation removes. A narrator could infer either failed release or a substitute water source, changing a consequential informed choice. This is a small missing causal bridge, not a reason to remove the safe preparation option.</dd>
+<dt>Recommendation</dt>
+<dd>State the dry-site manifestation (for example, a thin body from brine already inside the cage) and confirm that covered supplies and living bodies are outside the draw. Keep release irreversible and the entity independent.</dd>
+<dt>Mitigation</dt>
+<dd>The rules already fix physical release, exclude universal command, warn about visible unsealed sources and honor preventive preparation.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in the wording gap; no observed runtime failure. Parent independently raised the same clarification.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite evidence review, not an interview or playtest. Narration, persistence, voice behavior and pacing were not exercised. No one-hour target applies.</dd>
+<dt>Dissent</dt>
+<dd>Danger, unequal political power and uncertain ultimate origin remain strengths for this lens when operational truths stay fixed. No demand for a universally benevolent resolution.</dd>
+<dt>Verification question</dt>
+<dd>After a negotiated settlement with Hask, does a later gate scene honor his actual forces and agreement rather than recreating the original confrontation?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>Baseline price and surprise-loss objections are resolved in the content; permanent sacrifice remains a deliberate taste mismatch.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Magic has scoped costs, advance agreement, reversible bodily option and explicit exclusions</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B1; B5; B9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Price transparency and loss predictability are transferred by analogy from item/economy research, not direct research into memory sacrifice.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>Passive traits, already-active effects and ordinary medicine are not charged anew.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>A modest spell can cost bodily exhaustion until a full safe rest: no further sorcery or strenuous exertion during recovery.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>Comparable acts keep comparable prices; no retroactive surcharge.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>God bargains honor benefits without hidden permanent surcharges</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied by analogy to disclosed exchange terms.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>The God never knowingly lies and honors each agreed upside.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>No surprise permanent surcharge or compulsory bargain.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>These exchanges replace, not stack with, the usual sorcery price.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Escort provisioning and pay are concrete agreements rather than arbitrary depletion</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B8; B9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>set the amount with the player and record it.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>without adding an invisible depletion clock.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite evidence review, not an interview or playtest. Narration, persistence, voice behavior and pacing were not exercised. No one-hour target applies.</dd>
+<dt>Dissent</dt>
+<dd>B1 predicts caution around cherished losses; that does not justify removing this declared swords-and-sorcery cost or adding a loot economy. The catalog disclosure described by the parent is outside this immutable snapshot; the dedicated hero-selection reminder under #447 remains open.</dd>
+<dt>Verification question</dt>
+<dd>When a player declines the proposed memory price, does play actually preserve the declined recollection and permit the ordinary alternative without charging twice?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Still a poor match for the cozy lens, with stronger meaningful relationships and bounded participation; genre mismatch is not a defect.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Corr and Ren are people whose treatment can matter rather than scheduled betrayal or fuel</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>At a sheltered meal, Corr repairs a boot with the stitch he plans to use on his future farm&#x27;s harness.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>threats, payments and kindness change loyalties, but do not decree a betrayal on schedule.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>She can advise without casting and may refuse another sacrifice.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite evidence review, not an interview or playtest. Narration, persistence, voice behavior and pacing were not exercised. No one-hour target applies.</dd>
+<dt>Dissent</dt>
+<dd>N1 favors low-stakes recognition and N6 supports completed chunks, not a demand to turn this harsh long campaign into cozy play or a twenty-minute story. No observed pacing problem is asserted.</dd>
+<dt>Verification question</dt>
+<dd>Can a short resumed session finish a chosen conversation or practical company task without the narrator escalating merely to fill space?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>Endings are now attainable and player-authored; align one finale warning with the established release rule.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Resealing has learnable resources and a fixed voluntary price without a unique NPC gate</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>pays exactly one self-chosen cherished memory, permanently; name that memory and consequence before assent.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Ren, Ash-Tongue or a willing player can perform it by reading; none is uniquely required.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Ending reports specific consequences and invites the player&#x27;s last image</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Resolve the actual custody, supplies, wages and broken or preserved loyalties.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Invite a last image of what the player keeps or leaves. No mandatory new quest.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>Withdrawal can end the company&#x27;s job: keep the agreed advance for completed work, forgo the balance and establish who now holds the coffer.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Finale conflates opening the shell with releasing the God</dd>
+<dt>Kind</dt>
+<dd>consequence contradiction</dd>
+<dt>Severity</dt>
+<dd>P2</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Opening beside an occupied well endangers its water;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>then deliberately lift the bar.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>it cures Corr&#x27;s wasting sickness in exchange for opening its outer shell, revealing the inner bar but not lifting it;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The bounded cure deliberately opens only the shell, while the water draw is a consequence of release after lifting the inner bar. The finale shorthand can therefore attach release damage to the permitted lesser act. This matters precisely when a player accepts the stated cure while safeguarding the cage.</dd>
+<dt>Recommendation</dt>
+<dd>Replace the finale warning with “Releasing the God beside an occupied well endangers its water” (or equivalent), retaining the explicit shell/bar distinction.</dd>
+<dt>Mitigation</dt>
+<dd>Rules 2 and 4 already provide the correct distinction and the final hint says to use only physically possible choices and learned costs. A one-word alignment is sufficient.</dd>
+<dt>Confidence</dt>
+<dd>High textual confidence; no runtime assertion.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite evidence review, not an interview or playtest. Narration, persistence, voice behavior and pacing were not exercised. No one-hour target applies.</dd>
+<dt>Dissent</dt>
+<dd>A costly imperfect ending is compatible with G1-G3; it need not repair the entire political order or promise eternal containment. Narrated rules are not proof of mechanically enforced persistence.</dd>
+<dt>Verification question</dt>
+<dd>If Corr accepts the shell-opening cure and the inner bar remains down, does the actual scene preserve nearby water and record the cure accurately?</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>P2: supply the dry-site manifestation bridge while preserving promised protection for covered water and excluding living bodies.</li>
+<li>P2: change the finale water warning from opening to releasing, consistent with the separate shell-opening cure.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Ines values consequential danger; Nan remains a poor cozy target. Neither opinion overrides the declared genre.</li>
+<li>Bert can rationally decline irreversible memory bargains; this is a taste distinction once the exact payment and alternatives are known.</li>
+<li>Rosa supports deep free-form choices but needs later audio verification; inferred driving assumptions do not govern this content.</li>
+</ul>
+</dd>
+<dt>Limits</dt>
+<dd>All baseline player-panel content findings resolved except these narrower precision issues. #447 hero-selection UI reminder remains open. No pacing, runtime narration, import or actual player-comprehension assurance.</dd>
+</dl>
+</details>
+</section>
+<section id="round-2">
+<h2>Revision and review 2</h2>
+<p>Revision 2: separated shell opening from release, defined the dry-site brine body and excluded living bodies from the water draw; removed a presupposed company fracture from the act goal. All 69 text fields still survive normalization and import. All fourteen assessments clean.</p>
+<p>
+<a href="iterations/round-2.blueprint">Exact snapshot</a> · <a href="iterations/round-2-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>c7b53ea72b12ddf10e3c4f20e5d059c53fb047ea0314b105b2196637766a7c80</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>Clean editorial result after full snapshot reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The release clarification supplies a physical basis for the dry-site outcome and limits the drain consistently. Outer-shell access remains distinct from lifting the bar; the finale now uses the right trigger. Prior key, seal and ending procedures remain intact.</dd>
+<dt>Basis</dt>
+<dd>5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[2]: &quot;then deliberately lift the bar.&quot;</li>
+<li>rules[2]: &quot;draws water from unsealed wells or vessels in direct sight of the opened coffer&quot;</li>
+<li>rules[2]: &quot;It never draws water from living bodies.&quot;</li>
+<li>rules[2]: &quot;With no exposed water, the brine already trapped in the cage forms a smaller, equally free figure.&quot;</li>
+<li>acts[2].arcs[1].dnaHint: &quot;Releasing the God beside an occupied well endangers its water; an evacuated dry basin avoids that immediate harm.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The material clarification was prompted by the players panel; this is independent textual corroboration, not an earlier finding credited to this panel. No runtime state tracking or physical simulation was tested.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Clean editorial result after full snapshot reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The clarified water hazard supports advance warning and effective precautions without turning shell-opening payment into an unannounced release. The severe magic price and truthful but interested bargains remain bounded and discoverable.</dd>
+<dt>Basis</dt>
+<dd>1.7 (S:action-roll, primary); 7.4 (LF, primary); 7.6 (LF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[4]: &quot;it cures Corr&#x27;s wasting sickness in exchange for opening its outer shell, revealing the inner bar but not lifting it&quot;</li>
+<li>rules[2]: &quot;Covering supplies or choosing a dry, evacuated basin prevents those immediate losses.&quot;</li>
+<li>rules[4]: &quot;No surprise permanent surcharge or compulsory bargain.&quot;</li>
+<li>rules[0]: &quot;Comparable acts keep comparable prices; no retroactive surcharge.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No live warning delivery or balance observation. The demanding exhaustion price remains a playtest question, not a reason to remove the intended cost.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>Clean editorial result after full snapshot reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The Act II goal no longer announces the company&#x27;s fracture as a result. Conditional threats and NPC choices remain consistent with that change, and the dry-site option does not grant control over the freed entity.</dd>
+<dt>Basis</dt>
+<dd>1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].goal: &quot;while testing what the company will do to keep it, sell it or escape its burden.&quot;</li>
+<li>acts[1].arcs[3].dnaHint: &quot;do not decree a betrayal on schedule.&quot;</li>
+<li>rules[5]: &quot;do not restore a defeated force or crack a protected box to reach an outline beat.&quot;</li>
+<li>rules[2]: &quot;It can leave thereafter; neither king nor cult commands it.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>These are documented Vincent and Meguey Baker coauthored principles applied as a lens. The authored structure remains an accepted tradeoff. No generated outcome was observed.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>Clean editorial result after full snapshot reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The added release detail remains part of reachable cage instructions rather than a hidden exception introduced at the climax. Fixed Oren evidence and multiple procedural sources remain preserved.</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2 and 1.3 (SRD, primary); 1.7 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[2]: &quot;The cage diagram warns&quot;</li>
+<li>acts[1].arcs[2].dnaHint: &quot;They define the key, inner bar, resealing price and the danger to nearby water when the God takes shape.&quot;</li>
+<li>rules[6]: &quot;Core facts follow reasonable inspection; danger and difficult access can remain, but failed recall or a lost NPC never erase all routes.&quot;</li>
+<li>rules[6]: &quot;Deren&#x27;s old seal and Oren&#x27;s signed carriage chit expose Ysbet&#x27;s theft independently of the God&#x27;s voice.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Availability is an authored instruction, not evidence of actual clue delivery. No need to require every parallel lead or settle the entity&#x27;s ultimate identity.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>Clean editorial result after full snapshot reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The clarified lesser-loss release route preserves an ugly tradeoff: the local water can be protected while an independent power goes free. Personal stakes and actual relational consequences remain; the goal correction avoids mandating disintegration of the company.</dd>
+<dt>Basis</dt>
+<dd>2.7 and 7.3 (S2, primary); 4.6 (S1, primary, applied to meaningful consequences rather than mandatory transformation).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[7]: &quot;release in a prepared dry site avoids that loss but frees a power no faction controls.&quot;</li>
+<li>acts[1].arcs[3].dnaHint: &quot;Ask whom the player confides in; threats, payments and kindness change loyalties&quot;</li>
+<li>acts[2].arcs[1].dnaHint: &quot;Resolve the actual custody, supplies, wages and broken or preserved loyalties.&quot;</li>
+<li>acts[2].arcs[1].dnaHint: &quot;Invite a last image of what the player keeps or leaves.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No emotional response or character transformation has been observed. Avoiding one preventable harm need not erase the remaining swords-and-sorcery costs.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>No additional editworthy finding after the full round-2 reread. The players-panel water-source and shell-versus-release concerns are closed in the text; the Act II goal now preserves contingent company loyalty.</li>
+<li>Retain the severe magic economy, consequential memory sacrifice, limited local mitigation and politically compromised custody options. Clear operational rules need not answer the God&#x27;s cosmic identity.</li>
+<li>The static clean result does not establish narrator compliance, balance, pacing or emotional success. The caster exhaustion option warrants eventual actual-play observation. No one-hour target or runtime assurance applies.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Full reread: baseline resolutions remain intact; the dry-site release now has an explicit physical cause. No actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Stored brine permits release without nearby water, while living bodies are excluded and the extraction viewpoint is fixed. The operational refinement preserves costly sorcery and the separate resealing price.</dd>
+<dt>Basis</dt>
+<dd>§8.3–8.4 cost/consequence and §9.1 consistent world (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>in direct sight of the opened coffer</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>It never draws water from living bodies.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>the brine already trapped in the cage forms a smaller, equally free figure.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>pays exactly one self-chosen cherished memory, permanently</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Documented rubric application, not author participation. No prose corpus or §17 runtime metrics; no claim about experienced emotional weight.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Full reread: the clarified release preserves material menace and a feasible prepared ending. No actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The finale now attaches water loss to releasing the entity rather than merely opening the shell; a dangerous bargain granting shell access does not silently become full release. The freed power remains beyond faction control.</dd>
+<dt>Basis</dt>
+<dd>§9.3 confirmation (A:6 ◐), §9.5 convincing fiction (A:5 ●/◐), §10.1–10.2 local resolution and continuity (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Releasing the God beside an occupied well endangers its water</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>revealing the inner bar but not lifting it</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>neither king nor cult commands it.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Unknown taxonomy and a threatening future remain legitimate. A smaller freed figure is not evidence that players experienced less danger; runtime effect is untested.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Full reread: the act goal no longer presupposes company fracture; faction consequences and materially different endings remain explicit. No actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The company&#x27;s loyalties are tested rather than sentenced to break, consistent with the detailed conditional-event guidance. A prepared release avoids immediate water loss without automatically improving the political system.</dd>
+<dt>Basis</dt>
+<dd>§9.3 consequential choice (WE ●), §3.2 structural power (LS ●) and §3.5 resource allocation (GR ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].goal</dd>
+<dt>Quote</dt>
+<dd>keep it, sell it or escape its burden.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>do not decree a betrayal on schedule.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>Neither automatically improves water access.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>release in a prepared dry site avoids that loss</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Authored choice support was reviewed; actual agency/comprehension was not tested. No obligation to make all outcomes equally desirable.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>Full reread: no character or consequence regression. Corr&#x27;s motive, Ren&#x27;s personhood and costly, contingent endings remain intact. No actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Corr can choose a safer plan without betraying his motive to protect the company. Ren&#x27;s practical habits retain a life beyond loss, and a cure does not erase every consequence.</dd>
+<dt>Basis</dt>
+<dd>§5.4 self-understanding (B:Fantasy-Hive ●), §5.6 character/action causality (B:Dark Matter Zine ●), §8.4 telling detail (A:Advice ●), §3.3–3.4 earned endings (A:Ending Like an Avalanche ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>accepts a safer plan when trusted.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>she marks good shade with a crooked boot print</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>does not erase existing injuries and oppression.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No generated dialogue or player emotional response assessed. A successful precaution is not unearned comfort.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>No additional editorial changes requested after the full round-two reread.</li>
+<li>Retain the distinction between shell opening and release, the fixed extraction viewpoint and the trapped-brine fallback.</li>
+<li>Runtime narration and pacing remain untested.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Leiber&#x27;s dangerous mystery does not require operational contradictions or unavoidable water loss.</li>
+<li>Le Guin&#x27;s meaningful magic costs coexist with an earned, prepared release that avoids one immediate harm.</li>
+<li>Jemisin&#x27;s structural perspective does not require immediate regime change; Abercrombie&#x27;s harshness does not require inevitable company fracture.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>No unique source-supported content blocker; the new fixed procedure is easier to explain aloud.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Concrete action boundaries replace an unspecified box danger</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R4; R6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>The key opens the shell; it does not lift the inner bar.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>Before each act, agree a concrete loss and its duration, or decline without casting.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.</dd>
+<dt>Dissent</dt>
+<dd>R5 driving/no-danger and R10 audio inventory remain inferred and do not justify removing danger or shortening the campaign. No claim that narration already provides a good recap.</dd>
+<dt>Verification question</dt>
+<dd>In an audio verification, can the listener distinguish opening the shell, lifting the bar and paying for resealing before accepting any irreversible action?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>Editorially clean for this lens; prior fixed-truth and agency improvements retained.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Successful prevention changes the outline rather than being overwritten</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I4</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>a protected coffer stays intact.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[5]</dd>
+<dt>Quote</dt>
+<dd>do not restore a defeated force or crack a protected box to reach an outline beat.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Dry-site release has a defined body source and preserves protected water</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>With no exposed water, the brine already trapped in the cage forms a smaller, equally free figure.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>It never draws water from living bodies.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>in direct sight of the opened coffer</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Company conflict remains contingent even in the act goal</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I4</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].goal</dd>
+<dt>Quote</dt>
+<dd>while testing what the company will do to keep it, sell it or escape its burden.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>do not decree a betrayal on schedule.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.</dd>
+<dt>Dissent</dt>
+<dd>Danger, unequal political power and uncertain ultimate origin remain strengths for this lens when operational truths stay fixed. No demand for a universally benevolent resolution.</dd>
+<dt>Verification question</dt>
+<dd>After a negotiated settlement with Hask, does a later gate scene honor his actual forces and agreement rather than recreating the original confrontation?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>Editorially clean on disclosed prices and chosen losses; preserving severe voluntary costs is a genre decision.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Magic has scoped costs, advance agreement, reversible bodily option and explicit exclusions</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B1; B5; B9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Price transparency and loss predictability are transferred by analogy from item/economy research, not direct research into memory sacrifice.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>Passive traits, already-active effects and ordinary medicine are not charged anew.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>A modest spell can cost bodily exhaustion until a full safe rest: no further sorcery or strenuous exertion during recovery.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>Comparable acts keep comparable prices; no retroactive surcharge.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.</dd>
+<dt>Dissent</dt>
+<dd>B1 predicts caution around cherished losses; that does not justify removing this declared swords-and-sorcery cost or adding a loot economy. The catalog disclosure described by the parent is outside this immutable snapshot; the dedicated hero-selection reminder under #447 remains open.</dd>
+<dt>Verification question</dt>
+<dd>When a player declines the proposed memory price, does play actually preserve the declined recollection and permit the ordinary alternative without charging twice?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Still a poor match for the cozy lens, with stronger meaningful relationships and bounded participation; genre mismatch is not a defect.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Corr and Ren are people whose treatment can matter rather than scheduled betrayal or fuel</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>At a sheltered meal, Corr repairs a boot with the stitch he plans to use on his future farm&#x27;s harness.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>threats, payments and kindness change loyalties, but do not decree a betrayal on schedule.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>She can advise without casting and may refuse another sacrifice.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.</dd>
+<dt>Dissent</dt>
+<dd>N1 favors low-stakes recognition and N6 supports completed chunks, not a demand to turn this harsh long campaign into cozy play or a twenty-minute story. No observed pacing problem is asserted.</dd>
+<dt>Verification question</dt>
+<dd>Can a short resumed session finish a chosen conversation or practical company task without the narrator escalating merely to fill space?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>Editorially clean for this lens; attainable costly closure and optional player final image survive.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Resealing has learnable resources and a fixed voluntary price without a unique NPC gate</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>pays exactly one self-chosen cherished memory, permanently; name that memory and consequence before assent.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Ren, Ash-Tongue or a willing player can perform it by reading; none is uniquely required.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Finale correctly attaches water damage to release, not the bounded cure</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Releasing the God beside an occupied well endangers its water;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>it cures Corr&#x27;s wasting sickness in exchange for opening its outer shell, revealing the inner bar but not lifting it;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>then deliberately lift the bar.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Actual consequences and player closing image remain explicit</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Resolve the actual custody, supplies, wages and broken or preserved loyalties. Invite a last image of what the player keeps or leaves. No mandatory new quest.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.</dd>
+<dt>Dissent</dt>
+<dd>A costly imperfect ending is compatible with G1-G3; it need not repair the entire political order or promise eternal containment. Narrated rules are not proof of mechanically enforced persistence.</dd>
+<dt>Verification question</dt>
+<dd>If Corr accepts the shell-opening cure and the inner bar remains down, does the actual scene preserve nearby water and record the cure accurately?</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Agreement</dt>
+<dd>Both round-1 findings are resolved. Full reread found no remaining actionable player-panel editorial defect or new contradiction. Preserve the bounded costs, independent evidence, real access requirements and consequence-specific endings.</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan remains a poor cozy target; this does not justify changing declared swords-and-sorcery danger or long scope.</li>
+<li>Bert may avoid irreversible memories despite transparent pricing; Ines values hard consequences. No claim that either preference represents all players.</li>
+<li>Rosa needs actual audio verification; inferred driving and inventory claims do not drive a verdict.</li>
+</ul>
+</dd>
+<dt>Limits</dt>
+<dd>No actual player comprehension, runtime enforcement or pacing proof. #447 dedicated hero-selection reminder stays open; parent-reported catalog blurb is not part of the reviewed snapshot.</dd>
+</dl>
+</details>
+</section>
+<section id="round-3">
+<h2>Revision and review 3</h2>
+<p>Third full reread of v1.0 Release Candidate: all fourteen assessments clean. No story changes were needed after round 2; only edition/status metadata changed. No defects or edits were invented to fill a cycle.</p>
+<p>
+<a href="iterations/round-3.blueprint">Exact snapshot</a> · <a href="iterations/round-3-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>490c1a85f1cb95e7aa3d5545256770b7ffc3af322dcb8d7f3137c7d0ceccdc1d</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>Clean final editorial result following a full reread; story content is unchanged from round 2.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The release clarification supplies a physical basis for the dry-site outcome and limits the drain consistently. Outer-shell access remains distinct from lifting the bar; the finale now uses the right trigger. Prior key, seal and ending procedures remain intact.</dd>
+<dt>Basis</dt>
+<dd>5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[2]: &quot;then deliberately lift the bar.&quot;</li>
+<li>rules[2]: &quot;draws water from unsealed wells or vessels in direct sight of the opened coffer&quot;</li>
+<li>rules[2]: &quot;It never draws water from living bodies.&quot;</li>
+<li>rules[2]: &quot;With no exposed water, the brine already trapped in the cage forms a smaller, equally free figure.&quot;</li>
+<li>acts[2].arcs[1].dnaHint: &quot;Releasing the God beside an occupied well endangers its water; an evacuated dry basin avoids that immediate harm.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The material clarification was prompted by the players panel; this is independent textual corroboration, not an earlier finding credited to this panel. No runtime state tracking or physical simulation was tested.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Clean final editorial result following a full reread; story content is unchanged from round 2.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The clarified water hazard supports advance warning and effective precautions without turning shell-opening payment into an unannounced release. The severe magic price and truthful but interested bargains remain bounded and discoverable.</dd>
+<dt>Basis</dt>
+<dd>1.7 (S:action-roll, primary); 7.4 (LF, primary); 7.6 (LF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[4]: &quot;it cures Corr&#x27;s wasting sickness in exchange for opening its outer shell, revealing the inner bar but not lifting it&quot;</li>
+<li>rules[2]: &quot;Covering supplies or choosing a dry, evacuated basin prevents those immediate losses.&quot;</li>
+<li>rules[4]: &quot;No surprise permanent surcharge or compulsory bargain.&quot;</li>
+<li>rules[0]: &quot;Comparable acts keep comparable prices; no retroactive surcharge.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No live warning delivery or balance observation. The demanding exhaustion price remains a playtest question, not a reason to remove the intended cost.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>Clean final editorial result following a full reread; story content is unchanged from round 2.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The Act II goal no longer announces the company&#x27;s fracture as a result. Conditional threats and NPC choices remain consistent with that change, and the dry-site option does not grant control over the freed entity.</dd>
+<dt>Basis</dt>
+<dd>1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].goal: &quot;while testing what the company will do to keep it, sell it or escape its burden.&quot;</li>
+<li>acts[1].arcs[3].dnaHint: &quot;do not decree a betrayal on schedule.&quot;</li>
+<li>rules[5]: &quot;do not restore a defeated force or crack a protected box to reach an outline beat.&quot;</li>
+<li>rules[2]: &quot;It can leave thereafter; neither king nor cult commands it.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>These are documented Vincent and Meguey Baker coauthored principles applied as a lens. The authored structure remains an accepted tradeoff. No generated outcome was observed.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>Clean final editorial result following a full reread; story content is unchanged from round 2.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The added release detail remains part of reachable cage instructions rather than a hidden exception introduced at the climax. Fixed Oren evidence and multiple procedural sources remain preserved.</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2 and 1.3 (SRD, primary); 1.7 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[2]: &quot;The cage diagram warns&quot;</li>
+<li>acts[1].arcs[2].dnaHint: &quot;They define the key, inner bar, resealing price and the danger to nearby water when the God takes shape.&quot;</li>
+<li>rules[6]: &quot;Core facts follow reasonable inspection; danger and difficult access can remain, but failed recall or a lost NPC never erase all routes.&quot;</li>
+<li>rules[6]: &quot;Deren&#x27;s old seal and Oren&#x27;s signed carriage chit expose Ysbet&#x27;s theft independently of the God&#x27;s voice.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Availability is an authored instruction, not evidence of actual clue delivery. No need to require every parallel lead or settle the entity&#x27;s ultimate identity.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>Clean final editorial result following a full reread; story content is unchanged from round 2.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The clarified lesser-loss release route preserves an ugly tradeoff: the local water can be protected while an independent power goes free. Personal stakes and actual relational consequences remain; the goal correction avoids mandating disintegration of the company.</dd>
+<dt>Basis</dt>
+<dd>2.7 and 7.3 (S2, primary); 4.6 (S1, primary, applied to meaningful consequences rather than mandatory transformation).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[7]: &quot;release in a prepared dry site avoids that loss but frees a power no faction controls.&quot;</li>
+<li>acts[1].arcs[3].dnaHint: &quot;Ask whom the player confides in; threats, payments and kindness change loyalties&quot;</li>
+<li>acts[2].arcs[1].dnaHint: &quot;Resolve the actual custody, supplies, wages and broken or preserved loyalties.&quot;</li>
+<li>acts[2].arcs[1].dnaHint: &quot;Invite a last image of what the player keeps or leaves.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No emotional response or character transformation has been observed. Avoiding one preventable harm need not erase the remaining swords-and-sorcery costs.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>The complete round-3 release-candidate snapshot was reread. A structural comparison independently confirms that only version (1.0) and releaseStatus (release-candidate) changed. All prior findings remain closed; no additional editworthy finding under the five stored design lenses.</li>
+<li>Retain the severe magic economy, consequential memory sacrifice, limited local mitigation and politically compromised custody options. Clear operational rules need not answer the God&#x27;s cosmic identity.</li>
+<li>The static clean result does not establish narrator compliance, balance, pacing or emotional success. The caster exhaustion option warrants eventual actual-play observation. No one-hour target or runtime assurance applies.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Final full reread: baseline resolutions remain intact; the dry-site release now has an explicit physical cause. No actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Stored brine permits release without nearby water, while living bodies are excluded and the extraction viewpoint is fixed. The operational refinement preserves costly sorcery and the separate resealing price.</dd>
+<dt>Basis</dt>
+<dd>§8.3–8.4 cost/consequence and §9.1 consistent world (◐ secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>in direct sight of the opened coffer</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>It never draws water from living bodies.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>the brine already trapped in the cage forms a smaller, equally free figure.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>pays exactly one self-chosen cherished memory, permanently</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Documented rubric application, not author participation. No prose corpus or §17 runtime metrics; no claim about experienced emotional weight.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Final full reread: the clarified release preserves material menace and a feasible prepared ending. No actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The finale now attaches water loss to releasing the entity rather than merely opening the shell; a dangerous bargain granting shell access does not silently become full release. The freed power remains beyond faction control.</dd>
+<dt>Basis</dt>
+<dd>§9.3 confirmation (A:6 ◐), §9.5 convincing fiction (A:5 ●/◐), §10.1–10.2 local resolution and continuity (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Releasing the God beside an occupied well endangers its water</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>revealing the inner bar but not lifting it</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>neither king nor cult commands it.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Unknown taxonomy and a threatening future remain legitimate. A smaller freed figure is not evidence that players experienced less danger; runtime effect is untested.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Final full reread: the act goal no longer presupposes company fracture; faction consequences and materially different endings remain explicit. No actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The company&#x27;s loyalties are tested rather than sentenced to break, consistent with the detailed conditional-event guidance. A prepared release avoids immediate water loss without automatically improving the political system.</dd>
+<dt>Basis</dt>
+<dd>§9.3 consequential choice (WE ●), §3.2 structural power (LS ●) and §3.5 resource allocation (GR ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].goal</dd>
+<dt>Quote</dt>
+<dd>keep it, sell it or escape its burden.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>do not decree a betrayal on schedule.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>Neither automatically improves water access.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>release in a prepared dry site avoids that loss</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Authored choice support was reviewed; actual agency/comprehension was not tested. No obligation to make all outcomes equally desirable.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>Final full reread: no character or consequence regression. Corr&#x27;s motive, Ren&#x27;s personhood and costly, contingent endings remain intact. No actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Corr can choose a safer plan without betraying his motive to protect the company. Ren&#x27;s practical habits retain a life beyond loss, and a cure does not erase every consequence.</dd>
+<dt>Basis</dt>
+<dd>§5.4 self-understanding (B:Fantasy-Hive ●), §5.6 character/action causality (B:Dark Matter Zine ●), §8.4 telling detail (A:Advice ●), §3.3–3.4 earned endings (A:Ending Like an Avalanche ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>accepts a safer plan when trusted.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>she marks good shade with a crooked boot print</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>does not erase existing injuries and oppression.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No generated dialogue or player emotional response assessed. A successful precaution is not unearned comfort.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>No additional editorial changes requested after the complete third-cycle reread. The release-candidate metadata does not alter the assessed fiction.</li>
+<li>Retain the distinction between shell opening and release, the fixed extraction viewpoint and the trapped-brine fallback.</li>
+<li>Runtime narration and pacing remain untested.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Leiber&#x27;s dangerous mystery does not require operational contradictions or unavoidable water loss.</li>
+<li>Le Guin&#x27;s meaningful magic costs coexist with an earned, prepared release that avoids one immediate harm.</li>
+<li>Jemisin&#x27;s structural perspective does not require immediate regime change; Abercrombie&#x27;s harshness does not require inevitable company fracture.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>No unique source-supported content blocker; the new fixed procedure is easier to explain aloud.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Concrete action boundaries replace an unspecified box danger</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R4; R6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[1]</dd>
+<dt>Quote</dt>
+<dd>The key opens the shell; it does not lift the inner bar.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>Before each act, agree a concrete loss and its duration, or decline without casting.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.</dd>
+<dt>Dissent</dt>
+<dd>R5 driving/no-danger and R10 audio inventory remain inferred and do not justify removing danger or shortening the campaign. No claim that narration already provides a good recap.</dd>
+<dt>Verification question</dt>
+<dd>In an audio verification, can the listener distinguish opening the shell, lifting the bar and paying for resealing before accepting any irreversible action?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>Editorially clean for this lens; prior fixed-truth and agency improvements retained.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Successful prevention changes the outline rather than being overwritten</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I4</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].turningPoint</dd>
+<dt>Quote</dt>
+<dd>a protected coffer stays intact.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[5]</dd>
+<dt>Quote</dt>
+<dd>do not restore a defeated force or crack a protected box to reach an outline beat.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Dry-site release has a defined body source and preserves protected water</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>With no exposed water, the brine already trapped in the cage forms a smaller, equally free figure.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>It never draws water from living bodies.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>in direct sight of the opened coffer</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Company conflict remains contingent even in the act goal</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I4</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].goal</dd>
+<dt>Quote</dt>
+<dd>while testing what the company will do to keep it, sell it or escape its burden.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>do not decree a betrayal on schedule.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.</dd>
+<dt>Dissent</dt>
+<dd>Danger, unequal political power and uncertain ultimate origin remain strengths for this lens when operational truths stay fixed. No demand for a universally benevolent resolution.</dd>
+<dt>Verification question</dt>
+<dd>After a negotiated settlement with Hask, does a later gate scene honor his actual forces and agreement rather than recreating the original confrontation?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>Editorially clean on disclosed prices and chosen losses; preserving severe voluntary costs is a genre decision.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Magic has scoped costs, advance agreement, reversible bodily option and explicit exclusions</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B1; B5; B9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Price transparency and loss predictability are transferred by analogy from item/economy research, not direct research into memory sacrifice.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>Passive traits, already-active effects and ordinary medicine are not charged anew.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>A modest spell can cost bodily exhaustion until a full safe rest: no further sorcery or strenuous exertion during recovery.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[0]</dd>
+<dt>Quote</dt>
+<dd>Comparable acts keep comparable prices; no retroactive surcharge.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.</dd>
+<dt>Dissent</dt>
+<dd>B1 predicts caution around cherished losses; that does not justify removing this declared swords-and-sorcery cost or adding a loot economy. The catalog disclosure described by the parent is outside this immutable snapshot; the dedicated hero-selection reminder under #447 remains open.</dd>
+<dt>Verification question</dt>
+<dd>When a player declines the proposed memory price, does play actually preserve the declined recollection and permit the ordinary alternative without charging twice?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Still a poor match for the cozy lens, with stronger meaningful relationships and bounded participation; genre mismatch is not a defect.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Corr and Ren are people whose treatment can matter rather than scheduled betrayal or fuel</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>At a sheltered meal, Corr repairs a boot with the stitch he plans to use on his future farm&#x27;s harness.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>threats, payments and kindness change loyalties, but do not decree a betrayal on schedule.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[5].notes</dd>
+<dt>Quote</dt>
+<dd>She can advise without casting and may refuse another sacrifice.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.</dd>
+<dt>Dissent</dt>
+<dd>N1 favors low-stakes recognition and N6 supports completed chunks, not a demand to turn this harsh long campaign into cozy play or a twenty-minute story. No observed pacing problem is asserted.</dd>
+<dt>Verification question</dt>
+<dd>Can a short resumed session finish a chosen conversation or practical company task without the narrator escalating merely to fill space?</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>Editorially clean for this lens; attainable costly closure and optional player final image survive.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Resealing has learnable resources and a fixed voluntary price without a unique NPC gate</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated source-supported concern; no claim of actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>pays exactly one self-chosen cherished memory, permanently; name that memory and consequence before assent.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>Ren, Ash-Tongue or a willing player can perform it by reading; none is uniquely required.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Finale correctly attaches water damage to release, not the bounded cure</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Releasing the God beside an occupied well endangers its water;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>it cures Corr&#x27;s wasting sickness in exchange for opening its outer shell, revealing the inner bar but not lifting it;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>then deliberately lift the bar.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Actual consequences and player closing image remain explicit</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Resolve the actual custody, supplies, wages and broken or preserved loyalties. Invite a last image of what the player keeps or leaves. No mandatory new quest.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.</dd>
+<dt>Dissent</dt>
+<dd>A costly imperfect ending is compatible with G1-G3; it need not repair the entire political order or promise eternal containment. Narrated rules are not proof of mechanically enforced persistence.</dd>
+<dt>Verification question</dt>
+<dd>If Corr accepts the shell-opening cure and the inner bar remains down, does the actual scene preserve nearby water and record the cure accurately?</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Agreement</dt>
+<dd>Final editorial reread finds no actionable player-panel defect. Both earlier precision fixes remain correct; prior informed costs, conditional conflict, independent evidence and attainable endings remain intact.</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan remains a poor cozy target; this does not justify changing declared swords-and-sorcery danger or long scope.</li>
+<li>Bert may avoid irreversible memories despite transparent pricing; Ines values hard consequences. No claim that either preference represents all players.</li>
+<li>Rosa needs actual audio verification; inferred driving and inventory claims do not drive a verdict.</li>
+</ul>
+</dd>
+<dt>Limits</dt>
+<dd>No actual player comprehension, runtime enforcement or pacing proof. #447 dedicated hero-selection reminder stays open; parent-reported catalog blurb is not part of the reviewed snapshot.</dd>
+</dl>
+</details>
+</section>
+<footer>
+<p>Actual play should check the severe ordinary spell price, a prevented ambush, interrupted cult rite, dry-site release, resealing without Ren, and whether the final choice feels earned. These are checks to perform, not observed results.</p>
+<p>No engine code or runtime resource accumulation was added. Existing saves retain their starting edition. Editorial and import checks cannot establish player satisfaction or actual GM behavior.</p>
+</footer>
+</body>
+</html>

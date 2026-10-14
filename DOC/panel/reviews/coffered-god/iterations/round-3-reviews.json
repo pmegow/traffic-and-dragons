@@ -1,0 +1,507 @@
+[
+  {
+    "round": 3,
+    "blueprintSha256": "490c1a85f1cb95e7aa3d5545256770b7ffc3af322dcb8d7f3137c7d0ceccdc1d",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Clean final editorial result following a full reread; story content is unchanged from round 2.",
+        "resolved": [
+          {
+            "text": "The release clarification supplies a physical basis for the dry-site outcome and limits the drain consistently. Outer-shell access remains distinct from lifting the bar; the finale now uses the right trigger. Prior key, seal and ending procedures remain intact.",
+            "basis": "5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).",
+            "blueprintEvidence": [
+              "rules[2]: \"then deliberately lift the bar.\"",
+              "rules[2]: \"draws water from unsealed wells or vessels in direct sight of the opened coffer\"",
+              "rules[2]: \"It never draws water from living bodies.\"",
+              "rules[2]: \"With no exposed water, the brine already trapped in the cage forms a smaller, equally free figure.\"",
+              "acts[2].arcs[1].dnaHint: \"Releasing the God beside an occupied well endangers its water; an evacuated dry basin avoids that immediate harm.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The material clarification was prompted by the players panel; this is independent textual corroboration, not an earlier finding credited to this panel. No runtime state tracking or physical simulation was tested."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Clean final editorial result following a full reread; story content is unchanged from round 2.",
+        "resolved": [
+          {
+            "text": "The clarified water hazard supports advance warning and effective precautions without turning shell-opening payment into an unannounced release. The severe magic price and truthful but interested bargains remain bounded and discoverable.",
+            "basis": "1.7 (S:action-roll, primary); 7.4 (LF, primary); 7.6 (LF, primary).",
+            "blueprintEvidence": [
+              "rules[4]: \"it cures Corr's wasting sickness in exchange for opening its outer shell, revealing the inner bar but not lifting it\"",
+              "rules[2]: \"Covering supplies or choosing a dry, evacuated basin prevents those immediate losses.\"",
+              "rules[4]: \"No surprise permanent surcharge or compulsory bargain.\"",
+              "rules[0]: \"Comparable acts keep comparable prices; no retroactive surcharge.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No live warning delivery or balance observation. The demanding exhaustion price remains a playtest question, not a reason to remove the intended cost."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "Clean final editorial result following a full reread; story content is unchanged from round 2.",
+        "resolved": [
+          {
+            "text": "The Act II goal no longer announces the company's fracture as a result. Conditional threats and NPC choices remain consistent with that change, and the dry-site option does not grant control over the freed entity.",
+            "basis": "1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).",
+            "blueprintEvidence": [
+              "acts[1].goal: \"while testing what the company will do to keep it, sell it or escape its burden.\"",
+              "acts[1].arcs[3].dnaHint: \"do not decree a betrayal on schedule.\"",
+              "rules[5]: \"do not restore a defeated force or crack a protected box to reach an outline beat.\"",
+              "rules[2]: \"It can leave thereafter; neither king nor cult commands it.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "These are documented Vincent and Meguey Baker coauthored principles applied as a lens. The authored structure remains an accepted tradeoff. No generated outcome was observed."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "Clean final editorial result following a full reread; story content is unchanged from round 2.",
+        "resolved": [
+          {
+            "text": "The added release detail remains part of reachable cage instructions rather than a hidden exception introduced at the climax. Fixed Oren evidence and multiple procedural sources remain preserved.",
+            "basis": "1.1, 1.2 and 1.3 (SRD, primary); 1.7 (XX-two, primary).",
+            "blueprintEvidence": [
+              "rules[2]: \"The cage diagram warns\"",
+              "acts[1].arcs[2].dnaHint: \"They define the key, inner bar, resealing price and the danger to nearby water when the God takes shape.\"",
+              "rules[6]: \"Core facts follow reasonable inspection; danger and difficult access can remain, but failed recall or a lost NPC never erase all routes.\"",
+              "rules[6]: \"Deren's old seal and Oren's signed carriage chit expose Ysbet's theft independently of the God's voice.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Availability is an authored instruction, not evidence of actual clue delivery. No need to require every parallel lead or settle the entity's ultimate identity."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Clean final editorial result following a full reread; story content is unchanged from round 2.",
+        "resolved": [
+          {
+            "text": "The clarified lesser-loss release route preserves an ugly tradeoff: the local water can be protected while an independent power goes free. Personal stakes and actual relational consequences remain; the goal correction avoids mandating disintegration of the company.",
+            "basis": "2.7 and 7.3 (S2, primary); 4.6 (S1, primary, applied to meaningful consequences rather than mandatory transformation).",
+            "blueprintEvidence": [
+              "rules[7]: \"release in a prepared dry site avoids that loss but frees a power no faction controls.\"",
+              "acts[1].arcs[3].dnaHint: \"Ask whom the player confides in; threats, payments and kindness change loyalties\"",
+              "acts[2].arcs[1].dnaHint: \"Resolve the actual custody, supplies, wages and broken or preserved loyalties.\"",
+              "acts[2].arcs[1].dnaHint: \"Invite a last image of what the player keeps or leaves.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No emotional response or character transformation has been observed. Avoiding one preventable harm need not erase the remaining swords-and-sorcery costs."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [],
+      "dissent": [
+        "The complete round-3 release-candidate snapshot was reread. A structural comparison independently confirms that only version (1.0) and releaseStatus (release-candidate) changed. All prior findings remain closed; no additional editworthy finding under the five stored design lenses.",
+        "Retain the severe magic economy, consequential memory sacrifice, limited local mitigation and politically compromised custody options. Clear operational rules need not answer the God's cosmic identity.",
+        "The static clean result does not establish narrator compliance, balance, pacing or emotional success. The caster exhaustion option warrants eventual actual-play observation. No one-hour target or runtime assurance applies."
+      ]
+    }
+  },
+  {
+    "round": 3,
+    "blueprintSha256": "490c1a85f1cb95e7aa3d5545256770b7ffc3af322dcb8d7f3137c7d0ceccdc1d",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Final full reread: baseline resolutions remain intact; the dry-site release now has an explicit physical cause. No actionable finding.",
+        "resolved": [
+          {
+            "text": "Stored brine permits release without nearby water, while living bodies are excluded and the extraction viewpoint is fixed. The operational refinement preserves costly sorcery and the separate resealing price.",
+            "basis": "§8.3–8.4 cost/consequence and §9.1 consistent world (◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[2]",
+                "quote": "in direct sight of the opened coffer"
+              },
+              {
+                "path": "rules[2]",
+                "quote": "It never draws water from living bodies."
+              },
+              {
+                "path": "rules[2]",
+                "quote": "the brine already trapped in the cage forms a smaller, equally free figure."
+              },
+              {
+                "path": "rules[3]",
+                "quote": "pays exactly one self-chosen cherished memory, permanently"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Documented rubric application, not author participation. No prose corpus or §17 runtime metrics; no claim about experienced emotional weight."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Final full reread: the clarified release preserves material menace and a feasible prepared ending. No actionable finding.",
+        "resolved": [
+          {
+            "text": "The finale now attaches water loss to releasing the entity rather than merely opening the shell; a dangerous bargain granting shell access does not silently become full release. The freed power remains beyond faction control.",
+            "basis": "§9.3 confirmation (A:6 ◐), §9.5 convincing fiction (A:5 ●/◐), §10.1–10.2 local resolution and continuity (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[1].dnaHint",
+                "quote": "Releasing the God beside an occupied well endangers its water"
+              },
+              {
+                "path": "rules[4]",
+                "quote": "revealing the inner bar but not lifting it"
+              },
+              {
+                "path": "rules[2]",
+                "quote": "neither king nor cult commands it."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Unknown taxonomy and a threatening future remain legitimate. A smaller freed figure is not evidence that players experienced less danger; runtime effect is untested."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Final full reread: the act goal no longer presupposes company fracture; faction consequences and materially different endings remain explicit. No actionable finding.",
+        "resolved": [
+          {
+            "text": "The company's loyalties are tested rather than sentenced to break, consistent with the detailed conditional-event guidance. A prepared release avoids immediate water loss without automatically improving the political system.",
+            "basis": "§9.3 consequential choice (WE ●), §3.2 structural power (LS ●) and §3.5 resource allocation (GR ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[1].goal",
+                "quote": "keep it, sell it or escape its burden."
+              },
+              {
+                "path": "acts[1].arcs[3].dnaHint",
+                "quote": "do not decree a betrayal on schedule."
+              },
+              {
+                "path": "rules[7]",
+                "quote": "Neither automatically improves water access."
+              },
+              {
+                "path": "rules[7]",
+                "quote": "release in a prepared dry site avoids that loss"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Authored choice support was reviewed; actual agency/comprehension was not tested. No obligation to make all outcomes equally desirable."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "Final full reread: no character or consequence regression. Corr's motive, Ren's personhood and costly, contingent endings remain intact. No actionable finding.",
+        "resolved": [
+          {
+            "text": "Corr can choose a safer plan without betraying his motive to protect the company. Ren's practical habits retain a life beyond loss, and a cure does not erase every consequence.",
+            "basis": "§5.4 self-understanding (B:Fantasy-Hive ●), §5.6 character/action causality (B:Dark Matter Zine ●), §8.4 telling detail (A:Advice ●), §3.3–3.4 earned endings (A:Ending Like an Avalanche ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[3].notes",
+                "quote": "accepts a safer plan when trusted."
+              },
+              {
+                "path": "npcs[5].notes",
+                "quote": "she marks good shade with a crooked boot print"
+              },
+              {
+                "path": "rules[7]",
+                "quote": "does not erase existing injuries and oppression."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No generated dialogue or player emotional response assessed. A successful precaution is not unearned comfort."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "No additional editorial changes requested after the complete third-cycle reread. The release-candidate metadata does not alter the assessed fiction.",
+        "Retain the distinction between shell opening and release, the fixed extraction viewpoint and the trapped-brine fallback.",
+        "Runtime narration and pacing remain untested."
+      ],
+      "dissent": [
+        "Leiber's dangerous mystery does not require operational contradictions or unavoidable water loss.",
+        "Le Guin's meaningful magic costs coexist with an earned, prepared release that avoids one immediate harm.",
+        "Jemisin's structural perspective does not require immediate regime change; Abercrombie's harshness does not require inevitable company fracture."
+      ]
+    }
+  },
+  {
+    "round": 3,
+    "blueprintSha256": "490c1a85f1cb95e7aa3d5545256770b7ffc3af322dcb8d7f3137c7d0ceccdc1d",
+    "scope": "Full round-3 immutable snapshot reread through all five sourced composite player lenses. Story content also confirmed identical to round 2; only release metadata changed. Exact zero-based field anchors reverified. No human playtest or runtime claims.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "No unique source-supported content blocker; the new fixed procedure is easier to explain aloud.",
+        "resolved": [
+          {
+            "title": "Concrete action boundaries replace an unspecified box danger",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R4; R6",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[1]",
+                "quote": "The key opens the shell; it does not lift the inner bar."
+              },
+              {
+                "field": "rules[0]",
+                "quote": "Before each act, agree a concrete loss and its duration, or decline without casting."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.",
+          "dissent": "R5 driving/no-danger and R10 audio inventory remain inferred and do not justify removing danger or shortening the campaign. No claim that narration already provides a good recap.",
+          "verificationQuestion": "In an audio verification, can the listener distinguish opening the shell, lifting the bar and paying for resealing before accepting any irreversible action?"
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Editorially clean for this lens; prior fixed-truth and agency improvements retained.",
+        "resolved": [
+          {
+            "title": "Successful prevention changes the outline rather than being overwritten",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I4",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "a protected coffer stays intact."
+              },
+              {
+                "field": "rules[5]",
+                "quote": "do not restore a defeated force or crack a protected box to reach an outline beat."
+              }
+            ]
+          },
+          {
+            "title": "Dry-site release has a defined body source and preserves protected water",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[2]",
+                "quote": "With no exposed water, the brine already trapped in the cage forms a smaller, equally free figure."
+              },
+              {
+                "field": "rules[2]",
+                "quote": "It never draws water from living bodies."
+              },
+              {
+                "field": "rules[2]",
+                "quote": "in direct sight of the opened coffer"
+              }
+            ]
+          },
+          {
+            "title": "Company conflict remains contingent even in the act goal",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I4",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].goal",
+                "quote": "while testing what the company will do to keep it, sell it or escape its burden."
+              },
+              {
+                "field": "acts[1].arcs[3].dnaHint",
+                "quote": "do not decree a betrayal on schedule."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.",
+          "dissent": "Danger, unequal political power and uncertain ultimate origin remain strengths for this lens when operational truths stay fixed. No demand for a universally benevolent resolution.",
+          "verificationQuestion": "After a negotiated settlement with Hask, does a later gate scene honor his actual forces and agreement rather than recreating the original confrontation?"
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "Editorially clean on disclosed prices and chosen losses; preserving severe voluntary costs is a genre decision.",
+        "resolved": [
+          {
+            "title": "Magic has scoped costs, advance agreement, reversible bodily option and explicit exclusions",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B1; B5; B9",
+              "sourceGrade": "primary",
+              "application": "Price transparency and loss predictability are transferred by analogy from item/economy research, not direct research into memory sacrifice."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[0]",
+                "quote": "Passive traits, already-active effects and ordinary medicine are not charged anew."
+              },
+              {
+                "field": "rules[0]",
+                "quote": "A modest spell can cost bodily exhaustion until a full safe rest: no further sorcery or strenuous exertion during recovery."
+              },
+              {
+                "field": "rules[0]",
+                "quote": "Comparable acts keep comparable prices; no retroactive surcharge."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.",
+          "dissent": "B1 predicts caution around cherished losses; that does not justify removing this declared swords-and-sorcery cost or adding a loot economy. The catalog disclosure described by the parent is outside this immutable snapshot; the dedicated hero-selection reminder under #447 remains open.",
+          "verificationQuestion": "When a player declines the proposed memory price, does play actually preserve the declined recollection and permit the ordinary alternative without charging twice?"
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "Still a poor match for the cozy lens, with stronger meaningful relationships and bounded participation; genre mismatch is not a defect.",
+        "resolved": [
+          {
+            "title": "Corr and Ren are people whose treatment can matter rather than scheduled betrayal or fuel",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[3].dnaHint",
+                "quote": "At a sheltered meal, Corr repairs a boot with the stitch he plans to use on his future farm's harness."
+              },
+              {
+                "field": "acts[1].arcs[3].dnaHint",
+                "quote": "threats, payments and kindness change loyalties, but do not decree a betrayal on schedule."
+              },
+              {
+                "field": "npcs[5].notes",
+                "quote": "She can advise without casting and may refuse another sacrifice."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.",
+          "dissent": "N1 favors low-stakes recognition and N6 supports completed chunks, not a demand to turn this harsh long campaign into cozy play or a twenty-minute story. No observed pacing problem is asserted.",
+          "verificationQuestion": "Can a short resumed session finish a chosen conversation or practical company task without the narrator escalating merely to fill space?"
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "Editorially clean for this lens; attainable costly closure and optional player final image survive.",
+        "resolved": [
+          {
+            "title": "Resealing has learnable resources and a fixed voluntary price without a unique NPC gate",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G6; G7",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[3]",
+                "quote": "pays exactly one self-chosen cherished memory, permanently; name that memory and consequence before assent."
+              },
+              {
+                "field": "rules[3]",
+                "quote": "Ren, Ash-Tongue or a willing player can perform it by reading; none is uniquely required."
+              }
+            ]
+          },
+          {
+            "title": "Finale correctly attaches water damage to release, not the bounded cure",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G6; G7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "Releasing the God beside an occupied well endangers its water;"
+              },
+              {
+                "field": "rules[4]",
+                "quote": "it cures Corr's wasting sickness in exchange for opening its outer shell, revealing the inner bar but not lifting it;"
+              },
+              {
+                "field": "rules[2]",
+                "quote": "then deliberately lift the bar."
+              }
+            ]
+          },
+          {
+            "title": "Actual consequences and player closing image remain explicit",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "Resolve the actual custody, supplies, wages and broken or preserved loyalties. Invite a last image of what the player keeps or leaves. No mandatory new quest."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "No runtime narration, audio behavior, persistence, pacing or import claims. Dedicated #447 hero-selection reminder remains outside this review.",
+          "dissent": "A costly imperfect ending is compatible with G1-G3; it need not repair the entire political order or promise eternal containment. Narrated rules are not proof of mechanically enforced persistence.",
+          "verificationQuestion": "If Corr accepts the shell-opening cure and the inner bar remains down, does the actual scene preserve nearby water and record the cure accurately?"
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [],
+      "agreement": "Final editorial reread finds no actionable player-panel defect. Both earlier precision fixes remain correct; prior informed costs, conditional conflict, independent evidence and attainable endings remain intact.",
+      "dissent": [
+        "Nan remains a poor cozy target; this does not justify changing declared swords-and-sorcery danger or long scope.",
+        "Bert may avoid irreversible memories despite transparent pricing; Ines values hard consequences. No claim that either preference represents all players.",
+        "Rosa needs actual audio verification; inferred driving and inventory claims do not drive a verdict."
+      ],
+      "limits": "No actual player comprehension, runtime enforcement or pacing proof. #447 dedicated hero-selection reminder stays open; parent-reported catalog blurb is not part of the reviewed snapshot."
+    }
+  }
+]

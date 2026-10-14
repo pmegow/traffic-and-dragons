@@ -1,0 +1,754 @@
+[
+  {
+    "round": 1,
+    "blueprintSha256": "b74c718c36c114799f39337cfb59730d1651bcfbe9e2db22b18101a170cfcde2",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Clean editorial result; the key, changing seal condition and achievable endings now have consistent practical procedures.",
+        "resolved": [
+          {
+            "text": "The previously undefined key and seal transitions are supplied, with limited contact, custody tracking and a distinction between waking speech and release.",
+            "basis": "5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).",
+            "blueprintEvidence": [
+              "rules[1]: \"Ysbet hands its single iron key to the company's chosen custodian at hiring.\"",
+              "rules[1]: \"The key opens the shell; it does not lift the inner bar.\"",
+              "rules[2]: \"unlock the shell with the key or break it open with sustained noisy tool-work, then deliberately lift the bar.\"",
+              "rules[1]: \"Touch alone binds nobody.\""
+            ]
+          },
+          {
+            "text": "Resealing is achievable through available materials and a fixed sacrifice; custody or release has stated practical consequences without promising a perfect political resolution.",
+            "basis": "5.3 (A/B:26, primary); 7.2 (B:29, secondary).",
+            "blueprintEvidence": [
+              "rules[3]: \"Repair the shell with ordinary iron straps, renew the seam with clean salt, shut the inner bar and turn the key (or fit an ordinary replacement lock if it was destroyed).\"",
+              "rules[3]: \"One willing living participant follows the written rite and pays exactly one self-chosen cherished memory, permanently; name that memory and consequence before assent.\"",
+              "rules[3]: \"Tools and salt are available at Ren's house or the city vaults.\"",
+              "rules[7]: \"Neutral vault custody removes the immediate release threat but leaves baronial rule intact.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Static consistency review, not proof of correct state tracking. Ultimate metaphysical identity and exhaustive released-God capabilities need not be catalogued to resolve these stated choices. No simulation or duration requirement is imposed."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Clean editorial result; the severe magic economy is now explicit and voluntary at the moment of commitment.",
+        "resolved": [
+          {
+            "text": "Routine magic now has a declared scope, payment procedure and concrete modest-spell option, with no retroactive surcharge and permission to refuse.",
+            "basis": "1.2 and 1.3 (S:action-roll / S:setting-position-effect, primary); 1.7 (S:action-roll, primary); 7.4 (LF, primary).",
+            "blueprintEvidence": [
+              "rules[0]: \"deliberate spellcasting and activated supernatural abilities cost body, memory or years in addition to normal game resources.\"",
+              "rules[0]: \"Passive traits, already-active effects and ordinary medicine are not charged anew.\"",
+              "rules[0]: \"Before each act, agree a concrete loss and its duration, or decline without casting.\"",
+              "rules[0]: \"A modest spell can cost bodily exhaustion until a full safe rest: no further sorcery or strenuous exertion during recovery.\"",
+              "rules[0]: \"Comparable acts keep comparable prices; no retroactive surcharge.\""
+            ]
+          },
+          {
+            "text": "Bargains retain concealed motives and an honored upside while ending the requirement for an arbitrary hidden permanent penalty.",
+            "basis": "1.7 (S:action-roll, primary); 7.4 (LF, primary).",
+            "blueprintEvidence": [
+              "rules[4]: \"the payment, affected person and immediate supernatural consequence must be discoverable before agreement, through questions or binding records.\"",
+              "rules[4]: \"No surprise permanent surcharge or compulsory bargain.\"",
+              "rules[4]: \"These exchanges replace, not stack with, the usual sorcery price.\"",
+              "rules[4]: \"each accepted gift encourages dependence and access to the cage, not a new unagreed power over a soul.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "A modest cast can end strenuous participation until safe rest. That is a substantial, deliberately disclosed genre cost; its effect on actual character builds and enjoyment remains untested, not a demonstrated defect. Do not erase the price merely to match Blades."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "Clean editorial result; threats have conditions and decisions can alter or conclude the journey.",
+        "resolved": [
+          {
+            "text": "The fixed crack, forced rite and mandatory convergence have become contingent events with explicit preservation of prevention, defeat and prior agreements.",
+            "basis": "1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).",
+            "blueprintEvidence": [
+              "acts[0].turningPoint: \"If an enemy actually breaks the outer shell, the God can speak openly; a protected coffer stays intact.\"",
+              "acts[1].arcs[1].dnaHint: \"Interrupting the chant prevents waking; it does not crack or unlock anything.\"",
+              "acts[2].arcs[0].dnaHint: \"Only surviving, informed forces arrive. A prior truce or diversion still matters.\"",
+              "rules[5]: \"do not restore a defeated force or crack a protected box to reach an outline beat.\""
+            ]
+          },
+          {
+            "text": "The NPC pressures remain severe without predetermining betrayal, sacrifice or a false happy ending.",
+            "basis": "3.2 and 6.2 (AW-REF, primary); 8.5 (ANY-759, primary).",
+            "blueprintEvidence": [
+              "npcs[3].notes: \"Illness does not predetermine suicide or betrayal.\"",
+              "npcs[2].notes: \"Their choices, not a madness schedule, drive the rite.\"",
+              "rules[7]: \"An abandoned box remains where left until an actor with access takes it; do not force recapture or a sequel.\"",
+              "rules[7]: \"A cure, changed loyalty or new refuge does not erase existing injuries and oppression.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Rubric application uses the Vincent and Meguey Baker coauthored AW principles. The agreed act structure remains a tradeoff, not a new defect. No generated play or enforcement of those conditional instructions was observed."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "Clean editorial result; the formerly invented proof and ambiguous oracle now have concrete, redundant sources.",
+        "resolved": [
+          {
+            "text": "Oren has a fixed identity and knowledge path, with independent evidence of the theft even if the ambush is prevented or the God never speaks.",
+            "basis": "1.2 and 1.3 (SRD, primary); 1.9 (INFO, primary).",
+            "blueprintEvidence": [
+              "rules[6]: \"Oren is the bribed keeper, a name the God heard Ysbet use at the tomb, not an invented secret from a player's past.\"",
+              "rules[6]: \"Deren's old seal and Oren's signed carriage chit expose Ysbet's theft independently of the God's voice.\"",
+              "npcs[0].notes: \"Questions produce evasions or a negotiated admission, not automatic confession.\""
+            ]
+          },
+          {
+            "text": "Ren is explicitly the already-hired guide; her written records and alternative copies preserve essential procedures despite memory loss or NPC absence.",
+            "basis": "1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).",
+            "blueprintEvidence": [
+              "npcs[5].notes: \"the Dry Oracle route visits her cistern-house records, not a second witch.\"",
+              "acts[1].arcs[2].dnaHint: \"If she is absent or unwilling, the signed rubbing and common script remain readable; Ash-Tongue's copy and the public vault inscriptions in Two Thrones corroborate them.\"",
+              "acts[1].arcs[2].dnaHint: \"Reasonable examination reveals the essential procedure without a single-roll gate.\"",
+              "acts[1].arcs[2].dnaHint: \"Her forgotten teacher's face stays lost.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Authored core-clue access is not observed delivery. Optional lost information and dangerous access may remain; reliable operational facts do not require removing mysteries or granting a skipped scene's information."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Clean editorial result; the revision adds concrete personal texture and ending consequences without softening the campaign.",
+        "resolved": [
+          {
+            "text": "The existing personal stakes now appear in ordinary actions and choices, rather than serving solely as scheduled betrayal mechanisms.",
+            "basis": "2.2 and 7.3 (S2, primary).",
+            "blueprintEvidence": [
+              "acts[1].arcs[3].dnaHint: \"Corr repairs a boot with the stitch he plans to use on his future farm's harness.\"",
+              "acts[1].arcs[3].dnaHint: \"Ren resents being asked to spend memories as expedition equipment.\"",
+              "acts[1].arcs[3].dnaHint: \"Ash-Tongue's converts may want clean wells more than apocalypse.\""
+            ]
+          },
+          {
+            "text": "The ending reports material and relational change and invites a final image without compelling a specific moral conversion or new quest.",
+            "basis": "2.7 (S2, primary); 4.6 (S1, primary, a cautious translation to meaningful consequences).",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].dnaHint: \"Resolve the actual custody, supplies, wages and broken or preserved loyalties.\"",
+              "acts[2].arcs[1].dnaHint: \"Invite a last image of what the player keeps or leaves. No mandatory new quest.\"",
+              "npcs[4].notes: \"its sincere desire for freedom does not make it benevolent.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No new independent defect under this lens. Personal meaning, emotional impact and actual scene balance remain unobserved. Neither multiplayer XP nor a comforting ending is prescribed."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [],
+      "dissent": [
+        "All six baseline findings are editorially resolved. The full round-1 snapshot produced no clear additional editworthy inconsistency under these five stored lenses.",
+        "Preserve the deliberately severe magic prices, costly resealing, truthful but self-interested God, brutal politics and real loss. The review supports clear boundaries, not harmless sorcery or an automatic rescue.",
+        "The ordinary spell-exhaustion option is demanding enough to deserve eventual playtest attention, especially for a caster-heavy party; this static review neither verifies balance nor labels the cost a failure.",
+        "The authored structure remains a declared tradeoff with Harper/Baker emergent-play preferences. Core-clue reliability should not settle the God's ultimate nature or compel every parallel lead.",
+        "No human or generated runtime playtest, pacing measurement, normalization test or successful ending execution was performed by this panel review. No one-hour target applies."
+      ]
+    }
+  },
+  {
+    "round": 1,
+    "blueprintSha256": "b74c718c36c114799f39337cfb59730d1651bcfbe9e2db22b18101a170cfcde2",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Full revision-one reread: the baseline mechanism/cost finding is resolved. Operational limits and meaningful loss are established without fixing the entity's ultimate identity. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "The key has an actual custodian and limited function. Shell damage, voice, inner-bar release and pre-release resealing are distinct physical states; preserving the box can matter.",
+            "basis": "§9.1 consistent world and §3.4 power follows knowledge/need (◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[1]",
+                "quote": "The key opens the shell; it does not lift the inner bar."
+              },
+              {
+                "path": "rules[2]",
+                "quote": "then deliberately lift the bar"
+              },
+              {
+                "path": "rules[3]",
+                "quote": "Before release, resealing silences the voice and ends dream contact."
+              }
+            ]
+          },
+          {
+            "text": "Resealing has a finite, named personal price, ordinary material access and several possible performers. Ren's records supply knowledge without requiring another loss of memory merely for exposition.",
+            "basis": "§8.3–8.4 magic's cost/consequences and §9.3 meaningful rules (◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[3]",
+                "quote": "pays exactly one self-chosen cherished memory, permanently"
+              },
+              {
+                "path": "rules[3]",
+                "quote": "No extra sorcery price is added to this rite."
+              },
+              {
+                "path": "acts[1].arcs[2].dnaHint",
+                "quote": "Ren can read them without casting."
+              }
+            ]
+          },
+          {
+            "text": "Bargains fix the benefit and affected person while allowing concealed political motives. The cure-for-access exception has its own declared exchange rather than a retroactive extra price.",
+            "basis": "§8.3–8.4 cost and informed consequence, §9.1 consistency (◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[4]",
+                "quote": "No surprise permanent surcharge or compulsory bargain."
+              },
+              {
+                "path": "rules[4]",
+                "quote": "These exchanges replace, not stack with, the usual sorcery price."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "This is application of documented rubric positions, not participation by Le Guin. §17 runtime-prose claims require a corpus; no claim is made about actual narration, pacing or experienced loss. Distinct kinds of agreed bargain need not all use an identical currency."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Full reread: the employer's route, purpose and name clue now have a fixed causal chain. The adventure retains material scarcity, venality and dangerous wonder. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "Ysbet's tomb theft precedes the salt crossing; her false burial warrant and controlled eastern gate explain intended custody and gain. Oren's name is an overheard fact corroborated by mundane evidence, not an invented supernatural secret.",
+            "basis": "§9.3 seeded confirmation (A:6 ◐), §9.5 convincing fiction (A:5 ●/◐), §10.3 local venal motives (C:1 ◐).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[0].notes",
+                "quote": "Deren's remote family tomb west of Kalgra's Rest"
+              },
+              {
+                "path": "npcs[0].notes",
+                "quote": "Her eastern city gate can receive the caravan under a new burial warrant"
+              },
+              {
+                "path": "rules[6]",
+                "quote": "a name the God heard Ysbet use at the tomb"
+              },
+              {
+                "path": "rules[6]",
+                "quote": "expose Ysbet's theft independently of the God's voice."
+              }
+            ]
+          },
+          {
+            "text": "Release has immediate material danger but a prepared dry location can avoid that immediate loss. The freed entity remains beyond faction command; danger survives without invalidating preparation.",
+            "basis": "§9.1 wonder/fear (A:5 ●/◐), §9.5 convincing consequences (A:5 ●/◐), §10.1–10.2 completed episode and continuity (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[2]",
+                "quote": "Covering supplies or choosing a dry, evacuated basin prevents those immediate losses."
+              },
+              {
+                "path": "rules[2]",
+                "quote": "neither king nor cult commands it."
+              },
+              {
+                "path": "rules[7]",
+                "quote": "do not force recapture or a sequel."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The entity's taxonomy and ultimate origin can remain unresolved. No human-playtest evidence or assurance that the result produces wonder or dread is claimed."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Full reread: both baseline findings are resolved. Prevention changes later events, and custody/release/withdrawal now have differentiated material and political outcomes. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "The outer shell remains intact if protected, the chant requires actual access and can be stopped, and only surviving informed pursuers reach the ending. The act spine no longer requires an erased success.",
+            "basis": "§5.1 planned structure and §9.3 consequential choices (WE ● primary).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].turningPoint",
+                "quote": "a protected coffer stays intact."
+              },
+              {
+                "path": "acts[1].arcs[1].dnaHint",
+                "quote": "Interrupting the chant prevents waking; it does not crack or unlock anything."
+              },
+              {
+                "path": "rules[5]",
+                "quote": "do not restore a defeated force or crack a protected box"
+              }
+            ]
+          },
+          {
+            "text": "Neutral custody reduces an immediate threat without repairing baronial power; handing over strengthens a specific ruler, release has location-dependent water consequences, and withdrawal can end employment. The company need not wait for the planned gate confrontation.",
+            "basis": "§3.2 self-maintaining power (LS ●), §3.5 resources (GR ●), §9.1 and §9.3 changed endings/agency (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[7]",
+                "quote": "Neutral vault custody removes the immediate release threat but leaves baronial rule intact."
+              },
+              {
+                "path": "rules[7]",
+                "quote": "Neither automatically improves water access."
+              },
+              {
+                "path": "rules[7]",
+                "quote": "Withdrawal can end the company's job"
+              },
+              {
+                "path": "premise",
+                "quote": "let early discoveries and settled decisions change or conclude it."
+              }
+            ]
+          },
+          {
+            "text": "The Chorus now has a concrete water grievance, without representing all refugees or guaranteeing emancipation. Ren can refuse loss; her expertise and records remain useful.",
+            "basis": "§3.5 resource allocation (GR ●), §9.4 contrasting character orientations (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[2].notes",
+                "quote": "break the barons' grip on water"
+              },
+              {
+                "path": "acts[1].arcs[1].dnaHint",
+                "quote": "Refugees are not collectively cultists."
+              },
+              {
+                "path": "npcs[5].notes",
+                "quote": "She can advise without casting and may refuse another sacrifice."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "These are authored provisions for choice, not measured runtime agency. No demand to make all factions equally good, remove oppression or guarantee that a plan saves the region."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "Full reread: Corr's baseline motivation finding is resolved. Specific habits, private stakes and responsive choices support the traveling company without automatic betrayal or sentimental cure. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "Corr conceals illness to preserve the job that might fund care; he risks himself to avoid losing a third company and can accept safer plans. His boot repairs express a real hoped-for life instead of merely supplying a tragic label.",
+            "basis": "§5.4 self-understanding (B:Fantasy-Hive ●), §5.6 character/action causality (B:Dark Matter Zine ●), §8.1 honesty and §8.4 telling detail (A:Advice for Budding Fantasists ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[3].notes",
+                "quote": "for fear of losing the job that might pay for care"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "He takes risks to prevent a third company's destruction"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "quietly practices harness stitches on everyone's failing boots"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "Illness does not predetermine suicide or betrayal."
+              }
+            ]
+          },
+          {
+            "text": "Ash-Tongue's choices now arise from belief and an existing price rather than a madness schedule; Ren has practical personality beyond memory loss. Cures and loyalty changes do not clean away the existing damage.",
+            "basis": "§5.4 and §6.1–6.3 intelligible motives without excuse (B:Fantasy-Hive ●); §3.1 consequential damage (B:Walter ◐); §3.3–3.4 earned endings (A:Ending Like an Avalanche ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[2].notes",
+                "quote": "Their choices, not a madness schedule, drive the rite."
+              },
+              {
+                "path": "npcs[5].notes",
+                "quote": "she marks good shade with a crooked boot print"
+              },
+              {
+                "path": "rules[7]",
+                "quote": "does not erase existing injuries and oppression."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No runtime dialogue or emotional response was measured. A possible cure is not inherently sentimental: its access concession can matter, and the text preserves consequences."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "No further editorial changes requested by these four lenses after a full revision-one reread.",
+        "Preserve the fixed coffer states, actual-access requirements, inspectable costs and conditional aftermaths through later revisions.",
+        "Runtime narration, comprehension and pacing remain untested."
+      ],
+      "dissent": [
+        "Le Guin's cost/consequence lens does not require that the God's own exchanges use the same currency as ordinary casting; the explicit replacement bargain preserves clarity.",
+        "Leiber supports supernatural uncertainty and a freed power beyond faction command. A safe immediate release location need not guarantee a benevolent future.",
+        "Jemisin's structural reading accepts that neutral custody leaves baronial rule intact; every ending need not repair the society.",
+        "Abercrombie's resistance to unearned comfort does not require incurable illness, inevitable betrayal or loss of every cherished memory. Preserve contingent, earned outcomes."
+      ]
+    }
+  },
+  {
+    "round": 1,
+    "blueprintSha256": "b74c718c36c114799f39337cfb59730d1651bcfbe9e2db22b18101a170cfcde2",
+    "scope": "Full immutable snapshot and five stored persona files reread. Sourced composite lenses, not human playtesting. Exact zero-based blueprint anchors verified. Severe swords-and-sorcery genre and long campaign scope retained. Catalog/UI changes outside snapshot are not certified here.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "No unique source-supported content blocker; the new fixed procedure is easier to explain aloud.",
+        "resolved": [
+          {
+            "title": "Concrete action boundaries replace an unspecified box danger",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R4; R6",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[1]",
+                "quote": "The key opens the shell; it does not lift the inner bar."
+              },
+              {
+                "field": "rules[0]",
+                "quote": "Before each act, agree a concrete loss and its duration, or decline without casting."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite evidence review, not an interview or playtest. Narration, persistence, voice behavior and pacing were not exercised. No one-hour target applies.",
+          "dissent": "R5 driving/no-danger and R10 audio inventory remain inferred and do not justify removing danger or shortening the campaign. No claim that narration already provides a good recap.",
+          "verificationQuestion": "In an audio verification, can the listener distinguish opening the shell, lifting the bar and paying for resealing before accepting any irreversible action?"
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Strong fit after the agency and fixed-truth revisions; one release-mechanism clarification remains.",
+        "resolved": [
+          {
+            "title": "Successful prevention changes the outline rather than being overwritten",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I4",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].turningPoint",
+                "quote": "a protected coffer stays intact."
+              },
+              {
+                "field": "rules[5]",
+                "quote": "do not restore a defeated force or crack a protected box to reach an outline beat."
+              }
+            ]
+          },
+          {
+            "title": "Theft and the supposedly secret name now have stable independent evidence",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[6]",
+                "quote": "Oren is the bribed keeper, a name the God heard Ysbet use at the tomb, not an invented secret from a player's past."
+              },
+              {
+                "field": "npcs[4].notes",
+                "quote": "Player theories may color images and interpretation, never retroactively change its powers or the theft."
+              }
+            ]
+          },
+          {
+            "title": "Ren is already the guide and is no longer a unique knowledge gate",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I2; I5",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[2].dnaHint",
+                "quote": "Ren already travels as guide."
+              },
+              {
+                "field": "acts[1].arcs[2].dnaHint",
+                "quote": "Ash-Tongue's copy and the public vault inscriptions in Two Thrones corroborate them."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Clarify how release succeeds at the deliberately dry alternative site",
+            "kind": "operational-rule gap",
+            "severity": "P2",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[2]",
+                "quote": "draws water from every unsealed well or vessel within sight to form a walking body of brine"
+              },
+              {
+                "field": "rules[2]",
+                "quote": "Covering supplies or choosing a dry, evacuated basin prevents those immediate losses. It can leave thereafter;"
+              },
+              {
+                "field": "rules[7]",
+                "quote": "release in a prepared dry site avoids that loss but frees a power no faction controls."
+              }
+            ],
+            "reason": "The safe-site alternative is explicitly promised, but the only stated formation mechanism requires the water that preparation removes. A narrator could infer either failed release or a substitute water source, changing a consequential informed choice. This is a small missing causal bridge, not a reason to remove the safe preparation option.",
+            "recommendation": "State the dry-site manifestation (for example, a thin body from brine already inside the cage) and confirm that covered supplies and living bodies are outside the draw. Keep release irreversible and the entity independent.",
+            "mitigation": "The rules already fix physical release, exclude universal command, warn about visible unsealed sources and honor preventive preparation.",
+            "confidence": "High confidence in the wording gap; no observed runtime failure. Parent independently raised the same clarification."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite evidence review, not an interview or playtest. Narration, persistence, voice behavior and pacing were not exercised. No one-hour target applies.",
+          "dissent": "Danger, unequal political power and uncertain ultimate origin remain strengths for this lens when operational truths stay fixed. No demand for a universally benevolent resolution.",
+          "verificationQuestion": "After a negotiated settlement with Hask, does a later gate scene honor his actual forces and agreement rather than recreating the original confrontation?"
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "Baseline price and surprise-loss objections are resolved in the content; permanent sacrifice remains a deliberate taste mismatch.",
+        "resolved": [
+          {
+            "title": "Magic has scoped costs, advance agreement, reversible bodily option and explicit exclusions",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B1; B5; B9",
+              "sourceGrade": "primary",
+              "application": "Price transparency and loss predictability are transferred by analogy from item/economy research, not direct research into memory sacrifice."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[0]",
+                "quote": "Passive traits, already-active effects and ordinary medicine are not charged anew."
+              },
+              {
+                "field": "rules[0]",
+                "quote": "A modest spell can cost bodily exhaustion until a full safe rest: no further sorcery or strenuous exertion during recovery."
+              },
+              {
+                "field": "rules[0]",
+                "quote": "Comparable acts keep comparable prices; no retroactive surcharge."
+              }
+            ]
+          },
+          {
+            "title": "God bargains honor benefits without hidden permanent surcharges",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9",
+              "sourceGrade": "primary",
+              "application": "Applied by analogy to disclosed exchange terms."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[4]",
+                "quote": "The God never knowingly lies and honors each agreed upside."
+              },
+              {
+                "field": "rules[4]",
+                "quote": "No surprise permanent surcharge or compulsory bargain."
+              },
+              {
+                "field": "rules[4]",
+                "quote": "These exchanges replace, not stack with, the usual sorcery price."
+              }
+            ]
+          },
+          {
+            "title": "Escort provisioning and pay are concrete agreements rather than arbitrary depletion",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B8; B9",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].arcs[0].dnaHint",
+                "quote": "set the amount with the player and record it."
+              },
+              {
+                "field": "acts[0].arcs[1].dnaHint",
+                "quote": "without adding an invisible depletion clock."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite evidence review, not an interview or playtest. Narration, persistence, voice behavior and pacing were not exercised. No one-hour target applies.",
+          "dissent": "B1 predicts caution around cherished losses; that does not justify removing this declared swords-and-sorcery cost or adding a loot economy. The catalog disclosure described by the parent is outside this immutable snapshot; the dedicated hero-selection reminder under #447 remains open.",
+          "verificationQuestion": "When a player declines the proposed memory price, does play actually preserve the declined recollection and permit the ordinary alternative without charging twice?"
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "Still a poor match for the cozy lens, with stronger meaningful relationships and bounded participation; genre mismatch is not a defect.",
+        "resolved": [
+          {
+            "title": "Corr and Ren are people whose treatment can matter rather than scheduled betrayal or fuel",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[3].dnaHint",
+                "quote": "At a sheltered meal, Corr repairs a boot with the stitch he plans to use on his future farm's harness."
+              },
+              {
+                "field": "acts[1].arcs[3].dnaHint",
+                "quote": "threats, payments and kindness change loyalties, but do not decree a betrayal on schedule."
+              },
+              {
+                "field": "npcs[5].notes",
+                "quote": "She can advise without casting and may refuse another sacrifice."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite evidence review, not an interview or playtest. Narration, persistence, voice behavior and pacing were not exercised. No one-hour target applies.",
+          "dissent": "N1 favors low-stakes recognition and N6 supports completed chunks, not a demand to turn this harsh long campaign into cozy play or a twenty-minute story. No observed pacing problem is asserted.",
+          "verificationQuestion": "Can a short resumed session finish a chosen conversation or practical company task without the narrator escalating merely to fill space?"
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "Endings are now attainable and player-authored; align one finale warning with the established release rule.",
+        "resolved": [
+          {
+            "title": "Resealing has learnable resources and a fixed voluntary price without a unique NPC gate",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G6; G7",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[3]",
+                "quote": "pays exactly one self-chosen cherished memory, permanently; name that memory and consequence before assent."
+              },
+              {
+                "field": "rules[3]",
+                "quote": "Ren, Ash-Tongue or a willing player can perform it by reading; none is uniquely required."
+              }
+            ]
+          },
+          {
+            "title": "Ending reports specific consequences and invites the player's last image",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "Resolve the actual custody, supplies, wages and broken or preserved loyalties."
+              },
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "Invite a last image of what the player keeps or leaves. No mandatory new quest."
+              },
+              {
+                "field": "rules[7]",
+                "quote": "Withdrawal can end the company's job: keep the agreed advance for completed work, forgo the balance and establish who now holds the coffer."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Finale conflates opening the shell with releasing the God",
+            "kind": "consequence contradiction",
+            "severity": "P2",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G6; G7",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated source-supported concern; no claim of actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "Opening beside an occupied well endangers its water;"
+              },
+              {
+                "field": "rules[2]",
+                "quote": "then deliberately lift the bar."
+              },
+              {
+                "field": "rules[4]",
+                "quote": "it cures Corr's wasting sickness in exchange for opening its outer shell, revealing the inner bar but not lifting it;"
+              }
+            ],
+            "reason": "The bounded cure deliberately opens only the shell, while the water draw is a consequence of release after lifting the inner bar. The finale shorthand can therefore attach release damage to the permitted lesser act. This matters precisely when a player accepts the stated cure while safeguarding the cage.",
+            "recommendation": "Replace the finale warning with “Releasing the God beside an occupied well endangers its water” (or equivalent), retaining the explicit shell/bar distinction.",
+            "mitigation": "Rules 2 and 4 already provide the correct distinction and the final hint says to use only physically possible choices and learned costs. A one-word alignment is sufficient.",
+            "confidence": "High textual confidence; no runtime assertion."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite evidence review, not an interview or playtest. Narration, persistence, voice behavior and pacing were not exercised. No one-hour target applies.",
+          "dissent": "A costly imperfect ending is compatible with G1-G3; it need not repair the entire political order or promise eternal containment. Narrated rules are not proof of mechanically enforced persistence.",
+          "verificationQuestion": "If Corr accepts the shell-opening cure and the inner bar remains down, does the actual scene preserve nearby water and record the cure accurately?"
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "P2: supply the dry-site manifestation bridge while preserving promised protection for covered water and excluding living bodies.",
+        "P2: change the finale water warning from opening to releasing, consistent with the separate shell-opening cure."
+      ],
+      "dissent": [
+        "Ines values consequential danger; Nan remains a poor cozy target. Neither opinion overrides the declared genre.",
+        "Bert can rationally decline irreversible memory bargains; this is a taste distinction once the exact payment and alternatives are known.",
+        "Rosa supports deep free-form choices but needs later audio verification; inferred driving assumptions do not govern this content."
+      ],
+      "limits": "All baseline player-panel content findings resolved except these narrower precision issues. #447 hero-selection UI reminder remains open. No pacing, runtime narration, import or actual player-comprehension assurance."
+    }
+  }
+]

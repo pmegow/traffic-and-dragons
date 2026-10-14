@@ -1,0 +1,184 @@
+{
+  "name": "The Weight of the Coffered God",
+  "tone": "swords",
+  "startingLocation": "Kalgra's Rest",
+  "startingRegion": "The Ash Flats, a sun-cracked salt waste ringed by dead river canyons",
+  "premise": "A mercenary company called the Red Ledger is hired to escort a sealed iron-and-salt reliquary across the Ash Flats to the vault-city of Two Thrones, but the job is a lie built on three truths: the warlord Hask Vane wants the reliquary to legitimize his conquest, the Cinder Chorus cult wants it opened to free what sleeps inside, and the thing inside — a bound entity called the Coffered God — wants out badly enough to bargain with anyone carrying the key. The company must decide whether they are guards, thieves, or unwitting midwives to a god's rebirth, all while crossing a hundred miles of salt where water is currency and shade is a weapon.\n\nBegin at the contract table: the player chooses their place in the Red Ledger, not a compulsory allegiance. Ysbet's crew stole the coffer from Consul Deren's remote family tomb west of Kalgra's Rest; crossing the Flats lets her enter Two Thrones through her own eastern vault gate as its apparent lawful custodian. Her claim of ancestral reburial is false. Deren's seal survives beneath the fresh transport wax. The God heard Ysbet call the bribed tomb-keeper 'Oren' through the keyhole; Oren's signed carriage chit names her. Protecting the box does not erase that evidence. Before accepting the job, explain this world's price for deliberately worked magic. Give the company ordinary provisions and discuss route, pay and retreat. Preserve the three-act journey, but let early discoveries and settled decisions change or conclude it.",
+  "acts": [
+    {
+      "title": "Act One: The Contract",
+      "goal": "Establish the escort job, the company's dynamics, and the first proof that the reliquary is not what it seems",
+      "turningPoint": "An attempted seizure exposes Deren's old tomb seal and Ysbet's concealed theft. If an enemy actually breaks the outer shell, the God can speak openly; a protected coffer stays intact.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Hiring at Kalgra's Rest",
+          "objective": "Meet the employer, negotiate terms, and learn the official story of the job",
+          "type": "social",
+          "dnaHint": "Ysbet offers half the agreed escort fee now and half on delivery to her eastern vault in Two Thrones; set the amount with the player and record it. She supplies enough water, food and pack transport for the marked route via the Sunken Canyons, including a spare water skin per traveler. She hands the iron key to the chosen company custodian in sight of Corr and Ren. Inspecting the old seal or Oren's carriage chit exposes the stolen tomb cargo; questions can win admissions or revised terms. Declining permits an honest departure, not compulsory recruitment. Explain the sorcery price before the player chooses how to participate."
+        },
+        {
+          "title": "First Miles",
+          "objective": "Escort the reliquary out of the salt town and survive the Flats' first test — heat, thirst, and terrain",
+          "type": "exploration",
+          "dnaHint": "Ren guides the caravan toward the canyon cisterns. Show the marked direct track, a sheltered but slower canyon route and signs of an approaching salt wind. Seek cover, reinforce lashings or press on with the stated risk to a water barrel. Do not destroy unexposed supplies by decree. Ren's cistern-house offers ordinary drinkable water and shade; a detour costs time and may let informed pursuers gain ground. Pay attention to drinking, watch duty and hauling the coffer without adding an invisible depletion clock."
+        },
+        {
+          "title": "Blood on the Salt",
+          "objective": "Evade, bargain with or repel Hask Vane's outriders and learn why they want the reliquary.",
+          "type": "combat",
+          "dnaHint": "Outriders want a royal relic, not a massacre. Their captain shows a rubbing of Deren's tomb seal and demands surrender. Scouting can detect them; diversion, parley and a protected escape can prevent damage. A hammer blow to an exposed coffer cracks its outer shell, not its inner cage. Only then does a waking voice call 'Oren', the keeper Ysbet bribed. An intact box can whisper that name through the keyhole if approached. The seal and signed carriage chit remain evidence even if nobody listens to it. Defeated or persuaded outriders do not reappear as fresh troops."
+        }
+      ]
+    },
+    {
+      "title": "Act Two: Three Roads Across the Flats",
+      "goal": "Navigate the rival factions converging on the reliquary while testing what the company will do to keep it, sell it or escape its burden.",
+      "turningPoint": "If cultists reach the coffer and complete their announced chant, they wake its voice without opening the cage. Stopping them preserves the quieter seal; records and voluntary conversation still reveal what is bound.",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "The Warlord's Shadow",
+          "objective": "Deal with Hask Vane's forces, either through combat, sabotage, or a dangerous parley",
+          "type": "combat",
+          "dnaHint": "Hask wants a king's bones to bless his conquest. Show the living voice, Deren's record or the cult's own copy of the binding to challenge that belief. He can withdraw his claim for public proof and safe retreat, buy custody to deny it to rivals, or continue by force if unconvinced. Name the offered fee and obligations before agreement. His troops depend on real scouts and water; cut supply, misdirect or defeat them and keep those results. A private deal with him does not make his conquered towns grateful."
+        },
+        {
+          "title": "The Cinder Chorus",
+          "objective": "Investigate the cult's presence among the company's own hired hands and the salt-town refugees trailing the caravan",
+          "type": "investigation",
+          "dnaHint": "Ash-Tongue needs an undisturbed watch beside the coffer, salt traced on its lid and an audible rising chant to wake its full voice. Followers must gain actual access; ash-stained hands and stolen watch assignments give warning. Refugees are not collectively cultists. Search, conversation or a captured prayer sheet exposes the plan and the rite's limits. Interrupting the chant prevents waking; it does not crack or unlock anything. Ash-Tongue has copied the same sealing instructions as Ren's workshop, with release celebrated rather than condemned."
+        },
+        {
+          "title": "The Dry Oracle",
+          "objective": "Consult Ren and reach her cistern-house records, or recover another copy of the binding instructions.",
+          "type": "exploration",
+          "dnaHint": "Ren already travels as guide. Her workshop holds a copper rubbing of the cage diagram and her teacher's legible instructions, kept because she no longer trusts her recall. They define the key, inner bar, resealing price and the danger to nearby water when the God takes shape. Ren can read them without casting. If she is absent or unwilling, the signed rubbing and common script remain readable; Ash-Tongue's copy and the public vault inscriptions in Two Thrones corroborate them. Reasonable examination reveals the essential procedure without a single-roll gate. Her forgotten teacher's face stays lost."
+        },
+        {
+          "title": "Cracks in the Ledger",
+          "objective": "Manage the company's internal loyalties as members are tempted, bribed, or seduced by promises from the god in the box",
+          "type": "social",
+          "dnaHint": "At a sheltered meal, Corr repairs a boot with the stitch he plans to use on his future farm's harness. His hidden sickness makes that future doubtful; he risks himself to keep a third company from dying, not because illness commands recklessness. Let trust, treatment and actual offers affect him. Ren resents being asked to spend memories as expedition equipment. Ash-Tongue's converts may want clean wells more than apocalypse. Ask whom the player confides in; threats, payments and kindness change loyalties, but do not decree a betrayal on schedule."
+        }
+      ]
+    },
+    {
+      "title": "Act Three: The Vault of Two Thrones",
+      "goal": "Reach a defensible place to settle the reliquary's fate and face whatever pursuers remain capable and informed.",
+      "turningPoint": "The final choice: reseal the Coffered God, deliver it to whichever faction the company has thrown in with, or break it open themselves",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Gates of Two Thrones",
+          "objective": "Gain access to Two Thrones or secure another defensible site, dealing with the forces that actually remain.",
+          "type": "combat",
+          "dnaHint": "Ysbet's eastern gate admits her contracted caravan unless that arrangement was exposed or revoked; a public petition at the western gate can instead reach the vault wardens. The old tomb seal, witnesses or carriage chit justify an inquiry without Ysbet's confession. Only surviving, informed forces arrive. A prior truce or diversion still matters. The wardens offer secure neutral custody if shown the binding record and allowed to inspect; they do not promise to overthrow the consuls. Ren's cistern-house remains a possible resealing site when the city is inaccessible."
+        },
+        {
+          "title": "What the God Offers",
+          "objective": "Confront the Coffered God directly and settle what becomes of it and the company",
+          "type": "social",
+          "dnaHint": "Lay out only choices still physically possible and their learned costs. A sealed delivery earns the promised balance if the recipient can pay; renegotiation changes that openly. Neutral wardens can hold a resealed box but do not pay Ysbet's balance. Hask uses custody as a claim to authority, not a real royal blessing; the Chorus attempts release if allowed the key and inner bar. Releasing the God beside an occupied well endangers its water; an evacuated dry basin avoids that immediate harm. Resolve the actual custody, supplies, wages and broken or preserved loyalties. Invite a last image of what the player keeps or leaves. No mandatory new quest."
+        }
+      ]
+    }
+  ],
+  "deepTime": [
+    {
+      "name": "The Salt Kingdoms",
+      "when": "over a thousand years ago",
+      "note": "a league of river-cities that drank an inland sea dry through irrigation and vanished when the water did"
+    },
+    {
+      "name": "The Binding Wars",
+      "when": "roughly four centuries ago",
+      "note": "a generation of sorcerer-kings fought entities they'd summoned and lost, ending with the great sealing rites that built things like the reliquary"
+    },
+    {
+      "name": "The Fall of the Ember Court",
+      "when": "about sixty years ago",
+      "note": "the last unified power to hold the Ash Flats collapsed into the warring salt-baronies that exist now"
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Consul Ysbet Marrow",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "notes": "A Two Thrones magistrate claiming the coffer is an ancestral relic due for reburial. She bribed tomb-keeper Oren to steal it from rival Consul Deren's remote family tomb west of Kalgra's Rest. Her eastern city gate can receive the caravan under a new burial warrant, making her appear lawful custodian and giving her political leverage. Oren's signed carriage chit and Deren's seal contradict her story. She knows it contains a dangerous bound voice, not its nature or full release cost; she wants possession, not an opened god. Questions produce evasions or a negotiated admission, not automatic confession."
+    },
+    {
+      "name": "Hask Vane",
+      "role": "villain",
+      "pronouns": "he/him",
+      "notes": "A warlord who unified three salt-baronies through brutal, efficient conquest and wants the reliquary because he believes it holds the bones of a Salt Kingdom king whose blessing would make his rule unquestionable. He doesn't know what's really inside and would be horrified to learn it; this ignorance can be turned into leverage. He is ruthless but not stupid, and respects competence enough to occasionally offer the company a better deal than their current employer."
+    },
+    {
+      "name": "Sister Ash-Tongue",
+      "role": "villain",
+      "pronouns": "they/them",
+      "notes": "Former vault archivist and voice of the Cinder Chorus. They want a power that can break the barons' grip on water. Their copied binding text accurately describes the cage; they call its dangers a liberation tax. They knowingly traded a cherished memory for dreams from the God, whose repeated promises now preoccupy them; the scar is a sign of that bargain, not permission for automatic possession. They can reconsider when confronted with the cost to ordinary wells, or proceed through established access and allies. Their choices, not a madness schedule, drive the rite."
+    },
+    {
+      "name": "Corr Dessa",
+      "role": "ally",
+      "pronouns": "he/him",
+      "notes": "The Red Ledger's second-in-command, a veteran who has buried two companies. He wants a small farm far from sorcery and quietly practices harness stitches on everyone's failing boots. A wasting sickness threatens that future; he has hidden it for fear of losing the job that might pay for care. He takes risks to prevent a third company's destruction, but accepts a safer plan when trusted. The God's cure tempts him; he will not secretly volunteer another person's body or memories to pay. Illness does not predetermine suicide or betrayal."
+    },
+    {
+      "name": "The Coffered God",
+      "role": "wildcard",
+      "pronouns": "it/its",
+      "notes": "An entity bound during the Binding Wars, hungry for release. It offers power, clean water, cures or truth and never knowingly lies; its sincere desire for freedom does not make it benevolent. Its classification remains uncertain, but the cage rules, heard facts and agreed bargains remain fixed. Dreams reach only consenting sleepers beside the coffer; borrowed speech needs the speaker's consent. It cannot read remote secrets, seize a body or rewrite an unoffered memory. Player theories may color images and interpretation, never retroactively change its powers or the theft."
+    },
+    {
+      "name": "Ren Sallow",
+      "role": "ally",
+      "pronouns": "she/her",
+      "notes": "Salt-witch and hired guide, with weather and water magic paid for in selected memories. She already accompanies the company; the Dry Oracle route visits her cistern-house records, not a second witch. She has forgotten her teacher's face but preserves their sealing instructions on copper and in common script. She can advise without casting and may refuse another sacrifice. Give her practical humor and expertise as well as loss: she marks good shade with a crooked boot print and refuses to waste clean water washing salt from a kettle."
+    }
+  ],
+  "locations": [
+    {
+      "name": "Kalgra's Rest",
+      "description": "A salt-crusted waystation town built around a brackish well, where caravans provision before the long crossing. Wooden buildings lean against each other for shade, their walls scored white with mineral bloom, and the air tastes of brine and tar. It is the last place with a proper market before the Ash Flats swallow the road."
+    },
+    {
+      "name": "The Ash Flats",
+      "description": "A vast dead seabed of cracked white salt stretching to a shimmering horizon, broken by dry river canyons and the bleached ribs of things too large to have died recently. Heat rises in visible sheets, and sound carries strangely far in the flat silence. Travelers say the Flats remember every drop of water ever taken from them and charge interest."
+    },
+    {
+      "name": "The Sunken Canyons",
+      "description": "Deep, dry river gorges cutting through the Flats, their walls striped with old waterlines like tree rings. Ancient stone stairs and half-buried causeways from the drowned Salt Kingdoms still cling to the canyon walls, and pockets of shade and hidden cisterns make them both a refuge and an ambush ground."
+    },
+    {
+      "name": "Ren Sallow's Cistern-House",
+      "description": "A half-collapsed cistern temple from the Salt Kingdoms era, repurposed by the salt-witch Ren Sallow as a home and workshop. Carved reliefs of drowned figures line the walls above the dry basin where she sleeps, and the air inside is cooler and stranger than it has any right to be, thick with the smell of old water that hasn't existed in a thousand years. Its covered side cistern still holds ordinary drinkable water. Copper rubbings and plain-script sealing instructions hang above the basin; these survive Ren's forgotten memories and can be read without magic."
+    },
+    {
+      "name": "Two Thrones",
+      "description": "A vault-city built into and atop the ruins of a Salt Kingdom capital, named for the twin fortified mesas that anchor it on either side of a dry riverbed. Its lower levels are catacombs and reliquary-vaults carved by older hands, and its upper city is a tangle of consular houses, salt-markets, and the barony's remaining soldiery, all uneasy under Hask Vane's approaching shadow."
+    }
+  ],
+  "rules": [
+    "Before the contract or any first magical action, explain that deliberate spellcasting and activated supernatural abilities cost body, memory or years in addition to normal game resources. Passive traits, already-active effects and ordinary medicine are not charged anew. Before each act, agree a concrete loss and its duration, or decline without casting. A modest spell can cost bodily exhaustion until a full safe rest: no further sorcery or strenuous exertion during recovery. Alternatively offer one specifically chosen personal recollection or one year of life; neither is forced. Greater works require an explicitly agreed greater price before commitment. Never erase skills, class abilities, relationships or unoffered memories. Comparable acts keep comparable prices; no retroactive surcharge. NPCs must also choose their payments; Ren is not a free battery.",
+    "The coffer begins closed with an iron shell, salt seam and locked inner cage. Ysbet hands its single iron key to the company's chosen custodian at hiring. The key opens the shell; it does not lift the inner bar. A heavy strike can crack the shell and wake a voice, but ordinary transport cannot. Intact, the entity whispers only through the keyhole; a cracked shell or completed cult chant permits speech audible beside the box. Neither wakes an army or releases power beyond the stated bargains. Touch alone binds nobody. Dreams require a willing sleeper beside it; speech through a living mouth requires consent. Keep custody and condition in the established story record.",
+    "Release requires access to the inner bar: unlock the shell with the key or break it open with sustained noisy tool-work, then deliberately lift the bar. The cage diagram warns that the freed God draws water from unsealed wells or vessels in direct sight of the opened coffer to swell a walking body of brine. It never draws water from living bodies. With no exposed water, the brine already trapped in the cage forms a smaller, equally free figure. Covering supplies or choosing a dry, evacuated basin prevents those immediate losses. It can leave thereafter; neither king nor cult commands it. It keeps agreed payments and benefits, not every hope of its worshippers. Breaking the empty cage later cannot recapture it. Its ultimate origin may remain unknown; these operational facts do not change with theories.",
+    "Before release, resealing silences the voice and ends dream contact. Repair the shell with ordinary iron straps, renew the seam with clean salt, shut the inner bar and turn the key (or fit an ordinary replacement lock if it was destroyed). One willing living participant follows the written rite and pays exactly one self-chosen cherished memory, permanently; name that memory and consequence before assent. No extra sorcery price is added to this rite. Tools and salt are available at Ren's house or the city vaults. Ren, Ash-Tongue or a willing player can perform it by reading; none is uniquely required. The repaired seal can later be broken by the same physical means: choose an actual custodian, not an eternal guarantee.",
+    "The God never knowingly lies and honors each agreed upside. It can conceal motives and political implications, but the payment, affected person and immediate supernatural consequence must be discoverable before agreement, through questions or binding records. No surprise permanent surcharge or compulsory bargain. Examples: it cures Corr's wasting sickness in exchange for opening its outer shell, revealing the inner bar but not lifting it; it purifies one named vessel of brine for one named childhood recollection freely offered by its owner. These exchanges replace, not stack with, the usual sorcery price. Concealed motive: each accepted gift encourages dependence and access to the cage, not a new unagreed power over a soul.",
+    "Opening, damaging, moving or handing over the box requires actual access. The Chorus needs an uninterrupted watch beside it and an audible chant to wake it; give warning and honor interruption. Only factions with surviving people, supplies and information can pursue or reach the gates. Early bargains, preventive measures and resolved custody change later arcs; do not restore a defeated force or crack a protected box to reach an outline beat.",
+    "The binding procedures appear in Ren's preserved instructions, the cult's copied text and Two Thrones' public vault inscriptions. Core facts follow reasonable inspection; danger and difficult access can remain, but failed recall or a lost NPC never erase all routes. Deren's old seal and Oren's signed carriage chit expose Ysbet's theft independently of the God's voice. Oren is the bribed keeper, a name the God heard Ysbet use at the tomb, not an invented secret from a player's past.",
+    "Resolve consequences honestly. Ysbet's custody strengthens one consul; Hask's strengthens a warlord without giving him a real king's blessing. Neither automatically improves water access. Neutral vault custody removes the immediate release threat but leaves baronial rule intact. Release beside occupied water can leave households dry; release in a prepared dry site avoids that loss but frees a power no faction controls. Withdrawal can end the company's job: keep the agreed advance for completed work, forgo the balance and establish who now holds the coffer. An abandoned box remains where left until an actor with access takes it; do not force recapture or a sequel. A cure, changed loyalty or new refuge does not erase existing injuries and oppression."
+  ],
+  "format": "tnd-blueprint-v1",
+  "author": "",
+  "proseAuthor": "",
+  "narratorVoice": "",
+  "creatures": [],
+  "customClasses": [],
+  "designerVersion": "v0.40",
+  "version": "0.03",
+  "releaseStatus": "draft",
+  "catalogId": "the_weight_of_the_coffered_god"
+}
