@@ -628,3 +628,5 @@ zero 2026-07-27 and again 2026-07-30.
 - 2026-10-13 · #626 · Codex, owner-requested Almanac of Owed Names blueprint review: three complete edit/panel cycles after baseline; v1.0 candidate with fixed Compact chronology, evidence, invitation/pledge rules and costly ending routes. Content and review records only; no engine change. Record: DOC/panel/reviews/almanac-of-owed-names/review_cycles.html.
 
 - 2026-10-13 · #627 · Codex, owner-requested Coffered God blueprint review: baseline and three full panel rereads, v1.0 candidate; bounded costly sorcery, physical seal/release procedures, causal theft evidence, conditional threats and catalog warning. Content/review records only; no engine change. Record: DOC/panel/reviews/coffered-god/review_cycles.html.
+
+- 2026-10-13 · #627 · Codex, owner-requested Silence Between Leaves blueprint review: baseline plus three full panel rereads, v1.0 candidate; conditional partial-rescue rewards and slow ecological repair after lost-heir outcomes. Content and review records only; no engine change. Record: DOC/panel/reviews/silence-between-leaves/review_cycles.html.

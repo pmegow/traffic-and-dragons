@@ -1,0 +1,19 @@
+{
+  "source": "samples/the_silence_between_leaves.blueprint",
+  "outcome": "Baseline and three full panel review passes complete. The two baseline findings are resolved; all post-revision assessments are editorially clean. The high-fantasy romance, mystery and player freedom remain intact.",
+  "publication": "Not yet published.",
+  "changes": [
+    "Made the Fae Loop's permanent gift conditional on Willow's safe return, independently of Auden earning passage home.",
+    "Defined slow, incomplete ecological repair when an heir cannot return; no replacement heir, forced wedding, resurrection or compulsory sequel.",
+    "Preserved the fixed culprit, multiple clue routes, bounded ring and Loop, freely chosen romance and alternate passage rite.",
+    "Preserved the newer live designerVersion v0.49 marker; the local baseline differed from the live story only in that editor marker."
+  ],
+  "verification": "Normalization and disposable engine import preserve all 130 authored text fields: 15 arcs, 10 NPCs, 10 locations, 19 rules and 5 creatures. No overflow. No model narration or actual player test.",
+  "rounds": [
+    "Baseline: design lenses clean; writing found an undefined lost-heir ecological outcome; player panel found an unconditional gift in a partial-rescue arc.",
+    "Revision 1 addresses both findings; all fourteen assessments clean.",
+    "Second full reread of unchanged content: all fourteen assessments clean. No unnecessary story changes or new edition.",
+    "Third full reread of v1.0 Release Candidate: all fourteen assessments clean. Only edition/status metadata differs from round 2."
+  ],
+  "remaining": "Actual play should exercise an Auden-only return, Willow-only return, lost-heir ending, early discovery of Grist, rescue without the ring or Loop and a freely declined wedding. Reviews do not establish pacing, enjoyment or narrator adherence."
+}

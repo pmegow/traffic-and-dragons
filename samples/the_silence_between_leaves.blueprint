@@ -1,6 +1,6 @@
 {
   "format": "tnd-blueprint-v1",
-  "designerVersion": "v0.47",
+  "designerVersion": "v0.49",
   "name": "The Silence Between Leaves",
   "tone": "high",
   "startingLocation": "The Boundary Clearing",
@@ -130,7 +130,7 @@
           "objective": "Return Auden and Willow to their domains and bring their accounts before both fathers.",
           "type": "social",
           "dnaHint": "Escort each heir across their own boundary; bird calls and calmer water mark gradual recovery. They ask to meet at the Boundary Clearing rather than be kept apart. Present letters, artifacts, witnesses, or any surviving combination; their testimony alone justifies a ceasefire inquiry if physical evidence was lost. Both kings must admit they mistook accusation for proof. If troops have already clashed, negotiate withdrawal and care for the hurt; peace does not erase damage. If only one heir was rescued, that court can stand down and aid a renewed search. Never declare both returned when one remains missing.",
-          "reward": "The Fae Loop becomes the promised gift; Auden's safe return fulfills the Forest King's passage bargain."
+          "reward": "Willow's safe return makes the Fae Loop the promised gift; otherwise it remains a loan. Independently, Auden's safe return fulfills the Forest King's passage bargain."
         },
         {
           "title": "The Vows No Father Wrote",
@@ -313,7 +313,7 @@
     "For the alternative passage rite, a forest leaf and marsh water need only be freely given by willing inhabitants of their realms; royal permission is unnecessary. The Willow Mother extends her presence through the arch's rooted stones while staying in her bower. No extra item quest should hold the ending hostage.",
     "Keep rewards earned: one Ring of Truth, one Fae Loop, safe-conduct, evidence, and promised passage. Loan and later ownership of the Loop are not two item gains. Use normal game rewards for completed objectives; reaching a cell is not the full rescue. Do not duplicate rewards when acts overlap.",
     "Grist commands the conspiracy, not every goblin conscience. Spare workers, accept surrender, and let Tallow or willing survivors seek a fair settlement. Removing Grist need not mean killing him. An acknowledged grievance never excuses kidnapping or makes conquest inevitable.",
-    "Failure remains real. A lost heir is not secretly replaced or resurrected; pursue any remaining rescue, acknowledge grief, and negotiate with what remains. Lost physical proof can be supplemented by witnesses. A bittersweet resolution may end in a ceasefire and passage home; do not fabricate a perfect wedding.",
+    "Failure remains real. A lost heir is not secretly replaced or resurrected; pursue any remaining rescue, acknowledge grief, and negotiate with what remains. Lost physical proof can be supplemented by witnesses. A bittersweet resolution may end in a ceasefire and passage home; do not fabricate a perfect wedding. If an heir dies or cannot return, their land does not recover by royal marriage or replacement. Removing the iron wards halts that source of worsening; surviving households, the ruler and the Willow Mother can begin slow repair through tending water, sheltering wildlife and renewing freely agreed stewardship. This supports a scarred, livable land, not instant restoration or the heir's resurrection. End with the actual losses and first repairs; no compulsory further quest.",
     "Conclude with the player's decision to stay or return. Staying creates no compulsory debt, transformation, or lost right to leave. Returning preserves carried belongings and actual elapsed time. Settle promises and say farewell before offering any optional future adventure."
   ],
   "author": "",
@@ -354,6 +354,7 @@
   "customClasses": [],
   "startingTime": "",
   "kind": "adventure",
-  "version": "0.01",
-  "releaseStatus": "draft"
+  "version": "1.0",
+  "releaseStatus": "release-candidate",
+  "catalogId": "the_silence_between_leaves"
 }

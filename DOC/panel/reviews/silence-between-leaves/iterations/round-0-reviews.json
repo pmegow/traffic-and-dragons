@@ -1,0 +1,622 @@
+[
+  {
+    "round": 0,
+    "blueprintSha256": "c21dfb8b60ecae077e95261fca7e78ca704bece6980929cc00d6141fcd14b0f5",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Clean baseline editorial result. The cause, geography, item limits and crossing procedures are sufficiently concrete for this adventure.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "Grist's fixed conspiracy is supported by navigable locations and consistent limited tools. The passage alternative handles both the rooted Willow Mother and nonroyal ingredient access; the title's ecological cause is distinct from marriage.",
+            "basis": "5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary); 7.3 (DMG p.9, A, primary, do not demand exhaustive simulation).",
+            "blueprintEvidence": [
+              "rules[4]: \"It does not compel speech, read minds, reveal unknown facts, or detect sincere mistakes.\"",
+              "rules[5]: \"It does not see through real walls, expose motives, detect spoken lies, or break physical locks.\"",
+              "rules[7]: \"Removing the wards slows deterioration; each heir's safe return begins recovery in their own land.\"",
+              "rules[14]: \"royal permission is unnecessary.\"",
+              "rules[14]: \"The Willow Mother extends her presence through the arch's rooted stones while staying in her bower.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No need to invent a quantified ecological countdown or every possible succession rule. Static consistency does not prove state tracking or item enforcement in generated play."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Clean baseline editorial result. Visible threats and multiple approaches preserve consequence without prescribing every outcome.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "Escalation is observable and delays matter. Combat obstacles have warning and practical alternatives; the conspiracy can be discovered early, and taking a different patrol does not trigger forced restoration of the outline.",
+            "basis": "1.2 (S:action-roll, primary); 7.3 (S:basics, primary); 7.4 and 7.6 (LF, primary).",
+            "blueprintEvidence": [
+              "rules[8]: \"Announce impending advances with time to act; honor delays the player earns.\"",
+              "acts[0].arcs[0].dnaHint: \"If the player follows the marsh patrol instead, allow that route and arrange the forest audience later; never knock them out to restore the outline.\"",
+              "npcs[8].notes: \"a successful interception must be honored.\"",
+              "creatures[1].notes: \"Hisses and lifts its head before striking.\"",
+              "creatures[4].notes: \"Alarm brings an established nearby patrol, not limitless reinforcements; keys can also be obtained from the guard station.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The authored four-act direction is the documented section 10 tradeoff with 7.2, not a reason to replace this adventure. No generated warning, combat balance or pacing was tested."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "Clean baseline editorial result. Established history is fixed while rescue, conflict and NPC responses remain contingent.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The culprit cannot be replaced merely to preserve surprise. The heirs have their own plans and choices, quiet rescue can remain quiet, and one-heir or failed-rescue outcomes are explicitly possible rather than concealed by an automatic happy ending.",
+            "basis": "1.1 and 1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary); 8.5 (ANY-759, primary).",
+            "blueprintEvidence": [
+              "rules[6]: \"never invent another mastermind merely to preserve a planned surprise.\"",
+              "acts[2].arcs[1].dnaHint: \"Auden has studied guard changes; Willow has mapped the water channels.\"",
+              "acts[2].arcs[3].dnaHint: \"If rescue was quiet or negotiated, honor a quiet departure.\"",
+              "acts[3].arcs[0].dnaHint: \"If only one heir was rescued, that court can stand down and aid a renewed search.\"",
+              "rules[17]: \"A lost heir is not secretly replaced or resurrected; pursue any remaining rescue, acknowledge grief, and negotiate with what remains.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "These stored AW principles are coauthored by Vincent and Meguey Baker. Specific act rewards are read with rules[15] and actual objective completion, not as automatic grants on any partial outcome. No observed reward-handling failure is claimed."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "Clean baseline editorial result. Essential discoveries have independent material routes and interpretable limits.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The ring establishes truthful knowledge rather than omniscience; neither king's denial solves the whole mystery. Missing witnesses, failed checks, avoided ambushes and lost physical evidence have explicit alternatives. The mine offers several routes and a helpful rather than indispensable ally.",
+            "basis": "1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).",
+            "blueprintEvidence": [
+              "acts[1].arcs[0].dnaHint: \"it cannot prove things he does not know.\"",
+              "acts[1].arcs[3].dnaHint: \"These point to the old working without requiring a surviving enemy, a single successful roll, or an NPC rescue.\"",
+              "acts[2].arcs[2].dnaHint: \"Evidence exists in three forms: seal dies and letters in the workshop, the heirs' accounts of capture, and Tallow's knowledge.\"",
+              "npcs[9].notes: \"Their absence or death removes a helpful ally, not the only route to the captives.\"",
+              "acts[3].arcs[0].dnaHint: \"their testimony alone justifies a ceasefire inquiry if physical evidence was lost.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The text already resolves potential clue bottlenecks. It does not establish successful delivery, the length of fifteen arcs or whether a live session will over-explain evidence. No duration target is imposed."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Clean baseline editorial result. The willing romance and hopeful peace have concrete personal and political substance without owning the player's ending.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The heirs' love is an authored NPC intention rather than a demand that the player feel or enforce it. Their domestic cooperation, preservation of marsh customs and the miners' representation make peace more than ceremony. Passage and ecological recovery are independent of the wedding; forgiveness is not required.",
+            "basis": "2.2, 2.7 and 7.3 (S2, primary); 4.6 (S1, primary, translated as meaningful consequences rather than mandatory transformation).",
+            "blueprintEvidence": [
+              "acts[2].arcs[1].dnaHint: \"Their affection shows in shared jokes, repaired clothing, and concern for each other's people.\"",
+              "npcs[1].notes: \"She chooses marriage freely and insists that the union protect marsh customs as well as forest ones.\"",
+              "acts[3].arcs[1].dnaHint: \"mutual safe passage, shared care of the boundary, and representation for the mine settlements.\"",
+              "acts[3].arcs[1].dnaHint: \"Rescue, ecological recovery, and passage home remain valid without a wedding.\"",
+              "acts[2].arcs[3].dnaHint: \"He owes an apology, not an automatic forgiveness.\"",
+              "rules[18]: \"Staying creates no compulsory debt, transformation, or lost right to leave.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "An intended fairy-tale wedding is not itself a coercion flaw. Player emotion, chemistry and emotional payoff remain unobserved. No mandatory personal transformation or multiplayer XP system is recommended."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [],
+      "dissent": [
+        "All five stored design lenses yield a clean baseline editorial result after a complete read, including all NPC and creature records. Do not add redundant exceptions merely to produce revisions.",
+        "Preserve the authored romance and hopeful high-fantasy destination. The existing betrothal, ceasefire, partial-rescue and independent passage provisions already protect meaningful alternatives; removing the wedding would change the adventure rather than fix it.",
+        "The general authored structure remains an accepted tradeoff with Harper/Baker emergent-play preferences. Clear item limits and reliable core evidence coexist with fae wonder; no exhaustive metaphysical or ecological simulation is needed.",
+        "The initial displacement is expressly before play; Ebonfeather's passenger limit, responsibility and apology are disclosed without a new kidnapper twist. His invulnerable escape is an authored supporting-NPC limit, not evidence of an observed forced rescue.",
+        "This is a static narrative/design review only. No human or generated playtest, duration estimate, runtime completion or import validation is asserted. Metadata reconciliation and preservation of the newer live designerVersion are outside this review; no repo files were edited."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "c21dfb8b60ecae077e95261fca7e78ca704bece6980929cc00d6141fcd14b0f5",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "The relational rescue, reciprocal care and noncoercive passage are well established. One remaining outcome gap concerns the living land when an heir cannot return.",
+        "resolved": [
+          {
+            "text": "The title's quiet birds and changing water are connected to a fixed cause and observable recovery, rather than used as interchangeable atmosphere. True-name power and ordinary personal speech are explicitly separated.",
+            "basis": "§1.7 deliberate echo/reversal (◐), §3.2 names and power (◐), §9.1 consistent world (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[0]",
+                "quote": "Let quiet birds and changing water carry the title's motif"
+              },
+              {
+                "path": "rules[1]",
+                "quote": "Personal truths, introductions, testimony, and wedding vows do not silently surrender a true name."
+              }
+            ]
+          },
+          {
+            "text": "Rescue, worker solidarity, care for the wounded and willing exchange are available story acts; romance does not mechanically cure the realm or purchase the protagonist.",
+            "basis": "§4.1–4.5 relational/container stories (◐), §4.6 story rather than imposed plot (●), §8.3–8.4 meaningful consequence (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[3].arcs[0].dnaHint",
+                "quote": "peace does not erase damage."
+              },
+              {
+                "path": "acts[3].arcs[1].dnaHint",
+                "quote": "Rescue, ecological recovery, and passage home remain valid without a wedding."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The lost-heir ending does not establish the fate of the affected land",
+            "kind": "authored outcome gap",
+            "severity": "medium",
+            "basis": "§8.4 know consequences and §9.1 consistent world (◐ secondary). Applying these to a permitted failure ending is the reviewer's inference.",
+            "blueprintEvidence": [
+              {
+                "path": "rules[7]",
+                "quote": "each heir's safe return begins recovery in their own land."
+              },
+              {
+                "path": "rules[17]",
+                "quote": "A lost heir is not secretly replaced or resurrected"
+              },
+              {
+                "path": "rules[17]",
+                "quote": "A bittersweet resolution may end in a ceasefire and passage home"
+              }
+            ],
+            "reason": "The land's deterioration is a central cause and title motif. The text explicitly permits an heir's permanent loss, but only defines recovery through that heir's return. It does not say whether a surviving community can stabilize the damage, whether blight continues, or whether it stops at a wounded condition. A valid bittersweet ending therefore leaves its most important ecological consequence for improvisation, potentially inviting an unearned cure or an extra compulsory quest.",
+            "recommendation": "State the private ecological consequence when one or both heirs cannot return, distinguishing temporary missing status from permanent loss if needed. It can remain damaged and uncertain in the long term; a brief bounded ending condition is enough. Do not require a replacement heir, resurrection, marriage or a new ritual quest.",
+            "mitigation": "Rules already forbid invented resurrection and perfect weddings, and the final farewell uses birdsong only when the lands have recovered. Those protections help preserve loss, but do not establish the remaining land's condition. This is a request for outcome clarity, not guaranteed healing.",
+            "confidence": "medium"
+          }
+        ],
+        "uncertainty": "These are sourced rubric lenses, not participating authors. No generated prose corpus was measured; §17 rules out claims about runtime rhythm, motif frequency or experienced grief."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "No independent actionable finding. The mystery has a fixed culprit and several confirmable trails while the landscape retains wonder and danger.",
+        "resolved": [
+          {
+            "text": "The ring tests known truth without becoming omniscience; the Loop reveals appearances without solving motives. Forged evidence, physical trails and independent witnesses can confirm an early suspicion instead of requiring a surprise replacement villain.",
+            "basis": "§9.3 confirmation rather than arbitrary revelation (A:6 ◐), §9.5 convincing fiction (A:5 ●/◐).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[4]",
+                "quote": "reveal unknown facts, or detect sincere mistakes."
+              },
+              {
+                "path": "rules[5]",
+                "quote": "It does not see through real walls, expose motives"
+              },
+              {
+                "path": "rules[6]",
+                "quote": "never invent another mastermind merely to preserve a planned surprise."
+              }
+            ]
+          },
+          {
+            "text": "The marsh offers hospitality and navigable hazards, not a blanket hostile biome. Local physical details support both wonder and concrete action.",
+            "basis": "§9.1 wonder/fear (A:5 ●/◐), §2.2 material and occupational specificity (C:1 ●), used as an analogy beyond city fiction.",
+            "blueprintEvidence": [
+              {
+                "path": "locations[2].description",
+                "quote": "Local boats and raised causeways offer alternatives to wading."
+              },
+              {
+                "path": "creatures[2].notes",
+                "quote": "Marsh guides read their flight to find firm islands."
+              },
+              {
+                "path": "npcs[9].notes",
+                "quote": "a meticulous tally of borrowed tools."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "This is high fantasy, not a mandate to imitate urban swords-and-sorcery. No demand for a shorter campaign, additional corruption or an explanation of every fae wonder."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "No separate actionable finding. The text already separates Grist's crimes from the mine households' legitimate grievance and makes peace a practical negotiation.",
+        "resolved": [
+          {
+            "text": "Grist exploits abandonment without representing every goblin. Peace includes the neglected settlements' voice and care for damage already done, rather than treating a villain's defeat as complete social repair.",
+            "basis": "§3.2 structural power (LS ●), §3.5 resource allocation (GR ●), §9.1 changed endings beyond restoration (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "deepTime[2].note",
+                "quote": "Both courts abandoned its households"
+              },
+              {
+                "path": "rules[16]",
+                "quote": "Grist commands the conspiracy, not every goblin conscience."
+              },
+              {
+                "path": "acts[3].arcs[1].dnaHint",
+                "quote": "representation for the mine settlements."
+              }
+            ]
+          },
+          {
+            "text": "The player may refuse the rescue bargain, act on early discoveries or take a route out after failure. The heirs have their own plans and an intended union whose political terms require work; the player's passage is independent.",
+            "basis": "§9.3 consequential choice and §9.4 contrasting character agency (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].arcs[1].dnaHint",
+                "quote": "If the player declines, offer the Willow Mother as another source of passage lore."
+              },
+              {
+                "path": "npcs[1].notes",
+                "quote": "insists that the union protect marsh customs as well as forest ones."
+              },
+              {
+                "path": "acts[3].arcs[2].dnaHint",
+                "quote": "If rescue failed, this exchange still offers a way out"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The lost-heir ecological question is already recorded under Le Guin; it is not a demand for automatic repair. The intended fairy-tale union need not be replaced by a modern political system. No runtime agency claim."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "No independent actionable finding. The hopeful register is earned through choice, exposure and practical care; the blueprint does not need additional grimness.",
+        "resolved": [
+          {
+            "text": "Both fathers' resistance has understandable personal and cultural causes, while the heirs demonstrate partnership before announcing love. A hopeful wedding or betrothal follows behavior rather than a compulsory emotional verdict.",
+            "basis": "§5.4 self-understanding (B:Fantasy-Hive ●), §5.6 character/action causality (B:Dark Matter Zine ●), §3.3–3.4 earned endings (A:Ending Like an Avalanche ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[5].notes",
+                "quote": "fear of losing his son and his court's autonomy"
+              },
+              {
+                "path": "npcs[6].notes",
+                "quote": "He fears a union that swallows marsh customs"
+              },
+              {
+                "path": "acts[2].arcs[1].dnaHint",
+                "quote": "shared jokes, repaired clothing, and concern for each other's people."
+              }
+            ]
+          },
+          {
+            "text": "Ebonfeather's helpful intention does not erase responsibility, and failure does not trigger a fabricated replacement heir. The intended bright ending has stated limits.",
+            "basis": "§6.1–6.3 understandable motives without excuse (B:Fantasy-Hive ●), §8.1 honesty (A:Advice ●), §3.1 consequences (B:Walter ◐).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[3].dnaHint",
+                "quote": "He owes an apology, not an automatic forgiveness."
+              },
+              {
+                "path": "rules[17]",
+                "quote": "do not fabricate a perfect wedding."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No dialogue corpus, actual romance reception or emotional payoff was tested. An earned hopeful ending is consistent with this rubric; darkness is not a requirement."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Clarify the affected land's condition in the already-permitted lost/dead-heir ending; retain the possibility of lasting damage and the unconditional alternative passage route.",
+        "No other writing-lens edits requested at baseline. Preserve the fixed mystery, alternative clues, heirs' agency and practical peace terms.",
+        "Runtime narration, comprehension, emotional response and pacing remain untested."
+      ],
+      "dissent": [
+        "Le Guin's outcome clarity should not become a demand for an encyclopedic ecology or an automatically healed realm.",
+        "Leiber's mystery lens supports firm investigative facts alongside unexplained fae wonder.",
+        "Jemisin's attention to institutions supports the mine settlement clauses; it does not veto the user's intended fairy-tale royal union.",
+        "Abercrombie's opposition to unearned comfort does not require a tragic romance or more cruelty. Preserve the high-fantasy hope."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "c21dfb8b60ecae077e95261fca7e78ca704bece6980929cc00d6141fcd14b0f5",
+    "scope": "Full immutable Silence Between Leaves baseline reread with all five stored sourced composite player lenses. Exact zero-based blueprint field anchors verified. Existing safeguards acknowledged; no changes assumed to have been made during this baseline. Designer metadata, live content, UI and runtime execution are outside scope.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "No source-supported editorial blocker unique to this lens; navigable geography and concrete item limits support explanation by ear.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "A stable directional hub and practical alternatives support a clear next action.",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R1 (primary solo-play component); R6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "locations[0].description",
+                "quote": "Forest road west, marsh causeway east, old mine track north; the Waystone Arch stands on the southern hill."
+              },
+              {
+                "field": "npcs[4].notes",
+                "quote": "offers useful hints rather than riddles that withhold essential clues."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Sourced composite review, not interviews or actual playtesting. No runtime, pacing, audio or persistence guarantee. No one-hour target.",
+          "verificationQuestion": "In an audio run, can the listener distinguish Princess Willow from the Willow Mother and retain which ring/stone has which power after a pause?",
+          "dissent": "The two Willow names merit an actual comprehension question, not an unsupported rename verdict. R5 and R10 are inferred and cannot justify removing danger or forcing a shorter campaign."
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Strong editorial fit: fixed conspiracy, plural evidence and genuine shortcuts preserve discovery without moving the answer.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The culprit remains fixed even when the courier is intercepted early.",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[6]",
+                "quote": "An early exposed disguise or captured courier can advance discovery; never invent another mastermind merely to preserve a planned surprise."
+              },
+              {
+                "field": "npcs[8].notes",
+                "quote": "a successful interception must be honored."
+              }
+            ]
+          },
+          {
+            "text": "Refusal, non-ring testimony and independent routes prevent a single prescribed method.",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I2; I3; I4",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[0].dnaHint",
+                "quote": "Without the ring, the empty-cell evidence and a frank account earn a hearing."
+              },
+              {
+                "field": "acts[1].arcs[2].dnaHint",
+                "quote": "No royal permission is required to follow the mine trail."
+              },
+              {
+                "field": "acts[2].arcs[0].dnaHint",
+                "quote": "Three routes lead inside: a watched cart entrance, a drainage culvert reached from the marsh, and an old ventilation stair SlumberCrag remembers."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Sourced composite review, not interviews or actual playtesting. No runtime, pacing, audio or persistence guarantee. No one-hour target.",
+          "verificationQuestion": "If the courier is captured during the first audience, does the actual story let the player use the evidence and mine lead immediately instead of repeating the false-prison sequence?",
+          "dissent": "The heirs having established independent affections is authored NPC motivation, not a defect or compulsory player romance. Ines values this resistance to rewriting every motive around player preference."
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "Bounded rewards and disclosed exchanges are strong; fix one local partial-rescue ownership contradiction.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "Item powers and ownership are bounded, and gifts are not duplicated across acts.",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B8; B9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[4]",
+                "quote": "It is one physical ring, given freely by the Forest King; refusal to wear it is not proof of guilt."
+              },
+              {
+                "field": "rules[5]",
+                "quote": "It does not see through real walls, expose motives, detect spoken lies, or break physical locks."
+              },
+              {
+                "field": "rules[15]",
+                "quote": "Loan and later ownership of the Loop are not two item gains."
+              }
+            ]
+          },
+          {
+            "text": "Agreed exchanges do not acquire surprise clauses or confiscate carried property.",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[2]",
+                "quote": "Never add hidden clauses after agreement."
+              },
+              {
+                "field": "rules[18]",
+                "quote": "Returning preserves carried belongings and actual elapsed time."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Make the final Loop ownership reward conditional on Willow actually returning",
+            "severity": "P2",
+            "kind": "reward-continuity contradiction",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[3].arcs[0].dnaHint",
+                "quote": "If only one heir was rescued, that court can stand down and aid a renewed search."
+              },
+              {
+                "field": "acts[3].arcs[0].reward",
+                "quote": "The Fae Loop becomes the promised gift; Auden's safe return fulfills the Forest King's passage bargain."
+              },
+              {
+                "field": "rules[5]",
+                "quote": "Stillwater lends it before the search and gifts it when Willow returns."
+              }
+            ],
+            "reason": "The same arc expressly accepts a one-heir outcome but its reward unconditionally converts the loan to ownership. On an Auden-only return, this can award an unearned object or cause a later reversal that appears to take back a promised gift. The correct condition is already explicit elsewhere.",
+            "recommendation": "State that Willow's safe return converts the existing Loop loan into a gift, while Auden's safe return independently earns passage. Keep it one physical item, and retain the partial-rescue outcome.",
+            "mitigation": "Rules[5] and rules[15], the Act II lending scene and Stillwater's notes already define the ownership condition and forbid duplication; this is a narrow local alignment.",
+            "confidence": "High textual confidence; actual reward execution has not been observed."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Sourced composite review, not interviews or actual playtesting. No runtime, pacing, audio or persistence guarantee. No one-hour target.",
+          "verificationQuestion": "Complete an Auden-only return while Willow remains captive: is the Loop still described as a loan, with no duplicate item or later unexplained confiscation?",
+          "dissent": "This campaign need not add a shop or accumulation system to match B2-B4; the useful quest objects already have clear purposes. Evidence about inventory economies is applied to the authored item promise, not claimed to validate the runtime inventory."
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "A warmer fit than the harsh campaigns, but still an adventure with real danger rather than a cozy routine.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "Ordinary people, mutual care and useful local actions soften the journey without making it passive.",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[1].dnaHint",
+                "quote": "Help frightened travelers past a root-choked channel; clear it, take a boat around, or fend off a territorial beast."
+              },
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "Their affection shows in shared jokes, repaired clothing, and concern for each other's people."
+              },
+              {
+                "field": "acts[3].arcs[1].dnaHint",
+                "quote": "Mediate concrete terms: mutual safe passage, shared care of the boundary, and representation for the mine settlements."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Sourced composite review, not interviews or actual playtesting. No runtime, pacing, audio or persistence guarantee. No one-hour target.",
+          "verificationQuestion": "Can a short session complete helping one marsh household or securing one witness, with that contribution remembered on return?",
+          "dissent": "N1 supports a preference for comfort; N6 supports completed chunks, not a mandate to eliminate the rescue, danger or four-act scope. The short-session text-game evidence remains limited."
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "Specific endings, voluntary farewell and explicit failure handling are editorially sound; supports the narrow Loop condition correction.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "A wedding is not a gate on rescue payoff or the player's exit.",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G3; G6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[3].arcs[1].dnaHint",
+                "quote": "Rescue, ecological recovery, and passage home remain valid without a wedding."
+              },
+              {
+                "field": "acts[3].arcs[2].dnaHint",
+                "quote": "If rescue failed, this exchange still offers a way out, with loss acknowledged."
+              },
+              {
+                "field": "rules[14]",
+                "quote": "royal permission is unnecessary."
+              },
+              {
+                "field": "rules[14]",
+                "quote": "The Willow Mother extends her presence through the arch's rooted stones while staying in her bower."
+              }
+            ]
+          },
+          {
+            "text": "Consequences and player farewell remain specific even in a partial success.",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[17]",
+                "quote": "A lost heir is not secretly replaced or resurrected;"
+              },
+              {
+                "field": "acts[3].arcs[0].dnaHint",
+                "quote": "If troops have already clashed, negotiate withdrawal and care for the hurt; peace does not erase damage."
+              },
+              {
+                "field": "acts[3].arcs[2].dnaHint",
+                "quote": "Close with a chosen farewell and birdsong when the lands have recovered, not another compulsory quest."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Sourced composite review, not interviews or actual playtesting. No runtime, pacing, audio or persistence guarantee. No one-hour target.",
+          "verificationQuestion": "Run the ending with a lost heir and without physical workshop evidence: does the farewell acknowledge the actual loss and surviving testimony rather than narrating the perfect wedding?",
+          "dissent": "A bittersweet ceasefire is a legitimate conclusion. G1-G3 do not require all NPC wishes to succeed or every court grievance to disappear. The ending instructions are not evidence of export, memento or runtime continuity behavior."
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "P2: condition the Act IV Fae Loop gift explicitly on Willow's safe return, separately from the Auden passage condition."
+      ],
+      "agreement": "The baseline already has stable mystery causes, fallback evidence, bounded magical items, noncompelled romance, supported failure endings and a viable alternate exit. No broad rewrite is justified by these lenses.",
+      "dissent": [
+        "Nan may prefer its hospitable interludes to the rescue conflict; this is taste, not a defect.",
+        "Ines values independent NPC intentions and real setbacks, while Gerry prioritizes honest closure; the authored ending supports both.",
+        "Rosa's two-Willow-name comprehension concern is a verification question, not a sourced finding or rename demand."
+      ],
+      "limits": "No interviews, actual playtests, pacing claims, runtime UI defect assertions or import verification."
+    }
+  }
+]

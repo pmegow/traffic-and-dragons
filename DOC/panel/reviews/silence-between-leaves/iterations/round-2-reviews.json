@@ -1,0 +1,518 @@
+[
+  {
+    "round": 2,
+    "blueprintSha256": "792b2f0ac399aedb70fd9e91593cebe1874a7cf332335bbf41ab5b86b4da20fb",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Clean second-cycle editorial result after a fresh full reread; unchanged content needs no additional edit.",
+        "resolved": [
+          {
+            "text": "The partial-rescue cases remain consistent: Auden alone fulfills the passage promise while the Loop remains loaned; Willow alone earns the Loop while the independent rite supplies passage; neither returned leaves that rite available. Each returned heir begins recovery in their own land, and the lost-heir rule supplies slower repair for the other.",
+            "basis": "5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).",
+            "blueprintEvidence": [
+              "acts[3].arcs[0].reward: \"Willow's safe return makes the Fae Loop the promised gift; otherwise it remains a loan.\"",
+              "rules[5]: \"Stillwater lends it before the search and gifts it when Willow returns.\"",
+              "rules[17]: \"Removing the iron wards halts that source of worsening; surviving households, the ruler and the Willow Mother can begin slow repair\"",
+              "deepTime[1].note: \"Royal stewardship supported the living lands through reciprocal care, never compulsory marriage.\"",
+              "rules[7]: \"each heir's safe return begins recovery in their own land.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The player and fiction panels identified these refinements; this review corroborates their closure without claiming authorship of those findings. No observed inventory or ecology-state enforcement."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Clean second-cycle editorial result after a fresh full reread; unchanged content needs no additional edit.",
+        "resolved": [
+          {
+            "text": "Partial rescue now carries the promised distinct rewards directly in the local instruction. Slow repair offers a consequential route after loss without revoking passage, secretly compelling another quest or erasing the failure.",
+            "basis": "1.7 (S:action-roll, primary, agreed terms); 7.3 (S:basics, primary); 7.6 (LF, primary).",
+            "blueprintEvidence": [
+              "acts[3].arcs[0].reward: \"Independently, Auden's safe return fulfills the Forest King's passage bargain.\"",
+              "rules[13]: \"If that route fails, the Willow Mother can open the Waystone Arch with freely given forest leaf, marsh water, and a personal truth.\"",
+              "rules[17]: \"End with the actual losses and first repairs; no compulsory further quest.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The authored four-act structure remains the settled section 10 tradeoff. No runtime promise resolution, timing or play balance was observed."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "Clean second-cycle editorial result after a fresh full reread; unchanged content needs no additional edit.",
+        "resolved": [
+          {
+            "text": "Rechecked partial rescue, permanent death and ecological aftermath against the whole story. Removing wards stops their added worsening; it does not declare instant restoration. Survivors can begin repair, while the heir stays lost and the ending may acknowledge unfinished recovery. The explicit adaptation and failure rules qualify the intended two-heir outline.",
+            "basis": "1.1, 1.3 and 6.2 (AW-REF, primary); 8.5 (ANY-759, primary).",
+            "blueprintEvidence": [
+              "rules[17]: \"A lost heir is not secretly replaced or resurrected\"",
+              "rules[17]: \"If an heir dies or cannot return, their land does not recover by royal marriage or replacement.\"",
+              "rules[17]: \"This supports a scarred, livable land, not instant restoration or the heir's resurrection.\"",
+              "acts[3].arcs[0].dnaHint: \"Never declare both returned when one remains missing.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The cited AW principles are coauthored by Vincent and Meguey Baker. A static possibility of a bittersweet ending is not an observed session outcome."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "Clean second-cycle editorial result after a fresh full reread; unchanged content needs no additional edit.",
+        "resolved": [
+          {
+            "text": "The revised failure path does not add a new unique clue bearer or a compulsory item hunt. Existing sources for the pact and alternate passage remain available, while the different rescue rewards are explicit rather than inferred from distant rules.",
+            "basis": "1.1 and 1.2 (SRD, primary); 1.7 and 7.2 (XX-two, primary).",
+            "blueprintEvidence": [
+              "acts[1].arcs[1].dnaHint: \"She helped make that pact and can teach a slower way to open the Waystone Arch.\"",
+              "rules[14]: \"a forest leaf and marsh water need only be freely given by willing inhabitants of their realms; royal permission is unnecessary.\"",
+              "rules[14]: \"No extra item quest should hold the ending hostage.\"",
+              "acts[3].arcs[0].reward: \"otherwise it remains a loan.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No new clue-delivery defect was found. Actual presentation of the repair option or pacing across fifteen arcs remains untested."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Clean second-cycle editorial result after a fresh full reread; unchanged content needs no additional edit.",
+        "resolved": [
+          {
+            "text": "Slow stewardship is a fitting high-fantasy response to grief: people care for a damaged place without substituting a wedding, replacement person or mandatory happy ending. The intended romance and voluntary departure remain intact.",
+            "basis": "2.2, 2.7 and 7.3 (S2, primary); 4.6 (S1, primary, cautiously applied to meaningful consequences).",
+            "blueprintEvidence": [
+              "rules[17]: \"tending water, sheltering wildlife and renewing freely agreed stewardship.\"",
+              "rules[17]: \"End with the actual losses and first repairs\"",
+              "acts[3].arcs[1].dnaHint: \"Rescue, ecological recovery, and passage home remain valid without a wedding.\"",
+              "rules[18]: \"Staying creates no compulsory debt, transformation, or lost right to leave.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "This judges available emotional material, not actual emotional response. No forced character growth or removal of the intended romance is recommended."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [],
+      "dissent": [
+        "The complete round-2 snapshot, including NPCs, locations and creatures, was reread. Its identical SHA verifies unchanged content; the four partial/full/failed-rescue combinations and the two lands' independent recovery conditions yielded no new material inconsistency.",
+        "All five stored lenses remain clean. The evidence and source bases below remain valid on this identical snapshot; no edit is needed merely to fill a second cycle.",
+        "Preserve the hopeful fairy-tale destination alongside real loss. The new repair possibility need not become a required sequel, a substitute resurrection or a reason to erase the wedding.",
+        "Hash verified. This was a static design reread, not a live test of reward ownership, ecological narration, clue delivery, pacing or completion. No one-hour target applies."
+      ]
+    }
+  },
+  {
+    "round": 2,
+    "blueprintSha256": "792b2f0ac399aedb70fd9e91593cebe1874a7cf332335bbf41ab5b86b4da20fb",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Second full reread: the lost-heir ecological outcome is resolved without undoing death or requiring marriage. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "Removing the wards ends their added damage; freely agreed stewardship permits slow repair after permanent loss. A scarred, livable land is compatible with gradual return-based recovery elsewhere and the old pact's reciprocal care.",
+            "basis": "§8.4 know consequences, §9.1 world consistency and §4.2–4.5 relational/container story (◐ secondary).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[17]",
+                "quote": "Removing the iron wards halts that source of worsening"
+              },
+              {
+                "path": "rules[17]",
+                "quote": "renewing freely agreed stewardship."
+              },
+              {
+                "path": "rules[17]",
+                "quote": "a scarred, livable land, not instant restoration or the heir's resurrection."
+              },
+              {
+                "path": "deepTime[1].note",
+                "quote": "Royal stewardship supported the living lands through reciprocal care"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Sourced rubric application, not author participation. §17 prose/corpus requirements remain: runtime motif, emotion and rhythm were not tested."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Second full reread: the reward correction aligns the ending with its established promise; the fixed mystery and its alternative evidence remain intact. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "The Loop becomes a gift only after Willow's safe return; Auden's return independently earns passage. The revision does not conflate surviving evidence with magical omniscience or introduce a replacement culprit.",
+            "basis": "§9.3 confirmation (A:6 ◐), §9.5 convincing continuity (A:5 ●/◐).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[3].arcs[0].reward",
+                "quote": "Willow's safe return makes the Fae Loop the promised gift"
+              },
+              {
+                "path": "acts[3].arcs[0].reward",
+                "quote": "otherwise it remains a loan."
+              },
+              {
+                "path": "rules[6]",
+                "quote": "never invent another mastermind merely to preserve a planned surprise."
+              }
+            ]
+          },
+          {
+            "text": "Partial rescue has separate consequences: returning Auden alone fulfills passage but leaves the Loop on loan; returning Willow alone earns the Loop while the Willow Mother's alternative passage remains available. Neither return fabricates the other's rescue.",
+            "basis": "§9.5 convincing continuity (A:5 ●/◐), §10.1 complete local resolution (◐).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[3].arcs[0].reward",
+                "quote": "Independently, Auden's safe return fulfills the Forest King's passage bargain."
+              },
+              {
+                "path": "acts[3].arcs[0].dnaHint",
+                "quote": "Never declare both returned when one remains missing."
+              },
+              {
+                "path": "rules[13]",
+                "quote": "If that route fails, the Willow Mother can open the Waystone Arch"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No actual mystery-solving experience was measured. The hopeful high-fantasy register needs no additional darkness."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Second full reread: community repair supplies an intelligible future after loss while preserving practical peace terms and the heirs' agency. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "Repair involves surviving households and renewed stewardship, not a replacement royal body or forced union. Mine representation and the option to leave still prevent recovery from becoming another compulsory player task.",
+            "basis": "§3.5 resource allocation (GR ●), §9.1 forward-changing endings and §9.3 consequential choice (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[17]",
+                "quote": "surviving households, the ruler and the Willow Mother can begin slow repair"
+              },
+              {
+                "path": "acts[3].arcs[1].dnaHint",
+                "quote": "representation for the mine settlements."
+              },
+              {
+                "path": "rules[17]",
+                "quote": "no compulsory further quest."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No claim that the added line simulates all institutional change; it supplies a bounded story outcome. Runtime agency remains untested."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "Second full reread: the new hopeful possibility preserves actual losses and gradual effort. Character motives and romantic consent remain intact. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "A damaged but inhabitable land does not erase a lost heir or invent a perfect wedding. Closing on first repairs is earned hope, consistent with the fairy-tale tone.",
+            "basis": "§3.3–3.4 earned rather than sentimental endings (A:Ending Like an Avalanche ●), §8.1 honesty (A:Advice ●).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[17]",
+                "quote": "do not fabricate a perfect wedding."
+              },
+              {
+                "path": "rules[17]",
+                "quote": "End with the actual losses and first repairs"
+              },
+              {
+                "path": "acts[3].arcs[1].dnaHint",
+                "quote": "no ring, true-name bargain, or threat may compel consent."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No generated dialogue or emotional-response testing. Darkness is not required to validate an earned hopeful ending."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "No further writing-lens edits requested after the complete second reread, including partial rescue and ecological failure cases.",
+        "Preserve conditional gifts, independent passage promises and the distinction between gradual stewardship repair and undoing loss.",
+        "Runtime narration, comprehension and pacing remain untested."
+      ],
+      "dissent": [
+        "The ecological clarification need not guarantee total restoration or describe a new ritual subsystem.",
+        "Community repair supports the intended royal romance without making marriage magically necessary.",
+        "The harsh-ending lens accepts earned hope; no additional tragedy or cruelty is requested."
+      ]
+    }
+  },
+  {
+    "round": 2,
+    "blueprintSha256": "792b2f0ac399aedb70fd9e91593cebe1874a7cf332335bbf41ab5b86b4da20fb",
+    "scope": "Second full immutable snapshot reread through all five sourced composite player lenses. Same bytes as round 1 confirmed, but full story reassessed, particularly partial rescue and land recovery. Exact zero-based quotes verified; no runtime tests or human playtest claimed.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "No source-supported editorial blocker unique to this lens; navigable geography and concrete item limits support explanation by ear.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "A stable directional hub and practical alternatives support a clear next action.",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R1 (primary solo-play component); R6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "locations[0].description",
+                "quote": "Forest road west, marsh causeway east, old mine track north; the Waystone Arch stands on the southern hill."
+              },
+              {
+                "field": "npcs[4].notes",
+                "quote": "offers useful hints rather than riddles that withhold essential clues."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Sourced composite review, not interviews or actual playtesting. No runtime, pacing, audio or persistence guarantee. No one-hour target.",
+          "verificationQuestion": "In an audio run, can the listener distinguish Princess Willow from the Willow Mother and retain which ring/stone has which power after a pause?",
+          "dissent": "The two Willow names merit an actual comprehension question, not an unsupported rename verdict. R5 and R10 are inferred and cannot justify removing danger or forcing a shorter campaign."
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Editorially clean; fixed mystery and meaningful alternate methods survive the new failure consequence.",
+        "resolved": [
+          {
+            "title": "Slow stewardship repair supplements rather than contradicts the established severance rules",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I4; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[7]",
+                "quote": "Removing the wards slows deterioration; each heir's safe return begins recovery in their own land."
+              },
+              {
+                "field": "rules[17]",
+                "quote": "Removing the iron wards halts that source of worsening; surviving households, the ruler and the Willow Mother can begin slow repair through tending water, sheltering wildlife and renewing freely agreed stewardship."
+              }
+            ]
+          }
+        ],
+        "strengths": [
+          {
+            "text": "The culprit remains fixed even when the courier is intercepted early.",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[6]",
+                "quote": "An early exposed disguise or captured courier can advance discovery; never invent another mastermind merely to preserve a planned surprise."
+              },
+              {
+                "field": "npcs[8].notes",
+                "quote": "a successful interception must be honored."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Sourced composite review, not interviews or actual playtesting. No runtime, pacing, audio or persistence guarantee. No one-hour target.",
+          "verificationQuestion": "If the courier is captured during the first audience, does the actual story let the player use the evidence and mine lead immediately instead of repeating the false-prison sequence?",
+          "dissent": "The heirs having established independent affections is authored NPC motivation, not a defect or compulsory player romance. Ines values this resistance to rewriting every motive around player preference."
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "Editorially clean on item ownership, prices and reward continuity; the partial-rescue contradiction is resolved.",
+        "resolved": [
+          {
+            "title": "Willow-only gift condition and Auden-only passage condition now remain independent",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[3].arcs[0].reward",
+                "quote": "Willow's safe return makes the Fae Loop the promised gift; otherwise it remains a loan."
+              },
+              {
+                "field": "acts[3].arcs[0].reward",
+                "quote": "Independently, Auden's safe return fulfills the Forest King's passage bargain."
+              },
+              {
+                "field": "rules[15]",
+                "quote": "Loan and later ownership of the Loop are not two item gains."
+              }
+            ]
+          }
+        ],
+        "strengths": [
+          {
+            "text": "Item powers and ownership are bounded, and gifts are not duplicated across acts.",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B8; B9",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[4]",
+                "quote": "It is one physical ring, given freely by the Forest King; refusal to wear it is not proof of guilt."
+              },
+              {
+                "field": "rules[5]",
+                "quote": "It does not see through real walls, expose motives, detect spoken lies, or break physical locks."
+              },
+              {
+                "field": "rules[15]",
+                "quote": "Loan and later ownership of the Loop are not two item gains."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Sourced composite review, not interviews or actual playtesting. No runtime, pacing, audio or persistence guarantee. No one-hour target.",
+          "verificationQuestion": "Complete an Auden-only return while Willow remains captive: is the Loop still described as a loan, with no duplicate item or later unexplained confiscation?",
+          "dissent": "This campaign need not add a shop or accumulation system to match B2-B4; the useful quest objects already have clear purposes. Evidence about inventory economies is applied to the authored item promise, not claimed to validate the runtime inventory."
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "A warmer fit than the harsh campaigns, but still an adventure with real danger rather than a cozy routine.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "Ordinary people, mutual care and useful local actions soften the journey without making it passive.",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[1].dnaHint",
+                "quote": "Help frightened travelers past a root-choked channel; clear it, take a boat around, or fend off a territorial beast."
+              },
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "Their affection shows in shared jokes, repaired clothing, and concern for each other's people."
+              },
+              {
+                "field": "acts[3].arcs[1].dnaHint",
+                "quote": "Mediate concrete terms: mutual safe passage, shared care of the boundary, and representation for the mine settlements."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Sourced composite review, not interviews or actual playtesting. No runtime, pacing, audio or persistence guarantee. No one-hour target.",
+          "verificationQuestion": "Can a short session complete helping one marsh household or securing one witness, with that contribution remembered on return?",
+          "dissent": "N1 supports a preference for comfort; N6 supports completed chunks, not a mandate to eliminate the rescue, danger or four-act scope. The short-session text-game evidence remains limited."
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "Editorially clean: failed-rescue closure now accounts for damaged lands without erasing loss or requiring another adventure.",
+        "resolved": [
+          {
+            "title": "The fiction-panel lost-heir consequence is now explicit and bounded",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[17]",
+                "quote": "If an heir dies or cannot return, their land does not recover by royal marriage or replacement."
+              },
+              {
+                "field": "rules[17]",
+                "quote": "This supports a scarred, livable land, not instant restoration or the heir's resurrection."
+              },
+              {
+                "field": "rules[17]",
+                "quote": "End with the actual losses and first repairs; no compulsory further quest."
+              }
+            ]
+          }
+        ],
+        "strengths": [
+          {
+            "text": "A wedding is not a gate on rescue payoff or the player's exit.",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G3; G6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[3].arcs[1].dnaHint",
+                "quote": "Rescue, ecological recovery, and passage home remain valid without a wedding."
+              },
+              {
+                "field": "acts[3].arcs[2].dnaHint",
+                "quote": "If rescue failed, this exchange still offers a way out, with loss acknowledged."
+              },
+              {
+                "field": "rules[14]",
+                "quote": "royal permission is unnecessary."
+              },
+              {
+                "field": "rules[14]",
+                "quote": "The Willow Mother extends her presence through the arch's rooted stones while staying in her bower."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Sourced composite review, not interviews or actual playtesting. No runtime, pacing, audio or persistence guarantee. No one-hour target.",
+          "verificationQuestion": "Run the ending with a lost heir and without physical workshop evidence: does the farewell acknowledge the actual loss and surviving testimony rather than narrating the perfect wedding?",
+          "dissent": "A bittersweet ceasefire is a legitimate conclusion. G1-G3 do not require all NPC wishes to succeed or every court grievance to disappear. The ending instructions are not evidence of export, memento or runtime continuity behavior."
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [],
+      "agreement": "Second full editorial pass remains clean. Auden-only return earns passage while the Loop remains a loan; Willow-only return earns the Loop while the alternative passage rite remains available. Both returned begin their own lands' recovery. A dead or nonreturning heir is not replaced: the affected land receives slow communal repair, not immediate restoration, and the campaign can end without a wedding or another compulsory quest.",
+      "dissent": [
+        "Nan may prefer its hospitable interludes to the rescue conflict; this is taste, not a defect.",
+        "Ines values independent NPC intentions and real setbacks, while Gerry prioritizes honest closure; the authored ending supports both.",
+        "Rosa's two-Willow-name comprehension concern is a verification question, not a sourced finding or rename demand."
+      ],
+      "limits": "This is textual case analysis, not executed gameplay. Removing wards halts that source of worsening; it does not claim to erase the separate severance or all prior damage. The fiction panel identified the original lost-heir ecology gap; this panel verifies the repair without claiming it as its baseline finding."
+    }
+  }
+]
