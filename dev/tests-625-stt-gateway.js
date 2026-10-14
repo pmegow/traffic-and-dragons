@@ -102,7 +102,9 @@ async function test(name, fn) {
     var r = await utter(2000);
     assert.equal(r, false, "resolves false"); assert.equal(calls.length, 1, "no fallback retry after an account refusal: " + calls.length);
     assert.ok(carNotes.some(function(n) { return /warn:.*Daily dictation limit reached/.test(n); }), "the car hears the server's sentence: " + JSON.stringify(carNotes));
-    assert.ok(toasts.some(function(t) { return /failed/i.test(t); }), "the toast says it failed");
+    /* #625 deep dive (2026-10-13): the toast carries the server's sentence too — a desktop or iPhone player (no car notice) used
+       to read only "Voice transcription failed." and never learn the daily limit was the reason */
+    assert.ok(toasts.some(function(t) { return /Daily dictation limit reached/.test(t) && /you can still type/.test(t); }), "the toast carries the server's sentence: " + JSON.stringify(toasts));
     assert.equal(input.value, "", "nothing landed");
   });
   await test("a server 402 ends the attempt naming the subscription; a 401 likewise — one request each", async function() {
@@ -117,6 +119,19 @@ async function test(name, fn) {
     assert.equal(calls.length, 2, "primary then the fallback");
     assert.equal(calls[1].url, SERVER + "/api/stt/transcribe"); assert.equal(calls[1].opts.body.get("model"), "whisper-1"); assert.equal(calls[1].opts.headers["X-TND-Audio-Ms"], "2000");
     assert.ok(/second try/.test(input.value), "the fallback's transcript landed");
+  });
+  await test("a VENDOR 429 or 401 passed through the server (an error OBJECT, not the server's sentence) is a vendor failure: the one fallback retry runs, and the toast stays generic when both fail", async function() {
+    /* #625 deep dive (2026-10-13): the server forwards the vendor's response with its status, so a rate limit arrives as 429 and a
+       bad operator key as 401 — the same codes as the server's own refusals, which used to end the attempt on the vendor's words */
+    reset("server"); script.push(jsonReply(429, { error: { message: "Rate limit reached for gpt-4o-mini-transcribe", type: "requests", code: "rate_limit_exceeded" } })); script.push(jsonReply(200, { text: "after the limit" }));
+    await utter(2000);
+    assert.equal(calls.length, 2, "a vendor 429 through the gateway gets the fallback retry: " + calls.length);
+    assert.equal(calls[1].opts.body.get("model"), "whisper-1"); assert.ok(/after the limit/.test(input.value), "the fallback's transcript landed");
+    reset("server"); script.push(jsonReply(401, { error: { message: "Incorrect API key provided", type: "invalid_request_error" } })); script.push(jsonReply(401, { error: { message: "Incorrect API key provided", type: "invalid_request_error" } }));
+    var r = await utter(2000);
+    assert.equal(r, false); assert.equal(calls.length, 2, "a vendor 401 is retried once, then given up: " + calls.length);
+    assert.ok(toasts.some(function(t) { return /^Voice transcription failed\.$/.test(t); }), "a vendor failure keeps the generic toast: " + JSON.stringify(toasts));
+    assert.ok(!toasts.some(function(t) { return /Incorrect API key/.test(t); }), "the vendor's words about the OPERATOR's key never reach the player: " + JSON.stringify(toasts));
   });
   await test("no key and no sign-in: the upload never leaves, and the sentence names both remedies", async function() {
     reset("none");

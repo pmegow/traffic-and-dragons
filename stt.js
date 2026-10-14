@@ -770,7 +770,10 @@ var STT = (function() {
           console.info("[stt] stale transcription error ignored for generation " + generation + " (current " + _cloudGeneration + ")");
           return false;
         }
-        if (typeof showToast === "function") showToast("Voice transcription failed.");
+        /* #625 deep dive (2026-10-13): an account refusal carries the server's own sentence (the daily limit, no subscription,
+           signed out) — the toast says THAT, not a generic failure; the car already heard the message. A vendor failure after
+           the fallback keeps the generic line (the console has the detail). */
+        if (typeof showToast === "function") showToast(e && e.terminal && e.message ? "Voice input: " + e.message : "Voice transcription failed.");
         if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + (e && e.message)); /* final-pass #32 */
         console.warn("[stt] cloud transcription failed:", e);
         var el = document.getElementById("action-input");
@@ -817,8 +820,14 @@ var STT = (function() {
         if (route.server && (resp.status === 401 || resp.status === 402 || resp.status === 429)) {
           /* an account refusal carries its own sentence and ends the attempt — no fallback model, no second refusal */
           return Promise.resolve(typeof resp.json === "function" ? resp.json() : null)["catch"](function() { return null; }).then(function(j) {
-            var msg = (j && (typeof j.error === "string" ? j.error : (j.error && j.error.message))) || (j && j.message) || ("HTTP " + resp.status);
-            if (j && j.error === "subscription") msg = "Your account has no active subscription for dictation" + (j.reason ? " (" + j.reason + ")" : "");
+            /* #625 deep dive (2026-10-13): the server passes a VENDOR error through with its status, so a vendor 429 (a rate
+               limit) or 401 (the operator's key) arrives on the same codes as the server's own refusals. The server writes
+               its refusals as a plain sentence (`error` a string: "Not logged in", "subscription", the daily limit); the
+               vendor's is an object ({error:{message,type}}). Only the server's own sentence is terminal — a vendor failure
+               keeps the one fallback retry the BYOK path has, whichever door it came through. */
+            if (!(j && typeof j.error === "string")) throw new Error("HTTP " + resp.status + " (" + model + ") — vendor error through the gateway");
+            var msg = j.error;
+            if (j.error === "subscription") msg = "Your account has no active subscription for dictation" + (j.reason ? " (" + j.reason + ")" : "");
             var te = new Error(msg); te.terminal = true; throw te;
           });
         }

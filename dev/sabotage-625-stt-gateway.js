@@ -37,7 +37,16 @@ rc|=sabotage.prove({file:"stt.js",command:SUITE,cases:[
   {label:"the server's refusal sentence is dropped (the car would hear 'HTTP 429')",
    mustFail:"a server 429 (the daily cap) ends the attempt",
    find:"if (route.server && (resp.status === 401 || resp.status === 402 || resp.status === 429)) {",
-   replace:"if (false) {"}
+   replace:"if (false) {"},
+  /* #625 deep dive (2026-10-13) */
+  {label:"a vendor error object through the gateway is terminal again (a rate limit ends the attempt on the vendor's words — no fallback retry)",
+   mustFail:"a VENDOR 429 or 401 passed through the server",
+   find:"            if (!(j && typeof j.error === \"string\")) throw new Error(\"HTTP \" + resp.status + \" (\" + model + \") — vendor error through the gateway\");\n            var msg = j.error;",
+   replace:"            var msg = (j && (typeof j.error === \"string\" ? j.error : (j.error && j.error.message))) || (j && j.message) || (\"HTTP \" + resp.status);"},
+  {label:"the toast goes generic on an account refusal again (a desktop player never learns the daily limit was the reason)",
+   mustFail:"a server 429 (the daily cap) ends the attempt",
+   find:"showToast(e && e.terminal && e.message ? \"Voice input: \" + e.message : \"Voice transcription failed.\");",
+   replace:"showToast(\"Voice transcription failed.\");"}
 ]});
 
 process.exit(rc);
