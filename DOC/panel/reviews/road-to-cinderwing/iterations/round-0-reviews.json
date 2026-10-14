@@ -1,0 +1,847 @@
+[
+  {
+    "round": 0,
+    "blueprintSha256": "7434ba10defcca13142c7737247df62e73577efaba05ebe3f2d09cd098d6b18e",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "The creature-led road, distinct locations and useful relics fit the adventure; one encounter changes important abilities without defining the mechanism.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Basilisk consequences and relic counters need one consistent account",
+            "severity": "medium",
+            "kind": "content / capability consistency",
+            "basis": "5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).",
+            "blueprintEvidence": [
+              "acts[3].arcs[1].dnaHint: \"kills anyone who looks at it\"",
+              "creatures[6].notes: \"Its gaze turns living flesh to stone; its own reflection turns it.\"",
+              "rules[2]: \"its wearer may catch and hold a blade without harm\"",
+              "acts[3].arcs[1].dnaHint: \"Gorrak's Gauntlet, a polished shield, a blindfold and a keen ear are all answers.\"",
+              "rules[2]: \"its arrows fly true through any darkness\"",
+              "acts[3].arcs[2].dnaHint: \"If the player has the Thornwood Bow, the dark of the last tunnel is not dark.\""
+            ],
+            "reason": "The encounter alternates between instant death and petrification, leaves the reflection response unclear, and names the blade-catching Gauntlet as a gaze counter without saying how it helps. The tunnel similarly implies the Bow removes darkness despite defining only accurate arrows. These ambiguities change which precautions actually work; they are not merely sensory ornament.",
+            "recommendation": "Choose the basilisk's actual gaze consequence, show recognizable warning before exposure, and explain each effective precaution. If polished bronze on the Gauntlet can reflect the gaze, state that mundane use rather than inventing general petrification immunity. Keep the Bow's benefit to arrows unless a separate light or sight power is intentionally granted and consistently defined. Establish what can be done for a petrified victim if that remains the consequence.",
+            "mitigation": "The baseline already supplies several noncombat counters, Bora knows the guardian, and the Gauntlet is bronze, so a small clarification can make these tactics coherent without weakening the basilisk. Darkness-targeting arrows remain a useful reward without turning the Bow into a lantern.",
+            "confidence": "High"
+          }
+        ],
+        "uncertainty": "No combat balance or runtime adjudication test. The opening compresses disappearance, earlier failed champions and several road stages without dates; clarify chronology only if needed for an actual deadline, not to impose mundane travel simulation on a fairy tale."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Meaningful warnings and clever approaches occur throughout, but the mandatory honesty test gives the narrator undefined authority over the player's interior.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "The only ford can be withheld for an unestablished lie to oneself",
+            "severity": "high",
+            "kind": "content / playable gate and player authority",
+            "basis": "1.2 (S:action-roll, primary); 7.4 and 7.8 (LF / S:core-system Judgment calls, primary).",
+            "blueprintEvidence": [
+              "acts[2].arcs[3].objective: \"lets pass only those who have told no lie since entering the Weald\"",
+              "acts[2].arcs[3].dnaHint: \"A player who has lied — to the elves, to Gorrak, to themselves — must find the lie and unsay it aloud before the ford will open.\"",
+              "creatures[7].notes: \"the water rises against the untruthful and falls for the honest.\""
+            ],
+            "reason": "The gate requires identifying a lie that may exist only in the narrator's interpretation of the player's inner motives. There is no rule for what counts, no fixed past statement, and no stated way through when the player disagrees with that diagnosis. This can make progress depend on confessing a feeling the player never chose.",
+            "recommendation": "Preserve the truthful ford as a fairy-tale test, but limit any required retraction to an established deliberate falsehood, identified openly, or let the player freely nominate an uncertainty or truth. Distinguish sincere error, privacy, silence and metaphor from lying. Provide a legible way to repair an actual lie or an alternate crossing that need not compel self-accusation. Warn before any consequential forest time shift rather than adding a hidden penalty while resolving the gate.",
+            "mitigation": "The unicorn is explicitly not a compulsory fight or mount, and correcting a lie is already an alternative to permanent exclusion. The change should make that correction actionable rather than removing the encounter or requiring the unicorn to flatter everyone.",
+            "confidence": "High"
+          }
+        ],
+        "uncertainty": "The test's moral theme is legitimate. This is not a general ban on NPC judgments, riddles or fae time; the concern is a mandatory unbounded diagnosis of the player's private beliefs. No live stall has been observed."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "The princess has meaningful prior agency and the dragon is a person; later fields still predetermine the assassin's survival and the finale's success state.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "Catching Cael conflicts with his guaranteed escape, lead and last stand",
+            "severity": "high",
+            "kind": "content / contingent outcomes",
+            "basis": "1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).",
+            "blueprintEvidence": [
+              "acts[1].arcs[3].dnaHint: \"Let the player catch him by cleverness in the crowd\"",
+              "acts[1].turningPoint: \"escapes toward the forest with a head start\"",
+              "acts[2].arcs[2].dnaHint: \"Cael Vane has passed this way a day ahead\"",
+              "acts[3].arcs[1].dnaHint: \"Cael Vane makes his last stand here, cornered\"",
+              "creatures[5].notes: \"Cael Vane's cut web and a dead spider mark that he passed a day ahead.\""
+            ],
+            "reason": "A successful early capture, surrender, death or change of allegiance is explicitly possible in one arc but contradicted by later act, NPC and creature instructions. The narrator must nullify that success or manufacture Cael's reappearance to deliver the written sequence.",
+            "recommendation": "Make the escape conditional; preserve actual custody, injuries, knowledge and survival everywhere it propagates. His trail exists only if he travelled it, and the deep-hall defenders can remain the chancellor's established soldiers if he cannot be there. Let early disclosure or a negotiated ally alter later objectives rather than requiring a replacement assassin.",
+            "mitigation": "The Kettlebridge hint already rewards clever capture and allows loss of his trail. Gorrak and the elves provide other sources; the road and egg recovery need not depend on Cael always escaping.",
+            "confidence": "High"
+          },
+          {
+            "title": "The finale assumes an intact recovered egg despite real dangerous obstacles",
+            "severity": "medium",
+            "kind": "content / ending contingency",
+            "basis": "1.3 and 6.3 (AW-REF, primary); 8.5 (ANY-759, primary).",
+            "blueprintEvidence": [
+              "acts[3].turningPoint: \"with the egg in your arms\"",
+              "acts[3].turningPoint: \"the princess is free the moment the egg is whole in his nest\"",
+              "acts[3].arcs[3].dnaHint: \"He will listen to a player holding his egg with care\"",
+              "acts[3].arcs[4].dnaHint: \"Whatever she chooses, Tallow's fall is the kingdom's business now, and the player made it possible.\""
+            ],
+            "reason": "The central recovery can fail, the egg can be lost or damaged, and players may reach the roost before recovering it. The only authored resolution presumes the whole egg and a completed exposure, leaving the narrator to restore it, force a successful fetch or invent a punishment. Ilsabet is called a voluntary honored guest, yet her freedom is phrased as contingent on the egg without an explicit account of her agreement.",
+            "recommendation": "State what Ilsabet actually agreed to and what Vaurach wants if approached without the egg, with a damaged egg, or after failure. Permit a real conversation, retreat or acknowledged incomplete/tragic resolution without guaranteeing peace or reviving a lost egg. Keep Ilsabet's subsequent choice hers, and make the report on Tallow conditional on actual testimony or evidence carried out. Give impending retaliation visible warning rather than a surprise deadline.",
+            "mitigation": "Fleeing the dragon is already possible and the princess's ending is explicitly hers. The text need not enumerate every contingency or make the dragon forgiving; a concise failure/early-approach rule would preserve these established choices.",
+            "confidence": "High that no contingent resolution is authored; medium on resulting play impact."
+          }
+        ],
+        "uncertainty": "Uses documented Vincent and Meguey Baker coauthored AW principles. The four-act spine itself is an accepted tradeoff; only outcomes that contradict actual action or erase failure are flagged."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "The investigation has concrete clues and strong interpretive turns, but road access and the final disclosure contain two fixable information problems.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "The exclusive road claim is inconsistent and its non-arena route is underspecified",
+            "severity": "medium",
+            "kind": "content / route and clue access",
+            "basis": "1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).",
+            "blueprintEvidence": [
+              "acts[1].goal: \"earn it in the arena or around it\"",
+              "locations[3].description: \"Three nights of bouts decide the mountain road.\"",
+              "npcs[3].notes: \"He holds the only true road to Ashenhold in his memory.\"",
+              "npcs[5].secret: \"Ithryl's own hooded kin who walked the princess out of Vellamere and through the Weald to Ashenhold\"",
+              "acts[1].arcs[2].dnaHint: \"A player who answers with glory or reward gets the map and no guide\"",
+              "creatures[1].notes: \"Once calmed he is a mount, a tracker who knows the princess's scent\""
+            ],
+            "reason": "Gorrak is globally described as the only route holder even though the elves recently escorted Ilsabet to the destination. The act offers an approach around the arena and its question awards a map, but the location and combat objective make three dangerous bouts sound mandatory. If Gorrak is silenced or the player reasonably declines the pit, the source does not clearly state which known route remains available.",
+            "recommendation": "Scope Gorrak's exclusivity to Kettlebridge or his reliable route and make his non-arena terms explicit. Preserve a credible independent lead through the escorting elves, witnessed tracks or local knowledge if he is unavailable. Treat earning an optional arena relic separately from receiving indispensable directions. Honor a plausible Quillon flight or other earned shortcut instead of quietly disabling it to force the road.",
+            "mitigation": "The existing Champion's Question already gives a map even for a glory/reward answer, and the act goal explicitly permits going around the arena. Clarification can complete those intentions without deleting the bouts or making everyone know every path.",
+            "confidence": "High"
+          },
+          {
+            "title": "Cael cannot reveal the hatchling-chain purpose he explicitly does not know",
+            "severity": "medium",
+            "kind": "content / evidence provenance",
+            "basis": "1.2 and 1.3 (SRD, primary); 1.7 (XX-two, primary).",
+            "blueprintEvidence": [
+              "acts[3].arcs[1].dnaHint: \"may talk if the Lantern is on him: the chancellor meant to hatch the egg himself and keep a dragon on a chain.\"",
+              "npcs[8].secret: \"He does not know the chancellor means to keep the hatchling on a chain\"",
+              "npcs[8].secret: \"when the Lantern of Unlying Light is on him and he learns it\"",
+              "rules[2]: \"a lie is a smear of shadow on the liar's mouth\""
+            ],
+            "reason": "The scene points to Cael's truth-telling as the disclosure, but his dossier requires him first to learn the same unknown purpose. No source for that lesson is specified. The Lantern detects lies; it does not supply unknown facts or guarantee cooperation, and Cael might not survive to testify.",
+            "recommendation": "Fix whether Cael knew the plan before play. If he did not, place concrete evidence of the intended captivity in the egg chamber or on the soldiers, and let it change his response when actually shown. Preserve another viable proof of Tallow's role if Cael stays silent, was captured earlier or died. Do not expand the Lantern into mind reading to cover the missing evidence.",
+            "mitigation": "Ithryl can identify who ordered the theft, the soldiers wear the chancellor's livery, and the egg is physically in their custody. These already support accusation; the missing part is provenance of the planned chained hatchling and Cael's knowledge of it.",
+            "confidence": "High"
+          }
+        ],
+        "uncertainty": "No failed clue roll was observed. Ghost confidence and worthy-visitor tests may work in play; avoid automatically treating every conversation as a bottleneck when other sources and clever methods can be honored."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Strong fit: grief shapes the house, Ilsabet chooses diplomacy, Gorrak remembers inherited kindness, and the dragon loves his child. No independent additional finding beyond the authority and ending concerns above.",
+        "resolved": [],
+        "findings": [],
+        "uncertainty": "2.2 and 7.3 (S2, primary) support these intimate motives; 2.7 (S2, primary) supports invitations over obligatory feelings; 4.6 (S1, primary) supports an ending that names actual changes. Preserve Sennet's patience, the dragon's personhood, the possibility of a joyful farewell and Ilsabet's independent choice. Do not compel the player's introspection at the ford or predetermine absolution, as already covered by the Harper/Baker findings. Emotional effect and duration remain untested."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Make Cael's subsequent appearances and traces conditional on his actual escape and survival.",
+        "Specify fair, knowable honesty-gate criteria without inventing the player's private self-deception.",
+        "Align basilisk effects and artifact counters with their stated capabilities.",
+        "Clarify non-arena and independent road knowledge, including the elves who escorted Ilsabet.",
+        "Provide a concrete source for the hatchling-chain plan and consistent Cael knowledge.",
+        "Add brief early-approach and failed-egg handling so the finale can honor actual events without erasing loss."
+      ],
+      "dissent": [
+        "Preserve the fairy-tale road, honorable conversation with the dragon, proud creatures and the optional arena spectacle. No recommendation requires making the dragon a balanced boss to defeat or turning everything into quantified transactions.",
+        "The written outline itself is accepted. The report flags direct propagation conflicts and under-explained decision mechanics, not a requirement to discard four acts or every authored event.",
+        "Truth can remain a meaningful fairy-tale value without declaring a player's hidden motives. Gorrak and Sennet can remain demanding personalities while core progress has credible alternatives.",
+        "No one-hour target applies. These are static editorial findings, not human/generated play outcomes, runtime pacing, difficulty testing or import validation. All exact quotations and the snapshot hash were checked."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "7434ba10defcca13142c7737247df62e73577efaba05ebe3f2d09cd098d6b18e",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "The listening-centered reversal and Ilsabet's autonomy are strong. The compulsory truth test needs a fixed, intelligible scope rather than an invented inner fault.",
+        "resolved": [
+          {
+            "text": "The dragon and ghost can be approached through attention rather than domination; the princess's chosen action drives the journey. Preserve this alternative to the simple trophy rescue.",
+            "basis": "§4.1–4.5 relational story (◐), §4.6 story versus imposed plot (●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[0].arcs[2].dnaHint",
+                "quote": "she wants to be listened to."
+              },
+              {
+                "path": "acts[3].arcs[4].dnaHint",
+                "quote": "The rescue was never a leash."
+              },
+              {
+                "path": "rules[3]",
+                "quote": "The princess's ending is hers to choose."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The ford can demand an invented confession about the player's inner life",
+            "kind": "authored agency and magical-scope gap",
+            "severity": "high",
+            "basis": "§8.4 knowledge before consequential action and §9.1 consistent world (◐); §4.6 story versus imposed plot (●). Interactive-character application is the reviewer's inference.",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[3].objective",
+                "quote": "lets pass only those who have told no lie since entering the Weald"
+              },
+              {
+                "path": "acts[2].arcs[3].dnaHint",
+                "quote": "to themselves"
+              },
+              {
+                "path": "acts[2].arcs[3].dnaHint",
+                "quote": "must find the lie and unsay it aloud before the ford will open"
+              },
+              {
+                "path": "acts[2].arcs[2].objective",
+                "quote": "Take the only path to the mountain"
+              }
+            ],
+            "reason": "The mandatory ford can judge unexpressed self-deception without specifying what counts, who knows it or how the player could correct it. A narrator could invent the protagonist's belief or label a sincere mistake a lie to require a confession. The lantern also marks a lie without distinguishing deliberate falsehood from unknown truth.",
+            "recommendation": "Define knowingly spoken falsehoods and fixed limits for both truth effects. Judge actual player speech and intent; do not invent inner beliefs or treat metaphor, silence or sincere mistakes as deceit. Give a specific observable response and a voluntary correction or viable crossing alternative while keeping the unicorn wondrous and unrideable.",
+            "mitigation": "The story favors plain speech and makes the lantern expose the wearer's own lies, which is a useful reciprocal cost. Mythic moral judgment is an intentional tone choice; it does not require unrestricted access to the protagonist's unspoken mind.",
+            "confidence": "high"
+          }
+        ],
+        "uncertainty": "These are documented rubric lenses, not participating authors. No generated prose corpus or §17 runtime metrics were assessed; no claim about experienced wonder or lyric quality."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Distinct settlements and dangerous supernatural objects support the fairy-tale journey. One concrete consequence contradiction remains in the basilisk encounter.",
+        "resolved": [
+          {
+            "text": "The harbor, river market, haunted house and mountain have differing material identities. The hidden crime belongs to a specific court officer rather than a late cosmic replacement culprit.",
+            "basis": "§2.2 material and occupational specificity (C:1 ●), §10.3 specific venal antagonists (C:1 ◐), §9.3 confirmation (A:6 ◐).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[1].arcs[0].dnaHint",
+                "quote": "halfling barge-folk, dwarf ferrymen"
+              },
+              {
+                "path": "locations[5].description",
+                "quote": "cold forges"
+              },
+              {
+                "path": "npcs[1].secret",
+                "quote": "keep a dragon under his own hand"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The basilisk's decisive consequence changes between the scene and creature rule",
+            "kind": "authored inconsistency",
+            "severity": "medium",
+            "basis": "§9.5 convincing continuity (A:5 ●/◐), §9.3 earned confirmation (A:6 ◐).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[3].arcs[1].dnaHint",
+                "quote": "kills anyone who looks at it"
+              },
+              {
+                "path": "creatures[6].notes",
+                "quote": "Its gaze turns living flesh to stone"
+              },
+              {
+                "path": "creatures[6].notes",
+                "quote": "a polished shield"
+              },
+              {
+                "path": "rules[2]",
+                "quote": "its wearer may catch and hold a blade without harm"
+              }
+            ],
+            "reason": "The scene promises death on looking; the creature specifies petrification. Those produce different possible rescues, losses and endings. Both also list the Gauntlet as an answer, but its established gift only catches blades; a reflective surface or other relevant use is not established. The player's precaution therefore depends on which wording the narrator favors.",
+            "recommendation": "Align gaze trigger and consequence across both fields, state whether and how stone victims can recover (or that the loss is lasting), and foreshadow it. Explain any reflective use of the bronze Gauntlet rather than silently granting gaze immunity. Retain blindfolds, shields and earned danger.",
+            "mitigation": "Several practical precautions are already offered. This asks for consistent stakes, not an automatic cure, reduced danger or simulation-heavy combat rules.",
+            "confidence": "high"
+          }
+        ],
+        "uncertainty": "No encounter execution or player survival was tested. The dragon's overwhelming power can remain a deliberate premise; no requirement to make it a defeatable combat boss."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "The intended princess choice is meaningful, but Cael's guaranteed sequence overrides the adventure's own promised successful interception.",
+        "resolved": [
+          {
+            "text": "Ilsabet can return to challenge the court or remain as an envoy; the nominal rescue does not place her under the player's authority. Gorrak's remembered debt complicates the crown's claim to moral authority.",
+            "basis": "§9.3 meaningful choice and §9.4 contrasting character orientations (WE ●); §3.2 structural power (LS ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[3].arcs[4].dnaHint",
+                "quote": "she may stay as Ambergate's first envoy to the dragon"
+              },
+              {
+                "path": "npcs[3].secret",
+                "quote": "when Ambergate's soldiers would have let them starve in the snow"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Cael's successful capture cannot coexist with his guaranteed escape and later appearances",
+            "kind": "authored unconditional sequence",
+            "severity": "high",
+            "basis": "§5.1 planned structure and §9.3 choices must alter events (WE ● primary).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[1].arcs[3].dnaHint",
+                "quote": "Let the player catch him by cleverness in the crowd"
+              },
+              {
+                "path": "acts[1].turningPoint",
+                "quote": "escapes toward the forest with a head start"
+              },
+              {
+                "path": "acts[2].arcs[2].dnaHint",
+                "quote": "Cael Vane has passed this way a day ahead"
+              },
+              {
+                "path": "acts[3].arcs[1].dnaHint",
+                "quote": "Cael Vane makes his last stand here"
+              },
+              {
+                "path": "creatures[5].notes",
+                "quote": "Cael Vane's cut web and a dead spider mark that he passed a day ahead."
+              }
+            ],
+            "reason": "The investigation explicitly permits catching him, but the act turn, forest trail, final encounter, NPC notes and spider entry all assume escape. That creates a direct instruction to erase a success or return a captured/dead antagonist. Later evidence and confrontation currently rely heavily on the same recurring man.",
+            "recommendation": "Condition every Cael appearance and trace on his actual escape, route and survival, including creature notes. If captured, defeated or redirected, preserve that state and let existing soldiers, physical orders or testimony carry only the information they actually possess. Keep the road adventure; do not revive Cael or invent a second mastermind to restore it.",
+            "mitigation": "The arena investigation offers real cleverness, and the eventual princess testimony provides another truth source. Those openings can support a simple conditional structure without adding a branch tree.",
+            "confidence": "high"
+          }
+        ],
+        "uncertainty": "This identifies conflicting authored instructions, not proof of runtime railroading. The high-fantasy story need not dismantle the monarchy or supply a political simulation."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "The cast has memorable wants and relationships. Cael's knowledge and the arena's stated ethos need clearer causes and limits.",
+        "resolved": [
+          {
+            "text": "Brisa's shame, Gorrak's inherited gratitude and Ilsabet's self-directed diplomacy give the traveling group more than plot functions. Sennet's bereavement also supports a humane encounter with the dead.",
+            "basis": "§5.4 self-understanding (B:Fantasy-Hive ●), §5.5 traveling group (B:Winter is Coming ●), §5.6 character/action causality (B:Dark Matter Zine ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[2].notes",
+                "quote": "eaten alive by the certainty that she failed her charge."
+              },
+              {
+                "path": "acts[1].arcs[2].dnaHint",
+                "quote": "his grandmother's story in his chest."
+              },
+              {
+                "path": "acts[0].arcs[1].dnaHint",
+                "quote": "Vellamere is not cruel; it is bereaved."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Cael is used as the source of a scheme his private notes say he does not know",
+            "kind": "authored knowledge inconsistency",
+            "severity": "medium",
+            "basis": "§8.1 honesty (A:Advice ●), §5.6 causal character behavior (B:Dark Matter Zine ●), §5.4 self-understanding (B:Fantasy-Hive ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[3].arcs[1].dnaHint",
+                "quote": "may talk if the Lantern is on him"
+              },
+              {
+                "path": "acts[3].arcs[1].dnaHint",
+                "quote": "the chancellor meant to hatch the egg himself and keep a dragon on a chain."
+              },
+              {
+                "path": "npcs[8].secret",
+                "quote": "He does not know the chancellor means to keep the hatchling on a chain"
+              },
+              {
+                "path": "npcs[8].secret",
+                "quote": "when the Lantern of Unlying Light is on him and he learns it"
+              }
+            ],
+            "reason": "The scene presents the hatch-and-chain plan as what Cael can reveal, while his secret makes learning that plan the condition for his change of heart. No source for this learning is supplied there, and the lantern detects lies rather than teaching facts. The intended moral turn risks becoming a convenient confession from nowhere.",
+            "recommendation": "Fix what Cael knows from the start and how he can learn anything new. Put independent evidence of Tallow's purpose in an established source, then let the information affect Cael's choices if he is present. His conscience can remain conflicted; no forced conversion or confession is needed.",
+            "mitigation": "Tallow's private purpose is already fixed, and Ithryl and Ilsabet know the theft. That makes an independent evidence route economical; no new villain or twist is required.",
+            "confidence": "high"
+          },
+          {
+            "title": "The non-execution festival lacks the practical limits that make its lethal bouts fit its ethos",
+            "kind": "authored characterization and stakes gap",
+            "severity": "medium",
+            "basis": "§5.4 self-understanding (B:Fantasy-Hive ●), §3.1 meaningful consequences (B:Walter ◐), §8.1 honesty (A:Advice ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[1].arcs[1].dnaHint",
+                "quote": "The arena is a festival, not an execution"
+              },
+              {
+                "path": "acts[1].arcs[1].objective",
+                "quote": "Fight three bouts in the Ring of Salt"
+              },
+              {
+                "path": "creatures[2].threat",
+                "quote": "deadly"
+              },
+              {
+                "path": "creatures[3].threat",
+                "quote": "deadly"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "despises cruelty"
+              },
+              {
+                "path": "acts[1].goal",
+                "quote": "earn it in the arena or around it"
+              }
+            ],
+            "reason": "Gorrak's compassion and the crowd's dislike of cruelty sit beside three prescribed bouts against venom and regenerating monsters, with no stated surrender, bout-ending control or concrete route around the arena. Blood sport can be morally compromised, but the present text declares a reassuring ethos without saying what it means when a contestant loses or refuses.",
+            "recommendation": "Give the contest clear victory/surrender boundaries and whatever handlers or restraints support them, or candidly retain dangerous blood sport as a limit of Gorrak's ethic. Make the already-promised non-arena route to his map explicit. Do not require three victories merely to continue a story about asking questions instead of killing.",
+            "mitigation": "The Champion's Question already suggests a conversational alternative and the goal explicitly allows going around the arena. Those can resolve the gap with little expansion. This is not a demand to ban combat or impose modern attitudes toward animal contests.",
+            "confidence": "medium"
+          }
+        ],
+        "uncertainty": "No pacing or combat outcome was measured. The intended warm fairy-tale tone should survive; additional grimness would not repair knowledge or causality."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Make Cael's escape, trail and last stand conditional everywhere, including creature descriptions.",
+        "Fix Cael's private knowledge and provide an independent source for Tallow's hatchling plan.",
+        "Bound the unicorn/lantern truth tests to established speech and intent rather than invented self-deception.",
+        "Align basilisk harm and the Gauntlet's possible countermeasure with their established powers.",
+        "Explain arena loss/withdrawal boundaries and the already-promised route around the bouts."
+      ],
+      "dissent": [
+        "Le Guin's listening-oriented reading supports the intended conversational dragon finale; it is not a demand to eliminate danger or battles.",
+        "Leiber permits an overwhelming dragon and wondrous objects, but their relevant consequences should stay consistent.",
+        "Jemisin's agency test requires honoring offered interception; it does not require infinite routes or a different story premise.",
+        "Abercrombie accepts earned warmth. Gorrak may have a morally imperfect ethic, provided the story is honest about its practical limits."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "7434ba10defcca13142c7737247df62e73577efaba05ebe3f2d09cd098d6b18e",
+    "scope": "Full immutable Road to Cinderwing baseline including every creature rule reviewed through five stored sourced composite personas. Exact zero-based quotes verified. Fairy-tale high-fantasy scope preserved; no one-hour target. No interviews, human playtest, UI inspection or runtime claims.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "Clear journey structure is promising; no unique audio defect can be established from the blueprint alone.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The journey has four geographically distinct destinations and tangible recurring objects.",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R1 (primary solo-play component); R6",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated sourced concern; not an actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "premise",
+                "quote": "The road runs from the sea to the mountain"
+              },
+              {
+                "field": "locations[5].description",
+                "quote": "a soot-drawn map on the hearthstone"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.",
+          "verificationQuestion": "When resuming before the basilisk, can the narration distinguish the gauntlet's actual protection, the bow's actual effect and a gaze warning before the next action?",
+          "dissent": "R5 and R10 inferred preferences cannot require a safe or shallow adventure. Audio clarity and recap behavior need actual listening, not assumptions from prose length."
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "Strong fairy-tale motives, but early success and route choices need firmer continuity.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The supposed kidnapping has a fixed human cause and independently motivated participants.",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I4",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated sourced concern; not an actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[0].secret",
+                "quote": "She was never taken."
+              },
+              {
+                "field": "npcs[1].secret",
+                "quote": "He had the Cinderwing's last egg stolen"
+              },
+              {
+                "field": "npcs[3].notes",
+                "quote": "He respects courage, despises cruelty"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Honor an early capture or defeat of Cael throughout the later journey",
+            "kind": "forced-continuity",
+            "severity": "P1",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I5",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated sourced concern; not an actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[3].dnaHint",
+                "quote": "Let the player catch him by cleverness in the crowd"
+              },
+              {
+                "field": "acts[1].turningPoint",
+                "quote": "escapes toward the forest with a head start"
+              },
+              {
+                "field": "acts[2].arcs[2].dnaHint",
+                "quote": "Cael Vane has passed this way a day ahead"
+              },
+              {
+                "field": "acts[3].arcs[1].dnaHint",
+                "quote": "Cael Vane makes his last stand here, cornered"
+              }
+            ],
+            "reason": "A successful capture is explicitly offered, but the act transition, forest clue and final opposition all require his escape and free movement. That invalidates the specific success offered to the player.",
+            "recommendation": "Make each later Cael appearance conditional on his actual escape and survival. Let orders, supply trails or the already-established soldiers preserve the egg lead if he is captured, without replacing him with an identical assassin.",
+            "mitigation": "The investigation already values clever capture; no need to add a new subplot or ensure he always escapes.",
+            "confidence": "High confidence in the cited textual gap or contradiction; runtime behavior unobserved."
+          },
+          {
+            "title": "Make the truth-ford condition observable and allow a refusal route",
+            "kind": "unbounded-knowledge-gate",
+            "severity": "P1",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I2; I3",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated sourced concern; not an actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[3].objective",
+                "quote": "lets pass only those who have told no lie since entering the Weald"
+              },
+              {
+                "field": "acts[2].arcs[3].dnaHint",
+                "quote": "to themselves"
+              },
+              {
+                "field": "acts[2].arcs[3].dnaHint",
+                "quote": "must find the lie and unsay it aloud before the ford will open"
+              }
+            ],
+            "reason": "The gate expands from spoken lies into an adjudicator's judgment about self-deception, with no fixed incident, correction criterion or alternative crossing. A player can be stalled by a supposed inner falsehood they never chose or cannot identify.",
+            "recommendation": "Keep the fairy-tale truth test but limit it to established knowingly false statements; have the ford identify the relevant utterance and accept correction. Offer a slower physical crossing or another explicit route if the player refuses confession. Exclude mistakes, private feelings and invented self-deception.",
+            "mitigation": "A truthful player already passes and a spoken correction already exists. Preserve the unicorn's refusal and wonder rather than making every answer succeed.",
+            "confidence": "High confidence in the cited textual gap or contradiction; runtime behavior unobserved."
+          },
+          {
+            "title": "Make the promised route around the arena concrete",
+            "kind": "single-provider-route-gap",
+            "severity": "P2",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I2; I3; I4",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated sourced concern; not an actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].goal",
+                "quote": "earn it in the arena or around it"
+              },
+              {
+                "field": "locations[3].description",
+                "quote": "Three nights of bouts decide the mountain road."
+              },
+              {
+                "field": "npcs[3].notes",
+                "quote": "He holds the only true road to Ashenhold in his memory."
+              },
+              {
+                "field": "acts[1].arcs[2].dnaHint",
+                "quote": "A player who answers with glory or reward gets the map and no guide;"
+              }
+            ],
+            "reason": "The goal promises an arena alternative, but the location makes three bouts decisive and the only road knowledge is concentrated in the man the assassin is trying to kill. The question scene may already be intended as the alternative, but its availability before or without victory is unstated, and no fallback survives Gorrak's loss.",
+            "recommendation": "State that a direct honest conversation, a useful service or protecting Gorrak can earn route information without the three bouts. Preserve a sketch, clan waymarks or an elven route if he is unavailable; keep the arena and gauntlet as an optional substantial challenge.",
+            "mitigation": "The Champion's Question already grants a map even to a reward-seeker, and later elves know the princess's route. Reuse these existing elements rather than inventing a new guide quest.",
+            "confidence": "High confidence in the cited textual gap or contradiction; runtime behavior unobserved."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.",
+          "verificationQuestion": "Capture Cael in Kettlebridge and decline the arena: does the ensuing story honor both choices without restoring Cael or silently requiring three bouts?",
+          "dissent": "The unicorn's moral test and Gorrak's judgment belong to the fairy tale. They can refuse the player; the concern is legible terms and practical alternate actions, not making them agreeable."
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "The small memorable relic set is attractive; inconsistent powers currently undermine informed equipment use.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "Relics have specific origins and a peace-only final reward.",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B6",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated sourced concern; not an actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[2]",
+                "quote": "Named relics are found where they lie and never earlier"
+              },
+              {
+                "field": "rules[2]",
+                "quote": "only if the roost ends in peace, a shield of the Cinderwing's shed scale that no fire can mark"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Align the named relics with the hazards they are said to solve",
+            "kind": "power-contract-contradiction",
+            "severity": "P1",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B6; B9",
+              "sourceGrade": "primary",
+              "application": "Applied by analogy to a player relying on a known item capability, not claiming specific text-RPG equipment research."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[2]",
+                "quote": "its wearer may catch and hold a blade without harm"
+              },
+              {
+                "field": "creatures[6].notes",
+                "quote": "A blindfold, a polished shield, the Gauntlet of the Salt Ring, and a keen ear are all answers"
+              },
+              {
+                "field": "rules[2]",
+                "quote": "its arrows fly true through any darkness"
+              },
+              {
+                "field": "acts[3].arcs[2].dnaHint",
+                "quote": "If the player has the Thornwood Bow, the dark of the last tunnel is not dark."
+              },
+              {
+                "field": "acts[3].arcs[1].dnaHint",
+                "quote": "kills anyone who looks at it"
+              },
+              {
+                "field": "creatures[6].notes",
+                "quote": "Its gaze turns living flesh to stone;"
+              }
+            ],
+            "reason": "The blade-catching gauntlet has no defined relation to a gaze attack, the darkness-safe bow becomes apparent tunnel illumination, and the basilisk is alternately immediate death and petrification. These discrepancies change whether a planned use is safe or even possible.",
+            "recommendation": "Give one consistent bounded effect to each relic and each gaze outcome before the hazard. Either explain a physical reflecting use of the gauntlet or remove it as a gaze counter; keep the bow to its stated effect unless light is explicitly part of its power. Specify gaze warning, avoidance and the consequence/remedy without converting the creature into a trivial encounter.",
+            "mitigation": "The text already lists blindfold, reflection and hearing as options, and already defines where each relic originates. No need to add more prizes or eliminate the basilisk.",
+            "confidence": "High confidence in the cited textual gap or contradiction; runtime behavior unobserved."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.",
+          "verificationQuestion": "With no gauntlet or bow earned, can a player still understand the stated mundane basilisk counter and the consequences before acting?",
+          "dissent": "The stated nonmonetary story economy is not a defect merely because B3 favors useful spending. Do not add shops, numerical rewards or loot loops just to satisfy this persona."
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "Warm relationships and kindness offer appeal, but the lethal encounters remain a deliberate mismatch for a cozy lens.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The ghost and griffin can respond to care, and the companions have motives beyond serving as prizes.",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated sourced concern; not an actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].arcs[0].dnaHint",
+                "quote": "Let the player earn his trust"
+              },
+              {
+                "field": "acts[0].arcs[2].dnaHint",
+                "quote": "she wants to be listened to."
+              },
+              {
+                "field": "npcs[6].notes",
+                "quote": "a lifelong wish to see a dragon with his own eyes"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.",
+          "verificationQuestion": "Can a short session resolve one trust-building interaction or useful preparation and preserve that progress, rather than forcing the next fight to create activity?",
+          "dissent": "N1 favors low stakes but does not authorize replacing this adventure with cozy routine. N6 supports completed chunks, not a twenty-minute total duration. The arena's festival tone does not by itself prove safe combat, and no actual balance test was run."
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "The intended peaceful finale has a strong personal payoff; evidence continuity and failed-egg closure need definition.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "Ilsabet's decision remains her own, with a concrete testimony route if she stays.",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G2; G3; G6",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated sourced concern; not an actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[3].arcs[4].dnaHint",
+                "quote": "she may stay as Ambergate's first envoy to the dragon and send the player down with her seal and her testimony"
+              },
+              {
+                "field": "acts[3].arcs[4].dnaHint",
+                "quote": "End on the road down, with the mountain behind and the sea ahead."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Do not make an uninformed Cael the source of the chancellor's hatchling plan",
+            "kind": "evidence-knowledge-contradiction",
+            "severity": "P1",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G5; G6; G7",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated sourced concern; not an actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[8].secret",
+                "quote": "He does not know the chancellor means to keep the hatchling on a chain"
+              },
+              {
+                "field": "acts[3].arcs[1].dnaHint",
+                "quote": "may talk if the Lantern is on him: the chancellor meant to hatch the egg himself and keep a dragon on a chain."
+              },
+              {
+                "field": "rules[2]",
+                "quote": "a lie is a smear of shadow on the liar's mouth"
+              }
+            ],
+            "reason": "The egg scene presents Cael as the reveal source for a plan that his own secret says he does not know. The Lantern detects a lie; it cannot supply missing knowledge. Cael can also be absent after an earlier capture, so the reveal cannot depend on this confession.",
+            "recommendation": "Choose fixed Cael knowledge and provide a surviving independent source of the scheme, such as signed instructions or the prepared hatchery, with a way to connect it to Tallow. Let the Lantern expose knowing falsehoods without compelling testimony or revealing unknown facts.",
+            "mitigation": "Ilsabet already knows the theft and the elves witnessed the raiders; these can corroborate responsibility. They do not yet independently document the chain/hatching intent, and an admission need not be mandatory.",
+            "confidence": "High confidence in the cited textual gap or contradiction; runtime behavior unobserved."
+          },
+          {
+            "title": "Define attainable closure if the egg cannot be returned whole",
+            "kind": "ending-and-consent-gap",
+            "severity": "P1",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3",
+              "sourceGrade": "primary",
+              "application": "Applied only to the stated sourced concern; not an actual player response."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[3].turningPoint",
+                "quote": "the princess is free the moment the egg is whole in his nest"
+              },
+              {
+                "field": "acts[3].arcs[3].dnaHint",
+                "quote": "A fight is possible and survivable only by running; a conversation is the real finale."
+              },
+              {
+                "field": "acts[3].arcs[4].dnaHint",
+                "quote": "The rescue was never a leash."
+              },
+              {
+                "field": "rules[3]",
+                "quote": "The princess's ending is hers to choose."
+              }
+            ],
+            "reason": "The only fully described settlement assumes the unique egg is intact, despite combat beside it and a hazardous climb. The princess is called an honored voluntary guest but described as becoming free only upon whole-egg delivery. No clear loss/failed-recovery branch says what she can choose, what the dragon does or how the player can conclude rather than face an unwinnable fight or permanent unfinished rescue.",
+            "recommendation": "Define her freely chosen commitment and whether she may leave; distinguish her decision to stay from captivity. Provide an honest failed-egg settlement or withdrawal ending with warnings and real costs, actual village/dragon/NPC consequences, and a player farewell. Do not resurrect the egg or guarantee Tallow's fall without delivered evidence.",
+            "mitigation": "The dragon already speaks and reasons, and the final scene rightly gives Ilsabet her own choice. Preserve the strongest intended peaceful ending while adding a limited bittersweet branch, not another campaign.",
+            "confidence": "High confidence in the cited textual gap or contradiction; runtime behavior unobserved."
+          }
+        ],
+        "uncertainty": {
+          "limits": "Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.",
+          "verificationQuestion": "If Cael was captured earlier and the egg is later broken, what verified facts and actual NPC decisions appear in the ending, and can the player choose a farewell without an invented perfect rescue?",
+          "dissent": "Do not require the chancellor's whole prosecution to become another act. A specific status or unresolved consequence can close the story honestly; a guaranteed political victory without supporting events cannot."
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "P1: condition all later Cael appearances on actual escape/survival; retain the egg trail without him.",
+        "P1: replace inferred self-deception at the ford with a fixed knowable statement rule and a refusal route.",
+        "P1: reconcile relic powers and basilisk outcomes before players rely on them.",
+        "P1: fix Cael's knowledge and provide independent evidence of Tallow's hatchling plan.",
+        "P1: define Ilsabet's voluntary status and attainable failed-egg closure with real consequences.",
+        "P2: make the promised arena alternative and no-Gorrak road fallback explicit."
+      ],
+      "agreement": "Memorable companions, compassionate investigation and a conversational dragon finale should be retained. The fixes concern contradictions and underspecified decisive choices, not removing danger or length.",
+      "dissent": [
+        "Nan is a poorer fit for deadly fairy-tale adventure; this is not a defect vote.",
+        "Bert values reliable relics but cannot demand a numerical economy contrary to the declared story.",
+        "Ines values NPC refusal; Gerry values closure. Neither requires effortless peace or compulsory persuasion success."
+      ],
+      "limits": "Source grades describe the stored persona evidence, not actual reactions. No inferred persona entries drive verdicts; audio, pacing and encounter balance remain verification questions."
+    }
+  }
+]

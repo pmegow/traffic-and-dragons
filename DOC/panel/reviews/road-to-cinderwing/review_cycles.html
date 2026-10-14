@@ -1,0 +1,4598 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Road to Cinderwing — panel revision record</title>
+<link rel="stylesheet" href="../../../../satellite.css">
+<style>body{max-width:1060px;margin:auto;padding:32px 24px 70px;line-height:1.6;font-size:17px}h1,h2,h3{color:var(--acc);line-height:1.22}h1{font-size:2.25rem;margin:.35em 0}h2{font-size:1.5rem;margin:1.8em 0 .6em}h3{font-size:1.15rem}header{border-bottom:2px solid var(--acc);padding-bottom:22px}nav{display:flex;flex-wrap:wrap;gap:8px 20px}.meta,.basis{color:var(--t1);font-size:.9em}section.overview,details.reviewer{background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);padding:18px 22px;margin:20px 0}section.overview{border-left:4px solid var(--acc)}summary{cursor:pointer;color:var(--acc);font-weight:bold;padding:6px 0}article{border-top:1px solid var(--brd);margin-top:22px;padding-top:8px}p,li,dd,a,code{overflow-wrap:anywhere}li{margin:.45em 0}ul{padding-left:24px}dt{font-weight:bold;margin-top:.4em}dd{margin-left:18px}dd ul{margin-top:0}code{font-size:.8em}footer{border-top:1px solid var(--brd);margin-top:36px;padding-top:16px}@media(max-width:500px){body{padding:20px 14px;font-size:16px}h1{font-size:1.85rem}section.overview,details.reviewer{padding:14px}dd{margin-left:12px}}@media print{details{display:block}details>*{display:block}}</style>
+</head>
+<body>
+<header>
+<p class="meta">TASK 627 · 13 OCTOBER 2026 · SPOILERS</p>
+<h1>The Road to Cinderwing</h1>
+<p>Three review passes and revisions · final v1.0 Release Candidate</p>
+<nav>
+<a href="../../../../samples/the_road_to_cinderwing.blueprint">Final blueprint</a>
+<a href="iterations/final.blueprint">Final snapshot</a>
+<a href="#round-0">Baseline</a>
+<a href="#round-1">Round 1</a>
+<a href="#round-2">Round 2</a>
+<a href="#round-3">Round 3</a>
+</nav>
+</header>
+<section class="overview">
+<h2>Outcome</h2>
+<p>Baseline and all three full panel review passes complete. Final assessments are editorially clean. The fairy-tale road adventure retains its wonders and conversational dragon finale, with consistent causes, powers, optional routes and genuine failure outcomes.</p>
+<p>Not yet published.</p>
+</section>
+<h2>Method</h2>
+<p>Three delegated passes apply five design lenses, four writing lenses and five composite player personas to the same snapshot at baseline and in each of three review passes. All fourteen perspectives reread each candidate. These are rubric applications, not participation by the named authors, interviews or human playtests. Source grades, evidence, mitigations and dissent remain visible below. No one-hour target was imposed on this campaign.</p>
+<h2>Changes and verification</h2>
+<ul>
+<li>Conditioned all Cael appearances and tracks on actual survival, custody and travel; fixed his initial knowledge and added independent physical evidence of the hatchling plan.</li>
+<li>Made the arena optional, with stated nonlethal objectives, surrender arrangements and real danger; directions, elven routes and earned flight remain available.</li>
+<li>Aligned basilisk petrification, warnings, precautions and restoration; kept every relic within one stated power.</li>
+<li>Limited the unicorn to knowingly spoken falsehoods, with the exact utterance identified and an upstream bridge for refusal.</li>
+<li>Made Ilsabet a voluntary guest who may leave; added damaged, missing and destroyed egg outcomes, warned reprisals and evidence-dependent consequences for Tallow.</li>
+</ul>
+<p>Final candidate normalization and disposable import preserve all 131 authored text fields across 16 arcs, 9 NPCs, 7 locations, 10 rules and 8 creatures; no overflows. No model narration or actual player test.</p>
+<p class="meta">Final file SHA-256: <code>84d73ad4efd29d3df661c48c659ee7463ba5608f7c74df68a9481eacb2c3ac75</code>
+</p>
+<section id="round-0">
+<h2>Baseline assessment</h2>
+<p>Baseline: forced antagonist recurrence, conflicting knowledge and powers, opaque truth/route gates and unbounded failure outcomes.</p>
+<p>
+<a href="iterations/round-0.blueprint">Exact snapshot</a> · <a href="iterations/round-0-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>7434ba10defcca13142c7737247df62e73577efaba05ebe3f2d09cd098d6b18e</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>The creature-led road, distinct locations and useful relics fit the adventure; one encounter changes important abilities without defining the mechanism.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Basilisk consequences and relic counters need one consistent account</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Kind</dt>
+<dd>content / capability consistency</dd>
+<dt>Basis</dt>
+<dd>5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[3].arcs[1].dnaHint: &quot;kills anyone who looks at it&quot;</li>
+<li>creatures[6].notes: &quot;Its gaze turns living flesh to stone; its own reflection turns it.&quot;</li>
+<li>rules[2]: &quot;its wearer may catch and hold a blade without harm&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;Gorrak&#x27;s Gauntlet, a polished shield, a blindfold and a keen ear are all answers.&quot;</li>
+<li>rules[2]: &quot;its arrows fly true through any darkness&quot;</li>
+<li>acts[3].arcs[2].dnaHint: &quot;If the player has the Thornwood Bow, the dark of the last tunnel is not dark.&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The encounter alternates between instant death and petrification, leaves the reflection response unclear, and names the blade-catching Gauntlet as a gaze counter without saying how it helps. The tunnel similarly implies the Bow removes darkness despite defining only accurate arrows. These ambiguities change which precautions actually work; they are not merely sensory ornament.</dd>
+<dt>Recommendation</dt>
+<dd>Choose the basilisk&#x27;s actual gaze consequence, show recognizable warning before exposure, and explain each effective precaution. If polished bronze on the Gauntlet can reflect the gaze, state that mundane use rather than inventing general petrification immunity. Keep the Bow&#x27;s benefit to arrows unless a separate light or sight power is intentionally granted and consistently defined. Establish what can be done for a petrified victim if that remains the consequence.</dd>
+<dt>Mitigation</dt>
+<dd>The baseline already supplies several noncombat counters, Bora knows the guardian, and the Gauntlet is bronze, so a small clarification can make these tactics coherent without weakening the basilisk. Darkness-targeting arrows remain a useful reward without turning the Bow into a lantern.</dd>
+<dt>Confidence</dt>
+<dd>High</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No combat balance or runtime adjudication test. The opening compresses disappearance, earlier failed champions and several road stages without dates; clarify chronology only if needed for an actual deadline, not to impose mundane travel simulation on a fairy tale.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Meaningful warnings and clever approaches occur throughout, but the mandatory honesty test gives the narrator undefined authority over the player&#x27;s interior.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The only ford can be withheld for an unestablished lie to oneself</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Kind</dt>
+<dd>content / playable gate and player authority</dd>
+<dt>Basis</dt>
+<dd>1.2 (S:action-roll, primary); 7.4 and 7.8 (LF / S:core-system Judgment calls, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[2].arcs[3].objective: &quot;lets pass only those who have told no lie since entering the Weald&quot;</li>
+<li>acts[2].arcs[3].dnaHint: &quot;A player who has lied — to the elves, to Gorrak, to themselves — must find the lie and unsay it aloud before the ford will open.&quot;</li>
+<li>creatures[7].notes: &quot;the water rises against the untruthful and falls for the honest.&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The gate requires identifying a lie that may exist only in the narrator&#x27;s interpretation of the player&#x27;s inner motives. There is no rule for what counts, no fixed past statement, and no stated way through when the player disagrees with that diagnosis. This can make progress depend on confessing a feeling the player never chose.</dd>
+<dt>Recommendation</dt>
+<dd>Preserve the truthful ford as a fairy-tale test, but limit any required retraction to an established deliberate falsehood, identified openly, or let the player freely nominate an uncertainty or truth. Distinguish sincere error, privacy, silence and metaphor from lying. Provide a legible way to repair an actual lie or an alternate crossing that need not compel self-accusation. Warn before any consequential forest time shift rather than adding a hidden penalty while resolving the gate.</dd>
+<dt>Mitigation</dt>
+<dd>The unicorn is explicitly not a compulsory fight or mount, and correcting a lie is already an alternative to permanent exclusion. The change should make that correction actionable rather than removing the encounter or requiring the unicorn to flatter everyone.</dd>
+<dt>Confidence</dt>
+<dd>High</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>The test&#x27;s moral theme is legitimate. This is not a general ban on NPC judgments, riddles or fae time; the concern is a mandatory unbounded diagnosis of the player&#x27;s private beliefs. No live stall has been observed.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>The princess has meaningful prior agency and the dragon is a person; later fields still predetermine the assassin&#x27;s survival and the finale&#x27;s success state.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Catching Cael conflicts with his guaranteed escape, lead and last stand</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Kind</dt>
+<dd>content / contingent outcomes</dd>
+<dt>Basis</dt>
+<dd>1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].arcs[3].dnaHint: &quot;Let the player catch him by cleverness in the crowd&quot;</li>
+<li>acts[1].turningPoint: &quot;escapes toward the forest with a head start&quot;</li>
+<li>acts[2].arcs[2].dnaHint: &quot;Cael Vane has passed this way a day ahead&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;Cael Vane makes his last stand here, cornered&quot;</li>
+<li>creatures[5].notes: &quot;Cael Vane&#x27;s cut web and a dead spider mark that he passed a day ahead.&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>A successful early capture, surrender, death or change of allegiance is explicitly possible in one arc but contradicted by later act, NPC and creature instructions. The narrator must nullify that success or manufacture Cael&#x27;s reappearance to deliver the written sequence.</dd>
+<dt>Recommendation</dt>
+<dd>Make the escape conditional; preserve actual custody, injuries, knowledge and survival everywhere it propagates. His trail exists only if he travelled it, and the deep-hall defenders can remain the chancellor&#x27;s established soldiers if he cannot be there. Let early disclosure or a negotiated ally alter later objectives rather than requiring a replacement assassin.</dd>
+<dt>Mitigation</dt>
+<dd>The Kettlebridge hint already rewards clever capture and allows loss of his trail. Gorrak and the elves provide other sources; the road and egg recovery need not depend on Cael always escaping.</dd>
+<dt>Confidence</dt>
+<dd>High</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The finale assumes an intact recovered egg despite real dangerous obstacles</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Kind</dt>
+<dd>content / ending contingency</dd>
+<dt>Basis</dt>
+<dd>1.3 and 6.3 (AW-REF, primary); 8.5 (ANY-759, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[3].turningPoint: &quot;with the egg in your arms&quot;</li>
+<li>acts[3].turningPoint: &quot;the princess is free the moment the egg is whole in his nest&quot;</li>
+<li>acts[3].arcs[3].dnaHint: &quot;He will listen to a player holding his egg with care&quot;</li>
+<li>acts[3].arcs[4].dnaHint: &quot;Whatever she chooses, Tallow&#x27;s fall is the kingdom&#x27;s business now, and the player made it possible.&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The central recovery can fail, the egg can be lost or damaged, and players may reach the roost before recovering it. The only authored resolution presumes the whole egg and a completed exposure, leaving the narrator to restore it, force a successful fetch or invent a punishment. Ilsabet is called a voluntary honored guest, yet her freedom is phrased as contingent on the egg without an explicit account of her agreement.</dd>
+<dt>Recommendation</dt>
+<dd>State what Ilsabet actually agreed to and what Vaurach wants if approached without the egg, with a damaged egg, or after failure. Permit a real conversation, retreat or acknowledged incomplete/tragic resolution without guaranteeing peace or reviving a lost egg. Keep Ilsabet&#x27;s subsequent choice hers, and make the report on Tallow conditional on actual testimony or evidence carried out. Give impending retaliation visible warning rather than a surprise deadline.</dd>
+<dt>Mitigation</dt>
+<dd>Fleeing the dragon is already possible and the princess&#x27;s ending is explicitly hers. The text need not enumerate every contingency or make the dragon forgiving; a concise failure/early-approach rule would preserve these established choices.</dd>
+<dt>Confidence</dt>
+<dd>High that no contingent resolution is authored; medium on resulting play impact.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>Uses documented Vincent and Meguey Baker coauthored AW principles. The four-act spine itself is an accepted tradeoff; only outcomes that contradict actual action or erase failure are flagged.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>The investigation has concrete clues and strong interpretive turns, but road access and the final disclosure contain two fixable information problems.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The exclusive road claim is inconsistent and its non-arena route is underspecified</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Kind</dt>
+<dd>content / route and clue access</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].goal: &quot;earn it in the arena or around it&quot;</li>
+<li>locations[3].description: &quot;Three nights of bouts decide the mountain road.&quot;</li>
+<li>npcs[3].notes: &quot;He holds the only true road to Ashenhold in his memory.&quot;</li>
+<li>npcs[5].secret: &quot;Ithryl&#x27;s own hooded kin who walked the princess out of Vellamere and through the Weald to Ashenhold&quot;</li>
+<li>acts[1].arcs[2].dnaHint: &quot;A player who answers with glory or reward gets the map and no guide&quot;</li>
+<li>creatures[1].notes: &quot;Once calmed he is a mount, a tracker who knows the princess&#x27;s scent&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>Gorrak is globally described as the only route holder even though the elves recently escorted Ilsabet to the destination. The act offers an approach around the arena and its question awards a map, but the location and combat objective make three dangerous bouts sound mandatory. If Gorrak is silenced or the player reasonably declines the pit, the source does not clearly state which known route remains available.</dd>
+<dt>Recommendation</dt>
+<dd>Scope Gorrak&#x27;s exclusivity to Kettlebridge or his reliable route and make his non-arena terms explicit. Preserve a credible independent lead through the escorting elves, witnessed tracks or local knowledge if he is unavailable. Treat earning an optional arena relic separately from receiving indispensable directions. Honor a plausible Quillon flight or other earned shortcut instead of quietly disabling it to force the road.</dd>
+<dt>Mitigation</dt>
+<dd>The existing Champion&#x27;s Question already gives a map even for a glory/reward answer, and the act goal explicitly permits going around the arena. Clarification can complete those intentions without deleting the bouts or making everyone know every path.</dd>
+<dt>Confidence</dt>
+<dd>High</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Cael cannot reveal the hatchling-chain purpose he explicitly does not know</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Kind</dt>
+<dd>content / evidence provenance</dd>
+<dt>Basis</dt>
+<dd>1.2 and 1.3 (SRD, primary); 1.7 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[3].arcs[1].dnaHint: &quot;may talk if the Lantern is on him: the chancellor meant to hatch the egg himself and keep a dragon on a chain.&quot;</li>
+<li>npcs[8].secret: &quot;He does not know the chancellor means to keep the hatchling on a chain&quot;</li>
+<li>npcs[8].secret: &quot;when the Lantern of Unlying Light is on him and he learns it&quot;</li>
+<li>rules[2]: &quot;a lie is a smear of shadow on the liar&#x27;s mouth&quot;</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The scene points to Cael&#x27;s truth-telling as the disclosure, but his dossier requires him first to learn the same unknown purpose. No source for that lesson is specified. The Lantern detects lies; it does not supply unknown facts or guarantee cooperation, and Cael might not survive to testify.</dd>
+<dt>Recommendation</dt>
+<dd>Fix whether Cael knew the plan before play. If he did not, place concrete evidence of the intended captivity in the egg chamber or on the soldiers, and let it change his response when actually shown. Preserve another viable proof of Tallow&#x27;s role if Cael stays silent, was captured earlier or died. Do not expand the Lantern into mind reading to cover the missing evidence.</dd>
+<dt>Mitigation</dt>
+<dd>Ithryl can identify who ordered the theft, the soldiers wear the chancellor&#x27;s livery, and the egg is physically in their custody. These already support accusation; the missing part is provenance of the planned chained hatchling and Cael&#x27;s knowledge of it.</dd>
+<dt>Confidence</dt>
+<dd>High</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No failed clue roll was observed. Ghost confidence and worthy-visitor tests may work in play; avoid automatically treating every conversation as a bottleneck when other sources and clever methods can be honored.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>Strong fit: grief shapes the house, Ilsabet chooses diplomacy, Gorrak remembers inherited kindness, and the dragon loves his child. No independent additional finding beyond the authority and ending concerns above.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>2.2 and 7.3 (S2, primary) support these intimate motives; 2.7 (S2, primary) supports invitations over obligatory feelings; 4.6 (S1, primary) supports an ending that names actual changes. Preserve Sennet&#x27;s patience, the dragon&#x27;s personhood, the possibility of a joyful farewell and Ilsabet&#x27;s independent choice. Do not compel the player&#x27;s introspection at the ford or predetermine absolution, as already covered by the Harper/Baker findings. Emotional effect and duration remain untested.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Make Cael&#x27;s subsequent appearances and traces conditional on his actual escape and survival.</li>
+<li>Specify fair, knowable honesty-gate criteria without inventing the player&#x27;s private self-deception.</li>
+<li>Align basilisk effects and artifact counters with their stated capabilities.</li>
+<li>Clarify non-arena and independent road knowledge, including the elves who escorted Ilsabet.</li>
+<li>Provide a concrete source for the hatchling-chain plan and consistent Cael knowledge.</li>
+<li>Add brief early-approach and failed-egg handling so the finale can honor actual events without erasing loss.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Preserve the fairy-tale road, honorable conversation with the dragon, proud creatures and the optional arena spectacle. No recommendation requires making the dragon a balanced boss to defeat or turning everything into quantified transactions.</li>
+<li>The written outline itself is accepted. The report flags direct propagation conflicts and under-explained decision mechanics, not a requirement to discard four acts or every authored event.</li>
+<li>Truth can remain a meaningful fairy-tale value without declaring a player&#x27;s hidden motives. Gorrak and Sennet can remain demanding personalities while core progress has credible alternatives.</li>
+<li>No one-hour target applies. These are static editorial findings, not human/generated play outcomes, runtime pacing, difficulty testing or import validation. All exact quotations and the snapshot hash were checked.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>The listening-centered reversal and Ilsabet&#x27;s autonomy are strong. The compulsory truth test needs a fixed, intelligible scope rather than an invented inner fault.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The dragon and ghost can be approached through attention rather than domination; the princess&#x27;s chosen action drives the journey. Preserve this alternative to the simple trophy rescue.</dd>
+<dt>Basis</dt>
+<dd>§4.1–4.5 relational story (◐), §4.6 story versus imposed plot (●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[0].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>she wants to be listened to.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[4].dnaHint</dd>
+<dt>Quote</dt>
+<dd>The rescue was never a leash.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>The princess&#x27;s ending is hers to choose.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The ford can demand an invented confession about the player&#x27;s inner life</dd>
+<dt>Kind</dt>
+<dd>authored agency and magical-scope gap</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Basis</dt>
+<dd>§8.4 knowledge before consequential action and §9.1 consistent world (◐); §4.6 story versus imposed plot (●). Interactive-character application is the reviewer&#x27;s inference.</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[3].objective</dd>
+<dt>Quote</dt>
+<dd>lets pass only those who have told no lie since entering the Weald</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>to themselves</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>must find the lie and unsay it aloud before the ford will open</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[2].objective</dd>
+<dt>Quote</dt>
+<dd>Take the only path to the mountain</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The mandatory ford can judge unexpressed self-deception without specifying what counts, who knows it or how the player could correct it. A narrator could invent the protagonist&#x27;s belief or label a sincere mistake a lie to require a confession. The lantern also marks a lie without distinguishing deliberate falsehood from unknown truth.</dd>
+<dt>Recommendation</dt>
+<dd>Define knowingly spoken falsehoods and fixed limits for both truth effects. Judge actual player speech and intent; do not invent inner beliefs or treat metaphor, silence or sincere mistakes as deceit. Give a specific observable response and a voluntary correction or viable crossing alternative while keeping the unicorn wondrous and unrideable.</dd>
+<dt>Mitigation</dt>
+<dd>The story favors plain speech and makes the lantern expose the wearer&#x27;s own lies, which is a useful reciprocal cost. Mythic moral judgment is an intentional tone choice; it does not require unrestricted access to the protagonist&#x27;s unspoken mind.</dd>
+<dt>Confidence</dt>
+<dd>high</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>These are documented rubric lenses, not participating authors. No generated prose corpus or §17 runtime metrics were assessed; no claim about experienced wonder or lyric quality.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Distinct settlements and dangerous supernatural objects support the fairy-tale journey. One concrete consequence contradiction remains in the basilisk encounter.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The harbor, river market, haunted house and mountain have differing material identities. The hidden crime belongs to a specific court officer rather than a late cosmic replacement culprit.</dd>
+<dt>Basis</dt>
+<dd>§2.2 material and occupational specificity (C:1 ●), §10.3 specific venal antagonists (C:1 ◐), §9.3 confirmation (A:6 ◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>halfling barge-folk, dwarf ferrymen</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>locations[5].description</dd>
+<dt>Quote</dt>
+<dd>cold forges</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[1].secret</dd>
+<dt>Quote</dt>
+<dd>keep a dragon under his own hand</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The basilisk&#x27;s decisive consequence changes between the scene and creature rule</dd>
+<dt>Kind</dt>
+<dd>authored inconsistency</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>§9.5 convincing continuity (A:5 ●/◐), §9.3 earned confirmation (A:6 ◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>kills anyone who looks at it</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Its gaze turns living flesh to stone</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>a polished shield</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>its wearer may catch and hold a blade without harm</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The scene promises death on looking; the creature specifies petrification. Those produce different possible rescues, losses and endings. Both also list the Gauntlet as an answer, but its established gift only catches blades; a reflective surface or other relevant use is not established. The player&#x27;s precaution therefore depends on which wording the narrator favors.</dd>
+<dt>Recommendation</dt>
+<dd>Align gaze trigger and consequence across both fields, state whether and how stone victims can recover (or that the loss is lasting), and foreshadow it. Explain any reflective use of the bronze Gauntlet rather than silently granting gaze immunity. Retain blindfolds, shields and earned danger.</dd>
+<dt>Mitigation</dt>
+<dd>Several practical precautions are already offered. This asks for consistent stakes, not an automatic cure, reduced danger or simulation-heavy combat rules.</dd>
+<dt>Confidence</dt>
+<dd>high</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No encounter execution or player survival was tested. The dragon&#x27;s overwhelming power can remain a deliberate premise; no requirement to make it a defeatable combat boss.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>The intended princess choice is meaningful, but Cael&#x27;s guaranteed sequence overrides the adventure&#x27;s own promised successful interception.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ilsabet can return to challenge the court or remain as an envoy; the nominal rescue does not place her under the player&#x27;s authority. Gorrak&#x27;s remembered debt complicates the crown&#x27;s claim to moral authority.</dd>
+<dt>Basis</dt>
+<dd>§9.3 meaningful choice and §9.4 contrasting character orientations (WE ●); §3.2 structural power (LS ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[4].dnaHint</dd>
+<dt>Quote</dt>
+<dd>she may stay as Ambergate&#x27;s first envoy to the dragon</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].secret</dd>
+<dt>Quote</dt>
+<dd>when Ambergate&#x27;s soldiers would have let them starve in the snow</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Cael&#x27;s successful capture cannot coexist with his guaranteed escape and later appearances</dd>
+<dt>Kind</dt>
+<dd>authored unconditional sequence</dd>
+<dt>Severity</dt>
+<dd>high</dd>
+<dt>Basis</dt>
+<dd>§5.1 planned structure and §9.3 choices must alter events (WE ● primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Let the player catch him by cleverness in the crowd</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>escapes toward the forest with a head start</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Cael Vane has passed this way a day ahead</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Cael Vane makes his last stand here</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[5].notes</dd>
+<dt>Quote</dt>
+<dd>Cael Vane&#x27;s cut web and a dead spider mark that he passed a day ahead.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The investigation explicitly permits catching him, but the act turn, forest trail, final encounter, NPC notes and spider entry all assume escape. That creates a direct instruction to erase a success or return a captured/dead antagonist. Later evidence and confrontation currently rely heavily on the same recurring man.</dd>
+<dt>Recommendation</dt>
+<dd>Condition every Cael appearance and trace on his actual escape, route and survival, including creature notes. If captured, defeated or redirected, preserve that state and let existing soldiers, physical orders or testimony carry only the information they actually possess. Keep the road adventure; do not revive Cael or invent a second mastermind to restore it.</dd>
+<dt>Mitigation</dt>
+<dd>The arena investigation offers real cleverness, and the eventual princess testimony provides another truth source. Those openings can support a simple conditional structure without adding a branch tree.</dd>
+<dt>Confidence</dt>
+<dd>high</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>This identifies conflicting authored instructions, not proof of runtime railroading. The high-fantasy story need not dismantle the monarchy or supply a political simulation.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>The cast has memorable wants and relationships. Cael&#x27;s knowledge and the arena&#x27;s stated ethos need clearer causes and limits.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Brisa&#x27;s shame, Gorrak&#x27;s inherited gratitude and Ilsabet&#x27;s self-directed diplomacy give the traveling group more than plot functions. Sennet&#x27;s bereavement also supports a humane encounter with the dead.</dd>
+<dt>Basis</dt>
+<dd>§5.4 self-understanding (B:Fantasy-Hive ●), §5.5 traveling group (B:Winter is Coming ●), §5.6 character/action causality (B:Dark Matter Zine ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[2].notes</dd>
+<dt>Quote</dt>
+<dd>eaten alive by the certainty that she failed her charge.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>his grandmother&#x27;s story in his chest.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[0].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Vellamere is not cruel; it is bereaved.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Cael is used as the source of a scheme his private notes say he does not know</dd>
+<dt>Kind</dt>
+<dd>authored knowledge inconsistency</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>§8.1 honesty (A:Advice ●), §5.6 causal character behavior (B:Dark Matter Zine ●), §5.4 self-understanding (B:Fantasy-Hive ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>may talk if the Lantern is on him</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>the chancellor meant to hatch the egg himself and keep a dragon on a chain.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>He does not know the chancellor means to keep the hatchling on a chain</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>when the Lantern of Unlying Light is on him and he learns it</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The scene presents the hatch-and-chain plan as what Cael can reveal, while his secret makes learning that plan the condition for his change of heart. No source for this learning is supplied there, and the lantern detects lies rather than teaching facts. The intended moral turn risks becoming a convenient confession from nowhere.</dd>
+<dt>Recommendation</dt>
+<dd>Fix what Cael knows from the start and how he can learn anything new. Put independent evidence of Tallow&#x27;s purpose in an established source, then let the information affect Cael&#x27;s choices if he is present. His conscience can remain conflicted; no forced conversion or confession is needed.</dd>
+<dt>Mitigation</dt>
+<dd>Tallow&#x27;s private purpose is already fixed, and Ithryl and Ilsabet know the theft. That makes an independent evidence route economical; no new villain or twist is required.</dd>
+<dt>Confidence</dt>
+<dd>high</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>The non-execution festival lacks the practical limits that make its lethal bouts fit its ethos</dd>
+<dt>Kind</dt>
+<dd>authored characterization and stakes gap</dd>
+<dt>Severity</dt>
+<dd>medium</dd>
+<dt>Basis</dt>
+<dd>§5.4 self-understanding (B:Fantasy-Hive ●), §3.1 meaningful consequences (B:Walter ◐), §8.1 honesty (A:Advice ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>The arena is a festival, not an execution</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[1].objective</dd>
+<dt>Quote</dt>
+<dd>Fight three bouts in the Ring of Salt</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[2].threat</dd>
+<dt>Quote</dt>
+<dd>deadly</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[3].threat</dd>
+<dt>Quote</dt>
+<dd>deadly</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>despises cruelty</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].goal</dd>
+<dt>Quote</dt>
+<dd>earn it in the arena or around it</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>Gorrak&#x27;s compassion and the crowd&#x27;s dislike of cruelty sit beside three prescribed bouts against venom and regenerating monsters, with no stated surrender, bout-ending control or concrete route around the arena. Blood sport can be morally compromised, but the present text declares a reassuring ethos without saying what it means when a contestant loses or refuses.</dd>
+<dt>Recommendation</dt>
+<dd>Give the contest clear victory/surrender boundaries and whatever handlers or restraints support them, or candidly retain dangerous blood sport as a limit of Gorrak&#x27;s ethic. Make the already-promised non-arena route to his map explicit. Do not require three victories merely to continue a story about asking questions instead of killing.</dd>
+<dt>Mitigation</dt>
+<dd>The Champion&#x27;s Question already suggests a conversational alternative and the goal explicitly allows going around the arena. Those can resolve the gap with little expansion. This is not a demand to ban combat or impose modern attitudes toward animal contests.</dd>
+<dt>Confidence</dt>
+<dd>medium</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>No pacing or combat outcome was measured. The intended warm fairy-tale tone should survive; additional grimness would not repair knowledge or causality.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>Make Cael&#x27;s escape, trail and last stand conditional everywhere, including creature descriptions.</li>
+<li>Fix Cael&#x27;s private knowledge and provide an independent source for Tallow&#x27;s hatchling plan.</li>
+<li>Bound the unicorn/lantern truth tests to established speech and intent rather than invented self-deception.</li>
+<li>Align basilisk harm and the Gauntlet&#x27;s possible countermeasure with their established powers.</li>
+<li>Explain arena loss/withdrawal boundaries and the already-promised route around the bouts.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Le Guin&#x27;s listening-oriented reading supports the intended conversational dragon finale; it is not a demand to eliminate danger or battles.</li>
+<li>Leiber permits an overwhelming dragon and wondrous objects, but their relevant consequences should stay consistent.</li>
+<li>Jemisin&#x27;s agency test requires honoring offered interception; it does not require infinite routes or a different story premise.</li>
+<li>Abercrombie accepts earned warmth. Gorrak may have a morally imperfect ethic, provided the story is honest about its practical limits.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>Clear journey structure is promising; no unique audio defect can be established from the blueprint alone.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>When resuming before the basilisk, can the narration distinguish the gauntlet&#x27;s actual protection, the bow&#x27;s actual effect and a gaze warning before the next action?</dd>
+<dt>Dissent</dt>
+<dd>R5 and R10 inferred preferences cannot require a safe or shallow adventure. Audio clarity and recap behavior need actual listening, not assumptions from prose length.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>Strong fairy-tale motives, but early success and route choices need firmer continuity.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Honor an early capture or defeat of Cael throughout the later journey</dd>
+<dt>Kind</dt>
+<dd>forced-continuity</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated sourced concern; not an actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Let the player catch him by cleverness in the crowd</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].turningPoint</dd>
+<dt>Quote</dt>
+<dd>escapes toward the forest with a head start</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Cael Vane has passed this way a day ahead</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Cael Vane makes his last stand here, cornered</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>A successful capture is explicitly offered, but the act transition, forest clue and final opposition all require his escape and free movement. That invalidates the specific success offered to the player.</dd>
+<dt>Recommendation</dt>
+<dd>Make each later Cael appearance conditional on his actual escape and survival. Let orders, supply trails or the already-established soldiers preserve the egg lead if he is captured, without replacing him with an identical assassin.</dd>
+<dt>Mitigation</dt>
+<dd>The investigation already values clever capture; no need to add a new subplot or ensure he always escapes.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in the cited textual gap or contradiction; runtime behavior unobserved.</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Make the truth-ford condition observable and allow a refusal route</dd>
+<dt>Kind</dt>
+<dd>unbounded-knowledge-gate</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I2; I3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated sourced concern; not an actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].objective</dd>
+<dt>Quote</dt>
+<dd>lets pass only those who have told no lie since entering the Weald</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>to themselves</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>must find the lie and unsay it aloud before the ford will open</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The gate expands from spoken lies into an adjudicator&#x27;s judgment about self-deception, with no fixed incident, correction criterion or alternative crossing. A player can be stalled by a supposed inner falsehood they never chose or cannot identify.</dd>
+<dt>Recommendation</dt>
+<dd>Keep the fairy-tale truth test but limit it to established knowingly false statements; have the ford identify the relevant utterance and accept correction. Offer a slower physical crossing or another explicit route if the player refuses confession. Exclude mistakes, private feelings and invented self-deception.</dd>
+<dt>Mitigation</dt>
+<dd>A truthful player already passes and a spoken correction already exists. Preserve the unicorn&#x27;s refusal and wonder rather than making every answer succeed.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in the cited textual gap or contradiction; runtime behavior unobserved.</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Make the promised route around the arena concrete</dd>
+<dt>Kind</dt>
+<dd>single-provider-route-gap</dd>
+<dt>Severity</dt>
+<dd>P2</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I2; I3; I4</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated sourced concern; not an actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].goal</dd>
+<dt>Quote</dt>
+<dd>earn it in the arena or around it</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>locations[3].description</dd>
+<dt>Quote</dt>
+<dd>Three nights of bouts decide the mountain road.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>He holds the only true road to Ashenhold in his memory.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A player who answers with glory or reward gets the map and no guide;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The goal promises an arena alternative, but the location makes three bouts decisive and the only road knowledge is concentrated in the man the assassin is trying to kill. The question scene may already be intended as the alternative, but its availability before or without victory is unstated, and no fallback survives Gorrak&#x27;s loss.</dd>
+<dt>Recommendation</dt>
+<dd>State that a direct honest conversation, a useful service or protecting Gorrak can earn route information without the three bouts. Preserve a sketch, clan waymarks or an elven route if he is unavailable; keep the arena and gauntlet as an optional substantial challenge.</dd>
+<dt>Mitigation</dt>
+<dd>The Champion&#x27;s Question already grants a map even to a reward-seeker, and later elves know the princess&#x27;s route. Reuse these existing elements rather than inventing a new guide quest.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in the cited textual gap or contradiction; runtime behavior unobserved.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>Capture Cael in Kettlebridge and decline the arena: does the ensuing story honor both choices without restoring Cael or silently requiring three bouts?</dd>
+<dt>Dissent</dt>
+<dd>The unicorn&#x27;s moral test and Gorrak&#x27;s judgment belong to the fairy tale. They can refuse the player; the concern is legible terms and practical alternate actions, not making them agreeable.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>The small memorable relic set is attractive; inconsistent powers currently undermine informed equipment use.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Align the named relics with the hazards they are said to solve</dd>
+<dt>Kind</dt>
+<dd>power-contract-contradiction</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B6; B9</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied by analogy to a player relying on a known item capability, not claiming specific text-RPG equipment research.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>its wearer may catch and hold a blade without harm</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>A blindfold, a polished shield, the Gauntlet of the Salt Ring, and a keen ear are all answers</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>its arrows fly true through any darkness</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>If the player has the Thornwood Bow, the dark of the last tunnel is not dark.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>kills anyone who looks at it</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Its gaze turns living flesh to stone;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The blade-catching gauntlet has no defined relation to a gaze attack, the darkness-safe bow becomes apparent tunnel illumination, and the basilisk is alternately immediate death and petrification. These discrepancies change whether a planned use is safe or even possible.</dd>
+<dt>Recommendation</dt>
+<dd>Give one consistent bounded effect to each relic and each gaze outcome before the hazard. Either explain a physical reflecting use of the gauntlet or remove it as a gaze counter; keep the bow to its stated effect unless light is explicitly part of its power. Specify gaze warning, avoidance and the consequence/remedy without converting the creature into a trivial encounter.</dd>
+<dt>Mitigation</dt>
+<dd>The text already lists blindfold, reflection and hearing as options, and already defines where each relic originates. No need to add more prizes or eliminate the basilisk.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in the cited textual gap or contradiction; runtime behavior unobserved.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>With no gauntlet or bow earned, can a player still understand the stated mundane basilisk counter and the consequences before acting?</dd>
+<dt>Dissent</dt>
+<dd>The stated nonmonetary story economy is not a defect merely because B3 favors useful spending. Do not add shops, numerical rewards or loot loops just to satisfy this persona.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Warm relationships and kindness offer appeal, but the lethal encounters remain a deliberate mismatch for a cozy lens.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>Can a short session resolve one trust-building interaction or useful preparation and preserve that progress, rather than forcing the next fight to create activity?</dd>
+<dt>Dissent</dt>
+<dd>N1 favors low stakes but does not authorize replacing this adventure with cozy routine. N6 supports completed chunks, not a twenty-minute total duration. The arena&#x27;s festival tone does not by itself prove safe combat, and no actual balance test was run.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>The intended peaceful finale has a strong personal payoff; evidence continuity and failed-egg closure need definition.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+</ul>
+<h3>Feedback</h3>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Do not make an uninformed Cael the source of the chancellor&#x27;s hatchling plan</dd>
+<dt>Kind</dt>
+<dd>evidence-knowledge-contradiction</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G5; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated sourced concern; not an actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>He does not know the chancellor means to keep the hatchling on a chain</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>may talk if the Lantern is on him: the chancellor meant to hatch the egg himself and keep a dragon on a chain.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>a lie is a smear of shadow on the liar&#x27;s mouth</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The egg scene presents Cael as the reveal source for a plan that his own secret says he does not know. The Lantern detects a lie; it cannot supply missing knowledge. Cael can also be absent after an earlier capture, so the reveal cannot depend on this confession.</dd>
+<dt>Recommendation</dt>
+<dd>Choose fixed Cael knowledge and provide a surviving independent source of the scheme, such as signed instructions or the prepared hatchery, with a way to connect it to Tallow. Let the Lantern expose knowing falsehoods without compelling testimony or revealing unknown facts.</dd>
+<dt>Mitigation</dt>
+<dd>Ilsabet already knows the theft and the elves witnessed the raiders; these can corroborate responsibility. They do not yet independently document the chain/hatching intent, and an admission need not be mandatory.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in the cited textual gap or contradiction; runtime behavior unobserved.</dd>
+</dl>
+</article>
+<article>
+<dl>
+<dt>Title</dt>
+<dd>Define attainable closure if the egg cannot be returned whole</dd>
+<dt>Kind</dt>
+<dd>ending-and-consent-gap</dd>
+<dt>Severity</dt>
+<dd>P1</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+<dt>Application</dt>
+<dd>Applied only to the stated sourced concern; not an actual player response.</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].turningPoint</dd>
+<dt>Quote</dt>
+<dd>the princess is free the moment the egg is whole in his nest</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A fight is possible and survivable only by running; a conversation is the real finale.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[4].dnaHint</dd>
+<dt>Quote</dt>
+<dd>The rescue was never a leash.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>The princess&#x27;s ending is hers to choose.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Reason</dt>
+<dd>The only fully described settlement assumes the unique egg is intact, despite combat beside it and a hazardous climb. The princess is called an honored voluntary guest but described as becoming free only upon whole-egg delivery. No clear loss/failed-recovery branch says what she can choose, what the dragon does or how the player can conclude rather than face an unwinnable fight or permanent unfinished rescue.</dd>
+<dt>Recommendation</dt>
+<dd>Define her freely chosen commitment and whether she may leave; distinguish her decision to stay from captivity. Provide an honest failed-egg settlement or withdrawal ending with warnings and real costs, actual village/dragon/NPC consequences, and a player farewell. Do not resurrect the egg or guarantee Tallow&#x27;s fall without delivered evidence.</dd>
+<dt>Mitigation</dt>
+<dd>The dragon already speaks and reasons, and the final scene rightly gives Ilsabet her own choice. Preserve the strongest intended peaceful ending while adding a limited bittersweet branch, not another campaign.</dd>
+<dt>Confidence</dt>
+<dd>High confidence in the cited textual gap or contradiction; runtime behavior unobserved.</dd>
+</dl>
+</article>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>If Cael was captured earlier and the egg is later broken, what verified facts and actual NPC decisions appear in the ending, and can the player choose a farewell without an invented perfect rescue?</dd>
+<dt>Dissent</dt>
+<dd>Do not require the chancellor&#x27;s whole prosecution to become another act. A specific status or unresolved consequence can close the story honestly; a guaranteed political victory without supporting events cannot.</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>P1: condition all later Cael appearances on actual escape/survival; retain the egg trail without him.</li>
+<li>P1: replace inferred self-deception at the ford with a fixed knowable statement rule and a refusal route.</li>
+<li>P1: reconcile relic powers and basilisk outcomes before players rely on them.</li>
+<li>P1: fix Cael&#x27;s knowledge and provide independent evidence of Tallow&#x27;s hatchling plan.</li>
+<li>P1: define Ilsabet&#x27;s voluntary status and attainable failed-egg closure with real consequences.</li>
+<li>P2: make the promised arena alternative and no-Gorrak road fallback explicit.</li>
+</ul>
+</dd>
+<dt>Agreement</dt>
+<dd>Memorable companions, compassionate investigation and a conversational dragon finale should be retained. The fixes concern contradictions and underspecified decisive choices, not removing danger or length.</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan is a poorer fit for deadly fairy-tale adventure; this is not a defect vote.</li>
+<li>Bert values reliable relics but cannot demand a numerical economy contrary to the declared story.</li>
+<li>Ines values NPC refusal; Gerry values closure. Neither requires effortless peace or compulsory persuasion success.</li>
+</ul>
+</dd>
+<dt>Limits</dt>
+<dd>Source grades describe the stored persona evidence, not actual reactions. No inferred persona entries drive verdicts; audio, pacing and encounter balance remain verification questions.</dd>
+</dl>
+</details>
+</section>
+<section id="round-1">
+<h2>Revision and review 1</h2>
+<p>Revision 1 resolves all baseline findings across all fourteen assessments. Full NPC, location and creature cross-checks found no new material contradiction.</p>
+<p>
+<a href="iterations/round-1.blueprint">Exact snapshot</a> · <a href="iterations/round-1-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>3face23d4d117e2d65dd7fdcf4aae22d2c46f34ab0deb6911c778f6ff029fe2a</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>Clean editorial result after full snapshot reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Basilisk consequences, reflection, treatment and relic limitations now agree across scene hints, rules and the creature record. Ordinary precautions have an explicit mechanism; the Bow does not create sight and the Gauntlet does not supply gaze immunity.</dd>
+<dt>Basis</dt>
+<dd>5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[7]: &quot;The basilisk petrifies on direct eye contact, never kills merely by being seen.&quot;</li>
+<li>rules[7]: &quot;Indirect mirror viewing is safe; a clear reflection petrifies the creature itself.&quot;</li>
+<li>creatures[6].notes: &quot;Stone victims remain alive but helpless.&quot;</li>
+<li>creatures[6].notes: &quot;Handler salve in the side niche restores unbroken statues when rubbed over them; shattered victims cannot be restored.&quot;</li>
+<li>acts[3].arcs[2].dnaHint: &quot;The Bow&#x27;s arrows fly true in darkness; it neither lights the last tunnel nor reveals unseen footing.&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;the Gauntlet grants no gaze immunity.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The rule against walking/thinking metal or stone is read as the existing no-construct premise, not as silently invalidating the explicitly described petrification. No combat balance, recovery implementation or runtime status check was performed.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Clean editorial result after full snapshot reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The honesty gate now names an observable utterance and accepts correction without inventing private beliefs. A visible alternate crossing preserves refusal; warnings also precede travel delays and magical risks.</dd>
+<dt>Basis</dt>
+<dd>1.2 (S:action-roll, primary); 7.4 (LF, primary); 7.8 (S:core-system Judgment calls, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[2].arcs[3].dnaHint: &quot;The water repeats that exact utterance; a willing correction lowers it.&quot;</li>
+<li>acts[2].arcs[3].dnaHint: &quot;Silence, metaphor, sincere error, private feelings and imagined self-deception never count.&quot;</li>
+<li>acts[2].arcs[3].dnaHint: &quot;A player who refuses confession&quot;</li>
+<li>rules[6]: &quot;Travelers may refuse and use the upstream bridge.&quot;</li>
+<li>rules[6]: &quot;State travel delays and any unusual time effect before commitment; no hidden countdown or surprise passage of years.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The test remains a meaningful fairy-tale encounter. A visible repair and alternate route do not prove that narration will apply the spoken-truth rule correctly; no runtime test was performed.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>Clean editorial result after full snapshot reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Cael&#x27;s possible early capture, defeat or cooperation now governs all subsequent appearances and the spider-road trail rather than contradicting them.</dd>
+<dt>Basis</dt>
+<dd>1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[4]: &quot;A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs.&quot;</li>
+<li>creatures[5].notes: &quot;Cael&#x27;s cut web and dead spider appear only if he actually escaped and traveled here; use his earned lead, never a fixed day.&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;Cael is here only if his actual route brought him.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The finale accepts early approaches, a missing or destroyed egg and failed peace without making Ilsabet collateral, resurrecting the egg or automatically overthrowing Tallow.</dd>
+<dt>Basis</dt>
+<dd>1.3 and 6.3 (AW-REF, primary); 8.5 (ANY-759, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[3].arcs[3].dnaHint: &quot;He hears a careful envoy with or without the egg.&quot;</li>
+<li>rules[8]: &quot;If destroyed, no ritual restores it: Ilsabet can still leave&quot;</li>
+<li>rules[8]: &quot;The party may withdraw with a failed mission honestly acknowledged.&quot;</li>
+<li>acts[3].arcs[4].dnaHint: &quot;escaping with knowledge alone does not automatically depose him.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The stored AW principles are coauthored by Vincent and Meguey Baker. The four-act spine is the accepted tradeoff, and a static alternative does not establish generated completion or a balanced dragon fight.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>Clean editorial result after full snapshot reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The route monopoly and compulsory-bout implication are resolved. Gorrak can be consulted before combat, elven knowledge is acknowledged, and alternative trails or earned flight remain valid if a guide is unavailable.</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].arcs[0].dnaHint: &quot;Gorrak is the town&#x27;s best living guide, not the world&#x27;s only route.&quot;</li>
+<li>acts[1].arcs[2].dnaHint: &quot;Gorrak grants an audience without arena victories.&quot;</li>
+<li>rules[5]: &quot;His clan&#x27;s painted waymarks, ferrymen and the elves preserve a route if he is absent.&quot;</li>
+<li>acts[3].arcs[2].dnaHint: &quot;Quillon or other earned flight can bypass the climb if carrying conditions permit&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Cael&#x27;s knowledge is fixed separately from the breeding-plan evidence. The prepared hatchery can reveal the unknown purpose without converting the Lantern into mind reading or requiring a confession.</dd>
+<dt>Basis</dt>
+<dd>1.2 and 1.3 (SRD, primary); 1.7 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[8].secret: &quot;He believes the egg is political leverage; he does not know Tallow intends to chain the hatchling.&quot;</li>
+<li>npcs[8].secret: &quot;The warmed cradle and crown-branded chains in Stonemoor can teach him that purpose.&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;A warmed cradle, crown-branded hatchling chains and the captain&#x27;s explanation expose Tallow&#x27;s breeding plan independently of Cael.&quot;</li>
+<li>rules[2]: &quot;It neither reads minds, compels answers nor judges sincere error, silence or metaphor&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Core facts now have authored alternatives, not observed successful delivery. Capturing a villain early need not deliver every later fact automatically; custody and actual discoveries still matter.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>Clean editorial result after full snapshot reread.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The changes preserve the story&#x27;s grief, affection and generosity while making companionship and the princess&#x27;s future more clearly voluntary. Failure can close on actual losses rather than forced consolation.</dd>
+<dt>Basis</dt>
+<dd>2.2, 2.7 and 7.3 (S2, primary); 4.6 (S1, primary, cautiously applied to meaningful consequences).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[0].notes: &quot;She asks for help, not ownership or rescue against her will.&quot;</li>
+<li>npcs[6].notes: &quot;He asks to accompany the player at the market&quot;</li>
+<li>acts[3].arcs[4].dnaHint: &quot;Ilsabet chooses home, an envoy&#x27;s life or another safe destination; the player may advise, never decide for her.&quot;</li>
+<li>acts[3].arcs[4].dnaHint: &quot;Close on the chosen farewell and road, with unresolved losses honestly named. No compulsory new hunt.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No independent additional finding. The optional arena can remain a moral contradiction in a generous town; that does not require removing its spectacle or declaring every NPC blameless. Emotional effects are untested.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>All six design-baseline findings are closed in this full round-1 snapshot. Cross-checking NPCs, locations and creature records found no clear new material contradiction.</li>
+<li>Preserve the optional dangerous arena, the actual possibility of petrification or egg loss, and Vaurach&#x27;s overwhelming presence. Clear warnings and alternate approaches do not promise painless success.</li>
+<li>The prepared hatchery, declared gaze rules, observable truth test and conditional Cael trail supply practical consistency while retaining fairy-tale wonder. No full institutional rewrite or removal of the intended road is recommended.</li>
+<li>Hash and quoted evidence were verified. This was a static editorial review, not a human/generated playtest, runtime state check, import validation or pacing measurement. No one-hour target applies.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Full reread: the truth-test finding is resolved without removing the unicorn&#x27;s wonder or the tale&#x27;s preference for listening. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The ford echoes an actual knowingly false utterance and allows voluntary correction or the bridge. The lantern likewise respects silence, metaphor and sincere error; neither invents a player&#x27;s inner fault.</dd>
+<dt>Basis</dt>
+<dd>§8.4 informed consequence, §9.1 consistency (◐), §4.6 story rather than imposed plot (●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>The water repeats that exact utterance</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Silence, metaphor, sincere error, private feelings and imagined self-deception never count.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>It neither reads minds, compels answers nor judges sincere error, silence or metaphor</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Ilsabet&#x27;s voluntary hospitality and the separate egg settlement preserve personhood even in failure. The alternate ending does not buy her liberty with a restored child.</dd>
+<dt>Basis</dt>
+<dd>§4.1–4.5 relational story and §8.3–8.4 meaningful consequence (◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[3]</dd>
+<dt>Quote</dt>
+<dd>she is not a hostage whose liberty must be purchased.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[8]</dd>
+<dt>Quote</dt>
+<dd>If destroyed, no ritual restores it</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Documented rubric application, not actual author participation. No prose corpus or §17 runtime metrics were assessed.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Full reread including creatures: the basilisk and relic-scope inconsistencies are resolved. Material danger and practical precautions remain. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Direct gaze consistently petrifies rather than kills; intact victims can be restored with an established local salve. Mirror rules and the Gauntlet&#x27;s limits are explicit, while shattered victims remain a real loss.</dd>
+<dt>Basis</dt>
+<dd>§9.5 convincing continuity (A:5 ●/◐), §9.3 earned confirmation (A:6 ◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>The basilisk petrifies on direct eye contact, never kills merely by being seen.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Stone victims remain alive but helpless.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>shattered victims cannot be restored.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>the Gauntlet grants no gaze immunity.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The Bow no longer becomes unexplained tunnel lighting, and warnings and ordinary equipment permit action without any single relic.</dd>
+<dt>Basis</dt>
+<dd>§9.5 convincing fiction (A:5 ●/◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>it neither lights the last tunnel nor reveals unseen footing.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>No relic is necessary for the sole surviving clue.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No encounter was executed. A possible remedy and announced hazard do not guarantee safety or lessen the authored consequence of broken statues.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Full reread: Cael&#x27;s custody and route now propagate through acts, NPC notes and creature notes. Early discoveries, optional companions and earned flight remain valid. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>A captured Cael no longer escapes by outline. Forest traces require his actual journey, and the hatchery encounter uses only defenders who remain. His absence does not erase the proof.</dd>
+<dt>Basis</dt>
+<dd>§5.1 structure and §9.3 consequential choices (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[5].notes</dd>
+<dt>Quote</dt>
+<dd>Cael&#x27;s cut web and dead spider appear only if he actually escaped and traveled here</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Cael is here only if his actual route brought him.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Early access to Ilsabet and alternate routes can change the order or end of the journey, while Tallow&#x27;s political fall requires delivered evidence rather than private knowledge.</dd>
+<dt>Basis</dt>
+<dd>§9.3 choice and §9.4 independent character agency (WE ●); §3.2 structural power (LS ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>Earned flight, messages or early arrival can reach her before the outlined final act.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[4].dnaHint</dd>
+<dt>Quote</dt>
+<dd>escaping with knowledge alone does not automatically depose him.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The blueprint supports these branches; actual runtime agency, evidence handling and flight behavior remain untested. No requirement to complete every authored stop.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>Full reread: Cael&#x27;s knowledge and the arena&#x27;s ethical/practical limits now have explicit causes. Both baseline findings are resolved. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Cael believes the egg is leverage, learns the chain purpose from the prepared hatchery if present, and may react without being compelled to confess or absolved of the torch attack.</dd>
+<dt>Basis</dt>
+<dd>§8.1 honesty (A:Advice ●), §5.6 character/action causality (B:Dark Matter Zine ●), §6.1–6.3 motives without excuse (B:Fantasy-Hive ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>He believes the egg is political leverage</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>The warmed cradle and crown-branded chains in Stonemoor can teach him that purpose.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>it neither excuses burning Quillon nor guarantees conversion or confession.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Arena objectives can be achieved without killing, safety arrangements and surrender are shown, injury remains possible, and Gorrak&#x27;s limitations are acknowledged. Conversation grants road access independently.</dd>
+<dt>Basis</dt>
+<dd>§5.4 self-understanding (B:Fantasy-Hive ●), §3.1 consequence (B:Walter ◐), §8.1 honesty (A:Advice ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Surrender ends a bout without shame or map loss</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Gorrak grants an audience without arena victories.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>remains risky blood sport, a real limit of his compassion.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No actual dialogue, combat or player response measured. Candidly limited compassion supports character complexity without forcing darker tone.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>No further writing-lens edits requested after the complete revision-one reread, including creature rules and NPC secrets.</li>
+<li>Preserve causal custody, bounded truth effects, consistent petrification, voluntary arena access and distinct failed-egg outcomes.</li>
+<li>Runtime narration, comprehension and pacing remain untested.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>The Le Guin lens supports consequential listening without demanding a safe world or a mandatory reconciliation.</li>
+<li>Leiber&#x27;s convincing supernatural does not require removing mystery; explicit relevant powers and costs suffice.</li>
+<li>Jemisin&#x27;s agency test accepts the intended road adventure when earned shortcuts and captured antagonists remain real.</li>
+<li>Abercrombie&#x27;s honesty lens accepts Gorrak&#x27;s imperfect blood-sport ethic and a hopeful conclusion without additional cruelty.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>No actionable editorial issue unique to this lens; clearer operational distinctions support later audio verification.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Relic limitations and advance warnings are now explicit</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R4; R6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>The Bow guides arrows through darkness, not around cover or toward an unknown target; it grants neither light nor sight.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>Show stone vermin, mirrored equipment and a chance to plan first.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>When resuming before the basilisk, can the narration distinguish the gauntlet&#x27;s actual protection, the bow&#x27;s actual effect and a gaze warning before the next action?</dd>
+<dt>Dissent</dt>
+<dd>R5 and R10 inferred preferences cannot require a safe or shallow adventure. Audio clarity and recap behavior need actual listening, not assumptions from prose length.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>All three baseline agency/continuity findings resolved; no further material contradiction found.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Cael capture and later travel remain contingent</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Only if Cael actually escaped and took this road does his cut web or a dead spider mark his passage</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>The ford tests an established spoken claim and permits refusal</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I2; I3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>The water repeats that exact utterance; a willing correction lowers it.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Silence, metaphor, sincere error, private feelings and imagined self-deception never count.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A player who refuses confession can follow visible bank markers to the upstream rope bridge;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Arena participation, companion recruitment and travel paths are independent choices</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I2; I3; I4</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Gorrak grants an audience without arena victories.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>his grandmother&#x27;s painted waymarks lead to the Weald&#x27;s elven guides;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Quillon or other earned flight can bypass the climb if carrying conditions permit;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>Capture Cael in Kettlebridge and decline the arena: does the ensuing story honor both choices without restoring Cael or silently requiring three bouts?</dd>
+<dt>Dissent</dt>
+<dd>The unicorn&#x27;s moral test and Gorrak&#x27;s judgment belong to the fairy tale. They can refuse the player; the concern is legible terms and practical alternate actions, not making them agreeable.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>Baseline power-contract discrepancy resolved; the ordinary protection options and actual artifact powers now agree.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Gauntlet and Bow no longer acquire unrelated hazard immunity or illumination</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B6; B9 (item-reliability analogy)</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>The Gauntlet catches and holds a blade without harm, not other hazards.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>it neither lights the last tunnel nor reveals unseen footing.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>The Gauntlet has no gaze immunity;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Petrification, safe reflection and a recoverable victim state are consistent</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B9 (informed use analogy)</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Stone victims remain alive but helpless.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Handler salve in the side niche restores unbroken statues when rubbed over them; shattered victims cannot be restored.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>The basilisk petrifies on direct eye contact, never kills merely by being seen.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>With no gauntlet or bow earned, can a player still understand the stated mundane basilisk counter and the consequences before acting?</dd>
+<dt>Dissent</dt>
+<dd>The stated nonmonetary story economy is not a defect merely because B3 favors useful spending. Do not add shops, numerical rewards or loot loops just to satisfy this persona.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Warm interactions remain and participation is freer; dangerous sport remains a declared genre/taste limit, not an editorial defect.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Kindness scenes and voluntary company survive the changes</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Let the player earn his trust</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Dunnick Pell offers his cart of unlikely tools and asks to come;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Surrender ends a bout without shame or map loss; injury remains possible if precautions fail.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>Can a short session resolve one trust-building interaction or useful preparation and preserve that progress, rather than forcing the next fight to create activity?</dd>
+<dt>Dissent</dt>
+<dd>N1 favors low stakes but does not authorize replacing this adventure with cozy routine. N6 supports completed chunks, not a twenty-minute total duration. The arena&#x27;s festival tone does not by itself prove safe combat, and no actual balance test was run.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>Both baseline evidence and ending findings resolved; failed recovery now has honest closure and Ilsabet retains her freedom.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Cael learns the unknown purpose from independent physical evidence</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G5; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>he does not know Tallow intends to chain the hatchling.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A warmed cradle, crown-branded hatchling chains and the captain&#x27;s explanation expose Tallow&#x27;s breeding plan independently of Cael.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>is never compelled by Lantern or script.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>The egg can be lost without converting Ilsabet to collateral or forcing combat</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>She may leave even if the egg is never recovered;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[8]</dd>
+<dt>Quote</dt>
+<dd>If destroyed, no ritual restores it:</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[8]</dd>
+<dt>Quote</dt>
+<dd>The party may withdraw with a failed mission honestly acknowledged.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[9]</dd>
+<dt>Quote</dt>
+<dd>The player may offer a farewell or final image and stop;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>If Cael was captured earlier and the egg is later broken, what verified facts and actual NPC decisions appear in the ending, and can the player choose a farewell without an invented perfect rescue?</dd>
+<dt>Dissent</dt>
+<dd>Do not require the chancellor&#x27;s whole prosecution to become another act. A specific status or unresolved consequence can close the story honestly; a guaranteed political victory without supporting events cannot.</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Agreement</dt>
+<dd>All six baseline player-panel findings are resolved. Full reread finds no new material contradiction. Fixed facts, multiple routes, explicit hazard terms and voluntary/failure endings preserve the fairy-tale journey without making every desired outcome automatic.</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan is a poorer fit for deadly fairy-tale adventure; this is not a defect vote.</li>
+<li>Bert values reliable relics but cannot demand a numerical economy contrary to the declared story.</li>
+<li>Ines values NPC refusal; Gerry values closure. Neither requires effortless peace or compulsory persuasion success.</li>
+</ul>
+</dd>
+<dt>Limits</dt>
+<dd>Editorial coherence does not certify narration, encounter balance, actual reward handling, audio usability or long-run persistence. No invented change is requested for the sake of iteration count.</dd>
+</dl>
+</details>
+</section>
+<section id="round-2">
+<h2>Revision and review 2</h2>
+<p>Second full reread of unchanged content: all fourteen assessments clean. No unnecessary story changes or new edition.</p>
+<p>
+<a href="iterations/round-2.blueprint">Exact snapshot</a> · <a href="iterations/round-2-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>3face23d4d117e2d65dd7fdcf4aae22d2c46f34ab0deb6911c778f6ff029fe2a</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>Clean second-cycle editorial result after a fresh full reread of the unchanged snapshot.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Basilisk consequences, reflection, treatment and relic limitations now agree across scene hints, rules and the creature record. Ordinary precautions have an explicit mechanism; the Bow does not create sight and the Gauntlet does not supply gaze immunity.</dd>
+<dt>Basis</dt>
+<dd>5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[7]: &quot;The basilisk petrifies on direct eye contact, never kills merely by being seen.&quot;</li>
+<li>rules[7]: &quot;Indirect mirror viewing is safe; a clear reflection petrifies the creature itself.&quot;</li>
+<li>creatures[6].notes: &quot;Stone victims remain alive but helpless.&quot;</li>
+<li>creatures[6].notes: &quot;Handler salve in the side niche restores unbroken statues when rubbed over them; shattered victims cannot be restored.&quot;</li>
+<li>acts[3].arcs[2].dnaHint: &quot;The Bow&#x27;s arrows fly true in darkness; it neither lights the last tunnel nor reveals unseen footing.&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;the Gauntlet grants no gaze immunity.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The rule against walking/thinking metal or stone is read as the existing no-construct premise, not as silently invalidating the explicitly described petrification. No combat balance, recovery implementation or runtime status check was performed.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Clean second-cycle editorial result after a fresh full reread of the unchanged snapshot.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The honesty gate now names an observable utterance and accepts correction without inventing private beliefs. A visible alternate crossing preserves refusal; warnings also precede travel delays and magical risks.</dd>
+<dt>Basis</dt>
+<dd>1.2 (S:action-roll, primary); 7.4 (LF, primary); 7.8 (S:core-system Judgment calls, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[2].arcs[3].dnaHint: &quot;The water repeats that exact utterance; a willing correction lowers it.&quot;</li>
+<li>acts[2].arcs[3].dnaHint: &quot;Silence, metaphor, sincere error, private feelings and imagined self-deception never count.&quot;</li>
+<li>acts[2].arcs[3].dnaHint: &quot;A player who refuses confession&quot;</li>
+<li>rules[6]: &quot;Travelers may refuse and use the upstream bridge.&quot;</li>
+<li>rules[6]: &quot;State travel delays and any unusual time effect before commitment; no hidden countdown or surprise passage of years.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The test remains a meaningful fairy-tale encounter. A visible repair and alternate route do not prove that narration will apply the spoken-truth rule correctly; no runtime test was performed.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>Clean second-cycle editorial result after a fresh full reread of the unchanged snapshot.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Rechecked capture, death, injury, negotiated cooperation and actual escape against Cael&#x27;s full secret, spider trail and deep-hall scene. No source now grants an independent head start or forces him into a later scene; the prepared hatchery remains evidence even when he is absent.</dd>
+<dt>Basis</dt>
+<dd>1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[4]: &quot;A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs.&quot;</li>
+<li>creatures[5].notes: &quot;Cael&#x27;s cut web and dead spider appear only if he actually escaped and traveled here; use his earned lead, never a fixed day.&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;Cael is here only if his actual route brought him.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Rechecked early roost arrival and intact, cracked-living, missing and destroyed egg outcomes. Ilsabet remains voluntary; different levels of loss permit negotiation or withdrawal without guaranteeing forgiveness, resurrection or automatic political success.</dd>
+<dt>Basis</dt>
+<dd>1.3 and 6.3 (AW-REF, primary); 8.5 (ANY-759, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[3].arcs[3].dnaHint: &quot;He hears a careful envoy with or without the egg.&quot;</li>
+<li>rules[8]: &quot;If destroyed, no ritual restores it: Ilsabet can still leave&quot;</li>
+<li>rules[8]: &quot;The party may withdraw with a failed mission honestly acknowledged.&quot;</li>
+<li>acts[3].arcs[4].dnaHint: &quot;escaping with knowledge alone does not automatically depose him.&quot;</li>
+<li>rules[8]: &quot;A cracked but living egg needs careful transport and Vaurach&#x27;s warmth; show its real condition, not automatic destruction on a minor mishap.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The stored AW principles are coauthored by Vincent and Meguey Baker. The four-act spine is the accepted tradeoff, and a static alternative does not establish generated completion or a balanced dragon fight.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>Clean second-cycle editorial result after a fresh full reread of the unchanged snapshot.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The route monopoly and compulsory-bout implication are resolved. Gorrak can be consulted before combat, elven knowledge is acknowledged, and alternative trails or earned flight remain valid if a guide is unavailable.</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].arcs[0].dnaHint: &quot;Gorrak is the town&#x27;s best living guide, not the world&#x27;s only route.&quot;</li>
+<li>acts[1].arcs[2].dnaHint: &quot;Gorrak grants an audience without arena victories.&quot;</li>
+<li>rules[5]: &quot;His clan&#x27;s painted waymarks, ferrymen and the elves preserve a route if he is absent.&quot;</li>
+<li>acts[3].arcs[2].dnaHint: &quot;Quillon or other earned flight can bypass the climb if carrying conditions permit&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Cael&#x27;s knowledge is fixed separately from the breeding-plan evidence. The prepared hatchery can reveal the unknown purpose without converting the Lantern into mind reading or requiring a confession.</dd>
+<dt>Basis</dt>
+<dd>1.2 and 1.3 (SRD, primary); 1.7 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[8].secret: &quot;He believes the egg is political leverage; he does not know Tallow intends to chain the hatchling.&quot;</li>
+<li>npcs[8].secret: &quot;The warmed cradle and crown-branded chains in Stonemoor can teach him that purpose.&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;A warmed cradle, crown-branded hatchling chains and the captain&#x27;s explanation expose Tallow&#x27;s breeding plan independently of Cael.&quot;</li>
+<li>rules[2]: &quot;It neither reads minds, compels answers nor judges sincere error, silence or metaphor&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Core facts now have authored alternatives, not observed successful delivery. Capturing a villain early need not deliver every later fact automatically; custody and actual discoveries still matter.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>Clean second-cycle editorial result after a fresh full reread of the unchanged snapshot.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The changes preserve the story&#x27;s grief, affection and generosity while making companionship and the princess&#x27;s future more clearly voluntary. Failure can close on actual losses rather than forced consolation.</dd>
+<dt>Basis</dt>
+<dd>2.2, 2.7 and 7.3 (S2, primary); 4.6 (S1, primary, cautiously applied to meaningful consequences).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[0].notes: &quot;She asks for help, not ownership or rescue against her will.&quot;</li>
+<li>npcs[6].notes: &quot;He asks to accompany the player at the market&quot;</li>
+<li>acts[3].arcs[4].dnaHint: &quot;Ilsabet chooses home, an envoy&#x27;s life or another safe destination; the player may advise, never decide for her.&quot;</li>
+<li>acts[3].arcs[4].dnaHint: &quot;Close on the chosen farewell and road, with unresolved losses honestly named. No compulsory new hunt.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No independent additional finding. The optional arena can remain a moral contradiction in a generous town; that does not require removing its spectacle or declaring every NPC blameless. Emotional effects are untested.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>A separate full reread of premise, acts, rules, NPC secrets, locations and creatures found no new material issue. The identical SHA confirms content and edition are unchanged from round 1; all six baseline findings remain closed.</li>
+<li>Preserve the optional dangerous arena, the actual possibility of petrification or egg loss, and Vaurach&#x27;s overwhelming presence. Clear warnings and alternate approaches do not promise painless success.</li>
+<li>Full cross-checks preserved the separation between truthful speech and compelled confession, blade protection and gaze counters, receiving directions and winning the optional arena, and knowledge acquired by Cael versus evidence independently available to the player. No edit is recommended to fill the cycle.</li>
+<li>Hash and quoted evidence were verified. This was a static editorial review, not a human/generated playtest, runtime state check, import validation or pacing measurement. No one-hour target applies.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Second full reread: the truth-test finding is resolved without removing the unicorn&#x27;s wonder or the tale&#x27;s preference for listening. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The ford echoes an actual knowingly false utterance and allows voluntary correction or the bridge. The lantern likewise respects silence, metaphor and sincere error; neither invents a player&#x27;s inner fault.</dd>
+<dt>Basis</dt>
+<dd>§8.4 informed consequence, §9.1 consistency (◐), §4.6 story rather than imposed plot (●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>The water repeats that exact utterance</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Silence, metaphor, sincere error, private feelings and imagined self-deception never count.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>It neither reads minds, compels answers nor judges sincere error, silence or metaphor</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Documented rubric application, not actual author participation. No prose corpus or §17 runtime metrics were assessed.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Second full reread including creatures: the basilisk and relic-scope inconsistencies are resolved. Material danger and practical precautions remain. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Direct gaze consistently petrifies rather than kills; intact victims can be restored with an established local salve. Mirror rules and the Gauntlet&#x27;s limits are explicit, while shattered victims remain a real loss.</dd>
+<dt>Basis</dt>
+<dd>§9.5 convincing continuity (A:5 ●/◐), §9.3 earned confirmation (A:6 ◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>The basilisk petrifies on direct eye contact, never kills merely by being seen.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Stone victims remain alive but helpless.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>shattered victims cannot be restored.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>the Gauntlet grants no gaze immunity.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No encounter was executed. A possible remedy and announced hazard do not guarantee safety or lessen the authored consequence of broken statues.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Second full reread: Cael&#x27;s custody and route now propagate through acts, NPC notes and creature notes. Early discoveries, optional companions and earned flight remain valid. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>A captured Cael no longer escapes by outline. Forest traces require his actual journey, and the hatchery encounter uses only defenders who remain. His absence does not erase the proof.</dd>
+<dt>Basis</dt>
+<dd>§5.1 structure and §9.3 consequential choices (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[5].notes</dd>
+<dt>Quote</dt>
+<dd>Cael&#x27;s cut web and dead spider appear only if he actually escaped and traveled here</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Cael is here only if his actual route brought him.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The blueprint supports these branches; actual runtime agency, evidence handling and flight behavior remain untested. No requirement to complete every authored stop.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>Second full reread: Cael&#x27;s knowledge and the arena&#x27;s ethical/practical limits now have explicit causes. Both baseline findings are resolved. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Rechecked all NPC secrets against the encounter: Cael&#x27;s initial knowledge remains limited to theft, employer and hiding place. The hatchery teaches the breeding purpose if he sees it; neither presence nor confession is required.</dd>
+<dt>Basis</dt>
+<dd>§8.1 honesty (A:Advice ●), §5.6 character/action causality (B:Dark Matter Zine ●), §6.1–6.3 motives without excuse (B:Fantasy-Hive ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>He believes the egg is political leverage</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>The warmed cradle and crown-branded chains in Stonemoor can teach him that purpose.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>it neither excuses burning Quillon nor guarantees conversion or confession.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Arena objectives can be achieved without killing, safety arrangements and surrender are shown, injury remains possible, and Gorrak&#x27;s limitations are acknowledged. Conversation grants road access independently.</dd>
+<dt>Basis</dt>
+<dd>§5.4 self-understanding (B:Fantasy-Hive ●), §3.1 consequence (B:Walter ◐), §8.1 honesty (A:Advice ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Surrender ends a bout without shame or map loss</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Gorrak grants an audience without arena victories.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>remains risky blood sport, a real limit of his compassion.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No actual dialogue, combat or player response measured. Candidly limited compassion supports character complexity without forcing darker tone.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>No further writing-lens edits requested after the independent second complete reread, including all secrets, creature countermeasures and ending contingencies.</li>
+<li>Missing or destroyed egg outcomes, voluntary Ilsabet, conditional antagonist custody and earned shortcuts remain compatible; no return to the original mandatory sequence is required.</li>
+<li>Runtime narration, comprehension and pacing remain untested.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>The Le Guin lens supports consequential listening without demanding a safe world or a mandatory reconciliation.</li>
+<li>Leiber&#x27;s convincing supernatural does not require removing mystery; explicit relevant powers and costs suffice.</li>
+<li>Jemisin&#x27;s agency test accepts the intended road adventure when earned shortcuts and captured antagonists remain real.</li>
+<li>Abercrombie&#x27;s honesty lens accepts Gorrak&#x27;s imperfect blood-sport ethic and a hopeful conclusion without additional cruelty.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>No actionable editorial issue unique to this lens; clearer operational distinctions support later audio verification.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Relic limitations and advance warnings are now explicit</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R4; R6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>The Bow guides arrows through darkness, not around cover or toward an unknown target; it grants neither light nor sight.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>Show stone vermin, mirrored equipment and a chance to plan first.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>When resuming before the basilisk, can the narration distinguish the gauntlet&#x27;s actual protection, the bow&#x27;s actual effect and a gaze warning before the next action?</dd>
+<dt>Dissent</dt>
+<dd>R5 and R10 inferred preferences cannot require a safe or shallow adventure. Audio clarity and recap behavior need actual listening, not assumptions from prose length.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>All three baseline agency/continuity findings resolved; no further material contradiction found.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Cael capture and later travel remain contingent</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Only if Cael actually escaped and took this road does his cut web or a dead spider mark his passage</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>The ford tests an established spoken claim and permits refusal</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I2; I3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>The water repeats that exact utterance; a willing correction lowers it.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Silence, metaphor, sincere error, private feelings and imagined self-deception never count.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A player who refuses confession can follow visible bank markers to the upstream rope bridge;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Arena participation, companion recruitment and travel paths are independent choices</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I2; I3; I4</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Gorrak grants an audience without arena victories.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>his grandmother&#x27;s painted waymarks lead to the Weald&#x27;s elven guides;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Quillon or other earned flight can bypass the climb if carrying conditions permit;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>Capture Cael in Kettlebridge and decline the arena: does the ensuing story honor both choices without restoring Cael or silently requiring three bouts?</dd>
+<dt>Dissent</dt>
+<dd>The unicorn&#x27;s moral test and Gorrak&#x27;s judgment belong to the fairy tale. They can refuse the player; the concern is legible terms and practical alternate actions, not making them agreeable.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>Baseline power-contract discrepancy resolved; the ordinary protection options and actual artifact powers now agree.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Gauntlet and Bow no longer acquire unrelated hazard immunity or illumination</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B6; B9 (item-reliability analogy)</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>The Gauntlet catches and holds a blade without harm, not other hazards.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>it neither lights the last tunnel nor reveals unseen footing.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>The Gauntlet has no gaze immunity;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Petrification, safe reflection and a recoverable victim state are consistent</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B9 (informed use analogy)</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Stone victims remain alive but helpless.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Handler salve in the side niche restores unbroken statues when rubbed over them; shattered victims cannot be restored.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>The basilisk petrifies on direct eye contact, never kills merely by being seen.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>With no gauntlet or bow earned, can a player still understand the stated mundane basilisk counter and the consequences before acting?</dd>
+<dt>Dissent</dt>
+<dd>The stated nonmonetary story economy is not a defect merely because B3 favors useful spending. Do not add shops, numerical rewards or loot loops just to satisfy this persona.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Warm interactions remain and participation is freer; dangerous sport remains a declared genre/taste limit, not an editorial defect.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Kindness scenes and voluntary company survive the changes</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Let the player earn his trust</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Dunnick Pell offers his cart of unlikely tools and asks to come;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Surrender ends a bout without shame or map loss; injury remains possible if precautions fail.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>Can a short session resolve one trust-building interaction or useful preparation and preserve that progress, rather than forcing the next fight to create activity?</dd>
+<dt>Dissent</dt>
+<dd>N1 favors low stakes but does not authorize replacing this adventure with cozy routine. N6 supports completed chunks, not a twenty-minute total duration. The arena&#x27;s festival tone does not by itself prove safe combat, and no actual balance test was run.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>Both baseline evidence and ending findings resolved; failed recovery now has honest closure and Ilsabet retains her freedom.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Cael learns the unknown purpose from independent physical evidence</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G5; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>he does not know Tallow intends to chain the hatchling.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A warmed cradle, crown-branded hatchling chains and the captain&#x27;s explanation expose Tallow&#x27;s breeding plan independently of Cael.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>is never compelled by Lantern or script.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>The egg can be lost without converting Ilsabet to collateral or forcing combat</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>She may leave even if the egg is never recovered;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[8]</dd>
+<dt>Quote</dt>
+<dd>If destroyed, no ritual restores it:</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[8]</dd>
+<dt>Quote</dt>
+<dd>The party may withdraw with a failed mission honestly acknowledged.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[9]</dd>
+<dt>Quote</dt>
+<dd>The player may offer a farewell or final image and stop;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>If Cael was captured earlier and the egg is later broken, what verified facts and actual NPC decisions appear in the ending, and can the player choose a farewell without an invented perfect rescue?</dd>
+<dt>Dissent</dt>
+<dd>Do not require the chancellor&#x27;s whole prosecution to become another act. A specific status or unresolved consequence can close the story honestly; a guaranteed political victory without supporting events cannot.</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Agreement</dt>
+<dd>Second full editorial pass remains clean across all five lenses. Captured Cael stays out of later scenes; his unknown motive remains learnable from the hatchery. Declining companions and arena gifts leaves guides, waymarks, bridge/ridge routes and ordinary basilisk counters. Missing, cracked and destroyed eggs have distinct outcomes; Ilsabet remains free and failed negotiations can close honestly.</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan is a poorer fit for deadly fairy-tale adventure; this is not a defect vote.</li>
+<li>Bert values reliable relics but cannot demand a numerical economy contrary to the declared story.</li>
+<li>Ines values NPC refusal; Gerry values closure. Neither requires effortless peace or compulsory persuasion success.</li>
+</ul>
+</dd>
+<dt>Limits</dt>
+<dd>These are textual contingency checks, not gameplay execution. Actual dialogue, hazard adjudication, reward persistence, audio comprehension and pace remain untested. No further edits are justified solely by the iteration count.</dd>
+</dl>
+</details>
+</section>
+<section id="round-3">
+<h2>Revision and review 3</h2>
+<p>Third full reread of v1.0 Release Candidate: all fourteen assessments clean. Only edition/status metadata differs from round 2; no story edits invented to fill a round.</p>
+<p>
+<a href="iterations/round-3.blueprint">Exact snapshot</a> · <a href="iterations/round-3-reviews.json">Structured review record</a>
+</p>
+<p class="meta">SHA-256: <code>84d73ad4efd29d3df661c48c659ee7463ba5608f7c74df68a9481eacb2c3ac75</code>
+</p>
+<h3>Design lenses</h3>
+<details class="reviewer">
+<summary>Gygax lens</summary>
+<p>
+<strong>Clean final editorial result after a separate full reread of the round-3 release candidate.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/gygax_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Basilisk consequences, reflection, treatment and relic limitations now agree across scene hints, rules and the creature record. Ordinary precautions have an explicit mechanism; the Bow does not create sight and the Gauntlet does not supply gaze immunity.</dd>
+<dt>Basis</dt>
+<dd>5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[7]: &quot;The basilisk petrifies on direct eye contact, never kills merely by being seen.&quot;</li>
+<li>rules[7]: &quot;Indirect mirror viewing is safe; a clear reflection petrifies the creature itself.&quot;</li>
+<li>creatures[6].notes: &quot;Stone victims remain alive but helpless.&quot;</li>
+<li>creatures[6].notes: &quot;Handler salve in the side niche restores unbroken statues when rubbed over them; shattered victims cannot be restored.&quot;</li>
+<li>acts[3].arcs[2].dnaHint: &quot;The Bow&#x27;s arrows fly true in darkness; it neither lights the last tunnel nor reveals unseen footing.&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;the Gauntlet grants no gaze immunity.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The rule against walking/thinking metal or stone is read as the existing no-construct premise, not as silently invalidating the explicitly described petrification. No combat balance, recovery implementation or runtime status check was performed.</details>
+<details class="reviewer">
+<summary>Harper lens</summary>
+<p>
+<strong>Clean final editorial result after a separate full reread of the round-3 release candidate.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/harper_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The honesty gate now names an observable utterance and accepts correction without inventing private beliefs. A visible alternate crossing preserves refusal; warnings also precede travel delays and magical risks.</dd>
+<dt>Basis</dt>
+<dd>1.2 (S:action-roll, primary); 7.4 (LF, primary); 7.8 (S:core-system Judgment calls, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[2].arcs[3].dnaHint: &quot;The water repeats that exact utterance; a willing correction lowers it.&quot;</li>
+<li>acts[2].arcs[3].dnaHint: &quot;Silence, metaphor, sincere error, private feelings and imagined self-deception never count.&quot;</li>
+<li>acts[2].arcs[3].dnaHint: &quot;A player who refuses confession&quot;</li>
+<li>rules[6]: &quot;Travelers may refuse and use the upstream bridge.&quot;</li>
+<li>rules[6]: &quot;State travel delays and any unusual time effect before commitment; no hidden countdown or surprise passage of years.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The test remains a meaningful fairy-tale encounter. A visible repair and alternate route do not prove that narration will apply the spoken-truth rule correctly; no runtime test was performed.</details>
+<details class="reviewer">
+<summary>Baker lens</summary>
+<p>
+<strong>Clean final editorial result after a separate full reread of the round-3 release candidate.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/baker_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Rechecked capture, death, injury, negotiated cooperation and actual escape against Cael&#x27;s full secret, spider trail and deep-hall scene. No source now grants an independent head start or forces him into a later scene; the prepared hatchery remains evidence even when he is absent.</dd>
+<dt>Basis</dt>
+<dd>1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>rules[4]: &quot;A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs.&quot;</li>
+<li>creatures[5].notes: &quot;Cael&#x27;s cut web and dead spider appear only if he actually escaped and traveled here; use his earned lead, never a fixed day.&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;Cael is here only if his actual route brought him.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Rechecked early roost arrival and intact, cracked-living, missing and destroyed egg outcomes. Ilsabet remains voluntary; different levels of loss permit negotiation or withdrawal without guaranteeing forgiveness, resurrection or automatic political success.</dd>
+<dt>Basis</dt>
+<dd>1.3 and 6.3 (AW-REF, primary); 8.5 (ANY-759, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[3].arcs[3].dnaHint: &quot;He hears a careful envoy with or without the egg.&quot;</li>
+<li>rules[8]: &quot;If destroyed, no ritual restores it: Ilsabet can still leave&quot;</li>
+<li>rules[8]: &quot;The party may withdraw with a failed mission honestly acknowledged.&quot;</li>
+<li>acts[3].arcs[4].dnaHint: &quot;escaping with knowledge alone does not automatically depose him.&quot;</li>
+<li>rules[8]: &quot;A cracked but living egg needs careful transport and Vaurach&#x27;s warmth; show its real condition, not automatic destruction on a minor mishap.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The stored AW principles are coauthored by Vincent and Meguey Baker. The four-act spine is the accepted tradeoff, and a static alternative does not establish generated completion or a balanced dragon fight.</details>
+<details class="reviewer">
+<summary>Laws lens</summary>
+<p>
+<strong>Clean final editorial result after a separate full reread of the round-3 release candidate.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/laws_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The route monopoly and compulsory-bout implication are resolved. Gorrak can be consulted before combat, elven knowledge is acknowledged, and alternative trails or earned flight remain valid if a guide is unavailable.</dd>
+<dt>Basis</dt>
+<dd>1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>acts[1].arcs[0].dnaHint: &quot;Gorrak is the town&#x27;s best living guide, not the world&#x27;s only route.&quot;</li>
+<li>acts[1].arcs[2].dnaHint: &quot;Gorrak grants an audience without arena victories.&quot;</li>
+<li>rules[5]: &quot;His clan&#x27;s painted waymarks, ferrymen and the elves preserve a route if he is absent.&quot;</li>
+<li>acts[3].arcs[2].dnaHint: &quot;Quillon or other earned flight can bypass the climb if carrying conditions permit&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Cael&#x27;s knowledge is fixed separately from the breeding-plan evidence. The prepared hatchery can reveal the unknown purpose without converting the Lantern into mind reading or requiring a confession.</dd>
+<dt>Basis</dt>
+<dd>1.2 and 1.3 (SRD, primary); 1.7 (XX-two, primary).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[8].secret: &quot;He believes the egg is political leverage; he does not know Tallow intends to chain the hatchling.&quot;</li>
+<li>npcs[8].secret: &quot;The warmed cradle and crown-branded chains in Stonemoor can teach him that purpose.&quot;</li>
+<li>acts[3].arcs[1].dnaHint: &quot;A warmed cradle, crown-branded hatchling chains and the captain&#x27;s explanation expose Tallow&#x27;s breeding plan independently of Cael.&quot;</li>
+<li>rules[2]: &quot;It neither reads minds, compels answers nor judges sincere error, silence or metaphor&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Core facts now have authored alternatives, not observed successful delivery. Capturing a villain early need not deliver every later fact automatically; custody and actual discoveries still matter.</details>
+<details class="reviewer">
+<summary>Moran lens</summary>
+<p>
+<strong>Clean final editorial result after a separate full reread of the round-3 release candidate.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/moran_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The changes preserve the story&#x27;s grief, affection and generosity while making companionship and the princess&#x27;s future more clearly voluntary. Failure can close on actual losses rather than forced consolation.</dd>
+<dt>Basis</dt>
+<dd>2.2, 2.7 and 7.3 (S2, primary); 4.6 (S1, primary, cautiously applied to meaningful consequences).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>npcs[0].notes: &quot;She asks for help, not ownership or rescue against her will.&quot;</li>
+<li>npcs[6].notes: &quot;He asks to accompany the player at the market&quot;</li>
+<li>acts[3].arcs[4].dnaHint: &quot;Ilsabet chooses home, an envoy&#x27;s life or another safe destination; the player may advise, never decide for her.&quot;</li>
+<li>acts[3].arcs[4].dnaHint: &quot;Close on the chosen farewell and road, with unresolved losses honestly named. No compulsory new hunt.&quot;</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No independent additional finding. The optional arena can remain a moral contradiction in a generous town; that does not require removing its spectacle or declaring every NPC blameless. Emotional effects are untested.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>The entire round-3 release candidate was reread, including all NPC secrets, locations and creature rules. A structural comparison independently confirms only version (1.0) and releaseStatus (release-candidate) changed from round 2. All six baseline findings remain closed, with no additional material correction under the five stored design lenses.</li>
+<li>Preserve the optional dangerous arena, the actual possibility of petrification or egg loss, and Vaurach&#x27;s overwhelming presence. Clear warnings and alternate approaches do not promise painless success.</li>
+<li>Full cross-checks preserved the separation between truthful speech and compelled confession, blade protection and gaze counters, receiving directions and winning the optional arena, and knowledge acquired by Cael versus evidence independently available to the player. No edit is recommended to fill the cycle.</li>
+<li>Snapshot hash, metadata-only difference and every quoted evidence anchor in this report were verified. This final editorial result does not assert a human/generated playtest, runtime state handling, pacing, combat balance, import validation or publication. No one-hour target applies.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Writing lenses</h3>
+<details class="reviewer">
+<summary>Le Guin lens</summary>
+<p>
+<strong>Final full reread: the truth-test finding is resolved without removing the unicorn&#x27;s wonder or the tale&#x27;s preference for listening. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leguin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>The ford echoes an actual knowingly false utterance and allows voluntary correction or the bridge. The lantern likewise respects silence, metaphor and sincere error; neither invents a player&#x27;s inner fault.</dd>
+<dt>Basis</dt>
+<dd>§8.4 informed consequence, §9.1 consistency (◐), §4.6 story rather than imposed plot (●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>The water repeats that exact utterance</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Silence, metaphor, sincere error, private feelings and imagined self-deception never count.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>It neither reads minds, compels answers nor judges sincere error, silence or metaphor</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>Documented rubric application, not actual author participation. No prose corpus or §17 runtime metrics were assessed.</details>
+<details class="reviewer">
+<summary>Leiber lens</summary>
+<p>
+<strong>Final full reread including creatures: the basilisk and relic-scope inconsistencies are resolved. Material danger and practical precautions remain. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/leiber_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Direct gaze consistently petrifies rather than kills; intact victims can be restored with an established local salve. Mirror rules and the Gauntlet&#x27;s limits are explicit, while shattered victims remain a real loss.</dd>
+<dt>Basis</dt>
+<dd>§9.5 convincing continuity (A:5 ●/◐), §9.3 earned confirmation (A:6 ◐).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>The basilisk petrifies on direct eye contact, never kills merely by being seen.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Stone victims remain alive but helpless.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>shattered victims cannot be restored.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>the Gauntlet grants no gaze immunity.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No encounter was executed. A possible remedy and announced hazard do not guarantee safety or lessen the authored consequence of broken statues.</details>
+<details class="reviewer">
+<summary>Jemisin lens</summary>
+<p>
+<strong>Final full reread: Cael&#x27;s custody and route now propagate through acts, NPC notes and creature notes. Early discoveries, optional companions and earned flight remain valid. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/jemisin_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>A captured Cael no longer escapes by outline. Forest traces require his actual journey, and the hatchery encounter uses only defenders who remain. His absence does not erase the proof.</dd>
+<dt>Basis</dt>
+<dd>§5.1 structure and §9.3 consequential choices (WE ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>creatures[5].notes</dd>
+<dt>Quote</dt>
+<dd>Cael&#x27;s cut web and dead spider appear only if he actually escaped and traveled here</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Cael is here only if his actual route brought him.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>The blueprint supports these branches; actual runtime agency, evidence handling and flight behavior remain untested. No requirement to complete every authored stop.</details>
+<details class="reviewer">
+<summary>Abercrombie lens</summary>
+<p>
+<strong>Final full reread: Cael&#x27;s knowledge and the arena&#x27;s ethical/practical limits now have explicit causes. Both baseline findings are resolved. No new actionable finding.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/abercrombie_lens.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Rechecked all NPC secrets against the encounter: Cael&#x27;s initial knowledge remains limited to theft, employer and hiding place. The hatchery teaches the breeding purpose if he sees it; neither presence nor confession is required.</dd>
+<dt>Basis</dt>
+<dd>§8.1 honesty (A:Advice ●), §5.6 character/action causality (B:Dark Matter Zine ●), §6.1–6.3 motives without excuse (B:Fantasy-Hive ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>He believes the egg is political leverage</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>The warmed cradle and crown-branded chains in Stonemoor can teach him that purpose.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>it neither excuses burning Quillon nor guarantees conversion or confession.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Text</dt>
+<dd>Arena objectives can be achieved without killing, safety arrangements and surrender are shown, injury remains possible, and Gorrak&#x27;s limitations are acknowledged. Conversation grants road access independently.</dd>
+<dt>Basis</dt>
+<dd>§5.4 self-understanding (B:Fantasy-Hive ●), §3.1 consequence (B:Walter ◐), §8.1 honesty (A:Advice ●).</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Surrender ends a bout without shame or map loss</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Gorrak grants an audience without arena victories.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Path</dt>
+<dd>npcs[3].notes</dd>
+<dt>Quote</dt>
+<dd>remains risky blood sport, a real limit of his compassion.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>No actual dialogue, combat or player response measured. Candidly limited compassion supports character complexity without forcing darker tone.</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+<li>No further writing-lens edits requested after the complete third reread of the release candidate, including all NPC secrets and creature rules.</li>
+<li>Missing or destroyed egg outcomes, voluntary Ilsabet, conditional antagonist custody and earned shortcuts remain compatible; no return to the original mandatory sequence is required.</li>
+<li>Runtime narration, comprehension and pacing remain untested.</li>
+</ul>
+</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>The Le Guin lens supports consequential listening without demanding a safe world or a mandatory reconciliation.</li>
+<li>Leiber&#x27;s convincing supernatural does not require removing mystery; explicit relevant powers and costs suffice.</li>
+<li>Jemisin&#x27;s agency test accepts the intended road adventure when earned shortcuts and captured antagonists remain real.</li>
+<li>Abercrombie&#x27;s honesty lens accepts Gorrak&#x27;s imperfect blood-sport ethic and a hopeful conclusion without additional cruelty.</li>
+</ul>
+</dd>
+</dl>
+</details>
+<h3>Player personas</h3>
+<details class="reviewer">
+<summary>Rosa Pike - the Commuter</summary>
+<p>
+<strong>No actionable editorial issue unique to this lens; clearer operational distinctions support later audio verification.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/rosa_pike_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Relic limitations and advance warnings are now explicit</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/rosa_pike_persona.md</dd>
+<dt>Entry</dt>
+<dd>R4; R6</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>The Bow guides arrows through darkness, not around cover or toward an unknown target; it grants neither light nor sight.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>Show stone vermin, mirrored equipment and a chance to plan first.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>When resuming before the basilisk, can the narration distinguish the gauntlet&#x27;s actual protection, the bow&#x27;s actual effect and a gaze warning before the next action?</dd>
+<dt>Dissent</dt>
+<dd>R5 and R10 inferred preferences cannot require a safe or shallow adventure. Audio clarity and recap behavior need actual listening, not assumptions from prose length.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Ines Halloran - the Oracle-Keeper</summary>
+<p>
+<strong>All three baseline agency/continuity findings resolved; no further material contradiction found.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/ines_halloran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Cael capture and later travel remain contingent</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I3; I5</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[4]</dd>
+<dt>Quote</dt>
+<dd>A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Only if Cael actually escaped and took this road does his cut web or a dead spider mark his passage</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>The ford tests an established spoken claim and permits refusal</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I1; I2; I3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>The water repeats that exact utterance; a willing correction lowers it.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Silence, metaphor, sincere error, private feelings and imagined self-deception never count.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[2].arcs[3].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A player who refuses confession can follow visible bank markers to the upstream rope bridge;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Arena participation, companion recruitment and travel paths are independent choices</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/ines_halloran_persona.md</dd>
+<dt>Entry</dt>
+<dd>I2; I3; I4</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Gorrak grants an audience without arena victories.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>his grandmother&#x27;s painted waymarks lead to the Weald&#x27;s elven guides;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Quillon or other earned flight can bypass the climb if carrying conditions permit;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>Capture Cael in Kettlebridge and decline the arena: does the ensuing story honor both choices without restoring Cael or silently requiring three bouts?</dd>
+<dt>Dissent</dt>
+<dd>The unicorn&#x27;s moral test and Gorrak&#x27;s judgment belong to the fairy tale. They can refuse the player; the concern is legible terms and practical alternate actions, not making them agreeable.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Bert Kovac - the Quartermaster</summary>
+<p>
+<strong>Baseline power-contract discrepancy resolved; the ordinary protection options and actual artifact powers now agree.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/bert_kovac_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Gauntlet and Bow no longer acquire unrelated hazard immunity or illumination</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B6; B9 (item-reliability analogy)</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[2]</dd>
+<dt>Quote</dt>
+<dd>The Gauntlet catches and holds a blade without harm, not other hazards.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[2].dnaHint</dd>
+<dt>Quote</dt>
+<dd>it neither lights the last tunnel nor reveals unseen footing.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>The Gauntlet has no gaze immunity;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Petrification, safe reflection and a recoverable victim state are consistent</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/bert_kovac_persona.md</dd>
+<dt>Entry</dt>
+<dd>B5; B9 (informed use analogy)</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Stone victims remain alive but helpless.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>creatures[6].notes</dd>
+<dt>Quote</dt>
+<dd>Handler salve in the side niche restores unbroken statues when rubbed over them; shattered victims cannot be restored.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[7]</dd>
+<dt>Quote</dt>
+<dd>The basilisk petrifies on direct eye contact, never kills merely by being seen.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>With no gauntlet or bow earned, can a player still understand the stated mundane basilisk counter and the consequences before acting?</dd>
+<dt>Dissent</dt>
+<dd>The stated nonmonetary story economy is not a defect merely because B3 favors useful spending. Do not add shops, numerical rewards or loot loops just to satisfy this persona.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Nan Oyelaran - the Twenty-Minute Regular</summary>
+<p>
+<strong>Warm interactions remain and participation is freer; dangerous sport remains a declared genre/taste limit, not an editorial defect.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/nan_oyelaran_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Kindness scenes and voluntary company survive the changes</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/nan_oyelaran_persona.md</dd>
+<dt>Entry</dt>
+<dd>N3; N4; N7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[0].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Let the player earn his trust</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[0].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Dunnick Pell offers his cart of unlikely tools and asks to come;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[1].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>Surrender ends a bout without shame or map loss; injury remains possible if precautions fail.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>Can a short session resolve one trust-building interaction or useful preparation and preserve that progress, rather than forcing the next fight to create activity?</dd>
+<dt>Dissent</dt>
+<dd>N1 favors low stakes but does not authorize replacing this adventure with cozy routine. N6 supports completed chunks, not a twenty-minute total duration. The arena&#x27;s festival tone does not by itself prove safe combat, and no actual balance test was run.</dd>
+</dl>
+</details>
+<details class="reviewer">
+<summary>Gerry Fulmer - the Table Veteran</summary>
+<p>
+<strong>Both baseline evidence and ending findings resolved; failed recovery now has honest closure and Ilsabet retains her freedom.</strong>
+</p>
+<p>
+<a href="../../../../DOC/panel/players/gerry_fulmer_persona.md">Source rubric</a>
+</p>
+<h3>Resolved or preserved</h3>
+<ul>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>Cael learns the unknown purpose from independent physical evidence</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G5; G6; G7</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[8].secret</dd>
+<dt>Quote</dt>
+<dd>he does not know Tallow intends to chain the hatchling.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>A warmed cradle, crown-branded hatchling chains and the captain&#x27;s explanation expose Tallow&#x27;s breeding plan independently of Cael.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>acts[3].arcs[1].dnaHint</dd>
+<dt>Quote</dt>
+<dd>is never compelled by Lantern or script.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Title</dt>
+<dd>The egg can be lost without converting Ilsabet to collateral or forcing combat</dd>
+<dt>Basis</dt>
+<dd>
+<dl>
+<dt>File</dt>
+<dd>DOC/panel/players/gerry_fulmer_persona.md</dd>
+<dt>Entry</dt>
+<dd>G1; G2; G3</dd>
+<dt>Source grade</dt>
+<dd>primary</dd>
+</dl>
+</dd>
+<dt>Blueprint evidence</dt>
+<dd>
+<ul>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>npcs[0].notes</dd>
+<dt>Quote</dt>
+<dd>She may leave even if the egg is never recovered;</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[8]</dd>
+<dt>Quote</dt>
+<dd>If destroyed, no ritual restores it:</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[8]</dd>
+<dt>Quote</dt>
+<dd>The party may withdraw with a failed mission honestly acknowledged.</dd>
+</dl>
+</li>
+<li>
+<dl>
+<dt>Field</dt>
+<dd>rules[9]</dd>
+<dt>Quote</dt>
+<dd>The player may offer a farewell or final image and stop;</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<h3>Feedback</h3>
+<p>No additional editorial finding.</p>
+<h3>Limits and dissent</h3>
+<dl>
+<dt>Limits</dt>
+<dd>Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.</dd>
+<dt>Verification question</dt>
+<dd>If Cael was captured earlier and the egg is later broken, what verified facts and actual NPC decisions appear in the ending, and can the player choose a farewell without an invented perfect rescue?</dd>
+<dt>Dissent</dt>
+<dd>Do not require the chancellor&#x27;s whole prosecution to become another act. A specific status or unresolved consequence can close the story honestly; a guaranteed political victory without supporting events cannot.</dd>
+</dl>
+</details>
+<details>
+<summary>Group synthesis</summary>
+<dl>
+<dt>Priority actions</dt>
+<dd>
+<ul>
+</ul>
+</dd>
+<dt>Agreement</dt>
+<dd>Final full player-panel pass is editorially clean. All six baseline concerns remain resolved: contingent Cael custody, a knowable truth test with refusal route, optional arena and independent paths, consistent relic and gaze rules, fixed knowledge with physical evidence, and voluntary/failure closure. No further content changes justified.</dd>
+<dt>Dissent</dt>
+<dd>
+<ul>
+<li>Nan is a poorer fit for deadly fairy-tale adventure; this is not a defect vote.</li>
+<li>Bert values reliable relics but cannot demand a numerical economy contrary to the declared story.</li>
+<li>Ines values NPC refusal; Gerry values closure. Neither requires effortless peace or compulsory persuasion success.</li>
+</ul>
+</dd>
+<dt>Limits</dt>
+<dd>This completes the delegated final player-panel review for the three-campaign batch. No gameplay execution, audio comprehension, encounter-balance or runtime-persistence claim; release metadata does not substitute for those checks.</dd>
+</dl>
+</details>
+</section>
+<footer>
+<p>Real play should test an early Cael capture, no-arena and earned-flight routes, refusal at the ford, a basilisk encounter without relics, absent companions, and an ending without an intact egg. Review and import checks cannot establish encounter balance or narrator adherence.</p>
+<p>No engine code or runtime resource accumulation was added. Existing saves retain their starting edition. Editorial and import checks cannot establish player satisfaction or actual GM behavior.</p>
+</footer>
+</body>
+</html>

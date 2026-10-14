@@ -630,3 +630,5 @@ zero 2026-07-27 and again 2026-07-30.
 - 2026-10-13 · #627 · Codex, owner-requested Coffered God blueprint review: baseline and three full panel rereads, v1.0 candidate; bounded costly sorcery, physical seal/release procedures, causal theft evidence, conditional threats and catalog warning. Content/review records only; no engine change. Record: DOC/panel/reviews/coffered-god/review_cycles.html.
 
 - 2026-10-13 · #627 · Codex, owner-requested Silence Between Leaves blueprint review: baseline plus three full panel rereads, v1.0 candidate; conditional partial-rescue rewards and slow ecological repair after lost-heir outcomes. Content and review records only; no engine change. Record: DOC/panel/reviews/silence-between-leaves/review_cycles.html.
+
+- 2026-10-13 · #627 · Codex, owner-requested Road to Cinderwing blueprint review: baseline plus three full panel rereads, v1.0 candidate; contingent Cael continuity, fixed knowledge/relic/gaze rules, optional arena/routes, bounded truth test and honest egg/guest endings. Content and review records only; no engine change. Record: DOC/panel/reviews/road-to-cinderwing/review_cycles.html.

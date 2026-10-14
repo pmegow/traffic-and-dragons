@@ -1,0 +1,20 @@
+{
+  "source": "samples/the_road_to_cinderwing.blueprint",
+  "outcome": "Baseline and all three full panel review passes complete. Final assessments are editorially clean. The fairy-tale road adventure retains its wonders and conversational dragon finale, with consistent causes, powers, optional routes and genuine failure outcomes.",
+  "publication": "Not yet published.",
+  "changes": [
+    "Conditioned all Cael appearances and tracks on actual survival, custody and travel; fixed his initial knowledge and added independent physical evidence of the hatchling plan.",
+    "Made the arena optional, with stated nonlethal objectives, surrender arrangements and real danger; directions, elven routes and earned flight remain available.",
+    "Aligned basilisk petrification, warnings, precautions and restoration; kept every relic within one stated power.",
+    "Limited the unicorn to knowingly spoken falsehoods, with the exact utterance identified and an upstream bridge for refusal.",
+    "Made Ilsabet a voluntary guest who may leave; added damaged, missing and destroyed egg outcomes, warned reprisals and evidence-dependent consequences for Tallow."
+  ],
+  "verification": "Final candidate normalization and disposable import preserve all 131 authored text fields across 16 arcs, 9 NPCs, 7 locations, 10 rules and 8 creatures; no overflows. No model narration or actual player test.",
+  "rounds": [
+    "Baseline: forced antagonist recurrence, conflicting knowledge and powers, opaque truth/route gates and unbounded failure outcomes.",
+    "Revision 1 resolves all baseline findings across all fourteen assessments. Full NPC, location and creature cross-checks found no new material contradiction.",
+    "Second full reread of unchanged content: all fourteen assessments clean. No unnecessary story changes or new edition.",
+    "Third full reread of v1.0 Release Candidate: all fourteen assessments clean. Only edition/status metadata differs from round 2; no story edits invented to fill a round."
+  ],
+  "remaining": "Real play should test an early Cael capture, no-arena and earned-flight routes, refusal at the ford, a basilisk encounter without relics, absent companions, and an ending without an intact egg. Review and import checks cannot establish encounter balance or narrator adherence."
+}

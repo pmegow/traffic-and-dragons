@@ -1,0 +1,339 @@
+{
+  "format": "tnd-blueprint-v1",
+  "designerVersion": "v0.47",
+  "name": "The Road to Cinderwing",
+  "author": "",
+  "proseAuthor": "gaiman",
+  "narratorVoice": "",
+  "tone": "high",
+  "startingLocation": "Harrowmere",
+  "startingRegion": "The kingdom of Ambergate — a harbour, a river, a forest older than the crown, and a mountain where something with wings has woken",
+  "startingTime": "",
+  "premise": "On the eve of her name-day, Princess Ilsabet Marrow vanished from Vellamere, the haunted mansion on Harrowmere's headland where the royal house keeps its dead and its secrets. Her griffin came home riderless at dawn with scorched feathers. By noon the heralds had said the word the whole kingdom feared: Vaurach the Cinderwing, the dragon of Mount Ashenhold, has stirred after a hundred years of sleep, and he has taken the princess. The king's champions have already failed — one came back from the Ring of Salt in a cart, and two never came back from the Thornlight Weald at all. Now the crown is asking anyone who can hold a blade or a bow to bring Ilsabet home. The road runs from the sea to the mountain: through a house that remembers, an arena that decides who is worthy, a forest that judges the truthful, and up to a roost where the oldest creature in Ambergate is waiting for someone brave enough to ask it a question instead of drawing steel.\n\nGM truth: Tallow ordered the egg stolen to rear a chained dragon. Ilsabet learned of the theft from Ithryl's kin and left willingly with that elf to negotiate a truce. Cael burned Quillon while the griffin was tethered in Vellamere's yard after her departure; the injured animal broke loose and returned to the royal mews at dawn. Cael knows the theft, his employer and the hiding place, but not the hatchling-chain purpose. The prepared hatchery supplies that proof. Ilsabet stays by choice, never as the price of her kingdom's safety. Preserve the road's wonders, but honor early captures, discoveries, flight and other earned shortcuts. A failed recovery changes the ending; it does not secretly restore the egg or demand an unwinnable fight.",
+  "acts": [
+    {
+      "title": "The Empty Chair at Vellamere",
+      "goal": "Learn how the princess truly left Harrowmere, survive a night in the mansion that remembers every Marrow who ever died, and discover that the story the court is telling is not the story that happened",
+      "turningPoint": "Sennet's memory, the yard evidence or an earned witness account shows Ilsabet left willingly with an elf; Cael's torch created the griffin's burns and the false dragon story. What the crown learns depends on whom the player tells.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Riderless Griffin",
+          "objective": "Calm Quillon, the princess's griffin, and read what his wounds and his fury are trying to say",
+          "type": "investigation",
+          "dnaHint": "A griffin is a proud, grieving animal, not a clue on legs. Let the player earn his trust — a hand held still, the right word, a scrap of the princess's cloak — before he lets anyone near the burns. Captain Brisa Hollowell hovers, ashamed, certain she failed her charge. Brisa can secure the yard for a quiet examination; soot on the broken tether and a dropped brown-and-gold sleeve provide a second route if Quillon will not approach. No touching the wounds is required for the only clue."
+        },
+        {
+          "title": "Vellamere by Night",
+          "objective": "Explore the mansion's remembered nights and reach the princess's chambers.",
+          "type": "exploration",
+          "dnaHint": "Vellamere is not cruel; it is bereaved. Doors that open onto the wrong decade, a dinner laid for guests fifty years dead, footsteps that walk the corridor the player just left. The Lantern of Unlying Light hangs in the entrance hall — carried, it shows the dead as they were and shows a lie as a smear of shadow on the liar's mouth. The house gives it up only to someone who lights it for a ghost, not against one. Offer an ordinary lamp if its gift is refused. Frightening memories do not overwrite the player's mind; withdrawal or a daylight search can find the yard and departure traces."
+        },
+        {
+          "title": "What the Portrait Saw",
+          "objective": "Win the confidence of Lady Sennet Marrow's ghost and see the night of the disappearance as the house remembers it",
+          "type": "social",
+          "dnaHint": "Sennet was Ilsabet's grandmother and the last Marrow who spoke to dragons. She will not be commanded; she wants to be listened to. If heard, the walls show Ilsabet choosing to leave beside Ithryl's hooded kin, followed by Cael burning the tethered Quillon in the yard. If the player leaves or cannot win her trust, Brisa recognizes the livery scraps and the gardener witnessed the willing departure. Sennet's account can corroborate either discovery. The court learns of the investigation only through actual witnesses or a message, not automatically at the act's end."
+        }
+      ]
+    },
+    {
+      "title": "The Ring of Salt",
+      "goal": "Reach Kettlebridge and seek Gorrak's mountain directions through conversation, service or the optional arena, while dealing with the assassin if he remains active.",
+      "turningPoint": "Gorrak can offer directions or join a sincere effort to prevent war. Cael's interception, escape or defeat determines whether he can act on the forest road or at Stonemoor.",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "Kettlebridge Market",
+          "objective": "Find who in the river town knows the mountain road, and learn why every answer ends at the arena gates",
+          "type": "social",
+          "dnaHint": "Kettlebridge is loud, wet and generous: halfling barge-folk, dwarf ferrymen, a gnome whose salves work. Dunnick Pell offers his cart of unlikely tools and asks to come; he has always wanted to see a dragon. Gorrak is the town's best living guide, not the world's only route. Any contestant or visitor may request his audience before fighting. If he is unavailable, his grandmother's painted waymarks lead to the Weald's elven guides; ferrymen know their first landing. The arena remains an invitation, never the price of access to the rest of the story."
+        },
+        {
+          "title": "Three Nights in the Pit",
+          "objective": "Choose whether to enter the Ring's three advertised contests and earn the Gauntlet through craft and courage.",
+          "type": "combat",
+          "dnaHint": "The optional festival is dangerous sport, not a promise of safety. Before entry explain three trials: take a ribbon from the manticore's post, raise the bell above the hydra's pool, then disarm Gorrak or his champion. Killing is unnecessary. Handlers, barred withdrawal lanes and winched gates separate each contestant from the beasts on surrender; show these before fighting. Surrender ends a bout without shame or map loss; injury remains possible if precautions fail. Between trials allow rest or withdrawal. Completing all three earns the Gauntlet. Explain venom, growing heads and fire before exposure; ordinary ingenuity can win."
+        },
+        {
+          "title": "The Champion's Question",
+          "objective": "Ask Gorrak for directions and decide whether to invite him as guide.",
+          "type": "social",
+          "dnaHint": "Gorrak grants an audience without arena victories. He asks why the player wants Ilsabet back. An honest answer earns a drawn route and warnings, even if it admits hope of reward; a convincing commitment to prevent war can win his company. Helping protect him from an actual threat or tending an injured contestant also earns a hearing, not a required side quest. His grandmother's clan was spared by Vaurach when the crown abandoned them. The elves know another way if he is absent or refuses an intended dragon hunt; no single death removes every route."
+        },
+        {
+          "title": "Knives in the Stands",
+          "objective": "Find the chancellor's assassin before he finds the player, and learn what Orvin Tallow is so afraid the princess will say",
+          "type": "investigation",
+          "dnaHint": "Cael initially hunts Gorrak to stop him helping the search; he turns on the player if their actions threaten the plan. His cloak muffles feet and erases remembered facial detail, not clothing, weapons, tracks or events. The Lantern counters that glamour while its light reaches him; spilled flour, watched exits or a marked cloak also work. Capture, bargain, defeat or lose him according to play. He knows Tallow ordered the torch attack and the egg hidden beneath Stonemoor. If he escapes, establish his actual route and head start. Never free him merely because later scenes mention him."
+        }
+      ]
+    },
+    {
+      "title": "The Thornlight Weald",
+      "goal": "Cross the ancient forest between the river and the mountain, pass the elves' Court of Leaves and the unicorn's ford, and learn from the ones who were there what Ilsabet went to Ashenhold to do",
+      "turningPoint": "The elves' account and the plundered nest corroborate the egg theft and Ilsabet's willing journey to negotiate. Early discoveries can establish this sooner; the forest adds witnesses and practical routes.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Under the Old Boughs",
+          "objective": "Enter the Thornlight Weald by the river gate and survive the first night among the dire wolves that hunt its edges",
+          "type": "exploration",
+          "dnaHint": "The Weald is older than the kingdom and knows it. Light comes down green; paths bend unexpectedly. Wolves signal their approach before testing a camp. Fire, food left away from camp, a sheltered route or a held line can turn them. Scale numbers to the traveling party. Dunnick's tools and Gorrak's memory help if they actually came; ordinary gear and elven waymarks work without them. A single-horned watcher remains beyond the firelight. Explain any intended delay before the player chooses a detour or overnight visit; never levy a secret lost century."
+        },
+        {
+          "title": "The Court of Leaves",
+          "objective": "Be received by the elves of the Weald and win Elder Ithryl's account of the night the egg was taken",
+          "type": "social",
+          "dnaHint": "The elves are courteous and grieving: they guarded the egg until Tallow's men took it with iron and fire. Ithryl's kin escorted Ilsabet through their paths to Vaurach at her request. The elf can testify to that choice and identify the raiders' captain; scorched nesting cloth and a crown-branded carrying frame corroborate the theft. An honest account earns guidance; privacy or a sincere mistake is not falsehood. Ithryl offers the Bow for forthright help, not compulsory flattery or a confession. A visit lasts the time stated; the Weald bends paths, not a concealed deadline."
+        },
+        {
+          "title": "The Spider Road",
+          "objective": "Cross the spider-held ravine or find a slower way through the Weald toward the mountain.",
+          "type": "combat",
+          "dnaHint": "Spiders have webbed the direct ravine road. Survey the overhead lines, distract them with prey, cut a quiet path, fight or ask the elves for a slower ridge path. Fire clears silk but can spread to living trees; make that danger visible before a torch is thrown. Only if Cael actually escaped and took this road does his cut web or a dead spider mark his passage, with the elapsed lead actually earned. Otherwise the ravine belongs to the spiders, not a required assassin chase."
+        },
+        {
+          "title": "The Unicorn's Ford",
+          "objective": "Choose the unicorn's truthful crossing or take the slower upstream bridge.",
+          "type": "exploration",
+          "dnaHint": "The unicorn stands in the ford and will not be ridden. It raises the water only for a knowingly false spoken statement the traveler actually made since entering the Weald. The water repeats that exact utterance; a willing correction lowers it. Silence, metaphor, sincere error, private feelings and imagined self-deception never count. A player who refuses confession can follow visible bank markers to the upstream rope bridge; it takes longer and needs ordinary footing, not another truth test. The plundered nest is reachable from either route. Never invent a personal secret to hold the crossing shut."
+        }
+      ]
+    },
+    {
+      "title": "Ashenhold",
+      "goal": "Find the egg beneath Stonemoor if it is still there, reach the roost by an earned route, and settle what can be settled with Vaurach and Ilsabet.",
+      "turningPoint": "An intact returned egg can secure peace; missing or destroyed custody requires an honest different settlement. Ilsabet chooses whether to return, remain as envoy or leave elsewhere; no delivery buys ownership of her.",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Stonemoor's Empty Halls",
+          "objective": "Enter the half-abandoned dwarf town under the mountain and find Thane Bora Grimmsdottir, the last dwarf who will still speak the Cinderwing's name",
+          "type": "exploration",
+          "dnaHint": "Stonemoor emptied when the dragon woke; those who stayed are stubborn, old or in love with the stone. Bora draws the deep halls in soot, marks the handlers' side niche and warns that direct meeting of the basilisk's eyes petrifies. Its handlers keep thawing salve there; she can explain its use. If she is absent, miners' haulage marks lead down, and stone vermin plus eye-coverings outside the guard post give warning. Ordinary mirrors and hooded lamps are available in the old workshops. She need not accompany the party for it to proceed."
+        },
+        {
+          "title": "The Egg in the Dark",
+          "objective": "Reach the stolen egg, dealing with the basilisk and whatever defenders remain without sacrificing the egg to the fight.",
+          "type": "combat",
+          "dnaHint": "Warn with stone rats and a guard's mirrored visor before direct eye contact. Blindfolds with a guide, a polished shield, shuttering the beast's stall or using a reflection can work; the Gauntlet grants no gaze immunity. Cael is here only if his actual route brought him. Soldiers may surrender, bargain or be bypassed. A warmed cradle, crown-branded hatchling chains and the captain's explanation expose Tallow's breeding plan independently of Cael. Shown these, Cael may reconsider but is never compelled by Lantern or script. The egg is warm and heavy as a child; warn before risky handling, and honor careful packing and a cleared exit."
+        },
+        {
+          "title": "The Climb",
+          "objective": "Carry the egg up the mountain path to the roost through cold, thin air and the Cinderwing's own watchfulness",
+          "type": "exploration",
+          "dnaHint": "Snow, scree and a ledge where Gorrak's grandmother stood make the climb demanding. Plan a sling and handholds; an exhausted bearer can rest. Vaurach watches the approach without assuming every visitor carries his egg. The Bow's arrows fly true in darkness; it neither lights the last tunnel nor reveals unseen footing. Use an ordinary lamp, a guide rope or another actual ability. Quillon or other earned flight can bypass the climb if carrying conditions permit; never injure a recovered mount to restore the outline. Let the summit be beautiful."
+        },
+        {
+          "title": "The Cinderwing's Court",
+          "objective": "Face Vaurach the Cinderwing at his roost and settle the matter of the egg and the princess — by word, or by fire",
+          "type": "social",
+          "dnaHint": "Vaurach is old, articulate and angry. Ilsabet reads to him by choice and can leave; she asked him to suspend retaliation while a search is made, not to hold her as security. He hears a careful envoy with or without the egg. Intact return earns peace and the freely shed scale. If it is missing, credible leads and an agreed search or reparations can extend the truce. If destroyed, acknowledge permanent loss and seek restraint, not replacement magic. He warns and allows withdrawal before force unless actually attacked. Threatening his child can provoke combat; his power is plainly beyond an ordinary party's head-on assault."
+        },
+        {
+          "title": "The Princess's Choice",
+          "objective": "Help Ilsabet decide her own ending, and carry the truth about Chancellor Tallow back down the mountain to a court that will not want to hear it",
+          "type": "social",
+          "dnaHint": "Ilsabet chooses home, an envoy's life or another safe destination; the player may advise, never decide for her. Quillon carries only riders and burdens he can actually bear. Bring or send surviving testimony and hatchery evidence to Brisa and the king, or decline with that consequence acknowledged. Credible delivered proof can unseat Tallow; escaping with knowledge alone does not automatically depose him. If peace failed, show the truce's actual status, warnings and preparations for endangered towns, not a surprise city destroyed offscreen. Close on the chosen farewell and road, with unresolved losses honestly named. No compulsory new hunt."
+        }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Ilsabet Marrow",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Princess of Ambergate, nineteen, clever and less helpless than the heralds claim. Raised on Sennet's dragon-stories, she left willingly with Ithryl's kin after learning of the egg theft. She is physically at the roost as a voluntary guest, trying to prevent reprisals and free the stolen child. Earned flight, messages or early arrival can reach her before the outlined final act. She asks for help, not ownership or rescue against her will. She may leave even if the egg is never recovered; her choice to stay does not make her collateral.",
+      "secret": "She was never taken. She left Vellamere on her own feet with a hooded elf of the Weald to go to the Cinderwing as his honoured guest, buying Ambergate time before the dragon came looking for his stolen egg. The chancellor's man burned her griffin's feathers to make the abduction look real.",
+      "revealAct": 1
+    },
+    {
+      "name": "Orvin Tallow",
+      "role": "villain",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Chancellor, sixty, silver-tongued, the king's oldest friend and the man who runs much of Ambergate. He usually acts through Cael and brown-and-gold soldiers, but early investigation may confront him in Harrowmere. He stole the egg to rear a captive dragon and spreads the abduction story to discredit or eliminate Ilsabet's testimony. He reacts only to information actually reaching him. His authority can be challenged with witnesses and the prepared hatchery; no automatic confession, fall or replacement mastermind is required.",
+      "secret": "He had the Cinderwing's last egg stolen from under the Thornlight Weald so he could hatch it himself and keep a dragon under his own hand, and he wants the princess believed dead because she knows it.",
+      "revealAct": 3
+    },
+    {
+      "name": "Brisa Hollowell",
+      "role": "ally",
+      "pronouns": "she/her",
+      "armor": "chain shirt",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Captain of the princess's shield, half-elf, thirty, quiet, exact, and eaten alive by the certainty that she failed her charge. She joins the player from Harrowmere if asked, fights like a woman with something to prove, and slowly comes to understand that Ilsabet did not need protecting from the dragon.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Gorrak Ironjaw",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "armor": "arena harness",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Gladiator-king of Kettlebridge's Ring, huge, scarred and thoughtful. He is the town's best guide to Ashenhold, not the only person who knows a road. Any visitor can ask his question before entering a bout. He respects courage and honest purpose; his festival uses handlers and surrender lanes but remains risky blood sport, a real limit of his compassion. Arena victories earn a relic, not monopoly access to the mountain. His grandmother's painted waymarks survive him; the elves can guide travelers too.",
+      "secret": "A hundred years ago the Cinderwing spared his grandmother's clan when Ambergate's soldiers would have let them starve in the snow; he has carried the road to the roost ever since as a trust, and he will walk it himself for the right reason.",
+      "revealAct": 2
+    },
+    {
+      "name": "Lady Sennet Marrow",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "The ghost of Ilsabet's grandmother, the last Marrow who spoke with dragons, and the presiding spirit of Vellamere. Dry, sharp, fond of her granddaughter, and unimpressed by the living. She cannot be commanded; she can be listened to, and the house shows what she has seen.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Elder Ithryl",
+      "role": "neutral",
+      "pronouns": "they/them",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Elder of the Court of Leaves, older than Harrowmere, patient as a tree. The elves kept Vaurach's egg in trust for a century and lost it to Tallow's raiders. Ithryl's kin saw the theft and escorted Ilsabet at her request; their testimony and the carrying frame can corroborate the story. Ithryl gives guidance to an honest seeker and may gift the Bow for forthright help, without demanding private truths or treating awkward praise as deceit. The ridge path and upstream bridge remain available to those who refuse a magical test.",
+      "secret": "Ithryl's kin escorted Ilsabet to negotiate a truce. They know the raiders served Tallow and took the egg toward Stonemoor; they have sent warnings, but the chancellor suppresses them at court. They cannot safely assault the occupied deep halls. A visitor can help carry testimony or recover the egg; the elves do not withhold it solely because nobody asked a perfect question.",
+      "revealAct": 3
+    },
+    {
+      "name": "Dunnick Pell",
+      "role": "ally",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "A halfling tinker of Kettlebridge with a cart of unlikely tools, a bottomless curiosity, and a lifelong wish to see a dragon with his own eyes. He asks to accompany the player at the market and proves useful in every place a lock, a rope, a lamp or a joke is needed. Brave in the way of people who have not yet learned better.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Bora Grimmsdottir",
+      "role": "ally",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Thane of Stonemoor, dwarf, ancient, the last of her town who will still say the Cinderwing's name aloud. She stayed when the others fled the mountain. She knows the sealed deep halls and the thing the chancellor's men loosed in them, and she draws the way in soot on her hearthstone for anyone she judges worth the stone.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Cael Vane",
+      "role": "villain",
+      "pronouns": "he/him",
+      "armor": "leather",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Tallow's blade, called Whisper. His Hollowstep Cloak silences steps and erases facial detail from a viewer's memory after looking away, not clothes, tracks or the remembered attack. He burned Quillon and may hunt Gorrak if still free. Capture, defeat, injury, parley and escape remain real throughout later scenes; a captured Cael has no independent head start or mandatory last stand. He knows who ordered the theft, torch deception and concealment beneath Stonemoor. Fear, loyalty or evidence may move him to talk; neither the Lantern nor the outline forces it.",
+      "secret": "He believes the egg is political leverage; he does not know Tallow intends to chain the hatchling. The warmed cradle and crown-branded chains in Stonemoor can teach him that purpose. Learning it may disturb his loyalty, but it neither excuses burning Quillon nor guarantees conversion or confession.",
+      "revealAct": 2
+    }
+  ],
+  "locations": [
+    {
+      "name": "Harrowmere",
+      "description": "The harbour town of Ambergate: grey stone, gull-cry, tar and salt, a royal residence above the quays and the headland road climbing to Vellamere. The crown's heralds cry the princess's abduction from the harbour steps every hour. Captain Hollowell keeps the griffin in the royal mews."
+    },
+    {
+      "name": "Vellamere",
+      "description": "The haunted mansion on Harrowmere's headland where the royal house keeps its dead and its secrets — three floors, a portrait gallery that watches, a dinner laid for guests fifty years gone, and Lady Sennet Marrow's ghost presiding. The Lantern of Unlying Light hangs in its entrance hall. Vellamere is bereaved, not cruel; it frightens the careless and shows the patient the truth."
+    },
+    {
+      "name": "Kettlebridge",
+      "description": "The river town where the Thornlight meets the lowland road: barge-folk, ferrymen, a market that never quite closes, and the Ring of Salt — a stone arena on the river island where Gorrak Ironjaw rules and the town decides who is worthy by watching them fight. Loud, wet, generous, and full of eyes."
+    },
+    {
+      "name": "The Ring of Salt",
+      "description": "Kettlebridge's arena on the river island: tiered stone, white salt sand, a flooded hydra pool and Gorrak's box. Three optional contests can earn the Gauntlet. Handlers work winched gates beside barred surrender lanes; contestants see these and hear the hazards before entry. The crowd cheers cleverness and boos cruelty, though dangerous blood sport remains a contradiction in the town's generous face. Gorrak grants audiences independently of the bouts."
+    },
+    {
+      "name": "The Thornlight Weald",
+      "description": "The ancient forest between the river and the mountain — older than the kingdom, green-lit, deceptive in distance. Dire wolves run its borders in silence; giant spiders hold the direct ravine road, with an elven ridge path around it; the elves keep the Court of Leaves at its heart; the unicorn guards the ford of the river Thornlight with its test of spoken truth; an upstream rope bridge offers a slower crossing. The dragon's nest lay in the Weald's keeping until iron and fire took the egg."
+    },
+    {
+      "name": "Stonemoor",
+      "description": "The dwarf town under Mount Ashenhold, half-emptied when the dragon woke. Stubborn old dwarves, cold forges, a thane's hall with a soot-drawn map on the hearthstone, and sealed deep halls below where the chancellor's men have hidden the egg behind a basilisk."
+    },
+    {
+      "name": "Mount Ashenhold",
+      "description": "The Cinderwing's mountain: a switchback path above Stonemoor, a scree slope, a ledge where an orc's grandmother once stood, a last dark tunnel, and the roost at the summit — a warm hollow of black stone open to the sky, where the oldest creature in Ambergate keeps an empty nest and an honoured guest who reads to him."
+    }
+  ],
+  "creatures": [
+    {
+      "name": "Vaurach the Cinderwing",
+      "kind": "dragon",
+      "threat": "apex",
+      "notes": "Vaurach, red-black and older than the kingdom, woke because his last egg was stolen. Articulate, proud and capable of destroying a town, he has agreed with Ilsabet to suspend reprisals while people seek the egg. She is free to leave. He hears honest envoys without making egg possession a condition of speech. He warns before ending a truce; real threats to his child can provoke force. His size and flame make a head-on assault plainly deadly, but parley, retreat and earned ingenuity remain possible. He remembers kindness and cannot undo a destroyed egg."
+    },
+    {
+      "name": "Quillon",
+      "kind": "griffin",
+      "threat": "moderate",
+      "notes": "The princess's griffin, eagle-headed and lion-bodied, bronze-feathered, proud and grieving. He came home riderless with scorched feathers and will savage anyone who reaches for the burns before earning his trust. Once calmed he is a mount, a tracker who knows the princess's scent, and the fastest way down the mountain at the end. Show distress before an approach can provoke him. Healing and earned trust restore what flight is actually possible; never invent a fresh injury solely to force the land route. His burden is that of a griffin, not an entire caravan."
+    },
+    {
+      "name": "Manticore of the Ring",
+      "kind": "beast",
+      "threat": "deadly",
+      "notes": "The first bout in the Ring of Salt: a lion-bodied, man-faced beast with a scorpion's tail that throws venomed spines at range. Fights like a cat — circles, feints, and strikes at whoever looks away. The tail can be pinned; the spines are worst at distance. Arena handlers and barred retreat lanes can separate it from a surrendering contestant. The trial is a ribbon retrieval, not a required kill; venom and lunge range are demonstrated beforehand."
+    },
+    {
+      "name": "Hydra of the Flooded Cage",
+      "kind": "beast",
+      "threat": "deadly",
+      "notes": "The second bout: a five-headed serpent kept in the arena's flooded lower cage, each head a separate temper. Steel opens a neck and two heads grow where one was cut; fire closes what steel opens. The crowd counts the heads aloud. The trial is to raise the bell above its pool, not kill every head. Show the gate controls and surrender lane first; handlers isolate it when a bout ends. Fire can cauterize a cut but is not the only way to complete the trial."
+    },
+    {
+      "name": "Dire wolves of the Weald's border",
+      "kind": "beast",
+      "threat": "moderate",
+      "notes": "Grey wolves the size of ponies that hunt the forest's edges in silence, in packs whose visible numbers fit the party and conditions. They test a camp twice before they commit — a scout at the firelight's edge, a feint from the dark — and go for the horses first. Fire and a held line turn them; a broken line does not."
+    },
+    {
+      "name": "Giant spiders of the Spider Road",
+      "kind": "beast",
+      "threat": "moderate",
+      "notes": "Cart-sized spiders web the direct ravine road. They signal danger with wrapped prey and vibrating lines. Bait, careful cutting, a fight or the slower elven ridge path can bypass them. Fire threatens both silk and living trees. Cael's cut web and dead spider appear only if he actually escaped and traveled here; use his earned lead, never a fixed day."
+    },
+    {
+      "name": "The Basilisk of the Deep Halls",
+      "kind": "beast",
+      "threat": "deadly",
+      "notes": "An eight-legged serpent-lizard in the deep halls. Directly meeting its uncovered eyes petrifies living flesh; indirect viewing in a mirror is safe, and seeing its own clear reflection petrifies the beast. Stone victims remain alive but helpless. Handler salve in the side niche restores unbroken statues when rubbed over them; shattered victims cannot be restored. Stone vermin and mirrored visors warn before exposure. Blindfolds with guides, shutters, reflected sight and retreat are real options. The Gauntlet has no gaze immunity; only a sufficiently polished surface could serve as an ordinary mirror."
+    },
+    {
+      "name": "The Unicorn of the Ford",
+      "kind": "fey beast",
+      "threat": "low",
+      "notes": "A watchful unicorn that stands in the Thornlight ford and will not carry riders. Water rises only for an established knowingly false statement spoken since entering the Weald, echoing it clearly; voluntary correction lowers the stream. Sincere mistakes, private feelings, silence and metaphor are not lies. Refusal leaves the upstream rope bridge open. It shows the plundered nest to travelers from either crossing and withdraws from aggression rather than serving as a required combat obstacle."
+    }
+  ],
+  "rules": [
+    "What binds people in Ambergate is oath, kinship, gratitude and shame — never anything that can be counted or written in a book. Money changes hands only at market stalls, and no scene ever turns on it.",
+    "Every threat in this world is a living creature, a person, a ghost, or the weather. Nothing made of metal or stone walks or thinks, and none may be introduced.",
+    "Named relics remain single physical gifts or recovered objects: Lantern in Vellamere's hall, Gauntlet from the optional Ring trials, Cloak on Cael unless actually transferred, Bow from Ithryl, and a freely shed scale shield only after peace with Vaurach. Never award one twice. The Lantern reveals ghosts as they were, marks a lit speaker's knowingly spoken falsehood with mouth-shadow and counters the Cloak within its light. It neither reads minds, compels answers nor judges sincere error, silence or metaphor; the player's own lies show too. The Gauntlet catches and holds a blade without harm, not other hazards. The Bow guides arrows through darkness, not around cover or toward an unknown target; it grants neither light nor sight. The Cloak silences steps and erases facial detail after looking away, not events, clothes or tracks. No relic is necessary for the sole surviving clue.",
+    "Vaurach is a person, not a trophy. His overwhelming strength is evident before any confrontation; a direct assault is perilous, not a scripted instant death. He will hear an envoy without the egg, accept truthful news and consider a truce, though forgiveness is not guaranteed. Ilsabet voluntarily sought a pause in reprisals and may leave at any time; she is not a hostage whose liberty must be purchased. An intact egg is the strongest route to peace, not a prerequisite for speech or closure. Her ending is hers to choose.",
+    "Cael appears or leaves traces only where his actual survival, custody and travel permit. A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs. No duplicate assassin fills his planned scenes. Soldiers already guarding the egg remain only if still there. Cael knows the theft and hiding place, not the breeding plan; the prepared hatchery and its crown-branded chains expose that purpose. Ithryl's witnesses, the carrying frame and Brisa's testimony can establish the connected wrongs without one confession or one magic item. Honor credible early investigation; revealed facts do not become false to preserve an act boundary.",
+    "The arena is optional. Gorrak's conversation can provide directions before any contest; his choice to join is separate. His clan's painted waymarks, ferrymen and the elves preserve a route if he is absent. Give safe surrender procedures before optional bouts while retaining honestly stated risks. Rest, nonlethal victory and refusal are valid. Travel may use the direct spider ravine, a slower ridge path, the truthful ford, an upstream bridge or an earned flying route; Gorrak, Dunnick and the relics are helpful, never compulsory party slots.",
+    "The unicorn judges only an actual knowingly false spoken statement since entry to the Weald, echoes the exact utterance and accepts voluntary correction. Do not invent inner beliefs or treat silence, sincere error or metaphor as guilt. Travelers may refuse and use the upstream bridge. State travel delays and any unusual time effect before commitment; no hidden countdown or surprise passage of years. Warnings sent from court and visible smoke, preparations or messengers carry escalation; conversations alone do not trigger war.",
+    "The basilisk petrifies on direct eye contact, never kills merely by being seen. Indirect mirror viewing is safe; a clear reflection petrifies the creature itself. Handler salve in the deep-hall side niche restores unbroken stone victims. Bora, the marked salve jar or handler testimony can teach its use. Show stone vermin, mirrored equipment and a chance to plan first. Ordinary mirrors, covered eyes with guidance and barriers are viable; no blade-catching or darkness-arrow power grants unrelated immunity. A lost companion remains lost if no one can recover them; do not invent an automatic rescue.",
+    "An egg recovered intact and freely returned supports peace and the scale gift. A cracked but living egg needs careful transport and Vaurach's warmth; show its real condition, not automatic destruction on a minor mishap. If missing, he can agree a specific search or reparations after hearing credible news, or refuse and announce his intended reprisal with time for warning and evacuation. If destroyed, no ritual restores it: Ilsabet can still leave, and honest testimony, surrender of actual perpetrators or an agreed memorial may win restraint, never guaranteed absolution. The party may withdraw with a failed mission honestly acknowledged. Do not burn a town without an established decision, warning and opportunity to respond.",
+    "Conclude on the achieved settlement and Ilsabet's free decision. Reports against Tallow require actual surviving evidence or testimony delivered to people who can act; a final claim of automatic overthrow is not earned by knowing the truth privately. Name the egg's fate, truce or ongoing threat, who received the account, and any unresolved loss. The player may offer a farewell or final image and stop; further justice, search or rebuilding is optional, not an invisible completion condition. Preserve wonder, generosity and hard choices without forcing every stranger into a compulsory companion or every monster into combat."
+  ],
+  "version": "0.02",
+  "releaseStatus": "draft",
+  "catalogId": "the_road_to_cinderwing"
+}

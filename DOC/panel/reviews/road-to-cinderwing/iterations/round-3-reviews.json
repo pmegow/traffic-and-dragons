@@ -1,0 +1,565 @@
+[
+  {
+    "round": 3,
+    "blueprintSha256": "84d73ad4efd29d3df661c48c659ee7463ba5608f7c74df68a9481eacb2c3ac75",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Clean final editorial result after a separate full reread of the round-3 release candidate.",
+        "resolved": [
+          {
+            "text": "Basilisk consequences, reflection, treatment and relic limitations now agree across scene hints, rules and the creature record. Ordinary precautions have an explicit mechanism; the Bow does not create sight and the Gauntlet does not supply gaze immunity.",
+            "basis": "5.3 (DMG preface A / Dragon B:26, primary); 7.2 (EN World B:29, secondary).",
+            "blueprintEvidence": [
+              "rules[7]: \"The basilisk petrifies on direct eye contact, never kills merely by being seen.\"",
+              "rules[7]: \"Indirect mirror viewing is safe; a clear reflection petrifies the creature itself.\"",
+              "creatures[6].notes: \"Stone victims remain alive but helpless.\"",
+              "creatures[6].notes: \"Handler salve in the side niche restores unbroken statues when rubbed over them; shattered victims cannot be restored.\"",
+              "acts[3].arcs[2].dnaHint: \"The Bow's arrows fly true in darkness; it neither lights the last tunnel nor reveals unseen footing.\"",
+              "acts[3].arcs[1].dnaHint: \"the Gauntlet grants no gaze immunity.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The rule against walking/thinking metal or stone is read as the existing no-construct premise, not as silently invalidating the explicitly described petrification. No combat balance, recovery implementation or runtime status check was performed."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "Clean final editorial result after a separate full reread of the round-3 release candidate.",
+        "resolved": [
+          {
+            "text": "The honesty gate now names an observable utterance and accepts correction without inventing private beliefs. A visible alternate crossing preserves refusal; warnings also precede travel delays and magical risks.",
+            "basis": "1.2 (S:action-roll, primary); 7.4 (LF, primary); 7.8 (S:core-system Judgment calls, primary).",
+            "blueprintEvidence": [
+              "acts[2].arcs[3].dnaHint: \"The water repeats that exact utterance; a willing correction lowers it.\"",
+              "acts[2].arcs[3].dnaHint: \"Silence, metaphor, sincere error, private feelings and imagined self-deception never count.\"",
+              "acts[2].arcs[3].dnaHint: \"A player who refuses confession\"",
+              "rules[6]: \"Travelers may refuse and use the upstream bridge.\"",
+              "rules[6]: \"State travel delays and any unusual time effect before commitment; no hidden countdown or surprise passage of years.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The test remains a meaningful fairy-tale encounter. A visible repair and alternate route do not prove that narration will apply the spoken-truth rule correctly; no runtime test was performed."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "Clean final editorial result after a separate full reread of the round-3 release candidate.",
+        "resolved": [
+          {
+            "text": "Rechecked capture, death, injury, negotiated cooperation and actual escape against Cael's full secret, spider trail and deep-hall scene. No source now grants an independent head start or forces him into a later scene; the prepared hatchery remains evidence even when he is absent.",
+            "basis": "1.3 (AW-REF, primary); 5.4 (AW-THR, primary); 6.2 and 6.3 (AW-REF, primary).",
+            "blueprintEvidence": [
+              "rules[4]: \"A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs.\"",
+              "creatures[5].notes: \"Cael's cut web and dead spider appear only if he actually escaped and traveled here; use his earned lead, never a fixed day.\"",
+              "acts[3].arcs[1].dnaHint: \"Cael is here only if his actual route brought him.\""
+            ]
+          },
+          {
+            "text": "Rechecked early roost arrival and intact, cracked-living, missing and destroyed egg outcomes. Ilsabet remains voluntary; different levels of loss permit negotiation or withdrawal without guaranteeing forgiveness, resurrection or automatic political success.",
+            "basis": "1.3 and 6.3 (AW-REF, primary); 8.5 (ANY-759, primary).",
+            "blueprintEvidence": [
+              "acts[3].arcs[3].dnaHint: \"He hears a careful envoy with or without the egg.\"",
+              "rules[8]: \"If destroyed, no ritual restores it: Ilsabet can still leave\"",
+              "rules[8]: \"The party may withdraw with a failed mission honestly acknowledged.\"",
+              "acts[3].arcs[4].dnaHint: \"escaping with knowledge alone does not automatically depose him.\"",
+              "rules[8]: \"A cracked but living egg needs careful transport and Vaurach's warmth; show its real condition, not automatic destruction on a minor mishap.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The stored AW principles are coauthored by Vincent and Meguey Baker. The four-act spine is the accepted tradeoff, and a static alternative does not establish generated completion or a balanced dragon fight."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "Clean final editorial result after a separate full reread of the round-3 release candidate.",
+        "resolved": [
+          {
+            "text": "The route monopoly and compulsory-bout implication are resolved. Gorrak can be consulted before combat, elven knowledge is acknowledged, and alternative trails or earned flight remain valid if a guide is unavailable.",
+            "basis": "1.1, 1.2 and 1.3 (SRD, primary); 1.7 and 7.2 (XX-two, primary).",
+            "blueprintEvidence": [
+              "acts[1].arcs[0].dnaHint: \"Gorrak is the town's best living guide, not the world's only route.\"",
+              "acts[1].arcs[2].dnaHint: \"Gorrak grants an audience without arena victories.\"",
+              "rules[5]: \"His clan's painted waymarks, ferrymen and the elves preserve a route if he is absent.\"",
+              "acts[3].arcs[2].dnaHint: \"Quillon or other earned flight can bypass the climb if carrying conditions permit\""
+            ]
+          },
+          {
+            "text": "Cael's knowledge is fixed separately from the breeding-plan evidence. The prepared hatchery can reveal the unknown purpose without converting the Lantern into mind reading or requiring a confession.",
+            "basis": "1.2 and 1.3 (SRD, primary); 1.7 (XX-two, primary).",
+            "blueprintEvidence": [
+              "npcs[8].secret: \"He believes the egg is political leverage; he does not know Tallow intends to chain the hatchling.\"",
+              "npcs[8].secret: \"The warmed cradle and crown-branded chains in Stonemoor can teach him that purpose.\"",
+              "acts[3].arcs[1].dnaHint: \"A warmed cradle, crown-branded hatchling chains and the captain's explanation expose Tallow's breeding plan independently of Cael.\"",
+              "rules[2]: \"It neither reads minds, compels answers nor judges sincere error, silence or metaphor\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Core facts now have authored alternatives, not observed successful delivery. Capturing a villain early need not deliver every later fact automatically; custody and actual discoveries still matter."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Clean final editorial result after a separate full reread of the round-3 release candidate.",
+        "resolved": [
+          {
+            "text": "The changes preserve the story's grief, affection and generosity while making companionship and the princess's future more clearly voluntary. Failure can close on actual losses rather than forced consolation.",
+            "basis": "2.2, 2.7 and 7.3 (S2, primary); 4.6 (S1, primary, cautiously applied to meaningful consequences).",
+            "blueprintEvidence": [
+              "npcs[0].notes: \"She asks for help, not ownership or rescue against her will.\"",
+              "npcs[6].notes: \"He asks to accompany the player at the market\"",
+              "acts[3].arcs[4].dnaHint: \"Ilsabet chooses home, an envoy's life or another safe destination; the player may advise, never decide for her.\"",
+              "acts[3].arcs[4].dnaHint: \"Close on the chosen farewell and road, with unresolved losses honestly named. No compulsory new hunt.\""
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No independent additional finding. The optional arena can remain a moral contradiction in a generous town; that does not require removing its spectacle or declaring every NPC blameless. Emotional effects are untested."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [],
+      "dissent": [
+        "The entire round-3 release candidate was reread, including all NPC secrets, locations and creature rules. A structural comparison independently confirms only version (1.0) and releaseStatus (release-candidate) changed from round 2. All six baseline findings remain closed, with no additional material correction under the five stored design lenses.",
+        "Preserve the optional dangerous arena, the actual possibility of petrification or egg loss, and Vaurach's overwhelming presence. Clear warnings and alternate approaches do not promise painless success.",
+        "Full cross-checks preserved the separation between truthful speech and compelled confession, blade protection and gaze counters, receiving directions and winning the optional arena, and knowledge acquired by Cael versus evidence independently available to the player. No edit is recommended to fill the cycle.",
+        "Snapshot hash, metadata-only difference and every quoted evidence anchor in this report were verified. This final editorial result does not assert a human/generated playtest, runtime state handling, pacing, combat balance, import validation or publication. No one-hour target applies."
+      ]
+    }
+  },
+  {
+    "round": 3,
+    "blueprintSha256": "84d73ad4efd29d3df661c48c659ee7463ba5608f7c74df68a9481eacb2c3ac75",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "Final full reread: the truth-test finding is resolved without removing the unicorn's wonder or the tale's preference for listening. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "The ford echoes an actual knowingly false utterance and allows voluntary correction or the bridge. The lantern likewise respects silence, metaphor and sincere error; neither invents a player's inner fault.",
+            "basis": "§8.4 informed consequence, §9.1 consistency (◐), §4.6 story rather than imposed plot (●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[2].arcs[3].dnaHint",
+                "quote": "The water repeats that exact utterance"
+              },
+              {
+                "path": "acts[2].arcs[3].dnaHint",
+                "quote": "Silence, metaphor, sincere error, private feelings and imagined self-deception never count."
+              },
+              {
+                "path": "rules[2]",
+                "quote": "It neither reads minds, compels answers nor judges sincere error, silence or metaphor"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "Documented rubric application, not actual author participation. No prose corpus or §17 runtime metrics were assessed."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Final full reread including creatures: the basilisk and relic-scope inconsistencies are resolved. Material danger and practical precautions remain. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "Direct gaze consistently petrifies rather than kills; intact victims can be restored with an established local salve. Mirror rules and the Gauntlet's limits are explicit, while shattered victims remain a real loss.",
+            "basis": "§9.5 convincing continuity (A:5 ●/◐), §9.3 earned confirmation (A:6 ◐).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[7]",
+                "quote": "The basilisk petrifies on direct eye contact, never kills merely by being seen."
+              },
+              {
+                "path": "creatures[6].notes",
+                "quote": "Stone victims remain alive but helpless."
+              },
+              {
+                "path": "creatures[6].notes",
+                "quote": "shattered victims cannot be restored."
+              },
+              {
+                "path": "acts[3].arcs[1].dnaHint",
+                "quote": "the Gauntlet grants no gaze immunity."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No encounter was executed. A possible remedy and announced hazard do not guarantee safety or lessen the authored consequence of broken statues."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "Final full reread: Cael's custody and route now propagate through acts, NPC notes and creature notes. Early discoveries, optional companions and earned flight remain valid. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "A captured Cael no longer escapes by outline. Forest traces require his actual journey, and the hatchery encounter uses only defenders who remain. His absence does not erase the proof.",
+            "basis": "§5.1 structure and §9.3 consequential choices (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "rules[4]",
+                "quote": "A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs."
+              },
+              {
+                "path": "creatures[5].notes",
+                "quote": "Cael's cut web and dead spider appear only if he actually escaped and traveled here"
+              },
+              {
+                "path": "acts[3].arcs[1].dnaHint",
+                "quote": "Cael is here only if his actual route brought him."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The blueprint supports these branches; actual runtime agency, evidence handling and flight behavior remain untested. No requirement to complete every authored stop."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "Final full reread: Cael's knowledge and the arena's ethical/practical limits now have explicit causes. Both baseline findings are resolved. No new actionable finding.",
+        "resolved": [
+          {
+            "text": "Rechecked all NPC secrets against the encounter: Cael's initial knowledge remains limited to theft, employer and hiding place. The hatchery teaches the breeding purpose if he sees it; neither presence nor confession is required.",
+            "basis": "§8.1 honesty (A:Advice ●), §5.6 character/action causality (B:Dark Matter Zine ●), §6.1–6.3 motives without excuse (B:Fantasy-Hive ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[8].secret",
+                "quote": "He believes the egg is political leverage"
+              },
+              {
+                "path": "npcs[8].secret",
+                "quote": "The warmed cradle and crown-branded chains in Stonemoor can teach him that purpose."
+              },
+              {
+                "path": "npcs[8].secret",
+                "quote": "it neither excuses burning Quillon nor guarantees conversion or confession."
+              }
+            ]
+          },
+          {
+            "text": "Arena objectives can be achieved without killing, safety arrangements and surrender are shown, injury remains possible, and Gorrak's limitations are acknowledged. Conversation grants road access independently.",
+            "basis": "§5.4 self-understanding (B:Fantasy-Hive ●), §3.1 consequence (B:Walter ◐), §8.1 honesty (A:Advice ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[1].arcs[1].dnaHint",
+                "quote": "Surrender ends a bout without shame or map loss"
+              },
+              {
+                "path": "acts[1].arcs[2].dnaHint",
+                "quote": "Gorrak grants an audience without arena victories."
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "remains risky blood sport, a real limit of his compassion."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "No actual dialogue, combat or player response measured. Candidly limited compassion supports character complexity without forcing darker tone."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "No further writing-lens edits requested after the complete third reread of the release candidate, including all NPC secrets and creature rules.",
+        "Missing or destroyed egg outcomes, voluntary Ilsabet, conditional antagonist custody and earned shortcuts remain compatible; no return to the original mandatory sequence is required.",
+        "Runtime narration, comprehension and pacing remain untested."
+      ],
+      "dissent": [
+        "The Le Guin lens supports consequential listening without demanding a safe world or a mandatory reconciliation.",
+        "Leiber's convincing supernatural does not require removing mystery; explicit relevant powers and costs suffice.",
+        "Jemisin's agency test accepts the intended road adventure when earned shortcuts and captured antagonists remain real.",
+        "Abercrombie's honesty lens accepts Gorrak's imperfect blood-sport ethic and a hopeful conclusion without additional cruelty."
+      ]
+    }
+  },
+  {
+    "round": 3,
+    "blueprintSha256": "84d73ad4efd29d3df661c48c659ee7463ba5608f7c74df68a9481eacb2c3ac75",
+    "scope": "Third full immutable Cinderwing snapshot reread through all five sourced composite player lenses, including NPC secrets and every creature rule. Release metadata independently confirmed as the only difference from round 2. Exact zero-based anchors reverified. Final editorial result, not a playtest or runtime assurance.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "No actionable editorial issue unique to this lens; clearer operational distinctions support later audio verification.",
+        "resolved": [
+          {
+            "title": "Relic limitations and advance warnings are now explicit",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R4; R6",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[2]",
+                "quote": "The Bow guides arrows through darkness, not around cover or toward an unknown target; it grants neither light nor sight."
+              },
+              {
+                "field": "rules[7]",
+                "quote": "Show stone vermin, mirrored equipment and a chance to plan first."
+              }
+            ]
+          }
+        ],
+        "strengths": [],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.",
+          "verificationQuestion": "When resuming before the basilisk, can the narration distinguish the gauntlet's actual protection, the bow's actual effect and a gaze warning before the next action?",
+          "dissent": "R5 and R10 inferred preferences cannot require a safe or shallow adventure. Audio clarity and recap behavior need actual listening, not assumptions from prose length."
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "All three baseline agency/continuity findings resolved; no further material contradiction found.",
+        "resolved": [
+          {
+            "title": "Cael capture and later travel remain contingent",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I5",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[4]",
+                "quote": "A capture in Kettlebridge stays a capture unless a played, fairly resolved escape occurs."
+              },
+              {
+                "field": "acts[2].arcs[2].dnaHint",
+                "quote": "Only if Cael actually escaped and took this road does his cut web or a dead spider mark his passage"
+              }
+            ]
+          },
+          {
+            "title": "The ford tests an established spoken claim and permits refusal",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I2; I3",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[3].dnaHint",
+                "quote": "The water repeats that exact utterance; a willing correction lowers it."
+              },
+              {
+                "field": "acts[2].arcs[3].dnaHint",
+                "quote": "Silence, metaphor, sincere error, private feelings and imagined self-deception never count."
+              },
+              {
+                "field": "acts[2].arcs[3].dnaHint",
+                "quote": "A player who refuses confession can follow visible bank markers to the upstream rope bridge;"
+              }
+            ]
+          },
+          {
+            "title": "Arena participation, companion recruitment and travel paths are independent choices",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I2; I3; I4",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[2].dnaHint",
+                "quote": "Gorrak grants an audience without arena victories."
+              },
+              {
+                "field": "acts[1].arcs[0].dnaHint",
+                "quote": "his grandmother's painted waymarks lead to the Weald's elven guides;"
+              },
+              {
+                "field": "acts[3].arcs[2].dnaHint",
+                "quote": "Quillon or other earned flight can bypass the climb if carrying conditions permit;"
+              }
+            ]
+          }
+        ],
+        "strengths": [],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.",
+          "verificationQuestion": "Capture Cael in Kettlebridge and decline the arena: does the ensuing story honor both choices without restoring Cael or silently requiring three bouts?",
+          "dissent": "The unicorn's moral test and Gorrak's judgment belong to the fairy tale. They can refuse the player; the concern is legible terms and practical alternate actions, not making them agreeable."
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "Baseline power-contract discrepancy resolved; the ordinary protection options and actual artifact powers now agree.",
+        "resolved": [
+          {
+            "title": "Gauntlet and Bow no longer acquire unrelated hazard immunity or illumination",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B6; B9 (item-reliability analogy)",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[2]",
+                "quote": "The Gauntlet catches and holds a blade without harm, not other hazards."
+              },
+              {
+                "field": "acts[3].arcs[2].dnaHint",
+                "quote": "it neither lights the last tunnel nor reveals unseen footing."
+              },
+              {
+                "field": "creatures[6].notes",
+                "quote": "The Gauntlet has no gaze immunity;"
+              }
+            ]
+          },
+          {
+            "title": "Petrification, safe reflection and a recoverable victim state are consistent",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9 (informed use analogy)",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "creatures[6].notes",
+                "quote": "Stone victims remain alive but helpless."
+              },
+              {
+                "field": "creatures[6].notes",
+                "quote": "Handler salve in the side niche restores unbroken statues when rubbed over them; shattered victims cannot be restored."
+              },
+              {
+                "field": "rules[7]",
+                "quote": "The basilisk petrifies on direct eye contact, never kills merely by being seen."
+              }
+            ]
+          }
+        ],
+        "strengths": [],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.",
+          "verificationQuestion": "With no gauntlet or bow earned, can a player still understand the stated mundane basilisk counter and the consequences before acting?",
+          "dissent": "The stated nonmonetary story economy is not a defect merely because B3 favors useful spending. Do not add shops, numerical rewards or loot loops just to satisfy this persona."
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "Warm interactions remain and participation is freer; dangerous sport remains a declared genre/taste limit, not an editorial defect.",
+        "resolved": [
+          {
+            "title": "Kindness scenes and voluntary company survive the changes",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].arcs[0].dnaHint",
+                "quote": "Let the player earn his trust"
+              },
+              {
+                "field": "acts[1].arcs[0].dnaHint",
+                "quote": "Dunnick Pell offers his cart of unlikely tools and asks to come;"
+              },
+              {
+                "field": "acts[1].arcs[1].dnaHint",
+                "quote": "Surrender ends a bout without shame or map loss; injury remains possible if precautions fail."
+              }
+            ]
+          }
+        ],
+        "strengths": [],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.",
+          "verificationQuestion": "Can a short session resolve one trust-building interaction or useful preparation and preserve that progress, rather than forcing the next fight to create activity?",
+          "dissent": "N1 favors low stakes but does not authorize replacing this adventure with cozy routine. N6 supports completed chunks, not a twenty-minute total duration. The arena's festival tone does not by itself prove safe combat, and no actual balance test was run."
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "Both baseline evidence and ending findings resolved; failed recovery now has honest closure and Ilsabet retains her freedom.",
+        "resolved": [
+          {
+            "title": "Cael learns the unknown purpose from independent physical evidence",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G5; G6; G7",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[8].secret",
+                "quote": "he does not know Tallow intends to chain the hatchling."
+              },
+              {
+                "field": "acts[3].arcs[1].dnaHint",
+                "quote": "A warmed cradle, crown-branded hatchling chains and the captain's explanation expose Tallow's breeding plan independently of Cael."
+              },
+              {
+                "field": "acts[3].arcs[1].dnaHint",
+                "quote": "is never compelled by Lantern or script."
+              }
+            ]
+          },
+          {
+            "title": "The egg can be lost without converting Ilsabet to collateral or forcing combat",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G3",
+              "sourceGrade": "primary"
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[0].notes",
+                "quote": "She may leave even if the egg is never recovered;"
+              },
+              {
+                "field": "rules[8]",
+                "quote": "If destroyed, no ritual restores it:"
+              },
+              {
+                "field": "rules[8]",
+                "quote": "The party may withdraw with a failed mission honestly acknowledged."
+              },
+              {
+                "field": "rules[9]",
+                "quote": "The player may offer a farewell or final image and stop;"
+              }
+            ]
+          }
+        ],
+        "strengths": [],
+        "findings": [],
+        "uncertainty": {
+          "limits": "Composite sourced evidence review, not interviews or a playtest. No runtime UI, pacing, encounter-balance or narration claim. No one-hour constraint.",
+          "verificationQuestion": "If Cael was captured earlier and the egg is later broken, what verified facts and actual NPC decisions appear in the ending, and can the player choose a farewell without an invented perfect rescue?",
+          "dissent": "Do not require the chancellor's whole prosecution to become another act. A specific status or unresolved consequence can close the story honestly; a guaranteed political victory without supporting events cannot."
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [],
+      "agreement": "Final full player-panel pass is editorially clean. All six baseline concerns remain resolved: contingent Cael custody, a knowable truth test with refusal route, optional arena and independent paths, consistent relic and gaze rules, fixed knowledge with physical evidence, and voluntary/failure closure. No further content changes justified.",
+      "dissent": [
+        "Nan is a poorer fit for deadly fairy-tale adventure; this is not a defect vote.",
+        "Bert values reliable relics but cannot demand a numerical economy contrary to the declared story.",
+        "Ines values NPC refusal; Gerry values closure. Neither requires effortless peace or compulsory persuasion success."
+      ],
+      "limits": "This completes the delegated final player-panel review for the three-campaign batch. No gameplay execution, audio comprehension, encounter-balance or runtime-persistence claim; release metadata does not substitute for those checks."
+    }
+  }
+]
