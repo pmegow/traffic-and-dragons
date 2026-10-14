@@ -7,7 +7,7 @@ assert.equal(CAPABILITY_BIBLE['catastrophic wound'].dice,'14d6 necrotic','descri
 assert.equal(CAPABILITY_BIBLE['dancing lights'].targets,'up to six lights or one glowing form');
 assert.equal(CAPABILITY_BIBLE['wall of thorns'].dice,'2d6','retain the reviewed thorn wall instead of the removed duplicate');
 assert.equal(CAPABILITY_BIBLE['wall of  thorns'],undefined,'duplicate spaced key removed');
-assert.equal(Object.keys(CAPABILITY_BIBLE).length,506);
+assert.equal(Object.keys(CAPABILITY_BIBLE).length,507);/* #628: Intimidate joined after the publication; the receipt below stays at its 506 */
 const receipt=JSON.parse(fs.readFileSync(path.join(root,'audits/capability_descriptions_applied.json'),'utf8'));
 assert.equal(receipt.rows.length,506);
 for(const r of receipt.rows){const entry=CAPABILITY_BIBLE[r.key];assert.ok(entry,'applied capability missing: '+r.key);assert.equal(entry.effect,r.description,'approved description not applied: '+r.key);assert.equal(crypto.createHash('sha256').update(JSON.stringify(entry)).digest('hex'),r.afterSha256,'published attributes drifted: '+r.key);}

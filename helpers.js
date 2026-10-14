@@ -2451,6 +2451,12 @@ function accountDoorsHtml(a){
   if(!has("google"))h+="<button class='btn-p' id='ac-link-google' style='width:100%;margin-top:8px;'>Link a Google sign-in (for the phone)</button><div style='font-size:10px;color:var(--t2);margin-top:4px;line-height:1.4;'>Links Google to THIS account \u2014 your campaigns, your tier. On the phone, sign in with Google and leave GitHub to the desktop.</div>";
   return h;
 }
+// #628 (owner 2026-10-13): ONE rule names a racial grant — the bible capability plus its recharge when it is not passive or
+// at-will ("Misty Step (1/day)"). confirmChar names the granted spell/ability with it, and the wizard's subrace and
+// lineage cards LIST their grants with it, so a grant the data carries is never invisible on the card again (the
+// Cambion cards named none; the owner read that as "no abilities"). A bare string is a passive/at-will grant.
+function racialCapName(it){var o=typeof it==="string"?{cap:it}:(it||{});var use=o.use;return String(o.cap||"")+((use&&use!=="passive"&&use!=="at-will")?" ("+use+")":"");}
+function racialCapsLabel(caps){var out=[],i;for(i=0;i<(caps||[]).length;i++){var n=racialCapName(caps[i]);if(n)out.push(n);}return out.join(", ");}
 function menuTierHidesDev(acct){
   if(!acct)return false;
   return acct.isAdmin!==true;

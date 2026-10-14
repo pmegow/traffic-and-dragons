@@ -17,11 +17,13 @@ migrateWorldState();
 for(const c of [world.character,world.npcs[0].charSheet]){changed.forEach((r,i)=>{assert.equal(c.spells[i].nm,currentName(r)+' (1/day)');assert.equal(c.spells[i].used,true);assert.equal(c.abilities[i].nm,currentName(r));assert.equal(c.abilities[i].ds,'unchanged');assert.ok(capabilityLookup(c.spells[i].nm));});assert.equal(migrateCapabilityRenames(c),false,'migration must be idempotent');}
 const html=fs.readFileSync(path.join(root,'capability-names.html'),'utf8'),vm=require('vm'),box={CAPABILITY_BIBLE,CAPABILITY_RENAMES,capBaseName};vm.runInNewContext(html.match(/<script id="names-core">([\s\S]*?)<\/script>/)[1],box);
 const old=JSON.stringify({format:'traffic-and-dragons/capability-names/v1',names:receipt.names.map(({from,to})=>({from,to}))});
-const restored=box.CapabilityNames.read(old,CAPABILITY_BIBLE);assert.equal(restored.length,506);for(const r of restored)assert.equal(capBaseName(r.to),r.from,'approved old browser draft should rebase to current key');
-assert.equal(box.CapabilityNames.forImplementation(fs.readFileSync(path.join(root,'capability-names.json'),'utf8'),CAPABILITY_BIBLE).length,506);
+/* #628: the bible grows after a publication (Intimidate, 2026-10-13); the historical draft is read against the bible it was made FOR — every key added since the publication is listed here, so the strict read() stays strict and the rebase claim stays honest */
+const ADDED_SINCE_PUBLICATION=["intimidate"],bibleAsPublished={};Object.keys(CAPABILITY_BIBLE).forEach(k=>{if(ADDED_SINCE_PUBLICATION.indexOf(k)<0)bibleAsPublished[k]=CAPABILITY_BIBLE[k];});
+const restored=box.CapabilityNames.read(old,bibleAsPublished);assert.equal(restored.length,506);for(const r of restored)assert.equal(capBaseName(r.to),r.from,'approved old browser draft should rebase to current key');
+assert.equal(box.CapabilityNames.forImplementation(fs.readFileSync(path.join(root,'capability-names.json'),'utf8'),CAPABILITY_BIBLE).length,507);
 console.log('PASS #603 approved 53 renames: historical hashes chained to approved publication, migration/player/companion/idempotence, draft restoration');
 
 const legacy=JSON.parse(old);legacy.names.find(r=>r.from==='wall of  thorns').to='Bramble Rampart';legacy.names.find(r=>r.from==='wall of thorns').to='Retired Choice';
-assert.equal(box.CapabilityNames.read(JSON.stringify(legacy),CAPABILITY_BIBLE).find(r=>r.from==='wall of thorns').to,'Bramble Rampart','consolidation preserves surviving row choice');
-legacy.names.push({...legacy.names[0]});assert.throws(()=>box.CapabilityNames.read(JSON.stringify(legacy),CAPABILITY_BIBLE),/unknown, repeated, or malformed original name/,'consolidation must not hide duplicate originals');
+assert.equal(box.CapabilityNames.read(JSON.stringify(legacy),bibleAsPublished).find(r=>r.from==='wall of thorns').to,'Bramble Rampart','consolidation preserves surviving row choice');
+legacy.names.push({...legacy.names[0]});assert.throws(()=>box.CapabilityNames.read(JSON.stringify(legacy),bibleAsPublished),/unknown, repeated, or malformed original name/,'consolidation must not hide duplicate originals');
 const current=JSON.parse(fs.readFileSync(path.join(root,'capability-names.json'),'utf8'));current.names.push({from:'unknown ability',to:'Unknown Ability'});assert.throws(()=>box.CapabilityNames.read(JSON.stringify(current),CAPABILITY_BIBLE),/does not match/,'unknown extra rows remain invalid');

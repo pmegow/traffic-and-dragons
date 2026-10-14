@@ -1654,9 +1654,9 @@ function runEngineTests(R){
   t("#378 rolling another character: a FULL re-roll builds its context without the current name/trait/flaw/motivation (three rolls used to return one name), the per-field sparkle keeps them, and the progress dots for finished steps are back-links wired to goStep",function(){
     var cc=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8"),ub=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),ih=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
     var ctx=cc.slice(cc.indexOf("function _csContext("),cc.indexOf("async function aiSuggestField("));
-    if(!/var fresh=!!\(opts&&opts\.fresh\)/.test(ctx)||!/if\(!fresh&&cs\.name\)ctx\+="Name: "/.test(ctx)||!/if\(!fresh\)\["trait","flaw","motivation"\]/.test(ctx))return "_csContext does not honour fresh";
+    if(!/var fresh=!!\(opts&&opts\.fresh\)/.test(ctx)||!/if\(!fresh&&cs\.name&&omit!=="name"\)ctx\+="Name: "/.test(ctx)||!/if\(!fresh\)\["trait","flaw","motivation"\]/.test(ctx))return "_csContext does not honour fresh";/* #628: the name line also honours omit:"name" (the name ✦) */
     var ra=cc.slice(cc.indexOf("async function aiRandomiseAll("),cc.indexOf("// Inject sparkle buttons"));if(ra.indexOf("_csContext({fresh:true})")<0)return "the full roll does not ask for a fresh context";
-    var sf=cc.slice(cc.indexOf("async function aiSuggestField("),cc.indexOf("async function aiRandomHero("));if(sf.indexOf("_csContext()")<0)return "the per-field sparkle lost its context";
+    var sf=cc.slice(cc.indexOf("async function aiSuggestField("),cc.indexOf("async function aiRandomHero("));if(sf.indexOf('_csContext(fresh&&fieldId==="char-name"?{omit:"name"}:undefined)')<0)return "the per-field sparkle lost its context (a non-fresh field keeps the full context; the name ✦ omits only the name — #628)";
     /* the dots: lift buildDots and render for step 6 */
     var bd=cc.slice(cc.indexOf("function buildDots("),cc.indexOf("}",cc.indexOf("el.innerHTML=h;"))+1);var made={};
     var f=new Function("cs","document",bd+" return buildDots();");var el={innerHTML:""};f({step:6},{getElementById:function(id){return id==="stepdots"?el:null;}});
@@ -3231,14 +3231,14 @@ function runEngineTests(R){
   });
 
   section("Cambion ancestry rename (#221)");
-  t("Cambion replaces the ancestry name and id without changing racial mechanics",function(){
+  t("Cambion replaces the ancestry name and id; the base grants are unchanged and the subrace grants are the #628 set (the earlier grant plus the owner's once-a-day pick)",function(){
     var a=ANCS.filter(function(r){return r.id==="cambion";})[0];
     if(!a||a.nm!=="Cambion")return "Cambion ancestry missing";
     if(ANCS.some(function(r){return /tiefling/i.test(r.id+" "+r.nm+" "+r.desc);}))return "retired race remains in creation";
     if(JSON.stringify(a.stats)!==JSON.stringify({CHA:2,INT:1})||a.fc!==0)return "racial stats changed";
     if(JSON.stringify(a.racial_caps)!==JSON.stringify(["Darkvision","Fire Resistance",{cap:"Hellish Rebuke",use:"1/day"}]))return "base racial grants changed";
     var grants=a.subraces.map(function(r){return [r.id,r.nm,r.racial_caps];});
-    return JSON.stringify(grants)===JSON.stringify([["infernal","Infernal",[{cap:"Disguise Self",use:"1/day"}]],["abyssal","Abyssal",["Abyssal Fury"]],["fey_tie","Fey-touched",[{cap:"Misty Step",use:"1/day"}]]])?true:"subrace choices or grants changed";
+    return JSON.stringify(grants)===JSON.stringify([["infernal","Infernal",[{cap:"Disguise Self",use:"1/day"},{cap:"Minor Illusion",use:"1/day"}]],["abyssal","Abyssal",["Abyssal Fury",{cap:"Intimidate",use:"1/day"}]],["fey_tie","Fey-touched",[{cap:"Misty Step",use:"1/day"},{cap:"Charm Person",use:"1/day"}]]])?true:"subrace choices or grants changed: "+JSON.stringify(grants);
   });
   t("ancestry migration accepts old name and editor id, preserves the rest, and is idempotent",function(){
     var cases=[["Tiefling","Cambion"],["tiefling","cambion"]];
@@ -34570,6 +34570,47 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var fs=__fsForTests,R=__rootForTests,cc=fs.readFileSync(R+"/char-creation.js","utf8"),up=fs.readFileSync(R+"/ui-portrait.js","utf8");
     if(cc.indexOf("await describePortraitImage(cs.portrait,cs.name)")<0||up.indexOf("await describePortraitImage(src,c.name)")<0)return "a call site stopped sharing the one function";
     if(/Claude vision/.test(up))return "the portrait modal still promises Claude";
+    return true;
+  });
+
+  section("#628 — wizard polish from the owner's pass (2026-10-13): grants named on the cards, the Drow and Hollow-born grants, the name ✦ rolls anew, the plume editor");
+  t("#628 ONE naming rule for a racial grant: racialCapName adds the recharge only when it is not passive or at-will; racialCapsLabel lists a card's grants; confirmChar names its grants through the same function",function(){
+    if(racialCapName("Darkvision")!=="Darkvision"||racialCapName({cap:"Thaumaturgy",use:"at-will"})!=="Thaumaturgy"||racialCapName({cap:"Fey Ancestry",use:"passive"})!=="Fey Ancestry")return "a passive or at-will grant gained a suffix";
+    if(racialCapName({cap:"Misty Step",use:"1/day"})!=="Misty Step (1/day)"||racialCapName({cap:"Shadow Step",use:"1/rest"})!=="Shadow Step (1/rest)")return "the recharge suffix: "+racialCapName({cap:"Misty Step",use:"1/day"});
+    if(racialCapsLabel(["Abyssal Fury",{cap:"Intimidate",use:"1/day"}])!=="Abyssal Fury, Intimidate (1/day)"||racialCapsLabel([])!==""||racialCapsLabel(undefined)!=="")return "the label: "+racialCapsLabel(["Abyssal Fury",{cap:"Intimidate",use:"1/day"}]);
+    var cc=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8");
+    if(cc.indexOf("var _nm=racialCapName(_it);")<0)return "confirmChar no longer names a grant through racialCapName";
+    if(!/racialCapsLabel\(sr\.racial_caps\)/.test(cc)||!/racialCapsLabel\(lg\.racial_caps\)/.test(cc)||cc.split('class="sr-grants"').length-1!==2)return "the subrace and lineage cards do not list their grants (derived, one line each)";
+    return true;
+  });
+  t("#628 the grants the owner asked for: the half-blood Drow lineage carries Darkness 1/day and names its magic; Hollow-born Shade-touched is Shadow Step 1/day and Haunted grants Speak with Dead 1/day; every grant resolves in the bible, and Intimidate is a once-a-day racial ability",function(){
+    var hb=ANCS.filter(function(r){return r.id==="halfblood";})[0],he=hb.subraces.filter(function(s){return s.id==="half_elven";})[0],drow=he.lineages.filter(function(l){return l.id==="drow";})[0];
+    if(JSON.stringify(drow.racial_caps)!==JSON.stringify(["Superior Darkvision",{cap:"Faerie Fire",use:"1/day"},{cap:"Darkness",use:"1/day"}]))return "drow lineage grants: "+JSON.stringify(drow.racial_caps);
+    if(/innate magic\.$/i.test(drow.desc)||!/darkness/i.test(drow.desc))return "the drow desc still promises undefined magic: "+drow.desc;
+    var ho=ANCS.filter(function(r){return r.id==="hollow";})[0],g={};ho.subraces.forEach(function(s){g[s.id]=s.racial_caps;});
+    if(JSON.stringify(g.shade)!==JSON.stringify([{cap:"Shadow Step",use:"1/day"}])||JSON.stringify(g.void)!==JSON.stringify(["See Invisible"])||JSON.stringify(g.haunted)!==JSON.stringify([{cap:"Speak with Dead",use:"1/day"}]))return "hollow grants: "+JSON.stringify(g);
+    var e=capabilityLookup("Intimidate");if(!e||e.kind!=="ability"||e.cost!=="per-day"||e.category.indexOf("racial")<0||!/frightened/.test(e.effect))return "Intimidate in the bible: "+JSON.stringify(e);
+    var all=["Minor Illusion","Charm Person","Darkness","Shadow Step","See Invisible","Speak with Dead","Intimidate"],i;for(i=0;i<all.length;i++){if(!capabilityLookup(all[i]))return all[i]+" does not resolve in the bible";}
+    return true;
+  });
+  t("#628 the name ✦ rolls a NEW name: the field is marked fresh, the context omits the current name, and the prompt names it as forbidden; the other fields still improve in place",function(){
+    var cc=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8");
+    if(!/\{id:"char-name",\s*label:"character name",\s*fresh:true\}/.test(cc))return "the name field is not fresh";
+    if(cc.indexOf('aiSuggestField(f.id,f.label,btn,{fresh:!!f.fresh})')<0)return "the sparkle does not pass the field's freshness";
+    var fn=cc.slice(cc.indexOf("async function aiSuggestField("),cc.indexOf("/* #354 (v1.837)"));
+    if(fn.indexOf('_csContext(fresh&&fieldId==="char-name"?{omit:"name"}:undefined)')<0)return "the name is not omitted from the context on a fresh roll";
+    if(!/do NOT reuse it, any part of it, or its given name/.test(fn)||!/Current value \(improve or replace\)/.test(fn))return "the fresh prompt or the improve prompt is gone";
+    var ctx=cc.slice(cc.indexOf("function _csContext("),cc.indexOf("async function aiSuggestField("));
+    if(ctx.indexOf('if(!fresh&&cs.name&&omit!=="name")ctx+="Name: "')<0)return "_csContext does not honour omit:name";
+    return true;
+  });
+  t("#628 the plume: Trait, Flaw and Motivation get a 🪶 that opens the large editor on modalShell; Save writes back through ONE function to the box and to cs; ui-boot injects it; the button has a style",function(){
+    var cc=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8"),ub=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),ix=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
+    if(!/var PLUME_FIELDS=\[\{id:"char-trait",key:"trait"[^\]]*\{id:"char-flaw",key:"flaw"[^\]]*\{id:"char-motivation",key:"motivation"/.test(cc))return "the three fields are not the plume's table";
+    if(cc.indexOf('modalShell("field-editor-modal"')<0||cc.indexOf('closeId:"fe-cancel",outside:true')<0)return "the editor is not on modalShell with Cancel and outside-click";
+    if(cc.indexOf("fieldEditorApply(f,ta.value);modal.remove();")<0||!/function fieldEditorApply\(f,text\)\{[^}]*el\.value=v;cs\[f\.key\]=v;/.test(cc))return "Save does not write back through fieldEditorApply to both the box and cs";
+    if(!/ev\.key==="Escape"\)\{ev\.preventDefault\(\);modal\.remove\(\);\}/.test(cc))return "Esc does not close without saving";
+    if(ub.indexOf("injectPlumeButtons();")<0||cc.indexOf('btn.className="plume-btn"')<0||ix.indexOf(".plume-btn{")<0)return "the plume is not injected at boot with its style";
     return true;
   });
 

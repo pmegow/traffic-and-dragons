@@ -153,6 +153,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   document.getElementById("rv-card").addEventListener("click",function(e){if(e.target&&e.target.closest&&e.target.closest("#rv-portrait-btn"))ftRenderPortrait(document.getElementById("rv-portrait-status"));});/* #380: delegated — the card is rebuilt on every change */
   document.getElementById("rv-go").addEventListener("click",confirmChar);
   injectSparkleButtons();
+  injectPlumeButtons();/* #628: the large editor beside Trait / Flaw / Motivation */
   document.getElementById("rv-start-loc").addEventListener("change",function(){document.getElementById("rv-start-loc-custom").style.display=this.value==="custom"?"block":"none";});
   document.getElementById("rv-start-level").addEventListener("change",function(){var b=document.getElementById("rv-go");if(b)b.textContent=parseInt(this.value)>=3?"Assign level perks":"Begin your journey";buildDots();});
   // Audit 07/16 #4: rebuild the review card only when it's visible (step 6) — goStep(6) always

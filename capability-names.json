@@ -831,6 +831,10 @@
       "to": "Insect Plague"
     },
     {
+      "from": "intimidate",
+      "to": "Intimidate"
+    },
+    {
       "from": "intimidating presence",
       "to": "Intimidating Presence"
     },

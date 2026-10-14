@@ -40,7 +40,7 @@ function showAncDetail(ancId){
   var isFlexRace=(a.fc>0),tHtml="",ti;
   if(a.traits){for(ti=0;ti<a.traits.length;ti++){var tr=a.traits[ti],di=tr.indexOf(" -- ");var bold=di>=0?tr.slice(0,di):tr,rest=di>=0?tr.slice(di+4):"";tHtml+='<div class="trbox"><span class="trb">'+bold+'</span>'+(rest?'<span class="trr"> -- '+rest+'</span>':"")+'</div>';}}
   var srHtml='<div class="slab">'+(ancId==="halfblood"?"Heritage":"Subrace")+'</div>',si2;
-  if(a.subraces){for(si2=0;si2<a.subraces.length;si2++){var sr=a.subraces[si2];var isSel=cs.subrace===sr.id;var lgBadge="";if(isSel&&cs.heritageVariant&&sr.lineages){var lgi;for(lgi=0;lgi<sr.lineages.length;lgi++){if(sr.lineages[lgi].id===cs.heritageVariant){lgBadge='<div style="font-size:10px;color:var(--acc);margin-top:4px;text-transform:uppercase;letter-spacing:.07em;">'+sr.lineages[lgi].nm+' lineage ✓</div>';break;}}}var chevron=sr.lineages&&sr.lineages.length?'<span style="font-size:10px;color:var(--t2);margin-left:6px;">▾</span>':"";srHtml+='<div class="sc sr-c'+(isSel?" sel":"")+'" onclick="pickSub('+si2+')"><div class="nm" style="margin-bottom:2px;">'+sr.nm+chevron+'</div><div style="font-size:12px;color:var(--t1);line-height:1.5;">'+sr.desc+'</div>'+lgBadge+'</div>';}}
+  if(a.subraces){for(si2=0;si2<a.subraces.length;si2++){var sr=a.subraces[si2];var isSel=cs.subrace===sr.id;var lgBadge="";if(isSel&&cs.heritageVariant&&sr.lineages){var lgi;for(lgi=0;lgi<sr.lineages.length;lgi++){if(sr.lineages[lgi].id===cs.heritageVariant){lgBadge='<div style="font-size:10px;color:var(--acc);margin-top:4px;text-transform:uppercase;letter-spacing:.07em;">'+sr.lineages[lgi].nm+' lineage ✓</div>';break;}}}var chevron=sr.lineages&&sr.lineages.length?'<span style="font-size:10px;color:var(--t2);margin-left:6px;">▾</span>':"";var srGrants=racialCapsLabel(sr.racial_caps);/* #628: the grants the data carries, derived — never a hand-written list */srHtml+='<div class="sc sr-c'+(isSel?" sel":"")+'" onclick="pickSub('+si2+')"><div class="nm" style="margin-bottom:2px;">'+sr.nm+chevron+'</div><div style="font-size:12px;color:var(--t1);line-height:1.5;">'+sr.desc+'</div>'+(srGrants?'<div class="sr-grants" style="font-size:11px;color:var(--acc);margin-top:4px;line-height:1.4;">'+escHtml(srGrants)+'</div>':"")+lgBadge+'</div>';}}
   body.innerHTML='<div style="font-size:18px;color:var(--acc);margin-bottom:4px;">'+a.nm+'</div><div style="font-size:12px;color:var(--t2);margin-bottom:10px;">'+a.bonus+'</div><div style="font-size:13px;color:var(--t1);line-height:1.7;margin-bottom:16px;">'+a.desc+'</div><div class="slab">Racial Traits</div>'+tHtml+srHtml;
   var fw=document.getElementById("flex-wrap");if(isFlexRace){if(fw)fw.style.display="block";buildFlexPick();}else{if(fw)fw.style.display="none";}
 }
@@ -49,7 +49,7 @@ function pickHeritageVariant(varId){cs.heritageVariant=varId;closeLineagePopup()
 function showLineagePopup(sr){
   var pop=document.getElementById("lineage-popup");if(!pop)return;
   document.getElementById("lp-title").textContent=sr.nm;
-  var cards="",i;for(i=0;i<sr.lineages.length;i++){var lg=sr.lineages[i];cards+='<div class="sc sr-c" onclick="pickHeritageVariant(\''+lg.id+'\')" style="text-align:left;padding:12px 14px;margin-bottom:8px;cursor:pointer;"><div class="nm" style="margin-bottom:3px;">'+lg.nm+' lineage</div><div style="font-size:12px;color:var(--t1);line-height:1.5;">'+lg.desc+'</div></div>';}
+  var cards="",i;for(i=0;i<sr.lineages.length;i++){var lg=sr.lineages[i],lgGrants=racialCapsLabel(lg.racial_caps);/* #628 */cards+='<div class="sc sr-c" onclick="pickHeritageVariant(\''+lg.id+'\')" style="text-align:left;padding:12px 14px;margin-bottom:8px;cursor:pointer;"><div class="nm" style="margin-bottom:3px;">'+lg.nm+' lineage</div><div style="font-size:12px;color:var(--t1);line-height:1.5;">'+lg.desc+'</div>'+(lgGrants?'<div class="sr-grants" style="font-size:11px;color:var(--acc);margin-top:4px;line-height:1.4;">'+escHtml(lgGrants)+'</div>':"")+'</div>';}
   document.getElementById("lp-cards").innerHTML=cards;
   pop.style.display="flex";
 }
@@ -341,7 +341,7 @@ function confirmChar(){
       var _it=typeof _caps[_ci]==="string"?{cap:_caps[_ci]}:_caps[_ci],_key=capBaseName(_it.cap);
       if(_seenCap[_key]||(_hasSuperior&&_key==="darkvision"))continue;_seenCap[_key]=1;
       var _e=(typeof capabilityLookup==="function")?capabilityLookup(_it.cap):null;if(!_e)continue;// unknown cap — the coverage-guard test blocks this shipping
-      var _nm=_it.cap+((_it.use&&_it.use!=="passive"&&_it.use!=="at-will")?" ("+_it.use+")":"");
+      var _nm=racialCapName(_it);/* #628: the one naming rule — the cards list grants with it too */
       if(_e.kind==="spell")char.spells.push({nm:_nm,lvl:_e.tier||0,used:false,racial:true});
       else char.abilities.push({nm:_nm,ds:_e.effect||"",gained:0,racial:true});
     }
@@ -513,28 +513,32 @@ function cbPick(s,v,btn){
   picks.push({s:s,v:v});window._cbPicks=picks;document.getElementById("cb-warn").textContent="";btn.style.borderColor="var(--acc)";btn.style.color="var(--acc)";document.getElementById("cb-cur-"+s).textContent=c.stats[s]+v;document.getElementById("cb-cur-"+s).style.color="var(--acc)";
 }
 // ── AI character assist ───────────────────────────────────────────────────
-function _csContext(opts){/* #378: opts.fresh — a FULL re-roll omits the current name/trait/flaw/motivation, or the model echoes them (three rolls, one name) */
-  var fresh=!!(opts&&opts.fresh),ctx="";
+function _csContext(opts){/* #378: opts.fresh — a FULL re-roll omits the current name/trait/flaw/motivation, or the model echoes them (three rolls, one name). #628: opts.omit names ONE field to leave out — the name ✦ omits the name, or the model keeps the given name and varies the surname */
+  var fresh=!!(opts&&opts.fresh),omit=(opts&&opts.omit)||"",ctx="";
   var tone=cs.tone?TONES.filter(function(t){return t.id===cs.tone;})[0]:null;
   if(tone)ctx+="World tone: "+tone.nm+(tone.vc?" — "+tone.vc:"")+"\n";
   var anc=cs.ancestry?ANCS.filter(function(a){return a.id===cs.ancestry;})[0]:null;
   if(anc)ctx+="Ancestry: "+(getSubNm()||anc.nm)+"\n";/* cs.subraceNm is never set — use getSubNm() so subrace/lineage reaches the AI-assist context (audit E58) */
   var cls=classDef(cs.cls);/* #72 C6 ①: null input → null, same as the old guard */
   if(cls)ctx+="Class: "+cls.id+"\n";
-  if(!fresh&&cs.name)ctx+="Name: "+cs.name+"\n";
+  if(!fresh&&cs.name&&omit!=="name")ctx+="Name: "+cs.name+"\n";
   if(!fresh)["trait","flaw","motivation"].forEach(function(k){var el=document.getElementById("char-"+k),v=(el&&el.value.trim())||cs[k];if(v)ctx+=k.charAt(0).toUpperCase()+k.slice(1)+": "+v+"\n";});/* #353; #378 skipped on a fresh roll */
   if(cs.gender)ctx+="Gender: "+genderLabel(cs.gender)+"\n";
   if(cs.age)ctx+="Age: "+cs.age+"\n";
   return ctx;
 }
-async function aiSuggestField(fieldId,fieldLabel,btn){
+async function aiSuggestField(fieldId,fieldLabel,btn,opts){
   if(btn){btn.classList.add("spinning");btn.disabled=true;}
-  var ctx=_csContext();
+  /* #628 (owner 2026-10-13, "clicked it eight times, only the surname changed"): a FRESH field asks for a new value with the
+     current one EXCLUDED from the context and named as forbidden. The old prompt handed the model the name twice — "Name: X"
+     in the context and "Current value (improve or replace): X" — so it improved the surname and kept the given name. */
+  var fresh=!!(opts&&opts.fresh);
+  var ctx=_csContext(fresh&&fieldId==="char-name"?{omit:"name"}:undefined);
   var el=document.getElementById(fieldId);
   var current=el?el.value.trim():"";
-  var prompt="Generate a "+(fieldLabel)+" for a dark fantasy sword & sorcery RPG character."
+  var prompt="Generate a "+(fresh?"NEW ":"")+(fieldLabel)+" for a dark fantasy sword & sorcery RPG character."
     +(ctx?"\n\nCharacter so far:\n"+ctx:"")
-    +(current?"\n\nCurrent value (improve or replace): "+current:"")
+    +(current?(fresh?"\n\nThe current "+fieldLabel+" is \""+current+"\" — do NOT reuse it, any part of it, or its given name; propose a different one.":"\n\nCurrent value (improve or replace): "+current):"")
     +"\n\nOutput ONLY the "+fieldLabel+" itself — no labels, no explanation, no quotes. 1-2 sentences max.";
   try{
     var result=await callGM(prompt,"You are a dark fantasy character creation assistant. Output ONLY the requested content, nothing else.",300);
@@ -581,7 +585,7 @@ async function aiRandomiseAll(){/* its one caller is aiRandomHero; the Review-st
 // Inject sparkle buttons next to field labels in step 2
 function injectSparkleButtons(){
   var fields=[
-    {id:"char-name",      label:"character name"},
+    {id:"char-name",      label:"character name", fresh:true},/* #628: a name is rolled anew, never "improved" */
     {id:"char-appear",    label:"physical appearance"},
     {id:"char-backstory", label:"backstory"},
     {id:"char-trait",      label:"personality trait (one line)"},
@@ -593,8 +597,36 @@ function injectSparkleButtons(){
     var lbl=el.parentNode.querySelector("label");if(!lbl||lbl.querySelector(".ai-spark"))return;
     var btn=document.createElement("button");
     btn.type="button";btn.className="ai-spark";btn.textContent="✦";btn.title="AI suggest";
-    btn.addEventListener("click",function(){aiSuggestField(f.id,f.label,btn);});
+    btn.addEventListener("click",function(){aiSuggestField(f.id,f.label,btn,{fresh:!!f.fresh});});
     lbl.appendChild(btn);
+  });
+}
+/* #628 (owner 2026-10-13): a single-line Trait / Flaw / Motivation box is too small to read. A 🪶 plume beside each opens a
+   large editor — the blueprint designer's ⤢ breakout, on the game's modalShell (focus contained, the opener restored on
+   close). Save writes the text back to the box AND to cs through ONE function; Cancel, Esc or a click outside keeps both. */
+var PLUME_FIELDS=[{id:"char-trait",key:"trait",label:"Trait"},{id:"char-flaw",key:"flaw",label:"Flaw"},{id:"char-motivation",key:"motivation",label:"Motivation"}];
+function fieldEditorApply(f,text){var v=String(text||"").replace(/\s+/g," ").trim(),el=document.getElementById(f.id);if(el)el.value=v;cs[f.key]=v;return v;}
+function showFieldEditorModal(f){
+  var el=document.getElementById(f.id),cur=el?el.value:"";
+  var btnStyle="padding:9px 14px;font-family:var(--font);font-size:12px;border-radius:var(--r);cursor:pointer;";
+  var html="<div style='display:flex;align-items:center;gap:8px;margin-bottom:8px;'><span style='font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);flex:1;'>"+escHtml(f.label)+"</span></div>"
+    +"<textarea id='fe-ta' aria-label='"+escHtml(f.label)+"' style='width:100%;box-sizing:border-box;height:40vh;min-height:160px;resize:vertical;font-size:15px;line-height:1.6;font-family:var(--font);background:var(--bg2);color:var(--t0);border:1px solid var(--brd);border-radius:var(--r);padding:10px;'></textarea>"
+    +"<div style='font-size:11px;color:var(--t2);margin:8px 0;'>One line on the sheet — the GM reads it every turn. Esc or Cancel keeps the old text.</div>"
+    +"<div style='display:flex;gap:8px;justify-content:flex-end;'><button type='button' id='fe-cancel' style='"+btnStyle+"background:var(--bg3);border:1px solid var(--brd2);color:var(--t1);'>Cancel</button><button type='button' id='fe-save' style='"+btnStyle+"background:var(--acc);border:none;color:var(--on-acc);font-weight:bold;'>Save</button></div>";
+  var modal=modalShell("field-editor-modal",html,{maxWidth:720,closeId:"fe-cancel",outside:true});
+  var ta=modal.querySelector("#fe-ta");ta.value=cur;ta.focus();
+  modal.querySelector("#fe-save").addEventListener("click",function(){fieldEditorApply(f,ta.value);modal.remove();});
+  modal.addEventListener("keydown",function(ev){if(ev.key==="Escape"){ev.preventDefault();modal.remove();}});
+  return modal;
+}
+function injectPlumeButtons(){
+  PLUME_FIELDS.forEach(function(f){
+    var el=document.getElementById(f.id);if(!el||(el.parentNode&&el.parentNode.querySelector(".plume-btn")))return;
+    var row=document.createElement("div");row.style.cssText="display:flex;align-items:center;gap:6px;";
+    el.parentNode.insertBefore(row,el);row.appendChild(el);el.style.flex="1";el.style.minWidth="0";
+    var btn=document.createElement("button");btn.type="button";btn.className="plume-btn";btn.textContent="🪶";btn.title="Open a larger editor";btn.setAttribute("aria-label","Open a larger editor for "+f.label);
+    btn.addEventListener("click",function(){showFieldEditorModal(f);});
+    row.appendChild(btn);
   });
 }
 function cbBack(){
