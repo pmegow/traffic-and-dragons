@@ -1,0 +1,22 @@
+{
+  "source": "samples/the_princess_is_not_in_danger.blueprint",
+  "outcome": "The absurdity survives. Both panels completed a baseline assessment and three full rereads: fourteen perspectives at each snapshot, fifty-six assessments in total. Four small story-field repairs resolve the source inconsistencies; all three subsequent passes found no further material editorial issue. No extra rewrite was made merely to fill the later passes.",
+  "publication": "v1.02 Release Candidate is ready for guarded publication after the full test gate and source commit.",
+  "changes": [
+    "Preserved the newer live v1.01 RC (catalog revision 4) as the baseline. The bundled v0.01 sample was stale; its original bytes and the complete live catalog entry are archived alongside the reviews. The local catalog pitch now matches the existing live pitch; no new marketing claim was added.",
+    "Aligned the single governing midnight clause with the repeatedly announced Thursday-dawn deadline. The silent bell, eyebrow calendar, impossible Boots and embarrassment-only failure remain.",
+    "Clarified Grunwald’s ceremonial objection in the final turning point. He still cannot see how to conclude a proper rescue, and still believes himself cursed; Wilhelmina remains free to leave. The writing-panel dissent against turning him into a captor or making him sensible is preserved.",
+    "Restored the original Cloak punchline from the older bundled source: only the wearer’s left elbow becomes invisible, presented with great ceremony. The live field ended at “renders only the” at exactly 800 characters. The repaired scene is 654 characters; duplicate defensive-fire wording was removed from that scene while the unchanged NPC and creature notes retain it. This verifies the incomplete source and cap-safe repair, without claiming how the original truncation occurred.",
+    "Made the ghost-audience coda conditional on an arranged reading and notification. Other valid endings keep their actual outcome, including an unfulfilled literary ambition. No postal timetable or extra quest was added.",
+    "All NPCs, creatures, locations and other story fields have exactly the same JSON values as the live baseline. Keep the hat committee, all nine marrows, postal passengers, amateur theatre, Keith’s quiz, the opinionated forest, committee hydra, cheese, useless relics and dry seriousness. No realism overhaul, generic bypass routes or new villain.",
+    "The old designer-review annotations remain in the captured baseline; they were removed from the revised candidate so historical findings are not presented as current review status. The edition advances once, from 1.01 to 1.02, because later rereads required no content changes."
+  ],
+  "verification": "Real-engine normalization/import probe passed: all 147 authored text fields preserved, with 16 arcs, 14 NPCs, 7 locations and 6 custom rules. Static boundary checks cover the midnight/dawn discrepancy, complete Cloak effect below the cap, ceremonial rather than physical restriction, and conditional audience. Full test-gate and rendered report checks are recorded before publication. No generated or human playtest was performed.",
+  "rounds": [
+    "Baseline: live v1.01 RC, catalog revision 4; reviewed rather than overwriting it with the older bundled sample. Four distinct material issues; differences of interpretation and tone-preserving dissent are recorded below.",
+    "Pass 1: v1.02 RC repairs four story fields. All fourteen perspectives reread the whole candidate and find no new material issue.",
+    "Pass 2: a separate full reread of unchanged v1.02 RC. All fourteen perspectives remain clean; no cosmetic edits are manufactured to create another edition.",
+    "Pass 3: final full reread of unchanged v1.02 RC. All fourteen perspectives remain editorially clean. This is three review passes after the baseline, not a claim of three playtests."
+  ],
+  "remaining": "Actual play remains the owner check: arrive between midnight and dawn, decline the memoir booking, acquire the Cloak, and listen for whether the narrator retains the deadpan and limited effects. Audio recall, comic timing, session duration and player enjoyment were not established by these reviews."
+}

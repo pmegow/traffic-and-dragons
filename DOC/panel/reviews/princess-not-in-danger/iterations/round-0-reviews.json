@@ -1,0 +1,672 @@
+[
+  {
+    "round": 0,
+    "blueprintSha256": "e9522dfffe88f0ee02a905df32479f2679bfd8530b375e4b7a9136c0a22ce1e4",
+    "reviewers": [
+      {
+        "name": "Gygax lens",
+        "lensFile": "DOC/panel/gygax_lens.md",
+        "verdict": "Strong comic adventure framework. Preserve its impossible premises; two literal text inconsistencies affect adjudication rather than supplying a joke.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "The governing deadline remains midnight while the story promises dawn",
+            "severity": "medium",
+            "kind": "content / success-condition conflict",
+            "basis": "1.1 and 1.2 (DMG p.37, A, primary); 5.3 (DMG preface A / Dragon B:26, primary).",
+            "blueprintEvidence": [
+              "premise: \"before Thursday dawn\"",
+              "acts[2].arcs[4].dnaHint: \"Thursday is tomorrow, and the princess must be home before Thursday dawn.\"",
+              "acts[3].arcs[4].objective: \"before Thursday dawn, whether or not the calendar bell rings\"",
+              "rules[4]: \"before Thursday begins at midnight\""
+            ],
+            "reason": "A return after midnight but before dawn both satisfies the stated quest and fails its governing fulfillment rule. The unknown weekday, silent bell and unexplained Boots are intentional comic impossibilities; this separate mismatch changes whether the player's accomplished rescue counts.",
+            "recommendation": "Use Thursday dawn in the governing rule to match the repeated live story deadline. Keep the monks' eyebrow calendar, uncertainty before the revelation, impossible ten-minute Boots and embarrassment-only failure. No realistic route timetable or countdown system is needed.",
+            "mitigation": "rules[4] already makes missing the deadline social embarrassment and never a barrier to departure. The issue is inconsistent success labeling, not lethal time pressure.",
+            "confidence": "High"
+          },
+          {
+            "title": "The Cloak entry is an unfinished sentence, leaving its intentionally slight effect absent",
+            "severity": "medium",
+            "kind": "content / incomplete artifact definition",
+            "basis": "5.3 (A/B:26, primary); 7.3 (DMG p.9, A, primary, rules serve imagination rather than simulation).",
+            "blueprintEvidence": [
+              "acts[3].arcs[3].dnaHint: \"The Cloak of Slight Invisibility, folded on the dragon's hoard, renders only the\"",
+              "rules[3]: \"use only their explicitly described effects, not usefulness inferred from their names\"",
+              "rules[3]: \"the Cloak of Slight Invisibility on Grunwald's hoard in Mount Considerable\""
+            ],
+            "reason": "The only effect description ends at an incomplete object. The governing rule correctly forbids guessing powers from the name, so the narrator has no authored effect to apply. An almost useless cloak is the intended joke; a missing end of its sentence is not a defined comic limitation.",
+            "recommendation": "Finish the sentence with one deliberately trivial visible scope, or recover its intended ending if available. Keep it disappointing and avoid upgrading it into normal invisibility. Verify the completed authored line survives the import cap, without asserting this review diagnosed the original truncation mechanism.",
+            "mitigation": "The location is already fixed and the anti-inferred-power rule should remain. Only the missing payload of the joke needs restoring.",
+            "confidence": "High"
+          }
+        ],
+        "uncertainty": "No numeric simulation or logical repair of talking trees, ghost audiences throwing things they cannot pick up, self-deprecating mountains or temporal footwear is recommended. No runtime or import check was performed."
+      },
+      {
+        "name": "Harper lens",
+        "lensFile": "DOC/panel/harper_lens.md",
+        "verdict": "The main rules already distinguish social pressure from magical restraint. One stale scene directive blurs that distinction at the decision point.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "The final turning point presents inability to release as a fact instead of ceremonial insistence",
+            "severity": "medium",
+            "kind": "scene-directive conflict / model-compliance risk",
+            "basis": "1.2 (S:action-roll, primary); 7.3 (S:basics, primary); 7.6 (LF, primary).",
+            "blueprintEvidence": [
+              "acts[3].turningPoint: \"he cannot release the princess until the prophecy is fulfilled or the curse is lifted\"",
+              "acts[3].arcs[3].dnaHint: \"this is a request, not a condition of her freedom to leave.\"",
+              "npcs[10].notes: \"never physically prevents Wilhelmina from leaving\"",
+              "rules[4]: \"The prophecy imposes no supernatural restrictions or consequences for disbelief or failure\""
+            ],
+            "reason": "Grunwald may sincerely insist that Tradition says he cannot possibly release someone without a rescue. That bureaucratic absurdity is a strength. But the turning point presently states inability without that qualification, against the explicit local and global rules allowing departure; the narrator could enforce a condition the campaign otherwise denies.",
+            "recommendation": "Keep his solemn claim and curse belief, but qualify the turning point as his ceremonial objection or insistence, with physical departure still possible. Do not make him breezily sensible, remove the perceived obligation or replace his dialogue with a consent lecture.",
+            "mitigation": "The Third Volume hint, Grunwald's NPC record and rules[4-5] already strongly protect the intended interpretation. This is one remaining conflicting directive, not evidence of an actual forced-captivity session.",
+            "confidence": "High on the conflicting wording; medium on practical impact because three other passages mitigate it."
+          }
+        ],
+        "uncertainty": "The prophecy need not become rational. The intended scene is negotiation with an excessively courteous believer, not a new threat or a requirement to abolish every comic institution."
+      },
+      {
+        "name": "Baker lens",
+        "lensFile": "DOC/panel/baker_lens.md",
+        "verdict": "NPC wants and customs offer ample material to play with; the final coda should depend on the particular ridiculous solution chosen.",
+        "resolved": [],
+        "findings": [
+          {
+            "title": "The Return always supplies the theatre booking even when a different valid ending was chosen",
+            "severity": "medium",
+            "kind": "content / unearned ending outcome",
+            "basis": "1.3 and 6.2 (AW-REF, primary); 6.3 (AW-REF, primary); 5.4 (AW-THR, primary).",
+            "blueprintEvidence": [
+              "rules[4]: \"Any ending that meets these conditions counts\"",
+              "acts[3].arcs[3].dnaHint: \"The real solution is a booking\"",
+              "npcs[3].notes: \"The Players can leave Mildew Hall to attend a reading at Mount Considerable once notified through Percival.\"",
+              "acts[3].arcs[4].dnaHint: \"a dragon is reading the first line of volume one to an audience of the dead, and it is going well.\""
+            ],
+            "reason": "The rules welcome any ingenious ceremonial fulfillment, and Wilhelmina can leave without curing the alleged curse. Nevertheless, the final instruction asserts an attended memoir reading even if no booking or notification occurred. It silently performs an unchosen solution and erases the distinction between rescuing the princess and finding Grunwald an audience.",
+            "recommendation": "Keep the theatre booking as a particularly pleasing offered solution. Make its lovely coda conditional on the actual booking/notification; for other endings, close on whatever audience, ceremony or unresolved literary ambition really resulted. One short conditional can do this; no delivery tracking exercise is needed.",
+            "mitigation": "Ottoline already authorizes company members to book material and explicitly welcomes the memoirs; Percival notification already supplies the mechanism. The intended booking ending works as written when selected, and should retain its full joke and warmth.",
+            "confidence": "High"
+          }
+        ],
+        "uncertainty": "The stored AW principles are coauthored by Vincent and Meguey Baker. Do not remove comic task gates, replace NPC convictions with frictionless agreement or insist every encounter offer a generic bypass. Only an outcome that can contradict the chosen ending is flagged."
+      },
+      {
+        "name": "Laws lens",
+        "lensFile": "DOC/panel/laws_lens.md",
+        "verdict": "The earlier local refinements make the central investigations and comic gates playable; no new independent material finding under this lens.",
+        "resolved": [],
+        "findings": [],
+        "uncertainty": "1.2 and 1.3 (SRD, primary) support the fixed natural-death answer in npcs[3].secret and its unrevised replay; 1.7 (XX-two, primary) supports Keith's admission, trees and Ambrose as alternatives in npcs[5].secret. Gudrun's explicit nine-entry process and Keith's three attempted answers are intended comic tolls, not errors to remove. The Hydra's motions do not specify a formal victory certificate, but the text permits ingenious play and does not demonstrably erase a choice; no additional mandatory procedure is recommended just to make the joke mechanical. The literal deadline and missing Cloak effect are already recorded above."
+      },
+      {
+        "name": "Moran lens",
+        "lensFile": "DOC/panel/moran_lens.md",
+        "verdict": "Preserve the emotional underside: a dead Colonel relieved not to have been murdered, an understudy wanting one scene, Keith regretting a remark, and a dragon who wants a reader. No independent additional material finding.",
+        "resolved": [],
+        "findings": [],
+        "uncertainty": "2.2 and 7.3 (S2, primary) support the small personal wants beneath the institutions; 2.7 (S2, primary) and 4.6 (S1, primary, cautious translation) support an ending that reflects the chosen solution. The memoir audience is an especially good payoff when arranged, not an obligation every ending must secretly satisfy. Do not make useless relics useful, diagnose Ambrose into reasonableness, abolish the marrow or remove Wilhelmina's voluntary courtesy. Emotional effect is unobserved."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Align the single governing midnight reference with the story's Thursday-dawn deadline.",
+        "Restore the unfinished Cloak effect while preserving its uselessness; ensure the repaired text survives import.",
+        "Make Grunwald's turning-point inability explicitly ceremonial while retaining his solemn insistence.",
+        "Condition the final memoir audience on the booking/notification actually arranged; keep that ending warmly absurd."
+      ],
+      "dissent": [
+        "The live 1.01 RC source was reviewed, not the stale repository sample. Its embedded review was read as historical data only; these findings were verified independently against current fields, and no historical applied status was treated as proof.",
+        "Comic contradictions are assets here: people becoming post, precise marrow etiquette, a bell that determines public weekday knowledge, argumentative north, a head voting not to bite, spectacles fixing a basilisk and useless speaking relics all remain. They do not require realistic explanations.",
+        "Do not convert the marrow judging, theatrical membership, Keith's autobiographical quiz, Ambrose's vanity or the Rescue Trials into optional generic errands merely because they are gates. The player has an intelligible comic task; preserve it.",
+        "There is no need for a blanket safety checklist, institutional reform, villain reveal or logistical simulation. Global warning/withdrawal guidance and Grunwald's limited defensive fire already exist; do not repeat them across every joke.",
+        "All five stored lenses and the complete source, including NPCs, creatures and historical review data, were considered. Hash and quoted anchors were verified. No human/generated playtest, runtime compliance, timing estimate or import validation is asserted. No one-hour target applies."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "e9522dfffe88f0ee02a905df32479f2679bfd8530b375e4b7a9136c0a22ce1e4",
+    "reviewers": [
+      {
+        "name": "Le Guin lens",
+        "lensFile": "DOC/panel/leguin_lens.md",
+        "verdict": "The social rather than heroic stakes are coherent comic choices. Correct one competing deadline; leave the impossible calendar culture intact.",
+        "resolved": [
+          {
+            "text": "The supposed rescue is a problem of attention, permission and manners, not a disguised need to defeat the dragon. A willing audience is a fitting conclusion, and Wilhelmina's departure is not magically purchased.",
+            "basis": "§4.1–4.5 story beyond conflict/container narrative (◐); §4.6 story versus imposed plot (●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[3].arcs[3].dnaHint",
+                "quote": "this is a request, not a condition of her freedom to leave."
+              },
+              {
+                "path": "rules[4]",
+                "quote": "missing its deadline causes embarrassment but never prevents Wilhelmina's departure."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The fulfillment rule uses midnight while the announced deadline is dawn",
+            "kind": "material rule inconsistency, not intended comic impossibility",
+            "severity": "medium",
+            "basis": "§8.4 informed consequence and §9.1 consistent fictional world (◐ secondary); applied to the publicly stated completion condition.",
+            "blueprintEvidence": [
+              {
+                "path": "premise",
+                "quote": "before Thursday dawn"
+              },
+              {
+                "path": "acts[2].arcs[4].dnaHint",
+                "quote": "the princess must be home before Thursday dawn."
+              },
+              {
+                "path": "rules[4]",
+                "quote": "before Thursday begins at midnight"
+              }
+            ],
+            "reason": "Returning during the hours between midnight and dawn is both timely and late depending on the field used. The joke is that nobody knows the day, not that the narrator silently swaps the publicly announced deadline.",
+            "recommendation": "Change the single midnight clause to the established Thursday-dawn condition. Keep Wednesday discovery, the silent bell, unexplained ten-minute boots and embarrassment-only failure; add no clock machinery.",
+            "mitigation": "All failure consequences are explicitly social, so this is not a lethal timing trap. Most text already agrees on dawn; one small replacement suffices.",
+            "confidence": "high"
+          }
+        ],
+        "uncertainty": "Documented rubric application, not author participation. §17 corpus requirements prohibit claims about generated comic timing, rhythm or experienced effect."
+      },
+      {
+        "name": "Leiber lens",
+        "lensFile": "DOC/panel/leiber_lens.md",
+        "verdict": "Keep the strange objects strange and frequently unhelpful. One unfinished relic sentence prevents its authored joke and effect from being known.",
+        "resolved": [
+          {
+            "text": "The menace and comedy share the same scene: a manticore is also the critic, and a hydra's attack requires a committee decision. These are intended fictional laws, not continuity errors needing realistic replacement.",
+            "basis": "§4.1–4.2 broad/character-based comedy (B:2 and C:1 ◐), §9.1 wonder beside fear (A:5 ●/◐).",
+            "blueprintEvidence": [
+              {
+                "path": "creatures[2].notes",
+                "quote": "His spines are real and venomous; his heckling is worse."
+              },
+              {
+                "path": "creatures[4].notes",
+                "quote": "must be unanimous to bite."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The Cloak's defining joke is truncated before its effect",
+            "kind": "incomplete source text",
+            "severity": "medium",
+            "basis": "§9.5 convincing fictional continuity (A:5 ●/◐), with §4.1–4.2 comic register (◐) constraining the repair.",
+            "blueprintEvidence": [
+              {
+                "path": "acts[3].arcs[3].dnaHint",
+                "quote": "renders only the"
+              },
+              {
+                "path": "rules[3]",
+                "quote": "use only their explicitly described effects, not usefulness inferred from their names"
+              }
+            ],
+            "reason": "The scene ends mid-sentence at the only attempted description of what the Cloak makes invisible. The rule specifically forbids inferring usefulness from its name, so no complete effect exists to apply or to deliver the punchline.",
+            "recommendation": "Finish just the Cloak's modest, comic effect, preferably restoring the intended original wording if available. Do not upgrade it into useful full invisibility, explain its physics or rewrite the surrounding booking joke.",
+            "mitigation": "Its location is already fixed and it is not needed for rescue. This is a missing phrase rather than a demand for a relic subsystem.",
+            "confidence": "high"
+          }
+        ],
+        "uncertainty": "The lantern embarrassing a lie, a north-ish ring and inexplicable boots require no realism audit. No runtime humor or item behavior was tested."
+      },
+      {
+        "name": "Jemisin lens",
+        "lensFile": "DOC/panel/jemisin_lens.md",
+        "verdict": "The institutions are the comic obstacle, and the blueprint permits a different ending. Make its final tableau depend on the arrangement actually chosen.",
+        "resolved": [
+          {
+            "text": "Belief and protocol maintain the predicament without a hidden villain. The marrow demands a sincere process rather than flattering the champion; Keith's disappointed corrections still permit passage. These comic gates have actual completion conditions.",
+            "basis": "§3.2 self-maintaining social power (LS ●), §9.3 consequential choices (WE ●), used as an application to institutional comedy.",
+            "blueprintEvidence": [
+              {
+                "path": "rules[5]",
+                "quote": "there is no villain."
+              },
+              {
+                "path": "npcs[2].notes",
+                "quote": "even when she loses"
+              },
+              {
+                "path": "npcs[5].notes",
+                "quote": "regardless of how many answers were correct."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "The return scene awards the booked reading even when another ending was chosen",
+            "kind": "authored outcome condition missing",
+            "severity": "medium",
+            "basis": "§9.3 choices alter outcomes (WE ●); §5.1 planned structure (WE ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[3].goal",
+                "quote": "or find a better ending than the prophecy's"
+              },
+              {
+                "path": "npcs[3].notes",
+                "quote": "once notified through Percival."
+              },
+              {
+                "path": "acts[3].arcs[4].dnaHint",
+                "quote": "reading the first line of volume one to an audience of the dead"
+              }
+            ],
+            "reason": "The NPC notes establish permission to book and a notification route, while the ending permits other solutions. The return nevertheless narrates the full audience as already present. That can invent a booking or notification the player declined, rather than letting a different clever settlement stand.",
+            "recommendation": "Condition that one closing image on the reading having been arranged and the Players notified. Otherwise close on the actual chosen arrangement, including the possibility that volume three remains an unresolved social threat. Keep the intended reading ending exactly as funny when earned.",
+            "mitigation": "The intended solution is feasible: company members may book and the ghosts can travel. No realistic ghost transport, scheduling system or extra quest is needed; a short condition is sufficient.",
+            "confidence": "high"
+          }
+        ],
+        "uncertainty": "The concern is authored outcome logic, not demonstrated model behavior. Do not replace marrow, performance, quiz or Trials with generic optional side quests merely to maximize branching."
+      },
+      {
+        "name": "Abercrombie lens",
+        "lensFile": "DOC/panel/abercrombie_lens.md",
+        "verdict": "No separate material finding. The dry institutional seriousness, character vanity and sincere courtesy are the point; resist explanatory or protective rewrites.",
+        "resolved": [
+          {
+            "text": "The characters' self-understanding sustains the jokes: the herald admires someone who did not flee; the veteran knowingly counts forfeits as winning; the director manufactures a murder for dramaturgical reasons. Their motives need no sinister replacement.",
+            "basis": "§5.4 understandable people (B:Fantasy-Hive ●), §6.1–6.3 motives without excuse (B:Fantasy-Hive ●), §4.1–4.4 humor and restraint (B:SFFWorld, B:Winter is Coming, B:Dark Matter Zine ●).",
+            "blueprintEvidence": [
+              {
+                "path": "npcs[1].secret",
+                "quote": "the only person in the square who did not run"
+              },
+              {
+                "path": "npcs[9].secret",
+                "quote": "has decided that this is a kind of winning."
+              },
+              {
+                "path": "npcs[3].secret",
+                "quote": "Ottoline invented the murder because it made a better second act"
+              }
+            ]
+          },
+          {
+            "text": "Grunwald's social inability to release a princess without ceremony can remain an absurd statement of manners, because the private facts explicitly permit departure. The dragon is courteous, not a secretly coercive villain.",
+            "basis": "§5.4 self-understanding (B:Fantasy-Hive ●), §8.1 honesty (A:Advice ●), §4.4 comic restraint (B:Dark Matter Zine ●).",
+            "blueprintEvidence": [
+              {
+                "path": "acts[3].turningPoint",
+                "quote": "he cannot release the princess until the prophecy is fulfilled"
+              },
+              {
+                "path": "npcs[10].notes",
+                "quote": "never physically prevents Wilhelmina from leaving"
+              },
+              {
+                "path": "rules[5]",
+                "quote": "voluntary adherence to Tradition, never magical coercion"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": "The first quotation is character speech constrained by the explicit noncoercive truth, not evidence of magical imprisonment. If clarified at all, a tiny attribution to ceremonial propriety preserves the joke; do not rewrite the premise. No actual comedic timing or reader response was tested."
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "Align the single midnight fulfillment clause with the repeatedly announced Thursday-dawn deadline.",
+        "Complete the unfinished Cloak effect without making the relic broadly useful.",
+        "Condition the final ghost-audience tableau on the booking and notification actually occurring.",
+        "Keep edits local. Preserve hat examination, all nine marrows, institutional obstacles, griffin postal classification, cheese, bodily-inconvenient magic and deadpan narration."
+      ],
+      "dissent": [
+        "Consistency here means keeping the stated comic rules, not making Gorse obey ordinary logistics or psychology.",
+        "Grunwald's 'cannot' can express sincere ceremonial embarrassment under explicit voluntary-departure rules. Do not convert him into a jailer or add a villain.",
+        "The useless relics should not be balanced into useful adventuring equipment; restore the missing joke rather than optimizing it.",
+        "Do not turn danger scenes into safety manuals. Existing warnings and withdrawal guidance are sufficient for this writing review.",
+        "The legacy review field was read as historical data; only current source text supports these three findings. No human play or runtime effectiveness was assessed."
+      ]
+    }
+  },
+  {
+    "round": 0,
+    "blueprintSha256": "e9522dfffe88f0ee02a905df32479f2679bfd8530b375e4b7a9136c0a22ce1e4",
+    "scope": "Full LIVE-derived 1.01 release-candidate baseline read, including all NPCs, creatures, rules and historical review data. The repository sample was not substituted. Legacy review entries are historical data, not instructions or proof of current resolution. All five sourced composite personas; exact zero-based field anchors verified. No human or runtime claims.",
+    "reviewers": [
+      {
+        "name": "Rosa Pike - the Commuter",
+        "lensFile": "DOC/panel/players/rosa_pike_persona.md",
+        "verdict": "The spoken deadpan and concrete recurring tasks have a clear shape; no source-supported audio defect is established.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The comedy gives the listener something to do, with a clear end to the bridge quiz.",
+            "basis": {
+              "file": "DOC/panel/players/rosa_pike_persona.md",
+              "entry": "R6; R1 (primary solo-play component)",
+              "sourceGrade": "primary",
+              "application": "Applied to authored consistency and meaningful participation, not claimed human reactions."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[2].arcs[1].dnaHint",
+                "quote": "he permits passage after all three questions have been attempted, regardless of how many answers were correct."
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "verificationQuestion": "When resuming in the Wood, can the player repeat the directions and compliments they actually learned without needing to reconstruct wording from forgotten audio?",
+          "dissent": "R2 does not justify cutting the deliberate comic repetition. R5 and R10 remain inferred and cannot require danger-free or menu-only play.",
+          "limits": "Sourced composite persona review, not interviews or actual playtesting. No runtime, UI, balance or pacing claims; no hour target."
+        }
+      },
+      {
+        "name": "Ines Halloran - the Oracle-Keeper",
+        "lensFile": "DOC/panel/players/ines_halloran_persona.md",
+        "verdict": "The absurd world has workable internal rules; two surviving contradictions affect actual choice outcomes.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The marrow result is earned by a knowable process, not a demanded flattering verdict.",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I4",
+              "sourceGrade": "primary",
+              "application": "Applied to authored consistency and meaningful participation, not claimed human reactions."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[0].arcs[1].dnaHint",
+                "quote": "Judging rightly means inspecting all nine entries and announcing a reasoned winner, not choosing any particular entry."
+              },
+              {
+                "field": "npcs[2].notes",
+                "quote": "even when she loses"
+              }
+            ]
+          },
+          {
+            "text": "The apparent murder has a fixed comic answer and an actionable discovery.",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I2; I5",
+              "sourceGrade": "primary",
+              "application": "Applied to authored consistency and meaningful participation, not claimed human reactions."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[3].secret",
+                "quote": "Colonel Augustus Frisk died of natural causes while asleep in his locked room in 1712."
+              },
+              {
+                "field": "npcs[3].secret",
+                "quote": "asking the house for an unrevised replay of his death reveals him dying naturally in his sleep"
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Use one deadline for technical fulfillment",
+            "kind": "conflicting-success-condition",
+            "severity": "P1",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I5",
+              "sourceGrade": "primary",
+              "application": "Applied to authored consistency and meaningful participation, not claimed human reactions."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "premise",
+                "quote": "before Thursday dawn"
+              },
+              {
+                "field": "acts[3].arcs[4].objective",
+                "quote": "before Thursday dawn"
+              },
+              {
+                "field": "rules[4]",
+                "quote": "before Thursday begins at midnight"
+              }
+            ],
+            "reason": "A return after midnight but before dawn both satisfies and fails the written prophecy. This changes the result of the player's chosen plan, rather than contributing to the joke that nobody knows the day.",
+            "recommendation": "Align the formal rule to the repeatedly stated Thursday dawn, or choose one other consistent deadline. Keep the silent calendar bell, uncertainty about Wednesday, inexplicable ten-minute Boots and embarrassing lateness; do not add a minute-by-minute travel budget.",
+            "mitigation": "The rule already makes late arrival embarrassing rather than supernatural punishment, and the current Wednesday afternoon schedule is explicit. The historical review is not proof this active contradiction is fixed.",
+            "confidence": "High textual confidence; no gameplay failure observed."
+          },
+          {
+            "title": "Remove the surviving mandatory-captivity claim from the act transition",
+            "kind": "choice-contradiction",
+            "severity": "P1",
+            "basis": {
+              "file": "DOC/panel/players/ines_halloran_persona.md",
+              "entry": "I1; I3; I5",
+              "sourceGrade": "primary",
+              "application": "Applied to authored consistency and meaningful participation, not claimed human reactions."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[3].turningPoint",
+                "quote": "he cannot release the princess until the prophecy is fulfilled or the curse is lifted"
+              },
+              {
+                "field": "acts[3].arcs[3].dnaHint",
+                "quote": "this is a request, not a condition of her freedom to leave."
+              },
+              {
+                "field": "npcs[10].notes",
+                "quote": "never physically prevents Wilhelmina from leaving"
+              }
+            ],
+            "reason": "The turning point still asserts an enforced release condition where the scene and NPC explicitly preserve her freedom. This could invalidate simply leaving with her, which is already an intended socially awkward option. The absurd pressure of politeness works without a contradictory magical lock.",
+            "recommendation": "Make the turning point say Grunwald requests an appropriately ceremonial explanation, while Wilhelmina would prefer it before volume three. Retain the false curse belief, excessive courtesy and opportunity to book an audience; do not add a consent speech or real villain.",
+            "mitigation": "The detailed scene, dragon notes and prophecy rules already distinguish voluntary Tradition from supernatural coercion. Only the conflicting transition needs alignment.",
+            "confidence": "High textual confidence; no gameplay failure observed."
+          }
+        ],
+        "uncertainty": {
+          "verificationQuestion": "Return after midnight but before dawn, having politely declined the memoir booking: does the narrator apply one deadline and allow Wilhelmina to leave?",
+          "dissent": "A serious marrow hearing, impossible postal classification and argumentative trees are the point. Do not add generic bypasses or realist causes just because these tasks are ridiculous. Coherence means stable comic rules, not realistic physics.",
+          "limits": "Sourced composite persona review, not interviews or actual playtesting. No runtime, UI, balance or pacing claims; no hour target."
+        }
+      },
+      {
+        "name": "Bert Kovac - the Quartermaster",
+        "lensFile": "DOC/panel/players/bert_kovac_persona.md",
+        "verdict": "The deliberately unimpressive relics need no improvement; one effect is literally missing.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The Helm has a bounded comic effect without taking over the player's actions.",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9",
+              "sourceGrade": "primary",
+              "application": "Applied to reliability of the stated effect, not numerical optimization."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[3]",
+                "quote": "The Helm of Overwhelming Confidence induces unwarranted confidence without improving competence or compelling actions."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Restore the missing end of the Cloak joke",
+            "kind": "truncated-effect",
+            "severity": "P2",
+            "basis": {
+              "file": "DOC/panel/players/bert_kovac_persona.md",
+              "entry": "B5; B9",
+              "sourceGrade": "primary",
+              "application": "Item-reliability evidence applied by analogy; the request is a defined comic effect, not useful equipment or stronger rewards."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[3].arcs[3].dnaHint",
+                "quote": "The Cloak of Slight Invisibility, folded on the dragon's hoard, renders only the"
+              },
+              {
+                "field": "rules[3]",
+                "quote": "use only their explicitly described effects, not usefulness inferred from their names"
+              }
+            ],
+            "reason": "The only effect description stops mid-sentence. The explicit-effects rule correctly prevents upgrading relics based on their names, but here leaves no effect or completed punchline to honor. This is missing text, not intentional useful uselessness.",
+            "recommendation": "Recover the intended original tail if available, or finish it with one precisely limited comic effect. Keep the relic almost useless; do not make it full invisibility, add a tracking system or replace its joke with technical instructions.",
+            "mitigation": "The other relics have understandable absurd effects: approximate north, ten-minute earliness, confidence without competence, and a blade that doubts itself. Those should remain as written.",
+            "confidence": "High textual confidence; no gameplay failure observed."
+          }
+        ],
+        "uncertainty": {
+          "verificationQuestion": "When the player acquires the Cloak, is its same tiny absurd effect retained later rather than becoming useful full invisibility?",
+          "dissent": "B3 and B6 do not justify adding a gold sink or upgrading these joke objects. The Ring may remain approximate and the Sword may remain doubtful. The unexplained ten minutes are an authored impossibility, not a defect.",
+          "limits": "Sourced composite persona review, not interviews or actual playtesting. No runtime, UI, balance or pacing claims; no hour target."
+        }
+      },
+      {
+        "name": "Nan Oyelaran - the Twenty-Minute Regular",
+        "lensFile": "DOC/panel/players/nan_oyelaran_persona.md",
+        "verdict": "The social comedy offers strong participation and recognition; occasional real danger is an explicit taste limit.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "Characters reward a small socially meaningful action, and sabotage has comic bounds.",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N3; N4; N7",
+              "sourceGrade": "primary",
+              "application": "Applied to authored consistency and meaningful participation, not claimed human reactions."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[1].arcs[2].dnaHint",
+                "quote": "A player who takes a note gracefully is made a member of the company for life"
+              },
+              {
+                "field": "npcs[12].notes",
+                "quote": "only by feeding them incorrect cues, and stops when confronted."
+              }
+            ]
+          },
+          {
+            "text": "The safety tone is already stated without making all danger imaginary.",
+            "basis": {
+              "file": "DOC/panel/players/nan_oyelaran_persona.md",
+              "entry": "N1; N4",
+              "sourceGrade": "primary",
+              "application": "Applied to authored consistency and meaningful participation, not claimed human reactions."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "rules[0]",
+                "quote": "Danger is real but its consequences are embarrassing before they are fatal"
+              }
+            ]
+          }
+        ],
+        "findings": [],
+        "uncertainty": {
+          "verificationQuestion": "Do short sessions finish a particular judgment, rehearsal or question with a remembered response, while preserving the patient deadpan delivery?",
+          "dissent": "N6 supports completed chunks, not a demand to shorten all nine marrow entries or turn the adventure into cozy routine. No claim about how long these scenes actually run; keep the half-stone squirrels and committee hydra rather than sanitizing the jokes.",
+          "limits": "Sourced composite persona review, not interviews or actual playtesting. No runtime, UI, balance or pacing claims; no hour target."
+        }
+      },
+      {
+        "name": "Gerry Fulmer - the Table Veteran",
+        "lensFile": "DOC/panel/players/gerry_fulmer_persona.md",
+        "verdict": "The intended ending is specific and earned; conditional wording should preserve player-authored alternatives.",
+        "resolved": [],
+        "strengths": [
+          {
+            "text": "The audience solution has existing authority and travel support; no new logistics are needed.",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G1; G2; G6",
+              "sourceGrade": "primary",
+              "application": "Applied to authored consistency and meaningful participation, not claimed human reactions."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "npcs[3].notes",
+                "quote": "Company members may book new material on her behalf, and she welcomes Grunwald's memoirs as such material."
+              },
+              {
+                "field": "rules[4]",
+                "quote": "missing its deadline causes embarrassment but never prevents Wilhelmina's departure."
+              }
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "title": "Make the ghost-audience coda reflect the ending actually arranged",
+            "kind": "conditional-payoff",
+            "severity": "P2",
+            "basis": {
+              "file": "DOC/panel/players/gerry_fulmer_persona.md",
+              "entry": "G2; G3; G6",
+              "sourceGrade": "primary",
+              "application": "Applied to authored consistency and meaningful participation, not claimed human reactions."
+            },
+            "blueprintEvidence": [
+              {
+                "field": "acts[3].arcs[4].dnaHint",
+                "quote": "a dragon is reading the first line of volume one to an audience of the dead, and it is going well."
+              },
+              {
+                "field": "npcs[3].notes",
+                "quote": "once notified through Percival."
+              },
+              {
+                "field": "rules[4]",
+                "quote": "Any ending that meets these conditions counts"
+              }
+            ],
+            "reason": "The rules allow other qualifying rescues and the final encounter only proposes the booking, but the return always declares the booking's payoff. If the player chooses another ceremonial solution or never sends the invitation, that coda overwrites the actual choice.",
+            "recommendation": "Retain the existing audience coda verbatim when the player booked or otherwise arranged it. Otherwise end with an equally dry image consistent with their chosen solution. One conditional sentence is enough; no postal timetable, extra approval procedure or new act is needed.",
+            "mitigation": "Ottoline already permits company members to book new material and her ghosts can travel. The preferred ending is well supported; the issue is only unconditional narration of it after an alternate outcome.",
+            "confidence": "High textual confidence; no gameplay failure observed."
+          }
+        ],
+        "uncertainty": {
+          "verificationQuestion": "If the player chooses a different valid rescue, does the farewell preserve that result instead of inserting an unarranged theatrical booking?",
+          "dissent": "The ending need not overthrow Tradition or punish the King to satisfy G1-G3. A bored princess having words with her father and a dragon finally receiving reviews are sufficient closure when those events were actually arranged.",
+          "limits": "Sourced composite persona review, not interviews or actual playtesting. No runtime, UI, balance or pacing claims; no hour target."
+        }
+      }
+    ],
+    "synthesis": {
+      "priorityActions": [
+        "P1: align the active midnight rule with the stated Thursday-dawn deadline.",
+        "P1: align the final act transition with the existing freely-leaving princess and requested ceremony.",
+        "P2: complete the truncated Cloak effect with its deliberately limited joke intact.",
+        "P2: condition the ghost-audience coda on the booking actually being arranged."
+      ],
+      "tonePreservation": [
+        "Keep every character entirely serious, the hat committee, all nine marrow judgments, postal passengers, the cheese industry and all the useless relics.",
+        "Keep the impossible Boots and the comic gatekeepers. Do not replace deadpan impossibilities with realism, generic alternate routes or safety manuals.",
+        "Current safeguards already make the marrow fair, quiz completable, Wendel respectfully defeatable, Doris curable with spectacles and Brisa's sabotage bounded. Do not reopen those as defects without new evidence.",
+        "The four recommendations are small consistency/completeness changes, not a reworking of the comedy."
+      ],
+      "dissent": [
+        "Bert may prefer useful loot and Nan may prefer gentler danger; those tastes do not govern this absurd adventure.",
+        "Rosa's audio questions need listening evidence; no pacing verdict is inferred from scene count.",
+        "Ines values stable comic rules and Gerry values actual-choice closure; neither calls for plausible real-world logistics."
+      ],
+      "limits": "No actual playtest, UI inspection, runtime narration, import test or duration verification. Source grades refer to stored persona research; no inferred entries drive a verdict."
+    }
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "comparedAgainst": "round-0.blueprint (live v1.01 RC, catalog revision 4)",
+  "changedPaths": [
+    ".review",
+    "acts[3].arcs[3].dnaHint",
+    "acts[3].arcs[4].dnaHint",
+    "acts[3].turningPoint",
+    "rules[4]",
+    "version"
+  ],
+  "failureCasesVerified": [
+    "Midnight-to-dawn return has one authored deadline",
+    "Complete original left-elbow effect restored below import cap",
+    "Turning point concerns ceremony rather than physical captivity",
+    "Unbooked ending no longer asserts a ghost audience"
+  ],
+  "preservedExactly": [
+    "All 14 NPCs",
+    "All creatures",
+    "All 7 locations",
+    "All other authored story fields"
+  ],
+  "limits": "Static source assertions plus separate real-engine import probe; no actual narrated playtest."
+}

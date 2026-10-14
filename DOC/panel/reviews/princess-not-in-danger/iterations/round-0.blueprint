@@ -1,0 +1,664 @@
+{
+  "format": "tnd-blueprint-v1",
+  "designerVersion": "v0.54",
+  "name": "The Princess Is Not In Danger",
+  "author": "",
+  "proseAuthor": "dinniman",
+  "narratorVoice": "",
+  "tone": "high",
+  "startingLocation": "Little Piddle-on-the-Marsh",
+  "startingRegion": "The Kingdom of Gorse — three towns, one forest that argues, one mountain of no particular importance, and a great many sheep",
+  "startingTime": "",
+  "premise": "The Kingdom of Gorse has a prophecy, a princess, and a dragon, and for the first time in its history it has all three at once. The prophecy, delivered by the Oracle of Gorse, says that the princess shall be carried off by a dragon and rescued by a stranger in a hat before Thursday dawn. Grunwald the Considerate, the only dragon in the kingdom and by common consent the politest creature in it, read the prophecy in the newspaper and carried Princess Wilhelmina Underbough off the next morning, apologising throughout. He has been reading her his memoirs ever since. The princess is not in danger. She is, according to the letters she sends home by griffin that the King keeps concealed in his drawer, extremely bored, and would like someone to come and get her before the third volume. A rescue is Tradition and Tradition does not have a chapter for a princess who is not in danger. Every knight in Gorse has found a reason to be elsewhere. Nobody knows what day it is, because the monks of Great Snoring stopped ringing the calendar bell in protest over something nobody remembers. You are the stranger. You are, at the moment the herald finds you, wearing a hat.",
+  "acts": [
+    {
+      "title": "Everyone Else Was Busy",
+      "goal": "Be chosen by the prophecy in Little Piddle-on-the-Marsh, learn where the dragon actually lives from the one person who knows and will not say, and leave town by griffin before the town changes its mind",
+      "turningPoint": "The postal griffin delivers you and Wilhelmina's latest letter, addressed to Mildew Hall, to the mansion's doorstep; the letters previously delivered to the King remain concealed in his drawer. From this latest letter you learn in the princess's own hand that she is bored rather than imperilled and must be home before Thursday dawn — and nobody in Gorse can tell you what day it is",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "The Hat",
+          "objective": "Survive being identified as the stranger in a hat by Herald Fennimore Bracket in front of the whole of Little Piddle, and accept the rescue with as much dignity as the situation permits",
+          "type": "social",
+          "dnaHint": "Fennimore is a halfling of enormous, unshakeable dignity who has never once been in on a joke. The town treats the prophecy with the gravity of weather. The player's hat is examined by a committee. Nobody asks whether the player can fight; they ask whether the hat is the player's own. Play it all completely straight — the comedy is that nobody here finds any of it funny."
+        },
+        {
+          "title": "The Marrow Question",
+          "objective": "Get the way to the dragon's mountain out of Gudrun Tibbs, the dwarf marrow-grower who knows it and will not speak until the Annual Marrow has been judged — by you",
+          "type": "investigation",
+          "dnaHint": "The Marrow is the most important thing that happens in Little Piddle and has been for four hundred years. There are nine entries, two feuds, one alleged sabotage, and a marrow that may be a pumpkin. Gudrun's rivals will try to influence the judge. Every conversation is about the marrow first and the dragon second, if at all. Judging rightly means inspecting all nine entries and announcing a reasoned winner, not choosing any particular entry. After that process, Gudrun gives directions so precise they include what to say to the trees, even if she loses. A perfunctory verdict turns the town against the judge and requires a public reinspection of all nine entries and a reasoned winner before Gudrun provides directions."
+        },
+        {
+          "title": "The Griffin Post",
+          "objective": "Persuade Percival, the Royal Postal Griffin, to carry a passenger, which he does not do, and be carried",
+          "type": "exploration",
+          "dnaHint": "Percival is a magnificent, exhausted civil servant with wings. He carries letters. He does not carry people; people are not letters. The solution is to become, technically, post — a limerick address, the right kind of ribbon, being addressed to the correct mansion. In flight he confides that he has been carrying the princess's letters home for six weeks and the King keeps them in a drawer. He lands at Mildew Hall because that is where the next letter goes."
+        }
+      ]
+    },
+    {
+      "title": "The Mildew Hall Players",
+      "goal": "Get through the haunted mansion of Mildew Hall, whose ghosts are not restless so much as under-stimulated, and come out the other side with the safe way through the Wood That Disagrees — which the ghosts know and will only reveal to members of the company",
+      "turningPoint": "Opening night is a triumph, in the sense that the audience is dead and the reviews are savage but everyone survives, and Lady Ottoline Frisk hands over the only map of the Wood that the Wood has ever agreed to — along with the news that the dragon believes himself cursed",
+      "parallel": true,
+      "arcs": [
+        {
+          "title": "Auditions",
+          "objective": "Enter Mildew Hall, be mistaken for the new cast, and secure a part in Lady Ottoline Frisk's production of a play she has been rewriting for two hundred years",
+          "type": "social",
+          "dnaHint": "The ghosts of Mildew Hall died of nothing in particular and have taken up amateur theatre to pass eternity. The house is genuinely eerie — cold spots, doors, a dinner nobody eats — and every haunting turns out to be a rehearsal. Lady Ottoline is a director in the terrifying sense. Casting is decided by the player's ability to project, not to fight. Brisa the Understudy, a ghost who has waited a century for a lead, is the player's only ally and worst danger."
+        },
+        {
+          "title": "The Second Act Problem",
+          "objective": "Solve the mystery at the heart of the play — how Colonel Augustus Frisk actually died in 1712 — because the Colonel has forgotten, the play cannot end until he remembers, and the Colonel is in the cast",
+          "type": "investigation",
+          "dnaHint": "A locked-room mystery investigated by interviewing the victim, who is helpful, vague and eager. Clues are props. The house replays the night if asked nicely. The truth lies buried under centuries of dramatic revision and the Colonel's thoroughly confused memory. The Lantern of Mild Suspicion hangs in the props cupboard: held up, it makes the nearest lie feel faintly embarrassed, and glows a bit."
+        },
+        {
+          "title": "Opening Night",
+          "objective": "Perform the play to a house of the dead without the manticore in the orchestra pit stopping the show, and survive the reviews",
+          "type": "combat",
+          "dnaHint": "Lionel the manticore was hired as an orchestra and stayed as a heckler; he is a failed poet and a savage critic, and his spines are real. The bout is a performance — the player fights and acts at once, the audience throws things it can no longer pick up, and the ghosts' notes afterwards are the true test of courage. A player who takes a note gracefully is made a member of the company for life, which is the point."
+        }
+      ]
+    },
+    {
+      "title": "The Wood That Disagrees",
+      "goal": "Cross the ancient forest, whose trees argue about which way is north, pass the troll's bridge quiz and the unicorn's standards, fit spectacles to a near-sighted basilisk, and find out from the town of Great Snoring what day it is",
+      "turningPoint": "In Great Snoring, where the monks communicate entirely by eyebrow, you finally establish that Thursday is tomorrow — and the Oracle of Gorse, found asleep in the monastery orchard, gives you the true nature of the prophecy before falling back asleep",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Directions",
+          "objective": "Get from one side of the Wood That Disagrees to the other, which requires the trees to agree, which they will not",
+          "type": "exploration",
+          "dnaHint": "The oaks say north is one way, the beeches another, and a single elderly yew has opinions about both. Paths rearrange according to the argument. Gudrun's directions (what to say to the trees) work if repeated exactly, including the compliments. The Wood is beautiful, old, and petty. The Ring of Knowing Roughly, found in a hollow stump, points somewhat north-ish and hums when it is being ignored."
+        },
+        {
+          "title": "The Bridge Quiz",
+          "objective": "Cross the troll's bridge by attempting three questions the troll wrote himself, all of which are about the troll",
+          "type": "social",
+          "dnaHint": "Keith the troll gave up the traditional arrangement years ago because nobody enjoyed it. Now there is a quiz. The questions concern Keith's childhood home, Keith's favourite colour, and which year he attended a party with a dragon. The player can research the answers from the trees, who remember everything and disagree about all of it. After each wrong answer Keith looks disappointed and supplies the correction; he permits passage after all three questions have been attempted, regardless of how many answers were correct."
+        },
+        {
+          "title": "A Basilisk Wearing Spectacles",
+          "objective": "Deal with Doris, the near-sighted basilisk who has been turning the forest's squirrels partly to stone by accident, before she does it to the party",
+          "type": "combat",
+          "dnaHint": "Doris cannot see past the end of her snout and petrifies whatever she squints at, which is everything. Half the squirrels in the Wood have one stone leg. The fight is real — her gaze is a weapon that does not know it is one — and the solution is a pair of spectacles from Dunmore the gnome optician, who lives in the Wood because nobody else will have him. A fitted Doris is the most grateful creature in Gorse and follows the party for a day."
+        },
+        {
+          "title": "The Unicorn's Standards",
+          "objective": "Cross the clearing of Ambrose the unicorn, who admits only the pure of heart, has never met one, and is not about to start",
+          "type": "social",
+          "dnaHint": "Ambrose is a snob of the highest order and entirely sincere about it. He finds fault with everyone: posture, motives, hats. He cannot be fought and will not be fooled; he can be bored, flattered into contradiction, or — the real key — asked about himself."
+        },
+        {
+          "title": "Waking the Oracle",
+          "objective": "Enter the silent town of Great Snoring, find out what day it is from monks who have not spoken in a decade, and wake the Oracle",
+          "type": "investigation",
+          "dnaHint": "The monks of Great Snoring took a vow of silence over a dispute nobody remembers and have refined communication by eyebrow to an art. The calendar bell hangs unrung. Charades with Brother Osric, an orc of great gentleness and one expressive eyebrow, establishes the day: it is Wednesday morning. The Oracle, Mad Dot, an elf of tremendous age and appetite, sleeps in the orchard with her cat; woken, she is unrepentant. Thursday is tomorrow, and the princess must be home before Thursday dawn. The Oracle estimates two hours to the mountain's foot at Hobb's End, in time for registration and the Rescue Trials on Wednesday afternoon."
+        }
+      ]
+    },
+    {
+      "title": "Rescue Optional",
+      "goal": "Qualify at the Rescue Trials in the arena at Hobb's End, climb Mount Considerable, and get the princess out of Grunwald's memoirs before Thursday — or find a better ending than the prophecy's",
+      "turningPoint": "At the top of the mountain, Grunwald the Considerate explains, with great courtesy, that he cannot release the princess until the prophecy is fulfilled or the curse is lifted, and the princess explains, with less courtesy, that she would very much like to leave before the third volume",
+      "parallel": false,
+      "arcs": [
+        {
+          "title": "Registration and Rind",
+          "objective": "Reach the arena town at the foot of the mountain, register on Wednesday afternoon for the Rescue Trials taking place that same afternoon, and discover that the town's only other industry is cheese",
+          "type": "social",
+          "dnaHint": "Hobb's End is entirely organised around two things: the Trials, held whenever a princess is taken, and cheese, held constantly. Mayor Bettany Rind, a half-elf of relentless civic pride, will explain both at length. The Boots of Modest Speed are the Trials' traditional loan to entrants: the wearer arrives everywhere ten minutes earlier than they should and can never explain how. The Helm of Overwhelming Confidence is on sale in the market and should not be worn near the hydra."
+        },
+        {
+          "title": "The Rescue Trials",
+          "objective": "Win the arena — against the Hydra Committee, whose five heads must all agree before it can bite, and against Sir Wendel the Undefeated, aged eighty-one — without hurting anybody's feelings, which is the rule",
+          "type": "combat",
+          "dnaHint": "The Trials have been non-lethal by tradition since the incident nobody discusses. The hydra is a real and dangerous animal whose heads hold a vote before every strike; a player who can get one head to abstain is unbitten. Sir Wendel has been champion for forty years and the crowd passionately adores him, expecting every challenger to handle the revered veteran with kid gloves rather than hurt an old man's feelings. The Sword of Reasonable Doubt, the Trials' prize, is a good blade that is never certain it hit anything and says so."
+        },
+        {
+          "title": "The Polite Ascent",
+          "objective": "Climb the mountain in the Boots of Modest Speed and arrive at the cave in time, or ten minutes early, whichever the boots decide",
+          "type": "exploration",
+          "dnaHint": "The mountain is of no particular importance and knows it. The path is well kept, because Grunwald keeps it. There are signs. The signs apologise for the gradient. The cave mouth has a mat."
+        },
+        {
+          "title": "The Third Volume",
+          "objective": "Meet Grunwald the Considerate, sit through as much of the memoirs as courtesy requires, and find the ending in which the princess leaves, the dragon is heard, and the prophecy is technically satisfied",
+          "type": "social",
+          "dnaHint": "Grunwald is a large, red, endlessly apologetic dragon who has been waiting his whole life for a reader. Princess Wilhelmina is sharp, tired, halfway through a crossword, and entirely capable of walking out, which she has not done because it would be rude. Grunwald requests that her departure receive a ceremonial explanation as a rescue; this is a request, not a condition of her freedom to leave. Insults prompt a courteous request for an apology; drawn weapons prompt one warning to put them away. Grunwald uses fire defensively only against an actual attack. The real solution is a booking: the Mildew Hall Players want a script, the dragon wants an audience, and the princess wants to be home before Thursday dawn. The Cloak of Slight Invisibility, folded on the dragon's hoard, renders only the"
+        },
+        {
+          "title": "The Return",
+          "objective": "Bring the princess home to Little Piddle-on-the-Marsh before Thursday dawn, whether or not the calendar bell rings, and let her deal with her father",
+          "type": "social",
+          "dnaHint": "Percival the griffin will carry her because she is, technically, post: she addresses herself. The King has the letters in a drawer and the excuse that it was Tradition; Wilhelmina has a great deal to say about Tradition. The player is thanked with the sincere, bewildered gratitude of a kingdom that never quite understood what it asked for. Somewhere behind them, in a cave with a mat at the door, a dragon is reading the first line of volume one to an audience of the dead, and it is going well."
+        }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Wilhelmina Underbough",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Princess of Gorse, twenty-two, human, dry as a biscuit, doing the crossword in a dragon's cave. She has been the guest of Grunwald the Considerate for six weeks and has heard two volumes of his memoirs. She is not in danger and says so in every letter. She would like to be collected before the third volume, ideally by someone who can hold a conversation.",
+      "secret": "She has been sending letters home by griffin every week saying she is not in danger, and the King has hidden every one of them in a drawer, because a rescue is Tradition and Tradition has no chapter for a princess who is not in danger.",
+      "revealAct": 1
+    },
+    {
+      "name": "Fennimore Bracket",
+      "role": "ally",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Herald of Gorse, halfling, sixty, of enormous and unshakeable dignity. He has read the prophecy aloud in every town square in the kingdom and has never once been in on a joke. He identifies the player as the stranger in the hat and thereafter regards the player as an official matter. He travels with the party as far as he can be persuaded, which is quite far.",
+      "secret": "He chose the player not for the hat but because the player was the only person in the square who did not run when he said the word prophecy; he considers this the bravest thing he has seen in forty years of heralding.",
+      "revealAct": 1
+    },
+    {
+      "name": "Gudrun Tibbs",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "Protect the four-year championship streak of her prized marrow",
+      "agendaKind": "preserve",
+      "notes": "Marrow-grower of Little Piddle-on-the-Marsh, dwarf, formidable, four-time Annual Marrow champion and the only person alive who has walked to Mount Considerable and back. She will not discuss the road until the Marrow is judged. She provides her directions after the judge inspects all nine entries and announces a reasoned winner, even when she loses; a perfunctory verdict requires a public reinspection of all nine entries and a reasoned winner before she cooperates. Her directions, once given, are exact to the compliment.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Lady Ottoline Frisk",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Ghost, director of the Mildew Hall Players, dead since 1712 and rewriting the same play ever since. Terrifying in the way only directors are. She holds the only map of the Wood That Disagrees that the Wood has ever agreed to, and gives it only to members of the company. Company members may book new material on her behalf, and she welcomes Grunwald's memoirs as such material. The Players can leave Mildew Hall to attend a reading at Mount Considerable once notified through Percival.",
+      "secret": "There was never a murder at Mildew Hall: Colonel Augustus Frisk died of natural causes while asleep in his locked room in 1712. Ottoline invented the murder because it made a better second act, and she has never told the Colonel, who has been trying to remember being murdered for three hundred years. In Act 2, asking the house for an unrevised replay of his death reveals him dying naturally in his sleep; confronting Ottoline with this replay prompts her to admit inventing the murder. On learning he was never murdered, the Colonel is mildly relieved, apologises for the delay, and politely asks if he still gets to be in Act Three.",
+      "revealAct": 2
+    },
+    {
+      "name": "Colonel Augustus Frisk",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Ghost, Lady Ottoline's husband, the victim in her play and a member of its cast. Helpful, vague, eager, and quite unable to remember how he died. Plays himself. Takes notes.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Keith",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Troll of the bridge in the Wood That Disagrees. Gave up the traditional arrangement years ago because nobody enjoyed it, and runs a quiz instead. All three questions are about Keith: 'Where was my childhood home?' (beneath this bridge), 'What is my favourite colour?' (green), and 'In which year did I attend a party with a dragon?' He is enormous, courteous, and easily disappointed, which is his only weapon and a devastating one. After each wrong answer he looks disappointed and supplies the correction. He permits passage after all three questions have been attempted, regardless of how many answers were correct.",
+      "secret": "At a party in 1804 he told Grunwald the Considerate that nobody would ever want to hear his memoirs; he meant it kindly, has regretted it for two centuries, and the dragon has treated it as a curse ever since. There is no supernatural curse: Grunwald believes himself cursed never to be heard, and the cure is a willing audience. Reveal this in Act III through Keith's admission, the trees' testimony, and Ambrose's recollection of the party.",
+      "revealAct": 3
+    },
+    {
+      "name": "Brother Osric",
+      "role": "ally",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Monk of Great Snoring, orc, gentle, seven feet tall, under a vow of silence for a decade over a dispute nobody remembers. Communicates by eyebrow with a precision that shames speech. Knows what day it is and can be made to say so, in a manner of speaking.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Mad Dot",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "The Oracle of Gorse, elf, of tremendous age and appetite, generally found asleep in an orchard with her cat. Author of the prophecy. Unrepentant about everything. She wants to finish conversations quickly and return to sleep.",
+      "secret": "The prophecy was her shopping list, written after a substantial lunch; the word was dragon-fruit, and the stranger in a hat was a note to herself to buy one.",
+      "revealAct": 3
+    },
+    {
+      "name": "Bettany Rind",
+      "role": "ally",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "Promote Hobb's End cheese and ensure the Rescue Trials run safely by the book",
+      "agendaKind": "advance",
+      "notes": "Mayor of Hobb's End, half-elf, relentlessly proud of her town's two industries, the Rescue Trials and cheese. Registers entrants, explains the rules, lends the Boots of Modest Speed, and will describe the cheese at any length the player permits.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Sir Wendel the Undefeated",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "armor": "plate, polished daily",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Champion of the Rescue Trials, human, eighty-one, undefeated in forty years, beloved. He enters the arena slowly and with great ceremony. He is a genuinely good swordsman for his age and a genuinely kind man for any.",
+      "secret": "He is undefeated because every opponent for forty years has forfeited rather than hurt an old man's feelings; he knows, has always known, and has decided that this is a kind of winning. When privately asked about his undefeated record, he acknowledges this history of forfeits. He accepts a respectfully conducted genuine defeat without considering his feelings hurt.",
+      "revealAct": 4
+    },
+    {
+      "name": "Grunwald the Considerate",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "The only dragon in Gorse: large, red, courteous to a fault, and the author of a three-volume memoir nobody has finished. He read the prophecy in the newspaper and carried the princess off the next morning, apologising throughout. He requests a ceremonial rescue but never physically prevents Wilhelmina from leaving; she stays because leaving without one would feel rude. He keeps the mountain path swept and has a mat at the cave mouth. Insults prompt a courteous request for an apology; drawn weapons prompt one warning to put them away. He uses fire defensively only against an actual attack.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Dunmore",
+      "role": "ally",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Gnome optician living in a hollow stump in the Wood That Disagrees because nobody else in the kingdom would have him. Fastidious, perpetually squinting through test lenses, and proud of his craft. He crafts the oversized spectacles needed to correct Doris the basilisk's near-sightedness. Professional pride makes him provide Doris's spectacles without payment once asked. He supplies ready-made oversized test frames and instructs the party to approach from behind while Doris faces away.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "Brisa the Understudy",
+      "role": "neutral",
+      "pronouns": "she/her",
+      "armor": "",
+      "agenda": "",
+      "agendaKind": "",
+      "notes": "Ghost at Mildew Hall, perpetually hovering in the wings clutching a marked-up script. She has waited over a century for a lead role and offers newcomers genuine rehearsal help. She undermines anyone cast ahead of her only by feeding them incorrect cues, and stops when confronted. When promised one featured scene with Lady Ottoline Frisk's approval, she becomes reliably cooperative and gives only correct cues.",
+      "secret": "",
+      "revealAct": ""
+    },
+    {
+      "name": "King Underbough",
+      "role": "neutral",
+      "pronouns": "he/him",
+      "armor": "",
+      "agenda": "Uphold Tradition and royal protocol at all costs",
+      "agendaKind": "preserve",
+      "notes": "King of Gorse, human, elderly, and profoundly attached to royal precedent. He is stubborn in his adherence to protocol and flustered by anything not covered in the kingdom's ancient manuals. Confronted with his daughter's letters, he defends his actions entirely on the grounds of proper ceremony.",
+      "secret": "He hid Wilhelmina's weekly letters in his desk drawer because admitting she was merely bored rather than imperilled would have violated centuries of rescue protocol.",
+      "revealAct": 1
+    }
+  ],
+  "locations": [
+    {
+      "name": "Little Piddle-on-the-Marsh",
+      "description": "A marsh town of reed roofs, duckboards and competitive vegetable growing, where the Annual Marrow matters more than the crown and the crown knows it. The herald reads the prophecy from the pump. The Royal Postal Griffin lands on the green, twice daily, and does not carry passengers."
+    },
+    {
+      "name": "Mildew Hall",
+      "description": "A haunted mansion on the road to the Wood: damp, grand, genuinely eerie, and occupied by the Mildew Hall Players, a company of the dead who died of nothing in particular and took up theatre. Every haunting is a rehearsal. It features a converted ballroom stage, an orchestra pit where Lionel the manticore resides and heckles, and a backstage props cupboard holding the Lantern of Mild Suspicion. The only agreed map of the Wood That Disagrees is kept in the director's desk."
+    },
+    {
+      "name": "The Wood That Disagrees",
+      "description": "An ancient forest whose trees argue about which way is north and rearrange the paths to make their point. Keith's bridge crosses the river at its middle; Doris the basilisk squints through its eastern half; Ambrose the unicorn keeps a clearing nobody has ever been pure enough to enter; Dunmore the gnome optician lives in a stump because nobody else will have him; and a hollow stump hides the Ring of Knowing Roughly."
+    },
+    {
+      "name": "Great Snoring",
+      "description": "A town of sheep, surrounding an ancient monastery of silent scriptoriums and cloistered halls where monks communicate by eyebrow. At the complex's heart rises a central belfry where the calendar bell hangs unrung, leaving Gorse ignorant of the day. In the overgrown orchard behind the cloisters, the Oracle of Gorse sleeps with her cat."
+    },
+    {
+      "name": "Hobb's End",
+      "description": "The arena town at the foot of Mount Considerable, entirely organised around the Rescue Trials, held whenever a princess is taken, and cheese, held constantly. Its bustling market square sells wheels of local cheese alongside odd relics like the Helm of Overwhelming Confidence. The Trials have been non-lethal by tradition since the incident nobody discusses."
+    },
+    {
+      "name": "The Trials Arena",
+      "description": "Hobb's End's arena: a ring of turf and cheerful bunting where the Hydra Committee is kept in a paddock with a suggestion box and Sir Wendel the Undefeated enters slowly to enormous applause. The rule is that nobody's feelings are hurt. The prize is the Sword of Reasonable Doubt."
+    },
+    {
+      "name": "Mount Considerable",
+      "description": "A mountain of no particular importance, well kept because the dragon keeps it, with signs that apologise for the gradient and a mat at the cave mouth. Inside: a tidy hoard, a reading chair, three volumes of memoir, a princess with a crossword, and Grunwald."
+    }
+  ],
+  "creatures": [
+    {
+      "name": "Grunwald the Considerate",
+      "kind": "dragon",
+      "threat": "apex",
+      "notes": "Large, red, and endlessly polite. Breath of fire, wings, a memory for slights two centuries long, and a memoir. He does not want a fight; he wants a reader. Insults prompt a courteous request for an apology; drawn weapons prompt one warning to put them away. He uses fire defensively only against an actual attack."
+    },
+    {
+      "name": "Percival",
+      "kind": "griffin",
+      "threat": "moderate",
+      "notes": "The Royal Postal Griffin: magnificent, exhausted, a civil servant with wings. Carries letters only; a passenger must become, technically, post. Formidable if provoked and impossible to provoke, but will not be hurried, and does not fly on his day off."
+    },
+    {
+      "name": "Lionel",
+      "kind": "manticore",
+      "threat": "deadly",
+      "notes": "Lion-bodied, man-faced, scorpion-tailed, a failed poet, and the resident critic of Mildew Hall's orchestra pit. His spines are real and venomous; his heckling is worse. He can be fought on opening night or silenced with a better line than his, which is hard, because his are quite good."
+    },
+    {
+      "name": "Doris",
+      "kind": "basilisk",
+      "threat": "deadly",
+      "notes": "A near-sighted basilisk who petrifies whatever she squints at, which is everything within a yard. Half the Wood's squirrels have one stone leg. Her gaze is a weapon that does not know it is one; a pair of spectacles from Dunmore the optician ends the danger and earns a devoted, temporary follower."
+    },
+    {
+      "name": "The Hydra Committee",
+      "kind": "hydra",
+      "threat": "deadly",
+      "notes": "Five heads on one body, kept in the Trials paddock; the heads hold a vote before every strike and must be unanimous to bite. A player who gets one head to abstain is safe until the next motion. Cut a head and two grow, both with opinions. Genuinely dangerous when it finally agrees."
+    },
+    {
+      "name": "Ambrose",
+      "kind": "unicorn",
+      "threat": "low",
+      "notes": "A unicorn of impeccable standards who admits only the pure of heart to his clearing, has never met one, and is not about to start. Cannot be fought, will not be fooled, can be bored, and loves above all things to be asked about himself. He was at the party in 1804."
+    },
+    {
+      "name": "Keith",
+      "kind": "troll",
+      "threat": "moderate",
+      "notes": "The troll of the bridge: enormous, courteous, and armed only with disappointment, which is enough. He could break the bridge and everyone on it and has not considered it in years. The quiz has three questions and they are all about Keith."
+    },
+    {
+      "name": "Dire wolves of the Wood's edge",
+      "kind": "beast",
+      "threat": "moderate",
+      "notes": "A pack that hunts the Wood's borders and has, like everything in the Wood, opinions: they will not attack a party that agrees with the beeches about north. They are real wolves, pony-sized and silent, and a party that sides with the oaks meets them properly."
+    }
+  ],
+  "rules": [
+    "Everyone in Gorse is completely serious. The GM plays every absurdity straight, in dry, understated prose, and never winks: the marrow matters, the quiz matters, the hat matters, and the world's people find the player's ordinary reactions strange. Nobody in this story is stupid; the world is. Danger is real but its consequences are embarrassing before they are fatal, and potentially fatal danger must be clearly telegraphed with a chance to withdraw before lethal consequences occur.",
+    "People in Gorse are bound by Tradition, kinship, courtesy and fear of being thought rude; written prophecies, postal classifications and royal manuals express those customs rather than replacing them. Money changes hands only at market stalls and cheese counters, and no scene ever turns on it.",
+    "Every threat is a living creature, a person, a ghost, or the weather; manufactured constructs never walk or think, named relics may speak and display personalities, and Mount Considerable's self-awareness is narrative personification only.",
+    "Named relics are found where they lie and never earlier; use only their explicitly described effects, not usefulness inferred from their names: the Lantern of Mild Suspicion in Mildew Hall's props cupboard, the Ring of Knowing Roughly in a hollow stump in the Wood, the Boots of Modest Speed and the Helm of Overwhelming Confidence in Hobb's End, the Sword of Reasonable Doubt from the Trials, and the Cloak of Slight Invisibility on Grunwald's hoard in Mount Considerable. The Helm of Overwhelming Confidence induces unwarranted confidence without improving competence or compelling actions.",
+    "Belief in the prophecy creates only social pressure on everyone who believes in it, which is everyone in Gorse except the princess. The prophecy imposes no supernatural restrictions or consequences for disbelief or failure; missing its deadline causes embarrassment but never prevents Wilhelmina's departure. Fulfillment requires Wilhelmina to reach Little Piddle-on-the-Marsh with the stranger and hat before Thursday begins at midnight, whether or not the silent calendar bell rings. Any ending that meets these conditions counts, and the GM rewards ingenuity over force. Do not introduce a hidden villain, and portray Grunwald as courteous and interested in an audience rather than conquest.",
+    "The prophecy is technically binding on everyone who believes in it, which is everyone in Gorse except the princess: 'binding' means voluntary adherence to Tradition, never magical coercion. Any ending that can be argued to satisfy it — a stranger, a hat, a princess back by Thursday — counts, and the GM rewards ingenuity over force. The dragon is never the villain; there is no villain."
+  ],
+  "catalogId": "the_princess_is_not_in_danger",
+  "kind": "adventure",
+  "customClasses": [],
+  "version": "1.01",
+  "releaseStatus": "release-candidate",
+  "review": {
+    "findings": [
+      {
+        "sev": "HIGH",
+        "section": "npcs: Grunwald, Keith; acts: turning points; rules: prophecy",
+        "issue": "The dragon's supposed curse leaks before its reveal and has conflicting Act 2, 3, and 4 disclosure gates.",
+        "fixes": [
+          "Consolidate the curse belief, Keith's exact remark, and its nonmagical nature into Keith.secret with revealAct 3, discoverable through Keith's confession when asked about the party and Ambrose's account when asked about himself; clear Grunwald.secret and revealAct and remove those truths from all other early-visible fields, including act turning points and the prophecy rule."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Consolidated the curse truths and both discovery routes into Keith's Act 3 secret, cleared Grunwald's disclosure gate, and removed competing disclosures."
+      },
+      {
+        "sev": "HIGH",
+        "section": "npcs: Colonel Augustus Frisk; Lady Ottoline Frisk",
+        "issue": "The Colonel's notes disclose Ottoline's hidden fabrication before Act 2, while his actual cause of death remains undefined.",
+        "fixes": [
+          "Move the Colonel's response to learning he was never murdered into Lady Ottoline.secret, define his death as natural causes while asleep in his locked room in 1712, and specify that an unrevised house replay reveals the death and prompts Ottoline to admit inventing the murder."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Defined the Colonel's natural death and the unrevised replay that exposes Ottoline's fabrication, keeping his response gated in her Act 2 secret."
+      },
+      {
+        "sev": "HIGH",
+        "section": "npcs: Grunwald and Wilhelmina; acts: Rescue Optional",
+        "issue": "Grunwald supposedly cannot release Wilhelmina, yet she can freely leave, leaving the GM to invent the captivity's actual terms.",
+        "fixes": [
+          "State in Grunwald.notes that he requests a ceremonial rescue but never physically prevents Wilhelmina leaving, retain her courtesy-based decision to stay, and replace the final act's claim that he cannot release her with his request that her departure receive a ceremonial explanation."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Clarified that Grunwald requests rescue ceremony rather than enforcing captivity, while Wilhelmina stays out of courtesy."
+      },
+      {
+        "sev": "HIGH",
+        "section": "npcs: Grunwald; creatures: Grunwald; acts: The Third Volume",
+        "issue": "Grunwald alternates between possible fire and automatic lethality for mere rudeness.",
+        "fixes": [
+          "Standardize Grunwald's NPC notes, creature notes, and The Third Volume dnaHint so insults prompt a request for an apology, drawn weapons prompt one warning, and fire is used defensively only against an actual attack."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Standardized Grunwald's responses: apology requests for insults, one warning for drawn weapons, and defensive fire only against actual attacks."
+      },
+      {
+        "sev": "HIGH",
+        "section": "rules[0]",
+        "issue": "The truncated death exception leaves the campaign's fatality policy undefined.",
+        "fixes": [
+          "Replace the fragment beginning 'and no one dies' with 'and potentially fatal danger must be clearly telegraphed with a chance to withdraw before lethal consequences occur.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Replaced the truncated death exception with an explicit warning and withdrawal requirement for potentially fatal danger."
+      },
+      {
+        "sev": "HIGH",
+        "section": "rules[4]",
+        "issue": "'Technically binding' leaves the GM to invent magical enforcement and consequences for disbelief or failure.",
+        "fixes": [
+          "Specify in this rule that belief creates only social pressure, that the prophecy imposes no supernatural restrictions, and that missing its deadline causes embarrassment but never prevents Wilhelmina's departure."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Clarified that the prophecy creates only social pressure, with no supernatural enforcement and no deadline-based barrier to Wilhelmina's departure."
+      },
+      {
+        "sev": "HIGH",
+        "section": "rules[4]",
+        "issue": "'Back by Thursday' conflicts with 'before Thursday' and supplies no precise completion deadline.",
+        "fixes": [
+          "Define fulfillment in this rule as Wilhelmina reaching Little Piddle-on-the-Marsh with the stranger and hat before Thursday begins at midnight, independent of the silent bell, and change the Registration and Rind objective's registration deadline to Wednesday morning."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Specified the return location and midnight deadline independently of the bell, and moved registration to Wednesday morning."
+      },
+      {
+        "sev": "HIGH",
+        "section": "Keith.secret; Grunwald.secret; acts[1,3].turningPoint; rules[4]",
+        "issue": "The curse's explanation leaks through early-visible text and is gated to Act IV despite its required Act III revelation.",
+        "fixes": [
+          "Keep the shared curse explanation solely in Keith.secret with revealAct 3 and discovery through Keith's admission, tree testimony, and Ambrose's recollection; clear Grunwald.secret and revealAct, remove the explanation from both turning points, and delete the party-remark clause from rules[4]."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Consolidated the curse explanation and Act III discovery in Keith.secret, cleared Grunwald's secret gate, and removed explanatory leaks from both turning points and the rule."
+      },
+      {
+        "sev": "HIGH",
+        "section": "Colonel Augustus Frisk.notes; Lady Ottoline Frisk.secret",
+        "issue": "The Colonel's immediately available notes disclose Ottoline's Act II secret that he was never murdered.",
+        "fixes": [
+          "Move the Colonel's response beginning 'If confronted with the truth' from his notes into Ottoline.secret, adding that the truth is discovered by confronting Ottoline with the house's replay of his death."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Moved the Colonel's response into Ottoline's gated secret and added the house-replay confrontation as its discovery condition."
+      },
+      {
+        "sev": "HIGH",
+        "section": "Act III ending; Act IV schedule; prophecy deadline references",
+        "issue": "Thursday is tomorrow, yet registration permits Thursday morning and the mountain takes a day, contradicting rescue before Thursday.",
+        "fixes": [
+          "Standardize all prophecy and return deadlines to before Thursday dawn, set Act IV registration and Trials on Wednesday afternoon, and change the Oracle's mountain travel estimate from one day to two hours."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Standardized the deadline to before Thursday dawn, set registration and Trials on Wednesday afternoon, and reduced the Oracle's mountain travel estimate to two hours."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs: Gudrun Tibbs; acts: The Marrow Question",
+        "issue": "Gudrun's championship agenda conflicts ambiguously with judging 'rightly,' leaving her cooperation dependent on an invented verdict.",
+        "fixes": [
+          "Define judging rightly in The Marrow Question dnaHint as inspecting all nine entries and announcing a reasoned winner, and state in Gudrun.notes that she provides her directions after that process even when she loses, while a perfunctory verdict requires a public reinspection."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Defined proper judging as a complete, reasoned process and made Gudrun's cooperation independent of winning, with public reinspection required for a perfunctory verdict."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs: Keith; acts: The Bridge Quiz",
+        "issue": "Two autobiographical quiz answers and Keith's response to failure are undefined.",
+        "fixes": [
+          "Set Keith's public quiz questions and answers in his notes to his childhood home beneath this bridge and his favourite colour of green, retain the party question's answer only in his Act 3 secret, and specify that he supplies corrections after wrong answers and permits passage after all three attempts."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Defined Keith's public quiz answers and failure procedure, keeping the party year only in his Act 3 secret."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs: Mad Dot; rules: prophecy",
+        "issue": "Mad Dot's shopping-list secret does not explain how the public prophecy arose or how she responds to its consequences.",
+        "fixes": [
+          "Extend Mad Dot.secret to say her sleepy delivery turned her shopping list into the public prophecy without supernatural compulsion and that, when awakened and asked about it, she admits the mistake and supports a ceremonial interpretation that lets Wilhelmina leave.",
+          "Clarify the prophecy rule so 'binding' means voluntary adherence to Tradition rather than magical coercion, and add to Mad Dot.notes that she wants to finish conversations quickly and return to sleep."
+        ],
+        "status": "applied",
+        "chosen": 1,
+        "note": "Added Mad Dot's desire to end conversations and sleep, and clarified that prophetic obligation is voluntary Tradition rather than magic."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs: Dunmore; acts: A Basilisk Wearing Spectacles",
+        "issue": "Dunmore can make the spectacles, but his willingness to help and requirements for doing so are unspecified.",
+        "fixes": [
+          "Extend Dunmore.notes to say professional pride makes him provide Doris's spectacles without payment once asked, and that he supplies ready-made oversized test frames and instructs the party to approach from behind while Doris faces away."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Specified Dunmore's willingness to provide free spectacles, ready-made test frames, and instructions for approaching Doris."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs: Brisa the Understudy",
+        "issue": "Brisa's help and sabotage have no boundaries or resolution, inviting arbitrary betrayal.",
+        "fixes": [
+          "Extend Brisa.notes so she offers genuine rehearsal help, undermines a rival only by feeding incorrect cues, stops when confronted, and becomes reliably cooperative when promised one featured scene with Ottoline's approval."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Bounded Brisa's sabotage, clarified her genuine help, and added clear conditions for stopping sabotage and securing reliable cooperation."
+      },
+      {
+        "sev": "MED",
+        "section": "npcs: Lady Ottoline Frisk; acts: The Third Volume and The Return",
+        "issue": "The ending assumes Ottoline accepts Grunwald's work and her company can leave the mansion, neither of which is established.",
+        "fixes": [
+          "Extend Ottoline.notes to state that company members may book new material on her behalf, she welcomes Grunwald's memoirs as such material, and the Players can leave Mildew Hall to attend a reading at Mount Considerable once notified through Percival."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Extended Ottoline's notes to authorize bookings, welcome Grunwald's memoirs, and establish the Players' ability to attend his mountain reading after notification through Percival."
+      },
+      {
+        "sev": "MED",
+        "section": "rules[1]",
+        "issue": "The absolute ban on obligations recorded in books contradicts the royal manuals, postal formalities, and Trials registration.",
+        "fixes": [
+          "Replace 'never anything that can be counted or written in a book' with 'rather than numerical relationship scores; written customs, royal manuals, postal formalities, and Trials registration remain valid expressions of Tradition.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Replaced the ban on recorded obligations with a distinction between numerical relationship scores and valid written expressions of Tradition."
+      },
+      {
+        "sev": "MED",
+        "section": "rules[3]",
+        "issue": "The relic rule is truncated, and usefulness inferred from names leaves the Helm's effect undefined.",
+        "fixes": [
+          "Complete the Cloak entry with 'on Grunwald's hoard in Mount Considerable,' replace name-based usefulness with an instruction to use only explicitly described effects, and define the Helm in this rule as inducing unwarranted confidence without improving competence or compelling actions."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Completed the Cloak's location, restricted relics to explicitly described effects, and defined the Helm's effect."
+      },
+      {
+        "sev": "MED",
+        "section": "rules[4]",
+        "issue": "The concluding remark about the party is a lore dump that exposes a gated explanation through an always-injected rule.",
+        "fixes": [
+          "Replace the final sentence with 'Do not introduce a hidden villain, and portray Grunwald as courteous and interested in an audience rather than conquest.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Replaced only the final sentence of rules[4] with the requested portrayal guidance."
+      },
+      {
+        "sev": "MED",
+        "section": "premise; acts[0].turningPoint; The Griffin Post; The Return",
+        "issue": "The letters vanish, remain hidden in the King's drawer, and are delivered to Mildew Hall without any stated transfer.",
+        "fixes": [
+          "Replace the premise's vanished-letter claim with the King's concealment, and rewrite Act I's turning point so Percival delivers the passenger and Wilhelmina's latest letter addressed to Mildew Hall while the King's previously received letters remain in his drawer."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Clarified that the King conceals the previously received letters, while Percival delivers Wilhelmina's latest letter addressed to Mildew Hall with the passenger."
+      },
+      {
+        "sev": "MED",
+        "section": "rules[2]; The Rescue Trials; The Polite Ascent",
+        "issue": "The ban on thinking metal and stone conflicts with the opinionated sword and self-aware mountain.",
+        "fixes": [
+          "Replace rules[2] with 'Every threat is a living creature, a person, a ghost, or the weather; manufactured constructs never walk or think, named relics may speak and display personalities, and Mount Considerable's self-awareness is narrative personification only.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Replaced rules[2] to permit relic personalities and clarify Mount Considerable's personification while retaining the construct ban."
+      },
+      {
+        "sev": "MED",
+        "section": "Doris creature notes; The Polite Ascent.dnaHint",
+        "issue": "Spectacles explicitly end Doris's gaze danger, yet the ascent still requires keeping the cured basilisk facing downhill.",
+        "fixes": [
+          "Delete the downhill-facing requirements from Doris's creature notes and The Polite Ascent.dnaHint, retaining her temporary companionship after fitting the spectacles."
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Removed both downhill-facing requirements while retaining Doris's temporary companionship after her spectacles end the gaze danger."
+      },
+      {
+        "sev": "MED",
+        "section": "rules[1]; postal eligibility; royal protocol; prophecy",
+        "issue": "The rule rejecting all written obligations contradicts a campaign governed by written prophecy, postal classifications, and royal manuals.",
+        "fixes": [
+          "Replace rules[1]'s first sentence with 'People in Gorse are bound by Tradition, kinship, courtesy and fear of being thought rude; written prophecies, postal classifications and royal manuals express those customs rather than replacing them.'"
+        ],
+        "status": "applied",
+        "chosen": 0,
+        "note": "Replaced rules[1]'s first sentence to clarify how written customs express social obligations."
+      },
+      {
+        "sev": "LOW",
+        "section": "npcs: Fennimore, Wilhelmina, King Underbough, Sir Wendel",
+        "issue": "These secrets have reveal acts but no discovery conditions, encouraging automatic disclosure when an act opens.",
+        "fixes": [
+          "Add to Fennimore.secret that he admits his selection motive when privately asked why he chose the player, and to Wilhelmina.secret and King Underbough.secret that Percival's account exposes the concealed correspondence and the King admits his motive when confronted.",
+          "Add to Sir Wendel.secret that he acknowledges the history of forfeits when privately asked about his undefeated record and accepts a respectfully conducted genuine defeat without considering his feelings hurt."
+        ],
+        "status": "applied",
+        "chosen": 1,
+        "note": "Added Sir Wendel's discovery condition and acceptance of a respectful genuine defeat to his secret."
+      }
+    ],
+    "sections": 4,
+    "failedSections": 2
+  }
+}
