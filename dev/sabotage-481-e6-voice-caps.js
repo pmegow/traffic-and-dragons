@@ -23,7 +23,7 @@ prove("tts.js", [
     find: "rate: true, unitRate: true,/* #481 E6 */ languages: [\"en-US\"]", replace: "rate: true, languages: [\"en-US\"]",
     mustFail: "the readers split only" }
 ]);
-prove("ui-sheets.js", [
+prove("ui-character-voice.js", [/* #629 */
   { label: "the direction row shows for every reader",
     find: "  return (caps.direction?\"<div class='cs-voice-row'", replace: "  return (true?\"<div class='cs-voice-row'",
     mustFail: "the sheet shows a row only" },

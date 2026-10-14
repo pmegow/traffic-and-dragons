@@ -1,5 +1,5 @@
 const assert=require('assert/strict'),fs=require('fs'),vm=require('vm');require('./load-engine.js').loadEngine();
-vm.runInThisContext(fs.readFileSync('ui-sheets.js','utf8'));
+vm.runInThisContext(fs.readFileSync('ui-sheets.js','utf8'));vm.runInThisContext(fs.readFileSync('ui-character-voice.js','utf8'));/* #629 */
 const S=TTS.settings;let passed=0,failed=0;
 function test(name,fn){try{fn();passed++;console.log('PASS '+name)}catch(e){failed++;console.error('FAIL '+name+' — '+e.message)}}
 test('#404 registry credential roundtrip preserves GM keys',()=>{const id='fixture404';S.models[id]={label:'Fixture voice',key:true,credential:{store:'voice',key:id},languages:[''],defaults:()=>({narrator:'actor',language:''}),catalog:()=>[{id:'actor',label:'Actor'}]};try{providerKeys.openai='GM-only';const d=S.draft();d.primary=id;d.keys[id]=' fresh ';S.save(d);assert.equal(S.draft().keys[id],'fresh');assert.equal(providerKeys.openai,'GM-only');assert.equal(JSON.parse(store.get(S._keys.credentials))[id],'fresh');}finally{delete S.models[id];store.del(S._keys.settings)}});

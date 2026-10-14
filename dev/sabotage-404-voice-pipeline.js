@@ -24,7 +24,7 @@ rc |= sabotage.prove({
   ]
 });
 rc |= sabotage.prove({
-  "file": "ui-sheets.js",
+  "file": "ui-character-voice.js",
   "command": [
     "node",
     [

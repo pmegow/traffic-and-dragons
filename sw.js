@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261013e";
+var CACHE = "tnd-v3-20261013f";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -61,6 +61,7 @@ var APP_SHELL = [
   "/ui-ambient.js",
   "/tts.js",
   "/ui-voice-settings.js",
+  "/ui-character-voice.js",
   "/piper-host.html",
   "/stt.js",
   "/sound.js",

@@ -210,7 +210,7 @@ function showChar(){
   var _s1=document.getElementById("step1");if(_s1)_s1.classList.add("active");
   var _gw=document.getElementById("anc-grid-wrap"),_det=document.getElementById("anc-detail"),_fw=document.getElementById("flex-wrap");
   if(_gw)_gw.style.display="block";if(_det)_det.style.display="none";if(_fw)_fw.style.display="none";
-  ["char-name","char-appear","char-backstory","char-deity","rv-camp-name"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
+  ["char-name","char-appear","char-backstory","char-trait","char-flaw","char-motivation","char-deity","rv-camp-name"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});/* #629: Trait / Flaw / Motivation were missing from this list — ft-next reads the boxes, so the last character's lines rode into the next one */
   var _ge=document.getElementById("char-gender");if(_ge)_ge.value="M";
   var _ae=document.getElementById("char-age");if(_ae)_ae.value="early twenties";
   var _lv=document.getElementById("rv-start-level");if(_lv)_lv.value="1";

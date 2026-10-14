@@ -29,7 +29,7 @@ global.document = { getElementById: function (id) { return el(id); }, querySelec
   body: { appendChild: function () {}, classList: { add: function () {}, remove: function () {}, toggle: function () {} } }, activeElement: null };
 
 var geval = eval;
-["ui-shell.js", "ui-panels.js", "ui-sheets.js"].forEach(function (f) { geval(fs.readFileSync(path.join(ROOT, f), "utf8")); });
+["ui-shell.js", "ui-panels.js", "ui-sheets.js", "ui-character-voice.js"].forEach(function (f) { geval(fs.readFileSync(path.join(ROOT, f), "utf8")); });
 showToast = function () {}; saveAll = function () {}; saveCore = function () {}; saveMem = function () {};
 modalShell = function (id, html) { __modals.push({ id: id, html: html }); return el(id); };
 showPortraitModal = function (refresh, opts) { __portraitCalls.push({ refresh: refresh, opts: opts }); };

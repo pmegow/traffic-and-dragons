@@ -28,7 +28,7 @@ rc|=sabotage.prove({
   ]
 });
 rc|=sabotage.prove({
-  file:"ui-sheets.js",
+  file:"ui-character-voice.js",/* #629 */
   command:["node",["dev/tests-402-character-voices.js"]],
   cases:[
     { label:"#405: the backup renderer drops an out-of-list pin",

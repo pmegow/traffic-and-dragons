@@ -96,6 +96,7 @@ function buildFinishingTouches(){
   ["trait","flaw","motivation"].forEach(function(k){var el=document.getElementById("char-"+k);if(el&&cs[k]&&!el.value)el.value=cs[k];});
   var prev=document.getElementById("ft-portrait-preview");
   if(prev)refreshFtPortrait();
+  buildWizardVoice();/* #629: the character's voices, the sheet's own control */
 }
 function refreshFtPortrait(){
   var prev=document.getElementById("ft-portrait-preview");if(!prev)return;
@@ -322,6 +323,7 @@ function confirmChar(){
   if(ancLangMap[cs.ancestry])startLangs.push(ancLangMap[cs.ancestry]);
   if(cs.ancestry==="halfblood"&&cs.subrace){var subLangMap={half_elven:"Elvish",half_orcish:"Orcish",half_draconic:"Draconic",half_infernal:"Infernal",half_fey:"Sylvan",half_gnomish:"Gnomish"};if(subLangMap[cs.subrace]&&startLangs.indexOf(subLangMap[cs.subrace])<0)startLangs.push(subLangMap[cs.subrace]);}
   var char={name:cs.name,gender:cs.gender||"M",age:cs.age,appear:cs.appear,mark:"",backstory:cs.backstory||"",ancestry:anc?anc.nm:"Unknown",subrace:cs.subrace,subraceNm:subnm,heritageVariant:cs.heritageVariant||null,cls:cs.cls,stats:fs,hp:hp,maxHp:hp,coin:rvGold*100,/* #598: rolled in gold, held in copper */inventory:(cls?cls.gear.split(", "):[]).concat(["First aid kit"]),level:1,xp:0,abilities:[],spells:[],archetype:null,archetypeNm:null,statedAlignment:statedAlign,actualAlignment:statedAlign,alignLaw:alignSeedAxes(statedAlign).law,alignGood:alignSeedAxes(statedAlign).good,/* #139: axes seed FROM the label — 0,0 under a non-neutral label made the first shift snap the display toward True Neutral */deity:charDeity,trait:cs.trait||null,flaw:cs.flaw||null,motivation:cs.motivation||null,languages:startLangs.map(function(l){return{name:l,broken:false};}),skills:null,conditions:[],relationships:[],saveModifiers:[],portrait:cs.portrait||null,portraitOffset:cs.portraitOffset||null,storyBeats:[],coreMemories:[],partyMember:true};
+  wizardVoiceCarry(cs,char);/* #629: the Finishing Touches voices ride onto the sheet; startGame's auto-cast fills only what stayed Automatic */
   char.xp=startXp; // apply the (clamped) starting XP at level 1 too — was silently dropped (audit E56)
   if(startLvl>1){char.level=startLvl;var hpB=0,si;for(si=2;si<=startLvl;si++){var hg=cls?(Math.ceil(cls.hd/2)+1+Math.floor((char.stats.CON-10)/2)):3;hpB+=Math.max(1,hg);}char.hp+=hpB;char.maxHp+=hpB;}
   // Racial capabilities — single-sourced in the capability bible (TODO #10). Resolve racial_caps from
@@ -628,6 +630,22 @@ function injectPlumeButtons(){
     btn.addEventListener("click",function(){showFieldEditorModal(f);});
     row.appendChild(btn);
   });
+}
+/* #629 (owner 2026-10-13): the Finishing Touches page offers the character's voices — the SAME control the character sheet
+   shows (ui-character-voice.js), under the wizard's own id prefix, writing to the draft. confirmChar carries every field the
+   control owns onto the new sheet (CharacterVoice.fields — never a hand list), and startGame's auto-cast fills only the slots
+   that stayed Automatic. Rendered on every entry to the page, so a catalog loaded in Voice Settings meanwhile is offered, and
+   a gender changed on the Identity page re-filters the lists. No control (no TTS on the page) hides the box. */
+function buildWizardVoice(){
+  var box=document.getElementById("ft-voice"),wrap=document.getElementById("ft-voice-box");if(!box)return;
+  var h=(typeof CharacterVoice!=="undefined")?CharacterVoice.html(cs,{prefix:"ft-"}):"";
+  box.innerHTML=h;if(wrap)wrap.style.display=h?"":"none";
+  if(h)CharacterVoice.wire(cs,{prefix:"ft-"});
+}
+function wizardVoiceCarry(draft,char){
+  var fields=(typeof CharacterVoice!=="undefined")?CharacterVoice.fields():[],i,v;
+  for(i=0;i<fields.length;i++){v=draft[fields[i]];if(v!=null&&v!=="")char[fields[i]]=v;}
+  return char;
 }
 function cbBack(){
   var wrap=document.getElementById("creation-bump");if(wrap)wrap.remove();

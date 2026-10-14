@@ -30,7 +30,7 @@ global.document = { getElementById: function () { return null; }, querySelector:
 global.confirm = function () { return __confirmAnswer; };
 
 var geval = eval;
-["ui-shell.js", "ui-panels.js", "ui-sheets.js", "ui-browsers.js", "ui-modals.js"].forEach(function (f) {
+["ui-shell.js", "ui-panels.js", "ui-sheets.js", "ui-character-voice.js", "ui-browsers.js", "ui-modals.js"].forEach(function (f) {
   geval(fs.readFileSync(path.join(ROOT, f), "utf8"));
 });
 // The UI files define their own shells — re-stub AFTER loading or every assertion drives real DOM.

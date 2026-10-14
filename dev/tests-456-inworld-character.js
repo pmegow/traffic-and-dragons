@@ -30,7 +30,7 @@ global.document = { getElementById: function (id) { return el(id); }, querySelec
   body: { appendChild: function () {}, classList: { add: function () {}, remove: function () {}, toggle: function () {} } }, activeElement: null };
 
 var geval = eval;
-["ui-shell.js", "ui-panels.js", "ui-sheets.js"].forEach(function (f) { geval(fs.readFileSync(path.join(ROOT, f), "utf8")); });
+["ui-shell.js", "ui-panels.js", "ui-sheets.js", "ui-character-voice.js"].forEach(function (f) { geval(fs.readFileSync(path.join(ROOT, f), "utf8")); });
 showToast = function (m) { __toasts.push(String(m)); }; saveAll = function () { __saves++; }; saveCore = function () {}; saveMem = function () {};
 
 function fresh() { __els = {}; __saves = 0; __toasts.length = 0; }
@@ -94,8 +94,8 @@ test("the speed control: an assigned speed renders as the value and reads as tha
   assert.ok(__toasts.some(function (m) { return /provider rate/i.test(m); }), "no reset toast: " + JSON.stringify(__toasts));
 });
 
-test("source: the sheet no longer names providers in a literal options map — the slot registry decides", function () {
-  var s = fs.readFileSync(path.join(ROOT, "ui-sheets.js"), "utf8");
+test("source: the voice control no longer names providers in a literal options map — the slot registry decides", function () {
+  var s = fs.readFileSync(path.join(ROOT, "ui-character-voice.js"), "utf8");/* #629: the control moved out of ui-sheets.js */
   assert.ok(s.indexOf("{speechify:csPrimaryVoiceOptions,piper:csBackupVoiceOptions}") < 0, "the provider-literal options map is still there");
 });
 

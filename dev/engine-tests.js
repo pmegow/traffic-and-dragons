@@ -2199,10 +2199,10 @@ function runEngineTests(R){
     if(up.indexOf("_gt.stop();showResult(")===-1||up.indexOf("}catch(err){_gt.stop();")===-1||up.indexOf("}catch(err){_dt.stop();")===-1)return "every terminal write in the portrait modal must stop the ticker first";
     /* Fable review 2026-09-11 (Brief E): the scan stopped at four files, so the voice surfaces (#401/#402) were unpinned —
        they DO tick today (the settings Test and catalog load, the sheet's voice Test); this keeps them ticking. */
-    var vs=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),us=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8");
+    var vs=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),us=__fsForTests.readFileSync(__rootForTests+"/ui-character-voice.js","utf8");/* #629: the sheet's voice control is its own module */
     if(vs.split("elapsedTicker(").length<3)return "Voice Settings' Test and catalog-load waits must both ride the ticker (#356)";
     if(!/elapsedTicker\([^\n]*"Preparing"/.test(vs)||!/elapsedTicker\([^\n]*"Loading actors"/.test(vs))return "a Voice Settings wait status is painted without the ticker (#356)";
-    if(us.split("elapsedTicker(").length<2||!/elapsedTicker\([^\n]*"Preparing"/.test(us))return "the character sheet's voice Test wait must ride the ticker (#356)";
+    if(us.split("elapsedTicker(").length<2||!/elapsedTicker\([^\n]*"Preparing"/.test(us))return "the character voice control's Test wait (ui-character-voice.js) must ride the ticker (#356)";
     if(/textContent="(?:Preparing|Loading actors)(?:…|\.\.\.)?"/.test(vs+us))return "a frozen voice wait status survives somewhere (#356)";
   });
   t("#357 companions earn their own skill ladder: [COMPANION_SKILL_SUCCESS:Name|skill] bumps the named companion's counter (never the hero's), resolves a lowercased id, drops an unknown name or skill loudly, announces a ladder step with the name; the hero path is unchanged; a companion's earned skills ride the party block as one compact line and a zero sheet adds nothing; the tag is taught and stripped",function(){

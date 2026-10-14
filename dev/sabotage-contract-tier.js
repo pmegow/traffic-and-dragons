@@ -581,9 +581,9 @@ rc |= sabotage.prove({
   ]
 });
 
-/* ═══ ui-sheets.js — VOICE-DELETION CONTRACT ⑨ (#95 S5) ═════════════════════════════════════ */
+/* ═══ ui-character-voice.js — VOICE-DELETION CONTRACT ⑨ (#95 S5; #629 moved the control out of ui-sheets.js) ═══ */
 rc |= sabotage.prove({
-  file: "ui-sheets.js",
+  file: "ui-character-voice.js",
   command: GATE,
   cases: [
     {

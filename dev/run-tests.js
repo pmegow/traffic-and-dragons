@@ -430,11 +430,11 @@ try {
     process.exit(1);
   }
   // ⑨ #95 (S5): both voice pickers must offer the starred cast, or an assigned speaker voice is
-  //    unreachable without hand-editing localStorage. ui-sheets.js is not loaded by the DOM-free
-  //    engine harness, so its half is pinned here.
-  var _sheets = _stripComments(_src("ui-sheets.js"));
+  //    unreachable without hand-editing localStorage. ui-character-voice.js (#629: the control shared by the sheet
+  //    and the wizard) is not loaded by the DOM-free engine harness, so its half is pinned here.
+  var _sheets = _stripComments(_src("ui-character-voice.js"));
   if (_sheets.indexOf("starOptionsHtml") < 0) {
-    console.error("VOICE DELETE CONTRACT: csVoiceControlHtml (ui-sheets.js) no longer renders the ★ Cast voices optgroup — a starred speaker voice becomes unassignable from the character sheet (#95 S5).");
+    console.error("VOICE DELETE CONTRACT: the character voice control (ui-character-voice.js) no longer renders the ★ Cast voices optgroup — a starred speaker voice becomes unassignable from the character sheet (#95 S5).");
     process.exit(1);
   }
 } catch (e) { console.error("VOICE DELETE CONTRACT CHECK FAILED: " + e.message); process.exit(1); }

@@ -27,7 +27,7 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   const q=TTS._speakerTest.queued();assert.equal(q.length,1);assert.equal(q[0].piper,true);assert.equal(q[0].text,'Second line. Third line.');assert.deepEqual(q[0].voices,{0:map[1],1:map[2]});assert.equal(sources.length,1);
  });
  await test('#402 NPC sheet generation inherits both pins and ignores model-authored voice settings',async()=>{
-  require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-sheets.js'),'utf8'));
+  require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-sheets.js'),'utf8'));require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-character-voice.js'),'utf8'));/* #629: the sheet's voice control lives in its own module */
   const d=draft('speechify');S.save(d);global.showLoadingModal=()=>()=>{};global.saveAll=()=>{};global.relationshipMigrateSheet=()=>{};global.busy=false;
   worldState={character:{name:'Hero'},npcs:[{name:'Lysa',pronouns:'she/her',speechifyVoiceId:'c',voiceId:'en_GB-alba-medium'}]};memory={npcs:{}};
   global.callGM=async()=>JSON.stringify({gender:'F',stats:{},speechifyVoiceId:'model-invented',voiceId:'model-invented'});
@@ -37,7 +37,7 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
  });
 
  await test('#539 NPC sheet generation keeps the delivery direction and the speed set on the card, through the first sheet and a regeneration',async()=>{
-  require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-sheets.js'),'utf8'));
+  require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-sheets.js'),'utf8'));require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-character-voice.js'),'utf8'));/* #629: the sheet's voice control lives in its own module */
   const d=draft('speechify');S.save(d);global.showLoadingModal=()=>()=>{};global.saveAll=()=>{};global.relationshipMigrateSheet=()=>{};global.busy=false;
   worldState={character:{name:'Hero'},npcs:[{name:'Lysa',pronouns:'she/her',voiceId:'en_GB-alba-medium',voiceDirection:'low, unhurried',voiceRate:0.9}]};memory={npcs:{}};
   global.callGM=async()=>JSON.stringify({gender:'F',stats:{},voiceDirection:'model-invented',voiceRate:1.3});
@@ -121,7 +121,7 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   c.speechifyVoiceId='c';assert.equal(TTS.assignCharacterVoices(c,()=>0),false,'nothing left to assign');assert.equal(c.speechifyVoiceId,'c','a set pin is never overwritten');
  });
  await test('#405 an out-of-list pin survives a sheet reopen: both renderers keep the saved id selected through the hidden "Saved voice (not listed)" option, render identically twice, and never touch the sheet',async()=>{
-  require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-sheets.js'),'utf8'));
+  require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-sheets.js'),'utf8'));require('vm').runInThisContext(require('fs').readFileSync(require('path').join(__dirname,'../ui-character-voice.js'),'utf8'));/* #629: the sheet's voice control lives in its own module */
   if(typeof global.escHtml!=='function')global.escHtml=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;');
   S.save(draft('speechify'));
   const c={name:'Rhea',gender:'F',speechifyVoiceId:'retired-actor',voiceId:'en_XX-nowhere-medium#9'};

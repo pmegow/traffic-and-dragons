@@ -1034,16 +1034,16 @@ var TTS = (function() {
      a pin already set is never touched. Piper's equivalent is the star bench. */
   var SPEECHIFY_BENCH = ["beatrice_32", "dominic_32", "edmund_32", "geffen_32", "harper_32", "hugh_32", "imogen_32", "wyatt_32"];
   var CHARACTER_VOICE_SLOTS = [
-    { provider: "speechify", options: "catalog", speakerMap: true, field: "speechifyVoiceId", label: "Speechify voice", service: "Speechify", selectId: "cs-primary-voice-sel", testId: "cs-primary-voice-test",
+    { provider: "speechify", options: "catalog", speakerMap: true, field: "speechifyVoiceId", label: "Speechify voice", service: "Speechify", key: "primary-voice",
       catalog: function() { return _voiceCatalog("speechify", _voiceConfig("speechify")); }, bench: SPEECHIFY_BENCH,/* #455 */
       test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "speechify"; actor = actor || _voiceActor("speechify", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.speechify); d.models.speechify.narrator = actor; _voiceTest(d, TTS_TEST_LINE, actor, onPhase, Number(char.voiceRate) || 0);/* #457: the Test reads at the character's speed */ } },
     /* #456 (owner 2026-09-25, after the Inworld trial): the Inworld slot. Its Test reads with the character's own delivery
        direction when one is set, so the owner hears what play will do. Auto-assignment draws gender-matched from the loaded
        Inworld catalog (no bench — the owner's ear found the catalog uniformly good). */
-    { provider: "inworld", options: "catalog", speakerMap: true, field: "inworldVoiceId", label: "Inworld voice", service: "Inworld", selectId: "cs-inworld-voice-sel", testId: "cs-inworld-voice-test",
+    { provider: "inworld", options: "catalog", speakerMap: true, field: "inworldVoiceId", label: "Inworld voice", service: "Inworld", key: "inworld-voice",
       catalog: function() { return _voiceCatalog("inworld", _voiceConfig("inworld")); },
       test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "inworld"; actor = actor || _voiceActor("inworld", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.inworld); d.models.inworld.narrator = actor; if (char.voiceDirection) d.models.inworld.direction = char.voiceDirection; _voiceTest(d, TTS_TEST_LINE, actor, onPhase, Number(char.voiceRate) || 0);/* #457 */ } },
-    { provider: "piper", options: "backup", speakerMap: false, field: "voiceId", label: "Backup voice", service: "Piper", selectId: "cs-voice-sel", testId: "cs-voice-test", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
+    { provider: "piper", options: "backup", speakerMap: false, field: "voiceId", label: "Backup voice", service: "Piper", key: "voice", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
       test: function(char, actor) { testVoice(actor || autoCastVoiceId(char) || resolvePiperVoice()); }, release: releaseVoiceIfUnused }
   ];
   /* Fable review 2026-09-11 (Briefs A+C): THE one gender predicate. The sheet filter, the creation assignment and

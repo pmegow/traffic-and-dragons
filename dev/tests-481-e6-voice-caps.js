@@ -4,7 +4,7 @@
 // narrator's direction lost); and a mood split Speechify and Gemini requests although only Inworld reads moods.
 // The fix: per-model unit capability flags on VOICE_MODELS (unitRate, unitDirection; markups already existed), consulted at ONE
 // boundary — the cloud reader's grouper splits and stamps only on what its reader declares, and the sheet shows only the rows
-// the primary honours, a hidden row leaving a one-line hint. Real tts.js in a vm; the sheet's renderer sliced from ui-sheets.js.
+// the primary honours, a hidden row leaving a one-line hint. Real tts.js in a vm; the voice control (ui-character-voice.js, #629) beside it.
 //   node dev/tests-481-e6-voice-caps.js
 const assert = require('assert/strict'), fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..'), source = f => fs.readFileSync(path.join(root, f), 'utf8');
@@ -39,13 +39,9 @@ function fixture(primary) {
   c.globalThis = c;
   vm.createContext(c);
   ['audio-events.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
-  /* the sheet's voice renderer, sliced from ui-sheets.js (every csVoice* helper it calls) */
-  const ui = source('ui-sheets.js');
-  ['csVoiceDirectionHtml', 'csVoiceCapHint', 'csVoiceRateValue', 'csVoiceRateLabel'].forEach(name => {
-    const a = ui.indexOf('function ' + name + '(');
-    if (a < 0) return;
-    vm.runInContext(ui.slice(a, ui.indexOf('\nfunction ', a + 10)), c, { filename: 'ui-sheets.js#' + name });
-  });
+  /* #629: the voice control is its own module (ui-character-voice.js) — the whole file runs in the context; it touches
+     nothing at load, so no slicing by function name is needed any more */
+  vm.runInContext(source('ui-character-voice.js'), c, { filename: 'ui-character-voice.js' });
   return { c, TTS: c.TTS, calls };
 }
 const tick = () => new Promise(r => setImmediate(r));
