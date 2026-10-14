@@ -1,14 +1,14 @@
 {
   "source": "samples/the_silence_between_leaves.blueprint",
   "outcome": "Baseline and three full panel review passes complete. The two baseline findings are resolved; all post-revision assessments are editorially clean. The high-fantasy romance, mystery and player freedom remain intact.",
-  "publication": "Not yet published.",
+  "publication": "Published v1.0 Release Candidate as catalog revision 3; every field matches the reviewed source. The previous catalog entry was backed up. Existing campaigns keep their starting edition.",
   "changes": [
     "Made the Fae Loop's permanent gift conditional on Willow's safe return, independently of Auden earning passage home.",
     "Defined slow, incomplete ecological repair when an heir cannot return; no replacement heir, forced wedding, resurrection or compulsory sequel.",
     "Preserved the fixed culprit, multiple clue routes, bounded ring and Loop, freely chosen romance and alternate passage rite.",
     "Preserved the newer live designerVersion v0.49 marker; the local baseline differed from the live story only in that editor marker."
   ],
-  "verification": "Normalization and disposable engine import preserve all 130 authored text fields: 15 arcs, 10 NPCs, 10 locations, 19 rules and 5 creatures. No overflow. No model narration or actual player test.",
+  "verification": "Normalization and disposable engine import preserve all 130 authored text fields: 15 arcs, 10 NPCs, 10 locations, 19 rules and 5 creatures. No overflow. No model narration or actual player test. Full pre-commit gate passed: ALL GREEN, 3,106 engine assertions plus standalone checks. Source commit 17444316 pushed; catalog revision 3 matches every blueprint field and the unchanged pitch.",
   "rounds": [
     "Baseline: design lenses clean; writing found an undefined lost-heir ecological outcome; player panel found an unconditional gift in a partial-rescue arc.",
     "Revision 1 addresses both findings; all fourteen assessments clean.",

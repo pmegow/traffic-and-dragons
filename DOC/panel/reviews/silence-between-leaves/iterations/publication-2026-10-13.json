@@ -1,0 +1,13 @@
+{
+  "catalogId": "the_silence_between_leaves",
+  "version": "1.0",
+  "releaseStatus": "release-candidate",
+  "catalogRevision": 3,
+  "publishedAt": "2026-10-14 03:23:51",
+  "sourceCommit": "174443164c2df20373aa0389b555b4d628f72619",
+  "sourceFileSha256": "ead4f0246ee7a05517581e393e0bfe2a55410694c5a8ea8f25d9a36ce277725b",
+  "publicCatalogMatchesEveryBlueprintField": true,
+  "otherCatalogEntriesUnchangedDuringPublication": true,
+  "serverBackup": "/data/catalog-backups/the_silence_between_leaves-before-v1.0-revision2-20261013.json",
+  "method": "Normal operator API, existing session and revision guard; public readback verified."
+}
