@@ -1,7 +1,7 @@
 {
   "source": "samples/the_road_to_cinderwing.blueprint",
   "outcome": "Baseline and all three full panel review passes complete. Final assessments are editorially clean. The fairy-tale road adventure retains its wonders and conversational dragon finale, with consistent causes, powers, optional routes and genuine failure outcomes.",
-  "publication": "Not yet published.",
+  "publication": "Published v1.0 Release Candidate as catalog revision 2; every field matches the reviewed source. The previous catalog entry was backed up. Existing campaigns keep their starting edition.",
   "changes": [
     "Conditioned all Cael appearances and tracks on actual survival, custody and travel; fixed his initial knowledge and added independent physical evidence of the hatchling plan.",
     "Made the arena optional, with stated nonlethal objectives, surrender arrangements and real danger; directions, elven routes and earned flight remain available.",
@@ -9,7 +9,7 @@
     "Limited the unicorn to knowingly spoken falsehoods, with the exact utterance identified and an upstream bridge for refusal.",
     "Made Ilsabet a voluntary guest who may leave; added damaged, missing and destroyed egg outcomes, warned reprisals and evidence-dependent consequences for Tallow."
   ],
-  "verification": "Final candidate normalization and disposable import preserve all 131 authored text fields across 16 arcs, 9 NPCs, 7 locations, 10 rules and 8 creatures; no overflows. No model narration or actual player test.",
+  "verification": "Final candidate normalization and disposable import preserve all 131 authored text fields across 16 arcs, 9 NPCs, 7 locations, 10 rules and 8 creatures; no overflows. No model narration or actual player test. Full pre-commit test gate passed: ALL GREEN, 3,106 engine assertions plus standalone checks. Source commit 5e95692b pushed; live catalog revision 2 verified against every blueprint field and the unchanged pitch. Across the batch, all 168 assessments, snapshot hashes, final files and report links were audited.",
   "rounds": [
     "Baseline: forced antagonist recurrence, conflicting knowledge and powers, opaque truth/route gates and unbounded failure outcomes.",
     "Revision 1 resolves all baseline findings across all fourteen assessments. Full NPC, location and creature cross-checks found no new material contradiction.",

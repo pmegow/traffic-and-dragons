@@ -1,0 +1,13 @@
+{
+  "catalogId": "the_road_to_cinderwing",
+  "version": "1.0",
+  "releaseStatus": "release-candidate",
+  "catalogRevision": 2,
+  "publishedAt": "2026-10-14 03:36:34",
+  "sourceCommit": "5e95692b944a6ffcd6374cb18a40cb34d9bb4f50",
+  "sourceFileSha256": "84d73ad4efd29d3df661c48c659ee7463ba5608f7c74df68a9481eacb2c3ac75",
+  "publicCatalogMatchesEveryBlueprintField": true,
+  "otherCatalogEntriesUnchangedDuringPublication": true,
+  "serverBackup": "/data/catalog-backups/the_road_to_cinderwing-before-v1.0-revision1-20261013.json",
+  "method": "Normal operator API, existing session and revision guard; public readback verified."
+}
