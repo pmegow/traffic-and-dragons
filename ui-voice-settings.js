@@ -23,7 +23,7 @@ var VoiceSettings = (function() {
      site derives its Accent filter from the voice's language region (Amara is EN_NG → Nigerian), so the label derives it the
      same way from the actor's stored `language` through the one pure table, voiceAccentOf (helpers.js); a catalog cached
      before this change carries the language already, so no reload is needed. An actor without a language shows no accent. */
-  function actorLabel(v, compact) { var accent = (typeof voiceAccentOf === "function") ? voiceAccentOf(v.language) : ""; return v.label + (v.g ? " · " + (v.g === "M" ? "Male" : "Female") : " · Unspecified") + (accent ? " · " + accent : "") + (!compact && v.note ? " · " + v.note : ""); }
+  function actorLabel(v, compact) { var accent = (typeof voiceAccentOf === "function") ? voiceAccentOf(v.language) : "", age = (typeof voiceAgeLabel === "function") ? voiceAgeLabel(v.age) : ""; return v.label + (v.g ? " · " + (v.g === "M" ? "Male" : "Female") : " · Unspecified") + (accent ? " · " + accent : "") + (age ? " · " + age : "") + (!compact && v.note ? " · " + v.note : ""); }
   function matchesActor(v, query) { query = query.trim().toLowerCase(); if (query === "male") return v.g === "M"; if (query === "female") return v.g === "F"; return actorLabel(v).toLowerCase().indexOf(query) >= 0; }
   function actors(ctx, selected, automatic, compact) {
     var html = automatic ? option("", "Automatic", selected) : "";
@@ -53,7 +53,7 @@ var VoiceSettings = (function() {
     html += "<p class='tts-help'>" + e(m.note) + "</p>";
     if (m.catalogUrl) html += "<div class='tts-load'><button id='tts-load-voices' type='button'>Load / refresh voices</button><span id='tts-catalog-status' role='status'>" + ctx.catalog().length + " actors loaded</span></div>";
     if (m.catalogUrl && !c._catalogIssue && c.voices.length) html += "<button type='button' id='tts-clear-catalog-" + e(ctx.id) + "'>Clear cached catalog</button><p class='tts-help'>Clears the downloaded actor list when saved; assigned voices are kept.</p>";
-    if (ctx.catalog().length > 30) html += field("tts-actor-search", "Find a narrator", "<input id='tts-actor-search' type='search' placeholder='Name, gender, accent or description'/>");
+    if (ctx.catalog().length > 30) html += field("tts-actor-search", "Find a narrator", "<input id='tts-actor-search' type='search' placeholder='Name, gender, accent, age or description'/>");
     html += field("tts-narrator", "Narrator voice", "<select id='tts-narrator'>" + actors(ctx, c.narrator, false) + "</select>");
     html += "<p id='tts-actor-note' class='tts-help'></p>";
     if (m.languages.length > 1) html += field("tts-language", "Speech language", select("tts-language", m.languages, c.language, LANG));
@@ -83,7 +83,7 @@ var VoiceSettings = (function() {
     var c = ctx.config(), slots = ctx.S.castSlots();
     var html = "<p class='tts-help'>Choose an actor for each existing cast slot. Automatic casting prefers matching gender. Characters sharing a cast voice share its actor. Assignments are saved separately for each model on this device. A primary actor assigned on a character sheet takes precedence over automatic casting.</p>";
     if (!ctx.catalog().length) { ctx.panel.innerHTML = html + "<p>Load the actor catalog in Voice & performance first.</p>"; return; }
-    if (ctx.catalog().length > 100) html += field("tts-cast-search", "Find cast actors (up to 100 matches shown)", "<input id='tts-cast-search' type='search' placeholder='Name, gender, accent or description'/>");
+    if (ctx.catalog().length > 100) html += field("tts-cast-search", "Find cast actors (up to 100 matches shown)", "<input id='tts-cast-search' type='search' placeholder='Name, gender, accent, age or description'/>");
     if (!slots.length) html += "<p>No cast slots yet. Assign a character-sheet voice or star voices in the voice picker.</p>";
     slots.forEach(function(s, i) {
       var chosen = c.cast[s.id] || "", actual = ctx.S.actor(ctx.id, s.id, c), v = ctx.catalog().filter(function(a) { return a.id === actual; })[0];

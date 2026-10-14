@@ -3877,3 +3877,11 @@ function voiceAccentOf(code){
   var region=parts[parts.length-1].toUpperCase();if(!/^[A-Z]{2}$/.test(region))return "";
   return VOICE_ACCENTS[region]||region;
 }
+/* Owner 2026-10-14: the actor line reads name · gender · accent · AGE. Inworld sends an age group per voice (ageGroup: young |
+   middle_aged | elderly | ""; census 2026-10-14: 70 / 193 / 10 / 2 of 275); the cached row keeps it as `age` and the label reads
+   it through this one mapping. An unlisted word shows itself with a capital (loud, never silent); nothing shows nothing. */
+var VOICE_AGES={young:"Young",middle_aged:"Middle-aged",elderly:"Elderly"};
+function voiceAgeLabel(code){
+  var s=String(code||"").trim().toLowerCase();if(!s)return "";
+  return VOICE_AGES[s]||(s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g," "));
+}

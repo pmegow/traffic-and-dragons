@@ -16,7 +16,24 @@ prove("helpers.js", [
 ]);
 prove("ui-voice-settings.js", [
   { label: "the label drops the accent segment (name · gender · description again)",
-    find: ' + (accent ? " · " + accent : "") + (!compact && v.note', replace: ' + (!compact && v.note',
-    mustFail: "voice accent: the picker's actorLabel places the accent" }
+    find: ' + (accent ? " · " + accent : "") + (age ? " · " + age : "") + (!compact && v.note', replace: ' + (age ? " · " + age : "") + (!compact && v.note',
+    mustFail: "voice accent: the picker's actorLabel places the accent" },
+  /* owner 2026-10-14, the second ask: the age group */
+  { label: "the label drops the age segment (name · gender · accent · description)",
+    find: ' + (age ? " · " + age : "") + (!compact && v.note', replace: ' + (!compact && v.note',
+    mustFail: "voice age: the Inworld actor carries ageGroup" }
+]);
+prove("helpers.js", [
+  { label: "the age mapping loses middle_aged — 193 of 275 Inworld voices read as the raw 'Middle aged'",
+    find: 'middle_aged:"Middle-aged",', replace: '',
+    mustFail: "voice age: voiceAgeLabel maps the vendor's groups" }
+]);
+prove("tts.js", [
+  { label: "the cached row drops the age (every reload loses it again — the label never shows one)",
+    find: "      if (v.age) row.age = _voiceClip(v.age, 16);", replace: "",
+    mustFail: "voice age: the Inworld actor carries ageGroup" },
+  { label: "the Inworld actor normaliser stops carrying ageGroup",
+    find: ', age: v.ageGroup || ""', replace: '',
+    mustFail: "voice age: the Inworld actor carries ageGroup" }
 ]);
 process.exit(code ? 1 : 0);

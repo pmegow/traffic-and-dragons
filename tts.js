@@ -699,7 +699,7 @@ var TTS = (function() {
         deliveryMode: c.delivery, language: c.language || undefined, audioConfig: { audioEncoding: "PCM", sampleRateHertz: 24000, speakingRate: _effRate(c, g)/* #457 */ } }; },
       audio: function(r) { return r.json().then(function(j) { return _voiceDecode64(j.audioContent); }); },
       page: function(j) { return { voices: j.voices, next: j.nextPageToken || "" }; }, cursor: "pageToken",
-      actor: function(v) { return { id: v.voiceId, label: v.displayName || v.voiceId, g: _voiceGender(v.gender), note: v.description || "", language: v.langCode || "" }; } },
+      actor: function(v) { return { id: v.voiceId, label: v.displayName || v.voiceId, g: _voiceGender(v.gender), note: v.description || "", language: v.langCode || "", age: v.ageGroup || ""/* owner 2026-10-14: young | middle_aged | elderly, read by voiceAgeLabel on the actor line */ }; } },
     speechify: { credential: { store: "voice", key: "speechify" }, label: "Speechify · Simba 3.2", compactActors: true, actorNote: _speechifyActorNote, depth: 1, key: true, rate: true, unitRate: true,/* #481 E6 */ languages: ["en-US"],
       /* #454 (owner 2026-09-24): no `emotions` — Simba 3 ignores <speechify:style>; the Emotion control was theatre and is gone */
       note: "English trial. Load your actor catalog to begin. Test bills your Speechify API key; reader subscriptions are separate. Simba 3.2 honours speaking rate but not emotion tags, so there is no Emotion control here.",
@@ -746,6 +746,7 @@ var TTS = (function() {
       var note = _voiceClip(model.actorNote ? model.actorNote(v.note || v.blurb || "") : v.note || v.blurb || "", 160);
       if (note) row.note = note;
       if (v.language) row.language = _voiceClip(v.language, 24);
+      if (v.age) row.age = _voiceClip(v.age, 16);/* owner 2026-10-14: the vendor's age group rides the cached row (a catalog cached before this shows its ages after one reload) */
       return row;
     });
   }
@@ -4482,7 +4483,7 @@ var TTS = (function() {
       route: _voiceRoute, visibleModels: _voiceModelsVisible,/* #622: the one route predicate and the picker's entry filter */
       _providerAvailable: function(id) { return TTS_PROVIDERS[id] ? TTS_PROVIDERS[id].available() : null; },/* #622 test seam: the ladder tier's own answer */
       sample: GEMINI_TEST_LINE,
-      _validate: _voiceValidate, _fetch: _voiceFetch,
+      _validate: _voiceValidate, _fetch: _voiceFetch, _compactActors: _voiceCompactActors,/* test seam (2026-10-14): the cached-row shape — what a catalog keeps per actor */
       _keys: { settings: VOICE_SETTINGS_K, credentials: VOICE_KEYS_K },
       piperOptions: _buildPiperVoiceOptions, nativeOptions: _buildNativeVoiceOptions,
       diagnostics: function() { return "Audio: " + (_audioCtx ? _audioCtx.state : "not started") + " · " + (_playing ? "speaking" : "idle") + " · engine: " + getEngine(); },

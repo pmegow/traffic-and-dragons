@@ -34666,7 +34666,28 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var gi=fn.indexOf("\"Female\")"),ai=fn.indexOf("(accent ? \" · \" + accent : \"\")"),ni=fn.indexOf("v.note ? \" · \" + v.note");
     if(ai<0)return "the accent segment is missing from the label: "+fn.slice(0,300);
     if(!(gi<ai&&ai<ni))return "the label order is not name · gender · accent · description: gender@"+gi+" accent@"+ai+" note@"+ni;
-    return /Name, gender, accent or description/.test(src)?true:"the actor search placeholders do not name the accent";
+    return /Name, gender, accent, age or description/.test(src)?true:"the actor search placeholders do not name the accent and the age";
+  });
+  /* Owner 2026-10-14, second ask: the age group too — name · gender · accent · AGE (· description). Inworld sends ageGroup per
+     voice (young | middle_aged | elderly | ""); unlike the accent it is not derivable, so the actor normaliser carries it and the
+     cached row keeps it as `age` (a catalog cached before this shows its ages after one reload). */
+  t("voice age: voiceAgeLabel maps the vendor's groups to words, shows an unlisted word capitalised (loud), and nothing for nothing",function(){
+    var want={"young":"Young","middle_aged":"Middle-aged","elderly":"Elderly","MIDDLE_AGED":"Middle-aged","":"","old":"Old"},k;
+    for(k in want)if(voiceAgeLabel(k)!==want[k])return "voiceAgeLabel("+JSON.stringify(k)+") = "+JSON.stringify(voiceAgeLabel(k))+", wanted "+JSON.stringify(want[k]);
+    return (voiceAgeLabel(null)===""&&voiceAgeLabel(undefined)==="")?true:"a missing group must show no age";
+  });
+  t("voice age: the Inworld actor carries ageGroup as `age`, the compact cached row keeps it, and actorLabel places it after the accent and before the description",function(){
+    if(typeof TTS==="undefined"||!TTS.settings||typeof TTS.settings._compactActors!=="function")return "no compaction seam (TTS.settings._compactActors)";
+    var row=TTS.settings._compactActors("inworld",[{id:"Amara",label:"Amara",g:"F",note:"Warm.",language:"EN_NG",age:"young"},{id:"Clive",label:"Clive",g:"M",language:"EN_GB"}]);
+    if(row[0].age!=="young")return "the compact row drops the age: "+JSON.stringify(row[0]);
+    if(row[1].age!==undefined)return "an actor without an age gains one: "+JSON.stringify(row[1]);
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),s=src.indexOf("  function actorLabel(v, compact)"),e=src.indexOf("\n",s),fn=src.slice(s,e);
+    if(fn.indexOf("voiceAgeLabel(v.age)")<0)return "actorLabel does not read the age: "+fn.slice(0,200);
+    var ai=fn.indexOf("(accent ? \" · \" + accent : \"\")"),gi=fn.indexOf("(age ? \" · \" + age : \"\")"),ni=fn.indexOf("v.note ? \" · \" + v.note");
+    if(gi<0)return "the age segment is missing from the label";
+    if(!(ai<gi&&gi<ni))return "the label order is not name · gender · accent · age · description: accent@"+ai+" age@"+gi+" note@"+ni;
+    var tsrc=__fsForTests.readFileSync(__rootForTests+"/tts.js","utf8");
+    return tsrc.indexOf("age: v.ageGroup || \"\"")>=0?true:"the Inworld actor normaliser does not carry ageGroup";
   });
 
 }
