@@ -1,0 +1,14 @@
+{
+  "catalogId": "the_weight_of_the_coffered_god",
+  "version": "1.0",
+  "releaseStatus": "release-candidate",
+  "catalogRevision": 2,
+  "publishedAt": "2026-10-14 03:18:03",
+  "sourceCommit": "ccefa88bf731414145097f14f9f8742f02302900",
+  "sourceFileSha256": "490c1a85f1cb95e7aa3d5545256770b7ffc3af322dcb8d7f3137c7d0ceccdc1d",
+  "publicCatalogMatchesEveryBlueprintField": true,
+  "otherCatalogEntriesUnchangedDuringPublication": true,
+  "serverBackup": "/data/catalog-backups/the_weight_of_the_coffered_god-before-v1.0-revision1-20261013.json",
+  "method": "Normal operator API, existing session and revision guard; public readback verified.",
+  "publicCatalogPitchMatchesLocal": true
+}

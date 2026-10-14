@@ -1,7 +1,7 @@
 {
   "source": "samples/the_weight_of_the_coffered_god.blueprint",
   "outcome": "All three full post-revision reviews completed, with all fourteen perspectives represented each time. Final editorial assessments are clean. The campaign remains harsh swords-and-sorcery, with a consistent physical cage, costly magic and earned consequences.",
-  "publication": "Not yet published.",
+  "publication": "Published v1.0 Release Candidate as catalog revision 2; every field matches the reviewed source. The previous catalog entry was backed up. Existing campaigns keep their starting edition.",
   "changes": [
     "Defined the physical key and inner cage, bounded release and resealing procedures, and concrete faction outcomes.",
     "Preserved the price of sorcery while requiring scope and concrete consequences before commitment.",
@@ -9,7 +9,7 @@
     "Added the magic-price warning to the existing catalog pitch (199 characters); verified the complete sentence in a 390px homepage render. The separate hero-selection preview work in #447 remains open.",
     "Later review corrected an introduced shell-opening/release ambiguity and made the promised dry-site release physically explicit."
   ],
-  "verification": "Final normalization and disposable engine import preserve all 69 authored text fields across 9 arcs, 6 NPCs, 5 locations and 8 rules; no overflows. The 199-character catalog warning was visually checked at 390px. Review hashes and all four complete review sets are recorded. No model narration or actual player test.",
+  "verification": "Final normalization and disposable engine import preserve all 69 authored text fields across 9 arcs, 6 NPCs, 5 locations and 8 rules; no overflows. The 199-character catalog warning was visually checked at 390px. Review hashes and all four complete review sets are recorded. No model narration or actual player test. Full pre-commit test gate passed: ALL GREEN, 3,106 engine assertions plus standalone contract/acceptance checks. Source commit ccefa88b pushed to master; live blueprint and catalog pitch verified.",
   "rounds": [
     "Baseline: unbounded costs, unspecified seal/endings, forced escalations and missing causal evidence.",
     "Revision 1: all baseline concerns resolved; player review found an undefined dry-site manifestation and a finale sentence conflating shell opening with release.",
