@@ -34643,4 +34643,30 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
 
+  section("voice accent — the actor line reads name · gender · accent (owner 2026-10-14)");
+  /* No vendor sends an accent field (Inworld census 2026-10-14 through the server's own key: 275 voices, 18 top-level fields,
+     none of them accent); the Inworld site derives its Accent filter from the voice's language region (Amara is EN_NG). The
+     picker derives the same word from the actor's stored language through ONE pure table, so a catalog cached before the
+     change shows its accents without a reload. */
+  t("voice accent: voiceAccentOf reads the region of either vendor's code shape; an unlisted region shows its code (loud), a bare language or nothing shows nothing",function(){
+    var want={"EN_NG":"Nigerian","en-NG":"Nigerian","en-US":"American","EN_GB":"British","es-MX":"Mexican","ES_ES":"Spanish","pt_BR":"Brazilian","PT_PT":"Portuguese","HI_IN":"Indian","EN_IN":"Indian","EN_PH":"Filipino","EN_SG":"Singaporean","EN_XX":"XX","en":"","":"","en-USA":""},k;
+    for(k in want)if(voiceAccentOf(k)!==want[k])return "voiceAccentOf("+JSON.stringify(k)+") = "+JSON.stringify(voiceAccentOf(k))+", wanted "+JSON.stringify(want[k]);
+    if(voiceAccentOf(null)!==""||voiceAccentOf(undefined)!=="")return "a missing code must show no accent";
+    return true;
+  });
+  t("voice accent: every language region in the Inworld catalog census of 2026-10-14 has a word in VOICE_ACCENTS (a new region would show its bare code)",function(){
+    var census=["HI_IN","EN_US","EN_IN","FR_FR","EN_GB","ES_ES","RU_RU","EN_NG","EN_PH","DE_DE","JA_JP","EN_AU","PT_BR","EN_SG","ES_MX","NL_NL","IT_IT","KO_KR","ZH_CN","PT_PT","AR_SA","HE_IL","PL_PL"],i,bare=[];
+    for(i=0;i<census.length;i++){var r=census[i].split("_")[1];if(!VOICE_ACCENTS[r])bare.push(census[i]);}
+    return bare.length?"regions in the live catalog with no accent word (they would read as a code): "+bare.join(", "):true;
+  });
+  t("voice accent: the picker's actorLabel places the accent between the gender and the description, from the actor's stored language, and the search placeholders say so",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),s=src.indexOf("  function actorLabel(v, compact)"),e=src.indexOf("\n",s),fn=src.slice(s,e);
+    if(s<0)return "actorLabel not found";
+    if(fn.indexOf("voiceAccentOf(v.language)")<0)return "actorLabel does not derive the accent from the stored language: "+fn.slice(0,200);
+    var gi=fn.indexOf("\"Female\")"),ai=fn.indexOf("(accent ? \" · \" + accent : \"\")"),ni=fn.indexOf("v.note ? \" · \" + v.note");
+    if(ai<0)return "the accent segment is missing from the label: "+fn.slice(0,300);
+    if(!(gi<ai&&ai<ni))return "the label order is not name · gender · accent · description: gender@"+gi+" accent@"+ai+" note@"+ni;
+    return /Name, gender, accent or description/.test(src)?true:"the actor search placeholders do not name the accent";
+  });
+
 }

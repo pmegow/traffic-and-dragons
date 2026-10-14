@@ -3860,3 +3860,20 @@ function sheetTraitLeads(name){
   var n=(typeof wsNpcByName==="function")?wsNpcByName(name):null;
   return !!(n&&!n.partyMember&&n.charSheet&&typeof n.charSheet.trait==="string"&&n.charSheet.trait.trim()&&typeof scenePresentNow==="function"&&scenePresentNow(n.name));
 }
+
+/* Owner 2026-10-14 — the voice picker reads name · gender · ACCENT. No vendor sends an accent field: the Inworld catalog carries a
+   langCode per actor (EN_NG, EN_GB, ES_MX…; census 2026-10-14: 23 codes over 275 voices) and the Inworld site derives its Accent
+   filter from that region, so this table derives the same word from the actor's stored language — Inworld's "EN_NG", Speechify's
+   "en-NG", either case, either separator. ONE table: adding a region is adding an entry; an unlisted region shows its code
+   rather than nothing (loud, never silent); no code shows no accent. */
+var VOICE_ACCENTS={US:"American",GB:"British",AU:"Australian",NZ:"New Zealand",IE:"Irish",CA:"Canadian",IN:"Indian",NG:"Nigerian",ZA:"South African",
+  PH:"Filipino",SG:"Singaporean",KE:"Kenyan",GH:"Ghanaian",JM:"Jamaican",HK:"Hong Kong",FR:"French",ES:"Spanish",MX:"Mexican",AR:"Argentine",CO:"Colombian",
+  CL:"Chilean",RU:"Russian",DE:"German",AT:"Austrian",CH:"Swiss",JP:"Japanese",BR:"Brazilian",PT:"Portuguese",NL:"Dutch",BE:"Belgian",IT:"Italian",
+  KR:"Korean",CN:"Chinese",TW:"Taiwanese",SA:"Saudi",AE:"Emirati",EG:"Egyptian",IL:"Israeli",PL:"Polish",SE:"Swedish",NO:"Norwegian",DK:"Danish",
+  FI:"Finnish",TR:"Turkish",UA:"Ukrainian",CZ:"Czech",GR:"Greek",HU:"Hungarian",RO:"Romanian",VN:"Vietnamese",TH:"Thai",ID:"Indonesian",MY:"Malaysian"};
+function voiceAccentOf(code){
+  var s=String(code||"").trim();if(!s)return "";
+  var parts=s.split(/[-_]/);if(parts.length<2)return "";/* a bare language ("en") names no region, so no accent */
+  var region=parts[parts.length-1].toUpperCase();if(!/^[A-Z]{2}$/.test(region))return "";
+  return VOICE_ACCENTS[region]||region;
+}
