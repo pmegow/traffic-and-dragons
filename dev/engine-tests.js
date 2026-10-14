@@ -34663,7 +34663,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var src=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),s=src.indexOf("  function actorLabel(v, compact)"),e=src.indexOf("\n",s),fn=src.slice(s,e);
     if(s<0)return "actorLabel not found";
     if(fn.indexOf("voiceAccentOf(v.language)")<0)return "actorLabel does not derive the accent from the stored language: "+fn.slice(0,200);
-    var gi=fn.indexOf("\"Female\")"),ai=fn.indexOf("(accent ? \" · \" + accent : \"\")"),ni=fn.indexOf("v.note ? \" · \" + v.note");
+    var gi=fn.indexOf("\"Female\")"),ai=fn.indexOf("(accent ? \" · \" + accent : \"\")"),ni=fn.indexOf("(note ? \" · \" + note : \"\")");
     if(ai<0)return "the accent segment is missing from the label: "+fn.slice(0,300);
     if(!(gi<ai&&ai<ni))return "the label order is not name · gender · accent · description: gender@"+gi+" accent@"+ai+" note@"+ni;
     return /Name, gender, accent, age or description/.test(src)?true:"the actor search placeholders do not name the accent and the age";
@@ -34683,11 +34683,34 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(row[1].age!==undefined)return "an actor without an age gains one: "+JSON.stringify(row[1]);
     var src=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),s=src.indexOf("  function actorLabel(v, compact)"),e=src.indexOf("\n",s),fn=src.slice(s,e);
     if(fn.indexOf("voiceAgeLabel(v.age)")<0)return "actorLabel does not read the age: "+fn.slice(0,200);
-    var ai=fn.indexOf("(accent ? \" · \" + accent : \"\")"),gi=fn.indexOf("(age ? \" · \" + age : \"\")"),ni=fn.indexOf("v.note ? \" · \" + v.note");
+    var ai=fn.indexOf("(accent ? \" · \" + accent : \"\")"),gi=fn.indexOf("(age ? \" · \" + age : \"\")"),ni=fn.indexOf("(note ? \" · \" + note : \"\")");
     if(gi<0)return "the age segment is missing from the label";
     if(!(ai<gi&&gi<ni))return "the label order is not name · gender · accent · age · description: accent@"+ai+" age@"+gi+" note@"+ni;
     var tsrc=__fsForTests.readFileSync(__rootForTests+"/tts.js","utf8");
     return tsrc.indexOf("age: v.ageGroup || \"\"")>=0?true:"the Inworld actor normaliser does not carry ageGroup";
+  });
+  /* Owner 2026-10-14, third ask: the vendor's usage pitch ("…, ideal for customer service, narration, and support") is dropped —
+     the use is the player's call and it crowded the list. Census 2026-10-14: 200 of 275 descriptions end in such a clause (198
+     by ideal / perfect / great / suited / well-suited / suitable, 2 by a bare "voice for…"), none carries an earlier "for". */
+  t("voice note: voiceNoteTrim drops the usage clause from the first whole-word 'for' with its marker and comma, keeps a description without one, and never cuts inside a word",function(){
+    var want={
+      "Warm, professional Nigerian female voice, ideal for customer service, narration, and support.":"Warm, professional Nigerian female voice",
+      "Clear, articulate British male voice ideal for educational content and healthcare narration.":"Clear, articulate British male voice",
+      "Bright, eager American female child voice, perfect for animated characters.":"Bright, eager American female child voice",
+      "Steady narrator, well-suited for audiobooks.":"Steady narrator",
+      "Warm, articulate British male voice for customer support and education.":"Warm, articulate British male voice",
+      "Polished, approachable British female voice for support and learning.":"Polished, approachable British female voice",
+      "A professional adult female with a clear, formal, and authoritative voice, speaking Hindi in a studio environment.":"A professional adult female with a clear, formal, and authoritative voice, speaking Hindi in a studio environment",
+      "Comfortable and warm.":"Comfortable and warm",
+      "Ideal for narration.":"",
+      "":""},k;
+    for(k in want)if(voiceNoteTrim(k)!==want[k])return "voiceNoteTrim("+JSON.stringify(k)+") = "+JSON.stringify(voiceNoteTrim(k))+", wanted "+JSON.stringify(want[k]);
+    return voiceNoteTrim(null)===""?true:"a missing note must trim to nothing";
+  });
+  t("voice note: actorLabel reads the note through voiceNoteTrim and writes no separator for a note that trims to nothing",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),s=src.indexOf("  function actorLabel(v, compact)"),e=src.indexOf("\n",s),fn=src.slice(s,e);
+    if(fn.indexOf("voiceNoteTrim(v.note)")<0)return "actorLabel does not trim the note: "+fn.slice(0,300);
+    return fn.indexOf("(note ? \" · \" + note : \"\")")>=0?true:"an empty trimmed note would still get its separator";
   });
 
 }

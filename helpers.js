@@ -3885,3 +3885,14 @@ function voiceAgeLabel(code){
   var s=String(code||"").trim().toLowerCase();if(!s)return "";
   return VOICE_AGES[s]||(s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g," "));
 }
+/* Owner 2026-10-14: the actor line drops the vendor's USAGE pitch ("…, ideal for customer service, narration, and support") —
+   the voice's use is the player's call, and the list was crowded with it. Census 2026-10-14: 200 of 275 Inworld descriptions
+   end in such a clause, 198 introduced by ideal / perfect / great / suited / well-suited / suitable and 2 by a bare "voice for…";
+   no description carries a "for" before its usage clause. The cut: the first whole-word "for" (with its marker word and the
+   comma before it), then trailing punctuation; "comfortable" has no whole-word "for" and stays. Applied at LABEL time, so a
+   catalog cached before this change reads short without a reload. */
+function voiceNoteTrim(note){
+  var s=String(note||"");
+  s=s.replace(/(^|[^A-Za-z]),?[ ]*(?:(?:ideal|perfect|great|well[- ]suited|suited|suitable)[ ]+)?for(?![A-Za-z]).*$/i,"$1");
+  return s.replace(/[ ,;:.]+$/,"");
+}

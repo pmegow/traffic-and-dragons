@@ -16,17 +16,24 @@ prove("helpers.js", [
 ]);
 prove("ui-voice-settings.js", [
   { label: "the label drops the accent segment (name · gender · description again)",
-    find: ' + (accent ? " · " + accent : "") + (age ? " · " + age : "") + (!compact && v.note', replace: ' + (age ? " · " + age : "") + (!compact && v.note',
+    find: ' + (accent ? " · " + accent : "") + (age ? " · " + age : "") + (note ? " · " + note : "")', replace: ' + (age ? " · " + age : "") + (note ? " · " + note : "")',
     mustFail: "voice accent: the picker's actorLabel places the accent" },
   /* owner 2026-10-14, the second ask: the age group */
   { label: "the label drops the age segment (name · gender · accent · description)",
-    find: ' + (age ? " · " + age : "") + (!compact && v.note', replace: ' + (!compact && v.note',
-    mustFail: "voice age: the Inworld actor carries ageGroup" }
+    find: ' + (age ? " · " + age : "") + (note ? " · " + note : "")', replace: ' + (note ? " · " + note : "")',
+    mustFail: "voice age: the Inworld actor carries ageGroup" },
+  /* owner 2026-10-14, the third ask: the usage pitch is dropped */
+  { label: "the label serves the vendor's description untrimmed again (the usage pitch crowds the list)",
+    find: '((typeof voiceNoteTrim === "function") ? voiceNoteTrim(v.note) : v.note)', replace: 'v.note',
+    mustFail: "voice note: actorLabel reads the note through voiceNoteTrim" }
 ]);
 prove("helpers.js", [
   { label: "the age mapping loses middle_aged — 193 of 275 Inworld voices read as the raw 'Middle aged'",
     find: 'middle_aged:"Middle-aged",', replace: '',
-    mustFail: "voice age: voiceAgeLabel maps the vendor's groups" }
+    mustFail: "voice age: voiceAgeLabel maps the vendor's groups" },
+  { label: "the trimmer forgets the marker word and the comma ('…voice, ideal' is left on the line)",
+    find: ",?[ ]*(?:(?:ideal|perfect|great|well[- ]suited|suited|suitable)[ ]+)?for(?![A-Za-z]).*$/i", replace: "[ ]for(?![A-Za-z]).*$/i",
+    mustFail: "voice note: voiceNoteTrim drops the usage clause" }
 ]);
 prove("tts.js", [
   { label: "the cached row drops the age (every reload loses it again — the label never shows one)",

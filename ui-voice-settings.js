@@ -23,7 +23,7 @@ var VoiceSettings = (function() {
      site derives its Accent filter from the voice's language region (Amara is EN_NG → Nigerian), so the label derives it the
      same way from the actor's stored `language` through the one pure table, voiceAccentOf (helpers.js); a catalog cached
      before this change carries the language already, so no reload is needed. An actor without a language shows no accent. */
-  function actorLabel(v, compact) { var accent = (typeof voiceAccentOf === "function") ? voiceAccentOf(v.language) : "", age = (typeof voiceAgeLabel === "function") ? voiceAgeLabel(v.age) : ""; return v.label + (v.g ? " · " + (v.g === "M" ? "Male" : "Female") : " · Unspecified") + (accent ? " · " + accent : "") + (age ? " · " + age : "") + (!compact && v.note ? " · " + v.note : ""); }
+  function actorLabel(v, compact) { var accent = (typeof voiceAccentOf === "function") ? voiceAccentOf(v.language) : "", age = (typeof voiceAgeLabel === "function") ? voiceAgeLabel(v.age) : "", note = (!compact && v.note) ? ((typeof voiceNoteTrim === "function") ? voiceNoteTrim(v.note) : v.note) : "";/* the usage pitch is dropped at label time (owner 2026-10-14) */ return v.label + (v.g ? " · " + (v.g === "M" ? "Male" : "Female") : " · Unspecified") + (accent ? " · " + accent : "") + (age ? " · " + age : "") + (note ? " · " + note : ""); }
   function matchesActor(v, query) { query = query.trim().toLowerCase(); if (query === "male") return v.g === "M"; if (query === "female") return v.g === "F"; return actorLabel(v).toLowerCase().indexOf(query) >= 0; }
   function actors(ctx, selected, automatic, compact) {
     var html = automatic ? option("", "Automatic", selected) : "";
