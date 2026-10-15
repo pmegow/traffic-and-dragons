@@ -12,6 +12,8 @@
 var L = require("./load-engine.js"); L.loadEngine();
 global.showToast = function () {}; global.syncUI = function () {}; global.saveAll = function () {};
 var N = parseInt(process.argv[2] || "2000", 10), seed = parseInt(process.argv[3] || "4242", 10), SWAP = process.argv[4] === "swap";
+/* Thursday review 2026-10-15: a flag-shaped call (`--seed=7`) parsed to NaN and ran ZERO sequences under a green "0 violations" line — a check that cannot fail. Refuse it. */
+if (!(N >= 1) || !(seed === seed)) { console.error("usage: node dev/fuzz-npc-identity.js [N=2000] [seed=4242] [swap] — got N=" + process.argv[2] + " seed=" + process.argv[3]); process.exit(2); }
 var D = "°";
 function rnd() { seed = (seed + 0x6D2B79F5) | 0; var t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
 function pick(a) { return a[Math.floor(rnd() * a.length)]; }
