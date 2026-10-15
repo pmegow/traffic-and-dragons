@@ -108,7 +108,18 @@ ul{margin:6px 0 6px 20px;padding:0}li{margin:3px 0}
 </ul>
 
 <h2 id="rung3">4 Rung 3 — prompt diff</h2>
-<p>Not run yet.</p>
+<div class="verdict"><b>Verdict.</b> Every hunk between last Thursday's engine (v1.1192, a worktree at <code>f1a48a2a</code>) and HEAD on the owner's three campaigns is attributable to a shipped row; the stable half changed by exactly the four STATE TAGS doc lines the week rewrote (plus the Village's #593 standing block), the volatile half by the labels, categories and lists those rows own. The captures are deterministic (two runs of one engine on one save: byte-identical halves). <b>No unclaimed hunk, no unbudgeted growth.</b> Two things learned about the tool rather than the prompt: the anchor engine cannot read a save the new engine wrote (the Frizwick test campaign is a v11 row save, and v1.1192 rendered its pack as "[object Object]" — the very hazard the #599 (a) gate closed the next day), so for that save only the stable half is a valid comparison; and <code>dev/capture-prompt.js</code> skips the load-time memory heal (<code>healMemory</code>), so a save the game would repair at load (#618's start world) captures as the game would NOT serve it — fixed under rung 4.</div>
+<table><tr><th>Save</th><th>Stable then → now</th><th>Volatile then → now</th><th>Hunks (stable)</th><th>Hunks (volatile)</th></tr>
+<tr><td>The Village t291 (mature, village kind)</td><td>58,637 → 59,244 (+607)</td><td>66,848 → 67,264 (+416)</td><td>EQUIPPED doc line (#599 d) · COMBAT_GROUP line (#612) · SPELL_USED/MANA dedupe (#420) · ITEM_DEF categories with jewelry (#607) · A RESIDENT'S STANDING block (#593, village only)</td><td>two ITEM CANON lines "tool" → "jewelry" (#607) · "Wearing:" → "Equipped:" on three sheets (#599 d) · a new VISITED line of the twelve visited houses and shops (#464) · AVAILABLE NAMES (the pool tripled, v1.1254)</td></tr>
+<tr><td>Ammut t67 (mature adventure)</td><td>57,302 → 57,539 (+237)</td><td>71,438 → 71,913 (+475)</td><td>the four doc lines above</td><td>the same jewelry and Equipped hunks · a new VISITED line (the world and its five visited sub-locations — this campaign had never filed a location through <code>fileLocation</code>, so before #464 it had no VISITED line at all) · AVAILABLE NAMES</td></tr>
+<tr><td>Frizwick t11 (young, v11 row save)</td><td>53,488 → 53,725 (+237)</td><td>23,922 → 28,651 (+4,729 — an artefact, see below)</td><td>the four doc lines above</td><td>VISITED gains "The Crossroads of Ashenveil" (#618's start-world heal, run by the game at load; here by the new engine's admission) · AVAILABLE NAMES · the Inventory line and the whole ITEM CANON block (16 lines) appear only at HEAD because the ANCHOR could not read the row pack ("[object Object]" ×24) — not growth</td></tr>
+</table>
+<ul>
+<li><b>Stable growth is budgeted:</b> +237 on every save = the COMBAT_GROUP line (+337) and the jewelry id (+8) minus the MANA dedupe (−108); the Village's extra +370 is the #593 block its kind alone receives.</li>
+<li><b>Volatile growth is #464's VISITED line</b> (about 400–450 characters a turn on a mature campaign, capped at 30 sub-locations by recency — the row's own budget) and #607's category words; the label change is byte-neutral.</li>
+<li><b>Determinism:</b> Frizwick and the Village captured twice at HEAD — stable and volatile byte-identical both times.</li>
+<li><b>The tool gap:</b> the Village's world node is stored at <code>visits:0</code> (a campaign begun before the #481 C11 stamp); the game's <code>loadState</code> runs <code>healMemory</code>, which #618 taught to stamp it, so the live prompt lists "The Village" under VISITED — but the capture skips <code>healMemory</code> and still printed "KNOWN OF (not yet visited): The Village" beside "Location: The Village" at HEAD. The capture must mirror the load; rung 4 adds the heal.</li>
+</ul>
 
 <h2 id="rung4">5 Rung 4 — smalls</h2>
 <p>Not run yet.</p>
