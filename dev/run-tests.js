@@ -1634,10 +1634,26 @@ try {
   var _mtFail = function (msg) { console.error("MENU TIER CONTRACT: " + msg); process.exit(1); };
   var _mtBoot = _src("ui-boot.js");
   var _mtSpec = _mtBoot.slice(_mtBoot.indexOf("function buildFileMenus"), _mtBoot.indexOf("function wireButtons"));
-  ["llm", "usage", "set-folder", "clear-folder", "server-connect", "server-disconnect", "clearcache\""].forEach(function (id) {
+  ["llm", "usage", "fal-key", "set-folder", "clear-folder", "server-connect", "server-disconnect", "clearcache\""].forEach(function (id) {/* fal-key joined at #634: Render Options moved into the Dev tools drawer */
     var re = new RegExp("btn\\(p\\+\"" + id.replace(/"/g, "") + "\"[^\n]*fm-dev-only");
     if (!re.test(_mtSpec)) _mtFail("operator row '" + id.replace(/"/g, "") + "' is not marked fm-dev-only — a beta tester would see it.");
   });
+  /* #634 (owner 2026-10-15): Sync is the operator's (the topbar button AND its mobile menu row), Dev tools is a
+     dev-only drawer holding the three operator modals, Audio holds the sound rows, Campaigns sits under Save / Load,
+     and the Re-roll button and the Campaign Blueprints row are gone. Each pin has a clause in dev/sabotage-634-menu-layout.js. */
+  var _mtHtml = _src("index.html");
+  if (_mtHtml.indexOf('<button class="ib fm-dev-only" id="sync-btn"') < 0) _mtFail("the topbar Sync button lost fm-dev-only — a beta tester would see it (#634).");
+  if (!/btn\("fm-sync-mob"[^\n]*cls:"fm-mobile-only fm-dev-only"/.test(_mtSpec)) _mtFail("the mobile Sync state row lost fm-dev-only (#634).");
+  if (_mtHtml.indexOf('id="reroll-btn"') >= 0 || _mtSpec.indexOf("fm-reroll-mob") >= 0) _mtFail("the Re-roll button is back (#634: the owner removed it).");
+  if (_mtSpec.indexOf('btn(p+"blueprints"') >= 0) _mtFail("the Campaign Blueprints menu row is back (#634: the owner removed it).");
+  if (_mtSpec.indexOf("<div class='fm-dev-only'>\"+drawer(p+\"devtools\"") < 0) _mtFail("the Dev tools drawer lost its fm-dev-only wrapper (#634).");
+  var _mtSl = _mtSpec.slice(_mtSpec.indexOf("var sl="), _mtSpec.indexOf('drawer(p+"saveload"'));
+  if (_mtSl.indexOf('btn(p+"campaigns"') < 0) _mtFail("the Campaigns row left the Save / Load drawer (#634).");
+  var _mtAud = _mtSpec.slice(_mtSpec.indexOf("var aud="), _mtSpec.indexOf("var dev="));
+  ['btn(p+"tts-settings"', "sound-cb", "ambient-volume"].forEach(function (s) { if (_mtAud.indexOf(s) < 0) _mtFail("the Audio drawer lost " + s + " (#634)."); });
+  var _mtDev = _mtSpec.slice(_mtSpec.indexOf("var dev="), _mtSpec.indexOf("var dm="));
+  ['btn(p+"llm"', 'btn(p+"usage"', 'btn(p+"fal-key"'].forEach(function (s) { if (_mtDev.indexOf(s) < 0) _mtFail("the Dev tools drawer lost " + s + " (#634)."); });
+  if (_mtSpec.indexOf('drawer(p+"audio",p+"audiomenu"') < 0 || _mtBoot.indexOf('["audio","audiomenu"]') < 0 || _mtBoot.indexOf('["devtools","devtoolsmenu"]') < 0) _mtFail("an Audio or Dev tools drawer is unwired — its toggle is missing from the cascading loop (#634).");
   /* #622 (owner ruling 2026-10-12, amends the 2026-09-11 "tts-settings is dev-only" row): the Voice Settings ROW is for everyone —
      a keyless tester picks the server's Speechify there; the KEY FIELDS inside the modal are what stay dev-only, and the
      picker filters a non-admin's entries to the reachable readers through the one route predicate. */
@@ -1651,8 +1667,45 @@ try {
   if (!/serverAccount = data;[^\n]*\n[^\n]*applyMenuTier\(\)/.test(_mtSa)) _mtFail("fetchAccount no longer re-applies the tier when the account lands — menus built before the answer keep the wrong tier.");
   var _mtShell = _src("ui-shell.js");
   if (_mtShell.indexOf("menuTierHidesDev(acct)") < 0) _mtFail("applyMenuTier no longer decides through the pure menuTierHidesDev helper.");
-  console.log("[#289] menu tier contract OK — 7 operator rows flagged, the Voice Settings row open with its key fields dev-only (#622), toggle re-applied on account load");
+  console.log("[#289] menu tier contract OK — 8 operator rows flagged, the Sync button and the Dev tools drawer operator-only (#634), the Voice Settings row open with its key fields dev-only (#622), toggle re-applied on account load");
 } catch (e) { console.error("MENU TIER CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
+
+// ── THEME PALETTE CONTRACT (#634, v1.1266) ───────────────────────────────────
+// The game's light palette is a COPY of website/themes.css's light theme — index.html is the cache-first app
+// shell and themes.css is network-first, so a render-blocking <link> would wait on the network every load.
+// A copy drifts unless derived: for every token the game's :root defines, the light override must equal
+// themes.css's and no themed token may be missing; the dark values must agree too. The theme is applied
+// before first paint by a head script and by ui-modals.js's toggle through ONE key.
+try {
+  var _thFail = function (msg) { console.error("THEME PALETTE CONTRACT: " + msg); process.exit(1); };
+  var _thTokens = function (css, selector, where) {
+    var i = css.indexOf(selector); if (i < 0) _thFail(where + " has no " + selector + " block");
+    var body = css.slice(css.indexOf("{", i) + 1, css.indexOf("}", i)).replace(/\/\*[\s\S]*?\*\//g, ""), out = {}, re = /(--[a-z0-9-]+)\s*:\s*([^;]+);/g, m;
+    while ((m = re.exec(body))) out[m[1]] = m[2].trim();
+    return out;
+  };
+  var _thHtml = _src("index.html"), _thCss = _src("website/themes.css");
+  var _gameDark = _thTokens(_thHtml, "\n:root{", "index.html"), _gameLight = _thTokens(_thHtml, ':root[data-theme="light"]{', "index.html");
+  var _siteDark = _thTokens(_thCss, ':root, :root[data-theme="dark"]{', "website/themes.css"), _siteLight = _thTokens(_thCss, ':root[data-theme="light"]{', "website/themes.css");
+  Object.keys(_gameDark).forEach(function (t) {
+    if (/^--(font|font-mono|r|rl)$/.test(t)) return;/* typography and radii are the game's own */
+    if (_siteDark[t] !== undefined && _siteDark[t] !== _gameDark[t]) _thFail("dark token " + t + " differs between index.html (" + _gameDark[t] + ") and website/themes.css (" + _siteDark[t] + ")");
+    if (_siteLight[t] !== undefined && _gameLight[t] === undefined) _thFail("light token " + t + " is themed in website/themes.css but missing from index.html's light block");
+  });
+  Object.keys(_gameLight).forEach(function (t) {
+    if (_gameDark[t] === undefined) _thFail("light token " + t + " has no dark counterpart in index.html's :root");
+    if (_siteLight[t] !== _gameLight[t]) _thFail("light token " + t + " differs between index.html (" + _gameLight[t] + ") and website/themes.css (" + _siteLight[t] + ")");
+  });
+  if (_thHtml.indexOf(':root[data-theme="dark"]{color-scheme:dark}') < 0 || !/:root\[data-theme="light"\]\{\s*color-scheme:light;/.test(_thHtml)) _thFail("index.html lost a color-scheme declaration — form controls would keep the other palette");
+  var _thKey = (/var THEME_KEY="(tnd_[a-z0-9_]+)";/.exec(_src("ui-modals.js")) || [])[1];
+  if (!_thKey) _thFail("ui-modals.js lost THEME_KEY");
+  var _thHead = _thHtml.slice(0, _thHtml.indexOf("</head>"));
+  if (_thHead.indexOf('localStorage.getItem("' + _thKey + '")==="light"') < 0 || _thHead.indexOf('var t="dark"') < 0 || _thHead.indexOf('setAttribute("data-theme",t)') < 0) _thFail("index.html's head no longer applies the stored theme (" + _thKey + ", dark by default) before first paint — a light-mode player would see a dark flash");
+  var _thBoot = _src("ui-boot.js");
+  if (_thBoot.indexOf("loadTheme();") < 0) _thFail("initSettings no longer loads the theme");
+  if (_thBoot.indexOf('["dark-cb",toggleDarkMode]') < 0 || _thBoot.indexOf('chk(p+"dark-cb"') < 0) _thFail("the Dark mode row is unwired or gone");
+  console.log("[#634] theme palette contract OK — " + Object.keys(_gameLight).length + " light tokens equal website/themes.css, one key (" + _thKey + ") read before paint and by the toggle");
+} catch (e) { console.error("THEME PALETTE CONTRACT CHECK FAILED: " + (e && e.message)); process.exit(1); }
 
 // ── IMPORT OWNERSHIP CONTRACT (#423, v1.953) ─────────────────────────────────────────────
 // An imported .tnd carries its campaign's own id; adopting it unconditionally posted the SENDER's id on

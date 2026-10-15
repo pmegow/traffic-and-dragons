@@ -25,7 +25,7 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   await page.evaluate(f=>{worldState=f.world;memory=f.memory;sessionLog=[{role:'user',content:'head in to the smithy'},{role:'assistant',content:'You step back through the smithy door, the heat rolling out again to meet you. [TIME_CHECK:mid-morning] [SCENE_CAST:none]'}];document.getElementById('api-screen').style.display='none';showGame();saveLocal();syncUI();},fixture);
   assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0,'default on, but silent with no bound scene');
   await page.evaluate(()=>Sound.setEnabled(false));
-  await page.locator('#file-btn').click();await page.locator('#fm-devmode').click();await page.locator('#fm-ambient-cb').check();
+  await page.locator('#file-btn').click();await page.locator('#fm-devmode').click();await page.locator('#fm-audio').click();await page.locator('#fm-ambient-cb').check();/* #634: ambience sits in the Audio drawer */
   await page.locator('#file-btn').click();await page.waitForFunction(()=>Ambient.snapshot().unlocked);/* default-on: the menu tap is the unlocking gesture and resume() settles asynchronously */
   assert.equal(await page.evaluate(()=>__loops.filter(s=>Math.abs(s.buffer.duration-AUDIO_SCENES[0].bed.loopEnd)<0.05).length),0,'untagged smithy narration must not start fire');
   assert.match(await page.locator('#fm-ambient-status').textContent(),/Daytime birds and insects|Village day/);/* the day bed's label as the catalog names it now (#485) */
@@ -59,7 +59,7 @@ const server=http.createServer((req,res)=>{const p=path.resolve(root,'.'+decodeU
   // Advance multiple real loop boundaries without waiting a minute per run.
   await page.evaluate(()=>{__loops.at(-1).playbackRate.value=12});await page.waitForTimeout(4700);
   assert.equal(await page.evaluate(()=>Ambient.inspect().sources),1);assert.equal(await page.evaluate(()=>__loops.filter(s=>!s.__stopped).length),1);
-  await page.evaluate(()=>{__loops.at(-1).playbackRate.value=1;document.getElementById('file-btn').click();document.getElementById('fm-devmode').click()});
+  await page.evaluate(()=>{__loops.at(-1).playbackRate.value=1;document.getElementById('file-btn').click();document.getElementById('fm-devmode').click();document.getElementById('fm-audio').click()});
   await page.screenshot({path:path.join(out,'smithy-desktop.png'),fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(out,'smithy-mobile.png'),fullPage:true});
   await page.evaluate(()=>showChar());assert.equal(await page.evaluate(()=>Ambient.inspect().sources),0);

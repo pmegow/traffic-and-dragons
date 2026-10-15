@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="icon" type="image/svg+xml" href="icon.svg"/>
 <title>Traffic and Dragons</title>
+<script>/* #634: the color scheme before first paint — dark unless the player chose light (File ▸ Settings ▸ Dark mode). ui-modals.js owns the key (THEME_KEY) and the toggle; this reads the same literal so a light-mode player never sees a dark flash. */(function(){var t="dark";try{if(localStorage.getItem("tnd_theme_v1")==="light")t="light";}catch(e){}document.documentElement.setAttribute("data-theme",t);})();</script>
 <style>
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -33,8 +34,26 @@
   --dng:#c04040;--on-dng:#fff;--dng-faint:rgba(192,64,64,.08);
   --warn:#d8a04a;
   --red:#8b2a2a;--blue:#3a6ab5;--grn:#3a7a5a;
+  /* reference-card status text (bibleCardHTML / skillCardHTML, helpers.js) */
+  --magic-ink:#c99be0;--trained-ink:#d09090;--untrained-ink:#d0b070;
   /* radii */
   --r:6px;--rl:10px;
+}
+:root[data-theme="dark"]{color-scheme:dark}
+/* #634: the LIGHT palette — the same values as website/themes.css's light theme for every token the game
+   defines. COPIED, not linked: index.html is the cache-first app shell and themes.css is network-first, so a
+   render-blocking <link> would wait on the network on every load. The copy is derived, never trusted — the
+   THEME PALETTE CONTRACT (run-tests) fails when a token here differs from themes.css or a themed token is
+   missing. File ▸ Settings ▸ Dark mode flips data-theme (off = light); the head script sets it before paint. */
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg0:#b0a68b;--bg1:#eaddb9;--bg2:#f6edcf;--bg3:#ded0aa;
+  --brd:#b6a17a;--brd2:#766548;
+  --modal-bg:#eaddb9;
+  --t0:#302a20;--t1:#514534;--t2:#65563e;
+  --acc:#883c2d;--on-acc:#fff5d9;--acc-bg:#ecd4b5;
+  --dng:#9c3026;--hp:#9c3026;
+  --magic-ink:#623779;--trained-ink:#8b2a2a;--untrained-ink:#73501c;
 }
 html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--font);font-size:15px;font-variant-numeric:lining-nums}
 #api-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
@@ -455,10 +474,9 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
     <div id="hud-ways" style="display:none;flex-basis:100%;gap:6px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--brd);padding-top:6px;margin-top:2px;font-size:11px;position:relative;" title="Where the party is, and the recorded ways from here. Tap a place to put the move in the input; you can still name anywhere."></div>
     <div id="hud-ways-more" style="display:none;position:absolute;z-index:40;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:4px;min-width:160px;max-height:50vh;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.5);"></div>
     <div id="hud-btns" style="display:flex;gap:6px;align-items:center;margin-left:auto;">
-      <button class="ib" id="sync-btn" title="Edit HP, gold, inventory and world state directly">Sync</button>
+      <button class="ib fm-dev-only" id="sync-btn" title="Edit HP, gold, inventory and world state directly">Sync</button><!-- #634: operator-only (owner 2026-10-15) — applyMenuTier hides fm-dev-only for a signed-in non-admin -->
       <button class="ib" id="state-btn" title="View full world state in sidebar panel">World State</button>
       <button class="ib" id="render-btn" title="Generate a photorealistic scene prompt for image AI">Render</button>
-      <button class="ib" id="reroll-btn" title="Re-roll the last scene in the current prose voice — no turn taken. Switch Prose Style, then re-roll to compare voices.">&#8635; Re-roll</button>
       <button class="ib" id="tts-btn" title="Toggle voice narration" style="opacity:0.5;">🔇</button>
       <div style="position:relative;">
         <button class="ib" id="file-btn" title="File operations: save, load, export, settings">File &#9660;</button>

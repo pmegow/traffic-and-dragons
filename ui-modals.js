@@ -140,6 +140,19 @@ function toggleFontSize(){
   store.set(FONT_KEY,large?"1":"0");
   eachMenuEl("font-lg",function(el){el.checked=large;});
 }
+/* #634: the color scheme — "dark" (the default) or "light" (File ▸ Settings ▸ Dark mode off). The key is
+   read TWICE by design: here, and by the head script in index.html that sets data-theme before first paint
+   (otherwise a light-mode player sees a dark flash every load). The THEME PALETTE CONTRACT (run-tests) keeps
+   the two literals equal. The palette itself is index.html's :root[data-theme="light"] block. */
+var THEME_KEY="tnd_theme_v1";
+function applyTheme(dark){
+  document.documentElement.setAttribute("data-theme",dark?"dark":"light");
+  var meta=document.querySelector("meta[name='theme-color']"),acc=(getComputedStyle(document.documentElement).getPropertyValue("--acc")||"").trim();
+  if(meta&&acc)meta.setAttribute("content",acc);/* the browser chrome follows the accent of the palette in force */
+  eachMenuEl("dark-cb",function(el){el.checked=dark;});
+}
+function loadTheme(){applyTheme(store.get(THEME_KEY)!=="light");}
+function toggleDarkMode(){var dark=document.documentElement.getAttribute("data-theme")!=="dark";store.set(THEME_KEY,dark?"dark":"light");applyTheme(dark);}
 function toggleAdultMode(){adultMode=!adultMode;store.set(ADK,adultMode?"1":"");eachMenuEl("adult-cb",function(cb){cb.checked=adultMode;});showToast(adultMode?"18+ content enabled":"18+ content disabled");}
 /* #328: the in-band buttons switch — off = the ask leaves the prompt and the separate call returns (rollback). */
 function toggleSuggestInband(){suggestInband=!suggestInband;store.set(SUGGEST_INBAND_K,suggestInband?"1":"0");eachMenuEl("inband-cb",function(cb){cb.checked=suggestInband;});showToast(suggestInband?"Buttons ride the GM's turn (one call per turn)":"Buttons use their own call again (the v1.288 path)");}
