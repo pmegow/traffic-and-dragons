@@ -74,7 +74,12 @@ The anti-drift stack fails SILENTLY; only a transcript read finds what the owner
 
 1. **Which saves**: `find Campaigns -path "*/saves/*.tnd" -newermt "<anchor date>"`; the newest
    per campaign is the read; the window starts at the turn of the newest save OLDER than the
-   anchor (or turn 1). Village saves are disposable for migrations but they are the owner's most
+   anchor (or turn 1). **A save's file date is not its play date** (2026-10-15: the Village t291 was
+   exported 2026-10-09 but its last turn ran at v1.1140 on 2026-10-03) — read each transcript
+   entry's `v` (engine version) and `m` (model) stamps and read the turns the week's engine served;
+   a campaign with none is an honest negative. The raw tagged window (`--raw`, the session log) and
+   the 40-response provenance ring cover only the newest turns; older turns are clean text, so a
+   tag question about them is answered from the sheets and the tag log, or recorded as unanswerable. Village saves are disposable for migrations but they are the owner's most
    played surface — read them too.
 2. **Dump the window**: `node dev/dump-transcript.js <save.tnd> a-b` (clean text with the
    bookkeeping / refusal / retconned / denouement flags); `--raw` prints the sessionLog with tags
@@ -131,12 +136,9 @@ one, the Village). Rules:
 The fall-through list when rungs 1–3 came up clean and budget remains. Re-read each row first (it
 may have closed or changed). Suggested order, smallest and most self-contained first:
 
-`#420` dedupe the never-emit-MANA rule in the frozen STATE TAGS doc · `#421` lazy latch
-snapshots in `buildEngineNotes` · `#387` the clock block speaks the phase word · `#405` voice
-test-coverage residues · `#419` stt · `#403` cloud fallback routing and the Piper ceiling ·
-`#404` voice pipeline structure and resources · `#417` unify the OpenAI TTS transport ·
-`#418` extract the three-copy audio schedule-and-retire block · `#65` memory-archive size
-telemetry.
+**Carried over (pruned 2026-10-15 — every 2026-10-02 carry-over item closed by 2026-10-08; delete an item here when its row closes):** `#65` memory-archive size telemetry → compaction (◐; the telemetry shipped, the compaction is the owner's call — NOT a small, do not start it on this rung).
+
+The 2026-09-24 deferred list (`#420` `#421` `#387` `#405` `#419` `#403` `#404` `#417` `#418` `#65`) is spent as of 2026-10-15: every row but `#65` is closed in the archive. When rungs 1–3 leave budget and this list is empty, the rung's work is the smalls rungs 1–3 THEMSELVES found this run (a dev-tool gap, a stale doc row, a check that cannot fail) — each under the same rules below — and the receipt says so.
 
 Each row under the decree in full: the critical review BEFORE code (what it touches, what silent
 failure it could cause, the test plan — recorded in the row; to the owner only when a confident
