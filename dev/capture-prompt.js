@@ -19,6 +19,11 @@ if(!save||!out){console.error("usage: node dev/capture-prompt.js <save.tnd> <out
 var raw=JSON.parse(fs.readFileSync(save,"utf8"));
 if(!raw.worldState||!raw.worldState.character){console.error("not a save (no worldState.character): "+save);process.exit(2);}
 worldState=inflateWorldStateSnapshot(raw.worldState);memory=raw.memory||memory;sessionLog=raw.sessionLog||[];
+/* Thursday review 2026-10-15 (rung 3): the game's loadState heals memory the moment it is read (state.js healMemory — the #618
+   start-world stamp among its repairs) and only then prepares the packs. A capture that skipped the heal rendered a prompt the
+   game never serves: the Village t291 printed "KNOWN OF (not yet visited): The Village" beside "Location: The Village" at HEAD.
+   Same order as loadState. Pinned by dev/tests-capture-prompt-heal.js and its battery. */
+if(typeof healMemory==="function")healMemory();/* the memory heal first, as loadState runs it */
 /* #599 (c), gate 8: the capture prepares the packs EXPLICITLY on this detached in-memory world before any prompt line is built —
    the same load door the game runs (state.js inventoryAdmitWorld: the registry in same mode, all or nothing), never the whole
    load migration and never a hook inside the relationship adapter. A refusal is a failed capture, never a silent legacy prompt. */

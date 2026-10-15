@@ -27,6 +27,7 @@ var SUITES = [
   "dev/tests-19b-carmode-transport.js",
   "dev/tests-19c-car-scene-brief.js",
   "dev/tests-631-car-seam.js",
+  "dev/tests-capture-prompt-heal.js",/* Thursday 2026-10-15: the prompt capture runs the game's load heal before it renders */
   "dev/tests-633-companion-talk.js",/* #633: talk to your character — read-only, in their own voice, through the hear row; the engine pin *//* #631: the Car Mode seam — car-commands/car-session/audio-session name nothing outside themselves; CAR_HOST matches CAR_HOST_ROWS */
   "dev/tests-general-audio.js",
   "dev/tests-audio-cache.js",
