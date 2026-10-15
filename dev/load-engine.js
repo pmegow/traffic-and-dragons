@@ -16,7 +16,7 @@
 // dropped clock.js/table-talk.js/sound.js): it loads dev/engine-manifest.js and generates its
 // tags + load-guard from it, same source as FILES below.
 //
-// FILES is index.html's load order minus the DOM-wiring files (wasm-probe.js, char-creation.js, car-session.js,
+// FILES is index.html's load order minus the DOM-wiring files (wasm-probe.js, char-creation.js, car-session.js, companion-talk.js,
 // ui-*.js, stt.js). class_bible.js sits after capability_bible.js because that is where
 // index.html loads it (#72 C6-②, 2026-08-03 — the header used to say "not in index.html's shell
 // until C6-②", stale since that commit; audit G12). Each engine file depends only on files earlier in the list.

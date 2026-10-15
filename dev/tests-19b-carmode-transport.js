@@ -17,7 +17,7 @@ function fixture() {
     replayLast() { calls.push('replay'); return true; }, getLastText() { return 'x'; },
     stop() { calls.push('stop'); }, speak() { calls.push('speak'); }, skip() { calls.push('skip'); },
     earcon() {}, setOnDone(fn) { this._onDone = fn; }, primeAudioSession() {}, stopAudioSessionPrimer() {}, isOn() { return true; } };
-  tts.speak = function(text) { calls.push('speak:' + text); };
+  tts.speak = function(text) { calls.push('speak:' + text); tts._playing = true; tts._paused = false; };   /* a read starts playing at once, as TTS.speak does (its _drain runs synchronously) */
   const stt = { _listening: false, isListening() { return this._listening; },
     cancel() { calls.push('stt-cancel'); }, stop() { calls.push('stt-stop'); }, start() { calls.push('stt-start'); },
     isCloudActive() { return false; }, isSupported() { return true; }, setOnState() {}, clearConfirm() {},
@@ -154,6 +154,7 @@ async function atest(name, fn) {
     f.c.showCarMode(); await flush();
     assert.deepEqual(f.calls.filter(s => s === 'warm' || s.startsWith('speak:')), ['warm', 'speak:You are at the gate. The guard waits.']);
     assert.equal(f.els['car-status'].textContent, 'Narrator speaking…');
+    assert.equal(f.c.navigator.mediaSession.playbackState, 'playing', 'the head unit reads PLAYING during the brief (the bench, 2026-10-15: the loop syncs its own reads)');
     assert(!f.calls.includes('stt-start'), 'the mic opens after the brief and the options, not at entry');
   });
   await atest('a fresh entry skips the brief and goes straight to the options step', async () => {
@@ -203,6 +204,19 @@ async function atest(name, fn) {
     const g = fixture(); g.c.CAR_HOST.options = () => []; g.c.worldState.lastTurnAt = 1000 - 60 * 1000;
     g.c.showCarMode(); await flush();
     assert.equal(g.els['car-status'].textContent, 'Getting your options…', '[] still means a menu that is not ready yet');
+  });
+  /* v1.1265 (#633): plain speech the grammar declined goes to the host's hear(text) — a talk host answers it (true, consumed); the
+     game's host returns false and stt.js sends the GM turn exactly as before. A command never reaches hear. */
+  await atest('plain speech goes to hear(text): consumed when the host takes it, left to the send path when it does not; a command never reaches it', async () => {
+    const f = fixture(), heard = []; f.c.CAR_HOST.hear = t => { heard.push(t); return true; };
+    assert.equal(f.c.carVoiceCommand('walk north along the river'), true, 'a talk host consumes speech');
+    assert.deepEqual(heard, ['walk north along the river']);
+    assert.equal(f.c.carVoiceCommand('gm pause'), true); assert.deepEqual(heard.length, 1, 'a command never reaches hear');
+    f.c.carVoiceCommand('resume');
+    const g = fixture(); g.c.CAR_HOST.hear = () => false;
+    assert.equal(g.c.carVoiceCommand('walk north'), false, 'the game host declines: stt.js sends the turn');
+    const h = fixture(); h.c.CAR_HOST.options = () => null; const hh = []; h.c.CAR_HOST.hear = t => { hh.push(t); return true; };
+    assert.equal(h.c.carVoiceCommand('two'), true, 'with no menu a number word is speech and the talk host hears it'); assert.deepEqual(hh, ['two']);
   });
   console.log((process.exitCode ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' Car Mode transport groups');
 })();

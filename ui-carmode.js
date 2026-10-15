@@ -108,6 +108,7 @@ var CAR_HOST = {
     if (cmd.kind === "roll") { if (worldState && worldState.pendingCheck && typeof rollPendingCheck === "function") { rollPendingCheck(); } else { carNotify("info", "Nothing to roll right now."); } return true; }/* #329 */
     return false;
   },
+  hear: function() { return false; },   /* #633: in Car Mode plain speech is a GM turn — stt.js sends it when the loop declines */
   crumb: function(evt, data) { if (typeof erCrumb === "function") erCrumb(evt, data); },
   ticker: function(el, base, opts) { return (typeof elapsedTicker === "function") ? elapsedTicker(el, base, opts) : null; }
 };

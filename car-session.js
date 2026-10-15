@@ -33,6 +33,7 @@ var CAR_HOST_ROWS = [
   { name: "recap",         why: "() → the spoken 'previously' recap ('' when none)" },
   { name: "commands",      why: "() → the spoken vocabulary table parseCarCommand reads (car-commands.js entries plus the host's own kinds)" },
   { name: "onCommand",     why: "(cmd) execute a host-owned kind; → true when handled" },
+  { name: "hear",          why: "(text) a plain utterance the command table and the pick grammar declined: true when the host took it as speech (a talk host answers it); false leaves it to the host's own send path (the game: stt.js sends a GM turn). A host that takes the line owns its parked field: the game's stt.js parks every transcript before the loop hears it, so the taker clears it or the auto-mic waits on it forever" },
   { name: "crumb",         why: "(evt, data) the host's crumb ring (every Media Session command lands one)" },
   { name: "ticker",        why: "(el, base, opts) → the elapsed-seconds status ticker for a waiting status, or null to paint plain text" }
 ];
@@ -161,6 +162,7 @@ function _carReadOptions() {
   if (M) { if (typeof M.cancel === "function") M.cancel(); else if (M.stop) M.stop(); }
   V.speak(_carHost.optionsSpeech(acts));
   _carSetStatus(CAR_STR.readingOptions);
+  _carSyncBtn();
   return true;
 }
 // The options step of the post-narration loop. Returns TRUE when it has taken over this cycle —
@@ -183,7 +185,7 @@ function _carOptionsStep() {
   // opening the mic in silence (the driver would not know whether to expect a menu).
   _carOptRead = true;
   var V = _carVoice();
-  if (V && typeof V.speak === "function") { V.speak(CAR_STR.noOptions); return true; }
+  if (V && typeof V.speak === "function") { V.speak(CAR_STR.noOptions); _carSyncBtn(); return true; }
   return false;
 }
 // CROSS-LANE HOOK (same contract style as carNotify): stt.js hands every final transcript here
@@ -193,7 +195,7 @@ function carVoiceCommand(text) {
   if (!carMode || typeof parseCarCommand !== "function") return false;
   var menu = _carHost.options(), acts = menu || [], V = _carVoice(), M = _carMic();
   var cmd = parseCarCommand(text, acts.length, _carHost.commands());
-  if (!cmd) return false;
+  if (!cmd) return !!_carHost.hear(text);   /* v1.1265 (#633): plain speech is the host's to take — a talk host answers it, the game's host leaves it to stt.js */
   // Consumed: clear the field or _carTap's parked-utterance branch re-sends the command word
   // later as a free-form action.
   _carHost.clearParked();
@@ -223,7 +225,7 @@ function carVoiceCommand(text) {
     return true;
   }
   var pick = acts[cmd.n - 1];
-  if (!pick) { if (menu === null) return false; /* v1.1263: a host with no menu never swallows a number word — it is an action */ carNotify("warn", CAR_STR.noOptionsYet); return true; }
+  if (!pick) { if (menu === null) return !!_carHost.hear(text); /* v1.1263: a host with no menu never swallows a number word — it is speech */ carNotify("warn", CAR_STR.noOptionsYet); return true; }
   if (_carBusy()) { carNotify("info", CAR_STR.heardTapToSend); _carHost.park(pick); return true; }
   carNotify("sent");
   _carHost.act(pick);
@@ -263,6 +265,7 @@ function _carPreviously(force) {
   if (!text) return;
   if (V && typeof V.speak === "function") V.speak(text);
   _carSetStatus("Previously…");
+  _carSyncBtn();
 }
 // ── #19 fourth pass (owner ruling 2026-09-23): "When car-mode starts, just read the current scene, and jump to
 // options." The entry used to speak the full recap after a 2 h absence — in the Village that is every stash item and
@@ -284,7 +287,7 @@ function _carOpen() {
   var go = function() {
     if (!carMode) return;
     var brief = _carHost.entryBrief();
-    if (brief && V && typeof V.speak === "function") { V.speak(brief); _carSetStatus(CAR_STR.narratorSpeaking); return; }
+    if (brief && V && typeof V.speak === "function") { V.speak(brief); _carSetStatus(CAR_STR.narratorSpeaking); _carSyncBtn(); return; }   /* the bench (2026-10-15): a read the loop starts must sync the head unit's PLAYING itself — narration's sync rides the host's message paint */
     _carAutoMic();   // nothing to brief — the options step and the mic follow exactly as after a narration
   };
   if (warm && typeof warm.then === "function") warm.then(go, go); else go();

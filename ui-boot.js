@@ -49,6 +49,7 @@ function buildFileMenus(){
     h+=btn(p+"home","&#127968; Home",0);/* #290: bibles, designer, curated shelf, the account library */
     h+=btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only",hidden:true});
     h+=g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true});
+    h+=g?btn(p+"talk","&#128483; Talk to&hellip;",0):btn(null,"&#128483; Talk to&hellip;",0,{dim:true});/* #633: a spoken conversation with your character, outside the story */
     if(g)h+=btn("fm-reroll-mob","Re-roll last scene",0,{cls:"fm-mobile-only",hidden:true});
     if(g)h+=btn(p+"ending","&#9997; Write the ending&hellip;",0,{hidden:true,color:"var(--warn)",extra:"font-weight:bold;"});/* #364: shown by updateMemStatus while the tale is told and the campaign is open */
     if(g)h+=btn(p+"close","&#9673; Close this campaign&hellip;",0,{hidden:true});/* #6 G4: shown by updateMemStatus for an open, closable campaign — deposits a stopped tale */
@@ -260,6 +261,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   // (import-char-btn is already wired in the shared _menus loop above — audit E66 removed the duplicate here)
   document.getElementById("fm-newgame").addEventListener("click",newGame);
   document.getElementById("fm-carmode").addEventListener("click",function(){closeAllMenus();showCarMode();});
+  document.getElementById("fm-talk").addEventListener("click",function(){closeAllMenus();if(typeof showTalkPicker==="function")showTalkPicker();});/* #633 */
   document.getElementById("fm-ending").addEventListener("click",function(){closeAllMenus();if(typeof showEndingOfferModal==="function")showEndingOfferModal();});/* #364 */
   var _fmClose=document.getElementById("fm-close");if(_fmClose)_fmClose.addEventListener("click",function(){closeAllMenus();if(typeof showCloseCampaignModal==="function")showCloseCampaignModal();});/* #6 G4 */
   document.getElementById("car-close-btn").addEventListener("click",hideCarMode);
