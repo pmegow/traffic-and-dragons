@@ -190,5 +190,19 @@ async function atest(name, fn) {
     f.c._carPreviously(true);
     assert(f.calls.includes('speak:FULL RECAP'));
   });
+  /* v1.1263 — car-talk (the seam's second consumer) has no menu: options() === null must skip the options step outright — no 3 s
+     poll on "Getting your options…", no spoken "No suggestions" — so the mic follows the brief after the ordinary gap. [] keeps
+     its meaning (a menu not ready yet). */
+  await atest('a host with no menu (options() null) skips the options step: after the brief the loop goes straight to the mic gap', async () => {
+    const f = fixture(); f.c.CAR_HOST.options = () => null; f.c.worldState.lastTurnAt = 1000 - 60 * 1000;   /* a fresh entry: no brief */
+    f.c.showCarMode(); await flush();
+    assert.equal(f.els['car-status'].textContent, 'Tap to speak', 'the options poll must not run for a host without a menu: ' + JSON.stringify(f.els['car-status'].textContent));
+    assert(!f.calls.some(s => /No suggestions/.test(s)), 'the no-menu host must never hear the game\'s fallback line: ' + JSON.stringify(f.calls));
+    assert.equal(f.c._carOptRead, true, 'the step counts as done');
+    assert.equal(f.c.carVoiceCommand('two'), false, 'with no menu a spoken number is an action, not a pick');
+    const g = fixture(); g.c.CAR_HOST.options = () => []; g.c.worldState.lastTurnAt = 1000 - 60 * 1000;
+    g.c.showCarMode(); await flush();
+    assert.equal(g.els['car-status'].textContent, 'Getting your options…', '[] still means a menu that is not ready yet');
+  });
   console.log((process.exitCode ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' Car Mode transport groups');
 })();

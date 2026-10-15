@@ -27,7 +27,7 @@ var CAR_HOST_ROWS = [
   { name: "act",           why: "(text) send a spoken pick as the player's action" },
   { name: "sendParked",    why: "() send whatever is parked" },
   { name: "retry",         why: "() retry the failed turn (after carNotify('error', …) armed the tap)" },
-  { name: "options",       why: "() → the current numbered options as strings ([] while they are not ready yet)" },
+  { name: "options",       why: "() → the current numbered options as strings; [] while they are not ready yet (the step polls, then says so); null when this host has no menu at all (the step is skipped)" },
   { name: "optionsSpeech", why: "(list) → the spoken menu for those options" },
   { name: "entryBrief",    why: "() → what to read when the overlay opens ('' when there is nothing to say, or the player just heard it)" },
   { name: "recap",         why: "() → the spoken 'previously' recap ('' when none)" },
@@ -155,7 +155,7 @@ function _carOptReset() {
 // Speak the menu now. Cancels any live listen first — the mic must never hear our own read
 // (CAR_MODE.md's listen-vs-speak rule). Returns false when there is nothing to say.
 function _carReadOptions() {
-  var acts = _carHost.options(), V = _carVoice(), M = _carMic();
+  var acts = _carHost.options() || [], V = _carVoice(), M = _carMic();
   if (!acts.length) return false;
   if (!V || typeof V.speak !== "function") return false;
   if (M) { if (typeof M.cancel === "function") M.cancel(); else if (M.stop) M.stop(); }
@@ -168,6 +168,9 @@ function _carReadOptions() {
 // so the mic follows) or by scheduling another poll. Returns false to let the mic open now.
 function _carOptionsStep() {
   if (_carOptRead) return false;
+  /* v1.1263 (car-talk, the seam's second consumer): a host with NO menu returns null — the step is done the moment it is asked.
+     [] keeps its meaning: a menu that is not ready yet (the game's suggestion call in flight) — poll, then say so. */
+  if (_carHost.options() === null) { _carOptRead = true; return false; }
   if (_carReadOptions()) { _carOptRead = true; return true; }
   if (!_carOptDeadline) _carOptDeadline = Date.now() + CAR_OPT_WAIT_MS;
   if (Date.now() < _carOptDeadline) {
@@ -188,7 +191,7 @@ function _carOptionsStep() {
 // as a turn. Parsing lives here, not in stt.js, so Car Mode semantics stay in the Car Mode lane.
 function carVoiceCommand(text) {
   if (!carMode || typeof parseCarCommand !== "function") return false;
-  var acts = _carHost.options(), V = _carVoice(), M = _carMic();
+  var menu = _carHost.options(), acts = menu || [], V = _carVoice(), M = _carMic();
   var cmd = parseCarCommand(text, acts.length, _carHost.commands());
   if (!cmd) return false;
   // Consumed: clear the field or _carTap's parked-utterance branch re-sends the command word
@@ -220,7 +223,7 @@ function carVoiceCommand(text) {
     return true;
   }
   var pick = acts[cmd.n - 1];
-  if (!pick) { carNotify("warn", CAR_STR.noOptionsYet); return true; }
+  if (!pick) { if (menu === null) return false; /* v1.1263: a host with no menu never swallows a number word — it is an action */ carNotify("warn", CAR_STR.noOptionsYet); return true; }
   if (_carBusy()) { carNotify("info", CAR_STR.heardTapToSend); _carHost.park(pick); return true; }
   carNotify("sent");
   _carHost.act(pick);
