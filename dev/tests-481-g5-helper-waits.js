@@ -46,6 +46,7 @@ global.document = { body: ROOT_NODE, activeElement: null, addEventListener: func
 global.store = { get: function () { return ""; }, set: function () {}, del: function () {} };
 var geval = eval;
 geval(fs.readFileSync(path.join(ROOT, "ui-shell.js"), "utf8"));
+geval(fs.readFileSync(path.join(ROOT, "car-session.js"), "utf8"));   /* #631: the loop, then the game's host */
 geval(fs.readFileSync(path.join(ROOT, "ui-carmode.js"), "utf8"));
 activeChatTab = "narrative";
 

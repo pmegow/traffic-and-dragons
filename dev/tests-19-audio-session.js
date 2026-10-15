@@ -68,7 +68,7 @@ function fixture(kind, options = {}) {
     erCrumb: (evt, data) => crumbs.push(evt + (data == null ? '' : ' ' + String(data)))
   };
   vm.createContext(c);
-  ['audio-events.js', 'tts.js', 'stt.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), c, { filename: f }));
+  ['audio-events.js', 'audio-session.js', 'tts.js', 'stt.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), c, { filename: f }));
   return { c, calls, warnings, toasts, recognizers, recorders, session, crumbs, contexts, buffers, posCalls, intervals,
     route: () => route, liveMic: () => liveMic, sources: () => sources };
 }

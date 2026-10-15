@@ -11,17 +11,17 @@ var sabotage = require("./sabotage.js");
 var rc = 0;
 
 rc |= sabotage.prove({
-  file: "helpers.js",
+  file: "car-commands.js",   /* #631: the grammar moved out of helpers.js */
   command: ["node", ["dev/run-tests.js", "helpers"]],
   cases: [
     { label: "the pause regex loses its anchor — 'I pause at the door' is eaten as a command (the eat-the-turn class)",
       mustFail: "action",
-      find: 'if (/^(?:gm )?pause$/.test(t)) return { kind: "pause" };',
-      replace: 'if (/pause/.test(t)) return { kind: "pause" };' },
+      find: 'var CAR_CMD_PAUSE  = { kind: "pause",  say: [ /^(?:gm )?pause$/ ] };',
+      replace: 'var CAR_CMD_PAUSE  = { kind: "pause",  say: [ /pause/ ] };' },
     { label: "bare 'continue' becomes a resume command (a plausible action is swallowed)",
       mustFail: "action",
-      find: 'if (/^(?:gm )?(?:resume|unpause)$|^gm continue$/.test(t)) return { kind: "resume" };',
-      replace: 'if (/^(?:gm )?(?:resume|unpause|continue)$/.test(t)) return { kind: "resume" };' },
+      find: 'var CAR_CMD_RESUME = { kind: "resume", say: [ /^(?:gm )?(?:resume|unpause)$|^gm continue$/ ] };',
+      replace: 'var CAR_CMD_RESUME = { kind: "resume", say: [ /^(?:gm )?(?:resume|unpause|continue)$/ ] };' },
     { label: "pause while the narrator plays no longer pauses the narrator (holds instead)",
       mustFail: "ttsPause",
       find: 'if (s.ttsPlaying) return { op: "ttsPause", held: true, status: "paused" };',

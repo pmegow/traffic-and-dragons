@@ -1641,7 +1641,7 @@ var TTS = (function() {
     try {
       _audioCtx  = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
       _nextStart = 0;
-      _watchCtxState(_audioCtx);   // #19 second pass: every state change of THIS context rides the crumb ring
+      AudioSession.watchCtx(_audioCtx);   // #19 second pass: every state change of THIS context rides the crumb ring
       _ctxSynths = 0;   // B9 H1 (v1.430): cs counts sources on the CURRENT context — every rebuild
                         // path (toggle, recoverAudio, recycle) funnels through here, so the reset
                         // cannot be forgotten by a future rebuild site
@@ -1929,120 +1929,28 @@ var TTS = (function() {
 
   function _closeCtx() {
     // v1.334 (audit #3): the primer node belongs to THIS ctx — clearing it here keeps
-    // primeAudioSession()'s _primerSrc guard from short-circuiting on a dead node after a
+    // AudioSession.prime's current-ctx guard from short-circuiting on a dead node after a
     // voice off/on cycle (which silently lost the iOS playback-category session, v1.328).
-    stopAudioSessionPrimer();
+    AudioSession.stopPrimer();
     if (_audioCtx) { try { _audioCtx.close(); } catch(e) {} _audioCtx = null; }
-    _audioSessionPlayback = false;
-    _setAudioSessionType("auto");
+    AudioSession.releasePlayback();
   }
 
-  // A WebAudio loop keeps the context active; it does not select the OS playback category.
-  // Safari can retain the phone route after microphone capture (WebKit bug 282939).
-  // Release playback before capture, then reclaim it only after the mic has ended.
-  var _audioCapture = false, _audioSessionPlayback = false;
-  function _setAudioSessionType(type) {
-    try {
-      if (typeof navigator === "undefined" || !navigator.audioSession) return;
-      var prev = navigator.audioSession.type;
-      if (prev !== type) { navigator.audioSession.type = type; _crumb("audio-session", prev + ">" + type); }   // #19 second pass: a same-value set is silent
-    } catch(e) {
-      var reason = e && e.message ? e.message : String(e);
-      console.warn("[tts] audio session " + type + " failed: " + reason);
-      if (typeof showToast === "function") showToast("Audio routing could not switch to " + type + ": " + reason, 8000);
-    }
-  }
-  function _requestPlaybackSession() {
-    _audioSessionPlayback = true;
-    if (!_audioCapture) _setAudioSessionType("playback");
-  }
-  function setAudioCapture(active) {
-    _audioCapture = !!active;
-    if (!_audioCapture) { _captureEndedAt = Date.now(); _routeForce = true; }   // #19 second pass: the first read after a capture is always fingerprinted
-    _setAudioSessionType(_audioCapture || !_audioSessionPlayback ? "auto" : "playback");
-  }
-  // ── #19 second pass (2026-09-22): the handoff is INSTRUMENTED ─────────────────────────────
-  // The car verification of v1.943 came back "narration reaches the stereo but drops in and out
-  // rapid fire" — with no console to read. Nothing in this block changes behavior: every audio-
-  // session type transition, every state change of the narration context, and one route
-  // fingerprint per read start ride the #16 crumb ring (24 entries; File ▸ Report bug mails it), so
-  // the next drive is self-interpreting. A wedged play-and-record shows as reads that start with
-  // the hands-free latency profile (as=playback but a short ol=); a car that flips profiles shows
-  // as ctx-state churn; the commands a head unit sends on its own show as ui-carmode.js's
-  // media-action crumbs. Every site is coalesced or rate-limited because a storm of any one of
-  // them would evict the rest of the ring. DOC/todos_completed/todo_19_bluetooth_audio.md.
-  var _captureEndedAt = 0;      // Date.now() of the last capture end
-  var _routeForce = false;      // set by a capture end, consumed by the next _routeCrumb
-  var _routeSigLast = "";       // identical consecutive fingerprints coalesce
-  var _ctxStateLast = "", _ctxStateAt = 0;
-  var CTX_STATE_CRUMB_WINDOW_MS = 2000;
-  function _crumb(evt, data) { if (typeof erCrumb === "function") erCrumb(evt, data); }
-  function _ms(sec) { return (typeof sec === "number" && isFinite(sec)) ? String(Math.round(sec * 200) * 5) : "?"; }   // seconds → ms in 5 ms buckets: latency jitters, the route does not
-  function _sessionTypeNow() { try { return (typeof navigator !== "undefined" && navigator.audioSession) ? String(navigator.audioSession.type) : "-"; } catch (e) { return "-"; } }
-  function _routeCrumb(why) {
-    var ctx = _audioCtx;
-    var sig = "ol=" + _ms(ctx && ctx.outputLatency) + " bl=" + _ms(ctx && ctx.baseLatency) + " st=" + (ctx ? ctx.state : "none") + " as=" + _sessionTypeNow() + " cap=" + (_audioCapture ? 1 : 0);
-    if (sig === _routeSigLast && !_routeForce) return;
-    _routeSigLast = sig; _routeForce = false;
-    _crumb("read-route", (why || "read") + " " + sig);
-  }
-  function _watchCtxState(ctx) {
-    if (!ctx || typeof ctx.addEventListener !== "function") return;
-    ctx.addEventListener("statechange", function() {
-      var now = Date.now(), st = String(ctx.state);
-      if (st === _ctxStateLast && now - _ctxStateAt < CTX_STATE_CRUMB_WINDOW_MS) return;
-      _ctxStateLast = st; _ctxStateAt = now;
-      _crumb("ctx-state", st);
-    });
-  }
-  var _primerSrc = null;
-  var _primerGain = null;   // audit F11 — retained so the primer's gain is torn down with its source
-
+  // ── The audio session (#19) lives in audio-session.js since #631: the mic↔narration handoff, the primer, the route and
+  // ctx-state crumbs. This file owns the narration CONTEXT and hands it in; stt.js reports the mic through
+  // AudioSession.setCapture. The host hooks (the #16 crumb ring, the toast) are wired here, once, at load.
+  AudioSession.hooks({
+    crumb:  function(evt, data) { if (typeof erCrumb === "function") erCrumb(evt, data); },
+    notify: function(msg) { if (typeof showToast === "function") showToast(msg, 8000); }
+  });
   function primeAudioSession() {
-    _requestPlaybackSession();
+    AudioSession.requestPlayback();
     var ctx = _ensureCtx();
     if (!ctx) return;
     _resumeCtx(ctx, "primer");   // v1.327: covers iOS "interrupted" too
-    // v1.334 (audit #3): the guard must check the primer is on the CURRENT ctx — a primer left
-    // over from a closed/replaced ctx is a dead node, and returning on it would leave the new
-    // ctx with no playback-category claim (iOS mute-switch silence back again).
-    if (_primerSrc && _primerSrc.context === ctx) return;
-    stopAudioSessionPrimer();
-    try {
-      var buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-      // #19 second pass: NEVER digital silence. Some head units mute their amplifier on a run of
-      // exact zeros and take up to a second to unmute, clipping the start of every unit after a
-      // gap. Full-scale noise under the 1e-4 gain below is -80 dBFS — three LSBs at 16 bits,
-      // inaudible in a moving car, but never a zero run. A stub buffer without channel data stays.
-      if (typeof buf.getChannelData === "function") { var _pd = buf.getChannelData(0), _pi; for (_pi = 0; _pi < _pd.length; _pi++) _pd[_pi] = Math.random() * 2 - 1; }
-      var src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
-      var gain = ctx.createGain();
-      gain.gain.value = 0.0001;
-      src.connect(gain);
-      gain.connect(ctx.destination);
-      src.start(0);
-      _primerSrc = src;
-      _primerGain = gain;
-    } catch(e) { console.warn("[tts] primer failed:", e.message); }
+    AudioSession.prime(ctx);     // the silent dither loop on THIS context (v1.334 audit #3: a replaced ctx gets a fresh claim)
   }
-
-  // audit F11 — stopping the source left the source AND its gain wired to the destination, so
-  // every ctx rebuild (recoverAudio, the recycle) stranded another two-node chain on the old
-  // graph. Stop first, then disconnect both; a throw here is benign (already-stopped nodes) but
-  // never silent.
-  function stopAudioSessionPrimer() {
-    if (_primerSrc) {
-      try { _primerSrc.stop(); } catch(e) {}
-      try { _primerSrc.disconnect(); } catch(e) { console.debug("[tts] primer source teardown:", e && e.message); }
-      _primerSrc = null;
-    }
-    if (_primerGain) {
-      try { _primerGain.disconnect(); } catch(e) { console.debug("[tts] primer gain teardown:", e && e.message); }
-      _primerGain = null;
-    }
-  }
+  function stopAudioSessionPrimer() { AudioSession.stopPrimer(); }
 
   function loadSettings() {
     _syncBtn();
@@ -2253,7 +2161,7 @@ var TTS = (function() {
     _paused  = false;
     _showBar(true);
     _updatePauseBtn(false);
-    if (_fromIdle) _routeCrumb("read");   // #19 second pass: which route this read starts on (coalesced)
+    if (_fromIdle) AudioSession.routeCrumb("read", _audioCtx);   // #19 second pass: which route this read starts on (coalesced)
     var item = _queue.shift();
     _curItem = item;   // v1.438: retained so a doomed-ctx rebuild can requeue the interrupted item
     _curNative = !!item.native;
@@ -2275,7 +2183,7 @@ var TTS = (function() {
     if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") { _drain(); return; }
     var units = splitSentences(text, "... ");
     if (!units.length) { _drain(); return; }
-    _requestPlaybackSession();
+    AudioSession.requestPlayback();
     try { window.speechSynthesis.cancel(); } catch(e) {}   // clear any stuck/previous utterance before starting the chain
     _speakNativeUnit(units, 0);
   }
@@ -3317,7 +3225,7 @@ var TTS = (function() {
     var ctxOk = await _ctxRunning(ctx);
     if (_piperEpoch !== myEpoch) return;   // stale — a skip()/stop() ran while we awaited
     if (!ctxOk) { _ctxBlockedLoud("Piper"); _curNative = true; _speakNative(text); return; }
-    primeAudioSession();   // v1.328: playback-category session — see toggle(); idempotent (_primerSrc guard)
+    primeAudioSession();   // v1.328: playback-category session — see toggle(); idempotent (AudioSession.prime keeps one primer per context)
     _armCtxWatch("Piper");   // audit #10 — catch a mid-read ctx interruption loudly
     _armPosState(ctx, text);   // rank 23 — same lifecycle as the ctx watch above
 
@@ -4510,14 +4418,13 @@ var TTS = (function() {
     testVoice:         testVoice,   // #9: audition a voiceId (or the narrator voice) — used by the character-sheet Test button
     releaseVoiceIfUnused: releaseVoiceIfUnused,   // #9: free a voice's OPFS slot on reassignment when nothing (incl. narrator) still uses it
     primeAudioSession:     primeAudioSession,
-    setAudioCapture:       setAudioCapture,
     // v1.421 (B10): repair an iOS-interrupted context. Call from a USER GESTURE — the send tap is
     // the valuable one, because it lands seconds before narration and so fixes the context BEFORE
     // the read that would otherwise lose its first line to the native voice.
     recoverAudio:          recoverAudio,
     stopAudioSessionPrimer: stopAudioSessionPrimer,
     // #19 second pass: exported ONLY for dev/tests-19-audio-session.js (the _textPrep contract).
-    _audioSessionTest: { routeCrumb: _routeCrumb, captureEndedAt: function() { return _captureEndedAt; }, armPosState: _armPosState, clearPosState: _clearPosState },
+    _audioSessionTest: { routeCrumb: function(why) { AudioSession.routeCrumb(why, _audioCtx); }, captureEndedAt: AudioSession.captureEndedAt, armPosState: _armPosState, clearPosState: _clearPosState },
     // Piper (TODO #41 Phase 3) — fire-and-forget pre-warm. Wired to TTS-enable (toggle()) and to
     // the settings-modal Save handler, both gated on Piper being the selected engine, so the ~9s
     // one-time WASM compile happens off the critical path of the user's first real narration.

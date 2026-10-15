@@ -70,7 +70,16 @@ rc |= sabotage.prove({
       mustFail: "native: 'a mica' is corrected to Ameiko",
       find: "function sttCorrectNames(text,roster,collector){",
       replace: "function sttCorrectNames(text,roster,collector){return text;"
-    },
+    }
+  ]
+});
+
+/* #631: parseConfirmCommand lives in car-commands.js beside the grammar it shares its discipline with */
+rc |= sabotage.prove({
+  file: "car-commands.js",
+  command: ["node", ["dev/tests-287-stt-autosend.js"]],
+  also: ["stt.js", "helpers.js"],
+  cases: [
     {
       label: "the confirm vocabulary loses 'no' (a discard stops being recognizable)",
       mustFail: "parseConfirmCommand: 'no' discards",

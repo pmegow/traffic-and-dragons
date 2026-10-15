@@ -88,9 +88,10 @@ async function test(name, fn) {
     global.fetch = realFetch;
   });
   await test("the three lanes contain no inline createBufferSource — the helper and the audio-session primer are the only sites — and each lane calls the helper with its own gap", async function() {
-    var tts = fs.readFileSync(path.join(__dirname, "..", "tts.js"), "utf8");
-    var sites = tts.split("createBufferSource()").length - 1;
-    assert.equal(sites, 2, "createBufferSource sites in tts.js (helper + primer): " + sites);
+    var tts = fs.readFileSync(path.join(__dirname, "..", "tts.js"), "utf8"), aud = fs.readFileSync(path.join(__dirname, "..", "audio-session.js"), "utf8");
+    var sites = tts.split("createBufferSource()").length - 1, primer = aud.split("createBufferSource()").length - 1;
+    assert.equal(sites, 1, "createBufferSource sites in tts.js (the helper; the primer lives in audio-session.js since #631): " + sites);
+    assert.equal(primer, 1, "createBufferSource sites in audio-session.js (the primer): " + primer);
     var srv = S.speakServerSrc(), cloud = S.speakGeminiSrc(), piper = S.speakPiperSrc();
     assert.ok(srv.indexOf("createBufferSource") < 0 && cloud.indexOf("createBufferSource") < 0 && piper.indexOf("createBufferSource") < 0, "a lane re-inlined the block");
     assert.ok(/_scheduleDecoded\(ctx, buf, nextStart, unitGap\(u\),/.test(srv), "the server lane schedules through the helper with its unit gap");

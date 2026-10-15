@@ -38,7 +38,7 @@ function fixture(primary) {
   };
   c.globalThis = c;
   vm.createContext(c);
-  ['audio-events.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
+  ['audio-events.js', 'audio-session.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
   /* #629: the voice control is its own module (ui-character-voice.js) — the whole file runs in the context; it touches
      nothing at load, so no slicing by function name is needed any more */
   vm.runInContext(source('ui-character-voice.js'), c, { filename: 'ui-character-voice.js' });

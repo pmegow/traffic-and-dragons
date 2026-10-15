@@ -8,7 +8,7 @@
 // of mystery-red assertions (#17's failure mode).
 //
 // ORDER MATTERS: index.html's load order minus the DOM-wiring files (wasm-probe.js,
-// char-creation.js, ui-*.js, stt.js). class_bible.js sits after capability_bible.js because
+// char-creation.js, ui-*.js, car-session.js, stt.js). class_bible.js sits after capability_bible.js because
 // that is where index.html loads it (#72 C6-②, 2026-08-03 — the header used to say "not in
 // index.html's shell until C6-②", which was true only before that commit; audit G12). That relationship is
 // MECHANICALLY ENFORCED against index.html by the ENGINE MANIFEST CONTRACT in run-tests.js —
@@ -24,6 +24,7 @@ var ENGINE_MANIFEST = [
   { file: "item_bible.js",         sym: "ITEM_BIBLE" },
   { file: "blueprint-edition.js",  sym: "BlueprintEdition" },
   { file: "library-slug.js",       sym: "LibrarySlug" },/* #481 F5: the library slug the server vendors */
+  { file: "car-commands.js",       sym: "parseCarCommand" },/* #631: the spoken Car Mode grammar (portable; the game's table is game.js CAR_COMMANDS) */
   { file: "helpers.js",            sym: "skillLevel" },
   { file: "inventory.js",          sym: "itemKey" },/* #599 (b): the inventory module — both forms, one key */
   { file: "state.js",              sym: "blankMemory" },
@@ -38,6 +39,7 @@ var ENGINE_MANIFEST = [
   { file: "campaign_generator.js", sym: "validateSkeletonStructure" },
   { file: "game.js",               sym: "checkLevelUp" },
   { file: "audio-events.js",       sym: "createAudioEvents" },
+  { file: "audio-session.js",      sym: "AudioSession" },/* #631: the mic↔narration handoff (portable; tts.js hands it the context) */
   { file: "tts.js",                sym: "TTS" },
   { file: "sound.js",              sym: "Sound" },
   { file: "audio-catalog.js",       sym: "AUDIO_CATALOG" },

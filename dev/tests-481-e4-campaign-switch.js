@@ -35,7 +35,7 @@ function fixture() {
   };
   c.globalThis = c;
   vm.createContext(c);
-  ['audio-events.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
+  ['audio-events.js', 'audio-session.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
   const st = source('state.js'), a = st.indexOf('function setActiveCampId('), b = st.indexOf('\nfunction ', a + 10);
   vm.runInContext(st.slice(a, b), c, { filename: 'state.js#setActiveCampId' });
   c.setActiveCampId('A');

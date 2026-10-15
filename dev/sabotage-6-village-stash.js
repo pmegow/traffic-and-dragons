@@ -84,14 +84,14 @@ prove("helpers.js", [
   { label: "a shop with no one in it still trades",
     find: 'if(!keeper)return {ok:false,reason:(_kName&&!_kOpen)?', replace: 'if(!keeper)keeper="someone";if(!keeper)return {ok:false,reason:(_kName&&!_kOpen)?',/* #481 B4: the refusal line gained the keeper-closed reason */
     mustFail: "#6F5 trade only in a shop" },
-  { label: "\"never mind\" is an action, not an undo",
-    find: '/^(?:never mind|nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/', replace: '/^(?:nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/',
-    mustFail: "#6E9 Car Mode undo" },
   { label: "the here line goes village-only (#431 replaced the panel's house group; the adventure's tavern would lose its readout)",
     find: '  if(!node||!node.items||!node.items.length)return "";\n  var parts=[],units=0,i;', replace: '  if(!node||!node.items||!node.items.length||!(typeof kindDef==="function"&&kindDef().stashQuantities))return "";\n  var parts=[],units=0,i;',
     mustFail: "#6E8 the stash is SEEN" }
 ]);
 prove("game.js", [
+  { label: "\"never mind\" is an action, not an undo (the vocabulary table, #631)",
+    find: '/^(?:never mind|nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/', replace: '/^(?:nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/',
+    mustFail: "#6E9 Car Mode undo" },
   { label: "the swap's demotion mints no house",
     find: 'if(toResident){villageHouseEnsure(oldChar.name,null);/* #6 E6: the demoted hero gets a house, same path as import */', replace: 'if(toResident){',
     mustFail: "#6E6 owner on the node on EVERY path" },

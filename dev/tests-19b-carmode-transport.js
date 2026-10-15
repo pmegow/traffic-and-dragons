@@ -2,7 +2,7 @@
 // "play" and "pause" used to route into _carTap(), a TOGGLE — so a head unit that re-sends PLAY on
 // its own (many do after a call-profile switch or on reconnect) paused the narration it meant to
 // keep playing, and an idle PLAY replayed the last narration even while a turn was in flight or the
-// mic was open. Real ui-carmode.js against stub TTS/STT/mediaSession; no DOM.
+// mic was open. Real car-session.js + ui-carmode.js against stub TTS/STT/mediaSession; no DOM.
 const assert = require('assert/strict'), fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
 function fixture() {
@@ -38,10 +38,13 @@ function fixture() {
     carSceneBrief: () => brief
   };
   vm.createContext(c);
+  /* #631: the grammar (car-commands.js) and the game's vocabulary table (game.js CAR_COMMANDS) first, then the loop, then the host */
+  vm.runInContext(fs.readFileSync(path.join(root, 'car-commands.js'), 'utf8'), c, { filename: 'car-commands.js' });
+  const gp = fs.readFileSync(path.join(root, 'game.js'), 'utf8'), ga = gp.indexOf('var CAR_COMMANDS = [');
+  vm.runInContext(gp.slice(ga, gp.indexOf('\n];', ga) + 3), c, { filename: 'game.js#CAR_COMMANDS' });
+  vm.runInContext(fs.readFileSync(path.join(root, 'car-session.js'), 'utf8'), c, { filename: 'car-session.js' });
   vm.runInContext(fs.readFileSync(path.join(root, 'ui-carmode.js'), 'utf8'), c, { filename: 'ui-carmode.js' });
-  /* the spoken-command path (#410): parseCarCommand and carHoldDispatch, sliced from helpers.js with their constants */
-  const hp = fs.readFileSync(path.join(root, 'helpers.js'), 'utf8'), ha = hp.indexOf('var CAR_CMD_FILLER'), hd = hp.indexOf('function carHoldDispatch(');
-  vm.runInContext(hp.slice(ha, hp.indexOf('\n}\n', hd) + 3), c, { filename: 'helpers.js#car-commands' });
+  c.carMode = true;   /* the loop declares the flag (false); this fixture starts in Car Mode */
   c._carMediaHandlers();
   return { c, tts, stt, handlers, calls, crumbs, els, tick: ms => { clock += ms; }, setBrief: b => { brief = b; }, setWarm: v => { warmResult = v; } };
 }

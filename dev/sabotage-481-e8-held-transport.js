@@ -4,7 +4,7 @@
 // The real-game check is dev/car-driver.js (manual QA): at the pre-fix code it failed 8 expectations.
 //   node dev/sabotage-481-e8-held-transport.js
 var sabotage = require("./sabotage.js");
-process.exit(sabotage.prove({ file: "ui-carmode.js", command: ["node", ["dev/tests-19b-carmode-transport.js"]], cases: [
+process.exit(sabotage.prove({ file: "car-session.js",   /* #631: the loop's file */ command: ["node", ["dev/tests-19b-carmode-transport.js"]], cases: [
   { label: "the transport ignores the hold (a held PLAY replays)",
     find: "  if (state === \"held\") return \"held\";\n", replace: "",
     mustFail: "the repro" },

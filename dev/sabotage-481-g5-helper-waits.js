@@ -20,9 +20,9 @@ failed += sabotage.prove({ file: "ui-shell.js", command: WAITS, cases: [
     find: "if(type===\"thinking\"){_carSetStatus(CAR_STR.thinking);", replace: "if(type===\"thinking\"){_carSetStatus(\"Thinking...\");",
     mustFail: "in Car Mode a GM turn's wait reads" }
 ]});
-failed += sabotage.prove({ file: "ui-carmode.js", command: WAITS, cases: [
+failed += sabotage.prove({ file: "car-session.js", command: WAITS, cases: [   /* #631: the loop's file */
   { label: "Car Mode's status never ticks",
-    find: "  if (waits && typeof elapsedTicker === \"function\") _carStatusTick = elapsedTicker(el, text, { text: true });\n  else el.textContent = text;", replace: "  el.textContent = text;",
+    find: "  var tick = (waits && _carHost) ? _carHost.ticker(el, text, { text: true }) : null;\n  if (tick) _carStatusTick = tick;\n  else el.textContent = text;", replace: "  el.textContent = text;",
     mustFail: "in Car Mode a GM turn's wait reads" },
   { label: "a running count is not stopped before the next status lands",
     find: "    _carStatusTick.stop(); _carStatusTick = null;           // stop BEFORE", replace: "    _carStatusTick = null;           // stop BEFORE",

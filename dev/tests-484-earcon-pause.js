@@ -36,7 +36,7 @@ function fixture() {
   vm.createContext(c);
   const hp = source('helpers.js'), ra = hp.indexOf('function resumeObserved(');   /* the real B39 resume observer tts.js calls */
   vm.runInContext(hp.slice(ra, hp.indexOf('\nfunction ', ra + 10)), c, { filename: 'helpers.js#resumeObserved' });
-  ['audio-events.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
+  ['audio-events.js', 'audio-session.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
   return { c, TTS: c.TTS, contexts, oscillators };
 }
 const settle = async () => { for (let i = 0; i < 40; i++) await new Promise(r => setImmediate(r)); };

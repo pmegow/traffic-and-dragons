@@ -51,7 +51,7 @@ global.MediaRecorder = function () {};
 // and the globals.js declarations (busy, providerKeys, …). data.js rides between them the way
 // index.html loads it. state.js and up are deliberately NOT loaded: worldState/memory are
 // hand-built fixtures here so the P4 no-write snapshot has an exact, small subject.
-["globals.js", "data.js", "helpers.js"].forEach(function (f) {
+["globals.js", "data.js", "car-commands.js", "helpers.js"].forEach(function (f) {
   try { geval(fs.readFileSync(path.join(root, f), "utf8")); }
   catch (e) { console.error("ENGINE LOAD FAILED in " + f + ": " + e.message); process.exit(1); }
 });

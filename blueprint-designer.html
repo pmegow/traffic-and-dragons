@@ -138,6 +138,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="data.js"></script>
 <script src="class_bible.js"></script>
 <script src="blueprint-edition.js"></script>
+<script src="car-commands.js"></script>
 <script src="helpers.js"></script>
 <script src="inventory.js"></script>
 <script src="state.js"></script>
@@ -150,6 +151,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="campaign_generator.js"></script>
 <script src="game.js"></script>
 <script src="audio-events.js"></script>
+<script src="audio-session.js"></script>
 <script src="tts.js"></script>
 <script src="ui-shell.js"></script>
 <script src="ui-portrait.js"></script>
@@ -159,7 +161,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.60";
+var BP_DESIGNER_VERSION="v0.61";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────

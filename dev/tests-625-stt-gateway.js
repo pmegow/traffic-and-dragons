@@ -18,7 +18,7 @@ global.window = { SpeechRecognition: null, webkitSpeechRecognition: null };
 global.document = { getElementById: function(id) { return id === "action-input" ? input : null; } };
 global.navigator = { mediaDevices: { getUserMedia: function() { return Promise.reject(new Error("not used")); } } };
 global.MediaRecorder = function() {};
-["globals.js", "data.js", "helpers.js", "audio-events.js", "stt.js"].forEach(function(f) {
+["globals.js", "data.js", "car-commands.js", "helpers.js", "audio-events.js", "stt.js"].forEach(function(f) {
   try { geval(fs.readFileSync(path.join(root, f), "utf8")); }
   catch (e) { console.error("ENGINE LOAD FAILED in " + f + ": " + e.message); process.exit(1); }
 });

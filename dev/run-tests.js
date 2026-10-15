@@ -2333,13 +2333,13 @@ try {
   var _manifest = require("./engine-manifest.js");
   var _manFiles = _manifest.map(function (e) { return e.file; });
   // ① Derive the expectation FROM index.html: its <script src> order, minus the DOM-wiring
-  //    files (wasm-probe, char-creation, ui-*, stt). class_bible.js needs no special insert
+  //    files (wasm-probe, char-creation, ui-*, car-session, stt). class_bible.js needs no special insert
   //    since C6-② (2026-08-03) put it in the real shell load order.
   var _idxM = _fsM.readFileSync(_pathM.join(_rootM, "index.html"), "utf8");
   var _idxScripts = [], _mIdx, _reIdx = /<script src="([^"]+\.js)"/g;
   while ((_mIdx = _reIdx.exec(_idxM))) if (_mIdx[1].indexOf("/") < 0) _idxScripts.push(_mIdx[1]);
   var _expected = _idxScripts.filter(function (f) {
-    return !(f === "wasm-probe.js" || f === "char-creation.js" || f === "stt.js" || /^ui-/.test(f));
+    return !(f === "wasm-probe.js" || f === "char-creation.js" || f === "stt.js" || f === "car-session.js" || /^ui-/.test(f));
   });
   if (_expected.join("|") !== _manFiles.join("|")) {
     console.error("ENGINE MANIFEST CONTRACT: dev/engine-manifest.js no longer matches index.html's engine load order.");

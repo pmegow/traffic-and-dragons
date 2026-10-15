@@ -26,6 +26,7 @@ var SUITES = [
   "dev/tests-19-audio-session.js",
   "dev/tests-19b-carmode-transport.js",
   "dev/tests-19c-car-scene-brief.js",
+  "dev/tests-631-car-seam.js",/* #631: the Car Mode seam — car-commands/car-session/audio-session name nothing outside themselves; CAR_HOST matches CAR_HOST_ROWS */
   "dev/tests-general-audio.js",
   "dev/tests-audio-cache.js",
   "dev/tests-accent-layer.js",

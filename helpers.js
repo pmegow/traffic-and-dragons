@@ -1846,8 +1846,8 @@ function renderPointerAdd(list, ptr, cap) {
   return out;
 }
 // ── #78 Car Mode: numbered options — the two PURE pieces (engine-tested) ────────────────────
-// buildOptionsSpeech renders the spoken menu; parseCarCommand recognizes what the driver said
-// back. Both live here (not ui-carmode.js) so the DOM-free harness can exercise them.
+// buildOptionsSpeech renders the spoken menu; parseCarCommand (car-commands.js since #631) recognizes what the driver
+// said back over the game's CAR_COMMANDS table (game.js). Both are DOM-free so the headless harness can exercise them.
 //
 // "Option 1: …" rather than a bare list — the number is the handle the driver speaks back, so it
 // has to lead. Each action is punctuated first (#88) so splitSentences gives clean pause
@@ -1862,95 +1862,11 @@ function buildOptionsSpeech(acts) {
   }
   return out.join(" ");
 }
-// THE FALSE-POSITIVE RULE: a command must be the WHOLE utterance, never a substring. "I attack the
-// second guard" and "repeat the ritual" are ACTIONS — matching a bare /second|repeat/ anywhere in
-// the transcript would silently eat real turns, which is far worse than missing a command (the
-// driver just repeats themselves). So every pattern below is anchored ^…$ over the trimmed,
-// punctuation-stripped text, with only a short filler prefix ("uh", "let's", "I'll take") allowed.
-// Returns {kind:"pick",n} (1-based) | {kind:"repeat"} (options only) | {kind:"repeatAll"} | null.
-var CAR_CMD_FILLER = /^(?:uh+|um+|ok(?:ay)?|so|well|hey|please|lets|i(?:ll| will| want to| wanna)?(?: take| do| pick| choose| go with)?|give me|do|take|pick|choose|go with|the)\s+/;
-var CAR_ORDINALS = { one: 1, two: 2, three: 3, four: 4, first: 1, second: 2, third: 3, fourth: 4, "1": 1, "2": 2, "3": 3, "4": 4 };
-function parseCarCommand(text, optionCount) {
-  var t = String(text == null ? "" : text).toLowerCase();
-  // apostrophes are DELETED, not spaced — spacing them splits "let's"→"let s" and "I'll"→"I ll",
-  // which is exactly the filler the strip below is trying to remove
-  t = t.replace(/['’]/g, "").replace(/[.,!?;:"”“]+/g, " ").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
-  if (!t) return null;
-  var prev = null, guard = 0;
-  while (t !== prev && guard++ < 4) { prev = t; t = t.replace(CAR_CMD_FILLER, ""); }   // strip stacked filler
-  // "the second one" → "second". Anchored to ORDINALS only: a blanket /\s+one$/ strip would turn
-  // "choice one" into "choice" and lose a legitimate pick.
-  t = t.replace(/^(first|second|third|fourth|last)\s+one$/, "$1");
-  if (!t) return null;
-  // full-scene replay must be tested BEFORE the options replay — "repeat everything" also
-  // starts with "repeat", and the more specific phrase has to win
-  if (/^(?:repeat|read|say|play)\s+(?:it\s+|that\s+|the\s+)?(?:everything|all|scene|story|narration|again from the start)$/.test(t)
-      || /^(?:repeat|read)\s+everything$/.test(t) || /^everything again$/.test(t)) return { kind: "repeatAll" };
-  /* #308 Car Mode bookends: "wrap up" lands the scene at a hook within two turns; "previously" speaks the recap. */
-  if (/^(?:i )?roll(?: (?:the )?(?:dice|die|d20))?$/.test(t)) return { kind: "roll" };/* #329 */
-  /* #6 E9: a spoken undo scoped to the LAST item move (a placement or a take) — anchored, so "never mind the guard, I attack" stays an action */
-  if (/^(?:never mind|nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/.test(t)) return { kind: "undoItem" };
-  /* #410: a spoken PAUSE / RESUME (owner vocabulary 2026-09-14: "stop" is too common a word). Anchored like everything
-     else — "I pause at the door" is an action; bare "continue" is NOT a command because "continue" alone is a plausible
-     action (keep walking), so the resume side is resume / unpause / GM resume / GM continue. What pause DOES is decided
-     by carHoldDispatch below, not here. */
-  if (/^(?:gm )?pause$/.test(t)) return { kind: "pause" };
-  if (/^(?:gm )?(?:resume|unpause)$|^gm continue$/.test(t)) return { kind: "resume" };
-  if (/^(?:lets |let us )?(?:wrap(?: it)?(?: up)?|stop here|find a stopping point|stopping point|end (?:it|here) for now)$/.test(t)) return { kind: "wrapUp" };
-  if (/^(?:previously|recap|catch me up|where were we|where was i|what happened(?: last time| before)?|remind me)$/.test(t)) return { kind: "recap" };
-  if (/^(?:repeat|again|say again|repeat that|say that again|read again|read that again|one more time)$/.test(t)
-      || /^(?:what are )?(?:my )?(?:the )?(?:options|choices)(?: again)?$/.test(t)
-      || /^repeat (?:the )?(?:options|choices)$/.test(t)) return { kind: "repeat" };
-  var n = null, m;
-  if (CAR_ORDINALS[t] !== undefined) n = CAR_ORDINALS[t];
-  else if ((m = /^(?:option|number|choice)\s+(\w+)$/.exec(t)) && CAR_ORDINALS[m[1]] !== undefined) n = CAR_ORDINALS[m[1]];
-  else if (/^last$/.test(t)) n = optionCount || 0;
-  if (!n) return null;
-  if (optionCount && n > optionCount) return null;   // "four" with 3 options is not a pick — let it be an action
-  return { kind: "pick", n: n };
-}
-// #410 — what a spoken PAUSE or RESUME does, as a pure table over the moment it arrives. The Car Mode
-// mic opens only AFTER narration (auto-mic on TTS done), so a spoken "pause" can almost never reach a
-// playing narrator — the tap and the steering-wheel button already do that. What the word CAN do is
-// HOLD the session: close the mic and stop the auto-mic loop re-opening it after every turn (the
-// car-park case), until "resume" or a tap. When narration IS playing (cloud STT text arriving late),
-// pause maps onto the existing TTS pause toggle, exactly as the tap does.
-//   cmdKind: "pause" | "resume";  st: { ttsPlaying, ttsPaused, held }
-//   → { op: "ttsPause" | "hold" | "ttsResume" | "release" | "noop", held: bool, status: key of CAR_STR | null }
-// ui-carmode.js executes op; ambience (Astra's pilot) subscribes to the "tnd:car-intent" event the
-// executor dispatches — pause ends ambience, the next narration start brings it back (owner ruling 1).
-function carHoldDispatch(cmdKind, st) {
-  var s = st || {};
-  if (cmdKind === "pause") {
-    if (s.ttsPlaying) return { op: "ttsPause", held: true, status: "paused" };
-    return { op: "hold", held: true, status: "pausedHold" };
-  }
-  if (cmdKind === "resume") {
-    if (s.ttsPaused) return { op: "ttsResume", held: false, status: "narratorSpeaking" };
-    if (s.held) return { op: "release", held: false, status: "listening" };
-    return { op: "noop", held: false, status: "nothingPaused" };
-  }
-  return { op: "noop", held: !!s.held, status: null };
-}
-// #77 Layer-2 confirm vocabulary — SAME false-positive discipline as parseCarCommand above:
-// whole utterance, anchored ^…$, filler-stripped. "no time to lose" and "yes and I draw my
-// sword" are ACTIONS. "again"/"repeat" are safe to claim here because a pending confirmation
-// OWNS the utterance (the #78 menu grammar is never consulted while one is pending — the
-// interceptor order in stt.js is pinned by the #77 CONFIRM GATE contract in run-tests.js).
-// Returns "yes" | "no" | "redo" | "repeat" | null.
-function parseConfirmCommand(text) {
-  var t = String(text == null ? "" : text).toLowerCase();
-  t = t.replace(/['’]/g, "").replace(/[.,!?;:"”“]+/g, " ").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
-  if (!t) return null;
-  var prev = null, guard = 0;
-  while (t !== prev && guard++ < 4) { prev = t; t = t.replace(CAR_CMD_FILLER, ""); }
-  if (!t) return null;
-  if (/^(?:yes|yeah|yep|yup|aye|correct|right|thats right|that is right|confirm|send|send it|yes send it|go ahead|sure)$/.test(t)) return "yes";
-  if (/^(?:no|nope|nah|cancel|dont|dont send|dont send it|discard|drop it|never mind|nevermind|scratch that|forget it)$/.test(t)) return "no";
-  if (/^(?:redo|retry|try again|again|start over|re do|new take)$/.test(t)) return "redo";
-  if (/^(?:repeat|repeat it|say again|what|what did you hear|read it back)$/.test(t)) return "repeat";
-  return null;
-}
+// #631 (2026-10-14): the spoken Car Mode grammar — CAR_CMD_FILLER, CAR_ORDINALS, parseCarCommand(text, optionCount, table)
+// and carHoldDispatch — lives in car-commands.js (portable, loads before this file); the GAME's vocabulary table, CAR_COMMANDS,
+// lives in game.js, and the #77 confirm vocabulary (parseConfirmCommand) in car-commands.js too — this file is loaded by
+// the satellites, which carry no car grammar, so nothing in it names the grammar.
+// #77 Layer-2 confirm vocabulary (parseConfirmCommand) — in car-commands.js since #631, beside the grammar it shares its discipline with.
 // bibleCardHTML (TODO #10) — the shared capability-card renderer. Pure: name + bible entry in,
 // ── #81 item bible accessors — the classDef()-in-helpers pattern (item_bible.js is pure data) ──
 // itemBaseName: the ONE key normalizer for inventory strings. Real saves carry three provenance

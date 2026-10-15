@@ -222,6 +222,24 @@ function consumableAnswersNeed(effect,wounded,conds){
     if(stem.length>=3&&ef.toLowerCase().indexOf(stem)>=0)return true;}
   return false;
 }
+// #631 (2026-10-14): the GAME's spoken Car Mode vocabulary — the portable base entries (car-commands.js) interleaved with
+// the game's own kinds, in the order the regex chain had before the seam (first match wins; every entry is a whole-utterance
+// anchor — THE FALSE-POSITIVE RULE in car-commands.js). The loop reads it through CAR_HOST.commands(); the executor for
+// the game's kinds is CAR_HOST.onCommand (ui-carmode.js). Lives here, not helpers.js: the satellites load helpers.js and
+// carry no car grammar. Pinned by dev/tests-631-car-seam.js (order, anchors, base-entry reuse).
+var CAR_COMMANDS = [
+  CAR_CMD_REPEAT_ALL,
+  { kind: "roll", say: [ /^(?:i )?roll(?: (?:the )?(?:dice|die|d20))?$/ ] },/* #329 */
+  /* #6 E9: a spoken undo scoped to the LAST item move (a placement or a take) — anchored, so "never mind the guard, I attack" stays an action */
+  { kind: "undoItem", say: [ /^(?:never mind|nevermind|undo(?: that| it| the last one)?|put it back|scratch that)$/ ] },
+  CAR_CMD_PAUSE,
+  CAR_CMD_RESUME,
+  /* #308 Car Mode bookends: "wrap up" lands the scene at a hook within two turns; "previously" speaks the recap. */
+  { kind: "wrapUp", say: [ /^(?:lets |let us )?(?:wrap(?: it)?(?: up)?|stop here|find a stopping point|stopping point|end (?:it|here) for now)$/ ] },
+  { kind: "recap", say: [ /^(?:previously|recap|catch me up|where were we|where was i|what happened(?: last time| before)?|remind me)$/ ] },
+  CAR_CMD_REPEAT
+];
+
 // #308 ①: is a MONTAGE due? MONTAGE_AFTER_TURNS committed turns (the tag log) with no combat tag, no
 // move tag, no open fight, no downed hero, no escort — the bellows-pumping stretch the review measured
 // at twenty full-price turns. Pure over the tag log.

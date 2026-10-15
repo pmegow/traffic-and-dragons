@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261014c";
+var CACHE = "tnd-v3-20261014d";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -16,6 +16,7 @@ var APP_SHELL = [
   "/globals.js",
   "/blueprint-edition.js",
   "/library-slug.js",
+  "/car-commands.js",
   "/error-report.js",
   "/wasm-probe.js",
   "/compress.js",
@@ -47,6 +48,7 @@ var APP_SHELL = [
   "/ui-sheets.js",
   "/ui-browsers.js",
   "/ui-campaigns.js",
+  "/car-session.js",
   "/ui-carmode.js",
   "/ui-modals.js",
   "/ui-boot.js",
@@ -59,6 +61,7 @@ var APP_SHELL = [
   "/audio-loader.js",
   "/audio-cache.js",
   "/ui-ambient.js",
+  "/audio-session.js",
   "/tts.js",
   "/ui-voice-settings.js",
   "/ui-character-voice.js",

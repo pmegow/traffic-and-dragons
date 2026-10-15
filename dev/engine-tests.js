@@ -215,7 +215,7 @@ function runEngineTests(R){
     var want=[["two",2],["Two.",2],["second",2],["the second one",2],["option 2",2],["number three",3],["choice one",1],
               ["uh, two",2],["okay let's do three",3],["I'll take option 1",1],["give me the third one",3],["3",3],["last",3]];
     for(var i=0;i<want.length;i++){
-      var r=parseCarCommand(want[i][0],3);
+      var r=parseCarCommand(want[i][0],3,CAR_COMMANDS);
       if(!r||r.kind!=="pick"||r.n!==want[i][1])return JSON.stringify(want[i][0])+" → "+JSON.stringify(r)+", wanted pick "+want[i][1];
     }
     return true;
@@ -226,33 +226,33 @@ function runEngineTests(R){
                  "say again to the innkeeper that we paid","one of the guards is lying","search the room for options",
                  "ask what my choices are worth","two guards block the door"];
     for(var i=0;i<actions.length;i++){
-      var r=parseCarCommand(actions[i],3);
+      var r=parseCarCommand(actions[i],3,CAR_COMMANDS);
       if(r)return JSON.stringify(actions[i])+" was eaten as "+JSON.stringify(r)+" — it is a free-form action";
     }
     return true;
   });
   t("parseCarCommand: repeat vs repeat-everything are distinct, and the specific phrase wins",function(){
     var opts=["repeat","again","say again","repeat that","one more time","options","choices","what are my options","repeat the options"];
-    for(var i=0;i<opts.length;i++){var r=parseCarCommand(opts[i],3);if(!r||r.kind!=="repeat")return JSON.stringify(opts[i])+" → "+JSON.stringify(r)+", wanted repeat";}
+    for(var i=0;i<opts.length;i++){var r=parseCarCommand(opts[i],3,CAR_COMMANDS);if(!r||r.kind!=="repeat")return JSON.stringify(opts[i])+" → "+JSON.stringify(r)+", wanted repeat";}
     var alls=["repeat everything","read everything","repeat the scene","repeat it all","everything again"];
-    for(i=0;i<alls.length;i++){var r2=parseCarCommand(alls[i],3);if(!r2||r2.kind!=="repeatAll")return JSON.stringify(alls[i])+" → "+JSON.stringify(r2)+", wanted repeatAll";}
+    for(i=0;i<alls.length;i++){var r2=parseCarCommand(alls[i],3,CAR_COMMANDS);if(!r2||r2.kind!=="repeatAll")return JSON.stringify(alls[i])+" → "+JSON.stringify(r2)+", wanted repeatAll";}
     return true;
   });
   t("parseCarCommand: an out-of-range number is an ACTION, not a pick; empty/garbage yields null",function(){
-    if(parseCarCommand("four",3))return "'four' picked with only 3 options — must fall through to free-form";
-    if(parseCarCommand("option 9",3))return "'option 9' picked with only 3 options";
-    var r=parseCarCommand("four",4);
+    if(parseCarCommand("four",3,CAR_COMMANDS))return "'four' picked with only 3 options — must fall through to free-form";
+    if(parseCarCommand("option 9",3,CAR_COMMANDS))return "'option 9' picked with only 3 options";
+    var r=parseCarCommand("four",4,CAR_COMMANDS);
     if(!r||r.n!==4)return "'four' should pick with 4 options: "+JSON.stringify(r);
-    if(parseCarCommand("",3)||parseCarCommand(null,3)||parseCarCommand("   ",3))return "empty input produced a command";
-    return parseCarCommand("the",3)===null?true:"bare filler produced a command";
+    if(parseCarCommand("",3,CAR_COMMANDS)||parseCarCommand(null,3,CAR_COMMANDS)||parseCarCommand("   ",3,CAR_COMMANDS))return "empty input produced a command";
+    return parseCarCommand("the",3,CAR_COMMANDS)===null?true:"bare filler produced a command";
   });
   t("#410 parseCarCommand hears pause / GM pause and resume / unpause / GM resume / GM continue as WHOLE utterances; 'I pause at the door', bare 'continue' and 'resume the search' stay actions",function(){
     var ps=["pause","Pause.","GM pause","gm pause","uh, pause","okay pause"];
-    for(var i=0;i<ps.length;i++){var r=parseCarCommand(ps[i],3);if(!r||r.kind!=="pause")return JSON.stringify(ps[i])+" → "+JSON.stringify(r)+", wanted pause";}
+    for(var i=0;i<ps.length;i++){var r=parseCarCommand(ps[i],3,CAR_COMMANDS);if(!r||r.kind!=="pause")return JSON.stringify(ps[i])+" → "+JSON.stringify(r)+", wanted pause";}
     var rs=["resume","unpause","GM resume","gm continue","Resume!"];
-    for(i=0;i<rs.length;i++){var r2=parseCarCommand(rs[i],3);if(!r2||r2.kind!=="resume")return JSON.stringify(rs[i])+" → "+JSON.stringify(r2)+", wanted resume";}
+    for(i=0;i<rs.length;i++){var r2=parseCarCommand(rs[i],3,CAR_COMMANDS);if(!r2||r2.kind!=="resume")return JSON.stringify(rs[i])+" → "+JSON.stringify(r2)+", wanted resume";}
     var acts=["I pause at the door","continue","continue down the corridor","resume the search","pause the music and listen","GM continue the story","I resume walking","pause for a moment then knock"];
-    for(i=0;i<acts.length;i++){var r3=parseCarCommand(acts[i],3);if(r3)return JSON.stringify(acts[i])+" was eaten as "+JSON.stringify(r3)+" — it is a free-form action";}
+    for(i=0;i<acts.length;i++){var r3=parseCarCommand(acts[i],3,CAR_COMMANDS);if(r3)return JSON.stringify(acts[i])+" was eaten as "+JSON.stringify(r3)+" — it is a free-form action";}
     return true;
   });
   t("#410 carHoldDispatch is the pure table: pause while the narrator plays = ttsPause; pause with the mic open = hold (auto-mic stays closed); resume releases a TTS pause first, then a hold; resume with nothing held says nothingPaused; unknown kinds are a no-op that keeps the hold",function(){
@@ -265,10 +265,10 @@ function runEngineTests(R){
     d=carHoldDispatch("repeat",{held:true});if(d.op!=="noop"||d.held!==true||d.status!==null)return "unknown kind must not touch the hold: "+JSON.stringify(d);
     d=carHoldDispatch("pause",null);if(d.op!=="hold")return "null state is tolerated: "+JSON.stringify(d);
     /* the executor and its seams exist: the hold gates the auto-mic, a tap releases it, hide resets it, and the intent event is the additive seam */
-    var src=__fsForTests.readFileSync(__rootForTests+"/ui-carmode.js","utf8");
+    var src=__fsForTests.readFileSync(__rootForTests+"/car-session.js","utf8");
     if(!/if \(_carHeld\) \{ _carSetStatus\(CAR_STR\.pausedHold\); return; \}/.test(src))return "_carAutoMic must bail while held";
     if(!/if \(_carHeld\) \{ _carHeld = false; _carIntent\("resume"\); \}/.test(src))return "_carTap must release the hold";
-    if(!/_carHeld = false; \/\/ #410/.test(src))return "hideCarMode must reset the hold";
+    if(!/_carHeld = false; \/\/ #410/.test(src))return "carSessionStop must reset the hold";
     if(!/new CustomEvent\("tnd:car-intent"/.test(src))return "the tnd:car-intent seam must exist";
     if(!/cmd\.kind === "pause" \|\| cmd\.kind === "resume"/.test(src)||!/carHoldDispatch\(cmd\.kind/.test(src))return "carVoiceCommand must route pause/resume through carHoldDispatch";
     if(!/pausedHold:/.test(src)||!/nothingPaused:/.test(src))return "CAR_STR must carry the two #410 statuses";
@@ -283,7 +283,7 @@ function runEngineTests(R){
     var cmds=["one","two","three","four","first","second","third","fourth","option two","number three","repeat","again","options","choices","repeat everything","last"];
     for(var i=0;i<cmds.length;i++){
       var corrected=sttCorrectNames(cmds[i],roster);
-      if(!parseCarCommand(corrected,4))return JSON.stringify(cmds[i])+" was corrected to "+JSON.stringify(corrected)+" and is no longer a command";
+      if(!parseCarCommand(corrected,4,CAR_COMMANDS))return JSON.stringify(cmds[i])+" was corrected to "+JSON.stringify(corrected)+" and is no longer a command";
     }
     // the inverse must still hold — protecting these words cannot break real name snapping
     var fixed=sttCorrectNames("more when and physics wait at sand point",roster);
@@ -1197,11 +1197,11 @@ function runEngineTests(R){
     return NOTE_SHAPES.buildMontageNote&&NOTE_LATCH_FIELDS.indexOf("montagePing")>=0?true:"not registered";
   });
   t("#308 Car Mode bookends: parseCarCommand hears wrap-up and recap; buildWrapUpNote fires once asking for a hook within two responses; carRecapText speaks the last chapter and the place",function(){
-    var w=parseCarCommand("let's wrap up",3);if(!w||w.kind!=="wrapUp")return "wrap up not heard: "+JSON.stringify(w);
-    if(!parseCarCommand("wrap it up",3)||parseCarCommand("wrap it up",3).kind!=="wrapUp")return "wrap it up";
-    var r=parseCarCommand("what happened last time",3);if(!r||r.kind!=="recap")return "recap not heard: "+JSON.stringify(r);
-    if(!parseCarCommand("previously",3)||parseCarCommand("previously",3).kind!=="recap")return "previously";
-    if(parseCarCommand("second",3).kind!=="pick"&&parseCarCommand("second",3).n!==2)return "ordinary picks broke";
+    var w=parseCarCommand("let's wrap up",3,CAR_COMMANDS);if(!w||w.kind!=="wrapUp")return "wrap up not heard: "+JSON.stringify(w);
+    if(!parseCarCommand("wrap it up",3,CAR_COMMANDS)||parseCarCommand("wrap it up",3,CAR_COMMANDS).kind!=="wrapUp")return "wrap it up";
+    var r=parseCarCommand("what happened last time",3,CAR_COMMANDS);if(!r||r.kind!=="recap")return "recap not heard: "+JSON.stringify(r);
+    if(!parseCarCommand("previously",3,CAR_COMMANDS)||parseCarCommand("previously",3,CAR_COMMANDS).kind!=="recap")return "previously";
+    if(parseCarCommand("second",3,CAR_COMMANDS).kind!=="pick"&&parseCarCommand("second",3,CAR_COMMANDS).n!==2)return "ordinary picks broke";
     makeWorld();worldState.wrapUpPing={turn:worldState.turn};
     var n=buildWrapUpNote();if(!/WRAP/i.test(n)||!/two responses/i.test(n)||!/stopping point|hook/i.test(n))return "wrap note: "+n;
     if(buildWrapUpNote()!=="")return "fired twice";
@@ -1890,7 +1890,7 @@ function runEngineTests(R){
       delete worldState.pendingCheck;h=diceTxt("[CHECK:Stealth check|+5|DC 14]");if(/dice-pending/.test(h)||/rollPendingCheck/.test(h))return "a lapsed check must not be clickable: "+h;
       h=diceTxt("[DICE:Stealth check|17|success]");if(!/<strong>17<\/strong>/.test(h)||!/success/.test(h))return "[DICE:] rendering changed: "+h;
     }finally{playerRollsDice=was;}
-    if(parseCarCommand("roll",3).kind!=="roll"||parseCarCommand("roll the dice",3).kind!=="roll"||parseCarCommand("roll away",3)&&parseCarCommand("roll away",3).kind==="roll")return "car command";
+    if(parseCarCommand("roll",3,CAR_COMMANDS).kind!=="roll"||parseCarCommand("roll the dice",3,CAR_COMMANDS).kind!=="roll"||parseCarCommand("roll away",3,CAR_COMMANDS)&&parseCarCommand("roll away",3,CAR_COMMANDS).kind==="roll")return "car command";
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
     var rp=g.indexOf("function rollPendingCheck("),body=g.slice(rp,rp+2500);if(rp<0||body.indexOf("sendAction(")<0||body.indexOf("silent:true")<0||body.indexOf("rollTag:")<0||body.indexOf("delete worldState.pendingCheck")<0)return "rollPendingCheck wiring";
     var sa=g.slice(g.indexOf("async function sendAction("),g.indexOf("function retryLast("));if(sa.indexOf("opts.rollTag")<0||sa.indexOf("pendingCheck")<0)return "sendAction does not carry the roll record or lapse the check";
@@ -18552,8 +18552,11 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   });
 
   section("#19 — Bluetooth microphone handoff");
-  t("TTS exposes a capture handoff for both STT paths",function(){
-    return typeof TTS.setAudioCapture === "function" ? true : "missing capture-to-playback session handoff";
+  t("the capture handoff exists for both STT paths — AudioSession.setCapture (audio-session.js since #631), and stt.js reports the mic through it",function(){
+    if(typeof AudioSession==="undefined"||typeof AudioSession.setCapture!=="function")return "missing capture-to-playback session handoff (AudioSession.setCapture)";
+    if(typeof TTS.setAudioCapture!=="undefined")return "TTS.setAudioCapture is back — the handoff has ONE owner, audio-session.js";
+    var stt=__fsForTests.readFileSync(__rootForTests+"/stt.js","utf8"),cap=stt.slice(stt.indexOf("function _capture(value) {"),stt.indexOf("function _capture(value) {")+400);
+    return cap.indexOf("AudioSession.setCapture(value)")>=0?true:"stt.js _capture no longer reports the mic to AudioSession.setCapture";
   });
 
   section("B10 — audio recovery");
@@ -24655,10 +24658,10 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(hereItemsLine()!=="Here: Lantern")return "the adventure here line reads the CURRENT node only: "+JSON.stringify(hereItemsLine());
     return true;
   });
-  t("#6E9 Car Mode undo: parseCarCommand('never mind') → undoItem; undoLastItemMove reverses the last placement or take once and reports when there is nothing to undo",function(){
-    var c=parseCarCommand("never mind");if(!c||c.kind!=="undoItem")return "never mind must parse as undoItem: "+JSON.stringify(c);
-    if(!parseCarCommand("undo that")||parseCarCommand("undo that").kind!=="undoItem")return "undo that must parse as undoItem";
-    if(parseCarCommand("never mind the guard, I attack"))return "a sentence is an action, not a command";
+  t("#6E9 Car Mode undo: parseCarCommand('never mind',0,CAR_COMMANDS) → undoItem; undoLastItemMove reverses the last placement or take once and reports when there is nothing to undo",function(){
+    var c=parseCarCommand("never mind",0,CAR_COMMANDS);if(!c||c.kind!=="undoItem")return "never mind must parse as undoItem: "+JSON.stringify(c);
+    if(!parseCarCommand("undo that",0,CAR_COMMANDS)||parseCarCommand("undo that",0,CAR_COMMANDS).kind!=="undoItem")return "undo that must parse as undoItem";
+    if(parseCarCommand("never mind the guard, I attack",0,CAR_COMMANDS))return "a sentence is an action, not a command";
     villageEF();var u0=undoLastItemMove();if(!u0||u0.ok!==false||!u0.reason)return "nothing to undo must be reported: "+JSON.stringify(u0);
     applyMuts("[LOCATION_ITEM:Lantern|placed]");var u=undoLastItemMove();if(!u||!u.ok)return "the placement must undo: "+JSON.stringify(u);
     var rows=memory.map.nodes["The Village|the tavern"].items;if(rows.length&&!(rows[0].taken||rows[0].qty===0))return "the lantern must be gone from the stash after undo: "+JSON.stringify(rows);

@@ -67,9 +67,11 @@ function fakeTimers() {
 // helpers.js holds the two pure deciders Car Mode routes spoken commands through.
 const helperScope = { console, Math, Date, JSON, Object, Array, String, Number, RegExp, isNaN, parseFloat, parseInt, setTimeout, clearTimeout, window: {}, document: fakeDoc(), localStorage: { getItem: () => null, setItem() {} } };
 vm.createContext(helperScope);
-['globals.js', 'data.js', 'helpers.js'].forEach(f => vm.runInContext(source(f), helperScope, { filename: f }));
+['globals.js', 'data.js', 'car-commands.js', 'helpers.js'].forEach(f => vm.runInContext(source(f), helperScope, { filename: f }));
+/* #631: the game's vocabulary table lives in game.js — sliced, since game.js is DOM wiring */
+{ const gp = source('game.js'), ga = gp.indexOf('var CAR_COMMANDS = ['); vm.runInContext(gp.slice(ga, gp.indexOf('\n];', ga) + 3), helperScope, { filename: 'game.js#CAR_COMMANDS' }); }
 
-// ui-carmode.js is a DOM-wiring file with no module wrapper: evaluate it inside a function whose
+// car-session.js + ui-carmode.js are DOM-wiring files with no module wrapper: evaluate them inside a function whose
 // parameters ARE its globals, then hand back the seams this battery drives.
 function loadCarMode(deps) {
   const epilogue = `
@@ -82,7 +84,8 @@ function loadCarMode(deps) {
       optTimer: function() { return _carOptTimer; }
     };`;
   const names = Object.keys(deps);
-  return new Function(...names, source('ui-carmode.js') + epilogue)(...names.map(k => deps[k]));
+  /* #631: the loop (car-session.js) and the game's host (ui-carmode.js) in ONE scope — the host installs itself at load */
+  return new Function(...names, source('car-session.js') + '\n' + source('ui-carmode.js') + epilogue)(...names.map(k => deps[k]));
 }
 function carDeps(doc, timers, over) {
   const stt = Object.assign({
@@ -104,7 +107,7 @@ function carDeps(doc, timers, over) {
     worldState: { turn: 3, character: { name: 'Korrag' }, lastTurnAt: 0 },
     showToast() {}, closeAllMenus() {}, sendAction() {}, saveAll() {}, syncUI() {},
     carRecapText: () => 'previously', undoLastItemMove: () => ({ ok: false, reason: 'nothing' }),
-    parseCarCommand: helperScope.parseCarCommand, carHoldDispatch: helperScope.carHoldDispatch,
+    parseCarCommand: helperScope.parseCarCommand, carHoldDispatch: helperScope.carHoldDispatch, CAR_COMMANDS: helperScope.CAR_COMMANDS,
     buildOptionsSpeech: helperScope.buildOptionsSpeech, toFirstPerson: helperScope.toFirstPerson,
     CustomEvent, Date, Math, JSON,
     setTimeout: timers.set, clearTimeout: timers.clear,
@@ -201,7 +204,7 @@ function ttsFixture(options = {}) {
   };
   c.globalThis = c;
   vm.createContext(c);
-  ['audio-events.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
+  ['audio-events.js', 'audio-session.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
   return { c, TTS: c.TTS, nodes, synth, spoken, warnings, timers, Context };
 }
 
@@ -234,7 +237,7 @@ function sttFixture(options = {}) {
     eachMenuEl() {}, showToast() {}, carMode: false, busy: false,
     carNotify: (kind, text) => state.notes.push(kind + (text ? ':' + text : '')),
     carVoiceCommand: () => false,
-    TTS: { speak: t => state.spoken.push(t), setAudioCapture() {} },
+    TTS: { speak: t => state.spoken.push(t) },   /* #631: the mic reports to AudioSession, not TTS */
     setTimeout: () => 1, clearTimeout() {}, setInterval: () => 1, clearInterval() {},
     Promise, Date, Math, JSON, Object, Array, String, Number, RegExp, isNaN, parseFloat, parseInt,
     Blob: function () {}, FormData: function () { this.append = function () {}; },
@@ -243,7 +246,7 @@ function sttFixture(options = {}) {
   vm.createContext(c);
   // globals.js resets providerKeys to {}; the cloud path is gated on a key being on file, so the
   // fixture key goes in AFTER the load (the same order index.html reaches at runtime).
-  ['globals.js', 'data.js', 'helpers.js', 'audio-events.js', 'stt.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
+  ['globals.js', 'data.js', 'car-commands.js', 'helpers.js', 'audio-events.js', 'stt.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
   c.providerKeys.openai = 'fixture';
   c.STT.on('capture', v => state.capture.push(v));
   // One native utterance, end to end: start → a single FINAL result → onend → _applySendPolicy.
