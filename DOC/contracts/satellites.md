@@ -23,7 +23,7 @@ Mobile error reporting — `reportError(ctx,msg,detail)` POSTs runtime errors to
 
 Status: ✅ Active
 
-Satellite viewer (TODO #10) for the `*_bible` registries — open directly (like `blueprint-designer.html`, NOT in the SW app shell). Loads the bible data + helpers, renders every spell/ability via the shared `bibleCardHTML` and every skill via `skillCardHTML` (#52 — Skills section with the level-ladder header); live name/text filter. **Deliberately READ-ONLY** (user call 2026-07-27): the bibles may become player-facing, so the mutable surface lives in `bible_editor.html`, never here
+Satellite viewer (TODO #10) for the `*_bible` registries — open directly (like `blueprint-designer.html`, NOT in the SW app shell). Loads the bible data + helpers, renders every spell/ability via the shared `bibleCardHTML` and every skill via `skillCardHTML` (#52 — Skills section with the level-ladder header); live name/text filter. Opts into `website/system-theme.js`: browser/device light or dark preference selects the shared palette before paint and updates while open, without rebuilding cards or clearing the filter. **Deliberately READ-ONLY** (user call 2026-07-27): the bibles may become player-facing, so the mutable surface lives in `bible_editor.html`, never here
 
 ### capability-names.html
 

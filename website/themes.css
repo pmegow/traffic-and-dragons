@@ -14,6 +14,8 @@
   --t0:#e4e8ee;--t1:#96a0ae;--t2:#5c6470;
   /* accent */
   --acc:#9ab0c8;--on-acc:#000;--acc-bg:#141c24;
+  /* reference-card status text */
+  --magic-ink:#c99be0;--trained-ink:#d09090;--untrained-ink:#d0b070;
   /* semantic colours */
   --gold:#c8a84a;
   --hp:#e06060;
@@ -37,4 +39,5 @@
   --acc:#883c2d;--on-acc:#fff5d9;--acc-bg:#ecd4b5;
   --acc-dim:rgba(136,60,45,.55);--acc-faint:rgba(136,60,45,.1);
   --dng:#9c3026;--err:#9c3026;--hp:#9c3026;
+  --magic-ink:#623779;--trained-ink:#8b2a2a;--untrained-ink:#73501c;
 }

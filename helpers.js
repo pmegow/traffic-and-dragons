@@ -2608,7 +2608,7 @@ function bibleCardHTML(name,e){
   var chip="display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:10px;margin-right:6px;";
   var badges='<span style="'+chip+'background:var(--bg3,#2a2a2a);color:var(--t1,#ccc);">'+kindLabel+(tierLabel?" &middot; "+tierLabel:"")+'</span>';
   badges+= e.isMagical
-    ? '<span style="'+chip+'background:rgba(150,90,180,.25);color:#c99be0;">&#10022; magical</span>'
+    ? '<span style="'+chip+'background:rgba(150,90,180,.25);color:var(--magic-ink,#c99be0);">&#10022; magical</span>'
     : '<span style="'+chip+'background:var(--bg3,#2a2a2a);color:var(--t2,#999);">mundane</span>';
   if(e.category&&e.category.length){for(var ci=0;ci<e.category.length;ci++)badges+='<span style="'+chip+'background:rgba(184,147,90,.22);color:var(--acc,#b8935a);">'+escHtml(e.category[ci])+'</span>';}
   // Fixed attribute set — every card shows all 6, "N/A" where inapplicable (no row-count variance,
@@ -2657,8 +2657,8 @@ function skillCardHTML(skill,e){
   var st=(skill.stats||[]).join(" / ");
   if(st)badges+='<span style="'+chip+'background:rgba(184,147,90,.22);color:var(--acc,#b8935a);">'+escHtml(st)+'</span>';
   var ut=e&&e.untrained;
-  if(ut==="no")badges+='<span style="'+chip+'background:rgba(180,80,80,.22);color:#d09090;">trained only</span>';
-  else if(ut==="hard")badges+='<span style="'+chip+'background:rgba(180,140,60,.22);color:#d0b070;">hard untrained</span>';
+  if(ut==="no")badges+='<span style="'+chip+'background:rgba(180,80,80,.22);color:var(--trained-ink,#d09090);">trained only</span>';
+  else if(ut==="hard")badges+='<span style="'+chip+'background:rgba(180,140,60,.22);color:var(--untrained-ink,#d0b070);">hard untrained</span>';
   return '<div style="padding:22px 24px;">'
     +'<div style="font-size:18px;font-weight:bold;color:var(--t0,#f0f0f0);margin-bottom:8px;">'+escHtml(skill.label||skill.id)+'</div>'
     +'<div style="margin-bottom:14px;">'+badges+'</div>'

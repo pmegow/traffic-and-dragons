@@ -103,6 +103,8 @@ jobs:
         run: node dev/tests-blueprint-publish-browser.js
       # The same class, derived since: every dev/tests-*.js that requires dev/cdp-browser.js must be a step here, after the
       # Chrome check (check-enforcement.js browserSuiteProblems) — the three below had landed gating nothing.
+      - name: Bible Study follows browser light and dark preferences
+        run: node dev/tests-bible-study-theme-browser.js
       - name: Home page tab return in a real browser (#481 F4)
         run: node dev/tests-481-f4-home-return.js
       - name: Motivation settlement in the character editor (#437)
