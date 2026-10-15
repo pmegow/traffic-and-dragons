@@ -50,6 +50,46 @@ rc |= sabotage.prove({ file: "companion-talk.js", command: SUITE, cases: [
     mustFail: "close restores the game's host" }
 ]});
 
+/* #639 (owner 2026-10-15): the frames — a talk opens off-stage; "step into the story" / "step out of the story" move it */
+rc |= sabotage.prove({ file: "companion-talk.js", command: SUITE, cases: [
+  { label: "#639 the talk opens inside the story again (the owner's off-stage default reverted)",
+    find: "var TALK_FRAME_DEFAULT = \"offstage\";",
+    replace: "var TALK_FRAME_DEFAULT = \"moment\";",
+    mustFail: "the owner's ruling: open off-stage" },
+  { label: "#639 the off-stage frame drops the AI line (a character who knows they are in a tale is one step from 'I am a program')",
+    find: "    .concat([\"- Break character to discuss rules, the app or being an AI — decline in character instead.\"]);",
+    replace: "    .concat(frame === TALK_FRAMES.offstage ? [] : [\"- Break character to discuss rules, the app or being an AI — decline in character instead.\"]);",
+    mustFail: "the AI line closes the block in both frames" },
+  { label: "#639 the off-stage frame rewrites the HOW YOU SPEAK rules (two personalities, not one character in two frames)",
+    find: "    \"- End cleanly so the player can answer.\"];",
+    replace: "    \"- End cleanly so the player can answer.\"].concat(frame === TALK_FRAMES.offstage ? [\"- Narrate freely.\"] : []);",
+    mustFail: "the knowledge, the voice rules and the shared must-nots are the same in both frames" },
+  { label: "#639 a frame move no longer swaps the persona on the engine (the character keeps answering in the old frame)",
+    find: "  t.engine.persona(talkPersona(t.sheet, t.ctx, id));\n",
+    replace: "",
+    mustFail: "the engine's persona is the in-the-story frame now" },
+  { label: "#639 a frame move resets the conversation (the character forgets what was just said)",
+    find: "  t.engine.persona(talkPersona(t.sheet, t.ctx, id));\n",
+    replace: "  t.engine.persona(talkPersona(t.sheet, t.ctx, id)); t.engine.reset();\n",
+    mustFail: "the kept exchange survives the move" },
+  { label: "#639 the move is said in the character's voice (fabricated words in their mouth)",
+    find: "  if (typeof TTS !== \"undefined\" && typeof TTS.speak === \"function\") TTS.speak(fr.enterLine(t.name));   // the NARRATOR's voice",
+    replace: "  t.voice.speak(fr.enterLine(t.name));",
+    mustFail: "the NARRATOR says the move, never the character" },
+  { label: "#639 the host hands the loop the base vocabulary only (the moves are speech for the character)",
+    find: "  commands: function() { return TALK_COMMANDS; },",
+    replace: "  commands: function() { return CAR_COMMANDS_BASE; },",
+    mustFail: "the host hands the loop its own table" },
+  { label: "#639 the way in matches a substring (\"I want to step into the story later\" would move the frame)",
+    find: "/^(?:(?:step|go|come|get) )?(?:back )?in(?:to)? the story$/",
+    replace: "/(?:(?:step|go|come|get) )?(?:back )?in(?:to)? the story/",
+    mustFail: "a sentence that contains the line is speech" },
+  { label: "#639 the overlay stops showing the frame",
+    find: "vit.textContent = \"Talking with you · \" + TALK_FRAMES[t.frame].label + (t.frame === \"moment\" && worldState && worldState.world && worldState.world.location ? \" · \" + worldState.world.location : \"\");",
+    replace: "vit.textContent = \"Talking with you\" + (worldState && worldState.world && worldState.world.location ? \" · \" + worldState.world.location : \"\");",
+    mustFail: "off-stage: no place on the overlay" }
+]});
+
 rc |= sabotage.prove({ file: "ui-carmode.js", command: SUITE, cases: [
   { label: "the game's Car Mode host swallows plain speech (a GM turn is never sent)",
     find: "  hear: function() { return false; },",

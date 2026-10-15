@@ -90,8 +90,8 @@ function fixture(opts) {
 }
 
 /* ── the persona ── */
-test("the hero's persona carries who, people, memories, the moment and the rules; a companion's adds the tale's record", function() {
-  var f = fixture(), p = f.c.talkPersona(sheetFrizwick(), f.c.talkContext(f.c.talkPartner("Frizwick")));
+test("the hero's persona (in-the-story frame) carries who, people, memories, the moment and the rules; a companion's adds the tale's record", function() {
+  var f = fixture(), p = f.c.talkPersona(sheetFrizwick(), f.c.talkContext(f.c.talkPartner("Frizwick")), "moment");
   ["You are Frizwick", "the player who plays you", "WHO YOU ARE", "Rogue (Infiltrator), level 18", "she/her", "Trait: Reads a room", "Flaw: Like a magpie", "Manner: dry, quick",
    "YOUR PEOPLE", "- Ammut: Wife — beloved family", "WHAT YOU REMEMBER", "embraced Ammut", "(from Rise of the Runelords (Ammut))", "About Ammut: Ammut's ending",
    "WHERE THINGS STAND", "- Now: dawn, cold wind carrying ash, at Oakhaven in The Blighted Reach.", "- Recently: She dispatched the marauders", "- The last scene ended: You are at Oakhaven",
@@ -99,8 +99,33 @@ test("the hero's persona carries who, people, memories, the moment and the rules
   assert(p.indexOf("Shalelu") < 0, "an empty bond is not a person");
   assert(p.indexOf("WHAT THE TALE KNOWS OF YOU") < 0, "the hero has no NPC record");
   assert(p.indexOf("I go south") < 0, "the transcript is never dumped");
-  var d = f.c.talkPersona(sheetDaeris(), f.c.talkContext(f.c.talkPartner("Daeris")));
+  var d = f.c.talkPersona(sheetDaeris(), f.c.talkContext(f.c.talkPartner("Daeris")), "moment");
   ["You are Daeris", "Frizwick's player, who travels with you as Frizwick", "WHAT THE TALE KNOWS OF YOU", "the ledger is quiet now", "- Frizwick: Wife — chosen family", "Daeris let Ammut hold her"].forEach(function(s) { assert(d.indexOf(s) >= 0, "missing: " + s + "\n" + d); });
+});
+/* #639 (owner 2026-10-15): a talk opens off-stage — the character knows they are a character in a told tale; "step into the story" moves them inside the paused scene */
+test("#639 the frames: a talk opens off-stage by default; the frame changes the opening, the where-labels and one must-not line and nothing else; the AI line closes both", function() {
+  var f = fixture(), ctx = f.c.talkContext(f.c.talkPartner("Frizwick")), sheet = sheetFrizwick();
+  assert.deepEqual(Object.keys(f.c.TALK_FRAMES).sort(), ["moment", "offstage"], "exactly the two frames");
+  assert.equal(f.c.TALK_FRAME_DEFAULT, "offstage", "the owner's ruling: open off-stage");
+  var off = f.c.talkPersona(sheet, ctx), dflt = f.c.talkPersona(sheet, ctx, "no-such-frame"), inStory = f.c.talkPersona(sheet, ctx, "moment");
+  assert.equal(off, dflt, "an unknown frame falls back to the default");
+  assert.equal(off, f.c.talkPersona(sheet, ctx, "offstage"), "the default IS off-stage");
+  ["and you know it", "OFF-STAGE", "speak of the tale as the tale you are living", "never stepping out of who you are", "WHERE THE TALE LEFT YOU", "- The last scene left you: dawn, cold wind carrying ash, at Oakhaven in The Blighted Reach.",
+   "Announce what the Game Master will do"].forEach(function(s) { assert(off.indexOf(s) >= 0, "off-stage missing: " + s + "\n" + off); });
+  ["WHERE THINGS STAND", "- Now: ", "OFF-STAGE", "Announce what the Game Master"].forEach(function(s) { assert(inStory.indexOf(s) >= 0 === (s === "WHERE THINGS STAND" || s === "- Now: "), "in-the-story frame wrong on: " + s); });
+  assert(/being an AI — decline in character instead\.$/.test(off) && /being an AI — decline in character instead\.$/.test(inStory), "the AI line closes the block in both frames");
+  /* everything the frame does not own is byte-identical: strip the head paragraph and the where-section, compare the rest */
+  var strip = function(p, fr) { return p.split("\n").slice(1).join("\n").replace(fr.standLabel, "WHERE").replace(fr.nowLabel, "- WHEN: ").replace("\n" + (fr.mustNotExtra[0] || "\u0000"), ""); };
+  assert.equal(strip(off, f.c.TALK_FRAMES.offstage), strip(inStory, f.c.TALK_FRAMES.moment), "the knowledge, the voice rules and the shared must-nots are the same in both frames");
+  assert(off.length <= f.c.TALK_CAP.total, "off-stage within the cap: " + off.length);
+});
+test("#639 the spoken moves: whole-utterance only, both directions, the base vocabulary kept", function() {
+  var f = fixture(), P = function(t) { var c = f.c.parseCarCommand(t, 0, f.c.TALK_COMMANDS); return c ? c.kind : null; };
+  assert.equal(P("step into the story"), "frameIn"); assert.equal(P("go back into the story"), "frameIn"); assert.equal(P("into the story"), "frameIn"); assert.equal(P("step on stage"), "frameIn");
+  assert.equal(P("step out of the story"), "frameOut"); assert.equal(P("out of the story"), "frameOut"); assert.equal(P("go off stage"), "frameOut"); assert.equal(P("step back offstage"), "frameOut");
+  assert.equal(P("I want to step into the story later"), null, "a sentence that contains the line is speech"); assert.equal(P("the story"), null); assert.equal(P("step into the river"), null);
+  assert.equal(P("gm pause"), "pause"); assert.equal(P("repeat everything"), "repeatAll");
+  assert.equal(f.c.TALK_HOST.commands(), f.c.TALK_COMMANDS, "the host hands the loop its own table");
 });
 test("the trim pass never cuts the rules: a huge record gives way, the oldest memory first", function() {
   var f = fixture(), big = sheetDaeris(), i;
@@ -175,6 +200,34 @@ test("both hosts fill every CAR_HOST_ROWS row (22, with hear) and the game's hos
     assert.equal(f.c._carHost, f.c.CAR_HOST, "close restores the game's host"); assert.equal(f.c._talk, null); assert.equal(f.c.carMode, false);
     assert.equal(JSON.stringify([f.c.worldState, f.c.memory]), before, "worldState and memory are byte-identical after a talk");
     assert.equal(f.c.carVoiceCommand("walk north"), false, "after the talk, Car Mode speech is a GM turn again (carMode off → false)");
+  });
+  await atest("#639 the frame move mid-talk: the persona is swapped on the engine, the kept exchange stays, the NARRATOR says the move, the overlay shows the frame, a repeat is a notice only", async function() {
+    var f = fixture();
+    f.c.showTalk("Frizwick"); await flush(); f.tts.done(); await wait(900);
+    assert.equal(f.c._talk.frame, "offstage"); assert.match(f.els["car-vitals"].textContent, /Talking with you · off-stage$/, "off-stage: no place on the overlay");
+    assert(f.tt.some(function(h) { return /off-stage/.test(h) && /step into the story/.test(h); }), "the record names the frame and the way in: " + JSON.stringify(f.tt));
+    hear(f, "what do you make of how things went at the fen"); await flush();
+    assert(f.gm[0].sys.indexOf("OFF-STAGE") >= 0 && f.gm[0].sys.indexOf("WHERE THE TALE LEFT YOU") >= 0, "the first ask carries the off-stage persona");
+    await flush(); await flush(); f.tts.done(); await wait(900);
+    var spokenBefore = f.tts.spoken.length, gmBefore = f.gm.length;
+    assert.equal(hear(f, "step into the story"), true, "the move is a command, not speech");
+    assert.equal(f.gm.length, gmBefore, "a frame move asks the model nothing");
+    assert.equal(f.c._talk.frame, "moment");
+    var said = f.tts.spoken[f.tts.spoken.length - 1];
+    assert.equal(f.tts.spoken.length, spokenBefore + 1); assert.equal(said.text, "Frizwick steps into the story."); assert.equal(said.voices, null, "the NARRATOR says the move, never the character");
+    assert.match(f.els["car-vitals"].textContent, /Talking with you · in the story · Oakhaven/, "in the story: the place returns to the overlay");
+    assert(f.crumbs.some(function(x) { return x === "talk-frame moment"; }));
+    var persona = f.c._talk.engine.persona();
+    assert(persona.indexOf("WHERE THINGS STAND") >= 0 && persona.indexOf("OFF-STAGE") < 0, "the engine's persona is the in-the-story frame now");
+    assert.equal(f.c._talk.engine.transcript().length, 1, "the kept exchange survives the move");
+    f.tts.done(); await wait(900); assert(f.stt.isListening(), "the mic reopens after the narrator's line");
+    assert.equal(hear(f, "step into the story"), true); assert.equal(f.tts.spoken.length, spokenBefore + 1, "already there: a notice, no second line"); assert.match(f.els["car-status"].textContent, /Already in the story/);
+    hear(f, "and now"); await flush();
+    assert(f.gm[gmBefore].sys.indexOf("WHERE THINGS STAND") >= 0 && f.gm[gmBefore].msg.indexOf("Player: what do you make of how things went at the fen") >= 0, "the next ask rides the new frame with the old exchange: " + f.gm[gmBefore].msg);
+    await flush(); await flush(); f.tts.done(); await wait(900);
+    assert.equal(hear(f, "step out of the story"), true); assert.equal(f.c._talk.frame, "offstage"); assert.equal(f.tts.spoken[f.tts.spoken.length - 1].text, "Frizwick steps off-stage.");
+    f.c.carSessionStop(); await flush();
+    assert.equal(f.c.carVoiceCommand("step into the story"), false, "after the talk the line is nobody's command (carMode off)");
   });
   await atest("a spoken pause holds a pending reply: it is spoken when it lands, the mic stays closed, the tap releases", async function() {
     var f = fixture({ reply: "Hold that thought." });

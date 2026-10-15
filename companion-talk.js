@@ -14,17 +14,54 @@
 
 var TALK_MAX_TOKENS = 220;          // runaway insurance; the persona asks for two sentences
 var TALK_WINDOW = 12;               // exchanges the engine keeps
-var TALK_CAP = { backstory: 600, appear: 220, memories: 10, memoryText: 220, npcDetail: 900, chapter: 420, bonds: 8, scene: 320, total: 5200 };   // total: the trim pass shrinks the knowledge sections to fit; the rules are never cut
+var TALK_CAP = { backstory: 600, appear: 220, memories: 10, memoryText: 220, npcDetail: 900, chapter: 420, bonds: 8, scene: 320, total: 5720 };   // total: the trim pass shrinks the knowledge sections to fit; the rules are never cut. 5200 was the #633 budget; #639's off-stage frame costs ~520 more characters of rules, paid here so the knowledge keeps its room
+
+// ── the frames (#639, owner 2026-10-15: "let's try off-stage first") ─────────
+// A talk has ONE frame at a time, and the frame is the only thing that changes between them — the knowledge, the voice,
+// the rules about inventing and advancing are the same. "offstage": the character knows they are a character in a told
+// tale and can speak about it as such (the scenes, the chapters, the player's choices, what they fear is next), still as
+// themselves, never as a narrator and never as a program. "moment": the pre-#639 frame — the story is paused and they
+// speak from inside the paused scene. The default is the opening frame; the spoken lines in TALK_COMMANDS move between
+// them mid-talk (the persona is swapped on the engine; the kept exchanges stay). Adding a frame = a row here + a say line.
+var TALK_FRAME_DEFAULT = "offstage";
+var TALK_FRAMES = {
+  offstage: {
+    label: "off-stage",
+    head: function(name, camp, who) { return "You are " + name + ", a character in the tabletop campaign \"" + camp + "\" — and you know it. Right now you are OFF-STAGE: talking out loud with " + who + ", between sessions, away from the table. The story is paused where the last scene left it. You may speak of the tale as the tale you are living — what happened, what it cost you, what you make of the choices made (they were made through you), what you hope or fear comes next — the way an actor who IS the part would, never stepping out of who you are."; },
+    standLabel: "WHERE THE TALE LEFT YOU",
+    nowLabel: "- The last scene left you: ",
+    mustNotExtra: ["- Announce what the Game Master will do or what the next scene holds — a hope or a fear is yours to voice; a fact about what comes next is not."],
+    enterLine: function(name) { return name + " steps off-stage."; },
+    hint: "say \"step into the story\" to talk inside the scene"
+  },
+  moment: {
+    label: "in the story",
+    head: function(name, camp, who) { return "You are " + name + ", a character in the tabletop campaign \"" + camp + "\". You are talking out loud with " + who + " — between sessions, away from the table. The story is paused; this is a conversation, not a scene."; },
+    standLabel: "WHERE THINGS STAND",
+    nowLabel: "- Now: ",
+    mustNotExtra: [],
+    enterLine: function(name) { return name + " steps into the story."; },
+    hint: "say \"step out of the story\" to talk off-stage"
+  }
+};
+function talkFrame(id) { return TALK_FRAMES[id] ? id : TALK_FRAME_DEFAULT; }
+// The talk's spoken vocabulary: the base entries (pause, resume, repeat, repeat everything) and the two frame moves. THE
+// FALSE-POSITIVE RULE (car-commands.js): a say line matches the WHOLE utterance, never a substring — "I want to step into
+// the story later" is speech for the character.
+var TALK_CMD_FRAME_IN  = { kind: "frameIn",  say: [ /^(?:(?:step|go|come|get) )?(?:back )?in(?:to)? the story$/, /^(?:step|go|come|get) (?:back )?on ?stage$/ ] };
+var TALK_CMD_FRAME_OUT = { kind: "frameOut", say: [ /^(?:(?:step|go|come|get) )?(?:back )?out(?: of)? the story$/, /^(?:step|go|come|get) (?:back )?off ?stage$/ ] };
+var TALK_COMMANDS = CAR_COMMANDS_BASE.concat([TALK_CMD_FRAME_IN, TALK_CMD_FRAME_OUT]);
 
 // ── the persona (pure) ───────────────────────────────────────────────────────
 // ctx: { heroName, isHero, campName, place:{location,region,time,weather}, chapters:[string], lastScene, bonds:[{entity,bond,dynamic}],
 //        coreMemories:[{text,camp}], npcDetail } — gathered by talkContext() below, or hand-built by a test.
 function _talkCut(s, n) { s = String(s == null ? "" : s).replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, "") + "…" : s; }
-function talkPersona(sheet, ctx) {
+function talkPersona(sheet, ctx, frameId) {
   sheet = sheet || {}; ctx = ctx || {};
+  var frame = TALK_FRAMES[talkFrame(frameId)];   // #639: the frame shapes the opening, the "where" labels and one must-not line; nothing else
   var name = sheet.name || "the character", hero = ctx.heroName || "the hero", camp = ctx.campName || "this campaign";
   var who = ctx.isHero ? "the player who plays you" : hero + "'s player, who travels with you as " + hero;
-  var head = ["You are " + name + ", a character in the tabletop campaign \"" + camp + "\". You are talking out loud with " + who + " — between sessions, away from the table. The story is paused; this is a conversation, not a scene."];
+  var head = [frame.head(name, camp, who)];
   var self = ["WHO YOU ARE"], id = [], i;
   if (sheet.ancestry) id.push(sheet.ancestry);
   if (sheet.cls) id.push(sheet.cls + (sheet.archetypeNm ? " (" + sheet.archetypeNm + ")" : "") + (sheet.level ? ", level " + sheet.level : ""));
@@ -61,15 +98,16 @@ function talkPersona(sheet, ctx) {
   var mustNot = ["WHAT YOU MUST NOT DO",
     "- Advance the story, decide what happens next, or claim this talk changes anything in the tale.",
     "- Invent events, people, places or facts beyond what you were given here; if you do not know, say so as " + name + " would.",
-    "- Speak for the Game Master or for other characters.",
-    "- Break character to discuss rules, the app or being an AI — decline in character instead."];
+    "- Speak for the Game Master or for other characters."]
+    .concat(frame.mustNotExtra)
+    .concat(["- Break character to discuss rules, the app or being an AI — decline in character instead."]);   // always the LAST line: a character in a told tale is not a program, in either frame
   function assemble() {
     var L = head.concat([""], self), j;
     if (people.length) L = L.concat([""], people);
     if (mem.length) { L = L.concat(["", "WHAT YOU REMEMBER (your own memories; speak of them as yours)"]); for (j = 0; j < mem.length; j++) L.push(memLine(mem[j])); }
     if (record) L = L.concat(["", "WHAT THE TALE KNOWS OF YOU", record]);
-    L = L.concat(["", "WHERE THINGS STAND"]);
-    if (now.length) L.push("- Now: " + now.join(", ") + ".");
+    L = L.concat(["", frame.standLabel]);
+    if (now.length) L.push(frame.nowLabel + now.join(", ") + ".");
     for (j = 0; j < chapters.length; j++) L.push("- Recently: " + chapters[j]);
     if (scene) L.push("- The last scene ended: " + scene);
     return L.concat([""], speak, [""], mustNot).join("\n");
@@ -161,8 +199,25 @@ function talkAdapter() {
 }
 
 // ── the host ────────────────────────────────────────────────────────────────
-var _talk = null;   // { name, sheet, isHero, engine, voice, busy, lastHeard, turns }
+var _talk = null;   // { name, sheet, isHero, ctx, frame, engine, voice, busy, lastHeard, turns }
 function _talkField() { return document.getElementById("action-input"); }
+// #639: move the talk between frames. The persona is swapped on the engine (the kept exchanges stay — the talk continues,
+// the character just knows where they stand); the NARRATOR says the move (never the character's words); the overlay repaints.
+function _talkSetFrame(id) {
+  var t = _talk; if (!t) return false;
+  id = talkFrame(id);
+  var fr = TALK_FRAMES[id];
+  if (t.frame === id) { carNotify("info", "Already " + fr.label); return true; }
+  t.frame = id;
+  t.engine.persona(talkPersona(t.sheet, t.ctx, id));
+  if (typeof erCrumb === "function") erCrumb("talk-frame", id);
+  _talkLine("—", fr.enterLine(t.name) + " (" + fr.hint + ")");
+  carNotify("info", fr.enterLine(t.name));
+  if (typeof TTS !== "undefined" && typeof TTS.speak === "function") TTS.speak(fr.enterLine(t.name));   // the NARRATOR's voice
+  TALK_HOST.paint();
+  if (typeof _carSyncBtn === "function") _carSyncBtn();
+  return true;
+}
 function _talkLine(who, text) {   // the record: the Table Talk pane, this session only — never saved
   if (typeof addMsg !== "function") return;
   try { addMsg("tabletalk", "<b>" + escHtml(who) + ":</b> " + escHtml(text)); } catch (e) {}
@@ -205,7 +260,7 @@ var TALK_HOST = {
   voice: function() { return _talk ? _talk.voice : null; },
   mic: function() { return (typeof STT !== "undefined") ? STT : null; },
   busy: function() { return !!(_talk && _talk.busy); },
-  opened: function() { closeAllMenus(); if (_talk) _talkLine("—", "Talking with " + _talk.name + " (not saved)"); },   // never the Car Mode reload flag: a reload must not boot into a talk
+  opened: function() { closeAllMenus(); if (_talk) _talkLine("—", "Talking with " + _talk.name + ", " + TALK_FRAMES[_talk.frame].label + " (not saved; " + TALK_FRAMES[_talk.frame].hint + ")"); },   // never the Car Mode reload flag: a reload must not boot into a talk
   closed: function() { var t = _talk; _talk = null; if (t && t.engine) t.engine.reset(); carSessionHost(CAR_HOST); },
   paint: function() {
     var t = _talk; if (!t) return;
@@ -215,7 +270,7 @@ var TALK_HOST = {
       if (t.sheet.portrait) { if (img.getAttribute("src") !== t.sheet.portrait) img.src = t.sheet.portrait; img.style.display = ""; init.style.display = "none"; }
       else { img.style.display = "none"; init.style.display = ""; }
     }
-    var vit = document.getElementById("car-vitals"); if (vit) vit.textContent = "Talking with you" + (worldState && worldState.world && worldState.world.location ? " · " + worldState.world.location : "");
+    var vit = document.getElementById("car-vitals"); if (vit) vit.textContent = "Talking with you · " + TALK_FRAMES[t.frame].label + (t.frame === "moment" && worldState && worldState.world && worldState.world.location ? " · " + worldState.world.location : "");   // #639: the frame is on the overlay; the place only inside the story
     var party = document.getElementById("car-party"); if (party) party.innerHTML = "";
     if (typeof _carMediaSession === "function") _carMediaSession();
   },
@@ -230,8 +285,12 @@ var TALK_HOST = {
   optionsSpeech: function() { return ""; },
   entryBrief: function() { return _talk ? ("It's " + _talk.name + ". I'm listening.") : ""; },
   recap: function() { return ""; },
-  commands: function() { return CAR_COMMANDS_BASE; },
-  onCommand: function() { return false; },
+  commands: function() { return TALK_COMMANDS; },   // #639: the base vocabulary plus the two frame moves
+  onCommand: function(cmd) {
+    if (cmd.kind === "frameIn") return _talkSetFrame("moment");
+    if (cmd.kind === "frameOut") return _talkSetFrame("offstage");
+    return false;
+  },
   hear: function(text) { return _talkAsk(text); },
   crumb: function(evt, data) { if (typeof erCrumb === "function") erCrumb(evt, data); },
   ticker: function(el, base, opts) { return (typeof elapsedTicker === "function") ? elapsedTicker(el, base, opts) : null; }
@@ -244,9 +303,10 @@ function showTalk(name) {
   if (!partner) { showToast("No one by that name travels with you."); return; }
   if (typeof Conversation === "undefined" || !Conversation.create) { showToast("The conversation engine did not load."); return; }
   if (typeof carMode !== "undefined" && carMode) carSessionStop();   // a talk never stacks on Car Mode
-  _talk = { name: partner.name, sheet: partner.sheet, isHero: partner.isHero, voice: talkVoice(partner.name), busy: false, lastHeard: "", turns: 0, engine: null };
-  _talk.engine = Conversation.create({ persona: talkPersona(partner.sheet, talkContext(partner)), adapter: talkAdapter(), window: TALK_WINDOW });
-  if (typeof erCrumb === "function") erCrumb("talk-open", partner.name + (partner.isHero ? " (hero)" : ""));
+  var ctx = talkContext(partner);   // gathered once, read-only; a frame move re-renders the persona from the same context
+  _talk = { name: partner.name, sheet: partner.sheet, isHero: partner.isHero, ctx: ctx, frame: TALK_FRAME_DEFAULT, voice: talkVoice(partner.name), busy: false, lastHeard: "", turns: 0, engine: null };
+  _talk.engine = Conversation.create({ persona: talkPersona(partner.sheet, ctx, TALK_FRAME_DEFAULT), adapter: talkAdapter(), window: TALK_WINDOW });
+  if (typeof erCrumb === "function") erCrumb("talk-open", partner.name + (partner.isHero ? " (hero)" : "") + " " + TALK_FRAME_DEFAULT);
   carSessionHost(TALK_HOST);
   carSessionStart();
 }

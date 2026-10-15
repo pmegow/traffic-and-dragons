@@ -64,6 +64,23 @@ The block is bounded (`TALK_CAP`: per-item caps and a total of 5200 characters).
 - **The record:** each exchange is rendered into the Table Talk pane ("You: … / Frizwick: …") so the player can read back after the drive. It is not saved.
 - **Close** restores `CAR_HOST`, clears the engine, and never sets the Car Mode reload flag (a reload must not boot into a talk).
 
+### 4a. The frames (#639, owner 2026-10-15)
+
+The owner, after the first live talk: the character spoke from inside the paused scene; could they instead know they are outside the game? Explored 2026-10-15: a "fellow player" frame (the character as a person at the table) was rejected by the owner — it clouds who is speaking and throws away the in-character voice; an **off-stage** frame was chosen, and chosen as the opening frame ("let's try off-stage first"), with the in-the-story frame one spoken line away.
+
+A talk has ONE frame at a time; the frame is a row in `TALK_FRAMES` (companion-talk.js) and shapes exactly three things in the persona — the opening paragraph, the labels of the "where" section, and one must-not line — and nothing else: the knowledge sections, the voice rules and the shared must-nots are byte-identical across frames (the suite strips the frame-owned lines and compares the rest).
+
+| frame | what the character knows | opening | "where" section | extra must-not |
+|---|---|---|---|---|
+| `offstage` (default) | they are a character in a told tale, off-stage between sessions; they may speak of the tale as a tale — scenes, chapters, the player's choices ("made through you"), hopes and fears — as the actor who IS the part, never stepping out of who they are | "…and you know it. Right now you are OFF-STAGE…" | WHERE THE TALE LEFT YOU · "The last scene left you: …" | never announce what the Game Master will do or what the next scene holds |
+| `moment` | the pre-#639 frame: the story is paused, this is a conversation inside it | "…The story is paused; this is a conversation, not a scene." | WHERE THINGS STAND · "Now: …" | — |
+
+The line "Break character to discuss rules, the app or being an AI — decline in character instead." closes the block in BOTH frames and is the last line the trim pass can never cut: a character who knows they are in a tale is one step from "I am a program", and that step is forbidden. The off-stage rules cost ~440 characters more; `TALK_CAP.total` rose from 5200 to 5720 so the knowledge keeps its room.
+
+**The moves** are spoken, through the talk's own command table (`TALK_COMMANDS` = the base vocabulary + `frameIn` / `frameOut`), whole-utterance only (the false-positive rule): "step into the story", "into the story", "go back into the story", "step on stage" → in; "step out of the story", "out of the story", "go off stage" → out. `onCommand` runs `_talkSetFrame(id)`: the persona is swapped on the engine (`engine.persona(...)` — the kept exchanges stay, so the talk continues), the NARRATOR says "Frizwick steps into the story." / "…steps off-stage." (never the character's voice), the crumb `talk-frame <id>` lands, the overlay's vitals line shows the frame ("Talking with you · off-stage"; the place returns only inside the story), the Table Talk record notes the move and the way back. A repeat of the current frame is a status notice only. The opened line in the record names the frame and the switch so a player can find it.
+
+Not done: a frame choice on the picker, and a typed switch (the parked-field path sends text to the character, as Car Mode sends it to the GM). Open: the owner's live listen in both frames; whether the default stays off-stage.
+
 ## 5. The drift-surface audit
 
 Files edited: car-session.js (one row + the call site), ui-carmode.js (`CAR_HOST.hear` → false), companion-talk.js (new), conversation.js (new, pinned), ui-boot.js (the menu row + its click), index.html / sw.js / engine-manifest (load order, shell, manifest), docs and tests. Not edited: api.js, memory.js, tag_table.js, state.js, game.js, stt.js, tts.js, identity.js, clock.js.
@@ -89,3 +106,4 @@ The desk drive (`dev/qa-633-talk-bench.js`, the CX-5 bench over the Frizwick sav
 - The hero as a partner is assumed from "use Frizwick"; the picker puts the hero first. If the owner meant companions only, the hero entry is one line to remove.
 - The Table Talk pane as the record is the cheapest honest place; a dedicated pane is a later polish.
 - Stage-two engine features (a per-talk memory of earlier talks) wait on the "remember this talk" row.
+- (Resolved 2026-10-15, #639 §4a) whether the character knows they are outside the game: yes, off-stage by default, in-the-story one spoken line away.
