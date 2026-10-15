@@ -1943,9 +1943,13 @@ function processPendingCompanionSheets(){
     var n=worldState.npcs[i];
     if(!(n.partyMember&&n.sheetPending&&!n.charSheet))continue;
     /* #623: a joiner with a library sheet TAKES it — a model-written sheet is for a stranger only (the owner's Daeris joined
-       with an invented sheet while her own sat in the library). The cache is warm whenever the seat below has run. */
-    var e=(typeof libraryEntryFor==="function")?libraryEntryFor(legacyLibCache,n.name):null;
-    if(e&&adoptLibraryCompanion(n,e.character,(typeof e.updatedAt==="number")?e.updatedAt:null)){delete n.sheetPending;if(typeof console!=="undefined")console.info("[party] #623 "+n.name+" joins with their library sheet");saveAll();continue;}
+       with an invented sheet while her own sat in the library). The cache is warm whenever the seat below has run.
+       #637 (Thursday review 2026-10-15): ONLY one of the hero's own people (recordPersonBond: a bond on the hero's sheet) — a
+       GM-invented joiner who merely shares a name with an unrelated library character is a stranger and is generated; the
+       build read any namesake as the joiner and fused a tavern Bram with the owner's archmage Bram in silence. The adoption is
+       said in a toast, not only on the console. */
+    var e=(typeof libraryEntryFor==="function"&&recordPersonBond(worldState.character,n.name))?libraryEntryFor(legacyLibCache,n.name):null;
+    if(e&&adoptLibraryCompanion(n,e.character,(typeof e.updatedAt==="number")?e.updatedAt:null)){delete n.sheetPending;if(typeof console!=="undefined")console.info("[party] #623 "+n.name+" joins with their library sheet");if(typeof showToast==="function")showToast(n.name+" joins with their library sheet \u2014 one of your own people, on record",5000);saveAll();continue;}
     generateCompanionSheet(n.name);
   }
 }
@@ -1960,7 +1964,7 @@ function seatRecordPeople(list){
   var cands=recordPeopleCandidates(worldState.character,worldState.npcs),i;
   for(i=0;i<cands.length;i++){var cd=cands[i],e=libraryEntryFor(list,cd.name);
     if(!e){out.missing.push(cd.name);continue;}
-    var n={name:String(e.character.name),status:"",statusTurn:0,rel:"ally",met:0,partyMember:false,portrait:null,aliases:[],recordPerson:true};
+    var n={name:String(e.character.name),status:"",statusTurn:0,rel:bondRelWord(cd.bond),met:0,partyMember:false,portrait:null,aliases:[],recordPerson:true};/* #637: the bond's own word (wife, nemesis), never "ally" for everyone */
     worldState.npcs.push(n);
     if(!adoptLibraryCompanion(n,e.character,(typeof e.updatedAt==="number")?e.updatedAt:null)){worldState.npcs.pop();out.refused.push(cd.name);if(typeof console!=="undefined")console.warn("[record] #623 "+cd.name+" has a library sheet but it was refused at the door — not seated");continue;}
     if(!memory.npcs[n.name])memory.npcs[n.name]={attitude:"",knowledge:[],events:[],aliases:[],partyMember:false,pronouns:n.pronouns};

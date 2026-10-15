@@ -3324,6 +3324,22 @@ function recordPeopleCandidates(hero,roster){
 }
 /* #623: the library list's entry for a name ({character, updatedAt} rows, as listCharacterLibrary returns them), or null. Pure. */
 function libraryEntryFor(list,name){var k=String(name||"").toLowerCase().trim(),i;for(i=0;i<(list||[]).length;i++){var e=list[i],c=e&&e.character;if(c&&c.name&&String(c.name).toLowerCase().trim()===k)return e;}return null;}
+/* #637 (Thursday review 2026-10-15): is `name` one of the hero's OWN PEOPLE — an entity the hero's sheet carries a bond to
+   (names compare without case)? The join adopts a library sheet ONLY for them (processPendingCompanionSheets, game.js): a
+   GM-invented joiner who happens to share a name with an unrelated library character is a stranger and gets a generated sheet,
+   never that character's level, gear and past — the #623 build read ANY library namesake as the joiner and fused the two in
+   silence. Returns the bond, or "". Pure. */
+function recordPersonBond(hero,name){
+  var k=String(name||"").toLowerCase().trim(),rows=[],i;if(!k)return "";
+  try{rows=(hero&&typeof relationshipRows==="function")?(relationshipRows(hero,null)||[]):[];}catch(e){rows=[];}
+  for(i=0;i<rows.length;i++){var r=rows[i];if(r&&r.bond&&r.entity&&String(r.entity).toLowerCase().trim()===k)return String(r.bond);}
+  return "";
+}
+/* #637: the roster relation a seated person carries — the bond's HEAD before its gloss ("Wife — beloved family" → "wife",
+   "Nemesis — the man who burned the farm" → "nemesis", "Sworn ally, since the siege" → "sworn ally"), lower-case like every
+   roster rel, as the #623 row's fix shape said (`rel: the bond`); the build had filed every seated person as "ally", a nemesis
+   included. Blank → "unknown" (the roster's not-established category). Pure. */
+function bondRelWord(bond){var s=String(bond||"").split(/\s+[—–-]\s+|[,:;(]/)[0].replace(/\s+/g," ").trim().toLowerCase();return s?s.slice(0,24):"unknown";}
 /* #612: a foe's label — the name, and the recorded group headcount in parentheses ("Blight Husk Pack (8)", owner 2026-10-12).
    ONE renderer for the tracker row (ui-panels.js), the prompt's combat line (api.js) and the enemy card (ui-mobile.js); a foe
    with no recorded count (every pre-#612 save) is its bare name. Pure. */

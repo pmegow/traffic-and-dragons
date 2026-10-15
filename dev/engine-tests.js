@@ -5983,6 +5983,34 @@ function runEngineTests(R){
     if(ub.indexOf("seatRecordPeopleFromLibrary();")<0||uc.indexOf("seatRecordPeopleFromLibrary();")<0)return "the boot and the campaign load seat them too";
     return true;
   });
+  // ── #637 (Thursday review 2026-10-15, found through the engine): the #623 join read ANY library namesake as the joiner — a
+  //    GM-invented "Bram" fused with the owner's level-7 archmage Bram from another tale, in silence (a console line). The
+  //    adoption is for the hero's OWN people (the row's title), and it is said; a same-named stranger is generated as before.
+  t("#637 a same-named stranger is generated, never fused: only one of the hero's own people adopts a library sheet on join, and the adoption is said",function(){
+    makeWorld();__bondedHero();memory.npcs={};
+    var lib=__lib();lib.push({character:__libSheet("Bram",{cls:"Wizard",level:7,inventory:["Staff of the Magi","Spellbook"],backstory:"Archmage of another tale."}),updatedAt:1700000000002});
+    legacyLibCache=lib;
+    worldState.npcs.push({name:"Bram",status:"",statusTurn:0,rel:"unknown",met:4,partyMember:true,sheetPending:true,aliases:[]});
+    worldState.npcs.push({name:"Daeris",status:"",statusTurn:0,rel:"unknown",met:4,partyMember:true,sheetPending:true,aliases:[]});
+    var gen=[],_g=generateCompanionSheet;generateCompanionSheet=function(n){gen.push(n);};__toasts.length=0;
+    try{processPendingCompanionSheets();}finally{generateCompanionSheet=_g;legacyLibCache=null;}
+    var b=wsNpcByName("Bram");if(b.charSheet)return "the stranger Bram took the library sheet: "+b.charSheet.cls+" level "+b.charSheet.level;
+    if(gen.join(",")!=="Bram")return "the stranger is generated, nobody else: "+JSON.stringify(gen);
+    var d=wsNpcByName("Daeris");if(!d.charSheet||d.charSheet.cls!=="Cleric"||d.sheetPending)return "the bonded Daeris still adopts her sheet";
+    if(!__toasts.some(function(x){return /Daeris joins with/.test(x);}))return "the adoption is said in a toast: "+JSON.stringify(__toasts);
+    if(typeof recordPersonBond!=="function"||recordPersonBond(worldState.character,"daeris ")!=="Wife — chosen family"||recordPersonBond(worldState.character,"Bram")!=="")return "recordPersonBond: the bond for one of the hero's people (any case), '' for anyone else";
+    return true;
+  });
+  t("#637 a seated person's roster relation is the bond's own word — a wife reads wife, a nemesis reads nemesis, never ally",function(){
+    makeWorld();var c=__bondedHero();memory.npcs={};c.relationships.push({entity:"Vorn",bond:"Nemesis — the man who burned the farm",bondTurn:1,dynamic:"",dynamicTurn:null});
+    var lib=__lib();lib.push({character:__libSheet("Vorn",{gender:"M"}),updatedAt:7});
+    seatRecordPeople(lib);
+    var v=wsNpcByName("Vorn"),d=wsNpcByName("Daeris");if(!v||!d)return "both seated";
+    if(v.rel!=="nemesis")return "Vorn's relation: "+v.rel;
+    if(d.rel!=="wife")return "Daeris's relation: "+d.rel;
+    if(typeof bondRelWord!=="function"||bondRelWord("Sworn ally, since the siege")!=="sworn ally"||bondRelWord("")!=="unknown")return "bondRelWord: the head before the gloss, lower-case; unknown when blank";
+    return true;
+  });
 
   // ── 10. RAG episodic memory (#27 Phase 1 — RAG_MEMORY.md) ────────────────────
   section("RAG episodic memory");
