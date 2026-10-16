@@ -19,6 +19,9 @@ prove("helpers.js", [
 prove("index.html", [
   { label: "the light block loses the halved lightness (the variable falls back to the dark default) — the THEME PALETTE CONTRACT is the first guard, since themes.css still themes the token",
     find: "  --vital-s:43%;--vital-l:29%;--vital-still-s:25%;--vital-still-l:22%;\n", replace: "",
+    mustFail: "THEME PALETTE CONTRACT" },
+  { label: "#640 the light block loses the bronze gold (the pale dark-palette gold returns on parchment) — the THEME PALETTE CONTRACT is the first guard",
+    find: "  --gold:#7d4100;/* #640: the owner's bronze for the coin readouts on parchment (sampled from the reference of 2026-10-16) */\n", replace: "",
     mustFail: "THEME PALETTE CONTRACT" }
 ]);
 process.exit(code);

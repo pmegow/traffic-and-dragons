@@ -2085,6 +2085,16 @@ function runEngineTests(R){
     if(sd.indexOf(dark)<0||sl.indexOf(light)<0)return "website/themes.css carries the same four tokens in both blocks (the THEME PALETTE CONTRACT derives the copy)";
     return true;
   });
+  t("#640 light-mode gold: the coin readout is the owner's bronze (#7d4100, sampled from the reference of 2026-10-16) in both light blocks; the dark palette keeps its gold",function(){
+    var html=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8"),css=__fsForTests.readFileSync(__rootForTests+"/website/themes.css","utf8");
+    function block(src,sel){var i=src.indexOf(sel);if(i<0)return "";return src.slice(src.indexOf("{",i)+1,src.indexOf("}",i));}
+    var gd=block(html,"\n:root{"),gl=block(html,":root[data-theme=\"light\"]{"),sd=block(css,":root, :root[data-theme=\"dark\"]{"),sl=block(css,":root[data-theme=\"light\"]{");
+    if(gd.indexOf("--gold:#c8a84a;")<0||sd.indexOf("--gold:#c8a84a;")<0)return "dark keeps --gold:#c8a84a in both palettes";
+    if(gl.indexOf("--gold:#7d4100;")<0)return "index.html's light block themes --gold to the bronze";
+    if(sl.indexOf("--gold:#7d4100;")<0)return "website/themes.css's light block carries the same bronze";
+    if(html.indexOf('id="hud-gold"')<0||!/color:var\(--gold\);" id="hud-gold"/.test(html))return "the HUD coin readout paints with --gold (so the theme token reaches it)";
+    return true;
+  });
   t("#352b the MP readout: hue walks 217° blue → 330° hot pink and never reaches red; crit under 10% INCLUDING zero (spent mana pulses — owner ruling); zero keeps the ramp end colour, not the dim; no pool → nothing; the ramp registry drives both vitals",function(){
     var r=mpReadout(33,33);if(r.pct!==100||r.color!=="hsl(217,var(--vital-s,60%),var(--vital-l,58%))"||r.crit)return "full: "+JSON.stringify(r);
     r=mpReadout(17,33);if(r.pct!==52||r.color!=="hsl(271,var(--vital-s,60%),var(--vital-l,58%))"||r.crit)return "half-ish: "+JSON.stringify(r);
