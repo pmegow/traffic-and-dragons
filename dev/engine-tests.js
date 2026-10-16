@@ -6012,6 +6012,61 @@ function runEngineTests(R){
     return true;
   });
 
+  // ── #638 the coin the GM narrates vs the coin it tags (Thursday review 2026-10-15: Frizwick t5 "twenty silver pieces, six worn
+  //    gold coins" landed +6 gp and +1 gp 4 sp; Ammut t61 "twelve stamped coins of city silver and copper" landed +12 gp — and
+  //    nothing said so). A READ-ONLY post-turn detector: it compares and toasts, never moves coin, never adds a prompt byte. ──
+  section("#638 coin narration");
+  t("#638 the two field cases fire: narrated 20 sp + 6 gp vs tagged +6 gp +1 gp 4 sp; narrated twelve coins of silver vs tagged +12 gp",function(){
+    if(typeof coinNarrationCheck!=="function")return "coinNarrationCheck missing";
+    var a=coinNarrationCheck("A quick search of the corpses yields twenty silver pieces, six worn gold coins, and their notched steel broadswords.","[GOLD:+6 gp][GOLD:+14 sp] prose");
+    if(!a||!/20 sp/.test(a.line)||!/6 gp/.test(a.line)||!/1 gp 4 sp/.test(a.line)||!/⚠/.test(a.line))return "Frizwick t5: "+JSON.stringify(a);
+    if(a.prose.indexOf(200)<0||a.prose.indexOf(600)<0||a.tags.join()!=="600,140")return "the amounts in copper (20 sp = 200, 6 gp = 600; the tags 600 and 140): "+JSON.stringify(a);
+    var b=coinNarrationCheck("A quick rummage through his discarded pouch yields twelve stamped coins of city silver and copper, but no more trouble.","[GOLD:+12 gp]");
+    if(!b||!/12 sp/.test(b.line)||!/12 gp/.test(b.line))return "Ammut t61: "+JSON.stringify(b);
+    return true;
+  });
+  t("#638 a match is silent: the exact amount, the sum of two tags, a payment and a gain in one reply, a compound number word, digits with a thousands comma, crowns",function(){
+    if(typeof coinNarrationCheck!=="function")return "coinNarrationCheck missing";
+    var cases=[
+      ["You pocket twenty silver pieces.","[GOLD:+20 sp]"],
+      ["You find six gold coins and twenty silver.","[GOLD:+8 gp]"],
+      ["You pay five gold and pocket twenty silver from the till.","[GOLD:-5 gp][GOLD:+20 sp]"],
+      ["He counts out two hundred and fifty gold crowns into your palm.","[GOLD:+250 gp]"],
+      ["The strongbox holds 1,200 gold.","[GOLD:+1200]"],
+      ["You flick five fat gold crowns and twenty ringing silver pieces into his palm.","[GOLD:-5 gp][GOLD:-20 sp]"],
+      ["A heavy purse, forty-five gold pieces of stamped city coin.","[GOLD:+45 gp]"]];
+    for(var i=0;i<cases.length;i++){var r=coinNarrationCheck(cases[i][0],cases[i][1]);if(r)return "case "+i+" fired: "+r.line;}
+    return true;
+  });
+  t("#638 no coin named in the prose is nothing to compare; a mismatch is said once with both sides; a tagged reply with prose naming more than the tags fires",function(){
+    if(typeof coinNarrationCheck!=="function")return "coinNarrationCheck missing";
+    if(coinNarrationCheck("You gather your things and leave the fen.","[GOLD:+6 gp]")!==null)return "no prose amount, a tag: silent";
+    var r=coinNarrationCheck("The strongbox holds 1,200 gold.","[GOLD:+120 gp]");if(!r||!/1200 gp/.test(r.line)||!/120 gp/.test(r.line))return "a short tag is said: "+JSON.stringify(r);
+    return true;
+  });
+  t("#638 with NO [GOLD:] tag in the reply the detector fires only on a transfer sentence — never on a quoted price, a spoken offer, or a description",function(){
+    if(typeof coinNarrationCheck!=="function")return "coinNarrationCheck missing";
+    var r=coinNarrationCheck("You scoop forty-five gold pieces from their stiffening fingers.","no tags here");
+    if(!r||!/45 gp/.test(r.line)||!/no \[GOLD:\] tag/.test(r.line))return "a looted sum with no tag fires: "+JSON.stringify(r);
+    if(coinNarrationCheck("The ring costs forty gold, the smith says with a shrug.","")!==null)return "a quoted price with no transfer verb is silent";
+    if(coinNarrationCheck("“I will give you fifty gold for it,” he says, and waits.","")!==null)return "a spoken offer in curly quotes is silent";
+    if(coinNarrationCheck("\"Fifty gold pieces, take it or leave it.\" You consider the offer.","")!==null)return "a spoken offer in straight quotes is silent";
+    if(coinNarrationCheck("Three gold rings glint on her fingers; the gold light of dusk fills the hall; a few coins change hands.","")!==null)return "gold as a colour, gold rings and 'a few coins' are no amounts";
+    if(coinNarrationCheck("Twelve men in silver cloaks ride past.","[GOLD:+12 gp]")!==null)return "a number far from the unit through a preposition is no amount";
+    return true;
+  });
+  t("#638 the turn path: coinNarrationToast toasts the line once and says it on the console; commitGmTurn calls it on the CLEAN text with the raw reply, refusals excluded, inside a try/catch",function(){
+    if(typeof coinNarrationToast!=="function")return "coinNarrationToast missing";
+    makeWorld();__toasts.length=0;
+    var line=coinNarrationToast("You pocket twenty silver pieces.","[GOLD:+14 sp]");
+    if(!line||!__toasts.some(function(x){return x===line;}))return "the toast carries the line: "+JSON.stringify(__toasts);
+    if(coinNarrationToast("You pocket twenty silver pieces.","[GOLD:+20 sp]")!==null||__toasts.length!==1)return "a match toasts nothing";
+    var gm=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8").replace(/\/\*[\s\S]*?\*\//g,"");
+    if(!/if\(!_refusal&&typeof coinNarrationToast==="function"\)\{try\{coinNarrationToast\(clean,resp\);\}catch\(/.test(gm))return "commitGmTurn calls coinNarrationToast(clean,resp) under !_refusal inside a try/catch (a detector must never cost a turn)";
+    var at=gm.indexOf("coinNarrationToast(clean,resp)"),lt=gm.indexOf("logTranscript(\"gm\",clean,resp");if(at<0||lt<0||at>lt)return "it runs before the transcript is logged, beside the other prose watchers";
+    return true;
+  });
+
   // ── 10. RAG episodic memory (#27 Phase 1 — RAG_MEMORY.md) ────────────────────
   section("RAG episodic memory");
   t("RAG defaults ON when the flag is unset (v1.230) — every existing save + new campaign, no migration",function(){

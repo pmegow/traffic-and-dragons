@@ -2222,6 +2222,15 @@ function toastInventoryGains(pre){
   if(typeof showToast==="function")showToast("🎒 Collected: "+shown);
   return gained;
 }
+/* #638 (Thursday review 2026-10-15): the toast side of coinNarrationCheck (helpers.js) — when the coin the GM narrated and
+   the coin it tagged disagree, ONE toast and one console line per turn, nothing else: no coin moves, no prompt byte, no state.
+   The #50a loud-trail shape. Returns the line, or null when the prose and the tags agree (or the prose names no coin). */
+function coinNarrationToast(clean,raw){
+  var hit=(typeof coinNarrationCheck==="function")?coinNarrationCheck(clean,raw):null;if(!hit)return null;
+  if(typeof showToast==="function")showToast(hit.line,7000);
+  if(typeof console!=="undefined")console.warn("[coin] #638 "+hit.line);
+  return hit.line;
+}
 
 // Same snapshot-diff pattern as Core Memory above, same rationale: zero parser contact (the
 // running tag-table soak stays pristine; the stamp moves into the handlers at cutover and this
@@ -2721,6 +2730,9 @@ function commitGmTurn(resp,opts){
     var _imHit=detectItemMisattribution(clean);
     if(_imHit)worldState.itemMisPing={wrong:_imHit.wrong,item:_imHit.item,owner:_imHit.owner,turn:worldState.turn};
   }
+  /* #638: the coin the prose names against the coin the tags landed — CLEAN text beside the other prose watchers, the RAW reply
+     for its [GOLD:] tags, refusals excluded; a detector must never cost a turn, so a throw is said and skipped. */
+  if(!_refusal&&typeof coinNarrationToast==="function"){try{coinNarrationToast(clean,resp);}catch(_ce){console.warn("[coin] #638 the narration check threw \u2014 skipped, the turn goes on: "+(_ce&&_ce.message));}}
   logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre),{bookkeeping:_bookkeeping,refusal:_refusal});
   worldState.lastTurnAt=Date.now();/* #308: Car Mode's "previously on" keys off how long ago the last turn landed */
   var _slUser={role:"user",content:o.userMsg},_slGm={role:"assistant",content:resp};

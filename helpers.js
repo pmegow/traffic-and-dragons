@@ -2135,6 +2135,54 @@ function goldTagParse(tag){
   var raw=String(tag==null?"":tag),body=raw.replace(/^\s*\[GOLD:/i,"").replace(/\]\s*$/,""),c=parseCoin(body,true);
   return c?{ok:true,raw:raw,unit:c.unit,cp:c.cp}:{ok:false,raw:raw,unit:null,cp:0};
 }
+/* ── #638 (Thursday review 2026-10-15): the coin the GM NARRATES against the coin it TAGGED — a READ-ONLY post-turn detector.
+   Twice in 31 turns the prose and the [GOLD:] tags disagreed ("twenty silver pieces, six worn gold coins" landed +6 gp and
+   +1 gp 4 sp; "twelve stamped coins of city silver and copper" landed +12 gp) and the player saw only the landed line.
+   coinNarrationCheck(clean, raw) reads the CLEAN prose (tags stripped, so a tag body never counts as prose) for the amounts it
+   names under a deliberately narrow grammar — a number (digits, or the number words below; compounds like "forty-five", "two
+   hundred and fifty", "a hundred"), then at most four plain words (never a preposition or a conjunction: "twelve men in silver
+   cloaks" is no amount), then a coin unit (gold / silver / copper, gp / sp / cp, crowns), the unit followed by nothing
+   word-like or by a function word (so "three gold rings" and "the gold light" are no amounts), never inside a quoted span (a
+   spoken price is an offer, not a transfer) — and compares them, in copper, with the reply's [GOLD:] tags: every prose amount
+   must equal a tag or a tag sum (the gains, the losses, or all), or the prose total must. When the reply carries NO [GOLD:]
+   tag, only a sentence with a TRANSFER verb counts ("you scoop forty-five gold" fires; "the ring costs forty gold" is silent).
+   Returns null, or {prose:[cp], tags:[signed cp], line} — the toast's one line. Pure; it moves nothing and writes nothing;
+   false negatives are accepted on purpose (it measures the class first — #638 (a); a note to the GM is the row's option (b)). */
+var COIN_WORD_NUM={a:1,an:1,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,hundred:100,thousand:1000};
+var COIN_UNIT_WORD={gp:100,gold:100,crown:100,crowns:100,sp:10,silver:10,silvers:10,cp:1,copper:1,coppers:1};
+var _COIN_WORDS="one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand";
+var COIN_NARRATION_RE=new RegExp("(?:^|[^a-z0-9,.])((?:\\d{1,3}(?:,\\d{3})+|\\d+|(?:a|an|"+_COIN_WORDS+")(?:(?:[-\\s]+|\\s+and\\s+)(?:"+_COIN_WORDS+"))*))"
+  +"((?:\\s+(?!(?:gold|silver|silvers|copper|coppers|crowns?|gp|sp|cp|with|in|for|to|at|by|from|into|on|under|over|and|or|but|that|who|which|as|than|the|a|an)\\b)[a-z'’-]+){0,4})"
+  +"\\s+(gp|sp|cp|gold|silver|silvers|copper|coppers|crowns?)(?:\\s+(?:pieces?|coins?|crowns?|bits?))?"
+  +"(?=\\s*(?:$|[^a-z\\s])|\\s+(?:and|or|to|for|into|from|in|at|on|onto|over|with|each|apiece|more|back|out|down|up|away|total|altogether|worth|of|per|a|an|the|his|her|their|your|my|its|that|which|as|when|while|before|after|than|is|are|was|were|went|go|goes|had|has|have|he|she|they|you|it|we|i)\\b)","g");
+var COIN_TRANSFER_RE=/\b(?:pay|pays|paid|paying|hand|hands|handed|handing|give|gives|gave|giving|toss|tosses|tossed|flick|flicks|flicked|count|counts|counted|counting|pocket|pockets|pocketed|scoop|scoops|scooped|loot|loots|looted|collect|collects|collected|find|finds|found|take|takes|took|taking|receive|receives|received|earn|earns|earned|spend|spends|spent|buy|buys|bought|sell|sells|sold|drop|drops|dropped|slide|slides|slid|press|presses|pressed|yield|yields|yielded|gain|gains|gained|win|wins|won|steal|steals|stole|stolen|lift|lifts|lifted|share|shares|shared|split|splits|divide|divides|divided|pour|pours|poured|tip|tips|tipped)\b/;
+function coinWordsValue(s){
+  var t=String(s||"").toLowerCase().replace(/,/g,"");if(/^\d+$/.test(t))return parseInt(t,10);
+  var ws=t.split(/[-\s]+/),total=0,cur=0,i,w;
+  for(i=0;i<ws.length;i++){w=ws[i];if(!w||w==="and")continue;if(w==="hundred"){cur=(cur||1)*100;continue;}if(w==="thousand"){total+=(cur||1)*1000;cur=0;continue;}if(COIN_WORD_NUM[w]===undefined)return 0;cur+=COIN_WORD_NUM[w];}
+  return total+cur;
+}
+/* the amounts a prose passage names: [{cp, text, at}] — text as written in its own unit ("20 sp"), for the toast */
+function coinNarrationAmounts(clean){
+  var s=String(clean==null?"":clean).toLowerCase().replace(/"[^"\n]*"/g,function(m){return new Array(m.length+1).join(" ");}).replace(/\u201c[^\u201d\n]*\u201d/g,function(m){return new Array(m.length+1).join(" ");});
+  var out=[],m,re=new RegExp(COIN_NARRATION_RE.source,"g");
+  while((m=re.exec(s))){var n=coinWordsValue(m[1]),u=COIN_UNIT_WORD[m[3]];if(!n||!u)continue;var key=u===100?"gp":u===10?"sp":"cp";out.push({cp:n*u,text:n+" "+key,at:m.index+m[0].length-m[0].replace(/^[^a-z0-9]/,"").length});}
+  return {amounts:out,text:s};
+}
+function coinNarrationCheck(clean,raw){
+  var P=coinNarrationAmounts(clean),amts=P.amounts;if(!amts.length)return null;
+  var tags=[],tm=String(raw==null?"":raw).match(/\[GOLD:[^\]]*\]/g)||[],i,g;
+  for(i=0;i<tm.length;i++){g=goldTagParse(tm[i]);if(g.ok)tags.push(g.cp);}
+  var absT=[],gains=0,losses=0,net=0;for(i=0;i<tags.length;i++){absT.push(Math.abs(tags[i]));if(tags[i]>0)gains+=tags[i];else losses-=tags[i];net+=tags[i];}
+  var sums=[gains,losses,Math.abs(net)],total=0,ok=true,p;
+  for(i=0;i<amts.length;i++){p=amts[i].cp;total+=p;if(absT.indexOf(p)<0&&sums.indexOf(p)<0)ok=false;}
+  if(tags.length&&(ok||sums.indexOf(total)>=0))return null;
+  if(!tags.length){/* no tag at all: a transfer sentence is the only evidence the coin should have moved */
+    var moved=false;for(i=0;i<amts.length&&!moved;i++){var a=amts[i].at,s0=Math.max(P.text.lastIndexOf(".",a),P.text.lastIndexOf("!",a),P.text.lastIndexOf("?",a),P.text.lastIndexOf("\n",a)),e0=P.text.slice(a).search(/[.!?\n]/),sent=P.text.slice(s0+1,e0<0?P.text.length:a+e0);if(COIN_TRANSFER_RE.test(sent))moved=true;}
+    if(!moved)return null;}
+  var said=amts.map(function(x){return x.text;}).join(" + "),tagged=tags.length?tags.map(function(t){return (t<0?"-":"+")+fmtCoin(Math.abs(t));}).join(" "):"";
+  return {prose:amts.map(function(x){return x.cp;}),tags:tags,line:"\u26a0 Coin narrated "+said+(tags.length?", tagged "+tagged+" \u2014 the sheet has what was tagged":", no [GOLD:] tag landed \u2014 the purse is unchanged")};
+}
 /* The reward a reply pays, in copper — the first [GOLD:+N…] (a deduction is no reward). One reader for the completion
    toast, the archive's paid record and the re-completion double-pay check. */
 function goldRewardIn(text){
