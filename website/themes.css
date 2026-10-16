@@ -19,6 +19,7 @@
   /* semantic colours */
   --gold:#c8a84a;
   --hp:#e06060;
+  --vital-s:60%;--vital-l:58%;--vital-still-s:25%;--vital-still-l:45%;
   --mana:#4285f4;
   --dng:#c04040;--on-dng:#fff;--dng-faint:rgba(192,64,64,.08);
   --warn:#d8a04a;--wrn:#d8a04a;
@@ -39,5 +40,6 @@
   --acc:#883c2d;--on-acc:#fff5d9;--acc-bg:#ecd4b5;
   --acc-dim:rgba(136,60,45,.55);--acc-faint:rgba(136,60,45,.1);
   --dng:#9c3026;--err:#9c3026;--hp:#9c3026;
+  --vital-s:43%;--vital-l:29%;--vital-still-s:25%;--vital-still-l:22%;
   --magic-ink:#623779;--trained-ink:#8b2a2a;--untrained-ink:#73501c;
 }

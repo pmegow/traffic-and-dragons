@@ -2037,16 +2037,16 @@ function runEngineTests(R){
     return true;
   });
   t("#352 the HP readout: hue is the percentage (100→120° green, 50→60° yellow, 0-alive→red), muted S60/L58; crit only while alive and under 10%; zero HP is still, dim and never crit; bad inputs never throw",function(){
-    var r=hpReadout(121,121);if(r.pct!==100||r.color!=="hsl(120,60%,58%)"||r.crit||!r.alive)return "full: "+JSON.stringify(r);
-    r=hpReadout(61,121);if(r.pct!==50||r.color!=="hsl(60,60%,58%)"||r.crit)return "half: "+JSON.stringify(r);
+    var r=hpReadout(121,121);if(r.pct!==100||r.color!=="hsl(120,var(--vital-s,60%),var(--vital-l,58%))"||r.crit||!r.alive)return "full: "+JSON.stringify(r);
+    r=hpReadout(61,121);if(r.pct!==50||r.color!=="hsl(60,var(--vital-s,60%),var(--vital-l,58%))"||r.crit)return "half: "+JSON.stringify(r);
     r=hpReadout(12,121);if(r.pct!==10||r.crit)return "exactly 10% must NOT pulse: "+JSON.stringify(r);
-    r=hpReadout(8,121);if(r.pct!==7||!r.crit||r.color!=="hsl(8,60%,58%)")return "7% must pulse, hue 8°: "+JSON.stringify(r);
-    r=hpReadout(1,121);if(!r.crit||r.color!=="hsl(1,60%,58%)")return "1 hp must pulse: "+JSON.stringify(r);
-    r=hpReadout(0,74);if(r.crit||r.alive||r.pct!==0||r.color!=="hsl(0,25%,45%)")return "zero must be still and dim: "+JSON.stringify(r);
+    r=hpReadout(8,121);if(r.pct!==7||!r.crit||r.color!=="hsl(8,var(--vital-s,60%),var(--vital-l,58%))")return "7% must pulse, hue 8°: "+JSON.stringify(r);
+    r=hpReadout(1,121);if(!r.crit||r.color!=="hsl(1,var(--vital-s,60%),var(--vital-l,58%))")return "1 hp must pulse: "+JSON.stringify(r);
+    r=hpReadout(0,74);if(r.crit||r.alive||r.pct!==0||r.color!=="hsl(0,var(--vital-still-s,25%),var(--vital-still-l,45%))")return "zero must be still and dim: "+JSON.stringify(r);
     r=hpReadout(-5,74);if(r.crit||r.alive||r.pct!==0)return "negative clamps to zero: "+JSON.stringify(r);
-    r=hpReadout(9,undefined);if(r.crit||r.alive||r.color!=="hsl(0,25%,45%)")return "no max → dim, never crit: "+JSON.stringify(r);
+    r=hpReadout(9,undefined);if(r.crit||r.alive||r.color!=="hsl(0,var(--vital-still-s,25%),var(--vital-still-l,45%))")return "no max → dim, never crit: "+JSON.stringify(r);
     r=hpReadout("12",NaN);if(r.crit||r.alive)return "junk never throws or pulses: "+JSON.stringify(r);
-    r=hpReadout(200,100);if(r.pct!==100||r.color!=="hsl(120,60%,58%)")return "overheal clamps to 100: "+JSON.stringify(r);
+    r=hpReadout(200,100);if(r.pct!==100||r.color!=="hsl(120,var(--vital-s,60%),var(--vital-l,58%))")return "overheal clamps to 100: "+JSON.stringify(r);
     var src=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8");
     if(src.indexOf("height:5px;background:var(--bg3)")!==-1)return "the companion HP bar is back — the number carries the signal now";
     if(src.split("hpReadout(").length<3)return "both HUD hosts (hero readout + companion card) must paint from hpReadout";
@@ -2069,13 +2069,29 @@ function runEngineTests(R){
     if(src.indexOf("manaMax(")<0||src.indexOf("manaCur(")<0)return "the sheet must read the pool through manaCur/manaMax";
     return true;
   });
+  // ── #634 light mode (owner 2026-10-16, after two mockups: "the 1/2 value text is MUCH more appealing"): in the light palette the
+  //    vital readouts (HP green, MP blue→pink) sat pale on parchment. The hue stays the readout's; its saturation and lightness ride
+  //    the THEME through two CSS variables with the dark defaults inline, so the dark palette is byte-for-byte what it was and the
+  //    light block halves the value (HSV): hsl(h,60%,58%) → hsl(h,43%,29%); the still colour hsl(h,25%,45%) → hsl(h,25%,22%). ──
+  t("#634 light-mode vitals: the readout colour carries the theme's saturation and lightness as CSS variables with the dark defaults; the light blocks of index.html and website/themes.css halve the value; the dark :root carries the defaults",function(){
+    var r=hpReadout(121,121);if(r.color!=="hsl(120,var(--vital-s,60%),var(--vital-l,58%))")return "the live colour rides the variables: "+r.color;
+    r=hpReadout(0,74);if(r.color!=="hsl(0,var(--vital-still-s,25%),var(--vital-still-l,45%))")return "the still colour too: "+r.color;
+    var html=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8"),css=__fsForTests.readFileSync(__rootForTests+"/website/themes.css","utf8");
+    function block(src,sel){var i=src.indexOf(sel);if(i<0)return "";return src.slice(src.indexOf("{",i)+1,src.indexOf("}",i));}
+    var gd=block(html,"\n:root{"),gl=block(html,":root[data-theme=\"light\"]{"),sd=block(css,":root, :root[data-theme=\"dark\"]{"),sl=block(css,":root[data-theme=\"light\"]{");
+    var dark="--vital-s:60%;--vital-l:58%;--vital-still-s:25%;--vital-still-l:45%;",light="--vital-s:43%;--vital-l:29%;--vital-still-s:25%;--vital-still-l:22%;";
+    if(gd.indexOf(dark)<0)return "index.html :root carries the dark defaults as tokens";
+    if(gl.indexOf(light)<0)return "index.html light block halves the value: "+light;
+    if(sd.indexOf(dark)<0||sl.indexOf(light)<0)return "website/themes.css carries the same four tokens in both blocks (the THEME PALETTE CONTRACT derives the copy)";
+    return true;
+  });
   t("#352b the MP readout: hue walks 217° blue → 330° hot pink and never reaches red; crit under 10% INCLUDING zero (spent mana pulses — owner ruling); zero keeps the ramp end colour, not the dim; no pool → nothing; the ramp registry drives both vitals",function(){
-    var r=mpReadout(33,33);if(r.pct!==100||r.color!=="hsl(217,60%,58%)"||r.crit)return "full: "+JSON.stringify(r);
-    r=mpReadout(17,33);if(r.pct!==52||r.color!=="hsl(271,60%,58%)"||r.crit)return "half-ish: "+JSON.stringify(r);
+    var r=mpReadout(33,33);if(r.pct!==100||r.color!=="hsl(217,var(--vital-s,60%),var(--vital-l,58%))"||r.crit)return "full: "+JSON.stringify(r);
+    r=mpReadout(17,33);if(r.pct!==52||r.color!=="hsl(271,var(--vital-s,60%),var(--vital-l,58%))"||r.crit)return "half-ish: "+JSON.stringify(r);
     r=mpReadout(4,33);if(r.pct!==12||r.crit)return "12% must NOT pulse: "+JSON.stringify(r);
-    r=mpReadout(3,33);if(r.pct!==9||!r.crit||r.color!=="hsl(320,60%,58%)")return "9% must pulse, hue 320°: "+JSON.stringify(r);
-    r=mpReadout(0,33);if(!r.crit||r.alive||r.pct!==0||r.color!=="hsl(330,60%,58%)")return "zero mana pulses at the ramp end (not dim): "+JSON.stringify(r);
-    r=mpReadout(0,0);if(r.crit||r.color!=="hsl(330,25%,45%)")return "no pool → still and dim, never crit: "+JSON.stringify(r);
+    r=mpReadout(3,33);if(r.pct!==9||!r.crit||r.color!=="hsl(320,var(--vital-s,60%),var(--vital-l,58%))")return "9% must pulse, hue 320°: "+JSON.stringify(r);
+    r=mpReadout(0,33);if(!r.crit||r.alive||r.pct!==0||r.color!=="hsl(330,var(--vital-s,60%),var(--vital-l,58%))")return "zero mana pulses at the ramp end (not dim): "+JSON.stringify(r);
+    r=mpReadout(0,0);if(r.crit||r.color!=="hsl(330,var(--vital-still-s,25%),var(--vital-still-l,45%))")return "no pool → still and dim, never crit: "+JSON.stringify(r);
     var i;for(i=0;i<=100;i++){var hue=parseInt(mpReadout(i,100).color.slice(4),10);if(hue<217||hue>330)return "hue escaped the blue→pink band at "+i+"%: "+hue;}
     if(hpReadout(50,100).color!==vitalReadout("hp",50,100).color)return "hpReadout must be the hp ramp entry";
     if(!VITAL_RAMPS.hp.zeroStill||VITAL_RAMPS.mp.zeroStill)return "zero semantics: hp still, mp pulses";

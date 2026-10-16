@@ -1601,8 +1601,13 @@ function vitalReadout(kind,cur,max){
   var pct=mx?Math.max(0,Math.min(100,Math.round(c/mx*100))):0;
   var alive=c>0&&mx>0,still=!mx||(!alive&&ramp.zeroStill);
   var hue=Math.round(ramp.from+(ramp.to-ramp.from)*(1-pct/100));
+  /* #634 light mode (owner 2026-10-16): the HUE is the readout's; its saturation and lightness ride the THEME through CSS
+     variables with the dark palette's values as the inline defaults (index.html :root and website/themes.css carry the same
+     tokens — the THEME PALETTE CONTRACT derives the copy), so the dark palette renders byte-for-byte as before and the light
+     block halves the value (HSV): hsl(h,60%,58%) → hsl(h,43%,29%), the still colour hsl(h,25%,45%) → hsl(h,25%,22%). A host
+     without the tokens (a satellite, a headless renderer) falls back to the defaults. */
   return {pct:pct,alive:alive,crit:!still&&pct<10,
-    color:still?"hsl("+ramp.to+",25%,45%)":"hsl("+hue+",60%,58%)"};
+    color:still?"hsl("+ramp.to+",var(--vital-still-s,25%),var(--vital-still-l,45%))":"hsl("+hue+",var(--vital-s,60%),var(--vital-l,58%))"};
 }
 function hpReadout(hp,maxHp){return vitalReadout("hp",hp,maxHp);}
 /* #352c (owner 2026-09-13): ONE span renderer for a vital on the character sheet — hero, NPC and read-only hosts all
