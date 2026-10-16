@@ -128,9 +128,8 @@ function removeRule(idx){customRules.splice(idx,1);saveRules();showRulesModal();
 var FONT_KEY="tnd_font_v1";
 function loadFontSize(){
   var saved=store.get(FONT_KEY);
-  // Default to large on iOS if no preference saved
-  var isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
-  var large=saved!==null?(saved==="1"):(isIOS?true:false);
+  /* #641 (owner 2026-10-16): Large text is OFF for a new player on every platform — the old iOS-on carve-out is gone; a stored choice wins */
+  var large=saved!==null?(saved==="1"):false;
   if(large)document.body.classList.add("font-large");
   else document.body.classList.remove("font-large");
   eachMenuEl("font-lg",function(el){el.checked=large;});
@@ -162,7 +161,7 @@ function togglePlayerDice(){playerRollsDice=!playerRollsDice;store.set(PLAYER_DI
 /* #371: the stake-clause switch — off = the pre-#371 MECHANICS line, byte-identical (rollback). */
 function toggleDiceStake(){diceStakeClause=!diceStakeClause;store.set(DICE_STAKE_K,diceStakeClause?"1":"0");eachMenuEl("stake-cb",function(cb){cb.checked=diceStakeClause;});showToast(diceStakeClause?"The GM names the stake before a roll":"Stake clause off \u2014 rolls as before");}
 function loadDiceStake(){var v=store.get(DICE_STAKE_K);diceStakeClause=(v==null||v==="")?true:v==="1";eachMenuEl("stake-cb",function(cb){cb.checked=diceStakeClause;});}
-function loadPlayerDice(){var v=store.get(PLAYER_DICE_K);playerRollsDice=v==="1";eachMenuEl("dice-cb",function(cb){cb.checked=playerRollsDice;});}
+function loadPlayerDice(){var v=store.get(PLAYER_DICE_K);playerRollsDice=(v===null||v===undefined)?true:v==="1";/* #641: ON for a new player (nothing stored); a stored 0 turns it off. The engine's own default stays false (globals.js) — the goldens, replays and captures render it */eachMenuEl("dice-cb",function(cb){cb.checked=playerRollsDice;});}
 function loadAdultMode(){var v=store.get(ADK);adultMode=!!(v&&v==="1");eachMenuEl("adult-cb",function(cb){cb.checked=adultMode;});}
 function loadLegacySettings(){legacyCharsOn=store.get(LEGACY_ON_K)==="1";var pv=parseInt(store.get(LEGACY_PCT_K)||"5",10);legacyChancePct=(isNaN(pv)||pv<1)?5:Math.min(100,pv);eachMenuEl("legacy-cb",function(el){el.checked=legacyCharsOn;});eachMenuEl("legacy-pct",function(el){el.value=legacyChancePct;});}
 function saveLegacySettings(){store.set(LEGACY_ON_K,legacyCharsOn?"1":"");store.set(LEGACY_PCT_K,String(legacyChancePct));}
@@ -539,7 +538,7 @@ function showAccountModal(){
 // flag-off prompt path survive intact (console `worldState.ragMemory=false` = diagnosis-only escape
 // hatch; migrateWorldState clears it on next load so it can never silently stick).
 // ── Prose style (TODO #23; "Prose Style" since #104 — no author is being imitated) ───────────────────────────────────────────────
-function loadProseAuthor(){var v=store.get(PROSE_K);proseAuthor=(typeof v==="string")?v:"";}
+function loadProseAuthor(){var v=store.get(PROSE_K);proseAuthor=(typeof v==="string")?v:"leguin";}/* #641: a new player starts in Spare & Mythic (AUTHORS id leguin); a stored choice — the house voice "" included — wins */
 // TODO #7 audition surface — the Sound Library modal. Built because the console/one-button route
 // was unusable for actually JUDGING these: a 50ms blip you have to wait 45 seconds for and might
 // miss entirely is not a review tool (user, 2026-07-18). Three properties make it usable:

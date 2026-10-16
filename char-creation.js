@@ -19,6 +19,7 @@ function buildDnaStep(){
   }
   if(!cs.tone)cs.tone="swords";
   ts.value=cs.tone;
+  if(cs.author==null)cs.author=(typeof proseAuthor==="string")?proseAuthor:"";/* #641: unset until the first render, then the device default (Spare & Mythic for a new player) — the picker's own choice stands afterwards */
   as.value=cs.author||"";
   var cw=document.getElementById("tone-cw");
   if(cw)cw.style.display=cs.tone==="custom"?"block":"none";

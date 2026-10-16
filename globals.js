@@ -438,7 +438,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1272";
+var APP_VERSION="v1.1273";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
@@ -547,7 +547,7 @@ var activeChatTab="narrative";
 // portraitOffset:null, this one didn't — so a fresh boot lacked both until the first showChar).
 // Union shape is canonical; returns a NEW object each call (bs is fresh too — no shared refs).
 function blankWizardState(){
-  return {tone:null,author:"",name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,portrait:null,portraitOffset:null,step:1};
+  return {tone:null,author:null,name:"",gender:"M",age:"early twenties",appear:"",mark:"",backstory:"",ancestry:null,fp:[],subrace:null,heritageVariant:null,cls:null,statMode:"roll",bs:{STR:8,DEX:8,CON:8,INT:8,WIS:8,CHA:8},rolled:false,deityEdited:false,portrait:null,portraitOffset:null,step:1};
 }
 var cs=blankWizardState();
 var rvGold=20;var rvGoldRolled=false;

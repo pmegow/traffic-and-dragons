@@ -176,8 +176,9 @@ t("returns the UNION shape — the once-divergent fields exist with their defaul
 });
 t("full field parity with the pre-#16 showChar literal (the superset copy)", function () {
   var w = blankWizardState();
-  // The exact literal showChar() assigned before the factory (ui.js pre-#16):
-  var want = { tone: null, author: "", name: "", gender: "M", age: "early twenties", appear: "", mark: "", backstory: "", ancestry: null, fp: [], subrace: null, heritageVariant: null, cls: null, statMode: "roll", bs: { STR: 8, DEX: 8, CON: 8, INT: 8, WIS: 8, CHA: 8 }, rolled: false, deityEdited: false, portrait: null, portraitOffset: null, step: 1 };
+  // The exact literal showChar() assigned before the factory (ui.js pre-#16) — with ONE deliberate change since: #641
+  // (owner 2026-10-16) leaves `author` UNSET (null) so the wizard's first render seeds it from the device's prose default.
+  var want = { tone: null, author: null, name: "", gender: "M", age: "early twenties", appear: "", mark: "", backstory: "", ancestry: null, fp: [], subrace: null, heritageVariant: null, cls: null, statMode: "roll", bs: { STR: 8, DEX: 8, CON: 8, INT: 8, WIS: 8, CHA: 8 }, rolled: false, deityEdited: false, portrait: null, portraitOffset: null, step: 1 };
   var r = eq(JSON.stringify(w), JSON.stringify(want), "shape");
   if (r !== true) return r;
   return eq(Object.keys(w).length, Object.keys(want).length, "key count");
@@ -210,7 +211,7 @@ t("no duplicate cs literal survives — both sites assign from blankWizardState 
     if (src.indexOf("cs=blankWizardState()") >= 0) factorySeen = true;
   }
   if (!factorySeen) return "showChar's cs=blankWizardState() call site not found in any ui-*.js";
-  if ((g.match(/\{tone:null,author:""/g) || []).length !== 1) return "globals.js should carry exactly ONE blank-state literal (inside the factory)";
+  if ((g.match(/\{tone:null,author:null/g) || []).length !== 1) return "globals.js should carry exactly ONE blank-state literal (inside the factory)";/* #641: author starts unset */
   return true;
 });
 

@@ -2103,6 +2103,26 @@ function runEngineTests(R){
     if(html.indexOf('id="hud-gold"')<0||!/color:var\(--gold\);" id="hud-gold"/.test(html))return "the HUD coin readout paints with --gold (so the theme token reaches it)";
     return true;
   });
+  // ── #641 (owner 2026-10-16): the defaults a NEW PLAYER meets in Settings — no stored preference on the device. Dark mode ON,
+  //    Large text OFF (everywhere; the old iOS-on carve-out goes), UI sounds ON, Ambience ON, Prose style "Spare & Mythic"
+  //    (AUTHORS id leguin), 18+ OFF, Player rolls own dice ON. Each is the LOAD path's fallback when the key is absent; an
+  //    explicit stored choice still wins. The engine's own `playerRollsDice=false` stays — it is what the golden prompts, the
+  //    replays and the capture tool render — the device load turns it on for a fresh profile. The wizard seeds its prose
+  //    picker from the device default, so a new campaign starts in the chosen voice instead of the house voice. ──
+  t("#641 new-player defaults: dark ON, large text OFF, UI sounds ON, ambience ON, prose Spare & Mythic, 18+ OFF, player rolls own dice ON — each the load fallback when nothing is stored; the wizard seeds its prose picker from the device default",function(){
+    var um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8"),ua=__fsForTests.readFileSync(__rootForTests+"/ui-ambient.js","utf8"),sj=__fsForTests.readFileSync(__rootForTests+"/sound.js","utf8"),gl=__fsForTests.readFileSync(__rootForTests+"/globals.js","utf8"),cc=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8");
+    if(um.indexOf('function loadTheme(){applyTheme(store.get(THEME_KEY)!=="light");}')<0)return "dark mode ON unless the device stored light";
+    if(!/var large=saved!==null\?\(saved==="1"\):false;/.test(um)||/isIOS/.test(um.slice(um.indexOf("function loadFontSize"),um.indexOf("function toggleFontSize"))))return "large text OFF when nothing is stored — on every platform (no iOS carve-out)";
+    if(sj.indexOf("return v !== \"0\";")<0)return "UI sounds ON when the key is absent (sound.js enabled())";
+    if(ua.indexOf('saved("tnd_ambient_enabled_v1", "1") === "1"')<0)return "ambience ON when the key is absent";
+    if(um.indexOf('function loadProseAuthor(){var v=store.get(PROSE_K);proseAuthor=(typeof v==="string")?v:"leguin";}')<0)return "prose style defaults to leguin (Spare & Mythic) when nothing is stored; a stored choice, the house voice included, still wins";
+    var i,lg=null;for(i=0;i<AUTHORS.length;i++)if(AUTHORS[i].id==="leguin")lg=AUTHORS[i];if(!lg||lg.nm!=="Spare & Mythic"||lg.hidden)return "AUTHORS carries leguin as Spare & Mythic, not hidden: "+JSON.stringify(lg);
+    if(um.indexOf('function loadAdultMode(){var v=store.get(ADK);adultMode=!!(v&&v==="1");')<0)return "18+ OFF unless the device stored 1";
+    if(um.indexOf('function loadPlayerDice(){var v=store.get(PLAYER_DICE_K);playerRollsDice=(v===null||v===undefined)?true:v==="1";')<0)return "player rolls own dice ON when nothing is stored; a stored 0 still turns it off";
+    if(gl.indexOf("var playerRollsDice=false;")<0)return "the engine's own default stays false (goldens, replays and captures render it)";
+    if(gl.indexOf("author:null,")<0||cc.indexOf('if(cs.author==null)cs.author=(typeof proseAuthor==="string")?proseAuthor:"";')<0)return "the wizard's prose picker is unset until its first render, then seeded from the device default";
+    return true;
+  });
   t("#352b the MP readout: hue walks 217° blue → 330° hot pink and never reaches red; crit under 10% INCLUDING zero (spent mana pulses — owner ruling); zero keeps the ramp end colour, not the dim; no pool → nothing; the ramp registry drives both vitals",function(){
     var r=mpReadout(33,33);if(r.pct!==100||r.color!=="hsl(217,var(--vital-s,60%),var(--vital-l,58%))"||r.crit)return "full: "+JSON.stringify(r);
     r=mpReadout(17,33);if(r.pct!==52||r.color!=="hsl(271,var(--vital-s,60%),var(--vital-l,58%))"||r.crit)return "half-ish: "+JSON.stringify(r);
