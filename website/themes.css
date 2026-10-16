@@ -23,6 +23,7 @@
   --mana:#4285f4;
   --dng:#c04040;--on-dng:#fff;--dng-faint:rgba(192,64,64,.08);
   --warn:#d8a04a;--wrn:#d8a04a;
+  --on-warn:#000;
   --red:#8b2a2a;--blue:#3a6ab5;--grn:#3a7a5a;--ok:#3a7a5a;--err:#c04040;
   /* aliases for the names satellites grew on their own */
   --bg:var(--bg0);--card:var(--bg1);--card2:var(--bg2);--dim:var(--t2);--dim2:var(--t2);--sub:var(--t1);--muted:var(--t2);--quiet:var(--t2);--line:var(--brd);--rule:var(--brd);--panel:var(--bg1);--fg:var(--t0);--ink:var(--t0);--bg4:#2c303b;
@@ -42,5 +43,6 @@
   --dng:#9c3026;--err:#9c3026;--hp:#9c3026;
   --vital-s:43%;--vital-l:29%;--vital-still-s:25%;--vital-still-l:22%;
   --gold:#7d4100;
+  --warn:#7d4100;--on-warn:#fff5d9;
   --magic-ink:#623779;--trained-ink:#8b2a2a;--untrained-ink:#73501c;
 }

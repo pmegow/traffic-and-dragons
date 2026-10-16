@@ -2092,6 +2092,14 @@ function runEngineTests(R){
     if(gd.indexOf("--gold:#c8a84a;")<0||sd.indexOf("--gold:#c8a84a;")<0)return "dark keeps --gold:#c8a84a in both palettes";
     if(gl.indexOf("--gold:#7d4100;")<0)return "index.html's light block themes --gold to the bronze";
     if(sl.indexOf("--gold:#7d4100;")<0)return "website/themes.css's light block carries the same bronze";
+    if(gd.indexOf("--warn:#d8a04a;")<0)return "dark keeps --warn:#d8a04a";
+    if(gl.indexOf("--warn:#7d4100;")<0||sl.indexOf("--warn:#7d4100;")<0)return "the warnings share the bronze in both light blocks (owner 2026-10-16: 'change the warning to the same color as the gold')";
+    /* a dark warn needs light text where warn is a BACKGROUND (two buttons) — --on-warn: #000 on the amber, parchment-white on the bronze */
+    if(gd.indexOf("--on-warn:#000;")<0||sd.indexOf("--on-warn:#000;")<0)return "dark: --on-warn is black on the amber in both palettes";
+    if(gl.indexOf("--on-warn:#fff5d9;")<0||sl.indexOf("--on-warn:#fff5d9;")<0)return "light: --on-warn is the parchment white on the bronze in both light blocks";
+    var ub=__fsForTests.readFileSync(__rootForTests+"/ui-browsers.js","utf8"),um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
+    if(/background:var\(--warn\);color:#000/.test(ub+um))return "a warn-backgrounded button still paints black text (illegible on the bronze)";
+    if(ub.indexOf("background:var(--warn);color:var(--on-warn)")<0||um.indexOf("background:var(--warn);color:var(--on-warn)")<0)return "both warn-backgrounded buttons read --on-warn";
     if(html.indexOf('id="hud-gold"')<0||!/color:var\(--gold\);" id="hud-gold"/.test(html))return "the HUD coin readout paints with --gold (so the theme token reaches it)";
     return true;
   });

@@ -22,6 +22,14 @@ prove("index.html", [
     mustFail: "THEME PALETTE CONTRACT" },
   { label: "#640 the light block loses the bronze gold (the pale dark-palette gold returns on parchment) — the THEME PALETTE CONTRACT is the first guard",
     find: "  --gold:#7d4100;/* #640: the owner's bronze for the coin readouts on parchment (sampled from the reference of 2026-10-16) */\n", replace: "",
+    mustFail: "THEME PALETTE CONTRACT" },
+  { label: "#640 the light block loses the bronze warning and its on-warn text (the amber returns) — the THEME PALETTE CONTRACT is the first guard",
+    find: "  --warn:#7d4100;--on-warn:#fff5d9;/* #640: the warnings share the bronze (owner); light text where warn is a button background */\n", replace: "",
     mustFail: "THEME PALETTE CONTRACT" }
+]);
+prove("ui-modals.js", [
+  { label: "#640 the confirm button paints black text on the warn background again (illegible on the bronze)",
+    find: "background:var(--warn);color:var(--on-warn);border:none;font-weight:bold;", replace: "background:var(--warn);color:#000;border:none;font-weight:bold;",
+    mustFail: "#640 light-mode gold" }
 ]);
 process.exit(code);

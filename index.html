@@ -33,7 +33,7 @@
   --vital-s:60%;--vital-l:58%;--vital-still-s:25%;--vital-still-l:45%;/* #634: the vital readouts' saturation/lightness (vitalReadout, helpers.js) — the light block halves the value */
   --mana:#4285f4;   /* #110: mana blue — sampled from the user's reference swatch 2026-07-31 */
   --dng:#c04040;--on-dng:#fff;--dng-faint:rgba(192,64,64,.08);
-  --warn:#d8a04a;
+  --warn:#d8a04a;--on-warn:#000;/* #640: the text on a warn-backgrounded button — black on the amber, parchment-white on the light palette's bronze */
   --red:#8b2a2a;--blue:#3a6ab5;--grn:#3a7a5a;
   /* reference-card status text (bibleCardHTML / skillCardHTML, helpers.js) */
   --magic-ink:#c99be0;--trained-ink:#d09090;--untrained-ink:#d0b070;
@@ -56,6 +56,7 @@
   --dng:#9c3026;--hp:#9c3026;
   --vital-s:43%;--vital-l:29%;--vital-still-s:25%;--vital-still-l:22%;
   --gold:#7d4100;/* #640: the owner's bronze for the coin readouts on parchment (sampled from the reference of 2026-10-16) */
+  --warn:#7d4100;--on-warn:#fff5d9;/* #640: the warnings share the bronze (owner); light text where warn is a button background */
   --magic-ink:#623779;--trained-ink:#8b2a2a;--untrained-ink:#73501c;
 }
 html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--font);font-size:15px;font-variant-numeric:lining-nums}

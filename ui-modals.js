@@ -1194,7 +1194,7 @@ function showCloseCampaignModal(){
   var modal=modalShell("close-campaign-modal",
     "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:6px;'>Close this campaign?</div>"
     +"<div style='font-size:12px;color:var(--t1);line-height:1.5;margin-bottom:18px;'>The tale stops here, unfinished threads named, and the Game Master writes its closing chapter from the record. The hero and the party keep their fates on their sheets \u2014 the Village Hall will remember them. This cannot be undone.</div>"
-    +"<div style='display:flex;gap:8px;'><button class='qa' id='ccm-go' style='flex:1;background:var(--warn);color:#000;border:none;font-weight:bold;'>Close the campaign</button><button class='qa' id='ccm-cancel' style='flex:1;'>Keep playing</button></div>",{z:400,maxWidth:420,outside:true});
+    +"<div style='display:flex;gap:8px;'><button class='qa' id='ccm-go' style='flex:1;background:var(--warn);color:var(--on-warn);border:none;font-weight:bold;'>Close the campaign</button><button class='qa' id='ccm-cancel' style='flex:1;'>Keep playing</button></div>",{z:400,maxWidth:420,outside:true});
   document.getElementById("ccm-cancel").addEventListener("click",function(){modal.remove();});
   document.getElementById("ccm-go").addEventListener("click",function(){modal.remove();var r=(typeof closeCampaign==="function")?closeCampaign():{action:"refused",reason:"not available"};if(r.action==="closed"){showToast("The campaign is closed \u2014 its closing chapter is being written.",5000);if(typeof syncUI==="function")syncUI();}else showToast("Not closed \u2014 "+(r.reason||"refused"),5000);});
 }

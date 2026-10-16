@@ -881,7 +881,7 @@ function showLibraryReplaceModal(char,onApplied){
       +"<div style='font-size:11px;color:var(--t2);margin-bottom:12px;line-height:1.5;'>Library copy: Lv"+(lib.level||"?")+" "+escHtml(((lib.subraceNm||lib.ancestry||"")+" "+(lib.cls||"")).trim())+", saved "+escHtml(when)+". This replaces the WHOLE sheet &mdash; level, gear, spells, memories and everything earned in this campaign &mdash; with that copy. The name stays. This cannot be undone.</div>"
       +rowsHtml
       +"<div style='display:flex;gap:10px;margin-top:16px;'>"
-      +"<button id='lr-apply' style='flex:1;padding:10px;font-family:var(--font);background:var(--warn);color:#000;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Replace the sheet</button>"
+      +"<button id='lr-apply' style='flex:1;padding:10px;font-family:var(--font);background:var(--warn);color:var(--on-warn);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Replace the sheet</button>"
       +"<button id='lr-cancel' style='flex:1;padding:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Cancel</button>"
       +"</div>",
       {z:400,maxWidth:460,wireClose:false,align:"flex-start",overlayExtra:"overflow-y:auto;-webkit-overflow-scrolling:touch;",boxExtra:"margin:20px 0 40px;"});
