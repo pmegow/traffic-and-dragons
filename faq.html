@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Player FAQ — Traffic and Dragons</title>
+<!--
+  faq.html (#642, owner 2026-10-16) — the player-facing FAQ. Satellite page (open directly, like
+  bible_study.html; NOT in the SW app shell, network-first in sw.js). READ-ONLY: it writes nothing.
+  ONE source for the questions: TABLE_TALK_FAQ (data.js), the same authored answers the Table Talk
+  help desk speaks from (table-talk.js ttFaqBlock) — rendered here, so the page and the help desk can
+  never disagree. Around it: the first five minutes (from DOC/beta-guide.html, the long form), the
+  settings a new player meets (#641), and where to turn next. Doors: Home ▸ Reference ▸ Player FAQ and
+  File ▸ Player FAQ in the game. Test seam: window.__faqTest. Suite: dev/tests-faq.js.
+-->
+<script src="website/system-theme.js"></script>
+<link rel="stylesheet" href="satellite.css">
+<style>
+  /* #312 ②: tokens come from satellite.css — one palette for every satellite; page rules only below */
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--t1);font-family:Georgia,"Times New Roman",serif;padding:24px;line-height:1.55;}
+  main{max-width:820px;margin:0 auto;}
+  h1{color:var(--acc);font-size:24px;margin:0 0 4px;}
+  .sub{color:var(--t2);font-size:13px;margin-bottom:20px;}
+  h2{color:var(--t0);font-size:13px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--brd);padding-bottom:6px;margin:30px 0 12px;}
+  .q{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:12px 16px;margin:0 0 10px;}
+  .q h3{margin:0 0 6px;font-size:15px;color:var(--t0);font-weight:bold;}
+  .q p{margin:0;color:var(--t1);font-size:14px;}
+  ol.steps{padding-left:22px;margin:0;}
+  ol.steps li{margin:0 0 10px;font-size:14px;}
+  ol.steps b{color:var(--t0);}
+  table{border-collapse:collapse;width:100%;font-size:14px;margin:6px 0 4px;}
+  td{padding:6px 8px;border-bottom:1px solid var(--brd);vertical-align:top;}
+  td:first-child{color:var(--t0);white-space:nowrap;width:42%;}
+  a{color:var(--acc);}
+  .more{font-size:14px;}
+  .empty{color:var(--t2);font-style:italic;padding:12px 0;}
+  nav.jump{font-size:13px;color:var(--t2);margin-bottom:6px;}
+  nav.jump a{margin-right:12px;}
+</style>
+</head>
+<body>
+<main>
+<h1>Player FAQ</h1>
+<div class="sub">The short answers. For the long form — sign-in, installing it like an app, a tour of every button — read the <a href="DOC/beta-guide.html">Beta Tester Guide</a>.</div>
+<nav class="jump"><a href="#first">First five minutes</a><a href="#questions">Questions</a><a href="#settings">Your settings</a><a href="#more">More help</a></nav>
+
+<h2 id="first">The first five minutes</h2>
+<ol class="steps">
+  <li><b>Sign in.</b> Press Sign in and approve the popup — Google or GitHub, whichever you already have. During the beta the operator's account pays for every turn; there is no key to buy and nothing to paste.</li>
+  <li><b>Pick a way in.</b> The Home page (File ▸ 🏠 Home) has the curated stories and your library. Start a campaign there, or build a hero of your own in the six-step character wizard — there are no wrong answers, and a sentence or two of backstory is plenty.</li>
+  <li><b>Say what you do.</b> Type it in plain words in the box at the bottom and press Send — "I ask the innkeeper about the missing caravan." Tap a suggested action to drop it into the box; hold it to send at once. The dashed fourth button is the game's own suggestion, built from your sheet.</li>
+  <li><b>Roll your own dice.</b> When something is chancy the Game Master names the check and you roll — the result is final, and failure moves the story too. You can hand the dice back under File ▸ ⚙ Settings ▸ 📖 Narrative options.</li>
+  <li><b>Rest when you are hurt.</b> Rest heals the party to full, restores spells, moves the clock to dawn and makes <b>camp</b> — the place you return to if you die.</li>
+  <li><b>You do not simply die.</b> At 0 HP you are down, not dead: struggle or yield, and the story resolves it within two turns. A true death brings Death, who walks you back to your last camp. Three returns per campaign; the fourth death ends the story with a written ending.</li>
+  <li><b>Close the app when you are done.</b> Your game is saved on this device and, signed in, on your account — it follows you between devices and you resume exactly where you left off.</li>
+  <li><b>In the car:</b> File ▸ 🚗 Car Mode reads the story aloud, listens for your spoken action and speaks the numbered options so you can answer by number.</li>
+  <li><b>Something wrong?</b> File ▸ ⚠ Report bug… — the form shows exactly what it sends before you send it.</li>
+</ol>
+
+<h2 id="questions">Questions the Game Master's help desk answers</h2>
+<p class="sub" style="margin-bottom:10px">These are the same answers the Table Talk tab gives when you ask it how the app works — ask there any time, in your own words.</p>
+<div id="faq-out"><div class="empty">Loading the questions…</div></div>
+
+<h2 id="settings">Your settings on a fresh device</h2>
+<p class="more">File ▸ ⚙ Settings opens like this until you change it — every choice is remembered on the device:</p>
+<table>
+  <tr><td>🌙 Dark mode</td><td>On. Turn it off for the parchment palette.</td></tr>
+  <tr><td>Large text</td><td>Off.</td></tr>
+  <tr><td>🔊 Audio ▸ UI sounds</td><td>On — small earcons for turns, rolls and the like.</td></tr>
+  <tr><td>🔊 Audio ▸ Ambience</td><td>On — a quiet bed of sound that follows the scene; the volume slider sits beside it.</td></tr>
+  <tr><td>📖 Narrative options ▸ Prose style</td><td>Spare &amp; Mythic — measured, elegant sentences. Eight other voices to choose from, or the house voice.</td></tr>
+  <tr><td>📖 Narrative options ▸ 18+ Adult content</td><td>Off.</td></tr>
+  <tr><td>📖 Narrative options ▸ Player rolls own dice</td><td>On.</td></tr>
+</table>
+
+<h2 id="more">More help</h2>
+<p class="more"><b>The long form:</b> the <a href="DOC/beta-guide.html">Beta Tester Guide</a> — sign-in, putting the game on your home screen, the character wizard step by step, a tour of the screen, the File menu row by row, and what to do when something looks broken.</p>
+<p class="more"><b>In the game:</b> the Table Talk tab answers questions about the rules, the app and your own campaign's history; nothing said there happens in the story. <b>If the page ever looks stale:</b> File ▸ ⟳ Clear cache &amp; reload.</p>
+<p class="more"><b>Reference:</b> every spell, ability, class ladder, skill and item is in <a href="bible_study.html">Bible Study</a>, exactly as the Game Master reads them.</p>
+</main>
+
+<!-- Per-open cache-buster — the same stale-subresource class as bible_study: a cached data.js would show stale answers with no visible symptom. -->
+<script>
+(function(){var q="?fresh="+Date.now();document.write('<script src="data.js'+q+'"><\/script>');})();
+</script>
+<script>
+(function(){
+  /* escape every character that could open a tag — the answers are authored, but the page never trusts a string into innerHTML */
+  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  /* ONE renderer: the list in, the HTML out — the seam calls it with its own list, the page with TABLE_TALK_FAQ */
+  function renderFaq(list){
+    var out=[],i,e;
+    if(!list||!list.length)return "<div class='empty'>No questions on file.</div>";
+    for(i=0;i<list.length;i++){e=list[i]||{};out.push("<div class='q' id='q"+(i+1)+"'><h3>"+esc(e.q)+"</h3><p>"+esc(e.a)+"</p></div>");}
+    return out.join("");
+  }
+  var list=(typeof TABLE_TALK_FAQ!=="undefined"&&TABLE_TALK_FAQ&&TABLE_TALK_FAQ.length)?TABLE_TALK_FAQ:null,el=document.getElementById("faq-out");
+  if(el)el.innerHTML=list?renderFaq(list):"<div class='empty'>The questions could not be loaded (data.js) — reload the page, or ask the Table Talk tab in the game.</div>";
+  if(!list&&typeof console!=="undefined")console.error("[faq] TABLE_TALK_FAQ is missing or empty — the page shows its loud fallback");
+  window.__faqTest={render:renderFaq,esc:esc,count:list?list.length:0,source:"TABLE_TALK_FAQ"};
+})();
+</script>
+</body>
+</html>
