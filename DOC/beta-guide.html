@@ -4,15 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Traffic and Dragons — Beta Tester Guide</title>
+<!-- #642 (owner 2026-10-17): the guide is on the game's palette and follows the game's Dark mode choice — tokens come from
+     ../satellite.css (website/themes.css), the scheme from ../game-theme.js, applied before the stylesheet so there is no
+     flash of the other scheme. The two screenshots are produced by dev/shoot-beta-guide.js, which also prints the callout
+     anchors used in §8 — re-run it when the phone layout changes. -->
+<script src="../game-theme.js"></script>
+<link rel="stylesheet" href="../satellite.css">
 <style>
-  :root{--bg0:#0d0d0d;--bg1:#141210;--bg2:#1a1815;--brd:#2a2620;--brd2:#3a342a;--acc:#b8935a;--t0:#e8e0d0;--t1:#b8b0a0;--t2:#807868;--grn:#4a9060;--red:#c05040;}
+  /* #312 ②: no palette tokens of its own — page rules only */
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg0);color:var(--t0);font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.7;padding:32px 20px 80px;}
   .wrap{max-width:760px;margin:0 auto;}
   h1{color:var(--acc);font-size:30px;margin-bottom:6px;letter-spacing:.5px;}
   .subtitle{color:var(--t2);font-style:italic;margin-bottom:36px;font-size:15px;}
   h2{color:var(--acc);font-size:20px;margin:44px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--brd2);}
-  h2 .stepnum{display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;background:var(--acc);color:#000;border-radius:50%;font-size:15px;margin-right:10px;vertical-align:middle;font-weight:bold;}
+  h2 .stepnum{display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;background:var(--acc);color:var(--on-acc);border-radius:50%;font-size:15px;margin-right:10px;vertical-align:middle;font-weight:bold;}
   h3{color:var(--t0);font-size:16px;margin:22px 0 8px;}
   p{margin:0 0 12px;}
   ul,ol{margin:0 0 14px 24px;}
@@ -26,8 +32,8 @@
   .tip{background:var(--bg1);border:1px solid var(--brd);border-radius:8px;padding:12px 16px;margin:14px 0;font-size:14.5px;color:var(--t1);}
   .tip b{color:var(--t0);}
   .tip .ico{margin-right:8px;}
-  .warn{border-left:3px solid var(--red);}
-  .money{border-left:3px solid var(--grn);}
+  .warn{border-left:3px solid var(--dng);}
+  .money{border-left:3px solid var(--ok);}
   table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;}
   th{color:var(--t2);text-transform:uppercase;font-size:11px;letter-spacing:.1em;text-align:left;padding:6px 10px;border-bottom:1px solid var(--brd2);}
   td{padding:8px 10px;border-bottom:1px solid var(--brd);vertical-align:top;color:var(--t1);}
@@ -44,8 +50,8 @@
   .shots figcaption{font-size:13px;color:var(--t2);margin-top:10px;line-height:1.55;text-align:center;font-style:italic;}
   /* Chips center via flex, NOT line-height: the 2px border eats the content box, and Georgia's
      old-style numerals (3/4/5/9 descend) sat visibly low — Arial has lining figures. */
-  .callout{position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:#000;font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;border:2px solid #0d0d0d;box-shadow:0 1px 6px rgba(0,0,0,.7);transform:translate(-50%,-50%);}
-  .mkh{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:#000;font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;margin-right:9px;vertical-align:middle;}
+  .callout{position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:var(--on-acc);font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;border:2px solid var(--bg0);box-shadow:0 1px 6px rgba(0,0,0,.7);transform:translate(-50%,-50%);}
+  .mkh{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:var(--on-acc);font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;margin-right:9px;vertical-align:middle;}
   hr{border:none;border-top:1px solid var(--brd);margin:36px 0;}
   .footer{color:var(--t2);font-size:13px;font-style:italic;margin-top:48px;text-align:center;}
 </style>
@@ -76,7 +82,7 @@
 <p>Traffic and Dragons is a sword &amp; sorcery role-playing game that runs entirely in your browser. You create a character, and an AI Game Master narrates a living adventure around you — tracking your health, gold, inventory, quests, and the people you meet, across sessions. There's nothing to install and nothing to buy: you <b>sign in</b> with Google or GitHub, and during the beta the operator's account powers the Game Master.</p>
 <div class="tip"><span class="ico">🗝</span><b>Why sign in?</b> During the beta the game runs on the operator's model account: you sign in with Google or GitHub, the operator pays for the turns, and your campaigns follow your account between devices. There is no key to buy and nothing to paste. (Operators can still run on their own provider credentials from File ▸ Settings.)</div>
 
-<h2><span class="stepnum">2</span>Sign in <em style="font-size:14px;color:var(--red);">(required)</em></h2>
+<h2><span class="stepnum">2</span>Sign in <em style="font-size:14px;color:var(--dng);">(required)</em></h2>
 <ol>
   <li>Open the game (link in step 4) and press <b>Sign in</b>. Google or GitHub — whichever you already have.</li>
   <li>Approve the sign-in in the popup. That is the whole account: no email to verify, no credits to buy.</li>
@@ -152,65 +158,64 @@
   <li><b>Type what you do</b> in the box at the bottom — plain English, first person. <em>"I ask the innkeeper about the missing caravan."</em> <em>"I draw my sword."</em> <em>"I search the body."</em> Anything. The world reacts.</li>
   <li><b>Suggested actions</b> appear as buttons after each scene. Tap one to drop it into the input box (edit it if you like), then send. Long-press (or Ctrl-click) to fire it instantly.</li>
   <li><b>The dice are real — and yours.</b> When you attempt something chancy the Game Master names the check and you roll; the result is final, and success and failure both push the story somewhere. (Hand the dice back under File ▸ ⚙ Settings ▸ 📖 Narrative options.)</li>
-  <li><b>Sheet</b> (top bar) shows your full character — health, gold, inventory, spells, skills, relationships. It updates itself as you play.</li>
-  <li><b>Quests</b> arrive as ⚑ opportunities. Open the quest journal from the sidebar to accept, decline, and track objectives. Nothing is forced on you.</li>
+  <li><b>Your character sheet</b> — tap your own name in the Party section of the side panel — shows everything: health, gold, inventory, spells, skills, relationships. It updates itself as you play.</li>
+  <li><b>Quests</b> arrive as ⚑ opportunities. Open the Quests section of the side panel (or the journal in World State) to accept, decline, and track objectives. Nothing is forced on you.</li>
   <li><b>Table Talk</b> (tab next to Story) lets you talk to the Game Master <em>out of character</em> — ask rules questions, request a recap, or nudge the tone, without your character saying a word.</li>
-  <li><b>Rest</b> (top bar) heals the party, recovers spent spells, moves the clock to dawn and makes <b>camp</b> — the place you return to if you die.</li>
+  <li><b>Rest</b> by saying so in the story — the dashed fourth button offers it when you are hurt. A rest restores party health and mana to full, moves the clock to dawn and makes <b>camp</b> — the place you return to if you die.</li>
   <li><b>Dying.</b> At 0 HP you are down, not dead: struggle or yield, and the story resolves it. A true death brings Death, who walks you back to your last camp — ask one question on the way. Three returns per campaign; the fourth death ends the story with a written ending.</li>
   <li><b>It remembers.</b> People you meet, places you visit, promises you make — the game files them into long-term memory and the world stays consistent across sessions. Just close the app when you're done; you'll resume exactly where you left off.</li>
 </ul>
 <div class="tip"><span class="ico">🎭</span><b>Play it like improv, not like a menu.</b> The best sessions come from trying things no button suggests — bribe the guard, adopt the wolf, burn the letter unread. The Game Master keeps up.</div>
 
 <h2><span class="stepnum">8</span>About the UI — a tour of the screen</h2>
-<p>Two views of the same moment (phone layout — desktop shows a few extra buttons in the top bar). The numbers match the sections below:</p>
+<p>Two views of the same moment on a phone, in the default dark palette (turn Dark mode off for parchment). Desktop lays the same pieces out wider: the side panel ⑥ is always open on the right, and the top bar also carries <b>World State</b> and <b>Render</b>. The numbers match the sections below:</p>
 <div class="shots">
   <figure>
     <div class="shotwrap">
-      <img src="beta-ui-story.png" alt="The story view: top bar with character vitals, memory bar, a turn label, a d20 perception check result, the Game Master's narration, voice playback controls, and the input row with Story and Table Talk tabs." loading="lazy">
-      <span class="callout" style="left:0;top:6.5%;">1</span>
-      <span class="callout" style="left:0;top:13.5%;">2</span>
-      <span class="callout" style="left:82%;top:26%;">3</span>
-      <span class="callout" style="left:94%;top:29%;">4</span>
-      <span class="callout" style="left:68%;top:82.5%;">5</span>
-      <span class="callout" style="left:0;top:90%;">6</span>
+      <img src="beta-ui-story.png" alt="The story view on a phone: the top bar with name, class, HP, MP and gold; the place line and the Connected locations dropdown; the status strip with the act, the clock and the version; the Game Master's narration with the speaker and Render buttons under it; three suggested actions; the voice strip; the input row with the mic and Send, and the Story and Table Talk tabs." loading="lazy">
+      <span class="callout" style="left:0;top:5.2%;">1</span>
+      <span class="callout" style="left:0;top:11.5%;">2</span>
+      <span class="callout" style="left:0;top:15.6%;">3</span>
+      <span class="callout" style="left:0;top:43%;">4</span>
+      <span class="callout" style="left:0;top:74%;">5</span>
+      <span class="callout" style="left:98.5%;top:52.8%;">6</span>
+      <span class="callout" style="left:0;top:89.6%;">7</span>
+      <span class="callout" style="left:0;top:94.1%;">8</span>
     </div>
-    <figcaption>The story view — the quick-reference panel is the slim rail at ④, collapsed.</figcaption>
+    <figcaption>The story view — the side panel is closed; its handle is the thin bar at the right edge ⑥.</figcaption>
   </figure>
   <figure>
     <div class="shotwrap">
-      <img src="beta-ui-panel.png" alt="The same screen with the right panel expanded, showing the party list with health bars, and the Quests, Inventory, Abilities and Spells drawers." loading="lazy">
-      <span class="callout" style="left:65.5%;top:30%;">4</span>
+      <img src="beta-ui-panel.png" alt="The same screen with the side panel dragged open: the Party section lists Ammut and three companions with their health, and a column of tabs — Pty, Qst, Inv, Ab, Sp — and the narration speaker runs down the right edge." loading="lazy">
+      <span class="callout" style="left:96%;top:25%;">6</span>
     </div>
-    <figcaption>The same panel ④ expanded — party health at a glance; Quests, Inventory, Abilities, and Spells one tap away.</figcaption>
+    <figcaption>The same moment with the panel dragged open — Party selected; the tabs <em>Pty · Qst · Inv · Ab · Sp</em> and the 🔈 narration toggle run down the right edge.</figcaption>
   </figure>
 </div>
 
 <h3><span class="mkh">1</span>The top bar (your HUD)</h3>
-<p>Your vital signs at a glance — name, class &amp; level, <b style="color:#e06060;">HP</b>, <b style="color:#c0a040;">gold</b>, alignment, and where you are. When companions travel with you, a party row appears beneath it with each member's health bar. The buttons along the top:</p>
-<table>
-  <tr><th>Button</th><th>What it does</th></tr>
-  <tr><td>Sheet</td><td>Your full character sheet — stats, portrait, abilities, spells, inventory, skills, relationships, story beats. Everything the game knows about you.</td></tr>
-  <tr><td>World State</td><td>Slides out a panel with your location, time, weather, everyone you've met, and your quest journal.</td></tr>
-  <tr><td>Render</td><td>Paints the current scene as an image — signed in, a weekly allowance of images is included.</td></tr>
-  <tr><td>🔈</td><td>Toggles voice narration on and off.</td></tr>
-  <tr><td>File ▾</td><td>Everything else — see the next section.</td></tr>
-</table>
-<p style="font-size:14px;color:var(--t2);">On phones, some of these tuck into the File ▾ menu to save space.</p>
+<p>Your vital signs at a glance — name, class &amp; level, <b style="color:var(--hp);">HP</b>, <b style="color:var(--mana);">MP</b>, <b style="color:var(--gold);">gold</b>. <b>File ▾</b> is everything else — see the next section. On desktop the bar also has <b>World State</b> (a slide-out panel with your location, the time and weather, everyone you have met and the quest journal) and <b>Render</b> (paints the scene); on a phone both live in the File menu.</p>
 
-<h3><span class="mkh">2</span>The memory bar</h3>
-<p>The thin strip under the top bar — <em>Session tokens · Chapters · NPCs · Turn</em> — is the Game Master's memory ticker. As you play, the game periodically pauses a moment to "file memories," compressing recent events into long-term memory. That pause is normal and it's why the GM still remembers the innkeeper's debt forty turns later.</p>
+<h3><span class="mkh">2</span>Where you are</h3>
+<p>The place line — the world and the spot within it — and <b>Connected locations</b>, every way out the map knows. Pick one and its sentence lands in the input box for you to send or edit; it never sends by itself. (On desktop the same ways are chips in the top bar.)</p>
 
-<h3><span class="mkh">3</span>The story area</h3>
-<p>The main scroll — the Game Master's narration, your actions, and dice results, with a turn number over each scene. Under the latest scene you'll find the <b>suggested action buttons</b>. When a fight starts, a <b>combat tracker</b> — the enemy's health bar, armor, and round counter — appears automatically at the top of this area, and vanishes when the dust settles.</p>
+<h3><span class="mkh">3</span>The status strip</h3>
+<p>The act you are in, the campaign clock (day and hour), the version, and the small dots at the end: green means the Game Master's memory is in good health, and a cloud badge shows while your account syncs. (Desktop shows the memory ticker here — tokens, chapters, people met, turn.)</p>
 
-<h3><span class="mkh">4</span>The quick-reference panel</h3>
-<p>The right edge of the screen. Collapsed, it's a slim rail of tabs (<em>Pty · Qst · Inv · Ab · Sp</em>); tap to expand it into full drawers — your <b>Party</b> with everyone's health bars, plus <b>Quests</b>, <b>Inventory</b>, <b>Abilities</b>, and <b>Spells</b>. Everything you'd flip to your character sheet for mid-scene, one tap away.</p>
+<h3><span class="mkh">4</span>The story area</h3>
+<p>The main scroll — the Game Master's narration, your own lines, dice results, a turn number over each scene. Under the latest scene: <b>🔊</b> reads that scene aloud, <b>Render</b> paints it, and <b>Shop</b> appears when there is something for sale where you stand. When a fight starts, a <b>combat tracker</b> — each enemy's health bar and the round — appears at the top of this area and vanishes when the dust settles; tap an enemy's name for what you know about it.</p>
 
-<h3><span class="mkh">5</span>The voice strip</h3>
-<p>Appears while narration is being read aloud — <b>▶</b> replays the scene, <b>⏭</b> skips ahead, and <em>Speaking…</em> tells you the narrator's mid-sentence. (Toggle narration itself with the 🔈 button in the top bar.)</p>
+<h3><span class="mkh">5</span>Suggested actions</h3>
+<p>Three suggestions from the Game Master and a dashed fourth from the game itself — rest when you are hurt, use an item you carry, take an offered quest, buy something here, or a reckless wildcard. Tap one to edit it; hold it (Ctrl-click on desktop) to send it as it is.</p>
 
-<h3><span class="mkh">6</span>The input row</h3>
-<p>The text box where you say what you do, the <b>🎤 mic</b> for dictating instead of typing, and <b>Send</b>. Above it, two tabs: <b>Story</b> (the adventure) and <b>Table Talk</b> (out-of-character chat with the GM — a blue dot marks unread replies on the inactive tab).</p>
+<h3><span class="mkh">6</span>The side panel</h3>
+<p>On a phone it hides behind the thin handle at the right edge: drag the handle left to open it as wide as you like, double-tap it to open or close. Down its edge run the tabs — <b>Pty</b> (the party, with everyone's health), <b>Qst</b> (quests: accept, decline, track), <b>Inv</b>, <b>Ab</b>, <b>Sp</b> — and the 🔈 narration toggle. <b>Tap your own name in Party to open your character sheet</b>; tap a companion for theirs. On desktop the panel is always open with every section in view.</p>
+
+<h3><span class="mkh">7</span>The voice strip</h3>
+<p>Appears while the narrator reads — <b>⏸</b> pauses and resumes, <b>⏭</b> skips ahead. Narration itself is switched on and off with the 🔈 (in the panel's tab column on a phone, in the top bar on desktop).</p>
+
+<h3><span class="mkh">8</span>The input row</h3>
+<p>The box where you say what you do (× clears it), the <b>🎤 mic</b> for dictating instead of typing, and <b>Send</b>. Below it, two tabs: <b>Story</b> (the adventure) and <b>Table Talk</b> (out-of-character talk with the Game Master — a dot marks unread replies).</p>
 
 <h2><span class="stepnum">9</span>About the File menu</h2>
 <p><b>File ▾</b> is home to everything that isn't moment-to-moment play. The headliners:</p>

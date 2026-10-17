@@ -261,7 +261,7 @@ class Page {
   async goto(url) { await this._navigated(() => this._send("Page.navigate", { url: url }), "goto(" + url + ")"); }
   async reload() { await this._navigated(() => this._send("Page.reload", {}), "reload()"); }
   async bringToFront() { await this._send("Page.bringToFront"); }
-  async setViewportSize(v) { await this._send("Emulation.setDeviceMetricsOverride", { width: v.width, height: v.height, deviceScaleFactor: 1, mobile: false }); }
+  async setViewportSize(v) { await this._send("Emulation.setDeviceMetricsOverride", { width: v.width, height: v.height, deviceScaleFactor: v.deviceScaleFactor || 1, mobile: false }); }/* deviceScaleFactor: an optional 2 for the guide's screenshots (dev/shoot-beta-guide.js) */
   async screenshot(opts) {
     opts = opts || {};
     const params = { format: "png" };

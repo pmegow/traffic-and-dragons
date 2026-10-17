@@ -63,5 +63,44 @@ t("two doors: Home's Reference card links the FAQ, and the File menu spec carrie
   if(ub.indexOf('["faq",function(){closeAllMenus();window.open("faq.html","_blank","noopener");}]')<0)return "the row opens faq.html in a new tab, closing the menu first";
   return true;
 });
+/* #642 follow-up (owner 2026-10-17): the FAQ and the beta guide paint in the GAME's colour scheme — game-theme.js reads the
+   game's own key (dark unless the player chose light; follows the storage event from the game's tab), never the device. */
+function themeScript(stored){
+  var attrs={},listeners={};
+  var box={document:{documentElement:{setAttribute:function(k,v){attrs[k]=v;}}},localStorage:{getItem:function(k){return k==="tnd_theme_v1"?stored:null;}},window:{addEventListener:function(ev,fn){listeners[ev]=fn;}}};
+  vm.createContext(box);vm.runInContext(read("game-theme.js"),box);
+  return {attrs:attrs,fire:function(key,next){stored=next;if(!listeners.storage)return false;listeners.storage({key:key});return true;}};
+}
+t("faq.html paints in the game's own colour scheme: game-theme.js in the head (never the device-following system-theme.js); dark when nothing is stored, light when the game stored light, and it follows a storage event from the game's tab",function(){
+  var h=read("faq.html"),head=h.slice(0,h.indexOf("</head>"));
+  if(head.indexOf('<script src="game-theme.js"></script>')<0||head.indexOf("system-theme.js")>=0)return "the head loads game-theme.js and not system-theme.js";
+  if(head.indexOf('<script src="game-theme.js"></script>')>head.indexOf('href="satellite.css"'))return "the theme is applied before the stylesheet (no flash of the other scheme)";
+  var a=themeScript(null);if(a.attrs["data-theme"]!=="dark")return "nothing stored → dark (the game's default), got "+a.attrs["data-theme"];
+  var b=themeScript("light");if(b.attrs["data-theme"]!=="light")return "stored light → light, got "+b.attrs["data-theme"];
+  var c=themeScript("dark");if(c.attrs["data-theme"]!=="dark")return "stored dark → dark";
+  if(!a.fire("tnd_theme_v1","light")||a.attrs["data-theme"]!=="light")return "a storage event for the game's key re-applies the scheme (got "+a.attrs["data-theme"]+")";
+  a.fire("tnd_ak_v1","x");if(a.attrs["data-theme"]!=="light")return "an unrelated key's event changes nothing";
+  a.fire(null,null);if(a.attrs["data-theme"]!=="dark")return "a clear() (key null) re-reads → dark";
+  return true;
+});
+t("the beta guide is on the satellite palette and the game's scheme: ../satellite.css linked, ../game-theme.js in the head, no palette tokens or hex colours of its own, both screenshots on disk",function(){
+  var g=read("DOC/beta-guide.html"),head=g.slice(0,g.indexOf("</head>"));
+  if(head.indexOf('<link rel="stylesheet" href="../satellite.css">')<0)return "the guide links ../satellite.css";
+  if(head.indexOf('<script src="../game-theme.js"></script>')<0||head.indexOf("system-theme.js")>=0)return "the guide loads ../game-theme.js in its head";
+  if(/:root\s*\{/.test(g)||/--acc\s*:/.test(g))return "the guide defines palette tokens of its own (#312 forbids a fork)";
+  var styled=(g.match(/<style>[\s\S]*?<\/style>/g)||[]).concat(g.match(/style="[^"]*"/g)||[]).join("\n").replace(/\/\*[\s\S]*?\*\//g,"");/* comments may cite a #row */
+  var hex=styled.match(/#[0-9a-fA-F]{3,8}\b/g);if(hex)return "a hex colour survives the restyle: "+hex.slice(0,4).join(", ");
+  var imgs=g.match(/src="([^"]+\.png)"/g)||[];if(imgs.length<2)return "the tour shows two screenshots";
+  for(var i=0;i<imgs.length;i++){var f=imgs[i].slice(5,-1);if(!fs.existsSync(path.join(root,"DOC",f)))return "screenshot missing on disk: DOC/"+f;}
+  return true;
+});
+t("the Rest answer says the same thing everywhere: data.js, faq.html and the beta guide all say restores party health and mana to full",function(){
+  var want="restores party health and mana to full",files=["data.js","faq.html","DOC/beta-guide.html"],i;
+  for(i=0;i<files.length;i++)if(read(files[i]).indexOf(want)<0)return files[i]+" lost the owner's wording ("+want+")";
+  var all=read("data.js")+read("faq.html")+read("DOC/beta-guide.html");
+  if(/heals the party to full|recovers spent spells|restores spells/.test(all))return "the old wording survives somewhere";
+  if(/Rest button|Sheet button|Re-roll/.test(all))return "a control that no longer exists is named (the sheet opens from your name in Party; rest happens in the story; Re-roll left at #634)";
+  return true;
+});
 if(failed.length){console.error("FAQ PAGE TESTS FAILED ("+failed.length+" of "+(passed+failed.length)+"):");failed.forEach(function(f){console.error("  ✗ "+f);});process.exit(1);}
 console.log("ALL GREEN — "+passed+" assertions (#642 player FAQ page)");

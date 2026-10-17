@@ -140,9 +140,10 @@ function toggleFontSize(){
   eachMenuEl("font-lg",function(el){el.checked=large;});
 }
 /* #634: the color scheme — "dark" (the default) or "light" (File ▸ Settings ▸ Dark mode off). The key is
-   read TWICE by design: here, and by the head script in index.html that sets data-theme before first paint
-   (otherwise a light-mode player sees a dark flash every load). The THEME PALETTE CONTRACT (run-tests) keeps
-   the two literals equal. The palette itself is index.html's :root[data-theme="light"] block. */
+   read THREE times by design: here; by the head script in index.html that sets data-theme before first paint
+   (otherwise a light-mode player sees a dark flash every load); and by game-theme.js, which the game's own
+   satellites (the Player FAQ, the beta guide) load so they paint in the same scheme (#642). The THEME PALETTE
+   CONTRACT (run-tests) keeps the three literals equal. The palette itself is index.html's :root[data-theme="light"] block. */
 var THEME_KEY="tnd_theme_v1";
 function applyTheme(dark){
   document.documentElement.setAttribute("data-theme",dark?"dark":"light");

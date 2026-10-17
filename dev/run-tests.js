@@ -1701,6 +1701,14 @@ try {
   if (!_thKey) _thFail("ui-modals.js lost THEME_KEY");
   var _thHead = _thHtml.slice(0, _thHtml.indexOf("</head>"));
   if (_thHead.indexOf('localStorage.getItem("' + _thKey + '")==="light"') < 0 || _thHead.indexOf('var t="dark"') < 0 || _thHead.indexOf('setAttribute("data-theme",t)') < 0) _thFail("index.html's head no longer applies the stored theme (" + _thKey + ", dark by default) before first paint — a light-mode player would see a dark flash");
+  /* #642 (owner 2026-10-17): the satellites that are the game's own paint in the game's scheme through game-theme.js —
+     the same key, dark by default, re-read on the storage event — never through the device-following system-theme.js */
+  var _thSat = _src("game-theme.js");
+  if (_thSat.indexOf('var KEY="' + _thKey + '";') < 0 || _thSat.indexOf('localStorage.getItem(KEY)==="light"') < 0 || _thSat.indexOf('var t="dark"') < 0 || _thSat.indexOf('setAttribute("data-theme",read())') < 0 || _thSat.indexOf('addEventListener("storage"') < 0) _thFail("game-theme.js no longer reads the game's key (" + _thKey + ") dark-by-default before paint and on the storage event — a satellite would paint in another scheme than the game");
+  ["faq.html", "DOC/beta-guide.html"].forEach(function (p) {
+    var h = _src(p), head = h.slice(0, h.indexOf("</head>"));
+    if (!/<script src="(\.\.\/)?game-theme\.js"><\/script>/.test(head) || head.indexOf("system-theme.js") >= 0) _thFail(p + " does not load game-theme.js in its head (or still loads system-theme.js) — it would paint in another scheme than the game");
+  });
   var _thBoot = _src("ui-boot.js");
   if (_thBoot.indexOf("loadTheme();") < 0) _thFail("initSettings no longer loads the theme");
   if (_thBoot.indexOf('["dark-cb",toggleDarkMode]') < 0 || _thBoot.indexOf('chk(p+"dark-cb"') < 0) _thFail("the Dark mode row is unwired or gone");
