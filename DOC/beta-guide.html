@@ -210,7 +210,7 @@
   <li><b>Type what you do</b> in the box at the bottom — plain English, first person. <em>"I ask the innkeeper about the missing caravan."</em> <em>"I draw my sword."</em> <em>"I search the body."</em> Anything. The world reacts.</li>
   <li><b>Suggested actions</b> appear as buttons after each scene. Tap one to drop it into the input box (edit it if you like), then send. Long-press (or Ctrl-click) to fire it instantly.</li>
   <li><b>The dice are real — and yours.</b> When you attempt something chancy the Game Master names the check and you roll; the result is final, and success and failure both push the story somewhere. (Hand the dice back under File ▸ ⚙ Settings ▸ 📖 Narrative options.)</li>
-  <li><b>Your character sheet</b> — tap your own name in the Party section of the side panel — shows everything: health, gold, inventory, spells, skills, relationships. It updates itself as you play.</li>
+  <li><b>Your character sheet</b> — tap your name in the top bar (or your own row in the Party panel) — shows everything: health, gold, inventory, spells, skills, relationships. It updates itself as you play.</li>
   <li><b>Quests</b> arrive as ⚑ opportunities. Open the Quests section of the side panel (or the journal in World State) to accept, decline, and track objectives. Nothing is forced on you.</li>
   <li><b>Table Talk</b> (tab next to Story) lets you talk to the Game Master <em>out of character</em> — ask rules questions, request a recap, or nudge the tone, without your character saying a word.</li>
   <li><b>Rest</b> by saying so in the story — the dashed fourth button offers it when you are hurt. A rest restores party health and mana to full, moves the clock to dawn and makes <b>camp</b> — the place you return to if you die.</li>
@@ -250,7 +250,7 @@
 </div>
 
 <h3 id="ui-1"><span class="mkh">1</span>The top bar (your HUD)</h3>
-<p>Your vital signs at a glance — name, class &amp; level, <b style="color:var(--hp);">HP</b>, <b style="color:var(--mana);">MP</b>, <b style="color:var(--gold);">gold</b>. <b>File ▾</b> is everything else — see the next section. On desktop the bar also has <b>World State</b> (a slide-out panel with your location, the time and weather, everyone you have met and the quest journal) and <b>Render</b> (paints the scene); on a phone both live in the File menu.</p>
+<p>Your vital signs at a glance — name, class &amp; level, <b style="color:var(--hp);">HP</b>, <b style="color:var(--mana);">MP</b>, <b style="color:var(--gold);">gold</b>. <b>Tap your name</b> to open your character sheet. <b>File ▾</b> is everything else — see the next section. On desktop the bar also has <b>World State</b> (a slide-out panel with your location, the time and weather, everyone you have met and the quest journal) and <b>Render</b> (paints the scene); on a phone both live in the File menu.</p>
 
 <h3 id="ui-2"><span class="mkh">2</span>Where you are</h3>
 <p>The place line — the world and the spot within it — and <b>Connected locations</b>, every way out the map knows. Pick one and its sentence lands in the input box for you to send or edit; it never sends by itself. (On desktop the same ways are chips in the top bar.)</p>
@@ -265,7 +265,7 @@
 <p>Three suggestions from the Game Master and a dashed fourth from the game itself — rest when you are hurt, use an item you carry, take an offered quest, buy something here, or a reckless wildcard. Tap one to edit it; hold it (Ctrl-click on desktop) to send it as it is.</p>
 
 <h3 id="ui-6"><span class="mkh">6</span>The side panel</h3>
-<p>On a phone it hides behind the thin handle at the right edge: drag the handle left to open it as wide as you like, double-tap it to open or close. Down its edge run the tabs — <b>Pty</b> (the party, with everyone's health), <b>Qst</b> (quests: accept, decline, track), <b>Inv</b>, <b>Ab</b>, <b>Sp</b> — and the 🔈 narration toggle. <b>Tap your own name in Party to open your character sheet</b>; tap a companion for theirs. On desktop the panel is always open with every section in view.</p>
+<p>On a phone it hides behind the thin handle at the right edge: drag the handle left to open it as wide as you like, double-tap it to open or close. Down its edge run the tabs — <b>Pty</b> (the party, with everyone's health), <b>Qst</b> (quests: accept, decline, track), <b>Inv</b>, <b>Ab</b>, <b>Sp</b> — and the 🔈 narration toggle. Tap a companion's name for their sheet (your own opens yours, as does your name in the top bar). On desktop the panel is always open with every section in view.</p>
 
 <h3 id="ui-7"><span class="mkh">7</span>The voice strip</h3>
 <p>Appears while the narrator reads — <b>⏸</b> pauses and resumes, <b>⏭</b> skips ahead. Narration itself is switched on and off with the 🔈 (in the panel's tab column on a phone, in the top bar on desktop).</p>
@@ -327,12 +327,12 @@
 (function(){
   /* ONE table: the hint each numbered callout shows — hover on a mouse, press-and-hold on a touch screen; a tap jumps to the section */
   var TIPS={
-    1:["The top bar (your HUD)","Name, class and level, HP, MP and gold. File \u25BE is everything else."],
+    1:["The top bar (your HUD)","Name, class and level, HP, MP and gold. Tap your name for your character sheet; File \u25BE is everything else."],
     2:["Where you are","The place line and Connected locations \u2014 pick a way out and its sentence lands in the input box."],
     3:["The status strip","The act you are in, the campaign clock, the version and the memory-health dot."],
     4:["The story area","Narration, your lines and dice results \u2014 under the latest scene, the speaker, Render and Shop."],
     5:["Suggested actions","Three from the Game Master and a dashed fourth from the game. Tap to edit, hold to send."],
-    6:["The side panel","Behind the handle at the right edge: Party, Quests, Inventory, Abilities, Spells and the narration toggle. Your own name in Party opens your sheet."],
+    6:["The side panel","Behind the handle at the right edge: Party, Quests, Inventory, Abilities, Spells and the narration toggle. A companion's name opens their sheet."],
     7:["The voice strip","While the narrator reads: pause and resume, or skip ahead."],
     8:["The input row","Say what you do, dictate with the mic, press Send \u2014 and the Story and Table Talk tabs."]
   };

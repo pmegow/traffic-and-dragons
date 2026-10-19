@@ -216,6 +216,8 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
    buildFileMenus() (ui.js) with class fm-sub inside a fm-subwrap anchor. */
 .fm-subwrap{position:relative}
 .fm-sub{position:absolute;right:100%;top:0;min-width:185px;background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);padding:4px 0;box-shadow:0 4px 16px rgba(0,0,0,.6);z-index:210}
+#hud-name[role=button] { cursor: pointer; text-decoration: underline; text-decoration-color: var(--brd2); text-underline-offset: 2px; } /* #642: the same affordance the enemy names wear (mobile.css .cname.en) */
+#hud-name[role=button]:hover, #hud-name[role=button]:focus-visible { text-decoration-color: var(--acc); }
 @media (max-width:768px){
   .fm-sub{position:static;min-width:0;border:none;border-top:1px solid var(--brd2);border-bottom:1px solid var(--brd2);border-radius:0;box-shadow:none;background:var(--bg0);padding:2px 0}
 }
@@ -463,7 +465,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 <div id="game-screen" style="display:none;flex-direction:column;height:100dvh;height:100vh;">
   <div id="topbar">
     <div id="hud-namecls" style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-      <h1 id="hud-name">--</h1>
+      <h1 id="hud-name" role="button" tabindex="0" title="Open your character sheet">--</h1><!-- #642 (owner 2026-10-18): the name IS the way to the sheet; wired in ui-boot.js -->
       <span style="font-size:11px;color:var(--t1);" id="hud-cls"></span>
     </div>
     <div id="hud-stats" style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;align-items:center;flex:1;justify-content:center;">

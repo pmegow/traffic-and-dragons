@@ -171,6 +171,10 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   // calls buildReview() on entry (char-creation.js goStep), so a name typed earlier can't go stale.
   document.getElementById("char-name").addEventListener("input",function(){cs.name=this.value.trim();if(cs.step===6)buildReview();});
   document.getElementById("state-btn").addEventListener("click",function(){document.getElementById("sidebar").classList.toggle("open");});
+  /* #642 (owner 2026-10-18): the hero's name in the HUD opens the character sheet — on a phone it was reachable only through the Party panel behind the handle; the File menu stays free of gameplay */
+  var _hudName=document.getElementById("hud-name");
+  _hudName.addEventListener("click",function(){showCharSheet();});
+  _hudName.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();showCharSheet();}});
   document.getElementById("sb-close").addEventListener("click",function(){document.getElementById("sidebar").classList.remove("open");});
   document.getElementById("sendbtn").addEventListener("click",function(){sendAction(null);});
   // #49 phase 1: on-screen keyboards fat-finger Enter mid-thought and each accidental send is a

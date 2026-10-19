@@ -20,5 +20,8 @@ failed+=sabotage.prove({file:'ui-mobile.js',command:browser,skip:!chrome.path,ca
 failed+=sabotage.prove({file:'ui-modals.js',command:browser,skip:!chrome.path,cases:[
  {label:'accepted item definition leaves the panel stale',find:'if(itemDefAccept(k)){updateInvPanel();showToast(',replace:'if(itemDefAccept(k)){showToast(',mustFail:'panel reflects accepted weapon immediately'}
 ]});
-if(!chrome.path&&!failed){verdict.reportSkip('sabotage-611-mobile.js',12,chrome.why);process.exit(verdict.SKIP_EXIT);}
+failed+=sabotage.prove({file:'ui-boot.js',command:browser,skip:!chrome.path,cases:[
+ {label:'the HUD name stops opening the character sheet (#642: the one panel-free way on a phone)',find:'  _hudName.addEventListener("click",function(){showCharSheet();});\n',replace:'',mustFail:'the HUD name opens the character sheet'}
+]});
+if(!chrome.path&&!failed){verdict.reportSkip('sabotage-611-mobile.js',13,chrome.why);process.exit(verdict.SKIP_EXIT);}
 process.exit(failed?1:0);
