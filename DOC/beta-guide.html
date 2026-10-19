@@ -15,8 +15,11 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg0);color:var(--t0);font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.7;padding:32px 20px 80px;}
   .wrap{max-width:760px;margin:0 auto;}
-  h1{color:var(--acc);font-size:30px;margin-bottom:6px;letter-spacing:.5px;}
-  .subtitle{color:var(--t2);font-style:italic;margin-bottom:36px;font-size:15px;}
+  /* owner 2026-10-18: the way back — the shared satellite header (satellite.css), kept in reach while the long page scrolls */
+  .sat-header{position:sticky;top:0;z-index:6;background:var(--bg0);margin:-32px 0 22px;padding-top:14px;}
+  .sat-header .sat-sub{margin:4px 0 0;}
+  .sat-header nav a{white-space:nowrap;}
+  @media (pointer:coarse){.sat-header nav a{display:inline-block;padding:10px 2px;}}
   h2{color:var(--acc);font-size:20px;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--brd2);}
   /* owner 2026-10-18: every section in its own bubble — the card is one surface step above the page (bg1 on bg0), the boxes inside it one more (bg2) */
   .sec{background:var(--bg1);border:1px solid var(--brd);border-radius:14px;padding:22px 24px 16px;margin:0 0 22px;box-shadow:0 2px 14px rgba(0,0,0,.14);}
@@ -81,8 +84,7 @@
 <body>
 <div class="wrap">
 
-<h1>⚔ Traffic and Dragons</h1>
-<div class="subtitle">Beta Tester Setup Guide — from zero to your first adventure in about 15 minutes. In a hurry? The <a href="../faq.html">Player FAQ</a> is the short version.</div>
+<header class="sat-header"><div><h1>⚔ Traffic and Dragons — Beta Tester Guide</h1><p class="sat-sub">From zero to your first adventure in about 15 minutes. In a hurry? The <a href="../faq.html">Player FAQ</a> is the short version.</p></div><nav><a href="../home.html">Home</a><a href="../index.html">Game</a><a href="../faq.html">Player FAQ</a></nav></header>
 
 <div class="toc">
   <b>What's ahead</b>

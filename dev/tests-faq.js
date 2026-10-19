@@ -89,6 +89,15 @@ t("the tour's callouts carry a hint: every callout is a button with a TIPS entry
   if(g.indexOf('el.setAttribute("data-tip",tip[0]')<0)return "the hint text is written onto the callout for the tooltip";
   return true;
 });
+t("a way back on both pages (owner 2026-10-18): the shared satellite header carries Home and Game links — the guide from DOC/ with ../, the FAQ from the root",function(){
+  var g=read("DOC/beta-guide.html"),f=read("faq.html");
+  function nav(h){var a=h.indexOf('<header class="sat-header">'),b=h.indexOf("</header>",a);if(a<0||b<0)return "";var s=h.slice(a,b),c=s.indexOf("<nav>");return c<0?"":s.slice(c+5,s.indexOf("</nav>",c));}
+  var gn=nav(g),fn=nav(f);
+  if(!gn||gn.indexOf('href="../home.html"')<0||gn.indexOf('href="../index.html"')<0||gn.indexOf('href="../faq.html"')<0)return "the guide's header nav links Home, Game and the FAQ (from DOC/, so ../)";
+  if(!fn||fn.indexOf('href="home.html"')<0||fn.indexOf('href="index.html"')<0||fn.indexOf('href="DOC/beta-guide.html"')<0)return "the FAQ's header nav links Home, Game and the guide";
+  if(g.indexOf("<h1>")<0||g.indexOf("<h1>")>g.indexOf('<header class="sat-header">')+40)return "the guide's title lives in the header";
+  return true;
+});
 t("the staged world and the guide name no licensed setting (the Runelords names were the owner's catch)",function(){
   var bad=/Sandpoint|Runelords|Skinsaw|Swallowtail|Shalelu|Rusty Dragon|Golarion|Pathfinder|Varisia|Thistletop/i,f=["DOC/beta-guide.html","dev/shoot-beta-guide.js"],i,m;
   for(i=0;i<f.length;i++){m=bad.exec(read(f[i]));if(m)return f[i]+" names "+m[0];}

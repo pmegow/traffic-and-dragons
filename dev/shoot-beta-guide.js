@@ -61,6 +61,10 @@ function fixture(){
     if(guide.scrollWidth>guide.innerWidth)throw new Error("the guide overflows sideways on a phone: scrollWidth "+guide.scrollWidth+" > "+guide.innerWidth);
     if(guide.untipped.length)throw new Error("callouts without a hint: "+guide.untipped.join(","));
     if(errors.length)throw new Error("guide page errors: "+errors.join(" | "));
+    /* the FAQ at the same width: no sideways overflow either (its settings table once did) */
+    await page.goto("http://guide.test/faq.html");await page.waitForFunction(()=>!!window.__faqTest);
+    const faq=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,innerWidth:innerWidth}));
+    if(faq.scrollWidth>faq.innerWidth)throw new Error("the FAQ overflows sideways on a phone: scrollWidth "+faq.scrollWidth+" > "+faq.innerWidth);
     if(!a.actions||!b.party||b.tabs===null)throw new Error("a staged element is missing: "+JSON.stringify({actions:a.actions,party:b.party,tabs:b.tabs}));
     console.log("wrote "+path.join(out,"beta-ui-story.png")+" and beta-ui-panel.png (390x844 @2x, dark)");
     console.log("story anchors  "+JSON.stringify(a));

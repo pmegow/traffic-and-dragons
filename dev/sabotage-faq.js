@@ -38,6 +38,16 @@ prove("DOC/beta-guide.html", [
     find: 'el.addEventListener("pointerdown",function(e){if(!coarse)return;cancel();hold={fired:false,x:e.clientX,y:e.clientY,timer:setTimeout(function(){if(hold){hold.fired=true;openModal(n);}},HOLD_MS)};});', replace: "",
     mustFail: "callouts carry a hint" }
 ]);
+prove("DOC/beta-guide.html", [
+  { label: "the guide loses its way back to the game",
+    find: '<a href="../index.html">Game</a>', replace: "",
+    mustFail: "a way back on both pages" }
+]);
+prove("faq.html", [
+  { label: "the FAQ loses its way back to Home",
+    find: '<nav><a href="home.html">Home</a>', replace: "<nav>",
+    mustFail: "a way back on both pages" }
+]);
 prove("dev/shoot-beta-guide.js", [
   { label: "the staged world names a licensed town again",
     find: 'worldState.world.location="Harrowmere";', replace: 'worldState.world.location="Sandpoint";',
