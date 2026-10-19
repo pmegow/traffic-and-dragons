@@ -23,7 +23,11 @@ rc |= sabotage.prove({ file: "dev/cdp-browser.js", command: CHECK, cases: [
   { label: "the settle gives up at once (the 3 s patience is zero)",
     find: "Date.now()-t0>3000",
     replace: "Date.now()-t0>=0",
-    mustFail: "[body shape] the click reached the button" }
+    mustFail: "[body shape] the click reached the button" },
+  { label: "a moving box is clicked where it was a moment ago (the two-frame stillness wait resolves at once)",
+    find: "var last=null,t0=Date.now();function f(){var r=el.getBoundingClientRect();",
+    replace: "var last=null,t0=Date.now();done(true);return;function f(){var r=el.getBoundingClientRect();",
+    mustFail: "[moving shape] the click arrived" }
 ] });
 
 process.exit(rc);

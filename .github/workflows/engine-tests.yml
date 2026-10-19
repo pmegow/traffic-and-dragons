@@ -17,6 +17,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # #647: every browser suite writes its screenshots under one runner folder, kept as an artifact when a step fails —
+    # a flake that lands on the runner alone (the #615 signup and #501 chest clicks of 2026-10-19) then comes with a picture.
+    env:
+      SHOP_SHOTS: ${{ runner.temp }}/tnd-shots/501-shop-button
+      SIGNUP_SHOTS: ${{ runner.temp }}/tnd-shots/615-signup
+      MOBILE_SHOTS: ${{ runner.temp }}/tnd-shots/611-mobile
+      CATALOG_ARTIFACT_DIR: ${{ runner.temp }}/tnd-shots/blueprint-catalog
+      CAMBION_SCREENSHOT_DIR: ${{ runner.temp }}/tnd-shots/221-cambion
+      NAMES_SCREENSHOT_DIR: ${{ runner.temp }}/tnd-shots/221-names
+      REVIEW_SCREENSHOT_DIR: ${{ runner.temp }}/tnd-shots/603-review
+      BIBLE_THEME_SCREENSHOT_DIR: ${{ runner.temp }}/tnd-shots/bible-theme
     steps:
       - uses: actions/checkout@v4
         with:
@@ -126,3 +137,11 @@ jobs:
       # WHOLE push's range, once — not just its last commit.
       - name: Run the sabotage batteries whose targets this change touched
         run: node dev/run-sabotage-diff.js "$CI_RANGE"
+      # #647: the browser suites' screenshots survive a red step (see the job env above); nothing is uploaded on green.
+      - name: Keep the browser suites' screenshots when a step failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-suite-screenshots
+          path: ${{ runner.temp }}/tnd-shots
+          if-no-files-found: ignore

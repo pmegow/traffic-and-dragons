@@ -369,6 +369,11 @@ class Locator {
     let covered = "nothing";
     for (;;) {
       await this.page._eval("(" + SETTLED + ")()");
+      // The box must hold still across two consecutive frames (a CSS transition — .rpanel animates its width for 200 ms
+      // after a viewport switch — moves the target between the measure and the mouse events). Two seconds of patience,
+      // then it acts anyway and says so: a perpetual animation must not hang a suite silently.
+      const still = await this.page._eval(this._expr("var el=els[0];if(!el)return true;return new Promise(function(done){var last=null,t0=Date.now();function f(){var r=el.getBoundingClientRect();var now=[r.left,r.top,r.width,r.height].join();if(now===last){done(true);return;}last=now;if(Date.now()-t0>2000){done(false);return;}requestAnimationFrame(f);}requestAnimationFrame(f);});"));
+      if (!still) console.error("cdp-browser: " + this._desc() + " was still moving after 2 s — acting on its current box");
       const b = await this._one("el.scrollIntoView({block:'center',inline:'center'});var r=el.getBoundingClientRect();var x=r.left+r.width/2,y=r.top+r.height/2;var h=document.elementFromPoint(x,y);" +
         "return {x:x,y:y,w:r.width,h:r.height,hit:!!h&&(h===el||el.contains(h)),at:h?h.tagName.toLowerCase()+(h.id?'#'+h.id:'')+(h.className&&typeof h.className==='string'?'.'+h.className.split(' ')[0]:''):'nothing'};", { visible: true, enabled: true });
       if (b.hit || !(b.w > 0 && b.h > 0)) return b;
@@ -529,11 +534,17 @@ if (require.main === module) {
       // clicks at top≈0. "style": the same with an inline <style> @import — that sheet is in document.styleSheets from
       // the start, so only the import scan holds the click. "head": the real signup shape — a render-blocking link in the
       // head whose import is what moves the button.
-      const HANDLER = "<script>window.clickedAt=null;document.getElementById('b').addEventListener('click',function(){window.clickedAt=Math.round(this.getBoundingClientRect().top);});</script>";
+      const HANDLER = "<script>window.clickedAt=null;window.clickMs=null;document.getElementById('b').addEventListener('click',function(){window.clickedAt=Math.round(this.getBoundingClientRect().top);window.clickMs=Math.round(performance.now()-(window.moveStart||0));});</script>";
+      // "moving": no late stylesheet — the handler is attached and a 200 ms transition then carries a 4 px button from
+      // 2000 px right of the origin back to it. Chrome hit-tests the probe and the mouse events against the same frame,
+      // so a driver that clicks the box it just measured usually still lands — mid-flight, ~30 ms into the transition —
+      // and misses only when the events straddle a frame (the runner-only flake). The contract is the arrival time: the
+      // click reaches the button only once the box has stopped, at or after the transition's 200 ms.
       const SHAPES = {
         body: "<!doctype html><button id=b>b</button>" + HANDLER + "<link rel=stylesheet href=main.css><p>after the sheet</p>",
         style: "<!doctype html><button id=b>b</button>" + HANDLER + "<style>@import url('late-import.css');</style><p>after the sheet</p>",
-        head: "<!doctype html><link rel=stylesheet href=main.css><button id=b>b</button>" + HANDLER
+        head: "<!doctype html><link rel=stylesheet href=main.css><button id=b>b</button>" + HANDLER,
+        moving: "<!doctype html><style>#b{display:block;width:4px;height:4px;padding:0;border:0;margin:300px 0 0 0;transform:translateX(2000px);transition:transform .2s linear}#b.go{transform:none}</style><button id=b></button>" + HANDLER + "<script>var b=document.getElementById('b');void b.offsetWidth;window.moveStart=performance.now();b.classList.add('go');</script>"
       };
       const cssCtx = await browser.newContext({});
       await cssCtx.route("**/*", async route => {
@@ -549,11 +560,16 @@ if (require.main === module) {
         await cssPage.waitForFunction(() => !!document.getElementById("b"));
         await cssPage.locator("#b").click();
         const clickedAt = await cssPage.evaluate(() => window.clickedAt);
-        if (clickedAt === null) throw new Error("[" + shape + " shape] the click never reached the button (dispatched where the unstyled layout had it)");
+        if (clickedAt === null) throw new Error("[" + shape + " shape] the click never reached the button (dispatched where the " + (shape === "moving" ? "moving box was a moment earlier" : "unstyled layout had it") + ")");
         if (clickedAt < 300) throw new Error("[" + shape + " shape] the click reached the button at top=" + clickedAt + "px, before the late @import had applied (expected ≥300): the driver clicked an unstyled layout");
+        if (shape === "moving") {
+          const clickMs = await cssPage.evaluate(() => window.clickMs);
+          if (clickMs < 200) throw new Error("[moving shape] the click arrived " + clickMs + " ms into a 200 ms transition — the box was still moving when the driver clicked it");
+          tops.movingMs = clickMs;
+        }
         tops[shape] = clickedAt;
       }
-      console.log("cdp-browser --check: OK — " + v.product + " at " + c.path + " (a page closed mid-request stays quiet; a click waits for the stylesheets: body-link top=" + tops.body + "px, inline-import top=" + tops.style + "px, head-link top=" + tops.head + "px)");
+      console.log("cdp-browser --check: OK — " + v.product + " at " + c.path + " (a page closed mid-request stays quiet; a click waits for the stylesheets: body-link top=" + tops.body + "px, inline-import top=" + tops.style + "px, head-link top=" + tops.head + "px; and for a moving box to hold still: clicked " + tops.movingMs + " ms into a 200 ms transition)");
     } finally { await browser.close(); }
   })().catch(e => { console.error("cdp-browser --check: FAILED — " + (e && e.message || e)); process.exit(1); });
 }
