@@ -16,43 +16,88 @@
 <script src="game-theme.js"></script>
 <link rel="stylesheet" href="satellite.css">
 <style>
-  /* #312 ②: tokens come from satellite.css — one palette for every satellite; page rules only below */
-  *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--t1);font-family:Georgia,"Times New Roman",serif;padding:24px;line-height:1.55;}
-  main{max-width:820px;margin:0 auto;}
-  /* owner 2026-10-18: the way back — the shared satellite header (satellite.css) scrolls away; ONLY the links float, a slim pill at the top */
-  .sat-header{margin:0 0 12px;padding-top:0;}
-  .sat-header .sat-sub{margin:4px 0 0;}
-  .sat-nav{position:sticky;top:0;z-index:6;display:flex;width:max-content;gap:2px;background:var(--bg1);border:1px solid var(--brd);border-top:0;border-radius:0 0 12px 12px;padding:1px 6px 2px;margin:-24px 0 16px;box-shadow:0 2px 8px rgba(0,0,0,.16);}/* the body's top padding, so the pill parks at the screen edge from the first paint */
-  .sat-nav a{font-size:12px;color:var(--t1);text-decoration:none;white-space:nowrap;padding:4px 8px;border-radius:8px;}
-  .sat-nav a:hover{color:var(--acc);background:var(--bg2);}
-  @media (pointer:coarse){.sat-nav a{padding:8px 10px;}}
-  .sub{color:var(--t2);font-size:13px;margin-bottom:20px;}
-  h2{color:var(--t0);font-size:13px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--brd);padding-bottom:6px;margin:30px 0 12px;}
-  .q{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:12px 16px;margin:0 0 10px;}
-  .q h3{margin:0 0 6px;font-size:15px;color:var(--t0);font-weight:bold;}
-  .q p{margin:0;color:var(--t1);font-size:14px;}
-  ol.steps{padding-left:22px;margin:0;}
-  ol.steps li{margin:0 0 10px;font-size:14px;}
-  ol.steps b{color:var(--t0);}
-  table{border-collapse:collapse;width:100%;font-size:14px;margin:6px 0 4px;}
-  td{padding:6px 8px;border-bottom:1px solid var(--brd);vertical-align:top;}
-  td:first-child{color:var(--t0);white-space:nowrap;width:42%;}
-  @media (max-width:600px){td:first-child{white-space:normal;}}/* the settings labels must wrap on a phone, or the page overflows sideways and the browser zooms it out */
+  /* #312 ②: tokens come from satellite.css — one palette for every satellite; page rules only below. The look is home.html's (owner 2026-10-18). */
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg0);color:var(--t0);font-family:var(--font);font-size:15px;min-height:100%;}
+  html{scroll-behavior:smooth;}
   a{color:var(--acc);}
-  .more{font-size:14px;}
+  /* home.html's sheet: one bordered page on the darker ground, a soft glow at its top */
+  body{max-width:1040px;margin:24px auto;border:1px solid var(--brd);background:radial-gradient(ellipse at 50% 0%,var(--surface-glow),transparent 65%),var(--bg1);line-height:1.6;}
+  header{padding:32px 32px 16px;}
+  header h1{margin:0;font-size:28px;letter-spacing:.07em;text-transform:uppercase;color:var(--acc);}
+  header .tag{color:var(--t1);margin:6px 0 0;}
+  header .who{font-size:12.5px;color:var(--t2);margin-top:10px;}
+  main{padding:8px 32px 40px;}
+  section.sec{margin-top:30px;}
+  section.sec:first-child{margin-top:10px;}
+  h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin:0 0 10px;border-bottom:1px solid var(--brd);padding-bottom:6px;font-weight:bold;}
+  h2 .stepnum{color:var(--acc);margin-right:8px;}
+  h2 .stepnum::after{content:" \00b7";}
+  .card{background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:20px 22px;}
+  .card.feature{border-top:4px solid var(--acc);padding:28px 30px;}
+  .card.feature h3{font-size:28px;color:var(--acc);font-weight:normal;margin:0 0 12px;}
+  h3{color:var(--t0);font-size:16px;font-weight:normal;margin:22px 0 8px;}
+  .card>h3:first-child{margin-top:0;}
+  p{margin:0 0 12px;}
+  ul,ol{margin:0 0 14px 24px;}
+  li{margin-bottom:8px;}
+  code{background:var(--bg1);border:1px solid var(--brd);border-radius:4px;padding:1px 6px;font-family:var(--font-mono);font-size:13px;color:var(--t0);}
+  /* an emphasis line: home.html's accent rule, not a box of its own */
+  .tip{border-left:3px solid var(--acc);padding:2px 0 2px 12px;margin:14px 0;font-size:14px;color:var(--t1);}
+  .tip b{color:var(--t0);}
+  .tip .ico{margin-right:8px;}
+  .tip.warn{border-left-color:var(--dng);}
+  .tip.money{border-left-color:var(--ok);}
+  .toc ol{margin:6px 0 0 22px;}
+  .toc li{margin-bottom:6px;}
+  .toc a{color:var(--t0);text-decoration:none;}
+  .toc a:hover{color:var(--acc);text-decoration:underline;}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;}
+  th{color:var(--t2);text-transform:uppercase;font-size:11px;letter-spacing:.1em;text-align:left;padding:6px 10px;border-bottom:1px solid var(--brd2);}
+  td{padding:8px 10px;border-bottom:1px solid var(--brd);vertical-align:top;color:var(--t1);}
+  td:first-child{color:var(--t0);width:34%;}/* never nowrap: a long first-column cell (a symptom, a setting) must wrap, or the table pushes the sheet wider than the screen */
+  .kbd{display:inline-block;background:var(--bg1);border:1px solid var(--brd2);border-bottom-width:2px;border-radius:4px;padding:0 7px;font-size:13px;font-family:var(--font-mono);}
+  .urlbox{border:1px dashed var(--acc);border-radius:4px;padding:14px 18px;margin:14px 0;text-align:center;font-size:18px;}
+  .shots{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin:20px 0;}
+  .shots figure{flex:1 1 240px;min-width:0;max-width:330px;margin:0;}/* a 240px basis so two figures WRAP when the card is narrower than both (flex:1 alone never wraps and overflowed the sheet) */
+  .shotwrap{position:relative;}
+  .shots img{width:100%;display:block;border:1px solid var(--brd2);border-radius:12px;}
+  .shots figcaption{font-size:13px;color:var(--t2);margin-top:10px;line-height:1.55;text-align:center;font-style:italic;}
+  /* the way back: the Home · Game · FAQ links, a small tab hanging from the sheet's top edge that stays at the top while the page scrolls */
+  .sat-nav{position:sticky;top:0;z-index:6;display:flex;width:max-content;gap:2px;background:var(--bg2);border:1px solid var(--brd);border-top:0;border-radius:0 0 4px 4px;padding:1px 6px 2px;margin:0 0 -28px 20px;}
+  .sat-nav a{font-size:12px;color:var(--t1);text-decoration:none;white-space:nowrap;padding:4px 8px;border-radius:4px;}
+  .sat-nav a:hover{color:var(--acc);background:var(--bg1);}
+  @media (pointer:coarse){.sat-nav a{padding:8px 10px;}}
+  hr{border:none;border-top:1px solid var(--brd);margin:30px 0 14px;}
+  .footer{color:var(--t2);font-size:13px;font-style:italic;text-align:center;}
+  @media(max-width:680px){body{margin:12px;}header{padding:24px 20px 12px;}header h1{font-size:24px;letter-spacing:.04em;}main{padding:8px 20px 32px;}.card{padding:16px 14px;}.card.feature{padding:20px 16px;}.card.feature h3{font-size:24px;}.sat-nav{margin-left:12px;}}
+  .q{background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:16px 20px;margin:0 0 10px;}
+  .q h3{margin:0 0 6px;}
+  .q p{margin:0;color:var(--t1);font-size:14px;}
+  ol.steps{margin:0 0 0 22px;}
+  ol.steps li{margin:0 0 10px;font-size:14px;color:var(--t1);}
+  ol.steps b{color:var(--t0);}
+  .more{font-size:14px;color:var(--t1);}
+  .more:last-child{margin-bottom:0;}
   .empty{color:var(--t2);font-style:italic;padding:12px 0;}
-  nav.jump{font-size:13px;color:var(--t2);margin-bottom:6px;}
+  nav.jump{font-size:13px;color:var(--t2);margin:0 0 6px;}
   nav.jump a{margin-right:12px;}
+  .sub{color:var(--t1);font-size:13px;margin:0 0 12px;}
 </style>
 </head>
 <body>
-<main>
 <nav class="sat-nav" aria-label="Back to the game"><a href="home.html">Home</a><a href="index.html">Game</a><a href="DOC/beta-guide.html">Beta guide</a><a href="bible_study.html">Bible Study</a></nav>
-<header class="sat-header"><div><h1>Player FAQ</h1><p class="sat-sub">The short answers. For the long form — sign-in, installing it like an app, a tour of every button — read the <a href="DOC/beta-guide.html">Beta Tester Guide</a>.</p></div></header>
-<nav class="jump"><a href="#first">First five minutes</a><a href="#questions">Questions</a><a href="#settings">Your settings</a><a href="#more">More help</a></nav>
+<header>
+  <h1>Player FAQ</h1>
+  <p class="tag">Traffic and Dragons — the short answers.</p>
+  <div class="who">For the long form — sign-in, installing it like an app, a tour of every button — read the <a href="DOC/beta-guide.html">Beta Tester Guide</a>.</div>
+</header>
+<main>
+<nav class="jump sub"><a href="#first">First five minutes</a><a href="#questions">Questions</a><a href="#settings">Your settings</a><a href="#more">More help</a></nav>
 
+<section class="sec">
 <h2 id="first">The first five minutes</h2>
+<div class="card">
 <ol class="steps">
   <li><b>Sign in.</b> Press Sign in and approve the popup — Google or GitHub, whichever you already have. During the beta the operator's account pays for every turn; there is no key to buy and nothing to paste.</li>
   <li><b>Pick a way in.</b> The Home page (File ▸ 🏠 Home) has the curated stories and your library. Start a campaign there, or build a hero of your own in the six-step character wizard — there are no wrong answers, and a sentence or two of backstory is plenty.</li>
@@ -64,13 +109,19 @@
   <li><b>In the car:</b> File ▸ 🚗 Car Mode reads the story aloud, listens for your spoken action and speaks the numbered options so you can answer by number.</li>
   <li><b>Something wrong?</b> File ▸ ⚠ Report bug… — the form shows exactly what it sends before you send it.</li>
 </ol>
+</div>
+</section>
 
+<section class="sec">
 <h2 id="questions">Questions the Game Master's help desk answers</h2>
 <p class="sub" style="margin-bottom:10px">These are the same answers the Table Talk tab gives when you ask it how the app works — ask there any time, in your own words.</p>
 <div id="faq-out"><div class="empty">Loading the questions…</div></div>
+</section>
 
+<section class="sec">
 <h2 id="settings">Your settings on a fresh device</h2>
 <p class="more">File ▸ ⚙ Settings opens like this until you change it — every choice is remembered on the device:</p>
+<div class="card">
 <table>
   <tr><td>🌙 Dark mode</td><td>On. Turn it off for the parchment palette.</td></tr>
   <tr><td>Large text</td><td>Off.</td></tr>
@@ -80,11 +131,17 @@
   <tr><td>📖 Narrative options ▸ 18+ Adult content</td><td>Off.</td></tr>
   <tr><td>📖 Narrative options ▸ Player rolls own dice</td><td>On.</td></tr>
 </table>
+</div>
+</section>
 
+<section class="sec">
 <h2 id="more">More help</h2>
+<div class="card">
 <p class="more"><b>The long form:</b> the <a href="DOC/beta-guide.html">Beta Tester Guide</a> — sign-in, putting the game on your home screen, the character wizard step by step, a tour of the screen, the File menu row by row, and what to do when something looks broken.</p>
 <p class="more"><b>In the game:</b> the Table Talk tab answers questions about the rules, the app and your own campaign's history; nothing said there happens in the story. <b>If the page ever looks stale:</b> File ▸ ⟳ Clear cache &amp; reload.</p>
 <p class="more"><b>Reference:</b> every spell, ability, class ladder, skill and item is in <a href="bible_study.html">Bible Study</a>, exactly as the Game Master reads them.</p>
+</div>
+</section>
 </main>
 
 <!-- Per-open cache-buster — the same stale-subresource class as bible_study: a cached data.js would show stale answers with no visible symptom. -->

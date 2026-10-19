@@ -99,7 +99,10 @@ t("a way back on both pages (owner 2026-10-18): the shared satellite header carr
   var gn=nav(g),fn=nav(f);
   if(!gn||gn.indexOf('href="../home.html"')<0||gn.indexOf('href="../index.html"')<0||gn.indexOf('href="../faq.html"')<0)return "the guide's header nav links Home, Game and the FAQ (from DOC/, so ../)";
   if(!fn||fn.indexOf('href="home.html"')<0||fn.indexOf('href="index.html"')<0||fn.indexOf('href="DOC/beta-guide.html"')<0)return "the FAQ's header nav links Home, Game and the guide";
-  if(g.indexOf("<h1>")<0||g.indexOf("<h1>")>g.indexOf('<header class="sat-header">')+40)return "the guide's title lives in the header";
+  if(g.indexOf("<header>")<0||g.indexOf("<h1>")<0||g.indexOf("<h1>")>g.indexOf("<header>")+40)return "the guide's title lives in a home-shaped header (owner 2026-10-18: the look is home.html's)";
+  if(f.indexOf("<header>")<0||f.indexOf("<h1>")>f.indexOf("<header>")+40)return "the FAQ's title lives in a home-shaped header";
+  function sheet(h){return h.indexOf("body{max-width:1040px;margin:24px auto;border:1px solid var(--brd);background:radial-gradient(ellipse at 50% 0%,var(--surface-glow),transparent 65%),var(--bg1);")>=0&&h.indexOf("h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);")>=0&&h.indexOf(".card{background:var(--bg2);border:1px solid var(--brd);border-radius:4px;")>=0;}
+  if(!sheet(g)||!sheet(f))return "both pages wear home.html's sheet, small-caps headings and flat cards";
   if(g.indexOf(".sat-nav{position:sticky;")<0||f.indexOf(".sat-nav{position:sticky;")<0)return "the nav pill is the sticky element";
   function headerSticks(h){var i=h.indexOf(".sat-header{");return i>=0&&h.slice(i,h.indexOf("}",i)).indexOf("position:sticky")>=0;}
   if(headerSticks(g)||headerSticks(f))return "the whole header must not stick (owner 2026-10-18)";

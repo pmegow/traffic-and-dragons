@@ -11,63 +11,61 @@
 <script src="../game-theme.js"></script>
 <link rel="stylesheet" href="../satellite.css">
 <style>
-  /* #312 ②: no palette tokens of its own — page rules only */
+  /* #312 ②: no palette tokens of its own — page rules only. The look is home.html's (owner 2026-10-18: the two pages were jarring side by side). */
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg0);color:var(--t0);font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.7;padding:32px 20px 80px;}
-  .wrap{max-width:760px;margin:0 auto;}
-  /* owner 2026-10-18: the way back — the shared satellite header (satellite.css) is a bubble that scrolls away like the others; ONLY the
-     Home · Game · Player FAQ links float, as a slim pill that stays at the top while the long page scrolls */
-  .sat-header{background:var(--bg1);border:1px solid var(--brd);border-radius:14px;padding:14px 24px;margin:0 0 22px;box-shadow:0 2px 14px rgba(0,0,0,.14);}
-  @media (max-width:600px){.sat-header{padding:12px 14px;border-radius:12px;}}
-  .sat-header .sat-sub{margin:4px 0 0;}
-  .sat-nav{position:sticky;top:0;z-index:6;display:flex;width:max-content;gap:2px;background:var(--bg1);border:1px solid var(--brd);border-top:0;border-radius:0 0 12px 12px;padding:1px 6px 2px;margin:-32px 0 16px;box-shadow:0 2px 8px rgba(0,0,0,.16);}/* the negative margin is the body's top padding: the pill parks at the screen edge from the first paint (owner 2026-10-18) */
-  @media (max-width:600px){.sat-nav{margin-top:-20px;}}
-  .sat-nav a{font-size:12px;color:var(--t1);text-decoration:none;white-space:nowrap;padding:4px 8px;border-radius:8px;}
-  .sat-nav a:hover{color:var(--acc);background:var(--raise);}
-  @media (pointer:coarse){.sat-nav a{padding:8px 10px;}}
-  h2{color:var(--acc);font-size:20px;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--brd2);}
-  /* owner 2026-10-18: every section in its own bubble — the card is one surface step above the page (bg1 on bg0), the boxes inside it one more (bg2) */
-  .sec{background:var(--bg1);border:1px solid var(--brd);border-radius:14px;padding:22px 24px 16px;margin:0 0 22px;box-shadow:0 2px 14px rgba(0,0,0,.14);}
-  .sec>:last-child{margin-bottom:0;}
-  /* owner 2026-10-18: the boxes inside a card lift 37.5% of a surface step toward bg2 (bg2 read too drastic, the midpoint still too much, a quarter a little too little — owner 2026-10-18); bg2 stays the fallback where color-mix is unknown */
-  .sec,.toc,.sat-nav{--raise:var(--bg2);--raise:color-mix(in srgb,var(--bg1) 62.5%,var(--bg2));}
-  @media (max-width:600px){.sec{padding:16px 14px 12px;border-radius:12px;} body{padding:20px 12px 60px;}}
-  h2 .stepnum{display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;background:var(--acc);color:var(--on-acc);border-radius:50%;font-size:15px;margin-right:10px;vertical-align:middle;font-weight:bold;}
-  h3{color:var(--t0);font-size:16px;margin:22px 0 8px;}
+  html,body{background:var(--bg0);color:var(--t0);font-family:var(--font);font-size:15px;min-height:100%;}
+  html{scroll-behavior:smooth;}
+  a{color:var(--acc);}
+  /* home.html's sheet: one bordered page on the darker ground, a soft glow at its top */
+  body{max-width:1040px;margin:24px auto;border:1px solid var(--brd);background:radial-gradient(ellipse at 50% 0%,var(--surface-glow),transparent 65%),var(--bg1);line-height:1.6;}
+  header{padding:32px 32px 16px;}
+  header h1{margin:0;font-size:28px;letter-spacing:.07em;text-transform:uppercase;color:var(--acc);}
+  header .tag{color:var(--t1);margin:6px 0 0;}
+  header .who{font-size:12.5px;color:var(--t2);margin-top:10px;}
+  main{padding:8px 32px 40px;}
+  section.sec{margin-top:30px;}
+  section.sec:first-child{margin-top:10px;}
+  h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);margin:0 0 10px;border-bottom:1px solid var(--brd);padding-bottom:6px;font-weight:bold;}
+  h2 .stepnum{color:var(--acc);margin-right:8px;}
+  h2 .stepnum::after{content:" \00b7";}
+  .card{background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:20px 22px;}
+  .card.feature{border-top:4px solid var(--acc);padding:28px 30px;}
+  .card.feature h3{font-size:28px;color:var(--acc);font-weight:normal;margin:0 0 12px;}
+  h3{color:var(--t0);font-size:16px;font-weight:normal;margin:22px 0 8px;}
+  .card>h3:first-child{margin-top:0;}
   p{margin:0 0 12px;}
   ul,ol{margin:0 0 14px 24px;}
   li{margin-bottom:8px;}
-  a{color:var(--acc);}
-  code{background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:1px 6px;font-family:Consolas,Menlo,monospace;font-size:13.5px;color:var(--t0);}
-  .card{background:var(--bg1);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:8px;padding:16px 18px;margin:16px 0;}
-  .card.opt{border-left-color:var(--brd2);}
-  .card .tag{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);display:block;margin-bottom:6px;}
-  .card.opt .tag{color:var(--t2);}
-  .tip{background:var(--raise);border:1px solid var(--brd);border-radius:8px;padding:12px 16px;margin:14px 0;font-size:14.5px;color:var(--t1);}
+  code{background:var(--bg1);border:1px solid var(--brd);border-radius:4px;padding:1px 6px;font-family:var(--font-mono);font-size:13px;color:var(--t0);}
+  /* an emphasis line: home.html's accent rule, not a box of its own */
+  .tip{border-left:3px solid var(--acc);padding:2px 0 2px 12px;margin:14px 0;font-size:14px;color:var(--t1);}
   .tip b{color:var(--t0);}
   .tip .ico{margin-right:8px;}
-  .warn{border-left:3px solid var(--dng);}
-  .money{border-left:3px solid var(--ok);}
-  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;background:var(--raise);border:1px solid var(--brd);border-radius:8px;overflow:hidden;}
-  th,td{padding-left:12px;padding-right:12px;}
+  .tip.warn{border-left-color:var(--dng);}
+  .tip.money{border-left-color:var(--ok);}
+  .toc ol{margin:6px 0 0 22px;}
+  .toc li{margin-bottom:6px;}
+  .toc a{color:var(--t0);text-decoration:none;}
+  .toc a:hover{color:var(--acc);text-decoration:underline;}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;}
   th{color:var(--t2);text-transform:uppercase;font-size:11px;letter-spacing:.1em;text-align:left;padding:6px 10px;border-bottom:1px solid var(--brd2);}
   td{padding:8px 10px;border-bottom:1px solid var(--brd);vertical-align:top;color:var(--t1);}
-  td:first-child{color:var(--t0);white-space:nowrap;}
-  @media (max-width:600px){td:first-child{white-space:normal;}}/* a long symptom in the first column must wrap on a phone, or the page overflows sideways and the browser zooms the whole guide out */
-  .kbd{display:inline-block;background:var(--bg2);border:1px solid var(--brd2);border-bottom-width:2px;border-radius:4px;padding:0 7px;font-size:13px;font-family:Consolas,Menlo,monospace;}
-  .toc{background:var(--bg1);border:1px solid var(--brd);border-radius:14px;padding:22px 24px 16px;margin:0 0 22px;box-shadow:0 2px 14px rgba(0,0,0,.14);}
-  .toc ol{margin:6px 0 0 22px;}
-  .toc li{margin-bottom:4px;}
-  .toc a{color:var(--t0);text-decoration:none;border-bottom:1px dotted var(--brd2);}
-  .toc a:hover{color:var(--acc);border-bottom-color:var(--acc);}
-  .toc .tip{margin:16px 0 0;}
-  html{scroll-behavior:smooth;}
-  .urlbox{background:var(--raise);border:1px dashed var(--acc);border-radius:8px;padding:14px 18px;margin:14px 0;text-align:center;font-size:18px;}
+  td:first-child{color:var(--t0);width:34%;}/* never nowrap: a long first-column cell (a symptom, a setting) must wrap, or the table pushes the sheet wider than the screen */
+  .kbd{display:inline-block;background:var(--bg1);border:1px solid var(--brd2);border-bottom-width:2px;border-radius:4px;padding:0 7px;font-size:13px;font-family:var(--font-mono);}
+  .urlbox{border:1px dashed var(--acc);border-radius:4px;padding:14px 18px;margin:14px 0;text-align:center;font-size:18px;}
   .shots{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin:20px 0;}
-  .shots figure{flex:1;min-width:240px;max-width:330px;margin:0;}
+  .shots figure{flex:1 1 240px;min-width:0;max-width:330px;margin:0;}/* a 240px basis so two figures WRAP when the card is narrower than both (flex:1 alone never wraps and overflowed the sheet) */
   .shotwrap{position:relative;}
-  .shots img{width:100%;display:block;border:1px solid var(--brd2);border-radius:16px;}
+  .shots img{width:100%;display:block;border:1px solid var(--brd2);border-radius:12px;}
   .shots figcaption{font-size:13px;color:var(--t2);margin-top:10px;line-height:1.55;text-align:center;font-style:italic;}
+  /* the way back: the Home · Game · FAQ links, a small tab hanging from the sheet's top edge that stays at the top while the page scrolls */
+  .sat-nav{position:sticky;top:0;z-index:6;display:flex;width:max-content;gap:2px;background:var(--bg2);border:1px solid var(--brd);border-top:0;border-radius:0 0 4px 4px;padding:1px 6px 2px;margin:0 0 -28px 20px;}
+  .sat-nav a{font-size:12px;color:var(--t1);text-decoration:none;white-space:nowrap;padding:4px 8px;border-radius:4px;}
+  .sat-nav a:hover{color:var(--acc);background:var(--bg1);}
+  @media (pointer:coarse){.sat-nav a{padding:8px 10px;}}
+  hr{border:none;border-top:1px solid var(--brd);margin:30px 0 14px;}
+  .footer{color:var(--t2);font-size:13px;font-style:italic;text-align:center;}
+  @media(max-width:680px){body{margin:12px;}header{padding:24px 20px 12px;}header h1{font-size:24px;letter-spacing:.04em;}main{padding:8px 20px 32px;}.card{padding:16px 14px;}.card.feature{padding:20px 16px;}.card.feature h3{font-size:24px;}.sat-nav{margin-left:12px;}}
   /* Chips center via flex, NOT line-height: the 2px border eats the content box, and Georgia's
      old-style numerals (3/4/5/9 descend) sat visibly low — Arial has lining figures. */
   .callout{position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:var(--on-acc);font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;border:2px solid var(--bg0);box-shadow:0 1px 6px rgba(0,0,0,.7);transform:translate(-50%,-50%);padding:0;line-height:1;cursor:pointer;touch-action:manipulation;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;}
@@ -97,18 +95,21 @@
   .tipmodal p{margin:0 0 14px;font-size:15px;color:var(--t1);line-height:1.55;}
   .tipmodal button{background:var(--acc);color:var(--on-acc);border:0;border-radius:8px;padding:10px 16px;font:15px Georgia,'Times New Roman',serif;cursor:pointer;min-height:44px;}
   .mkh{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:var(--on-acc);font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;margin-right:9px;vertical-align:middle;}
-  hr{border:none;border-top:1px solid var(--brd);margin:14px 0;}
-  .footer{color:var(--t2);font-size:13px;font-style:italic;margin-top:48px;text-align:center;}
 </style>
 </head>
 <body>
-<div class="wrap">
-
 <nav class="sat-nav" aria-label="Back to the game"><a href="../home.html">Home</a><a href="../index.html">Game</a><a href="../faq.html">Player FAQ</a></nav>
-<header class="sat-header"><div><h1>⚔ Traffic and Dragons — Beta Tester Guide</h1><p class="sat-sub">From zero to your first adventure in about 15 minutes. In a hurry? The <a href="../faq.html">Player FAQ</a> is the short version.</p></div></header>
+<header>
+  <h1>Beta Tester Guide</h1>
+  <p class="tag">Traffic and Dragons — from zero to your first adventure in about 15 minutes.</p>
+  <div class="who">In a hurry? The <a href="../faq.html">Player FAQ</a> is the short version.</div>
+</header>
+<main>
 
-<div class="toc">
-  <h2 class="toc-title">What's included in this guide</h2>
+<section class="sec">
+<div class="card feature">
+  <h3>What's included in this guide</h3>
+  <div class="toc">
   <ol>
     <li><a href="#what">What Traffic and Dragons is (30 seconds)</a></li>
     <li><a href="#sign-in">Sign in <em>(required)</em></a></li>
@@ -120,17 +121,22 @@
     <li><a href="#file-menu">About the File menu</a></li>
     <li><a href="#broken">If something looks broken</a></li>
   </ol>
+  </div>
   <div class="tip"><span class="ico">⏱</span><b>Short on time?</b> The <a href="../faq.html">Player FAQ</a> has the first five minutes and the questions the help desk answers.</div>
 </div>
+</section>
 
 <section class="sec">
 <h2 id="what"><span class="stepnum">1</span>What this is</h2>
+<div class="card">
 <p>Traffic and Dragons is a sword &amp; sorcery role-playing game that runs entirely in your browser. You create a character, and an AI Game Master narrates a living adventure around you — tracking your health, gold, inventory, quests, and the people you meet, across sessions. There's nothing to install and nothing to buy: you <b>sign in</b> with Google or GitHub, and during the beta the operator's account powers the Game Master.</p>
 <div class="tip"><span class="ico">🗝</span><b>Why sign in?</b> During the beta the game runs on the operator's model account: you sign in with Google or GitHub, the operator pays for the turns, and your campaigns follow your account between devices. There is no key to buy and nothing to paste. (Operators can still run on their own provider credentials from File ▸ Settings.)</div>
+</div>
 </section>
 
 <section class="sec">
 <h2 id="sign-in"><span class="stepnum">2</span>Sign in <em style="font-size:14px;color:var(--dng);">(required)</em></h2>
+<div class="card">
 <ol>
   <li>Open the game (link in step 3) and press <b>Sign in</b>. Google or GitHub — whichever you already have.</li>
   <li>Approve the sign-in in the popup. That is the whole account: no email to verify, no credits to buy.</li>
@@ -138,20 +144,24 @@
 </ol>
 <div class="tip money"><span class="ico">💰</span><b>What does it cost you?</b> Nothing during the beta. The operator's account pays for every turn; the allowance keeps that honest. If the game ever says your account has no active subscription, ask the operator — your story is safe and waiting.</div>
 <div class="tip warn"><span class="ico">⚠</span><b>What the operator can see.</b> When you play signed in, every prompt the game sends to the model passes through the operator's server, so the operator can read your prompts to run the game. Bug reports say exactly what they send before you send them.</div>
+</div>
 </section>
 
 <section class="sec">
 <h2 id="open"><span class="stepnum">3</span>Open the game</h2>
+<div class="card">
 <div class="urlbox">🌐 <b>https://traffic-and-dragons.pages.dev</b></div>
 <ol>
   <li>Open the link above in <b>Chrome</b> (Android/desktop) or <b>Safari</b> (iPhone/iPad). Other modern browsers work too.</li>
   <li>Press <b>Sign in</b> and approve the popup.</li>
   <li><b>Fastest way in:</b> open the <b>Home</b> page (File ▸ 🏠 Home), pick one of the three pre-made heroes and a story, and press <b>Play</b>. The Game Master opens your first scene. The character wizard is the custom path — it is there when you want a hero of your own.</li>
 </ol>
+</div>
 </section>
 
 <section class="sec">
 <h2 id="install"><span class="stepnum">4</span>Put it on your home screen</h2>
+<div class="card">
 <p>The game is a proper web app — installed to your home screen it opens fullscreen with its own icon, like any native app.</p>
 <h3>📱 iPhone / iPad (Safari)</h3>
 <ol>
@@ -172,10 +182,12 @@
   <li>Look for the <b>install icon</b> (a little monitor with a down-arrow) at the right end of the address bar.</li>
   <li>Click it → <b>Install</b>. The game gets its own window and an entry in your Start menu / dock.</li>
 </ol>
+</div>
 </section>
 
 <section class="sec">
 <h2 id="character"><span class="stepnum">5</span>Create your character</h2>
+<div class="card">
 <p>First launch drops you into a six-step character builder. There are no wrong answers — lean into whatever sounds fun:</p>
 <table>
   <tr><th>Step</th><th>What you're choosing</th></tr>
@@ -187,10 +199,12 @@
   <tr><td>6 · Review</td><td>Name your campaign, pick a starting location and level (1 is the classic experience), optionally add companions, and confirm.</td></tr>
 </table>
 <div class="tip"><span class="ico">💡</span><b>Don't overthink the backstory.</b> A sentence or two is plenty — the Game Master weaves whatever you give it into the story, and the interesting stuff happens in play anyway.</div>
+</div>
 </section>
 
 <section class="sec">
 <h2 id="play"><span class="stepnum">6</span>Start your campaign &amp; how to play</h2>
+<div class="card">
 <p>Hit confirm and the Game Master opens your story with your first scene. From there:</p>
 <ul>
   <li><b>Type what you do</b> in the box at the bottom — plain English, first person. <em>"I ask the innkeeper about the missing caravan."</em> <em>"I draw my sword."</em> <em>"I search the body."</em> Anything. The world reacts.</li>
@@ -204,10 +218,12 @@
   <li><b>It remembers.</b> People you meet, places you visit, promises you make — the game files them into long-term memory and the world stays consistent across sessions. Just close the app when you're done; you'll resume exactly where you left off.</li>
 </ul>
 <div class="tip"><span class="ico">🎭</span><b>Play it like improv, not like a menu.</b> The best sessions come from trying things no button suggests — bribe the guard, adopt the wolf, burn the letter unread. The Game Master keeps up.</div>
+</div>
 </section>
 
 <section class="sec">
 <h2 id="ui"><span class="stepnum">7</span>About the UI — a tour of the screen</h2>
+<div class="card">
 <p>Two views of the same moment on a phone, in the default dark palette (turn Dark mode off for parchment). Desktop lays the same pieces out wider: the side panel ⑥ is always open on the right, and the top bar also carries <b>World State</b> and <b>Render</b>. The numbers match the sections below — hover one for a hint (on a phone, press and hold it), tap it to jump to its section:</p>
 <div class="shots">
   <figure>
@@ -256,10 +272,12 @@
 
 <h3 id="ui-8"><span class="mkh">8</span>The input row</h3>
 <p>The box where you say what you do (× clears it), the <b>🎤 mic</b> for dictating instead of typing, and <b>Send</b>. Below it, two tabs: <b>Story</b> (the adventure) and <b>Table Talk</b> (out-of-character talk with the Game Master — a dot marks unread replies).</p>
+</div>
 </section>
 
 <section class="sec">
 <h2 id="file-menu"><span class="stepnum">8</span>About the File menu</h2>
+<div class="card">
 <p><b>File ▾</b> is home to everything that isn't moment-to-moment play. The headliners:</p>
 <table>
   <tr><th>Item</th><th>What it does</th></tr>
@@ -285,10 +303,12 @@
   <tr><td>Operator rows</td><td>A 🛠 Dev tools drawer (language model, usage &amp; cost, render options), legacy characters, the campaigns folder and the server connection exist for the operator and are hidden from players’ menus.</td></tr>
 </table>
 <div class="tip"><span class="ico">📱</span>On phones, the File menu also picks up a few quick actions (World state, Render prompt) that live as top-bar buttons on desktop. The same menu is available on the character-creation screen, with game-only items greyed out until you're playing. <b>✍ Write the ending…</b> and <b>◉ Close this campaign…</b> appear at the top of the menu when a tale is ready for them.</div>
+</div>
 </section>
 
 <section class="sec">
 <h2 id="broken"><span class="stepnum">9</span>If something looks broken</h2>
+<div class="card">
 <table>
   <tr><th>Symptom</th><th>Fix</th></tr>
   <tr><td>Page looks stale or misbehaves after an update</td><td><b>File ▾ → Clear cache &amp; reload.</b> This is the universal fix — try it first. (Or a hard refresh: <span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">R</span> on desktop.)</td></tr>
@@ -297,11 +317,12 @@
   <tr><td>Campaign didn't follow you to another device</td><td>Sign in with the same Google or GitHub identity on both devices, then File ▸ 💾 Save / Load ▸ 📁 Campaigns… and pull it down.</td></tr>
   <tr><td>Something else / it ate your character</td><td>File ▸ ⚠ Report bug… — the form shows exactly what it sends. Note what you did, what you expected, and what happened instead; a screenshot helps enormously.</td></tr>
 </table>
+</div>
 </section>
 <hr>
 <p class="footer">Traffic and Dragons · closed beta · thank you for playing — every bug you hit makes the game better. ⚔</p>
 
-</div>
+</main>
 <script>
 (function(){
   /* ONE table: the hint each numbered callout shows — hover on a mouse, press-and-hold on a touch screen; a tap jumps to the section */
