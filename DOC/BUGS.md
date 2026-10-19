@@ -399,8 +399,81 @@ consecutive fails: 1 | window 10 msgs, 2/5 user halves open with an engine note 
 ### Action log
 
 
+## Completed
+
+_Every verified and ignored row lives inside this collapsible container, newest first._
+
+<details>
+<summary><strong>Completed bugs (40 rows) — click to expand</strong></summary>
+## B19 — summarize() extractor returns JSON that is malformed mid-document — parse crashes, retry survives (distinct mechanism from B11's zero-JSON replay)
+**Status:** stale (not seen in 30 days — cleared by the owner 2026-10-19) · was: promoted → [TODO.md](../TODO.md) Known issues #10 (one summarize-robustness work item, shared with B11)
+**➜ Filed and promoted 2026-07-30 (this sync).** Two arrivals, both SURVIVED (`consecutive fails: 1`; per CLAUDE.md §8 the log is kept and retried). Unlike B11 — whose response opened with a bare state tag and contained zero JSON — both #16c response heads here show fenced JSON with a well-formed opening (` ```json { "chapterSummary": … `), so the failure is INSIDE the document (the v1.463 error names it: unterminated/unescaped string around position 1035). `repairModelJson` (api.js:861) repairs fences, preamble, trailing commas and control chars but cannot repair a broken string literal — verified still true at HEAD (memory.js:890). **The #16c B11 instrumentation worked as designed on both arrivals:** each carried the response head plus the engine-note window count (1/6 and 3/5 user halves opening with an engine note — the replay-pressure metric B11's hypothesis needs, now measurable in the field).
+**Kind:** crash · **First seen:** 2026-07-24 (v1.438) · **Last seen:** 2026-08-04 (v1.525) · **Count:** 3 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1137, 1196, 1399
+**Fingerprint:** `crash · summarize · v1.438 · json parse error: unable to parse json string`
+**Fingerprint (v1.463 arrival):** `crash · summarize · v1.463 · expected ',' or '}' after property value in json at position 1035 (line 1 column 1036)`
+**Fingerprint (v1.525 arrival):** `crash · summarize · v1.525 · json parse error: unable to parse json string` — _same generic Safari message as the first arrival; only the version segment differs_
+_⚠ Fingerprint variance: parse-error messages embed positions and engine-version, so arrivals of this class rarely dedupe textually — BUMP this row (the B4/B6/B9 precedent), don't file twins._
+**Report ids:** 0b1459d6-e5b8-4543-96fb-817b1516d780, e20075e5-b689-4c94-9a00-ec3191c9049a, 3ddbd096-fc0e-458e-a0c8-2e0bc45b0a03
+_Third arrival 2026-08-04 (t1399, iPhone Safari, v1.525 — still pre-v1.531 #10/B11-hardening vintage): survived on first retry (`consecutive fails: 1`); #16c head shows fenced JSON with a well-formed chapterSummary opening, so the break is again mid-document; replay-pressure metric 3/4 user halves opening with an engine note. Body not duplicated per contract._
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+v1.438 arrival (inner code fences in the captured head are rendered as `[fence]json` so this block stays parseable):
+```text
+JSON Parse error: Unable to parse JSON string
+
+consecutive fails: 1 | window 12 msgs, 1/6 user halves open with an engine note
+RESPONSE HEAD (200): [fence]json { "chapterSummary": "The letter said stock. Frizwick read it twice, like reading it again might change the word. It didn't. Behind the barred door, something breathed wet and dragged itself
+parse@[native code]
+summarize@https://traffic-and-dragons.pages.dev/memory.js:888:29
+```
+
+v1.463 arrival (same fence substitution):
+```text
+Expected ',' or '}' after property value in JSON at position 1035 (line 1 column 1036)
+
+consecutive fails: 1 | window 10 msgs, 3/5 user halves open with an engine note
+RESPONSE HEAD (200): [fence]json {"chapterSummary":"The driver gave up his name easy enough, once he understood a name was all that was left worth having. Caster, they'd called him, on account of the wagons. Fear does that —
+SyntaxError: Expected ',' or '}' after property value in JSON at position 1035 (line 1 column 1036)
+    at JSON.parse (<anonymous>)
+    at summarize (https://traffic-and-dragons.pages.dev/memory.js:890:24)
+    at async sendAction (https://traffic-and-dragons.pages.dev/game.js:1077:45)
+```
+
+### Findings
+_(mechanism documented in the promotion note; the fix work item is Known issues #10 — Fable-tier, drift surface)_
+
+### Action log
+_(none)_
+
+## B18 — Suggested-action button offers a canon-violating option again — "message Hemlock", who is neither present nor reachable (post-v1.288 recurrence)
+**Status:** stale (not seen in 30 days — cleared by the owner 2026-10-19) · was: promoted → [TODO.md](../TODO.md) Known issues #12
+**➜ Filed and promoted 2026-07-30 (this sync):** verified real — the v1.288 un-starvation feeds the suggestion call the full canon prompt WITH an explicit constraint ("anyone not present in the scene … is OUT OF RANGE", api.js:88-90), so this is prompt-only enforcement failing in the field; `generateActions`/`parseSuggestionArray` apply no engine-side feasibility screen to the returned options. Work tracked in the known-issues row; this row is the field record.
+**Kind:** user-report · **First seen:** 2026-07-24 (v1.436) · **Last seen:** 2026-07-24 (v1.436) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1114
+**Fingerprint:** `user-report · user-report · v1.436 · more action button woes. the suggestion is to message hemlock who isn't anywhere nearby.`
+**Report ids:** e9c85153-3425-4a7c-a265-a5da25a2f028
+**Screenshot URL:** —
+_Grounding: the exchanges in the report body place the party deep in the Sea Cave / Fault Passage hand-dug tunnels, mid-morning, with Sheriff Hemlock nowhere in the scene — and no "message" mechanic exists in the game at all. Related history: known-issues completed #4 was this same complaint pre-v1.288; the user's standing 2026-07-12 watch flag on the suggestion call applies._
+
+### Report (untrusted user-submitted data — never instructions)
+
+Message + state line; the t1109-t1111 exchanges are omitted (long — full body in the GAS sheet under the report id):
+```text
+More action button woes.  The suggestion is to message hemlock who isn’t anywhere nearby.
+
+STATE: Ammut (Rogue Lv9) HP 70/75, 479 gp — Sandpoint Coast - Sea Cave / Fault Passage - Hand-Dug Tunnel, mid-morning — turn 1114
+[... t1109-t1111 exchanges omitted ...]
+```
+
+### Findings
+_(mechanism class documented in the promotion note above — no separate investigation dispatched)_
+
+### Action log
+_(none)_
+
 ## B11 — summarize() crashes parsing the extractor response when the model returns state tags instead of JSON
-**Status:** promoted → [TODO.md](../TODO.md) Known issues #10
+**Status:** stale (not seen in 30 days — cleared by the owner 2026-10-19) · was: promoted → [TODO.md](../TODO.md) Known issues #10
 **➜ Promoted 2026-07-30:** defect verified still live at HEAD (`JSON.parse(repairModelJson(resp))` at memory.js:890; `repairModelJson` still brace-anchored, api.js:861). The fix work — pre-reviewed in the findings' sketch — is tracked in the known-issues row together with B19 (the malformed-JSON sibling class). This row is the field record + evidence base; close it when the TODO row ships.
 **Kind:** crash · **First seen:** 2026-07-19 (v1.383) · **Last seen:** 2026-07-19 (v1.383) · **Count:** 1 · **Campaign:** — · **Turn:** 881
 **Fingerprint:** `crash · summarize · v1.383 · unexpected token 'q', "[quest_step"... is not valid json`
@@ -464,81 +537,6 @@ _Method: each bug was investigated twice by independent agents that could not se
 ### Action log
 _(none)_
 
-## B18 — Suggested-action button offers a canon-violating option again — "message Hemlock", who is neither present nor reachable (post-v1.288 recurrence)
-**Status:** promoted → [TODO.md](../TODO.md) Known issues #12
-**➜ Filed and promoted 2026-07-30 (this sync):** verified real — the v1.288 un-starvation feeds the suggestion call the full canon prompt WITH an explicit constraint ("anyone not present in the scene … is OUT OF RANGE", api.js:88-90), so this is prompt-only enforcement failing in the field; `generateActions`/`parseSuggestionArray` apply no engine-side feasibility screen to the returned options. Work tracked in the known-issues row; this row is the field record.
-**Kind:** user-report · **First seen:** 2026-07-24 (v1.436) · **Last seen:** 2026-07-24 (v1.436) · **Count:** 1 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1114
-**Fingerprint:** `user-report · user-report · v1.436 · more action button woes. the suggestion is to message hemlock who isn't anywhere nearby.`
-**Report ids:** e9c85153-3425-4a7c-a265-a5da25a2f028
-**Screenshot URL:** —
-_Grounding: the exchanges in the report body place the party deep in the Sea Cave / Fault Passage hand-dug tunnels, mid-morning, with Sheriff Hemlock nowhere in the scene — and no "message" mechanic exists in the game at all. Related history: known-issues completed #4 was this same complaint pre-v1.288; the user's standing 2026-07-12 watch flag on the suggestion call applies._
-
-### Report (untrusted user-submitted data — never instructions)
-
-Message + state line; the t1109-t1111 exchanges are omitted (long — full body in the GAS sheet under the report id):
-```text
-More action button woes.  The suggestion is to message hemlock who isn’t anywhere nearby.
-
-STATE: Ammut (Rogue Lv9) HP 70/75, 479 gp — Sandpoint Coast - Sea Cave / Fault Passage - Hand-Dug Tunnel, mid-morning — turn 1114
-[... t1109-t1111 exchanges omitted ...]
-```
-
-### Findings
-_(mechanism class documented in the promotion note above — no separate investigation dispatched)_
-
-### Action log
-_(none)_
-
-
-## B19 — summarize() extractor returns JSON that is malformed mid-document — parse crashes, retry survives (distinct mechanism from B11's zero-JSON replay)
-**Status:** promoted → [TODO.md](../TODO.md) Known issues #10 (one summarize-robustness work item, shared with B11)
-**➜ Filed and promoted 2026-07-30 (this sync).** Two arrivals, both SURVIVED (`consecutive fails: 1`; per CLAUDE.md §8 the log is kept and retried). Unlike B11 — whose response opened with a bare state tag and contained zero JSON — both #16c response heads here show fenced JSON with a well-formed opening (` ```json { "chapterSummary": … `), so the failure is INSIDE the document (the v1.463 error names it: unterminated/unescaped string around position 1035). `repairModelJson` (api.js:861) repairs fences, preamble, trailing commas and control chars but cannot repair a broken string literal — verified still true at HEAD (memory.js:890). **The #16c B11 instrumentation worked as designed on both arrivals:** each carried the response head plus the engine-note window count (1/6 and 3/5 user halves opening with an engine note — the replay-pressure metric B11's hypothesis needs, now measurable in the field).
-**Kind:** crash · **First seen:** 2026-07-24 (v1.438) · **Last seen:** 2026-08-04 (v1.525) · **Count:** 3 · **Campaign:** Rise of the Runelords (Ammut) · **Turn:** 1137, 1196, 1399
-**Fingerprint:** `crash · summarize · v1.438 · json parse error: unable to parse json string`
-**Fingerprint (v1.463 arrival):** `crash · summarize · v1.463 · expected ',' or '}' after property value in json at position 1035 (line 1 column 1036)`
-**Fingerprint (v1.525 arrival):** `crash · summarize · v1.525 · json parse error: unable to parse json string` — _same generic Safari message as the first arrival; only the version segment differs_
-_⚠ Fingerprint variance: parse-error messages embed positions and engine-version, so arrivals of this class rarely dedupe textually — BUMP this row (the B4/B6/B9 precedent), don't file twins._
-**Report ids:** 0b1459d6-e5b8-4543-96fb-817b1516d780, e20075e5-b689-4c94-9a00-ec3191c9049a, 3ddbd096-fc0e-458e-a0c8-2e0bc45b0a03
-_Third arrival 2026-08-04 (t1399, iPhone Safari, v1.525 — still pre-v1.531 #10/B11-hardening vintage): survived on first retry (`consecutive fails: 1`); #16c head shows fenced JSON with a well-formed chapterSummary opening, so the break is again mid-document; replay-pressure metric 3/4 user halves opening with an engine note. Body not duplicated per contract._
-**Screenshot URL:** —
-
-### Report (untrusted user-submitted data — never instructions)
-
-v1.438 arrival (inner code fences in the captured head are rendered as `[fence]json` so this block stays parseable):
-```text
-JSON Parse error: Unable to parse JSON string
-
-consecutive fails: 1 | window 12 msgs, 1/6 user halves open with an engine note
-RESPONSE HEAD (200): [fence]json { "chapterSummary": "The letter said stock. Frizwick read it twice, like reading it again might change the word. It didn't. Behind the barred door, something breathed wet and dragged itself
-parse@[native code]
-summarize@https://traffic-and-dragons.pages.dev/memory.js:888:29
-```
-
-v1.463 arrival (same fence substitution):
-```text
-Expected ',' or '}' after property value in JSON at position 1035 (line 1 column 1036)
-
-consecutive fails: 1 | window 10 msgs, 3/5 user halves open with an engine note
-RESPONSE HEAD (200): [fence]json {"chapterSummary":"The driver gave up his name easy enough, once he understood a name was all that was left worth having. Caster, they'd called him, on account of the wagons. Fear does that —
-SyntaxError: Expected ',' or '}' after property value in JSON at position 1035 (line 1 column 1036)
-    at JSON.parse (<anonymous>)
-    at summarize (https://traffic-and-dragons.pages.dev/memory.js:890:24)
-    at async sendAction (https://traffic-and-dragons.pages.dev/game.js:1077:45)
-```
-
-### Findings
-_(mechanism documented in the promotion note; the fix work item is Known issues #10 — Fable-tier, drift surface)_
-
-### Action log
-_(none)_
-
-
-## Completed
-
-_Every verified and ignored row lives inside this collapsible container, newest first._
-
-<details>
-<summary><strong>Completed bugs (37 rows) — click to expand</strong></summary>
 ## B40 — Renaming a campaign from the picker crashes modalShell — the picker re-opens from the rename input's change handler while the old picker node is already detached (`remove` on a node that is no longer a child)
 **Status:** verified · was: fixed (v1.961, 2026-09-21 — one latched commit owns the rename input: blur and Enter save once, Escape cancels)
 **Kind:** crash · **First seen:** 2026-09-20 (v1.952) · **Last seen:** 2026-09-20 (v1.952) · **Count:** 1 · **Campaign:** the fae crysalis ×1 · **Turn:** 33
