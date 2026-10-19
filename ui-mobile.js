@@ -66,6 +66,28 @@ function mobileInit(){
   });
   grab.addEventListener("pointercancel",function(){drag=null;lastTap=null;});grab.addEventListener("lostpointercapture",function(){if(drag)lastTap=null;drag=null;});
   grab.addEventListener("keydown",function(e){var delta={ArrowLeft:10,ArrowRight:-10};lastTap=null;if(delta[e.key]){mobileDrawerWidth(mobileUI.width+delta[e.key]);e.preventDefault();}else if(e.key==="Home"){mobileDrawerWidth(0);e.preventDefault();}else if(e.key==="End"){mobileDrawerWidth(Infinity);e.preventDefault();}else if(e.key==="Enter"||e.key===" "){mobileToggleDrawer();e.preventDefault();}});
+  // #643 (owner 2026-10-18): the EDGE SWIPE — a leftward swipe that begins within EDGE_ZONE of the right screen edge, at ANY height
+  // of the story area, opens the drawer and follows the finger. The 44×96 grab stays the visible handle (and the double tap): the
+  // owner's sweep from the bezel landed above or below that 96px band three times in four. mobile.css gives #story-area
+  // touch-action:pan-y pinch-zoom, so a vertical swipe there still scrolls the story (the browser claims it and we see
+  // pointercancel) while a horizontal one keeps reaching us. The grab's own drag is untouched — its pointerdown is skipped here.
+  var area=mobileEl("story-area"),EDGE_ZONE=24,EDGE_MIN_OPEN=40,edge=null;
+  function edgeReset(){if(edge&&edge.captured){try{area.releasePointerCapture(edge.id);}catch(err){}}edge=null;}
+  area.addEventListener("pointerdown",function(e){
+    if(e.isPrimary===false||e.button!==0||!mobilePhone()||mobileUI.width>0)return;/* opening only: an open drawer's right edge is its tab column */
+    if(e.target&&e.target.closest&&e.target.closest("#mobile-grab"))return;/* the handle has its own drag */
+    if(window.innerWidth-e.clientX>EDGE_ZONE)return;
+    edge={id:e.pointerId,x:e.clientX,y:e.clientY,moving:false,captured:false};
+  });
+  area.addEventListener("pointermove",function(e){
+    if(!edge||edge.id!==e.pointerId)return;
+    var dx=edge.x-e.clientX,dy=Math.abs(e.clientY-edge.y);
+    if(!edge.moving){if(dy>8&&dy>=dx){edge=null;return;}/* a scroll — the browser's */if(dx<=8)return;edge.moving=true;try{area.setPointerCapture(e.pointerId);edge.captured=true;}catch(err){}}
+    mobileDrawerWidth(dx);
+  });
+  area.addEventListener("pointerup",function(e){if(!edge||edge.id!==e.pointerId)return;if(edge.moving&&mobileUI.width<EDGE_MIN_OPEN)mobileDrawerWidth(0);/* a flick that barely opened closes again */edgeReset();});
+  area.addEventListener("pointercancel",function(e){if(edge&&edge.id===e.pointerId)edgeReset();});
+  area.addEventListener("lostpointercapture",function(e){if(e.target===area&&edge&&edge.id===e.pointerId)edge=null;});/* OURS only: a touch's implicit capture moving from the narrative to the area bubbles a lostpointercapture through here too, and that one must not end the swipe */
   mobileSelectPanel("party");mobileLayout();window.addEventListener("resize",mobileLayout);
 }
 // Enemy cards read the live foe and exact-name bestiary entry. No fuzzy identity joins and no

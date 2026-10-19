@@ -87,6 +87,22 @@ function fixture(){const e=require('./load-engine.js');e.loadEngine();e.makeTest
  await page.waitForTimeout(380);await doubleTap();assert.equal((await facts()).drawer.w,Math.round(382*.43),'double tap opens demo proportion');await shot('mobile-double-tap');
  await page.waitForTimeout(380);z=await facts();tx=z.grip.x+4;ty=z.grip.y+z.grip.h/2;await touch(tx,ty,'touchStart');await touch(tx+37,ty,'touchMove');await touch(tx+37,ty,'touchEnd');assert.equal((await facts()).drawer.w,Math.round(382*.43)-37,'double tap does not lock free resizing');
  console.log('PASS #611 thumb target, tabs inside drawer and double-tap toggle without snapping');
+ /* #643 (owner 2026-10-18): the EDGE SWIPE — a leftward swipe that begins at the right screen edge at ANY height opens the drawer
+    (the 96px grab band had to be hit before); a vertical swipe from the edge is a scroll and opens nothing; a flick that barely
+    opens closes again. Real touches through CDP, so touch-action:pan-y is exercised, not bypassed. */
+ await page.evaluate(()=>mobileDrawerWidth(0));await page.waitForTimeout(380);
+ z=await facts();const ex=z.grip.right-6,ey=z.grip.y+20;/* 6px in from the screen's right edge (the grip ends there), 20px below the drawer's top: far above the centred grab band */
+ assert.ok(ey<z.grab.y-10,'the edge-swipe start sits outside the grab band (else the test proves nothing)');
+ await page.evaluate(()=>{window.__edgeLog=[];['pointerdown','pointermove','pointerup','pointercancel'].forEach(t=>document.getElementById('story-area').addEventListener(t,e=>window.__edgeLog.push(t+'@'+Math.round(e.clientX)+','+Math.round(e.clientY)+' on '+(e.target.id||e.target.tagName)+' btn'+e.button+' primary'+e.isPrimary)));});
+ await touch(ex,ey,'touchStart');await touch(ex-30,ey,'touchMove');await touch(ex-90,ey,'touchMove');await touch(ex-90,ey,'touchEnd');
+ const edgeLog=await page.evaluate(()=>({log:window.__edgeLog,w:mobileUI.width,ta:getComputedStyle(document.getElementById('story-area')).touchAction,phone:mobilePhone(),iw:innerWidth}));
+ assert.equal((await facts()).drawer.w,90,'#643 edge swipe from the right edge at any height opens the drawer to the finger — '+JSON.stringify(edgeLog));
+ await page.evaluate(()=>mobileDrawerWidth(0));await page.waitForTimeout(380);
+ await touch(ex,ey,'touchStart');await touch(ex-2,ey+40,'touchMove');await touch(ex-3,ey+80,'touchMove');await touch(ex-3,ey+80,'touchEnd');
+ assert.equal((await facts()).drawer.w,0,'#643 a vertical swipe from the edge is a scroll, not an open');
+ await touch(ex,ey,'touchStart');await touch(ex-20,ey,'touchMove');await touch(ex-20,ey,'touchEnd');
+ assert.equal((await facts()).drawer.w,0,'#643 a flick that barely opens (under 40px) closes again');
+ console.log('PASS #643 edge swipe opens the drawer from the right edge at any height');
  await page._send('Emulation.setTouchEmulationEnabled',{enabled:false});console.log('PASS #611 touch drawer (voice checked through the real click handler; this Chrome driver omits compatibility clicks even on a plain button)');
 
  await page.locator('#en-rows .cname').first().click();const centered=await page.evaluate(()=>{const r=document.querySelector('#enemy-modal>div').getBoundingClientRect();return Math.abs(r.y+r.height/2-innerHeight/2)<2;});assert.equal(centered,true,'enemy modal centered');assert.match(await page.evaluate(()=>document.getElementById('enemy-modal').textContent),/flee at 40 hp/);assert.match(await page.evaluate(()=>document.getElementById('enemy-modal').textContent),/Undead beast/,'bestiary type shown');assert.equal(await page.evaluate(()=>worldState.combat.foes[0].name),'Iron-Jawed Cullers (3)','recorded count and canonical name retained');await shot('mobile-enemy');await page.locator('#enemy-close').click();console.log('PASS #611 enemy details centered with live morale and stats');

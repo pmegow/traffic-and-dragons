@@ -33,8 +33,8 @@
  .ct-h{margin-bottom:2px}.ct-t,.ct-r{font-size:10px}
  .crow{height:24px;gap:7px;margin:0}.cname{font-size:10px}.hpt{font-size:9px;width:46px;flex-shrink:0}.hbw{height:5px}
  #cpanel .mbdg,#combat-stats{display:none}
- #story-area{min-height:0;padding-top:6px}
- #story-narrative,#story-tabletalk{min-width:0;padding:0 8px 8px 11px;gap:10px}
+ #story-area{min-height:0;padding-top:6px;touch-action:pan-y pinch-zoom}/* #643: horizontal swipes reach the edge-swipe recognizer (ui-mobile.js); vertical ones still scroll, pinch still zooms */
+ #story-narrative,#story-tabletalk{min-width:0;padding:0 8px 8px 11px;gap:10px;touch-action:pan-y pinch-zoom}/* #643: the scrollers themselves — a pan's touch-action chain stops at the nearest scroller, so the rule on #story-area alone left Chrome free to claim a horizontal swipe here (pointercancel after the first move) */
  #story-narrative .msg,#story-tabletalk .msg{padding:5px 3px;font-size:16px;line-height:1.8;overflow-wrap:anywhere}
  #story-narrative::-webkit-scrollbar,#story-tabletalk::-webkit-scrollbar{width:6px}
  #mobile-grip{display:flex;align-self:stretch;align-items:center;justify-content:center;flex:0 0 8px;width:8px;background:transparent;position:relative}

@@ -12,6 +12,8 @@ failed+=sabotage.prove({file:'mobile.css',command:browser,skip:!chrome.path,case
 ]});
 failed+=sabotage.prove({file:'ui-mobile.js',command:browser,skip:!chrome.path,cases:[
  {label:'double tap no longer toggles the drawer',find:'lastTap=null;mobileToggleDrawer();',replace:'lastTap=null;',mustFail:'double tap closes entire drawer'},
+ {label:'the edge swipe never starts the drag (#643: only the 96px grab band opens the drawer again)',find:'if(dx<=8)return;edge.moving=true;',replace:'if(dx<=8)return;edge=null;return;',mustFail:'edge swipe from the right edge at any height opens the drawer'},
+ {label:'a vertical swipe from the edge opens the drawer instead of scrolling (#643)',find:'if(dy>8&&dy>=dx){edge=null;return;}',replace:'if(false){edge=null;return;}',mustFail:'a vertical swipe from the edge is a scroll'},
  {label:'double tap uses the wrong opening proportion',find:'clientWidth*0.43',replace:'clientWidth*0.50',mustFail:'double tap opens demo proportion'},
  {label:'completed campaign becomes an empty act again',find:'act.done?"Act Complete":act.text',replace:'act.done?"Act —":act.text',mustFail:'completed campaign retained'},
  {label:'drawer snaps instead of holding the release point',find:'Math.min(max,width)',replace:'Math.min(max,Math.round(width/40)*40)',mustFail:'exact release width'},
@@ -23,5 +25,5 @@ failed+=sabotage.prove({file:'ui-modals.js',command:browser,skip:!chrome.path,ca
 failed+=sabotage.prove({file:'ui-boot.js',command:browser,skip:!chrome.path,cases:[
  {label:'the HUD name stops opening the character sheet (#642: the one panel-free way on a phone)',find:'  _hudName.addEventListener("click",function(){showCharSheet();});\n',replace:'',mustFail:'the HUD name opens the character sheet'}
 ]});
-if(!chrome.path&&!failed){verdict.reportSkip('sabotage-611-mobile.js',13,chrome.why);process.exit(verdict.SKIP_EXIT);}
+if(!chrome.path&&!failed){verdict.reportSkip('sabotage-611-mobile.js',15,chrome.why);process.exit(verdict.SKIP_EXIT);}
 process.exit(failed?1:0);
