@@ -20,7 +20,8 @@
   .sat-header{background:var(--bg1);border:1px solid var(--brd);border-radius:14px;padding:14px 24px;margin:0 0 22px;box-shadow:0 2px 14px rgba(0,0,0,.14);}
   @media (max-width:600px){.sat-header{padding:12px 14px;border-radius:12px;}}
   .sat-header .sat-sub{margin:4px 0 0;}
-  .sat-nav{position:sticky;top:0;z-index:6;display:flex;width:max-content;gap:2px;background:var(--bg1);border:1px solid var(--brd);border-top:0;border-radius:0 0 12px 12px;padding:1px 6px 2px;margin:-14px 0 16px;box-shadow:0 2px 8px rgba(0,0,0,.16);}
+  .sat-nav{position:sticky;top:0;z-index:6;display:flex;width:max-content;gap:2px;background:var(--bg1);border:1px solid var(--brd);border-top:0;border-radius:0 0 12px 12px;padding:1px 6px 2px;margin:-32px 0 16px;box-shadow:0 2px 8px rgba(0,0,0,.16);}/* the negative margin is the body's top padding: the pill parks at the screen edge from the first paint (owner 2026-10-18) */
+  @media (max-width:600px){.sat-nav{margin-top:-20px;}}
   .sat-nav a{font-size:12px;color:var(--t1);text-decoration:none;white-space:nowrap;padding:4px 8px;border-radius:8px;}
   .sat-nav a:hover{color:var(--acc);background:var(--raise);}
   @media (pointer:coarse){.sat-nav a{padding:8px 10px;}}
@@ -71,15 +72,21 @@
      old-style numerals (3/4/5/9 descend) sat visibly low — Arial has lining figures. */
   .callout{position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:var(--on-acc);font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;border:2px solid var(--bg0);box-shadow:0 1px 6px rgba(0,0,0,.7);transform:translate(-50%,-50%);padding:0;line-height:1;cursor:pointer;touch-action:manipulation;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;}
   .callout:focus-visible{outline:2px solid var(--t0);outline-offset:2px;}
-  /* owner 2026-10-18: a small beak on the side that faces what the number labels — right for the left-edge chips, down for the one above the panel handle */
-  .callout::before{content:"";position:absolute;width:0;height:0;border:6px solid transparent;pointer-events:none;}
-  .callout.pt-r::before{left:100%;top:50%;transform:translateY(-50%);border-left-color:var(--acc);border-right-width:0;margin-left:1px;}
-  .callout.pt-l::before{right:100%;top:50%;transform:translateY(-50%);border-right-color:var(--acc);border-left-width:0;margin-right:1px;}
-  .callout.pt-d::before{top:100%;left:50%;transform:translateX(-50%);border-top-color:var(--acc);border-bottom-width:0;margin-top:1px;}
+  /* owner 2026-10-18: a small beak on the side that faces what the number labels — right for the left-edge chips, down for the one above the panel
+     handle. Two layers so the chip's outer ring continues around the beak: ::before is the ring (the border colour, one size up), ::after the beak. */
+  .callout::before,.callout::after{content:"";position:absolute;width:0;height:0;border:solid transparent;pointer-events:none;}
+  .callout::before{border-width:8px;}
+  .callout::after{border-width:6px;}
+  .callout.pt-r::before,.callout.pt-r::after{left:100%;top:50%;transform:translateY(-50%);border-right-width:0;margin-left:1px;}
+  .callout.pt-r::before{border-left-color:var(--bg0);}.callout.pt-r::after{border-left-color:var(--acc);}
+  .callout.pt-l::before,.callout.pt-l::after{right:100%;top:50%;transform:translateY(-50%);border-left-width:0;margin-right:1px;}
+  .callout.pt-l::before{border-right-color:var(--bg0);}.callout.pt-l::after{border-right-color:var(--acc);}
+  .callout.pt-d::before,.callout.pt-d::after{top:100%;left:50%;transform:translateX(-50%);border-bottom-width:0;margin-top:1px;}
+  .callout.pt-d::before{border-top-color:var(--bg0);}.callout.pt-d::after{border-top-color:var(--acc);}
   /* the hint: a hover (or keyboard focus) tooltip on a mouse; touch screens get the press-and-hold modal instead (script below) */
-  .callout::after{content:attr(data-tip);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);width:max-content;max-width:230px;background:var(--bg1);color:var(--t0);border:1px solid var(--brd2);border-radius:8px;padding:8px 10px;font:13px/1.45 Georgia,'Times New Roman',serif;text-align:left;white-space:normal;box-shadow:0 4px 16px rgba(0,0,0,.45);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s;z-index:5;}
-  .callout.flip::after{left:auto;right:calc(100% + 8px);}
-  @media (hover:hover){.callout:hover::after,.callout:focus-visible::after{opacity:1;visibility:visible;}}
+  .callout .hint{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);width:max-content;max-width:230px;background:var(--bg1);color:var(--t0);border:1px solid var(--brd2);border-radius:8px;padding:8px 10px;font:13px/1.45 Georgia,'Times New Roman',serif;text-align:left;white-space:normal;box-shadow:0 4px 16px rgba(0,0,0,.45);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s;z-index:5;}
+  .callout.flip .hint{left:auto;right:calc(100% + 10px);}
+  @media (hover:hover){.callout:hover .hint,.callout:focus-visible .hint{opacity:1;visibility:visible;}}
   .tipmodal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
   .tipmodal>div{background:var(--bg1);color:var(--t0);border:1px solid var(--brd2);border-radius:12px;padding:18px 20px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5);}
   .tipmodal h3{margin:0 0 8px;font-size:17px;color:var(--acc);display:flex;align-items:center;gap:10px;}
@@ -93,8 +100,8 @@
 <body>
 <div class="wrap">
 
-<header class="sat-header"><div><h1>⚔ Traffic and Dragons — Beta Tester Guide</h1><p class="sat-sub">From zero to your first adventure in about 15 minutes. In a hurry? The <a href="../faq.html">Player FAQ</a> is the short version.</p></div></header>
 <nav class="sat-nav" aria-label="Back to the game"><a href="../home.html">Home</a><a href="../index.html">Game</a><a href="../faq.html">Player FAQ</a></nav>
+<header class="sat-header"><div><h1>⚔ Traffic and Dragons — Beta Tester Guide</h1><p class="sat-sub">From zero to your first adventure in about 15 minutes. In a hurry? The <a href="../faq.html">Player FAQ</a> is the short version.</p></div></header>
 
 <div class="toc">
   <h2 class="toc-title">What's included in this guide</h2>
@@ -314,6 +321,7 @@
     var n=el.getAttribute("data-n"),tip=TIPS[n],hold=null;
     if(!tip){if(window.console)console.error("[guide] callout "+n+" has no hint in TIPS");return;}
     el.setAttribute("data-tip",tip[0]+" \u2014 "+tip[1]);el.setAttribute("aria-label",n+". "+tip[0]+". "+tip[1]);
+    var hint=document.createElement("span");hint.className="hint";hint.setAttribute("aria-hidden","true");hint.textContent=tip[0]+" \u2014 "+tip[1];el.appendChild(hint);/* the hover tooltip (a child, since both pseudo-elements draw the beak) */
     function cancel(){if(hold){clearTimeout(hold.timer);hold=null;}}
     el.addEventListener("pointerdown",function(e){if(!coarse)return;cancel();hold={fired:false,x:e.clientX,y:e.clientY,timer:setTimeout(function(){if(hold){hold.fired=true;openModal(n);}},HOLD_MS)};});
     el.addEventListener("pointermove",function(e){if(hold&&!hold.fired&&(Math.abs(e.clientX-hold.x)>8||Math.abs(e.clientY-hold.y)>8))cancel();});
