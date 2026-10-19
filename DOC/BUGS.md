@@ -34,6 +34,318 @@ them here).
 
 ## Open
 
+## B44 — Player could not access voice configuration at campaign start (v1.1245, desktop Chrome)
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-10-13 (v1.1245) · **Last seen:** 2026-10-13 (v1.1245) · **Count:** 1 · **Campaign:** E Nightwhisper · **Turn:** —
+**Fingerprint:** `user-report · user-report · v1.1245 · Voice settings unavailable`
+**Report ids:** 84b96152-55cb-40e8-9e3f-aeb3b4ef5d5b
+**Screenshot URL:** https://drive.google.com/file/d/1qKfI0HcqjOFVoJnD4uMxdZkinmmoHnfD/view?usp=drivesdk
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Voice settings unavailable
+
+STATE: Eyra Duskreaver (Rogue Lv1) HP 9/9, 24 gp — The Crossroads of Ashenveil / The Ash Vendor's Stall, Day 1, 6:00 am — turn 0
+LAST EXCHANGES (clean text):
+[t0 GM · claude-sonnet-5] The Crossroads of Ashenveil wakes up the way a corpse wakes up, which is to say it doesn't, but something underneath it keeps twitching. Dawn here looks like dusk everywhere else, grey light filtering through the permanent haze of drifting ash until the sun's just a smear, a rumor of itself. Stalls are unshuttering all around you, vendors hawking things that used to be illegal and are now just Tuesday: bottled screams, teeth with suspiciously fresh roots, a man selling what he swears is unicorn horn to a woman who clearly knows it's a narwhal tusk and is buying it anyway out of pity. You came here chasing whispers that Malvorin crawled back out of whatever hole he'd been rotting in, and the first thing the Crossroads shows you, stacked in a crate by a vendor with soot under his fingernails, is a row of small glass vials, each one holding a pinch of fine silver powder that your body recognizes before your mind catches up, because you'd know that ash anywhere, you breathed it in for a week after Sylthane Vale stopped being a forest and started being a grave.
+NEWEST RAW GM RESPONSE (tags intact):
+[TIME_CHECK:dawn]
+
+The Crossroads of Ashenveil wakes up the way a corpse wakes up, which is to say it doesn't, but something underneath it keeps twitching. Dawn here looks like dusk everywhere else, grey light filtering through the permanent haze of drifting ash until the sun's just a smear, a rumor of itself. Stalls are unshuttering all around you, vendors hawking things that used to be illegal and are now just Tuesday: bottled screams, teeth with suspiciously fresh roots, a man selling what he swears is unicorn horn to a woman who clearly knows it's a narwhal tusk and is buying it anyway out of pity. You came here chasing whispers that Malvorin crawled back out of whatever hole he'd been rotting in, and the first thing the Crossroads shows you, stacked in a crate by a vendor with soot under his fingernails, is a row of small glass vials, each one holding a pinch of fine silver powder that your body recognizes before your mind catches up, because you'd know that ash anywhere, you breathed it in for a week after Sylthane Vale stopped being a forest and started being a grave.
+
+[SUBLOCATION:The Ash Vendor's Stall]
+[QUEST:Welcome to the Crossroads|active|Make contact with three key figures in the Crossroads who can point toward who is harvesting Sylthane Vale's ash]
+[QUEST_STEP:Welcome to the Crossroads|Secure introductions with three contacts among the market's vendors, cutpurses, and oracles|false]
+[LOCATION_DESC:A sprawling bazaar built from salvage and desperation at the meeting of three dead roads, where survivors of the Blighted Reach trade magic, relics, and rumors under a permanent haze of drifting ash. Stalls of scavenged wood and bone-white canvas crowd together in winding rows, lit by witch-lanterns that never quite banish the gloom.]
+[LOCATION_SIZE:large|40]
+[EXIT:The Deep Rows|a maze of stalls deeper into the market, where the less legal business happens]
+[EXIT:The Crossroads proper|the three dead roads meeting at the market's edge, leading out into the Blighted Reach]
+
+[SUGGEST:Approach the ash vendor directly|Watch the stall from a distance first|Ask a nearby trader about the vials]
+SUGGESTED ACTIONS SHOWN: Approach the ash vendor directly | Watch the stall from a distance first | Ask a nearby trader about the vials
+[TTS] tts engine: server; on: true; piper voice: (default); rate: 1.0
+speaker map: NONE on the last GM turn — the pass was skipped (no voiced cast, no dialogue, muted) or it failed/timed out
+
+--- report metadata ---
+id: 84b96152-55cb-40e8-9e3f-aeb3b4ef5d5b
+receivedAt: 2026-10-13T03:42:31.841Z
+clientTs: 2026-10-13T03:42:26.944Z
+kind: user-report
+ctx: user-report
+app: v1.1245
+camp: E Nightwhisper
+turn:
+url: https://traffic-and-dragons.pages.dev/
+ua: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
+online: true
+suppressed: 0
+screenshotUrl: https://drive.google.com/file/d/1qKfI0HcqjOFVoJnD4uMxdZkinmmoHnfD/view?usp=drivesdk
+```
+
+### Findings
+
+### Action log
+
+## B45 — A stealth attack kills two sentries through narration without a roll or combat encounter (v1.1275, turn 21)
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-10-18 (v1.1275) · **Last seen:** 2026-10-18 (v1.1275) · **Count:** 1 · **Campaign:** Ammut · **Turn:** 21
+**Fingerprint:** `user-report · user-report · v1.1275 · No dice roll on the sentry attack. Just said what to do and it happened. Sort of un-rpg like.`
+**Report ids:** 11f7ca12-70a6-4657-a570-f074a408d741
+**Screenshot URL:** https://drive.google.com/file/d/1_dTYshmS_ucAdP6z1scH_j2cMesuLib1/view?usp=drivesdk
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+No dice roll on the sentry attack.   Just said what to do and it happened.  Sort of un-rpg like.
+
+STATE: Ammut (Rogue Lv19) HP 145/145, 28136 gp — The Gilded Sepulcher of Sunken Oaths, Day 1, 10:15 am — turn 21
+LAST EXCHANGES (clean text):
+[t16 player] Climb the ladder to gear up.
+[t17 GM · gemini-3.8-flash] You shove the trapdoor up. Cold air hits your face, smelling of soot and frozen rind.
+
+You haul Daeris out of the pit. Her boots hit the timber floor with a hollow thud. She leans against the hearth, rubbing her wrists. Her hands are steady now, but her eyes never stop scanning the corners.
+
+"Gearing up. We move fast."
+
+You pull your throwing knives from the bench. You slide the steel into your harness boots. You check the crossbow string. Tight and dry.
+
+Daeris watches you strap on the iron. She tightens the straps of her breastplate, her knuckles pale against the bronze.
+
+"If we break the wards at the Sepulcher, the whole lower valley drains into salt. The pilgrims built those seals to keep the ground from collapsing under their dead."
+
+"Then the dead can learn to swim. We need that sap."
+
+She turns away, hiding the twitch in her jaw.
+[t17 player] Head south toward the Sepulcher.
+[t18 GM · gemini-3.8-flash] You kick the orchard gate open. The wood splinters in the frost.
+
+You head south through the dead scrub. Daeris keeps pace, her boots crunching on frozen grit. The wind smells of burnt copper and stale water.
+
+Within forty minutes, the earth gives up entirely.
+
+The ground drops into an inverted stone amphitheater. It sinks into a black sinkhole like a pulled tooth. Crumbled gold leaf clings to the stone balustrades. Huge bas-reliefs show pilgrims bowing beneath weeping trees, their faces chipped away by frost.
+
+Down in the pit, three massive bronze warding pylons hum with dull blue light. Below them, tangled deep in the gloom, pale primordial branches thrash against stone.
+
+"Look at the pylons, Ammut. The pilgrims built them to hold back the salt table. If you smash the seals, the brine drowns the whole valley."
+
+"I'm not here to save the valley. I'm here for the sap."
+
+You unhook your crossbow.
+[t18 player] Accept the offer: The Court of the Rust Siphon.
+[t19 GM · gemini-3.8-flash] You turn your back on the drop. The treant can scream.
+
+"The sap waits. We hit the scavengers first."
+
+Daeris blinks. She wipes black rot from her lip with a calloused thumb.
+
+"The Rust Siphon holds the high ridge. Warlord Gallowmere conscripts every mouth he feeds. They burn the needle for warmth. Stealing it starves them, Ammut."
+
+"Fuck them. I need the fire for home."
+
+You check the heavy bolts in your quiver. Up on the redoubt crags, the scavengers' smoke stains the grey sky.
+[t19 player] Scout the scavenger perimeter path.
+[t20 GM · gemini-3.8-flash] You leave the pit behind. The climb up the ridge is pure gravel and spite.
+
+You belly down in the grey scree. Daeris crawls beside you, staying low. The wind smells of burning pitch and old lard.
+
+Two scavengers patrol the perimeter trench thirty yards up. They wear boiled hide stitched with rusted scrap iron. One carries a barbed harpoon wired to an alchemical battery. The other leans on a notched heavy blade, shivering violently in the frost. A trip-wire runs between two blackened limestone cairns right across their gap.
+
+Past them, the redoubt sits on the high bluff. It is a rat's nest of scavenged beams, sheet metal, and greasy canvas. Thick black smoke chokes the sky above it. Deep inside the sprawl, a steady orange flare pulses like an open furnace. That is the Pyre Needle.
+
+"Two sentries. But look past them, Ammut. There are three dozen cooking fires in that yard. If you start a bloodbath, we fight a whole starving army."
+
+"Then I won't start a fight. I'll just take their fucking heat."
+[t20 player] Cut down the two sentries quietly.
+[t21 GM · gemini-3.8-flash] You draw the runeforged cleaver and an iron knife.
+
+The wind kicks up a gust of grey grit. You move on the count of three. Silent Stalker means zero boot-scrape on the scree. You cross the thirty yards like a bad thought.
+
+You catch the shivering sentry first. Your left hand clamps his mouth shut. The cleaver slides behind his collarbone, hard and down. The blade bites deep into his lung. He twitches once and goes dead weight.
+
+The harpooner hears the armor rattle. He turns. His mouth opens to yell.
+
+You snap your wrist. The throwing knife punches through his throat before he draws breath. He drops to his knees in the dirt. Blue spark sizzles once in his crude harpoon battery, then dies in the mud.
+
+You drag both bodies behind the blackened cairns. Blood pools black in the frost. Daeris slips up the trench behind you. She stays crouched, watching the smoke drift above the redoubt gates.
+
+"Clean. But the trench ends ten paces up. Then we cross forty feet of bare mud to reach the needle kiln."
+
+"They won't look at the mud. They're busy shivering."
+
+The redoubt gate is twenty yards ahead, braced with scrap timber. Through the cracked planks, you see the iron chimney of the Pyre N
+NEWEST RAW GM RESPONSE (tags intact):
+[TIME_CHECK:mid-morning]
+[TIME_ADVANCE:10m]
+[NO_CHANGE:relationship audit verified]
+[SCENE_CAST:none]
+
+You draw the runeforged cleaver and an iron knife.
+
+The wind kicks up a gust of grey grit. You move on the count of three. Silent Stalker means zero boot-scrape on the scree. You cross the thirty yards like a bad thought.
+
+You catch the shivering sentry first. Your left hand clamps his mouth shut. The cleaver slides behind his collarbone, hard and down. The blade bites deep into his lung. He twitches once and goes dead weight.
+
+The harpooner hears the armor rattle. He turns. His mouth opens to yell.
+
+You snap your wrist. The throwing knife punches through his throat before he draws breath. He drops to his knees in the dirt. Blue spark sizzles once in his crude harpoon battery, then dies in the mud.
+
+[ITEM_LOST:two throwing knives, utilitarian, unworn]
+
+You drag both bodies behind the blackened cairns. Blood pools black in the frost. Daeris slips up the trench behind you. She stays crouched, watching the smoke drift above the redoubt gates.
+
+[SAY:Daeris|whispering]"Clean. But the trench ends ten paces up. Then we cross forty feet of bare mud to reach the needle kiln."
+
+[SAY:Ammut|flat]"They won't look at the mud. They're busy shivering."
+
+The redoubt gate is twenty yards ahead, braced with scrap timber. Through the cracked planks, you see the iron chimney of the Pyre Needle belching sparks.
+
+[SUGGEST:Pick the lock on the timber gate|Climb over the scrap palisade|Use Invisibility to slip inside the compound]
+SUGGESTED ACTIONS SHOWN: Pick the lock on the timber gate | Climb over the scrap palisade | Use Invisibility to slip inside the compound | Accept the offer: The Siege of the Salt Weirs.
+[COMBAT] combat state: none
+
+--- report metadata ---
+id: 11f7ca12-70a6-4657-a570-f074a408d741
+receivedAt: 2026-10-18T17:30:47.601Z
+clientTs: 2026-10-18T17:30:42.854Z
+kind: user-report
+ctx: user-report
+app: v1.1275
+camp: Ammut
+turn: 21
+url: https://traffic-and-dragons.pages.dev/
+ua: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1
+online: true
+suppressed: 0
+screenshotUrl: https://drive.google.com/file/d/1_dTYshmS_ucAdP6z1scH_j2cMesuLib1/view?usp=drivesdk
+```
+
+### Findings
+
+### Action log
+
+## B46 — The introduction of captive NPCs omits ancestry details the player needs for a decision (v1.1275, turn 22)
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-10-18 (v1.1275) · **Last seen:** 2026-10-18 (v1.1275) · **Count:** 1 · **Campaign:** Ammut · **Turn:** 22
+**Fingerprint:** `user-report · user-report · v1.1275 · There’s a large group of conscripts overseen by an overlord. I think we need to describe the race of new npcs a little b`
+**Report ids:** 99809669-baef-4edb-9b7a-373b4051187c
+**Screenshot URL:** https://drive.google.com/file/d/1NGiBJLiFq31KYJfQm1QY3kPT_zRTGZpW/view?usp=drivesdk
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+There’s a large group of conscripts overseen by an overlord.  I think we need to describe the race of new npcs a little better.  If the conscripts are goblins or kobolds or orcs, they’re dangerous to free.   If they’re a bunch of elves or humans or gnomes, I’ll free them.   Need slightly better descriptions
+
+STATE: Ammut (Rogue Lv19) HP 145/145, 28136 gp — The Gilded Sepulcher of Sunken Oaths, Day 1, 10:20 am — turn 22
+LAST EXCHANGES (clean text):
+[t17 player] Head south toward the Sepulcher.
+[t18 GM · gemini-3.8-flash] You kick the orchard gate open. The wood splinters in the frost.
+
+You head south through the dead scrub. Daeris keeps pace, her boots crunching on frozen grit. The wind smells of burnt copper and stale water.
+
+Within forty minutes, the earth gives up entirely.
+
+The ground drops into an inverted stone amphitheater. It sinks into a black sinkhole like a pulled tooth. Crumbled gold leaf clings to the stone balustrades. Huge bas-reliefs show pilgrims bowing beneath weeping trees, their faces chipped away by frost.
+
+Down in the pit, three massive bronze warding pylons hum with dull blue light. Below them, tangled deep in the gloom, pale primordial branches thrash against stone.
+
+"Look at the pylons, Ammut. The pilgrims built them to hold back the salt table. If you smash the seals, the brine drowns the whole valley."
+
+"I'm not here to save the valley. I'm here for the sap."
+
+You unhook your crossbow.
+[t18 player] Accept the offer: The Court of the Rust Siphon.
+[t19 GM · gemini-3.8-flash] You turn your back on the drop. The treant can scream.
+
+"The sap waits. We hit the scavengers first."
+
+Daeris blinks. She wipes black rot from her lip with a calloused thumb.
+
+"The Rust Siphon holds the high ridge. Warlord Gallowmere conscripts every mouth he feeds. They burn the needle for warmth. Stealing it starves them, Ammut."
+
+"Fuck them. I need the fire for home."
+
+You check the heavy bolts in your quiver. Up on the redoubt crags, the scavengers' smoke stains the grey sky.
+[t19 player] Scout the scavenger perimeter path.
+[t20 GM · gemini-3.8-flash] You leave the pit behind. The climb up the ridge is pure gravel and spite.
+
+You belly down in the grey scree. Daeris crawls beside you, staying low. The wind smells of burning pitch and old lard.
+
+Two scavengers patrol the perimeter trench thirty yards up. They wear boiled hide stitched with rusted scrap iron. One carries a barbed harpoon wired to an alchemical battery. The other leans on a notched heavy blade, shivering violently in the frost. A trip-wire runs between two blackened limestone cairns right across their gap.
+
+Past them, the redoubt sits on the high bluff. It is a rat's nest of scavenged beams, sheet metal, and greasy canvas. Thick black smoke chokes the sky above it. Deep inside the sprawl, a steady orange flare pulses like an open furnace. That is the Pyre Needle.
+
+"Two sentries. But look past them, Ammut. There are three dozen cooking fires in that yard. If you start a bloodbath, we fight a whole starving army."
+
+"Then I won't start a fight. I'll just take their fucking heat."
+[t20 player] Cut down the two sentries quietly.
+[t21 GM · gemini-3.8-flash] You draw the runeforged cleaver and an iron knife.
+
+The wind kicks up a gust of grey grit. You move on the count of three. Silent Stalker means zero boot-scrape on the scree. You cross the thirty yards like a bad thought.
+
+You catch the shivering sentry first. Your left hand clamps his mouth shut. The cleaver slides behind his collarbone, hard and down. The blade bites deep into his lung. He twitches once and goes dead weight.
+
+The harpooner hears the armor rattle. He turns. His mouth opens to yell.
+
+You snap your wrist. The throwing knife punches through his throat before he draws breath. He drops to his knees in the dirt. Blue spark sizzles once in his crude harpoon battery, then dies in the mud.
+
+You drag both bodies behind the blackened cairns. Blood pools black in the frost. Daeris slips up the trench behind you. She stays crouched, watching the smoke drift above the redoubt gates.
+
+"Clean. But the trench ends ten paces up. Then we cross forty feet of bare mud to reach the needle kiln."
+
+"They won't look at the mud. They're busy shivering."
+
+The redoubt gate is twenty yards ahead, braced with scrap timber. Through the cracked planks, you see the iron chimney of the Pyre N
+[t21 player] Pick the lock on the timber gate.
+[t22 GM · gemini-3.8-flash] You drop into the mud by the gate post. The cold seeps right through your leather trousers.
+
+The lock is crude iron, pitted with rust and frozen spit. A novice's puzzle. You slide a bent wire into the keyhole. You don't need a roll for garbage like this. One twist of tension. The tumbler snaps back with a wet click.
+
+"Fast."
+
+"Shit iron gives up easy."
+
+You ease the gate open an inch. Beyond the timber lies the inner yard. A dozen conscripts in rags huddle around an iron crucible. In the center rises the Pyre Needle, glowing dull cherry-red and humming with stolen heat. A heavy-set man in boiled hide stands watch over them with a notched billhook.
+NEWEST RAW GM RESPONSE (tags intact):
+[TIME_CHECK:mid-morning]
+[TIME_ADVANCE:5m]
+[NO_CHANGE:Pyre Needle is an object]
+[SCENE_CAST:none]
+
+You drop into the mud by the gate post. The cold seeps right through your leather trousers.
+
+The lock is crude iron, pitted with rust and frozen spit. A novice's puzzle. You slide a bent wire into the keyhole. You don't need a roll for garbage like this. One twist of tension. The tumbler snaps back with a wet click.
+
+[SAY:Daeris|whispering]"Fast."
+
+[SAY:Ammut|flat]"Shit iron gives up easy."
+
+You ease the gate open an inch. Beyond the timber lies the inner yard. A dozen conscripts in rags huddle around an iron crucible. In the center rises the Pyre Needle, glowing dull cherry-red and humming with stolen heat. A heavy-set man in boiled hide stands watch over them with a notched billhook.
+
+[SUGGEST:Slip behind the fuel stacks|Use Invisibility on yourself and Daeris|Drop the guard with a crossbow bolt]
+SUGGESTED ACTIONS SHOWN: Slip behind the fuel stacks | Use Invisibility on yourself and Daeris | Drop the guard with a crossbow bolt | Accept the offer: The Siege of the Salt Weirs.
+
+--- report metadata ---
+id: 99809669-baef-4edb-9b7a-373b4051187c
+receivedAt: 2026-10-18T17:35:57.698Z
+clientTs: 2026-10-18T17:35:52.591Z
+kind: user-report
+ctx: user-report
+app: v1.1275
+camp: Ammut
+turn: 22
+url: https://traffic-and-dragons.pages.dev/
+ua: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1
+online: true
+suppressed: 0
+screenshotUrl: https://drive.google.com/file/d/1NGiBJLiFq31KYJfQm1QY3kPT_zRTGZpW/view?usp=drivesdk
+```
+
+### Findings
+
+### Action log
+
 ## B38 — Gemini's safety filter (PROHIBITED_CONTENT) blocks the chapter extractor on consecutive turns — each summary is dropped and nothing falls back (The Long Walk, Silas Morne, Runelords, the Village; v1.838–v1.951)
 **Status:** fixed (v1.962, 2026-09-21 — the elision ladder: when both extractor shapes are refused, each exchange is probed once, the blocked ones are withheld from both halves, the rest is extracted; v1.960's no-replay half stands)
 **Kind:** crash · **First seen:** 2026-09-07 (v1.838) · **Last seen:** 2026-09-18 (v1.951) · **Count:** 9 · **Campaign:** The Long Walk ×3, Rise of the Runelords (Ammut) ×1, Silas Morne ×3, The Village (Ammut) ×2 · **Turn:** 18, 19, 20, 2456, 39, 40, 41, 57, 65

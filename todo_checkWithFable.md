@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-18 · /bugs sync · Codex: filed B44–B46 from three new user reports; preserved raw evidence and screenshot links, checked all 367 feed IDs against the tracker, and advanced the local sync cursor. Docs only; no investigation or game changes.
+
 - 2026-10-12 · #624 follow-up (CSS only) · Extracted light/dark tokens into website/themes.css, shared by both static deployments; all landing/Home color literals now use tokens. Shared CSS is network-first with offline fallback; local helper/preview asset routes include its import. No layout or engine behavior changes. The palette contract follows the actual import and retains token coverage; browser proof changes the shared accent once and checks both rendered pages.
 
 - 2026-10-12 · #624 (thin UI) · Home uses the shared landing palette, retires Quick Start, features Continue/New Campaign and groups tools in Extras. URL intent calls the existing newGame confirmation after loading; no engine/state writer changes. Owner-requested retirement replaces the Quick Start-specific source/browser contracts while retaining payload and shelf safety checks.
