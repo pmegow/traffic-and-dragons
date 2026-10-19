@@ -46,7 +46,7 @@ function buildFileMenus(){
     }
     h+=btn(p+"account","&#128100; Account&hellip;",0);/* §3 gateway: subscription status, turn allowance, GM routing, sign out */
     h+=btn(p+"home","&#127968; Home",0);/* #290: bibles, designer, curated shelf, the account library */
-    h+=btn(p+"faq","&#10067; Player FAQ",0);/* #642: the player FAQ page (faq.html) — the first five minutes and the help desk's answers; opens in its own tab so the campaign stays put */
+    h+=btn(p+"guide","&#10067; Beta guide",0);/* #642: the beta guide (DOC/beta-guide.html) — sign-in to the first adventure, the UI tour, this menu row by row; it links the Player FAQ (owner 2026-10-18: the guide is the default); opens in its own tab so the campaign stays put */
     h+=btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only",hidden:true});
     h+=g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true});
     h+=g?btn(p+"talk","&#128483; Talk to&hellip;",0):btn(null,"&#128483; Talk to&hellip;",0,{dim:true});/* #633: a spoken conversation with your character, outside the story */
@@ -197,7 +197,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
     });
     // Direct click handlers (no close needed)
-    [["clearcache",clearCacheAndReload],["clearcache-top",clearCacheAndReload],["home",function(){location.href="home.html";}],["faq",function(){closeAllMenus();window.open("faq.html","_blank","noopener");}],["admin-console",function(){location.href="admin_console.html";}]].forEach(function(it){
+    [["clearcache",clearCacheAndReload],["clearcache-top",clearCacheAndReload],["home",function(){location.href="home.html";}],["guide",function(){closeAllMenus();window.open("DOC/beta-guide.html","_blank","noopener");}],["admin-console",function(){location.href="admin_console.html";}]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",it[1]);
     });
     // Change handlers

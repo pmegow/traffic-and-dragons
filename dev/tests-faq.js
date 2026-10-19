@@ -55,12 +55,43 @@ t("the page is a satellite: satellite.css linked, no palette tokens of its own, 
   if(m[1].indexOf("faq\\.html(?:$|[?#])")<0)return "sw.js's network-first regex lacks faq.html — the SW would pin it stale";
   return true;
 });
-t("two doors: Home's Reference card links the FAQ, and the File menu spec carries a Player FAQ row that opens faq.html in a new tab",function(){
-  var home=read("home.html"),ub=read("ui-boot.js");
-  if(home.indexOf('href="faq.html"')<0)return "home.html links faq.html";
-  var card=home.slice(home.indexOf("<h3>Reference</h3>"),home.indexOf("<h3>Mementos</h3>"));if(card.indexOf('href="faq.html"')<0)return "the link sits in the Reference card";
-  if(ub.indexOf('btn(p+"faq","&#10067; Player FAQ",0)')<0)return "the generated menu spec has the Player FAQ row (never index.html)";
-  if(ub.indexOf('["faq",function(){closeAllMenus();window.open("faq.html","_blank","noopener");}]')<0)return "the row opens faq.html in a new tab, closing the menu first";
+t("two doors open the GUIDE (owner 2026-10-18: it is the default): Home's Reference card links DOC/beta-guide.html and the File menu spec carries a Beta guide row that opens it in a new tab; the guide links the FAQ and the FAQ links the guide",function(){
+  var home=read("home.html"),ub=read("ui-boot.js"),g=read("DOC/beta-guide.html");
+  var card=home.slice(home.indexOf("<h3>Reference</h3>"),home.indexOf("<h3>Mementos</h3>"));if(card.indexOf('href="DOC/beta-guide.html"')<0)return "the Reference card links the guide";
+  if(ub.indexOf('btn(p+"guide","&#10067; Beta guide",0)')<0)return "the generated menu spec has the Beta guide row (never index.html)";
+  if(ub.indexOf('["guide",function(){closeAllMenus();window.open("DOC/beta-guide.html","_blank","noopener");}]')<0)return "the row opens the guide in a new tab, closing the menu first";
+  if(/btn\(p\+"faq"|"faq",function/.test(ub))return "the old Player FAQ row is gone (one door per page)";
+  if((g.match(/href="\.\.\/faq\.html"/g)||[]).length<2)return "the guide links the FAQ (subtitle and TOC)";
+  if(read("faq.html").indexOf('href="DOC/beta-guide.html"')<0)return "the FAQ links the guide";
+  return true;
+});
+/* owner 2026-10-18: the guide's table of contents is live, Optional accounts is gone, and every numbered callout explains itself */
+t("the guide's TOC links every section (each href has its h2 id, nine steps numbered in order) and the Optional accounts section is gone",function(){
+  var g=read("DOC/beta-guide.html"),toc=g.slice(g.indexOf('<div class="toc">'),g.indexOf("</div>",g.indexOf('<div class="toc">')));
+  var hrefs=(toc.match(/<li><a href="#([a-z-]+)">/g)||[]).map(function(x){return x.slice(14,-2);});
+  if(hrefs.length!==9)return "nine linked TOC entries, got "+hrefs.length;
+  for(var i=0;i<hrefs.length;i++)if(g.indexOf('<h2 id="'+hrefs[i]+'"><span class="stepnum">'+(i+1)+'</span>')<0)return "TOC entry "+(i+1)+" (#"+hrefs[i]+") has no matching numbered h2";
+  if((toc.match(/<li>/g)||[]).length!==hrefs.length)return "a TOC entry is not a link";
+  if(/Optional accounts/.test(g))return "Optional accounts survives";
+  var nums=(g.match(/<span class="stepnum">(\d+)<\/span>/g)||[]).map(function(x){return +x.replace(/\D/g,"");});
+  if(nums.join(",")!=="1,2,3,4,5,6,7,8,9")return "step numbers run 1..9: "+nums.join(",");
+  if(g.indexOf("link in step 3")<0)return "the sign-in step points at the renumbered Open the game step";
+  return true;
+});
+t("the tour's callouts carry a hint: every callout is a button with a TIPS entry, a hover tooltip for mouse users (hover:hover), a press-and-hold modal for touch (pointer:coarse, HOLD_MS) and a target section to jump to",function(){
+  var g=read("DOC/beta-guide.html"),calls=g.match(/<button type="button" class="callout[^"]*" data-n="(\d)"/g)||[];
+  if(calls.length<8)return "eight numbered callout buttons, got "+calls.length;
+  var script=g.slice(g.indexOf("var TIPS={"),g.indexOf("};",g.indexOf("var TIPS={"))),keys=(script.match(/^\s*(\d):\[/gm)||[]).map(function(x){return x.replace(/\D/g,"");});
+  for(var i=0;i<calls.length;i++){var nn=/data-n="(\d)"/.exec(calls[i])[1];if(keys.indexOf(nn)<0)return "callout "+nn+" has no TIPS entry";if(g.indexOf('<h3 id="ui-'+nn+'">')<0)return "callout "+nn+" has no section id ui-"+nn+" to jump to";}
+  if(/<span class="callout"/.test(g))return "a callout is still a bare span (no hint, not focusable)";
+  if(g.indexOf(".callout::after{content:attr(data-tip)")<0||g.indexOf("@media (hover:hover){.callout:hover::after")<0)return "the hover tooltip CSS is gone";
+  if(g.indexOf('matchMedia("(pointer:coarse)")')<0||g.indexOf('el.addEventListener("pointerdown",function(e){if(!coarse)return;')<0||g.indexOf("hold.fired=true;openModal(n)")<0||!/},HOLD_MS\)/.test(g))return "the press-and-hold modal path is gone (the pointerdown handler that arms HOLD_MS and opens the modal)";
+  if(g.indexOf('el.setAttribute("data-tip",tip[0]')<0)return "the hint text is written onto the callout for the tooltip";
+  return true;
+});
+t("the staged world and the guide name no licensed setting (the Runelords names were the owner's catch)",function(){
+  var bad=/Sandpoint|Runelords|Skinsaw|Swallowtail|Shalelu|Rusty Dragon|Golarion|Pathfinder|Varisia|Thistletop/i,f=["DOC/beta-guide.html","dev/shoot-beta-guide.js"],i,m;
+  for(i=0;i<f.length;i++){m=bad.exec(read(f[i]));if(m)return f[i]+" names "+m[0];}
   return true;
 });
 /* #642 follow-up (owner 2026-10-17): the FAQ and the beta guide paint in the GAME's colour scheme — game-theme.js reads the

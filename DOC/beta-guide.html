@@ -38,10 +38,15 @@
   th{color:var(--t2);text-transform:uppercase;font-size:11px;letter-spacing:.1em;text-align:left;padding:6px 10px;border-bottom:1px solid var(--brd2);}
   td{padding:8px 10px;border-bottom:1px solid var(--brd);vertical-align:top;color:var(--t1);}
   td:first-child{color:var(--t0);white-space:nowrap;}
+  @media (max-width:600px){td:first-child{white-space:normal;}}/* a long symptom in the first column must wrap on a phone, or the page overflows sideways and the browser zooms the whole guide out */
   .kbd{display:inline-block;background:var(--bg2);border:1px solid var(--brd2);border-bottom-width:2px;border-radius:4px;padding:0 7px;font-size:13px;font-family:Consolas,Menlo,monospace;}
   .toc{background:var(--bg1);border:1px solid var(--brd);border-radius:8px;padding:16px 20px;margin:0 0 8px;}
   .toc ol{margin:6px 0 0 22px;}
   .toc li{margin-bottom:4px;}
+  .toc a{color:var(--t0);text-decoration:none;border-bottom:1px dotted var(--brd2);}
+  .toc a:hover{color:var(--acc);border-bottom-color:var(--acc);}
+  .toc-faq{margin:12px 0 0;font-size:14.5px;color:var(--t1);}
+  html{scroll-behavior:smooth;}
   .urlbox{background:var(--bg2);border:1px dashed var(--acc);border-radius:8px;padding:14px 18px;margin:14px 0;text-align:center;font-size:18px;}
   .shots{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin:20px 0;}
   .shots figure{flex:1;min-width:240px;max-width:330px;margin:0;}
@@ -50,7 +55,17 @@
   .shots figcaption{font-size:13px;color:var(--t2);margin-top:10px;line-height:1.55;text-align:center;font-style:italic;}
   /* Chips center via flex, NOT line-height: the 2px border eats the content box, and Georgia's
      old-style numerals (3/4/5/9 descend) sat visibly low — Arial has lining figures. */
-  .callout{position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:var(--on-acc);font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;border:2px solid var(--bg0);box-shadow:0 1px 6px rgba(0,0,0,.7);transform:translate(-50%,-50%);}
+  .callout{position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:var(--on-acc);font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;border:2px solid var(--bg0);box-shadow:0 1px 6px rgba(0,0,0,.7);transform:translate(-50%,-50%);padding:0;line-height:1;cursor:pointer;touch-action:manipulation;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;}
+  .callout:focus-visible{outline:2px solid var(--t0);outline-offset:2px;}
+  /* the hint: a hover (or keyboard focus) tooltip on a mouse; touch screens get the press-and-hold modal instead (script below) */
+  .callout::after{content:attr(data-tip);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);width:max-content;max-width:230px;background:var(--bg1);color:var(--t0);border:1px solid var(--brd2);border-radius:8px;padding:8px 10px;font:13px/1.45 Georgia,'Times New Roman',serif;text-align:left;white-space:normal;box-shadow:0 4px 16px rgba(0,0,0,.45);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s;z-index:5;}
+  .callout.flip::after{left:auto;right:calc(100% + 8px);}
+  @media (hover:hover){.callout:hover::after,.callout:focus-visible::after{opacity:1;visibility:visible;}}
+  .tipmodal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .tipmodal>div{background:var(--bg1);color:var(--t0);border:1px solid var(--brd2);border-radius:12px;padding:18px 20px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+  .tipmodal h3{margin:0 0 8px;font-size:17px;color:var(--acc);display:flex;align-items:center;gap:10px;}
+  .tipmodal p{margin:0 0 14px;font-size:15px;color:var(--t1);line-height:1.55;}
+  .tipmodal button{background:var(--acc);color:var(--on-acc);border:0;border-radius:8px;padding:10px 16px;font:15px Georgia,'Times New Roman',serif;cursor:pointer;min-height:44px;}
   .mkh{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:var(--on-acc);font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;margin-right:9px;vertical-align:middle;}
   hr{border:none;border-top:1px solid var(--brd);margin:36px 0;}
   .footer{color:var(--t2);font-size:13px;font-style:italic;margin-top:48px;text-align:center;}
@@ -65,51 +80,33 @@
 <div class="toc">
   <b>What's ahead</b>
   <ol>
-    <li>What Traffic and Dragons is (30 seconds)</li>
-    <li>Sign in <em>(required)</em></li>
-    <li>Optional accounts — images, cloud sync, voice</li>
-    <li>Open the game</li>
-    <li>Put it on your home screen like an app</li>
-    <li>Create your character</li>
-    <li>Start your campaign &amp; how to play</li>
-    <li>About the UI — a tour of the screen</li>
-    <li>About the File menu</li>
-    <li>If something looks broken</li>
+    <li><a href="#what">What Traffic and Dragons is (30 seconds)</a></li>
+    <li><a href="#sign-in">Sign in <em>(required)</em></a></li>
+    <li><a href="#open">Open the game</a></li>
+    <li><a href="#install">Put it on your home screen like an app</a></li>
+    <li><a href="#character">Create your character</a></li>
+    <li><a href="#play">Start your campaign &amp; how to play</a></li>
+    <li><a href="#ui">About the UI — a tour of the screen</a></li>
+    <li><a href="#file-menu">About the File menu</a></li>
+    <li><a href="#broken">If something looks broken</a></li>
   </ol>
+  <p class="toc-faq">Short on time? The <a href="../faq.html">Player FAQ</a> has the first five minutes and the questions the help desk answers.</p>
 </div>
 
-<h2><span class="stepnum">1</span>What this is</h2>
+<h2 id="what"><span class="stepnum">1</span>What this is</h2>
 <p>Traffic and Dragons is a sword &amp; sorcery role-playing game that runs entirely in your browser. You create a character, and an AI Game Master narrates a living adventure around you — tracking your health, gold, inventory, quests, and the people you meet, across sessions. There's nothing to install and nothing to buy: you <b>sign in</b> with Google or GitHub, and during the beta the operator's account powers the Game Master.</p>
 <div class="tip"><span class="ico">🗝</span><b>Why sign in?</b> During the beta the game runs on the operator's model account: you sign in with Google or GitHub, the operator pays for the turns, and your campaigns follow your account between devices. There is no key to buy and nothing to paste. (Operators can still run on their own provider credentials from File ▸ Settings.)</div>
 
-<h2><span class="stepnum">2</span>Sign in <em style="font-size:14px;color:var(--dng);">(required)</em></h2>
+<h2 id="sign-in"><span class="stepnum">2</span>Sign in <em style="font-size:14px;color:var(--dng);">(required)</em></h2>
 <ol>
-  <li>Open the game (link in step 4) and press <b>Sign in</b>. Google or GitHub — whichever you already have.</li>
+  <li>Open the game (link in step 3) and press <b>Sign in</b>. Google or GitHub — whichever you already have.</li>
   <li>Approve the sign-in in the popup. That is the whole account: no email to verify, no credits to buy.</li>
   <li>The operator grants each tester a monthly allowance of turns. File ▸ Account shows how many you have used.</li>
 </ol>
 <div class="tip money"><span class="ico">💰</span><b>What does it cost you?</b> Nothing during the beta. The operator's account pays for every turn; the allowance keeps that honest. If the game ever says your account has no active subscription, ask the operator — your story is safe and waiting.</div>
 <div class="tip warn"><span class="ico">⚠</span><b>What the operator can see.</b> When you play signed in, every prompt the game sends to the model passes through the operator's server, so the operator can read your prompts to run the game. Bug reports say exactly what they send before you send them.</div>
 
-<h2><span class="stepnum">3</span>Optional accounts — nice, not necessary</h2>
-<p>Signing in is the whole setup. The extras below come with it — nothing to sign up for, nothing to paste:</p>
-
-<div class="card opt">
-  <span class="tag">Optional — scene &amp; portrait images</span>
-  Signed in, the <b>Render</b> button (paints the current scene) and the character portrait come with a weekly allowance of included images — the game tells you when the week's allowance is used up. Nothing to set up.
-</div>
-
-<div class="card opt">
-  <span class="tag">Optional — cloud sync &amp; cross-device play</span>
-  Your campaigns save to your account as you play and follow you to any device you sign in on — phone, tablet, desktop. Each device also keeps a local copy, and File ▸ 💾 Save / Load can write a file-based backup any time.
-</div>
-
-<div class="card opt">
-  <span class="tag">Optional — voice narration</span>
-  <b>Nothing to sign up for.</b> Tap the 🔈 speaker button in the game and it reads the story aloud using your device's built-in voice. (File ▸ ⚙ Settings ▸ 🔊 Audio ▸ Voice Settings offers the cloud readers your account includes; the built-in voice needs nothing.)
-</div>
-
-<h2><span class="stepnum">4</span>Open the game</h2>
+<h2 id="open"><span class="stepnum">3</span>Open the game</h2>
 <div class="urlbox">🌐 <b>https://traffic-and-dragons.pages.dev</b></div>
 <ol>
   <li>Open the link above in <b>Chrome</b> (Android/desktop) or <b>Safari</b> (iPhone/iPad). Other modern browsers work too.</li>
@@ -117,7 +114,7 @@
   <li><b>Fastest way in:</b> open the <b>Home</b> page (File ▸ 🏠 Home), pick one of the three pre-made heroes and a story, and press <b>Play</b>. The Game Master opens your first scene. The character wizard is the custom path — it is there when you want a hero of your own.</li>
 </ol>
 
-<h2><span class="stepnum">5</span>Put it on your home screen</h2>
+<h2 id="install"><span class="stepnum">4</span>Put it on your home screen</h2>
 <p>The game is a proper web app — installed to your home screen it opens fullscreen with its own icon, like any native app.</p>
 <h3>📱 iPhone / iPad (Safari)</h3>
 <ol>
@@ -139,7 +136,7 @@
   <li>Click it → <b>Install</b>. The game gets its own window and an entry in your Start menu / dock.</li>
 </ol>
 
-<h2><span class="stepnum">6</span>Create your character</h2>
+<h2 id="character"><span class="stepnum">5</span>Create your character</h2>
 <p>First launch drops you into a six-step character builder. There are no wrong answers — lean into whatever sounds fun:</p>
 <table>
   <tr><th>Step</th><th>What you're choosing</th></tr>
@@ -152,7 +149,7 @@
 </table>
 <div class="tip"><span class="ico">💡</span><b>Don't overthink the backstory.</b> A sentence or two is plenty — the Game Master weaves whatever you give it into the story, and the interesting stuff happens in play anyway.</div>
 
-<h2><span class="stepnum">7</span>Start your campaign &amp; how to play</h2>
+<h2 id="play"><span class="stepnum">6</span>Start your campaign &amp; how to play</h2>
 <p>Hit confirm and the Game Master opens your story with your first scene. From there:</p>
 <ul>
   <li><b>Type what you do</b> in the box at the bottom — plain English, first person. <em>"I ask the innkeeper about the missing caravan."</em> <em>"I draw my sword."</em> <em>"I search the body."</em> Anything. The world reacts.</li>
@@ -167,63 +164,63 @@
 </ul>
 <div class="tip"><span class="ico">🎭</span><b>Play it like improv, not like a menu.</b> The best sessions come from trying things no button suggests — bribe the guard, adopt the wolf, burn the letter unread. The Game Master keeps up.</div>
 
-<h2><span class="stepnum">8</span>About the UI — a tour of the screen</h2>
-<p>Two views of the same moment on a phone, in the default dark palette (turn Dark mode off for parchment). Desktop lays the same pieces out wider: the side panel ⑥ is always open on the right, and the top bar also carries <b>World State</b> and <b>Render</b>. The numbers match the sections below:</p>
+<h2 id="ui"><span class="stepnum">7</span>About the UI — a tour of the screen</h2>
+<p>Two views of the same moment on a phone, in the default dark palette (turn Dark mode off for parchment). Desktop lays the same pieces out wider: the side panel ⑥ is always open on the right, and the top bar also carries <b>World State</b> and <b>Render</b>. The numbers match the sections below — hover one for a hint (on a phone, press and hold it), tap it to jump to its section:</p>
 <div class="shots">
   <figure>
     <div class="shotwrap">
       <img src="beta-ui-story.png" alt="The story view on a phone: the top bar with name, class, HP, MP and gold; the place line and the Connected locations dropdown; the status strip with the act, the clock and the version; the Game Master's narration with the speaker and Render buttons under it; three suggested actions; the voice strip; the input row with the mic and Send, and the Story and Table Talk tabs." loading="lazy">
-      <span class="callout" style="left:0;top:5.2%;">1</span>
-      <span class="callout" style="left:0;top:11.5%;">2</span>
-      <span class="callout" style="left:0;top:15.6%;">3</span>
-      <span class="callout" style="left:0;top:43%;">4</span>
-      <span class="callout" style="left:0;top:74%;">5</span>
-      <span class="callout" style="left:98.5%;top:52.8%;">6</span>
-      <span class="callout" style="left:0;top:89.6%;">7</span>
-      <span class="callout" style="left:0;top:94.1%;">8</span>
+      <button type="button" class="callout" data-n="1" style="left:0;top:5.2%;">1</button>
+      <button type="button" class="callout" data-n="2" style="left:0;top:11.5%;">2</button>
+      <button type="button" class="callout" data-n="3" style="left:0;top:15.6%;">3</button>
+      <button type="button" class="callout" data-n="4" style="left:0;top:43%;">4</button>
+      <button type="button" class="callout" data-n="5" style="left:0;top:74%;">5</button>
+      <button type="button" class="callout flip" data-n="6" style="left:98.5%;top:52.8%;">6</button>
+      <button type="button" class="callout" data-n="7" style="left:0;top:89.6%;">7</button>
+      <button type="button" class="callout" data-n="8" style="left:0;top:94.1%;">8</button>
     </div>
     <figcaption>The story view — the side panel is closed; its handle is the thin bar at the right edge ⑥.</figcaption>
   </figure>
   <figure>
     <div class="shotwrap">
       <img src="beta-ui-panel.png" alt="The same screen with the side panel dragged open: the Party section lists Ammut and three companions with their health, and a column of tabs — Pty, Qst, Inv, Ab, Sp — and the narration speaker runs down the right edge." loading="lazy">
-      <span class="callout" style="left:96%;top:25%;">6</span>
+      <button type="button" class="callout flip" data-n="6" style="left:96%;top:25%;">6</button>
     </div>
     <figcaption>The same moment with the panel dragged open — Party selected; the tabs <em>Pty · Qst · Inv · Ab · Sp</em> and the 🔈 narration toggle run down the right edge.</figcaption>
   </figure>
 </div>
 
-<h3><span class="mkh">1</span>The top bar (your HUD)</h3>
+<h3 id="ui-1"><span class="mkh">1</span>The top bar (your HUD)</h3>
 <p>Your vital signs at a glance — name, class &amp; level, <b style="color:var(--hp);">HP</b>, <b style="color:var(--mana);">MP</b>, <b style="color:var(--gold);">gold</b>. <b>File ▾</b> is everything else — see the next section. On desktop the bar also has <b>World State</b> (a slide-out panel with your location, the time and weather, everyone you have met and the quest journal) and <b>Render</b> (paints the scene); on a phone both live in the File menu.</p>
 
-<h3><span class="mkh">2</span>Where you are</h3>
+<h3 id="ui-2"><span class="mkh">2</span>Where you are</h3>
 <p>The place line — the world and the spot within it — and <b>Connected locations</b>, every way out the map knows. Pick one and its sentence lands in the input box for you to send or edit; it never sends by itself. (On desktop the same ways are chips in the top bar.)</p>
 
-<h3><span class="mkh">3</span>The status strip</h3>
+<h3 id="ui-3"><span class="mkh">3</span>The status strip</h3>
 <p>The act you are in, the campaign clock (day and hour), the version, and the small dots at the end: green means the Game Master's memory is in good health, and a cloud badge shows while your account syncs. (Desktop shows the memory ticker here — tokens, chapters, people met, turn.)</p>
 
-<h3><span class="mkh">4</span>The story area</h3>
+<h3 id="ui-4"><span class="mkh">4</span>The story area</h3>
 <p>The main scroll — the Game Master's narration, your own lines, dice results, a turn number over each scene. Under the latest scene: <b>🔊</b> reads that scene aloud, <b>Render</b> paints it, and <b>Shop</b> appears when there is something for sale where you stand. When a fight starts, a <b>combat tracker</b> — each enemy's health bar and the round — appears at the top of this area and vanishes when the dust settles; tap an enemy's name for what you know about it.</p>
 
-<h3><span class="mkh">5</span>Suggested actions</h3>
+<h3 id="ui-5"><span class="mkh">5</span>Suggested actions</h3>
 <p>Three suggestions from the Game Master and a dashed fourth from the game itself — rest when you are hurt, use an item you carry, take an offered quest, buy something here, or a reckless wildcard. Tap one to edit it; hold it (Ctrl-click on desktop) to send it as it is.</p>
 
-<h3><span class="mkh">6</span>The side panel</h3>
+<h3 id="ui-6"><span class="mkh">6</span>The side panel</h3>
 <p>On a phone it hides behind the thin handle at the right edge: drag the handle left to open it as wide as you like, double-tap it to open or close. Down its edge run the tabs — <b>Pty</b> (the party, with everyone's health), <b>Qst</b> (quests: accept, decline, track), <b>Inv</b>, <b>Ab</b>, <b>Sp</b> — and the 🔈 narration toggle. <b>Tap your own name in Party to open your character sheet</b>; tap a companion for theirs. On desktop the panel is always open with every section in view.</p>
 
-<h3><span class="mkh">7</span>The voice strip</h3>
+<h3 id="ui-7"><span class="mkh">7</span>The voice strip</h3>
 <p>Appears while the narrator reads — <b>⏸</b> pauses and resumes, <b>⏭</b> skips ahead. Narration itself is switched on and off with the 🔈 (in the panel's tab column on a phone, in the top bar on desktop).</p>
 
-<h3><span class="mkh">8</span>The input row</h3>
+<h3 id="ui-8"><span class="mkh">8</span>The input row</h3>
 <p>The box where you say what you do (× clears it), the <b>🎤 mic</b> for dictating instead of typing, and <b>Send</b>. Below it, two tabs: <b>Story</b> (the adventure) and <b>Table Talk</b> (out-of-character talk with the Game Master — a dot marks unread replies).</p>
 
-<h2><span class="stepnum">9</span>About the File menu</h2>
+<h2 id="file-menu"><span class="stepnum">8</span>About the File menu</h2>
 <p><b>File ▾</b> is home to everything that isn't moment-to-moment play. The headliners:</p>
 <table>
   <tr><th>Item</th><th>What it does</th></tr>
   <tr><td>👤 Account…</td><td>Your sign-in, the turns you have used this month, and sign out.</td></tr>
-  <tr><td>🏠 Home</td><td>The curated stories, your library, the Blueprint Designer, the Character Editor, the reference bibles and the Player FAQ.</td></tr>
-  <tr><td>❓ Player FAQ</td><td>The short answers — the first five minutes and the questions the help desk knows — in their own tab.</td></tr>
+  <tr><td>🏠 Home</td><td>The curated stories, your library, the Blueprint Designer, the Character Editor, the reference bibles and this guide.</td></tr>
+  <tr><td>❓ Beta guide</td><td>This guide, in its own tab — the Player FAQ is linked at its top.</td></tr>
   <tr><td>🚗 Car Mode</td><td>Hands-free play: it reads the scene aloud, listens for your spoken action, and keeps the loop going. Passenger-seat approved.</td></tr>
   <tr><td>🗣 Talk to…</td><td>A spoken conversation with your character or a companion, outside the story — nothing said there changes the campaign.</td></tr>
   <tr><td>💾 Save / Load ▶</td><td><b>📁 Campaigns…</b> — your saved adventures: run several at once, switch between them, pull one down onto a new device. <b>Save/Load Game (local)</b> — file-based backups of the whole campaign. <b>Export Character</b> — save your hero as a portable <code>.char</code> file or to your account library. <b>Import Character</b> — bring a hero in: play as them in a new campaign, or add them to the current party as a companion. <b>Export as Blueprint</b> — distill your campaign into a reusable template others can play. <b>Save story to account</b> — keep a finished tale as a memento.</td></tr>
@@ -244,7 +241,7 @@
 </table>
 <div class="tip"><span class="ico">📱</span>On phones, the File menu also picks up a few quick actions (World state, Render prompt) that live as top-bar buttons on desktop. The same menu is available on the character-creation screen, with game-only items greyed out until you're playing. <b>✍ Write the ending…</b> and <b>◉ Close this campaign…</b> appear at the top of the menu when a tale is ready for them.</div>
 
-<h2><span class="stepnum">10</span>If something looks broken</h2>
+<h2 id="broken"><span class="stepnum">9</span>If something looks broken</h2>
 <table>
   <tr><th>Symptom</th><th>Fix</th></tr>
   <tr><td>Page looks stale or misbehaves after an update</td><td><b>File ▾ → Clear cache &amp; reload.</b> This is the universal fix — try it first. (Or a hard refresh: <span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">R</span> on desktop.)</td></tr>
@@ -258,5 +255,39 @@
 <p class="footer">Traffic and Dragons · closed beta · thank you for playing — every bug you hit makes the game better. ⚔</p>
 
 </div>
+<script>
+(function(){
+  /* ONE table: the hint each numbered callout shows — hover on a mouse, press-and-hold on a touch screen; a tap jumps to the section */
+  var TIPS={
+    1:["The top bar (your HUD)","Name, class and level, HP, MP and gold. File \u25BE is everything else."],
+    2:["Where you are","The place line and Connected locations \u2014 pick a way out and its sentence lands in the input box."],
+    3:["The status strip","The act you are in, the campaign clock, the version and the memory-health dot."],
+    4:["The story area","Narration, your lines and dice results \u2014 under the latest scene, the speaker, Render and Shop."],
+    5:["Suggested actions","Three from the Game Master and a dashed fourth from the game. Tap to edit, hold to send."],
+    6:["The side panel","Behind the handle at the right edge: Party, Quests, Inventory, Abilities, Spells and the narration toggle. Your own name in Party opens your sheet."],
+    7:["The voice strip","While the narrator reads: pause and resume, or skip ahead."],
+    8:["The input row","Say what you do, dictate with the mic, press Send \u2014 and the Story and Table Talk tabs."]
+  };
+  var coarse=!!(window.matchMedia&&window.matchMedia("(pointer:coarse)").matches),HOLD_MS=450;
+  function closeModal(){var m=document.getElementById("tipmodal");if(m)m.parentNode.removeChild(m);}
+  function openModal(n){closeModal();var tip=TIPS[n],m=document.createElement("div");m.id="tipmodal";m.className="tipmodal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");
+    m.innerHTML="<div><h3><span class='mkh'>"+n+"</span>"+tip[0]+"</h3><p>"+tip[1]+"</p><button type='button' id='tipmodal-close'>Close</button></div>";
+    m.addEventListener("click",function(e){if(e.target===m||e.target.id==="tipmodal-close")closeModal();});document.body.appendChild(m);document.getElementById("tipmodal-close").focus();}
+  document.addEventListener("keydown",function(e){if(e.key==="Escape")closeModal();});
+  Array.prototype.forEach.call(document.querySelectorAll(".callout"),function(el){
+    var n=el.getAttribute("data-n"),tip=TIPS[n],hold=null;
+    if(!tip){if(window.console)console.error("[guide] callout "+n+" has no hint in TIPS");return;}
+    el.setAttribute("data-tip",tip[0]+" \u2014 "+tip[1]);el.setAttribute("aria-label",n+". "+tip[0]+". "+tip[1]);
+    function cancel(){if(hold){clearTimeout(hold.timer);hold=null;}}
+    el.addEventListener("pointerdown",function(e){if(!coarse)return;cancel();hold={fired:false,x:e.clientX,y:e.clientY,timer:setTimeout(function(){if(hold){hold.fired=true;openModal(n);}},HOLD_MS)};});
+    el.addEventListener("pointermove",function(e){if(hold&&!hold.fired&&(Math.abs(e.clientX-hold.x)>8||Math.abs(e.clientY-hold.y)>8))cancel();});
+    el.addEventListener("pointerup",function(){if(hold&&!hold.fired)cancel();});
+    el.addEventListener("pointercancel",cancel);
+    el.addEventListener("contextmenu",function(e){if(coarse)e.preventDefault();});/* a long press must not open the browser's own menu */
+    el.addEventListener("click",function(e){e.preventDefault();if(hold&&hold.fired){hold=null;return;}hold=null;var t=document.getElementById("ui-"+n);if(t)t.scrollIntoView({behavior:"smooth",block:"start"});});
+  });
+  window.__guideTest={tips:TIPS,holdMs:HOLD_MS,coarse:coarse,openModal:openModal,closeModal:closeModal};
+})();
+</script>
 </body>
 </html>

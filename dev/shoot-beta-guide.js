@@ -12,9 +12,9 @@ const TYPES={".html":"text/html",".js":"application/javascript",".css":"text/css
 function fixture(){
   const e=require("./load-engine.js");e.loadEngine();e.makeTestWorld();
   Object.assign(worldState.character,{name:"Ammut",subraceNm:"Half-Fey",ancestry:"Half-Blood",cls:"Rogue",archetypeNm:"Arcane Trickster",level:8,hp:42,maxHp:68,coin:10300,mana:9,spells:[{nm:"Mage Hand",lvl:0,used:false},{nm:"Message",lvl:0,used:false},{nm:"Charm Person",lvl:1,used:true},{nm:"Silent Image",lvl:1,used:false}]});
-  worldState.world.location="Sandpoint";worldState.world.sublocation="the treeline above the Swallowtail camp";worldState.spineComplete=false;worldState.skeleton={acts:[{title:"The Skinsaw Murders",status:"active"}]};worldState.clock={min:6*1440+15*60+55};/* Day 7, 3:55 pm */
-  memory.map.nodes["Sandpoint"]={parent:null,visits:12};
-  ["The Rusty Dragon","Shalelu's camp","The glassworks","The Old Light","Junker's Edge"].forEach(n=>{memory.map.nodes["Sandpoint|"+n]={parent:"Sandpoint",visits:1};});
+  worldState.world.location="Harrowmere";worldState.world.sublocation="the treeline above the river camp";worldState.spineComplete=false;worldState.skeleton={acts:[{title:"The Lantern Debt",status:"active"}]};worldState.clock={min:6*1440+15*60+55};/* Day 7, 3:55 pm */
+  memory.map.nodes["Harrowmere"]={parent:null,visits:12};
+  ["The Gull and Anchor","Old Tansy's stall","The salt gate","The ropewalk","Weir Street"].forEach(n=>{memory.map.nodes["Harrowmere|"+n]={parent:"Harrowmere",visits:1};});
   [["Morwen Zethran","Rogue",67,67,"F"],["Frizwick","Rogue",34,34,"M"],["Daeris","Cleric",38,38,"F"]].forEach(([name,cls,hp,maxHp,gender])=>{
     worldState.npcs.push({name,status:"ally",rel:"companion",met:0,partyMember:true,portrait:null,charSheet:{name,cls,hp,maxHp,level:8,gender,inventory:[],spells:[],abilities:[],partyMember:true}});
     memory.npcs[name]={attitude:"ally",knowledge:[],events:[],partyMember:true};
@@ -22,7 +22,7 @@ function fixture(){
   worldState.turn=203;
   const prose="Morwen clocks it immediately. The way you stand. The angle of your weight. \"Don't,\" she says. Flat.\n\nYou cast anyway.\n\nThe world doesn't change. You do. The fire still throws light. The trees are still dark. But nothing can see you walk into them.\n\nThe cold hits fast past the treeline. Pine needle floor, soft underfoot. Good. Quiet.\n\nYou move thirty feet in. Stop. Listen. Wind through the canopy. An owl, somewhere north. The fire behind you, Daeris laughing at something Frizwick said.";
   worldState.transcript=[{r:"player",x:"I slip out of the firelight and into the treeline.",t:203},{r:"gm",x:prose,t:203}];
-  worldState.lastActions=["Follow the owl's call north through the pines.","Circle back and watch the camp from the dark.","Go invisible deeper and look for the goblin trail."];
+  worldState.lastActions=["Follow the owl's call north through the pines.","Circle back and watch the camp from the dark.","Go invisible deeper and look for the smugglers' path."];
   return JSON.parse(JSON.stringify({world:worldState,memory}));
 }
 (async()=>{
@@ -55,6 +55,12 @@ function fixture(){
     await page.evaluate(()=>{mobileSelectPanel("party");mobileDrawerWidth(Math.round(innerWidth*0.46));});await page.waitForTimeout(200);
     await page.screenshot({path:path.join(out,"beta-ui-panel.png")});const b=await rects();
     if(errors.length)throw new Error("page errors: "+errors.join(" | "));
+    /* the guide itself at the same phone width: no sideways overflow (a 536px nowrap table cell once zoomed the whole page out on a phone) and every callout has its hint */
+    await page.goto("http://guide.test/DOC/beta-guide.html");await page.waitForFunction(()=>!!window.__guideTest);
+    const guide=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,innerWidth:innerWidth,untipped:Array.from(document.querySelectorAll(".callout")).filter(e=>!e.getAttribute("data-tip")).map(e=>e.getAttribute("data-n"))}));
+    if(guide.scrollWidth>guide.innerWidth)throw new Error("the guide overflows sideways on a phone: scrollWidth "+guide.scrollWidth+" > "+guide.innerWidth);
+    if(guide.untipped.length)throw new Error("callouts without a hint: "+guide.untipped.join(","));
+    if(errors.length)throw new Error("guide page errors: "+errors.join(" | "));
     if(!a.actions||!b.party||b.tabs===null)throw new Error("a staged element is missing: "+JSON.stringify({actions:a.actions,party:b.party,tabs:b.tabs}));
     console.log("wrote "+path.join(out,"beta-ui-story.png")+" and beta-ui-panel.png (390x844 @2x, dark)");
     console.log("story anchors  "+JSON.stringify(a));

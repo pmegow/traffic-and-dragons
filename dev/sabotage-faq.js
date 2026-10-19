@@ -17,14 +17,31 @@ prove("faq.html", [
     mustFail: "a missing or empty list is said" }
 ]);
 prove("home.html", [
-  { label: "the Reference card loses the FAQ link",
-    find: "<a class=\"link\" href=\"faq.html\">Player FAQ — the first five minutes →</a>", replace: "",
+  { label: "the Reference card loses the guide link",
+    find: "<a class=\"link\" href=\"DOC/beta-guide.html\">Beta guide — from zero to your first adventure →</a>", replace: "",
     mustFail: "two doors" }
 ]);
 prove("ui-boot.js", [
-  { label: "the File menu loses the Player FAQ row",
-    find: "    h+=btn(p+\"faq\",\"&#10067; Player FAQ\",0);", replace: "",
+  { label: "the File menu loses the Beta guide row",
+    find: "    h+=btn(p+\"guide\",\"&#10067; Beta guide\",0);", replace: "",
     mustFail: "two doors" }
+]);
+/* owner 2026-10-18: the live TOC, the callout hints, the original setting */
+prove("DOC/beta-guide.html", [
+  { label: "a TOC entry stops being a link",
+    find: '<li><a href="#broken">If something looks broken</a></li>', replace: "<li>If something looks broken</li>",
+    mustFail: "TOC links every section" },
+  { label: "a callout loses its hint (its TIPS entry is deleted)",
+    find: '    8:["The input row","Say what you do, dictate with the mic, press Send \\u2014 and the Story and Table Talk tabs."]\n', replace: "",
+    mustFail: "callouts carry a hint" },
+  { label: "the press-and-hold path is removed",
+    find: 'el.addEventListener("pointerdown",function(e){if(!coarse)return;cancel();hold={fired:false,x:e.clientX,y:e.clientY,timer:setTimeout(function(){if(hold){hold.fired=true;openModal(n);}},HOLD_MS)};});', replace: "",
+    mustFail: "callouts carry a hint" }
+]);
+prove("dev/shoot-beta-guide.js", [
+  { label: "the staged world names a licensed town again",
+    find: 'worldState.world.location="Harrowmere";', replace: 'worldState.world.location="Sandpoint";',
+    mustFail: "licensed setting" }
 ]);
 prove("sw.js", [
   { label: "sw.js's network-first regex drops faq.html (the SW would pin the page stale)",
