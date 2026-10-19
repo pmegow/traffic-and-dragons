@@ -91,7 +91,7 @@ After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker
   trait, flaw, motivation,
   languages[],            // {name, broken}
   skills,                 // {skillId: successCount} — all 37 keys, zeroed at creation
-  conditions[],           // {name, duration}
+  conditions[],           // {name, duration, cause?, turn?, until?} — cause "own spell: <name>" marks an entry the engine filed for the player's own lasting self-spell (#644)
   relationships[],        // #168 W7: {entity,bond,bondTurn,dynamic,dynamicTurn}; one directed edge per resolved entity
   saveModifiers[],        // {source, type, amount}
   portrait,               // null | base64 data URL (compressed to max 400×600px JPEG 0.8)

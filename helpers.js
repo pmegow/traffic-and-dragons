@@ -2658,15 +2658,26 @@ function itemDefDecline(key){
 // never "self OR someone") and lasts beyond the moment; null for an instant, a single round (gone before the next turn), a
 // passive that is always on (a trait, not a condition), or a target that may be someone else. Pure over the bible entry; the
 // SPELL_USED writer (tag_table.js) files the player's own casts with it, the CONDITION doc line carries everything else.
+var OWN_SPELL_CAUSE="own spell: ";/* the cause the engine writes on a condition it filed itself — the marker the merge, the re-cast guard and the long-rest sweep key on */
 function capabilityLastingSelf(entry){
   if(!entry)return null;
-  var t=String(entry.targets||"").trim(),d=String(entry.duration||"").trim(),cost=String(entry.cost||"");
-  if(!/^self\b/i.test(t)||/\bor\b/i.test(t))return null;
+  var t=String(entry.targets||"").trim(),d=String(entry.duration||"").trim().replace(/[.\s]+$/,""),cost=String(entry.cost||"");/* review 2026-10-19: an overlay's GM prose arrives with trailing periods */
+  if(!/^(self|you)\b/i.test(t)||/\bor\b/i.test(t))return null;/* "you + up to 10 willing creatures" is on the player too; "you or an ally" is not provably */
   if(/passive/i.test(cost))return null;
-  if(!d||/^(instant|instantaneous|n\/a|none|-|always on|permanent|as the spell)$/i.test(d))return null;
-  if(/^1 round$/i.test(d))return null;
+  if(entry.kind==="spell"&&Number(entry.tier)===0)return null;/* a cantrip's moment never reaches the sheet (Thaumaturgy's "self / nearby" was the one base false positive) */
+  if(!d||/^(instant|instantaneous|n\/a|none|-|always on|permanent|as the spell)\b/i.test(d))return null;
+  if(/^(1|one|a|single)\s+(round|turn)\b/i.test(d)||/^until (the (start|end) of )?your next turn\b/i.test(d))return null;/* gone before the next turn, whatever the wording */
   return d;
 }
+// The words a GM reuses when naming a spell's EFFECT rather than the spell: the whole name, and each word of five letters or more
+// cut to its first five ("Disguise Self" → "disguise self", "disgu"; "Blur" → "blur"), so a same-response "Disguised as a guard"
+// or "Blurred outline" is recognised as this cast while "herself" never matches Self. Same-response only — across turns the
+// merge wants the full name ("blood" in a wound's cause must never fold into Blood Armor).
+function ownSpellStems(name){var nm=String(name||"").toLowerCase().trim(),w=nm.split(/\s+/),out=[nm],i;if(w.length>1)for(i=0;i<w.length;i++)if(w[i].length>=5)out.push(w[i].slice(0,5));return out;}
+function conditionMentionsSpell(text,name){var s=String(text||"").toLowerCase(),st=ownSpellStems(name),i;for(i=0;i<st.length;i++)if(st[i]&&s.indexOf(st[i])>=0)return true;return false;}
+// A long rest outlasts every effect the engine files for itself (minutes and hours — the bible's self-spell durations): drop
+// them and name what faded. GM-filed conditions are untouched — their durations are the GM's to judge (the audit asks).
+function restClearOwnSpellConditions(c){var kept=[],faded=[],i;if(!c||!c.conditions)return faded;for(i=0;i<c.conditions.length;i++){var cd=c.conditions[i];if(cd&&String(cd.cause||"").indexOf(OWN_SPELL_CAUSE)===0)faded.push(cd.name);else kept.push(cd);}if(faded.length)c.conditions=kept;return faded;}
 function bibleCardHTML(name,e){
   if(!e)return '<div style="padding:20px 24px;color:var(--t2,#999);font-size:13px;">No canonical entry yet for <b>'+escHtml(name)+'</b>.</div>';
   var base=String(name||"").replace(/\s*\(.*\)/,"").trim();

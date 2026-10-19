@@ -3475,6 +3475,8 @@ function runEngineTests(R){
     if(L("seventy-two shapes")!=="until you drop it")return "seventy-two shapes (an ability — the doc rule's case, the predicate still knows it): "+L("seventy-two shapes");
     if(L("pass without trace")!=="concentration, up to 1 hour")return "self AND allies lands on the player too: "+L("pass without trace");
     if(L("shield")!==null)return "a 1-round spell is not a sheet condition";
+    if(L("wind walk")!=="8 hours")return "'you + up to 10 willing creatures' lands on the player: "+L("wind walk");
+    if(L("thaumaturgy")!==null)return "a cantrip (tier 0 spell) never: "+L("thaumaturgy");
     if(L("fire bolt")!==null)return "instantaneous";
     if(L("guidance")!==null)return "1 willing creature may be someone else";
     if(L("darkvision")!==null)return "a passive that is always on is a trait, never a condition";
@@ -3487,7 +3489,7 @@ function runEngineTests(R){
     var R=applyMuts("The air around you shimmers. [SPELL_USED:Blur]");
     if(c.conditions.length!==1)return "one condition expected, got "+JSON.stringify(c.conditions);
     var cd=c.conditions[0];
-    if(cd.name!=="Blur"||cd.duration!=="1 minute (concentration)"||cd.cause!=="your Blur"||cd.turn!==40)return "shape: "+JSON.stringify(cd);
+    if(cd.name!=="Blur"||cd.duration!=="1 minute (concentration)"||cd.cause!=="own spell: Blur"||cd.turn!==40)return "shape: "+JSON.stringify(cd);
     if(!(R&&R.muts||[]).some(function(m){return /Condition: Blur/.test(m);}))return "the receipt names it: "+JSON.stringify(R&&R.muts);
     applyMuts("[SPELL_USED:Blur]");if(c.conditions.length!==1)return "a re-cast never doubles it";
     applyMuts("[SPELL_USED:Shield]");if(c.conditions.length!==1)return "Shield (1 round) files nothing";
@@ -3502,10 +3504,47 @@ function runEngineTests(R){
     var _w=console.warn;console.warn=function(){};try{applyMuts("[SPELL_USED:Mirror Image]");}finally{console.warn=_w;}
     return c.conditions.length===0?true:"an unbooked cast filed a condition: "+JSON.stringify(c.conditions);
   });
+  t("overlay durations in GM prose never pass as lasting: 'one round', '1 turn', 'until your next turn', 'Instantaneous.' — while '3 rounds' and '1 hour' do",function(){
+    var P=function(d){return capabilityLastingSelf({kind:"spell",tier:1,cost:"slot",targets:"self",duration:d});};
+    var i,no=["one round","1 turn","a round","until your next turn","until the end of your next turn","Instantaneous.","instant ","N/A","Always on."];
+    for(i=0;i<no.length;i++)if(P(no[i])!==null)return "'"+no[i]+"' passed as lasting";
+    if(P("3 rounds")!=="3 rounds"||P("1 hour.")!=="1 hour")return "a real duration is kept (trailing period trimmed)";
+    if(capabilityLastingSelf({kind:"spell",tier:1,cost:"slot",targets:"yourself",duration:"1 hour"})!==null)return "'yourself' is not bible vocabulary — stays null (documented)";
+    return true;
+  });
+  t("a same-response [CONDITION:] that names the EFFECT ('Disguised as a guard') rather than the spell is still this cast — the engine skips, loudly, and the GM's entry stands alone",function(){
+    var c=makeCaster("Sorcerer","CHA",14,[{nm:"Disguise Self",lvl:1}]);c.conditions=[];var dbg=[],_d=console.debug;console.debug=function(m){dbg.push(String(m));};
+    try{applyMuts("[SPELL_USED:Disguise Self][CONDITION:Disguised as a city guard|1 hour|her own illusion]");}finally{console.debug=_d;}
+    if(c.conditions.length!==1||c.conditions[0].name!=="Disguised as a city guard")return "doubled: "+JSON.stringify(c.conditions);
+    if(!dbg.some(function(m){return /#644 Disguise Self not filed/.test(m);}))return "the skip left no trace: "+JSON.stringify(dbg);
+    if(!conditionMentionsSpell("[CONDITION:Blurred outline|a minute|her spell]","Blur")||conditionMentionsSpell("[CONDITION:Bleeding|1 hour|she cut herself]","Disguise Self"))return "stems: whole single-word names match their inflections, 'Self' never matches 'herself'";
+    return true;
+  });
+  t("the GM naming the effect on a LATER turn merges into the engine's entry — one condition, the GM's name and duration, and REMOVED by that name clears it",function(){
+    var c=makeCaster("Sorcerer","CHA",14,[{nm:"Blur",lvl:2}]);c.conditions=[];worldState.turn=40;
+    applyMuts("[SPELL_USED:Blur]");worldState.turn=41;var R=applyMuts("[CONDITION:Blurred|a minute|her Blur spell]");
+    if(c.conditions.length!==1||c.conditions[0].name!=="Blurred"||c.conditions[0].duration!=="a minute"||c.conditions[0].turn!==40)return "merge: "+JSON.stringify(c.conditions);
+    if(!(R.muts||[]).some(function(m){return /Condition: Blurred \(was Blur/.test(m);}))return "the merge is in the receipt: "+JSON.stringify(R.muts);
+    worldState.turn=42;applyMuts("[SPELL_USED:Blur]");if(c.conditions.length!==1)return "a re-cast beside the GM-named entry (its cause names Blur) files nothing";
+    applyMuts("[CONDITION_REMOVED:Blurred]");if(c.conditions.length!==0)return "REMOVED by the GM's name clears the merged entry";
+    c.conditions=[];applyMuts("[SPELL_USED:Blur]");applyMuts("[CONDITION:Bleeding|1 hour|blood loss from the dagger]");
+    return c.conditions.length===2?true:"a wound whose cause lacks the spell's name never merges into a buff: "+JSON.stringify(c.conditions);
+  });
+  t("a long rest sweeps the engine's own self-spell conditions and names them, GM-filed conditions stay — both the [REST:long] tag and the Rest path",function(){
+    var c=makeCaster("Sorcerer","CHA",14,[{nm:"Blur",lvl:2}]);c.conditions=[{name:"Poisoned",duration:"until antidote",cause:"Reaper Spider bite"}];
+    applyMuts("[SPELL_USED:Blur]");if(c.conditions.length!==2)return "setup: "+JSON.stringify(c.conditions);
+    var R=applyMuts("You sleep. [REST:long]");
+    if(c.conditions.length!==1||c.conditions[0].name!=="Poisoned")return "after the rest: "+JSON.stringify(c.conditions);
+    if(!(R.muts||[]).some(function(m){return m==="Faded over the rest: Blur";}))return "the receipt names what faded: "+JSON.stringify(R.muts);
+    applyMuts("[SPELL_USED:Blur]");var faded=restClearOwnSpellConditions(c);
+    return (faded.length===1&&faded[0]==="Blur"&&c.conditions.length===1)?true:"the Rest path's sweep: "+JSON.stringify({faded:faded,conds:c.conditions});
+  });
   t("the CONDITION doc line teaches that a lasting effect on the player is a condition — filed when it begins, removed when it ends; a passive trait never is",function(){
     var d=buildStateTagsDoc();
     if(d.indexOf("A LASTING EFFECT ON THE PLAYER IS A CONDITION TOO")<0)return "the sentence is gone from the CONDITION doc line";
-    if(!/\[CONDITION:Seventy-Two Shapes\|until dropped\|/.test(d))return "the worked example (the owner's case) is gone";
+    if(d.indexOf("[CONDITION:Seventy-Two Shapes|until dropped|their own Seventy-Two Shapes]")<0)return "the worked example (the owner's case, cause BY NAME) is gone";
+    if(d.indexOf("or the spell or ability BY NAME")<0)return "the cause-by-name rule is gone (the merge keys on it)";
+    if(d.indexOf("never a worn item's standing property")<0||d.indexOf("[SAVE_MOD:] as well")<0)return "the two misfiling guards (worn items, save resistances) are gone";
     if(d.indexOf("a passive trait that is always on is never a condition")<0)return "the passive exclusion is gone";
     if(d.indexOf("[COMPANION_CONDITION:Name|condName|duration|cause] [COMPANION_CONDITION_REMOVED:Name|condName] -- the same rule for a lasting effect on a party member")<0)return "the companion line lost the same rule";
     return true;
@@ -8761,8 +8800,9 @@ function runEngineTests(R){
     var d=buildStateTagsDoc();
     // v1.1281 (#644): the CONDITION line gains "A LASTING EFFECT ON THE PLAYER IS A CONDITION TOO" (a disguise, a shape, a ward —
     // filed when it begins, removed when dropped; a passive trait never) and the COMPANION_CONDITION line the same rule (+524 chars
-    // over the two lines). Golden diffed by eye.
-    return (__djb2(d)===1491123013&&d.length===31647)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #598 (v1.1125): the GOLD doc line says the coin is tagged in its own unit (gp|sp|cp), +16 chars. #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    // over the two lines). Golden diffed by eye. v1.1282 (#644 review): the cause is asked for BY NAME, worn items' standing
+    // properties are out, save-changing resistances point at [SAVE_MOD:] too (+168 chars on the one line). Golden diffed by eye.
+    return (__djb2(d)===-107511470&&d.length===31815)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #598 (v1.1125): the GOLD doc line says the coin is tagged in its own unit (gp|sp|cp), +16 chars. #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
