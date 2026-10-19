@@ -2678,6 +2678,27 @@ function conditionMentionsSpell(text,name){var s=String(text||"").toLowerCase(),
 // A long rest outlasts every effect the engine files for itself (minutes and hours — the bible's self-spell durations): drop
 // them and name what faded. GM-filed conditions are untouched — their durations are the GM's to judge (the audit asks).
 function restClearOwnSpellConditions(c){var kept=[],faded=[],i;if(!c||!c.conditions)return faded;for(i=0;i<c.conditions.length;i++){var cd=c.conditions[i];if(cd&&String(cd.cause||"").indexOf(OWN_SPELL_CAUSE)===0)faded.push(cd.name);else kept.push(cd);}if(faded.length)c.conditions=kept;return faded;}
+// #648 (owner 2026-10-19): the pure halves of the LASTING ABILITY ask (buildLastingAbilityNote, api.js). An ability has no
+// use tag, so the engine cannot file it the way #644 files a cast; it can only notice the ability being NAMED and ask.
+// lastingAbilitiesOnSheet: the sheet's ABILITIES list (never its spells — a cast is #644's, filed off [SPELL_USED:]) whose
+// bible entry lasts on the self — name without any "(…)" suffix, the bible's duration (the bible's `kind` is cosmetic; the
+// sheet's list is the axis). conditionStandsFor: a condition on the sheet already
+// names it (name or cause, the #644 stems — the safe direction is silence). lastingAbilityNamed: the trigger — the whole
+// name; a word of it that is hyphenated or LASTING_ABILITY_TOKEN_MIN+ letters ("seventy-two", "camouflage" — never
+// "shield" or "spirit", said in every fight); or, for a companion, any word of their name beside a #644 stem ("Ammut,
+// change your shape"). A shift nobody names is not caught — the row says so.
+function lastingAbilitiesOnSheet(sheet){var out=[],ab=(sheet&&sheet.abilities)||[],i;for(i=0;i<ab.length;i++){var nm=ab[i]&&ab[i].nm;if(!nm)continue;var e=(typeof capabilityLookup==="function")?capabilityLookup(nm):null;if(!e)continue;var d=capabilityLastingSelf(e);if(d)out.push({nm:String(nm).replace(/\s*\(.*\)/,"").trim(),dur:d});}return out;}
+function conditionStandsFor(sheet,name){var l=(sheet&&sheet.conditions)||[],i;for(i=0;i<l.length;i++){var cd=l[i];if(cd&&(conditionMentionsSpell(cd.name,name)||conditionMentionsSpell(cd.cause,name)))return true;}return false;}
+function lastingAbilityWordRe(tok){return new RegExp("\\b"+String(tok).replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/-/g,"[-\\s]").replace(/\s+/g,"\\s+")+"\\b","i");}
+function lastingAbilityWhoNamed(text,who){var s=String(text||""),wn=String(who||"").split(/\s+/),i;for(i=0;i<wn.length;i++){var wt=wn[i].replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi,"");if(wt.length>=3&&lastingAbilityWordRe(wt).test(s))return true;}return false;}/* any word of the name, three letters up — "Morwen" for Morwen Zethran */
+function lastingAbilityNamed(text,name,who){
+  var s=String(text||""),nm=String(name||"").trim(),i,j;if(!s||!nm)return false;
+  if(lastingAbilityWordRe(nm).test(s))return true;
+  var w=nm.split(/\s+/);for(i=0;i<w.length;i++){var tok=w[i].replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi,"");if(!tok)continue;
+    if(tok.indexOf("-")>0||tok.length>=LASTING_ABILITY_TOKEN_MIN){if(lastingAbilityWordRe(tok).test(s))return true;}}
+  if(who&&lastingAbilityWhoNamed(s,who)){var st=ownSpellStems(nm),low=s.toLowerCase();for(j=1;j<st.length;j++)if(st[j]&&low.indexOf(st[j])>=0)return true;}
+  return false;
+}
 function bibleCardHTML(name,e){
   if(!e)return '<div style="padding:20px 24px;color:var(--t2,#999);font-size:13px;">No canonical entry yet for <b>'+escHtml(name)+'</b>.</div>';
   var base=String(name||"").replace(/\s*\(.*\)/,"").trim();

@@ -108,6 +108,9 @@ var TAG_LOG_CAP=40;
 var NOTE_LOG_CAP=40;
 var NOTE_DELIVERY_CAP=3;
 var NOTE_CHAR_BUDGET=2500;
+var ABILITY_ASK_COOLDOWN=3;      // #648: one LASTING ABILITY ask per character+ability per this many turns — a re-use after it asks again
+var LASTING_ABILITY_NOTE_CAP=3;  // #648: at most this many ability lines ride one note
+var LASTING_ABILITY_TOKEN_MIN=8; // #648: a lone word of an ability's name triggers the ask only at this length (or hyphenated) — "shield", "spirit", "walking" never do
 // #300 (owner rulings 2026-09-02): CONSEQUENCE. 0 HP is DOWNED, not dead — the engine takes the wheel
 // (struggle or yield), the GM resolves by capture, rescue or a companion's intervention within
 // DOWNED_MAX_TURNS committed turns, or the engine rules a true death. A true death RESPAWNS AT THE LAST
@@ -438,7 +441,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1282";
+var APP_VERSION="v1.1283";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

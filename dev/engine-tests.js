@@ -12361,6 +12361,93 @@ function runEngineTests(R){
     if(/Bram[\s\S]{0,400}?Conditions:/.test(s.volatile.slice(s.volatile.indexOf("PARTY MEMBER"))))return "empty Conditions line rendered";
     return s.stable.indexOf("since t")<0?true:"#46 leaked into the stable half";
   });
+  /* #648 (owner 2026-10-19: Ammut's Seventy-Two Shapes went unfiled by gemini-3.8-flash at Frizwick t50 — the #644 row's
+     predicted miss, "an engine note is the next channel"). The engine cannot see an ability being used (no use tag), so the
+     note is EVENT-TRIGGERED, never standing — a standing note would spend one of the three delivery slots every turn of a
+     Rogue's campaign. It fires when the player's action or the last narration names a present character's lasting self
+     ability (the whole name; a hyphenated or 8+ letter word of it; or, for a companion, their name beside any #644 stem)
+     while no condition on that sheet names it; one ask per character+ability per ABILITY_ASK_COOLDOWN turns
+     (worldState.abilityAsk, declared for the #151 restore). A shift nobody names is still missed — said in the row. */
+  function __rogueParty(){
+    makeWorld();worldState.turn=50;lastAction="";sessionLog=[];delete worldState.abilityAsk;
+    worldState.character.name="Frizwick";worldState.character.abilities=[{nm:"Sneak Attack",ds:""},{nm:"Hide in Plain Sight",ds:""}];worldState.character.conditions=[];
+    worldState.npcs=[{name:"Ammut",status:"grinning, cold",statusTurn:50,rel:"companion",partyMember:true,charSheet:{name:"Ammut",cls:"Rogue",level:14,hp:145,maxHp:145,abilities:[{nm:"Sneak Attack",ds:""},{nm:"Seventy-Two Shapes",ds:""}],conditions:[]}},
+      {name:"Morwen Zethran",status:"",rel:"companion",partyMember:true,charSheet:{name:"Morwen Zethran",cls:"Rogue",level:14,hp:100,maxHp:100,abilities:[{nm:"Seventy-Two Shapes",ds:""}],conditions:[],splitLoc:{location:"Elsewhere",turn:40}}}];
+  }
+  t("#648 registry: buildLastingAbilityNote is a cooldown-reminder on abilityAsk that fires in combat and is answered by the condition tags",function(){
+    var r=NOTE_SHAPES.buildLastingAbilityNote;
+    if(!r||NOTE_BUILDERS.indexOf(buildLastingAbilityNote)<0)return "not registered";
+    if(NOTE_LATCH_FIELDS.indexOf("abilityAsk")<0||r.latch.indexOf("abilityAsk")<0)return "the latch is undeclared (a dead provider call would burn it)";
+    if(r.shape!=="cooldown-reminder"||r.combat!=="fires")return "a shape taken mid-fight is the plausible case — a cooldown-reminder that fires in combat: "+JSON.stringify(r);
+    if(r.ack.indexOf("COMPANION_CONDITION")<0||r.ack.indexOf("CONDITION")<0||r.ack.indexOf("NO_CHANGE")<0)return "ack tags: "+JSON.stringify(r.ack);
+    return true;
+  });
+  t("#648 the player's action naming a present companion's lasting ability fires the note with the exact COMPANION_CONDITION tag, the bible's duration and the cause by name — the owner's t50 case",function(){
+    __rogueParty();lastAction="Use that seventy-two faces you have to become one of these guards.";
+    var n=buildLastingAbilityNote();
+    if(!n)return "silent on the owner's case";
+    if(n.indexOf("[COMPANION_CONDITION:Ammut|Seventy-Two Shapes|until you drop it|their own Seventy-Two Shapes]")<0)return "the tag to emit is not spelled out: "+n;
+    if(n.indexOf("[COMPANION_CONDITION_REMOVED:Ammut|Seventy-Two Shapes]")<0)return "the drop form is not spelled out: "+n;
+    if(n.indexOf("[NO_CHANGE]")<0)return "the honest 'not in force' answer is not offered: "+n;
+    if(n.indexOf("Morwen")>=0)return "a companion split away is not present — must not be listed: "+n;
+    if(!worldState.abilityAsk||worldState.abilityAsk["Ammut|seventy-two shapes"]!==50)return "the ask is not latched per character+ability: "+JSON.stringify(worldState.abilityAsk);
+    return true;
+  });
+  t("#648 silent when nothing names the ability, when it is not lasting, when it is a spell (the cast's business), when the companion is dead, and when a condition on that sheet already names it (by name or by cause)",function(){
+    __rogueParty();lastAction="I slip down the ramp after Calder.";
+    if(buildLastingAbilityNote()!=="")return "fired with no mention";
+    lastAction="Ammut, sneak attack the sentry.";if(buildLastingAbilityNote()!=="")return "Sneak Attack is instant — never a condition";
+    worldState.character.spells=[{nm:"Blur",lvl:2,used:false}];lastAction="I cast Blur.";if(buildLastingAbilityNote()!=="")return "a spell is the cast's business (#644 files it off [SPELL_USED:]) — the note is for abilities";
+    lastAction="Ammut, use your seventy-two shapes.";worldState.npcs[0].charSheet.conditions=[{name:"Disguised as a vanguard sentry",duration:"until dropped",cause:"his own Seventy-Two Shapes"}];
+    if(buildLastingAbilityNote()!=="")return "fired beside a GM entry whose cause names it";
+    worldState.npcs[0].charSheet.conditions=[{name:"Seventy-Two Shapes",duration:"until dropped"}];
+    if(buildLastingAbilityNote()!=="")return "fired beside an entry named for it";
+    worldState.npcs[0].charSheet.conditions=[];worldState.npcs[0].dead=49;worldState.npcs[0].status="dead";
+    if(buildLastingAbilityNote()!=="")return "fired for a dead companion";
+    return true;
+  });
+  t("#648 the trigger: the whole name, a hyphenated or 8+ letter word of it, or a companion's name beside a #644 stem — never a bare short stem ('sight', 'shape') on its own",function(){
+    var fire=function(txt){__rogueParty();lastAction=txt;return buildLastingAbilityNote()!=="";};
+    if(!fire("Ammut, change your shape into the sentry."))return "companion name + stem 'shape' must fire";
+    if(fire("Keep the door in sight and the shape of the ridge in mind."))return "bare short stems fired with no name beside them";
+    if(!fire("I use Hide in Plain Sight and wait."))return "the hero's whole-name mention must fire";
+    if(fire("I keep the plain in sight."))return "the hero's short stems alone fired";
+    if(fire("Morwen, take a new shape."))return "a split-away companion fired";
+    if(!lastingAbilityNamed("the shield is up","Arcane Shield",null)===false)return "'shield' (6 letters) alone must never trigger";
+    return lastingAbilityNamed("Ammut: half-form, now.","The Half-Form",null)?true:"a hyphenated word of the name triggers on its own";
+  });
+  t("#648 the hero's own lasting ability takes the player CONDITION form, and the LAST NARRATION naming it triggers the ask on the next turn",function(){
+    __rogueParty();lastAction="I wait.";sessionLog=[{role:"user",content:"x"},{role:"assistant",content:"Frizwick melts into the crowd — Hide in Plain Sight, the way only she can."}];
+    var n=buildLastingAbilityNote();
+    if(n.indexOf("[CONDITION:Hide in Plain Sight|until you draw attention|their own Hide in Plain Sight]")<0)return "player form missing: "+n;
+    if(n.indexOf("[CONDITION_REMOVED:Hide in Plain Sight]")<0)return "player drop form missing: "+n;
+    if(n.indexOf("COMPANION_CONDITION")>=0)return "Ammut was not named — must not be listed: "+n;
+    return true;
+  });
+  t("#648 one ask per character+ability per ABILITY_ASK_COOLDOWN turns; a dead provider call restores the latch; the stamp prunes stale keys",function(){
+    __rogueParty();lastAction="Ammut, use your seventy-two shapes.";
+    var snap=snapshotNoteLatches();if(buildLastingAbilityNote()==="")return "setup";
+    restoreNoteLatches(snap);if(worldState.abilityAsk)return "a dead turn kept the latch";
+    if(buildLastingAbilityNote()==="")return "after the restore it asks again";
+    if(buildLastingAbilityNote()!=="")return "re-asked within the cooldown";
+    worldState.turn+=ABILITY_ASK_COOLDOWN;if(buildLastingAbilityNote()==="")return "did not re-ask after the cooldown";
+    worldState.abilityAsk["Old|gone ability"]=1;worldState.turn+=ABILITY_ASK_COOLDOWN;if(buildLastingAbilityNote()==="")return "re-use after the cooldown";
+    return worldState.abilityAsk["Old|gone ability"]===undefined?true:"stale keys never pruned (monotonic growth)";
+  });
+  t("#648 the registry delivers it through buildEngineNotes, in combat too",function(){
+    __rogueParty();lastAction="Use that seventy-two faces you have.";worldState.combat={name:"Pick-guard",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};
+    var en=buildEngineNotes();
+    return en.indexOf("[COMPANION_CONDITION:Ammut|Seventy-Two Shapes|")>=0?true:"the registry did not deliver it: "+en.slice(0,300);
+  });
+  t("#648 two present companions with the same lasting ability: the one the text names is asked alone (the other's latch unspent); nobody named, both are asked",function(){
+    __rogueParty();delete worldState.npcs[1].charSheet.splitLoc;lastAction="Ammut, use your seventy-two shapes on the sentry.";
+    var n=buildLastingAbilityNote();
+    if(n.indexOf("COMPANION_CONDITION:Ammut|")<0||n.indexOf("Morwen")>=0)return "the named companion alone: "+n;
+    if(worldState.abilityAsk["Morwen Zethran|seventy-two shapes"]!==undefined)return "the unnamed companion's latch was spent";
+    __rogueParty();delete worldState.npcs[1].charSheet.splitLoc;lastAction="Somebody use seventy-two shapes and get us past the gate.";
+    n=buildLastingAbilityNote();
+    return (n.indexOf("COMPANION_CONDITION:Ammut|")>=0&&n.indexOf("COMPANION_CONDITION:Morwen Zethran|")>=0)?true:"nobody named — both are asked: "+n;
+  });
 
   // ── Campaign generator (#59, v1.290) — shared skeleton machinery ─────────────
   // Pure halves of campaign_generator.js: structure validation, status stamping (extracted from
