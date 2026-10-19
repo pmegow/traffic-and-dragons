@@ -311,6 +311,21 @@ function lowerKeys(h) { const o = {}; Object.keys(h).forEach(k => { o[k.toLowerC
 
 // Page-side helpers, serialised into each probe. VISIBLE is Playwright's rule: a non-empty box and not visibility:hidden.
 const VISIBLE = "function(el){if(!el||!el.isConnected)return false;var s=getComputedStyle(el);if(s.visibility==='hidden'||s.visibility==='collapse')return false;var r=el.getBoundingClientRect();return r.width>0&&r.height>0;}";
+// #647: a page's script can run — and a test's readiness signal fire — before the document's stylesheets have applied
+// (satellite.css @imports website/themes.css; the import lands ~20 ms after the script that showed the element). A box
+// measured in that unstyled layout is stale the moment the sheets apply, and the mouse events land where the element
+// was: the #615 signup flake (4 of 9 under contention) and the #501 Shop button flake before it. SETTLED resolves once
+// every <link rel=stylesheet> has its sheet (or its fetch has ended — a 404 never settles otherwise), every @import has
+// its styleSheet, and two animation frames have passed; it gives up after 3 s so a page that never settles still acts.
+const SETTLED = "function(){return new Promise(function(done){var t0=Date.now();" +
+  "function ended(url){try{return performance.getEntriesByName(url).length>0;}catch(e){return true;}}" +
+  // A link's sheet exists once its own bytes parse, but joins document.styleSheets only when its @imports have landed: a
+  // parsed sheet that is not yet in document.styleSheets is pending (the body-link proof shape).
+  "function applied(){var links=document.querySelectorAll('link[rel~=stylesheet]');for(var i=0;i<links.length;i++){var l=links[i];if(l.disabled||(l.media&&l.media!=='all'&&l.media!=='screen'))continue;if(!l.sheet){if(!ended(l.href))return false;continue;}if(Array.prototype.indexOf.call(document.styleSheets,l.sheet)<0)return false;}" +
+  // Chrome hands an @import rule a styleSheet object BEFORE the import has loaded (empty until then), so "no styleSheet" never
+  // says pending: an import is pending while its sheet has no rules yet AND its fetch has not ended.
+  "var sheets=document.styleSheets;for(var j=0;j<sheets.length;j++){var rules;try{rules=sheets[j].cssRules;}catch(e){continue;}if(!rules)continue;for(var k=0;k<rules.length;k++){var r=rules[k];if(r.type!==3)continue;var s=r.styleSheet,empty;try{empty=!s||!s.cssRules||s.cssRules.length===0;}catch(e3){empty=false;}if(!empty)continue;var u;try{u=new URL(r.href,sheets[j].href||location.href).href;}catch(e2){u=r.href;}if(!ended(u))return false;}}return true;}" +
+  "function tick(){if(applied()||Date.now()-t0>3000){requestAnimationFrame(function(){requestAnimationFrame(function(){done(applied());});});}else setTimeout(tick,15);}tick();});}";
 const RESOLVE = "function(q){var els;if(q.kind==='css'){els=Array.prototype.slice.call(document.querySelectorAll(q.sel));}else{" +
   "var vis=" + VISIBLE + ";els=Array.prototype.slice.call(document.querySelectorAll('button,[role=button],input[type=button],input[type=submit],input[type=reset]')).filter(vis).filter(function(el){" +
   "if(q.name==null)return true;var n=(el.getAttribute('aria-label')||el.textContent||el.value||el.title||'').replace(/\\s+/g,' ').trim();" +
@@ -347,7 +362,21 @@ class Locator {
      mousedown/mouseup/click as a trusted user gesture (Chrome's autoplay policy and the ambience "tap to start" gate accept
      nothing less; the in-page el.click() under userGesture did not satisfy them). An element with no box (display:none
      children of a visible parent, a 0×0 anchor) falls back to el.click(). tap() is the touch twin; check() is Playwright's. */
-  async _centre() { return this._one("el.scrollIntoView({block:'center',inline:'center'});var r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,h:r.height};", { visible: true, enabled: true }); }
+  // The point a click or tap goes to: measured only after the stylesheets have applied (SETTLED, #647), and only once
+  // the element itself is what sits at that point — a covered element is retried, then refused by name, never clicked blind.
+  async _centre() {
+    const until = Date.now() + TIMEOUT;
+    let covered = "nothing";
+    for (;;) {
+      await this.page._eval("(" + SETTLED + ")()");
+      const b = await this._one("el.scrollIntoView({block:'center',inline:'center'});var r=el.getBoundingClientRect();var x=r.left+r.width/2,y=r.top+r.height/2;var h=document.elementFromPoint(x,y);" +
+        "return {x:x,y:y,w:r.width,h:r.height,hit:!!h&&(h===el||el.contains(h)),at:h?h.tagName.toLowerCase()+(h.id?'#'+h.id:'')+(h.className&&typeof h.className==='string'?'.'+h.className.split(' ')[0]:''):'nothing'};", { visible: true, enabled: true });
+      if (b.hit || !(b.w > 0 && b.h > 0)) return b;
+      covered = b.at;
+      if (Date.now() > until) throw new Error(this._desc() + ": its centre is covered by " + covered + " — the element would not receive the click");
+      await sleep(50);
+    }
+  }
   async click() {
     const b = await this._centre();
     if (!(b.w > 0 && b.h > 0)) return this._one("el.click();return true;", { visible: true, enabled: true }, true);
@@ -490,7 +519,41 @@ if (require.main === module) {
       }
       finally { console.error = origErr; }
       if (routeErrs.length) throw new Error("a page closed mid-request printed a route error: " + routeErrs[0]);
-      console.log("cdp-browser --check: OK — " + v.product + " at " + c.path + " (a page closed mid-request stays quiet)");
+      // #647: a click reaches the element only after the document's stylesheets — @imports included — have applied. The
+      // page's script shows the button at once; its stylesheet @imports a sheet the route serves 300 ms late, and that
+      // sheet pushes the button 300 px down. A driver that measures the unstyled layout clicks at the old point: the
+      // handler records where the button was when the click arrived, and the old point is the proof of the #615 flake.
+      // Three page shapes. "body": the handler is attached BEFORE a stylesheet link that sits after it in the body — such
+      // a sheet does not block rendering of what precedes it, so animation frames run and only the sheet check holds the
+      // click; a driver that measures at once, or gives up at once, or counts a parsed-but-unapplied sheet as applied,
+      // clicks at top≈0. "style": the same with an inline <style> @import — that sheet is in document.styleSheets from
+      // the start, so only the import scan holds the click. "head": the real signup shape — a render-blocking link in the
+      // head whose import is what moves the button.
+      const HANDLER = "<script>window.clickedAt=null;document.getElementById('b').addEventListener('click',function(){window.clickedAt=Math.round(this.getBoundingClientRect().top);});</script>";
+      const SHAPES = {
+        body: "<!doctype html><button id=b>b</button>" + HANDLER + "<link rel=stylesheet href=main.css><p>after the sheet</p>",
+        style: "<!doctype html><button id=b>b</button>" + HANDLER + "<style>@import url('late-import.css');</style><p>after the sheet</p>",
+        head: "<!doctype html><link rel=stylesheet href=main.css><button id=b>b</button>" + HANDLER
+      };
+      const cssCtx = await browser.newContext({});
+      await cssCtx.route("**/*", async route => {
+        const u = new URL(route.request().url());
+        if (u.pathname === "/late-import.css") { await sleep(300); return route.fulfill({ status: 200, contentType: "text/css", body: "body{padding-top:300px}" }); }
+        if (u.pathname === "/main.css") return route.fulfill({ status: 200, contentType: "text/css", body: "@import url('late-import.css');button{display:block}" });
+        return route.fulfill({ status: 200, contentType: "text/html", body: SHAPES[u.hostname.split(".")[0]] });
+      });
+      const tops = {};
+      for (const shape of Object.keys(SHAPES)) {
+        const cssPage = await cssCtx.newPage();
+        cssPage._send("Page.navigate", { url: "http://" + shape + ".test/" }).catch(() => {});   /* no load wait: a suite's readiness signal is the element's existence */
+        await cssPage.waitForFunction(() => !!document.getElementById("b"));
+        await cssPage.locator("#b").click();
+        const clickedAt = await cssPage.evaluate(() => window.clickedAt);
+        if (clickedAt === null) throw new Error("[" + shape + " shape] the click never reached the button (dispatched where the unstyled layout had it)");
+        if (clickedAt < 300) throw new Error("[" + shape + " shape] the click reached the button at top=" + clickedAt + "px, before the late @import had applied (expected ≥300): the driver clicked an unstyled layout");
+        tops[shape] = clickedAt;
+      }
+      console.log("cdp-browser --check: OK — " + v.product + " at " + c.path + " (a page closed mid-request stays quiet; a click waits for the stylesheets: body-link top=" + tops.body + "px, inline-import top=" + tops.style + "px, head-link top=" + tops.head + "px)");
     } finally { await browser.close(); }
   })().catch(e => { console.error("cdp-browser --check: FAILED — " + (e && e.message || e)); process.exit(1); });
 }
