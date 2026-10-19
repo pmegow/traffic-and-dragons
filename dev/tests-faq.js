@@ -84,6 +84,9 @@ t("the tour's callouts carry a hint: every callout is a button with a TIPS entry
   var script=g.slice(g.indexOf("var TIPS={"),g.indexOf("};",g.indexOf("var TIPS={"))),keys=(script.match(/^\s*(\d):\[/gm)||[]).map(function(x){return x.replace(/\D/g,"");});
   for(var i=0;i<calls.length;i++){var nn=/data-n="(\d)"/.exec(calls[i])[1];if(keys.indexOf(nn)<0)return "callout "+nn+" has no TIPS entry";if(g.indexOf('<h3 id="ui-'+nn+'">')<0)return "callout "+nn+" has no section id ui-"+nn+" to jump to";}
   if(/<span class="callout"/.test(g))return "a callout is still a bare span (no hint, not focusable)";
+  for(i=0;i<calls.length;i++)if(!/class="callout(?: [a-z-]+)* pt-[rld](?: [a-z-]+)*"/.test(calls[i]))return "a callout has no beak direction (pt-r / pt-l / pt-d): "+calls[i];
+  if(g.indexOf(".callout::before{content:\"\";")<0||g.indexOf(".callout.pt-d::before{top:100%")<0)return "the beak CSS is gone";
+  var six=/<button type="button" class="callout flip pt-d" data-n="6" style="left:[0-9.]+%;top:([0-9.]+)%;">/.exec(g);if(!six||parseFloat(six[1])>=49)return "the story figure's ⑥ sits ABOVE the handle (top < 49%) with its beak pointing down (owner 2026-10-18: it hid the handle)";
   if(g.indexOf(".callout::after{content:attr(data-tip)")<0||g.indexOf("@media (hover:hover){.callout:hover::after")<0)return "the hover tooltip CSS is gone";
   if(g.indexOf('matchMedia("(pointer:coarse)")')<0||g.indexOf('el.addEventListener("pointerdown",function(e){if(!coarse)return;')<0||g.indexOf("hold.fired=true;openModal(n)")<0||!/},HOLD_MS\)/.test(g))return "the press-and-hold modal path is gone (the pointerdown handler that arms HOLD_MS and opens the modal)";
   if(g.indexOf('el.setAttribute("data-tip",tip[0]')<0)return "the hint text is written onto the callout for the tooltip";
