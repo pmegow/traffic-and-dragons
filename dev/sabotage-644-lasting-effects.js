@@ -8,7 +8,7 @@ var code = 0;
 function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
 prove("tag_table.js", [
   { label: "the cast no longer files its own condition",
-    find: "spellSelfConditionFile(sp,text,R);/* #644 */", replace: "",
+    find: "spellSelfConditionFile(worldState.character,sp,text,R,\"\");/* #644 */", replace: "",
     mustFail: "files itself as a condition" },
   { label: "the same-response skip is gone — an effect-named GM entry is doubled (a spell-named one still folds through the merge)",
     find: "for(i=0;i<tags.length;i++)if(conditionMentionsSpell(tags[i],name)){", replace: "for(i=0;i<tags.length;i++)if(false){",
@@ -22,7 +22,7 @@ prove("tag_table.js", [
     find: "_ownCause.indexOf(OWN_SPELL_CAUSE)===0&&ccause.toLowerCase().indexOf(_ownCause.slice(OWN_SPELL_CAUSE.length).toLowerCase())>=0", replace: "false",
     mustFail: "merges into the engine's entry" },
   { label: "the long rest no longer sweeps the engine's self-spell conditions",
-    find: "var _faded=(typeof restClearOwnSpellConditions===\"function\")?restClearOwnSpellConditions(worldState.character):[];", replace: "var _faded=[];",
+    find: "var _faded=(typeof restClearPartyOwnSpellConditions===\"function\")?restClearPartyOwnSpellConditions():[];/* #649: party-wide */", replace: "var _faded=[];",
     mustFail: "a long rest sweeps" }
 ]);
 prove("helpers.js", [

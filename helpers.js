@@ -2678,6 +2678,9 @@ function conditionMentionsSpell(text,name){var s=String(text||"").toLowerCase(),
 // A long rest outlasts every effect the engine files for itself (minutes and hours — the bible's self-spell durations): drop
 // them and name what faded. GM-filed conditions are untouched — their durations are the GM's to judge (the audit asks).
 function restClearOwnSpellConditions(c){var kept=[],faded=[],i;if(!c||!c.conditions)return faded;for(i=0;i<c.conditions.length;i++){var cd=c.conditions[i];if(cd&&String(cd.cause||"").indexOf(OWN_SPELL_CAUSE)===0)faded.push(cd.name);else kept.push(cd);}if(faded.length)c.conditions=kept;return faded;}
+// #649: the party-wide sweep both rest paths call — the hero's names bare, each living companion's suffixed "(Name)"; a dead
+// companion gets nothing from a rest (owner ruling 2026-07-16), so their sheet is left as it fell.
+function restClearPartyOwnSpellConditions(){var out=[],i,j,h=restClearOwnSpellConditions(worldState.character);for(i=0;i<h.length;i++)out.push(h[i]);var p=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];for(i=0;i<p.length;i++){var f=restClearOwnSpellConditions(p[i].charSheet);for(j=0;j<f.length;j++)out.push(f[j]+" ("+p[i].name+")");}return out;}
 // #648 (owner 2026-10-19): the pure halves of the LASTING ABILITY ask (buildLastingAbilityNote, api.js). An ability has no
 // use tag, so the engine cannot file it the way #644 files a cast; it can only notice the ability being NAMED and ask.
 // lastingAbilitiesOnSheet: the sheet's ABILITIES list (never its spells — a cast is #644's, filed off [SPELL_USED:]) whose

@@ -363,16 +363,30 @@ function combatAttrEntry(tagName,field){
 // #644 (owner 2026-10-18): the player's own lasting SELF-targeted spell files itself as a condition off the cast the engine
 // already books (capabilityLastingSelf, helpers.js) — unless a [CONDITION:] in the same response names the spell, in which
 // case the GM's wording stands and the engine never doubles it; a re-cast of something already on the sheet files nothing.
-// Abilities have no use tag, so the CONDITION doc line carries those (Seventy-Two Shapes, held until dropped, was the case).
-function spellSelfConditionFile(sp,text,R){
+// Abilities have no use tag, so the CONDITION doc line carries those (Seventy-Two Shapes, held until dropped, was the case;
+// #648 asks for the tag the turn such an ability is named).
+// #649 (owner 2026-10-19): ONE filer for both sheets — a companion's cast off [COMPANION_SPELL_USED:] rides in with their
+// sheet and name. The same-response skip reads only THAT sheet's tags ([CONDITION:] for the hero; [COMPANION_CONDITION:Name|…]
+// resolved through findCompanionChar for a companion), so the hero's tag or another companion's never suppresses a filing.
+function spellSelfConditionFile(sheet,sp,text,R,who){
   var entry=(typeof capabilityLookup==="function")?capabilityLookup(sp.nm):null,dur=(typeof capabilityLastingSelf==="function")?capabilityLastingSelf(entry):null;
   if(!dur)return;
-  var name=String(sp.nm).replace(/\s*\(.*\)/,"").trim(),low=name.toLowerCase(),tags=text.match(/\[CONDITION:[^\]]*\]/g)||[],i;
-  for(i=0;i<tags.length;i++)if(conditionMentionsSpell(tags[i],name)){if(typeof console!=="undefined")console.debug("[tags] #644 "+name+" not filed by the engine — the GM's own "+tags[i]+" names it");return;}/* review 2026-10-19: a decision on the player's behalf leaves a trace */
-  var c=worldState.character;if(!c.conditions)c.conditions=[];
+  var name=String(sp.nm).replace(/\s*\(.*\)/,"").trim(),low=name.toLowerCase(),tags=[],all,i;
+  if(who){all=text.match(/\[COMPANION_CONDITION:[^\]]*\]/g)||[];for(i=0;i<all.length;i++){var _tw=all[i].match(/\[COMPANION_CONDITION:([^|\]]+)\|/);if(_tw&&findCompanionChar(_tw[1])===sheet)tags.push(all[i]);}}
+  else tags=text.match(/\[CONDITION:[^\]]*\]/g)||[];
+  for(i=0;i<tags.length;i++)if(conditionMentionsSpell(tags[i],name)){if(typeof console!=="undefined")console.debug("[tags] #644 "+(who?who+"'s ":"")+name+" not filed by the engine — the GM's own "+tags[i]+" names it");return;}/* review 2026-10-19: a decision on the player's behalf leaves a trace */
+  var c=sheet;if(!c.conditions)c.conditions=[];
   for(i=0;i<c.conditions.length;i++){var _cd=c.conditions[i];if(String(_cd.name).toLowerCase()===low||String(_cd.cause||"").toLowerCase().indexOf(low)>=0)return;}/* a re-cast of an effect already standing — the engine's or the GM's own entry whose cause names the spell */
   c.conditions.push({name:name,duration:dur,cause:OWN_SPELL_CAUSE+name,turn:R.turn});
-  R.muts.push("Condition: "+name+" ("+dur+" — your own spell)");
+  R.muts.push((who?who+": condition ":"Condition: ")+name+" ("+dur+" — "+(who?"their":"your")+" own spell)");
+}
+// #649: the later-turn MERGE, one implementation for both sheets — a GM entry whose cause names an engine-filed spell takes
+// over that entry's name and duration instead of standing beside it (the full spell name is the key, never a stem, so a
+// wound's "blood loss" can never fold into Blood Armor). Returns the name it replaced, or null when nothing merged.
+function conditionOwnSpellMerge(list,cnm,cdur,ccause){
+  if(!ccause)return null;var j;for(j=0;j<list.length;j++){var _own=list[j],_ownCause=String(_own.cause||"");
+    if(_ownCause.indexOf(OWN_SPELL_CAUSE)===0&&ccause.toLowerCase().indexOf(_ownCause.slice(OWN_SPELL_CAUSE.length).toLowerCase())>=0){var _was=_own.name;_own.name=cnm;_own.duration=cdur;return _was;}}
+  return null;
 }
 function manaPayCast(caster,sp,who,R){
   if(sp.racial){sp.used=true;R.muts.push(who+"cast: "+sp.nm+" (1/day)");return;}
@@ -1331,7 +1345,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
   if(!abilityHeldAs(worldState.character,abp[1])){worldState.character.abilities.push({nm:abp[1],ds:abp[2],gained:R.turn});R.muts.push("Ability: "+abp[1]);}}}},
 {t:"ALIGNMENT",apply:function(text,R){__tagNearMiss(text,R,"ALIGNMENT","^\\[ALIGNMENT:(?:[Ll][Aa][Ww]|[Gg][Oo][Oo][Dd])[+-]\\d+\\]$","[ALIGNMENT:law-or-good|+N/-N]");/* audit A6 */var alms=text.match(/\[ALIGNMENT:(law|good)([+-]\d+)\]/gi)||[];var ali;for(ali=0;ali<alms.length;ali++){var ap=alms[ali].match(/\[ALIGNMENT:(law|good)([+-]\d+)\]/i);if(ap){if(!worldState.character.alignLaw)worldState.character.alignLaw=0;if(!worldState.character.alignGood)worldState.character.alignGood=0;if(ap[1].toLowerCase()==="law")worldState.character.alignLaw=Math.max(-3,Math.min(3,worldState.character.alignLaw+parseInt(ap[2])));else worldState.character.alignGood=Math.max(-3,Math.min(3,worldState.character.alignGood+parseInt(ap[2])));var newAl=alignLabel(worldState.character.alignLaw,worldState.character.alignGood);if(newAl!==worldState.character.actualAlignment){R.muts.push("Align: "+newAl);worldState.character.actualAlignment=newAl;}}}}},
 {t:"SPELL_USED",apply:function(text,R){var spellUsed=text.match(/\[SPELL_USED:([^\]]+)\]/g)||[];var sui;for(sui=0;sui<spellUsed.length;sui++){var sup=spellUsed[sui].match(/\[SPELL_USED:([^\]]+)\]/);if(sup&&worldState.character.spells){var spNm=sup[1].toLowerCase().trim(),spj,spHit=false;for(spj=0;spj<worldState.character.spells.length;spj++){var sp=worldState.character.spells[spj];if(sp.lvl===0)continue;
-var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||sp.nm.toLowerCase()===spNm){manaPayCast(worldState.character,sp,"",R);spellSelfConditionFile(sp,text,R);/* #644 */spHit=true;break;}}if(!spHit&&typeof console!=="undefined")console.warn("[tags] SPELL_USED: '"+sup[1].trim()+"' is not on the player's sheet — no cast booked (#136③)");}}}},
+var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||sp.nm.toLowerCase()===spNm){manaPayCast(worldState.character,sp,"",R);spellSelfConditionFile(worldState.character,sp,text,R,"");/* #644 */spHit=true;break;}}if(!spHit&&typeof console!=="undefined")console.warn("[tags] SPELL_USED: '"+sup[1].trim()+"' is not on the player's sheet — no cast booked (#136③)");}}}},
 // UA25: the companion twin of SPELL_USED — inserted HERE (not in the companion cluster) so a
 // same-response cast-then-rest resolves rest-last for companions exactly as it does for the
 // player (SPELL_USED runs before REST in table order). Misses warn: a companion cast the
@@ -1345,7 +1359,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     var cspBase=csp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();
     if(cspBase===csuNm||csp.nm.toLowerCase()===csuNm){csuHit=true;
       if(csp.lvl===0)break;/* cantrips never expend — same rule as the player; matched, so no warn */
-      manaPayCast(csuCs,csp,csum[1].trim()+" ",R);break;}}/* #110: same payment routine, the COMPANION's own pool */
+      manaPayCast(csuCs,csp,csum[1].trim()+" ",R);spellSelfConditionFile(csuCs,csp,text,R,csum[1].trim());/* #649: their lasting self-spell lands on their sheet, as the hero's does */break;}}/* #110: same payment routine, the COMPANION's own pool */
   if(!csuHit)console.warn("[tags] COMPANION_SPELL_USED: "+csum[1].trim()+" knows no spell matching '"+csum[2].trim()+"' — cast not booked");}}},
 /* #138: EXTERNAL mana effects (a leech's drain, a mana burn, a restorative draught) — the GM
    asserts the effect, the engine does ALL arithmetic, clamped 0..manaMax. Deliberately NOT for
@@ -1437,7 +1451,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   worldState.pendingItemDefs.push({key:idKey,name:idName,entry:idEntry,turn:R.turn});
   R.muts.push("Item canon proposed: "+idName+" (awaiting your confirmation)");
 }}},
-{t:"REST",apply:function(text,R){if(/\[REST:\s*long\b[^\]]*\]/i.test(text)&&typeof restSpells==="function"){var _wake=(typeof clockNamedWake==="function")?clockNamedWake(text):null;if(_wake)worldState.restWake=_wake;/* #389: the GM named the wake — transient, deleted below */var _sleepMode=(typeof clockSleepMode==="function")?clockSleepMode():"dawn";/* #346: read before the roll */var _faded=(typeof restClearOwnSpellConditions==="function")?restClearOwnSpellConditions(worldState.character):[];if(_faded.length)R.muts.push("Faded over the rest: "+_faded.join(", "));/* #644: the engine's own self-spell conditions end with a night's sleep */var _slept;try{_slept=restSpells(true);}finally{delete worldState.restWake;}/* #89: restSpells owns the dawn roll — one site, both paths (button + tag); #300: it heals to full and, from the tag path, QUEUES the camp (taken at commit, never mid-parse) */R.muts.push("Rest: healed to full, spell slots restored"+(_slept?"; "+(_sleepMode==="fixed"?"slept eight hours":_sleepMode==="named"?"slept until "+_wake.label+" (named)":"slept until dawn")+" (+"+_slept+"m, "+clockFmt()+")":""));worldState.checkpointDue="rest";}
+{t:"REST",apply:function(text,R){if(/\[REST:\s*long\b[^\]]*\]/i.test(text)&&typeof restSpells==="function"){var _wake=(typeof clockNamedWake==="function")?clockNamedWake(text):null;if(_wake)worldState.restWake=_wake;/* #389: the GM named the wake — transient, deleted below */var _sleepMode=(typeof clockSleepMode==="function")?clockSleepMode():"dawn";/* #346: read before the roll */var _faded=(typeof restClearPartyOwnSpellConditions==="function")?restClearPartyOwnSpellConditions():[];/* #649: party-wide */if(_faded.length)R.muts.push("Faded over the rest: "+_faded.join(", "));/* #644: the engine's own self-spell conditions end with a night's sleep */var _slept;try{_slept=restSpells(true);}finally{delete worldState.restWake;}/* #89: restSpells owns the dawn roll — one site, both paths (button + tag); #300: it heals to full and, from the tag path, QUEUES the camp (taken at commit, never mid-parse) */R.muts.push("Rest: healed to full, spell slots restored"+(_slept?"; "+(_sleepMode==="fixed"?"slept eight hours":_sleepMode==="named"?"slept until "+_wake.label+" (named)":"slept until dawn")+" (+"+_slept+"m, "+clockFmt()+")":""));worldState.checkpointDue="rest";}
   else if(/\[REST:\s*short\b[^\]]*\]/i.test(text)&&typeof restShortHeal==="function"){var _sh=restShortHeal();if(_sh)R.muts.push("Short rest: +"+_sh+" HP");}}},
 {t:"LORE",apply:function(text,R){var lores=text.match(/\[LORE:([^\]]+)\]/g)||[];for(var li=0;li<lores.length;li++){var lp=lores[li].match(/\[LORE:([^\]]+)\]/);if(lp)fileLore(lp[1]);}}},
 {t:"DECISION",apply:function(text,R){var decs=text.match(/\[DECISION:([^\]]+)\]/g)||[];for(var di=0;di<decs.length;di++){var dp=decs[di].match(/\[DECISION:([^\]]+)\]/);if(dp)fileDecision(R.turn,dp[1]);}}},
@@ -1493,8 +1507,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   /* #644 (review 2026-10-19): the GM names an effect the engine already filed under its spell ("Blurred|a minute|her Blur spell" after
      the engine's "Blur") — the GM's name and duration take over that entry instead of standing beside it; the full spell name in the
      GM's cause is the key (the doc asks for it), never a stem, so a wound's "blood loss" can never fold into Blood Armor */
-  if(!calready&&ccause){for(condj=0;condj<worldState.character.conditions.length;condj++){var _own=worldState.character.conditions[condj],_ownCause=String(_own.cause||"");
-    if(_ownCause.indexOf(OWN_SPELL_CAUSE)===0&&ccause.toLowerCase().indexOf(_ownCause.slice(OWN_SPELL_CAUSE.length).toLowerCase())>=0){R.muts.push("Condition: "+cnm+" (was "+_own.name+" \u2014 your own spell)");_own.name=cnm;_own.duration=cdur;calready=true;break;}}}
+  if(!calready&&ccause){var _was=conditionOwnSpellMerge(worldState.character.conditions,cnm,cdur,ccause);if(_was!==null){R.muts.push("Condition: "+cnm+" (was "+_was+" \u2014 your own spell)");calready=true;}}/* #649: the one merge, both sheets */
   if(!calready){var newCond={name:cnm,duration:cdur};if(ccause)newCond.cause=ccause;worldState.character.conditions.push(newCond);R.muts.push("Condition: "+cnm);}}}},
 {t:"CONDITION_REMOVED",apply:function(text,R){var condRems=text.match(/\[CONDITION_REMOVED:([^\]]+)\]/g)||[];var cri2;for(cri2=0;cri2<condRems.length;cri2++){var crp2=condRems[cri2].match(/\[CONDITION_REMOVED:([^\]]+)\]/);if(!crp2)continue;if(!worldState.character.conditions)continue;var cbef=worldState.character.conditions.length,_crn=crp2[1].trim().toLowerCase();worldState.character.conditions=worldState.character.conditions.filter(function(x){return x.name.toLowerCase()!==_crn;});if(worldState.character.conditions.length<cbef)R.muts.push("Cured: "+crp2[1].trim());else if(typeof console!=="undefined")console.warn("[tags] CONDITION_REMOVED: '"+crp2[1].trim()+"' is not on the sheet — nothing cured (#136⑤)");}}},
 {t:"RELATIONSHIP",apply:function(text,R){var tags=text.match(/\[RELATIONSHIP:([^|\]]+)\|([^\]]+)\]/g)||[],i;for(i=0;i<tags.length;i++){var m=tags[i].match(/\[RELATIONSHIP:([^|\]]+)\|([^\]]+)\]/);if(m)relationshipLegacyProposal(null,m[1].trim(),m[2].trim(),"legacy-write",R);}}},
@@ -1801,6 +1814,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
     cCondCs.conditions[cCondj].duration=cCdur;
     if(cCcause&&!cCondCs.conditions[cCondj].cause)cCondCs.conditions[cCondj].cause=cCcause;
     cCalready=true;break;}}
+  if(!cCalready&&cCcause){var _cwas=conditionOwnSpellMerge(cCondCs.conditions,cCnm,cCdur,cCcause);if(_cwas!==null){R.muts.push(cCondp[1].trim()+": "+cCnm+" (was "+_cwas+" — their own spell)");cCalready=true;}}/* #649: a later GM entry naming the engine-filed spell takes it over, as on the hero */
   if(!cCalready){var cNewCond={name:cCnm,duration:cCdur};if(cCcause)cNewCond.cause=cCcause;cCondCs.conditions.push(cNewCond);R.muts.push(cCondp[1].trim()+": "+cCnm);}}}},
 {t:"COMPANION_CONDITION_REMOVED",apply:function(text,R){var cCrTags=text.match(/\[COMPANION_CONDITION_REMOVED:([^|\]]+)\|([^\]]+)\]/g)||[];var cCri;for(cCri=0;cCri<cCrTags.length;cCri++){var cCrp=cCrTags[cCri].match(/\[COMPANION_CONDITION_REMOVED:([^|\]]+)\|([^\]]+)\]/);if(!cCrp)continue;var cCrCs=findCompanionChar(cCrp[1]);if(!cCrCs||!cCrCs.conditions){if(typeof console!=="undefined")console.warn("[tags] no party member (with conditions) matches '"+cCrp[1].trim()+"' — companion tag dropped (#136③)");continue;}var cCrB=cCrCs.conditions.length;cCrCs.conditions=cCrCs.conditions.filter(function(x){return x.name!==cCrp[2].trim();});if(cCrCs.conditions.length<cCrB)R.muts.push(cCrp[1].trim()+": cured "+cCrp[2].trim());else if(typeof console!=="undefined")console.warn("[tags] COMPANION_CONDITION_REMOVED: '"+cCrp[2].trim()+"' not on "+cCrp[1].trim()+" (#136⑤)");}}},
 {t:"COMPANION_RELATIONSHIP",apply:function(text,R){var tags=text.match(/\[COMPANION_RELATIONSHIP:([^|\]]+)\|([^|\]]+)\|([^\]]+)\]/g)||[],i;for(i=0;i<tags.length;i++){var m=tags[i].match(/\[COMPANION_RELATIONSHIP:([^|\]]+)\|([^|\]]+)\|([^\]]+)\]/);if(m)relationshipLegacyProposal(m[1].trim(),m[2].trim(),m[3].trim(),"legacy-write",R);}}},

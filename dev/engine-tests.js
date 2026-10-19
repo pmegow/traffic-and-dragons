@@ -3549,6 +3549,60 @@ function runEngineTests(R){
     if(d.indexOf("[COMPANION_CONDITION:Name|condName|duration|cause] [COMPANION_CONDITION_REMOVED:Name|condName] -- the same rule for a lasting effect on a party member")<0)return "the companion line lost the same rule";
     return true;
   });
+  /* #649 (owner 2026-10-19, the follow-up #648 named): the companion half of #644. [COMPANION_SPELL_USED:] books the cast
+     through the same payment routine as the hero's; it now files a lasting SELF-targeted spell on THAT companion's sheet
+     through the same filer, skips when the GM's own [COMPANION_CONDITION:] for that companion names it (never for the
+     hero's tag or another companion's), merges a later GM entry through the one shared merge, and the long rest sweeps
+     every living party member's engine-filed entries on both paths, naming who faded. */
+  function makeCompanionCaster(name,cls,stat,statVal,spells){
+    var cs={name:name,cls:cls,level:5,hp:30,maxHp:30,stats:{STR:10,DEX:10,CON:10,INT:10,WIS:10,CHA:10},spells:spells,conditions:[],inventory:[],abilities:[]};cs.stats[stat||"WIS"]=statVal||10;
+    worldState.npcs.push({name:name,status:"ally",statusTurn:worldState.turn,rel:"companion",partyMember:true,charSheet:cs,aliases:[]});return cs;
+  }
+  t("#649 a companion's lasting self-targeted cast files itself on THEIR sheet — name, the bible's duration, the cause marker, the onset turn and a receipt naming them; a re-cast and a one-round spell file nothing; REMOVED by name clears it",function(){
+    makeCaster("Warrior","STR",10,[]);worldState.turn=40;var d=makeCompanionCaster("Daeris","Cleric","WIS",14,[{nm:"Blur",lvl:2},{nm:"Shield",lvl:1}]);
+    var R=applyMuts("Daeris shimmers. [COMPANION_SPELL_USED:Daeris|Blur]");
+    if(d.conditions.length!==1)return "one condition on Daeris expected, got "+JSON.stringify(d.conditions);
+    var cd=d.conditions[0];if(cd.name!=="Blur"||cd.duration!=="1 minute (concentration)"||cd.cause!=="own spell: Blur"||cd.turn!==40)return "shape: "+JSON.stringify(cd);
+    if(worldState.character.conditions.length)return "the hero's sheet must stay clean: "+JSON.stringify(worldState.character.conditions);
+    if(!(R.muts||[]).some(function(m){return /Daeris: condition Blur/.test(m);}))return "the receipt names them: "+JSON.stringify(R.muts);
+    applyMuts("[COMPANION_SPELL_USED:Daeris|Blur]");if(d.conditions.length!==1)return "a re-cast never doubles it";
+    applyMuts("[COMPANION_SPELL_USED:Daeris|Shield]");if(d.conditions.length!==1)return "Shield (1 round) files nothing";
+    applyMuts("[COMPANION_CONDITION_REMOVED:Daeris|Blur]");return d.conditions.length===0?true:"REMOVED by the spell's name clears it";
+  });
+  t("#649 the GM's own [COMPANION_CONDITION:] for THAT companion wins in the same response, loudly; the hero's [CONDITION:] or another companion's tag never suppresses a filing",function(){
+    makeCaster("Sorcerer","CHA",14,[{nm:"Blur",lvl:2}]);worldState.character.conditions=[];
+    var d=makeCompanionCaster("Daeris","Cleric","WIS",14,[{nm:"Blur",lvl:2}]),m=makeCompanionCaster("Morwen","Rogue","DEX",14,[{nm:"Blur",lvl:2}]);
+    var dbg=[],_d=console.debug;console.debug=function(x){dbg.push(String(x));};
+    try{applyMuts("[COMPANION_SPELL_USED:Daeris|Blur][COMPANION_CONDITION:Daeris|Blurred outline|a minute|her Blur spell]");}finally{console.debug=_d;}
+    if(d.conditions.length!==1||d.conditions[0].name!=="Blurred outline")return "the GM's naming stands alone on Daeris: "+JSON.stringify(d.conditions);
+    if(!dbg.some(function(x){return /#644 Daeris's Blur not filed/.test(x);}))return "the skip left no trace naming the companion: "+JSON.stringify(dbg);
+    d.conditions=[];
+    applyMuts("[SPELL_USED:Blur][CONDITION:Blurred|a minute|her Blur][COMPANION_SPELL_USED:Daeris|Blur][COMPANION_SPELL_USED:Morwen|Blur][COMPANION_CONDITION:Morwen|Blurred|a minute|her Blur]");
+    if(worldState.character.conditions.length!==1||worldState.character.conditions[0].name!=="Blurred")return "hero: the GM's entry alone: "+JSON.stringify(worldState.character.conditions);
+    if(d.conditions.length!==1||d.conditions[0].cause!=="own spell: Blur")return "Daeris's cast is filed by the engine — the hero's and Morwen's tags are not hers: "+JSON.stringify(d.conditions);
+    return (m.conditions.length===1&&m.conditions[0].name==="Blurred")?true:"Morwen: the GM's entry alone: "+JSON.stringify(m.conditions);
+  });
+  t("#649 the GM naming the companion's effect on a LATER turn merges into the engine's entry — one condition, the GM's name and duration, the onset kept, REMOVED by that name clears it; a wound never folds into a buff",function(){
+    makeCaster("Warrior","STR",10,[]);worldState.turn=40;var d=makeCompanionCaster("Daeris","Cleric","WIS",14,[{nm:"Blur",lvl:2}]);
+    applyMuts("[COMPANION_SPELL_USED:Daeris|Blur]");worldState.turn=41;var R=applyMuts("[COMPANION_CONDITION:Daeris|Blurred|a minute|her Blur spell]");
+    if(d.conditions.length!==1||d.conditions[0].name!=="Blurred"||d.conditions[0].duration!=="a minute"||d.conditions[0].turn!==40)return "merge: "+JSON.stringify(d.conditions);
+    if(!(R.muts||[]).some(function(x){return /Daeris: Blurred \(was Blur/.test(x);}))return "the merge is in the receipt: "+JSON.stringify(R.muts);
+    worldState.turn=42;applyMuts("[COMPANION_SPELL_USED:Daeris|Blur]");if(d.conditions.length!==1)return "a re-cast beside the GM-named entry (its cause names Blur) files nothing";
+    applyMuts("[COMPANION_CONDITION_REMOVED:Daeris|Blurred]");if(d.conditions.length!==0)return "REMOVED by the GM's name clears the merged entry";
+    applyMuts("[COMPANION_SPELL_USED:Daeris|Blur]");applyMuts("[COMPANION_CONDITION:Daeris|Bleeding|1 hour|blood loss from the dagger]");
+    return d.conditions.length===2?true:"a wound whose cause lacks the spell's name never merges into a buff: "+JSON.stringify(d.conditions);
+  });
+  t("#649 a long rest sweeps every party member's engine-filed self-spell conditions on both paths and names who faded; GM-filed entries stay; a dead companion gets nothing from a rest",function(){
+    makeCaster("Sorcerer","CHA",14,[{nm:"Blur",lvl:2}]);worldState.character.conditions=[];var d=makeCompanionCaster("Daeris","Cleric","WIS",14,[{nm:"Blur",lvl:2}]);d.conditions=[{name:"Poisoned",duration:"until antidote",cause:"Reaper Spider bite"}];
+    applyMuts("[SPELL_USED:Blur][COMPANION_SPELL_USED:Daeris|Blur]");if(worldState.character.conditions.length!==1||d.conditions.length!==2)return "setup: "+JSON.stringify([worldState.character.conditions,d.conditions]);
+    var R=applyMuts("You all sleep. [REST:long]");
+    if(worldState.character.conditions.length!==0||d.conditions.length!==1||d.conditions[0].name!=="Poisoned")return "after the rest: "+JSON.stringify([worldState.character.conditions,d.conditions]);
+    if(!(R.muts||[]).some(function(x){return x==="Faded over the rest: Blur, Blur (Daeris)";}))return "the receipt names who faded: "+JSON.stringify(R.muts);
+    applyMuts("[COMPANION_SPELL_USED:Daeris|Blur]");var faded=restClearPartyOwnSpellConditions();
+    if(faded.length!==1||faded[0]!=="Blur (Daeris)"||d.conditions.length!==1)return "the Rest path's sweep: "+JSON.stringify({faded:faded,conds:d.conditions});
+    applyMuts("[COMPANION_SPELL_USED:Daeris|Blur]");worldState.npcs[0].dead=worldState.turn;worldState.npcs[0].status="dead";
+    faded=restClearPartyOwnSpellConditions();return (faded.length===0&&d.conditions.length===2)?true:"a dead companion gets nothing from a rest — the sheet is left as it fell: "+JSON.stringify({faded:faded,conds:d.conditions});
+  });
   t("a racial 1/day cast spends NO mana and keeps its hard used gate",function(){
     var c=makeCaster("Warrior","INT",10,[{nm:"Faerie Fire",lvl:1,racial:true},{nm:"Shield",lvl:1}]);
     applyMuts("[SPELL_USED:Faerie Fire]");

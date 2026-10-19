@@ -4036,7 +4036,7 @@ function restSpells(fromTag){
   if(!worldState)return 0;
   var _landed=(typeof landOwedLevels==="function")?landOwedLevels():0;/* #349: levels land FIRST, so the heal and the mana refill below fill to the NEW maximums */
   if(typeof restHealFull==="function")restHealFull();/* #300: a long rest heals the party to full — the one site, both paths */
-  if(typeof restClearOwnSpellConditions==="function"){var _rsFaded=restClearOwnSpellConditions(worldState.character);if(_rsFaded.length&&typeof showToast==="function")showToast("Faded over the rest: "+_rsFaded.join(", "));}/* #644: both paths — the [REST:long] handler sweeps first and names them in its receipt */
+  if(typeof restClearPartyOwnSpellConditions==="function"){var _rsFaded=restClearPartyOwnSpellConditions();if(_rsFaded.length&&typeof showToast==="function")showToast("Faded over the rest: "+_rsFaded.join(", "));}/* #644/#649: both paths, the whole living party — the [REST:long] handler sweeps first and names them in its receipt */
   // #89 note: the spell-restore is GUARDED per-list rather than gating the whole function — the
   // old early return meant a spell-less character's (a Warrior's) Rest did NOTHING at all, which
   // matters now that resting also moves the clock.
