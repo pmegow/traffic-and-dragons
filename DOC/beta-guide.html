@@ -16,7 +16,8 @@
   body{background:var(--bg0);color:var(--t0);font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.7;padding:32px 20px 80px;}
   .wrap{max-width:760px;margin:0 auto;}
   /* owner 2026-10-18: the way back — the shared satellite header (satellite.css), kept in reach while the long page scrolls */
-  .sat-header{position:sticky;top:0;z-index:6;background:var(--bg0);margin:-32px 0 22px;padding-top:14px;}
+  .sat-header{position:sticky;top:0;z-index:6;background:var(--bg1);border:1px solid var(--brd);border-radius:14px;padding:14px 24px;margin:0 0 22px;box-shadow:0 2px 14px rgba(0,0,0,.14);}
+  @media (max-width:600px){.sat-header{padding:12px 14px;border-radius:12px;}}
   .sat-header .sat-sub{margin:4px 0 0;}
   .sat-header nav a{white-space:nowrap;}
   @media (pointer:coarse){.sat-header nav a{display:inline-block;padding:10px 2px;}}
@@ -24,8 +25,8 @@
   /* owner 2026-10-18: every section in its own bubble — the card is one surface step above the page (bg1 on bg0), the boxes inside it one more (bg2) */
   .sec{background:var(--bg1);border:1px solid var(--brd);border-radius:14px;padding:22px 24px 16px;margin:0 0 22px;box-shadow:0 2px 14px rgba(0,0,0,.14);}
   .sec>:last-child{margin-bottom:0;}
-  /* owner 2026-10-18: the boxes inside a card lift HALF a surface step — the midpoint of bg1 and bg2 (bg2 itself read too drastic); bg2 stays the fallback where color-mix is unknown */
-  .sec,.toc{--raise:var(--bg2);--raise:color-mix(in srgb,var(--bg1) 50%,var(--bg2));}
+  /* owner 2026-10-18: the boxes inside a card lift a QUARTER of a surface step toward bg2 (bg2 read too drastic, the midpoint still too much — owner 2026-10-18); bg2 stays the fallback where color-mix is unknown */
+  .sec,.toc{--raise:var(--bg2);--raise:color-mix(in srgb,var(--bg1) 75%,var(--bg2));}
   @media (max-width:600px){.sec{padding:16px 14px 12px;border-radius:12px;} body{padding:20px 12px 60px;}}
   h2 .stepnum{display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;background:var(--acc);color:var(--on-acc);border-radius:50%;font-size:15px;margin-right:10px;vertical-align:middle;font-weight:bold;}
   h3{color:var(--t0);font-size:16px;margin:22px 0 8px;}
@@ -50,12 +51,12 @@
   td:first-child{color:var(--t0);white-space:nowrap;}
   @media (max-width:600px){td:first-child{white-space:normal;}}/* a long symptom in the first column must wrap on a phone, or the page overflows sideways and the browser zooms the whole guide out */
   .kbd{display:inline-block;background:var(--bg2);border:1px solid var(--brd2);border-bottom-width:2px;border-radius:4px;padding:0 7px;font-size:13px;font-family:Consolas,Menlo,monospace;}
-  .toc{background:var(--bg1);border:1px solid var(--brd);border-radius:14px;padding:18px 22px;margin:0 0 22px;box-shadow:0 2px 14px rgba(0,0,0,.14);}
+  .toc{background:var(--bg1);border:1px solid var(--brd);border-radius:14px;padding:22px 24px 16px;margin:0 0 22px;box-shadow:0 2px 14px rgba(0,0,0,.14);}
   .toc ol{margin:6px 0 0 22px;}
   .toc li{margin-bottom:4px;}
   .toc a{color:var(--t0);text-decoration:none;border-bottom:1px dotted var(--brd2);}
   .toc a:hover{color:var(--acc);border-bottom-color:var(--acc);}
-  .toc-faq{margin:12px 0 0;font-size:14.5px;color:var(--t1);}
+  .toc .tip{margin:16px 0 0;}
   html{scroll-behavior:smooth;}
   .urlbox{background:var(--raise);border:1px dashed var(--acc);border-radius:8px;padding:14px 18px;margin:14px 0;text-align:center;font-size:18px;}
   .shots{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin:20px 0;}
@@ -87,7 +88,7 @@
 <header class="sat-header"><div><h1>⚔ Traffic and Dragons — Beta Tester Guide</h1><p class="sat-sub">From zero to your first adventure in about 15 minutes. In a hurry? The <a href="../faq.html">Player FAQ</a> is the short version.</p></div><nav><a href="../home.html">Home</a><a href="../index.html">Game</a><a href="../faq.html">Player FAQ</a></nav></header>
 
 <div class="toc">
-  <b>What's ahead</b>
+  <h2 class="toc-title">What's included in this guide</h2>
   <ol>
     <li><a href="#what">What Traffic and Dragons is (30 seconds)</a></li>
     <li><a href="#sign-in">Sign in <em>(required)</em></a></li>
@@ -99,7 +100,7 @@
     <li><a href="#file-menu">About the File menu</a></li>
     <li><a href="#broken">If something looks broken</a></li>
   </ol>
-  <p class="toc-faq">Short on time? The <a href="../faq.html">Player FAQ</a> has the first five minutes and the questions the help desk answers.</p>
+  <div class="tip"><span class="ico">⏱</span><b>Short on time?</b> The <a href="../faq.html">Player FAQ</a> has the first five minutes and the questions the help desk answers.</div>
 </div>
 
 <section class="sec">
