@@ -21,6 +21,8 @@
   /* owner 2026-10-18: every section in its own bubble — the card is one surface step above the page (bg1 on bg0), the boxes inside it one more (bg2) */
   .sec{background:var(--bg1);border:1px solid var(--brd);border-radius:14px;padding:22px 24px 16px;margin:0 0 22px;box-shadow:0 2px 14px rgba(0,0,0,.14);}
   .sec>:last-child{margin-bottom:0;}
+  /* owner 2026-10-18: the boxes inside a card lift HALF a surface step — the midpoint of bg1 and bg2 (bg2 itself read too drastic); bg2 stays the fallback where color-mix is unknown */
+  .sec,.toc{--raise:var(--bg2);--raise:color-mix(in srgb,var(--bg1) 50%,var(--bg2));}
   @media (max-width:600px){.sec{padding:16px 14px 12px;border-radius:12px;} body{padding:20px 12px 60px;}}
   h2 .stepnum{display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;background:var(--acc);color:var(--on-acc);border-radius:50%;font-size:15px;margin-right:10px;vertical-align:middle;font-weight:bold;}
   h3{color:var(--t0);font-size:16px;margin:22px 0 8px;}
@@ -33,12 +35,12 @@
   .card.opt{border-left-color:var(--brd2);}
   .card .tag{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);display:block;margin-bottom:6px;}
   .card.opt .tag{color:var(--t2);}
-  .tip{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:12px 16px;margin:14px 0;font-size:14.5px;color:var(--t1);}
+  .tip{background:var(--raise);border:1px solid var(--brd);border-radius:8px;padding:12px 16px;margin:14px 0;font-size:14.5px;color:var(--t1);}
   .tip b{color:var(--t0);}
   .tip .ico{margin-right:8px;}
   .warn{border-left:3px solid var(--dng);}
   .money{border-left:3px solid var(--ok);}
-  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;overflow:hidden;}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;background:var(--raise);border:1px solid var(--brd);border-radius:8px;overflow:hidden;}
   th,td{padding-left:12px;padding-right:12px;}
   th{color:var(--t2);text-transform:uppercase;font-size:11px;letter-spacing:.1em;text-align:left;padding:6px 10px;border-bottom:1px solid var(--brd2);}
   td{padding:8px 10px;border-bottom:1px solid var(--brd);vertical-align:top;color:var(--t1);}
@@ -52,7 +54,7 @@
   .toc a:hover{color:var(--acc);border-bottom-color:var(--acc);}
   .toc-faq{margin:12px 0 0;font-size:14.5px;color:var(--t1);}
   html{scroll-behavior:smooth;}
-  .urlbox{background:var(--bg2);border:1px dashed var(--acc);border-radius:8px;padding:14px 18px;margin:14px 0;text-align:center;font-size:18px;}
+  .urlbox{background:var(--raise);border:1px dashed var(--acc);border-radius:8px;padding:14px 18px;margin:14px 0;text-align:center;font-size:18px;}
   .shots{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin:20px 0;}
   .shots figure{flex:1;min-width:240px;max-width:330px;margin:0;}
   .shotwrap{position:relative;}
