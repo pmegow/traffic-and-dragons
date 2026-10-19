@@ -45,7 +45,7 @@ prove("DOC/beta-guide.html", [
 ]);
 prove("faq.html", [
   { label: "the FAQ loses its way back to Home",
-    find: '<nav><a href="home.html">Home</a>', replace: "<nav>",
+    find: 'aria-label="Back to the game"><a href="home.html">Home</a>', replace: 'aria-label="Back to the game">',
     mustFail: "a way back on both pages" }
 ]);
 prove("dev/shoot-beta-guide.js", [

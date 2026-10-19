@@ -91,11 +91,15 @@ t("the tour's callouts carry a hint: every callout is a button with a TIPS entry
 });
 t("a way back on both pages (owner 2026-10-18): the shared satellite header carries Home and Game links — the guide from DOC/ with ../, the FAQ from the root",function(){
   var g=read("DOC/beta-guide.html"),f=read("faq.html");
-  function nav(h){var a=h.indexOf('<header class="sat-header">'),b=h.indexOf("</header>",a);if(a<0||b<0)return "";var s=h.slice(a,b),c=s.indexOf("<nav>");return c<0?"":s.slice(c+5,s.indexOf("</nav>",c));}
+  /* owner 2026-10-18 (second ruling): the links FLOAT on their own — a sticky nav pill right after the header card, never the whole header */
+  function nav(h){var a=h.indexOf('<nav class="sat-nav"');if(a<0)return "";return h.slice(h.indexOf(">",a)+1,h.indexOf("</nav>",a));}
   var gn=nav(g),fn=nav(f);
   if(!gn||gn.indexOf('href="../home.html"')<0||gn.indexOf('href="../index.html"')<0||gn.indexOf('href="../faq.html"')<0)return "the guide's header nav links Home, Game and the FAQ (from DOC/, so ../)";
   if(!fn||fn.indexOf('href="home.html"')<0||fn.indexOf('href="index.html"')<0||fn.indexOf('href="DOC/beta-guide.html"')<0)return "the FAQ's header nav links Home, Game and the guide";
   if(g.indexOf("<h1>")<0||g.indexOf("<h1>")>g.indexOf('<header class="sat-header">')+40)return "the guide's title lives in the header";
+  if(g.indexOf(".sat-nav{position:sticky;")<0||f.indexOf(".sat-nav{position:sticky;")<0)return "the nav pill is the sticky element";
+  function headerSticks(h){var i=h.indexOf(".sat-header{");return i>=0&&h.slice(i,h.indexOf("}",i)).indexOf("position:sticky")>=0;}
+  if(headerSticks(g)||headerSticks(f))return "the whole header must not stick (owner 2026-10-18)";
   return true;
 });
 t("the staged world and the guide name no licensed setting (the Runelords names were the owner's catch)",function(){
