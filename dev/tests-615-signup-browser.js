@@ -3,9 +3,9 @@ const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..'),shots=process.env.SIGNUP_SHOTS;
 (async()=>{const browser=await chromium.launch({headless:true});try{
  const ctx=await browser.newContext({viewport:{width:1200,height:900},serviceWorkers:'block'});
- let identityError=false,entitled=false;
+ let identityError=false,entitled=false;const t0=Date.now(),flyLog=[];
  await ctx.route('**/*',async r=>{const u=new URL(r.request().url());
-  if(u.hostname==='traffic-and-dragons-server.fly.dev'){
+  if(u.hostname==='traffic-and-dragons-server.fly.dev'){flyLog.push((Date.now()-t0)+'ms '+r.request().method()+' '+u.pathname);
    const body=u.pathname==='/auth/me'?{username:'Peter (test account)'}:u.pathname==='/api/account'?{username:'Peter (test account)',entitled:entitled}:u.pathname==='/api/prefs/speaker_stars'?{value:[],rev:1}:{};
    return r.fulfill({status:identityError&&u.pathname==='/api/account'?401:200,contentType:'application/json',body:JSON.stringify(body)});
   }
@@ -34,7 +34,10 @@ const root=path.resolve(__dirname,'..'),shots=process.env.SIGNUP_SHOTS;
  await page.locator('.module-return a').click();await page.waitForFunction(()=>!document.getElementById('invitation').hidden);
  await page.locator('#signup-confirm').click();
  await page.setViewportSize({width:1200,height:900});
- await page.waitForFunction(()=>document.getElementById('account')&&!document.getElementById('account').hidden);
+ try{await page.waitForFunction(()=>document.getElementById('account')&&!document.getElementById('account').hidden);}
+ catch(e){/* the flake of 2026-10-19: say what the page showed, not just that it timed out */
+  const st=await page.evaluate(()=>({href:location.href,heading:document.getElementById('heading')&&document.getElementById('heading').textContent,status:document.getElementById('status')&&document.getElementById('status').textContent,visible:['invitation','providers','account','recovery','check-access'].filter(id=>{const el=document.getElementById(id);return el&&!el.hidden;}),serverMode:(typeof storageAdapter!=='undefined'&&storageAdapter.isServerMode)?storageAdapter.isServerMode():'n/a',tok:localStorage.getItem('tnd_server_tok_v1')})).catch(x=>'page state unreadable: '+x);
+  console.error('[#615] the account screen did not show — page: '+JSON.stringify(st)+' — fly.dev requests: '+JSON.stringify(flyLog)+' — page errors: '+JSON.stringify(errors));throw e;}
  assert.equal(await page.evaluate(()=>location.pathname),'/signup.html','Sign up always lands on its own page');
  assert.equal(await page.evaluate(()=>typeof initState),'undefined','signup does not boot game');
  await shot('signup-existing-desktop');
