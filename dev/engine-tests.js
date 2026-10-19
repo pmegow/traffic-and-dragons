@@ -7949,6 +7949,22 @@ function runEngineTests(R){
   });
 
   // ── #204 stray duplicates of SUCCEEDED operations are hygiene, not disputes (t2049) ────────
+  // ── B46 say what they are (a dozen conscripts of no stated kind, Ammut t22, v1.1275) ───────────
+  section("B46 — every figure and group gets its kind on first sight");
+  t("B46 rule 4 (many peoples) also asks the prose to SAY what a figure is on first sight — every figure and every group, unnamed crowds included, in a word or two; a sheeted character keeps the sheet's look; extended IN PLACE (the rule count and slot are unchanged) and it reaches the rules block",function(){
+    if(DEFAULT_RULES.length!==28)return "the rule count moved ("+DEFAULT_RULES.length+") — extend rule 4 in place, never add a rule (data.js: long lists dilute per-rule compliance)";
+    var rule=DEFAULT_RULES[3];if(!/^A WORLD OF MANY PEOPLES AND MONSTERS/.test(rule))return "rule 4 is no longer the many-peoples rule: "+rule.slice(0,60);
+    if(!/SAY WHAT THEY ARE/.test(rule))return "rule 4 still only CASTS many peoples — nothing asks the prose to say what a figure is (B46: 'a dozen conscripts in rags', no kind)";
+    if(!/on first sight/.test(rule)||!/every figure and every group/.test(rule)||!/unnamed crowds included/.test(rule))return "the clause must cover groups and unnamed crowds on first sight, not only named NPCs";
+    if(!/in a word or two/.test(rule))return "the clause must ask for a word or two, or rule 11 PROSE and STYLE's write-less push it out again";
+    if(!/goblin conscripts/.test(rule)||!/human and gnome captives/.test(rule))return "the clause must show the shape with a group example of each kind";
+    if(!/keeps the sheet's look/.test(rule))return "a sheeted character must keep the sheet's look (the #623 'pale Daeris' class: never an invented ancestry)";
+    if(!/a hole in the scene, not a mystery/.test(rule))return "the clause must say why: an unstated kind is a hole, not a mystery";
+    var i;for(i=0;i<DEFAULT_RULES.length;i++)if(i!==3&&/SAY WHAT THEY ARE/.test(DEFAULT_RULES[i]))return "the clause appears in more than one rule";
+    if(getRulesBlock().indexOf("SAY WHAT THEY ARE")<0)return "the clause must reach the rules block (stable half)";
+    makeWorld();var st=buildSysPrompt().stable;if(st.indexOf("unnamed crowds included")<0)return "the clause must reach the stable half of the prompt";
+    return true;
+  });
   section("#204 duplicate-refusal hygiene");
   t("#204: a bare SCENE_DEATH whose envelope already committed THIS response is stripped without a conflict, and co-emitted quest tags survive",function(){
     makeWorld();
