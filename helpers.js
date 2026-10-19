@@ -2653,6 +2653,20 @@ function itemDefDecline(key){
 // HTML string out, no DOM and no globals beyond escHtml. So BOTH the in-game click-card
 // (showCapabilityCard, ui.js) and the standalone bible_study.html viewer render from THIS one
 // function — one render, two hosts. CSS vars carry app-theme fallbacks so it looks right in either.
+// #644 (owner 2026-10-18: "all spells that affect a player get listed under conditions"): the duration of a lasting effect a
+// capability leaves ON ITS CASTER — the bible's duration string when the entry targets the self (alone or "self and allies",
+// never "self OR someone") and lasts beyond the moment; null for an instant, a single round (gone before the next turn), a
+// passive that is always on (a trait, not a condition), or a target that may be someone else. Pure over the bible entry; the
+// SPELL_USED writer (tag_table.js) files the player's own casts with it, the CONDITION doc line carries everything else.
+function capabilityLastingSelf(entry){
+  if(!entry)return null;
+  var t=String(entry.targets||"").trim(),d=String(entry.duration||"").trim(),cost=String(entry.cost||"");
+  if(!/^self\b/i.test(t)||/\bor\b/i.test(t))return null;
+  if(/passive/i.test(cost))return null;
+  if(!d||/^(instant|instantaneous|n\/a|none|-|always on|permanent|as the spell)$/i.test(d))return null;
+  if(/^1 round$/i.test(d))return null;
+  return d;
+}
 function bibleCardHTML(name,e){
   if(!e)return '<div style="padding:20px 24px;color:var(--t2,#999);font-size:13px;">No canonical entry yet for <b>'+escHtml(name)+'</b>.</div>';
   var base=String(name||"").replace(/\s*\(.*\)/,"").trim();

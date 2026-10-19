@@ -194,7 +194,7 @@ var TAG_DOC_LINES=[
 "[SKILL_SUCCESS:skill_id] -- on a successful skilled action (exact ids: "+SKILLS.map(function(s){return s.id;}).join(", ")+")\n",
 "[COMPANION_SKILL_SUCCESS:Name|skill_id] -- the same for a named party member's OWN successful skilled action: companions earn their own ladder (never file a companion's success under the player)\n",
 "[SKILL_SUCCESS:Tracking] covers both wilderness tracking (following prey or people by physical signs) and urban tailing (shadowing a mark through crowds, alleys, or city streets). Use WIS for reading the environment, INT for anticipating movement patterns.\n",
-"[CONDITION:name|duration|cause] [CONDITION_REMOVED:name] -- duration is descriptive (e.g. 'until antidote', 'saving throw each hour CON DC 15'); cause = what inflicted it (e.g. 'Reaper Spider bite') -- ALWAYS name the cause so the sheet carries the why\n",
+"[CONDITION:name|duration|cause] [CONDITION_REMOVED:name] -- duration is descriptive (e.g. 'until antidote', 'saving throw each hour CON DC 15'); cause = what inflicted it (e.g. 'Reaper Spider bite') -- ALWAYS name the cause so the sheet carries the why. A LASTING EFFECT ON THE PLAYER IS A CONDITION TOO: a disguise or changed shape, invisibility, flight, a ward, a granted resistance, a curse -- whatever a spell, ability, potion or item leaves in force beyond the moment, their own casting or anyone's. File it the turn it begins (e.g. [CONDITION:Seventy-Two Shapes|until dropped|their own ability]) and emit [CONDITION_REMOVED:] the turn it ends or is dropped; a passive trait that is always on is never a condition.\n",
 "RELATIONSHIPS HAVE TWO AXES. [RELATIONSHIP_BOND:entity|durable bond] records durable canon such as Wife/Husband/Family/Sworn ally/Nemesis; [RELATIONSHIP_DYNAMIC:entity|current dynamic] records changeable posture such as tense, warming, owed a favor, or suspicious. A passing moment belongs in DYNAMIC and must never replace BOND. New bonds commit directly; replacing or removing an existing bond is proposed first and must be confirmed by repeating the exact tag on a LATER response. [RELATIONSHIP_BOND_REMOVED:entity] and [RELATIONSHIP_DYNAMIC_REMOVED:entity] remove only that axis; [RELATIONSHIP_PAIR_REMOVED:entity] explicitly removes both (and also needs later confirmation when a bond exists). Legacy [RELATIONSHIP:] / [RELATIONSHIP_REMOVED:] are compatibility-only: the engine will not guess an axis and will ask you to re-emit an explicit tag. Values over 240 characters are refused. entity=NPC or faction.\n",
 "[SAVE_MOD:source|type|amount] [SAVE_MOD_REMOVED:source] -- type=stat (CON/DEX/etc.) or threat (Poison/Fire/Cold/Lightning/Fear/Charm/Psionic/Holy/Shadow/Disease/Magic/Other); amount=integer\n",
 "[LANGUAGE:name|fluent] or [LANGUAGE:name|broken] -- when character learns or improves a language\n",
@@ -208,7 +208,7 @@ var TAG_DOC_LINES=[
 "[SCENE_CAST:Name, Name] -- WHO IS PHYSICALLY HERE: the characters standing where THIS reply ENDS, party members included, close enough to be spoken to or struck this instant. Emit ONE such line when the engine asks (it asks at scene changes); name every present character and nobody else -- someone the party is talking ABOUT, expecting, or remembering is NOT in the cast. If the party is alone, emit [SCENE_CAST:none] -- none means the whole party is here and no one else; a companion who is elsewhere is left out of a named cast.\n",
 "[NPC_DEATH_REPORTED:name|source] -- a death the party did NOT witness: learned from testimony, a discovered body, or news from elsewhere. Commits the death honestly as REPORTED second-hand canon (no eyewitness claim). Use it when you narrate an off-screen death; never for a death the party watches happen -- that one is [NPC:name|dead|relation], inside its CANON_TXN when rewards ride with it.\n",
 "[COMPANION_HP:Name|+/-N] [COMPANION_ITEM_GAINED:Name|item] [COMPANION_ITEM_LOST:Name|item] [COMPANION_XP:Name|N]\n",
-"[COMPANION_CONDITION:Name|condName|duration|cause] [COMPANION_CONDITION_REMOVED:Name|condName]\n",
+"[COMPANION_CONDITION:Name|condName|duration|cause] [COMPANION_CONDITION_REMOVED:Name|condName] -- the same rule for a lasting effect on a party member.\n",
 "[COMPANION_RELATIONSHIP_BOND:Name|entity|durable bond] [COMPANION_RELATIONSHIP_BOND_REMOVED:Name|entity] [COMPANION_RELATIONSHIP_DYNAMIC:Name|entity|current dynamic] [COMPANION_RELATIONSHIP_DYNAMIC_REMOVED:Name|entity] [COMPANION_RELATIONSHIP_PAIR_REMOVED:Name|entity]. The legacy COMPANION_RELATIONSHIP forms are compatibility-only and queue an explicit axis decision.\n",
 "[COMPANION_ABILITY:Name|abilityName|desc] [COMPANION_ALIGNMENT:Name|law+1]\n",
 "[COMPANION_SPELL_USED:Name|spellname] -- when a PARTY MEMBER casts a leveled spell (cantrips never expend; use the exact spell name). Same mana economy, spent from THEIR own pool (shown on their party sheet). The player's own casts keep [SPELL_USED:].\n",
@@ -360,6 +360,20 @@ function combatAttrEntry(tagName,field){
    except a NECROMANCER, who overdraws in blood: MANA_BLOOD_HP per missing point, deducted
    HERE by the engine (the doc forbids the GM re-emitting [HP:] for it — the XP-mirror
    precedent, or the price would double-count). */
+// #644 (owner 2026-10-18): the player's own lasting SELF-targeted spell files itself as a condition off the cast the engine
+// already books (capabilityLastingSelf, helpers.js) — unless a [CONDITION:] in the same response names the spell, in which
+// case the GM's wording stands and the engine never doubles it; a re-cast of something already on the sheet files nothing.
+// Abilities have no use tag, so the CONDITION doc line carries those (Seventy-Two Shapes, held until dropped, was the case).
+function spellSelfConditionFile(sp,text,R){
+  var entry=(typeof capabilityLookup==="function")?capabilityLookup(sp.nm):null,dur=(typeof capabilityLastingSelf==="function")?capabilityLastingSelf(entry):null;
+  if(!dur)return;
+  var name=String(sp.nm).replace(/\s*\(.*\)/,"").trim(),low=name.toLowerCase(),tags=text.match(/\[CONDITION:[^\]]*\]/g)||[],i;
+  for(i=0;i<tags.length;i++)if(tags[i].toLowerCase().indexOf(low)>=0)return;
+  var c=worldState.character;if(!c.conditions)c.conditions=[];
+  for(i=0;i<c.conditions.length;i++)if(String(c.conditions[i].name).toLowerCase()===low)return;
+  c.conditions.push({name:name,duration:dur,cause:"your "+name,turn:R.turn});
+  R.muts.push("Condition: "+name+" ("+dur+" — your own spell)");
+}
 function manaPayCast(caster,sp,who,R){
   if(sp.racial){sp.used=true;R.muts.push(who+"cast: "+sp.nm+" (1/day)");return;}
   sp.used=true;
@@ -1317,7 +1331,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
   if(!abilityHeldAs(worldState.character,abp[1])){worldState.character.abilities.push({nm:abp[1],ds:abp[2],gained:R.turn});R.muts.push("Ability: "+abp[1]);}}}},
 {t:"ALIGNMENT",apply:function(text,R){__tagNearMiss(text,R,"ALIGNMENT","^\\[ALIGNMENT:(?:[Ll][Aa][Ww]|[Gg][Oo][Oo][Dd])[+-]\\d+\\]$","[ALIGNMENT:law-or-good|+N/-N]");/* audit A6 */var alms=text.match(/\[ALIGNMENT:(law|good)([+-]\d+)\]/gi)||[];var ali;for(ali=0;ali<alms.length;ali++){var ap=alms[ali].match(/\[ALIGNMENT:(law|good)([+-]\d+)\]/i);if(ap){if(!worldState.character.alignLaw)worldState.character.alignLaw=0;if(!worldState.character.alignGood)worldState.character.alignGood=0;if(ap[1].toLowerCase()==="law")worldState.character.alignLaw=Math.max(-3,Math.min(3,worldState.character.alignLaw+parseInt(ap[2])));else worldState.character.alignGood=Math.max(-3,Math.min(3,worldState.character.alignGood+parseInt(ap[2])));var newAl=alignLabel(worldState.character.alignLaw,worldState.character.alignGood);if(newAl!==worldState.character.actualAlignment){R.muts.push("Align: "+newAl);worldState.character.actualAlignment=newAl;}}}}},
 {t:"SPELL_USED",apply:function(text,R){var spellUsed=text.match(/\[SPELL_USED:([^\]]+)\]/g)||[];var sui;for(sui=0;sui<spellUsed.length;sui++){var sup=spellUsed[sui].match(/\[SPELL_USED:([^\]]+)\]/);if(sup&&worldState.character.spells){var spNm=sup[1].toLowerCase().trim(),spj,spHit=false;for(spj=0;spj<worldState.character.spells.length;spj++){var sp=worldState.character.spells[spj];if(sp.lvl===0)continue;
-var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||sp.nm.toLowerCase()===spNm){manaPayCast(worldState.character,sp,"",R);spHit=true;break;}}if(!spHit&&typeof console!=="undefined")console.warn("[tags] SPELL_USED: '"+sup[1].trim()+"' is not on the player's sheet — no cast booked (#136③)");}}}},
+var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||sp.nm.toLowerCase()===spNm){manaPayCast(worldState.character,sp,"",R);spellSelfConditionFile(sp,text,R);/* #644 */spHit=true;break;}}if(!spHit&&typeof console!=="undefined")console.warn("[tags] SPELL_USED: '"+sup[1].trim()+"' is not on the player's sheet — no cast booked (#136③)");}}}},
 // UA25: the companion twin of SPELL_USED — inserted HERE (not in the companion cluster) so a
 // same-response cast-then-rest resolves rest-last for companions exactly as it does for the
 // player (SPELL_USED runs before REST in table order). Misses warn: a companion cast the

@@ -3464,6 +3464,52 @@ function runEngineTests(R){
     applyMuts("[SPELL_USED:Bless]");
     return c.mana===0?true:"second cast should empty the pool, got "+c.mana;
   });
+  /* #644 (owner 2026-10-18: Ammut's Seventy-Two Shapes held "until dropped" and sat on no sheet — "all spells that affect a
+     player get listed under conditions"). Two layers: the doc line teaches the GM that a lasting effect on the player IS a
+     condition (abilities, potions, anyone's cast — the GM is the only one who sees those), and the engine files the player's
+     own lasting SELF-targeted spells itself off the [SPELL_USED:] it already books, unless the GM's own [CONDITION:] names it. */
+  t("capabilityLastingSelf: the duration of a lasting effect that lands on the caster alone — null for instant, one round, passive, or a target that may be someone else",function(){
+    var L=function(n){return capabilityLastingSelf(CAPABILITY_BIBLE[n]);};
+    if(L("blur")!=="1 minute (concentration)")return "blur: "+L("blur");
+    if(L("disguise self")!=="1 hour")return "disguise self: "+L("disguise self");
+    if(L("seventy-two shapes")!=="until you drop it")return "seventy-two shapes (an ability — the doc rule's case, the predicate still knows it): "+L("seventy-two shapes");
+    if(L("pass without trace")!=="concentration, up to 1 hour")return "self AND allies lands on the player too: "+L("pass without trace");
+    if(L("shield")!==null)return "a 1-round spell is not a sheet condition";
+    if(L("fire bolt")!==null)return "instantaneous";
+    if(L("guidance")!==null)return "1 willing creature may be someone else";
+    if(L("darkvision")!==null)return "a passive that is always on is a trait, never a condition";
+    if(L("sleep of the dead")!==null)return "self OR 1 creature is not provably the player";
+    if(L(null)!==null||capabilityLastingSelf(undefined)!==null)return "no entry → null";
+    return true;
+  });
+  t("a lasting self-targeted spell the player casts files itself as a condition when the GM filed none — name, the bible's duration, the cause and the onset turn",function(){
+    var c=makeCaster("Sorcerer","CHA",14,[{nm:"Blur",lvl:2},{nm:"Shield",lvl:1},{nm:"Guidance",lvl:0}]);c.conditions=[];worldState.turn=40;
+    var R=applyMuts("The air around you shimmers. [SPELL_USED:Blur]");
+    if(c.conditions.length!==1)return "one condition expected, got "+JSON.stringify(c.conditions);
+    var cd=c.conditions[0];
+    if(cd.name!=="Blur"||cd.duration!=="1 minute (concentration)"||cd.cause!=="your Blur"||cd.turn!==40)return "shape: "+JSON.stringify(cd);
+    if(!(R&&R.muts||[]).some(function(m){return /Condition: Blur/.test(m);}))return "the receipt names it: "+JSON.stringify(R&&R.muts);
+    applyMuts("[SPELL_USED:Blur]");if(c.conditions.length!==1)return "a re-cast never doubles it";
+    applyMuts("[SPELL_USED:Shield]");if(c.conditions.length!==1)return "Shield (1 round) files nothing";
+    applyMuts("[CONDITION_REMOVED:Blur]");if(c.conditions.length!==0)return "the GM's REMOVED finds it by the spell's name";
+    return true;
+  });
+  t("the GM's own [CONDITION:] for the effect wins in the same response — the engine never doubles it, and a cast that is not on the sheet files nothing",function(){
+    var c=makeCaster("Sorcerer","CHA",14,[{nm:"Blur",lvl:2}]);c.conditions=[];
+    applyMuts("[SPELL_USED:Blur][CONDITION:Blurred outline|a minute|her Blur spell]");
+    if(c.conditions.length!==1||c.conditions[0].name!=="Blurred outline")return "the GM's naming stands alone: "+JSON.stringify(c.conditions);
+    c.conditions=[];/* Mirror Image is not on this sheet: the handler books no cast (#136③), so no condition either */
+    var _w=console.warn;console.warn=function(){};try{applyMuts("[SPELL_USED:Mirror Image]");}finally{console.warn=_w;}
+    return c.conditions.length===0?true:"an unbooked cast filed a condition: "+JSON.stringify(c.conditions);
+  });
+  t("the CONDITION doc line teaches that a lasting effect on the player is a condition — filed when it begins, removed when it ends; a passive trait never is",function(){
+    var d=buildStateTagsDoc();
+    if(d.indexOf("A LASTING EFFECT ON THE PLAYER IS A CONDITION TOO")<0)return "the sentence is gone from the CONDITION doc line";
+    if(!/\[CONDITION:Seventy-Two Shapes\|until dropped\|/.test(d))return "the worked example (the owner's case) is gone";
+    if(d.indexOf("a passive trait that is always on is never a condition")<0)return "the passive exclusion is gone";
+    if(d.indexOf("[COMPANION_CONDITION:Name|condName|duration|cause] [COMPANION_CONDITION_REMOVED:Name|condName] -- the same rule for a lasting effect on a party member")<0)return "the companion line lost the same rule";
+    return true;
+  });
   t("a racial 1/day cast spends NO mana and keeps its hard used gate",function(){
     var c=makeCaster("Warrior","INT",10,[{nm:"Faerie Fire",lvl:1,racial:true},{nm:"Shield",lvl:1}]);
     applyMuts("[SPELL_USED:Faerie Fire]");
@@ -8713,7 +8759,10 @@ function runEngineTests(R){
     // for the guestbook's second axis. The line teaches usual-base-ONLY semantics (never current
     // presence, never a substitute for meeting them) and the |false clear. Golden diffed by eye.
     var d=buildStateTagsDoc();
-    return (__djb2(d)===1851805317&&d.length===31123)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #598 (v1.1125): the GOLD doc line says the coin is tagged in its own unit (gp|sp|cp), +16 chars. #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
+    // v1.1281 (#644): the CONDITION line gains "A LASTING EFFECT ON THE PLAYER IS A CONDITION TOO" (a disguise, a shape, a ward —
+    // filed when it begins, removed when dropped; a passive trait never) and the COMPANION_CONDITION line the same rule (+524 chars
+    // over the two lines). Golden diffed by eye.
+    return (__djb2(d)===1491123013&&d.length===31647)?true:"doc block diverged (hash "+__djb2(d)+", len "+d.length+") — prompt-text changes must be deliberate commits";/* #598 (v1.1125): the GOLD doc line says the coin is tagged in its own unit (gp|sp|cp), +16 chars. #481 B1 (v1.1028): the SCENE_CAST doc line names who the cast is — the characters standing where THIS reply ENDS, party members included (Fable-approved stable-half touch) *//* #481 B2 (v1.1029): the SCENE_CAST doc line says what none means — the whole party and no one else; a companion who is elsewhere is left out of a named cast (Fable-approved stable-half touch) *//* #458 (v1.1001): the [SAY:] doc line gains the optional |mood — the form, the shape, the only-when-not-obvious rule and the example list (emotions, delivery, non-verbals) (+808 chars). Golden diffed by eye. *//* #437 (v1.982): the [COMPANION_GROWTH:] doc line gains the two motivation forms — settled and born — and the paperwork refusal (+570 chars). Golden diffed by eye. *//* #370 (v1.855): the [COMPANION_GROWTH:] doc line. #369 (v1.854): the one standing-dread doc line beside FUTURE_EVENT (+136 chars). *//* #357 (v1.841): the one [COMPANION_SKILL_SUCCESS:] doc line (+195 chars) beside the player form — companions earn their own ladder. Golden diffed by eye. *//* v1.777 (#311 ①): NPC_SUPERSEDE, NPC_MERGE, ALIAS/MERGE and ITEM_RENAMED move to the engine-only tier (-1155 chars — taught by their asking notes). v1.774 (#300): the DOWNED / DOWNED_RESOLVED / Rest-heals doc line (+597 chars). v1.772 (#303): the WARES/WANTED wants-and-economy doc line (+750 chars). v1.771 (#302): the [XP:N] flavour-only clause (+277 chars) — the engine pays milestones, the GM's XP is capped. v1.715 (#233): the ACT_COMPLETE doc line gains the door contract (+127 chars) — the title must MATCH the active act and every arc must close first ([ARC_COMPLETE:] may land in the same response). The instruction half of the act-door hardening; the handler refuses either violation loudly. Prior: v1.700 (#216) [TIME_CHECK:] (+582); v1.680 (#176) [ITEM_RENAMED:] pair (+353); #194 (v1.651) SAY presence clause + SCENE_CAST + NPC_DEATH_REPORTED; #187④a RETCON turn-addressing; #168 W7 axes. */
   });
   t("SKILL_SUCCESS doc ids track SKILLS exactly, both directions (the Explosives rot class)",function(){
     // v1.546: the exact-ids list rotted by hand — Explosives shipped in SKILLS (data.js) but never
