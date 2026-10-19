@@ -925,6 +925,13 @@ function buildCompanionInitiativeLine(){var r=(typeof companionInitiativeRecent=
 // #367: living party members — relationship to the hero (both W7 axes), authored motivation, open want.
 // #371: the stake clause, "" while the switch is off so the prompt stays byte-identical to the pre-#371 line.
 function diceStakeText(){return (typeof diceStakeClause!=="undefined"&&diceStakeClause)?" Before any roll, say in one clause what failure would cost. If nothing is genuinely at risk, do not roll: narrate the competence and file no dice.":"";}
+// B45 (owner ruling 2026-10-18): the FLOOR under the #371 license. Two sentries died in prose with no roll and no
+// fight (Ammut t21, v1.1275) because nothing defined "at risk", and the next turn the GM said in prose that no roll
+// was needed. Permanent and OUTSIDE the stake switch (the switch is taste; the floor is not); it reads AFTER the
+// clause so the license comes first and its bound second. The verb follows the dice contract: the GM rolls, or the
+// player does and the GM stops at [CHECK:]. The fight opens before a stealth kill so [ENEMY_SLAIN:] has a tracker to
+// land in (#9) — it auto-closes when every foe is down.
+function diceFloorText(playerRolls){return " ALWAYS AT RISK, however skilled the hero: an attack on a foe, a contested act against someone who could notice, and any attempt whose failure costs blood \u2014 "+(playerRolls?"stop at [CHECK:] for them":"roll them")+", and open the fight with [COMBAT_START:] before the first blow lands, a silent one included. Whether a roll was needed is bookkeeping: never say it in the story.";}
 function buildDenouementCompanions(){
   if(!worldState||!worldState.npcs||!worldState.npcs.length||typeof livingPartyCompanions!=="function")return"";
   var party=livingPartyCompanions(),c=worldState.character,rows=(typeof relationshipRows==="function"&&c)?relationshipRows(c,null):[],L=[],i,j;
@@ -2713,7 +2720,7 @@ function buildSysPrompt(){
     +(_paVc?"NOTE: The TONE above governs CONTENT only (magic prevalence, danger, stakes, moral register). All prose STYLE is governed by the VOICE directive in the STYLE section at the end of this prompt — where they differ on style, the VOICE wins.\n\n":"")
     +narrativeDesignBlock
     +bestiaryBlock
-    +((typeof playerRollsDice!=="undefined"&&playerRollsDice)?"MECHANICS: DC 10=easy 15=moderate 20=hard. THE PLAYER ROLLS: for any d20 check or saving throw emit [CHECK:Strength check|+3|DC 15] and STOP before the outcome (see STATE TAGS) \u2014 never invent a die result; the player's roll arrives in the next message."+diceStakeText()+"\n\n":"MECHANICS: DC 10=easy 15=moderate 20=hard. Always show dice with the specific stat or check name: [DICE:Strength check|result|outcome] e.g. [DICE:Constitution saving throw|14|success] or [DICE:Dexterity check|8|failed]"+diceStakeText()+"\n\n")/* #329: one line, two contracts; #371: the stake clause rides both while the switch is on */
+    +((typeof playerRollsDice!=="undefined"&&playerRollsDice)?"MECHANICS: DC 10=easy 15=moderate 20=hard. THE PLAYER ROLLS: for any d20 check or saving throw emit [CHECK:Strength check|+3|DC 15] and STOP before the outcome (see STATE TAGS) \u2014 never invent a die result; the player's roll arrives in the next message."+diceStakeText()+diceFloorText(true)+"\n\n":"MECHANICS: DC 10=easy 15=moderate 20=hard. Always show dice with the specific stat or check name: [DICE:Strength check|result|outcome] e.g. [DICE:Constitution saving throw|14|success] or [DICE:Dexterity check|8|failed]"+diceStakeText()+diceFloorText(false)+"\n\n")/* #329: one line, two contracts; #371: the stake clause rides both while the switch is on; B45: the floor rides both always */
     // #52: the skills ladder — campaign-constant text derived from SKILL_LEVEL_MECHANICS
     // (skills_bible.js), so it is stable-half-safe; a ladder rebalance is one deliberate
     // cache invalidation. The per-character earned list rides the VOLATILE sheet below.

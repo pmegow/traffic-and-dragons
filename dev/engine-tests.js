@@ -18484,6 +18484,31 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
   // was silently lost, and nothing warned (no adapter read stop_reason). Teeth: every provider
   // surfaces its length-cap finish reason via parseFinish, and cleanTxt drops a trailing
   // unterminated ALL-CAPS tag fragment (end-anchored — mid-text prose and complete tags untouched).
+  section("B45 — the roll floor under the stake clause (two sentries cut down in prose with no roll and no fight, Ammut t21, v1.1275)");
+  t("B45 both MECHANICS contracts carry a permanent floor — an attack on a foe, a contested act against someone who could notice, and an attempt whose failure costs blood are always rolled (stopped at [CHECK:] when the player rolls), the fight opens with [COMBAT_START:] before the first blow, and whether a roll was needed is never said in the story; the floor outlives the #371 switch, which still removes exactly the stake clause",function(){
+    makeWorld();var was=diceStakeClause,wasP=playerRollsDice;try{
+      if(typeof diceFloorText!=="function")return "diceFloorText is missing — the floor is ONE function both contracts call";
+      diceStakeClause=true;playerRollsDice=false;var on=buildSysPrompt().stable;
+      var m=on.indexOf("MECHANICS: DC 10");if(m<0)return "no MECHANICS line in the stable half";var line=on.slice(m,on.indexOf("\n\n",m));
+      if(!/ALWAYS AT RISK/.test(line))return "the GM-rolls contract has no floor: "+line.slice(0,220);
+      if(!/an attack on a foe/.test(line)||!/a contested act against someone who could notice/.test(line)||!/whose failure costs blood/.test(line))return "the floor must name its three shapes";
+      if(!/however skilled the hero/.test(line))return "the floor must outrank the skill ladder's roll-only-for-hard bands";
+      if(!/open the fight with \[COMBAT_START:\] before the first blow lands, a silent one included/.test(line))return "the floor must open the fight before a stealth kill (owner ruling 2026-10-18: roll AND open the fight)";
+      if(!/Whether a roll was needed is bookkeeping: never say it in the story/.test(line))return "the floor must forbid narrating the roll decision (t22 said in prose that no roll was needed)";
+      if(line.indexOf("roll them")<0||line.indexOf("[CHECK:] for them")>=0)return "the GM-rolls contract rolls; it never stops at a CHECK";
+      if(line.indexOf("ALWAYS AT RISK")<line.indexOf("If nothing is genuinely at risk"))return "the floor reads AFTER the stake clause: the license first, then its bound";
+      diceStakeClause=false;var off=buildSysPrompt().stable;
+      if(!/ALWAYS AT RISK/.test(off)||!/never say it in the story/.test(off))return "the floor vanished with the stake switch — the floor is not a taste setting";
+      diceStakeClause=true;var clause=diceStakeText();diceStakeClause=false;if(on.replace(clause,"")!==off)return "the switch changes more than the stake clause (#371 invariant)";
+      playerRollsDice=true;diceStakeClause=true;var pr=buildSysPrompt().stable;var m2=pr.indexOf("MECHANICS: DC 10");var line2=pr.slice(m2,pr.indexOf("\n\n",m2));
+      if(!/THE PLAYER ROLLS/.test(line2)||!/ALWAYS AT RISK/.test(line2))return "the player-rolls contract has no floor";
+      if(line2.indexOf("stop at [CHECK:] for them")<0||line2.indexOf("roll them")>=0)return "under THE PLAYER ROLLS the floor stops at [CHECK:], it never rolls: "+line2.slice(-320);
+      if(diceFloorText(true)===diceFloorText(false))return "the two contracts must differ in the verb";
+      var src=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
+      if(src.indexOf("+diceFloorText(true)")<0||src.indexOf("+diceFloorText(false)")<0)return "both MECHANICS contracts must splice diceFloorText at the one site";
+      return true;
+    }finally{diceStakeClause=was;playerRollsDice=wasP;}
+  });
   section("#132 — output-truncation detection");
   t("cleanTxt strips a trailing truncated tag fragment (label-only and mid-content); lowercase bracket prose survives", function(){
     if(cleanTxt("The water's had its say.\n\n[SCH")!=="The water's had its say.")return "label-only fragment survived: "+JSON.stringify(cleanTxt("The water's had its say.\n\n[SCH"));

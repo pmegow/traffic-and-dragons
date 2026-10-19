@@ -8,7 +8,7 @@ var rc1 = sabotage.prove({
     { label: "the switch is ignored — the clause rides even when it is off (no rollback)",
       find: 'return (typeof diceStakeClause!=="undefined"&&diceStakeClause)?" Before any roll,', replace: 'return (true)?" Before any roll,' },
     { label: "the clause is dropped from the GM-rolls contract",
-      find: '[DICE:Dexterity check|8|failed]"+diceStakeText()+"', replace: '[DICE:Dexterity check|8|failed]"+""+"' }
+      find: '[DICE:Dexterity check|8|failed]"+diceStakeText()+diceFloorText(false)+"', replace: '[DICE:Dexterity check|8|failed]"+""+diceFloorText(false)+"' }/* B45: the floor now rides behind the clause at this splice */
   ]
 });
 var rc2 = sabotage.prove({
