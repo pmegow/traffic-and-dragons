@@ -17,17 +17,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # #647: every browser suite writes its screenshots under one runner folder, kept as an artifact when a step fails —
+    # #647: every browser suite writes its screenshots under one folder (/tmp: the runner context is not allowed in a job env), kept as an artifact when a step fails —
     # a flake that lands on the runner alone (the #615 signup and #501 chest clicks of 2026-10-19) then comes with a picture.
     env:
-      SHOP_SHOTS: ${{ runner.temp }}/tnd-shots/501-shop-button
-      SIGNUP_SHOTS: ${{ runner.temp }}/tnd-shots/615-signup
-      MOBILE_SHOTS: ${{ runner.temp }}/tnd-shots/611-mobile
-      CATALOG_ARTIFACT_DIR: ${{ runner.temp }}/tnd-shots/blueprint-catalog
-      CAMBION_SCREENSHOT_DIR: ${{ runner.temp }}/tnd-shots/221-cambion
-      NAMES_SCREENSHOT_DIR: ${{ runner.temp }}/tnd-shots/221-names
-      REVIEW_SCREENSHOT_DIR: ${{ runner.temp }}/tnd-shots/603-review
-      BIBLE_THEME_SCREENSHOT_DIR: ${{ runner.temp }}/tnd-shots/bible-theme
+      SHOP_SHOTS: /tmp/tnd-shots/501-shop-button
+      SIGNUP_SHOTS: /tmp/tnd-shots/615-signup
+      MOBILE_SHOTS: /tmp/tnd-shots/611-mobile
+      CATALOG_ARTIFACT_DIR: /tmp/tnd-shots/blueprint-catalog
+      CAMBION_SCREENSHOT_DIR: /tmp/tnd-shots/221-cambion
+      NAMES_SCREENSHOT_DIR: /tmp/tnd-shots/221-names
+      REVIEW_SCREENSHOT_DIR: /tmp/tnd-shots/603-review
+      BIBLE_THEME_SCREENSHOT_DIR: /tmp/tnd-shots/bible-theme
     steps:
       - uses: actions/checkout@v4
         with:
@@ -143,5 +143,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: browser-suite-screenshots
-          path: ${{ runner.temp }}/tnd-shots
+          path: /tmp/tnd-shots
           if-no-files-found: ignore
