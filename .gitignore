@@ -61,3 +61,6 @@ audits/FeatureUsage_Fable.html
 
 # Performance reviews of the owner's own project leadership (owner call 2026-10-02): read locally, never tracked
 Performance_Review_*.html
+
+# Blender render output (dev/blender/render.js) — frames and clips, never source
+renders/
