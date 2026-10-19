@@ -100,6 +100,10 @@ function fixture(){const e=require('./load-engine.js');e.loadEngine();e.makeTest
  await page.evaluate(()=>mobileDrawerWidth(0));await page.waitForTimeout(380);
  await touch(ex,ey,'touchStart');await touch(ex-2,ey+40,'touchMove');await touch(ex-3,ey+80,'touchMove');await touch(ex-3,ey+80,'touchEnd');
  assert.equal((await facts()).drawer.w,0,'#643 a vertical swipe from the edge is a scroll, not an open');
+ /* the JS guard behind that: under real touches the browser claims a vertical pan (pointercancel) before our code sees it, so the
+    guard is exercised with synthetic pointers — a mostly-vertical drag with a leftward component must never open the drawer */
+ const diag=await page.evaluate(()=>{const area=document.getElementById('story-area'),x=innerWidth-5,y=document.getElementById('story-narrative').getBoundingClientRect().y+30;const tgt=document.elementFromPoint(x,y);const ev=(t,cx,cy)=>tgt.dispatchEvent(new PointerEvent(t,{bubbles:true,pointerId:9,isPrimary:true,button:(t==='pointerup'||t==='pointerdown')?0:-1,clientX:cx,clientY:cy,pointerType:'touch'}));mobileDrawerWidth(0);ev('pointerdown',x,y);ev('pointermove',x-15,y+40);ev('pointermove',x-50,y+120);ev('pointerup',x-50,y+120);return mobileUI.width;});
+ assert.equal(diag,0,'#643 a mostly vertical swipe from the edge is a scroll, never an open (the JS guard, synthetic pointers)');
  await touch(ex,ey,'touchStart');await touch(ex-20,ey,'touchMove');await touch(ex-20,ey,'touchEnd');
  assert.equal((await facts()).drawer.w,0,'#643 a flick that barely opens (under 40px) closes again');
  console.log('PASS #643 edge swipe opens the drawer from the right edge at any height');
