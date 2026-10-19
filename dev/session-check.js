@@ -8,6 +8,7 @@ var path = require("path");
 var cp = require("child_process");
 var hookParity = require("./check-hook-parity.js");
 var docSize = require("./doc-size.js");
+var ciStatus = require("./ci-status.js");   /* #646: the Engine tests verdict on master — a red or unreadable CI is a finding */
 
 function parseArgs(argv) {
   var out = { root: path.join(__dirname, ".."), laneFiles: [] };
@@ -113,6 +114,11 @@ function main() {
   var docs = { warnings: [], errors: [] };
   try { docs = docSize.inspect(opts.root); }
   catch (e4) { inspectionErrors.push("doc-size inspection failed: " + e4.message); }
+  // #646: deploys never wait on CI, so a red gate is silent unless this says it. inspect() never throws
+  // (an unreadable gh is "unknown", a finding); TND_CI_STATUS=off skips the probe (the hygiene fixtures).
+  var ci = { status: "off" };
+  try { ci = ciStatus.inspect({ root: opts.root }); }
+  catch (e5) { ci = { status: "unknown", reason: "CI status inspection failed: " + e5.message }; }
 
   laneCandidates(opts.root, opts.laneFiles).forEach(function (file) {
     if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return;
@@ -121,13 +127,15 @@ function main() {
     lanes.push({ file: slash(opts.root, file), body: body || "(empty declaration)" });
   });
 
-  var findings = trackers.length + artifacts.length + lanes.length + inspectionErrors.length + schedule.due.length + schedule.errors.length + docs.warnings.length + docs.errors.length + (parity && !parity.ok ? 1 : 0);
+  var findings = trackers.length + artifacts.length + lanes.length + inspectionErrors.length + schedule.due.length + schedule.errors.length + docs.warnings.length + docs.errors.length + (parity && !parity.ok ? 1 : 0) + (ci.status === "red" || ci.status === "unknown" ? 1 : 0);
+  if (ci.status === "green") console.log("  " + ciStatus.describe(ci));
   if (!findings) {
     console.log("SESSION CHECK OK — no tracker edits, no untracked testRuns files, no lane declaration, no schedule due, and watched docs under budget (advisory; exit 0)");
     process.exit(0);
   }
 
   console.warn("SESSION CHECK ADVISORY — shared-tree state needs attention (warn-only; exit 0)");
+  if (ci.status === "red" || ci.status === "unknown") console.warn("  " + ciStatus.describe(ci));
   if (trackers.length) {
     console.warn("  Uncommitted tracker edits:");
     trackers.forEach(function (line) { console.warn("    " + line); });

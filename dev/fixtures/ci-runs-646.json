@@ -1,0 +1,568 @@
+{
+ "_note": "REAL history of the Engine tests workflow on master, newest first, captured 2026-10-19 with `gh run list --workflow \"Engine tests\" --branch master --json conclusion,headSha,createdAt,databaseId,displayTitle`: the 69 consecutive red runs that began at 4ee2aab5 (2026-10-13 21:16 UTC) after the last green d48e605b, plus the ten runs before. steps = the failing step of the newest red run (gh run view --json jobs). Fixture for dev/tests-646-ci-status.js — never regenerate; the numbers in the tests pin it.",
+ "runs": [
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T15:39:34Z",
+   "databaseId": 39279670436,
+   "displayTitle": "docs(tracker): archive #643 — byte-identical move, own commit",
+   "headSha": "be620e1a578302015f63c9f9a853b008e728d2f6"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T15:29:48Z",
+   "databaseId": 39278424071,
+   "displayTitle": "tool(#645): hook Claude Code to Blender — a headless render launcher …",
+   "headSha": "3e5cac7abe3b9b863d0b620c0735a7a53ca3f81c"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T06:33:14Z",
+   "databaseId": 39210579971,
+   "displayTitle": "test(#643): prove the edge swipe's guards — the JS vertical guard wit…",
+   "headSha": "01f7c27f2c872cd7665d25b2cfb001706ee9187e"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T05:30:44Z",
+   "databaseId": 39204941018,
+   "displayTitle": "feat(#642): the hero's name in the HUD opens the character sheet — th…",
+   "headSha": "3c1e7ef3c228de6b0500fce70ee9a34a3bda80e2"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T04:53:40Z",
+   "databaseId": 39201753284,
+   "displayTitle": "docs(tracker): #630 and #641 archived — the two closed rows move byte…",
+   "headSha": "fe781760065849a09d9417efc6d4f80d73d68588"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T04:49:44Z",
+   "databaseId": 39201427962,
+   "displayTitle": "docs(tracker): archive #642 — byte-identical move, own commit",
+   "headSha": "a4b42fcbea9acf4f765add51ffedcfbded59103c"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T04:48:24Z",
+   "databaseId": 39201320116,
+   "displayTitle": "docs(tracker): #642 ✅ — closed by the owner 2026-10-18 (the guide mat…",
+   "headSha": "98ff011bbf31ab484471439af7d6e7d48a89f7d8"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T04:44:43Z",
+   "databaseId": 39201007769,
+   "displayTitle": "docs(#642): the guide and the FAQ wear home.html's look — the bordere…",
+   "headSha": "2d869ae8ff1ea0a22906044cfa7c1bfd40cb4ede"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T04:37:27Z",
+   "databaseId": 39200397715,
+   "displayTitle": "docs(#642): the callout beak integrated into the chip — its base hidd…",
+   "headSha": "988c0ee8f05bd38805c39c22556e308efbb2d0d9"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T04:36:10Z",
+   "databaseId": 39200291907,
+   "displayTitle": "docs(bugs): the 2026-10-18 sweep — eighteen older rows close under th…",
+   "headSha": "2eca395a68222e30379ae613430bff6c5829d0f9"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T04:26:10Z",
+   "databaseId": 39199450127,
+   "displayTitle": "docs(#642): ⑥ centred over the panel handle — left 98.9%, the x the s…",
+   "headSha": "be619c71fe1ccad11777b74a6a2fa3c9be7d94de"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T04:20:32Z",
+   "databaseId": 39198982658,
+   "displayTitle": "docs(#642): the nav pill parked at the screen's top edge above the ti…",
+   "headSha": "b653ca0f5711393ecd304d9a827dfdd8d1cdcbab"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T04:11:27Z",
+   "databaseId": 39198220104,
+   "displayTitle": "docs(#642): the nav pill shrunk to the very top; callout beaks that p…",
+   "headSha": "fba247bdbec4f1aaf42fd156a4877461637ff74c"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T04:02:09Z",
+   "databaseId": 39197482317,
+   "displayTitle": "docs(#642): only the Home · Game · FAQ links float — a sticky pill af…",
+   "headSha": "c8a4ca5cab09768c809e4865becd0d3ca899fac5"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T03:50:04Z",
+   "databaseId": 39196540960,
+   "displayTitle": "docs(#642): the guide's inner lift quartered, the page header in its …",
+   "headSha": "17003f3a6150e77187b2f1df891330d0e6416af1"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T03:46:13Z",
+   "databaseId": 39196256452,
+   "displayTitle": "feat(#642): a way back from the guide and the FAQ — the shared satell…",
+   "headSha": "43575badbeaf9d432dc886d2b556f75e4af585cb"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T03:32:01Z",
+   "databaseId": 39195133651,
+   "displayTitle": "docs(#642): the boxes inside a guide card lift half a surface step — …",
+   "headSha": "dc709739c5acdba90961129e5ceaa72e5cdc7141"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T03:24:56Z",
+   "databaseId": 39194577534,
+   "displayTitle": "docs(#642): every guide section in its own card — bg1 on the page, ti…",
+   "headSha": "5c21218d3abcf17b6fa2e0d82c253594c9d39545"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T01:49:31Z",
+   "databaseId": 39187099486,
+   "displayTitle": "feat(#642): the beta guide is the default help page — a live TOC, Opt…",
+   "headSha": "8bdcd7593c0dd144a64c21d202093d62e2a9ad4e"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-19T01:16:04Z",
+   "databaseId": 39184576497,
+   "displayTitle": "docs(bugs): sync three unfiled player reports as B44-B46",
+   "headSha": "9047e746b2a33c58510d36e98f33946c4c24fc45"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-17T12:46:23Z",
+   "databaseId": 39033857319,
+   "displayTitle": "fix(#642): the FAQ and the beta guide follow the game's Dark mode, th…",
+   "headSha": "5cced56447b02c1d93812884e35e6cfbb8158e4b"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-17T03:43:01Z",
+   "databaseId": 38999843237,
+   "displayTitle": "feat(#642): a Player FAQ page for new players, and the beta guide mad…",
+   "headSha": "64d732d0638188566e0a9fff7c65d9cf83119439"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-16T20:50:13Z",
+   "databaseId": 38965099841,
+   "displayTitle": "feat(#641): the defaults a new player meets in Settings — dark ON, la…",
+   "headSha": "f59d982949755332a5c56e33d628b72ef4520386"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-16T20:19:30Z",
+   "databaseId": 38961407556,
+   "displayTitle": "docs(tracker): archive #466 — byte-identical move, own commit",
+   "headSha": "f1f39192416f01e60fe4d4272750aeb762927007"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-16T20:03:38Z",
+   "databaseId": 38959465259,
+   "displayTitle": "docs(tracker): archive #637 and #640 — byte-identical moves, own commit",
+   "headSha": "9f3a235eadbb1695db41cb6cac9eb5bc5a002f05"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-16T18:30:03Z",
+   "databaseId": 38947810111,
+   "displayTitle": "docs(tracker): archive four owner-cleared release checklist items",
+   "headSha": "41cae950dc13a6a111844ea573f1cb689cebbade"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-16T18:29:34Z",
+   "databaseId": 38947748927,
+   "displayTitle": "feat(#640): light mode's warnings share the bronze — --warn is #7d410…",
+   "headSha": "d4d249217c7d4231f436cd787cf4b94207d6deb5"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-16T17:33:36Z",
+   "databaseId": 38940611624,
+   "displayTitle": "feat(#640): light mode's coin readouts turn bronze — --gold is #7d410…",
+   "headSha": "280fd2d41383586f85c3787429692a946191b327"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-16T17:12:49Z",
+   "databaseId": 38937935839,
+   "displayTitle": "feat(#640): light mode halves the value of the HP/MP readouts — the v…",
+   "headSha": "d79cd576dada77086060652ae96906b877081174"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-16T16:53:14Z",
+   "databaseId": 38935415975,
+   "displayTitle": "docs(tracker): archive #631, #632, #633, #634, #639, #623 and #638 — …",
+   "headSha": "5d8eb6cd823fa636e79a4c7f7f854a8f1a641222"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-16T04:19:47Z",
+   "databaseId": 38850051889,
+   "displayTitle": "feat(#638): the coin the GM narrates against the coin it tags — a rea…",
+   "headSha": "fcdc6ea4da24c9d2a664b5667b6a7f04ad5f172b"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T23:37:15Z",
+   "databaseId": 38824668555,
+   "displayTitle": "feat(talk): #639 the character knows they are off-stage — a talk open…",
+   "headSha": "ad231a563c1974a25979b54371d1027c2241ad49"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T21:53:20Z",
+   "databaseId": 38813224885,
+   "displayTitle": "docs: Thursday ladder 2026-10-15 — closed at 47b17aed",
+   "headSha": "e0982710f4b1d571657cef0c11ecb5286dead139"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T21:46:35Z",
+   "databaseId": 38812408891,
+   "displayTitle": "docs: Thursday ladder 2026-10-15 — rung 3 closed (the prompt diff on …",
+   "headSha": "4e43e32a3e693f2bb230289fcc7a74215f0108c3"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T21:02:58Z",
+   "databaseId": 38806839312,
+   "displayTitle": "docs: Thursday ladder 2026-10-15 — receipt opened",
+   "headSha": "c8d5767f8fcf4b3c4a00a5991f8e15022f6c9f31"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T21:00:06Z",
+   "databaseId": 38806444450,
+   "displayTitle": "docs(tracker): #633 validated live by the owner with Frizwick (2026-1…",
+   "headSha": "00e7fabb6caa97c05ffac9b41f3072de6da967fc"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T16:09:49Z",
+   "databaseId": 38766643155,
+   "displayTitle": "feat(talk): #633 talk to your character — a spoken, in-character conv…",
+   "headSha": "cd9debd347e892a34813293c3e6a86f9cfa18f49"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T15:23:34Z",
+   "databaseId": 38759908306,
+   "displayTitle": "docs(tracker): #633 filed — talk to your companion outside the game, …",
+   "headSha": "c209f597b0b1c0a2c844ffdab82c44f6e61c7a20"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T14:24:40Z",
+   "databaseId": 38751137484,
+   "displayTitle": "fix(ui): let Bible Study follow the system color preference (#632)",
+   "headSha": "f2b8d16b092fce3c2e3f7a7841ab553a55c28ad8"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T05:55:46Z",
+   "databaseId": 38689467382,
+   "displayTitle": "feat(car): a host with no menu — options() null skips the options ste…",
+   "headSha": "5b0f11be9660bf1d9238611e52edbd15ce151d75"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T04:18:27Z",
+   "databaseId": 38680772564,
+   "displayTitle": "feat(car): #631 draw the Car Mode seam — three portable files over ON…",
+   "headSha": "ce81f0371ff64e500de461ba97d1b7a0488df0c2"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-15T03:27:07Z",
+   "databaseId": 38676331685,
+   "displayTitle": "docs(tracker): archive #596 — byte-identical move, own commit",
+   "headSha": "fdded158b37f626d1fe4ece66099681177d71f5e"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T20:58:06Z",
+   "databaseId": 38636499063,
+   "displayTitle": "docs(tracker): #631 filed — draw the Car Mode seam (owner 2026-10-14,…",
+   "headSha": "573189bd8a28806eebc09754c5d7b4525f23c038"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T19:55:21Z",
+   "databaseId": 38627701546,
+   "displayTitle": "docs(tracker): archive #447 — byte-identical move, own commit",
+   "headSha": "26db0871363f495b201e19849fc9afd42bac3ea6"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T19:20:57Z",
+   "databaseId": 38622906713,
+   "displayTitle": "feat(voice): the actor line drops the vendor's usage pitch — \"…, idea…",
+   "headSha": "0a9120120aad863105e5bfeb8a87d6eb76fc464f"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T08:07:50Z",
+   "databaseId": 38532962176,
+   "displayTitle": "feat(voice): the actor line adds the AGE group — name · gender · acce…",
+   "headSha": "57ef56bb1976253f8a964eed3bb11c026bccbf27"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T07:56:19Z",
+   "databaseId": 38531641277,
+   "displayTitle": "docs(content): record verified Princess v1.02 catalog publication (#630)",
+   "headSha": "ed63bdb35364436a6e054394eb83fef0939a3214"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T07:36:46Z",
+   "databaseId": 38529457906,
+   "displayTitle": "fix(content): preserve Princess absurdity while repairing conflicting…",
+   "headSha": "45f5823b11c23b874f651a91e178f6f386b62f48"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T07:17:07Z",
+   "databaseId": 38527325872,
+   "displayTitle": "docs(tracker): archive #629 — byte-identical move, own commit",
+   "headSha": "e71856203ff3ea4529cfde1f98f2b4a580c543c2"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T07:11:03Z",
+   "databaseId": 38526690351,
+   "displayTitle": "docs(tracker): #629 row — the character voice control as one module, …",
+   "headSha": "536b186c0021da35a54d7c23cb6ccad95e2f060e"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T06:58:52Z",
+   "databaseId": 38525426677,
+   "displayTitle": "docs(tracker): #625 — server 1.12.1 deployed by the owner 2026-10-13 …",
+   "headSha": "a628959517db8dd8c3532fbbf8339223e776536b"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T06:36:35Z",
+   "databaseId": 38523211431,
+   "displayTitle": "docs(tracker): archive #628 — byte-identical move, own commit",
+   "headSha": "7db1702317d25a1f668cb7a882dec72288b13815"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T04:39:09Z",
+   "databaseId": 38512488897,
+   "displayTitle": "feat(#628): wizard polish from the owner's pass — subrace and lineage…",
+   "headSha": "5f931a4698c6a56da2e262288d3716ffaade70ee"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T04:07:59Z",
+   "databaseId": 38509818131,
+   "displayTitle": "fix(#625): a vendor error through the gateway keeps its fallback retr…",
+   "headSha": "7e6f3f72ae5b25ed42dc650bb4d40cc6a1636435"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T03:53:44Z",
+   "databaseId": 38508596240,
+   "displayTitle": "docs(tracker): archive #627, #626 and #446 — byte-identical move, own…",
+   "headSha": "7bd6af1ed77dbb6f7763a443591daf18490eeb12"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T03:38:14Z",
+   "databaseId": 38507273010,
+   "displayTitle": "Record Cinderwing publication and completed three-campaign review batch",
+   "headSha": "61ff8c41ce054ed2ab89e23948141f2f1b705cfc"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T03:36:17Z",
+   "databaseId": 38507108110,
+   "displayTitle": "Make Cinderwing routes and consequences honor actual choices",
+   "headSha": "5e95692b944a6ffcd6374cb18a40cb34d9bb4f50"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T03:30:45Z",
+   "databaseId": 38506628939,
+   "displayTitle": "Record verified Silence Between Leaves publication",
+   "headSha": "8454a5af1255965fa454beebcf8b166af9ad1071"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T03:23:45Z",
+   "databaseId": 38506023798,
+   "displayTitle": "Keep Silence rewards and land recovery honest after partial rescue",
+   "headSha": "174443164c2df20373aa0389b555b4d628f72619"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T03:20:34Z",
+   "databaseId": 38505750030,
+   "displayTitle": "Record verified Coffered God catalog publication",
+   "headSha": "c60adf62386b0b1bb0532cc2b6968d57232310b8"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-14T03:17:40Z",
+   "databaseId": 38505496595,
+   "displayTitle": "Make Coffered God costs and seal choices explicit before commitment",
+   "headSha": "ccefa88bf731414145097f14f9f8742f02302900"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T22:16:57Z",
+   "databaseId": 38476714182,
+   "displayTitle": "Confirm all three reviewed candidates are published and pushed",
+   "headSha": "a951ffbfc1605b1ff43d9d5b6c98df8afedc01ab"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T22:13:33Z",
+   "databaseId": 38476306514,
+   "displayTitle": "docs(tracker): archive #434 and #464 — byte-identical move, own commi…",
+   "headSha": "2801e567d1fd41402879b50cdb98eebdcdd048fd"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T21:48:14Z",
+   "databaseId": 38473299172,
+   "displayTitle": "Record verified Iron Meridian v1.0 catalog publication",
+   "headSha": "90d2694905332519e6a756b05ce5fc0ad16281c6"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T21:46:27Z",
+   "databaseId": 38473081836,
+   "displayTitle": "Make Iron Meridian outcomes follow evidence and player choices",
+   "headSha": "75f736ec7f2968601f06b0d0713525b1755b089d"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T21:31:57Z",
+   "databaseId": 38471317923,
+   "displayTitle": "data(names): every NAMES category tripled — 340 → 1,020 names for the…",
+   "headSha": "60691d75ed93e140d5c5424d718f98d65ad86076"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T21:21:00Z",
+   "databaseId": 38469919237,
+   "displayTitle": "Record verified Riverlight v1.04 catalog publication",
+   "headSha": "9a97057687e0fd0f23146e160a4a840b334a694a"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T21:17:52Z",
+   "databaseId": 38469516323,
+   "displayTitle": "docs(tracker): delete L2 (commercial blueprint catalog) and L3 (the c…",
+   "headSha": "2642812cabc2577b85052a7fddac4ff2c47ca473"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T21:16:05Z",
+   "databaseId": 38469292011,
+   "displayTitle": "Clarify Riverlight's shipping scheme and preserve player choice throu…",
+   "headSha": "4ee2aab54d44845312a6218d2eee82c624bf5ac9"
+  },
+  {
+   "conclusion": "success",
+   "createdAt": "2026-10-13T21:10:13Z",
+   "databaseId": 38468533692,
+   "displayTitle": "docs(tracker): archive #599 — byte-identical move, own commit",
+   "headSha": "d48e605b4dd76a40efd945c718af182bb9546bd1"
+  },
+  {
+   "conclusion": "success",
+   "createdAt": "2026-10-13T21:03:25Z",
+   "databaseId": 38467680211,
+   "displayTitle": "Record both Riverlight panels to separate editorial gaps from unteste…",
+   "headSha": "f87a9d7fe2e2f4332853690202527ac742b89644"
+  },
+  {
+   "conclusion": "success",
+   "createdAt": "2026-10-13T20:54:41Z",
+   "databaseId": 38466543229,
+   "displayTitle": "docs(tracker): archive #410 — byte-identical move, own commit",
+   "headSha": "3a7842b666b9f8c3194f2f96ed8acaee6891f3a8"
+  },
+  {
+   "conclusion": "success",
+   "createdAt": "2026-10-13T20:49:59Z",
+   "databaseId": 38465929783,
+   "displayTitle": "Record the owner's one-hour Riverlight playtest target",
+   "headSha": "852077a33b92a3b2710d5fc3780b85dd2d251e53"
+  },
+  {
+   "conclusion": "success",
+   "createdAt": "2026-10-13T20:34:51Z",
+   "databaseId": 38463944986,
+   "displayTitle": "Reconcile Riverlight task with the published revision and isolate rem…",
+   "headSha": "ea96a34b8473a9a767ed2682fabc838bdaf3f883"
+  },
+  {
+   "conclusion": "success",
+   "createdAt": "2026-10-13T20:30:18Z",
+   "databaseId": 38463331831,
+   "displayTitle": "docs(tracker): archive #552 — byte-identical move, own commit",
+   "headSha": "1b6033d08590c1091f87e2f92aabed1bf0b586ac"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T16:19:19Z",
+   "databaseId": 38429529294,
+   "displayTitle": "docs(tracker): #622 and #625 carry the deploy state — server 1.11.0/1…",
+   "headSha": "ed704a169a4dbdb687d49f79b7b8545572307433"
+  },
+  {
+   "conclusion": "success",
+   "createdAt": "2026-10-13T15:05:14Z",
+   "databaseId": 38418997565,
+   "displayTitle": "docs(tracker): archive #288 — byte-identical move, own commit",
+   "headSha": "5a0310d0191ec38b7c624483621651f86cdeeb82"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T06:24:22Z",
+   "databaseId": 38356508079,
+   "displayTitle": "docs(tracker): archive #418 and #419 — byte-identical moves, own comm…",
+   "headSha": "351a1a441d7f23fc92774a9696bdfa36608eda25"
+  },
+  {
+   "conclusion": "success",
+   "createdAt": "2026-10-13T06:12:08Z",
+   "databaseId": 38355397794,
+   "displayTitle": "docs(tracker): archive #397, #617 and #624 — byte-identical moves, ow…",
+   "headSha": "99325c07ed6b9abceb600c2d2bded0b3e2f72108"
+  },
+  {
+   "conclusion": "failure",
+   "createdAt": "2026-10-13T05:57:11Z",
+   "databaseId": 38354055409,
+   "displayTitle": "feat(#623): the hero's own people are seated from the library and des…",
+   "headSha": "e52b86c8d73605b8795ce04338a30a56eb44ee9b"
+  }
+ ],
+ "steps": [
+  "Blueprint editions in a real browser"
+ ]
+}

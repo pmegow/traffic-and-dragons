@@ -12,7 +12,8 @@ var pass = 0;
 var fail = 0;
 
 function run(cmd, args, opts) {
-  return cp.spawnSync(cmd, args, Object.assign({ encoding: "utf8" }, opts || {}));
+  /* #646: the fixtures run session-check many times; the CI probe (gh, network) is off here — dev/tests-646-ci-status.js covers it */
+  return cp.spawnSync(cmd, args, Object.assign({ encoding: "utf8", env: Object.assign({}, process.env, { TND_CI_STATUS: "off" }) }, opts || {}));
 }
 function resultText(r) { return String(r.stdout || "") + String(r.stderr || ""); }
 function test(name, fn) {
