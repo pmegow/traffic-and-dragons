@@ -8104,6 +8104,37 @@ function runEngineTests(R){
     makeWorld();var st=buildSysPrompt().stable;if(st.indexOf("unnamed crowds included")<0)return "the clause must reach the stable half of the prompt";
     return true;
   });
+  // ── B48 a demand made of the player is the player's to answer (Frizwick t54, v1.1282: the GM paid a thug's thirty crowns
+  //    from the purse and wrote the hero's acceptance; the #375 money note had staged the shakedown and left "if they pay" to
+  //    the GM, and no rule said otherwise) ───────────────────────────────────────────────────────────────────────────────
+  section("B48 — a demand is answered by the player");
+  t("B48 the MONEY AT STAKE note ends the response at the demand — pay / refuse / fight among the buttons, never the hero's answer or coin leaving the purse; [GOLD:-N] waits for a later turn; the #375 pins stay",function(){
+    makeWorld();var c=worldState.character;c.coin=4000;worldState.world.location="Sandpoint";worldState.combat=null;
+    memory.map.nodes["Sandpoint"]={firstVisit:1,visits:3,description:null,parent:null,npcs:[],items:[],size:"medium"};
+    memory.keyDecisions=[{turn:50,desc:"Spared the raider captain"}];delete worldState.moneyAsk;delete worldState.spineComplete;worldState.skeleton=null;worldState.turn=60;
+    var n=buildMoneyNote();if(!/MONEY AT STAKE/.test(n))return "fixture: "+n.slice(0,120);
+    if(/only if they pay/.test(n))return "the note still leaves 'if they pay' to the GM (B48: the GM paid the shakedown on the player's behalf)";
+    if(!/END the response at the demand/.test(n))return "the note must end the response at the demand";
+    if(!/\[SUGGEST:\]/.test(n)||!/pay \/ refuse \/ fight/.test(n))return "the note must put pay / refuse / fight among the [SUGGEST:] buttons";
+    if(!/the player decides/.test(n))return "the note must say the player decides";
+    if(!/never narrate the hero's answer/.test(n)||!/coin leaving the purse/.test(n))return "the note must forbid narrating the hero's answer or coin leaving the purse";
+    if(!/a later turn/.test(n))return "[GOLD:-N] must wait for a later turn, after the player chose";
+    if(n.indexOf("[GOLD:-N]")<0||!/never a tax/i.test(n)||!/a refused demand is a scene too/.test(n))return "the #375 pins must stay: "+n.slice(-300);
+    return true;
+  });
+  t("B48 rule 20 (player actions are intent) carries the mirror — a demand made of the player is ANSWERED BY THE PLAYER, the response ends at the demand, their answer and their coin are never narrated for them; a payment the player typed is theirs to make; extended IN PLACE (count 28) and it reaches the stable half",function(){
+    if(DEFAULT_RULES.length!==28)return "the rule count moved ("+DEFAULT_RULES.length+") — extend the rule in place, never add one";
+    var rule=DEFAULT_RULES[19];if(!/^PLAYER ACTIONS ARE INTENT, NOT MECHANICAL AUTHORITY/.test(rule))return "rule 20 is no longer the intent rule: "+rule.slice(0,60);
+    if(!/ANSWERED BY THE PLAYER/.test(rule))return "nothing says a demand is the player's to answer (B48: the GM paid a thug's thirty crowns and wrote the hero's acceptance)";
+    if(!/a price, a bribe, a toll, a ransom, terms, a surrender/.test(rule))return "the clause must name the demand shapes";
+    if(!/end the response at the demand/i.test(rule))return "the clause must end the response at the demand";
+    if(!/never narrate their answer/.test(rule)||!/coin or goods leaving their hands/.test(rule))return "the clause must forbid narrating the answer and the coin";
+    if(!/a payment the player themselves typed is theirs to make/.test(rule))return "a spend the player typed must stay legal (the Currency rule's meals and alms)";
+    var i;for(i=0;i<DEFAULT_RULES.length;i++)if(i!==19&&/ANSWERED BY THE PLAYER/.test(DEFAULT_RULES[i]))return "the clause appears in more than one rule";
+    if(getRulesBlock().indexOf("ANSWERED BY THE PLAYER")<0)return "the clause must reach the rules block (stable half)";
+    makeWorld();var st=buildSysPrompt().stable;if(st.indexOf("ANSWERED BY THE PLAYER")<0)return "the clause must reach the stable half of the prompt";
+    return true;
+  });
   section("#204 duplicate-refusal hygiene");
   t("#204: a bare SCENE_DEATH whose envelope already committed THIS response is stripped without a conflict, and co-emitted quest tags survive",function(){
     makeWorld();
