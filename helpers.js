@@ -2680,6 +2680,17 @@ function conditionMentionsSpell(text,name){var s=String(text||"").toLowerCase(),
 function restClearOwnSpellConditions(c){var kept=[],faded=[],i;if(!c||!c.conditions)return faded;for(i=0;i<c.conditions.length;i++){var cd=c.conditions[i];if(cd&&String(cd.cause||"").indexOf(OWN_SPELL_CAUSE)===0)faded.push(cd.name);else kept.push(cd);}if(faded.length)c.conditions=kept;return faded;}
 // #649: the party-wide sweep both rest paths call — the hero's names bare, each living companion's suffixed "(Name)"; a dead
 // companion gets nothing from a rest (owner ruling 2026-07-16), so their sheet is left as it fell.
+// B47 (2026-10-20, Frizwick t36–t38): a typed action while a roll is pending used to let the check lapse SILENTLY (#329 —
+// delete, a console line, nothing told the GM). The GM read the silence as "ability named, no die" and carried it to the next,
+// ordinary shot. The lapse now ARMS checkAnsweredPing — the one-shot CHECK ANSWERED note (api.js) rides the SAME prompt as
+// the answering action, since sendAction lapses before it builds the notes. Pure over worldState; sendAction's one call.
+function checkLapseToAction(text){
+  var chk=(typeof worldState!=="undefined"&&worldState)?worldState.pendingCheck:null;if(!chk)return false;
+  delete worldState.pendingCheck;
+  worldState.checkAnsweredPing={turn:worldState.turn,label:chk.label,mod:chk.mod||0,dc:(chk.dc!=null?chk.dc:null)};
+  if(typeof console!=="undefined")console.info("[dice] #329 pending "+worldState.turn+" check lapsed — the player acted instead of rolling ("+String(text||"").slice(0,60)+"); B47: the GM is told this turn");
+  return true;
+}
 function restClearPartyOwnSpellConditions(){var out=[],i,j,h=restClearOwnSpellConditions(worldState.character);for(i=0;i<h.length;i++)out.push(h[i]);var p=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];for(i=0;i<p.length;i++){var f=restClearOwnSpellConditions(p[i].charSheet);for(j=0;j<f.length;j++)out.push(f[j]+" ("+p[i].name+")");}return out;}
 // #648 (owner 2026-10-19): the pure halves of the LASTING ABILITY ask (buildLastingAbilityNote, api.js). An ability has no
 // use tag, so the engine cannot file it the way #644 files a cast; it can only notice the ability being NAMED and ask.

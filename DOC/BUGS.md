@@ -230,6 +230,7 @@ screenshotUrl: https://drive.google.com/file/d/1_dTYshmS_ucAdP6z1scH_j2cMesuLib1
 ### Action log
 
 - 2026-10-18 · v1.1277 · commit fix(B45) · Fable — mechanism re-verified before code (the #371 stake clause at api.js:927 rides both MECHANICS contracts with no floor; no rule binds an attack to a roll or says when a fight opens; the t22 "no roll needed" line is the clause spoken aloud). Fix: `diceFloorText(playerRolls)` — ONE permanent sentence OUTSIDE the stake switch, spliced after the clause on both contracts: an attack on a foe, a contested act against someone who could notice, and any attempt whose failure costs blood are ALWAYS at risk, however skilled the hero — roll them (stop at [CHECK:] under THE PLAYER ROLLS), open the fight with [COMBAT_START:] before the first blow lands, a silent one included; whether a roll was needed is bookkeeping, never said in the story. Owner ruling 2026-10-18: roll AND open the fight (a stealth kill lands in a tracker that auto-closes on all-slain, #9). Tests: the B45 section (both contracts, the floor outlives the switch, the #371 switch-only invariant intact, one splice site); `dev/sabotage-b45-roll-floor.js` proves six mutations; the #371 battery re-anchored on the new splice. Prompt diff on the owner's Frizwick t11 save: exactly one stable hunk (the MECHANICS line), the volatile half byte-identical. Live verification owed: the next stealth kill in play should roll and open a tracker.
+- 2026-10-20 · B47 filed as this class recurring after the fix (Frizwick t38, v1.1281): the floor held on the first shot, the check lapsed to a typed ability and the next shot inherited the silence — fixed as v1.1286 under B47.
 
 
 ## B46 — The introduction of captive NPCs omits ancestry details the player needs for a decision (v1.1275, turn 22)
@@ -358,7 +359,7 @@ screenshotUrl: https://drive.google.com/file/d/1NGiBJLiFq31KYJfQm1QY3kPT_zRTGZpW
 
 
 ## B47 — An attack after a Sure Shot was narrated without a roll — the B45 roll floor did not hold on the following strike (v1.1281, Frizwick t38)
-**Status:** findings-ready
+**Status:** fixed (v1.1286, 2026-10-20 — the lapse tells the GM the same turn, the floor binds automatic abilities to one strike; live verification owed)
 **Kind:** user-report · **First seen:** 2026-10-19 (v1.1281) · **Last seen:** 2026-10-19 (v1.1281) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 38
 **Fingerprint:** `user-report · user-report · v1.1281 · Sure shot should NOT have been a dice roll... and it wasn't HOWEVER the next attack SHOULD have been, and no dice were r`
 **Report ids:** 2ab5c5a0-6968-4a5f-b1e5-6b6e36d6db6b
@@ -466,6 +467,9 @@ SUGGESTED ACTIONS SHOWN: Loot Lorrath and the guard before leaving | Set the sce
 **Drift-surface flag:** YES — (2) edits the MECHANICS contract line in the stable half (one cache re-warm); (1) adds an engine-note builder (the note registry). **Risk:** over-broad floor wording makes every swat a roll (#371's owner warning) — the clause is scoped to abilities whose canon says automatic; a note that re-emits the check could stall a player who changed their mind — bounded by the one-shot latch and the "abandons the attempt" branch. **Confidence:** high on the mechanism (the save proves the t36 CHECK, the silent lapse, the note-less t37 message, the all-abilities canon injection, no dice log); medium on which license the model leaned on at t38 (the t37 precedent, First Blow or Master Poisoner — the prose names none).
 
 ### Action log
+
+- 2026-10-20 · v1.1286 · commit fix(B47) · Fable — mechanism re-verified against the t38 save before code (the t36 reply ended on [CHECK:Ranged attack|+8|DC 14]; the player typed the ability; sendAction deleted the pending check with a console line only; the t37 message carried no word of it; no die was ever filed; the t38 shot landed with no CHECK, no COMBAT_START, no NPC). Two halves: `checkLapseToAction` (helpers.js) is the pure lapse step sendAction now calls — it arms `checkAnsweredPing`, and `buildCheckAnsweredNote` (api.js, one-shot, fires in combat, ahead of the audits) rides the SAME prompt as the answering action: an automatic ability resolves exactly the one strike it was named for and the license ends there, an abandoned attempt is narrated with no roll, an attempt still made leaves the check standing (re-emit and END), the fight opens with [COMBAT_START:]; and the roll floor (both MECHANICS contracts, stable half) gains the one-strike bound. NOT built, owner ruling needed: the bible’s "The First Blow Is the Last" / Master Poisoner / Sure Shot wording reads as automatic hits on ordinary folk. Tests red-first (section "B47", 3), battery dev/sabotage-b47-check-answered.js (5 clauses), the 527 battery’s builder-list anchor tracks the insertion. Live verification owed: the next check answered by a typed ability should leave the following attack rolled.
+
 
 ## B48 — The GM paid a thug’s extortion out of the player’s purse instead of offering the choice — an action decided for the player (v1.1282, Frizwick t54)
 **Status:** fixed (v1.1285, 2026-10-20 — the demand is the player’s to answer; live verification owed)

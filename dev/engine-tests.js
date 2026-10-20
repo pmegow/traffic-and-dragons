@@ -8135,6 +8135,47 @@ function runEngineTests(R){
     makeWorld();var st=buildSysPrompt().stable;if(st.indexOf("ANSWERED BY THE PLAYER")<0)return "the clause must reach the stable half of the prompt";
     return true;
   });
+  // ── B47 a check answered by an action (Frizwick t36–t38, v1.1281: the floor held — the GM stopped at [CHECK:Ranged attack] —
+  //    the player answered it by typing "sure shot him", the pending check lapsed SILENTLY (#329), and the GM learned "ability
+  //    named, no die" and carried it to the next shot, which was an ordinary attack. Two halves: the lapse now arms a one-shot
+  //    note that rides the SAME prompt as the answering action, and the floor says an automatic ability covers ONE strike.) ──
+  section("B47 — a check answered by an action");
+  t("B47 the roll floor binds abilities too — an ability whose canon makes a strike automatic covers only the ONE strike the player names it for, every other attack is at risk; on both contracts, in the stable half; the B45 anchors stay",function(){
+    var a=diceFloorText(true),b=diceFloorText(false);
+    if(!/covers only the ONE strike the player names it for/.test(a)||!/covers only the ONE strike the player names it for/.test(b))return "the one-strike clause is missing from the floor";
+    if(!/the next one included, is at risk/.test(a))return "the clause must say the next attack is at risk again";
+    if(a.indexOf("before the first blow lands, a silent one included.")<0||a.indexOf(" Whether a roll was needed is bookkeeping: never say it in the story.")<0)return "the B45 anchors moved";
+    makeWorld();var st=buildSysPrompt().stable;return st.indexOf("covers only the ONE strike")>=0?true:"the clause must reach the stable half (the MECHANICS contract)";
+  });
+  t("B47 checkLapseToAction: a typed action while a roll is pending clears the check and ARMS checkAnsweredPing (turn, label, mod, DC) — the pure step sendAction calls; nothing pending, nothing armed",function(){
+    var was=playerRollsDice;try{playerRollsDice=true;makeWorld();worldState.turn=36;delete worldState.checkAnsweredPing;
+      applyMuts("Missing means a broadsword through the guts. [CHECK:Ranged attack|+8|DC 14]");if(!worldState.pendingCheck)return "fixture: the CHECK did not arm a pending check";
+      if(checkLapseToAction("sure shot him, right between the eyes")!==true)return "the lapse step must report the lapse";
+      if(worldState.pendingCheck)return "the pending check must be cleared (the chip goes dead, #329)";
+      var p=worldState.checkAnsweredPing;if(!p||p.turn!==36||p.label!=="Ranged attack"||p.mod!==8||p.dc!==14)return "the latch: "+JSON.stringify(p);
+      delete worldState.checkAnsweredPing;if(checkLapseToAction("I wait.")!==false||worldState.checkAnsweredPing)return "nothing pending must arm nothing";
+      if(typeof __fsForTests==="undefined")return true;/* the browser view has no source reader */
+      var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),sa=g.slice(g.indexOf("async function sendAction("),g.indexOf("function retryLast("));
+      if(sa.indexOf("pendingCheck")<0||sa.indexOf("checkLapseToAction(")<0)return "sendAction must lapse the check through checkLapseToAction";
+      if(/delete worldState\.pendingCheck;if\(typeof console!=="undefined"\)console\.info\("\[dice\] #329 pending/.test(sa))return "the silent inline delete is still in sendAction";
+      return true;
+    }finally{playerRollsDice=was;}
+  });
+  t("B47 buildCheckAnsweredNote: one-shot on the latch — names the check and its DC, lets an automatic ability resolve exactly ONE strike with the license ending there, narrates an abandoned attempt without a roll, re-emits a standing check and ENDS, opens the fight; registry wired, fires in combat, a dead turn restores it",function(){
+    makeWorld();worldState.turn=36;worldState.checkAnsweredPing={turn:36,label:"Ranged attack",mod:8,dc:14};
+    var snap=snapshotNoteLatches(),n=buildCheckAnsweredNote();
+    if(!/CHECK ANSWERED/.test(n)||n.indexOf("Ranged attack")<0||n.indexOf("DC 14")<0)return "the note must name the check: "+n;
+    if(!/exactly that one strike/.test(n)||!/the license ends with/.test(n)||!/the next attack/.test(n)||n.indexOf("[CHECK:]")<0)return "the one-strike license and its end are missing: "+n;
+    if(!/abandons the attempt/.test(n)||!/re-emit/.test(n)||!/END the response/.test(n)||n.indexOf("[COMBAT_START:]")<0)return "the abandon / re-emit / open-the-fight branches are missing: "+n;
+    if(worldState.checkAnsweredPing)return "the latch must be consumed on delivery";
+    if(buildCheckAnsweredNote()!=="")return "fires once";
+    restoreNoteLatches(snap);if(!worldState.checkAnsweredPing)return "a dead provider call must restore the latch (#151)";
+    var r=NOTE_SHAPES.buildCheckAnsweredNote;if(!r||NOTE_BUILDERS.indexOf(buildCheckAnsweredNote)<0||NOTE_LATCH_FIELDS.indexOf("checkAnsweredPing")<0||r.latch.indexOf("checkAnsweredPing")<0)return "registry not wired";
+    if(r.shape!=="one-shot-ask"||r.combat!=="fires"||r.ack.indexOf("CHECK")<0||r.ack.indexOf("COMBAT_START")<0)return "row: "+JSON.stringify(r);
+    if(NOTE_BUILDERS.indexOf(buildCheckAnsweredNote)>NOTE_BUILDERS.indexOf(buildConditionAudit))return "the note must sit ahead of the audits so the three-note cap never drops it";
+    worldState.combat={name:"Guard",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};var en=buildEngineNotes();
+    return en.indexOf("CHECK ANSWERED")>=0?true:"the registry did not deliver it in combat: "+en.slice(0,200);
+  });
   section("#204 duplicate-refusal hygiene");
   t("#204: a bare SCENE_DEATH whose envelope already committed THIS response is stripped without a conflict, and co-emitted quest tags survive",function(){
     makeWorld();

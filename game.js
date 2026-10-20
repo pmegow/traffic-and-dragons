@@ -2826,7 +2826,7 @@ async function sendAction(override,opts){
     if(typeof showToast==="function")showToast("Death waits. Walk back to camp, or go onward.");return;
   }
   /* #329: a typed action while a roll is pending lets the check lapse — the story moves on without it. */
-  if(worldState.pendingCheck&&!(opts&&opts.silent)){delete worldState.pendingCheck;if(typeof console!=="undefined")console.info("[dice] #329 pending "+worldState.turn+" check lapsed — the player acted instead of rolling");}
+  if(worldState.pendingCheck&&!(opts&&opts.silent))checkLapseToAction(txt);/* B47: the lapse arms the CHECK ANSWERED note for THIS prompt — the GM hears that a roll was asked and an action came back */
   /* #325: the offered ending is a DECISION, not an action — no model call, a modal decides. */
   if(!(opts&&opts.silent)&&typeof endingChoiceFromText==="function"&&typeof endingOffered==="function"){var _eoTxt=override!==null?override:(inp?inp.value.trim():"");
     if(_eoTxt&&endingChoiceFromText(_eoTxt)&&endingOffered()){if(inp)inp.value="";if(typeof showEndingOfferModal==="function")showEndingOfferModal();else endingDecide("write");return;}}
