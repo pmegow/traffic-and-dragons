@@ -27,3 +27,8 @@
 /vendor/piper/*
   ! Cache-Control
   Cache-Control: public, max-age=31536000, immutable
+
+# #650: the d20 roll clips — fetched once per device into the SW's DICE_CACHE (sw.js), so the edge/browser copy
+# only needs to outlive a session, not a deploy; a re-rendered batch bumps DICE_CACHE and is fresh within a day.
+/dice/*
+  Cache-Control: public, max-age=86400

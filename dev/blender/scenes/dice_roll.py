@@ -11,12 +11,14 @@
 #   --seed N     the throw (spin and push); the same seed and frame count reproduce the same roll.
 #   --die HEX    die colour (default bone e8dcc0); --felt HEX the ground (default 141c24, the game's
 #                accent background); --ink HEX the numerals (default 1b1b1b).
+#   --video FMT  webm (VP9; carries alpha with --transparent) or mp4 (H.264, opaque, plays everywhere);
+#                a bare --video means webm. --name FILE names the clip (default dice_roll.<fmt>).
 #
 # Output: <out>/frame_0001.png … (RGBA PNG), optional <out>/dice_roll.webm, and ONE line on stdout,
 # `SCENE_RESULT {json}`, that the launcher parses: the up face, its number, whether the die had
 # settled by the last frame, the frame count. An unsettled roll is a WARN line too — raise --frames.
 import bpy, sys, json, math, random, os
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 # ---------------------------------------------------------------- options (one JSON arg after --)
 def read_options():
@@ -206,9 +208,69 @@ if A["result"] is not None and labels[up_index] != A["result"]:
     other = next(i for i, v in labels.items() if v == A["result"])
     mate = lambda i: next(b if a == i else a for a, b in pairs if i in (a, b))
     labels[up_index], labels[other] = labels[other], labels[up_index]
-    labels[mate(up_index)], labels[mate(other)] = labels[mate(other)], labels[mate(up_index)]
+    if mate(up_index) != other:  # the pair's mates swap too — unless the two ARE a pair, which the first swap already turned over
+        labels[mate(up_index)], labels[mate(other)] = labels[mate(other)], labels[mate(up_index)]
+assert A["result"] is None or labels[up_index] == A["result"], "the up face must carry --result"
 assert all(labels[a] + labels[b] == 21 for a, b in pairs), "opposite faces must sum to 21"
 assert sorted(labels.values()) == list(range(1, 21)), "every number 1..20 exactly once"
+
+# camera and lights — aimed at WHERE THE DIE LANDS (known now that the bake is done), so every
+# seed settles centred and the throw enters from the left edge; a fixed aim left the die small
+# and off in a corner (the 2026-10-19 reference frames).
+bpy.ops.object.empty_add(location=(end_loc.x, end_loc.y, 0.2))
+aim = bpy.context.active_object
+aim.name = "Aim"
+# steep (about 64° up) and close, so the face that lands up is the face the viewer reads
+bpy.ops.object.camera_add(location=(end_loc.x - 0.4, end_loc.y - 2.0, 4.4))
+cam = bpy.context.active_object
+cam.data.lens = 42
+cam.constraints.new("TRACK_TO").target = aim
+scene.camera = cam
+bpy.ops.object.light_add(type="SUN", location=(-2, -3, 6))
+sun = bpy.context.active_object
+sun.data.energy = 3.0
+optional(lambda: setattr(sun.data, "angle", math.radians(8)), "sun angle")
+sun.constraints.new("TRACK_TO").target = aim
+bpy.ops.object.light_add(type="AREA", location=(3, 2, 4))
+fill = bpy.context.active_object
+fill.data.energy, fill.data.size = 250, 4
+fill.constraints.new("TRACK_TO").target = aim
+
+# THE READING RULE (owner 2026-10-19): the number that lands up ends RIGHT SIDE UP for the viewer.
+# Every numeral's spin about its own face normal is chosen at the LAST frame so that its "up"
+# is the camera's screen-up projected onto that face — the up face reads upright, and the
+# side faces still in view lean the way a real die's would. The die itself is never moved.
+scene.frame_set(A["frames"])
+bpy.context.view_layer.update()
+rot_end = die.matrix_world.to_3x3()
+cam_up = (cam.matrix_world.to_3x3() @ Vector((0.0, 1.0, 0.0))).normalized()
+scene.frame_set(1)
+
+def upright_rotation(n):
+    """Local rotation for a numeral on the face with local normal n: Z out of the face, Y the
+    camera's screen-up as seen at the last frame (projected onto the face)."""
+    nw = (rot_end @ n).normalized()
+    u = cam_up - nw * cam_up.dot(nw)
+    if u.length < 1e-4:  # the face is square to the camera: no meaningful up; keep the default
+        return n.to_track_quat("Z", "Y").to_euler()
+    ul = (rot_end.inverted() @ u.normalized()).normalized()
+    x = ul.cross(n).normalized()
+    return Matrix((x, ul, n)).transposed().to_euler()
+
+# THE POP (owner 2026-10-20): the 19 faces that did not land up sit at 75% of the bone colour so
+# the up face stands out. A die that is marked while it tumbles looks loaded, so the dimming
+# fades in over the last DIM_FADE frames, as the die comes to rest — one keyframed material.
+DIM, DIM_FADE = 0.75, 12
+dim = material("BoneDim", A["die"], 0.35)
+die.data.materials.append(dim)
+for p in polys:
+    p.material_index = 0 if p.index == up_index else 1
+dim_bsdf = dim.node_tree.nodes.get("Principled BSDF")
+bone = hex_rgb(A["die"])
+dim_bsdf.inputs["Base Color"].default_value = srgb_to_linear(bone)
+dim_bsdf.inputs["Base Color"].keyframe_insert("default_value", frame=max(1, A["frames"] - DIM_FADE))
+dim_bsdf.inputs["Base Color"].default_value = srgb_to_linear(tuple(c * DIM for c in bone[:3]) + (1.0,))
+dim_bsdf.inputs["Base Color"].keyframe_insert("default_value", frame=A["frames"])
 
 ink = material("Ink", A["ink"], 0.6)
 for p in polys:
@@ -224,27 +286,7 @@ for p in polys:
     n = p.normal.normalized()
     txt.parent = die
     txt.location = center + n * 0.004
-    txt.rotation_euler = n.to_track_quat("Z", "Y").to_euler()
-
-# camera and lights
-bpy.ops.object.empty_add(location=(-0.1, 0, 0.2))
-aim = bpy.context.active_object
-aim.name = "Aim"
-# steep (about 64° up) and close, so the face that lands up is the face the viewer reads
-bpy.ops.object.camera_add(location=(-0.5, -2.0, 4.4))
-cam = bpy.context.active_object
-cam.data.lens = 42
-cam.constraints.new("TRACK_TO").target = aim
-scene.camera = cam
-bpy.ops.object.light_add(type="SUN", location=(-2, -3, 6))
-sun = bpy.context.active_object
-sun.data.energy = 3.0
-optional(lambda: setattr(sun.data, "angle", math.radians(8)), "sun angle")
-sun.constraints.new("TRACK_TO").target = aim
-bpy.ops.object.light_add(type="AREA", location=(3, 2, 4))
-fill = bpy.context.active_object
-fill.data.energy, fill.data.size = 250, 4
-fill.constraints.new("TRACK_TO").target = aim
+    txt.rotation_euler = upright_rotation(n)
 
 # render
 result = {"scene": "dice_roll", "out": A["out"], "frames": A["frames"], "fps": A["fps"], "seed": A["seed"],
@@ -275,10 +317,17 @@ else:
         if "media_type" in vs.render.image_settings.bl_rna.properties:  # Blender 5: video is a media type first
             vs.render.image_settings.media_type = "VIDEO"
         vs.render.image_settings.file_format = "FFMPEG"
-        vs.render.ffmpeg.format = "WEBM"
-        vs.render.ffmpeg.codec = "WEBM"
+        fmt = str(A["video"]).lower() if A["video"] is not True else "webm"
+        if fmt == "mp4":  # H.264, opaque — the one every browser plays (iOS Safari has no VP9 alpha)
+            vs.render.ffmpeg.format, vs.render.ffmpeg.codec = "MPEG4", "H264"
+            vs.render.image_settings.color_mode = "RGB"
+        elif fmt == "webm":  # VP9; with --transparent the alpha rides along (yuva420p)
+            vs.render.ffmpeg.format, vs.render.ffmpeg.codec = "WEBM", "WEBM"
+            vs.render.image_settings.color_mode = "RGBA" if A["transparent"] else "RGB"
+        else:
+            raise SystemExit("--video must be webm or mp4, got %r" % A["video"])
         vs.render.ffmpeg.constant_rate_factor = "HIGH"
-        vs.render.filepath = os.path.join(A["out"], "dice_roll.webm")
+        vs.render.filepath = os.path.join(A["out"], A.get("name") or ("dice_roll." + fmt))
         vs.render.use_file_extension = False
         with bpy.context.temp_override(scene=vs):
             bpy.ops.render.render(animation=True, scene=vs.name)

@@ -3010,6 +3010,7 @@ function rollPendingCheck(){
   if(typeof Sound!=="undefined")Sound.play("click_glass");
   if(typeof saveAll==="function")saveAll();
   sendAction(r.note,{silent:true,rollTag:r.diceTag});
+  if(typeof showDiceRoll==="function")showDiceRoll(r.roll);/* #650: the rendered roll plays over the story AFTER the turn is on its way — never before it */
 }
 // #391: back out of a pending roll. The check lapses (the #329 rule already lets a typed action do this
 // silently); here it is VISIBLE — a "withdrawn" dice record (no face, so #371's ratio and #374's risk

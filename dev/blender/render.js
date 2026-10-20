@@ -55,7 +55,7 @@ function parseArgs(argv) {
 
 function usage(code) {
   var scenes = listScenes();
-  console.log("usage: node dev/blender/render.js <scene> [--out DIR] [--frames N] [--fps N] [--size WxH] [--seed N] [--engine EEVEE|WORKBENCH] [--samples N] [--transparent] [--video] [--still N] [scene flags]");
+  console.log("usage: node dev/blender/render.js <scene> [--out DIR] [--frames N] [--fps N] [--size WxH] [--seed N] [--engine EEVEE|WORKBENCH] [--samples N] [--transparent] [--video [webm|mp4]] [--still N] [scene flags]");
   console.log("scenes: " + (scenes.length ? scenes.join(", ") : "(none in " + SCENES + ")"));
   process.exit(code);
 }
@@ -80,7 +80,7 @@ function main() {
     engine: f.engine ? String(f.engine).toUpperCase() : undefined,
     samples: f.samples != null ? Number(f.samples) : undefined,
     transparent: !!f.transparent,
-    video: !!f.video,
+    video: f.video === true ? true : (f.video ? String(f.video) : false),
     still: f.still != null ? Number(f.still) : undefined
   };
   Object.keys(f).forEach(function (k) { if (!(k in options) && k !== "out" && k !== "size") options[k] = f[k]; });

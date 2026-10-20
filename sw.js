@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261019f";
+var CACHE = "tnd-v3-20261020a";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -11,6 +11,11 @@ var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,
 // EVERY deploy because CACHE bumps every deploy. Without a separate cache name, the purge (which
 // deletes every cache !== CACHE) would wipe the wasm and force a re-download per device per deploy.
 var PIPER_CACHE = "tnd-piper-v1";
+// #650: the twenty d20 roll clips (dice/d20_NN.webm|mp4, ~8 MB in all) — fetched on first use, then permanent
+// in their own purge-exempt cache, like the Piper wasm. The name carries the batch date: a re-render of dice/
+// (dev/blender/dice-clips.js) bumps it, the activate purge drops the old cache, and the next roll fetches fresh
+// (within the one-day edge/browser cache _headers gives /dice/*).
+var DICE_CACHE = "tnd-dice-20261020";
 var APP_SHELL = [
   "/",
   "/globals.js",
@@ -43,6 +48,7 @@ var APP_SHELL = [
   "/ui-shell.js",
   "/ui-panels.js",
   "/ui-mobile.js",
+  "/ui-dice.js",
   "/mobile.css",
   "/ui-portrait.js",
   "/ui-files.js",
@@ -120,7 +126,7 @@ self.addEventListener("activate", function(e){
       // Spare PIPER_CACHE from the per-deploy purge (LOAD-BEARING — see the PIPER_CACHE comment
       // above). Without this exemption the purge deletes it right along with the old app-shell
       // cache on every deploy, and the dedicated cache name buys nothing.
-      return Promise.all(keys.filter(function(k){return k!==CACHE && k!==PIPER_CACHE && k!==AUDIO_CACHE_NAME;}).map(function(k){return caches.delete(k);}));
+      return Promise.all(keys.filter(function(k){return k!==CACHE && k!==PIPER_CACHE && k!==AUDIO_CACHE_NAME && k!==DICE_CACHE;}).map(function(k){return caches.delete(k);}));
     })
   );
   self.clients.claim();
@@ -144,6 +150,22 @@ self.addEventListener("activate", function(e){
 self.addEventListener("fetch", function(e){
   if(e.request.method !== "GET") return;
   if(e.request.url.indexOf(self.location.origin) !== 0) return;
+  // #650: a roll clip — cache-first against DICE_CACHE (see its comment); never precached, a miss fetches and keeps it.
+  if(/\/dice\/d20_\d\d\.(webm|mp4)$/.test(new URL(e.request.url).pathname)){
+    e.respondWith(
+      caches.match(e.request).then(function(cached){
+        if(cached) return cached;
+        return fetch(e.request).then(function(response){
+          if(response && response.status === 200 && response.type === "basic"){
+            var clone = response.clone();
+            holdRuntimeIo(e,caches.open(DICE_CACHE).then(function(cache){ return cache.put(e.request,clone); }),"dice cache write for "+e.request.url);
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
   // Dev-utility satellite/doc pages are NOT part of the cached app shell — their commits don't bump
   // CACHE, so the cache-first path below would pin stale copies indefinitely (it did: the designer
   // all through the v0.2x work, then the todo-viewer on 07-06 — every update needed a manual cache

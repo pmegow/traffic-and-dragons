@@ -35196,4 +35196,58 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return fn.indexOf("(note ? \" · \" + note : \"\")")>=0?true:"an empty trimmed note would still get its separator";
   });
 
+  section("#650 — the d20 roll clip: twenty rendered rolls, WebM with the felt MP4 for WebKit, played over the story after the turn is on its way (owner rulings 2026-10-19/20)");
+  t("dice clip: a face 1..20 names dice/d20_NN, anything else is null",function(){
+    if(diceClipName(1)!=="dice/d20_01"||diceClipName(9)!=="dice/d20_09"||diceClipName(10)!=="dice/d20_10"||diceClipName(20)!=="dice/d20_20")return "the name must be two digits: "+[diceClipName(1),diceClipName(9),diceClipName(10),diceClipName(20)].join(" ");
+    var bad=[0,21,-3,2.5,"x",null,undefined,NaN].filter(function(f){return diceClipName(f)!==null;});
+    return bad.length?"a face outside 1..20 named a clip: "+bad.join(","):true;
+  });
+  t("dice clip: the format is webm everywhere but WebKit — Safari on the Mac, every iOS browser, and an iPad with a desktop UA",function(){
+    var CHROME="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+    var EDGE=CHROME+" Edg/130.0.0.0";
+    var FIREFOX="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0";
+    var SAFARI="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+    var IPHONE="Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+    var CRIOS="Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.0.0 Mobile/15E148 Safari/604.1";
+    var ANDROID_CHROME="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
+    var want=[[CHROME,"webm","Chrome must get the webm"],[EDGE,"webm","Edge must get the webm"],[FIREFOX,"webm","Firefox must get the webm"],[ANDROID_CHROME,"webm","Android Chrome must get the webm"],[SAFARI,"mp4","Safari on the Mac must get the mp4"],[IPHONE,"mp4","an iPhone must get the mp4"],[CRIOS,"mp4","an iPhone must get the mp4 whatever its browser (CriOS)"]],i;
+    for(i=0;i<want.length;i++){var got=diceClipFormat({ua:want[i][0],platform:"x",maxTouchPoints:0});if(got!==want[i][1])return want[i][2]+": "+want[i][0].slice(0,60)+"… → "+got;}
+    if(diceClipFormat({ua:SAFARI,platform:"MacIntel",maxTouchPoints:5})!=="mp4")return "MacIntel with touch points is an iPad — a desktop UA on it must still get the mp4";
+    if(diceClipFormat({ua:CHROME,platform:"MacIntel",maxTouchPoints:5})!=="mp4")return "MacIntel with touch points is an iPad even with Chrome's UA: still WebKit";
+    if(diceClipFormat({})!=="webm")return "no environment at all must still name a format (webm)";
+    if(diceClipSrc(7,{ua:IPHONE})!=="dice/d20_07.mp4"||diceClipSrc(20,{ua:CHROME})!=="dice/d20_20.webm")return "diceClipSrc does not join the name and the format";
+    return diceClipSrc(0,{ua:CHROME})===null?true:"an invalid face must have no source";
+  });
+  t("dice clip: every result ships BOTH clips and the manifest records each with its size (a half-rendered batch cannot land)",function(){
+    var dir=__rootForTests+"/dice",man;
+    try{man=JSON.parse(__fsForTests.readFileSync(dir+"/manifest.json","utf8"));}catch(e){return "dice/manifest.json unreadable: "+e.message;}
+    var i,k,missing=[];
+    for(i=1;i<=20;i++){k=(i<10?"0":"")+i;var c=man.clips&&man.clips[k];if(!c||!c.seed)missing.push(k+" (manifest)");
+      ["webm","mp4"].forEach(function(f){var p=dir+"/d20_"+k+"."+f,st;try{st=__fsForTests.statSync(p);}catch(e){missing.push(k+"."+f);return;}if(c&&c[f]!==st.size)missing.push(k+"."+f+" size "+st.size+" ≠ manifest "+c[f]);});}
+    if(missing.length)return "clips missing or off the manifest: "+missing.join(", ");
+    return man.frames>=60&&man.fps===24?true:"the manifest's frames/fps are not the batch's (frames "+man.frames+", fps "+man.fps+")";
+  });
+  t("dice clip: the roll plays AFTER the turn is sent, in a guarded call; the overlay is a thin shell over diceClipSrc; the SW keeps the clips in a purge-exempt cache",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),fn=g.slice(g.indexOf("function rollPendingCheck(){"),g.indexOf("function reconsiderPendingCheck(){"));
+    var send=fn.indexOf("sendAction(r.note,{silent:true,rollTag:r.diceTag});"),show=fn.indexOf('if(typeof showDiceRoll==="function")showDiceRoll(r.roll);');
+    if(send<0||show<0)return "rollPendingCheck lost the send or the guarded showDiceRoll call";
+    if(show<send)return "showDiceRoll must follow sendAction: the clip must never delay the turn";
+    var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");
+    if(u.indexOf("diceClipSrc(face,{ua:nav.userAgent,platform:nav.platform,maxTouchPoints:nav.maxTouchPoints})")<0)return "ui-dice.js does not choose the clip through diceClipSrc with the navigator's fields";
+    if(u.indexOf('if(typeof carMode!=="undefined"&&carMode)return false;')<0)return "Car Mode must skip the clip (it would play under the Car Mode screen)";
+    if(u.indexOf('window.matchMedia("(prefers-reduced-motion: reduce)").matches)return false;')<0)return "reduced motion must skip the clip";
+    if(u.indexOf('reportError("dice-clip",msg,{face:face,src:src});')<0)return "a failed clip must report (the phone's console is invisible)";
+    var sw=__fsForTests.readFileSync(__rootForTests+"/sw.js","utf8");
+    if(!/var DICE_CACHE = "tnd-dice-\d{8}";/.test(sw))return "sw.js has no dated DICE_CACHE";
+    if(sw.indexOf("k!==DICE_CACHE")<0)return "DICE_CACHE must be purge-exempt: the activate purge would delete it on every deploy";
+    if(sw.indexOf("/\\/dice\\/d20_\\d\\d\\.(webm|mp4)$/.test(new URL(e.request.url).pathname)")<0)return "the SW has no cache-first path for the clips";
+    if(sw.indexOf("caches.open(DICE_CACHE)")<0)return "the clip must be written to DICE_CACHE";
+    if(sw.indexOf('"/ui-dice.js",')<0)return "ui-dice.js is not in the app shell";
+    var ix=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
+    if(ix.indexOf('<script src="ui-dice.js"></script>')<0)return "index.html does not load ui-dice.js";
+    if(!/#story-area\{[^}]*position:relative/.test(ix))return "#story-area is not the overlay's positioning box";
+    var h=__fsForTests.readFileSync(__rootForTests+"/_headers","utf8");
+    return /\/dice\/\*\n  Cache-Control: public, max-age=86400/.test(h)?true:"_headers must carry the /dice/* rule (without it a re-render is pinned by the immutable default or revalidated every roll)";
+  });
+
 }

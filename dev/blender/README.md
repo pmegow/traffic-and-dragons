@@ -48,6 +48,25 @@ To use it: open Blender, then ask. The add-on's `execute_blender_code` tool runs
 your Blender — keep the socket on localhost (it has no authentication, which is the add-on's own
 warning). Its Poly Haven / Hyper3D / Sketchfab integrations stay off unless you turn them on.
 
+## The d20 clip batch (#650)
+
+```
+node dev/blender/dice-clips.js                 all twenty results, four Blender processes at a time (~5 min)
+node dev/blender/dice-clips.js --only 20,1     a subset
+```
+
+One roll per result 1..20, rendered twice from the same seed: `dice/d20_NN.webm` (transparent VP9, the die
+over the page) and `dice/d20_NN.mp4` (H.264 on the felt — WebKit plays VP9 but drops its alpha, so every
+iPhone and Safari on the Mac get this one; `diceClipFormat` in helpers.js decides from the user agent).
+A result's seed starts at its number and steps by 20 until the die has settled by the last frame; the
+manifest records every seed and size, and the #650 engine test refuses a batch with a clip missing.
+After a re-render bump `DICE_CACHE` in sw.js (the clips live in their own purge-exempt cache) and `CACHE`.
+
+Two scene rules the clips depend on (dice_roll.py): the numerals are spun about their face normals at
+the LAST frame so the result reads right side up from the camera (owner 2026-10-19), and the nineteen
+other faces fade to 75% of the bone colour over the last twelve frames so the result pops (owner
+2026-10-20) — a die dim through the tumble would look loaded.
+
 ## Proof
 
 `node dev/blender/render.js dice_roll --seed 3 --result 20 --video` on 2026-10-19: 60 RGBA frames at

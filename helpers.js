@@ -3941,3 +3941,25 @@ function voiceNoteTrim(note){
   s=s.replace(/(^|[^A-Za-z]),?[ ]*(?:(?:ideal|perfect|great|well[- ]suited|suited|suitable)[ ]+)?for(?![A-Za-z]).*$/i,"$1");
   return s.replace(/[ ,;:.]+$/,"");
 }
+
+/* #650: THE d20 ROLL CLIP (owner rulings 2026-10-19/20). Twenty rolls rendered in Blender (dev/blender/dice-clips.js), one per
+   result, each as a transparent VP9 WebM (the die over the page) and an opaque H.264 MP4 on the felt. The WebM is the clip;
+   the MP4 is for WebKit, which plays VP9 but drops its alpha (a black box on every iPhone and in Safari on the Mac). No feature
+   test can tell alpha playback apart from playback, so the format is decided from the user agent — the one place the UA is read
+   for a rendering decision, kept pure so the rule is testable without a browser. Every browser on iOS is WebKit, whatever its
+   name (CriOS, FxiOS); an iPad with a desktop UA says MacIntel with touch points. */
+function diceClipName(face){
+  var n=Number(face);if(!(n>=1&&n<=20)||n!==Math.floor(n))return null;
+  return "dice/d20_"+(n<10?"0":"")+n;
+}
+function diceClipFormat(env){
+  var e=env||{},ua=String(e.ua||"");
+  if(/iP(hone|ad|od)/.test(ua))return "mp4";
+  if(e.platform==="MacIntel"&&Number(e.maxTouchPoints)>1)return "mp4";
+  if(/AppleWebKit/.test(ua)&&!/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/.test(ua))return "mp4";
+  return "webm";
+}
+function diceClipSrc(face,env){
+  var base=diceClipName(face);if(!base)return null;
+  return base+"."+diceClipFormat(env);
+}
