@@ -357,6 +357,266 @@ screenshotUrl: https://drive.google.com/file/d/1NGiBJLiFq31KYJfQm1QY3kPT_zRTGZpW
 - 2026-10-18 · v1.1278 · commit fix(B46) · Fable — mechanism re-verified before code (rule 4 casts many peoples, rule 16 registers only the NPCs the player deals with, the NPC tag has no ancestry field, and rule 11 PROSE plus STYLE push toward less — so a kindless crowd was compliant output). Fix: rule 4 extended IN PLACE (the count stays 28; data.js records why long lists dilute compliance) with SAY WHAT THEY ARE — on first sight every figure and every group gets its kind in a word or two, unnamed crowds included; a character who has a sheet keeps the sheet's look (the #623 class); a figure whose kind is never stated is a hole in the scene, not a mystery. Tests: the B46 section (the clause, its scope, the sheet clause, one rule only, the rules block and the stable half); `dev/sabotage-b46-say-what-they-are.js` proves five mutations. Prompt diff on the owner's Frizwick t11 save: exactly one stable hunk (rule 4), the volatile half byte-identical. Live verification owed: the next new crowd in play should carry its kind; escalate to a detect-and-ask engine note only if the rule loses in the field.
 
 
+## B47 — An attack after a Sure Shot was narrated without a roll — the B45 roll floor did not hold on the following strike (v1.1281, Frizwick t38)
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-10-19 (v1.1281) · **Last seen:** 2026-10-19 (v1.1281) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 38
+**Fingerprint:** `user-report · user-report · v1.1281 · Sure shot should NOT have been a dice roll... and it wasn't HOWEVER the next attack SHOULD have been, and no dice were r`
+**Report ids:** 2ab5c5a0-6968-4a5f-b1e5-6b6e36d6db6b
+**Screenshot URL:** https://drive.google.com/file/d/1BGrqIma6xAQGDemje5vKaflISV7tOu5E/view?usp=drivesdk
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Sure shot should NOT have been a dice roll... and it wasn't HOWEVER the next attack SHOULD have been, and no dice were rolled.
+
+STATE: Frizwick (Rogue Lv18) HP 112/112, 183 gp 4 sp — The Crossroads of Ashenveil, Day 1, 11:30 pm — turn 38
+LAST EXCHANGES (clean text):
+[t33 player] Retreat down the cellar grate with the family.
+[t34 GM · gemini-3.8-flash] "Scouts at the ridge swear a crazed hedge-witch blew up thirty men in a ditch just to steal an old cloak for her runner," Sable mutters as you hit the muck.
+
+You drop through the iron grate into the dark. Ammut catches your shoulder. The brass keystone drags at your satchel like an iron weight. 
+
+Shouts echo down the shaft above. Rhett Lorrath's curses fade as you splash south through the sunken wash. Behind you, the manor's wards collapse into dead grey dust. 
+
+Then the satchel begins to pulse. The brass block is not sleeping. It bleeds a raw, white-hot cinder light straight through the cracked leather. It throbs like a dying heart, beaconing your retreat directly into the dark.
+[t34 player] Have Morwen inscribe containment wards on the satchel.  Take up position in the shadows, ready for any approaching guards while morwen works.
+[t35 GM · gemini-3.8-flash] You slide your back against the damp ditch bank. The crossbow clicks cocked. You melt into the dark.
+
+"Hold it still," Morwen murmurs. 
+
+She pulls chalk and silver wire from her vest. She lays her thumbs across the cracked leather of the satchel. A harsh, guttering blue rune flashes against the stitching. The blinding white glare snaps shut. The satchel goes cold and quiet.
+
+Down the wash, boots slam into deep mud. Two torches flare above the lip. Rhett Lorrath's voice cuts the wind, venomous and loud.
+
+"Find them! The Baron expects the cinder-tithe at the Gilded Court by moonset, you worthless dogs!"
+[t35 player] You guys head back to the cottage.  I'm going to pick off Lorrath as soon as he shows his ugly face.  (poison a crossbow bolt).
+[t36 GM · gemini-3.8-flash] "Do not get gutted for pride," Morwen breathes.
+
+She grips your arm once. Ammut flashes a wolfish grin in the dark, then ushers Daeris and Sable back down the culvert toward the cottage. 
+
+You slide behind a heap of slag. You pull a steel bolt from your hip. With a pinch of tallow and dried bane-root from your cuffs, you stroke a thick, greasy smear down the iron tip. Master Poisoner at work. Fast, ugly, and quiet.
+
+Mud sucks at boots above the ditch. A torch sweeps down, throwing orange light across the black water. Rhett Lorrath drops down the bank, scarred face snarling, notched broadsword in his fist.
+
+"Over here! Track the bitch down before the Baron takes our hides!"
+
+He stands fifteen paces away. Broad chest exposed. Your finger tightens on the trigger. Missing means taking a notched broadsword through the guts.
+[t36 player] sure shot him, right between the eyes
+[t37 GM · gemini-3.8-flash] Sure Shot. You breathe out. 
+
+The cord slaps. The quarrel banks off a rusted iron flange on the culvert rim, whips through the dark, and takes Rhett Lorrath dead between the eyebrows. 
+
+He does not yell. He simply folds like wet canvas into the ditch. The greasy bane-root blackens the entry wound before his head hits the sludge. 
+
+Up the ridge, the second torch wavers. Someone shouts in the wind, panic rising fast.
+[t37 player] summon item to get the bolt from lorrath's head, load it and drop the next guard.
+[t38 GM · gemini-3.8-flash] You flick your fingers. 
+
+The greasy, blood-slick quarrel snaps out of Lorrath's skull and smacks into your palm. Fast. Efficient. Why waste good poison on dead meat?
+
+You shove the quarrel into the track. The string latches with a sharp clink. 
+
+Up on the rim, the second guard stumbles forward. He looks into the ditch. He spots Lorrath's boots sticking out of the muck.
+
+"Rhett? What the fuck, "
+
+The string slaps. The recovered bolt takes him under the chin. 
+
+He gurgles. The torch tumbles from his grip, hissing dead in the wet ditch mud. He drops beside it, stiff and silent.
+NEWEST RAW GM RESPONSE (tags intact):
+[TIME_CHECK:midnight]
+[TIME_ADVANCE:1m]
+[SCENE_CAST:Frizwick]
+[ITEM_LOST:Crossbow bolt (lethal poison)]
+[ITEM_GAINED:Crossbow bolt (lethal poison)]
+[ITEM_LOST:Crossbow bolt (lethal poison)]
+
+You flick your fingers. 
+
+The greasy, blood-slick quarrel snaps out of Lorrath's skull and smacks into your palm. Fast. Efficient. Why waste good poison on dead meat?
+
+You shove the quarrel into the track. The string latches with a sharp clink. 
+
+Up on the rim, the second guard stumbles forward. He looks into the ditch. He spots Lorrath's boots sticking out of the muck.
+
+[SAY:Selaoril Wrenfield|terrified]"Rhett? What the fuck—"
+
+The string slaps. The recovered bolt takes him under the chin. 
+
+He gurgles. The torch tumbles from his grip, hissing dead in the wet ditch mud. He drops beside it, stiff and silent. 
+
+[SUGGEST:Loot Lorrath and the guard before leaving|Set the scene to make it look like an ambush between scavengers|Run back down the culvert to rejoin your family at the cottage]
+SUGGESTED ACTIONS SHOWN: Loot Lorrath and the guard before leaving | Set the scene to make it look like an ambush between scavengers | Run back down the culvert to rejoin your family at the cottage | Accept the offer: Court of the Ash-Gilded Baron.
+[COMBAT] combat state: none
+```
+
+### Findings
+
+### Action log
+
+## B48 — The GM paid a thug’s extortion out of the player’s purse instead of offering the choice — an action decided for the player (v1.1282, Frizwick t54)
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-10-20 (v1.1282) · **Last seen:** 2026-10-20 (v1.1282) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 54
+**Fingerprint:** `user-report · user-report · v1.1282 · The GM had me pay 30 gold in extortion money to a thug I could have EASILY beaten. This should have been an option, not`
+**Report ids:** 14389300-0ac4-4849-b0ac-e1cd218f74f0
+**Screenshot URL:** https://drive.google.com/file/d/1fZHFOi-IPPQ2uW4V-nmHQiU3jNxPRp-U/view?usp=drivesdk
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+The GM had me pay 30 gold in extortion money to a thug I could have EASILY beaten.  This should have been an option, not an automatic deduction.  Boooo.,
+
+STATE: Frizwick (Rogue Lv18) HP 112/112, 210 gp 2 sp — Spire Vanguard Siege Camp, Day 1, 2:35 am — turn 54
+LAST EXCHANGES (clean text):
+[t49 player] Rig the command pavilion to burn. Slip into the lower trenches after Calder.  Ammut, how're you doing on murder?  I still have a pretty full tank.  Here's the plan, use that 72 faces you have to become one of these guards.  Run down to Calder, tell him the hedge witch is burning the camp.  I'll drop calder as soon as I see him, then we deal with the rest.  Sound good?
+[t50 GM · gemini-3.8-flash] You kick the heavy brass brazier flat into the straw bedding. Hot coals spill into dry sheepskin and grease. 
+
+You slice down Calder's woolen map-tapestry. You pile it over the embers. It begins to smoke, thick and black. It will catch roaring in about three minutes.
+
+"Rig the command pavilion to burn. Slip into the lower trenches after Calder. Ammut, how're you doing on murder? I still have a pretty full tank."
+
+Ammut chuckles, low and nasty. 
+
+"My tank never empties for sellsword bastards."
+
+"Here's the plan. Use that seventy-two faces you have to become one of these guards. Run down to Calder, tell him the hedge witch is burning the camp. I'll drop Calder as soon as I see him, then we deal with the rest. Sound good?"
+
+Ammut looks down at the dead sentry pinned to the post outside. His skin ripples like boiling wax. His jaw squares up. His ears round down into thick human meat. He stoops, strips the bloodied tabard off the corpse, and buckles the brass gorget tight around his throat.
+
+"Sound like a fucking mess. I love it."
+
+He scoops a carved ash-token from the dead man's belt and hands it to you. An officer's trench-chit.
+
+Ammut turns and sprints down the wooden ramps into the 
+[t50 player] Sure shot Calder in the throat with my crossbow.  Immediately after poison a quarrel for the next victim.
+[t51 GM · gemini-3.8-flash] You trigger Sure Shot. 
+
+The iron lever snaps. The bowstring cracks the quiet like dry pine. 
+
+The quarrel cuts across the torchlight. It takes Calder Ashvane dead center in his bare windpipe. The iron tip punches out through the back of his neck. 
+
+He makes a wet, choking rattle. He drops his iron staff into the muck. He hits his knees, clawing at his throat, and then pitches face-down into the cold slurry. Done.
+
+You do not watch him twitch. You duck behind the timber shoring. Your thumb is already slick with gray paste from your boot-vial. You thumb lethal venom across the iron head of the next bolt. You seat it with a quiet click.
+
+Below in the trench, the four pick-guards freeze. They stare at Calder's body. They look up at the smoke.
+
+Ammut does not waste a second. He whips a short blade from his borrowed tabard. He drives it under the nearest guard's armpit. 
+
+"Ambush from the high ditch! Scatter, you stupid shits!"
+
+The remaining three men panic. They brandish their heavy picks in the dark, hunting for a target they cannot see.
+[t51 player] Shoot the nearest pick-guard with the poisoned bolt.
+[t52 GM · gemini-3.8-flash] You lean over the timber edge. You center the iron sight on the widest back below. 
+
+The bowstring snaps. 
+
+The greasy quarrel punches clean through boiled leather. It buries to the fletching between his shoulder blades. 
+
+The man grunts, stiffens, and drops his heavy iron pick. He vomits black froth into the slurry. The venom works fast and ugly. He flops sideways into the mud, stiff as cured oak. 
+
+Two left standing. Both are turning in blind circles, screaming oaths into the dark.
+
+Ammut slips through the spray of lantern-light like spilled oil. His stolen blade cuts the heel of the next man's boot.
+
+"Look up, shithead."
+
+Above your head, the command pavilion finally catches. Flames lick high into the greasy sky.
+[t52 player] Loot Calder's body.  Ammut, make it quick, then let's head up and free the conscripts.
+[t53 GM · gemini-3.8-flash] "Ammut, make it quick, then let's head up and free the conscripts."
+
+Ammut grins. His blade flashes twice in the spray of torchlight. 
+
+Two wet thuds hit the mud. The last guards drop into the slurry, throats opened wide. Clean work.
+
+You drop twenty feet down the trench shoring. You land light in the muck next to Calder Ashvane's body. 
+
+You roll him over with your boot. His dead eyes stare into the greasy dark, milky and flat. 
+
+You slice his purse from his belt. Forty-two heavy gold coins and eight silver pieces. You take his iron staff from the mud. The skull on top still radiates dry heat. At his hip hangs a heavy, blackened iron key-ring with three triangular keys. Cage keys. Conscript keys.
+
+"They were chaining them behind the cookhouse ditch. Maybe thirty men and women in iron leashes."
+
+Above the lip of the trench, the whole command pavilion collapses into a fountain of orange sparks. Horns begin to blare across the camp. The garrison has noticed the fire.
+[t53 player] Run to the cookhouse cages with the keys.
+[t54 GM · gemini-3.8-flash] You scramble up the timber ramp with Ammut at your heels. Smoke rolls thick across the camp lines. Screams bounce off the frozen cliff face.
+
+Morwen and Daeris step out from the shadow of the cookhouse trench. They are waiting for you.
+
+"You took your time. The pavilion looks lovely from the perimeter."
+
+"Calder?"
+
+"Dead in the mud. Looted him too."
+
+You sprint around the back of the grease-choked cookhouse. 
+
+Three heavy timber cage-wagons sit bogged in cold mud. Inside are thirty men and women. Conscripts and captives, shivering in iron collars. 
+
+A fat deserter corporal with a notched cleaver stands guard over them. He backs into the timber bars when he sees you. He looks at Calder's iron staff in your fist. He looks at Ammut's blood-soaked tabard.
+
+"Give me the latch or lose the arm."
+
+The corporal drops the cleaver into the muck, shaking. 
+
+"Keys won't matter if they starve in the ash, runner. Give me thirty crowns for gate grease and bread rations, or these dogs freeze before sunrise."
+
+"Take the gold and choke on it. Run."
+
+You slap thirty gold coins into his filthy palm. He scrambles into the smoke toward the south gap.
+
+You shove the triangular keys into the padlock tumble
+NEWEST RAW GM RESPONSE (tags intact):
+[TIME_CHECK:late night]
+[NPC_DEATH_REPORTED:Calder Ashvane|Shot in the throat by Frizwick and looted in the lower dig]
+[LOCATION_STATE:Calder Ashvane and four pick-guards lie dead in the slurry of the lower excavation trench]
+[LOCATION_STATE:The slave pens behind the cookhouse ditch are broken open]
+[TIME_ADVANCE:12m]
+[SCENE_CAST:Frizwick, Ammut, Morwen Zethran, Daeris]
+[GOLD:-30]
+
+You scramble up the timber ramp with Ammut at your heels. Smoke rolls thick across the camp lines. Screams bounce off the frozen cliff face.
+
+Morwen and Daeris step out from the shadow of the cookhouse trench. They are waiting for you.
+
+[SAY:Morwen Zethran]"You took your time. The pavilion looks lovely from the perimeter."
+
+[SAY:Daeris]"Calder?"
+
+[SAY:Frizwick]"Dead in the mud. Looted him too."
+
+You sprint around the back of the grease-choked cookhouse. 
+
+Three heavy timber cage-wagons sit bogged in cold mud. Inside are thirty men and women. Conscripts and captives, shivering in iron collars. 
+
+A fat deserter corporal with a notched cleaver stands guard over them. He backs into the timber bars when he sees you. He looks at Calder's iron staff in your fist. He looks at Ammut's blood-soaked tabard.
+
+[SAY:Frizwick]"Give me the latch or lose the arm."
+
+The corporal drops the cleaver into the muck, shaking. 
+
+[SAY:Baldun Fallowmere|hoarse, terrified]"Keys won't matter if they starve in the ash, runner. Give me thirty crowns for gate grease and bread rations, or these dogs freeze before sunrise."
+
+[SAY:Frizwick]"Take the gold and choke on it. Run."
+
+You slap thirty gold coins into his filthy palm. He scrambles into the smoke toward the south gap.
+
+You shove the triangular keys into the padlock tumblers. The iron snaps free. 
+
+The cage doors swing wide. Thirty wretched captives pour into the mud.
+
+[SAY:Daeris|firm, directing]"South ditch. Follow the smoke away from the Spire. Move now."
+
+The conscripts run. The whole vanguard camp is coming unglued.
+
+[SUGGEST:Set the remaining supply wagons ablaze|Flee south to regroup at the crossroads cottage|Raid the camp armory tent before leaving]
+SUGGESTED ACTIONS SHOWN: Set the remaining supply wagons ablaze | Flee south to regroup at the crossroads cottage | Raid the camp armory tent before leaving
+```
+
+### Findings
+
+### Action log
+
 ## B29 — W2 summary-death conflicts in the owner's campaigns — the chapter extractor names a death the scene evidence cannot vouch for (the #299 / #324 / #345 class)
 **Status:** promoted → [TODO.md](../TODO.md) #345 (the #299 class fixed at its source v1.832), #324 (Lyle), #299 (the ring) · **two more arrivals after that fix (v1.985, v1.1005); the class is TODO #526 — see the 2026-10-01 note under Findings**
 **Kind:** crash · **First seen:** 2026-08-14 (v1.626) · **Last seen:** 2026-09-26 (v1.1005) · **Count:** 32 · **Campaign:** Rise of the Runelords (Ammut) ×25, The Iron Meridian (Gazz Quickfuse) ×5, The Necrotic Dungeon ×1, The Riverlight Masquerade (one-evening taster) (Ammut) ×1 · **Turn:** 1840, 1841, 1888, 1889, 1890, 1899, 1900, 1901, 2018, 2019, 2020, 2024 … 39, 5
@@ -3458,3 +3718,4 @@ One line per report: `id — date · reason`.
 - a07d372a-05a3-4960-b6ea-7c0433b4331a — 2026-10-10 · v1.1217 · a headless engine run (url "(node)", UA Node.js/22, the load-engine fixture campaign "Test", turn 5): the #365 memory-owner guard fired inside a test and the reporter posted it — a test artifact, not play
 - 7c0007a8-6c20-49b8-95a2-b1fe3f5febd6 — 2026-10-12 · v1.1237 · a headless engine run (url "(node)", UA Node.js/22, the load-engine fixture campaign "Test", turn 5): the #365 memory-owner guard fired inside a test and the reporter posted it — a test artifact, not play
 - bb1feccf-49b3-4e0f-9ed1-dd16802146e7 — 2026-10-12 · v1.1239 · a headless engine run (url "(node)", UA Node.js/22, the load-engine fixture campaign "Test", turn 5): the #365 memory-owner guard fired inside a test and the reporter posted it — a test artifact, not play
+- 7b756293-0bba-407b-a0f9-818d20d9228d — 2026-10-19 · v1.1280 · a headless engine run (url "(node)", UA Node.js/22, the load-engine fixture campaign "Test", turn 5): the #365 memory-owner guard fired inside a test and the reporter posted it — a test artifact, not play
