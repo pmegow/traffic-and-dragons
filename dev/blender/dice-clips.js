@@ -34,7 +34,7 @@ function parseArgs(argv) {
 function render(result, seed) {
   var out = path.join(SCRATCH, String(result));
   var args = [RENDER, "dice_roll", "--seed", String(seed), "--result", String(result), "--size", SIZE,
-    "--frames", String(FRAMES), "--fps", String(FPS), "--out", out, "--transparent",
+    "--frames", String(FRAMES), "--fps", String(FPS), "--out", out, "--transparent", "--shadow",
     "--video", "webm,stacked", "--name", "d20_" + pad(result) + ".webm"];
   return new Promise(function (resolve, reject) {
     cp.execFile(process.execPath, args, { cwd: ROOT, maxBuffer: 64 * 1024 * 1024 }, function (err, stdout, stderr) {

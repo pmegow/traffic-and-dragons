@@ -10,7 +10,7 @@
 //
 // Common flags (every scene reads the ones it understands; a scene's own flags are documented at
 // the top of its file): --out DIR (default renders/<scene>), --frames N, --fps N, --size WxH,
-// --seed N, --engine EEVEE|WORKBENCH, --samples N, --transparent, --video, --still N.
+// --seed N, --engine EEVEE|WORKBENCH, --samples N, --transparent, --shadow, --video, --still N.
 //
 // Blender is found through the BLENDER environment variable, else the newest
 // "C:\Program Files\Blender Foundation\Blender *\blender.exe", else `blender` on PATH; none → a loud
@@ -55,7 +55,7 @@ function parseArgs(argv) {
 
 function usage(code) {
   var scenes = listScenes();
-  console.log("usage: node dev/blender/render.js <scene> [--out DIR] [--frames N] [--fps N] [--size WxH] [--seed N] [--engine EEVEE|WORKBENCH] [--samples N] [--transparent] [--video [webm|mp4]] [--still N] [scene flags]");
+  console.log("usage: node dev/blender/render.js <scene> [--out DIR] [--frames N] [--fps N] [--size WxH] [--seed N] [--engine EEVEE|WORKBENCH] [--samples N] [--transparent] [--shadow] [--video [webm|mp4]] [--still N] [scene flags]");
   console.log("scenes: " + (scenes.length ? scenes.join(", ") : "(none in " + SCENES + ")"));
   process.exit(code);
 }
@@ -80,6 +80,7 @@ function main() {
     engine: f.engine ? String(f.engine).toUpperCase() : undefined,
     samples: f.samples != null ? Number(f.samples) : undefined,
     transparent: !!f.transparent,
+    shadow: !!f.shadow,
     video: f.video === true ? true : (f.video ? String(f.video) : false),
     still: f.still != null ? Number(f.still) : undefined
   };

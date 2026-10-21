@@ -7,13 +7,14 @@
    encoder on this side) the STACKED-ALPHA canvas — the H.264 clip is twice as wide, colour | matte, played hidden and
    recombined per frame: the left half's pixels with the right half's grey as their alpha (the colour is premultiplied
    over black, so a partial pixel is divided back out). ~320k pixels a frame for three seconds, fine on a phone.
+   The settled die stays until the player clicks or taps the overlay (owner 2026-10-20) — no timer takes it away.
    Skipped (returns false, nothing shown): headless, no story area, Car Mode (its own screen covers the page), a reduced-
    motion preference, a face outside 1..20. A clip that fails to load or play says so on the console and through
    reportError once per session (the phone's console is invisible) and closes at once — the card already holds the
    number; a play() the device itself refused (NotAllowedError, an autoplay policy) is not our bug and is not reported.
    Assets: dice/d20_NN.webm | dice/d20_NN-stacked.mp4 (dev/blender/dice-clips.js), served cache-first from the SW's DICE_CACHE. */
-var DICE_ROLL_HOLD_MS=700;      /* the settled die stays up this long after the clip ends, then fades */
 var DICE_ROLL_FADE_MS=250;      /* matches .dice-roll.out in index.html */
+/* Owner 2026-10-20: the settled die STAYS until the player clicks or taps it — no timer takes the number away. */
 var _diceClipReported=false;
 function showDiceRoll(face,opts){
   if(typeof document==="undefined"||typeof diceClipSrc!=="function")return false;
@@ -42,8 +43,7 @@ function showDiceRoll(face,opts){
     if(!quiet&&!_diceClipReported&&typeof reportError==="function"){_diceClipReported=true;reportError("dice-clip",msg,{face:face,src:src});}
     close();
   }
-  wrap.onclick=close;
-  v.onended=function(){setTimeout(close,DICE_ROLL_HOLD_MS);};
+  wrap.onclick=close;/* the only way out: the settled die stays until the player clicks (owner 2026-10-20) */
   v.onerror=function(){fail("failed to load"+(v.error&&v.error.message?" ("+v.error.message+")":""));};
   if(stacked)diceStackedPlayer(v,canvas,function(){return closed;});
   var p=v.play();

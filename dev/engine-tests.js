@@ -35230,6 +35230,18 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(diceClipSrc(7,{ua:IPHONE})!=="dice/d20_07-stacked.mp4"||diceClipSrc(20,{ua:CHROME})!=="dice/d20_20.webm")return "diceClipSrc does not join the name and the format: "+diceClipSrc(7,{ua:IPHONE})+" "+diceClipSrc(20,{ua:CHROME});
     return diceClipSrc(0,{ua:CHROME})===null?true:"an invalid face must have no source";
   });
+  t("dice clip: a squeezed matte white (207 after the AgX encode, 235 from a video-range decode) is stretched back to 255 so the die is opaque; no die in frame, no stretch",function(){
+    var cd=new Uint8ClampedArray([160,80,40,255, 50,25,12,255, 0,0,0,255]);
+    var md=new Uint8ClampedArray([207,207,207,255, 104,104,104,255, 0,0,0,255]);
+    if(diceStackedWhite(md)!==207)return "the white is the matte's brightest pixel: "+diceStackedWhite(md);
+    diceStackedRecombine(cd,md);
+    if(cd[3]!==255)return "a squeezed white must be stretched to 255 (the story showed through the die): alpha "+cd[3];
+    if(cd[7]!==128)return "a half pixel of a squeezed matte must land at 128: "+cd[7];
+    if(cd[11]!==0)return "an outside pixel stays transparent under the stretch: "+cd[11];
+    var cd2=new Uint8ClampedArray([0,0,0,255, 0,0,0,255]),md2=new Uint8ClampedArray([30,30,30,255, 0,0,0,255]);
+    diceStackedRecombine(cd2,md2);
+    return cd2[3]===30?true:"a frame with no die in it (white 30) must not be stretched: "+cd2[3];
+  });
   t("dice clip: the stacked recombination puts the matte into the alpha and divides a premultiplied edge pixel back out",function(){
     var cd=new Uint8ClampedArray([200,100,50,255, 64,32,16,255, 10,20,30,255, 255,255,255,255]);
     var md=new Uint8ClampedArray([255,255,255,255, 128,128,128,255, 0,0,0,255, 51,51,51,255]);
@@ -35258,6 +35270,8 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(u.indexOf("var env={ua:nav.userAgent,platform:nav.platform,maxTouchPoints:nav.maxTouchPoints};")<0||u.indexOf("var src=diceClipSrc(face,env);")<0)return "ui-dice.js does not choose the clip through diceClipSrc with the navigator's fields";
     if(u.indexOf("diceStackedRecombine(c.data,m.data);")<0||u.indexOf('var stacked=diceClipFormat(env)==="stacked";')<0)return "the stacked player must recombine through the pure diceStackedRecombine, chosen by diceClipFormat";
     if(u.indexOf('if(typeof carMode!=="undefined"&&carMode)return false;')<0)return "Car Mode must skip the clip (it would play under the Car Mode screen)";
+    if(/v\.onended\s*=/.test(u)||u.indexOf("setTimeout(close")>=0)return "the settled die must stay until a click — no timer may close the overlay (owner 2026-10-20)";
+    if(u.indexOf("wrap.onclick=close;")<0)return "a click on the overlay must close it";
     if(u.indexOf('window.matchMedia("(prefers-reduced-motion: reduce)").matches)return false;')<0)return "reduced motion must skip the clip";
     if(u.indexOf('reportError("dice-clip",msg,{face:face,src:src});')<0)return "a failed clip must report (the phone's console is invisible)";
     var sw=__fsForTests.readFileSync(__rootForTests+"/sw.js","utf8");
@@ -35269,6 +35283,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var ix=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
     if(ix.indexOf('<script src="ui-dice.js"></script>')<0)return "index.html does not load ui-dice.js";
     if(!/#story-area\{[^}]*position:relative/.test(ix))return "#story-area is not the overlay's positioning box";
+    if(!/\.dice-roll\{[^}]*z-index:50;[^}]*transform:translateZ\(0\)/.test(ix))return "the overlay must sit above the phone's scroller: z-index 50 on its own compositing layer";
     var h=__fsForTests.readFileSync(__rootForTests+"/_headers","utf8");
     return /\/dice\/\*\n  Cache-Control: public, max-age=86400/.test(h)?true:"_headers must carry the /dice/* rule (without it a re-render is pinned by the immutable default or revalidated every roll)";
   });

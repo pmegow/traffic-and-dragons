@@ -67,7 +67,13 @@ A result's seed starts at its number and steps by 20 until the die has settled b
 manifest records every seed and size, and the #650 engine test refuses a batch with a clip missing.
 After a re-render bump `DICE_CACHE` in sw.js (the clips live in their own purge-exempt cache) and `CACHE`.
 
-Two scene rules the clips depend on (dice_roll.py): the numerals are spun about their face normals at
+The batch passes `--shadow`: EEVEE has no shadow catcher, so the scene renders a second opaque pass plus
+one bare-felt reference frame and composes the measured darkening (linear light, strength 0.9) under the
+die as black with alpha; the fill light casts no shadow (its penumbra measured as grain). The encode scenes
+use the Standard view transform — a new scene's default AgX re-graded the frames and squeezed the matte's
+white to 207, a die the story showed through.
+
+Three scene rules the clips depend on (dice_roll.py): the numerals are spun about their face normals at
 the LAST frame so the result reads right side up from the camera (owner 2026-10-19), and the nineteen
 other faces fade to 75% of the bone colour over the last twelve frames so the result pops (owner
 2026-10-20) — a die dim through the tumble would look loaded.

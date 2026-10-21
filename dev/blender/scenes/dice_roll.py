@@ -11,6 +11,8 @@
 #   --seed N     the throw (spin and push); the same seed and frame count reproduce the same roll.
 #   --die HEX    die colour (default bone e8dcc0); --felt HEX the ground (default 141c24, the game's
 #                accent background); --ink HEX the numerals (default 1b1b1b).
+#   --shadow     with --transparent: a second opaque pass measures the die's shadow on the felt and composes it,
+#                black with alpha, under the die in every frame (EEVEE has no shadow catcher).
 #   --video FMTS webm (VP9; carries alpha with --transparent), mp4 (H.264, opaque) or stacked (H.264 twice as wide:
 #                colour | alpha matte, for WebKit — needs --transparent), comma-separated for several from ONE render;
 #                a bare --video means webm. --name FILE names the clip (a second format gets -stacked.mp4).
@@ -32,7 +34,7 @@ def read_options():
 
 A = {
     "out": os.path.abspath("renders/dice_roll"), "frames": 60, "fps": 24, "size": [512, 512], "seed": 1,
-    "engine": "EEVEE", "samples": 24, "transparent": False, "video": False, "still": None, "result": None,
+    "engine": "EEVEE", "samples": 24, "transparent": False, "shadow": False, "video": False, "still": None, "result": None,
     "die": "e8dcc0", "felt": "141c24", "ink": "1b1b1b",
 }
 A.update(read_options())
@@ -41,6 +43,9 @@ if A["result"] is not None:
     if not 1 <= A["result"] <= 20:
         raise SystemExit("--result must be 1..20, got %r" % A["result"])
 A["frames"] = int(A["frames"]); A["seed"] = int(A["seed"])
+if A["shadow"] and not A["transparent"]:
+    raise SystemExit("--shadow is for a transparent render (the felt already shows its own shadow)")
+SHADOW_STRENGTH = 0.9   # the measured shadow, held just short of black so the felt reads as a surface, not a hole
 os.makedirs(A["out"], exist_ok=True)
 
 def hex_rgb(h):
@@ -235,6 +240,7 @@ sun.constraints.new("TRACK_TO").target = aim
 bpy.ops.object.light_add(type="AREA", location=(3, 2, 4))
 fill = bpy.context.active_object
 fill.data.energy, fill.data.size = 250, 4
+optional(lambda: setattr(fill.data, "use_shadow", False), "fill light shadow")  # the fill lights, the sun shadows: an area light's wide penumbra measured through the shadow pass is grain, not shadow
 fill.constraints.new("TRACK_TO").target = aim
 
 # THE READING RULE (owner 2026-10-19): the number that lands up ends RIGHT SIDE UP for the viewer.
@@ -293,6 +299,61 @@ for p in polys:
 result = {"scene": "dice_roll", "out": A["out"], "frames": A["frames"], "fps": A["fps"], "seed": A["seed"],
           "engine": r.engine, "up_face": up_index, "up_number": labels[up_index], "requested": A["result"],
           "settled": settled, "still": None, "video": None}
+def shadow_pass():
+    """THE SHADOW under a transparent die (owner 2026-10-20). EEVEE has no shadow catcher, so the shadow is
+    MEASURED: a second pass renders the same frames opaque on the felt (felt_NNNN.png) plus one reference
+    frame of the bare felt with the die hidden, and the darkening of each felt pixel against the reference —
+    in linear light — is the shadow's alpha. That black-with-alpha layer goes UNDER the die's own RGBA frame
+    and frame_NNNN.png is rewritten with the composite, so every later encode (webm, stacked) carries it."""
+    import numpy as np
+    def load(path):
+        img = bpy.data.images.load(path)
+        img.colorspace_settings.name = "Non-Color"
+        w, h = img.size
+        px = np.empty(w * h * 4, dtype=np.float32)
+        img.pixels.foreach_get(px)
+        bpy.data.images.remove(img)
+        return px.reshape(h, w, 4)
+    def linear(v):  # sRGB bytes (0..1) to linear light; the shadow ratio is physical only in linear
+        return np.where(v <= 0.04045, v / 12.92, ((v + 0.055) / 1.055) ** 2.4)
+    ground.hide_render = False
+    scene.frame_set(1)
+    die.hide_render = True
+    for t in die.children:
+        t.hide_render = True
+    r.film_transparent = False
+    r.filepath = os.path.join(A["out"], "felt_ref.png")
+    bpy.ops.render.render(write_still=True)
+    die.hide_render = False
+    for t in die.children:
+        t.hide_render = False
+    r.filepath = os.path.join(A["out"], "felt_")
+    bpy.ops.render.render(animation=True)
+    r.film_transparent = True
+    ground.hide_render = True
+    ref = linear(load(os.path.join(A["out"], "felt_ref.png"))[:, :, :3]).mean(axis=2)
+    for i in range(1, A["frames"] + 1):
+        die_px = load(os.path.join(A["out"], "frame_%04d.png" % i))
+        felt = linear(load(os.path.join(A["out"], "felt_%04d.png" % i))[:, :, :3]).mean(axis=2)
+        shade = np.clip(1.0 - felt / np.maximum(ref, 1e-4), 0.0, 1.0)      # 0 lit … 1 fully shadowed
+        shade = shade * SHADOW_STRENGTH
+        a_die = die_px[:, :, 3]
+        a_out = a_die + (1.0 - a_die) * shade                               # the shadow is black: it adds alpha, no colour
+        rgb_out = die_px[:, :, :3] * a_die[:, :, None] / np.maximum(a_out, 1e-6)[:, :, None]  # straight colour of the composite
+        out = np.empty_like(die_px)
+        out[:, :, :3] = np.clip(rgb_out, 0.0, 1.0)
+        out[:, :, 3] = a_out
+        h, w = a_out.shape
+        dst = bpy.data.images.new("shadowed_%04d" % i, w, h, alpha=True)
+        dst.colorspace_settings.name = "Non-Color"
+        dst.alpha_mode = "STRAIGHT"
+        dst.pixels.foreach_set(out.ravel())
+        dst.filepath_raw = os.path.join(A["out"], "frame_%04d.png" % i)
+        dst.file_format = "PNG"
+        dst.save()
+        bpy.data.images.remove(dst)
+    print("SCENE shadow: composed under %d frames (strength %.2f)" % (A["frames"], SHADOW_STRENGTH))
+
 def stacked_frames():
     """The STACKED-ALPHA frames for WebKit (#650): WebKit plays H.264 everywhere but shows VP9 alpha as black, and
     HEVC-with-alpha cannot be encoded on this machine — so each RGBA frame becomes one opaque frame twice as wide:
@@ -333,6 +394,10 @@ def encode(fmt, name):
     else:
         names, w, h = ["frame_%04d.png" % i for i in range(1, A["frames"] + 1)], r.resolution_x, r.resolution_y
     vs = bpy.data.scenes.new("Encode_" + fmt)
+    # the encode passes BYTES through: a new scene's default view transform (AgX) would re-grade the finished
+    # frames — it squeezed the stacked matte's white to 207/255, a die 81% opaque with the story showing through
+    vs.view_settings.view_transform = "Standard"
+    vs.view_settings.look = "None"
     vs.render.resolution_x, vs.render.resolution_y, vs.render.fps = w, h, r.fps
     vs.frame_start, vs.frame_end = 1, A["frames"]
     vs.sequence_editor_create()
@@ -367,6 +432,8 @@ if A["still"] is not None:
 else:
     r.filepath = os.path.join(A["out"], "frame_")
     bpy.ops.render.render(animation=True)
+    if A["shadow"]:
+        shadow_pass()
     if A["video"]:
         fmts = ["webm"] if A["video"] is True else [f.strip().lower() for f in str(A["video"]).split(",") if f.strip()]
         result["videos"] = {}

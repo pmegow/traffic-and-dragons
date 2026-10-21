@@ -24,7 +24,13 @@ prove("helpers.js", [
     mustFail: "a half-covered pixel must be un-premultiplied" },
   { label: "the matte is ignored outside the die (the black field comes along, opaque)",
     find: "    else if(a===0)cd[i+3]=0;\n", replace: "",
-    mustFail: "a pixel outside the die must end transparent" }
+    mustFail: "a pixel outside the die must end transparent" },
+  { label: "a squeezed matte white is taken as is (the die translucent, the story through it)",
+    find: "s=(w>128&&w<250)?255/w:1;", replace: "s=1;",
+    mustFail: "a squeezed white must be stretched to 255" },
+  { label: "a frame with no die in it is stretched too (noise blown up to opaque)",
+    find: "s=(w>128&&w<250)?255/w:1;", replace: "s=(w>0&&w<250)?255/w:1;",
+    mustFail: "a frame with no die in it (white 30) must not be stretched" }
 ]);
 prove("game.js", [
   { label: "the clip plays BEFORE the turn is sent",
@@ -44,7 +50,15 @@ prove("ui-dice.js", [
     mustFail: "a failed clip must report" },
   { label: "the stacked player paints the raw halves (the matte shows beside the die)",
     find: "    diceStackedRecombine(c.data,m.data);\n", replace: "",
-    mustFail: "the stacked player must recombine through the pure diceStackedRecombine" }
+    mustFail: "the stacked player must recombine through the pure diceStackedRecombine" },
+  { label: "a timer takes the settled die away again",
+    find: "  wrap.onclick=close;", replace: "  wrap.onclick=close;v.onended=function(){setTimeout(close,700);};",
+    mustFail: "the settled die must stay until a click" }
+]);
+prove("index.html", [
+  { label: "the overlay drops back under the phone's scroller (z-index 5, no layer of its own)",
+    find: "z-index:50;cursor:pointer;transform:translateZ(0)}", replace: "z-index:5;cursor:pointer}",
+    mustFail: "the overlay must sit above the phone's scroller" }
 ]);
 prove("sw.js", [
   { label: "the activate purge deletes the dice cache on every deploy",

@@ -3968,11 +3968,21 @@ function diceClipSrc(face,env){
 }
 /* The stacked-alpha recombination, one frame: cd is the colour half's RGBA bytes (alpha 255 throughout, colour
    premultiplied over black), md the matte half's; the matte's red becomes the colour's alpha, and a partial pixel's
-   colour is divided back out (clamped). In place, returns cd. Pure: ui-dice.js runs it per video frame. */
+   colour is divided back out (clamped). In place, returns cd. Pure: ui-dice.js runs it per video frame.
+   The matte's WHITE is measured per frame (diceStackedWhite): a decoder that hands the canvas video-range bytes
+   (white 235) or a grade that squeezed it (the AgX encode did, 207) would leave the die translucent — the story
+   showing through it was the owner's first phone report. A white under 250 but over 128 (the die is in frame)
+   is stretched to 255; a frame with no die in it has no white and needs none. */
+function diceStackedWhite(md){
+  var i,w=0;
+  for(i=0;i<md.length;i+=4)if(md[i]>w)w=md[i];
+  return w;
+}
 function diceStackedRecombine(cd,md){
-  var i,a,k;
+  var i,a,k,w=diceStackedWhite(md),s=(w>128&&w<250)?255/w:1;
   for(i=0;i<cd.length;i+=4){
     a=md[i];
+    if(s!==1)a=Math.min(255,Math.round(a*s));
     if(a===255)cd[i+3]=255;
     else if(a===0)cd[i+3]=0;
     else{k=255/a;cd[i]=Math.min(255,cd[i]*k);cd[i+1]=Math.min(255,cd[i+1]*k);cd[i+2]=Math.min(255,cd[i+2]*k);cd[i+3]=a;}

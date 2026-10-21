@@ -2,103 +2,103 @@
   "clips": {
     "10": {
       "seed": 10,
-      "webm": 153906,
-      "stacked": 136342
+      "webm": 223554,
+      "stacked": 138359
     },
     "11": {
       "seed": 11,
-      "webm": 154922,
-      "stacked": 137111
+      "webm": 209104,
+      "stacked": 125715
     },
     "12": {
       "seed": 12,
-      "webm": 168075,
-      "stacked": 141973
+      "webm": 266783,
+      "stacked": 154231
     },
     "13": {
       "seed": 13,
-      "webm": 193847,
-      "stacked": 159322
+      "webm": 271772,
+      "stacked": 163241
     },
     "14": {
       "seed": 14,
-      "webm": 162986,
-      "stacked": 144504
+      "webm": 248491,
+      "stacked": 140786
     },
     "15": {
       "seed": 15,
-      "webm": 191786,
-      "stacked": 162867
+      "webm": 247033,
+      "stacked": 156081
     },
     "16": {
       "seed": 16,
-      "webm": 163751,
-      "stacked": 137708
+      "webm": 251442,
+      "stacked": 135686
     },
     "17": {
       "seed": 17,
-      "webm": 164172,
-      "stacked": 134483
+      "webm": 265642,
+      "stacked": 148430
     },
     "18": {
       "seed": 18,
-      "webm": 169050,
-      "stacked": 140247
+      "webm": 256774,
+      "stacked": 142633
     },
     "19": {
       "seed": 19,
-      "webm": 183794,
-      "stacked": 155300
+      "webm": 256700,
+      "stacked": 146184
     },
     "20": {
       "seed": 20,
-      "webm": 178649,
-      "stacked": 152200
+      "webm": 262278,
+      "stacked": 153669
     },
     "01": {
       "seed": 1,
-      "webm": 116127,
-      "stacked": 113171
+      "webm": 163908,
+      "stacked": 100383
     },
     "02": {
       "seed": 2,
-      "webm": 228959,
-      "stacked": 183719
+      "webm": 326622,
+      "stacked": 191509
     },
     "03": {
       "seed": 3,
-      "webm": 205667,
-      "stacked": 164359
+      "webm": 309407,
+      "stacked": 178210
     },
     "04": {
       "seed": 4,
-      "webm": 181351,
-      "stacked": 149713
+      "webm": 293008,
+      "stacked": 169425
     },
     "05": {
       "seed": 25,
-      "webm": 154181,
-      "stacked": 137327
+      "webm": 257179,
+      "stacked": 146331
     },
     "06": {
       "seed": 6,
-      "webm": 158034,
-      "stacked": 139307
+      "webm": 248542,
+      "stacked": 144410
     },
     "07": {
       "seed": 7,
-      "webm": 144116,
-      "stacked": 131822
+      "webm": 191876,
+      "stacked": 116268
     },
     "08": {
       "seed": 8,
-      "webm": 170296,
-      "stacked": 148019
+      "webm": 245631,
+      "stacked": 143553
     },
     "09": {
       "seed": 9,
-      "webm": 145872,
-      "stacked": 128758
+      "webm": 230198,
+      "stacked": 132640
     }
   },
   "scene": "dice_roll",
