@@ -17,8 +17,12 @@ cloud environment's variables as `TND_BUGFEED_SECRET`, never in the repo or the 
 
 ## 0. Bootstrap
 
-1. `cp dev/pre-commit .git/hooks/pre-commit` — the commit gate. `dev/check-hook-parity.js` refuses
-   any commit without it, and the gate is what proves a change before it leaves your checkout.
+1. `git fetch --unshallow origin master` FIRST — the checkout arrives shallow, and the gate's
+   TODO-hygiene fixtures read old commits (`93c182f^`), so a shallow clone fails every commit with
+   `invalid object name` (the first real run, 2026-10-21, lost a commit to it before deepening).
+   Then `cp dev/pre-commit .git/hooks/pre-commit` — the commit gate. `dev/check-hook-parity.js`
+   refuses any commit without it, and the gate is what proves a change before it leaves your
+   checkout.
 2. The secret: `$TND_BUGFEED_SECRET`. Not set or empty → STOP. Do nothing else; the whole final
    message is "TND_BUGFEED_SECRET is not set in the TnD environment — nothing was synced." Never
    print, echo, commit or log its value.
