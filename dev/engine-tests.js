@@ -35196,13 +35196,13 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return fn.indexOf("(note ? \" · \" + note : \"\")")>=0?true:"an empty trimmed note would still get its separator";
   });
 
-  section("#650 — the d20 roll clip: twenty rendered rolls, WebM with the felt MP4 for WebKit, played over the story after the turn is on its way (owner rulings 2026-10-19/20)");
+  section("#650 — the d20 roll clip: twenty rendered rolls, WebM with alpha, the stacked-alpha MP4 recombined on a canvas for WebKit, played over the story after the turn is on its way (owner rulings 2026-10-19/20)");
   t("dice clip: a face 1..20 names dice/d20_NN, anything else is null",function(){
     if(diceClipName(1)!=="dice/d20_01"||diceClipName(9)!=="dice/d20_09"||diceClipName(10)!=="dice/d20_10"||diceClipName(20)!=="dice/d20_20")return "the name must be two digits: "+[diceClipName(1),diceClipName(9),diceClipName(10),diceClipName(20)].join(" ");
     var bad=[0,21,-3,2.5,"x",null,undefined,NaN].filter(function(f){return diceClipName(f)!==null;});
     return bad.length?"a face outside 1..20 named a clip: "+bad.join(","):true;
   });
-  t("dice clip: the format is webm everywhere but WebKit — Safari on the Mac, every iOS browser, and an iPad with a desktop UA",function(){
+  t("dice clip: the format is webm everywhere but WebKit, which gets the stacked clip — Safari on the Mac, every iOS browser, and an iPad with a desktop UA",function(){
     var CHROME="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
     var EDGE=CHROME+" Edg/130.0.0.0";
     var FIREFOX="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0";
@@ -35210,20 +35210,30 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var IPHONE="Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
     var CRIOS="Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.0.0 Mobile/15E148 Safari/604.1";
     var ANDROID_CHROME="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
-    var want=[[CHROME,"webm","Chrome must get the webm"],[EDGE,"webm","Edge must get the webm"],[FIREFOX,"webm","Firefox must get the webm"],[ANDROID_CHROME,"webm","Android Chrome must get the webm"],[SAFARI,"mp4","Safari on the Mac must get the mp4"],[IPHONE,"mp4","an iPhone must get the mp4"],[CRIOS,"mp4","an iPhone must get the mp4 whatever its browser (CriOS)"]],i;
+    var want=[[CHROME,"webm","Chrome must get the webm"],[EDGE,"webm","Edge must get the webm"],[FIREFOX,"webm","Firefox must get the webm"],[ANDROID_CHROME,"webm","Android Chrome must get the webm"],[SAFARI,"stacked","Safari on the Mac must get the stacked clip"],[IPHONE,"stacked","an iPhone must get the stacked clip"],[CRIOS,"stacked","an iPhone must get the stacked clip whatever its browser (CriOS)"]],i;
     for(i=0;i<want.length;i++){var got=diceClipFormat({ua:want[i][0],platform:"x",maxTouchPoints:0});if(got!==want[i][1])return want[i][2]+": "+want[i][0].slice(0,60)+"… → "+got;}
-    if(diceClipFormat({ua:SAFARI,platform:"MacIntel",maxTouchPoints:5})!=="mp4")return "MacIntel with touch points is an iPad — a desktop UA on it must still get the mp4";
-    if(diceClipFormat({ua:CHROME,platform:"MacIntel",maxTouchPoints:5})!=="mp4")return "MacIntel with touch points is an iPad even with Chrome's UA: still WebKit";
+    if(diceClipFormat({ua:SAFARI,platform:"MacIntel",maxTouchPoints:5})!=="stacked")return "MacIntel with touch points is an iPad — a desktop UA on it must still get the stacked clip";
+    if(diceClipFormat({ua:CHROME,platform:"MacIntel",maxTouchPoints:5})!=="stacked")return "MacIntel with touch points is an iPad even with Chrome's UA: still WebKit";
     if(diceClipFormat({})!=="webm")return "no environment at all must still name a format (webm)";
-    if(diceClipSrc(7,{ua:IPHONE})!=="dice/d20_07.mp4"||diceClipSrc(20,{ua:CHROME})!=="dice/d20_20.webm")return "diceClipSrc does not join the name and the format";
+    if(diceClipSrc(7,{ua:IPHONE})!=="dice/d20_07-stacked.mp4"||diceClipSrc(20,{ua:CHROME})!=="dice/d20_20.webm")return "diceClipSrc does not join the name and the format: "+diceClipSrc(7,{ua:IPHONE})+" "+diceClipSrc(20,{ua:CHROME});
     return diceClipSrc(0,{ua:CHROME})===null?true:"an invalid face must have no source";
+  });
+  t("dice clip: the stacked recombination puts the matte into the alpha and divides a premultiplied edge pixel back out",function(){
+    var cd=new Uint8ClampedArray([200,100,50,255, 64,32,16,255, 10,20,30,255, 255,255,255,255]);
+    var md=new Uint8ClampedArray([255,255,255,255, 128,128,128,255, 0,0,0,255, 51,51,51,255]);
+    var out=diceStackedRecombine(cd,md);
+    if(out!==cd)return "the recombination must work in place and return the colour buffer";
+    if(cd[0]!==200||cd[1]!==100||cd[2]!==50||cd[3]!==255)return "an opaque pixel must keep its colour: "+Array.prototype.slice.call(cd,0,4);
+    if(cd[4]!==128||cd[5]!==64||cd[6]!==32||cd[7]!==128)return "a half-covered pixel must be un-premultiplied (64/0.5 = 128) with alpha 128: "+Array.prototype.slice.call(cd,4,8);
+    if(cd[11]!==0||cd[8]!==10||cd[9]!==20||cd[10]!==30)return "a pixel outside the die must end transparent with its colour untouched (no division by a zero matte): "+Array.prototype.slice.call(cd,8,12);
+    return cd[12]===255&&cd[15]===51?true:"a bright edge pixel must clamp at 255, alpha 51: "+Array.prototype.slice.call(cd,12,16);
   });
   t("dice clip: every result ships BOTH clips and the manifest records each with its size (a half-rendered batch cannot land)",function(){
     var dir=__rootForTests+"/dice",man;
     try{man=JSON.parse(__fsForTests.readFileSync(dir+"/manifest.json","utf8"));}catch(e){return "dice/manifest.json unreadable: "+e.message;}
     var i,k,missing=[];
     for(i=1;i<=20;i++){k=(i<10?"0":"")+i;var c=man.clips&&man.clips[k];if(!c||!c.seed)missing.push(k+" (manifest)");
-      ["webm","mp4"].forEach(function(f){var p=dir+"/d20_"+k+"."+f,st;try{st=__fsForTests.statSync(p);}catch(e){missing.push(k+"."+f);return;}if(c&&c[f]!==st.size)missing.push(k+"."+f+" size "+st.size+" ≠ manifest "+c[f]);});}
+      [["webm",".webm"],["stacked","-stacked.mp4"]].forEach(function(f){var p=dir+"/d20_"+k+f[1],st;try{st=__fsForTests.statSync(p);}catch(e){missing.push(k+f[1]);return;}if(c&&c[f[0]]!==st.size)missing.push(k+f[1]+" size "+st.size+" ≠ manifest "+c[f[0]]);});}
     if(missing.length)return "clips missing or off the manifest: "+missing.join(", ");
     return man.frames>=60&&man.fps===24?true:"the manifest's frames/fps are not the batch's (frames "+man.frames+", fps "+man.fps+")";
   });
@@ -35233,14 +35243,15 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(send<0||show<0)return "rollPendingCheck lost the send or the guarded showDiceRoll call";
     if(show<send)return "showDiceRoll must follow sendAction: the clip must never delay the turn";
     var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");
-    if(u.indexOf("diceClipSrc(face,{ua:nav.userAgent,platform:nav.platform,maxTouchPoints:nav.maxTouchPoints})")<0)return "ui-dice.js does not choose the clip through diceClipSrc with the navigator's fields";
+    if(u.indexOf("var env={ua:nav.userAgent,platform:nav.platform,maxTouchPoints:nav.maxTouchPoints};")<0||u.indexOf("var src=diceClipSrc(face,env);")<0)return "ui-dice.js does not choose the clip through diceClipSrc with the navigator's fields";
+    if(u.indexOf("diceStackedRecombine(c.data,m.data);")<0||u.indexOf('var stacked=diceClipFormat(env)==="stacked";')<0)return "the stacked player must recombine through the pure diceStackedRecombine, chosen by diceClipFormat";
     if(u.indexOf('if(typeof carMode!=="undefined"&&carMode)return false;')<0)return "Car Mode must skip the clip (it would play under the Car Mode screen)";
     if(u.indexOf('window.matchMedia("(prefers-reduced-motion: reduce)").matches)return false;')<0)return "reduced motion must skip the clip";
     if(u.indexOf('reportError("dice-clip",msg,{face:face,src:src});')<0)return "a failed clip must report (the phone's console is invisible)";
     var sw=__fsForTests.readFileSync(__rootForTests+"/sw.js","utf8");
-    if(!/var DICE_CACHE = "tnd-dice-\d{8}";/.test(sw))return "sw.js has no dated DICE_CACHE";
+    if(!/var DICE_CACHE = "tnd-dice-\d{8}[a-z]?";/.test(sw))return "sw.js has no dated DICE_CACHE";
     if(sw.indexOf("k!==DICE_CACHE")<0)return "DICE_CACHE must be purge-exempt: the activate purge would delete it on every deploy";
-    if(sw.indexOf("/\\/dice\\/d20_\\d\\d\\.(webm|mp4)$/.test(new URL(e.request.url).pathname)")<0)return "the SW has no cache-first path for the clips";
+    if(sw.indexOf("/\\/dice\\/d20_\\d\\d(\\.webm|-stacked\\.mp4)$/.test(new URL(e.request.url).pathname)")<0)return "the SW has no cache-first path for both clip files";
     if(sw.indexOf("caches.open(DICE_CACHE)")<0)return "the clip must be written to DICE_CACHE";
     if(sw.indexOf('"/ui-dice.js",')<0)return "ui-dice.js is not in the app shell";
     var ix=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");

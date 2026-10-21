@@ -11,8 +11,9 @@
 #   --seed N     the throw (spin and push); the same seed and frame count reproduce the same roll.
 #   --die HEX    die colour (default bone e8dcc0); --felt HEX the ground (default 141c24, the game's
 #                accent background); --ink HEX the numerals (default 1b1b1b).
-#   --video FMT  webm (VP9; carries alpha with --transparent) or mp4 (H.264, opaque, plays everywhere);
-#                a bare --video means webm. --name FILE names the clip (default dice_roll.<fmt>).
+#   --video FMTS webm (VP9; carries alpha with --transparent), mp4 (H.264, opaque) or stacked (H.264 twice as wide:
+#                colour | alpha matte, for WebKit — needs --transparent), comma-separated for several from ONE render;
+#                a bare --video means webm. --name FILE names the clip (a second format gets -stacked.mp4).
 #
 # Output: <out>/frame_0001.png … (RGBA PNG), optional <out>/dice_roll.webm, and ONE line on stdout,
 # `SCENE_RESULT {json}`, that the launcher parses: the up face, its number, whether the die had
@@ -292,6 +293,71 @@ for p in polys:
 result = {"scene": "dice_roll", "out": A["out"], "frames": A["frames"], "fps": A["fps"], "seed": A["seed"],
           "engine": r.engine, "up_face": up_index, "up_number": labels[up_index], "requested": A["result"],
           "settled": settled, "still": None, "video": None}
+def stacked_frames():
+    """The STACKED-ALPHA frames for WebKit (#650): WebKit plays H.264 everywhere but shows VP9 alpha as black, and
+    HEVC-with-alpha cannot be encoded on this machine — so each RGBA frame becomes one opaque frame twice as wide:
+    the colour premultiplied over black on the left, the alpha as grey on the right. The page draws the clip to a
+    canvas and puts the matte back into the alpha channel per frame (ui-dice.js). numpy ships with Blender."""
+    import numpy as np
+    names = []
+    for i in range(1, A["frames"] + 1):
+        src = os.path.join(A["out"], "frame_%04d.png" % i)
+        img = bpy.data.images.load(src)
+        img.colorspace_settings.name = "Non-Color"   # raw bytes in, raw bytes out: no view transform either way
+        w, h = img.size
+        px = np.empty(w * h * 4, dtype=np.float32)
+        img.pixels.foreach_get(px)
+        px = px.reshape(h, w, 4)
+        a = px[:, :, 3:4]
+        left = px[:, :, :3] * a
+        right = np.repeat(a, 3, axis=2)
+        out = np.ones((h, w * 2, 4), dtype=np.float32)
+        out[:, :w, :3] = left
+        out[:, w:, :3] = right
+        dst = bpy.data.images.new("stacked_%04d" % i, w * 2, h, alpha=False)
+        dst.colorspace_settings.name = "Non-Color"
+        dst.pixels.foreach_set(out.ravel())
+        dst.filepath_raw = os.path.join(A["out"], "stacked_%04d.png" % i)
+        dst.file_format = "PNG"
+        dst.save()
+        names.append(os.path.basename(dst.filepath_raw))
+        bpy.data.images.remove(img)
+        bpy.data.images.remove(dst)
+    return names, w * 2, h
+
+def encode(fmt, name):
+    """Encode the frames just written, through the sequencer — no second render. fmt: webm (VP9; with
+    --transparent the alpha rides along), mp4 (H.264, opaque) or stacked (H.264 of the stacked-alpha frames)."""
+    if fmt == "stacked":
+        names, w, h = stacked_frames()
+    else:
+        names, w, h = ["frame_%04d.png" % i for i in range(1, A["frames"] + 1)], r.resolution_x, r.resolution_y
+    vs = bpy.data.scenes.new("Encode_" + fmt)
+    vs.render.resolution_x, vs.render.resolution_y, vs.render.fps = w, h, r.fps
+    vs.frame_start, vs.frame_end = 1, A["frames"]
+    vs.sequence_editor_create()
+    se = vs.sequence_editor
+    # Blender 4.4 renamed `sequences` to `strips`; an EMPTY collection is falsy, so test by name
+    strips = se.strips if hasattr(se, "strips") else se.sequences
+    strip = strips.new_image("frames", os.path.join(A["out"], names[0]), 1, 1)
+    for nm in names[1:]:
+        strip.elements.append(nm)
+    if "media_type" in vs.render.image_settings.bl_rna.properties:  # Blender 5: video is a media type first
+        vs.render.image_settings.media_type = "VIDEO"
+    vs.render.image_settings.file_format = "FFMPEG"
+    if fmt == "webm":
+        vs.render.ffmpeg.format, vs.render.ffmpeg.codec = "WEBM", "WEBM"
+        vs.render.image_settings.color_mode = "RGBA" if A["transparent"] else "RGB"
+    else:
+        vs.render.ffmpeg.format, vs.render.ffmpeg.codec = "MPEG4", "H264"
+        vs.render.image_settings.color_mode = "RGB"
+    vs.render.ffmpeg.constant_rate_factor = "HIGH"
+    vs.render.filepath = os.path.join(A["out"], name)
+    vs.render.use_file_extension = False
+    with bpy.context.temp_override(scene=vs):
+        bpy.ops.render.render(animation=True, scene=vs.name)
+    return vs.render.filepath
+
 if A["still"] is not None:
     f = int(A["still"])
     scene.frame_set(f)
@@ -302,34 +368,17 @@ else:
     r.filepath = os.path.join(A["out"], "frame_")
     bpy.ops.render.render(animation=True)
     if A["video"]:
-        # encode the frames just written, through the sequencer — no second render
-        vs = bpy.data.scenes.new("Encode")
-        vs.render.resolution_x, vs.render.resolution_y, vs.render.fps = r.resolution_x, r.resolution_y, r.fps
-        vs.frame_start, vs.frame_end = 1, A["frames"]
-        vs.sequence_editor_create()
-        se = vs.sequence_editor
-        # Blender 4.4 renamed `sequences` to `strips`; an EMPTY collection is falsy, so test by name
-        strips = se.strips if hasattr(se, "strips") else se.sequences
-        names = ["frame_%04d.png" % i for i in range(1, A["frames"] + 1)]
-        strip = strips.new_image("frames", os.path.join(A["out"], names[0]), 1, 1)
-        for nm in names[1:]:
-            strip.elements.append(nm)
-        if "media_type" in vs.render.image_settings.bl_rna.properties:  # Blender 5: video is a media type first
-            vs.render.image_settings.media_type = "VIDEO"
-        vs.render.image_settings.file_format = "FFMPEG"
-        fmt = str(A["video"]).lower() if A["video"] is not True else "webm"
-        if fmt == "mp4":  # H.264, opaque — the one every browser plays (iOS Safari has no VP9 alpha)
-            vs.render.ffmpeg.format, vs.render.ffmpeg.codec = "MPEG4", "H264"
-            vs.render.image_settings.color_mode = "RGB"
-        elif fmt == "webm":  # VP9; with --transparent the alpha rides along (yuva420p)
-            vs.render.ffmpeg.format, vs.render.ffmpeg.codec = "WEBM", "WEBM"
-            vs.render.image_settings.color_mode = "RGBA" if A["transparent"] else "RGB"
-        else:
-            raise SystemExit("--video must be webm or mp4, got %r" % A["video"])
-        vs.render.ffmpeg.constant_rate_factor = "HIGH"
-        vs.render.filepath = os.path.join(A["out"], A.get("name") or ("dice_roll." + fmt))
-        vs.render.use_file_extension = False
-        with bpy.context.temp_override(scene=vs):
-            bpy.ops.render.render(animation=True, scene=vs.name)
-        result["video"] = vs.render.filepath
+        fmts = ["webm"] if A["video"] is True else [f.strip().lower() for f in str(A["video"]).split(",") if f.strip()]
+        result["videos"] = {}
+        for fmt in fmts:
+            if fmt not in ("webm", "mp4", "stacked"):
+                raise SystemExit("--video takes webm, mp4 or stacked (comma-separated), got %r" % fmt)
+            if fmt == "stacked" and not A["transparent"]:
+                raise SystemExit("--video stacked needs --transparent: the matte is the frames' alpha")
+            base = A.get("name") or ("dice_roll." + ("mp4" if fmt != "webm" else "webm"))
+            if len(fmts) > 1 and fmt == "stacked":
+                base = base.replace(".mp4", "-stacked.mp4") if base.endswith(".mp4") else base.replace(".webm", "-stacked.mp4")
+            clip = encode(fmt, base)
+            result["videos"][fmt] = clip
+            result["video"] = result["video"] or clip
 print("SCENE_RESULT " + json.dumps(result))

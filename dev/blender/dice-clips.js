@@ -1,8 +1,8 @@
 // dev/blender/dice-clips.js — THE d20 clip batch (2026-10-20). Renders one roll per result 1..20
-// through dev/blender/render.js, twice each: a transparent VP9 WebM (the die over the page, with
-// alpha) and an opaque H.264 MP4 on the felt (the fallback for Safari, which drops VP9 alpha).
-// The clips land in dice/ with a manifest; the game plays dice/d20_NN.webm, or the .mp4 where the
-// browser cannot show the alpha. Nothing here is loaded by the game.
+// through dev/blender/render.js, ONE transparent render each, encoded two ways from the same frames:
+// a VP9 WebM with alpha (the die over the page) and a STACKED-ALPHA H.264 MP4 (colour | matte, twice
+// as wide) for WebKit, which drops VP9 alpha — the page recombines it on a canvas (ui-dice.js).
+// The clips land in dice/ with a manifest. Nothing here is loaded by the game.
 //
 //   node dev/blender/dice-clips.js                 all twenty, four at a time
 //   node dev/blender/dice-clips.js --only 20,1     a subset
@@ -10,7 +10,7 @@
 //
 // A result's seed starts at the result number and steps by 20 until the die has SETTLED by the
 // last frame (the scene's own verdict); an unsettled roll is never shipped. Both clips of a result
-// use the same seed, so they are the same roll. The manifest records every seed — rerunning
+// come from one render, so they are the same roll. The manifest records every seed — rerunning
 // reproduces the clips byte-for-byte short of encoder drift.
 var fs = require("fs");
 var path = require("path");
@@ -31,17 +31,18 @@ function parseArgs(argv) {
   return o;
 }
 
-function render(result, seed, fmt, name) {
-  var out = path.join(SCRATCH, String(result), fmt);
+function render(result, seed) {
+  var out = path.join(SCRATCH, String(result));
   var args = [RENDER, "dice_roll", "--seed", String(seed), "--result", String(result), "--size", SIZE,
-    "--frames", String(FRAMES), "--fps", String(FPS), "--out", out, "--video", fmt, "--name", name];
-  if (fmt === "webm") args.push("--transparent");
+    "--frames", String(FRAMES), "--fps", String(FPS), "--out", out, "--transparent",
+    "--video", "webm,stacked", "--name", "d20_" + pad(result) + ".webm"];
   return new Promise(function (resolve, reject) {
     cp.execFile(process.execPath, args, { cwd: ROOT, maxBuffer: 64 * 1024 * 1024 }, function (err, stdout, stderr) {
       var m = String(stdout).split(/\r?\n/).filter(function (l) { return /^result: /.test(l); })[0];
-      if (err || !m) return reject(new Error("render " + result + " " + fmt + " seed " + seed + " failed:\n" + String(stdout).slice(-800) + String(stderr).slice(-400)));
+      if (err || !m) return reject(new Error("render " + result + " seed " + seed + " failed:\n" + String(stdout).slice(-800) + String(stderr).slice(-400)));
       var rep = JSON.parse(m.slice(8));
-      if (!rep.video || !fs.existsSync(rep.video)) return reject(new Error("no clip for " + result + " " + fmt));
+      var v = rep.videos || {};
+      if (!v.webm || !fs.existsSync(v.webm) || !v.stacked || !fs.existsSync(v.stacked)) return reject(new Error("a clip is missing for " + result + ": " + JSON.stringify(v)));
       resolve(rep);
     });
   });
@@ -50,16 +51,15 @@ function render(result, seed, fmt, name) {
 async function oneResult(result) {
   for (var k = 0; k < TRIES; k++) {
     var seed = result + 20 * k;
-    var webm = await render(result, seed, "webm", "d20_" + pad(result) + ".webm");
-    if (webm.up_number !== result) throw new Error("result " + result + ": the scene painted " + webm.up_number + " up");
-    if (!webm.settled) { console.log("d20 " + pad(result) + ": seed " + seed + " had not settled, next seed"); continue; }
-    var mp4 = await render(result, seed, "mp4", "d20_" + pad(result) + ".mp4");
-    if (!mp4.settled || mp4.up_number !== result) throw new Error("result " + result + ": the mp4 roll differs from the webm roll (seed " + seed + ")");
+    var rep = await render(result, seed);
+    if (rep.up_number !== result) throw new Error("result " + result + ": the scene painted " + rep.up_number + " up");
+    if (!rep.settled) { console.log("d20 " + pad(result) + ": seed " + seed + " had not settled, next seed"); continue; }
+    var webm = rep.videos.webm, stacked = rep.videos.stacked;
     fs.mkdirSync(OUT, { recursive: true });
-    fs.copyFileSync(webm.video, path.join(OUT, path.basename(webm.video)));
-    fs.copyFileSync(mp4.video, path.join(OUT, path.basename(mp4.video)));
-    console.log("d20 " + pad(result) + ": seed " + seed + " → " + path.basename(webm.video) + " " + kb(webm.video) + ", " + path.basename(mp4.video) + " " + kb(mp4.video));
-    return { result: result, seed: seed, webm: fs.statSync(webm.video).size, mp4: fs.statSync(mp4.video).size };
+    fs.copyFileSync(webm, path.join(OUT, path.basename(webm)));
+    fs.copyFileSync(stacked, path.join(OUT, path.basename(stacked)));
+    console.log("d20 " + pad(result) + ": seed " + seed + " → " + path.basename(webm) + " " + kb(webm) + ", " + path.basename(stacked) + " " + kb(stacked));
+    return { result: result, seed: seed, webm: fs.statSync(webm).size, stacked: fs.statSync(stacked).size };
   }
   throw new Error("result " + result + ": no settled roll in " + TRIES + " seeds");
 }
@@ -90,10 +90,10 @@ async function main() {
   var manifest = fs.existsSync(manifestPath) ? JSON.parse(fs.readFileSync(manifestPath, "utf8")) : { clips: {} };
   manifest.scene = "dice_roll"; manifest.size = SIZE; manifest.frames = FRAMES; manifest.fps = FPS;
   manifest.rendered = new Date().toISOString().slice(0, 10);
-  done.results.forEach(function (r) { manifest.clips[pad(r.result)] = { seed: r.seed, webm: r.webm, mp4: r.mp4 }; });
+  done.results.forEach(function (r) { manifest.clips[pad(r.result)] = { seed: r.seed, webm: r.webm, stacked: r.stacked }; });
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
-  var total = Object.keys(manifest.clips).reduce(function (s, k) { return s + manifest.clips[k].webm + manifest.clips[k].mp4; }, 0);
+  var total = Object.keys(manifest.clips).reduce(function (s, k) { return s + manifest.clips[k].webm + manifest.clips[k].stacked; }, 0);
   console.log((done.results.length + " of " + wanted.length + " results in " + ((Date.now() - t0) / 1000).toFixed(0) + "s; ") + Object.keys(manifest.clips).length + " clips in manifest, " + (total / 1024 / 1024).toFixed(1) + " MB → " + OUT);
   if (done.failures.length) { console.error(done.failures.length + " FAILED"); process.exit(1); }
 }

@@ -3943,23 +3943,39 @@ function voiceNoteTrim(note){
 }
 
 /* #650: THE d20 ROLL CLIP (owner rulings 2026-10-19/20). Twenty rolls rendered in Blender (dev/blender/dice-clips.js), one per
-   result, each as a transparent VP9 WebM (the die over the page) and an opaque H.264 MP4 on the felt. The WebM is the clip;
-   the MP4 is for WebKit, which plays VP9 but drops its alpha (a black box on every iPhone and in Safari on the Mac). No feature
-   test can tell alpha playback apart from playback, so the format is decided from the user agent — the one place the UA is read
-   for a rendering decision, kept pure so the rule is testable without a browser. Every browser on iOS is WebKit, whatever its
-   name (CriOS, FxiOS); an iPad with a desktop UA says MacIntel with touch points. */
+   result, from ONE transparent render each: a VP9 WebM with alpha (the die over the page) and a STACKED-ALPHA H.264 MP4 —
+   twice as wide, the colour premultiplied over black on the left and the alpha as grey on the right — for WebKit, which plays
+   VP9 but drops its alpha (a black box on every iPhone and in Safari on the Mac) and whose only alpha codec, HEVC with alpha,
+   no encoder on this machine writes; the page recombines the halves on a canvas (ui-dice.js). No feature test can tell alpha
+   playback apart from playback, so the format is decided from the user agent — the one place the UA is read for a rendering
+   decision, kept pure so the rule is testable without a browser. Every browser on iOS is WebKit, whatever its name (CriOS,
+   FxiOS); an iPad with a desktop UA says MacIntel with touch points. */
+var DICE_CLIP_FILES={webm:".webm",stacked:"-stacked.mp4"};
 function diceClipName(face){
   var n=Number(face);if(!(n>=1&&n<=20)||n!==Math.floor(n))return null;
   return "dice/d20_"+(n<10?"0":"")+n;
 }
 function diceClipFormat(env){
   var e=env||{},ua=String(e.ua||"");
-  if(/iP(hone|ad|od)/.test(ua))return "mp4";
-  if(e.platform==="MacIntel"&&Number(e.maxTouchPoints)>1)return "mp4";
-  if(/AppleWebKit/.test(ua)&&!/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/.test(ua))return "mp4";
+  if(/iP(hone|ad|od)/.test(ua))return "stacked";
+  if(e.platform==="MacIntel"&&Number(e.maxTouchPoints)>1)return "stacked";
+  if(/AppleWebKit/.test(ua)&&!/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/.test(ua))return "stacked";
   return "webm";
 }
 function diceClipSrc(face,env){
   var base=diceClipName(face);if(!base)return null;
-  return base+"."+diceClipFormat(env);
+  return base+DICE_CLIP_FILES[diceClipFormat(env)];
+}
+/* The stacked-alpha recombination, one frame: cd is the colour half's RGBA bytes (alpha 255 throughout, colour
+   premultiplied over black), md the matte half's; the matte's red becomes the colour's alpha, and a partial pixel's
+   colour is divided back out (clamped). In place, returns cd. Pure: ui-dice.js runs it per video frame. */
+function diceStackedRecombine(cd,md){
+  var i,a,k;
+  for(i=0;i<cd.length;i+=4){
+    a=md[i];
+    if(a===255)cd[i+3]=255;
+    else if(a===0)cd[i+3]=0;
+    else{k=255/a;cd[i]=Math.min(255,cd[i]*k);cd[i+1]=Math.min(255,cd[i+1]*k);cd[i+2]=Math.min(255,cd[i+2]*k);cd[i+3]=a;}
+  }
+  return cd;
 }

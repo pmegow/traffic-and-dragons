@@ -55,9 +55,14 @@ node dev/blender/dice-clips.js                 all twenty results, four Blender 
 node dev/blender/dice-clips.js --only 20,1     a subset
 ```
 
-One roll per result 1..20, rendered twice from the same seed: `dice/d20_NN.webm` (transparent VP9, the die
-over the page) and `dice/d20_NN.mp4` (H.264 on the felt — WebKit plays VP9 but drops its alpha, so every
-iPhone and Safari on the Mac get this one; `diceClipFormat` in helpers.js decides from the user agent).
+One roll per result 1..20, ONE transparent render each, encoded twice from the same frames (`--video
+webm,stacked`): `dice/d20_NN.webm` (VP9 with alpha, the die over the page) and `dice/d20_NN-stacked.mp4`
+(H.264 twice as wide — the colour premultiplied over black on the left, the alpha as grey on the right).
+WebKit plays VP9 but drops its alpha, and its only alpha codec, HEVC with alpha, cannot be encoded on this
+machine (no Windows ffmpeg or x265 build ships the alpha layer — tried 2026-10-20 with the Gyan 9.0.2
+build: "Loaded libx265 does not support alpha layer encoding"), so every iPhone and Safari on the Mac get
+the stacked clip and ui-dice.js recombines it on a canvas; `diceClipFormat` in helpers.js decides from the
+user agent. The stacked frames are built in the scene with numpy (bundled with Blender), no ffmpeg.
 A result's seed starts at its number and steps by 20 until the die has settled by the last frame; the
 manifest records every seed and size, and the #650 engine test refuses a batch with a clip missing.
 After a re-render bump `DICE_CACHE` in sw.js (the clips live in their own purge-exempt cache) and `CACHE`.
