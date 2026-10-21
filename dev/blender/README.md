@@ -76,8 +76,8 @@ white to 207, a die the story showed through.
 Three scene rules the clips depend on (dice_roll.py): the UP face's numeral is spun about its face normal
 at the LAST frame so the result reads right side up from the camera (owner 2026-10-19) — only that one,
 since every numeral squared to the camera looked printed on rather than rolled (owner 2026-10-21); the
-nineteen other faces fade to 75% of the bone colour over the last twelve frames so the result pops
-(owner 2026-10-20) — a die dim through the tumble would look loaded; and the shadow pass above.
+nineteen other faces sit at 87.5% of the bone colour from the first frame so the result pops (owner
+2026-10-20, dialled to half and on from the throw 2026-10-21); and the shadow pass above.
 
 ## Proof
 

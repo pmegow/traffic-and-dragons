@@ -265,20 +265,18 @@ def upright_rotation(n):
     x = ul.cross(n).normalized()
     return Matrix((x, ul, n)).transposed().to_euler()
 
-# THE POP (owner 2026-10-20): the 19 faces that did not land up sit at 75% of the bone colour so
-# the up face stands out. A die that is marked while it tumbles looks loaded, so the dimming
-# fades in over the last DIM_FADE frames, as the die comes to rest — one keyframed material.
-DIM, DIM_FADE = 0.75, 12
+# THE POP (owner 2026-10-20, dialled 2026-10-21): the 19 faces that did not land up sit at 87.5% of the
+# bone colour so the up face stands out — from the FIRST frame, constant through the tumble (the
+# settle-fade read as the dimming "starting late"; the owner wants it on from the throw, at half the
+# original 25%). One plain second material; no keyframes.
+DIM = 0.875
 dim = material("BoneDim", A["die"], 0.35)
 die.data.materials.append(dim)
 for p in polys:
     p.material_index = 0 if p.index == up_index else 1
 dim_bsdf = dim.node_tree.nodes.get("Principled BSDF")
 bone = hex_rgb(A["die"])
-dim_bsdf.inputs["Base Color"].default_value = srgb_to_linear(bone)
-dim_bsdf.inputs["Base Color"].keyframe_insert("default_value", frame=max(1, A["frames"] - DIM_FADE))
 dim_bsdf.inputs["Base Color"].default_value = srgb_to_linear(tuple(c * DIM for c in bone[:3]) + (1.0,))
-dim_bsdf.inputs["Base Color"].keyframe_insert("default_value", frame=A["frames"])
 
 ink = material("Ink", A["ink"], 0.6)
 for p in polys:
