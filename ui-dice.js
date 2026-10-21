@@ -50,6 +50,14 @@ function showDiceRoll(face,opts){
   if(p&&typeof p.catch==="function")p.catch(function(e){fail("would not play ("+(e&&e.message||e)+")",!!(e&&e.name==="NotAllowedError"));});
   return true;
 }
+/* #650 TEMPORARY (owner 2026-10-20): File ▸ Dev tools ▸ 🎲 Test roll — a random face played as the clip, no check, no
+   state, so the owner can look at the roll without finding a fight. Remove with the menu row once signed off. */
+function testDiceRoll(){
+  if(!worldState||!worldState.character){showToast("Start a game first.");return;}
+  var face=rollD20();
+  if(showDiceRoll(face))showToast("Test roll: "+face);
+  else showToast("The roll clip did not open here (Car Mode, reduced motion, or no story area).");
+}
 /* The stacked-alpha recombiner: draws each video frame to a work canvas, reads the two halves, runs the pure
    diceStackedRecombine (helpers.js) and paints the result. Frames arrive through
    requestVideoFrameCallback where the browser has it (Safari 15.4+), else requestAnimationFrame. The last frame stays
