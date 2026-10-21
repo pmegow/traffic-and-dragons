@@ -8176,6 +8176,18 @@ function runEngineTests(R){
     worldState.combat={name:"Guard",hp:9,maxHp:9,ac:12,atk:2,dmg:"d6",morale:"low",round:1};var en=buildEngineNotes();
     return en.indexOf("CHECK ANSWERED")>=0?true:"the registry did not deliver it in combat: "+en.slice(0,200);
   });
+  t("B47 (owner ruling 2026-10-20) the two AT-WILL abilities read as crit-ON-hit, never an automatic hit — First Blow 'if it lands', Master Poisoner 'once the poison is in them'; Sure Shot (once per combat, named by the player) keeps its automatic hit; the sheet's short text agrees; the GM's bible line carries the new wording",function(){
+    var fb=CAPABILITY_BIBLE["the first blow is the last"],mp=CAPABILITY_BIBLE["master poisoner"],ss=CAPABILITY_BIBLE["sure shot"];
+    if(/automatic critical hit/.test(fb.effect)||!/if it lands, is a critical hit/.test(fb.effect)||!/the die still rolls/.test(fb.effect))return "First Blow: "+fb.effect;
+    if(!/a landed first blow/.test(fb.effect))return "First Blow's 'ordinary folk' sentence must hang on a LANDED blow: "+fb.effect;
+    if(!/Once the poison is in them, ordinary folk simply succumb/.test(mp.effect)||!/the blade or the bolt still has to land/.test(mp.effect))return "Master Poisoner: "+mp.effect;
+    if(!/The attack hits and is a critical hit no matter how absurd the path/.test(ss.effect))return "Sure Shot must keep its automatic hit (owner: it should not roll): "+ss.effect;
+    if(capBibleLine("The First Blow Is the Last",fb).indexOf("if it lands, is a critical hit")<0)return "the GM's bible line must carry the new wording";
+    if(typeof __fsForTests==="undefined")return true;/* the browser view has no source reader */
+    var cb=__fsForTests.readFileSync(__rootForTests+"/class_bible.js","utf8");
+    if(/"ds": "Your first strike against an unsuspecting target is an automatic critical hit/.test(cb)||!/"ds": "Your first strike against an unsuspecting target, if it lands, is a critical hit/.test(cb))return "the class bible's sheet text for First Blow still says automatic (new characters would carry it)";
+    return true;
+  });
   section("#204 duplicate-refusal hygiene");
   t("#204: a bare SCENE_DEATH whose envelope already committed THIS response is stripped without a conflict, and co-emitted quest tags survive",function(){
     makeWorld();

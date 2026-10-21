@@ -2985,11 +2985,11 @@
       "from": "master poisoner",
       "key": "master poisoner",
       "name": "Master Poisoner",
-      "description": "Given moments and whatever is at hand — kitchen herbs, lamp oil, the scorpion from a boot — you render any food, drink, or weapon lethally poisoned, instantly and creatively. Onset and symptoms are yours to design: immediate, slow, or mimicking illness. Ordinary folk simply succumb; hardened or named foes may resist with a CON save.",
+      "description": "Given moments and whatever is at hand — kitchen herbs, lamp oil, the scorpion from a boot — you render any food, drink, or weapon lethally poisoned, instantly and creatively. Onset and symptoms are yours to design: immediate, slow, or mimicking illness. Once the poison is in them, ordinary folk simply succumb; hardened or named foes may resist with a CON save — the blade or the bolt still has to land.",
       "beforeSha256": "ca3ae4d0c560c76fd7de553da2948e13cf7a4d02b3b700630472d8b7ae93cf59",
-      "afterSha256": "ca3ae4d0c560c76fd7de553da2948e13cf7a4d02b3b700630472d8b7ae93cf59",
+      "afterSha256": "7d30370381be329b8a9de8f1a2d01fed7122a9433407d98e93c6977848538f20",
       "attributeChanges": {},
-      "reason": ""
+      "reason": "B47 b, owner ruling 2026-10-20 (\"reword\"): crit-ON-hit — the die still rolls; an at-will automatic hit on the unsuspecting made the B45 roll floor canon-illegal"
     },
     {
       "from": "metamagic",
@@ -4375,11 +4375,11 @@
       "from": "the first blow is the last",
       "key": "the first blow is the last",
       "name": "The First Blow Is the Last",
-      "description": "Your first strike against a creature that does not suspect the attack is an automatic critical hit. Against ordinary folk the fight is usually over before it begins; against hardened or named foes it opens with the worst wound they will take.",
+      "description": "Your first strike against a creature that does not suspect the attack, if it lands, is a critical hit — the die still rolls. Against ordinary folk a landed first blow usually ends the fight before it begins; against hardened or named foes it opens with the worst wound they will take.",
       "beforeSha256": "cfb2a4ef41d29d907785286e5e1abf59d8240f52c144aab269fd9eda996ea89f",
-      "afterSha256": "cfb2a4ef41d29d907785286e5e1abf59d8240f52c144aab269fd9eda996ea89f",
+      "afterSha256": "449b0976a6e3f9de701bf23d8329a6884eddeef2e31106f9d807ade90dafd178",
       "attributeChanges": {},
-      "reason": ""
+      "reason": "B47 b, owner ruling 2026-10-20 (\"reword\"): crit-ON-hit — the die still rolls; an at-will automatic hit on the unsuspecting made the B45 roll floor canon-illegal"
     },
     {
       "from": "the first fire",

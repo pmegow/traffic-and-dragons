@@ -493,7 +493,7 @@ var CLASS_BIBLE = {
             "features": [
               {
                 "nm": "The First Blow Is the Last",
-                "ds": "Your first strike against an unsuspecting target is an automatic critical hit; against ordinary folk the fight is over before it begins."
+                "ds": "Your first strike against an unsuspecting target, if it lands, is a critical hit; against ordinary folk a landed first blow ends the fight before it begins."
               }
             ]
           },

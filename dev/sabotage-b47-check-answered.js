@@ -23,6 +23,14 @@ prove("helpers.js", [
     find: "  worldState.checkAnsweredPing={turn:worldState.turn,label:chk.label,mod:chk.mod||0,dc:(chk.dc!=null?chk.dc:null)};\n", replace: "",
     mustFail: "the latch:" }
 ]);
+prove("capability_bible.js", [
+  { label: "First Blow is an automatic critical hit again — canon the GM follows to the letter on an unsuspecting guard",
+    find: "if it lands, is a critical hit — the die still rolls.", replace: "is an automatic critical hit.",
+    mustFail: "First Blow:" },
+  { label: "Master Poisoner's 'simply succumb' no longer waits for the bolt to land",
+    find: " — the blade or the bolt still has to land.", replace: ".",
+    mustFail: "Master Poisoner:" }
+]);
 prove("game.js", [
   { label: "sendAction goes back to deleting the pending check inline — the step is bypassed",
     find: "if(worldState.pendingCheck&&!(opts&&opts.silent))checkLapseToAction(txt);", replace: "if(worldState.pendingCheck&&!(opts&&opts.silent)){delete worldState.pendingCheck;}",
