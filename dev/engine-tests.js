@@ -35269,6 +35269,9 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");
     if(u.indexOf("var env={ua:nav.userAgent,platform:nav.platform,maxTouchPoints:nav.maxTouchPoints};")<0||u.indexOf("var src=diceClipSrc(face,env);")<0)return "ui-dice.js does not choose the clip through diceClipSrc with the navigator's fields";
     if(u.indexOf("diceStackedRecombine(c.data,m.data);")<0||u.indexOf('var stacked=diceClipFormat(env)==="stacked";')<0)return "the stacked player must recombine through the pure diceStackedRecombine, chosen by diceClipFormat";
+    var pl=u.slice(u.indexOf("function diceStackedPlayer("));
+    if(pl.indexOf("if(v.ended)return;")<0||pl.indexOf("if(v.ended)return;")>pl.indexOf("wctx.drawImage(v,0,0);"))return "the stacked player must never draw from an ended video (iOS hands back a blank and the die vanished before the tap)";
+    if(pl.indexOf("else if(seenDie){skipped++;")<0||pl.indexOf("if(white>128)seenDie=true;")<0)return "once the die has been seen, a blank frame must be skipped so the last good frame stays painted";
     if(u.indexOf('if(typeof carMode!=="undefined"&&carMode)return false;')<0)return "Car Mode must skip the clip (it would play under the Car Mode screen)";
     if(/v\.onended\s*=/.test(u)||u.indexOf("setTimeout(close")>=0)return "the settled die must stay until a click — no timer may close the overlay (owner 2026-10-20)";
     if(u.indexOf("wrap.onclick=close;")<0)return "a click on the overlay must close it";

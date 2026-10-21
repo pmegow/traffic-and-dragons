@@ -53,7 +53,13 @@ prove("ui-dice.js", [
     mustFail: "the stacked player must recombine through the pure diceStackedRecombine" },
   { label: "a timer takes the settled die away again",
     find: "  wrap.onclick=close;", replace: "  wrap.onclick=close;v.onended=function(){setTimeout(close,700);};",
-    mustFail: "the settled die must stay until a click" }
+    mustFail: "the settled die must stay until a click" },
+  { label: "the player draws one more frame from the ended video (the iOS blank wipes the die)",
+    find: "    if(v.ended)return;\n    wctx.drawImage(v,0,0);", replace: "    wctx.drawImage(v,0,0);\n    if(v.ended)return;",
+    mustFail: "the stacked player must never draw from an ended video" },
+  { label: "a blank frame after the die was seen is painted over the die",
+    find: "    else if(seenDie){skipped++;", replace: "    else if(false){skipped++;",
+    mustFail: "a blank frame must be skipped so the last good frame stays painted" }
 ]);
 prove("index.html", [
   { label: "the overlay drops back under the phone's scroller (z-index 5, no layer of its own)",

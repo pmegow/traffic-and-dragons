@@ -66,14 +66,21 @@ function diceStackedPlayer(v,canvas,isClosed){
   var ctx=canvas.getContext("2d"),work=document.createElement("canvas"),wctx=work.getContext("2d"),W=0,H=0,ready=false;
   if(!ctx||!wctx){console.warn("dice clip: no 2d canvas for the stacked player");return;}
   function size(){W=Math.floor(v.videoWidth/2);H=v.videoHeight;if(!W||!H)return false;canvas.width=W;canvas.height=H;work.width=W*2;work.height=H;ready=true;return true;}
+  var seenDie=false,skipped=0;
   function draw(){
     if(isClosed())return;
     if(!ready&&!size()){schedule();return;}
+    /* The settled die must STAY (owner 2026-10-20; it vanished on the phone before the tap): an ended video is never
+       drawn from — iOS hands back an empty frame once playback is over — and once the die has been seen, a frame whose
+       matte holds no die (a decoder blank) is skipped, so the last good frame stays painted. */
+    if(v.ended)return;
     wctx.drawImage(v,0,0);
-    var c=wctx.getImageData(0,0,W,H),m=wctx.getImageData(W,0,W,H);
+    var c=wctx.getImageData(0,0,W,H),m=wctx.getImageData(W,0,W,H),white=diceStackedWhite(m.data);
+    if(white>128)seenDie=true;
+    else if(seenDie){skipped++;if(skipped===1)console.warn("dice clip: a blank frame after the die was seen — kept the last good frame");schedule();return;}
     diceStackedRecombine(c.data,m.data);
     ctx.putImageData(c,0,0);
-    if(!v.ended)schedule();
+    schedule();
   }
   function schedule(){
     if(typeof v.requestVideoFrameCallback==="function")v.requestVideoFrameCallback(draw);
