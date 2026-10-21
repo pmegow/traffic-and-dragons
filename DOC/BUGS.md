@@ -34,49 +34,6 @@ them here).
 
 ## Open
 
-## B49 — A rolled die clip refused to play on a phone-emulated page — play() was interrupted by a fresh load of the clip (v1.1287, localhost)
-**Status:** findings-ready
-**Kind:** crash · **First seen:** 2026-10-20 (v1.1287) · **Last seen:** 2026-10-20 (v1.1287) · **Count:** 3 · **Campaign:** — · **Turn:** —
-**Fingerprint:** `crash · dice-clip · v1.1287 · dice clip dice/d20_03.webm: would not play (The play() request was interrupted by a new load request. https://goo.gl/LdL`
-**Report ids:** 7bb0eeaa-9c34-4ca0-8752-293d1889aa3a, 57068326-5e8e-4a54-8202-3ff2d399b88c, 15a7b553-fee9-49f3-9874-6c8849b9802a
-**Screenshot URL:** —
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-dice clip dice/d20_03.webm: would not play (The play() request was interrupted by a new load request. https://goo.gl/LdLk22)
-[object Object]
-
---- diag ---
-session s97hnrb-10oh · report 1/10 · up 37s
-audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=running
-this page:
-  +0s boot
-PREVIOUS page (ended cleanly):
-  +0s boot
-  +6s unload
-  +6s unload
-url: http://localhost:8123/index.html · ua: Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36 · suppressed: 0
-```
-
-Twins (same fingerprint, sessions sd37laz-178 and sl5k18-4rp, each 3s after boot; the third url carries ?nocache=2) — bodies omitted per the dedupe contract.
-
-### Findings
-
-#### 2026-10-21 · QA routine (Opus 5.5) · bug-investigator
-
-**Verdict:** probable-cause — the `[object Object]` detail is root-caused; the AbortError's trigger is not reachable from shipped code and points at a developer preview session. No injection content.
-
-**Mechanism.** (1) *Provenance:* `showDiceRoll` has one product caller, `game.js:3013` (`rollPendingCheck`, after a turn with a pending check); all three reports carry no campaign and no turn, fired 3–37 s after boot with only `+0s boot` in the crumb ring, from `localhost:8123` (the repo's `dev/static-server.js` port) under a Pixel 8 UA (DevTools emulation) on v1.1287 — the #650 ship day — and always face 03: a direct `showDiceRoll(3)` from a console/preview, not play. (2) *Detail:* `ui-dice.js:42` passes `{face,src}` as the detail; `error-report.js:186` builds it with `String(detail||"")` → `[object Object]`. Second instance of the class: `state.js:911` (`memory-owner`). Nothing lost this time (face and src are in the message). (3) *AbortError:* Chrome's "interrupted by a new load request" means the element re-ran its load algorithm while `play()` was pending; `ui-dice.js` sets src once (`:30`) before `play()` (`:49`) and nothing touches `src`/`load()` after. Ruled out: the stacked path (Android Chrome → webm, `helpers.js:3958-3964`), an overlapping second roll (`:28` removes the old overlay — a different Chrome message), the SW (`sw.js:154-163` would surface as a load error). An AbortError means a later load superseded this play — the same class as the NotAllowedError refusal `ui-dice.js:50` already keeps quiet; nothing user-visible is lost (the result card shows the number).
-
-**Fix sketch (not applied).** (a) `error-report.js:186`: serialise a non-string detail with a guarded `JSON.stringify` (try/catch → `String`) before the existing slice — fixes both callers and keeps the pinned `engine-tests.js:35262` string and `sabotage-650-dice-roll.js:43` anchor valid. (b) `ui-dice.js:50`: treat `AbortError` like `NotAllowedError` (console.warn, no report); update the header comment `:11-13`. Bump APP_VERSION/CACHE.
-
-**Drift-surface flag:** NO. **Safe-changes map:** (b) is a thin DOM shell edit; (a) is the app-wide crash channel — not a whitelisted shape, ambiguous → Fable. **Risk:** quieting AbortError could hide a future real reload-mid-play bug on phones (console.warn stays); the reporter must never throw on a circular/DOM detail. **Confidence:** high on the serialisation; high that these three are dev-preview noise; medium on the exact trigger — repro: `showDiceRoll(3)` on localhost:8123 under Pixel 8 emulation, then `load()`/src reassignment or an emulation toggle mid-clip, capturing `e.name` and whether the overlay was attached.
-
-**QA routine:** not acted on — the trigger needs a live repro and the boundary half sits outside the map; awaiting the owner.
-
-### Action log
-
 ## B44 — Player could not access voice configuration at campaign start (v1.1245, desktop Chrome)
 **Status:** promoted → [TODO.md](../TODO.md) #622 (fixed v1.1249 — the tester's check owed) · was: findings-ready
 **Kind:** user-report · **First seen:** 2026-10-13 (v1.1245) · **Last seen:** 2026-10-13 (v1.1245) · **Count:** 1 · **Campaign:** E Nightwhisper · **Turn:** —
@@ -740,7 +697,51 @@ consecutive fails: 1 | window 10 msgs, 2/5 user halves open with an engine note 
 _Every verified and ignored row lives inside this collapsible container, newest first._
 
 <details>
-<summary><strong>Completed bugs (40 rows) — click to expand</strong></summary>
+<summary><strong>Completed bugs (41 rows) — click to expand</strong></summary>
+## B49 — A rolled die clip refused to play on a phone-emulated page — play() was interrupted by a fresh load of the clip (v1.1287, localhost)
+**Status:** ignored
+**Kind:** crash · **First seen:** 2026-10-20 (v1.1287) · **Last seen:** 2026-10-20 (v1.1287) · **Count:** 3 · **Campaign:** — · **Turn:** —
+**Fingerprint:** `crash · dice-clip · v1.1287 · dice clip dice/d20_03.webm: would not play (The play() request was interrupted by a new load request. https://goo.gl/LdL`
+**Report ids:** 7bb0eeaa-9c34-4ca0-8752-293d1889aa3a, 57068326-5e8e-4a54-8202-3ff2d399b88c, 15a7b553-fee9-49f3-9874-6c8849b9802a
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+dice clip dice/d20_03.webm: would not play (The play() request was interrupted by a new load request. https://goo.gl/LdLk22)
+[object Object]
+
+--- diag ---
+session s97hnrb-10oh · report 1/10 · up 37s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=running
+this page:
+  +0s boot
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +6s unload
+  +6s unload
+url: http://localhost:8123/index.html · ua: Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36 · suppressed: 0
+```
+
+Twins (same fingerprint, sessions sd37laz-178 and sl5k18-4rp, each 3s after boot; the third url carries ?nocache=2) — bodies omitted per the dedupe contract.
+
+### Findings
+
+#### 2026-10-21 · QA routine (Opus 5.5) · bug-investigator
+
+**Verdict:** probable-cause — the `[object Object]` detail is root-caused; the AbortError's trigger is not reachable from shipped code and points at a developer preview session. No injection content.
+
+**Mechanism.** (1) *Provenance:* `showDiceRoll` has one product caller, `game.js:3013` (`rollPendingCheck`, after a turn with a pending check); all three reports carry no campaign and no turn, fired 3–37 s after boot with only `+0s boot` in the crumb ring, from `localhost:8123` (the repo's `dev/static-server.js` port) under a Pixel 8 UA (DevTools emulation) on v1.1287 — the #650 ship day — and always face 03: a direct `showDiceRoll(3)` from a console/preview, not play. (2) *Detail:* `ui-dice.js:42` passes `{face,src}` as the detail; `error-report.js:186` builds it with `String(detail||"")` → `[object Object]`. Second instance of the class: `state.js:911` (`memory-owner`). Nothing lost this time (face and src are in the message). (3) *AbortError:* Chrome's "interrupted by a new load request" means the element re-ran its load algorithm while `play()` was pending; `ui-dice.js` sets src once (`:30`) before `play()` (`:49`) and nothing touches `src`/`load()` after. Ruled out: the stacked path (Android Chrome → webm, `helpers.js:3958-3964`), an overlapping second roll (`:28` removes the old overlay — a different Chrome message), the SW (`sw.js:154-163` would surface as a load error). An AbortError means a later load superseded this play — the same class as the NotAllowedError refusal `ui-dice.js:50` already keeps quiet; nothing user-visible is lost (the result card shows the number).
+
+**Fix sketch (not applied).** (a) `error-report.js:186`: serialise a non-string detail with a guarded `JSON.stringify` (try/catch → `String`) before the existing slice — fixes both callers and keeps the pinned `engine-tests.js:35262` string and `sabotage-650-dice-roll.js:43` anchor valid. (b) `ui-dice.js:50`: treat `AbortError` like `NotAllowedError` (console.warn, no report); update the header comment `:11-13`. Bump APP_VERSION/CACHE.
+
+**Drift-surface flag:** NO. **Safe-changes map:** (b) is a thin DOM shell edit; (a) is the app-wide crash channel — not a whitelisted shape, ambiguous → Fable. **Risk:** quieting AbortError could hide a future real reload-mid-play bug on phones (console.warn stays); the reporter must never throw on a circular/DOM detail. **Confidence:** high on the serialisation; high that these three are dev-preview noise; medium on the exact trigger — repro: `showDiceRoll(3)` on localhost:8123 under Pixel 8 emulation, then `load()`/src reassignment or an emulation toggle mid-clip, capturing `e.name` and whether the overlay was attached.
+
+**QA routine:** not acted on — the trigger needs a live repro and the boundary half sits outside the map; awaiting the owner.
+
+### Action log
+- 2026-10-20 — ignored (was findings-ready) via tracker ✕ — the report is Claude's own preview probe from the #650 build: a debugging src swap right after showDiceRoll interrupted the first play() (AbortError); the shipped flow never swaps a source. No iOS failure report exists in the feed, which rules the failure path out for the phone's vanishing die (fixed as v1.1292 in the player).
+
 ## B19 — summarize() extractor returns JSON that is malformed mid-document — parse crashes, retry survives (distinct mechanism from B11's zero-JSON replay)
 **Status:** stale (not seen in 30 days — cleared by the owner 2026-10-19) · was: promoted → [TODO.md](../TODO.md) Known issues #10 (one summarize-robustness work item, shared with B11)
 **➜ Filed and promoted 2026-07-30 (this sync).** Two arrivals, both SURVIVED (`consecutive fails: 1`; per CLAUDE.md §8 the log is kept and retried). Unlike B11 — whose response opened with a bare state tag and contained zero JSON — both #16c response heads here show fenced JSON with a well-formed opening (` ```json { "chapterSummary": … `), so the failure is INSIDE the document (the v1.463 error names it: unterminated/unescaped string around position 1035). `repairModelJson` (api.js:861) repairs fences, preamble, trailing commas and control chars but cannot repair a broken string literal — verified still true at HEAD (memory.js:890). **The #16c B11 instrumentation worked as designed on both arrivals:** each carried the response head plus the engine-note window count (1/6 and 3/5 user halves opening with an engine note — the replay-pressure metric B11's hypothesis needs, now measurable in the field).
