@@ -32,7 +32,8 @@ function ran(root) { try { return fs.readFileSync(path.join(root, "ran.txt"), "u
 test("the tracked pre-push runs the browser suites and blocks the push when they are red", function () {
   var hook = fs.readFileSync(path.join(ROOT, "dev", "pre-push"), "utf8");
   assert.match(hook, /^#!\/bin\/sh/);
-  assert.match(hook, /node "\$\(git rev-parse --show-toplevel\)\/dev\/run-browser-suites\.js" \|\| \{/);
+  assert.match(hook, /TOP="\$\(git rev-parse --show-toplevel\)"/);
+  assert.match(hook, /node "\$TOP\/dev\/run-browser-suites\.js" \|\| \{/);
   assert.match(hook, /exit 1/);
   assert.match(hook, /cp dev\/pre-push \.git\/hooks\/pre-push/, "the install line is in the header");
 });
@@ -103,6 +104,18 @@ test("a missing installed pre-push fails parity by name; both installed pass; no
   var drift = parity.inspect(repo);
   assert.equal(drift.ok, false);
   assert.match(drift.message, /installed pre-push differs from dev\/pre-push/);
+});
+
+test("a checkout without the runner (a worktree based before #652) is told so and the push goes through", function () {
+  var sh = cp.spawnSync("sh", ["-c", "echo ok"], { encoding: "utf8" });
+  if (sh.status !== 0) { console.log("  (no sh on this machine — the hook's shell path is not exercised here)"); return; }
+  var repo = path.join(tmp, "old-checkout"); fs.mkdirSync(path.join(repo, "dev"), { recursive: true });
+  assert.equal(cp.spawnSync("git", ["-C", repo, "init", "-q"], { encoding: "utf8" }).status, 0);
+  var hook = path.join(repo, "pre-push.sh"); fs.copyFileSync(path.join(ROOT, "dev", "pre-push"), hook);
+  var r = cp.spawnSync("sh", [hook], { cwd: repo, encoding: "utf8" });
+  assert.equal(r.status, 0, text(r));
+  assert.match(r.stderr, /has no dev\/run-browser-suites\.js \(a checkout from before #652\) — the browser suites were NOT run here; CI runs them on every push\./);
+  assert.doesNotMatch(text(r), /Push blocked|Cannot find module/);
 });
 
 test("this repo's own pre-push is tracked and registered: the standalone list runs this suite", function () {

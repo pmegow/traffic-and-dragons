@@ -7,7 +7,14 @@
 # dev/check-hook-parity.js (run by the pre-commit) refuses a commit while the installed copy differs or is missing.
 # A machine without Chrome says so and lets the push through (CI runs the suites regardless). Bypassing
 # (git push --no-verify) is for emergencies only — a red suite means a real regression.
-node "$(git rev-parse --show-toplevel)/dev/run-browser-suites.js" || {
+TOP="$(git rev-parse --show-toplevel)"
+# Hooks are shared by every worktree of this repo; a checkout based before #652 has no runner. Say so and let the
+# push through (CI runs the suites regardless) — never fail it as "a red suite" over a missing file.
+if [ ! -f "$TOP/dev/run-browser-suites.js" ]; then
+  echo "pre-push: $TOP has no dev/run-browser-suites.js (a checkout from before #652) — the browser suites were NOT run here; CI runs them on every push." >&2
+  exit 0
+fi
+node "$TOP/dev/run-browser-suites.js" || {
   echo "" >&2
   echo "Push blocked: a browser suite is red (details above). CI would have found it half an hour from now; fix it first." >&2
   exit 1

@@ -24,9 +24,13 @@ rc |= sabotage.prove({ file: "dev/run-browser-suites.js", command: SUITE, cases:
 
 rc |= sabotage.prove({ file: "dev/pre-push", command: SUITE, cases: [
   { label: "the pre-push no longer runs the browser suites (the gate is an echo)",
-    find: "node \"$(git rev-parse --show-toplevel)/dev/run-browser-suites.js\" || {",
+    find: "node \"$TOP/dev/run-browser-suites.js\" || {",
     replace: "echo \"browser suites skipped\" || {",
-    mustFail: "the tracked pre-push runs the browser suites" }
+    mustFail: "the tracked pre-push runs the browser suites" },
+  { label: "a checkout without the runner fails as \"a red suite\" over a missing module (the guard removed)",
+    find: "if [ ! -f \"$TOP/dev/run-browser-suites.js\" ]; then",
+    replace: "if false; then",
+    mustFail: "a checkout without the runner" }
 ] });
 
 rc |= sabotage.prove({ file: "dev/check-hook-parity.js", command: SUITE, cases: [
