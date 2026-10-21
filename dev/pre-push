@@ -1,0 +1,14 @@
+#!/bin/sh
+# Traffic and Dragons — pre-push gate (#652): every Chrome-driven suite runs before a push reaches master.
+# The pre-commit never runs a browser suite (they gate in CI, the #481 G6 class), so an engine change that
+# breaks one lands anyway and only CI knows — 45f0d189 did exactly that on 2026-10-09 and the gate stayed
+# red 2.6 days. This is the TRACKED copy; git only executes it from .git/hooks/. After a fresh clone, install:
+#   cp dev/pre-push .git/hooks/pre-push
+# dev/check-hook-parity.js (run by the pre-commit) refuses a commit while the installed copy differs or is missing.
+# A machine without Chrome says so and lets the push through (CI runs the suites regardless). Bypassing
+# (git push --no-verify) is for emergencies only — a red suite means a real regression.
+node "$(git rev-parse --show-toplevel)/dev/run-browser-suites.js" || {
+  echo "" >&2
+  echo "Push blocked: a browser suite is red (details above). CI would have found it half an hour from now; fix it first." >&2
+  exit 1
+}

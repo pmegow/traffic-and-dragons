@@ -30,6 +30,7 @@ var SUITES = [
   "dev/tests-capture-prompt-heal.js",/* Thursday 2026-10-15: the prompt capture runs the game's load heal before it renders */
   "dev/tests-faq.js",/* #642: the player FAQ page renders TABLE_TALK_FAQ, escaped, with its two doors and the SW line */
   "dev/tests-633-companion-talk.js",/* #633: talk to your character — read-only, in their own voice, through the hear row; the engine pin *//* #631: the Car Mode seam — car-commands/car-session/audio-session name nothing outside themselves; CAR_HOST matches CAR_HOST_ROWS */
+  "dev/tests-652-pre-push.js",/* #652: the pre-push runs every Chrome-driven suite — the derived list, red on one failure, loud without Chrome, parity requires the installed hook */
   "dev/tests-646-ci-status.js",/* #646: the CI verdict at session start — the real six-day red, unknown never green, session-check relays it */
   "dev/tests-general-audio.js",
   "dev/tests-audio-cache.js",
