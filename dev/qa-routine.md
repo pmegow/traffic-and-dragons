@@ -1,5 +1,9 @@
 # The QA routine — the bug feed every eight hours, in the cloud
 
+> **DISABLED 2026-10-21 (owner ruling, TODO #653):** the routine is paused (`enabled: false`); it read untrusted bug
+> reports and then acted in the repo, and a prompt is not a wall against a crafted report. Nothing below runs until
+> a design keeps report text away from every writing tool. The protocol stays for that day and for hand runs.
+
 *Read this when:* you ARE the cloud routine "TnD QA — bug feed every 8 hours" (its prompt sends you
 here), or you are changing what that routine does. The routine's prompt is a pointer to this file, so
 the protocol is versioned with the repo and changed by an ordinary commit — the routine itself
