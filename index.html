@@ -130,7 +130,7 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 .hpt{font-size:11px;color:var(--t1);width:48px;text-align:right}.mbdg{font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid var(--brd);color:var(--t2)}
 #story-area{flex:1;display:flex;overflow:hidden;position:relative}
 /* #650: the roll overlay (ui-dice.js) — the clip over the dimmed story; the transparent WebM floats the die, the felt MP4 reads as a tray */
-.dice-roll{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.45);z-index:50;cursor:pointer;transform:translateZ(0)}/* no fade-in: the clip opens on empty felt anyway, and one fewer way for the overlay to sit at opacity 0. z-index 50 + its own compositing layer: the phone's scroller must never paint over the die */
+.dice-roll{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:transparent;z-index:50;cursor:pointer;transform:translateZ(0)}/* no backdrop (owner 2026-10-21: a dark band in light mode) — the die and its shadow float over the story as they are. No fade-in: the clip opens on empty felt anyway, and one fewer way for the overlay to sit at opacity 0. z-index 50 + its own compositing layer: the phone's scroller must never paint over the die */
 .dice-roll video,.dice-roll canvas{width:100%;max-width:800px;max-height:100%;object-fit:contain;border-radius:var(--r);display:block}
 .dice-roll video.dice-stacked-src{position:absolute;width:2px;height:1px;opacity:0;pointer-events:none}/* the stacked clip plays hidden; the canvas shows it */
 .dice-roll.out{opacity:0;transition:opacity .25s}

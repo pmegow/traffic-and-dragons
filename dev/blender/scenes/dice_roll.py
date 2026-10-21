@@ -244,9 +244,10 @@ optional(lambda: setattr(fill.data, "use_shadow", False), "fill light shadow")  
 fill.constraints.new("TRACK_TO").target = aim
 
 # THE READING RULE (owner 2026-10-19): the number that lands up ends RIGHT SIDE UP for the viewer.
-# Every numeral's spin about its own face normal is chosen at the LAST frame so that its "up"
-# is the camera's screen-up projected onto that face — the up face reads upright, and the
-# side faces still in view lean the way a real die's would. The die itself is never moved.
+# The up face's numeral is spun about its face normal at the LAST frame so that its "up" is the
+# camera's screen-up projected onto that face. ONLY the up face (owner 2026-10-21): with every
+# numeral squared to the camera the die looked printed on, not rolled — the other nineteen keep
+# their natural spin. The die itself is never moved.
 scene.frame_set(A["frames"])
 bpy.context.view_layer.update()
 rot_end = die.matrix_world.to_3x3()
@@ -293,7 +294,9 @@ for p in polys:
     n = p.normal.normalized()
     txt.parent = die
     txt.location = center + n * 0.004
-    txt.rotation_euler = upright_rotation(n)
+    # only the face that lands up reads upright; the other nineteen keep their natural spin (owner 2026-10-21:
+    # every numeral squared to the camera looked printed on, not rolled)
+    txt.rotation_euler = upright_rotation(n) if p.index == up_index else n.to_track_quat("Z", "Y").to_euler()
 
 # render
 result = {"scene": "dice_roll", "out": A["out"], "frames": A["frames"], "fps": A["fps"], "seed": A["seed"],

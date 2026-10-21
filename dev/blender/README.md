@@ -73,10 +73,11 @@ die as black with alpha; the fill light casts no shadow (its penumbra measured a
 use the Standard view transform — a new scene's default AgX re-graded the frames and squeezed the matte's
 white to 207, a die the story showed through.
 
-Three scene rules the clips depend on (dice_roll.py): the numerals are spun about their face normals at
-the LAST frame so the result reads right side up from the camera (owner 2026-10-19), and the nineteen
-other faces fade to 75% of the bone colour over the last twelve frames so the result pops (owner
-2026-10-20) — a die dim through the tumble would look loaded.
+Three scene rules the clips depend on (dice_roll.py): the UP face's numeral is spun about its face normal
+at the LAST frame so the result reads right side up from the camera (owner 2026-10-19) — only that one,
+since every numeral squared to the camera looked printed on rather than rolled (owner 2026-10-21); the
+nineteen other faces fade to 75% of the bone colour over the last twelve frames so the result pops
+(owner 2026-10-20) — a die dim through the tumble would look loaded; and the shadow pass above.
 
 ## Proof
 

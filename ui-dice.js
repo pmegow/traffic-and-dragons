@@ -55,8 +55,7 @@ function showDiceRoll(face,opts){
 function testDiceRoll(){
   if(!worldState||!worldState.character){showToast("Start a game first.");return;}
   var face=rollD20();
-  if(showDiceRoll(face))showToast("Test roll: "+face);
-  else showToast("The roll clip did not open here (Car Mode, reduced motion, or no story area).");
+  if(!showDiceRoll(face))showToast("The roll clip did not open here (Car Mode, reduced motion, or no story area).");/* no toast on success (owner 2026-10-21): the die says the number */
 }
 /* The stacked-alpha recombiner: draws each video frame to a work canvas, reads the two halves, runs the pure
    diceStackedRecombine (helpers.js) and paints the result. Frames arrive through
