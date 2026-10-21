@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dice review</title>
+<!-- dev/dice-review.html — every d20 roll clip (#650) on one page, for the owner's eye: the twenty WebMs from
+     dice/manifest.json with their seeds and turn counts, play-all, and a light/dark ground to judge the shadow.
+     A dev page: served network-first, no palette contract, no game code. Shows the VP9 WebM — Chrome, Edge or
+     Firefox; WebKit would show a black box (the game recombines the stacked MP4 for it, this page does not). -->
+<style>
+  body{margin:0;font:14px/1.4 system-ui,sans-serif;background:#141c24;color:#ddd;transition:background .2s}
+  body.light{background:#f1ead9;color:#222}
+  header{position:sticky;top:0;display:flex;gap:12px;align-items:center;padding:10px 16px;background:rgba(0,0,0,.35);backdrop-filter:blur(4px)}
+  body.light header{background:rgba(255,255,255,.5)}
+  button{font:inherit;padding:6px 12px;border-radius:6px;border:1px solid #888;background:transparent;color:inherit;cursor:pointer}
+  button:hover{border-color:#e8a33d}
+  #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:14px;padding:14px}
+  .card{display:flex;flex-direction:column;gap:4px}
+  .card video{width:100%;aspect-ratio:2/1;display:block;cursor:pointer}
+  .lbl{display:flex;justify-content:space-between;font-size:13px;opacity:.85;padding:0 2px}
+  .lbl b{font-size:16px}
+  .warn{color:#e07a4a}
+  #status{opacity:.7;margin-left:auto}
+</style>
+</head>
+<body>
+<header>
+  <button id="play">Play all</button>
+  <button id="restart">Restart all</button>
+  <button id="ground">Light ground</button>
+  <label><input type="checkbox" id="loop" checked> loop</label>
+  <span id="status">loading manifest…</span>
+</header>
+<div id="grid"></div>
+<script>
+(function(){
+  var grid=document.getElementById("grid"),status=document.getElementById("status"),vids=[];
+  function pad(n){return (n<10?"0":"")+n;}
+  function kb(n){return Math.round(n/1024)+" KB";}
+  function card(n,c){
+    var d=document.createElement("div");d.className="card";
+    var v=document.createElement("video");v.src="../dice/d20_"+pad(n)+".webm";v.muted=true;v.loop=true;v.playsInline=true;v.preload="metadata";v.title="click: play / pause";
+    v.onclick=function(){if(v.paused)v.play();else v.pause();};
+    var l=document.createElement("div");l.className="lbl";
+    var turns=c&&c.turns!=null?c.turns.toFixed(1)+" turns":"turns unknown";
+    l.innerHTML="<b>"+n+"</b><span"+(c&&c.turns!=null&&c.turns<2?" class='warn'":"")+">"+turns+"</span><span>"+(c?"seed "+c.seed+" · "+kb(c.webm):"not in manifest")+"</span>";
+    d.appendChild(v);d.appendChild(l);grid.appendChild(d);vids.push(v);
+  }
+  fetch("../dice/manifest.json?t="+Date.now()).then(function(r){return r.json();}).then(function(m){
+    for(var n=1;n<=20;n++)card(n,m.clips&&m.clips[pad(n)]);
+    status.textContent="rendered "+(m.rendered||"?")+" · "+m.frames+" frames at "+m.fps+" fps";
+  }).catch(function(e){status.textContent="manifest failed: "+e;status.className="warn";});
+  document.getElementById("play").onclick=function(){vids.forEach(function(v){v.play();});};
+  document.getElementById("restart").onclick=function(){vids.forEach(function(v){v.currentTime=0;v.play();});};
+  document.getElementById("loop").onchange=function(e){vids.forEach(function(v){v.loop=e.target.checked;});};
+  document.getElementById("ground").onclick=function(){var light=document.body.classList.toggle("light");this.textContent=light?"Dark ground":"Light ground";};
+})();
+</script>
+</body>
+</html>
