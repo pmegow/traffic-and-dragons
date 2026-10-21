@@ -33,6 +33,7 @@
   <span id="status">loading manifest…</span>
 </header>
 <div id="grid"></div>
+<script src="../dice/manifest.js"></script>
 <script>
 (function(){
   var grid=document.getElementById("grid"),status=document.getElementById("status"),vids=[];
@@ -47,10 +48,15 @@
     l.innerHTML="<b>"+n+"</b><span"+(c&&c.turns!=null&&c.turns<2?" class='warn'":"")+">"+turns+"</span><span>"+(c?"seed "+c.seed+" · "+kb(c.webm):"not in manifest")+"</span>";
     d.appendChild(v);d.appendChild(l);grid.appendChild(d);vids.push(v);
   }
-  fetch("../dice/manifest.json?t="+Date.now()).then(function(r){return r.json();}).then(function(m){
+  function show(m){
     for(var n=1;n<=20;n++)card(n,m.clips&&m.clips[pad(n)]);
     status.textContent="rendered "+(m.rendered||"?")+" · "+m.frames+" frames at "+m.fps+" fps";
-  }).catch(function(e){status.textContent="manifest failed: "+e;status.className="warn";});
+  }
+  // dice/manifest.js (written by the batch beside manifest.json) loads from disk and from the site alike;
+  // a page opened from file:// cannot fetch(), which is how the owner first opened it (2026-10-21)
+  if(typeof DICE_MANIFEST!=="undefined")show(DICE_MANIFEST);
+  else fetch("../dice/manifest.json?t="+Date.now()).then(function(r){return r.json();}).then(show)
+    .catch(function(e){status.textContent="manifest failed: "+e+" — run the batch (it writes dice/manifest.js) or open the page from the site";status.className="warn";});
   document.getElementById("play").onclick=function(){vids.forEach(function(v){v.play();});};
   document.getElementById("restart").onclick=function(){vids.forEach(function(v){v.currentTime=0;v.play();});};
   document.getElementById("loop").onchange=function(e){vids.forEach(function(v){v.loop=e.target.checked;});};

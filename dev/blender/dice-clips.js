@@ -95,6 +95,8 @@ async function main() {
   done.results.forEach(function (r) { manifest.clips[pad(r.result)] = { seed: r.seed, turns: r.turns, webm: r.webm, stacked: r.stacked }; });
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  // the same manifest as a script, for dev/dice-review.html opened from disk (a file:// page cannot fetch())
+  fs.writeFileSync(path.join(OUT, "manifest.js"), "var DICE_MANIFEST = " + JSON.stringify(manifest) + ";\n");
   var total = Object.keys(manifest.clips).reduce(function (s, k) { return s + manifest.clips[k].webm + manifest.clips[k].stacked; }, 0);
   console.log((done.results.length + " of " + wanted.length + " results in " + ((Date.now() - t0) / 1000).toFixed(0) + "s; ") + Object.keys(manifest.clips).length + " clips in manifest, " + (total / 1024 / 1024).toFixed(1) + " MB → " + OUT);
   if (done.failures.length) { console.error(done.failures.length + " FAILED"); process.exit(1); }
