@@ -40,6 +40,24 @@ process.exit(sabotage.prove({
       mustFail: "window.__bugTrackerTest must expose",
       find: "window.__bugTrackerTest={",
       replace: "window.__bugTrackerTestMissing={"
+    },
+    {
+      label: "#651 QA activity value bypasses its inert sink",
+      mustFail: "el(\"span\",\"actval\",val)",
+      find: "el(\"span\",\"actval\",val)",
+      replace: "el(\"span\",\"actval\",String(val))"
+    },
+    {
+      label: "#651 an unreadable activity log is swallowed instead of said",
+      mustFail: "unreadable DOC/QA_ACTIVITY.md must be said",
+      find: ".catch(function(e){renderActivitySection(wrap,[],e.message);})",
+      replace: ".catch(function(e){})"
+    },
+    {
+      label: "#651 the activity parser leaves the seam",
+      mustFail: "parseActivity, renderActivitySection",
+      find: "  parseActivity:parseActivity,\n",
+      replace: ""
     }
   ]
 }));

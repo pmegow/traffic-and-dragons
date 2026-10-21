@@ -32,6 +32,7 @@ var SUITES = [
   "dev/tests-633-companion-talk.js",/* #633: talk to your character — read-only, in their own voice, through the hear row; the engine pin *//* #631: the Car Mode seam — car-commands/car-session/audio-session name nothing outside themselves; CAR_HOST matches CAR_HOST_ROWS */
   "dev/tests-652-pre-push.js",/* #652: the pre-push runs every Chrome-driven suite — the derived list, red on one failure, loud without Chrome, parity requires the installed hook */
   "dev/tests-646-ci-status.js",/* #646: the CI verdict at session start — the real six-day red, unknown never green, session-check relays it */
+  "dev/tests-651-qa-activity.js",/* #651: the QA Agent Activity section — the parser lifted out of bug_tracker.html by its markers, run over the real DOC/QA_ACTIVITY.md and hostile shapes */
   "dev/tests-general-audio.js",
   "dev/tests-audio-cache.js",
   "dev/tests-accent-layer.js",

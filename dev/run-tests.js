@@ -2310,7 +2310,8 @@ try {
   [
     'el("pre","report",b.report)',
     'el("pre","report",body)',
-    'el("div","sectext",text)'
+    'el("div","sectext",text)',
+    'el("span","actval",val)' /* #651: every QA-activity value (the routine's log, read off the same origin) stays inert too */
   ].forEach(function(sink) {
     if (_codeBT.indexOf(sink) < 0) {
       console.error("BUG TRACKER INJECTION CONTRACT: report-derived text no longer reaches the pinned inert sink: " + sink);
@@ -2320,6 +2321,17 @@ try {
   if (_codeBT.indexOf("window.__bugTrackerTest") < 0 ||
       !/window\.__bugTrackerTest\s*=\s*\{[\s\S]*?parseBugs\s*:\s*parseBugs[\s\S]*?renderBug\s*:\s*renderBug[\s\S]*?renderFeedReport\s*:\s*renderFeedReport/.test(_codeBT)) {
     console.error("BUG TRACKER CONTRACT: window.__bugTrackerTest must expose parseBugs, renderBug, and renderFeedReport so the untrusted render paths stay browser-drivable.");
+    process.exit(1);
+  }
+  /* #651: the QA Agent Activity section — its parser is lifted by markers into dev/tests-651-qa-activity.js, its
+     renderers ride the seam, and an unreadable log is SAID on the page (the catch path renders the error text). */
+  if (_scriptMatchBT[1].indexOf("// ── QA activity (pure)") < 0 || _scriptMatchBT[1].indexOf("// ── QA activity (DOM)") < 0 || /* the markers are comments — read the raw script, not the stripped copy */
+      !/window\.__bugTrackerTest\s*=\s*\{[\s\S]*?parseActivity\s*:\s*parseActivity[\s\S]*?renderActivitySection\s*:\s*renderActivitySection/.test(_codeBT)) {
+    console.error("BUG TRACKER CONTRACT: the QA activity parser must sit between its two markers and ride the seam (parseActivity, renderActivitySection) so dev/tests-651-qa-activity.js can lift and drive it.");
+    process.exit(1);
+  }
+  if (!/\.catch\(function\(e\)\{renderActivitySection\(wrap,\[\],e\.message\);\}\)/.test(_codeBT)) {
+    console.error("BUG TRACKER CONTRACT: an unreadable DOC/QA_ACTIVITY.md must be said on the page — loadActivity's catch no longer renders the error text (a blank section would hide a dead routine).");
     process.exit(1);
   }
   console.log("[bug-tracker] contract OK — report fields stay inert and browser seam is present");

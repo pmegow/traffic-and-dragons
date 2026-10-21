@@ -16,6 +16,11 @@
   SECURITY: every report-derived string is inserted via textContent / createTextNode — never
   innerHTML — because report bodies are untrusted field data (a <script> in a bug report must
   render as text, not run). Keep it that way when editing.
+
+  QA AGENT ACTIVITY (#651, owner call 2026-10-20): the section between Open and Completed reads
+  DOC/QA_ACTIVITY.md, the cloud QA routine's run log (one entry per run, newest first; the format
+  contract is in that file's header, the protocol in dev/qa-routine.md). The pure parser is lifted
+  by its markers into dev/tests-651-qa-activity.js; a log that cannot be read is SAID on the page.
 -->
 <link rel="stylesheet" href="satellite.css">
 <style>
@@ -83,6 +88,16 @@
         color:var(--dim);}
   .note b{color:var(--ink);}
   .err{border-color:var(--bad);}
+  /* QA Agent Activity (#651): one compact card per routine run, newest first; quiet runs muted,
+     runs that reported failures rimmed in the bad color */
+  .card.act{padding:10px 14px;margin-bottom:8px;}
+  .card.act.noop{opacity:.55;}
+  .card.act.fail{border-color:var(--bad);}
+  .actwhen{font-family:Consolas,Menlo,monospace;color:var(--acc);font-weight:700;}
+  .actrun{color:var(--dim);font-size:12px;font-family:Consolas,Menlo,monospace;}
+  .actline{font-size:13px;color:#c8c8c8;margin-top:4px;white-space:pre-wrap;word-break:break-word;}
+  .actline.failline .actval{color:var(--bad);}
+  .actkey{color:var(--dim);text-transform:uppercase;font-size:11px;letter-spacing:.06em;margin-right:8px;}
 </style>
 </head>
 <body>
@@ -312,6 +327,101 @@ function loadFeed(filedIds){
   });
 }
 
+// ── QA activity (pure) — DOC/QA_ACTIVITY.md, the cloud QA routine's run log (dev/qa-routine.md ▸ 5) ──
+// Format contract in that file's header: one entry per run, "## <UTC time> · <run id>", then
+// "- key: value" bullets. dev/tests-651-qa-activity.js lifts this block by its two markers and runs
+// it in node, so keep it DOM-free and ES5.
+function parseActivity(md){
+  var entries=[],parts=String(md||"").split(/^## /m),i;
+  for(i=1;i<parts.length;i++){
+    var block=parts[i],nl=block.indexOf("\n");
+    var head=(nl<0?block:block.slice(0,nl)).trim(),body=nl<0?"":block.slice(nl+1);
+    var hm=head.match(/^(\S+)\s+·\s+(\S+)\s*$/);
+    if(!hm)continue; // prose headings (the contract text) carry no "·" separator
+    var e={when:hm[1],run:hm[2],lines:[]};
+    body.split("\n").forEach(function(ln){
+      var m=ln.match(/^-\s+([a-z][\w-]*):\s*(.*)$/);
+      if(m)e.lines.push({key:m[1],value:m[2].trim()});
+    });
+    entries.push(e);
+  }
+  return entries;
+}
+function activityValue(e,key){
+  var i;for(i=0;i<e.lines.length;i++)if(e.lines[i].key===key)return e.lines[i].value;
+  return "";
+}
+// A run's kind: "fail" when it reported failures; "noop" when it changed nothing (no filed / bumped /
+// investigated / fixed line and master unchanged); else "work".
+function activityKind(e){
+  if(activityValue(e,"failures"))return "fail";
+  var work=["filed","bumped","investigated","fixed"].some(function(k){return !!activityValue(e,k);});
+  if(!work&&/^unchanged\b/i.test(activityValue(e,"master")||"unchanged"))return "noop";
+  return "work";
+}
+function activityHeadline(entries){
+  if(!entries.length)return "QA Agent Activity (no runs logged yet)";
+  var fails=entries.filter(function(e){return activityKind(e)==="fail";}).length;
+  return "QA Agent Activity ("+entries.length+" run"+(entries.length===1?"":"s")+" · last "+entries[0].when
+    +(fails?" · "+fails+" with failures":"")+")";
+}
+// ── QA activity (DOM) ──
+function actLine(key,val,fail){
+  var d=el("div","actline"+(fail?" failline":""));
+  d.appendChild(el("span","actkey",key));
+  d.appendChild(el("span","actval",val)); // textContent only — the routine's own words, still inert
+  return d;
+}
+function renderActivityEntry(e){
+  var kind=activityKind(e);
+  var card=el("div","card act"+(kind==="noop"?" noop":kind==="fail"?" fail":""));
+  var r1=el("div","row1");
+  r1.appendChild(el("span","actwhen",e.when));
+  r1.appendChild(el("span","actrun",e.run));
+  r1.appendChild(el("span","badge "+(kind==="fail"?"b-bad":kind==="noop"?"b-dim":"b-good"),
+    kind==="fail"?"failures":kind==="noop"?"quiet":"work"));
+  card.appendChild(r1);
+  e.lines.forEach(function(l){card.appendChild(actLine(l.key,l.value,l.key==="failures"));});
+  return card;
+}
+// The section sits between Open and Completed (owner call 2026-10-20). A log that cannot be read is
+// SAID — a blank section would hide a dead routine (no silent failures). errText non-null = the
+// fetch failed; entries then do not matter.
+var ACTIVITY_VISIBLE=12;
+function renderActivitySection(wrap,entries,errText){
+  wrap.textContent="";
+  if(errText!=null){
+    wrap.appendChild(el("h2","sect","QA Agent Activity"));
+    var n=el("div","note err");
+    n.appendChild(el("b",null,"QA activity log unavailable — "+errText+". "));
+    n.appendChild(document.createTextNode(
+      "The cloud QA routine writes DOC/QA_ACTIVITY.md on every run (dev/qa-routine.md) — check that the file exists at this origin."));
+    wrap.appendChild(n);
+    return;
+  }
+  wrap.appendChild(el("h2","sect",activityHeadline(entries)));
+  if(!entries.length){
+    wrap.appendChild(el("div","note","No QA runs logged yet — the routine appends one entry per run."));
+    return;
+  }
+  entries.slice(0,ACTIVITY_VISIBLE).forEach(function(e){wrap.appendChild(renderActivityEntry(e));});
+  if(entries.length>ACTIVITY_VISIBLE){
+    var older=el("details");
+    older.appendChild(el("summary",null,"Show "+(entries.length-ACTIVITY_VISIBLE)+" older runs"));
+    entries.slice(ACTIVITY_VISIBLE).forEach(function(e){older.appendChild(renderActivityEntry(e));});
+    wrap.appendChild(older);
+  }
+}
+function loadActivity(){
+  var wrap=document.getElementById("actwrap");
+  if(!wrap)return;
+  fetch("DOC/QA_ACTIVITY.md",{cache:"no-store"}).then(function(r){
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.text();
+  }).then(function(md){renderActivitySection(wrap,parseActivity(md),null);})
+  .catch(function(e){renderActivitySection(wrap,[],e.message);});
+}
+
 function render(md){
   var root=document.getElementById("content");
   root.textContent="";
@@ -334,6 +444,10 @@ function render(md){
   root.appendChild(el("h2","sect","Open ("+open.length+")"));
   if(!open.length)root.appendChild(el("div","note","No open bugs. Run /bugs sync in Claude Code to pull new reports."));
   open.forEach(function(b){root.appendChild(renderBug(b));});
+  // QA Agent Activity (#651) — between Open and Completed; filled by its own fetch so a missing log
+  // can never blank the bug list, and a missing log is said in its place.
+  root.appendChild(el("div",null,"")).id="actwrap";
+  loadActivity();
   // The Completed frame is a real collapsible (default closed) — the list is long-lived and
   // read rarely; the count on the summary keeps it honest while folded.
   var doneDet=el("details");doneDet.className="done-frame";
@@ -368,7 +482,12 @@ window.__bugTrackerTest={
   parseBugs:parseBugs,
   renderBug:renderBug,
   renderFeedReport:renderFeedReport,
-  render:render
+  render:render,
+  parseActivity:parseActivity,
+  activityKind:activityKind,
+  activityHeadline:activityHeadline,
+  renderActivityEntry:renderActivityEntry,
+  renderActivitySection:renderActivitySection
 };
 
 document.getElementById("btn-reload").onclick=load;
