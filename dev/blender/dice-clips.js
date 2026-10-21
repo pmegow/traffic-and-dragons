@@ -20,7 +20,7 @@ var ROOT = path.join(__dirname, "..", "..");
 var RENDER = path.join(__dirname, "render.js");
 var OUT = path.join(ROOT, "dice");
 var SCRATCH = path.join(ROOT, "renders", "dice-clips");
-var SIZE = "800x400", FRAMES = 72, FPS = 24, TRIES = 6;
+var SIZE = "800x400", FRAMES = 84, FPS = 24, TRIES = 6;   // 3.5 s: the harder throw (2026-10-21) needs the extra half second to come to rest
 
 function parseArgs(argv) {
   var o = { only: null, jobs: 4 };

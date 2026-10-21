@@ -125,10 +125,10 @@ def rigid(obj, body_type, shape):
     return rb
 
 g = rigid(ground, "PASSIVE", "BOX")
-g.friction, g.restitution = 0.7, 0.2
+g.friction, g.restitution = 0.9, 0.2
 d = rigid(die, "ACTIVE", "CONVEX_HULL")
-d.mass, d.friction, d.restitution = 0.03, 0.6, 0.35
-d.angular_damping, d.linear_damping = 0.15, 0.05
+d.mass, d.friction, d.restitution = 0.03, 0.8, 0.3
+d.angular_damping, d.linear_damping = 0.35, 0.15   # a little more than before: the harder throw must still settle inside the clip
 rbw = scene.rigidbody_world
 rbw.point_cache.frame_start, rbw.point_cache.frame_end = 1, A["frames"]
 optional(lambda: setattr(rbw, "substeps_per_frame", 20), "rigidbody substeps")
@@ -137,10 +137,12 @@ optional(lambda: setattr(rbw, "solver_iterations", 20), "rigidbody solver iterat
 # the throw: the die is animated (kinematic) over frames 1-3, then released at 4 and keeps the
 # velocity it had — Blender's standard way to give a rigid body an initial push and spin.
 rng = random.Random(A["seed"])
-start = Vector((-1.2, rng.uniform(-0.3, 0.3), 1.3))
-# per-frame displacement and turn over the two kinematic frames: ~2.5 units/s and ~8 rad/s at 24 fps
-push = Vector((rng.uniform(0.09, 0.13), rng.uniform(-0.03, 0.03), -0.03))
-spin = Vector((rng.uniform(-0.35, 0.35), rng.uniform(-0.35, 0.35), rng.uniform(-0.35, 0.35)))
+start = Vector((-1.6, rng.uniform(-0.3, 0.3), 1.5))
+# per-frame displacement and turn over the two kinematic frames: ~4 units/s and ~20 rad/s at 24 fps — a real throw,
+# not a drop: the die turns over a few times before it comes to rest (owner 2026-10-21: the old ~2.5 u/s, ~8 rad/s
+# read as dropped from just above the table). The sign of each spin axis is the seed's; the size is not.
+push = Vector((rng.uniform(0.15, 0.18), rng.uniform(-0.04, 0.04), -0.02))
+spin = Vector((rng.choice((-1, 1)) * rng.uniform(0.7, 1.0), rng.choice((-1, 1)) * rng.uniform(0.7, 1.0), rng.choice((-1, 1)) * rng.uniform(0.3, 0.6)))
 die.rotation_euler = (rng.uniform(0, 6.28), rng.uniform(0, 6.28), rng.uniform(0, 6.28))
 die.location = start
 die.keyframe_insert("location", frame=1)
@@ -182,11 +184,11 @@ for p in die.data.polygons:
     z = (rot @ p.normal).normalized().z
     if z > best:
         best, up_index = z, p.index
-end_loc, end_rot = mw.translation.copy(), mw.to_euler()
+end_loc, end_quat = mw.translation.copy(), mw.to_quaternion()
 scene.frame_set(A["frames"] - 1)
 prev = die.matrix_world
 moved = (prev.translation - end_loc).length
-turned = sum(abs(a - b) for a, b in zip(prev.to_euler(), end_rot))
+turned = prev.to_quaternion().rotation_difference(end_quat).angle   # the true angle between the two frames; Euler differences wrap by 2*pi and once read a resting die as "turned 8.07"
 settled = moved < 0.002 and turned < 0.01
 if not settled:
     print("WARN the die had not settled by frame %d (moved %.4f, turned %.4f) — raise --frames" % (A["frames"], moved, turned))
