@@ -9,7 +9,8 @@
 //   node dev/blender/dice-clips.js --jobs 2        fewer Blender processes side by side
 //
 // A result's seed starts at the result number and steps by 20 until the die has SETTLED by the
-// last frame (the scene's own verdict); an unsettled roll is never shipped. Both clips of a result
+// last frame AND turned over at least MIN_TURNS times (the scene's own verdicts); an unsettled roll
+// or a lazy one is never shipped. Both clips of a result
 // come from one render, so they are the same roll. The manifest records every seed — rerunning
 // reproduces the clips byte-for-byte short of encoder drift.
 var fs = require("fs");
@@ -20,7 +21,7 @@ var ROOT = path.join(__dirname, "..", "..");
 var RENDER = path.join(__dirname, "render.js");
 var OUT = path.join(ROOT, "dice");
 var SCRATCH = path.join(ROOT, "renders", "dice-clips");
-var SIZE = "800x400", FRAMES = 84, FPS = 24, TRIES = 6;   // 3.5 s: the harder throw (2026-10-21) needs the extra half second to come to rest
+var SIZE = "800x400", FRAMES = 84, FPS = 24, TRIES = 8, MIN_TURNS = 1.5;   // turns ROLLED ON THE FELT (the scene's "turns"): under 1.5 the roll reads as a drop   // 3.5 s: the harder throw (2026-10-21) needs the extra half second to come to rest
 
 function parseArgs(argv) {
   var o = { only: null, jobs: 4 };
@@ -54,12 +55,13 @@ async function oneResult(result) {
     var rep = await render(result, seed);
     if (rep.up_number !== result) throw new Error("result " + result + ": the scene painted " + rep.up_number + " up");
     if (!rep.settled) { console.log("d20 " + pad(result) + ": seed " + seed + " had not settled, next seed"); continue; }
+    if (!(rep.turns >= MIN_TURNS)) { console.log("d20 " + pad(result) + ": seed " + seed + " turned only " + rep.turns + " times, next seed"); continue; }
     var webm = rep.videos.webm, stacked = rep.videos.stacked;
     fs.mkdirSync(OUT, { recursive: true });
     fs.copyFileSync(webm, path.join(OUT, path.basename(webm)));
     fs.copyFileSync(stacked, path.join(OUT, path.basename(stacked)));
-    console.log("d20 " + pad(result) + ": seed " + seed + " → " + path.basename(webm) + " " + kb(webm) + ", " + path.basename(stacked) + " " + kb(stacked));
-    return { result: result, seed: seed, webm: fs.statSync(webm).size, stacked: fs.statSync(stacked).size };
+    console.log("d20 " + pad(result) + ": seed " + seed + " (" + rep.turns + " turns) → " + path.basename(webm) + " " + kb(webm) + ", " + path.basename(stacked) + " " + kb(stacked));
+    return { result: result, seed: seed, turns: rep.turns, webm: fs.statSync(webm).size, stacked: fs.statSync(stacked).size };
   }
   throw new Error("result " + result + ": no settled roll in " + TRIES + " seeds");
 }
@@ -90,7 +92,7 @@ async function main() {
   var manifest = fs.existsSync(manifestPath) ? JSON.parse(fs.readFileSync(manifestPath, "utf8")) : { clips: {} };
   manifest.scene = "dice_roll"; manifest.size = SIZE; manifest.frames = FRAMES; manifest.fps = FPS;
   manifest.rendered = new Date().toISOString().slice(0, 10);
-  done.results.forEach(function (r) { manifest.clips[pad(r.result)] = { seed: r.seed, webm: r.webm, stacked: r.stacked }; });
+  done.results.forEach(function (r) { manifest.clips[pad(r.result)] = { seed: r.seed, turns: r.turns, webm: r.webm, stacked: r.stacked }; });
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
   var total = Object.keys(manifest.clips).reduce(function (s, k) { return s + manifest.clips[k].webm + manifest.clips[k].stacked; }, 0);

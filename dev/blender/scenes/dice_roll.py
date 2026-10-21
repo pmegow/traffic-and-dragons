@@ -175,6 +175,29 @@ for f in range(1, A["frames"] + 1, 10):
     path.append("f%d(%.2f,%.2f,%.2f)" % (f, t.x, t.y, t.z))
 print("SCENE path: " + " ".join(path))
 
+# how much did it tumble? the frame-to-frame rotation summed over the clip, in full turns — a roll that
+# settles without turning over is a drop (owner 2026-10-21: result 11's seed barely rolled); the batch
+# steps past a seed under MIN_TURNS.
+total_turn, tumble_turn, ground_turn, rest_frame = 0.0, 0.0, 0.0, None
+scene.frame_set(1)
+q_prev, p_prev = die.matrix_world.to_quaternion(), die.matrix_world.translation.copy()
+for f in range(2, A["frames"] + 1):
+    scene.frame_set(f)
+    q, pos = die.matrix_world.to_quaternion(), die.matrix_world.translation.copy()
+    d = q_prev.rotation_difference(q)
+    total_turn += d.angle
+    tumble = d.angle * math.sqrt(max(0.0, 1.0 - d.axis.z ** 2))   # the part about a horizontal axis — a spin on the spot is not a roll
+    tumble_turn += tumble
+    if pos.z < R + 0.12:                                           # on (or skimming) the felt: the turning the viewer reads as ROLLING
+        ground_turn += tumble
+    if rest_frame is None and (pos - p_prev).length < 0.002 and d.angle < 0.01:
+        rest_frame = f
+    elif not ((pos - p_prev).length < 0.002 and d.angle < 0.01):
+        rest_frame = None
+    q_prev, p_prev = q, pos
+turns = ground_turn / (2.0 * math.pi)
+print("SCENE turns: %.2f rolling on the felt (%.2f tumbling, %.2f in all), at rest from frame %s" % (turns, tumble_turn / (2.0 * math.pi), total_turn / (2.0 * math.pi), rest_frame))
+
 # where did it land? the up face at the last frame, and was it still moving?
 scene.frame_set(A["frames"])
 mw = die.matrix_world.copy()
@@ -225,13 +248,16 @@ assert sorted(labels.values()) == list(range(1, 21)), "every number 1..20 exactl
 # camera and lights — aimed at WHERE THE DIE LANDS (known now that the bake is done), so every
 # seed settles centred and the throw enters from the left edge; a fixed aim left the die small
 # and off in a corner (the 2026-10-19 reference frames).
-bpy.ops.object.empty_add(location=(end_loc.x, end_loc.y, 0.2))
+# aimed a little back toward the entry (owner 2026-10-21: aimed dead on the landing, the frame showed only the
+# last stretch of the roll — the bounce and the tumbling happened before the die came into view)
+AIM_BACK = 0.5
+bpy.ops.object.empty_add(location=(end_loc.x - AIM_BACK, end_loc.y, 0.2))
 aim = bpy.context.active_object
 aim.name = "Aim"
 # steep (about 64° up) and close, so the face that lands up is the face the viewer reads
-bpy.ops.object.camera_add(location=(end_loc.x - 0.4, end_loc.y - 2.0, 4.4))
+bpy.ops.object.camera_add(location=(end_loc.x - AIM_BACK - 0.4, end_loc.y - 2.0, 4.4))
 cam = bpy.context.active_object
-cam.data.lens = 42
+cam.data.lens = 38   # a touch wider than the first cut's 42: more of the roll in view, the die still readable
 cam.constraints.new("TRACK_TO").target = aim
 scene.camera = cam
 bpy.ops.object.light_add(type="SUN", location=(-2, -3, 6))
@@ -301,7 +327,7 @@ for p in polys:
 # render
 result = {"scene": "dice_roll", "out": A["out"], "frames": A["frames"], "fps": A["fps"], "seed": A["seed"],
           "engine": r.engine, "up_face": up_index, "up_number": labels[up_index], "requested": A["result"],
-          "settled": settled, "still": None, "video": None}
+          "settled": settled, "turns": round(turns, 2), "rest_frame": rest_frame, "still": None, "video": None}
 def shadow_pass():
     """THE SHADOW under a transparent die (owner 2026-10-20). EEVEE has no shadow catcher, so the shadow is
     MEASURED: a second pass renders the same frames opaque on the felt (felt_NNNN.png) plus one reference

@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261021c";
+var CACHE = "tnd-v3-20261021d";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -15,7 +15,7 @@ var PIPER_CACHE = "tnd-piper-v1";
 // in their own purge-exempt cache, like the Piper wasm. The name carries the batch date: a re-render of dice/
 // (dev/blender/dice-clips.js) bumps it, the activate purge drops the old cache, and the next roll fetches fresh
 // (within the one-day edge/browser cache _headers gives /dice/*).
-var DICE_CACHE = "tnd-dice-20261021c";
+var DICE_CACHE = "tnd-dice-20261021d";
 var APP_SHELL = [
   "/",
   "/globals.js",

@@ -65,7 +65,10 @@ the stacked clip and ui-dice.js recombines it on a canvas; `diceClipFormat` in h
 user agent. The stacked frames are built in the scene with numpy (bundled with Blender), no ffmpeg.
 The throw is a real one — about 4 units/s with ~20 rad/s of spin, so the die turns over a few times
 before it rests (owner 2026-10-21; the first cut read as a drop), which is why the clips run 84 frames.
-A result's seed starts at its number and steps by 20 until the die has settled by the last frame; the
+A result's seed starts at its number and steps by 20 until the die has settled by the last frame AND
+rolled at least 1.5 turns on the felt (the scene's `turns`: rotation about a horizontal axis while the
+die is down — air tumbling and spinning on the spot do not count; `dev/dice-review.html` shows every
+clip with its count); the
 manifest records every seed and size, and the #650 engine test refuses a batch with a clip missing.
 After a re-render bump `DICE_CACHE` in sw.js (the clips live in their own purge-exempt cache) and `CACHE`.
 
