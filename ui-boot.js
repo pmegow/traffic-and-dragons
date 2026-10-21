@@ -98,8 +98,7 @@ function buildFileMenus(){
     // non-admin never sees an empty drawer); Render Options became operator-only with the move.
     var dev=btn(p+"llm","🧠 Language Model&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"usage","📊 Usage &amp; cost&hellip;",0,{cls:"fm-dev-only"})
-      +btn(p+"fal-key","🖼 Render Options&hellip;",0,{cls:"fm-dev-only"})
-      +btn(p+"test-roll","🎲 Test roll",0,{cls:"fm-dev-only"});/* #650 TEMPORARY (owner 2026-10-20): plays a random roll clip without a check; remove when the clip is signed off */
+      +btn(p+"fal-key","🖼 Render Options&hellip;",0,{cls:"fm-dev-only"});
     var dm=chk(p+"dark-cb","🌙 Dark mode",0)/* #634: default on; off = the light palette (ui-modals.js loadTheme/toggleDarkMode) */
       +chk(p+"font-lg","Large text",0)
       +drawer(p+"audio",p+"audiomenu","🔊 Audio",0,null,aud)
@@ -198,7 +197,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
     // Toggle button
     if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);var opening=mu.style.display!=="block";if(opening)resetFileSubmenus(mu);mu.style.display=opening?"block":"none";});}
     // Items that close the menu then call a function
-    [["campaigns",showCampaignPicker],["account",showAccountModal],["bugreport",showBugReportModal],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["fal-key",showRenderOptionsModal],["test-roll",testDiceRoll],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
+    [["campaigns",showCampaignPicker],["account",showAccountModal],["bugreport",showBugReportModal],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
     });
     // Direct click handlers (no close needed)
