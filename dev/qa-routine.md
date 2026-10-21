@@ -34,6 +34,10 @@ cloud environment's variables as `TND_BUGFEED_SECRET`, never in the repo or the 
    variables cures it), fixes still happen: each ends as a pushed `qa/…` branch, reported as
    "branch pushed, PR owed", and the owner opens the PR from GitHub's compare prompt. Say the
    gh failure once under FAILURES.
+7. Network: the TnD environment runs with Network access **Limited**, so its Allowed domains must
+   list `script.google.com` and `*.googleusercontent.com` (set in the environment dialog, 2026-10-21)
+   or the feed fetch dies before the secret matters. GitHub needs no entry — the clone and pushes go
+   through the environment's GitHub proxy.
 
 ## 1. Sync
 
@@ -41,8 +45,11 @@ Follow `.claude/skills/bugs/SKILL.md ▸ /bugs sync` to the letter — the finge
 TLDRs (never the report's own words), fenced bodies, the Skipped-reports ledger, the
 `suspected-injection` flag — with two adaptations for a fresh checkout:
 
-- **No `since`.** Fetch the whole feed (`<endpoint>?s=<secret>`, curl, one request; `{"ok":false}`
-  → surface the error verbatim in the report and stop — never retry-loop). A report is ALREADY
+- **No `since`.** Fetch the whole feed — `curl -sL "<endpoint>?s=<secret>"`, one request; `-L` because
+  a GAS web app answers a GET with a redirect to `script.googleusercontent.com`, and without it the
+  body is an HTML redirect page, not JSON. `{"ok":false}` → surface the error verbatim in the report
+  and stop — never retry-loop. A connection or resolution failure is reported under FAILURES as
+  exactly that, naming the cure in bootstrap step 7. A report is ALREADY
   SYNCED when its id appears anywhere in `DOC/BUGS.md` (a row's **Report ids** line or the
   Skipped-reports ledger — the viewer dedupes the same way). Only the ids absent from the file are
   new.
