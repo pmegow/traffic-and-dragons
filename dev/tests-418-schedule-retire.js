@@ -29,7 +29,7 @@ var sources = [];
 global.document = { getElementById: function() { return null; }, addEventListener: function() {}, removeEventListener: function() {} };
 global.window = { AudioContext: function() {
   this.state = "running"; this.currentTime = 0; this.sampleRate = 24000; this.destination = { id: "dest" };
-  this.createGain = function() { return { gain: {}, connect: function() {} }; };
+  this.createGain = function() { var g = { gain: {}, connected: null, connect: function(to) { g.connected = to; } }; return g; };   /* #657: the master node records its output */
   this.createBuffer = function(c, n, r) { return { duration: n / r, getChannelData: function() { return new Float32Array(n); } }; };
   var ctx = this;
   this.createBufferSource = function() {
@@ -48,7 +48,7 @@ async function test(name, fn) {
 }
 
 (async function() {
-  await test("the helper schedules at max(nextStart, now + 30 ms) on the destination, counts the source, tracks it, returns start + duration + gap, and on end disconnects, detaches the buffer, drops it from _sources and calls onEnded once", async function() {
+  await test("the helper schedules at max(nextStart, now + 30 ms) through the master node to the destination (#657), counts the source, tracks it, returns start + duration + gap, and on end disconnects, detaches the buffer, drops it from _sources and calls onEnded once", async function() {
     var ctx = new global.window.AudioContext(); ctx.currentTime = 1.0;
     var buf = { duration: 2 }, ended = 0, before = S.ctxSynths();
     var next = S.scheduleDecoded(ctx, buf, 0.5, 0.2, function() { ended++; });
@@ -56,7 +56,9 @@ async function test(name, fn) {
     assert.ok(src, "a source was started");
     assert.equal(src.startedAt, 1.03, "never in the past: now + 30 ms beats a stale nextStart");
     assert.equal(next, 1.03 + 2 + 0.2, "next start = start + duration + gap");
-    assert.equal(src.connected, ctx.destination, "connected to the destination");
+    assert.ok(src.connected && src.connected !== ctx.destination && src.connected.gain, "connected to the master gain node, never straight to the destination (#657)");
+    assert.equal(src.connected.connected, ctx.destination, "the master node feeds the destination");
+    assert.equal(src.connected.gain.value, AudioMaster.gain(), "the master node is born at AudioMaster.gain()");
     assert.equal(src.buffer, buf, "the decoded buffer rides the source until it ends");
     assert.equal(S.ctxSynths(), before + 1, "counted on the current context (B9 H1)");
     assert.ok(S.sources().indexOf(src) >= 0, "tracked in _sources for stop()/skip()");
@@ -69,6 +71,7 @@ async function test(name, fn) {
     assert.equal(ended, 2, "a second onended is the lane's problem, never a throw");
     var later = S.scheduleDecoded(ctx, { duration: 1 }, 5, 0.1, null);
     assert.equal(sources[1].startedAt, 5, "a future nextStart is honoured as is");
+    assert.equal(sources[1].connected, src.connected, "ONE master node per context — the second source shares it (#657)");
     assert.equal(later, 6.1); sources[1].onended();
   });
   await test("the cloud lane end to end: a Speechify audition's groups all retire through the helper — buffers null, _sources empty, playback idle after the last end", async function() {

@@ -39,6 +39,7 @@ var ENGINE_MANIFEST = [
   { file: "table-talk.js",         sym: "ttMenuOutline" },
   { file: "campaign_generator.js", sym: "validateSkeletonStructure" },
   { file: "game.js",               sym: "checkLevelUp" },
+  { file: "audio-master.js",       sym: "AudioMaster" },/* #657: THE master mute — one multiplier every source applies (portable); first of the audio block */
   { file: "audio-events.js",       sym: "createAudioEvents" },
   { file: "audio-session.js",      sym: "AudioSession" },/* #631: the mic↔narration handoff (portable; tts.js hands it the context) */
   { file: "tts.js",                sym: "TTS" },

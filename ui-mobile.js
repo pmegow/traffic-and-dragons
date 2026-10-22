@@ -44,7 +44,16 @@ function mobileRenderStatus(act,day){
 function mobileInit(){
   if(mobileUI.ready)return;mobileUI.ready=true;
   var top=mobileEl("topbar"),place=document.createElement("div"),ways=document.createElement("select"),status=document.createElement("span");
-  place.id="mobile-place";place.className="mobile-only";ways.id="mobile-ways";ways.className="mobile-only mobile-select";ways.setAttribute("aria-label","Connected locations");top.appendChild(place);top.appendChild(ways);
+  place.id="mobile-place";place.className="mobile-only";ways.id="mobile-ways";ways.className="mobile-only mobile-select";ways.setAttribute("aria-label","Connected locations");top.appendChild(place);
+  /* #657 (owner 2026-10-22): the master mute at the right end of the Connected locations row. AudioMaster is the state
+     (every audio source multiplies by its gain); this button is only its door and its paint. */
+  var waysRow=document.createElement("div"),mute=document.createElement("button");waysRow.id="mobile-ways-row";waysRow.className="mobile-only";
+  mute.id="mobile-mute";mute.type="button";mute.className="mobile-select";
+  mute.innerHTML="<svg class='ico-on' viewBox='0 0 24 24' aria-hidden='true' fill='currentColor' stroke='currentColor' stroke-width='1.8' stroke-linecap='round'><path d='M3 9v6h4l5 4V5L7 9H3z' stroke='none'/><path d='M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13' fill='none'/></svg>"
+    +"<svg class='ico-off' viewBox='0 0 24 24' aria-hidden='true' fill='currentColor' stroke='currentColor' stroke-width='1.8' stroke-linecap='round'><path d='M3 9v6h4l5 4V5L7 9H3z' stroke='none'/><path d='M16 9l5 6M21 9l-5 6' fill='none'/></svg>";
+  waysRow.appendChild(ways);waysRow.appendChild(mute);top.appendChild(waysRow);
+  function paintMute(){var m=AudioMaster.muted();mute.classList.toggle("muted",m);mute.setAttribute("aria-pressed",m?"true":"false");mute.setAttribute("aria-label",m?"Unmute all sound":"Mute all sound");mute.title=m?"Sound is muted — tap to unmute":"Mute all sound and narration";}
+  mute.addEventListener("click",function(){AudioMaster.toggle();});AudioMaster.onChange(paintMute);paintMute();
   status.id="mobile-status";status.className="mobile-only";status.innerHTML="<span id='mobile-act'></span><span id='mobile-clock'></span><span id='mobile-version'></span>";mobileEl("membar").insertBefore(status,mobileEl("healthdot"));
   var grip=document.createElement("div");grip.id="mobile-grip";grip.className="mobile-only";
   grip.innerHTML="<button id='mobile-grab' type='button' role='separator' aria-label='Resize side panel' aria-orientation='vertical' aria-valuemin='0' aria-valuenow='0' title='Drag to resize; double tap to open or close; arrow keys also resize'></button>";

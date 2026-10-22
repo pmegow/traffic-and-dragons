@@ -2197,6 +2197,7 @@ var TTS = (function() {
       try { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); } catch(e0) {}
       var u = new SpeechSynthesisUtterance(units[i].text);
       u.rate = _curItem && _curItem.audition ? _curItem.audition.rate : getRate(); u.pitch = 1.0;
+      u.volume = AudioMaster.gain();   /* #657: the browser voice takes the master multiplier per sentence */
       var nv = _curItem && _curItem.audition ? _voiceList().filter(function(v) { return v.name === _curItem.audition.voice; })[0] : _resolveNativeVoice();
       if (nv) u.voice = nv;
       _nativeUtter = u;
@@ -2219,11 +2220,13 @@ var TTS = (function() {
         _speakNativeUnit(units, i + 1);
       };
       _nativeStallT = setTimeout(stallCheck, stallMs);
-      u.onend   = function() { if (advanced) return; advanced = true; clearTimeout(_nativeStallT); _speakNativeUnit(units, i + 1); };
+      u.onend   = function() { if (advanced) return; advanced = true; _nativeMuteCancel = false; clearTimeout(_nativeStallT); _speakNativeUnit(units, i + 1); };
       u.onerror = function(e) {
         if (advanced) return; advanced = true; clearTimeout(_nativeStallT);
-        // Do not let one bad unit silently kill the rest of the chain — warn and continue.
-        console.warn("[tts] native unit " + (i + 1) + "/" + units.length + " failed, skipping:", e && e.error);
+        // Do not let one bad unit silently kill the rest of the chain — warn and continue. (#657: a mute cancels the
+        // live sentence on purpose — said at debug, not as a failure.)
+        if (_nativeMuteCancel) { _nativeMuteCancel = false; console.debug("[tts] native unit " + (i + 1) + "/" + units.length + " cancelled by the mute — the chain continues at volume 0"); }
+        else console.warn("[tts] native unit " + (i + 1) + "/" + units.length + " failed, skipping:", e && e.error);
         _speakNativeUnit(units, i + 1);
       };
       window.speechSynthesis.speak(u);
@@ -2845,10 +2848,30 @@ var TTS = (function() {
      `nextStart` (never in the past), counts it on the current context (B9 H1, crumb cs), tracks it in _sources so stop()/
      skip() can stop the still-pending ones, and on end releases it and calls `onEnded` — the lane's own bookkeeping
      (activeSrcs, onAllDone) stays in the lane. Returns the next start time (start + duration + the lane's tiered gap). */
+  /* #657: ONE master gain per context between every decoded narration source and the destination — AudioMaster's
+     multiplier, applied LIVE: a mute lands mid-sentence and the position is kept, so unmute resumes where the
+     narration is. Keyed on the context — a rebuilt one (a B9 realm, an iOS refusal) gets its own node and the old
+     node dies with its context (monotonic-resources: one node per context, never one per source). The primer
+     (−80 dBFS dither) stays on the destination: it claims the playback category and is not a source anyone hears. */
+  var _masterNodeCtx = null, _masterNodeGain = null, _nativeMuteCancel = false;
+  function _masterNode(ctx) {
+    if (_masterNodeGain && _masterNodeCtx === ctx) return _masterNodeGain;
+    _masterNodeGain = ctx.createGain();
+    _masterNodeGain.gain.value = AudioMaster.gain();
+    _masterNodeGain.connect(ctx.destination);
+    _masterNodeCtx = ctx;
+    return _masterNodeGain;
+  }
+  AudioMaster.onChange(function(muted, g) {
+    if (_masterNodeGain) { try { _masterNodeGain.gain.value = g; } catch (e) { console.warn("[tts] the master gain could not be set: " + e.message); } }
+    /* the browser voice fixes an utterance's volume when it is spoken: cancel the live sentence so the chain moves on
+       (its onend/onerror advance it) at the new volume — the sentence is the unit of loss on a mute */
+    if (muted && _nativeUtter && typeof window !== "undefined" && window.speechSynthesis) { _nativeMuteCancel = true; try { window.speechSynthesis.cancel(); } catch (e) { _nativeMuteCancel = false; } }
+  });
   function _scheduleDecoded(ctx, buf, nextStart, gap, onEnded) {
     var src = ctx.createBufferSource();
     src.buffer = buf;
-    src.connect(ctx.destination);
+    src.connect(_masterNode(ctx));
     var startAt = Math.max(nextStart, ctx.currentTime + 0.03);
     src.start(startAt);
     _ctxSynths++;

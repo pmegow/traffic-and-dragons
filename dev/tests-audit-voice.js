@@ -149,6 +149,7 @@ function loadAmbient(doc, over) {
     /* the accent layer (§21) is created beside the bed controller; a recording stub keeps this fixture about voice gating */
     createAccentController() { return { update() {}, shed() {}, dispose() {}, inspect: () => ({}) }; }
   };
+  deps.AudioMaster = new Function(source('audio-master.js') + '\n;return AudioMaster;')();   /* #657: the shell multiplies its volume by the master mute */
   const names = Object.keys(deps);
   const app = new Function(...names, source('ui-ambient.js') + '\n;return Ambient;')(...names.map(k => deps[k]));
   return { app, tts, stt, paints, controllers, ttsListeners, sttListeners };
@@ -204,7 +205,7 @@ function ttsFixture(options = {}) {
   };
   c.globalThis = c;
   vm.createContext(c);
-  ['audio-events.js', 'audio-session.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
+  ['audio-master.js', 'audio-events.js', 'audio-session.js', 'tts.js'].forEach(f => vm.runInContext(source(f), c, { filename: f }));
   return { c, TTS: c.TTS, nodes, synth, spoken, warnings, timers, Context };
 }
 

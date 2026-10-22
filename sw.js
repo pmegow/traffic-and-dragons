@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261022c";
+var CACHE = "tnd-v3-20261022d";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -60,6 +60,7 @@ var APP_SHELL = [
   "/companion-talk.js",
   "/ui-modals.js",
   "/ui-boot.js",
+  "/audio-master.js",
   "/audio-events.js",
   "/audio-catalog.js",
   "/audio-profile.js",

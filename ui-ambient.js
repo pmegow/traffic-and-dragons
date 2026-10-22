@@ -21,7 +21,7 @@ var Ambient = (function() {
   function snapshot() {
     var scene=audioPublishedScene||{campaignId:"",nodeKey:null};
     var screen=document.getElementById("game-screen");
-    return Object.assign({},scene,{enabled:enabled,volume:volume,unlocked:unlocked,held:held,capturing:capturing,
+    return Object.assign({},scene,{enabled:enabled,volume:volume*AudioMaster.gain(),/* #657: the master mute multiplies the slider; the bed ramps to 0, the accents do not fire */unlocked:unlocked,held:held,capturing:capturing,
       visible:!!screen&&screen.style.display==="flex",hidden:document.hidden,
       speaking:typeof TTS!=="undefined"&&TTS.isPlaying(),paused:typeof TTS!=="undefined"&&TTS.isPaused()});
   }
@@ -187,6 +187,7 @@ var Ambient = (function() {
     enabled = saved("tnd_ambient_enabled_v1", "1") === "1"; /* owner ruling 2026-09-15: village ambience is ON by default (the checkbox still turns it off, per device) */
     volume = Math.max(0, Math.min(1, Number(saved("tnd_ambient_volume_v1", "0.45")) || 0));
     subscribe();
+    AudioMaster.onChange(function() { sync(); });   /* #657: a mute or unmute re-plans at once (the snapshot carries the multiplier) */
     /* The #410 player-intent seam. hideCarMode fires a resume here on exit (audit F1), so leaving
        the overlay after a spoken "pause" can no longer wedge the bed OFF until a page reload. */
     document.addEventListener("tnd:car-intent", function(e) {

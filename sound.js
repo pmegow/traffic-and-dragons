@@ -328,7 +328,7 @@ var Sound = (function() {
       // disconnected once the tail has run (monotonic-resources rule — nothing accumulates across
       // plays; the convolver and noise buffer are the only long-lived singletons).
       var t0 = ctx.currentTime, notes = recipe.notes, i;
-      var bus = ctx.createGain(); bus.gain.value = 1;
+      var bus = ctx.createGain(); bus.gain.value = AudioMaster.gain();   /* #657: the master mute multiplies every play; the earcon pref above is untouched */
       bus.connect(ctx.destination);
       var send = null, cv = _reverb(ctx);
       if (cv && recipe.wet > 0) {

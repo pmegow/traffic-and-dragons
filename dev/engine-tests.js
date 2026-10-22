@@ -35462,4 +35462,70 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
 
+  section("#657 — the master mute (owner 2026-10-22, from the phone): ONE multiplier every audio source applies at its output — 1 on, 0 muted — the sources' own prefs untouched; the door is the phone's mute button at the right end of the Connected locations row");
+  t("#657 AudioMaster: gain is 1 on and 0 muted; setMuted/toggle report the state; a change tells every listener (muted, gain) once, a no-op set never, an unsubscribed one never again, a throwing one never stops the rest; the mute is saved under tnd_mute_v1 and a reload reads it; no storage is a page-only mute",function(){
+    var G=typeof global!=="undefined"?global:null,shim=typeof localStorage==="undefined",store={};
+    if(shim){if(!G)return true;G.localStorage={getItem:function(k){return Object.prototype.hasOwnProperty.call(store,k)?store[k]:null;},setItem:function(k,v){store[k]=String(v);},removeItem:function(k){delete store[k];}};}
+    var LS=localStorage,prev=LS.getItem(AudioMaster.KEY);
+    try{
+      AudioMaster.setMuted(false);
+      if(AudioMaster.gain()!==1||AudioMaster.muted()!==false)return "gain on: expected 1 got "+AudioMaster.gain();
+      var told=[],after=[],off=AudioMaster.onChange(function(m,g){told.push([m,g]);}),offBoom=AudioMaster.onChange(function(){throw new Error("boom");}),offAfter=AudioMaster.onChange(function(m,g){after.push([m,g]);});
+      if(AudioMaster.setMuted(true)!==true)return "setMuted(true) must report true";
+      if(AudioMaster.gain()!==0)return "gain while muted: expected 0 got "+AudioMaster.gain();
+      if(told.length!==1||told[0][0]!==true||told[0][1]!==0)return "listener told once with (true,0): "+JSON.stringify(told);
+      if(after.length!==1)return "a throwing listener must not stop the rest: "+JSON.stringify(after);
+      if(LS.getItem(AudioMaster.KEY)!=="1")return "saved under tnd_mute_v1 as '1': "+JSON.stringify(LS.getItem(AudioMaster.KEY));
+      AudioMaster.setMuted(true);
+      if(told.length!==1)return "a no-op set must not tell the listeners";
+      off();offBoom();
+      if(AudioMaster.toggle()!==false||AudioMaster.gain()!==1)return "toggle must report false and restore gain 1";
+      if(told.length!==1)return "unsubscribed listener told again: "+JSON.stringify(told);
+      if(after.length!==2||after[1][1]!==1)return "the live listener misses the unmute: "+JSON.stringify(after);
+      if(LS.getItem(AudioMaster.KEY)!=="0")return "saved under tnd_mute_v1 as '0' on unmute";
+      LS.setItem(AudioMaster.KEY,"1");
+      if(AudioMaster.reload()!==true||AudioMaster.gain()!==0)return "reload reads the saved mute (gain "+AudioMaster.gain()+")";
+      LS.removeItem(AudioMaster.KEY);AudioMaster.reload();
+      if(AudioMaster.muted()!==false)return "reload with no key is on";
+      offAfter();
+      if(shim){delete G.localStorage;AudioMaster.setMuted(true);if(AudioMaster.gain()!==0)return "no storage: a page-only mute still multiplies by 0";AudioMaster.setMuted(false);}
+      return true;
+    }finally{
+      if(shim)delete G.localStorage;else{if(prev===null)LS.removeItem(AudioMaster.KEY);else LS.setItem(AudioMaster.KEY,prev);AudioMaster.reload();}
+      if(shim)AudioMaster.setMuted(false);
+    }
+  });
+  t("#657 the multiply at every output (source pins): tts.js routes every decoded source through _masterNode(ctx) — ONE gain per context born at AudioMaster.gain() and set live on change — and gives the browser voice u.volume = AudioMaster.gain(); sound.js's per-play bus is born at AudioMaster.gain(); ui-ambient.js's snapshot multiplies its volume and re-syncs on change; ui-mobile.js's button toggles AudioMaster inside #mobile-ways-row",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    var tts=__fsForTests.readFileSync(__rootForTests+"/tts.js","utf8");
+    if(tts.indexOf("src.connect(_masterNode(ctx));")<0||/src\.connect\(ctx\.destination\)/.test(tts))return "a decoded source must connect to the master node, never the destination";
+    if(tts.indexOf("_masterNodeGain.gain.value = AudioMaster.gain();")<0)return "the master node is born at AudioMaster.gain()";
+    if(tts.indexOf("if (_masterNodeGain) { try { _masterNodeGain.gain.value = g; }")<0)return "a change must reach the live master node";
+    if(tts.indexOf("u.volume = AudioMaster.gain();")<0)return "the browser voice takes u.volume = AudioMaster.gain()";
+    var snd=__fsForTests.readFileSync(__rootForTests+"/sound.js","utf8");
+    if(snd.indexOf("var bus = ctx.createGain(); bus.gain.value = AudioMaster.gain();")<0)return "the earcon bus is born at AudioMaster.gain()";
+    var amb=__fsForTests.readFileSync(__rootForTests+"/ui-ambient.js","utf8");
+    if(amb.indexOf("volume:volume*AudioMaster.gain(),")<0)return "the ambience snapshot volume multiplies by AudioMaster.gain()";
+    if(amb.indexOf("AudioMaster.onChange(function() { sync(); });")<0)return "the ambience must re-sync on a mute change";
+    var mob=__fsForTests.readFileSync(__rootForTests+"/ui-mobile.js","utf8");
+    if(mob.indexOf('mute.addEventListener("click",function(){AudioMaster.toggle();});')<0)return "the phone button must call AudioMaster.toggle";
+    if(mob.indexOf("waysRow.appendChild(ways);waysRow.appendChild(mute);")<0)return "the button sits inside #mobile-ways-row, right of the select";
+    if(mob.indexOf('mute.setAttribute("aria-pressed",m?"true":"false")')<0||mob.indexOf('mute.classList.toggle("muted",m)')<0)return "the button paints aria-pressed and .muted from AudioMaster";
+    var css=__fsForTests.readFileSync(__rootForTests+"/mobile.css","utf8");
+    if(css.indexOf("#mobile-ways-row{display:flex;")<0||css.indexOf("#mobile-mute{flex:0 0 auto;")<0)return "mobile.css lays the row out as a flex row with a fixed-width button";
+    return true;
+  });
+  t("#657 the load wiring, derived from the tree: every root page that loads tts.js, sound.js or ui-ambient.js loads audio-master.js before them; the engine manifest lists it before tts.js; sw.js's app shell carries it",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    var pages=__fsForTests.readdirSync(__rootForTests).filter(function(f){return /\.html$/.test(f);}),bad=[];
+    pages.forEach(function(p){var h=__fsForTests.readFileSync(__rootForTests+"/"+p,"utf8"),m=h.indexOf('<script src="audio-master.js"></script>');
+      ["tts.js","sound.js","ui-ambient.js"].forEach(function(s){var i=h.indexOf('<script src="'+s+'"></script>');if(i>=0&&(m<0||m>i))bad.push(p+" must load audio-master.js before "+s+(m<0?" (it does not load it at all)":""));});});
+    if(bad.length)return bad.join("; ");
+    var man=__fsForTests.readFileSync(__rootForTests+"/dev/engine-manifest.js","utf8"),am=man.indexOf('file: "audio-master.js"'),tt=man.indexOf('file: "tts.js"');
+    if(am<0||tt<0||am>tt)return "the engine manifest must list audio-master.js before tts.js";
+    var sw=__fsForTests.readFileSync(__rootForTests+"/sw.js","utf8");
+    if(sw.indexOf('"/audio-master.js",')<0)return "sw.js's app shell must carry /audio-master.js";
+    return true;
+  });
+
 }

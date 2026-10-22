@@ -46,6 +46,7 @@ function ambientShell(page) {
     createAmbientController() { counts.controllers++; return { update() {}, retry() {}, dispose() {}, inspect: () => ({ pending: 0, sources: 0, buffers: 0 }) }; },
     createAccentController() { return { update() {}, shed() {}, dispose() {}, inspect: () => ({}) }; }
   };
+  deps.AudioMaster = new Function(src('audio-master.js') + '\n;return AudioMaster;')();   /* #657: the shell multiplies its volume by the master mute */
   const names = Object.keys(deps);
   const app = new Function(...names, src('ui-ambient.js') + '\n;return Ambient;')(...names.map(k => deps[k]));
   return { app, doc, toasts, status, counts };
