@@ -212,6 +212,7 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 #chat-tabs{display:flex;gap:6px;margin-top:6px}
 .chat-tab{font-size:11px;padding:2px 10px;border:1px solid var(--brd);border-radius:10px;background:none;color:var(--t2);cursor:pointer;font-family:var(--font);line-height:1.6}
 .chat-tab.active{border-color:var(--acc);color:var(--acc)}
+.chat-tab.chat-tab-icon{flex:0 0 auto;padding:2px 8px;font-size:13px}/* the bug-report button (#655): the tabs' look, never their phone stretch */
 .tab-badge{width:5px;height:5px;background:var(--blue);border-radius:50%;display:none;vertical-align:middle;margin-left:4px}
 .tab-badge.on{display:inline-block}
 .sc-lbl{display:block;font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
@@ -523,7 +524,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
   </div>
   <div id="inputarea">
     <div id="inrow"><span id="inwrap"><input type="text" id="action-input" placeholder="What do you do?" autocomplete="off" autocapitalize="sentences"/><button id="input-clear" title="Clear input" tabindex="-1">&#215;</button></span><button id="mic-btn" title="Dictate your action" style="display:none;">🎤</button><button id="sendbtn" title="Send your action to the Game Master">Send</button></div>
-    <div id="chat-tabs"><button class="chat-tab active" id="tab-narrative" onclick="switchTab('narrative')">Story</button><button class="chat-tab" id="tab-tabletalk" onclick="switchTab('tabletalk')">Table Talk <span class="tab-badge" id="tab-tt-badge"></span></button></div>
+    <div id="chat-tabs"><button class="chat-tab chat-tab-icon" id="bug-btn" title="Report a bug" aria-label="Report a bug" onclick="showBugReportModal()">&#128030;</button><button class="chat-tab active" id="tab-narrative" onclick="switchTab('narrative')">Story</button><button class="chat-tab" id="tab-tabletalk" onclick="switchTab('tabletalk')">Table Talk <span class="tab-badge" id="tab-tt-badge"></span></button></div>
   </div>
 </div>
 <script src="globals.js"></script>
