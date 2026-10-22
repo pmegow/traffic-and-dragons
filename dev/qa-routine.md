@@ -1,6 +1,6 @@
 # The QA routine — the bug feed every eight hours, in the cloud
 
-> **DISABLED 2026-10-21 (owner ruling, TODO #653):** the routine is paused (`enabled: false`); it read untrusted bug
+> **DISABLED 2026-10-21 (owner ruling; no TODO row — "we can figure out another system later"):** the routine is paused (`enabled: false`); it read untrusted bug
 > reports and then acted in the repo, and a prompt is not a wall against a crafted report. Nothing below runs until
 > a design keeps report text away from every writing tool. The protocol stays for that day and for hand runs.
 
