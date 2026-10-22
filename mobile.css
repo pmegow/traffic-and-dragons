@@ -7,12 +7,12 @@
 .enemy-facts dt{color:var(--t2)}.enemy-facts dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}
 @media(max-width:600px){
  #game-screen{height:100dvh!important;overflow:hidden}
- #topbar{position:relative;padding:7px 11px 6px;padding-top:max(7px,env(safe-area-inset-top,0px));gap:5px}
+ #topbar{position:relative;padding:7px 11px 6px;padding-top:max(7px,var(--top-inset));gap:5px}
  #hud-namecls{flex-wrap:nowrap!important;align-items:center!important;flex-basis:calc(100% - 55px);max-width:calc(100% - 55px);height:24px}
  #hud-namecls h1{font-size:15px;max-width:40%}
  #hud-cls{font-size:10px}
  #hud-stats{flex:0 0 100%!important;flex-wrap:nowrap!important;justify-content:center;font-size:11px!important;gap:12px!important;white-space:nowrap}
- #hud-btns{position:absolute;right:11px;top:max(7px,env(safe-area-inset-top,0px));gap:0!important}
+ #hud-btns{position:absolute;right:11px;top:max(7px,var(--top-inset));gap:0!important}
  #hud-btns>button,#hud-ways,#hud-ways-more{display:none!important}
  #file-btn{display:block;width:49px;height:24px;font-size:10px!important;padding:0 2px;border-radius:6px}
  /* Reuse the generated menu and its tap-to-expand groups; constrain the whole dropdown. */

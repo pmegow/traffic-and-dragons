@@ -282,10 +282,18 @@ body.font-large .msg.narrator     { font-size: 18px; }
 
 #game-screen { height: 100dvh; }
 
-#topbar    { padding-top:    max(8px,  env(safe-area-inset-top, 0px)); }
+/* #658 (owner 2026-10-22, iPhone): since iOS 26.1 a Home Screen web app with the black-translucent status bar gets a
+   system "Liquid Glass" blur over the status bar that reaches ~40pt BELOW it, and no meta or CSS turns it off (WebKit
+   bug 317153 — Apple's answer is to drop the meta, which takes effect only on a reinstall and sets the inset to 0). So
+   the inset every top-docked surface clears is the status bar PLUS the glass: ONE variable, 1.7 × the inset (59pt →
+   ~100pt; 0 → 0, so a browser tab or a desktop pays nothing). Every rule reads --top-inset, never env() directly —
+   the #658 test derives that from every root page and stylesheet. */
+:root { --top-inset: calc(env(safe-area-inset-top, 0px) * 1.7); }
+
+#topbar    { padding-top:    max(8px,  var(--top-inset)); }
 #inputarea { padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)); }
-#sidebar   { padding-top:    max(16px, env(safe-area-inset-top,    0px)); }
-#car-overlay { padding-top: max(24px, calc(env(safe-area-inset-top, 0px) + 12px)) !important; }
+#sidebar   { padding-top:    max(16px, var(--top-inset)); }
+#car-overlay { padding-top: max(24px, calc(var(--top-inset) + 12px)) !important; }
 
 @keyframes carPulse {
   0%   { transform: scale(1);    box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
@@ -306,7 +314,7 @@ body.font-large .msg.narrator     { font-size: 18px; }
    `order` on #car-main/#car-right-stack decides left/right; `order` on #car-top-row/#car-status/
    #car-controls (unchanged from their base values) decides top-to-bottom inside the stack. */
 @media (orientation:landscape) and (max-height:520px) {
-  #car-overlay { flex-direction:row !important; align-items:center !important; justify-content:center !important; gap:20px !important; padding:max(12px,calc(env(safe-area-inset-top,0px) + 6px)) 20px 12px 20px !important; }
+  #car-overlay { flex-direction:row !important; align-items:center !important; justify-content:center !important; gap:20px !important; padding:max(12px,calc(var(--top-inset) + 6px)) 20px 12px 20px !important; }
   #car-main { flex:0 0 auto !important; width:auto !important; padding:0 !important; order:1 !important; }
   #car-portrait-wrap { height:min(266px,50vh) !important; }
   #car-party { min-height:0 !important; }
@@ -314,10 +322,10 @@ body.font-large .msg.narrator     { font-size: 18px; }
   #car-status { text-align:center !important; }
   #car-controls { margin:0 !important; }
 }
-#api-screen  { padding-top: max(24px, calc(env(safe-area-inset-top, 0px) + 16px)) !important; }
+#api-screen  { padding-top: max(24px, calc(var(--top-inset) + 16px)) !important; }
 @media (display-mode: standalone) {
-  #api-screen  { padding-top: max(56px, calc(env(safe-area-inset-top, 56px) + 16px)) !important; }
-  #char-screen { padding-top: max(56px, calc(env(safe-area-inset-top, 56px) + 8px)) !important; }
+  #api-screen  { padding-top: max(56px, calc(var(--top-inset) + 16px)) !important; }
+  #char-screen { padding-top: max(56px, calc(var(--top-inset) + 8px)) !important; }
 }
 
 button, a, .sc, .fp, .qa, label, select, input, textarea {
@@ -327,7 +335,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 
 @media (max-width: 768px) {
   input, select, textarea, #action-input { font-size: 16px !important; }
-  #topbar      { flex-wrap: wrap; padding: 6px 12px; padding-top: max(6px, env(safe-area-inset-top, 0px)); gap: 4px; }
+  #topbar      { flex-wrap: wrap; padding: 6px 12px; padding-top: max(6px, var(--top-inset)); gap: 4px; }
   /* Row 1: name + class own the full width so the class line can truncate
      instead of stealing space from the stats. */
   #hud-namecls { flex-basis: 100%; min-width: 0; flex-wrap: nowrap; gap: 6px; }
@@ -352,7 +360,7 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
   .two-col { grid-template-columns: 1fr; }
   .sgd, .rsgd, .fgd { grid-template-columns: repeat(3, 1fr); }
   .msg { font-size: 13px; padding: 10px 13px; }
-  #char-screen { padding: 16px 14px; padding-top: max(16px, calc(env(safe-area-inset-top, 0px) + 8px)); }
+  #char-screen { padding: 16px 14px; padding-top: max(16px, calc(var(--top-inset) + 8px)); }
 }
 
 @media (max-width: 400px) {

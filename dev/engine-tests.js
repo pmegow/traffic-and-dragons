@@ -35528,4 +35528,18 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
 
+  section("#658 — the top inset (owner 2026-10-22, iPhone): since iOS 26.1 a Home Screen web app with the translucent status bar gets a system glass blur reaching ~40pt BELOW the bar, with no switch; every top-docked surface clears ONE variable, --top-inset = 1.7 × env(safe-area-inset-top), never env() directly");
+  t("#658 one definition, every reader: index.html's :root defines --top-inset as calc(env(safe-area-inset-top, 0px) * 1.7); no other env(safe-area-inset-top) read survives in any root page or stylesheet; every former reader (topbar, sidebar, car overlay, api and char screens, the phone's topbar and HUD buttons) reads var(--top-inset)",function(){
+    if(typeof __fsForTests==="undefined")return true;
+    var ix=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8"),def="--top-inset: calc(env(safe-area-inset-top, 0px) * 1.7);";
+    if(ix.indexOf(def)<0)return "index.html must define "+def;
+    var files=__fsForTests.readdirSync(__rootForTests).filter(function(f){return /\.(html|css)$/.test(f);}),stray=[];
+    files.forEach(function(f){var s=__fsForTests.readFileSync(__rootForTests+"/"+f,"utf8").split(def).join(""),n=s.split("safe-area-inset-top").length-1;if(n)stray.push(f+" reads env(safe-area-inset-top) "+n+"x outside the definition");});
+    if(stray.length)return stray.join("; ");
+    var reads=ix.split("var(--top-inset)").length-1,mob=__fsForTests.readFileSync(__rootForTests+"/mobile.css","utf8").split("var(--top-inset)").length-1;
+    if(reads<9)return "index.html reads var(--top-inset) "+reads+"x — the nine top-docked rules must all read it";
+    if(mob<2)return "mobile.css reads var(--top-inset) "+mob+"x — the phone topbar and HUD buttons must read it";
+    return true;
+  });
+
 }
