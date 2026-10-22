@@ -281,6 +281,50 @@ var chain = Promise.resolve()
   });
 })
 
+// ── #635: a listen that ENDS on interim text with no final result (the first talk exchange sat on "Heard you" until a tap) ──
+.then(function () {
+  return test("#635 car mode: a listen ending on interim text with no final result sends the interim words, name-corrected, and crumbs which listen it was", function () {
+    resetRun();
+    global.carMode = true; global.busy = false;
+    var crumbs = []; global.erCrumb = function (e, d) { crumbs.push(e + " " + JSON.stringify(d)); };
+    STT_N.start();
+    var inst = lastRec;
+    inst.onresult({ resultIndex: 0, results: { length: 1, 0: { isFinal: false, length: 1, 0: { transcript: "i ask a mica about the ledger", confidence: 0 } } } });
+    if (input.value !== "i ask a mica about the ledger") return "fixture: the interim text is not in the field: " + JSON.stringify(input.value);
+    inst.onend();
+    delete global.erCrumb;
+    if (carCmdCalls.length !== 1 || carCmdCalls[0].indexOf("Ameiko") < 0) return "the loop never heard the interim words (name-corrected as a final would be): " + JSON.stringify(carCmdCalls);
+    if (sends.length !== 1 || sends[0].text.indexOf("Ameiko") < 0) return "the interim-only utterance did not send: " + JSON.stringify(sends);
+    if (!crumbs.some(function (c) { return /^stt-interim-final /.test(c) && /"listen":\d+/.test(c) && /"ms":\d+/.test(c); })) return "no interim-final crumb naming the listen and its length: " + JSON.stringify(crumbs);
+    return "";
+  });
+})
+.then(function () {
+  return test("#635 outside car mode an interim-only end still leaves the text in the field for review — nothing sends, the loop hears nothing", function () {
+    resetRun();
+    global.carMode = false; global.busy = false;
+    STT_N.start();
+    var inst = lastRec;
+    inst.onresult({ resultIndex: 0, results: { length: 1, 0: { isFinal: false, length: 1, 0: { transcript: "i draw my sword", confidence: 0 } } } });
+    inst.onend();
+    if (sends.length !== 0) return "an interim-only end auto-sent outside car mode: " + JSON.stringify(sends);
+    if (carCmdCalls.length !== 0) return "carVoiceCommand ran outside car mode: " + JSON.stringify(carCmdCalls);
+    return input.value === "i draw my sword" ? "" : "the interim text left the field: " + JSON.stringify(input.value);
+  });
+})
+.then(function () {
+  return test("#635 a no-speech end in car mode promotes nothing (an empty field is not an utterance)", function () {
+    resetRun();
+    global.carMode = true; global.busy = false;
+    STT_N.start();
+    var inst = lastRec;
+    inst.onerror({ error: "no-speech" });
+    inst.onend();
+    if (sends.length !== 0 || carCmdCalls.length !== 0) return "a silent listen sent something: " + JSON.stringify(sends) + " " + JSON.stringify(carCmdCalls);
+    return "";
+  });
+})
+
 // ── (e) the RAG query entity: the corrected proper noun is what the turn's retrieval sees ───
 .then(function () {
   return test("the corrected proper noun is the entity that reaches the RAG query (via lastAction)", function () {

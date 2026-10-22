@@ -39,6 +39,7 @@ var STT = (function() {
   var _onState   = null;   // external listen-state subscriber (Car Mode) — the TTS.setOnDone pattern
   var _cancelled = false;  // set by cancel() — tells the finish handler to discard, never send
   var _lastErrorWasNoSpeech = false; // stamped by onerror, read by onend for the single auto-retry
+  var _listenN = 0, _listenAt = 0;   // #635 — which listen this is since the last warm-up, and when it opened (the interim-final crumb names both)
   var _noSpeechRetried      = false; // has this car-mode listen cycle already used its one retry?
 
   // ── #77 confirm gate state (design record: DOC/Research/DOC_nonsense_filter.html §4) ──────────────
@@ -128,6 +129,7 @@ var STT = (function() {
     _gotFinal = false;
     _cancelled = false;
     _lastErrorWasNoSpeech = false;
+    _listenN++; _listenAt = Date.now();   // #635
     _resetUtterance();   // #77 Layer 0 — each listen is its own confidence/correction record
 
     // Name correction (v1.330 — "Frizwick becomes Physics"): the recognizer snaps fantasy names
@@ -197,6 +199,26 @@ var STT = (function() {
         var elc = document.getElementById("action-input");
         if (elc) elc.focus();
         return;
+      }
+
+      // #635 (owner, live with Frizwick 2026-10-15: the first exchange sat on "Heard you" until a tap): a listen can END with
+      // interim text in the field and no final result — iOS Safari sometimes never marks a result final (the final arrives
+      // only at stop(), or not at all). Every send path below keys on _gotFinal, so the words sat parked, the loop painted
+      // "Heard you…", and only the tap's parked branch sent them. In Car Mode the words the recognizer ended on ARE the
+      // utterance: promote them to a final (name-corrected as a final would be) so the send policy runs now. Said in the
+      // console and crumbed with which listen it was (the first since the warm-up?) and how long it ran, so the next mailed
+      // log names the platform cause (#635's three candidates). Outside Car Mode nothing changes: the field keeps the text
+      // for the player to review and send by hand, as every interim-only end always did; dictation appended to typed text
+      // (a non-empty base) is the desktop's case too.
+      if (!_gotFinal && !noSpeechEnd && typeof carMode !== "undefined" && carMode && !_baseText.replace(/\s+/g, "")) {
+        var _elI = document.getElementById("action-input"), _interim = _elI ? _elI.value.replace(/^\s+|\s+$/g, "") : "";
+        if (_interim) {
+          if (_roster.length && typeof sttCorrectNames === "function") _interim = sttCorrectNames(_interim, _roster, _utterCorr);
+          _baseText = _interim; _gotFinal = true; _utterConf = null;
+          if (_elI) _elI.value = _interim;
+          console.info("[stt] the recognizer ended without a final result — its last interim text is the utterance (#635): " + JSON.stringify(_interim));
+          if (typeof erCrumb === "function") erCrumb("stt-interim-final", { len: _interim.length, listen: _listenN, ms: Date.now() - _listenAt });
+        }
       }
 
       if (_gotFinal) {
@@ -407,6 +429,7 @@ var STT = (function() {
   function warmMic() {
     if (_listening || !isSupported()) return Promise.resolve(false);
     if (!_Rec) return _warmCloud();
+    _listenN = 0;   // #635: the crumb counts listens from here — candidate ① is "the first listen after the warm-up"
     return new Promise(function(resolve) {
       var rec, done = false, ok = true, timer = null, grace = null;
       function finish() { if (done) return; done = true; if (timer) clearTimeout(timer); if (grace) clearTimeout(grace); _capture(false); resolve(ok); }

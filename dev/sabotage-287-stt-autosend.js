@@ -39,6 +39,31 @@ rc |= sabotage.prove({
       find: "if (_susp.suspicious) { _enterConfirm(text, _susp, el, carModeOn); return; }",
       replace: "if (false && _susp.suspicious) { _enterConfirm(text, _susp, el, carModeOn); return; }"
     },
+    /* #635 (owner, live with Frizwick 2026-10-15): a listen that ends on interim text with no final result */
+    {
+      label: "#635 the interim-only end is parked again (the first exchange sits on 'Heard you' until a tap)",
+      mustFail: "the loop never heard the interim words",
+      find: "      if (!_gotFinal && !noSpeechEnd && typeof carMode !== \"undefined\" && carMode && !_baseText.replace(/\\s+/g, \"\")) {",
+      replace: "      if (false) {"
+    },
+    {
+      label: "#635 the promotion runs outside Car Mode too (the desktop's review-before-send auto-sends interim text)",
+      mustFail: "an interim-only end auto-sent outside car mode",
+      find: "      if (!_gotFinal && !noSpeechEnd && typeof carMode !== \"undefined\" && carMode && !_baseText.replace(/\\s+/g, \"\")) {",
+      replace: "      if (!_gotFinal && !noSpeechEnd && !_baseText.replace(/\\s+/g, \"\")) {"
+    },
+    {
+      label: "#635 the promoted words skip the name correction a final would get",
+      mustFail: "name-corrected as a final would be",
+      find: "          if (_roster.length && typeof sttCorrectNames === \"function\") _interim = sttCorrectNames(_interim, _roster, _utterCorr);\n",
+      replace: ""
+    },
+    {
+      label: "#635 the promotion goes uncrumbed (the next mailed log cannot name the platform cause)",
+      mustFail: "no interim-final crumb",
+      find: "          if (typeof erCrumb === \"function\") erCrumb(\"stt-interim-final\", { len: _interim.length, listen: _listenN, ms: Date.now() - _listenAt });\n",
+      replace: ""
+    },
     {
       label: "native final chunk skips roster name-correction",
       mustFail: "native: 'a mica' is corrected to Ameiko",
