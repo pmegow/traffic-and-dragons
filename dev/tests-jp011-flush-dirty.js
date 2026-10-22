@@ -286,6 +286,49 @@ tAsync("#377 the boot push's turn probe seeds the CAS base when the server is no
 });
 
 
+// ── #619 — a device AHEAD at boot with NO marker: the reconcile pushes, not the next turn ────
+// (owner screenshots 2026-10-12: "N turns unsynced" lit from boot until the first taken turn.) The reconcile seeds the CAS
+// base from the server's turn and used to stop there; now it pushes once through the ordinary debounced path.
+section("#619 — the reconcile pushes when this device is ahead");
+function after(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+var SERVER_301 = { worldState: { turn: 301, campId: CAMP, character: { name: "Korrag" }, npcs: [] }, campaignId: CAMP };
+
+tAsync("#619 local ahead, no marker: the gap is measured at once, then ONE push rides the debounce with the server's turn as its CAS base, and its ack clears the badge without a taken turn", function () {
+  seedCampaign(302, 0); resetAll();
+  responder = function (url, opts) { return ((opts.method || "GET") === "POST") ? ok({}) : ok(SERVER_301); };
+  storageAdapter.load(function () {});
+  return settle().then(function () {   /* a phase's verdict string returns at once — a chained .then would swallow it (the next phase's verdict would win) */
+    if (calls.filter(function (c) { return c.method === "POST"; }).length) return "the push outran the debounce — it must ride syncToServer like every push";
+    var st = storageAdapter.syncStatus();
+    if (st.unsynced !== 1 || st.lastAckTurn !== 301) return "the reconcile did not seed the base from the server's turn first: " + JSON.stringify(st);
+    return after(1700).then(function () {
+      var posts = calls.filter(function (c) { return c.method === "POST"; });
+      if (posts.length !== 1) return "expected exactly one push from the reconcile, got " + posts.length;
+      var base = JSON.parse(posts[0].body).baseTurn;
+      if (base !== 301) return "the push must carry the server's turn as its CAS base, got " + base;
+      var st2 = storageAdapter.syncStatus();
+      if (st2.unsynced !== 0 || st2.lastAckTurn !== 302) return "the ack did not clear the badge: " + JSON.stringify(st2);
+      return worldState.turn === 302 ? true : "the reconcile adopted the older server copy";
+    });
+  });
+});
+
+tAsync("#619 a 409 on that push pauses sync exactly as any push does; a device LEVEL with the server pushes nothing", function () {
+  seedCampaign(302, 0); resetAll();
+  responder = function (url, opts) { return ((opts.method || "GET") === "POST") ? httpErr(409, { serverTurn: 305 }) : ok(SERVER_301); };
+  storageAdapter.load(function () {});
+  return after(1700).then(function () {
+    if (!storageAdapter.syncStatus().conflict) return "the 409 on the reconcile's push did not pause sync";
+    seedCampaign(301, 0); resetAll();
+    responder = function (url, opts) { return ((opts.method || "GET") === "POST") ? ok({}) : ok(SERVER_301); };
+    storageAdapter.load(function () {});
+    return after(1700).then(function () {
+      var posts = calls.filter(function (c) { return c.method === "POST"; });
+      return posts.length === 0 ? true : "a level device pushed from the reconcile (" + posts.length + " POST(s))";
+    });
+  });
+});
+
 // ── report ───────────────────────────────────────────────────────────────────
 chain.then(function () {
   console.warn = _realWarn;

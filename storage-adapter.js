@@ -866,6 +866,7 @@ var storageAdapter = (function() {
     getServerStateTurn(_dirtyCamp, function (st) {
       var _localTurn = (typeof worldState !== "undefined" && worldState) ? (worldState.turn || 0) : 0;
       if (typeof st === "number" && st <= _localTurn && _lastAckTurn < 0) _lastAckTurn = st;/* the server is not ahead: this is the base the 409 heal would have found. null (404 before deploy) leaves base -1 and the 409/heal path runs exactly as it did pre-probe */
+      console.info("[storage] #377 probe: the server holds turn " + st + " for " + _dirtyCamp + " — CAS base " + _lastAckTurn + ", local turn " + _localTurn);/* #619: the base the badge counts from, said once — the 231-turn badge of 2026-10-12 could not be explained after the fact */
     console.info("[storage] unsynced final turns from a previous session (turn " + _dirtyAt + ", page-hide flush was over the keepalive limit) — pushing before any server adopt.");/* #377: the expected path for a large campaign; the FAILED branch below stays a warning */
     _syncNow(false, false, function(err) {
       if (err) console.warn("[storage] the unsynced-turn push FAILED (" + err + ") — the marker stays set and retries at the next launch.");
@@ -990,14 +991,21 @@ var storageAdapter = (function() {
       }
       var serverTurn = data.worldState.turn || 0;
       var localTurn  = (worldState && worldState.turn) || 0;
-      // The server provably holds serverTurn — seed the ACK baseline (#24). If local is
-      // AHEAD (the dead-host scenario), unsynced = localTurn - serverTurn shows immediately.
+      // The server provably holds serverTurn — seed the ACK baseline (#24).
       if (serverTurn > _lastAckTurn) _lastAckTurn = serverTurn;
-      // CAS re-arm (Known issue #5): this device has now SEEN the server's current state, so a
-      // standing 409 pause is stale — clear it. If local is ahead (dead-host recovery), the next
-      // POST carries baseTurn=serverTurn and passes; without this, a pre-reconcile 409 (ack was
-      // -1) would wedge sync forever on the very device whose upload should win.
-      if (_conflict) { _conflict = null; if (typeof worldState !== "undefined" && worldState && (worldState.turn||0) > serverTurn) syncToServer(); }
+      // CAS re-arm (Known issue #5): this device has now SEEN the server's current state, so a standing 409 pause is stale —
+      // clear it. #619 (owner screenshots 2026-10-12: "N turns unsynced" lit from boot until the first taken turn): a device
+      // that boots AHEAD of the cloud — offline at the end of the last session, a 409 pause, a 413, a close mid-sync, any
+      // reason but the JP0-11 marker — used to MEASURE the gap here (unsynced = localTurn − serverTurn) and leave it to the
+      // next turn's save. Now the reconcile pushes once itself, with the base it just seeded: CAS-guarded like every push (a
+      // 409 on it pauses), debounced like every push, so a lit badge means "a push is failing", never "nothing tried". The
+      // conflict re-arm's push (a pre-reconcile 409 with ack -1 used to wedge the very device whose upload should win) is the
+      // same push.
+      var _wasConflict = !!_conflict; _conflict = null;
+      if (localTurn > serverTurn) {
+        console.info("[storage] reconcile: this device is ahead (local turn " + localTurn + ", server " + serverTurn + ") — pushing now" + (_wasConflict ? "; the standing 409 pause is stale" : "") + " (#619)");
+        syncToServer();
+      }
       _updateSyncUI();
       // Don't swap worldState out from under an in-flight turn (audit E4) — skip the adopt if busy.
       if (serverTurn > localTurn && !(typeof busy !== "undefined" && busy)) {
