@@ -204,10 +204,28 @@ function questBearingText(b){
 // #329 roll your own dice — the pure half. parseCheckTag reads "[CHECK:label|+mod|DC n]"; resolveCheck
 // turns the player's d20 into the total, the outcome, the [DICE:] record the transcript keeps (the
 // same shape the GM writes when it rolls), and the engine note the continuation carries.
-function parseCheckTag(body){var p=String(body||"").split("|"),label=(p[0]||"").trim(),mod=parseInt(String(p[1]||"").replace(/[^-+\d]/g,""),10),dc=null,i;if(!label)return null;if(isNaN(mod))mod=0;for(i=1;i<p.length;i++){var m=String(p[i]).match(/DC\s*(\d+)/i);if(m)dc=parseInt(m[1],10);}return {label:label,mod:mod,dc:dc};}
-function resolveCheck(chk,roll){var total=roll+(chk.mod||0),outcome=(chk.dc!=null)?(total>=chk.dc?"success":"failed"):(roll===20?"critical":(roll===1?"fumble":"rolled"));
-  var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+". Narrate the outcome of that check now; the roll is final \u2014 do not roll again and do not emit another [DICE:] for it.]";
-  return {roll:roll,total:total,outcome:outcome,diceTag:"[DICE:"+chk.label+"|"+total+"|"+outcome+"]",note:note};}
+/* #654 \u2014 THE DAMAGE ROLL ON A HIT (owner ruling 2026-10-21: the player rolls damage like the check). The grammar the
+   [CHECK:] fourth field speaks: NdS, NdS+M, NdS-M over the rendered damage dice (d4 d6 d8 d10 d12 \u2014 a d20 is never
+   damage, a d7 has no clip), one to DAMAGE_DICE_MAX dice; a bare dS is one die. Anything else is null and the check
+   carries no damage. The faces are rolled by the caller (rollPendingCheck) so resolveCheck stays pure; the record
+   text ("2d6+1 = 3 + 5 + 1 = 9", one die and no modifier "1d8 = 4") is written ONCE here and read by the note, the
+   [DICE:] record's fourth field and the card. */
+var DAMAGE_DICE_SIDES=[4,6,8,10,12],DAMAGE_DICE_MAX=10;
+function parseDamageExpr(s){var m=String(s||"").match(/^\s*(\d{0,2})\s*d\s*(\d{1,2})\s*(?:([+-])\s*(\d{1,3}))?\s*$/i);if(!m)return null;var n=m[1]===""?1:parseInt(m[1],10),sides=parseInt(m[2],10),mod=m[3]?(m[3]==="-"?-1:1)*parseInt(m[4],10):0;if(!(n>=1&&n<=DAMAGE_DICE_MAX)||DAMAGE_DICE_SIDES.indexOf(sides)<0)return null;return {n:n,sides:sides,mod:mod,text:n+"d"+sides+(mod?(mod>0?"+":"-")+Math.abs(mod):"")};}
+function rollDamageFaces(d){var out=[],i;for(i=0;i<d.n;i++)out.push(1+Math.floor(Math.random()*d.sides));return out;}
+function damageTotal(d,faces){var s=0,i;for(i=0;i<faces.length;i++)s+=faces[i];return Math.max(0,s+(d.mod||0));}
+function damageRollText(d,faces){var parts=faces.join(" + ");if(d.mod)parts+=(d.mod>0?" + ":" \u2212 ")+Math.abs(d.mod);return d.text+" = "+parts+((faces.length>1||d.mod)?" = "+damageTotal(d,faces):"");}
+/* The modifier seat is read as dice first (#654): "1d4+2" stripped to its digits used to parse as +14. */
+function parseCheckTag(body){var p=String(body||"").split("|"),label=(p[0]||"").trim(),dc=null,dmg=null,i;if(!label)return null;var mod=parseDamageExpr(p[1])?0:parseInt(String(p[1]||"").replace(/[^-+\d]/g,""),10);if(isNaN(mod))mod=0;for(i=1;i<p.length;i++){var m=String(p[i]).match(/DC\s*(\d+)/i);if(m)dc=parseInt(m[1],10);else if(!dmg)dmg=parseDamageExpr(p[i]);}return {label:label,mod:mod,dc:dc,dmg:dmg};}
+function resolveCheck(chk,roll,faces){var total=roll+(chk.mod||0),outcome=(chk.dc!=null)?(total>=chk.dc?"success":"failed"):(roll===20?"critical":(roll===1?"fumble":"rolled"));
+  /* #654: a hit keeps the damage the click rolled (success, or no DC to judge by \u2014 the GM decides whether it lands); a miss
+     or a fumble drops the faces and says so. No faces (a caller that rolled none) leaves the damage to the GM, silently. */
+  var hit=outcome!=="failed"&&outcome!=="fumble",damage=null,dmgLine="";
+  if(chk.dmg&&hit&&faces&&faces.length){var dt=damageTotal(chk.dmg,faces),dx=damageRollText(chk.dmg,faces);damage={text:dx,faces:faces.slice(),total:dt,sides:chk.dmg.sides};
+    dmgLine=(chk.dc!=null?" The blow lands for "+dt+" damage ("+dx+")":" If the blow lands it deals "+dt+" damage ("+dx+")")+" \u2014 apply it with [ENEMY_HP:]; the damage is rolled too, never roll it again.";}
+  else if(chk.dmg&&!hit)dmgLine=" A miss deals no damage; roll none.";
+  var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+"."+dmgLine+" Narrate the outcome of that check now; the roll is final \u2014 do not roll again and do not emit another [DICE:] for it.]";
+  return {roll:roll,total:total,outcome:outcome,damage:damage,diceTag:"[DICE:"+chk.label+"|"+total+"|"+outcome+(damage?"|"+damage.text:"")+"]",note:note};}
 function rollD20(){return 1+Math.floor(Math.random()*20);}
 // #350 (owner 2026-09-05: "more often than not the player gets 14+ — I wanted a record to verify"): THE dice
 // record. Nothing kept a roll before — [DICE:] was strip-only and the player's own roll rode a silent send
@@ -220,6 +238,7 @@ function diceLogFile(e){
   var rec={t:(typeof e.t==="number")?e.t:(worldState.turn||0),by:e.by==="gm"?"gm":"player",label:String(e.label||"").slice(0,80),
     face:(typeof e.face==="number"&&e.face>=1&&e.face<=20)?e.face:null,mod:(typeof e.mod==="number")?e.mod:null,dc:(typeof e.dc==="number")?e.dc:null,
     total:(typeof e.total==="number")?e.total:null,outcome:String(e.outcome||"").slice(0,20)};
+  if(e.dmg&&typeof e.dmg.total==="number")rec.dmg={text:String(e.dmg.text||"").slice(0,80),faces:(Array.isArray(e.dmg.faces)?e.dmg.faces:[]).slice(0,DAMAGE_DICE_MAX),total:e.dmg.total};/* #654: the damage the hit rolled — only on a record that has one */
   worldState.diceLog.push(rec);while(worldState.diceLog.length>DICE_LOG_MAX)worldState.diceLog.shift();
   return rec;
 }

@@ -34,8 +34,8 @@ prove("helpers.js", [
 ]);
 prove("game.js", [
   { label: "the clip plays BEFORE the turn is sent",
-    find: '  sendAction(r.note,{silent:true,rollTag:r.diceTag});\n  if(typeof showDiceRoll==="function")showDiceRoll(r.roll);',
-    replace: '  if(typeof showDiceRoll==="function")showDiceRoll(r.roll);\n  sendAction(r.note,{silent:true,rollTag:r.diceTag});',
+    find: '  sendAction(r.note,{silent:true,rollTag:r.diceTag});\n  var after=r.damage?{onClose:function(){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}}:undefined;',
+    replace: '  var after=r.damage?{onClose:function(){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}}:undefined;\n  if(typeof showDiceRoll==="function")showDiceRoll(r.roll,after);\n  sendAction(r.note,{silent:true,rollTag:r.diceTag});\n  if(false)',
     mustFail: "showDiceRoll must follow sendAction" }
 ]);
 prove("ui-dice.js", [

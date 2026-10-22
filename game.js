@@ -3004,13 +3004,15 @@ async function sendAction(override,opts){
 // along so the transcript and the provenance ring keep the roll exactly as a GM-rolled one.
 function rollPendingCheck(){
   var chk=worldState&&worldState.pendingCheck;if(!chk||busy)return;
-  var r=resolveCheck(chk,rollD20());delete worldState.pendingCheck;
-  if(typeof diceLogFile==="function")diceLogFile({by:"player",label:chk.label,face:r.roll,mod:chk.mod||0,dc:(chk.dc!=null?chk.dc:null),total:r.total,outcome:r.outcome});/* #350: the authoritative record of the player's own roll */
+  var faces=(chk.dmg&&typeof rollDamageFaces==="function")?rollDamageFaces(chk.dmg):null;/* #654: the damage is rolled with the d20 — resolveCheck keeps it only on a hit */
+  var r=resolveCheck(chk,rollD20(),faces);delete worldState.pendingCheck;
+  if(typeof diceLogFile==="function")diceLogFile({by:"player",label:chk.label,face:r.roll,mod:chk.mod||0,dc:(chk.dc!=null?chk.dc:null),total:r.total,outcome:r.outcome,dmg:r.damage});/* #350: the authoritative record of the player's own roll; #654: with the damage it rolled */
   if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){var wrap=document.createElement("div");wrap.innerHTML=diceTxt(r.diceTag);if(wrap.firstChild)el.parentNode.replaceChild(wrap.firstChild,el);}}
   if(typeof Sound!=="undefined")Sound.play("click_glass");
   if(typeof saveAll==="function")saveAll();
   sendAction(r.note,{silent:true,rollTag:r.diceTag});
-  if(typeof showDiceRoll==="function")showDiceRoll(r.roll);/* #650: the rendered roll plays over the story AFTER the turn is on its way — never before it */
+  var after=r.damage?{onClose:function(){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}}:undefined;/* #654: the damage dice roll when the settled d20 is dismissed — only the faces a hit rolled, never on a miss */
+  if(typeof showDiceRoll==="function")showDiceRoll(r.roll,after);/* #650: the rendered roll plays over the story AFTER the turn is on its way — never before it */
 }
 // #391: back out of a pending roll. The check lapses (the #329 rule already lets a typed action do this
 // silently); here it is VISIBLE — a "withdrawn" dice record (no face, so #371's ratio and #374's risk

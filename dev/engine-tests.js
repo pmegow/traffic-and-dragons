@@ -35269,7 +35269,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
   });
   t("dice clip: the roll plays AFTER the turn is sent, in a guarded call; the overlay is a thin shell over diceClipSrc; the SW keeps the clips in a purge-exempt cache",function(){
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),fn=g.slice(g.indexOf("function rollPendingCheck(){"),g.indexOf("function reconsiderPendingCheck(){"));
-    var send=fn.indexOf("sendAction(r.note,{silent:true,rollTag:r.diceTag});"),show=fn.indexOf('if(typeof showDiceRoll==="function")showDiceRoll(r.roll);');
+    var send=fn.indexOf("sendAction(r.note,{silent:true,rollTag:r.diceTag});"),show=fn.indexOf('if(typeof showDiceRoll==="function")showDiceRoll(r.roll,after);');/* #654: the damage dice ride the overlay's close */
     if(send<0||show<0)return "rollPendingCheck lost the send or the guarded showDiceRoll call";
     if(show<send)return "showDiceRoll must follow sendAction: the clip must never delay the turn";
     var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");
@@ -35364,6 +35364,84 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(!n)return "no set carries rest boxes — the batch must record where the die settles";
     var mx=sx/n,my=sy/n;
     if(Math.abs(mx-DICE_TILE_REST.x)>0.03||Math.abs(my-DICE_TILE_REST.y)>0.03)return "DICE_TILE_REST {"+DICE_TILE_REST.x+","+DICE_TILE_REST.y+"} is off the measured centre {"+mx.toFixed(3)+","+my.toFixed(3)+"} over "+n+" clips";
+    return true;
+  });
+
+  section("#654 — the damage roll on a hit (owner ruling 2026-10-21: the player rolls damage like the check — [CHECK:] carries the dice as a fourth field, the click rolls them with the d20, the continuation brings the faces, the clips play when the settled d20 is dismissed)");
+  t("#654 the grammar: parseDamageExpr reads NdS±M over the rendered damage dice (d4 d6 d8 d10 d12), one to DAMAGE_DICE_MAX dice, a bare dS as one; a d20, a d7, a flat number, a two-term sum, zero dice, eleven dice and junk are null; damageRollText states the faces and the total once",function(){
+    var d=parseDamageExpr("1d8+3");if(!d||d.n!==1||d.sides!==8||d.mod!==3||d.text!=="1d8+3")return "1d8+3: "+JSON.stringify(d);
+    d=parseDamageExpr(" 2D6 - 1 ");if(!d||d.n!==2||d.sides!==6||d.mod!==-1||d.text!=="2d6-1")return "2D6 - 1: "+JSON.stringify(d);
+    d=parseDamageExpr("d4");if(!d||d.n!==1||d.sides!==4||d.mod!==0||d.text!=="1d4")return "d4: "+JSON.stringify(d);
+    if(DAMAGE_DICE_SIDES.join()!=="4,6,8,10,12")return "the damage dice are the five rendered ones, never the d20: "+DAMAGE_DICE_SIDES.join();
+    if(DAMAGE_DICE_MAX!==10)return "DAMAGE_DICE_MAX";
+    var bad=["1d20","1d7","3","2d6+1d4","0d6","11d6","","1d","d","1d6+","DC 14","+5","1d6 fire"].filter(function(s){return parseDamageExpr(s)!==null;});
+    if(bad.length)return "admitted: "+bad.join(" / ");
+    if(damageTotal(parseDamageExpr("2d6+1"),[3,5])!==9||damageTotal(parseDamageExpr("1d4-3"),[1])!==0)return "totals";
+    if(damageRollText(parseDamageExpr("2d6+1"),[3,5])!=="2d6+1 = 3 + 5 + 1 = 9")return "text: "+damageRollText(parseDamageExpr("2d6+1"),[3,5]);
+    if(damageRollText(parseDamageExpr("1d8"),[4])!=="1d8 = 4")return "one die, no modifier: "+damageRollText(parseDamageExpr("1d8"),[4]);
+    if(damageRollText(parseDamageExpr("1d4-1"),[3])!=="1d4-1 = 3 − 1 = 2")return "negative modifier: "+damageRollText(parseDamageExpr("1d4-1"),[3]);
+    var i,ok=true;for(i=0;i<200;i++){var f=rollDamageFaces(parseDamageExpr("3d6"));if(f.length!==3||f.some(function(x){return x<1||x>6||x!==Math.floor(x);}))ok=false;}
+    return ok?true:"rollDamageFaces out of range";
+  });
+  t("#654 the check carries its damage: parseCheckTag takes the dice in any field after the label, leaves dmg null without one, never reads a DC or a modifier as dice, and dice in the modifier's seat are damage (not a +18)",function(){
+    var c=parseCheckTag("Longsword attack|+5|DC 14|1d8+3");if(!c||c.mod!==5||c.dc!==14||!c.dmg||c.dmg.text!=="1d8+3"||c.dmg.sides!==8)return "fourth field: "+JSON.stringify(c);
+    c=parseCheckTag("Shortbow attack|+4|1d6|DC 12");if(!c||c.dc!==12||!c.dmg||c.dmg.text!=="1d6")return "dice before the DC: "+JSON.stringify(c);
+    c=parseCheckTag("Stealth check|+5|DC 14");if(!c||c.dmg!==null)return "no dice must be null: "+JSON.stringify(c);
+    c=parseCheckTag("Dagger attack|1d4+2|DC 11");if(!c||c.mod!==0||!c.dmg||c.dmg.text!=="1d4+2")return "dice in the modifier's seat: "+JSON.stringify(c);
+    c=parseCheckTag("Attack|+2|DC 13|1d20");if(!c||c.dmg!==null||c.mod!==2||c.dc!==13)return "a d20 is never damage: "+JSON.stringify(c);
+    return true;
+  });
+  t("#654 resolveCheck with damage: a hit folds the faces into the note (the total, the faces, apply with [ENEMY_HP:], never roll it again) and the [DICE:] record's fourth field; no DC says 'if the blow lands'; a miss or a fumble says no damage and carries none; no faces, no damage; no damage field = the #329 record byte-for-byte",function(){
+    var c=parseCheckTag("Longsword attack|+5|DC 14|1d8+3"),r=resolveCheck(c,12,[4]);
+    if(!r.damage||r.damage.total!==7||r.damage.sides!==8||r.damage.faces.join()!=="4"||r.damage.text!=="1d8+3 = 4 + 3 = 7")return "hit: "+JSON.stringify(r.damage);
+    if(r.diceTag!=="[DICE:Longsword attack|17|success|1d8+3 = 4 + 3 = 7]")return "tag: "+r.diceTag;
+    if(!/lands for 7 damage \(1d8\+3 = 4 \+ 3 = 7\)/.test(r.note)||!/\[ENEMY_HP:\]/.test(r.note)||!/never roll it again/.test(r.note)||!/do not roll again and do not emit another \[DICE:\]/.test(r.note))return "note: "+r.note;
+    var m=resolveCheck(c,3,[4]);if(m.damage!==null||m.diceTag!=="[DICE:Longsword attack|8|failed]"||!/A miss deals no damage/.test(m.note)||/1d8\+3 =/.test(m.note))return "miss: "+m.diceTag+" "+m.note;
+    var k=parseCheckTag("Thrown knife|+1|1d4"),n=resolveCheck(k,10,[2]);if(!n.damage||n.damage.total!==2||!/If the blow lands it deals 2 damage \(1d4 = 2\)/.test(n.note)||n.diceTag!=="[DICE:Thrown knife|11|rolled|1d4 = 2]")return "no DC: "+n.diceTag+" "+n.note;
+    if(resolveCheck(k,1,[2]).damage!==null||!/A miss deals no damage/.test(resolveCheck(k,1,[2]).note))return "a fumble rolls no damage";
+    if(resolveCheck(k,20,[2]).damage===null)return "a critical keeps its damage";
+    var plain=parseCheckTag("Stealth check|+5|DC 14"),p=resolveCheck(plain,12),q=resolveCheck(plain,12,[4]);
+    if(p.damage!==null||p.diceTag!=="[DICE:Stealth check|17|success]"||p.note!==q.note||q.damage!==null||/damage/i.test(p.note))return "a check without dice must be the #329 record: "+p.note;
+    if(resolveCheck(c,12).damage!==null||resolveCheck(c,12,[]).damage!==null||/damage/i.test(resolveCheck(c,12).note))return "no faces, no damage and no damage line";
+    return true;
+  });
+  t("#654 the record and the cards: diceLogFile keeps the damage (text, faces, total) on the player's record and no field on a record without one; the pending card says the dice 'on a hit'; the rolled card shows the damage, escaped; the GM echoing the record files nothing twice",function(){
+    var was=playerRollsDice;try{playerRollsDice=true;makeWorld();worldState.turn=40;
+      var rec=diceLogFile({by:"player",label:"Longsword attack",face:12,mod:5,dc:14,total:17,outcome:"success",dmg:{text:"1d8+3 = 4 + 3 = 7",faces:[4],total:7,sides:8}});
+      if(!rec.dmg||rec.dmg.total!==7||rec.dmg.faces.join()!=="4"||rec.dmg.text!=="1d8+3 = 4 + 3 = 7"||("sides" in rec.dmg))return "record: "+JSON.stringify(rec);
+      var back=parseWorldState(serializeWorldState());if(!back.diceLog[0].dmg||back.diceLog[0].dmg.total!==7)return "damage lost in the save round trip";
+      if("dmg" in diceLogFile({by:"player",label:"x",face:3,total:3,outcome:"rolled"}))return "a record without damage must carry no dmg field";
+      if(diceStats().rolls!==2)return "the readout must still count both";
+      var r=applyMuts("[CHECK:Longsword attack|+5|DC 14|1d8+3]");var pc=worldState.pendingCheck;if(!pc||!pc.dmg||pc.dmg.text!=="1d8+3")return "the check did not file its dice: "+JSON.stringify(pc);
+      if(!(r.muts||[]).some(function(m){return /1d8\+3 on a hit/.test(m);}))return "the mut does not name the damage: "+JSON.stringify(r.muts);
+      var h=diceTxt("[CHECK:Longsword attack|+5|DC 14|1d8+3]");if(!/dice-pending/.test(h)||!/1d8\+3 on a hit/.test(h))return "pending card: "+h;
+      h=diceTxt("[CHECK:Longsword attack|+5|DC 14|<b>1d8+3</b>]");if(/<b>/.test(h)||/on a hit/.test(h))return "a field the grammar refuses names no dice (the card prints canonical text, never the field): "+h;
+      delete worldState.pendingCheck;
+      h=diceTxt("[DICE:Longsword attack|17|success|1d8+3 = 4 + 3 = 7]");if(!/<strong>17<\/strong>/.test(h)||!/damage 1d8\+3 = 4 \+ 3 = 7/.test(h))return "rolled card: "+h;
+      h=diceTxt("[DICE:a|1|x|<img src=x onerror=alert(1)>]");if(/<img/.test(h)||h.indexOf("&lt;img")<0)return "the fourth field is model text and must be escaped: "+h;
+      h=diceTxt("[DICE:Stealth check|17|success]");if(/damage/.test(h))return "a record without damage shows none: "+h;
+      worldState.diceLog=[];diceLogFile({by:"player",label:"Longsword attack",face:12,mod:5,dc:14,total:17,outcome:"success",dmg:{text:"1d8+3 = 4 + 3 = 7",faces:[4],total:7}});
+      applyMuts("[DICE:Longsword attack|17|success|1d8+3 = 4 + 3 = 7]\nYour blade bites.");if(worldState.diceLog.length!==1)return "the echoed record was filed twice: "+worldState.diceLog.length;
+      if(cleanTxt("A [DICE:Longsword attack|17|success|1d8+3 = 4 + 3 = 7] B")!=="A  B")return "the four-field record is not stripped";
+      return true;
+    }finally{playerRollsDice=was;}
+  });
+  t("#654 the wiring and the teaching: rollPendingCheck rolls the faces before resolving, files and sends them, and plays the damage dice only through the d20 overlay's close (after the turn is sent, only when the hit rolled them); the MECHANICS line and the CHECK doc line teach the fourth field only while the player rolls",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),fn=g.slice(g.indexOf("function rollPendingCheck(){"),g.indexOf("function reconsiderPendingCheck(){"));
+    if(fn.indexOf('var faces=(chk.dmg&&typeof rollDamageFaces==="function")?rollDamageFaces(chk.dmg):null;')<0)return "the faces must be rolled from the check's dice";
+    if(fn.indexOf("var r=resolveCheck(chk,rollD20(),faces);")<0)return "resolveCheck must receive the faces";
+    if(fn.indexOf("dmg:r.damage")<0)return "the record must carry the damage";
+    var after=fn.indexOf('var after=r.damage?{onClose:function(){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}}:undefined;'),send=fn.indexOf("sendAction(r.note,{silent:true,rollTag:r.diceTag});"),show=fn.indexOf('if(typeof showDiceRoll==="function")showDiceRoll(r.roll,after);');
+    if(after<0||show<0)return "the damage dice must play through the d20 overlay's onClose, only when the hit rolled them";
+    if(send<0||show<send||after<send)return "showDiceRoll must follow sendAction";
+    var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");if(u.indexOf("opts.onClose()")<0)return "the overlay must call onClose when it closes";
+    var was=playerRollsDice;try{
+      playerRollsDice=true;makeWorld();var st=buildSysPrompt().stable;
+      if(!/fourth field/.test(st)||st.indexOf("[CHECK:Longsword attack|+5|DC 14|1d8+3]")<0||!/never roll damage yourself/.test(st)||!/never on a saving throw/.test(st))return "the MECHANICS line does not teach the damage field";
+      var doc=buildStateTagsDoc();if(doc.indexOf("[CHECK:Longsword attack|+5|DC 14|1d8+3]")<0||!/never on a saving throw/.test(doc)||!/never roll damage for a check you emitted/.test(doc))return "the CHECK doc line does not teach the damage field";
+      playerRollsDice=false;st=buildSysPrompt().stable;doc=buildStateTagsDoc();
+      if(/fourth field/.test(st)||st.indexOf("1d8+3")>=0||doc.indexOf("1d8+3")>=0)return "OFF must not teach the damage field";
+    }finally{playerRollsDice=was;}
     return true;
   });
 
