@@ -35445,4 +35445,21 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
 
+  section("#656 — the Table Talk welcome line (owner 2026-10-22: a blank Table Talk pane read as a blank story on the phone): an empty pane says who has joined table talk, painted by syncUI from the live hero, gone the moment the first exchange lands");
+  t("#656 the welcome text: tableTalkWelcome names the hero ('Ammut has joined table talk'); no hero or no name reads 'You have joined table talk'; a name is trimmed and never carries markup",function(){
+    if(tableTalkWelcome({name:"Ammut"})!=="Ammut has joined table talk")return "named: "+tableTalkWelcome({name:"Ammut"});
+    if(tableTalkWelcome({name:"  Frizwick Thorn "})!=="Frizwick Thorn has joined table talk")return "trim: "+tableTalkWelcome({name:"  Frizwick Thorn "});
+    if(tableTalkWelcome(null)!=="You have joined table talk"||tableTalkWelcome({})!=="You have joined table talk"||tableTalkWelcome({name:"   "})!=="You have joined table talk")return "no name: "+tableTalkWelcome(null)+" / "+tableTalkWelcome({});
+    if(/</.test(tableTalkWelcome({name:"<b>x</b>"})))return "markup must not survive (the text lands in a CSS attr(), where it is inert, but the HUD rule is one renderer): "+tableTalkWelcome({name:"<b>x</b>"});
+    return true;
+  });
+  t("#656 the wiring: the pane is born empty (no whitespace, so :empty matches), the CSS paints data-welcome through :empty::before (so the first .msg removes it with no bookkeeping), and syncUI sets the attribute from the live hero through tableTalkWelcome",function(){
+    var ix=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
+    if(!/<div id="story-tabletalk" style="display:none"><\/div>/.test(ix))return "the pane must be an empty element — whitespace inside it defeats :empty";
+    if(ix.indexOf("#story-tabletalk:empty::before{content:attr(data-welcome);")<0)return "the welcome must be the :empty::before pseudo-element reading data-welcome";
+    var up=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8"),fn=up.slice(up.indexOf("function syncUI(){"),up.indexOf("function syncUI(){")+1600);
+    if(fn.indexOf('_tt.setAttribute("data-welcome",tableTalkWelcome(worldState.character));')<0)return "syncUI must paint data-welcome from the live hero through tableTalkWelcome";
+    return true;
+  });
+
 }

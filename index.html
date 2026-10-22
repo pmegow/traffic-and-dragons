@@ -139,6 +139,7 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 .dice-roll video.dice-stacked-src{position:absolute;width:2px;height:1px;opacity:0;pointer-events:none}/* the stacked clip plays hidden; the canvas shows it */
 .dice-roll.out{opacity:0;transition:opacity .25s}
 #story-narrative,#story-tabletalk{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px;background:var(--bg0)}
+#story-tabletalk:empty::before{content:attr(data-welcome);color:var(--t2);font-style:italic;font-size:14px;line-height:1.6;padding:5px 3px}/* #656: an empty Table Talk pane says who has joined (syncUI paints data-welcome); the first .msg ends :empty and the line goes */
 .rpanel{width:168px;flex-shrink:0;background:var(--bg1);border-left:1px solid var(--brd);overflow-y:auto;display:flex;flex-direction:column;transition:width .2s}
 .rpanel.col{width:32px}.rpanel.col .psb,.rpanel.col .psa,.rpanel.col .psbdg{display:none}
 .ptog{display:flex;align-items:center;justify-content:space-between;padding:10px 10px 6px;cursor:pointer;border-bottom:1px solid var(--brd);flex-shrink:0}.ptog:hover{background:var(--bg2)}

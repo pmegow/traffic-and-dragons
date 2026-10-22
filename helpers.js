@@ -2445,6 +2445,10 @@ function accountDoorsHtml(a){
 // Cambion cards named none; the owner read that as "no abilities"). A bare string is a passive/at-will grant.
 function racialCapName(it){var o=typeof it==="string"?{cap:it}:(it||{});var use=o.use;return String(o.cap||"")+((use&&use!=="passive"&&use!=="at-will")?" ("+use+")":"");}
 function racialCapsLabel(caps){var out=[],i;for(i=0;i<(caps||[]).length;i++){var n=racialCapName(caps[i]);if(n)out.push(n);}return out.join(", ");}
+/* #656 (owner 2026-10-22): the Table Talk pane's welcome line while it is empty — on the phone a blank Table Talk read
+   as a blank STORY. Pure; syncUI paints it into data-welcome and index.html's #story-tabletalk:empty::before shows it
+   until the first exchange lands (the first .msg ends :empty — no bookkeeping). Markup is stripped: one text, one renderer. */
+function tableTalkWelcome(cs){var n=String(cs&&cs.name||"").replace(/<[^>]*>/g,"").trim();return n?n+" has joined table talk":"You have joined table talk";}
 function menuTierHidesDev(acct){
   if(!acct)return false;
   return acct.isAdmin!==true;
