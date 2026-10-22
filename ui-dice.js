@@ -8,46 +8,88 @@
    recombined per frame: the left half's pixels with the right half's grey as their alpha (the colour is premultiplied
    over black, so a partial pixel is divided back out). ~320k pixels a frame for three seconds, fine on a phone.
    The settled die stays until the player clicks or taps the overlay (owner 2026-10-20) — no timer takes it away.
+   #653 — THE DAMAGE DICE (owner rulings 2026-10-21): showDamageRoll(sides,faces) plays d4/d6/d8/d10/d12 clips the same way,
+   one clip per die COMPOSITED — two to four tiles in a row (two-by-two when narrow), each a square window onto its clip's
+   frame cropped around the landing spot (the pure diceTileLayout, helpers.js), the starts staggered a beat so a double is
+   two dice, not one clip twice. One die plays full-frame, exactly like the d20. The same overlay, the same door out.
    Skipped (returns false, nothing shown): headless, no story area, Car Mode (its own screen covers the page), a reduced-
-   motion preference, a face outside 1..20. A clip that fails to load or play says so on the console and through
-   reportError once per session (the phone's console is invisible) and closes at once — the card already holds the
-   number; a play() the device itself refused (NotAllowedError, an autoplay policy) is not our bug and is not reported.
-   Assets: dice/d20_NN.webm | dice/d20_NN-stacked.mp4 (dev/blender/dice-clips.js), served cache-first from the SW's DICE_CACHE. */
+   motion preference, a face outside the die, more than DICE_TILE_MAX dice. A clip that fails to load or play says so on the
+   console and through reportError once per session (the phone's console is invisible) and closes at once — the card already
+   holds the number; a play() the device itself refused (NotAllowedError, an autoplay policy) is not our bug and is not reported.
+   Assets: dice/dN_FF.webm | dice/dN_FF-stacked.mp4 (dev/blender/dice-clips.js), served cache-first from the SW's DICE_CACHE. */
 var DICE_ROLL_FADE_MS=250;      /* matches .dice-roll.out in index.html */
+var DICE_TILE_STAGGER_MS=90;    /* #653: each further die starts this much later — a handful lands a beat apart */
 /* Owner 2026-10-20: the settled die STAYS until the player clicks or taps it — no timer takes the number away. */
 var _diceClipReported=false;
-function showDiceRoll(face,opts){
+/* The skips every roll shares; returns the environment diceClipFormat reads, or false when nothing may show. */
+function diceRollEnv(){
   if(typeof document==="undefined"||typeof diceClipSrc!=="function")return false;
-  var area=document.getElementById("story-area");if(!area)return false;
+  if(!document.getElementById("story-area"))return false;
   if(typeof carMode!=="undefined"&&carMode)return false;
   if(typeof window!=="undefined"&&window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)return false;
   var nav=typeof navigator!=="undefined"?navigator:{};
   var env={ua:nav.userAgent,platform:nav.platform,maxTouchPoints:nav.maxTouchPoints};
+  return env;
+}
+function showDiceRoll(face,opts){
+  var env=diceRollEnv();if(!env)return false;
   var src=diceClipSrc(face,env);
   if(!src)return false;
+  return diceOverlay([src],env,face,opts);
+}
+/* #653: faces is the array of rolled faces (one per die), sides the die; every face must name a clip or nothing shows. */
+function showDamageRoll(sides,faces,opts){
+  var env=diceRollEnv();if(!env)return false;
+  var list=Array.isArray(faces)?faces:[faces],srcs=[],i,s;
+  if(!list.length||list.length>DICE_TILE_MAX)return false;
+  for(i=0;i<list.length;i++){s=diceClipSrc(list[i],env,sides);if(!s)return false;srcs.push(s);}
+  return diceOverlay(srcs,env,"d"+sides+":"+list.join("+"),opts);
+}
+/* The overlay itself: one clip full-frame, several as tiles. `face` labels the roll in a failure report. */
+function diceOverlay(srcs,env,face,opts){
+  var area=document.getElementById("story-area");
   var stacked=diceClipFormat(env)==="stacked";
   var old=document.getElementById("dice-roll");if(old&&old.parentNode)old.parentNode.removeChild(old);
   var wrap=document.createElement("div");wrap.id="dice-roll";wrap.className="dice-roll";wrap.title="Click to dismiss";
-  var v=document.createElement("video");v.muted=true;v.playsInline=true;v.setAttribute("playsinline","");v.setAttribute("muted","");v.preload="auto";v.src=src;
-  var canvas=null;
-  if(stacked){v.className="dice-stacked-src";canvas=document.createElement("canvas");wrap.appendChild(canvas);}
-  wrap.appendChild(v);area.appendChild(wrap);
-  var closed=false;
+  var layout=null,grid=null;
+  if(srcs.length>1){
+    layout=diceTileLayout(srcs.length,area.clientWidth-32,area.clientHeight-32);
+    grid=document.createElement("div");grid.className="dice-grid";
+    grid.style.gridTemplateColumns="repeat("+layout.cols+","+layout.tile+"px)";grid.style.gap=layout.gap+"px";
+    wrap.appendChild(grid);
+  }
+  var closed=false,videos=[];
   function close(){
     if(closed)return;closed=true;wrap.classList.add("out");
     setTimeout(function(){if(wrap.parentNode)wrap.parentNode.removeChild(wrap);if(opts&&typeof opts.onClose==="function")opts.onClose();},DICE_ROLL_FADE_MS);
   }
-  function fail(why,quiet){
+  function fail(src,why,quiet){
     var msg="dice clip "+src+": "+why;
     console.warn(msg);
     if(!quiet&&!_diceClipReported&&typeof reportError==="function"){_diceClipReported=true;reportError("dice-clip",msg,{face:face,src:src});}
     close();
   }
   wrap.onclick=close;/* the only way out: the settled die stays until the player clicks (owner 2026-10-20) */
-  v.onerror=function(){fail("failed to load"+(v.error&&v.error.message?" ("+v.error.message+")":""));};
-  if(stacked)diceStackedPlayer(v,canvas,function(){return closed;});
-  var p=v.play();
-  if(p&&typeof p.catch==="function")p.catch(function(e){fail("would not play ("+(e&&e.message||e)+")",!!(e&&e.name==="NotAllowedError"));});
+  srcs.forEach(function(src){
+    var v=document.createElement("video");v.muted=true;v.playsInline=true;v.setAttribute("playsinline","");v.setAttribute("muted","");v.preload="auto";v.src=src;
+    var canvas=null,host=wrap;
+    if(layout){host=document.createElement("div");host.className="dice-tile";host.style.width=layout.tile+"px";host.style.height=layout.tile+"px";grid.appendChild(host);}
+    if(stacked){v.className="dice-stacked-src";canvas=document.createElement("canvas");host.appendChild(canvas);}
+    host.appendChild(v);
+    if(layout){var shown=canvas||v;shown.style.width=layout.frameW+"px";shown.style.height=layout.frameH+"px";shown.style.left=layout.left+"px";shown.style.top=layout.top+"px";}
+    v.onerror=function(){fail(src,"failed to load"+(v.error&&v.error.message?" ("+v.error.message+")":""));};
+    if(stacked)diceStackedPlayer(v,canvas,function(){return closed;});
+    videos.push({v:v,src:src});
+  });
+  area.appendChild(wrap);
+  videos.forEach(function(it,i){
+    function start(){
+      if(closed)return;
+      var p=it.v.play();
+      if(p&&typeof p.catch==="function")p.catch(function(e){fail(it.src,"would not play ("+(e&&e.message||e)+")",!!(e&&e.name==="NotAllowedError"));});
+    }
+    if(i===0)start();else setTimeout(start,i*DICE_TILE_STAGGER_MS);/* a double is two dice landing a beat apart, not one clip twice */
+  });
   return true;
 }
 /* The stacked-alpha recombiner: draws each video frame to a work canvas, reads the two halves, runs the pure

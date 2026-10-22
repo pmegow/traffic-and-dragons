@@ -3951,9 +3951,15 @@ function voiceNoteTrim(note){
    decision, kept pure so the rule is testable without a browser. Every browser on iOS is WebKit, whatever its name (CriOS,
    FxiOS); an iPad with a desktop UA says MacIntel with touch points. */
 var DICE_CLIP_FILES={webm:".webm",stacked:"-stacked.mp4"};
-function diceClipName(face){
-  var n=Number(face);if(!(n>=1&&n<=20)||n!==Math.floor(n))return null;
-  return "dice/d20_"+(n<10?"0":"")+n;
+/* #653: the DAMAGE DICE — d4, d6, d8, d10 and d12 rendered through the same scene, one clip per face (owner rulings 2026-10-21:
+   clips like the d20; a roll of several dice is COMPOSITED, one clip per die side by side, so any result shows the right
+   faces upright with the others dimmed; a row that wraps two-by-two when narrow; bone and ink throughout). `sides` defaults
+   to the d20 everywhere, so the #650 callers are unchanged. */
+var DICE_CLIP_SIDES=[4,6,8,10,12,20];
+function diceClipName(face,sides){
+  var s=sides==null?20:Number(sides),n=Number(face);
+  if(DICE_CLIP_SIDES.indexOf(s)<0||!(n>=1&&n<=s)||n!==Math.floor(n))return null;
+  return "dice/d"+s+"_"+(n<10?"0":"")+n;
 }
 function diceClipFormat(env){
   var e=env||{},ua=String(e.ua||"");
@@ -3962,9 +3968,26 @@ function diceClipFormat(env){
   if(/AppleWebKit/.test(ua)&&!/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/.test(ua))return "stacked";
   return "webm";
 }
-function diceClipSrc(face,env){
-  var base=diceClipName(face);if(!base)return null;
+function diceClipSrc(face,env,sides){
+  var base=diceClipName(face,sides);if(!base)return null;
   return base+DICE_CLIP_FILES[diceClipFormat(env)];
+}
+/* The composited damage roll (#653): N clips side by side, each a square TILE cropped around the spot where a die settles.
+   The camera aims at the landing in every render, so a settled die sits at the same place in every clip — DICE_TILE_REST,
+   the centre of the batch's measured rest boxes (dice/manifest.json), pinned by test. diceTileLayout is pure: the columns
+   (two to four in a row; two when the overlay is narrower than DICE_TILE_NARROW, so three and four dice wrap), the tile from
+   the room, and the crop — the 2:1 frame scaled so the die reads near DICE_TILE_DIE_PX (it fills about DICE_TILE_DIE_FRAC of
+   the frame's height), never more than DICE_TILE_ZOOM_MAX, and offset so the rest point is the tile's centre. One die is not
+   tiled: it plays full-frame, exactly like the d20. */
+var DICE_TILE_REST={x:0.61,y:0.43},DICE_TILE_GAP=8,DICE_TILE_MAX=4,DICE_TILE_NARROW=560,DICE_TILE_DIE_PX=110,DICE_TILE_DIE_FRAC=0.45,DICE_TILE_ZOOM_MAX=1.4;/* rest: the mean over the forty damage clips' measured boxes, 2026-10-21 (0.614, 0.434) */
+function diceTileLayout(n,width,height){
+  var cols=n<=2?n:(width<DICE_TILE_NARROW?2:n),rows=Math.ceil(n/cols);
+  var tile=Math.floor(Math.min((width-DICE_TILE_GAP*(cols-1))/cols,(height-DICE_TILE_GAP*(rows-1))/rows));
+  if(!(tile>0))tile=60;
+  var zoom=Math.min(DICE_TILE_ZOOM_MAX,Math.max(1,DICE_TILE_DIE_PX/(DICE_TILE_DIE_FRAC*tile)));
+  var frameH=Math.round(tile*zoom),frameW=frameH*2;
+  return {cols:cols,rows:rows,tile:tile,gap:DICE_TILE_GAP,zoom:zoom,frameW:frameW,frameH:frameH,
+    left:Math.round(tile/2-DICE_TILE_REST.x*frameW),top:Math.round(tile/2-DICE_TILE_REST.y*frameH)};
 }
 /* The stacked-alpha recombination, one frame: cd is the colour half's RGBA bytes (alpha 255 throughout, colour
    premultiplied over black), md the matte half's; the matte's red becomes the colour's alpha, and a partial pixel's

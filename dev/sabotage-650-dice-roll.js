@@ -17,7 +17,7 @@ prove("helpers.js", [
     find: '!/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/.test(ua)', replace: "true",
     mustFail: "Chrome must get the webm" },
   { label: "a single-digit face loses its zero (dice/d20_7 is no file)",
-    find: '"dice/d20_"+(n<10?"0":"")+n', replace: '"dice/d20_"+n',
+    find: '"dice/d"+s+"_"+(n<10?"0":"")+n', replace: '"dice/d"+s+"_"+n',
     mustFail: "the name must be two digits" },
   { label: "a half-covered edge pixel keeps its premultiplied colour (a dark fringe round the die)",
     find: "else{k=255/a;cd[i]=Math.min(255,cd[i]*k);cd[i+1]=Math.min(255,cd[i+1]*k);cd[i+2]=Math.min(255,cd[i+2]*k);cd[i+3]=a;}", replace: "else{cd[i+3]=a;}",

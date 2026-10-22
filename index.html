@@ -132,6 +132,10 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 /* #650: the roll overlay (ui-dice.js) — the clip over the dimmed story; the transparent WebM floats the die, the felt MP4 reads as a tray */
 .dice-roll{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:transparent;z-index:50;cursor:pointer;transform:translateZ(0)}/* no backdrop (owner 2026-10-21: a dark band in light mode) — the die and its shadow float over the story as they are. No fade-in: the clip opens on empty felt anyway, and one fewer way for the overlay to sit at opacity 0. z-index 50 + its own compositing layer: the phone's scroller must never paint over the die */
 .dice-roll video,.dice-roll canvas{width:100%;max-width:800px;max-height:100%;object-fit:contain;border-radius:var(--r);display:block}
+/* #653: several damage dice — a grid of square tiles, each a window onto its clip's 2:1 frame cropped around the landing spot (diceTileLayout sizes and offsets them inline) */
+.dice-roll .dice-grid{display:grid;max-width:100%}
+.dice-roll .dice-tile{position:relative;overflow:hidden}
+.dice-roll .dice-tile video,.dice-roll .dice-tile canvas{position:absolute;max-width:none;max-height:none;border-radius:0}
 .dice-roll video.dice-stacked-src{position:absolute;width:2px;height:1px;opacity:0;pointer-events:none}/* the stacked clip plays hidden; the canvas shows it */
 .dice-roll.out{opacity:0;transition:opacity .25s}
 #story-narrative,#story-tabletalk{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px;background:var(--bg0)}

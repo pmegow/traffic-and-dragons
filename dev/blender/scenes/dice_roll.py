@@ -1,12 +1,16 @@
-# dev/blender/scenes/dice_roll.py — a d20 roll: the die is thrown onto felt, tumbles under Blender's
+# dev/blender/scenes/dice_roll.py — a die roll: the die is thrown onto felt, tumbles under Blender's
 # rigid-body physics and settles face-up. Run through dev/blender/render.js (never by hand):
 #
 #   node dev/blender/render.js dice_roll --result 20 --seed 3
+#   node dev/blender/render.js dice_roll --sides 6 --result 4 --seed 3
 #
 # Scene flags (on top of the launcher's common ones):
-#   --result N   the number that must land face-up (1..20). The physics decides WHICH face ends up
+#   --sides N    the die: 4, 6, 8, 10, 12 or 20 (default 20 — the #650 d20 batch; its path is unchanged by the
+#                damage dice, same seeds, same throw). The d4 is a tetrahedron read at its TOP VERTEX: each face
+#                carries three numerals, one per corner, so the apex number reads on every visible face.
+#   --result N   the number that must land face-up (1..sides). The physics decides WHICH face ends up
 #                on top; the numerals are painted on AFTER the bake so that face carries N and every
-#                opposite pair still sums to 21 — the render is a real roll that happens to land N.
+#                opposite pair still sums to sides+1 — the render is a real roll that happens to land N.
 #                Omit it and the roll is honest: whatever the seed gives.
 #   --seed N     the throw (spin and push); the same seed and frame count reproduce the same roll.
 #   --die HEX    die colour (default bone e8dcc0); --felt HEX the ground (default 141c24, the game's
@@ -35,13 +39,16 @@ def read_options():
 A = {
     "out": os.path.abspath("renders/dice_roll"), "frames": 60, "fps": 24, "size": [512, 512], "seed": 1,
     "engine": "EEVEE", "samples": 24, "transparent": False, "shadow": False, "video": False, "still": None, "result": None,
-    "die": "e8dcc0", "felt": "141c24", "ink": "1b1b1b",
+    "die": "e8dcc0", "felt": "141c24", "ink": "1b1b1b", "sides": 20,
 }
 A.update(read_options())
+SIDES = int(A["sides"])
+if SIDES not in (4, 6, 8, 10, 12, 20):
+    raise SystemExit("--sides must be 4, 6, 8, 10, 12 or 20, got %r" % A["sides"])
 if A["result"] is not None:
     A["result"] = int(A["result"])
-    if not 1 <= A["result"] <= 20:
-        raise SystemExit("--result must be 1..20, got %r" % A["result"])
+    if not 1 <= A["result"] <= SIDES:
+        raise SystemExit("--result must be 1..%d, got %r" % (SIDES, A["result"]))
 A["frames"] = int(A["frames"]); A["seed"] = int(A["seed"])
 if A["shadow"] and not A["transparent"]:
     raise SystemExit("--shadow is for a transparent render (the felt already shows its own shadow)")
@@ -105,16 +112,77 @@ ground.name = "Felt"
 ground.data.materials.append(material("Felt", A["felt"], 0.95))
 ground.hide_render = bool(A["transparent"])
 
-# the die: an icosahedron (20 flat triangular faces), lightly bevelled
-R = 0.5
-bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=R, location=(0, 0, 0))
-die = bpy.context.active_object
-die.name = "D20"
+# the die. The d20 is Blender's icosahedron primitive, exactly as the #650 batch rendered it; the damage dice
+# are built from their vertices (convex hull, coplanar triangles dissolved into the real faces): a tetrahedron,
+# a cube, an octahedron, a pentagonal trapezohedron (ten kites, the ring vertices at the height that makes each
+# kite planar) and a dodecahedron. R is the circumradius, chosen per die so the five read as one set on the felt
+# (a tetrahedron looks small for its circumradius, a cube large). Every die is lightly bevelled in proportion
+# to its shortest edge.
+R = {4: 0.62, 6: 0.55, 8: 0.56, 10: 0.52, 12: 0.52, 20: 0.5}[SIDES]
+
+def die_vertices(sides, radius):
+    """The vertices of the die with the given circumradius; the faces are their convex hull."""
+    if sides == 4:
+        base = [(1, 1, 1), (1, -1, -1), (-1, 1, -1), (-1, -1, 1)]
+    elif sides == 6:
+        base = [(x, y, z) for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
+    elif sides == 8:
+        base = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+    elif sides == 12:
+        phi = (1 + 5 ** 0.5) / 2
+        base = [(x, y, z) for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
+        base += [(0, s * (1 / phi), t * phi) for s in (-1, 1) for t in (-1, 1)]
+        base += [(s * (1 / phi), t * phi, 0) for s in (-1, 1) for t in (-1, 1)]
+        base += [(s * phi, 0, t * (1 / phi)) for s in (-1, 1) for t in (-1, 1)]
+    elif sides == 10:
+        # apexes on the axis, ten ring vertices alternating up and down; k is the ONE ring height at which the
+        # kite (apex, high, low, high) is planar: k = h (1 - cos 36°) / (1 + cos 36°)
+        h, ring = 1.0, 0.78
+        c36 = math.cos(math.radians(36))
+        k = h * (1 - c36) / (1 + c36)
+        base = [(0, 0, h), (0, 0, -h)]
+        for i in range(10):
+            a = math.radians(36 * i)
+            base.append((ring * math.cos(a), ring * math.sin(a), k if i % 2 == 0 else -k))
+    else:
+        raise SystemExit("no geometry for a d%d" % sides)
+    scale = radius / max(Vector(v).length for v in base)
+    return [Vector(v) * scale for v in base]
+
+def make_die(sides, radius):
+    if sides == 20:
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=radius, location=(0, 0, 0))
+        return bpy.context.active_object
+    import bmesh
+    bm = bmesh.new()
+    for v in die_vertices(sides, radius):
+        bm.verts.new(v)
+    bm.verts.ensure_lookup_table()
+    hull = bmesh.ops.convex_hull(bm, input=bm.verts[:])
+    junk = [g for g in hull.get("geom_interior", []) + hull.get("geom_unused", [])]
+    if junk:
+        bmesh.ops.delete(bm, geom=junk, context="VERTS")
+    bmesh.ops.dissolve_limit(bm, angle_limit=math.radians(1.0), verts=bm.verts[:], edges=bm.edges[:])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    me = bpy.data.meshes.new("D%d" % sides)
+    bm.to_mesh(me)
+    bm.free()
+    obj = bpy.data.objects.new("D%d" % sides, me)
+    scene.collection.objects.link(obj)
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+    if len(me.polygons) != sides:
+        raise SystemExit("the d%d mesh has %d faces" % (sides, len(me.polygons)))
+    return obj
+
+die = make_die(SIDES, R)
+die.name = "D%d" % SIDES
 die.data.materials.append(material("Bone", A["die"], 0.35))
 for p in die.data.polygons:
     p.use_smooth = False
+EDGE = min((die.data.vertices[e.vertices[0]].co - die.data.vertices[e.vertices[1]].co).length for e in die.data.edges)
 bevel = die.modifiers.new("Bevel", "BEVEL")
-bevel.width, bevel.segments = 0.02, 3
+bevel.width, bevel.segments = (0.02 if SIDES == 20 else 0.04 * EDGE), 3
 
 # rigid bodies
 def rigid(obj, body_type, shape):
@@ -127,8 +195,20 @@ def rigid(obj, body_type, shape):
 g = rigid(ground, "PASSIVE", "BOX")
 g.friction, g.restitution = 0.9, 0.2
 d = rigid(die, "ACTIVE", "CONVEX_HULL")
-d.mass, d.friction, d.restitution = 0.03, 0.8, 0.3
-d.angular_damping, d.linear_damping = 0.35, 0.15   # a little more than before: the harder throw must still settle inside the clip
+d.mass, d.friction, d.restitution = 0.03, 0.8, float(A.get("bounce", 0.3))   # --bounce F: the restitution, for a survey
+# a little more than before: the harder throw must still settle inside the clip. The rounder damage dice roll much
+# farther on the same throw (the 2026-10-21 survey: the d12 settled in 1 of 8 seeds, the d10 in 6) — each has its own
+# damping, DAMPING below; --damp A,L overrides for a survey.
+DAMPING = {4: (0.35, 0.15), 6: (0.35, 0.15), 8: (0.35, 0.15), 10: (0.5, 0.25), 12: (0.65, 0.3), 20: (0.35, 0.15)}
+if A.get("damp"):
+    DAMPING[SIDES] = tuple(float(x) for x in str(A["damp"]).split(","))
+d.angular_damping, d.linear_damping = DAMPING[SIDES]
+# the collision margin: Bullet pads a convex hull by 0.04 by default, a rounded shell on which a die with big flat
+# faces ROCKS after it lands (the d12 survey: a decaying wobble of ±0.01 for forty frames). --margin M sets it (the d20
+# keeps the default, so the #650 clips reproduce).
+if A.get("margin") is not None:
+    d.use_margin = True
+    d.collision_margin = float(A["margin"])
 rbw = scene.rigidbody_world
 rbw.point_cache.frame_start, rbw.point_cache.frame_end = 1, A["frames"]
 optional(lambda: setattr(rbw, "substeps_per_frame", 20), "rigidbody substeps")
@@ -143,6 +223,8 @@ start = Vector((-1.6, rng.uniform(-0.3, 0.3), 1.5))
 # read as dropped from just above the table). The sign of each spin axis is the seed's; the size is not.
 push = Vector((rng.uniform(0.15, 0.18), rng.uniform(-0.04, 0.04), -0.02))
 spin = Vector((rng.choice((-1, 1)) * rng.uniform(0.7, 1.0), rng.choice((-1, 1)) * rng.uniform(0.7, 1.0), rng.choice((-1, 1)) * rng.uniform(0.3, 0.6)))
+# --throw F scales the push (not the spin) — a survey knob for a die that rolls too far; the d20's throw is 1
+push = push * float(A.get("throw", 1.0))
 die.rotation_euler = (rng.uniform(0, 6.28), rng.uniform(0, 6.28), rng.uniform(0, 6.28))
 die.location = start
 die.keyframe_insert("location", frame=1)
@@ -198,15 +280,22 @@ for f in range(2, A["frames"] + 1):
 turns = ground_turn / (2.0 * math.pi)
 print("SCENE turns: %.2f rolling on the felt (%.2f tumbling, %.2f in all), at rest from frame %s" % (turns, tumble_turn / (2.0 * math.pi), total_turn / (2.0 * math.pi), rest_frame))
 
-# where did it land? the up face at the last frame, and was it still moving?
+# where did it land? the up face at the last frame, and was it still moving? A d4 rests on a face with a VERTEX
+# up: its result is the vertex the down face does not touch.
 scene.frame_set(A["frames"])
 mw = die.matrix_world.copy()
 rot = mw.to_3x3()
 up_index, best = None, -2.0
+down_index, worst = None, 2.0
 for p in die.data.polygons:
     z = (rot @ p.normal).normalized().z
     if z > best:
         best, up_index = z, p.index
+    if z < worst:
+        worst, down_index = z, p.index
+up_vertex = None
+if SIDES == 4:
+    up_vertex = next(v.index for v in die.data.vertices if v.index not in die.data.polygons[down_index].vertices)
 end_loc, end_quat = mw.translation.copy(), mw.to_quaternion()
 scene.frame_set(A["frames"] - 1)
 prev = die.matrix_world
@@ -215,35 +304,56 @@ turned = prev.to_quaternion().rotation_difference(end_quat).angle   # the true a
 settled = moved < 0.002 and turned < 0.01
 if not settled:
     print("WARN the die had not settled by frame %d (moved %.4f, turned %.4f) — raise --frames" % (A["frames"], moved, turned))
+    # the tail, frame by frame, so a slow roll and a jitter can be told apart (the d12 survey, 2026-10-21)
+    tail = []
+    for f in range(max(2, A["frames"] - 11), A["frames"] + 1):
+        scene.frame_set(f - 1)
+        q0, p0 = die.matrix_world.to_quaternion(), die.matrix_world.translation.copy()
+        scene.frame_set(f)
+        q1, p1 = die.matrix_world.to_quaternion(), die.matrix_world.translation.copy()
+        tail.append("f%d dp=%.4f dq=%.4f z=%.3f" % (f, (p1 - p0).length, q0.rotation_difference(q1).angle, p1.z))
+    print("SCENE unsettled tail: " + " | ".join(tail))
 scene.frame_set(1)
 
-# numerals: opposite faces pair up (antipodal normals) and each pair sums to 21; the up face is then
-# swapped to carry --result, pair-wise, so the sums still hold.
+# numerals: opposite faces pair up (antipodal normals) and each pair sums to sides+1; the up face is then
+# swapped to carry --result, pair-wise, so the sums still hold. A d4 numbers its VERTICES instead (one
+# numeral per corner on every face): the top vertex is swapped to carry --result.
 polys = list(die.data.polygons)
-pairs, used = [], set()
-for p in polys:
-    if p.index in used:
-        continue
-    q = min((o for o in polys if o.index not in used and o.index != p.index), key=lambda o: (o.normal + p.normal).length)
-    used.update((p.index, q.index))
-    pairs.append((p.index, q.index))
-labels = {}
-order = list(range(1, 11))
+TOP = SIDES + 1
 rng2 = random.Random(A["seed"] * 7919 + 17)
-rng2.shuffle(order)
-for (a, b), k in zip(pairs, order):
-    if rng2.random() < 0.5:
-        a, b = b, a
-    labels[a], labels[b] = k, 21 - k
-if A["result"] is not None and labels[up_index] != A["result"]:
+labels = {}
+pairs = []
+if SIDES == 4:
+    order = list(range(1, 5))
+    rng2.shuffle(order)
+    for v, k in zip(die.data.vertices, order):
+        labels[v.index] = k
+    result_index = up_vertex
+else:
+    used = set()
+    for p in polys:
+        if p.index in used:
+            continue
+        q = min((o for o in polys if o.index not in used and o.index != p.index), key=lambda o: (o.normal + p.normal).length)
+        used.update((p.index, q.index))
+        pairs.append((p.index, q.index))
+    order = list(range(1, SIDES // 2 + 1))
+    rng2.shuffle(order)
+    for (a, b), k in zip(pairs, order):
+        if rng2.random() < 0.5:
+            a, b = b, a
+        labels[a], labels[b] = k, TOP - k
+    result_index = up_index
+if A["result"] is not None and labels[result_index] != A["result"]:
     other = next(i for i, v in labels.items() if v == A["result"])
-    mate = lambda i: next(b if a == i else a for a, b in pairs if i in (a, b))
-    labels[up_index], labels[other] = labels[other], labels[up_index]
-    if mate(up_index) != other:  # the pair's mates swap too — unless the two ARE a pair, which the first swap already turned over
-        labels[mate(up_index)], labels[mate(other)] = labels[mate(other)], labels[mate(up_index)]
-assert A["result"] is None or labels[up_index] == A["result"], "the up face must carry --result"
-assert all(labels[a] + labels[b] == 21 for a, b in pairs), "opposite faces must sum to 21"
-assert sorted(labels.values()) == list(range(1, 21)), "every number 1..20 exactly once"
+    labels[result_index], labels[other] = labels[other], labels[result_index]
+    if pairs:
+        mate = lambda i: next(b if a == i else a for a, b in pairs if i in (a, b))
+        if mate(result_index) != other:  # the pair's mates swap too — unless the two ARE a pair, which the first swap already turned over
+            labels[mate(result_index)], labels[mate(other)] = labels[mate(other)], labels[mate(result_index)]
+assert A["result"] is None or labels[result_index] == A["result"], "the up face must carry --result"
+assert all(labels[a] + labels[b] == TOP for a, b in pairs), "opposite faces must sum to %d" % TOP
+assert sorted(labels.values()) == list(range(1, SIDES + 1)), "every number 1..%d exactly once" % SIDES
 
 # camera and lights — aimed at WHERE THE DIE LANDS (known now that the bake is done), so every
 # seed settles centred and the throw enters from the left edge; a fixed aim left the die small
@@ -280,6 +390,12 @@ scene.frame_set(A["frames"])
 bpy.context.view_layer.update()
 rot_end = die.matrix_world.to_3x3()
 cam_up = (cam.matrix_world.to_3x3() @ Vector((0.0, 1.0, 0.0))).normalized()
+# where the settled die sits IN THE FRAME (fractions of the width and height, top-left origin): the page crops a
+# composited damage roll around this spot (#653), so the batch records it per clip
+from bpy_extras.object_utils import world_to_camera_view
+_pts = [world_to_camera_view(scene, cam, die.matrix_world @ v.co) for v in die.data.vertices]
+rest_box = [round(min(p.x for p in _pts), 3), round(1.0 - max(p.y for p in _pts), 3), round(max(p.x for p in _pts), 3), round(1.0 - min(p.y for p in _pts), 3)]
+print("SCENE rest box: %s" % rest_box)
 scene.frame_set(1)
 
 def upright_rotation(n):
@@ -301,33 +417,73 @@ DIM = 0.875
 dim = material("BoneDim", A["die"], 0.35)
 die.data.materials.append(dim)
 for p in polys:
-    p.material_index = 0 if p.index == up_index else 1
+    p.material_index = 0 if (p.index == up_index or SIDES == 4) else 1   # a d4 shows its result on every face: the pop is in the ink instead
 dim_bsdf = dim.node_tree.nodes.get("Principled BSDF")
 bone = hex_rgb(A["die"])
 dim_bsdf.inputs["Base Color"].default_value = srgb_to_linear(tuple(c * DIM for c in bone[:3]) + (1.0,))
 
 ink = material("Ink", A["ink"], 0.6)
-for p in polys:
-    curve = bpy.data.curves.new("N%02d" % labels[p.index], type="FONT")
-    curve.body = str(labels[p.index]) + ("." if labels[p.index] in (6, 9) else "")  # the dice maker's 6/9 mark
+# the d4's pop: the nine numerals that are not the apex sit in an ink faded a third of the way to bone
+ink_dim = material("InkDim", A["ink"], 0.6)
+ink_rgb = hex_rgb(A["ink"])
+ink_dim.node_tree.nodes.get("Principled BSDF").inputs["Base Color"].default_value = srgb_to_linear(tuple(ink_rgb[i] + (bone[i] - ink_rgb[i]) * 0.35 for i in range(3)) + (1.0,))
+
+def inradius(p):
+    """Distance from the face's centroid to its nearest edge — the room a numeral has."""
+    vs = [die.data.vertices[v].co for v in p.vertices]
+    c = sum(vs, Vector()) / len(vs)
+    best = None
+    for i in range(len(vs)):
+        a, b = vs[i], vs[(i + 1) % len(vs)]
+        ab = b - a
+        t = max(0.0, min(1.0, (c - a).dot(ab) / ab.length_squared))
+        d = (c - (a + ab * t)).length
+        best = d if best is None else min(best, d)
+    return best
+
+def numeral(number, size, position, rotation, mat):
+    curve = bpy.data.curves.new("N%02d" % number, type="FONT")
+    curve.body = str(number) + ("." if number in (6, 9) and SIDES >= 9 else "")  # the dice maker's 6/9 mark, on a die that has both
     curve.align_x = curve.align_y = "CENTER"
-    curve.size = 0.26 * (R / 0.5) if labels[p.index] < 10 else 0.22 * (R / 0.5)
+    curve.size = size
     curve.offset = 0.0
     txt = bpy.data.objects.new(curve.name, curve)
     scene.collection.objects.link(txt)
-    txt.data.materials.append(ink)
-    center = sum((die.data.vertices[v].co for v in p.vertices), Vector()) / 3.0
-    n = p.normal.normalized()
+    txt.data.materials.append(mat)
     txt.parent = die
-    txt.location = center + n * 0.004
-    # only the face that lands up reads upright; the other nineteen keep their natural spin (owner 2026-10-21:
+    txt.location = position
+    txt.rotation_euler = rotation
+    return txt
+
+def corner_rotation(n, toward):
+    """Local rotation for a numeral on a face with normal n whose up points along the in-plane direction `toward`."""
+    y = (toward - n * toward.dot(n)).normalized()
+    x = y.cross(n).normalized()
+    return Matrix((x, y, n)).transposed().to_euler()
+
+for p in polys:
+    n = p.normal.normalized()
+    center = sum((die.data.vertices[v].co for v in p.vertices), Vector()) / len(p.vertices)
+    if SIDES == 4:
+        # three numerals per face, each at its corner and reading UP toward that corner's vertex, so the apex number
+        # stands upright on every visible face once the die rests
+        for vi in p.vertices:
+            vco = die.data.vertices[vi].co
+            pos = center + (vco - center) * 0.52 + n * 0.004
+            numeral(labels[vi], 0.95 * inradius(p), pos, corner_rotation(n, vco - center), ink if vi == up_vertex else ink_dim)
+        continue
+    if SIDES == 20:
+        size = 0.26 * (R / 0.5) if labels[p.index] < 10 else 0.22 * (R / 0.5)   # the #650 numerals, byte for byte
+    else:
+        size = (1.45 if labels[p.index] < 10 else 1.2) * inradius(p)
+    # only the face that lands up reads upright; the others keep their natural spin (owner 2026-10-21:
     # every numeral squared to the camera looked printed on, not rolled)
-    txt.rotation_euler = upright_rotation(n) if p.index == up_index else n.to_track_quat("Z", "Y").to_euler()
+    numeral(labels[p.index], size, center + n * 0.004, upright_rotation(n) if p.index == up_index else n.to_track_quat("Z", "Y").to_euler(), ink)
 
 # render
-result = {"scene": "dice_roll", "out": A["out"], "frames": A["frames"], "fps": A["fps"], "seed": A["seed"],
-          "engine": r.engine, "up_face": up_index, "up_number": labels[up_index], "requested": A["result"],
-          "settled": settled, "turns": round(turns, 2), "rest_frame": rest_frame, "still": None, "video": None}
+result = {"scene": "dice_roll", "out": A["out"], "frames": A["frames"], "fps": A["fps"], "seed": A["seed"], "sides": SIDES,
+          "engine": r.engine, "up_face": up_index, "up_number": labels[result_index], "requested": A["result"],
+          "settled": settled, "turns": round(turns, 2), "rest_frame": rest_frame, "rest_box": rest_box, "still": None, "video": None}
 def shadow_pass():
     """THE SHADOW under a transparent die (owner 2026-10-20). EEVEE has no shadow catcher, so the shadow is
     MEASURED: a second pass renders the same frames opaque on the felt (felt_NNNN.png) plus one reference

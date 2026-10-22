@@ -35252,14 +35252,20 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(cd[11]!==0||cd[8]!==10||cd[9]!==20||cd[10]!==30)return "a pixel outside the die must end transparent with its colour untouched (no division by a zero matte): "+Array.prototype.slice.call(cd,8,12);
     return cd[12]===255&&cd[15]===51?true:"a bright edge pixel must clamp at 255, alpha 51: "+Array.prototype.slice.call(cd,12,16);
   });
-  t("dice clip: every result ships BOTH clips and the manifest records each with its size (a half-rendered batch cannot land)",function(){
+  t("dice clip: the manifest holds ONE set per rendered die (dice.dN: scene, size, frames, fps, clips) — the d20 always; every face of every set ships BOTH clips at the recorded sizes and no clip on disk is unlisted (a half-rendered batch cannot land)",function(){
     var dir=__rootForTests+"/dice",man;
     try{man=JSON.parse(__fsForTests.readFileSync(dir+"/manifest.json","utf8"));}catch(e){return "dice/manifest.json unreadable: "+e.message;}
-    var i,k,missing=[];
-    for(i=1;i<=20;i++){k=(i<10?"0":"")+i;var c=man.clips&&man.clips[k];if(!c||!c.seed)missing.push(k+" (manifest)");
-      [["webm",".webm"],["stacked","-stacked.mp4"]].forEach(function(f){var p=dir+"/d20_"+k+f[1],st;try{st=__fsForTests.statSync(p);}catch(e){missing.push(k+f[1]);return;}if(c&&c[f[0]]!==st.size)missing.push(k+f[1]+" size "+st.size+" ≠ manifest "+c[f[0]]);});}
-    if(missing.length)return "clips missing or off the manifest: "+missing.join(", ");
-    return man.frames>=60&&man.fps===24?true:"the manifest's frames/fps are not the batch's (frames "+man.frames+", fps "+man.fps+")";
+    if(!man.dice||!man.dice.d20)return "the manifest has no d20 set (manifest.dice.d20)";
+    var missing=[];
+    Object.keys(man.dice).forEach(function(key){
+      var set=man.dice[key],sides=Number(key.slice(1)),i,k;
+      if(!/^d\d+$/.test(key)||DICE_CLIP_SIDES.indexOf(sides)<0)missing.push(key+" (not a die the selector knows)");
+      if(!(set.frames>=60)||set.fps!==24||set.size!=="800x400")missing.push(key+" frames/fps/size "+set.frames+"/"+set.fps+"/"+set.size);
+      for(i=1;i<=sides;i++){k=(i<10?"0":"")+i;var c=set.clips&&set.clips[k];if(!c||!c.seed)missing.push(key+"_"+k+" (manifest)");
+        [["webm",".webm"],["stacked","-stacked.mp4"]].forEach(function(f){var p=dir+"/"+key+"_"+k+f[1],st;try{st=__fsForTests.statSync(p);}catch(e){missing.push(key+"_"+k+f[1]);return;}if(c&&c[f[0]]!==st.size)missing.push(key+"_"+k+f[1]+" size "+st.size+" ≠ manifest "+c[f[0]]);});}
+    });
+    __fsForTests.readdirSync(dir).forEach(function(n){var m=/^d(\d+)_(\d\d)(\.webm|-stacked\.mp4)$/.exec(n);if(m&&!(man.dice["d"+m[1]]&&man.dice["d"+m[1]].clips&&man.dice["d"+m[1]].clips[m[2]]))missing.push(n+" (on disk, not in the manifest)");});
+    return missing.length?"clips missing or off the manifest: "+missing.join(", "):true;
   });
   t("dice clip: the roll plays AFTER the turn is sent, in a guarded call; the overlay is a thin shell over diceClipSrc; the SW keeps the clips in a purge-exempt cache",function(){
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),fn=g.slice(g.indexOf("function rollPendingCheck(){"),g.indexOf("function reconsiderPendingCheck(){"));
@@ -35280,7 +35286,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var sw=__fsForTests.readFileSync(__rootForTests+"/sw.js","utf8");
     if(!/var DICE_CACHE = "tnd-dice-\d{8}[a-z]?";/.test(sw))return "sw.js has no dated DICE_CACHE";
     if(sw.indexOf("k!==DICE_CACHE")<0)return "DICE_CACHE must be purge-exempt: the activate purge would delete it on every deploy";
-    if(sw.indexOf("/\\/dice\\/d20_\\d\\d(\\.webm|-stacked\\.mp4)$/.test(new URL(e.request.url).pathname)")<0)return "the SW has no cache-first path for both clip files";
+    if(sw.indexOf("/\\/dice\\/d\\d+_\\d\\d(\\.webm|-stacked\\.mp4)$/.test(new URL(e.request.url).pathname)")<0)return "the SW has no cache-first path for both clip files of every die";
     if(sw.indexOf("caches.open(DICE_CACHE)")<0)return "the clip must be written to DICE_CACHE";
     if(sw.indexOf('"/ui-dice.js",')<0)return "ui-dice.js is not in the app shell";
     var ix=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
@@ -35289,6 +35295,76 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(!/\.dice-roll\{[^}]*z-index:50;[^}]*transform:translateZ\(0\)/.test(ix))return "the overlay must sit above the phone's scroller: z-index 50 on its own compositing layer";
     var h=__fsForTests.readFileSync(__rootForTests+"/_headers","utf8");
     return /\/dice\/\*\n  Cache-Control: public, max-age=86400/.test(h)?true:"_headers must carry the /dice/* rule (without it a re-render is pinned by the immutable default or revalidated every roll)";
+  });
+
+  section("#653 — the damage dice: d4, d6, d8, d10 and d12 rendered through the d20 scene, one clip per face, a roll of several dice composited as tiles cropped around the landing spot (owner rulings 2026-10-21: clips like the d20, composited, a row that wraps 2×2 when narrow, bone and ink)");
+  t("#653 names: every die in DICE_CLIP_SIDES names dice/dN_FF for its faces; a face past the die, a die the batch never rendered, and a fraction are null; the d20 default is the #650 name",function(){
+    if(DICE_CLIP_SIDES.join()!=="4,6,8,10,12,20")return "the rendered dice are d4 d6 d8 d10 d12 d20: "+DICE_CLIP_SIDES.join();
+    var bad=[];
+    DICE_CLIP_SIDES.forEach(function(s){var f;for(f=1;f<=s;f++){var want="dice/d"+s+"_"+(f<10?"0":"")+f;if(diceClipName(f,s)!==want)bad.push("d"+s+" face "+f+" → "+diceClipName(f,s));}
+      if(diceClipName(s+1,s)!==null||diceClipName(0,s)!==null||diceClipName(1.5,s)!==null)bad.push("d"+s+" admitted a face it has not");});
+    if(bad.length)return bad.slice(0,5).join("; ");
+    if(diceClipName(3,7)!==null||diceClipName(3,"x")!==null||diceClipName(3,100)!==null)return "a die outside the rendered set must name nothing";
+    return diceClipName(7)==="dice/d20_07"&&diceClipName(7,undefined)==="dice/d20_07"?true:"the default die is the d20: "+diceClipName(7);
+  });
+  t("#653 sources: diceClipSrc joins the die's name and the format — d6 face 3 on an iPhone is the stacked clip, d12 face 12 in Chrome the webm; an unknown die has no source",function(){
+    var IPHONE="Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+    var CHROME="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+    if(diceClipSrc(3,{ua:IPHONE},6)!=="dice/d6_03-stacked.mp4")return "d6 face 3 on an iPhone: "+diceClipSrc(3,{ua:IPHONE},6);
+    if(diceClipSrc(12,{ua:CHROME},12)!=="dice/d12_12.webm")return "d12 face 12 in Chrome: "+diceClipSrc(12,{ua:CHROME},12);
+    if(diceClipSrc(4,{ua:CHROME},4)!=="dice/d4_04.webm")return "d4 face 4: "+diceClipSrc(4,{ua:CHROME},4);
+    return diceClipSrc(3,{ua:CHROME},7)===null&&diceClipSrc(9,{ua:CHROME},8)===null?true:"a die the batch never rendered, or a face past the die, must have no source";
+  });
+  t("#653 tiles: diceTileLayout puts two dice in a row, three and four in a row when wide and in two columns when narrow; a tile never exceeds the room in either direction; the crop puts the rest point at the tile's centre; the zoom lifts a small tile's die toward DICE_TILE_DIE_PX and never past DICE_TILE_ZOOM_MAX",function(){
+    function centred(L){return Math.abs(L.left+DICE_TILE_REST.x*L.frameW-L.tile/2)<=1&&Math.abs(L.top+DICE_TILE_REST.y*L.frameH-L.tile/2)<=1;}
+    var a=diceTileLayout(2,800,400);if(a.cols!==2||a.rows!==1||a.tile!==396||a.zoom!==1||a.frameW!==792||a.frameH!==396)return "two dice wide: "+JSON.stringify(a);
+    if(!centred(a))return "the rest point must sit at the tile's centre: "+JSON.stringify(a);
+    var b=diceTileLayout(3,800,400);if(b.cols!==3||b.rows!==1||b.tile!==261)return "three dice wide: "+JSON.stringify(b);
+    var c=diceTileLayout(4,800,400);if(c.cols!==4||c.rows!==1||c.tile!==194||!(c.zoom>1&&c.zoom<=DICE_TILE_ZOOM_MAX))return "four dice wide: "+JSON.stringify(c);
+    if(Math.abs(c.zoom-DICE_TILE_DIE_PX/(DICE_TILE_DIE_FRAC*194))>0.001||!centred(c))return "four dice wide: the zoom is DICE_TILE_DIE_PX over the die's share of the tile, centred: "+JSON.stringify(c);
+    var d=diceTileLayout(4,360,500);if(d.cols!==2||d.rows!==2||d.tile!==176||Math.abs(d.zoom-DICE_TILE_DIE_PX/(DICE_TILE_DIE_FRAC*176))>0.001||!centred(d))return "four dice narrow: "+JSON.stringify(d);
+    var dd=diceTileLayout(4,240,500);if(dd.tile!==116||dd.zoom!==DICE_TILE_ZOOM_MAX)return "a tiny tile's zoom is capped at DICE_TILE_ZOOM_MAX: "+JSON.stringify(dd);
+    var e=diceTileLayout(3,360,500);if(e.cols!==2||e.rows!==2||e.tile!==176)return "three dice narrow: "+JSON.stringify(e);
+    var f=diceTileLayout(4,800,200);if(f.cols!==4||f.tile!==194)return "four dice in a short room: "+JSON.stringify(f);
+    var g=diceTileLayout(4,360,300);if(g.cols!==2||g.rows!==2||g.tile!==146)return "four dice narrow and short: the height caps the tile: "+JSON.stringify(g);
+    if(g.tile*2+DICE_TILE_GAP>300)return "the grid must fit the room's height";
+    var h=diceTileLayout(2,0,0);if(!(h.tile>0))return "no room at all must still size a tile (nothing divides by zero)";
+    var one=diceTileLayout(1,800,400);return one.cols===1&&one.rows===1?true:"one die is one tile: "+JSON.stringify(one);
+  });
+  t("#653 the player and the SW: showDamageRoll refuses more than DICE_TILE_MAX dice and any face without a clip, picks every clip through diceClipSrc with the die, lays tiles out through diceTileLayout and staggers their starts; its skips are showDiceRoll's (diceRollEnv); index.html carries the tile rules; the SW's clip path admits every die's two files and nothing else",function(){
+    var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");
+    if(u.indexOf("function showDamageRoll(sides,faces,opts){")<0)return "no showDamageRoll(sides,faces,opts)";
+    var fn=u.slice(u.indexOf("function showDamageRoll("),u.indexOf("function diceOverlay("));
+    if(fn.indexOf("if(!list.length||list.length>DICE_TILE_MAX)return false;")<0)return "more than DICE_TILE_MAX dice must show nothing";
+    if(fn.indexOf("s=diceClipSrc(list[i],env,sides);if(!s)return false;")<0)return "every face must name a clip through diceClipSrc with the die, or nothing shows";
+    if(fn.indexOf("var env=diceRollEnv();if(!env)return false;")<0||u.slice(u.indexOf("function showDiceRoll("),u.indexOf("function showDamageRoll(")).indexOf("var env=diceRollEnv();if(!env)return false;")<0)return "both doors must share the skips in diceRollEnv";
+    var ov=u.slice(u.indexOf("function diceOverlay("),u.indexOf("function diceStackedPlayer("));
+    if(ov.indexOf("layout=diceTileLayout(srcs.length,area.clientWidth-32,area.clientHeight-32);")<0)return "several dice must be laid out through the pure diceTileLayout from the story area's room";
+    if(ov.indexOf("if(i===0)start();else setTimeout(start,i*DICE_TILE_STAGGER_MS);")<0)return "the starts must be staggered: a double is two dice, not one clip twice";
+    if(ov.indexOf('shown.style.left=layout.left+"px";shown.style.top=layout.top+"px";')<0)return "each tile's clip must be offset by the layout's crop";
+    if(!/var DICE_TILE_STAGGER_MS=\d+;/.test(u))return "no DICE_TILE_STAGGER_MS";
+    var ix=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
+    if(ix.indexOf(".dice-roll .dice-tile{position:relative;overflow:hidden}")<0||ix.indexOf(".dice-roll .dice-tile video,.dice-roll .dice-tile canvas{position:absolute;max-width:none;max-height:none;border-radius:0}")<0)return "index.html lacks the tile rules (the tile is the window, the clip is positioned inside it)";
+    if(ix.indexOf(".dice-roll .dice-tile video,.dice-roll .dice-tile canvas{")>ix.indexOf(".dice-roll video.dice-stacked-src{"))return "the tile rule must come before the stacked-source rule, or the hidden stacked video would be sized like the canvas";
+    var sw=__fsForTests.readFileSync(__rootForTests+"/sw.js","utf8"),m=/if\((\/\\\/dice\\\/.*?\$\/)\.test\(new URL\(e\.request\.url\)\.pathname\)\)\{/.exec(sw);
+    if(!m)return "the SW's clip path regex is not where #650 put it";
+    var rx=new RegExp(m[1].slice(1,-1));
+    var yes=["/dice/d4_01.webm","/dice/d6_03-stacked.mp4","/dice/d12_12.webm","/dice/d20_07-stacked.mp4"].filter(function(p){return !rx.test(p);});
+    var no=["/dice/manifest.json","/dice/d6_3.webm","/dice/d6_03.mp4","/dice/manifest.js","/ui-dice.js"].filter(function(p){return rx.test(p);});
+    return yes.length||no.length?"the SW regex must admit every die's two clip files and nothing else — refused "+yes.join(",")+"; admitted "+no.join(","):true;
+  });
+  t("#653 the rest point: every damage die in DICE_CLIP_SIDES has a rendered set, every clip of a set with rest boxes records one, and DICE_TILE_REST is the centre of the measured boxes (within 0.03 — the camera aims at the landing, so the crop can be one constant)",function(){
+    var man;try{man=JSON.parse(__fsForTests.readFileSync(__rootForTests+"/dice/manifest.json","utf8"));}catch(e){return "dice/manifest.json unreadable: "+e.message;}
+    var missing=DICE_CLIP_SIDES.filter(function(s){return !(man.dice&&man.dice["d"+s]);});
+    if(missing.length)return "no rendered set for d"+missing.join(", d");
+    var sx=0,sy=0,n=0,bad=[];
+    Object.keys(man.dice).forEach(function(key){var c=man.dice[key].clips,any=Object.keys(c).some(function(f){return !!c[f].rest;});if(!any)return;/* the d20 batch predates the measurement */
+      Object.keys(c).forEach(function(f){var b=c[f].rest;if(!b||b.length!==4||!(b[2]>b[0]&&b[3]>b[1]))bad.push(key+"_"+f);else{sx+=(b[0]+b[2])/2;sy+=(b[1]+b[3])/2;n++;}});});
+    if(bad.length)return "clips without a rest box in a measured set: "+bad.join(", ");
+    if(!n)return "no set carries rest boxes — the batch must record where the die settles";
+    var mx=sx/n,my=sy/n;
+    if(Math.abs(mx-DICE_TILE_REST.x)>0.03||Math.abs(my-DICE_TILE_REST.y)>0.03)return "DICE_TILE_REST {"+DICE_TILE_REST.x+","+DICE_TILE_REST.y+"} is off the measured centre {"+mx.toFixed(3)+","+my.toFixed(3)+"} over "+n+" clips";
+    return true;
   });
 
 }

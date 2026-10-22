@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261021h";
+var CACHE = "tnd-v3-20261021i";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -11,11 +11,11 @@ var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,
 // EVERY deploy because CACHE bumps every deploy. Without a separate cache name, the purge (which
 // deletes every cache !== CACHE) would wipe the wasm and force a re-download per device per deploy.
 var PIPER_CACHE = "tnd-piper-v1";
-// #650: the twenty d20 roll clips (dice/d20_NN.webm and d20_NN-stacked.mp4, ~7 MB in all) — fetched on first use, then permanent
+// #650: the twenty d20 roll clips (dice/d20_NN.webm and d20_NN-stacked.mp4, ~8 MB in all; #653 adds the forty damage-dice clips, ~14 MB) — fetched on first use, then permanent
 // in their own purge-exempt cache, like the Piper wasm. The name carries the batch date: a re-render of dice/
 // (dev/blender/dice-clips.js) bumps it, the activate purge drops the old cache, and the next roll fetches fresh
 // (within the one-day edge/browser cache _headers gives /dice/*).
-var DICE_CACHE = "tnd-dice-20261021d";
+var DICE_CACHE = "tnd-dice-20261021e";
 var APP_SHELL = [
   "/",
   "/globals.js",
@@ -151,7 +151,8 @@ self.addEventListener("fetch", function(e){
   if(e.request.method !== "GET") return;
   if(e.request.url.indexOf(self.location.origin) !== 0) return;
   // #650: a roll clip — cache-first against DICE_CACHE (see its comment); never precached, a miss fetches and keeps it.
-  if(/\/dice\/d20_\d\d(\.webm|-stacked\.mp4)$/.test(new URL(e.request.url).pathname)){
+  // #653: the damage dice (d4_FF … d12_FF) ride the same path.
+  if(/\/dice\/d\d+_\d\d(\.webm|-stacked\.mp4)$/.test(new URL(e.request.url).pathname)){
     e.respondWith(
       caches.match(e.request).then(function(cached){
         if(cached) return cached;
