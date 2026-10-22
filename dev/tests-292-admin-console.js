@@ -106,6 +106,24 @@ async function main() {
     assert(Math.abs(total.usd - 0.00071) < 1e-10, "cost " + total.usd);
     assert.equal(total.tokens, 580); assert.equal(total.unpriced.length, 1); assert.equal(total.calls, 4);
   });
+  await test("#662 the token breakdown names each model's purposes: one line per model with its totals, then a line per purpose the server reported; rows without a purpose (an older server) stay one line", function () {
+    var c = pageFixture(); c.adapter.connected = true;
+    c.adapter.users = [{ userId: "u", username: "Tester", tier: "tester", createdAt: "2026-01-01 00:00:00", lastActive: "2026-10-22 10:00:00", usage30d: [
+      { provider: "anthropic", model: "claude-sonnet-5", kind: "turn", tokIn: 100, tokOut: 20, cacheRead: 300, cacheWrite: 40, calls: 3, errors: 0 },
+      { provider: "anthropic", model: "claude-sonnet-5", kind: "actions", tokIn: 10, tokOut: 2, cacheRead: 0, cacheWrite: 0, calls: 2, errors: 0 },
+      { provider: "gemini", model: "gemini-3.8-flash", tokIn: 50, tokOut: 6, cacheRead: 20, cacheWrite: 0, calls: 1, errors: 0 }
+    ] }];
+    c.seam.refresh();
+    var text = c.elements.users.textContent;
+    assert(text.indexOf("anthropic / claude-sonnet-5: input 110, output 22, cache read 300, cache write 40") >= 0, "the model line sums its purposes: " + text);
+    assert(text.indexOf("turn · 3 calls: input 100, output 20, cache read 300, cache write 40") >= 0, "the turn purpose line: " + text);
+    assert(text.indexOf("actions · 2 calls: input 10, output 2, cache read 0, cache write 0") >= 0, "the actions purpose line: " + text);
+    assert(text.indexOf("gemini / gemini-3.8-flash: input 50, output 6, cache read 20, cache write 0") >= 0, "a row without a purpose is one line: " + text);
+    var purposes = (function count(n) { return (n.className === "purpose" ? 1 : 0) + n.children.reduce(function (s, k) { return s + count(k); }, 0); })(c.elements.users);
+    assert.equal(purposes, 2, "two purpose lines, none for the purposeless row");
+    var g = c.seam.groupUsage([{ provider: "p", model: "m", kind: "x", tokIn: 1, tokOut: 1, cacheRead: 1, cacheWrite: 1, calls: 1 }, { provider: "p", model: "m", kind: "y", tokIn: 2, tokOut: 2, cacheRead: 2, cacheWrite: 2, calls: 1 }]);
+    assert.equal(g.length, 1); assert.equal(g[0].tokIn, 3); assert.equal(g[0].kinds.length, 2); assert.equal(g[0].kinds[0].kind, "y", "purposes come biggest first");
+  });
   await test("untrusted roster text stays inert and empty activity is explicit", function () {
     var c = pageFixture(); c.adapter.connected = true;
     c.adapter.users = [{ userId: "<script>id</script>", username: "<img src=x onerror=alert(1)>", createdAt: "2026-01-01 00:00:00", tier: null, usage30d: [], lastActive: null }];

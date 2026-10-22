@@ -493,7 +493,7 @@ function initState(saved){
   }
 }
 function init(){initSettings();storageAdapter.load(initState);}
-window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();loadProviderSettings();var k=providerKeys[activeProvider];if(k)apiKey=k;
+window.addEventListener("load",function(){wireButtons();loadFalKey();loadRenderModel();loadProviderSettings();var _ki=document.getElementById("api-input");if(_ki&&PROVIDERS[activeProvider])_ki.placeholder=PROVIDERS[activeProvider].keyHint;/* #661: the key hint follows the provider (gemini by default), never a hard-wired sk-ant */var k=providerKeys[activeProvider];if(k)apiKey=k;
   // §3 accounts: a signed-in session enters WITHOUT a key — the gateway serves GM turns, and an
   // unentitled account hits the loud 402 message in-game (never a silent dead end). storageAdapter
   // auto-connected + kicked off fetchAccount at script load, so gmViaServer resolves by first turn.

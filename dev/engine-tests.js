@@ -12069,7 +12069,10 @@ function runEngineTests(R){
     if(typeof ANTHROPIC_HAIKU_REINFORCE!=="undefined")return "the Haiku block is back";
     if(resolveReinforce(PROVIDERS.anthropic,"claude-haiku-4-5-20251001")!==""||resolveReinforce(PROVIDERS.anthropic,"claude-sonnet-5")!=="")return "anthropic must resolve empty";
     if(resolveReinforce(PROVIDERS.gemini,PROVIDERS.gemini.defaultModel)!==TAG_REINFORCE||resolveReinforce(PROVIDERS.openai,PROVIDERS.openai.defaultModel)!==TAG_REINFORCE)return "gemini/openai keep TAG_REINFORCE";
-    makeWorld();var s=buildSysPrompt(),g=buildSuggestionSys();lastTurnSysClear();if(g.stable!==s.stable)return "the suggestion stable must equal the main stable with no append";
+    makeWorld();var s=buildSysPrompt(),g=buildSuggestionSys();lastTurnSysClear();
+    /* #661: the main stable AS SENT — callGM appends the provider's reinforce at call time (empty for anthropic, TAG_REINFORCE for gemini, the default since 2026-10-22) and buildSuggestionSys mirrors that append */
+    var _sp=PROVIDERS[activeProvider],_sent=s.stable+resolveReinforce(_sp,providerModels[activeProvider]||_sp.defaultModel);
+    if(g.stable!==_sent)return "the suggestion stable must equal the main stable as sent (with the provider's reinforce, if any)";
     return true;
   });
   t("every provider resolves to a string (function shape breaks nobody)",function(){
@@ -12208,10 +12211,12 @@ function runEngineTests(R){
 
   // ── Suggestion context — the UN-STARVED call (v1.288; supersedes the UA38/UA39 fences) ──────
   section("suggestion context (un-starve, v1.288)");
-  t("buildSuggestionSys: stable half is BYTE-IDENTICAL to the main turn's (cache prefix match)",function(){
+  t("buildSuggestionSys: stable half is BYTE-IDENTICAL to the main turn's AS SENT (cache prefix match — callGM appends the provider's reinforce at call time and the suggestion build mirrors it; empty for anthropic, TAG_REINFORCE for the gemini default since #661)",function(){
     makeWorld();
-    var s=buildSysPrompt(),g=buildSuggestionSys();
-    return g.stable===s.stable?true:"stable perturbed — every cache hit would die silently";
+    var s=buildSysPrompt(),g=buildSuggestionSys(),prov=PROVIDERS[activeProvider];
+    var sent=s.stable+resolveReinforce(prov,providerModels[activeProvider]||prov.defaultModel);
+    if(g.stable!==sent)return "stable perturbed — every cache hit would die silently";
+    return g.stable.indexOf(s.stable)===0?true:"the sent stable must still begin with the built stable (the reinforce is an append)";
   });
   /* audit 2026-09-18 B8: the Haiku reinforce test retired with ANTHROPIC_HAIKU_REINFORCE (no provider lists a Haiku id; resolveReinforce is pinned empty for anthropic in the audit section) */
   t("buildSuggestionSys: SUGGESTION MODE rides the third `extra` block (#304 C) — the volatile is the main turn's BYTE-FOR-BYTE, and the mode block still lands AFTER STYLE in the flattened text",function(){
@@ -35609,6 +35614,20 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var em=__fsForTests.readFileSync(__rootForTests+"/dev/engine-manifest.js","utf8"),s=em.indexOf('file: "sound.js"'),ds=em.indexOf('file: "dice-sound.js"');
     if(em.indexOf('file: "dice/manifest.js"')>=0)return "dice/manifest.js is data, not an engine file — the headless engine runs without it and every cue is null";
     return (s>=0&&ds>s)?true:"the engine manifest must list dice-sound.js after sound.js";
+  });
+
+  section("#661 — Gemini 3.8 Flash is the default GM (owner 2026-10-22: a bunch cheaper and equal in performance): a fresh install's provider is gemini, whose default model is gemini-3.8-flash; a stored choice still wins; the key screen's hint follows the provider");
+  t("#661 the default: globals.js starts activeProvider at gemini; the gemini entry's default model is gemini-3.8-flash, listed in its menu and priced; Anthropic keeps MDL as its own default; the api screen's key hint is painted from the provider at boot, never hard-wired to sk-ant",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/globals.js","utf8");
+    if(!/^var activeProvider="gemini";/m.test(g))return "activeProvider must start at gemini";
+    if(!PROVIDERS.gemini||PROVIDERS.gemini.defaultModel!=="gemini-3.8-flash")return "gemini's default model: "+(PROVIDERS.gemini&&PROVIDERS.gemini.defaultModel);
+    if(PROVIDERS.gemini.models.indexOf("gemini-3.8-flash")<0)return "the default must be on the menu";
+    if(!MODEL_PRICING["gemini-3.8-flash"])return "the default must be priced";
+    if(PROVIDERS.anthropic.defaultModel!==MDL)return "Anthropic's default stays MDL";
+    var b=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),ld=b.slice(b.indexOf('window.addEventListener("load",function(){'));
+    if(ld.indexOf('_ki.placeholder=PROVIDERS[activeProvider].keyHint;')<0||ld.indexOf("loadProviderSettings();")>ld.indexOf('_ki.placeholder=PROVIDERS[activeProvider].keyHint;'))return "the key hint must be painted from the provider after the stored settings load";
+    var s=__fsForTests.readFileSync(__rootForTests+"/state.js","utf8"),lp=s.slice(s.indexOf("function loadProviderSettings(){"),s.indexOf("function loadProviderSettings(){")+200);
+    return lp.indexOf("if(p&&PROVIDERS[p])activeProvider=p;")>=0?true:"a stored provider must still win over the default";
   });
 
 }
