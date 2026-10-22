@@ -60,9 +60,9 @@ prove("ui-mobile.js", [
     mustFail: "inside #mobile-ways-row" }
 ]);
 prove("index.html", [
-  { label: "the game page loads the sources without the master",
+  { label: "the game page loads the sources without the master (the load-order contract catches it before the #657 section — a second guard, named honestly)",
     find: '<script src="audio-master.js"></script>\n', replace: "",
-    mustFail: "index.html must load audio-master.js" }
+    mustFail: "not in index.html: audio-master.js" }
 ]);
 prove("blueprint-designer.html", [
   { label: "the designer auditions without the master",
