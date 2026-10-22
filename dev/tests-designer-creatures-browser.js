@@ -14,7 +14,10 @@ await context.route('**/*',async route=>{
  if(url.pathname.startsWith('/api/llm/')){
   calls.push(req.postDataJSON());if(hold)await new Promise(r=>release=r);
   if(fail)return json({error:'Fixture provider refusal'},400);
-  return json({content:[{type:'text',text:JSON.stringify({name:'Lantern moth '+calls.length,notes:'A luminous moth feeds on guttering candles. It hides beneath leaves at dawn.',kind:'wrong',threat:'wrong'})}],usage:{input_tokens:1,output_tokens:1}});
+  /* the reply in the shape of the provider the page picked (the gateway path names it): Gemini is the default GM since #661, Anthropic before */
+  const reply=JSON.stringify({name:'Lantern moth '+calls.length,notes:'A luminous moth feeds on guttering candles. It hides beneath leaves at dawn.',kind:'wrong',threat:'wrong'});
+  if(url.pathname.startsWith('/api/llm/gemini/'))return json({candidates:[{content:{parts:[{text:reply}]},finishReason:'STOP'}],usageMetadata:{promptTokenCount:1,candidatesTokenCount:1}});
+  return json({content:[{type:'text',text:reply}],usage:{input_tokens:1,output_tokens:1}});
  }
  if(url.pathname.startsWith('/api/render/')){images++;assert(/Lantern moth|Fen Keeper/.test(req.postDataJSON().prompt));assert(!req.postDataJSON().prompt.includes('SECRET_SENTINEL'));return json({images:[{url:'https://creature.test/portrait.png'}]});}
  if(url.pathname==='/portrait.png')return route.fulfill({status:200,contentType:'image/png',body:Buffer.from(png.split(',')[1],'base64')});
