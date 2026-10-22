@@ -142,6 +142,7 @@ function carNotify(kind, text) {
     if (V && typeof V.earcon === "function") V.earcon("ready");
     _carRetryArmed = false;
     _carOptReset();   // #78: a new turn's narration is starting — its options have not been read
+    _carSetSaid(text || "");   // #636: a host that hands the reply's text shows it while it is read (the talk); the game passes none
   }
 }
 
@@ -195,7 +196,7 @@ function carVoiceCommand(text) {
   if (!carMode || typeof parseCarCommand !== "function") return false;
   var menu = _carHost.options(), acts = menu || [], V = _carVoice(), M = _carMic();
   var cmd = parseCarCommand(text, acts.length, _carHost.commands());
-  if (!cmd) return !!_carHost.hear(text);   /* v1.1265 (#633): plain speech is the host's to take — a talk host answers it, the game's host leaves it to stt.js */
+  if (!cmd) return _carSpeech(text);
   // Consumed: clear the field or _carTap's parked-utterance branch re-sends the command word
   // later as a free-form action.
   _carHost.clearParked();
@@ -225,11 +226,18 @@ function carVoiceCommand(text) {
     return true;
   }
   var pick = acts[cmd.n - 1];
-  if (!pick) { if (menu === null) return !!_carHost.hear(text); /* v1.1263: a host with no menu never swallows a number word — it is speech */ carNotify("warn", CAR_STR.noOptionsYet); return true; }
+  if (!pick) { if (menu === null) return _carSpeech(text); /* v1.1263: a host with no menu never swallows a number word — it is speech */ carNotify("warn", CAR_STR.noOptionsYet); return true; }
+  _carSetHeard(pick);   // #636: the option's words, not the number — that is what the turn answers
   if (_carBusy()) { carNotify("info", CAR_STR.heardTapToSend); _carHost.park(pick); return true; }
   carNotify("sent");
   _carHost.act(pick);
   return true;
+}
+// Plain speech — the player's words. v1.1265 (#633): the host's to take (a talk host answers it; the game's host returns
+// false and stt.js sends the GM turn). #636: shown on the overlay either way, since either way it is what the reply answers.
+function _carSpeech(text) {
+  _carSetHeard(text);
+  return !!_carHost.hear(text);
 }
 
 function _carAcquireWakeLock() {
@@ -317,7 +325,12 @@ function carSessionStart() {
   if (M && M.setOnState) M.setOnState(function(listening) {
     if (!carMode) return;
     _carSyncBtn();
-    if (listening) { _carSetStatus(CAR_STR.listening); return; }
+    if (listening) {
+      _carSetStatus(CAR_STR.listening);
+      /* #636: a new listen clears the last heard line — except the #77 confirm-answer listen, where the player is answering ABOUT that line */
+      if (!(typeof M.isConfirmPending === "function" && M.isConfirmPending())) _carSetHeard("");
+      return;
+    }
     var st = document.getElementById("car-status");
     if (st && st.textContent === CAR_STR.listening) {
       _carSetStatus(_carHost.parked().trim() ? CAR_STR.heardYou : CAR_STR.tapToSpeak);
@@ -354,6 +367,7 @@ function carSessionStop() {
   _carIntent("resume");
   _carOptReset();   // audit F13 — revoke the deferred mic open and the options poll; neither may outlive the overlay
   _carSetStatus("");   // #481 G5 follow-up — nor may a running count (the overlay is hidden, not removed)
+  _carSetHeard(""); _carSetSaid("");   // #636 — nor the last exchange (the next host must not inherit it)
   _carReleaseWakeLock(); // rank 5 — normal play must never hold the lock
   if (_carHost) _carHost.closed(); // rank 13 — × is always the escape hatch; clearing the host's flag is what makes it stick
   if (V) {
@@ -392,6 +406,25 @@ function _carSetStatus(text) {
   var tick = (waits && _carHost) ? _carHost.ticker(el, text, { text: true }) : null;
   if (tick) _carStatusTick = tick;
   else el.textContent = text;
+}
+
+// #636 (owner, after the first live talk 2026-10-15: "print the player's dialog so they know what the character is
+// responding to"): two lines under the status, the LOOP's to paint for every host — the host adds nothing.
+//   #car-heard — the last utterance the loop took as the player's words: speech (hear), a spoken pick (the option's words),
+//                the parked line a tap sends. Set when taken; cleared when the next listen opens (the #77 confirm-answer
+//                listen keeps it). A command — pause, resume, repeat — paints nothing: it is not dialog.
+//   #car-said  — the reply a host hands carNotify("response", text): the character's line in a talk, shown while it is
+//                read, kept through the next listen (what the player is answering), cleared when the next utterance is
+//                taken. The game's narration passes no text — three paragraphs are not a glance at a red light.
+// Both clear with the overlay. A host page without the elements (car-talk's) loses nothing.
+function _carSetHeard(text) {
+  var el = document.getElementById("car-heard");
+  if (el) el.textContent = text || "";
+  if (text) _carSetSaid("");   // a new exchange begins
+}
+function _carSetSaid(text) {
+  var el = document.getElementById("car-said");
+  if (el) el.textContent = text || "";
 }
 
 function _carSyncBtn() {
@@ -460,6 +493,7 @@ function _carTap() {
     // round-2 #29a — carNotify("sent") already plays the ack earcon AND sets "Heard you…";
     // calling _carSetStatus(CAR_STR.sending) here duplicated/shadowed that with a silent,
     // earcon-less status. Use the shared ack path so tap-to-send matches voice-to-send.
+    _carSetHeard(_carHost.parked().trim());   // #636: the line this tap sends (the #77 confirm's "yes" parks it unseen by the loop)
     carNotify("sent");
     _carHost.sendParked();
     return;

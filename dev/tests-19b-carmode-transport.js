@@ -218,5 +218,29 @@ async function atest(name, fn) {
     const h = fixture(); h.c.CAR_HOST.options = () => null; const hh = []; h.c.CAR_HOST.hear = t => { hh.push(t); return true; };
     assert.equal(h.c.carVoiceCommand('two'), true, 'with no menu a number word is speech and the talk host hears it'); assert.deepEqual(hh, ['two']);
   });
+  /* #636 (owner, after the first live talk 2026-10-15: "print the player's dialog so they know what the character is responding to"):
+     the overlay shows the exchange, and the LOOP paints both lines for every host — the player's words when they are taken (speech,
+     a pick's words, the parked line a tap sends), the reply a host hands carNotify("response", text). */
+  await atest('#636 the overlay shows the exchange: speech and a pick paint the heard line, a command paints nothing, a reply with text paints the said line, a listen clears heard and keeps said, the confirm-answer listen keeps heard, close clears both', async () => {
+    const f = fixture(); f.stt.setOnState = fn => { f.stt._onState = fn; }; f.setBrief('');
+    const txt = id => f.c.document.getElementById(id).textContent;   /* the fixture creates an element on first lookup — never read f.els for one the code under test may not have touched */
+    f.c.showCarMode(); await flush();
+    f.c.CAR_HOST.hear = () => false;
+    assert.equal(f.c.carVoiceCommand('walk north along the river'), false);
+    assert.equal(txt('car-heard'), 'walk north along the river', "#636 the player's words on the overlay even when the host leaves them to stt.js");
+    f.c.carVoiceCommand('gm pause'); assert.equal(txt('car-heard'), 'walk north along the river', 'a command is not dialog'); f.c.carVoiceCommand('resume');
+    f.c.CAR_HOST.options = () => ['Draw your sword', 'Run for the gate'];
+    f.c.carVoiceCommand('two'); assert.equal(txt('car-heard'), 'Run for the gate', "#636 a pick paints the option's words, not the number");
+    f.c.carNotify('response', 'The gate opens.'); assert.equal(txt('car-said'), 'The gate opens.', '#636 the reply on the overlay');
+    f.stt._onState(true); assert.equal(txt('car-heard'), '', '#636 the next listen clears the heard line'); assert.equal(txt('car-said'), 'The gate opens.', '#636 the reply stays through the listen');
+    f.stt._onState(false);
+    f.c.carVoiceCommand('one'); assert.equal(txt('car-said'), '', '#636 a new utterance clears the reply');
+    f.c.carNotify('response'); assert.equal(txt('car-said'), '', 'a text-less response (the game) shows nothing');
+    f.stt.isConfirmPending = () => true; f.c.carVoiceCommand('i look for physics'); f.stt._onState(true);
+    assert.equal(txt('car-heard'), 'i look for physics', '#636 the confirm-answer listen keeps the line the player is answering about'); f.stt.isConfirmPending = () => false; f.stt._onState(false);
+    f.c.busy = true; f.c.carVoiceCommand('one'); assert.equal(txt('car-heard'), 'Draw your sword'); assert.equal(f.els['car-status'].textContent, 'Heard you — tap to send');
+    f.c.busy = false; f.c._carTap(); assert.equal(txt('car-heard'), 'Draw your sword', 'the tap that sends the parked pick keeps it on the overlay');
+    f.c.hideCarMode(); assert.equal(txt('car-heard') + txt('car-said'), '', '#636 the exchange clears with the overlay');
+  });
   console.log((process.exitCode ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' Car Mode transport groups');
 })();

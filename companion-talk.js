@@ -240,7 +240,7 @@ function _talkAsk(text) {
     t.busy = false;
     if (typeof erCrumb === "function") erCrumb("talk", "#" + n + " " + (Date.now() - t0) + "ms");
     _talkLine(t.name, answer);
-    t.voice.earcon("ready");
+    carNotify("response", answer);           // the ready earcon; the reply on the overlay while it is read (#636); a stale tap-to-retry arm dropped
     carNotify("info", CAR_STR.narratorSpeaking);
     t.voice.speak(answer);
     if (typeof _carSyncBtn === "function") _carSyncBtn();   // AFTER the read starts: the head unit reads PLAYING (the bench, 2026-10-15)

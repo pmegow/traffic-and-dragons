@@ -21,6 +21,7 @@ async function atest(name, fn) { try { await fn(); passed++; console.log("PASS #
 var flush = function() { return new Promise(function(r) { setImmediate(r); }); };
 var wait = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
 /* a final result ends the listen (the recognizer's onend) before stt.js delivers it to the loop */
+function txt(f, id) { return f.c.document.getElementById(id).textContent; }   /* the fixture creates an element on first lookup — never read f.els for one the code under test may not have touched */
 function hear(f, text) { f.stt._listening = false; if (f.stt._onState) f.stt._onState(false); f.els["action-input"].value = text;   /* stt.js parks the transcript in the field BEFORE the loop hears it (the bench, 2026-10-15) */ return f.c.carVoiceCommand(text); }
 
 /* THE PIN — conversation.js is car-talk's file, copied byte-identical; car-talk pins the same hash (dev/run-tests.js there). */
@@ -174,6 +175,7 @@ test("both hosts fill every CAR_HOST_ROWS row (22, with hear) and the game's hos
     f.tts.done(); await wait(900);   // onDone → the auto-mic gap (800 ms) → the mic opens
     assert(f.stt.isListening(), "the mic opens after the greeting: " + JSON.stringify(f.calls));
     assert.equal(hear(f, "how do you feel about Ammut"), true, "speech is consumed by the talk host");
+    assert.equal(txt(f, "car-heard"), "how do you feel about Ammut", "#636 the player's words on the overlay");
     assert.equal(f.c.TALK_HOST.busy(), true, "busy across the call");
     await flush();   /* the engine asks its adapter on a microtask */
     assert.equal(f.gm.length, 1); var g = f.gm[0];
@@ -185,6 +187,7 @@ test("both hosts fill every CAR_HOST_ROWS row (22, with hear) and the game's hos
     assert.equal(f.c.TALK_HOST.busy(), false);
     assert.equal(f.tts.spoken.length, 2, "the reply spoken: " + JSON.stringify(f.tts.spoken));
     assert.match(f.tts.spoken[1].text, /Then I will say so/); assert.equal(f.tts.spoken[1].voices["0"], "voice:Frizwick");
+    assert.match(txt(f, "car-said"), /Then I will say so/, "#636 the reply on the overlay while it is read");
     assert.equal(f.c.navigator.mediaSession.playbackState, "playing", "the head unit reads PLAYING while the character speaks (the reply)");
     assert.equal(f.els["action-input"].value, "", "the transcript stt.js parked is cleared by the talk — the auto-mic must not wait on it");
     assert(f.calls.indexOf("earcon:ready") >= 0);
@@ -192,12 +195,16 @@ test("both hosts fill every CAR_HOST_ROWS row (22, with hear) and the game's hos
     assert(f.tt.some(function(h) { return /You:/.test(h) && /Ammut/.test(h); }) && f.tt.some(function(h) { return /Frizwick:/.test(h); }), "the Table Talk pane holds the record: " + JSON.stringify(f.tt));
     f.tts.done(); await wait(900);
     assert(f.stt.isListening(), "the mic reopens after the reply");
+    assert.equal(txt(f, "car-heard"), "", "#636 the next listen clears the heard line");
+    assert.match(txt(f, "car-said"), /Then I will say so/, "#636 the reply stays through the listen — it is what the player answers");
     assert.equal(hear(f, "two"), true, "a number word is speech for a host with no menu");
+    assert.equal(txt(f, "car-heard"), "two"); assert.equal(txt(f, "car-said"), "", "#636 a new utterance clears the reply");
     await flush();
     assert.equal(f.gm.length, 2); assert(f.gm[1].msg.indexOf("Earlier in this conversation") >= 0 && f.gm[1].msg.indexOf("Player: how do you feel about Ammut") >= 0, "the kept exchange rides the next ask: " + f.gm[1].msg);
     await flush(); await flush();
     f.c.carSessionStop(); await flush();
     assert.equal(f.c._carHost, f.c.CAR_HOST, "close restores the game's host"); assert.equal(f.c._talk, null); assert.equal(f.c.carMode, false);
+    assert.equal(txt(f, "car-heard") + txt(f, "car-said"), "", "#636 the exchange clears with the overlay");
     assert.equal(JSON.stringify([f.c.worldState, f.c.memory]), before, "worldState and memory are byte-identical after a talk");
     assert.equal(f.c.carVoiceCommand("walk north"), false, "after the talk, Car Mode speech is a GM turn again (carMode off → false)");
   });
@@ -258,6 +265,21 @@ test("both hosts fill every CAR_HOST_ROWS row (22, with hear) and the game's hos
     f.c._carTap(); await wait(20);
     assert.equal(f.gm.length, 2, "retry re-asks the same line (one more model call)"); assert(f.gm[1].msg.indexOf("what do you make of the marauders") >= 0, "retry re-asks the same line");
     assert.deepEqual(f.sent, [], "retry never retries a GM turn");
+    f.c.carSessionStop();
+  });
+  await atest("#636 a spoken retry after a failed call: the reply drops the tap-to-retry arm, so a later idle tap opens the mic instead of asking the line a second time", async function() {
+    var f = fixture({ fail: "HTTP 503 from the gateway" });
+    f.c.showTalk("Frizwick"); await flush(); f.tts.done(); await wait(900);
+    hear(f, "are you there"); await flush(); await flush(); await flush();
+    assert.equal(f.c._carRetryArmed, true, "fixture: the failed call armed the tap");
+    f.c.callGM = function(msg) { f.gm.push({ msg: msg }); return Promise.resolve("Here, as ever."); };   // the gateway recovers
+    f.tts.done(); await wait(900); assert(f.stt.isListening(), "fixture: the mic reopened after the notice");
+    hear(f, "are you there"); await flush(); await flush(); await flush();
+    assert.match(txt(f, "car-said"), /Here, as ever/, "the reply landed");
+    assert.equal(f.c._carRetryArmed, false, "the reply drops the arm");
+    f.tts.done(); await wait(900); f.stt._listening = false; if (f.stt._onState) f.stt._onState(false);   // the listen ends with nothing said
+    var asks = f.gm.length; f.c._carTap(); await wait(20);
+    assert.equal(f.gm.length, asks, "an idle tap asks nothing a second time"); assert(f.stt.isListening(), "it opens the mic");
     f.c.carSessionStop();
   });
   await atest("the picker lists the partners and opens the talk; a talk never stacks on Car Mode", async function() {

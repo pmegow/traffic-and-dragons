@@ -57,7 +57,7 @@ The block is bounded (`TALK_CAP`: per-item caps and a total of 5200 characters).
 ## 4. The door and the car
 
 - **File ▸ 🗣 Talk to…** beside Car Mode, enabled when a game is open. It opens a picker (modalShell): the hero first, then party members with a sheet, each with their portrait or initial. One tap opens the talk.
-- **The overlay** is the Car Mode overlay: the partner's portrait and name, the status line, the tap/replay/skip controls. The party dots are hidden; the vitals line reads "Talking with you · <place>".
+- **The overlay** is the Car Mode overlay: the partner's portrait and name, the status line, the tap/replay/skip controls. The party dots are hidden; the vitals line reads "Talking with you · <place>". Since #636 (v1.1298) two lines under the status show the exchange — the player's last words (painted by the loop when it takes them) and the character's reply (handed through `carNotify("response", text)`, shown while it is read and kept through the next listen); the portrait shrinks to make room on a small phone.
 - **Latency** is the product risk: the ack earcon at once, "Thinking… Ns" ticking, a short reply (the persona asks for two sentences; `maxTok` 220). The host's `busy()` is true across the call so the tap and the transport yield.
 - **Hold** works as in Car Mode: a spoken "pause" closes the mic; a reply that arrives while held is spoken and the mic stays closed; the tap releases.
 - **Errors** are loud and attributable: a rejected call → `carNotify("error", …)` (the fail earcon, the status, the tap armed to retry) and a one-line narrator-voice notice ("The line dropped. Say it again, or tap."); `retry()` re-asks the last line. The reason lands in the crumb ring (`talk-error <why>`).

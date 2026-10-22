@@ -25,8 +25,8 @@ rc |= sabotage.prove({ file: "companion-talk.js", command: SUITE, cases: [
     replace: "{ noHistory: false, kind: \"talk\" }",
     mustFail: "speech asks the model ONCE with a private system and noHistory" },
   { label: "a talk writes the campaign (the character's reply becomes the last narration)",
-    find: "    _talkLine(t.name, answer);\n    t.voice.earcon(\"ready\");",
-    replace: "    _talkLine(t.name, answer); worldState.lastNarration = answer;\n    t.voice.earcon(\"ready\");",
+    find: "    _talkLine(t.name, answer);\n    carNotify(\"response\", answer);",
+    replace: "    _talkLine(t.name, answer); worldState.lastNarration = answer;\n    carNotify(\"response\", answer);",
     mustFail: "worldState and memory are byte-identical after a talk" },
   { label: "a failed call is voiced as the character (fabricated words in their voice)",
     find: "    if (typeof TTS !== \"undefined\" && typeof TTS.speak === \"function\") TTS.speak(\"The line dropped. Say it again, or tap.\");",
@@ -99,9 +99,48 @@ rc |= sabotage.prove({ file: "ui-carmode.js", command: SUITE, cases: [
 
 rc |= sabotage.prove({ file: "car-session.js", command: SUITE, cases: [
   { label: "the loop stops offering plain speech to the host (a talk hears nothing)",
-    find: "  if (!cmd) return !!_carHost.hear(text);",
+    find: "  if (!cmd) return _carSpeech(text);",
     replace: "  if (!cmd) return false;",
     mustFail: "speech is consumed by the talk host" }
+]});
+
+/* #636 (owner 2026-10-15): the exchange on the overlay — the talk's half */
+rc |= sabotage.prove({ file: "companion-talk.js", command: SUITE, cases: [
+  { label: "#636 the talk's reply never reaches the overlay (the player hears it but cannot glance at it)",
+    find: "    carNotify(\"response\", answer);           // the ready earcon; the reply on the overlay while it is read (#636); a stale tap-to-retry arm dropped",
+    replace: "    carNotify(\"response\");",
+    mustFail: "#636 the reply on the overlay while it is read" },
+  { label: "#636 the reply keeps a stale tap-to-retry arm (the pre-#636 earcon path: a later idle tap asks the line a second time)",
+    find: "    carNotify(\"response\", answer);           // the ready earcon; the reply on the overlay while it is read (#636); a stale tap-to-retry arm dropped",
+    replace: "    t.voice.earcon(\"ready\"); _carSetSaid(answer);",
+    mustFail: "the reply drops the arm" }
+]});
+/* #636 — the loop's half, pinned by the transport suite */
+rc |= sabotage.prove({ file: "car-session.js", command: ["node", ["dev/tests-19b-carmode-transport.js"]], cases: [
+  { label: "#636 the loop stops showing the player's words",
+    find: "  _carSetHeard(text);\n  return !!_carHost.hear(text);",
+    replace: "  return !!_carHost.hear(text);",
+    mustFail: "#636 the player's words on the overlay" },
+  { label: "#636 a pick shows nothing (the player hears 'two', the overlay says nothing about what was chosen)",
+    find: "  _carSetHeard(pick);   // #636: the option's words, not the number — that is what the turn answers\n",
+    replace: "",
+    mustFail: "#636 a pick paints the option's words" },
+  { label: "#636 the heard line survives into the next listen (stale words while the player speaks new ones)",
+    find: "      if (!(typeof M.isConfirmPending === \"function\" && M.isConfirmPending())) _carSetHeard(\"\");\n",
+    replace: "",
+    mustFail: "#636 the next listen clears the heard line" },
+  { label: "#636 the reply line ignores the text it is handed",
+    find: "    _carSetSaid(text || \"\");   // #636: a host that hands the reply's text shows it while it is read (the talk); the game passes none\n",
+    replace: "",
+    mustFail: "#636 the reply on the overlay" },
+  { label: "#636 a new utterance leaves the old reply on screen",
+    find: "  if (text) _carSetSaid(\"\");   // a new exchange begins\n",
+    replace: "",
+    mustFail: "#636 a new utterance clears the reply" },
+  { label: "#636 the exchange outlives the overlay (the next host inherits it)",
+    find: "  _carSetHeard(\"\"); _carSetSaid(\"\");   // #636 — nor the last exchange (the next host must not inherit it)\n",
+    replace: "",
+    mustFail: "#636 the exchange clears with the overlay" }
 ]});
 
 /* the loop's own reads sync the head unit (defect B, the loop's half) — pinned by the transport suite */
