@@ -804,9 +804,15 @@ url: https://traffic-and-dragons.pages.dev/ · ua: Mozilla/5.0 (iPhone; CPU iPho
 
 ### Action log
 
+## Completed
+
+_Every verified and ignored row lives inside this collapsible container, newest first._
+
+<details>
+<summary><strong>Completed bugs (42 rows) — click to expand</strong></summary>
 
 ## B53 — The player saw a black screen in live play on the phone — a report from the owner mid-session (v1.1302, Frizwick t81)
-**Status:** new
+**Status:** ignored
 **Kind:** user-report · **First seen:** 2026-10-22 (v1.1302) · **Last seen:** 2026-10-22 (v1.1302) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 81
 **Fingerprint:** `user-report · user-report · v1.1302 · Keep getting a black screen. Not sure what’s going on`
 **Report ids:** 5aa36975-6436-4400-b85e-c6636f0f77f6
@@ -905,14 +911,8 @@ url: https://traffic-and-dragons.pages.dev/ · ua: Mozilla/5.0 (iPhone; CPU iPho
 ### Findings
 
 ### Action log
+- 2026-10-22 · ignored (was new) via tracker ✕ — owner: covered by #656 (the "black screen" was the Table Talk tab, empty; the pane now says who has joined)
 
-
-## Completed
-
-_Every verified and ignored row lives inside this collapsible container, newest first._
-
-<details>
-<summary><strong>Completed bugs (41 rows) — click to expand</strong></summary>
 ## B49 — A rolled die clip refused to play on a phone-emulated page — play() was interrupted by a fresh load of the clip (v1.1287, localhost)
 **Status:** ignored
 **Kind:** crash · **First seen:** 2026-10-20 (v1.1287) · **Last seen:** 2026-10-20 (v1.1287) · **Count:** 3 · **Campaign:** — · **Turn:** —
