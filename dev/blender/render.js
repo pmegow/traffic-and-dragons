@@ -114,7 +114,7 @@ function main() {
   var frames = fs.readdirSync(out).filter(function (n) { return /^frame_\d+\.png$/.test(n); });
   console.log("done in " + secs + "s: " + (report.still ? "still " + report.still : frames.length + " frames") + (report.video ? ", video " + report.video : "") + " → " + out);
   console.log("result:  " + JSON.stringify(report));
-  if (!report.still && frames.length !== report.frames) { console.error("frame count mismatch: scene reported " + report.frames + ", folder holds " + frames.length); process.exit(1); }
+  if (!report.still && !report.measure && frames.length !== report.frames) { console.error("frame count mismatch: scene reported " + report.frames + ", folder holds " + frames.length); process.exit(1); }/* #659: a measure-only run renders nothing */
 }
 
 if (require.main === module) main();

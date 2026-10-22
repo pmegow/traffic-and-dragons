@@ -280,6 +280,54 @@ for f in range(2, A["frames"] + 1):
 turns = ground_turn / (2.0 * math.pi)
 print("SCENE turns: %.2f rolling on the felt (%.2f tumbling, %.2f in all), at rest from frame %s" % (turns, tumble_turn / (2.0 * math.pi), total_turn / (2.0 * math.pi), rest_frame))
 
+# #659 — what the die DOES, for the sound (owner 2026-10-22: audio that matches the dice; ruled: synthesized from the
+# physics). Every CONTACT is read off the baked motion: the die's lowest point (over its vertices, in world space)
+# falls, meets the felt (z = 0) and is arrested — the frame where its downward speed collapses while it sits within
+# HIT_Z of the felt is a hit, and the speed it arrived with is the hit's strength. A tumbling die taps the felt
+# once per face it turns over, so a roll reads as a run of small hits; a bounce is a big one. ROLLING stretches
+# are the frames on the felt with the die still turning (the rumble under the taps). Times are clip seconds
+# (frame 1 = 0); the batch's --measure pass records them in the manifest and the page schedules the ticks.
+HIT_Z, HIT_FALL, HIT_ARREST, ROLL_Z, ROLL_W = 0.08, 0.35, 0.3, 0.06, 1.5
+_verts = [v.co.copy() for v in die.data.vertices]
+def _low(f):
+    scene.frame_set(f)
+    mw = die.matrix_world
+    return min((mw @ v).z for v in _verts), mw.to_quaternion()
+hits, roll, motion = [], [], []
+_lz0, _q0 = _low(1)
+_vz0, _fall = 0.0, 0.0            # _fall: the fastest fall of the current descent — ONE hit per landing, at its peak speed
+_roll_from, _roll_w = None, []
+def _close_roll(upto):
+    # a rolling stretch: [from, to, turning speed at its start, at its end] — the page spaces the clatter by the speed
+    if _roll_from is not None and upto - _roll_from >= 3:
+        roll.append([round((_roll_from - 1) / float(A["fps"]), 3), round((upto - 1) / float(A["fps"]), 3), round(_roll_w[0], 1), round(_roll_w[-1], 1)])
+for f in range(2, A["frames"] + 1):
+    lz, q = _low(f)
+    vz = (lz - _lz0) * A["fps"]                                   # the lowest point's vertical speed, units/s
+    w = _q0.rotation_difference(q).angle * A["fps"]               # turning speed, rad/s
+    motion.append("%d:%.3f:%.2f:%.1f" % (f, lz, vz, w))
+    if vz < _fall:
+        _fall = vz
+    if _fall < -HIT_FALL and vz > _vz0 + HIT_ARREST and lz < HIT_Z:
+        hits.append([round((f - 2) / float(A["fps"]), 3), round(-_fall, 2)])   # the contact is between the two frames; the approach speed is the strength
+        _fall = 0.0
+    elif vz > 0:
+        _fall = 0.0                                                # rising again: the next descent is a new landing
+    on_felt = lz < ROLL_Z and w > ROLL_W
+    if on_felt and _roll_from is None:
+        _roll_from, _roll_w = f, [w]
+    elif on_felt:
+        _roll_w.append(w)
+    elif _roll_from is not None:
+        _close_roll(f)
+        _roll_from = None
+    _lz0, _q0, _vz0 = lz, q, vz
+_close_roll(A["frames"] + 1)
+print("SCENE hits: %d — %s" % (len(hits), " ".join("%.2fs@%.1f" % (h[0], h[1]) for h in hits)))
+print("SCENE roll: %s" % " ".join("%.2f-%.2fs@%.1f>%.1f" % (s[0], s[1], s[2], s[3]) for s in roll))
+if A.get("measure"):
+    print("SCENE motion (f:lowz:vz:w): " + " ".join(motion))
+
 # where did it land? the up face at the last frame, and was it still moving? A d4 rests on a face with a VERTEX
 # up: its result is the vertex the down face does not touch.
 scene.frame_set(A["frames"])
@@ -483,7 +531,14 @@ for p in polys:
 # render
 result = {"scene": "dice_roll", "out": A["out"], "frames": A["frames"], "fps": A["fps"], "seed": A["seed"], "sides": SIDES,
           "engine": r.engine, "up_face": up_index, "up_number": labels[result_index], "requested": A["result"],
-          "settled": settled, "turns": round(turns, 2), "rest_frame": rest_frame, "rest_box": rest_box, "still": None, "video": None}
+          "settled": settled, "turns": round(turns, 2), "rest_frame": rest_frame, "rest_box": rest_box, "still": None, "video": None,
+          "hits": hits, "roll": roll}
+# --measure (#659): the bake and its measurements only — no frames, no clips. The batch's measure pass reads the
+# hits and the rolling stretches off the SAME seeds the clips were rendered from (the bake is deterministic).
+if A.get("measure"):
+    result["measure"] = True
+    print("SCENE_RESULT " + json.dumps(result))
+    raise SystemExit(0)
 def shadow_pass():
     """THE SHADOW under a transparent die (owner 2026-10-20). EEVEE has no shadow catcher, so the shadow is
     MEASURED: a second pass renders the same frames opaque on the felt (felt_NNNN.png) plus one reference

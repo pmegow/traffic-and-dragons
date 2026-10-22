@@ -315,8 +315,9 @@ var Sound = (function() {
   // unavailable/not running; console.warn (no throw) for an unknown id — matches the
   // no-silent-failures convention (a caller typo should be loud, a benign runtime skip shouldn't).
   function play(id, force) {
-    var recipe = SOUND_LIB[id];
+    var recipe = (id && typeof id === "object" && id.notes) ? id : SOUND_LIB[id];   /* #659: a recipe built at play time (the dice) plays like a library entry */
     if (!recipe) { console.warn("[sound] unknown sound id '" + id + "'"); return false; }
+    if (typeof id === "object") id = recipe.label || "recipe";
     if (!force && !enabled()) { console.debug("[sound] '" + id + "' skipped — disabled"); return false; }
     var ctx = _ensureCtx();
     if (!ctx) { console.debug("[sound] '" + id + "' skipped — no AudioContext"); return false; }

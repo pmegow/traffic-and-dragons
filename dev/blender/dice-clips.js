@@ -8,6 +8,9 @@
 //   node dev/blender/dice-clips.js --sides 4,6,8,10,12    the damage dice: forty clips, one per face (#653)
 //   node dev/blender/dice-clips.js --sides 6 --only 3,4   a subset of one die
 //   node dev/blender/dice-clips.js --jobs 2               fewer Blender processes side by side
+//   node dev/blender/dice-clips.js --measure --sides all  #659: re-bake every shipped seed WITHOUT rendering and record
+//                                                         what the die does — its hits [[t, speed]] and its rolling
+//                                                         stretches [[from, to, w0, w1]] — on the manifest, for the sound
 //
 // A face's seed starts at its base (the face number for the d20; sides×100 + the face for the others, so no two
 // dice share a throw) and steps by the number of faces until the die has SETTLED by the last frame AND turned over
@@ -38,6 +41,7 @@ function parseArgs(argv) {
   var o = { only: null, jobs: 4, sides: [20] };
   for (var i = 0; i < argv.length; i++) {
     if (argv[i] === "--only") o.only = String(argv[++i]).split(",").map(Number);
+    else if (argv[i] === "--measure") o.measure = true;
     else if (argv[i] === "--jobs") o.jobs = Number(argv[++i]);
     else if (argv[i] === "--sides") { var v = String(argv[++i]); o.sides = v === "all" ? SIDES_ALL.slice() : v.split(",").map(Number); }
   }
@@ -113,8 +117,49 @@ function loadManifest(file) {
   return m;
 }
 
+// #659: the measure pass — the scene's bake is deterministic per seed, so the shipped clip's motion is re-read without a
+// render (--measure: no frames, no encode, ~15 s a clip). The rest box must come back as recorded, or the physics has
+// drifted from the clip and the measurement is refused for that face (loudly: a sound that does not match the picture
+// is worse than none).
+function measure(sides, face, seed) {
+  var out = path.join(SCRATCH, "measure", "d" + sides, String(face));
+  var args = [RENDER, "dice_roll", "--sides", String(sides), "--seed", String(seed), "--result", String(face), "--size", SIZE,
+    "--frames", String(FRAMES[sides]), "--fps", String(FPS), "--out", out, "--transparent", "--shadow", "--measure"];
+  return new Promise(function (resolve, reject) {
+    cp.execFile(process.execPath, args, { cwd: ROOT, maxBuffer: 64 * 1024 * 1024 }, function (err, stdout, stderr) {
+      var m = String(stdout).split(/\r?\n/).filter(function (l) { return /^result: /.test(l); })[0];
+      if (err || !m) return reject(new Error("measure d" + sides + " " + face + " seed " + seed + " failed:\n" + String(stdout).slice(-800) + String(stderr).slice(-400)));
+      resolve(JSON.parse(m.slice(8)));
+    });
+  });
+}
+async function measureAll(o) {
+  var manifestPath = path.join(OUT, "manifest.json"), manifest = loadManifest(manifestPath), jobs = [];
+  o.sides.forEach(function (s) {
+    var set = manifest.dice["d" + s];
+    if (!set) throw new Error("no rendered set for d" + s + " in the manifest — render it first");
+    Object.keys(set.clips).forEach(function (ff) { var face = parseInt(ff, 10); if (!o.only || o.only.indexOf(face) >= 0) jobs.push({ sides: s, face: face, seed: set.clips[ff].seed, rest: set.clips[ff].rest }); });
+  });
+  var t0 = Date.now();
+  var done = await pool(jobs, o.jobs, async function (job) {
+    var rep = await measure(job.sides, job.face, job.seed), tag = clipBase(job.sides, job.face);
+    var same = job.rest && rep.rest_box && job.rest.every(function (v, i) { return Math.abs(v - rep.rest_box[i]) <= 0.002; });
+    if (job.rest && !same) throw new Error(tag + ": the re-bake settled elsewhere (rest " + JSON.stringify(rep.rest_box) + " vs the clip's " + JSON.stringify(job.rest) + ") — the physics no longer reproduce this clip; its sound is NOT recorded");
+    if (!rep.hits || !rep.hits.length) throw new Error(tag + ": the bake reported no hit — a die that never lands is not a roll");
+    console.log(tag + ": " + rep.hits.length + " hit(s) " + rep.hits.map(function (h) { return h[0] + "s@" + h[1]; }).join(" ") + "; rolling " + rep.roll.map(function (r) { return r[0] + "-" + r[1] + "s@" + r[2] + ">" + r[3]; }).join(" "));
+    return { sides: job.sides, face: job.face, hits: rep.hits, roll: rep.roll };
+  });
+  var today = new Date().toISOString().slice(0, 10);
+  done.results.forEach(function (r) { var c = manifest.dice["d" + r.sides].clips[pad(r.face)]; c.hits = r.hits; c.roll = r.roll; manifest.dice["d" + r.sides].measured = today; });
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  fs.writeFileSync(path.join(OUT, "manifest.js"), "var DICE_MANIFEST = " + JSON.stringify(manifest) + ";\n");
+  console.log(done.results.length + " of " + jobs.length + " clips measured in " + ((Date.now() - t0) / 1000).toFixed(0) + "s → " + manifestPath + (done.failures.length ? "; " + done.failures.length + " REFUSED (above)" : ""));
+  if (done.failures.length) process.exit(1);
+}
+
 async function main() {
   var o = parseArgs(process.argv.slice(2));
+  if (o.measure) return measureAll(o);
   var jobs = [];
   o.sides.forEach(function (s) {
     var faces = o.only || Array.apply(null, Array(s)).map(function (_, i) { return i + 1; });

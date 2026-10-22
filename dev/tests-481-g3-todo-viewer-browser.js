@@ -22,7 +22,10 @@ const root = path.resolve(__dirname, '..');
     const s = await page.evaluate(t => { __todoViewerTest.loadText(t, 'TODO.md'); const r = document.getElementById('root');
       return { buttons: Array.prototype.map.call(r.querySelectorAll('button'), b => (b.textContent || '').trim()), rows: r.querySelectorAll('tbody.tt-body tr').length, textareas: r.querySelectorAll('textarea,input').length }; }, todo);
     try {
-      assert.ok(s.rows > 20, 'the live TODO.md rendered only ' + s.rows + ' rows');
+      /* the bar is the file's own task rows (#NNN and L-rows), never a fixed count: the backlog shrinks when rows close
+         (2026-10-22: twelve numbered rows were left and the old "> 20" blocked every push) */
+      const taskRows = (todo.match(/^\| [A-Z]?\d+ \|/gm) || []).length;
+      assert.ok(taskRows > 0 && s.rows >= taskRows, 'the live TODO.md holds ' + taskRows + ' task rows but rendered only ' + s.rows);
       assert.deepEqual(s.buttons.map(b => b.replace(/^\W+/, '')), ['Select TODO…', 'Refresh', 'Reset'], 'edit controls survive: ' + JSON.stringify(s.buttons));
       assert.equal(s.textareas, 0, 'an input or textarea survives');
       const expanded = await page.evaluate(() => { const a = document.querySelector('.task-arr'); a.click(); return !!document.querySelector('.task-arr.open'); });

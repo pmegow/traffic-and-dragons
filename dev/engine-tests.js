@@ -35542,4 +35542,73 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
 
+  section("#659 — the sound of a die roll, synthesized from what the die did (owner 2026-10-22; ruled: from the physics, no files): the scene's measure pass records every hit and rolling stretch on the manifest, dice-sound.js turns the record into a sound.js recipe, and ui-dice.js plays it the moment the clip's playback starts");
+  t("#659 the record: every shipped clip carries at least one hit inside the clip with a positive speed and rolling stretches inside the clip with non-negative speeds; every set says when it was measured; dice/manifest.js is the manifest as data and runs as a script declaring DICE_MANIFEST",function(){
+    var man,js;try{man=JSON.parse(__fsForTests.readFileSync(__rootForTests+"/dice/manifest.json","utf8"));js=__fsForTests.readFileSync(__rootForTests+"/dice/manifest.js","utf8");}catch(e){return "unreadable: "+e.message;}
+    if(js.indexOf("var DICE_MANIFEST = ")!==0)return "dice/manifest.js must declare DICE_MANIFEST";
+    var data;try{data=JSON.parse(js.slice("var DICE_MANIFEST = ".length).replace(/;\s*$/,""));}catch(e){return "dice/manifest.js is not JSON data: "+e.message;}
+    if(JSON.stringify(data)!==JSON.stringify(man))return "dice/manifest.js is not the manifest — rerun the batch";
+    var loaded;try{loaded=new Function(js+"\nreturn DICE_MANIFEST;")();}catch(e){return "dice/manifest.js does not run as a script: "+e.message;}
+    if(JSON.stringify(loaded)!==JSON.stringify(man))return "the script's DICE_MANIFEST is not the manifest";
+    var bad=[];
+    Object.keys(man.dice).forEach(function(key){var set=man.dice[key],len=set.frames/set.fps;if(!set.measured)bad.push(key+" (never measured)");
+      Object.keys(set.clips).forEach(function(ff){var c=set.clips[ff],tag=key+"_"+ff;
+        if(!Array.isArray(c.hits)||!c.hits.length){bad.push(tag+" (no hit)");return;}
+        c.hits.forEach(function(h){if(!(h.length===2&&h[0]>=0&&h[0]<=len&&h[1]>0))bad.push(tag+" hit "+JSON.stringify(h));});
+        (c.roll||[]).forEach(function(r){if(!(r.length===4&&r[0]>=0&&r[0]<r[1]&&r[1]<=len&&r[2]>=0&&r[3]>=0))bad.push(tag+" roll "+JSON.stringify(r));});
+      });});
+    return bad.length?bad.slice(0,6).join("; "):true;
+  });
+  t("#659 the recipe: a tick per hit at its time (none under DICE_SOUND_HIT_MIN), louder for a harder landing and never above the house ceiling, a thud under a hard one; taps across a rolling stretch spaced by the die's tip angle over its spin, a rumble the stretch long; an offset moves every note; the notes come sorted; a d4 clicks above a d20; an unknown die or a clip without a record is null",function(){
+    var was=(typeof DICE_MANIFEST!=="undefined")?DICE_MANIFEST:undefined;
+    try{
+      DICE_MANIFEST={dice:{d6:{frames:84,fps:24,clips:{"03":{hits:[[0.458,5.79],[0.75,0.36],[1.2,2.5]],roll:[[0.5,1.458,12,1.5]]},/* the third hit lands inside the roll — only a sort puts it among the taps */"04":{hits:[[0.5,2]],roll:[]},"05":{hits:[[0.5,6]],roll:[]},"06":{hits:[[0.5,8]],roll:[]}}},d4:{frames:84,fps:24,clips:{"02":{hits:[[0.5,8]],roll:[]}}},d20:{frames:84,fps:24,clips:{"07":{hits:[[0.5,8]],roll:[[0.6,1.6,12,1.5]]}}}}};
+      var r=diceSoundRecipe(6,3,0);if(!r||!Array.isArray(r.notes)||!/d6/.test(r.label))return "no recipe: "+JSON.stringify(r);
+      var at=function(rec,t,f){return rec.notes.filter(function(n){return Math.abs(n.t-t)<1e-9&&n.bp&&n.bp.f===f;});};
+      if(at(r,0.458,2800).length!==1)return "one tick at the landing in the d6 band: "+JSON.stringify(r.notes.slice(0,3));
+      if(at(r,0.458,260).length!==1)return "a thud under a hard landing";
+      if(r.notes.some(function(n){return Math.abs(n.t-0.75)<1e-9;}))return "a brush under DICE_SOUND_HIT_MIN must not tick";
+      var taps=r.notes.filter(function(n){return n.bp&&n.bp.f===2800*0.85;});if(taps.length<4||taps.length>DICE_SOUND_TAPS_MAX)return "taps across the roll: "+taps.length;
+      if(Math.abs(taps[0].t-0.5)>1e-9||Math.abs((taps[1].t-taps[0].t)-DICE_SOUND[6].tip/12)>1e-6)return "the first taps must be spaced by tip/spin: "+taps[0].t+", "+taps[1].t;
+      if(!(taps[taps.length-1].t-taps[taps.length-2].t>taps[1].t-taps[0].t))return "the taps must spread out as the spin falls";
+      var rum=r.notes.filter(function(n){return n.bp&&n.bp.f===180;});if(rum.length!==1||Math.abs(rum[0].t-0.5)>1e-9||Math.abs(rum[0].d-0.958)>1e-6)return "one rumble the stretch long: "+JSON.stringify(rum);
+      var g2=at(diceSoundRecipe(6,4,0),0.5,2800)[0].g,g6=at(diceSoundRecipe(6,5,0),0.5,2800)[0].g,g8=at(diceSoundRecipe(6,6,0),0.5,2800)[0].g;
+      if(!(g2<g6&&g6<g8))return "a harder landing must be louder: "+g2+" "+g6+" "+g8;
+      if(Math.abs(g8-DICE_SOUND_GAIN.hit)>1e-9)return "a full-speed landing is the hit gain";
+      if(diceSoundRecipe(6,4,0).notes.some(function(n){return n.bp.f===260;}))return "a soft landing must not thud";
+      var all=[r,diceSoundRecipe(20,7,0),diceSoundRecipe(4,2,0)];all.forEach(function(x){x.notes.forEach(function(n){if(!(n.g<=0.25&&n.g>0&&n.d>0))throw new Error("gain or length off: "+JSON.stringify(n));});});
+      var sorted=r.notes.every(function(n,i){return i===0||n.t>=r.notes[i-1].t;});if(!sorted)return "notes must come sorted by time";
+      var off=diceSoundRecipe(6,3,0.09);if(off.notes.length!==r.notes.length||off.notes.some(function(n,i){return Math.abs(n.t-(r.notes[i].t+0.09))>1e-9;}))return "an offset must move every note";
+      if(!(at(diceSoundRecipe(4,2,0),0.5,DICE_SOUND[4].f).length===1&&DICE_SOUND[4].f>DICE_SOUND[20].f))return "a d4 must click above a d20";
+      var t20=diceSoundRecipe(20,7,0).notes.filter(function(n){return n.bp.f===DICE_SOUND[20].f*0.85;}),t6=taps;
+      if(!(t20[1].t-t20[0].t<t6[1].t-t6[0].t))return "at the same spin an icosahedron clatters faster than a cube";
+      if(diceSoundRecipe(7,1,0)!==null||diceSoundRecipe(6,2,0)!==null||diceCue(6,2)!==null)return "an unknown die or a clip without a record must be null";
+      return true;
+    }finally{DICE_MANIFEST=was;}
+  });
+  t("#659 the player and the wiring: Sound.play takes a recipe object (a string id as before; an unknown id still warns); DiceSound.play says once per clip when a record is missing and returns false; ui-dice.js plays the clip's sound when its play() resolves — never before — through the die each tile carries; dice/manifest.js and dice-sound.js load after sound.js in index.html and ride the SW app shell; dice-sound.js (not the data) is in the engine manifest",function(){
+    var warns=[],_w=console.warn,_d=console.debug;console.warn=function(m){warns.push(String(m));};console.debug=function(){};
+    try{
+      if(Sound.play({label:"x",notes:[]})!==false)return "a recipe with no AudioContext must return false";
+      if(warns.some(function(m){return /unknown sound id/.test(m);}))return "a recipe object must not be an unknown id";
+      Sound.play("nope-659");if(!warns.some(function(m){return /unknown sound id 'nope-659'/.test(m);}))return "an unknown string id must still warn";
+      warns.length=0;
+      if(DiceSound.play(6,99,0)!==false||warns.length!==1||!/no record for d6_99/.test(warns[0]))return "a missing record must say so once: "+JSON.stringify(warns);
+      DiceSound.play(6,99,0);if(warns.length!==1)return "the missing record must be said once, not every roll";
+    }finally{console.warn=_w;console.debug=_d;}
+    var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8"),ov=u.slice(u.indexOf("function diceOverlay("),u.indexOf("function diceStackedPlayer("));
+    var play=ov.indexOf("var p=it.v.play();"),snd=ov.indexOf('p.then(function(){if(!closed&&it.die&&typeof DiceSound!=="undefined")DiceSound.play(it.die.sides,it.die.face,0);},function(e){fail(it.src,');
+    if(play<0||snd<0)return "the sound must play inside the clip's play() promise";
+    if(snd<play)return "the sound must follow play(), never precede it";
+    if(ov.indexOf("videos.push({v:v,src:src,die:dice&&dice[i]});")<0||ov.indexOf("function diceOverlay(srcs,env,face,opts,dice){")<0)return "each tile must carry its die to the player";
+    if(u.indexOf("return diceOverlay([src],env,face,opts,[{sides:20,face:face}]);")<0||u.indexOf("dice.push({sides:sides,face:list[i]});")<0)return "showDiceRoll and showDamageRoll must hand the dice to the overlay";
+    var ix=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8"),a=ix.indexOf('<script src="sound.js"></script>'),b=ix.indexOf('<script src="dice/manifest.js"></script>'),c=ix.indexOf('<script src="dice-sound.js"></script>');
+    if(!(a>=0&&b>a&&c>b))return "index.html must load sound.js, then dice/manifest.js, then dice-sound.js";
+    var sw=__fsForTests.readFileSync(__rootForTests+"/sw.js","utf8"),shell=sw.slice(sw.indexOf("var APP_SHELL = ["),sw.indexOf("];",sw.indexOf("var APP_SHELL = [")));
+    if(shell.indexOf('"/dice/manifest.js"')<0||shell.indexOf('"/dice-sound.js"')<0)return "both files must ride the SW app shell";
+    var em=__fsForTests.readFileSync(__rootForTests+"/dev/engine-manifest.js","utf8"),s=em.indexOf('file: "sound.js"'),ds=em.indexOf('file: "dice-sound.js"');
+    if(em.indexOf('file: "dice/manifest.js"')>=0)return "dice/manifest.js is data, not an engine file — the headless engine runs without it and every cue is null";
+    return (s>=0&&ds>s)?true:"the engine manifest must list dice-sound.js after sound.js";
+  });
+
 }

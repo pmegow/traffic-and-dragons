@@ -35,18 +35,19 @@ function showDiceRoll(face,opts){
   var env=diceRollEnv();if(!env)return false;
   var src=diceClipSrc(face,env);
   if(!src)return false;
-  return diceOverlay([src],env,face,opts);
+  return diceOverlay([src],env,face,opts,[{sides:20,face:face}]);
 }
 /* #653: faces is the array of rolled faces (one per die), sides the die; every face must name a clip or nothing shows. */
 function showDamageRoll(sides,faces,opts){
   var env=diceRollEnv();if(!env)return false;
-  var list=Array.isArray(faces)?faces:[faces],srcs=[],i,s;
+  var list=Array.isArray(faces)?faces:[faces],srcs=[],dice=[],i,s;
   if(!list.length||list.length>DICE_TILE_MAX)return false;
-  for(i=0;i<list.length;i++){s=diceClipSrc(list[i],env,sides);if(!s)return false;srcs.push(s);}
-  return diceOverlay(srcs,env,"d"+sides+":"+list.join("+"),opts);
+  for(i=0;i<list.length;i++){s=diceClipSrc(list[i],env,sides);if(!s)return false;srcs.push(s);dice.push({sides:sides,face:list[i]});}
+  return diceOverlay(srcs,env,"d"+sides+":"+list.join("+"),opts,dice);
 }
-/* The overlay itself: one clip full-frame, several as tiles. `face` labels the roll in a failure report. */
-function diceOverlay(srcs,env,face,opts){
+/* The overlay itself: one clip full-frame, several as tiles. `face` labels the roll in a failure report; `dice` names
+   each clip's die and face so its sound (#659, dice-sound.js) can start the moment that clip's playback does. */
+function diceOverlay(srcs,env,face,opts,dice){
   var area=document.getElementById("story-area");
   var stacked=diceClipFormat(env)==="stacked";
   var old=document.getElementById("dice-roll");if(old&&old.parentNode)old.parentNode.removeChild(old);
@@ -70,7 +71,7 @@ function diceOverlay(srcs,env,face,opts){
     close();
   }
   wrap.onclick=close;/* the only way out: the settled die stays until the player clicks (owner 2026-10-20) */
-  srcs.forEach(function(src){
+  srcs.forEach(function(src,i){
     var v=document.createElement("video");v.muted=true;v.playsInline=true;v.setAttribute("playsinline","");v.setAttribute("muted","");v.preload="auto";v.src=src;
     var canvas=null,host=wrap;
     if(layout){host=document.createElement("div");host.className="dice-tile";host.style.width=layout.tile+"px";host.style.height=layout.tile+"px";grid.appendChild(host);}
@@ -79,14 +80,16 @@ function diceOverlay(srcs,env,face,opts){
     if(layout){var shown=canvas||v;shown.style.width=layout.frameW+"px";shown.style.height=layout.frameH+"px";shown.style.left=layout.left+"px";shown.style.top=layout.top+"px";}
     v.onerror=function(){fail(src,"failed to load"+(v.error&&v.error.message?" ("+v.error.message+")":""));};
     if(stacked)diceStackedPlayer(v,canvas,function(){return closed;});
-    videos.push({v:v,src:src});
+    videos.push({v:v,src:src,die:dice&&dice[i]});
   });
   area.appendChild(wrap);
   videos.forEach(function(it,i){
     function start(){
       if(closed)return;
       var p=it.v.play();
-      if(p&&typeof p.catch==="function")p.catch(function(e){fail(it.src,"would not play ("+(e&&e.message||e)+")",!!(e&&e.name==="NotAllowedError"));});
+      /* #659: the sound starts when THIS clip's playback does (the promise resolves at the first frame), so the ticks land
+         where the die lands; a tile's stagger is already in its start, so the recipe's offset is 0 */
+      if(p&&typeof p.then==="function")p.then(function(){if(!closed&&it.die&&typeof DiceSound!=="undefined")DiceSound.play(it.die.sides,it.die.face,0);},function(e){fail(it.src,"would not play ("+(e&&e.message||e)+")",!!(e&&e.name==="NotAllowedError"));});
     }
     if(i===0)start();else setTimeout(start,i*DICE_TILE_STAGGER_MS);/* a double is two dice landing a beat apart, not one clip twice */
   });
