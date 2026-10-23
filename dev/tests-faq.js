@@ -113,18 +113,18 @@ t("the staged world and the guide name no licensed setting (the Runelords names 
   for(i=0;i<f.length;i++){m=bad.exec(read(f[i]));if(m)return f[i]+" names "+m[0];}
   return true;
 });
-/* #642 follow-up (owner 2026-10-17): the FAQ and the beta guide paint in the GAME's colour scheme — game-theme.js reads the
+/* #642 follow-up (owner 2026-10-17): the FAQ and the beta guide paint in the GAME's colour scheme — website/game-theme.js reads the
    game's own key (dark unless the player chose light; follows the storage event from the game's tab), never the device. */
 function themeScript(stored){
   var attrs={},listeners={};
-  var box={document:{documentElement:{setAttribute:function(k,v){attrs[k]=v;}}},localStorage:{getItem:function(k){return k==="tnd_theme_v1"?stored:null;}},window:{addEventListener:function(ev,fn){listeners[ev]=fn;}}};
-  vm.createContext(box);vm.runInContext(read("game-theme.js"),box);
+  var box={document:{documentElement:{getAttribute:function(){return null;},setAttribute:function(k,v){attrs[k]=v;}}},localStorage:{getItem:function(k){return k==="tnd_theme_v1"?stored:null;}},window:{addEventListener:function(ev,fn){listeners[ev]=fn;}}};
+  vm.createContext(box);vm.runInContext(read("website/game-theme.js"),box);
   return {attrs:attrs,fire:function(key,next){stored=next;if(!listeners.storage)return false;listeners.storage({key:key});return true;}};
 }
-t("faq.html paints in the game's own colour scheme: game-theme.js in the head (never the device-following system-theme.js); dark when nothing is stored, light when the game stored light, and it follows a storage event from the game's tab",function(){
+t("faq.html paints in the game's own colour scheme: website/game-theme.js in the head (never the device-following system-theme.js); dark when nothing is stored, light when the game stored light, and it follows a storage event from the game's tab",function(){
   var h=read("faq.html"),head=h.slice(0,h.indexOf("</head>"));
-  if(head.indexOf('<script src="game-theme.js"></script>')<0||head.indexOf("system-theme.js")>=0)return "the head loads game-theme.js and not system-theme.js";
-  if(head.indexOf('<script src="game-theme.js"></script>')>head.indexOf('href="satellite.css"'))return "the theme is applied before the stylesheet (no flash of the other scheme)";
+  if(head.indexOf('<script src="website/game-theme.js"></script>')<0||head.indexOf("system-theme.js")>=0)return "the head loads website/game-theme.js and not system-theme.js";
+  if(head.indexOf('<script src="website/game-theme.js"></script>')>head.indexOf('href="satellite.css"'))return "the theme is applied before the stylesheet (no flash of the other scheme)";
   var a=themeScript(null);if(a.attrs["data-theme"]!=="dark")return "nothing stored → dark (the game's default), got "+a.attrs["data-theme"];
   var b=themeScript("light");if(b.attrs["data-theme"]!=="light")return "stored light → light, got "+b.attrs["data-theme"];
   var c=themeScript("dark");if(c.attrs["data-theme"]!=="dark")return "stored dark → dark";
@@ -133,10 +133,10 @@ t("faq.html paints in the game's own colour scheme: game-theme.js in the head (n
   a.fire(null,null);if(a.attrs["data-theme"]!=="dark")return "a clear() (key null) re-reads → dark";
   return true;
 });
-t("the beta guide is on the satellite palette and the game's scheme: ../satellite.css linked, ../game-theme.js in the head, no palette tokens or hex colours of its own, both screenshots on disk",function(){
+t("the beta guide is on the satellite palette and the game's scheme: ../satellite.css linked, ../website/game-theme.js in the head, no palette tokens or hex colours of its own, both screenshots on disk",function(){
   var g=read("DOC/beta-guide.html"),head=g.slice(0,g.indexOf("</head>"));
   if(head.indexOf('<link rel="stylesheet" href="../satellite.css">')<0)return "the guide links ../satellite.css";
-  if(head.indexOf('<script src="../game-theme.js"></script>')<0||head.indexOf("system-theme.js")>=0)return "the guide loads ../game-theme.js in its head";
+  if(head.indexOf('<script src="../website/game-theme.js"></script>')<0||head.indexOf("system-theme.js")>=0)return "the guide loads ../website/game-theme.js in its head";
   if(/:root\s*\{/.test(g)||/--acc\s*:/.test(g))return "the guide defines palette tokens of its own (#312 forbids a fork)";
   var styled=(g.match(/<style>[\s\S]*?<\/style>/g)||[]).concat(g.match(/style="[^"]*"/g)||[]).join("\n").replace(/\/\*[\s\S]*?\*\//g,"");/* comments may cite a #row */
   var hex=styled.match(/#[0-9a-fA-F]{3,8}\b/g);if(hex)return "a hex colour survives the restyle: "+hex.slice(0,4).join(", ");

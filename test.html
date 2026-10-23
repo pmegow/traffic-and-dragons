@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
+<script src="website/game-theme.js"></script>
 <title>Traffic and Dragons -- engine sanity test</title>
 <!--
   TODO #14 — manual-run sanity page. No framework, no build, no CI. Open in a browser tab.
@@ -16,15 +17,16 @@
   NOTE: the service worker runtime-caches same-origin GETs — if this page looks stale
   after an engine change, hard-refresh (Ctrl+Shift+R).
 -->
+<link rel="stylesheet" href="satellite.css">
 <style>
-  body{background:#111;color:#ccc;font-family:Georgia,serif;max-width:860px;margin:24px auto;padding:0 16px;}
-  h1{color:#b8935a;font-size:20px;} h2{color:#b8935a;font-size:14px;margin:22px 0 6px;} /* no uppercase transform — section names are camelCase function names and must stay readable */
-  #summary{padding:10px 14px;border-radius:8px;font-size:15px;margin:12px 0;border:1px solid #333;}
-  #summary.ok{background:#10240f;border-color:#2c5c28;color:#7fbf78;}
-  #summary.bad{background:#2a1010;border-color:#6a2020;color:#e07070;}
-  .t{padding:4px 10px;font-size:13px;border-left:3px solid #2c5c28;margin:2px 0;background:#181818;}
-  .t.fail{border-left-color:#8b2a2a;background:#1f1414;color:#e0a0a0;}
-  .t .d{color:#777;font-size:11px;display:block;}
+  body{background:var(--bg0);color:var(--t0);font-family:Georgia,serif;max-width:860px;margin:24px auto;padding:0 16px;}
+  h1{color:var(--acc);font-size:20px;} h2{color:var(--acc);font-size:14px;margin:22px 0 6px;} /* no uppercase transform — section names are camelCase function names and must stay readable */
+  #summary{padding:10px 14px;border-radius:8px;font-size:15px;margin:12px 0;border:1px solid var(--bg3);}
+  #summary.ok{background:var(--ok-bg);border-color:var(--grn);color:var(--ok-ink);}
+  #summary.bad{background:var(--danger-bg);border-color:var(--dng);color:var(--danger-ink);}
+  .t{padding:4px 10px;font-size:13px;border-left:3px solid var(--grn);margin:2px 0;background:var(--bg1);}
+  .t.fail{border-left-color:var(--dng);background:var(--danger-bg);color:var(--danger-ink);}
+  .t .d{color:var(--t2);font-size:11px;display:block;}
 </style>
 </head>
 <body>

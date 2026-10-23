@@ -141,8 +141,8 @@ function toggleFontSize(){
 }
 /* #634: the color scheme — "dark" (the default) or "light" (File ▸ Settings ▸ Dark mode off). The key is
    read THREE times by design: here; by the head script in index.html that sets data-theme before first paint
-   (otherwise a light-mode player sees a dark flash every load); and by game-theme.js, which the game's own
-   satellites (the Player FAQ, the beta guide) load so they paint in the same scheme (#642). The THEME PALETTE
+   (otherwise a light-mode player sees a dark flash every load); and by website/game-theme.js, which the game's own
+   satellites and public website load so they paint in the same scheme (#642). The THEME PALETTE
    CONTRACT (run-tests) keeps the three literals equal. The palette itself is index.html's :root[data-theme="light"] block. */
 var THEME_KEY="tnd_theme_v1";
 function applyTheme(dark){
@@ -152,6 +152,7 @@ function applyTheme(dark){
   eachMenuEl("dark-cb",function(el){el.checked=dark;});
 }
 function loadTheme(){applyTheme(store.get(THEME_KEY)!=="light");}
+if(typeof window!=="undefined"&&window.addEventListener)window.addEventListener("storage",function(e){if(!e||e.key===null||e.key===THEME_KEY)loadTheme();});
 function toggleDarkMode(){var dark=document.documentElement.getAttribute("data-theme")!=="dark";store.set(THEME_KEY,dark?"dark":"light");applyTheme(dark);}
 function toggleAdultMode(){adultMode=!adultMode;store.set(ADK,adultMode?"1":"");eachMenuEl("adult-cb",function(cb){cb.checked=adultMode;});showToast(adultMode?"18+ content enabled":"18+ content disabled");}
 /* #328: the in-band buttons switch — off = the ask leaves the prompt and the separate call returns (rollback). */
@@ -1093,10 +1094,10 @@ function showRespawnModal(r,cause){
   closeAllMenus();var old=document.getElementById("respawn-modal");if(old)old.remove();
   var m=document.createElement("div");m.id="respawn-modal";
   m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;";
-  m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
+  m.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
     +"<div style='font-size:20px;margin-bottom:8px;'>☠ You died</div>"
     +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>"+escHtml(cause||"slain")+".<br><br>You wake again at <b>"+escHtml(r.camp||"camp")+"</b>. Everything since that camp is a road not taken — it stays in the book, but the world never saw it.<br><br>Respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+"."+(r.respawn>=RESPAWNS_PER_CAMPAIGN?" <b>The next death is the last.</b>":"")+"</div>"
-    +"<div style='margin-top:16px;text-align:right;'><button id='respawn-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:#111;border:0;border-radius:6px;cursor:pointer;'>Wake</button></div></div>";
+    +"<div style='margin-top:16px;text-align:right;'><button id='respawn-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:0;border-radius:6px;cursor:pointer;'>Wake</button></div></div>";
   document.body.appendChild(m);
   document.getElementById("respawn-ok").onclick=function(){m.remove();};
 }
@@ -1104,10 +1105,10 @@ function showOnwardConfirmModal(){
   closeAllMenus();var old=document.getElementById("onward-modal");if(old)old.remove();
   var m=document.createElement("div");m.id="onward-modal";
   m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;";
-  m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
+  m.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
     +"<div style='font-size:20px;margin-bottom:8px;'>Go onward?</div>"
     +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>Walking onward with Death ENDS this campaign. There is no camp past this point and no way back; the Game Master will write its final chapter. The book stays, dead branches and all.</div>"
-    +"<div style='margin-top:16px;display:flex;gap:8px;justify-content:flex-end;'><button id='onward-no' style='padding:8px 16px;font-family:var(--font);background:var(--bg3);color:var(--t0);border:1px solid var(--brd);border-radius:6px;cursor:pointer;'>Walk back instead</button><button id='onward-yes' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:#111;border:0;border-radius:6px;cursor:pointer;'>Go onward — end the campaign</button></div></div>";
+    +"<div style='margin-top:16px;display:flex;gap:8px;justify-content:flex-end;'><button id='onward-no' style='padding:8px 16px;font-family:var(--font);background:var(--bg3);color:var(--t0);border:1px solid var(--brd);border-radius:6px;cursor:pointer;'>Walk back instead</button><button id='onward-yes' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:0;border-radius:6px;cursor:pointer;'>Go onward — end the campaign</button></div></div>";
   document.body.appendChild(m);
   document.getElementById("onward-no").onclick=function(){m.remove();deathSceneChoose("back");};
   document.getElementById("onward-yes").onclick=function(){m.remove();deathSceneOnwardConfirm();};
@@ -1131,10 +1132,10 @@ function showCampaignEndedModal(cause){
   closeAllMenus();var old=document.getElementById("ended-modal");if(old)old.remove();
   var m=document.createElement("div");m.id="ended-modal";
   m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;";
-  m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
+  m.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
     +"<div style='font-size:20px;margin-bottom:8px;'>The story is complete</div>"
     +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>"+((worldState&&worldState.ended&&worldState.ended.spine)?("The tale of "+escHtml((worldState&&worldState.campName)||"this campaign")+" is told, and "+escHtml((worldState&&worldState.character&&worldState.character.name)||"the hero")+" lives to see its ending."):(escHtml((worldState&&worldState.character&&worldState.character.name)||"The hero")+" has died for the last time — "+escHtml(cause||"slain")+"."))+"<br><br>This campaign is now read-only. File ▸ Export Narrative keeps the whole book, dead branches and all.</div>"
-    +"<div style='margin-top:16px;text-align:right;'><button id='ended-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:#111;border:0;border-radius:6px;cursor:pointer;'>Close</button></div></div>";
+    +"<div style='margin-top:16px;text-align:right;'><button id='ended-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:0;border-radius:6px;cursor:pointer;'>Close</button></div></div>";
   document.body.appendChild(m);
   document.getElementById("ended-ok").onclick=function(){m.remove();};
 }
@@ -1162,7 +1163,7 @@ function showHealthModal(){
       +"<span>"+escHtml(gr.label)+" — "+gr.count.toLocaleString()+" "+escHtml(grUnit)+"</span>"
       +"<span style='white-space:nowrap;color:var(--t1);'>"+growthSize(gr.bytes)+"</span></div>";
   }
-  m.innerHTML="<div style='background:#181818;border:1px solid var(--acc);border-radius:12px;max-width:460px;width:100%;max-height:85vh;overflow-y:auto;padding:16px;'>"
+  m.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:460px;width:100%;max-height:85vh;overflow-y:auto;padding:16px;'>"
     +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'><b style='color:var(--t0);'>Drift health</b><span id='hm-close' style='cursor:pointer;color:var(--t2);font-size:18px;padding:0 4px;'>&times;</span></div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:8px;'>Leading indicators computed from this save's own rings — green means the anti-drift stack looks alive, not that the story is good. Overall: <span style='color:"+col(h.overall)+";font-weight:bold;'>"+word(h.overall)+"</span></div>"
       +rows
@@ -1240,7 +1241,7 @@ function showVersionRefusedScreen(why){
   var m=modalShell("version-refused","<h3 style='margin:0 0 10px;color:var(--acc);'>This save needs a newer version of the game</h3>"
     +"<p style='color:var(--t1);margin:0 0 8px;'>"+escHtml(String(why||"").replace(/^./,function(c){return c.toUpperCase();}))+".</p>"
     +"<p style='color:var(--t1);margin:0 0 14px;'>Nothing was changed. Reload to update &mdash; the update can take two reloads. If this message comes back, clear the cache and reload.</p>"
-    +"<div style='text-align:right;display:flex;gap:8px;justify-content:flex-end;'><button id='vr-clear' style='font-family:var(--font);padding:8px 14px;background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Clear cache &amp; reload</button><button id='vr-reload' style='font-family:var(--font);padding:8px 16px;background:var(--acc);color:#111;border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Reload</button></div>",
+    +"<div style='text-align:right;display:flex;gap:8px;justify-content:flex-end;'><button id='vr-clear' style='font-family:var(--font);padding:8px 14px;background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Clear cache &amp; reload</button><button id='vr-reload' style='font-family:var(--font);padding:8px 16px;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Reload</button></div>",
     {wireClose:false,noEscape:true});
   var b=document.getElementById("vr-reload");if(b)b.addEventListener("click",function(){location.reload();});
   /* review R9: there is no File menu on this screen — the same routine the menu item runs is a button here */

@@ -80,7 +80,7 @@ Three live objects, all persisted to `localStorage` via the `store` wrapper:
 | `tnd_suggest_inband_v1` | globals.js | `_v1` |
 | `tnd_sync_dirty_v1` | storage-adapter.js | `_v1` |
 | `tnd_sync_size_warned_v1` | storage-adapter.js | `_v1` |
-| `tnd_theme_v1` | game-theme.js, ui-modals.js | `_v1` |
+| `tnd_theme_v1` | ui-modals.js, website/game-theme.js | `_v1` |
 | `tnd_transcript_rescue_v1_` (prefix) | state.js | `_v1` |
 | `tnd_tts_gemini_dir_v1` | tts.js | `_v1` |
 | `tnd_tts_gemini_narr_v1` | tts.js | `_v1` |

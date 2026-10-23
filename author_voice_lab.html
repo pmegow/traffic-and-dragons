@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="website/game-theme.js"></script>
 <title>Author Voice Lab — Traffic and Dragons</title>
 <link rel="stylesheet" href="satellite.css">
 <style>
@@ -33,7 +34,7 @@ details[open] summary .chev{transform:rotate(90deg)}
 summary .nm{color:var(--acc);font-size:1.08em;font-weight:bold}
 summary .blurb{color:var(--t1);font-size:.85em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 summary .prof{font-family:var(--font-mono);font-size:.7em;letter-spacing:1px;text-transform:uppercase;
-  background:#221515;border:1px solid var(--dng);color:rgba(255,255,255,.4);border-radius:12px;padding:2px 10px;font-weight:bold}
+  background:var(--danger-bg);border:1px solid var(--dng);color:var(--t2);border-radius:12px;padding:2px 10px;font-weight:bold}
 .body{padding:4px 16px 16px;border-top:1px solid var(--brd)}
 .flavor{background:var(--bg0);border:1px solid var(--brd);border-radius:var(--r);padding:10px 14px;margin:12px 0;
   font-size:.92em;line-height:1.55;color:var(--t0);font-style:italic}
@@ -46,11 +47,11 @@ summary .prof{font-family:var(--font-mono);font-size:.7em;letter-spacing:1px;tex
 .sl .val{font-family:var(--font-mono);font-size:.8em;color:var(--acc);min-height:1.1em}
 .sl input[type=range]{writing-mode:vertical-lr;direction:rtl;width:22px;height:120px;margin:0;accent-color:var(--acc);cursor:pointer}
 .sl .lbl{font-family:var(--font-mono);font-size:.7em;color:var(--t1);letter-spacing:.3px;text-align:center;white-space:nowrap}
-.sl.moved .val{color:#e8c88a;font-weight:bold}
+.sl.moved .val{color:var(--warn);font-weight:bold}
 .actions{display:flex;flex-direction:column;gap:8px;justify-content:center;min-width:170px}
 button{font-family:var(--font);border-radius:var(--r);cursor:pointer;font-size:.92em;padding:8px 14px}
-button.primary{background:var(--acc);color:#000;border:1px solid var(--acc);font-weight:bold}
-button.primary:hover{background:#caa76b}
+button.primary{background:var(--acc);color:var(--on-acc);border:1px solid var(--acc);font-weight:bold}
+button.primary:hover{background:var(--acc)}
 button.ghost{background:transparent;color:var(--acc);border:1px solid var(--acc-dim)}
 button.ghost:hover{background:var(--acc-faint)}
 button:disabled{opacity:.4;cursor:default}

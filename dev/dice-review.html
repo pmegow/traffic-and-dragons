@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../website/game-theme.js"></script>
 <title>Dice review</title>
 <!-- dev/dice-review.html — every roll clip (#650 the d20, #653 the damage dice) on one page, for the owner's eye: each
      die's set from dice/manifest.json (one set per die under `dice`) with seeds and turn counts, play-all, a light/dark
@@ -10,13 +11,13 @@
      roll crops to — DICE_TILE_REST in helpers.js is the centre of these). A dev page: served network-first, no palette
      contract, no game code. Shows the VP9 WebM — Chrome, Edge or Firefox; WebKit would show a black box (the game
      recombines the stacked MP4 for it, this page does not). -->
+<link rel="stylesheet" href="../satellite.css">
 <style>
-  body{margin:0;font:14px/1.4 system-ui,sans-serif;background:#141c24;color:#ddd;transition:background .2s}
-  body.light{background:#f1ead9;color:#222}
-  header{position:sticky;top:0;display:flex;gap:12px;align-items:center;padding:10px 16px;background:rgba(0,0,0,.35);backdrop-filter:blur(4px);z-index:2}
-  body.light header{background:rgba(255,255,255,.5)}
-  button{font:inherit;padding:6px 12px;border-radius:6px;border:1px solid #888;background:transparent;color:inherit;cursor:pointer}
-  button:hover{border-color:#e8a33d}
+  body{margin:0;font:14px/1.4 system-ui,sans-serif;background:var(--bg0);color:var(--t0);transition:background .2s}
+  body.light .frame{background:#f1ead9}
+  header{position:sticky;top:0;display:flex;gap:12px;align-items:center;padding:10px 16px;background:var(--bg1);backdrop-filter:blur(4px);z-index:2}
+  button{font:inherit;padding:6px 12px;border-radius:6px;border:1px solid var(--brd2);background:transparent;color:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
   h2{margin:18px 16px 0;font-size:16px;font-weight:600;opacity:.9}
   h2 span{font-weight:400;opacity:.7;margin-left:8px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:14px;padding:14px}
@@ -27,7 +28,7 @@
   body.boxes .rest{display:block}
   .lbl{display:flex;justify-content:space-between;font-size:13px;opacity:.85;padding:0 2px}
   .lbl b{font-size:16px}
-  .warn{color:#e07a4a}
+  .warn{color:var(--warn)}
   #status{opacity:.7;margin-left:auto}
 </style>
 </head>

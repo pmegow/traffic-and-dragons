@@ -14,3 +14,5 @@ a{color:var(--acc)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media (pointer:coarse){button,.b,.qa,.link,select,input[type=checkbox]{min-height:44px}}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+input::placeholder,textarea::placeholder{color:var(--t2);opacity:1}

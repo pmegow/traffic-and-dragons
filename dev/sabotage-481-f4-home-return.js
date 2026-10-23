@@ -9,7 +9,7 @@ var failed = sabotage.prove({ file: "home.html", skip: !chrome.path, command: ["
   { label: "a second visibilitychange listener (the catalog read twice per return)",
     find: "  var catalog=[],library=[];\n", replace: "  var catalog=[],library=[];\n  document.addEventListener(\"visibilitychange\",function(){if(document.visibilityState===\"visible\")loadCatalog();});\n",
     mustFail: "one return reads the catalog once" },
-  { label: "landing palette is not selected",find:'data-theme="light"',replace:'data-theme="dark"',mustFail:"home focuses on campaigns" },
+  { label: "landing palette is not selected",find:'<script src="website/game-theme.js"></script>',replace:'<script>document.documentElement.dataset.theme="dark";</script>',mustFail:"home focuses on campaigns" },
   { label: "campaign panel loses its double width",find:'grid-column:span 2;',replace:'grid-column:span 1;',mustFail:"campaign panel is double wide" },
   { label: "New Campaign goes to Continue",find:'location.href="index.html?campaign=new";',replace:'location.href="index.html";',mustFail:"Continue and New Campaign lead to distinct" },
   { label: "a failed re-read wipes the shelf",

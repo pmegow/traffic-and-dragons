@@ -3,17 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="../website/game-theme.js"></script>
 <title>#148 Recall Gate — era summaries vs chapter retrieval</title>
+<link rel="stylesheet" href="../satellite.css">
 <style>
-  body{margin:0 auto;max-width:900px;padding:24px 16px 60px;font:15px/1.5 Georgia,serif;background:#131313;color:#d8d2c8}
-  h1{font-size:1.3em;color:#b8935a;margin:0 0 6px}
-  .sub{color:#8a857c;font-size:.9em;margin-bottom:18px}
-  .card{background:#181818;border:1px solid #262626;border-radius:10px;padding:14px 18px;margin:14px 0}
-  button{background:#2a2216;border:1px solid #b8935a;color:#e0c894;font:bold 15px Georgia;padding:10px 22px;border-radius:8px;cursor:pointer}
+  body{margin:0 auto;max-width:900px;padding:24px 16px 60px;font:15px/1.5 Georgia,serif;background:var(--bg0);color:var(--t0)}
+  h1{font-size:1.3em;color:var(--acc);margin:0 0 6px}
+  .sub{color:var(--t2);font-size:.9em;margin-bottom:18px}
+  .card{background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:14px 18px;margin:14px 0}
+  button{background:var(--warn-bg);border:1px solid var(--acc);color:var(--warn);font:bold 15px Georgia;padding:10px 22px;border-radius:8px;cursor:pointer}
   button:disabled{opacity:.4;cursor:default}
-  #log{font:12px/1.5 Consolas,monospace;color:#b9b2a4;background:#101010;border:1px solid #232323;border-radius:6px;padding:10px;max-height:340px;overflow:auto;white-space:pre-wrap}
-  .ok{color:#7aa86a}.bad{color:#c25a5a}.warn{color:#c9a24a}
-  code{color:#c9b997;background:#101010;padding:1px 4px;border-radius:3px}
+  #log{font:12px/1.5 Consolas,monospace;color:var(--t1);background:var(--bg0);border:1px solid var(--brd);border-radius:6px;padding:10px;max-height:340px;overflow:auto;white-space:pre-wrap}
+  .ok{color:var(--ok-ink)}.bad{color:var(--danger-ink)}.warn{color:var(--warn)}
+  code{color:var(--acc);background:var(--bg0);padding:1px 4px;border-radius:3px}
 </style>
 </head>
 <body>
@@ -22,7 +24,7 @@
 
 <div class="card" id="pre">Checking prerequisites…</div>
 <div class="card"><button id="run" disabled>▶ Run the gate (~2–4 minutes, autonomous)</button>
-<span id="status" style="margin-left:12px;color:#8a857c"></span></div>
+<span id="status" style="margin-left:12px;color:var(--t2)"></span></div>
 <div class="card"><div id="log">idle</div></div>
 
 <script>

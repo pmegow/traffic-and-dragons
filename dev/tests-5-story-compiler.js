@@ -79,6 +79,7 @@ function makeCtx(storage) {
     return e;
   }
   var doc = {
+    addEventListener: function () {},
     getElementById: function (id) { if (!els[id]) els[id] = mkEl(id); return els[id]; },
     createElement: function () { return mkEl("_created"); },
     body: { appendChild: function () { }, removeChild: function () { } }

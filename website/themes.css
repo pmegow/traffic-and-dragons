@@ -6,6 +6,8 @@
   --surface-glow:rgba(228,232,238,.04);--frame-inset:rgba(60,64,80,.33);
   --title-shadow:var(--bg2);--art-bg:var(--bg2);--acc-border:var(--brd2);
   --button-inset:rgba(255,255,255,.08);--button-shadow:var(--bg0);--caption:var(--t1);
+  --danger-bg:#221515;--warn-bg:#221c12;--info-bg:#131a22;--ok-bg:#182215;
+  --danger-ink:#e09696;--ok-ink:#84c795;--warnc:var(--warn);
   /* surfaces */
   --bg0:#0c0d11;--bg1:#13151c;--bg2:#1b1e27;--bg3:#242730;
   --brd:#2c2f3a;--brd2:#3c4050;
@@ -22,7 +24,7 @@
   --vital-s:60%;--vital-l:58%;--vital-still-s:25%;--vital-still-l:45%;
   --mana:#4285f4;
   --dng:#c04040;--on-dng:#fff;--dng-faint:rgba(192,64,64,.08);
-  --warn:#d8a04a;--wrn:#d8a04a;
+  --warn:#d8a04a;--wrn:var(--warn);
   --on-warn:#000;
   --red:#8b2a2a;--blue:#3a6ab5;--grn:#3a7a5a;--ok:#3a7a5a;--err:#c04040;
   /* aliases for the names satellites grew on their own */
@@ -33,6 +35,8 @@
 /* The light theme is shared by Home and the public landing page. */
 :root[data-theme="light"]{
   color-scheme:light;
+  --danger-bg:#efd0c4;--warn-bg:#ecdbb3;--info-bg:#dce3df;--ok-bg:#d9e3c4;
+  --danger-ink:#9c3026;--ok-ink:#285b38;
   --surface-glow:#fff7de66;--frame-inset:#76654855;--title-shadow:#f8edcf;--art-bg:#656c55;
   --acc-border:#572c22;--button-inset:#ffffff15;--button-shadow:#482619;--caption:#5e513b;
   --bg0:#b0a68b;--bg1:#eaddb9;--bg2:#f6edcf;--bg3:#ded0aa;--bg4:#d5c59b;

@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="website/game-theme.js"></script>
 <title>Piper TTS — kick-the-tires (v0.10)</title>
 <!--
   ══════════════════════════════════════════════════════════════════════════════════════════
@@ -55,12 +56,12 @@
   .chk input{width:16px;height:16px;accent-color:var(--acc);}
   .btns{display:flex;gap:10px;margin:20px 0 6px;}
   button{font:600 14px/1 inherit;padding:11px 20px;border-radius:7px;border:none;cursor:pointer;}
-  #go{background:var(--acc);color:#161310;}
+  #go{background:var(--acc);color:var(--on-acc);}
   #stop{background:none;border:1px solid var(--brd);color:var(--dim);}
   button:disabled{opacity:.45;cursor:default;}
   #prog{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin:10px 0;display:none;}
   #prog > i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s;}
-  #log{background:#0d0b09;border:1px solid var(--brd);border-radius:8px;padding:12px;margin-top:14px;
+  #log{background:var(--bg0);border:1px solid var(--brd);border-radius:8px;padding:12px;margin-top:14px;
     font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;
     max-height:280px;overflow:auto;color:var(--dim);}
   #log .ok{color:var(--good);} #log .err{color:var(--bad);} #log .hl{color:var(--acc);}

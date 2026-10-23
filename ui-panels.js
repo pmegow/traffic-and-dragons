@@ -157,7 +157,7 @@ function updateHUD(){
       var mpChip=document.createElement("div");
       mpChip.id="hud-mp-chip";
       mpChip.title="Multiple player characters are active, so the GM narrates everyone by name in third person instead of \"you\". Click to open "+_extraPCs[0].name+"'s sheet and switch them back to a companion.";
-      mpChip.style.cssText="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:2px 8px;border-radius:12px;background:#221a10;border:1px solid var(--acc);color:rgba(255,255,255,.75);";
+      mpChip.style.cssText="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:2px 8px;border-radius:12px;background:var(--acc-bg);border:1px solid var(--acc);color:var(--t1);";
       mpChip.innerHTML="<span style='color:var(--acc);font-weight:bold;'>⚑ "+playerCount()+" players</span>"
         +"<span style='color:var(--t2);'>third-person narration · "+escHtml(_extraPCs.map(function(n){return n.name;}).join(", "))+"</span>";
       mpChip.addEventListener("click",(function(nm){return function(){showNpcSheet(nm);};})(_extraPCs[0].name));

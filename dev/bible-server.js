@@ -46,6 +46,7 @@ var EDITOR_ASSETS = {
   "/inventory.js": "inventory.js",   // #599 (b5): helpers.js reads counts through inventory.js — served wherever helpers.js is
   "/class_bible.js": "class_bible.js",
   "/satellite.css": "satellite.css",
+  "/website/game-theme.js": "website/game-theme.js",
   "/website/themes.css": "website/themes.css"   // satellite.css imports the shared palettes
 };
 var worksheetStores = Object.create(null);

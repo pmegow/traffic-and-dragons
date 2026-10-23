@@ -59,7 +59,7 @@ prove("sw.js", [
     mustFail: "network-first in sw.js" }
 ]);
 /* #642 follow-up (owner 2026-10-17): the game's colour scheme on the FAQ and the guide */
-prove("game-theme.js", [
+prove("website/game-theme.js", [
   { label: "the stored light choice is never recognised (every satellite paints dark)",
     find: 'localStorage.getItem(KEY)==="light"', replace: 'localStorage.getItem(KEY)==="lite"',
     mustFail: "light when the game stored light" },
@@ -69,7 +69,7 @@ prove("game-theme.js", [
 ]);
 prove("faq.html", [
   { label: "the FAQ goes back to following the device instead of the game",
-    find: '<script src="game-theme.js"></script>', replace: '<script src="website/system-theme.js"></script>',
+    find: '<script src="website/game-theme.js"></script>', replace: '<!-- missing theme controller -->',
     mustFail: "paints in the game's own colour scheme" }
 ]);
 prove("DOC/beta-guide.html", [

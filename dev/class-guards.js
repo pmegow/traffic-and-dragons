@@ -34,8 +34,7 @@ var EXEMPT = {
   ],
   palette: {
     "index.html": "the game itself — its :root defines the game palette; website/themes.css supplies satellite defaults",
-    "piper-host.html": "the invisible synthesis iframe (B9) — no UI to colour",
-    "test.html": "the engine test runner — plain result output, no themed UI"
+    "piper-host.html": "the invisible synthesis iframe (B9) — no UI to colour"
   },
   networkFirst: {
     /* none — index.html and piper-host.html are APP_SHELL; every other tracked page must be network-first */

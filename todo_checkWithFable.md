@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-22 · #664 · v1.1311 · Active-page theme preference and UI palette consistency; 28-page browser coverage, dialogs, map export and compiled preview. No engine or state mutations.
+
 - 2026-10-22 · #663 · Codex: the owner-requested mobile drawer on desktop; shared CSS and controls over the same panel renderers, compact default opening, keyboard tabs and synchronous narrative scroll anchoring. No game-state or prompt changes. Real-browser failure captured before implementation; desktop and phone verification plus eight desktop mutation clauses.
 
 - 2026-10-18 · /bugs sync · Codex: filed B44–B46 from three new user reports; preserved raw evidence and screenshot links, checked all 367 feed IDs against the tracker, and advanced the local sync cursor. Docs only; no investigation or game changes.

@@ -4,10 +4,10 @@ var chrome=require('./cdp-browser.js').locateChrome();
 var command=['node',['dev/tests-bible-study-theme-browser.js']];
 var failed=0;
 failed+=sabotage.prove({file:'bible_study.html',command:command,skip:!chrome.path,cases:[
- {label:'the reference page stops following the system preference',find:'<script src="website/system-theme.js"></script>',replace:'',mustFail:'initial light preference paints the shared palette'}
+ {label:'the reference page stops following the system preference',find:'<script src="website/game-theme.js"></script>',replace:'',mustFail:'initial light preference paints the shared palette'}
 ]});
-failed+=sabotage.prove({file:'website/system-theme.js',command:command,skip:!chrome.path,cases:[
- {label:'live preference changes are no longer observed',find:'preference.addEventListener("change", apply)',replace:'preference.addEventListener("change", function () {})',mustFail:'a preference change repaints without losing filter or card nodes'}
+failed+=sabotage.prove({file:'website/game-theme.js',command:command,skip:!chrome.path,cases:[
+ {label:'live preference changes are no longer observed',find:'device.addEventListener("change",apply)',replace:'device.addEventListener("change",function(){})',mustFail:'a preference change repaints without losing filter or card nodes'}
 ]});
 failed+=sabotage.prove({file:'helpers.js',command:command,skip:!chrome.path,cases:[
  {label:'magical label keeps its dark-only foreground',find:'color:var(--magic-ink,#c99be0);',replace:'color:#c99be0;',mustFail:'light-mode semantic badges remain readable'},

@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="website/game-theme.js"></script>
 <title>T&D Bug Tracker</title>
 <!--
   bug_tracker.html — satellite viewer (like bible_study.html) for DOC/BUGS.md, the bug-triage
@@ -29,15 +30,15 @@
   body{margin:0;background:var(--bg);color:var(--ink);
        font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
   ::-webkit-scrollbar{width:6px;height:6px;}
-  ::-webkit-scrollbar-track{background:#0d0d0d;}
-  ::-webkit-scrollbar-thumb{background:#333;border-radius:3px;}
+  ::-webkit-scrollbar-track{background:var(--bg0);}
+  ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
   ::-webkit-scrollbar-thumb:hover{background:var(--acc);}
   .wrap{max-width:900px;margin:0 auto;padding:28px 18px 80px;}
   header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:4px;}
   h1{font-size:21px;margin:0;color:var(--acc);}
   header .sub{color:var(--dim);font-size:13px;}
   .toolbar{margin:14px 0 22px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-  button.cmd{background:#222;border:1px solid var(--line);color:var(--ink);border-radius:8px;
+  button.cmd{background:var(--bg2);border:1px solid var(--line);color:var(--ink);border-radius:8px;
              padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit;}
   button.cmd:hover{border-color:var(--acc);color:var(--acc);}
   button.cmd:disabled{opacity:.35;cursor:default;}
@@ -54,7 +55,7 @@
   button.xbtn:hover{color:var(--bad);}
   button.xbtn.copied{color:var(--good);}
   .xhint{position:absolute;top:30px;right:8px;font-size:11.5px;color:var(--good);
-         background:#0e0e0e;border:1px solid var(--line);border-radius:6px;padding:3px 8px;
+         background:var(--bg1);border:1px solid var(--line);border-radius:6px;padding:3px 8px;
          white-space:nowrap;z-index:1;}
   .xhint.fail{color:var(--bad);}
   .row1{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
@@ -62,12 +63,12 @@
   .tldr{font-weight:600;flex:1;min-width:200px;}
   .meta{color:var(--dim);font-size:12.5px;margin:7px 0 0;line-height:1.7;}
   .badge{display:inline-block;border-radius:12px;padding:2px 10px;font:700 .78em Consolas,Menlo,monospace;
-         text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.4);}
-  .b-new{background:#221c11;border:1px solid var(--warn);}
-  .b-active{background:#131a22;border:1px solid var(--info);}
-  .b-good{background:#182215;border:1px solid var(--good);}
-  .b-bad{background:#221312;border:1px solid var(--bad);}
-  .b-dim{background:#1c1c1c;border:1px solid #555;}
+         text-transform:uppercase;letter-spacing:1px;color:var(--t2);}
+  .b-new{background:var(--warn-bg);border:1px solid var(--warn);}
+  .b-active{background:var(--info-bg);border:1px solid var(--info);}
+  .b-good{background:var(--ok-bg);border:1px solid var(--good);}
+  .b-bad{background:var(--danger-bg);border:1px solid var(--bad);}
+  .b-dim{background:var(--bg2);border:1px solid var(--brd2);}
   details{margin-top:10px;}
   summary{cursor:pointer;color:var(--dim);font-size:13px;}
   summary:hover{color:var(--acc);}
@@ -75,12 +76,12 @@
      disclosure marker and the heading share one clickable line */
   .done-frame>summary{display:list-item;}
   .done-frame>summary h2.sect{display:inline-block;width:calc(100% - 26px);vertical-align:middle;margin:34px 0 14px;}
-  pre.report{background:#0e0e0e;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+  pre.report{background:var(--bg1);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
              font:12.5px/1.5 Consolas,Menlo,monospace;white-space:pre-wrap;word-break:break-word;
              max-height:420px;overflow:auto;margin:8px 0 0;}
   .quarantine{color:var(--bad);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;
               margin-top:8px;}
-  .sectext{white-space:pre-wrap;word-break:break-word;font-size:13.5px;color:#c8c8c8;
+  .sectext{white-space:pre-wrap;word-break:break-word;font-size:13.5px;color:var(--t0);
            border-left:2px solid var(--line);padding-left:12px;margin:8px 0 0;}
   .btnrow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
   .shot a{color:var(--info);}
@@ -95,7 +96,7 @@
   .card.act.fail{border-color:var(--bad);}
   .actwhen{font-family:Consolas,Menlo,monospace;color:var(--acc);font-weight:700;}
   .actrun{color:var(--dim);font-size:12px;font-family:Consolas,Menlo,monospace;}
-  .actline{font-size:13px;color:#c8c8c8;margin-top:4px;white-space:pre-wrap;word-break:break-word;}
+  .actline{font-size:13px;color:var(--t0);margin-top:4px;white-space:pre-wrap;word-break:break-word;}
   .actline.failline .actval{color:var(--bad);}
   .actkey{color:var(--dim);text-transform:uppercase;font-size:11px;letter-spacing:.06em;margin-right:8px;}
 </style>

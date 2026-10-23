@@ -5,11 +5,15 @@
 Split out of CLAUDE.md on 2026-09-03 (#310); the map there links here. Version stamps and history links inside are the record as written — the contract lines are current unless a newer commit says otherwise.
 
 **Every page, derived (#481 G5).** `dev/class-guards.js` reads the tracked root `*.html` files, not a list:
-- **The palette.** Each page links `satellite.css` or carries a reasoned `EXEMPT.palette` entry. Today's exemptions: index.html (the palette's source), piper-host.html (no UI), test.html.
+- **The palette.** Each page links `satellite.css` or carries a reasoned `EXEMPT.palette` entry. Today's exemptions: index.html (the palette's source), piper-host.html (no UI).
 - **The service worker.** Each page outside `APP_SHELL` matches sw.js's network-first regex. A new page cannot be served cache-first by omission.
 - **Model waits.** Every model or image wait's status counts seconds (#356), on any page.
 - **Stale exemptions fail too.** The registry must stay the truth.
 - **Proof.** `dev/tests-481-g5-class-guards.js`, plus its browser half `dev/tests-481-g5-waits-browser.js`.
+
+## Theme preference (#664)
+
+Every active HTML page (root apps, dev tools, the player guide and website) reads the saved `tnd_theme_v1` choice before its first paint and follows same-origin storage changes without replacing its DOM. `website/game-theme.js` is the common controller for both deployments; the cache-first game retains its inline bootstrap and menu synchronization. Game pages default to dark, Bible Study may follow the device when no choice is saved, and the standalone marketing site follows the device when it has no saved choice. Browser storage is per origin; separately hosted sites do not share a preference automatically. Archived research and audit reports retain their historical presentation by owner choice. `dev/theme-pages.js` derives the active-page coverage; `dev/tests-664-themes-browser.js` exercises opposing device settings, both palettes and cross-tab updates, plus dialogs, populated maps/standalone SVG exports and compiled story previews. Exported books keep their self-contained reading/print palettes. The legacy test.html engine harness is checked for appearance only: its unchanged baseline reports 176 failed / 3005 passed and a missing-game-DOM error in sendAction; the authoritative engine gate remains node dev/run-tests.js.
 
 ## Files
 
@@ -23,7 +27,7 @@ Mobile error reporting — `reportError(ctx,msg,detail)` POSTs runtime errors to
 
 Status: ✅ Active
 
-Satellite viewer (TODO #10) for the `*_bible` registries — open directly (like `blueprint-designer.html`, NOT in the SW app shell). Loads the bible data + helpers, renders every spell/ability via the shared `bibleCardHTML` and every skill via `skillCardHTML` (#52 — Skills section with the level-ladder header); live name/text filter. Opts into `website/system-theme.js`: browser/device light or dark preference selects the shared palette before paint and updates while open, without rebuilding cards or clearing the filter. **Deliberately READ-ONLY** (user call 2026-07-27): the bibles may become player-facing, so the mutable surface lives in `bible_editor.html`, never here
+Satellite viewer (TODO #10) for the `*_bible` registries — open directly (like `blueprint-designer.html`, NOT in the SW app shell). Loads the bible data + helpers, renders every spell/ability via the shared `bibleCardHTML` and every skill via `skillCardHTML` (#52 — Skills section with the level-ladder header); live name/text filter. Uses `website/game-theme.js`: the saved game choice wins; with no saved choice its `data-theme-default="system"` follows the device. Changes repaint without rebuilding cards or clearing the filter. **Deliberately READ-ONLY** (user call 2026-07-27): the bibles may become player-facing, so the mutable surface lives in `bible_editor.html`, never here
 
 ### capability-names.html
 
@@ -71,7 +75,7 @@ The STANDALONE character editor — every v10 field through ONE `FIELDS` + ONE `
 
 Status: ✅ Active (#290)
 
-The player's HOME PAGE selects the shared light palette (`data-theme="light"`). `website/themes.css` is the single color source for both Home (imported by `satellite.css`) and the public landing page (linked directly); explicit `dark` and unthemed satellite defaults retain the dark palette. Page styles contain layout/typography, not duplicated palette values. A double-width Play card offers **Continue** and **New Campaign**; designer, character editor, reference and mementos live in **Extras**. Quick Start and its hero/catalog fetches were removed by owner request (#624). The curated shelf reads the public server `GET /catalog/blueprints` (originals only; `samples/catalog.json` is the bootstrap/reference set), followed by the signed-in account blueprint library. Play hands a blueprint to the wizard through `HOME_PENDING_BP_K` → `consumeHomeBlueprint` → `_applyBlueprint`. Open-in-designer writes `BPD_INCOMING_K`, never the draft slot. The page stays read-only with respect to game state (no game.js/ui-*.js, no state writers); seam `window.__homeTest`; network-first in sw.js.
+The player's HOME PAGE follows the saved game light/dark choice before paint. `website/themes.css` is the single color source for both Home (imported by `satellite.css`) and the public landing page (linked directly); the public landing page follows the device when this origin has no saved choice. Page styles contain layout/typography, not duplicated palette values. A double-width Play card offers **Continue** and **New Campaign**; designer, character editor, reference and mementos live in **Extras**. Quick Start and its hero/catalog fetches were removed by owner request (#624). The curated shelf reads the public server `GET /catalog/blueprints` (originals only; `samples/catalog.json` is the bootstrap/reference set), followed by the signed-in account blueprint library. Play hands a blueprint to the wizard through `HOME_PENDING_BP_K` → `consumeHomeBlueprint` → `_applyBlueprint`. Open-in-designer writes `BPD_INCOMING_K`, never the draft slot. The page stays read-only with respect to game state (no game.js/ui-*.js, no state writers); seam `window.__homeTest`; network-first in sw.js.
 
 **Campaign navigation (#624):** Continue opens `index.html`; New Campaign opens `index.html?campaign=new`. After loading a readable save, `consumeHomeCampaignAction` removes only that query parameter and calls the existing `newGame` confirmation/snapshot flow. A fresh player reaches the wizard without a saved-game confirmation; a version-refused save remains blocked before the intent is consumed. Legacy quick-start payload consumers remain in the game for compatibility.
 
