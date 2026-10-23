@@ -9,8 +9,13 @@
      die's set from dice/manifest.json (one set per die under `dice`) with seeds and turn counts, play-all, a light/dark
      ground to judge the shadow, and the measured REST BOX of each clip drawn over it (the window the composited damage
      roll crops to — DICE_TILE_REST in helpers.js is the centre of these). A dev page: served network-first, no palette
-     contract, no game code. Shows the VP9 WebM — Chrome, Edge or Firefox; WebKit would show a black box (the game
-     recombines the stacked MP4 for it, this page does not). -->
+     contract. Shows the VP9 WebM — Chrome, Edge or Firefox; WebKit would show a black box (the game recombines the
+     stacked MP4 for it, this page does not).
+     THE SOUND (#659, owner 2026-10-23: "to test the dice sound I need to hunt around in a game and FIND combat"): the
+     clip you click plays its own synthesized roll through the game's dice-sound.js over sound.js — the same recipe the
+     game builds from the manifest's hits and rolling stretches — forced past the UI-sound setting (an audition). Play all
+     stays silent: sixty dice at once is noise. A loop re-sounds each pass. The game's mute (#657) still applies and the
+     status line says so, so a silent click never reads as broken. -->
 <link rel="stylesheet" href="../satellite.css">
 <style>
   body{margin:0;font:14px/1.4 system-ui,sans-serif;background:var(--bg0);color:var(--t0);transition:background .2s}
@@ -39,25 +44,39 @@
   <button id="ground">Light ground</button>
   <button id="boxes">Rest boxes</button>
   <label><input type="checkbox" id="loop" checked> loop</label>
+  <label title="The clip you click plays its roll's sound — the game's own recipe from the manifest's hits and rolling stretches. Play all stays silent."><input type="checkbox" id="sound" checked> sound</label>
   <span id="status">loading manifest…</span>
 </header>
 <div id="sets"></div>
 <script src="../dice/manifest.js"></script>
+<script src="../audio-master.js"></script>
+<script src="../sound.js"></script>
+<script src="../dice-sound.js"></script>
 <script>
 (function(){
-  var sets=document.getElementById("sets"),status=document.getElementById("status"),vids=[];
+  var sets=document.getElementById("sets"),status=document.getElementById("status"),vids=[],soundBox=document.getElementById("sound"),loopBox=document.getElementById("loop");
   function pad(n){return (n<10?"0":"")+n;}
   function kb(n){return Math.round(n/1024)+" KB";}
+  function soundOn(){return !!(soundBox.checked&&typeof DiceSound!=="undefined");}
+  /* the clip's own roll, forced past the UI-sound setting (an audition); a mute in the game still silences it — said in the status */
+  function sound(v,sides,n){if(!soundOn())return;var ok=DiceSound.play(sides,n,0,true);if(!ok)note("no sound for d"+sides+" "+n+" — "+(typeof AudioMaster!=="undefined"&&AudioMaster.muted()?"the game is MUTED (unmute it there)":"see the console"));}
+  /* with sound on a clip restarts by hand so every pass sounds again (a native loop restarts without an event) */
+  function applyLoop(v){v.loop=loopBox.checked&&!soundOn();}
+  var _noteBase="";function note(s){status.textContent=_noteBase+(s?" · "+s:"");}
   function card(grid,key,n,c,minTurns){
+    var sides=Number(key.slice(1));
     var d=document.createElement("div");d.className="card";
     var fr=document.createElement("div");fr.className="frame";
-    var v=document.createElement("video");v.src="../dice/"+key+"_"+pad(n)+".webm";v.muted=true;v.loop=true;v.playsInline=true;v.preload="metadata";v.title="click: play / pause";
-    v.onclick=function(){if(v.paused)v.play();else v.pause();};
+    var v=document.createElement("video");v.src="../dice/"+key+"_"+pad(n)+".webm";v.muted=true;v.playsInline=true;v.preload="metadata";v.title="click: play / pause (with its sound)";applyLoop(v);
+    function start(){v.currentTime=0;var p=v.play();if(p&&typeof p.then==="function")p.then(function(){sound(v,sides,n);},function(e){note("d"+sides+" "+n+" would not play: "+(e&&e.message||e));});}
+    v.onclick=function(){if(v.paused)start();else v.pause();};
+    v.onended=function(){if(loopBox.checked&&soundOn())start();};
     fr.appendChild(v);
     if(c&&c.rest){var b=document.createElement("div");b.className="rest";b.style.left=(c.rest[0]*100)+"%";b.style.top=(c.rest[1]*100)+"%";b.style.width=((c.rest[2]-c.rest[0])*100)+"%";b.style.height=((c.rest[3]-c.rest[1])*100)+"%";fr.appendChild(b);}
     var l=document.createElement("div");l.className="lbl";
     var turns=c&&c.turns!=null?c.turns.toFixed(1)+" turns":"turns unknown";
-    l.innerHTML="<b>"+n+"</b><span"+(c&&c.turns!=null&&c.turns<minTurns?" class='warn'":"")+">"+turns+"</span><span>"+(c?"seed "+c.seed+" · "+kb(c.webm):"not in manifest")+"</span>";
+    var cues=c&&c.hits?c.hits.length+" hit"+(c.hits.length===1?"":"s")+(c.roll&&c.roll.length?" · rolls "+c.roll.map(function(r){return r[0].toFixed(1)+"–"+r[1].toFixed(1)+"s";}).join(", "):""):"unmeasured";
+    l.innerHTML="<b>"+n+"</b><span"+(c&&c.turns!=null&&c.turns<minTurns?" class='warn'":"")+">"+turns+"</span><span title='the measured motion the sound is built from'>"+cues+"</span><span>"+(c?"seed "+c.seed+" · "+kb(c.webm):"not in manifest")+"</span>";
     d.appendChild(fr);d.appendChild(l);grid.appendChild(d);vids.push(v);
   }
   function show(m){
@@ -69,16 +88,18 @@
       var grid=document.createElement("div");grid.className="grid";sets.appendChild(grid);
       for(var n=1;n<=sides;n++){card(grid,key,n,set.clips&&set.clips[pad(n)],sides===20?1.5:0.5);count++;}
     });
-    status.textContent=keys.length+" dice, "+count+" clips · manifest "+(m.rendered||"?");
+    _noteBase=keys.length+" dice, "+count+" clips · manifest "+(m.rendered||"?")+" · sound: click a clip (Play all stays silent)";
+    note(typeof AudioMaster!=="undefined"&&AudioMaster.muted()?"the game is MUTED — unmute it there to hear the rolls":"");
   }
   // dice/manifest.js (written by the batch beside manifest.json) loads from disk and from the site alike;
   // a page opened from file:// cannot fetch(), which is how the owner first opened it (2026-10-21)
   if(typeof DICE_MANIFEST!=="undefined")show(DICE_MANIFEST);
   else fetch("../dice/manifest.json?t="+Date.now()).then(function(r){return r.json();}).then(show)
     .catch(function(e){status.textContent="manifest failed: "+e+" — run the batch (it writes dice/manifest.js) or open the page from the site";status.className="warn";});
-  document.getElementById("play").onclick=function(){vids.forEach(function(v){v.play();});};
+  document.getElementById("play").onclick=function(){vids.forEach(function(v){v.play();});};/* silent on purpose: sixty rolls at once */
   document.getElementById("restart").onclick=function(){vids.forEach(function(v){v.currentTime=0;v.play();});};
-  document.getElementById("loop").onchange=function(e){vids.forEach(function(v){v.loop=e.target.checked;});};
+  loopBox.onchange=function(){vids.forEach(applyLoop);};
+  soundBox.onchange=function(){vids.forEach(applyLoop);};
   document.getElementById("ground").onclick=function(){var light=document.body.classList.toggle("light");this.textContent=light?"Dark ground":"Light ground";};
   document.getElementById("boxes").onclick=function(){document.body.classList.toggle("boxes");};
 })();

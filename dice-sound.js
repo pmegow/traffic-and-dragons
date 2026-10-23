@@ -60,8 +60,10 @@ function diceSoundRecipe(sides, face, offset) {
   notes.sort(function (a, b) { return a.t - b.t; });
   return { label: "d" + sides + " rolls a " + face, wet: 0.06, notes: notes };
 }
-/* Plays the clip's sound now (sound.js schedules from this moment; offset delays every note). False when it cannot. */
-function diceSoundPlay(sides, face, offset) {
+/* Plays the clip's sound now (sound.js schedules from this moment; offset delays every note). False when it cannot.
+   `force` plays even with UI sounds off — an AUDITION (dev/dice-review.html), the same licence Sound.preview has: a
+   click that asks to hear a roll must not read as broken. The game never passes it. */
+function diceSoundPlay(sides, face, offset, force) {
   if (typeof Sound === "undefined" || typeof Sound.play !== "function") return false;
   var recipe = diceSoundRecipe(sides, face, offset);
   if (!recipe) {
@@ -69,6 +71,6 @@ function diceSoundPlay(sides, face, offset) {
     if (!_diceSoundSaid[key] && typeof console !== "undefined") { _diceSoundSaid[key] = true; console.warn("[dice-sound] no record for " + key + " on the manifest — the roll plays silent (run dev/blender/dice-clips.js --measure)"); }
     return false;
   }
-  return Sound.play(recipe);
+  return Sound.play(recipe, !!force);
 }
 var DiceSound = { recipe: diceSoundRecipe, play: diceSoundPlay, cue: diceCue };

@@ -30,6 +30,9 @@ prove("dice-sound.js", [
   { label: "the d4 clicks low",
     find: "4: { f: 3400, q: 1.6, tip: 1.911 },", replace: "4: { f: 1500, q: 1.6, tip: 1.911 },",
     mustFail: "a d4 must click above a d20" },
+  { label: "the audition's force never reaches Sound.play",
+    find: "return Sound.play(recipe, !!force);", replace: "return Sound.play(recipe);",
+    mustFail: "force must reach Sound.play" },
   { label: "a missing record nags every roll",
     find: "if (!_diceSoundSaid[key] && typeof console !== \"undefined\") { _diceSoundSaid[key] = true;", replace: "if (typeof console !== \"undefined\") {",
     mustFail: "said once, not every roll" }
@@ -57,6 +60,11 @@ prove("index.html", [
   { label: "the data file is not loaded",
     find: "<script src=\"dice/manifest.js\"></script>\n", replace: "",
     mustFail: "DOC FACTS CONTRACT" }
+]);
+prove("dev/dice-review.html", [
+  { label: "the review page's click goes silent",
+    find: "var ok=DiceSound.play(sides,n,0,true);", replace: "var ok=true;",
+    mustFail: "must sound through DiceSound.play with force" }
 ]);
 prove("sw.js", [
   { label: "the app shell drops dice-sound.js",

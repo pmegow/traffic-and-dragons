@@ -35616,6 +35616,23 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return (s>=0&&ds>s)?true:"the engine manifest must list dice-sound.js after sound.js";
   });
 
+  t("#659 the audition (owner 2026-10-23: 'to test the dice sound I need to hunt around in a game and FIND combat'): DiceSound.play takes a force flag that reaches Sound.play (an audition plays even with UI sounds off, like Sound.preview); dev/dice-review.html loads the master, sound.js and dice-sound.js after the manifest, sounds the clip you click inside its play() promise with force, says when the game's mute is on, and keeps Play all silent",function(){
+    var was=(typeof DICE_MANIFEST!=="undefined")?DICE_MANIFEST:undefined,_sp=Sound.play,got=[];
+    try{
+      DICE_MANIFEST={dice:{d6:{frames:84,fps:24,clips:{"03":{hits:[[0.458,5.79]],roll:[]}}}}};
+      Sound.play=function(r,f){got.push([r&&r.label,f]);return true;};
+      if(DiceSound.play(6,3,0,true)!==true||got.length!==1||got[0][1]!==true)return "force must reach Sound.play: "+JSON.stringify(got);
+      DiceSound.play(6,3,0);if(got.length!==2||got[1][1]!==false)return "no force is a plain play: "+JSON.stringify(got);
+    }finally{Sound.play=_sp;DICE_MANIFEST=was;}
+    var p=__fsForTests.readFileSync(__rootForTests+"/dev/dice-review.html","utf8");
+    var m=p.indexOf('<script src="../dice/manifest.js"></script>'),am=p.indexOf('<script src="../audio-master.js"></script>'),so=p.indexOf('<script src="../sound.js"></script>'),ds=p.indexOf('<script src="../dice-sound.js"></script>');
+    if(!(m>=0&&am>m&&so>am&&ds>so))return "the review page must load audio-master.js, sound.js and dice-sound.js after the manifest";
+    if(p.indexOf('id="sound"')<0)return "the review page needs a sound switch";
+    var click=p.indexOf("function sound(v,sides,n)");if(click<0||p.indexOf("DiceSound.play(sides,n,0,true)")<0)return "the clip you click must sound through DiceSound.play with force";
+    if(p.indexOf("AudioMaster.muted()")<0)return "the page must say when the game's mute is on (a silent audition would read as broken)";
+    var all=p.slice(p.indexOf('getElementById("play").onclick'),p.indexOf('getElementById("restart")'));
+    return all.indexOf("DiceSound")<0&&all.indexOf("sound(")<0?true:"Play all must stay silent — sixty dice at once";
+  });
   section("#661 — Gemini 3.8 Flash is the default GM (owner 2026-10-22: a bunch cheaper and equal in performance): a fresh install's provider is gemini, whose default model is gemini-3.8-flash; a stored choice still wins; the key screen's hint follows the provider");
   t("#661 the default: globals.js starts activeProvider at gemini; the gemini entry's default model is gemini-3.8-flash, listed in its menu and priced; Anthropic keeps MDL as its own default; the api screen's key hint is painted from the provider at boot, never hard-wired to sk-ant",function(){
     var g=__fsForTests.readFileSync(__rootForTests+"/globals.js","utf8");
