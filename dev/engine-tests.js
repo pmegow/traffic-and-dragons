@@ -35560,7 +35560,8 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
       Object.keys(set.clips).forEach(function(ff){var c=set.clips[ff],tag=key+"_"+ff;
         if(!Array.isArray(c.hits)||!c.hits.length){bad.push(tag+" (no hit)");return;}
         c.hits.forEach(function(h){if(!(h.length===2&&h[0]>=0&&h[0]<=len&&h[1]>0))bad.push(tag+" hit "+JSON.stringify(h));});
-        (c.roll||[]).forEach(function(r){if(!(r.length===4&&r[0]>=0&&r[0]<r[1]&&r[1]<=len&&r[2]>=0&&r[3]>=0))bad.push(tag+" roll "+JSON.stringify(r));});
+        (c.roll||[]).forEach(function(r){if(!(r.length===4&&r[0]>=0&&r[0]<r[1]&&r[1]<=len&&r[2]>=0&&r[3]>=0))bad.push(tag+" roll "+JSON.stringify(r));
+          if(r[2]>40||r[3]>40)bad.push(tag+" roll spins "+r[2]+">"+r[3]+" rad/s — the throw gives ~20; the landing frame's orientation jump leaked into the record (the scene wraps the angle and reads the median of the first three frames)");});
       });});
     return bad.length?bad.slice(0,6).join("; "):true;
   });
@@ -35569,23 +35570,31 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     try{
       DICE_MANIFEST={dice:{d6:{frames:84,fps:24,clips:{"03":{hits:[[0.458,5.79],[0.75,0.36],[1.2,2.5]],roll:[[0.5,1.458,12,1.5]]},/* the third hit lands inside the roll — only a sort puts it among the taps */"04":{hits:[[0.5,2]],roll:[]},"05":{hits:[[0.5,6]],roll:[]},"06":{hits:[[0.5,8]],roll:[]}}},d4:{frames:84,fps:24,clips:{"02":{hits:[[0.5,8]],roll:[]}}},d20:{frames:84,fps:24,clips:{"07":{hits:[[0.5,8]],roll:[[0.6,1.6,12,1.5]]}}}}};
       var r=diceSoundRecipe(6,3,0);if(!r||!Array.isArray(r.notes)||!/d6/.test(r.label))return "no recipe: "+JSON.stringify(r);
-      var at=function(rec,t,f){return rec.notes.filter(function(n){return Math.abs(n.t-t)<1e-9&&n.bp&&n.bp.f===f;});};
-      if(at(r,0.458,2800).length!==1)return "one tick at the landing in the d6 band: "+JSON.stringify(r.notes.slice(0,3));
-      if(at(r,0.458,260).length!==1)return "a thud under a hard landing";
-      if(r.notes.some(function(n){return Math.abs(n.t-0.75)<1e-9;}))return "a brush under DICE_SOUND_HIT_MIN must not tick";
-      var taps=r.notes.filter(function(n){return n.bp&&n.bp.f===2800*0.85;});if(taps.length<4||taps.length>DICE_SOUND_TAPS_MAX)return "taps across the roll: "+taps.length;
+      var role=function(rec,who){return rec.notes.filter(function(n){return n.role===who;});},at=function(rec,t,who){return role(rec,who).filter(function(n){return Math.abs(n.t-t)<1e-9;});};
+      /* the clack (second cut, from the owner's reference): the burst in the die's band plus the body partials at the landing */
+      var hit=at(r,0.458,"hit");if(hit.length!==1||hit[0].type!=="noise"||hit[0].bp.f!==DICE_SOUND[6].f)return "one burst at the landing in the d6 band: "+JSON.stringify(hit);
+      var body=at(r,0.458,"hit-body");if(body.length!==DICE_SOUND_BODY.length||body.some(function(n,i){return n.type!=="sine"||Math.abs(n.f-DICE_SOUND_BODY[i][0]*DICE_SOUND[6].body)>1e-6||Math.abs(n.g-hit[0].g*DICE_SOUND_BODY[i][2])>1e-9;}))return "the landing's body partials: "+JSON.stringify(body);
+      if(at(r,0.458,"thud").length!==DICE_SOUND_THUD.length)return "a thump under a hard landing";
+      var settle=role(r,"settle");if(settle.length<3||settle.some(function(n){return !(n.t>0.458&&n.t<0.458+0.5);})||!settle.every(function(n,i){return i===0||n.g<=settle[i-1].g;}))return "a hard landing settles in a cascade of smaller clacks within half a second (dice2's bounces run 50-150 ms apart), each softer: "+JSON.stringify(settle.map(function(n){return [n.t,n.g];}));
+      if(role(r,"ring").length<1)return "the surface rings under the last of the settle";
+      if(r.notes.some(function(n){return Math.abs(n.t-0.75)<1e-9;}))return "a brush under DICE_SOUND_HIT_MIN must not clack";
+      var taps=role(r,"tap");if(taps.length<4||taps.length>DICE_SOUND_TAPS_MAX)return "taps across the roll: "+taps.length;
       if(Math.abs(taps[0].t-0.5)>1e-9||Math.abs((taps[1].t-taps[0].t)-DICE_SOUND[6].tip/12)>1e-6)return "the first taps must be spaced by tip/spin: "+taps[0].t+", "+taps[1].t;
       if(!(taps[taps.length-1].t-taps[taps.length-2].t>taps[1].t-taps[0].t))return "the taps must spread out as the spin falls";
-      var rum=r.notes.filter(function(n){return n.bp&&n.bp.f===180;});if(rum.length!==1||Math.abs(rum[0].t-0.5)>1e-9||Math.abs(rum[0].d-0.958)>1e-6)return "one rumble the stretch long: "+JSON.stringify(rum);
-      var g2=at(diceSoundRecipe(6,4,0),0.5,2800)[0].g,g6=at(diceSoundRecipe(6,5,0),0.5,2800)[0].g,g8=at(diceSoundRecipe(6,6,0),0.5,2800)[0].g;
+      if(taps.every(function(n){return n.bp.f===taps[0].bp.f;}))return "the taps must differ a little in pitch from one another (the same every time)";
+      var jit=taps.map(function(n){var w=12+(1.5-12)*((n.t-0.5)/0.958);return n.g/(DICE_SOUND_GAIN.tap*Math.min(1,w/DICE_SOUND_SPIN_FULL));});/* the gain over its spin share — what is left is the jitter */
+      if(jit.every(function(j){return Math.abs(j-jit[0])<1e-9;}))return "the taps must differ a little in loudness from one another beyond the spin's fall (the same every time)";
+      if(JSON.stringify(diceSoundRecipe(6,3,0))!==JSON.stringify(r))return "a recipe must be the same every time it is built";
+      var rum=role(r,"rumble");if(rum.length!==1||Math.abs(rum[0].t-0.5)>1e-9||Math.abs(rum[0].d-0.958)>1e-6)return "one rumble the stretch long: "+JSON.stringify(rum);
+      var g2=at(diceSoundRecipe(6,4,0),0.5,"hit")[0].g,g6=at(diceSoundRecipe(6,5,0),0.5,"hit")[0].g,g8=at(diceSoundRecipe(6,6,0),0.5,"hit")[0].g;
       if(!(g2<g6&&g6<g8))return "a harder landing must be louder: "+g2+" "+g6+" "+g8;
       if(Math.abs(g8-DICE_SOUND_GAIN.hit)>1e-9)return "a full-speed landing is the hit gain";
-      if(diceSoundRecipe(6,4,0).notes.some(function(n){return n.bp.f===260;}))return "a soft landing must not thud";
-      var all=[r,diceSoundRecipe(20,7,0),diceSoundRecipe(4,2,0)];all.forEach(function(x){x.notes.forEach(function(n){if(!(n.g<=0.25&&n.g>0&&n.d>0))throw new Error("gain or length off: "+JSON.stringify(n));});});
+      if(role(diceSoundRecipe(6,4,0),"thud").length||role(diceSoundRecipe(6,4,0),"settle").length)return "a soft landing neither thumps nor settles in a cascade";
+      var all=[r,diceSoundRecipe(20,7,0),diceSoundRecipe(4,2,0)];all.forEach(function(x){if(x.notes.length>DICE_SOUND_NOTES_MAX)throw new Error("too many notes: "+x.notes.length);x.notes.forEach(function(n){if(!(n.g<=0.25&&n.g>0&&n.d>0&&n.role))throw new Error("gain, length or role off: "+JSON.stringify(n));});});
       var sorted=r.notes.every(function(n,i){return i===0||n.t>=r.notes[i-1].t;});if(!sorted)return "notes must come sorted by time";
       var off=diceSoundRecipe(6,3,0.09);if(off.notes.length!==r.notes.length||off.notes.some(function(n,i){return Math.abs(n.t-(r.notes[i].t+0.09))>1e-9;}))return "an offset must move every note";
-      if(!(at(diceSoundRecipe(4,2,0),0.5,DICE_SOUND[4].f).length===1&&DICE_SOUND[4].f>DICE_SOUND[20].f))return "a d4 must click above a d20";
-      var t20=diceSoundRecipe(20,7,0).notes.filter(function(n){return n.bp.f===DICE_SOUND[20].f*0.85;}),t6=taps;
+      if(!(at(diceSoundRecipe(4,2,0),0.5,"hit").length===1&&DICE_SOUND[4].f>DICE_SOUND[20].f&&DICE_SOUND[4].body>DICE_SOUND[20].body))return "a d4 must click above a d20";
+      var t20=role(diceSoundRecipe(20,7,0),"tap"),t6=taps;
       if(!(t20[1].t-t20[0].t<t6[1].t-t6[0].t))return "at the same spin an icosahedron clatters faster than a cube";
       if(diceSoundRecipe(7,1,0)!==null||diceSoundRecipe(6,2,0)!==null||diceCue(6,2)!==null)return "an unknown die or a clip without a record must be null";
       return true;

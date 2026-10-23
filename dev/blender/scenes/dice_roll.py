@@ -298,13 +298,19 @@ _lz0, _q0 = _low(1)
 _vz0, _fall = 0.0, 0.0            # _fall: the fastest fall of the current descent — ONE hit per landing, at its peak speed
 _roll_from, _roll_w = None, []
 def _close_roll(upto):
-    # a rolling stretch: [from, to, turning speed at its start, at its end] — the page spaces the clatter by the speed
+    # a rolling stretch: [from, to, turning speed at its start, at its end] — the page spaces the clatter by the speed.
+    # The start is the MEDIAN of the first three frames: the landing frame's orientation jumps as the solver resolves the
+    # contact (the first measure read 136 rad/s there, and the page clattered forty taps a second).
     if _roll_from is not None and upto - _roll_from >= 3:
-        roll.append([round((_roll_from - 1) / float(A["fps"]), 3), round((upto - 1) / float(A["fps"]), 3), round(_roll_w[0], 1), round(_roll_w[-1], 1)])
+        head = sorted(_roll_w[:3])[len(_roll_w[:3]) // 2]
+        roll.append([round((_roll_from - 1) / float(A["fps"]), 3), round((upto - 1) / float(A["fps"]), 3), round(head, 1), round(_roll_w[-1], 1)])
 for f in range(2, A["frames"] + 1):
     lz, q = _low(f)
     vz = (lz - _lz0) * A["fps"]                                   # the lowest point's vertical speed, units/s
-    w = _q0.rotation_difference(q).angle * A["fps"]               # turning speed, rad/s
+    ang = _q0.rotation_difference(q).angle                        # a quaternion's angle can come back the long way round (over pi)
+    if ang > math.pi:
+        ang = 2.0 * math.pi - ang
+    w = ang * A["fps"]                                            # turning speed, rad/s
     motion.append("%d:%.3f:%.2f:%.1f" % (f, lz, vz, w))
     if vz < _fall:
         _fall = vz
