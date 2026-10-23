@@ -1,28 +1,31 @@
-// #611: a thin phone shell over the existing renderers and controls. No saved game writes.
-var mobileUI={ready:false,width:0,selected:"party",desktopCol:false,phone:false};
+// Responsive layout over the existing renderers: the shared side drawer and the phone chrome. No saved game writes.
+var mobileUI={ready:false,width:0,selected:"party",phone:false};
+var MOBILE_PANELS=[{key:"party",label:"Pty",name:"Party"},{key:"quest",label:"Qst",name:"Quests"},{key:"inv",label:"Inv",name:"Inventory"},{key:"ab",label:"Ab",name:"Abilities"},{key:"sp",label:"Sp",name:"Spells"}];
 function mobilePhone(){return window.matchMedia("(max-width:600px)").matches;}
 function mobileEl(id){return document.getElementById(id);}
 function mobileDrawerWidth(width){
   var max=Math.max(0,mobileEl("story-area").clientWidth-8-120);
   mobileUI.width=Math.max(0,Math.min(max,width));
-  mobileEl("rpanel").style.setProperty("--mobile-drawer",mobileUI.width+"px");
-  mobileEl("rpanel").classList.toggle("mobile-open",mobileUI.width>0);
+  stickStoryBottomAfterPanel(function(){
+    mobileEl("rpanel").style.setProperty("--mobile-drawer",mobileUI.width+"px");
+    mobileEl("rpanel").classList.toggle("mobile-open",mobileUI.width>0);
+  });
   var g=mobileEl("mobile-grab");g.setAttribute("aria-valuenow",Math.round(mobileUI.width));g.setAttribute("aria-valuemax",max);
 }
-function mobileToggleDrawer(){mobileDrawerWidth(mobileUI.width>0?0:Math.round(mobileEl("story-area").clientWidth*0.43));}
+function mobileToggleDrawer(){mobileDrawerWidth(mobileUI.width>0?0:Math.min(360,Math.round(mobileEl("story-area").clientWidth*0.43)));}
 function mobileSelectPanel(key){
   mobileUI.selected=key;
-  ["party","quest","inv","ab","sp"].forEach(function(k){mobileEl("pss-"+k).classList.toggle("mobile-selected",key===k);mobileEl("mobile-tab-"+k).setAttribute("aria-selected",key===k?"true":"false");});
+  MOBILE_PANELS.forEach(function(x){var selected=key===x.key,b=mobileEl("mobile-tab-"+x.key);mobileEl("pss-"+x.key).classList.toggle("mobile-selected",selected);b.setAttribute("aria-selected",selected?"true":"false");b.tabIndex=selected?0:-1;});
 }
 function mobileLayout(){
   if(!mobileUI.ready)return;
-  var phone=mobilePhone(),rp=mobileEl("rpanel"),tts=mobileEl("tts-btn");
+  var phone=mobilePhone(),tts=mobileEl("tts-btn");
   if(phone!==mobileUI.phone){
-    if(phone){mobileUI.desktopCol=panelCol;mobileEl("mobile-panel-tabs").appendChild(tts);rp.classList.remove("col");}
-    else{mobileEl("hud-btns").insertBefore(tts,mobileEl("hud-btns").lastElementChild);panelCol=mobileUI.desktopCol;rp.classList.toggle("col",panelCol);}
+    if(phone)mobileEl("mobile-panel-tabs").appendChild(tts);
+    else mobileEl("hud-btns").insertBefore(tts,mobileEl("hud-btns").lastElementChild);
     mobileUI.phone=phone;
   }
-  if(phone)mobileDrawerWidth(mobileUI.width);
+  mobileDrawerWidth(mobileUI.width);
   if(worldState&&worldState.combat)updateCombat();
 }
 function mobileRenderWays(w){
@@ -55,11 +58,11 @@ function mobileInit(){
   function paintMute(){var m=AudioMaster.muted();mute.classList.toggle("muted",m);mute.setAttribute("aria-pressed",m?"true":"false");mute.setAttribute("aria-label",m?"Unmute all sound":"Mute all sound");mute.title=m?"Sound is muted — tap to unmute":"Mute all sound and narration";}
   mute.addEventListener("click",function(){AudioMaster.toggle();});AudioMaster.onChange(paintMute);paintMute();
   status.id="mobile-status";status.className="mobile-only";status.innerHTML="<span id='mobile-act'></span><span id='mobile-clock'></span><span id='mobile-version'></span>";mobileEl("membar").insertBefore(status,mobileEl("healthdot"));
-  var grip=document.createElement("div");grip.id="mobile-grip";grip.className="mobile-only";
+  var grip=document.createElement("div");grip.id="mobile-grip";
   grip.innerHTML="<button id='mobile-grab' type='button' role='separator' aria-label='Resize side panel' aria-orientation='vertical' aria-valuemin='0' aria-valuenow='0' title='Drag to resize; double tap to open or close; arrow keys also resize'></button>";
   mobileEl("story-area").insertBefore(grip,mobileEl("rpanel"));
-  var tabs=document.createElement("div");tabs.id="mobile-panel-tabs";tabs.className="mobile-only";tabs.setAttribute("role","tablist");tabs.setAttribute("aria-label","Side panel");
-  [{key:"party",label:"Pty",name:"Party"},{key:"quest",label:"Qst",name:"Quests"},{key:"inv",label:"Inv",name:"Inventory"},{key:"ab",label:"Ab",name:"Abilities"},{key:"sp",label:"Sp",name:"Spells"}].forEach(function(x){var b=document.createElement("button");b.id="mobile-tab-"+x.key;b.textContent=x.label;b.title=x.name;b.setAttribute("aria-label",x.name);b.setAttribute("role","tab");b.setAttribute("aria-controls","pss-"+x.key);b.addEventListener("click",function(){mobileSelectPanel(x.key);if(!mobileUI.width)mobileToggleDrawer();});tabs.appendChild(b);});mobileEl("rpanel").appendChild(tabs);
+  var tabs=document.createElement("div");tabs.id="mobile-panel-tabs";tabs.setAttribute("role","tablist");tabs.setAttribute("aria-orientation","vertical");tabs.setAttribute("aria-label","Side panel");
+  MOBILE_PANELS.forEach(function(x,i){var b=document.createElement("button");b.id="mobile-tab-"+x.key;b.textContent=x.label;b.title=x.name;b.setAttribute("aria-label",x.name);b.setAttribute("role","tab");b.setAttribute("aria-controls","pss-"+x.key);b.addEventListener("click",function(){mobileSelectPanel(x.key);if(!mobileUI.width)mobileToggleDrawer();});b.addEventListener("keydown",function(e){var step={ArrowDown:1,ArrowUp:-1},at=i;if(step[e.key])at=(i+step[e.key]+MOBILE_PANELS.length)%MOBILE_PANELS.length;else if(e.key==="Home")at=0;else if(e.key==="End")at=MOBILE_PANELS.length-1;else return;e.preventDefault();var key=MOBILE_PANELS[at].key;mobileSelectPanel(key);mobileEl("mobile-tab-"+key).focus();});tabs.appendChild(b);});mobileEl("rpanel").appendChild(tabs);
   var grab=mobileEl("mobile-grab"),drag=null,lastTap=null;
   // Measure travel over the whole gesture, so dragging out and back is never a double tap.
   function move(e){if(!drag||drag.id!==e.pointerId)return;var dx=drag.x-e.clientX,dy=drag.y-e.clientY;

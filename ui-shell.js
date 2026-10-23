@@ -275,37 +275,18 @@ function switchTab(tab){activeChatTab=tab;var sn=document.getElementById("story-
 //   ① Only if they were ALREADY at the bottom. Someone who scrolled up to re-read an earlier turn
 //     and then collapsed the panel for more reading width must not be yanked back to the newest
 //     text. "At the bottom" gets a slack margin — a partly-visible last message still counts.
-//   ② Measure BEFORE the reflow, apply AFTER the CSS width transition finishes. Reading
-//     scrollHeight mid-animation targets a height that is still changing, so the scroll lands
-//     short. transitionend is the real signal; the timer is a fallback for when no transition
-//     runs at all (reduced-motion, a display:none pane, a browser that skips it).
+//   ② Measure before changing the width, then pin after the synchronous drawer reflow.
+//     The drawer has no width transition; a delayed repin would fight a reader who starts scrolling.
 var PANEL_BOTTOM_SLACK=120;   // px of "close enough to the end" to count as pinned
 var STORY_PANES=["story-narrative","story-tabletalk"];
 function storyAtBottom(el){
   if(!el)return false;
   return (el.scrollHeight-el.scrollTop-el.clientHeight)<=PANEL_BOTTOM_SLACK;
 }
-function stickStoryBottomAfterPanel(){
-  var pre={},i,el;
-  for(i=0;i<STORY_PANES.length;i++){
-    el=document.getElementById(STORY_PANES[i]);
-    // a hidden pane measures 0/0/0 and reads as "at bottom" — which is what we want: the inactive
-    // tab should be sitting at its newest message when the player switches to it
-    pre[STORY_PANES[i]]=storyAtBottom(el);
-  }
-  var rp=document.getElementById("rpanel"),done=false;
-  function apply(){
-    if(done)return; done=true;
-    if(rp)rp.removeEventListener("transitionend",onEnd);
-    var j,e2;
-    for(j=0;j<STORY_PANES.length;j++){
-      e2=document.getElementById(STORY_PANES[j]);
-      if(e2&&pre[STORY_PANES[j]])e2.scrollTop=e2.scrollHeight;
-    }
-  }
-  function onEnd(ev){ if(ev&&ev.target!==rp)return; if(!ev||ev.propertyName==="width")apply(); }
-  if(rp)rp.addEventListener("transitionend",onEnd);
-  setTimeout(apply,300);   // > the .2s width transition; harmless if transitionend already fired
+function stickStoryBottomAfterPanel(resize){
+  var pinned=STORY_PANES.filter(function(id){return storyAtBottom(document.getElementById(id));});
+  resize();
+  pinned.forEach(function(id){var el=document.getElementById(id);if(el)el.scrollTop=el.scrollHeight;});
 }
 /* #452: ONE delegated click for the summary line's Present names (the data-npc spans summaryLineHTML writes, helpers.js). */
 function wireSummaryNpcLinks(){

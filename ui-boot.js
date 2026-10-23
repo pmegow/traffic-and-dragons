@@ -330,23 +330,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   // attempting a request the browser will reject, and pushes it at the next launch (CLAUDE.md §16).
   window.addEventListener("beforeunload",function(){snapshotActiveCamp({noSync:true});/* D11: the snapshot's own debounce flush is a PLAIN fetch — abandoned on unload (E34), so it only double-counted usage.syncPosts and set _syncing on the way out. The keepalive beacon below is the one POST that can land. */if(typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow(true);/* keepalive flush — plain fetch is abandoned on unload (E34) */});
   document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden"&&typeof storageAdapter!=="undefined"&&storageAdapter.syncNow)storageAdapter.syncNow(true);/* page-hide can precede unload on mobile — keepalive (E34) */});
-  // Start panel collapsed on mobile so first tap expands (not collapses)
-  if(window.innerWidth<=600){panelCol=true;var rp=document.getElementById("rpanel");if(rp)rp.classList.add("col");}
-  document.getElementById("panel-tog").addEventListener("click",function(){panelCol=!panelCol;document.getElementById("rpanel").classList.toggle("col",panelCol);stickStoryBottomAfterPanel();/* the reflow drifts the story scroll — re-pin the end */});
   if(typeof mobileInit==="function")mobileInit();
-  // Swipe right to collapse, swipe left to expand (desktop/tablet only; phone uses the grabber)
-  (function(){
-    var rp=document.getElementById("rpanel"),tx=0;
-    rp.addEventListener("touchstart",function(e){tx=e.touches[0].clientX;},{passive:true});
-    rp.addEventListener("touchend",function(e){
-      if(typeof mobilePhone==="function"&&mobilePhone())return;
-      var dx=e.changedTouches[0].clientX-tx;
-      if(Math.abs(dx)<30)return;
-      panelCol=dx>0;  // swipe right → collapse, swipe left → expand
-      rp.classList.toggle("col",panelCol);
-      stickStoryBottomAfterPanel();   // same reflow as the button path
-    },{passive:true});
-  })();
   document.getElementById("psh-party").addEventListener("click",function(){secCol.party=!secCol.party;document.getElementById("pss-party").classList.toggle("col",secCol.party);});
   document.getElementById("psh-quest").addEventListener("click",function(){secCol.quest=!secCol.quest;document.getElementById("pss-quest").classList.toggle("col",secCol.quest);});
   document.getElementById("psh-inv").addEventListener("click",function(){secCol.inv=!secCol.inv;document.getElementById("pss-inv").classList.toggle("col",secCol.inv);});
