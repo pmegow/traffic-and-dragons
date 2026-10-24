@@ -3157,6 +3157,10 @@ function cleanTxt(t){
 }
 // Renders EVERY [DICE:] tag in the response, not just the first (audit E10) — cleanTxt strips them
 // all, so a second roll used to vanish from the display. One dice-block div per tag.
+/* #666: the roll on the card. A stated form ("d20 = 1 + 1 = 2" — the player's record since #666, the GM's #350 form) prints the
+   natural roll in bold with the arithmetic after it, so a 1 or a 20 reads as what it was; a bare total prints whole, as before.
+   Both halves are model text: the face is digits by the match, the rest is escaped. */
+function diceRollHtml(f){var s=String(f||"?"),m=s.match(/^\s*d20\s*[=:]\s*(\d{1,2})\b(.*)$/i);return m?'d20: <strong>'+m[1]+'</strong>'+escHtml(m[2]):'d20: <strong>'+escHtml(s)+'</strong>';}
 function diceTxt(t){var out="",di;
   /* #329: a pending [CHECK:] renders as the die itself — clickable only while it is THE armed check (a lapsed or
      already-rolled one shows inert), so a reload never offers a roll the record no longer expects. */
@@ -3167,7 +3171,7 @@ function diceTxt(t){var out="",di;
   /* #422: every [DICE:] field is MODEL TEXT that lands in innerHTML (addMsg, the rolled-check swap, transcript replay) —
      escape all three, exactly as the [CHECK:] branch above escapes its label. Unescaped, a hostile provider or a
      tampered transcript could run script in the page (S2, DOC/Research/remote_player_exploration.html §14). */
-  var ms=String(t||"").match(/\[DICE:([^\]]+)\]/g);if(!ms)return out;for(di=0;di<ms.length;di++){var mm=ms[di].match(/\[DICE:([^\]]+)\]/);if(!mm)continue;var p=mm[1].split("|");var lbl=p[0]?'<span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+escHtml(p[0])+'</span>':'';out+='<div class="dice-block">'+lbl+'d20: <strong>'+escHtml(p[1]||"?")+'</strong>'+(p[2]?" -- "+escHtml(p[2]):"")+(p[3]?" &middot; damage "+escHtml(p[3]):"")/* #654: the damage the hit rolled, model text like the rest */+'</div>';}return out;}
+  var ms=String(t||"").match(/\[DICE:([^\]]+)\]/g);if(!ms)return out;for(di=0;di<ms.length;di++){var mm=ms[di].match(/\[DICE:([^\]]+)\]/);if(!mm)continue;var p=mm[1].split("|");var lbl=p[0]?'<span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+escHtml(p[0])+'</span>':'';out+='<div class="dice-block">'+lbl+diceRollHtml(p[1])+(p[2]?" -- "+escHtml(p[2]):"")+(p[3]?" &middot; damage "+escHtml(p[3]):"")/* #654: the damage the hit rolled, model text like the rest */+'</div>';}return out;}
 // Builds the suggested-action buttons. PRIMARY: the structured [ACTIONS:a|b|c] tag, read
 // from the RAW response (cleanTxt has already stripped it from `clean`). FALLBACK: the legacy
 // prose "*You could ...*" line, so messages stored before the tag format still render on reload.

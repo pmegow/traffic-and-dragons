@@ -1859,7 +1859,7 @@ function runEngineTests(R){
   // ── #329 roll your own dice (owner design 2026-09-03: a checkbox off by default; "d20 · click to roll") ──
   t("#329 the pure half: parseCheckTag reads label/modifier/DC; resolveCheck turns a d20 into total, outcome, the [DICE:] record and the continuation note (the roll is final); no DC → rolled/critical/fumble",function(){
     var c=parseCheckTag("Strength check|+3|DC 15");if(!c||c.label!=="Strength check"||c.mod!==3||c.dc!==15)return "parse: "+JSON.stringify(c);
-    var r=resolveCheck(c,19);if(r.total!==22||r.outcome!=="success"||r.diceTag!=="[DICE:Strength check|22|success]"||!/d20 = 19/.test(r.note)||!/do not roll again/i.test(r.note)||!/^\[ENGINE NOTE/.test(r.note))return "resolve: "+JSON.stringify(r);
+    var r=resolveCheck(c,19);if(r.total!==22||r.outcome!=="success"||r.diceTag!=="[DICE:Strength check|d20 = 19 + 3 = 22|success]"||!/d20 = 19/.test(r.note)||!/do not roll again/i.test(r.note)||!/^\[ENGINE NOTE/.test(r.note))return "resolve: "+JSON.stringify(r);
     if(resolveCheck(c,5).outcome!=="failed")return "5+3 vs 15 should fail";
     var n=parseCheckTag("Stealth check|-1");if(n.mod!==-1||n.dc!==null)return "no DC parse: "+JSON.stringify(n);
     if(resolveCheck(n,20).outcome!=="critical"||resolveCheck(n,1).outcome!=="fumble"||resolveCheck(n,10).outcome!=="rolled")return "no-DC outcomes";
@@ -35399,14 +35399,14 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
   t("#654 resolveCheck with damage: a hit folds the faces into the note (the total, the faces, apply with [ENEMY_HP:], never roll it again) and the [DICE:] record's fourth field; no DC says 'if the blow lands'; a miss or a fumble says no damage and carries none; no faces, no damage; no damage field = the #329 record byte-for-byte",function(){
     var c=parseCheckTag("Longsword attack|+5|DC 14|1d8+3"),r=resolveCheck(c,12,[4]);
     if(!r.damage||r.damage.total!==7||r.damage.sides!==8||r.damage.faces.join()!=="4"||r.damage.text!=="1d8+3 = 4 + 3 = 7")return "hit: "+JSON.stringify(r.damage);
-    if(r.diceTag!=="[DICE:Longsword attack|17|success|1d8+3 = 4 + 3 = 7]")return "tag: "+r.diceTag;
+    if(r.diceTag!=="[DICE:Longsword attack|d20 = 12 + 5 = 17|success|1d8+3 = 4 + 3 = 7]")return "tag: "+r.diceTag;
     if(!/lands for 7 damage \(1d8\+3 = 4 \+ 3 = 7\)/.test(r.note)||!/\[ENEMY_HP:\]/.test(r.note)||!/never roll it again/.test(r.note)||!/do not roll again and do not emit another \[DICE:\]/.test(r.note))return "note: "+r.note;
-    var m=resolveCheck(c,3,[4]);if(m.damage!==null||m.diceTag!=="[DICE:Longsword attack|8|failed]"||!/A miss deals no damage/.test(m.note)||/1d8\+3 =/.test(m.note))return "miss: "+m.diceTag+" "+m.note;
-    var k=parseCheckTag("Thrown knife|+1|1d4"),n=resolveCheck(k,10,[2]);if(!n.damage||n.damage.total!==2||!/If the blow lands it deals 2 damage \(1d4 = 2\)/.test(n.note)||n.diceTag!=="[DICE:Thrown knife|11|rolled|1d4 = 2]")return "no DC: "+n.diceTag+" "+n.note;
+    var m=resolveCheck(c,3,[4]);if(m.damage!==null||m.diceTag!=="[DICE:Longsword attack|d20 = 3 + 5 = 8|failed]"||!/A miss deals no damage/.test(m.note)||/1d8\+3 =/.test(m.note))return "miss: "+m.diceTag+" "+m.note;
+    var k=parseCheckTag("Thrown knife|+1|1d4"),n=resolveCheck(k,10,[2]);if(!n.damage||n.damage.total!==2||!/If the blow lands it deals 2 damage \(1d4 = 2\)/.test(n.note)||n.diceTag!=="[DICE:Thrown knife|d20 = 10 + 1 = 11|rolled|1d4 = 2]")return "no DC: "+n.diceTag+" "+n.note;
     if(resolveCheck(k,1,[2]).damage!==null||!/A miss deals no damage/.test(resolveCheck(k,1,[2]).note))return "a fumble rolls no damage";
     if(resolveCheck(k,20,[2]).damage===null)return "a critical keeps its damage";
     var plain=parseCheckTag("Stealth check|+5|DC 14"),p=resolveCheck(plain,12),q=resolveCheck(plain,12,[4]);
-    if(p.damage!==null||p.diceTag!=="[DICE:Stealth check|17|success]"||p.note!==q.note||q.damage!==null||/damage/i.test(p.note))return "a check without dice must be the #329 record: "+p.note;
+    if(p.damage!==null||p.diceTag!=="[DICE:Stealth check|d20 = 12 + 5 = 17|success]"||p.note!==q.note||q.damage!==null||/damage/i.test(p.note))return "a check without dice must be the #329 record: "+p.note;
     if(resolveCheck(c,12).damage!==null||resolveCheck(c,12,[]).damage!==null||/damage/i.test(resolveCheck(c,12).note))return "no faces, no damage and no damage line";
     return true;
   });
@@ -35738,6 +35738,25 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(g.indexOf('if(opts&&opts.rollTag&&!isTT)resp=opts.rollTag+"\\n"+String(resp||"");')<0)return "the record no longer rides the continuation";
     var c=g.indexOf("    worldState.turn++;\n"),a=g.indexOf("_audioMuts=applyMuts(resp,{deferSave:true});");
     return (c>=0&&a>c)?true:"the commit must increment the turn before applying the reply";
+  });
+
+  t("#666 resolveCheck: the record's second field is the stated form — 'd20 = 1 + 1 = 2' with a modifier, 'd20 = 5 − 2 = 3' below zero, 'd20 = 7' alone when the modifier is zero — and the damage field rides behind it unchanged",function(){
+    var r=resolveCheck(parseCheckTag("Wisdom check|+1|DC 10"),1);if(r.diceTag!=="[DICE:Wisdom check|d20 = 1 + 1 = 2|failed]"||r.roll!==1||r.total!==2)return "plus: "+r.diceTag;
+    var m=resolveCheck(parseCheckTag("Stealth check|-2|DC 10"),5);if(m.diceTag!=="[DICE:Stealth check|d20 = 5 − 2 = 3|failed]")return "minus: "+m.diceTag;
+    var z=resolveCheck(parseCheckTag("Perception|+0|DC 5"),7);if(z.diceTag!=="[DICE:Perception|d20 = 7|success]")return "zero: "+z.diceTag;
+    var d=resolveCheck(parseCheckTag("Longsword attack|+5|DC 14|1d8+3"),12,[4]);if(d.diceTag!=="[DICE:Longsword attack|d20 = 12 + 5 = 17|success|1d8+3 = 4 + 3 = 7]")return "damage: "+d.diceTag;
+    if(!/d20 = 1 \+ 1 = 2/.test(r.note))return "the note states the roll the same way: "+r.note;
+    return true;
+  });
+  t("#666 the card: a stated form prints the natural roll in bold and the arithmetic after it; a bare total (the GM's own form) prints as before; the arithmetic is model text and escaped; a face that is not a number falls back to the escaped field",function(){
+    var h=diceTxt("[DICE:Wisdom check|d20 = 1 + 1 = 2|failed]");if(!/d20: <strong>1<\/strong> \+ 1 = 2/.test(h)||!/failed/.test(h))return "stated: "+h;
+    h=diceTxt("[DICE:Perception|d20 = 7|success]");if(!/d20: <strong>7<\/strong>/.test(h)||/<strong>7<\/strong>\s*[+=]/.test(h))return "zero modifier: "+h;
+    h=diceTxt("[DICE:Stealth check|17|success]");if(!/d20: <strong>17<\/strong>/.test(h))return "bare total: "+h;
+    h=diceTxt("[DICE:Perception|d20 = 19 + 2 = 21 vs DC 12|success]");if(!/<strong>19<\/strong> \+ 2 = 21 vs DC 12/.test(h))return "the GM's stated form: "+h;
+    h=diceTxt("[DICE:a|d20 = 1 <img src=x onerror=alert(1)>|x]");if(/<img/.test(h)||h.indexOf("&lt;img")<0)return "the arithmetic must be escaped: "+h;
+    h=diceTxt("[DICE:a|d20 = <b>1</b>|x]");if(/<b>/.test(h)||h.indexOf("&lt;b&gt;")<0)return "a non-numeric face falls back to the escaped field: "+h;
+    h=diceTxt("[DICE:Longsword attack|d20 = 12 + 5 = 17|success|1d8+3 = 4 + 3 = 7]");if(!/<strong>12<\/strong> \+ 5 = 17/.test(h)||!/damage 1d8\+3 = 4 \+ 3 = 7/.test(h))return "with damage: "+h;
+    return true;
   });
 
 }

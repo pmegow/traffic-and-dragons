@@ -225,7 +225,10 @@ function resolveCheck(chk,roll,faces){var total=roll+(chk.mod||0),outcome=(chk.d
     dmgLine=(chk.dc!=null?" The blow lands for "+dt+" damage ("+dx+")":" If the blow lands it deals "+dt+" damage ("+dx+")")+" \u2014 apply it with [ENEMY_HP:]; the damage is rolled too, never roll it again.";}
   else if(chk.dmg&&!hit)dmgLine=" A miss deals no damage; roll none.";
   var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+"."+dmgLine+" Narrate the outcome of that check now; the roll is final \u2014 do not roll again and do not emit another [DICE:] for it.]";
-  return {roll:roll,total:total,outcome:outcome,damage:damage,diceTag:"[DICE:"+chk.label+"|"+total+"|"+outcome+(damage?"|"+damage.text:"")+"]",note:note};}
+  /* #666 (owner 2026-10-24): the record STATES its face — "d20 = 1 + 1 = 2", "d20 = 7" when nothing is added — the GM's own
+     #350 stated form, so the card prints the natural roll and the handler reads the total after the last "=" (#660). */
+  var stated="d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod)+" = "+total:"");
+  return {roll:roll,total:total,outcome:outcome,damage:damage,diceTag:"[DICE:"+chk.label+"|"+stated+"|"+outcome+(damage?"|"+damage.text:"")+"]",note:note};}
 function rollD20(){return 1+Math.floor(Math.random()*20);}
 // #350 (owner 2026-09-05: "more often than not the player gets 14+ — I wanted a record to verify"): THE dice
 // record. Nothing kept a roll before — [DICE:] was strip-only and the player's own roll rode a silent send
