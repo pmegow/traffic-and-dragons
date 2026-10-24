@@ -242,6 +242,10 @@ function diceLogFile(e){
   worldState.diceLog.push(rec);while(worldState.diceLog.length>DICE_LOG_MAX)worldState.diceLog.shift();
   return rec;
 }
+/* #660: the total a [DICE:] second field states. A stated form ("d20 = 19 + 2 = 21 vs DC 12", the GM's #350 form and the
+   player's record since #666) names it after its LAST "=" — the digits mashed together read 201922112 before; a bare
+   field keeps its first number ("17 vs DC 12" is 17); NaN when it states none. Pure; the DICE handler's one read. */
+function diceTotalOf(f){var s=String(f||""),eq=s.lastIndexOf("="),m=(eq>=0?s.slice(eq+1):s).match(/-?\d+/);return m?parseInt(m[0],10):NaN;}
 // The readout — pure, engine-tested, shared by Table Talk and whoever else asks. Faces are counted only
 // where a face was recorded (the player's own rolls, or a GM tag that stated one).
 function diceStats(log){

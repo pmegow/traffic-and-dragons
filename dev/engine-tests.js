@@ -35713,4 +35713,31 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return lp.indexOf("if(p&&PROVIDERS[p])activeProvider=p;")>=0?true:"a stored provider must still win over the default";
   });
 
+  section("#660/#666 — the dice record shows the roll it was (owner 2026-10-24: a Wisdom check card read 'd20: 2' over a die settled on 1 — the natural 1 plus WIS +1): the player's record states its face the way the GM's stated form already does ('d20 = 1 + 1 = 2'), the card prints the natural roll in bold with the arithmetic after it, the DICE handler reads a stated form's total after its last '=' (never the digits mashed together), and the record the continuation carries — applied at turn N+1, after the click filed it at N — is the player's own roll, skipped, never a second faceless GM entry (#660)");
+  t("#660 the handler reads the total: a stated form's total is the number after its last '=' ('d20 = 19 + 2 = 21 vs DC 12' used to file 201922112); a bare total followed by words keeps its first number; a bare total is itself",function(){
+    makeWorld();worldState.diceLog=[];worldState.turn=40;
+    applyMuts("[DICE:Perception|d20 = 19 + 2 = 21 vs DC 12|success]");var g=worldState.diceLog[0];if(!g||g.total!==21||g.face!==19||g.dc!==12||g.by!=="gm")return "stated: "+JSON.stringify(g);
+    applyMuts("[DICE:Attack|17 vs DC 12|success]");var b=worldState.diceLog[1];if(!b||b.total!==17||b.face!==null)return "bare with words: "+JSON.stringify(b);
+    applyMuts("[DICE:Attack|9|failed]");var c=worldState.diceLog[2];if(!c||c.total!==9)return "bare: "+JSON.stringify(c);
+    applyMuts("[DICE:Luck|d20 = 3 − 2 = 1|failed]");var n=worldState.diceLog[3];if(!n||n.total!==1||n.face!==3)return "minus: "+JSON.stringify(n);
+    return true;
+  });
+  t("#660 the echo: the continuation carries the player's record and is applied one turn after the click filed it, so the skip tolerates one turn and the label's case — the player's roll is never filed twice; a different total that turn, or the same numbers two turns on, is a GM roll and files",function(){
+    makeWorld();worldState.diceLog=[];worldState.turn=30;
+    var r=resolveCheck(parseCheckTag("Wisdom check|+1|DC 10"),1);diceLogFile({by:"player",label:"Wisdom check",face:1,mod:1,dc:10,total:r.total,outcome:r.outcome});
+    worldState.turn=31;applyMuts(r.diceTag+"\nYou misjudge the pulse. [DICE:Wisdom check|2|failed]");
+    if(worldState.diceLog.length!==1)return "the continuation's record and the GM's echo were filed: "+JSON.stringify(worldState.diceLog);
+    applyMuts("[DICE:wisdom check|2|failed]");if(worldState.diceLog.length!==1)return "a case-different echo was filed";
+    applyMuts("[DICE:Wisdom check|5|failed]");if(worldState.diceLog.length!==2||worldState.diceLog[1].by!=="gm")return "a different total is a GM roll and files";
+    worldState.diceLog.length=1;worldState.turn=32;applyMuts("[DICE:Wisdom check|2|failed]");if(worldState.diceLog.length!==2)return "two turns on, the same numbers are a new GM roll";
+    var p=worldState.diceLog[0];if(p.by!=="player"||p.face!==1||p.total!==2)return "the player's record changed: "+JSON.stringify(p);
+    return true;
+  });
+  t("#660 the wiring that makes the tolerance necessary: sendAction prepends the record to the reply, and the commit increments the turn BEFORE applyMuts sees it",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    if(g.indexOf('if(opts&&opts.rollTag&&!isTT)resp=opts.rollTag+"\\n"+String(resp||"");')<0)return "the record no longer rides the continuation";
+    var c=g.indexOf("    worldState.turn++;\n"),a=g.indexOf("_audioMuts=applyMuts(resp,{deferSave:true});");
+    return (c>=0&&a>c)?true:"the commit must increment the turn before applying the reply";
+  });
+
 }
