@@ -2,7 +2,9 @@
 
 *The row's status record, extracted verbatim from TODO.md on 2026-10-24 when it passed the 6144-byte row cap (the lint's remedy: the record lives here, the row keeps title + TLDR + verdict + link). The row stays OPEN in TODO.md; this file is its running record. Table pipe escapes (`\|`) are unescaped here.*
 
-**Effort:** M · **Tier:** Any · **Verdict (2026-10-24):** ◉ recordings v1.1314 — the owner owes the listen on dev/dice-review.html (served, not file://).
+**Effort:** M · **Tier:** Any · **Verdict (2026-10-24):** ◉ recordings v1.1314, the silent review page fixed v1.1315 — the owner owes the listen on dev/dice-review.html (served, not file://).
+
+**v1.1315 (2026-10-24, owner: "the dice review page has no audio"):** reproduced on the deployed page in a browser with no service worker — the sprite loaded, the plan was right, and the click logged `[sound] skipped — ctx suspended`: v1.1314's `DiceSound.preload()` decoded on `Sound.context()`, which CREATED the live AudioContext at page load, before any gesture, so the autoplay policy handed it back suspended; `Sound.play` refuses a context that is not running and the review page never loads helpers.js's `resumeObserved`. Before v1.1314 the context was born inside the first click. Fix at the source: the sprite decodes on a throwaway `OfflineAudioContext` (the buffer is context-free), so the live context is born in the first play as before; the review page makes or resumes the live context synchronously inside the click and plays after a resume resolves, and a click that still cannot sound names the context's state and the sprite's. The loader gained its own test (fetch under the base, decode once, shared in-flight promise, a failed fetch said once and reported, never the live context) and five battery clauses.
 
 ## The row's opening (the design as first ruled, 2026-10-22)
 

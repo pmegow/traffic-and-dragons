@@ -9,8 +9,11 @@
    stretch; the take whose recorded length is nearest wins; it starts so the recorded landing falls on the clip's landing
    (plus the tile's offset), and a clip that lands sooner than the take's landing starts the take partway in. The recipe is
    one sound.js `sample` note, so the sound setting, the #657 master mute and the per-play bus apply as to every earcon.
-   The sprite is fetched and decoded ONCE on Sound's context (preload at game start and on the review page) and adopted
-   only if every cut fits the decoded buffer. Node-safe: the plan and the fit check are pure; the loader and the player
+   The sprite is fetched and decoded ONCE on a throwaway OfflineAudioContext (preload at game start and on the review
+   page) — never on Sound's live context: a live context born before a gesture starts SUSPENDED under the autoplay
+   policy, and v1.1314's preload did exactly that, so every click on the review page was silent. The decoded buffer is
+   context-free; the live context is born in the first play, inside a gesture, as it always was. Adopted only if every
+   cut fits the decoded buffer. Node-safe: the plan and the fit check are pure; the loader and the player
    are guarded. A die with no record, no take or no sprite makes no sound and says so once — never a wrong sound. */
 var DICE_SFX_FIT_SLACK = 0.01;   /* seconds a decoded sprite may fall short of the last cut (the decoder's rounding) */
 var _diceSfx = { buffer: null, loading: null, failed: "", said: {} };
@@ -65,33 +68,43 @@ function diceSoundFit(buffer, sfx) {
   }
   return "";
 }
-function diceSoundSay(key, msg) {
+/* Said once per key on the console; with `detail`, reported once through reportError too — the #16 mail is a finding,
+   not a retry log (a load that failed is retried by the next roll, quietly). */
+function diceSoundSay(key, msg, detail) {
   if (_diceSfx.said[key]) return;
   _diceSfx.said[key] = true;
   if (typeof console !== "undefined") console.warn("[dice-sound] " + msg);
+  if (detail && typeof reportError === "function") reportError("dice-sfx", msg, detail);
 }
 /* Installs a decoded sprite — only one the cut list fits; a misfit is refused, said once and reported. Null uninstalls. */
 function diceSoundAdopt(buffer) {
   if (buffer === null) { _diceSfx.buffer = null; _diceSfx.failed = ""; _diceSfx.said = {}; return false; }
   var bad = diceSoundFit(buffer, (typeof DICE_SFX !== "undefined") ? DICE_SFX : null);
   if (bad) {
-    _diceSfx.failed = bad; diceSoundSay("fit", bad);
-    if (typeof reportError === "function") reportError("dice-sfx", bad, { duration: buffer && buffer.duration });
+    _diceSfx.failed = bad; diceSoundSay("fit", bad, { duration: buffer && buffer.duration });
     return false;
   }
   _diceSfx.buffer = buffer; _diceSfx.failed = "";
   return true;
 }
-/* Fetches and decodes the sprite once on Sound's context; resolves true when adopted. `opts.base` prefixes the receipt's
-   path for a page outside the root (the review page passes "../"). A failure is said once and reported, never thrown. */
+/* A throwaway offline context for decoding: creating the LIVE context here would make it before any gesture, and the
+   autoplay policy would hand it back suspended (the review page's silent click, v1.1314). Null without WebAudio. */
+function diceSoundDecoder() {
+  var OAC = (typeof OfflineAudioContext !== "undefined") ? OfflineAudioContext : (typeof webkitOfflineAudioContext !== "undefined") ? webkitOfflineAudioContext : null;
+  if (!OAC) return null;
+  try { return new OAC(1, 1, 48000); } catch (e) { return null; }
+}
+/* Fetches and decodes the sprite once, off the live context; resolves true when adopted. `opts.base` prefixes the
+   receipt's path for a page outside the root (the review page passes "../"). A failure is said once and reported, never
+   thrown; a second call while the first is in flight shares its promise. */
 function diceSoundPreload(opts) {
   if (_diceSfx.buffer) return Promise.resolve(true);
   if (_diceSfx.loading) return _diceSfx.loading;
   var man = (typeof DICE_SFX !== "undefined") ? DICE_SFX : null;
   if (!man || !man.file) { _diceSfx.failed = "no sprite receipt"; diceSoundSay("receipt", "no sprite receipt (dice/sfx/manifest.js) — the rolls play silent"); return Promise.resolve(false); }
-  if (typeof fetch !== "function" || typeof Sound === "undefined" || typeof Sound.context !== "function") { _diceSfx.failed = "no fetch or no Sound"; return Promise.resolve(false); }
-  var ctx = Sound.context();
-  if (!ctx || typeof ctx.decodeAudioData !== "function") { _diceSfx.failed = "no AudioContext"; diceSoundSay("ctx", "no AudioContext — the rolls play silent"); return Promise.resolve(false); }
+  if (typeof fetch !== "function") { _diceSfx.failed = "no fetch"; return Promise.resolve(false); }
+  var ctx = diceSoundDecoder();
+  if (!ctx || typeof ctx.decodeAudioData !== "function") { _diceSfx.failed = "no audio decoder"; diceSoundSay("ctx", "no OfflineAudioContext to decode the sprite — the rolls play silent"); return Promise.resolve(false); }
   var url = ((opts && opts.base) || "") + man.file;
   _diceSfx.loading = fetch(url).then(function (r) {
     if (!r.ok) throw new Error("HTTP " + r.status);
@@ -104,8 +117,7 @@ function diceSoundPreload(opts) {
   }, function (e) {
     _diceSfx.loading = null;
     _diceSfx.failed = "could not load " + url + ": " + (e && e.message || e);
-    diceSoundSay("load-" + url, _diceSfx.failed + " — the rolls play silent");
-    if (typeof reportError === "function") reportError("dice-sfx", _diceSfx.failed, { url: url });
+    diceSoundSay("load-" + url, _diceSfx.failed + " — the rolls play silent", { url: url });
     return false;
   });
   return _diceSfx.loading;

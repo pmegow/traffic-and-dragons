@@ -15,7 +15,10 @@
      clip you click plays its roll through the game's dice-sound.js over sound.js — the same plan the game makes: the take
      of the CC0 dice sprite (dice/sfx/) nearest the clip's measured motion, started so its recorded landing falls on the
      clip's — forced past the UI-sound setting (an audition). Each card names the take its plan picks. The sprite is
-     preloaded from this folder (a file:// page cannot fetch it — the status says so). Play all stays silent: sixty dice
+     preloaded from this folder (a file:// page cannot fetch it — the status says so) on a throwaway offline context, so
+     the LIVE context is born in your first click — a context made before a gesture sits suspended under the autoplay
+     policy and every click is silent (v1.1314 did that); a context found suspended is resumed inside the click before the
+     roll plays, and a click that still cannot sound names the context's state. Play all stays silent: sixty dice
      at once is noise. A loop re-sounds each pass. The game's mute (#657) still applies and the status line says so, so a
      silent click never reads as broken. -->
 <link rel="stylesheet" href="../satellite.css">
@@ -62,7 +65,12 @@
   function kb(n){return Math.round(n/1024)+" KB";}
   function soundOn(){return !!(soundBox.checked&&typeof DiceSound!=="undefined");}
   /* the clip's own roll, forced past the UI-sound setting (an audition); a mute in the game still silences it — said in the status */
-  function sound(v,sides,n){if(!soundOn())return;var ok=DiceSound.play(sides,n,0,true);if(!ok)note("no sound for d"+sides+" "+n+" — "+(typeof AudioMaster!=="undefined"&&AudioMaster.muted()?"the game is MUTED (unmute it there)":"see the console"));}
+  /* the live context: made or resumed INSIDE the click (synchronously, so the gesture covers it); null without WebAudio */
+  function unlock(){if(!soundOn()||typeof Sound==="undefined"||typeof Sound.context!=="function")return null;var ctx=Sound.context();if(ctx&&ctx.state!=="running"&&typeof ctx.resume==="function"){try{ctx.resume();}catch(e){}}return ctx;}
+  function sound(v,sides,n){if(!soundOn())return;var ctx=unlock();
+    function go(){var ok=DiceSound.play(sides,n,0,true);if(!ok)note("no sound for d"+sides+" "+n+" — "+(typeof AudioMaster!=="undefined"&&AudioMaster.muted()?"the game is MUTED (unmute it there)":"AudioContext "+(ctx?ctx.state:"missing")+" · sprite "+DiceSound.state()+" — see the console"));}
+    /* a context still waking from suspended plays after its resume resolves, not before — Sound.play refuses a context that is not running */
+    if(ctx&&ctx.state!=="running"&&typeof ctx.resume==="function")ctx.resume().then(go,function(e){note("audio refused for d"+sides+" "+n+": "+(e&&e.message||e));});else go();}
   /* with sound on a clip restarts by hand so every pass sounds again (a native loop restarts without an event) */
   function applyLoop(v){v.loop=loopBox.checked&&!soundOn();}
   var _noteBase="";function note(s){status.textContent=_noteBase+(s?" · "+s:"");}
@@ -72,7 +80,7 @@
     var fr=document.createElement("div");fr.className="frame";
     var v=document.createElement("video");v.src="../dice/"+key+"_"+pad(n)+".webm";v.muted=true;v.playsInline=true;v.preload="metadata";v.title="click: play / pause (with its sound)";applyLoop(v);
     function start(){v.currentTime=0;var p=v.play();if(p&&typeof p.then==="function")p.then(function(){sound(v,sides,n);},function(e){note("d"+sides+" "+n+" would not play: "+(e&&e.message||e));});}
-    v.onclick=function(){if(v.paused)start();else v.pause();};
+    v.onclick=function(){if(v.paused){unlock();start();}else v.pause();};
     v.onended=function(){if(loopBox.checked&&soundOn())start();};
     fr.appendChild(v);
     if(c&&c.rest){var b=document.createElement("div");b.className="rest";b.style.left=(c.rest[0]*100)+"%";b.style.top=(c.rest[1]*100)+"%";b.style.width=((c.rest[2]-c.rest[0])*100)+"%";b.style.height=((c.rest[3]-c.rest[1])*100)+"%";fr.appendChild(b);}

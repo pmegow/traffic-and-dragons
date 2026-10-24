@@ -35643,6 +35643,8 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
       var n=got[0][0].notes[0];if(!(got[0][0].notes.length===1&&n.type==="sample"&&n.buffer&&n.buffer.duration===3&&Math.abs(n.t-0.258)<1e-9&&Math.abs(n.from-1.0)<1e-9))return "the recipe is the plan's one sample note on the adopted buffer: "+JSON.stringify(got[0][0]);
       if(DiceSound.play(6,3,0,true)!==true||got[1][1]!==true)return "force must reach Sound.play";
     }finally{console.warn=_w;console.debug=_d;Sound.play=_sp;if(_re)reportError=_re;DiceSound.adopt(null);DICE_MANIFEST=wasM;DICE_SFX=wasS;}
+    var dso=__fsForTests.readFileSync(__rootForTests+"/dice-sound.js","utf8"),pre=dso.slice(dso.indexOf("function diceSoundPreload("),dso.indexOf("function diceSoundPlay("));
+    if(pre.indexOf("var ctx = diceSoundDecoder();")<0||pre.indexOf("Sound.context")>=0)return "preload must decode on the throwaway offline context, never Sound's live context — born before a gesture it sits suspended and every click is silent (the review page, v1.1314); dev/tests-659-dice-loader.js drives it";
     var so=__fsForTests.readFileSync(__rootForTests+"/sound.js","utf8");
     if(so.indexOf('if (note.type === "sample") { _sample(ctx, bus, st, note); return; }')<0||so.indexOf("src.start(st, note.from || 0, note.d);")<0||so.indexOf("g.connect(bus);")<0)return "sound.js must schedule a sample note as a buffer source from `from` for `d` through the play's bus";
     var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8"),ov=u.slice(u.indexOf("function diceOverlay("),u.indexOf("function diceStackedPlayer("));
@@ -35679,6 +35681,10 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var m=p.indexOf('<script src="../dice/manifest.js"></script>'),m2=p.indexOf('<script src="../dice/sfx/manifest.js"></script>'),am=p.indexOf('<script src="../audio-master.js"></script>'),so=p.indexOf('<script src="../sound.js"></script>'),ds=p.indexOf('<script src="../dice-sound.js"></script>');
     if(!(m>=0&&m2>m&&am>m2&&so>am&&ds>so))return "the review page must load the two data files, then audio-master.js, sound.js and dice-sound.js";
     if(p.indexOf('DiceSound.preload({base:"../"})')<0)return "the review page must preload the sprite from its own folder (dev/), or every click plays silent";
+    var unlock=p.indexOf("function unlock(){"),click=p.indexOf("v.onclick=function(){if(v.paused){unlock();start();}else v.pause();};");
+    if(unlock<0||p.slice(unlock,p.indexOf("\n",unlock)).indexOf("ctx.resume()")<0||click<0)return "the live context must be made or resumed INSIDE the click, synchronously (a context born before a gesture sits suspended and every click is silent — v1.1314)";
+    var snd=p.slice(p.indexOf("function sound(v,sides,n)"),p.indexOf("function applyLoop"));
+    if(snd.indexOf('ctx.resume().then(go,')<0||snd.indexOf('"AudioContext "+(ctx?ctx.state:"missing")')<0)return "a context still waking plays after its resume resolves, and a click that cannot sound names the context's state";
     if(p.indexOf('id="sound"')<0)return "the review page needs a sound switch";
     var click=p.indexOf("function sound(v,sides,n)");if(click<0||p.indexOf("DiceSound.play(sides,n,0,true)")<0)return "the clip you click must sound through DiceSound.play with force";
     if(p.indexOf("DiceSound.plan(sides,n,0)")<0)return "each card must say which take its plan picks";

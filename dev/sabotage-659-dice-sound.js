@@ -5,9 +5,27 @@
 // shell and the SW's sprite path must each turn the #659 section red.
 //   node dev/sabotage-659-dice-sound.js
 var sabotage = require("./sabotage.js");
-var CMD = ["node", ["dev/run-tests.js", "#659"]];
+var CMD = ["node", ["dev/run-tests.js", "#659"]], LOADER = ["node", ["dev/tests-659-dice-loader.js"]];
 var code = 0;
-function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, command: CMD, cases: cases }); }
+function prove(file, cases, cmd) { if (!code) code = sabotage.prove({ file: file, command: cmd || CMD, cases: cases }); }
+/* the loader (v1.1315: the live context must never be born in the preload) — proven through its own async suite */
+prove("dice-sound.js", [
+  { label: "the preload decodes on the live context (born suspended before a gesture)",
+    find: "  var ctx = diceSoundDecoder();\n  if (!ctx || typeof ctx.decodeAudioData !== \"function\")", replace: "  var ctx = Sound.context();\n  if (!ctx || typeof ctx.decodeAudioData !== \"function\")",
+    mustFail: "NEVER create or touch the live AudioContext" },
+  { label: "a second preload in flight starts a second load",
+    find: "  if (_diceSfx.loading) return _diceSfx.loading;\n  var man", replace: "  var man",
+    mustFail: "share the first's promise" },
+  { label: "a load failure is said but never reported",
+    find: "  if (detail && typeof reportError === \"function\") reportError(\"dice-sfx\", msg, detail);\n", replace: "",
+    mustFail: "said once and reported once" },
+  { label: "every retry of a failed load mails the owner again",
+    find: "  if (_diceSfx.said[key]) return;\n  _diceSfx.said[key] = true;\n  if (typeof console !== \"undefined\") console.warn(\"[dice-sound] \" + msg);\n  if (detail", replace: "  if (_diceSfx.said[key]) { if (detail && typeof reportError === \"function\") reportError(\"dice-sfx\", msg, detail); return; }\n  _diceSfx.said[key] = true;\n  if (typeof console !== \"undefined\") console.warn(\"[dice-sound] \" + msg);\n  if (detail",
+    mustFail: "said once, not every call" },
+  { label: "a misfit decode is adopted anyway",
+    find: "    _diceSfx.failed = bad; diceSoundSay(\"fit\", bad, { duration: buffer && buffer.duration });\n    return false;", replace: "    _diceSfx.failed = bad; diceSoundSay(\"fit\", bad, { duration: buffer && buffer.duration });\n    _diceSfx.buffer = buffer; return false;",
+    mustFail: "never adopted" }
+], LOADER);
 prove("dice-sound.js", [
   { label: "the motion ignores the rolling stretches",
     find: "for (i = 0; i < cue.roll.length; i++) if (cue.roll[i][1] > last) last = cue.roll[i][1];", replace: "",
@@ -33,9 +51,6 @@ prove("dice-sound.js", [
   { label: "the fit check passes a sprite the cut list runs past",
     find: "if (!(takes[i].cut && takes[i].cut[1] <= buffer.duration + DICE_SFX_FIT_SLACK))", replace: "if (false)",
     mustFail: "refused naming the take" },
-  { label: "a misfit sprite is adopted anyway",
-    find: "    if (typeof reportError === \"function\") reportError(\"dice-sfx\", bad, { duration: buffer && buffer.duration });\n    return false;", replace: "    if (typeof reportError === \"function\") reportError(\"dice-sfx\", bad, { duration: buffer && buffer.duration });\n    _diceSfx.buffer = buffer; return false;",
-    mustFail: "refused and reported" },
   { label: "a missing take nags every roll",
     find: "  if (_diceSfx.said[key]) return;\n  _diceSfx.said[key] = true;", replace: "  if (false) return;",
     mustFail: "said once, not every roll" },
@@ -88,6 +103,12 @@ prove("dev/dice-review.html", [
   { label: "the review page's click goes silent",
     find: "var ok=DiceSound.play(sides,n,0,true);", replace: "var ok=true;",
     mustFail: "must sound through DiceSound.play with force" },
+  { label: "the click no longer wakes the live context",
+    find: "v.onclick=function(){if(v.paused){unlock();start();}else v.pause();};", replace: "v.onclick=function(){if(v.paused){start();}else v.pause();};",
+    mustFail: "INSIDE the click" },
+  { label: "a waking context plays before its resume resolves",
+    find: "if(ctx&&ctx.state!==\"running\"&&typeof ctx.resume===\"function\")ctx.resume().then(go,function(e){note(\"audio refused for d\"+sides+\" \"+n+\": \"+(e&&e.message||e));});else go();", replace: "go();",
+    mustFail: "after its resume resolves" },
   { label: "the review page never preloads the sprite",
     find: "if(typeof DiceSound!==\"undefined\")DiceSound.preload({base:\"../\"})", replace: "if(false)DiceSound.preload({base:\"..\"})",
     mustFail: "preload the sprite from its own folder" }
