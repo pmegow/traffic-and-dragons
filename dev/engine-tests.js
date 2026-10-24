@@ -35759,4 +35759,33 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
 
+  section("#667 — STANCE and the text-only body count (owner 2026-10-24, the lava-platform render: Ammut came back with THREE boots — his pose clause said a crouch at a rail and nothing about where his feet were, and the painter resolved two stances at once; Seedream 5 Pro has no negative-prompt channel and its own prompt optimizer cannot be switched off, so the lever is the one that fixed duplicate bodies, #208 ①: an exact, positive placement — and that count sentence now reaches the text-only party renders every engine but Nano paints)");
+  t("#667 STANCE: every pose clause places the body's four contacts — both feet and both hands — in words; a crouch, kneel or lean names the knee and the weight-bearing foot; written positively, after MOVEMENT and before the one-name rule, in the party brief and the solo brief alike",function(){
+    var c={name:"Ammut",gender:"M",age:"early twenties",ancestry:"Half-Blood",cls:"Rogue",appear:"silver-white hair"};
+    var rp=buildSceneRenderRequest(c,mk165Party(),{location:"the Forge Pillar",region:"the Underdeep",weather:""});
+    if(rp.indexOf("STANCE: every pose clause PLACES the body's four contacts")<0)return "the STANCE clause is missing: "+rp.slice(rp.indexOf("MOVEMENT:"),rp.indexOf("MOVEMENT:")+200);
+    if(rp.indexOf("both feet and both hands")<0)return "the four contacts must be named as both feet and both hands";
+    if(rp.indexOf("which knee is down and which foot carries the weight")<0)return "a crouch, kneel or lean must name the knee and the weight-bearing foot";
+    if(!/left boot forward on the grate, right boot planted behind, both hands gripping the chain rail/.test(rp))return "the clause needs its worked example — concrete craft vocabulary is what the writer copies";
+    var mv=rp.indexOf("MOVEMENT:"),st=rp.indexOf("STANCE:"),nm=rp.indexOf("NAME THE FOCAL POINT ONCE");
+    if(!(mv>=0&&st>mv&&nm>st))return "STANCE must follow MOVEMENT and precede the one-name rule: "+[mv,st,nm].join(",");
+    var clause=rp.slice(st,rp.indexOf("NAME THE FOCAL POINT ONCE"));
+    if(/\bnever\b|\bno\b|\bnot\b|\bdon't\b|limb/i.test(clause))return "the clause must be positive — no negation, and the failure's own word stays out of the prompt (#209d): "+clause;
+    var solo=buildSceneRenderRequest(c,[],{location:"X",region:"Y",weather:"mist"});
+    return solo.indexOf("STANCE: every pose clause PLACES")>=0?true:"the solo brief needs the stance too — a lone figure crouches as ambiguously as four";
+  });
+  t("#667 the body count: renderBodyCount is the ONE exact-count sentence (#208 ①) — the reference legend reads it byte-for-byte as before, and doRender appends it to a TEXT-ONLY party render (Seedream, GPT Image, Grok paint a party from text alone and got no count at all)",function(){
+    if(renderBodyCount(4)!=="The scene contains EXACTLY 4 people: one body per named character, never the same face twice")return "four: "+renderBodyCount(4);
+    if(renderBodyCount(1)!=="The scene contains EXACTLY 1 person: one body per named character, never the same face twice")return "one: "+renderBodyCount(1);
+    var legend=buildSeedLegend(["Ammut","Frizwick","Daeris"],["Morwen"]);
+    if(legend.indexOf(" "+renderBodyCount(4)+"; described-only names must still appear.")<0)return "the legend must read the one sentence, byte-identical to #208 ①: "+legend;
+    if(buildSeedLegend(["Ammut"],[]).indexOf(" "+renderBodyCount(1)+".")<0)return "the solo legend must end with the one sentence";
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),fn=g.slice(g.indexOf("function buildSeedLegend("),g.indexOf("function buildSeedLegend(")+1400);
+    if(fn.indexOf('s+=" "+renderBodyCount(total)+')<0||/The scene contains EXACTLY/.test(fn))return "buildSeedLegend must call renderBodyCount, never carry its own copy";
+    var dr=g.slice(g.indexOf("async function doRender("),g.length);
+    var multi=dr.indexOf('if(isMulti&&seeds.length)falPrompt+='),text=dr.indexOf('else if(sc.textOnly)falPrompt+=" "+renderBodyCount(party.length+1)+".";');
+    if(multi<0||text<0||text<multi)return "doRender must append the count to a text-only party render right after the seeded-legend branch";
+    return dr.indexOf("var falBody=usingI2I?")>text?true:"the count must land before the body is built";
+  });
+
 }

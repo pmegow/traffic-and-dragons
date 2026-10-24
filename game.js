@@ -3791,6 +3791,12 @@ function buildSceneRenderRequest(c,party,w,opts){
        moving party ONE line of advance staggered in depth, and keep the ground ahead of every runner
        clear. Positive phrasing per #209d; the scene-split exception stays with the writer. */
     +"MOVEMENT: every MOVING character's direction of travel is stated RELATIVE TO THE FOCAL POINT inside their pose clause ('running toward the gate', 'backing away from the X', 'circling the X to its left') and the ground ahead of them is open toward it. A moving party shares ONE line of advance — the same heading, staggered in depth (one ahead, one two strides behind and to a side), never fanned across the frame on separate headings. A character who moves on another heading needs a stated reason that serves the same scene, and even then their path leads somewhere the frame shows. "
+    /* #667 (owner 2026-10-24, the lava-platform render): Ammut came back with THREE boots — his pose clause said a crouch
+       at a rail and nothing about where his feet were, and the painter resolved two stances at once. Seedream 5 Pro has no
+       negative-prompt channel and its own prompt optimizer cannot be switched off, so the lever is the one that fixed
+       duplicate bodies (#208 ①): an exact, positive placement. Four contacts, each placed, in every pose clause; written
+       without a negation and without the failure's own word, per #209d. */
+    +"STANCE: every pose clause PLACES the body's four contacts — both feet and both hands — in words ('left boot forward on the grate, right boot planted behind, both hands gripping the chain rail'); a crouch, a kneel or a lean names which knee is down and which foot carries the weight, and a hand that holds a weapon or a rail is said to hold it. An unplaced crouch or lean is read two ways at once; placed contacts fix one. "
     /* #209c (research synthesis, 2026-08-21): text encoders concentrate a concept in one or two
        tokens and propagate poorly across mentions — a pronoun binds to nothing and a synonym
        mints a SECOND concept (the five-way's own prompt said staircase/stairs/stairway/steps/
@@ -3832,6 +3838,10 @@ function collectRenderSeeds(mdlCfg,character,party){
   }
   return {urls:urls,names:names,omitted:omitted};
 }
+/* #667: the ONE exact-count sentence — the #208 ① rule that stopped a reference minting a body AND its description minting
+   another — written once, read by the reference legend and by the TEXT-ONLY party render (every engine but Nano paints a
+   party from text alone, #208 ②, and got no count at all until #667). */
+function renderBodyCount(total){return "The scene contains EXACTLY "+total+" "+(total===1?"person":"people")+": one body per named character, never the same face twice";}
 // #166: the numbered reference legend appended to a multiSeed image prompt — the mapping the
 // compositor otherwise has to guess. Unseeded members are named described-only so the model
 // neither hunts for a missing reference nor borrows a wrong one.
@@ -3847,7 +3857,7 @@ function buildSeedLegend(names,omitted){
   /* #208 ①: the exact-count clause — a reference mints a body AND its description mints a body
      unless the prompt says one-body-per-face outright (Grok painted both seeded companions twice). */
   var total=names.length+((omitted&&omitted.length)||0);
-  s+=" The scene contains EXACTLY "+total+" "+(total===1?"person":"people")+": one body per named character, never the same face twice"+(omitted&&omitted.length?"; described-only names must still appear":"")+".";
+  s+=" "+renderBodyCount(total)+(omitted&&omitted.length?"; described-only names must still appear":"")+".";/* #667: the one copy */
   return s;
 }
 /* #440 (Astra review R3): a render belongs to its campaign and turn; its subjects are a detached snapshot.
@@ -3971,6 +3981,7 @@ async function doRender(rOpts){
         // #166: and NAME each numbered reference — three anonymous refs against four described
         // characters made Grok guess, and Daeris's likeness averaged away.
         if(isMulti&&seeds.length)falPrompt+=" IMPORTANT: the supplied reference image(s) define each character's facial likeness, colouring and costume ONLY — do NOT copy their frontal, posed headshot framing or stance. Follow each character's WRITTEN posture, activity and orientation exactly, including stillness."+buildSeedLegend(sc.names,sc.omitted);
+        else if(sc.textOnly)falPrompt+=" "+renderBodyCount(party.length+1)+".";/* #667: the #208 ① count reaches the text-only party render too (Seedream, GPT Image and Grok paint a party from text alone) */
         var falBody=usingI2I?mdlCfg.img2img.body(falPrompt,seeds,img2imgStrength(mdlCfg)):mdlCfg.body(falPrompt);
         // Elapsed-seconds heartbeat (owner call 2026-08-31, the Seedream hang): a frozen status
         // line reads as broken long before it reads as slow — a ticking counter is what tells
