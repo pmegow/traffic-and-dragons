@@ -3918,25 +3918,6 @@ async function doRender(rOpts){
         return exportToFolder("render",blob,fname);
       }).catch(function(){if(!_renderJobLive(_job)){_renderJobDrop(_job,"the save");return;}window.open(imageUrl,"_blank");});
     });
-    // ✨ Enhance: second img2img pass over the FINISHED render — a hard cinematic relight/regrade
-    // (Flux img2img at ENHANCE_STRENGTH), reusing the scene prompt so content stays coherent. This is
-    // what an aggressive editor does to buy drama Nano's flat compositor pass lacks. Replaces in place;
-    // Save/Portrait then act on the enhanced image. Re-runnable (each pass re-grades the current image).
-    var enhanceBtn=mkBtn("✨ Enhance","Cinematic relight & regrade of this image");
-    enhanceBtn.addEventListener("click",function(){
-      if(!imageUrl){showToast("Image not ready yet.");return;}
-      if(!falAvailable()){showToast("Sign in or set a fal.ai key first.");return;}
-      enhanceBtn.disabled=true;var _et=elapsedTicker(enhanceBtn,"Enhancing…",{text:true});/* #481 G5: the owner's "always have the counter while we're rendering" (#356) */
-      var ep=withImgStyle(resp)+" "+ENHANCE_DIRECTIVE;
-      falFetch("fal-ai/flux/dev/image-to-image",{prompt:ep,image_url:imageUrl,strength:ENHANCE_STRENGTH,num_inference_steps:28,num_images:1})
-        .then(function(r){if(!r.ok)return r.text().catch(function(){return "";}).then(function(t){throw new Error(falErrorMsg(r.status,t));});return r.json();})/* #163b */
-        .then(function(d){
-          if(!(d.images&&d.images[0]&&d.images[0].url))throw new Error("No image returned.");
-          imageUrl=d.images[0].url;if(sceneImg)sceneImg.src=imageUrl;
-          _et.stop();enhanceBtn.textContent="✨ Enhance";enhanceBtn.disabled=false;
-        })
-        .catch(function(e){_et.stop();enhanceBtn.textContent="✨ Enhance";enhanceBtn.disabled=false;showToast("Enhance failed: "+e.message);});
-    });
     var portraitBtn=mkBtn("⧉ Portrait","Use this scene as character portrait");
     portraitBtn.addEventListener("click",function(){
       if(!imageUrl){showToast("Image not ready yet.");return;}
@@ -3962,7 +3943,7 @@ async function doRender(rOpts){
     });
     var closeBtn=mkBtn("× Close","Remove this image");
     closeBtn.addEventListener("click",function(){div.remove();});
-    toolbar.appendChild(saveBtn);toolbar.appendChild(enhanceBtn);toolbar.appendChild(portraitBtn);toolbar.appendChild(promptBtn);toolbar.appendChild(closeBtn);
+    toolbar.appendChild(saveBtn);toolbar.appendChild(portraitBtn);toolbar.appendChild(promptBtn);toolbar.appendChild(closeBtn);
     div.appendChild(toolbar);
 
     if(falAvailable()){

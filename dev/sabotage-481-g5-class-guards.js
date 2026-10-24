@@ -8,11 +8,6 @@ var sabotage = require("./sabotage.js"), verdict = require("./battery-verdict.js
 var chrome = require("./cdp-browser.js").locateChrome();
 var NODE = ["node", ["dev/tests-481-g5-class-guards.js"]], BROWSER = ["node", ["dev/tests-481-g5-waits-browser.js"]], failed = 0;
 // The fixes, reverted one at a time: the derived scan must name each.
-failed += sabotage.prove({ file: "game.js", command: NODE, cases: [
-  { label: "the Enhance button freezes again",
-    find: "enhanceBtn.disabled=true;var _et=elapsedTicker(enhanceBtn,\"Enhancing…\",{text:true});", replace: "enhanceBtn.textContent=\"Enhancing…\";enhanceBtn.disabled=true;var _et={stop:function(){}};",
-    mustFail: "the live tree" }
-]});
 failed += sabotage.prove({ file: "char-creation.js", command: NODE, cases: [
   { label: "the random hero paints a frozen label again",
     find: "async function aiRandomHero(btn){\n  if(btn)btn.disabled=true;", replace: "async function aiRandomHero(btn){\n  if(btn){btn.disabled=true;btn.textContent=\"✦ Rolling…\";}",

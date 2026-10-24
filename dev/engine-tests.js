@@ -2244,7 +2244,7 @@ function runEngineTests(R){
     if(up.split("elapsedTicker(").length!==4)return "the portrait modal's generate, regenerate and describe paths must all tick";
     if(cc.split("elapsedTicker(").length!==3)return "the wizard's render and derive paths must both tick";
     /* #481 G5: the class is DERIVED now (dev/class-guards.js — every model/image wait's status ticks), so this pins the scene
-       render's own ticker by name instead of counting game.js's tickers (the Enhance pass added a second one) */
+       render's own ticker by name instead of counting game.js's tickers (the Enhance pass once added a second one — removed by #665) */
     if(gm.indexOf("var _rTick=elapsedTicker(imgStatus,")===-1||gm.indexOf("_rTick=setInterval(")!==-1)return "the scene render must ride the shared ticker, not its own interval";
     /* #481 G5 follow-up (owner ruling 2026-09-30): addMsg's thinking markers tick too (pinned by dev/tests-481-g5-helper-waits.js),
        so the loading modal's ticker is pinned by name instead of counting ui-shell.js's tickers */

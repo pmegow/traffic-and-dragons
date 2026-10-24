@@ -617,12 +617,6 @@ function withImgStyle(p){p=p||"";if(p.indexOf(IMG_STYLE_SUFFIX)>=0)return p;retu
 // one copy. The per-word `w[0]||""` guard matters: without it a double-space name renders the
 // string "undefined" into the avatar (the former ui-browsers import-preview copy's bug).
 function csInitials(name){return(name||"?").split(" ").map(function(w){return w[0]||"";}).join("").toUpperCase().slice(0,2)||"?";}
-// Enhance pass (✨): re-grade a FINISHED scene render through img2img to buy the dramatic, painterly,
-// high-contrast look an aggressive editor (e.g. GPT-image) gets on a second pass over the same image.
-// Reuses the scene prompt + this directive; run on Flux img2img at ENHANCE_STRENGTH — moderate, so the
-// composition and likenesses survive while lighting, contrast, and texture get pushed hard.
-var ENHANCE_DIRECTIVE="Dramatically relight and colour-grade this scene as high-end cinematic concept art: strong directional key light with warm rim-light and deep, crushed shadows, rich chiaroscuro contrast, moody atmospheric haze, heightened painterly texture and fine detail, film-grade colour grading. Preserve the existing composition, characters, and their likenesses.";
-var ENHANCE_STRENGTH=0.45;
 // #163b: fal.ai failures carry the REAL complaint in the response body ({detail:[{loc,msg}]}
 // validation arrays, or a detail string) — the old bare "fal.ai HTTP 422" cost a live round
 // trip to learn WHICH field failed (the bare loras[].path id). Pure string builder so it's

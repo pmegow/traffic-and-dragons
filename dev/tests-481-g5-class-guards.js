@@ -61,9 +61,6 @@ test('every exemption carries a reason', () => {
 });
 test('the fixed waits stop their ticker BEFORE the terminal text (else the next tick overwrites the result)', () => {
   const gm = fs.readFileSync(path.join(root, 'game.js'), 'utf8'), cc = fs.readFileSync(path.join(root, 'char-creation.js'), 'utf8'), bpd = fs.readFileSync(path.join(root, 'blueprint-designer.html'), 'utf8');
-  const enh = gm.slice(gm.indexOf('enhanceBtn.addEventListener("click"'), gm.indexOf('var portraitBtn=mkBtn('));
-  assert.ok(/var _et=elapsedTicker\(enhanceBtn,"Enhancing…",\{text:true\}\)/.test(enh), 'the Enhance button rides the ticker');
-  assert.equal((enh.match(/_et\.stop\(\);enhanceBtn\.textContent="✨ Enhance"/g) || []).length, 2, 'both terminal writes (success, failure) stop the ticker first');
   const rh = cc.slice(cc.indexOf('async function aiRandomHero('), cc.indexOf('async function aiRandomiseAll('));
   assert.ok(/showLoadingModal\("Writing your hero…"\)/.test(rh) && /finally\{if\(_done\)_done\(\);/.test(rh), 'the random hero waits under the ticking loading modal, removed in finally');
   assert.ok(/function statusTicker\(base\)\{setStatus\(base,""\);return elapsedTicker\(document\.getElementById\("statusline"\),base,\{text:true\}\);\}/.test(bpd), 'the designer\'s statusTicker');
