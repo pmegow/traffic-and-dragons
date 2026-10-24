@@ -294,5 +294,6 @@
   },
   "seconds": 22.32,
   "bytes": 357888,
-  "sha256": "46988b6cdb49c03f9dbbbbc33b6c94fdc34ef8941b245fc4bb3df3a4428d4f98"
+  "sha256": "46988b6cdb49c03f9dbbbbc33b6c94fdc34ef8941b245fc4bb3df3a4428d4f98",
+  "dataFile": "dice/sfx/dice-rolls-v1.js"
 }

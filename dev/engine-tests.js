@@ -35576,6 +35576,12 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(__cryptoForTests.createHash("sha256").update(bytes).digest("hex")!==man.sha256)return "the sprite's sha256 does not match the receipt";
     var head=bytes.slice(0,4096).toString("latin1");if(!/Xing|Info/.test(head)||!/LAME|Lavc|Lavf/.test(head))return "the sprite has no Xing/Info + encoder gapless header — every cut would shift by the encoder delay";
     if(!/CC0/.test(man.license||"")||!man.author||!/\d{4}-\d\d-\d\d/.test(man.licenseVerified||""))return "the receipt must carry the CC0 licence, the author and the day it was verified";
+    /* the data script (a file:// page may not fetch — the review page is opened that way): the same bytes, base64, pinned to the sprite */
+    if(man.dataFile!==man.file.replace(/\.mp3$/,".js"))return "the receipt must name the data script beside the sprite: "+man.dataFile;
+    var dataJs;try{dataJs=__fsForTests.readFileSync(__rootForTests+"/"+man.dataFile,"utf8");}catch(e){return "the data script is missing: "+man.dataFile;}
+    if(dataJs.indexOf('var DICE_SFX_DATA = "')!==0)return "the data script must declare DICE_SFX_DATA";
+    var b64=new Function(dataJs+"\nreturn DICE_SFX_DATA;")();
+    if(__cryptoForTests.createHash("sha256").update(Buffer.from(b64,"base64")).digest("hex")!==man.sha256)return "the data script's bytes are not the sprite's — rerun dev/dice-sfx.js";
     if(!(man.seconds>0&&man.gap>=0.2))return "the receipt must carry the sprite's seconds and the gap between takes";
     var bad=[],prevEnd=-1;
     [4,6,8,10,12,20].forEach(function(s){var set=man.dice["d"+s];if(!set){bad.push("d"+s+" has no takes");return;}
@@ -35645,6 +35651,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     }finally{console.warn=_w;console.debug=_d;Sound.play=_sp;if(_re)reportError=_re;DiceSound.adopt(null);DICE_MANIFEST=wasM;DICE_SFX=wasS;}
     var dso=__fsForTests.readFileSync(__rootForTests+"/dice-sound.js","utf8"),pre=dso.slice(dso.indexOf("function diceSoundPreload("),dso.indexOf("function diceSoundPlay("));
     if(pre.indexOf("var ctx = diceSoundDecoder();")<0||pre.indexOf("Sound.context")>=0)return "preload must decode on the throwaway offline context, never Sound's live context — born before a gesture it sits suspended and every click is silent (the review page, v1.1314); dev/tests-659-dice-loader.js drives it";
+    if(pre.indexOf("diceSoundBytes(url, dataUrl, !!(opts && opts.viaScript))")<0||dso.indexOf('location.protocol === "file:"')<0)return "the bytes must come through diceSoundBytes — a fetch over http, the data script on a file:// page (the review page is opened that way, v1.1315 told the owner to serve it instead)";
     var so=__fsForTests.readFileSync(__rootForTests+"/sound.js","utf8");
     if(so.indexOf('if (note.type === "sample") { _sample(ctx, bus, st, note); return; }')<0||so.indexOf("src.start(st, note.from || 0, note.d);")<0||so.indexOf("g.connect(bus);")<0)return "sound.js must schedule a sample note as a buffer source from `from` for `d` through the play's bus";
     var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8"),ov=u.slice(u.indexOf("function diceOverlay("),u.indexOf("function diceStackedPlayer("));

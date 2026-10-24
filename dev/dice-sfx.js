@@ -13,7 +13,9 @@
 // the first impact chained to the landing by gaps under 0.3 s; a take runs from 15 ms before that to 160 ms past the last
 // impact's decay, peak-normalised to -3 dBFS, 4 ms in / 40 ms out raised-cosine fades, padded to a whole millisecond;
 // takes are joined with 0.25 s of silence and encoded libmp3lame 128 kbps mono with the Xing/LAME gapless header (refused
-// without it: the browser's decoded timeline would shift by the encoder delay) and no ID3.
+// without it: the browser's decoded timeline would shift by the encoder delay) and no ID3. The same bytes are written a
+// second time as a DATA SCRIPT beside the sprite (dice-rolls-vN.js: `var DICE_SFX_DATA = "<base64>";`) for a page
+// opened from file:// — how the owner opens dev/dice-review.html — where a fetch is refused but a script tag loads.
 var fs = require("fs"), path = require("path"), cp = require("child_process"), crypto = require("crypto");
 var ROOT = path.join(__dirname, ".."), SRC = path.join(ROOT, "Audio", "CC0", "Dice"), OUT = path.join(ROOT, "dice", "sfx");
 var SR = 48000, DRY = process.argv.indexOf("--dry") >= 0, SPRITE = "dice-rolls-v1.mp3", GAP = 0.25;
@@ -90,6 +92,8 @@ if (!DRY) {
   var out = path.join(OUT, SPRITE);
   manifest.seconds = +encode(pieces, out).toFixed(3);
   var bytes = fs.readFileSync(out); manifest.bytes = bytes.length; manifest.sha256 = sha(bytes);
+  manifest.dataFile = manifest.file.replace(/\.mp3$/, ".js");
+  fs.writeFileSync(path.join(OUT, SPRITE.replace(/\.mp3$/, ".js")), "var DICE_SFX_DATA = \"" + bytes.toString("base64") + "\";\n");
   fs.writeFileSync(path.join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
   fs.writeFileSync(path.join(OUT, "manifest.js"), "var DICE_SFX = " + JSON.stringify(manifest) + ";\n");
   console.log(count + " takes, " + manifest.seconds + " s, " + Math.round(bytes.length / 1024) + " KB → " + out);

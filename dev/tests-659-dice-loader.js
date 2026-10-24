@@ -10,6 +10,9 @@
 //     never called
 //   • a failed fetch, an undecodable body and a decode the cut list does not fit each resolve false, are said once on
 //     the console and reported once through reportError — never thrown, never a wrong sound
+//   • from a file:// page (v1.1316 — the owner opens the review page that way and a fetch is refused there) the bytes
+//     come from the data script beside the sprite through a script tag, never a fetch; a data script that fails to load
+//     or declares nothing resolves false, said once and reported once
 //   node dev/tests-659-dice-loader.js
 var engine = require("./load-engine.js");
 engine.loadEngine();
@@ -19,7 +22,7 @@ process.on("unhandledRejection", function () { unhandled++; });
 var _warn = console.warn; console.warn = function (m) { warns.push(String(m)); };
 reportError = function (ctx, msg) { reports.push(ctx + ": " + msg); };
 var _ctx = Sound.context; Sound.context = function () { ctxCalls++; return _ctx(); };
-function receipt() { return { file: "dice/sfx/dice-rolls-v1.mp3", seconds: 3, gap: 0.25, dice: { d6: { takes: [{ cut: [0, 0.8], landing: 0.1, length: 0.4 }, { cut: [1, 2.2], landing: 0.2, length: 0.9 }] } } }; }
+function receipt() { return { file: "dice/sfx/dice-rolls-v1.mp3", dataFile: "dice/sfx/dice-rolls-v1.js", seconds: 3, gap: 0.25, dice: { d6: { takes: [{ cut: [0, 0.8], landing: 0.1, length: 0.4 }, { cut: [1, 2.2], landing: 0.2, length: 0.9 }] } } }; }
 function fakes(opts) {
   opts = opts || {};
   global.OfflineAudioContext = function (ch, len, sr) {
@@ -81,6 +84,48 @@ tAsync("a decode the cut list does not fit is refused, said once and reported on
   if (ok !== false || DiceSound.state() === "loaded" || !/d6 take 2/.test(DiceSound.state())) return "refused naming the take: " + ok + " " + DiceSound.state();
   if (warns.length !== 1 || reports.length !== 1 || !/d6 take 2/.test(reports[0])) return "said once and reported once: " + JSON.stringify(warns) + " " + JSON.stringify(reports);
   return true;
+});
+
+/* a file:// page: a fake document whose script tag "loads" by declaring DICE_SFX_DATA (or fails) */
+function filePage(mode) {
+  global.location = { protocol: "file:" }; global.__scriptsAdded = [];
+  global.document = { head: { appendChild: function (s) { global.__scriptsAdded.push(s.src); setTimeout(function () { if (mode === "missing") { s.onerror(); return; } if (mode === "empty") { delete global.DICE_SFX_DATA; s.onload(); return; } global.DICE_SFX_DATA = Buffer.from([1, 2, 3, 4]).toString("base64"); s.onload(); }, 1); } }, createElement: function () { return {}; } };
+}
+function leavePage() { delete global.location; delete global.document; delete global.DICE_SFX_DATA; delete global.__scriptsAdded; }
+tAsync("from a file:// page the bytes come from the data script beside the sprite, under the base, through a script tag — never a fetch — and decode to the script's bytes", async function () {
+  reset(); fakes(); filePage("ok"); var seen = null;
+  global.OfflineAudioContext = function (ch, len, sr) { this.decodeAudioData = function (bytes, res) { decoded++; seen = bytes; res({ duration: 3, sampleRate: sr }); }; };
+  try {
+    var ok = await DiceSound.preload({ base: "../" });
+    if (fetched.length) return "a file page must not fetch (refused there): " + JSON.stringify(fetched);
+    if (global.__scriptsAdded.length !== 1 || global.__scriptsAdded[0] !== "../dice/sfx/dice-rolls-v1.js") return "the data script beside the sprite, under the base, once: " + JSON.stringify(global.__scriptsAdded);
+    if (ok !== true || DiceSound.state() !== "loaded" || decoded !== 1) return "decoded once and adopted: " + ok + " " + DiceSound.state();
+    var u8 = new Uint8Array(seen); if (!(u8.length === 4 && u8[0] === 1 && u8[3] === 4)) return "the decoder must receive the script's bytes: " + JSON.stringify(Array.prototype.slice.call(u8));
+    if (ctxCalls) return "the live context was touched";
+    return warns.length || reports.length ? "a clean load says nothing: " + JSON.stringify(warns) : true;
+  } finally { leavePage(); }
+});
+tAsync("the forced data-script path (viaScript — the seam a served page tests through) takes the same road over http", async function () {
+  reset(); fakes(); filePage("ok"); global.location = { protocol: "http:" };
+  try {
+    var ok = await DiceSound.preload({ base: "../", viaScript: true });
+    if (fetched.length || global.__scriptsAdded.length !== 1) return "viaScript must load the data script and never fetch: " + JSON.stringify(fetched) + " " + JSON.stringify(global.__scriptsAdded);
+    return ok === true && DiceSound.state() === "loaded" ? true : "adopted: " + ok + " " + DiceSound.state();
+  } finally { leavePage(); }
+});
+tAsync("a data script that fails to load, or declares nothing, resolves false, said once and reported once", async function () {
+  reset(); fakes(); filePage("missing");
+  try {
+    var ok = await DiceSound.preload({ base: "../" });
+    if (ok !== false || !/could not load the data script/.test(DiceSound.state()) || warns.length !== 1 || reports.length !== 1) return "a missing data script: " + ok + " " + DiceSound.state() + " " + JSON.stringify(warns) + " " + JSON.stringify(reports);
+    reset(); filePage("empty");
+    ok = await DiceSound.preload({ base: "../" });
+    if (ok !== false || !/declared no DICE_SFX_DATA/.test(DiceSound.state()) || warns.length !== 1 || reports.length !== 1) return "an empty data script: " + ok + " " + DiceSound.state() + " " + JSON.stringify(warns);
+    reset(); global.location = { protocol: "file:" }; DICE_SFX.dataFile = "";
+    ok = await DiceSound.preload({ base: "../" });
+    if (ok !== false || !/names no data script/.test(DiceSound.state())) return "a receipt without a data script on a file page: " + ok + " " + DiceSound.state();
+    return unhandled === 0 ? true : "an unhandled rejection escaped";
+  } finally { leavePage(); }
 });
 
 chain.then(function () {

@@ -87,6 +87,32 @@ function diceSoundAdopt(buffer) {
   _diceSfx.buffer = buffer; _diceSfx.failed = "";
   return true;
 }
+/* The sprite's bytes. Over http a fetch (the SW keeps the file in DICE_CACHE). From a file:// page — how the owner opens
+   dev/dice-review.html, and how the dev workflow opens index.html — a fetch is refused, so the same bytes ride a DATA
+   SCRIPT beside the sprite (the receipt's `dataFile`, `var DICE_SFX_DATA = "<base64>"`, written by dev/dice-sfx.js from
+   the same bytes and pinned to the sprite's sha256 by the #659 test), loaded by a script tag, which a file page may.
+   `viaScript` forces that path (the seam a served page tests it through). One decode-and-adopt path either way. */
+function diceSoundBytes(url, dataUrl, viaScript) {
+  var fileScheme = viaScript || (typeof location !== "undefined" && location && location.protocol === "file:");
+  if (!fileScheme) {
+    if (typeof fetch !== "function") return Promise.reject(new Error("no fetch"));
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.arrayBuffer(); });
+  }
+  return new Promise(function (resolve, reject) {
+    if (!dataUrl) { reject(new Error("the receipt names no data script (dataFile) for a file page")); return; }
+    if (typeof document === "undefined" || !document.head || typeof document.createElement !== "function") { reject(new Error("no document to load the data script into")); return; }
+    var s = document.createElement("script");
+    s.src = dataUrl;
+    s.onload = function () {
+      var b64 = (typeof DICE_SFX_DATA === "string") ? DICE_SFX_DATA : "";
+      if (!b64) { reject(new Error(dataUrl + " declared no DICE_SFX_DATA")); return; }
+      try { resolve(diceSoundBase64(b64)); } catch (e) { reject(new Error(dataUrl + " is not base64: " + (e && e.message || e))); }
+    };
+    s.onerror = function () { reject(new Error("could not load the data script " + dataUrl + " (run dev/dice-sfx.js)")); };
+    document.head.appendChild(s);
+  });
+}
+function diceSoundBase64(b64) { var bin = atob(b64), n = bin.length, out = new Uint8Array(n), i; for (i = 0; i < n; i++) out[i] = bin.charCodeAt(i); return out.buffer; }
 /* A throwaway offline context for decoding: creating the LIVE context here would make it before any gesture, and the
    autoplay policy would hand it back suspended (the review page's silent click, v1.1314). Null without WebAudio. */
 function diceSoundDecoder() {
@@ -94,22 +120,18 @@ function diceSoundDecoder() {
   if (!OAC) return null;
   try { return new OAC(1, 1, 48000); } catch (e) { return null; }
 }
-/* Fetches and decodes the sprite once, off the live context; resolves true when adopted. `opts.base` prefixes the
-   receipt's path for a page outside the root (the review page passes "../"). A failure is said once and reported, never
-   thrown; a second call while the first is in flight shares its promise. */
+/* Loads and decodes the sprite once, off the live context; resolves true when adopted. `opts.base` prefixes the
+   receipt's paths for a page outside the root (the review page passes "../"); `opts.viaScript` forces the data-script
+   path. A failure is said once and reported, never thrown; a second call while the first is in flight shares its promise. */
 function diceSoundPreload(opts) {
   if (_diceSfx.buffer) return Promise.resolve(true);
   if (_diceSfx.loading) return _diceSfx.loading;
   var man = (typeof DICE_SFX !== "undefined") ? DICE_SFX : null;
   if (!man || !man.file) { _diceSfx.failed = "no sprite receipt"; diceSoundSay("receipt", "no sprite receipt (dice/sfx/manifest.js) — the rolls play silent"); return Promise.resolve(false); }
-  if (typeof fetch !== "function") { _diceSfx.failed = "no fetch"; return Promise.resolve(false); }
   var ctx = diceSoundDecoder();
   if (!ctx || typeof ctx.decodeAudioData !== "function") { _diceSfx.failed = "no audio decoder"; diceSoundSay("ctx", "no OfflineAudioContext to decode the sprite — the rolls play silent"); return Promise.resolve(false); }
-  var url = ((opts && opts.base) || "") + man.file;
-  _diceSfx.loading = fetch(url).then(function (r) {
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return r.arrayBuffer();
-  }).then(function (bytes) {
+  var url = ((opts && opts.base) || "") + man.file, dataUrl = man.dataFile ? ((opts && opts.base) || "") + man.dataFile : "";
+  _diceSfx.loading = diceSoundBytes(url, dataUrl, !!(opts && opts.viaScript)).then(function (bytes) {
     return new Promise(function (resolve, reject) { ctx.decodeAudioData(bytes, resolve, reject); });
   }).then(function (buffer) {
     _diceSfx.loading = null;

@@ -15,7 +15,9 @@
      clip you click plays its roll through the game's dice-sound.js over sound.js — the same plan the game makes: the take
      of the CC0 dice sprite (dice/sfx/) nearest the clip's measured motion, started so its recorded landing falls on the
      clip's — forced past the UI-sound setting (an audition). Each card names the take its plan picks. The sprite is
-     preloaded from this folder (a file:// page cannot fetch it — the status says so) on a throwaway offline context, so
+     preloaded from this folder on a throwaway offline context — from file://, how the owner opens this page, through the
+     data script beside it, since a file page may not fetch (v1.1315's status said "serve the page over http"; v1.1316
+     serves the file page instead) — so
      the LIVE context is born in your first click — a context made before a gesture sits suspended under the autoplay
      policy and every click is silent (v1.1314 did that); a context found suspended is resumed inside the click before the
      roll plays, and a click that still cannot sound names the context's state. Play all stays silent: sixty dice
@@ -102,8 +104,8 @@
     });
     _noteBase=keys.length+" dice, "+count+" clips · manifest "+(m.rendered||"?")+" · sound: click a clip (Play all stays silent)";
     note(typeof AudioMaster!=="undefined"&&AudioMaster.muted()?"the game is MUTED — unmute it there to hear the rolls":"");
-    /* the sprite decodes now, from this folder; a page opened from file:// cannot fetch it and the status says so */
-    if(typeof DiceSound!=="undefined")DiceSound.preload({base:"../"}).then(function(ok){note(ok?"dice sprite loaded ("+(typeof DICE_SFX!=="undefined"?DICE_SFX.file:"?")+")":"dice sprite NOT loaded — "+DiceSound.state()+" (serve the page over http; file:// cannot fetch)");});
+    /* the sprite decodes now, from this folder — over http by fetch, from a file:// page through the data script beside it */
+    if(typeof DiceSound!=="undefined")DiceSound.preload({base:"../"}).then(function(ok){note(ok?"dice sprite loaded ("+(typeof DICE_SFX!=="undefined"?DICE_SFX.file:"?")+(location.protocol==="file:"?" via its data script":"")+")":"dice sprite NOT loaded — "+DiceSound.state());});
   }
   // dice/manifest.js (written by the batch beside manifest.json) loads from disk and from the site alike;
   // a page opened from file:// cannot fetch(), which is how the owner first opened it (2026-10-21)
