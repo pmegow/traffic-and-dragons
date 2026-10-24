@@ -21,6 +21,13 @@
       "runtimeArgs": ["../cx5-stereo-emulator/server.cjs"],
       "port": 8765,
       "url": "http://127.0.0.1:8765"
+    },
+    {
+      "name": "dice-sim",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["../dice-sim/serve.js", "8137"],
+      "port": 8137,
+      "url": "http://127.0.0.1:8137"
     }
   ]
 }
