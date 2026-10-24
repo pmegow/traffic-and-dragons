@@ -2607,7 +2607,7 @@ var geval=eval; // indirect eval → global scope (same loader convention as loa
 /* #199: `require` is module-scoped and invisible to indirect-eval'd tests, so a fixture-reading
    test gets fs through this handle instead. test.html never defines it — browser runs of such
    tests must guard on typeof and skip, keeping node CI the gate for fixture pins. */
-global.__fsForTests=fs;global.__rootForTests=path.join(__dirname,"..");global.__cpForTests=require("child_process");global.__osForTests=require("os");/* #599 (c): the census tool runs as a child process in its own test */
+global.__fsForTests=fs;global.__rootForTests=path.join(__dirname,"..");global.__cpForTests=require("child_process");global.__osForTests=require("os");global.__cryptoForTests=require("crypto");/* #659: the sprite receipt pins the delivery's sha256 *//* #599 (c): the census tool runs as a child process in its own test */
 geval(fs.readFileSync(path.join(__dirname,"village-measure.js"),"utf8"));/* #6 D4: the village acceptance measure — engine-visible so the suite can run it on a corpus */
 geval(fs.readFileSync(path.join(__dirname,"loc-repair-core.js"),"utf8"));/* #156B: the location repair census/apply core — engine-visible for the identity battery (drives the SHIPPING executors) */
 geval(fs.readFileSync(path.join(__dirname,"engine-tests.js"),"utf8"));

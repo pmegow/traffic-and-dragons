@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261023b";
+var CACHE = "tnd-v3-20261023c";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -78,6 +78,7 @@ var APP_SHELL = [
   "/stt.js",
   "/sound.js",
   "/dice/manifest.js",
+  "/dice/sfx/manifest.js",
   "/dice-sound.js",
   "/vendor/html-to-image/html-to-image.js",
   "/manifest.json",
@@ -154,8 +155,9 @@ self.addEventListener("fetch", function(e){
   if(e.request.method !== "GET") return;
   if(e.request.url.indexOf(self.location.origin) !== 0) return;
   // #650: a roll clip — cache-first against DICE_CACHE (see its comment); never precached, a miss fetches and keeps it.
-  // #653: the damage dice (d4_FF … d12_FF) ride the same path.
-  if(/\/dice\/d\d+_\d\d(\.webm|-stacked\.mp4)$/.test(new URL(e.request.url).pathname)){
+  // #653: the damage dice (d4_FF … d12_FF) ride the same path. #659: so does the dice sound sprite (dice/sfx/dice-rolls-vN.mp3,
+  // ~350 KB, every take of the owner-chosen CC0 recordings) — versioned in its name, since this cache keeps it forever.
+  if(/\/dice\/(d\d+_\d\d(\.webm|-stacked\.mp4)|sfx\/dice-rolls-v\d+\.mp3)$/.test(new URL(e.request.url).pathname)){
     e.respondWith(
       caches.match(e.request).then(function(cached){
         if(cached) return cached;

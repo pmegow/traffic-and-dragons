@@ -291,10 +291,22 @@ var Sound = (function() {
     src.start(st);
     src.stop(end);
   }
-  // Schedule one note onto the play's bus. Three shapes, dispatched by `type` — adding a shape
+  // #659: a recorded SAMPLE — `note.from` seconds into a decoded buffer, `note.d` long, through the play's bus like every
+  // other note (the master mute, the earcon pref and the reverb send apply). The buffer is the caller's (the dice sprite);
+  // a note without one is a caller mistake, said on the console. Source and gain disconnect when the sample ends.
+  function _sample(ctx, bus, st, note) {
+    if (!note.buffer) { console.warn("[sound] sample note without a buffer — nothing to play"); return; }
+    var src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = note.buffer; g.gain.value = typeof note.g === "number" ? note.g : 1;
+    src.connect(g); g.connect(bus);
+    src.onended = function () { try { src.disconnect(); g.disconnect(); } catch (e) {} };
+    src.start(st, note.from || 0, note.d);
+  }
+  // Schedule one note onto the play's bus. Four shapes, dispatched by `type` — adding a shape
   // means adding a branch here and entries in the table, nothing else changes.
   function _playNote(ctx, bus, t0, note) {
     var st = t0 + (note.t || 0);
+    if (note.type === "sample") { _sample(ctx, bus, st, note); return; }
     if (note.type === "noise") { _noiseBurst(ctx, bus, st, note.d, note.g, note.bp); return; }
     if (note.type === "bell") {
       // Expand into the inharmonic stack. `bright` scales how much the upper partials survive:

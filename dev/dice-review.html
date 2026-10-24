@@ -12,10 +12,12 @@
      contract. Shows the VP9 WebM — Chrome, Edge or Firefox; WebKit would show a black box (the game recombines the
      stacked MP4 for it, this page does not).
      THE SOUND (#659, owner 2026-10-23: "to test the dice sound I need to hunt around in a game and FIND combat"): the
-     clip you click plays its own synthesized roll through the game's dice-sound.js over sound.js — the same recipe the
-     game builds from the manifest's hits and rolling stretches — forced past the UI-sound setting (an audition). Play all
-     stays silent: sixty dice at once is noise. A loop re-sounds each pass. The game's mute (#657) still applies and the
-     status line says so, so a silent click never reads as broken. -->
+     clip you click plays its roll through the game's dice-sound.js over sound.js — the same plan the game makes: the take
+     of the CC0 dice sprite (dice/sfx/) nearest the clip's measured motion, started so its recorded landing falls on the
+     clip's — forced past the UI-sound setting (an audition). Each card names the take its plan picks. The sprite is
+     preloaded from this folder (a file:// page cannot fetch it — the status says so). Play all stays silent: sixty dice
+     at once is noise. A loop re-sounds each pass. The game's mute (#657) still applies and the status line says so, so a
+     silent click never reads as broken. -->
 <link rel="stylesheet" href="../satellite.css">
 <style>
   body{margin:0;font:14px/1.4 system-ui,sans-serif;background:var(--bg0);color:var(--t0);transition:background .2s}
@@ -49,6 +51,7 @@
 </header>
 <div id="sets"></div>
 <script src="../dice/manifest.js"></script>
+<script src="../dice/sfx/manifest.js"></script>
 <script src="../audio-master.js"></script>
 <script src="../sound.js"></script>
 <script src="../dice-sound.js"></script>
@@ -76,6 +79,7 @@
     var l=document.createElement("div");l.className="lbl";
     var turns=c&&c.turns!=null?c.turns.toFixed(1)+" turns":"turns unknown";
     var cues=c&&c.hits?c.hits.length+" hit"+(c.hits.length===1?"":"s")+(c.roll&&c.roll.length?" · rolls "+c.roll.map(function(r){return r[0].toFixed(1)+"–"+r[1].toFixed(1)+"s";}).join(", "):""):"unmeasured";
+    var plan=(typeof DiceSound!=="undefined")?DiceSound.plan(sides,n,0):null;cues+=plan?" · take "+(plan.take+1)+" at "+plan.at.toFixed(2)+"s":" · no take";
     l.innerHTML="<b>"+n+"</b><span"+(c&&c.turns!=null&&c.turns<minTurns?" class='warn'":"")+">"+turns+"</span><span title='the measured motion the sound is built from'>"+cues+"</span><span>"+(c?"seed "+c.seed+" · "+kb(c.webm):"not in manifest")+"</span>";
     d.appendChild(fr);d.appendChild(l);grid.appendChild(d);vids.push(v);
   }
@@ -90,6 +94,8 @@
     });
     _noteBase=keys.length+" dice, "+count+" clips · manifest "+(m.rendered||"?")+" · sound: click a clip (Play all stays silent)";
     note(typeof AudioMaster!=="undefined"&&AudioMaster.muted()?"the game is MUTED — unmute it there to hear the rolls":"");
+    /* the sprite decodes now, from this folder; a page opened from file:// cannot fetch it and the status says so */
+    if(typeof DiceSound!=="undefined")DiceSound.preload({base:"../"}).then(function(ok){note(ok?"dice sprite loaded ("+(typeof DICE_SFX!=="undefined"?DICE_SFX.file:"?")+")":"dice sprite NOT loaded — "+DiceSound.state()+" (serve the page over http; file:// cannot fetch)");});
   }
   // dice/manifest.js (written by the batch beside manifest.json) loads from disk and from the site alike;
   // a page opened from file:// cannot fetch(), which is how the owner first opened it (2026-10-21)

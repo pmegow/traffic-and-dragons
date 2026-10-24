@@ -44,7 +44,7 @@ var ENGINE_MANIFEST = [
   { file: "audio-session.js",      sym: "AudioSession" },/* #631: the mic↔narration handoff (portable; tts.js hands it the context) */
   { file: "tts.js",                sym: "TTS" },
   { file: "sound.js",              sym: "Sound" },
-  { file: "dice-sound.js",         sym: "DiceSound" },/* #659: a clip's measured motion (dice/manifest.js — data, not engine; the page loads it before this file) as a sound.js recipe; without it every cue is null */
+  { file: "dice-sound.js",         sym: "DiceSound" },/* #659: a clip's measured motion (dice/manifest.js) picks and places a take of the dice sprite (dice/sfx/manifest.js) — both data, not engine; the page loads them before this file; without them every plan is null */
   { file: "audio-catalog.js",       sym: "AUDIO_CATALOG" },
   { file: "audio-profile.js",       sym: "audioValidateProfile" },
   { file: "audio-scenes.js",       sym: "AUDIO_SCENES" },
