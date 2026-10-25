@@ -60,18 +60,16 @@ const paintDice = () => {
     const c = picker.count(t), a = adders[t];
     a.count.textContent = String(c);
     a.count.hidden = c === 0;
-    a.sub.hidden = c === 0;
     a.add.disabled = picker.full;
     a.add.title = picker.full ? 'The roll is full (' + picker.max + ' dice)' : 'Add a ' + t;
     a.add.setAttribute('aria-label', 'Add a ' + t + ' (' + c + ' in the roll)');
   }
+  $('clear-all').disabled = picker.total === 0;
   $('dice-shown').textContent = picker.notation();
   $('roll').disabled = picker.total === 0;
   try { localStorage.setItem(DICE_KEY, JSON.stringify(picker.counts())); } catch { /* storage blocked */ }
 };
 for (const t of dieTypes()) {
-  const wrap = document.createElement('div');
-  wrap.className = 'adder';
   const add = document.createElement('button');
   add.className = 'add';
   add.type = 'button';
@@ -80,18 +78,20 @@ for (const t of dieTypes()) {
   count.className = 'count';
   count.setAttribute('aria-hidden', 'true');
   add.appendChild(count);
-  const sub = document.createElement('button');
-  sub.className = 'sub';
-  sub.type = 'button';
-  sub.textContent = '−';
-  sub.title = 'Take a ' + t + ' out';
-  sub.setAttribute('aria-label', 'Remove a ' + t);
   add.addEventListener('click', () => { picker.add(t); paintDice(); });
-  sub.addEventListener('click', () => { picker.remove(t); paintDice(); });
-  wrap.append(add, sub);
-  $('adders').appendChild(wrap);
-  adders[t] = { add, sub, count };
+  $('adders').appendChild(add);
+  adders[t] = { add, count };
 }
+const clearAll = document.createElement('button');
+clearAll.className = 'add';
+clearAll.id = 'clear-all';
+clearAll.type = 'button';
+clearAll.textContent = 'Clear';
+clearAll.title = 'Take every die out';
+clearAll.addEventListener('click', () => { picker.clear(); paintDice(); });
+$('adders').appendChild(clearAll);
+// The row floats over the tray: a press on it is not a press on the tray (no roll, throw, turn or pinch).
+for (const type of ['pointerdown', 'pointerup', 'pointercancel']) $('adders').addEventListener(type, (e) => e.stopPropagation());
 
 for (const [key, look] of Object.entries(SURFACE_LOOKS)) {
   const o = document.createElement('option');

@@ -33,6 +33,9 @@
      the clock and the meters (owner 2026-10-24: Reset view was hidden under them). Rules read
      --top-inset, never env() directly. */
   :root { --top-inset: calc(env(safe-area-inset-top, 0px) * 1.7); }
+  /* Tapping fast never zooms the page (owner 2026-10-25: quick taps on the die buttons zoomed in). Pinching
+     still zooms it (the owner's ruling); the stage's own none keeps a pinch there for the camera. */
+  html { touch-action: manipulation; }
   body { padding-top: var(--top-inset); }
   #stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; cursor: grab; }
   #stage:active { cursor: grabbing; }
@@ -44,8 +47,9 @@
   #stage.orbiting #orbit-ring { opacity: 1; transform: scale(1); }
   #stage.orbiting { cursor: grabbing; }
   #stage.zooming { cursor: ns-resize; }
-  /* Shown once the view is turned or zoomed; eases the camera home. */
-  #reset-view { position: absolute; z-index: 3; top: 12px; right: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
+  /* Shown once the view is turned or zoomed; eases the camera home. Bottom right, clear of the die
+     buttons along the top (owner 2026-10-25). */
+  #reset-view { position: absolute; z-index: 3; bottom: 12px; right: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
     background: rgba(15, 17, 21, .78); color: var(--text); font: 13px system-ui, sans-serif; cursor: pointer; }
   #reset-view:hover { border-color: var(--acc); }
   /* No tray: the dice roll over the page itself — a soft backdrop here, so their shadows read. */
@@ -57,26 +61,26 @@
   h1 { font-size: 17px; margin: 0; letter-spacing: .3px; }
   h1 small { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; }
-  #adders { flex-wrap: nowrap; gap: 6px; padding: 6px 0 8px; }   /* every die type on one row: the 20 is not special; room for the badge above and the minus below */
-  /* The die buttons are the only way to choose the dice (owner 2026-10-25): a tap adds one, the count shows on the
-     button (top right), its minus (bottom left, clear of the next die's badge) takes one back; the line below shows the roll and its × clears it. */
-  .adder { position: relative; flex: 1 1 0; min-width: 0; display: flex; }
-  .adder .count { position: absolute; top: -7px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
-    background: var(--acc); color: var(--acc-ink); font: 700 11px/18px system-ui, sans-serif; text-align: center; pointer-events: none; }
-  .adder .sub { position: absolute; bottom: -7px; left: -5px; width: 20px; height: 20px; padding: 0; border-radius: 50%;
-    border: 1px solid #5a6170; background: #2a2f3a; color: var(--text); font: 600 14px/18px system-ui, sans-serif; cursor: pointer; }
-  .adder .sub:hover { border-color: var(--acc); }
-  @media (pointer: coarse) { .adder .sub { width: 24px; height: 24px; bottom: -9px; left: -7px; line-height: 22px; } }
-  .adder .count[hidden], .adder .sub[hidden] { display: none; }
+  /* The die buttons are the only way to choose the dice, and float over the top of the view (owner 2026-10-25):
+     a tap adds one and the count shows on the button; Clear empties the roll (the minus was too small to hit
+     on a phone). The panel's line shows the roll and its × clears it too. Every die type on one row: the 20
+     is not special. Inside the stage, whose touch-action is none, so tapping fast never zooms. */
+  #adders { flex-wrap: nowrap; position: absolute; z-index: 3; top: 12px; left: 10px; right: 10px; justify-content: center; gap: 6px; }
+  .add { position: relative; flex: 1 1 0; min-width: 0; max-width: 72px; min-height: 36px; padding: 8px 0; border: 1px solid var(--line); border-radius: 8px;
+    background: rgba(15, 17, 21, .78); color: var(--text); font: inherit; cursor: pointer; }
+  @media (pointer: coarse) { .add { min-height: 42px; } }
+  .add:hover { border-color: var(--acc); }
   .add:disabled { opacity: .45; cursor: default; }
+  .add .count { position: absolute; top: -7px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+    background: var(--acc); color: var(--acc-ink); font: 700 11px/18px system-ui, sans-serif; text-align: center; pointer-events: none; }
+  .add .count[hidden] { display: none; }
+  #clear-all { color: var(--muted); font-size: 13px; }   /* the one word: fits a 320 px phone too */
   .dice-line { display: grid; gap: 4px; }
   .dice-label { font-size: 12px; color: var(--muted); }
   #dice-shown { display: block; min-height: 38px; padding: 8px 36px 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: #0f1218; color: var(--text); }
   #dice-shown:empty::before { content: attr(data-empty); color: var(--muted); }
   #dice-shown:empty + .clear { visibility: hidden; }   /* nothing to clear */
   #roll:disabled { opacity: .5; cursor: default; }
-  .add { flex: 1 1 0; min-width: 0; padding: 8px 0; border: 1px solid var(--line); border-radius: 8px; background: #1e222b; color: var(--text); font: inherit; cursor: pointer; }
-  .add:hover { border-color: var(--acc); }
   label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
   input[type=range] { width: 100%; padding: 0; accent-color: var(--acc); }
   label output { float: right; color: var(--text); font-variant-numeric: tabular-nums; }
@@ -132,11 +136,10 @@
 </script>
 </head>
 <body>
-<main id="stage" aria-label="Dice tray: drag across it to fling the dice, hold then drag to turn the view, pinch or right-drag to zoom"><div id="orbit-ring" aria-hidden="true"></div><button id="reset-view" type="button" hidden>Reset view</button></main>
+<main id="stage" aria-label="Dice tray: drag across it to fling the dice, hold then drag to turn the view, pinch or right-drag to zoom"><div id="orbit-ring" aria-hidden="true"></div><div class="row" id="adders" aria-label="Choose the dice"></div><button id="reset-view" type="button" hidden>Reset view</button></main>
 <aside id="panel">
   <button id="drawer-grab" type="button" role="separator" aria-orientation="horizontal" aria-label="Resize the options panel" aria-valuemin="24" title="Drag to raise or lower; double tap to close or reopen; arrow keys also resize"></button>
   <h1>Dice Simulator <small id="version"></small></h1>
-  <div class="row" id="adders" aria-label="Add a die"></div>
   <div class="dice-line"><span class="dice-label">Dice</span><span class="field"><output id="dice-shown" aria-live="polite" data-empty="Tap a die to add it">d4 + d6 + d8 + d10 + d12 + d20</output><button class="clear" id="clear-dice" type="button" aria-label="Clear the dice" title="Clear">×</button></span></div>
   <label>Force results, in order <span class="field"><input id="forced" placeholder="blank = honest roll, e.g. 20, 3" autocomplete="off"><button class="clear" id="clear-forced" type="button" aria-label="Clear the forced results" title="Clear">×</button></span></label>
   <div class="preset-row">
