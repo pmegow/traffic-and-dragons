@@ -9,7 +9,7 @@
 // The renderer lives apart in render/ and depends on three.js; this core depends on nothing.
 
 export { VERSION } from './version.js';
-export { roll, readDie, chooseSymmetry, trayFor, TRAY_DEFAULTS, ROLL_DEFAULTS } from './roll.js';
+export { roll, readDie, chooseSymmetry, trayFor, TRAY_DEFAULTS, ROLL_DEFAULTS, MAX_DICE } from './roll.js';
 export { samplePose, rollDuration } from './track.js';
 export { parseNotation } from './notation.js';
 export { buildDie, dieTypes, DIE_TYPES } from './dice.js';

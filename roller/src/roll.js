@@ -54,7 +54,8 @@ export const ROLL_DEFAULTS = {
   readUp: { x: 0, y: 0, z: -1 }, // the floor direction that reads as "up" to the viewer (for upright numerals)
 };
 
-const MAX_DICE = 24;
+/** The most dice one roll may hold. */
+export const MAX_DICE = 24;
 const CROWD = 6;
 const TOSS_REACH = 0.13;   // m: the half-width the toss speeds were tuned in (the 26 cm tray)   // dice that fit the default tray; a bigger roll gets a tray with proportionally more floor
 

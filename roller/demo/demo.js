@@ -6,7 +6,8 @@ import { createPinch } from '../input/pinch.js';
 import { createPresetStore } from './preset-store.js';
 import { createDrawer } from './drawer.js';
 import { sameLook } from '../render/presets.js';
-import { VERSION, parseNotation, dieTypes, samplePose } from '../src/index.js';
+import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
+import { createDicePicker } from './dice-picker.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg || ''; };
@@ -48,17 +49,48 @@ $('sound').addEventListener('change', () => { audio.setMuted(!$('sound').checked
 window.__dice = { view, audio };   // the test seam: drive the page from a script
 
 // ---------------------------------------------------------------- panel
+// The dice: chosen only with these buttons (demo/dice-picker.js), kept on this browser; one of each to start.
+const DICE_KEY = 'dice-sim:dice';
+let savedDice = null;
+try { savedDice = JSON.parse(localStorage.getItem(DICE_KEY) || 'null'); } catch { /* storage blocked: one of each */ }
+const picker = createDicePicker({ types: dieTypes(), max: MAX_DICE, counts: savedDice || Object.fromEntries(dieTypes().map((t) => [t, 1])) });
+const adders = {};
+const paintDice = () => {
+  for (const t of dieTypes()) {
+    const c = picker.count(t), a = adders[t];
+    a.count.textContent = String(c);
+    a.count.hidden = c === 0;
+    a.sub.hidden = c === 0;
+    a.add.disabled = picker.full;
+    a.add.title = picker.full ? 'The roll is full (' + picker.max + ' dice)' : 'Add a ' + t;
+    a.add.setAttribute('aria-label', 'Add a ' + t + ' (' + c + ' in the roll)');
+  }
+  $('dice-shown').textContent = picker.notation();
+  $('roll').disabled = picker.total === 0;
+  try { localStorage.setItem(DICE_KEY, JSON.stringify(picker.counts())); } catch { /* storage blocked */ }
+};
 for (const t of dieTypes()) {
-  const b = document.createElement('button');
-  b.className = 'add';
-  b.type = 'button';
-  b.textContent = t;
-  b.title = 'Add a ' + t;
-  b.addEventListener('click', () => {
-    const cur = $('notation').value.trim();
-    $('notation').value = cur ? cur + ' + ' + t : t;
-  });
-  $('adders').appendChild(b);
+  const wrap = document.createElement('div');
+  wrap.className = 'adder';
+  const add = document.createElement('button');
+  add.className = 'add';
+  add.type = 'button';
+  add.textContent = t;
+  const count = document.createElement('span');
+  count.className = 'count';
+  count.setAttribute('aria-hidden', 'true');
+  add.appendChild(count);
+  const sub = document.createElement('button');
+  sub.className = 'sub';
+  sub.type = 'button';
+  sub.textContent = '−';
+  sub.title = 'Take a ' + t + ' out';
+  sub.setAttribute('aria-label', 'Remove a ' + t);
+  add.addEventListener('click', () => { picker.add(t); paintDice(); });
+  sub.addEventListener('click', () => { picker.remove(t); paintDice(); });
+  wrap.append(add, sub);
+  $('adders').appendChild(wrap);
+  adders[t] = { add, sub, count };
 }
 
 for (const [key, look] of Object.entries(SURFACE_LOOKS)) {
@@ -199,7 +231,7 @@ $('surface').addEventListener('change', () => { applySurface(); applyLook(); });
 for (const id of ['body-color', 'ink-color']) $(id).addEventListener('input', applyLook);
 $('finish').addEventListener('change', applyLook);
 $('font').addEventListener('change', applyLook);
-$('clear-dice').addEventListener('click', () => { $('notation').value = ''; $('notation').focus(); });
+$('clear-dice').addEventListener('click', () => { picker.clear(); paintDice(); });
 $('clear-forced').addEventListener('click', () => { $('forced').value = ''; $('forced').focus(); });
 const speed = () => Number($('speed').value);
 $('speed').addEventListener('input', () => { $('speed-out').textContent = speed().toFixed(2) + '×'; });
@@ -210,7 +242,8 @@ $('tray').addEventListener('input', () => {
 
 /** The roll request the panel describes (throws a readable error for a bad field). */
 function request(extra = {}) {
-  const types = parseNotation($('notation').value);
+  const types = picker.list();
+  if (!types.length) throw new Error('Add a die first: tap one of the die buttons.');
   const forcedText = $('forced').value.trim();
   const forced = forcedText ? forcedText.split(/[\s,]+/).map((x) => {
     const v = Number(x);
@@ -450,4 +483,5 @@ if ('serviceWorker' in navigator) {
   }
 }
 
+paintDice();
 rollFromPanel();

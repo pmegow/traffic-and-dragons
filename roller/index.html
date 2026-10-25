@@ -57,7 +57,24 @@
   h1 { font-size: 17px; margin: 0; letter-spacing: .3px; }
   h1 small { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; }
-  #adders { flex-wrap: nowrap; gap: 4px; }   /* every die type on one row: the 20 is not special */
+  #adders { flex-wrap: nowrap; gap: 6px; padding: 6px 0 8px; }   /* every die type on one row: the 20 is not special; room for the badge above and the minus below */
+  /* The die buttons are the only way to choose the dice (owner 2026-10-25): a tap adds one, the count shows on the
+     button (top right), its minus (bottom left, clear of the next die's badge) takes one back; the line below shows the roll and its × clears it. */
+  .adder { position: relative; flex: 1 1 0; min-width: 0; display: flex; }
+  .adder .count { position: absolute; top: -7px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+    background: var(--acc); color: var(--acc-ink); font: 700 11px/18px system-ui, sans-serif; text-align: center; pointer-events: none; }
+  .adder .sub { position: absolute; bottom: -7px; left: -5px; width: 20px; height: 20px; padding: 0; border-radius: 50%;
+    border: 1px solid #5a6170; background: #2a2f3a; color: var(--text); font: 600 14px/18px system-ui, sans-serif; cursor: pointer; }
+  .adder .sub:hover { border-color: var(--acc); }
+  @media (pointer: coarse) { .adder .sub { width: 24px; height: 24px; bottom: -9px; left: -7px; line-height: 22px; } }
+  .adder .count[hidden], .adder .sub[hidden] { display: none; }
+  .add:disabled { opacity: .45; cursor: default; }
+  .dice-line { display: grid; gap: 4px; }
+  .dice-label { font-size: 12px; color: var(--muted); }
+  #dice-shown { display: block; min-height: 38px; padding: 8px 36px 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: #0f1218; color: var(--text); }
+  #dice-shown:empty::before { content: attr(data-empty); color: var(--muted); }
+  #dice-shown:empty + .clear { visibility: hidden; }   /* nothing to clear */
+  #roll:disabled { opacity: .5; cursor: default; }
   .add { flex: 1 1 0; min-width: 0; padding: 8px 0; border: 1px solid var(--line); border-radius: 8px; background: #1e222b; color: var(--text); font: inherit; cursor: pointer; }
   .add:hover { border-color: var(--acc); }
   label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
@@ -120,7 +137,7 @@
   <button id="drawer-grab" type="button" role="separator" aria-orientation="horizontal" aria-label="Resize the options panel" aria-valuemin="24" title="Drag to raise or lower; double tap to close or reopen; arrow keys also resize"></button>
   <h1>Dice Simulator <small id="version"></small></h1>
   <div class="row" id="adders" aria-label="Add a die"></div>
-  <label>Dice <span class="field"><input id="notation" value="d4 + d6 + d8 + d10 + d12 + d20" placeholder="e.g. 2d6 + d20" autocomplete="off" spellcheck="false"><button class="clear" id="clear-dice" type="button" aria-label="Clear the dice" title="Clear">×</button></span></label>
+  <div class="dice-line"><span class="dice-label">Dice</span><span class="field"><output id="dice-shown" aria-live="polite" data-empty="Tap a die to add it">d4 + d6 + d8 + d10 + d12 + d20</output><button class="clear" id="clear-dice" type="button" aria-label="Clear the dice" title="Clear">×</button></span></div>
   <label>Force results, in order <span class="field"><input id="forced" placeholder="blank = honest roll, e.g. 20, 3" autocomplete="off"><button class="clear" id="clear-forced" type="button" aria-label="Clear the forced results" title="Clear">×</button></span></label>
   <div class="preset-row">
     <label>Preset <select id="preset"></select></label>
