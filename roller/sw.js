@@ -10,7 +10,7 @@
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.18.1';
+const VERSION = '0.19.0';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
@@ -18,6 +18,7 @@ const FILES = [
   'audio/index.js',
   'audio/plan.js',
   'demo/demo.js',
+  'demo/drawer.js',
   'demo/preset-store.js',
   'fonts/README.md',
   'fonts/grenze-gotisch/GrenzeGotisch-wght.ttf',

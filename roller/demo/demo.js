@@ -4,6 +4,7 @@ import { DiceAudio } from '../audio/index.js';
 import { createPressGesture } from '../input/press-gesture.js';
 import { createPinch } from '../input/pinch.js';
 import { createPresetStore } from './preset-store.js';
+import { createDrawer } from './drawer.js';
 import { sameLook } from '../render/presets.js';
 import { VERSION, parseNotation, dieTypes, samplePose } from '../src/index.js';
 
@@ -394,6 +395,48 @@ stage.addEventListener('pointercancel', (e) => {
 });
 stage.addEventListener('gesturestart', (e) => e.preventDefault());   // Safari's own pinch would zoom the page
 stage.addEventListener('contextmenu', (e) => e.preventDefault());   // a long press turns the view and a right-drag zooms: no menu
+
+// ---------------------------------------------------------------- the options drawer (phone layout)
+// On a narrow screen the options sit in a drawer under the tray; its handle raises and lowers it
+// (demo/drawer.js). Its height is remembered on this browser. The wide layout ignores it.
+const narrow = window.matchMedia('(max-width: 760px)');
+const panel = $('panel'), grab = $('drawer-grab');
+const DRAWER_KEY = 'dice-sim:drawer';
+const drawerMax = () => Math.round(window.innerHeight * 0.85);
+let drawerSaved = null;
+try { drawerSaved = JSON.parse(localStorage.getItem(DRAWER_KEY) || 'null'); } catch { /* storage blocked: the default height */ }
+const drawerStart = Math.round(window.innerHeight * 0.46);   // the layout's old fixed share
+const drawer = createDrawer({ height: drawerSaved?.height ?? drawerStart, open: drawerSaved?.reopen ?? drawerStart, max: drawerMax() });
+const paintDrawer = () => {
+  if (!narrow.matches) { panel.style.removeProperty('height'); panel.style.removeProperty('max-height'); panel.classList.remove('drawer-closed'); return; }
+  panel.style.height = drawer.height + 'px';
+  panel.style.maxHeight = 'none';
+  panel.classList.toggle('drawer-closed', drawer.closed);
+  grab.setAttribute('aria-valuenow', String(drawer.height));
+  grab.setAttribute('aria-valuemax', String(drawerMax()));
+};
+const keepDrawer = () => { try { localStorage.setItem(DRAWER_KEY, JSON.stringify({ height: drawer.height, reopen: drawer.reopen })); } catch { /* storage blocked */ } };
+let drawerPointer = null;
+grab.addEventListener('pointerdown', (e) => {
+  if (e.isPrimary === false || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  drawerPointer = e.pointerId;
+  try { grab.setPointerCapture(e.pointerId); } catch { /* the drag still ends on pointerup */ }
+  drawer.down(e.clientY, e.timeStamp);
+  e.preventDefault();
+});
+grab.addEventListener('pointermove', (e) => { if (e.pointerId === drawerPointer) { drawer.move(e.clientY); paintDrawer(); } });
+grab.addEventListener('pointerup', (e) => {
+  if (e.pointerId !== drawerPointer) return;
+  drawerPointer = null;
+  drawer.up(e.clientY, e.timeStamp);
+  paintDrawer();
+  keepDrawer();
+});
+grab.addEventListener('pointercancel', () => { drawerPointer = null; drawer.cancel(); });
+grab.addEventListener('keydown', (e) => { if (drawer.key(e.key) !== null) { e.preventDefault(); paintDrawer(); keepDrawer(); } });
+narrow.addEventListener('change', paintDrawer);
+window.addEventListener('resize', () => { drawer.setMax(drawerMax()); paintDrawer(); });
+paintDrawer();
 
 // ---------------------------------------------------------------- offline (the installed web app)
 // sw.js keeps the app for offline use and the Home Screen. Not on a development server, where a

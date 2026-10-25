@@ -57,6 +57,10 @@
   label.check input { width: auto; }
   #sound-state { color: var(--muted); font-size: 12px; }
   input, select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: #0f1218; color: var(--text); font: inherit; }
+  /* iOS Safari zooms into a focused field whose text is under 16px, and stays zoomed — the fields sit
+     in 12px labels and inherited it (owner 2026-10-24, on an iPhone: tapping × or Force results
+     doubled the panel). On touch screens their text is 16px. */
+  @media (pointer: coarse) { input, select, textarea { font-size: 16px; } }
   input:focus, select:focus { outline: 2px solid var(--acc); outline-offset: -1px; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .preset-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
@@ -78,7 +82,15 @@
   #status { font-size: 13px; color: var(--bad); white-space: pre-wrap; }
   #status:empty { display: none; }
   .hint { color: var(--muted); font-size: 12px; margin: 0; }
+  #drawer-grab { display: none; }
   @media (max-width: 760px) {
+    /* The options drawer's handle (demo/drawer.js), like Traffic and Dragons' side-panel grip: drag to
+       raise or lower, double tap to close or reopen. Sticky at the panel's top edge while it scrolls. */
+    #drawer-grab { display: flex; order: -10; position: sticky; top: -12px; z-index: 3; flex: 0 0 24px;
+      margin: -12px -16px -4px; padding: 0; border: 0; background: var(--panel); cursor: row-resize; touch-action: none; }
+    #drawer-grab::after { content: ''; margin: auto; width: 36px; height: 5px; border-radius: 3px; background: #777; pointer-events: none; }
+    #drawer-grab:focus-visible { outline: 1px solid var(--acc); outline-offset: -1px; }
+    #panel.drawer-closed { overflow: hidden; }
     body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
     #panel { border-left: 0; border-top: 1px solid var(--line); max-height: 46dvh; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); gap: 10px; }
     #result { min-height: 0; }
@@ -95,6 +107,7 @@
 <body>
 <main id="stage" aria-label="Dice tray: drag across it to fling the dice, hold then drag to turn the view, pinch or right-drag to zoom"><div id="orbit-ring" aria-hidden="true"></div><button id="reset-view" type="button" hidden>Reset view</button></main>
 <aside id="panel">
+  <button id="drawer-grab" type="button" role="separator" aria-orientation="horizontal" aria-label="Resize the options panel" aria-valuemin="24" title="Drag to raise or lower; double tap to close or reopen; arrow keys also resize"></button>
   <h1>Dice Simulator <small id="version"></small></h1>
   <div class="row" id="adders" aria-label="Add a die"></div>
   <label>Dice <span class="field"><input id="notation" value="d4 + d6 + d8 + d10 + d12 + d20" placeholder="e.g. 2d6 + d20" autocomplete="off" spellcheck="false"><button class="clear" id="clear-dice" type="button" aria-label="Clear the dice" title="Clear">×</button></span></label>
