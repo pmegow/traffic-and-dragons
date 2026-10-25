@@ -18,7 +18,7 @@ export const DIE_PRESETS = [
   { name: 'Carrara', body: '#ecebe8', ink: '#1b1b1b', finish: 'marble', font: 'classic' },
   { name: 'Teal granite', body: '#368fa1', ink: '#d5d1aa', finish: 'granite', font: 'sans' },
   { name: 'Rust granite', body: '#763d1e', ink: '#d5d1aa', finish: 'granite', font: 'sans' },
-  { name: 'Bone', body: '#e8dcc0', ink: '#1b1b1b', finish: 'none', font: 'classic' },
+  { name: 'Bone', body: '#e8dcc0', ink: '#1b1b1b', finish: 'granite', font: 'classic' },   // granite: owner 2026-10-24
   { name: 'Jade', body: '#1b6515', ink: '#ffffff', finish: 'quartz', font: 'sans' },
   { name: 'Ember', body: '#000000', ink: '#c80404', finish: 'granite', font: 'sans' },
 ];
