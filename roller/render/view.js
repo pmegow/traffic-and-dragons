@@ -18,7 +18,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { roll, samplePose, rollDuration, buildDie, trayFor } from '../src/index.js';
 import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, facesShowing } from './die-mesh.js';
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
-import { orbitPose, standCamera, blendOrbit } from './framing.js';
+import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
 import { dieMaterial, recolour, setGlyph, setOnTray, FINISHES } from './finishes.js';
 import { NUMERAL_FONTS } from './numeral-fonts.js';
 import { SURFACE_LOOKS, RIM_LOOK } from './surface-looks.js';
@@ -33,6 +33,7 @@ export { LIGHTS };   // render/lights.js
 export { VIEW_DEFAULTS };
 
 const RIM_HEIGHT = 0.014;   // m: the tray's rim, low enough that a die resting against the near wall stays in view
+const SCREEN_MARGIN = 0.002;   // m: the screen's edges, moved in a little, so a die never touches the frame
 
 export class DiceView {
   constructor(options = {}) {
@@ -100,7 +101,10 @@ export class DiceView {
     const cam = this.camera.position;
     const toCam = new THREE.Vector3(cam.x, 0, cam.z).normalize();
     const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), toCam).normalize();   // screen right on the floor
-    const reach = Math.hypot(this.tray.width, this.tray.depth) / 2 + 0.05;
+    // With no tray drawn the dice may roll anywhere on screen, so the shadows cover the visible floor
+    // (within reason: a low orbit sees far, and one shadow map spread over metres goes soft).
+    const trayReach = Math.hypot(this.tray.width, this.tray.depth) / 2 + 0.05;
+    const reach = this.trayDrawn === false ? Math.min(1.5, Math.max(trayReach, this.screenEdges().reach + 0.05)) : trayReach;
     for (const { spec, light } of this.lights) {
       const d = 0.8;
       light.position.copy(right).multiplyScalar(spec.side * d).addScaledVector(toCam, spec.toward * d).setY(spec.up * d);
@@ -127,7 +131,8 @@ export class DiceView {
     this.scene.background = drawn ? new THREE.Color('#0f1115') : null;
     const { width: W, depth: D } = this.tray;
     const group = new THREE.Group();
-    const floorGeo = new THREE.PlaneGeometry(W, D);
+    // No tray drawn: the shadow catcher spans well past any screen, as the dice roll to its edges.
+    const floorGeo = drawn ? new THREE.PlaneGeometry(W, D) : new THREE.PlaneGeometry(8, 8);
     floorGeo.rotateX(-Math.PI / 2);
     const floor = new THREE.Mesh(floorGeo, drawn ? patternedMaterial(look) : new THREE.ShadowMaterial({ opacity: 0.38 }));
     floor.receiveShadow = true;
@@ -281,6 +286,11 @@ export class DiceView {
     ray.setFromCamera(ndc, this.camera);
     const p = new THREE.Vector3();
     if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), p)) return null;
+    if (this.trayDrawn === false) {
+      // No tray: any floor the screen shows (short of a low orbit's horizon) is a place to throw from.
+      const inside = this.screenEdges().planes.every((b) => b.normal.x * p.x + b.normal.y * p.y + b.normal.z * p.z >= b.offset - 1e-6);
+      return inside ? { x: p.x, z: p.z } : null;
+    }
     if (Math.abs(p.x) > this.tray.width / 2 || Math.abs(p.z) > this.tray.depth / 2) return null;
     return { x: p.x, z: p.z };
   }
@@ -344,9 +354,25 @@ export class DiceView {
     this.render();
   }
 
-  /** Bakes a roll (core roll()) on this view's tray, with the camera's reading direction filled in. */
+  /**
+   * The screen's edges as a boundary, from where the camera stands now (render/framing.js ▸
+   * screenBounds): the planes a roll is kept inside when no tray is drawn, and the visible floor.
+   */
+  screenEdges() {
+    const cam = this.camera;
+    return screenBounds({ position: cam.position, fov: cam.fov, aspect: cam.aspect, margin: SCREEN_MARGIN });
+  }
+
+  /**
+   * Bakes a roll (core roll()) on this view's tray, with the camera's reading direction filled in.
+   * With no tray drawn (the 'none' look, or a transparent view) the dice are kept inside the screen's
+   * edges instead of an invisible box (owner 2026-10-24), taken from the camera as it stands now; the
+   * edges sound like walls of the tray's wall surface.
+   */
   bake(request) {
-    return roll({ readUp: this.readUp, ...request, tray: { ...this.trayOptions, ...(request.tray || {}) } });
+    const edges = this.trayDrawn === false ? this.screenEdges() : null;
+    const bounds = edges ? { bounds: edges.planes, area: { center: edges.center, width: edges.width, depth: edges.depth } } : {};
+    return roll({ readUp: this.readUp, ...request, tray: { ...this.trayOptions, ...bounds, ...(request.tray || {}) } });
   }
 
   /** Bakes a roll and plays it. */

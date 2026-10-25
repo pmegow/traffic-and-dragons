@@ -80,3 +80,55 @@ export function standCamera(stage, pose, limits) {
   const zoom = Math.min(limits.maxZoom, Math.max(p.zoom, limits.minHeight / fit.y));
   return { pose: { ...p, zoom }, position: { x: fit.x * zoom, y: fit.y * zoom, z: fit.z * zoom } };
 }
+
+/**
+ * The screen as a boundary (owner 2026-10-24: with no tray drawn, the dice bounce off the screen's
+ * edges). For a camera at `position` looking at the tray's centre with +y up, a vertical `fov`
+ * (degrees) and a stage `aspect`, returns:
+ *   planes   the four sides of the view — left, right, top, bottom — as { normal, offset } with the
+ *            normal pointing in (a point p is inside when normal·p ≥ offset), each moved `margin` m
+ *            in; they pass through the camera, so a die kept inside them is wholly on screen. When
+ *            the view's top edge looks at or above the horizon (a low orbit), a fifth, upright plane
+ *            closes the floor `maxRange` m out, or the dice could roll away forever.
+ *   floor    the visible floor (y = 0) as four corners — bottom-left, bottom-right, top-right,
+ *            top-left — a corner past the horizon brought in to `maxRange`
+ *   center, width, depth   the floor's bounding box, for where a throw starts
+ *   reach    the farthest floor corner from the tray's centre (what the shadows must cover)
+ */
+export function screenBounds({ position, fov, aspect, margin = 0.002, maxRange = 3 }) {
+  const c = position;
+  const len = Math.hypot(c.x, c.y, c.z);
+  const f = { x: -c.x / len, y: -c.y / len, z: -c.z / len };                 // forward, to the centre
+  const rl = Math.hypot(f.x, f.z);
+  const r = { x: -f.z / rl, y: 0, z: f.x / rl };                             // right: forward × up
+  const u = { x: r.y * f.z - r.z * f.y, y: r.z * f.x - r.x * f.z, z: r.x * f.y - r.y * f.x };   // up: right × forward
+  const tv = Math.tan((fov / 2) * Math.PI / 180), th = tv * aspect;
+  const comb = (a, ka, b, kb) => ({ x: a.x * ka + b.x * kb, y: a.y * ka + b.y * kb, z: a.z * ka + b.z * kb });
+  const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+  const unit = (v) => { const l = Math.hypot(v.x, v.y, v.z); return { x: v.x / l, y: v.y / l, z: v.z / l }; };
+  const side = (n) => { const normal = unit(n); return { normal, offset: dot(normal, c) + margin }; };
+  const planes = [side(comb(r, 1, f, th)), side(comb(r, -1, f, th)), side(comb(u, -1, f, tv)), side(comb(u, 1, f, tv))];
+  // The floor's corners: each corner ray from the camera, to y = 0 or brought in to maxRange.
+  let clipped = false;
+  const corner = (sx, sy) => {
+    const d = { x: f.x + sx * th * r.x + sy * tv * u.x, y: f.y + sx * th * r.y + sy * tv * u.y, z: f.z + sx * th * r.z + sy * tv * u.z };
+    let t = d.y < 0 ? -c.y / d.y : Infinity;
+    const out = Math.hypot(d.x, d.z) * t;
+    if (!(out <= maxRange)) { t = maxRange / Math.hypot(d.x, d.z); clipped = true; }
+    return { x: c.x + d.x * t, y: 0, z: c.z + d.z * t };
+  };
+  const floor = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)];
+  if (clipped) {
+    const back = unit({ x: -f.x, y: 0, z: -f.z });                           // upright, facing the camera
+    const far = Math.max(...floor.map((p) => -(back.x * p.x + back.z * p.z)));
+    planes.push({ normal: back, offset: -far });
+  }
+  const xs = floor.map((p) => p.x), zs = floor.map((p) => p.z);
+  const box = { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs) };
+  return {
+    planes, floor,
+    center: { x: (box.minX + box.maxX) / 2, z: (box.minZ + box.maxZ) / 2 },
+    width: box.maxX - box.minX, depth: box.maxZ - box.minZ,
+    reach: Math.max(...floor.map((p) => Math.hypot(p.x, p.z))),
+  };
+}

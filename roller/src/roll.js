@@ -27,7 +27,14 @@ export const TRAY_DEFAULTS = {
   surface: 'felt',    // the floor (SURFACES)
   walls: 'felt',      // the four walls (SURFACES)
   scale: 0.6,         // multiplies the default width and depth (owner 2026-10-24: the full-size tray was much too large on screen)
+  // bounds (optional): side planes [{ normal: {x, y, z}, offset }] in place of the four walls — a point
+  //   p is inside when normal·p ≥ offset. The renderer passes the screen's edges here when no tray is
+  //   drawn (render/framing.js ▸ screenBounds; owner 2026-10-24). The floor and the ceiling stay.
+  // area (optional, with bounds): { center: {x, z}, width, depth } — where in the bounds a throw starts.
 };
+
+/** The most side planes a tray may have. */
+const MAX_BOUNDS = 8;
 
 export const ROLL_DEFAULTS = {
   fps: 60,                 // frames per second of the recorded track
@@ -111,6 +118,16 @@ function validate(request) {
   const tray = trayFor(dice.length, request.tray || {});
   lookup(SURFACES, tray.surface, 'surface');
   lookup(SURFACES, tray.walls, 'surface');
+  if (tray.bounds !== undefined) {
+    const b = tray.bounds, finite = (...xs) => xs.every(Number.isFinite);
+    if (!Array.isArray(b) || b.length < 3 || b.length > MAX_BOUNDS) throw new Error('roll: tray.bounds must be 3 to ' + MAX_BOUNDS + ' planes, got ' + (Array.isArray(b) ? b.length : typeof b));
+    b.forEach((p, i) => {
+      const n = p && p.normal;
+      if (!n || !finite(n.x, n.y, n.z, p.offset) || !(n.x * n.x + n.y * n.y + n.z * n.z > 1e-12)) throw new Error('roll: tray.bounds[' + i + '] needs a non-zero normal {x, y, z} and a finite offset');
+    });
+    const a = tray.area;
+    if (a !== undefined && !(a && a.center && finite(a.center.x, a.center.z) && a.width > 0 && a.depth > 0)) throw new Error('roll: tray.area needs a center {x, z} and a positive width and depth');
+  }
   const world = { ...(request.world || {}) };
   const dt = world.dt ?? WORLD_DEFAULTS.dt;
   const fps = request.fps ?? ROLL_DEFAULTS.fps;
@@ -139,6 +156,13 @@ function validate(request) {
 // ---------------------------------------------------------------- the tray and the throw
 function trayPlanes(tray) {
   const floor = SURFACES[tray.surface], wall = SURFACES[tray.walls];
+  if (tray.bounds) {
+    return [
+      plane(v3(0, 1, 0), 0, floor, 'floor'),
+      ...tray.bounds.map((b) => plane(v3(b.normal.x, b.normal.y, b.normal.z), b.offset, wall, 'wall')),
+      plane(v3(0, -1, 0), -tray.height, wall, 'ceiling'),
+    ];
+  }
   const hw = tray.width / 2, hd = tray.depth / 2;
   return [
     plane(v3(0, 1, 0), 0, floor, 'floor'),
@@ -169,13 +193,15 @@ function throwStates(req, seed, attempt) {
   }
   const plan = req.fling ? flingPlan(req) : tossPlan(req);
   const dir = plan.dir, side = cross(UP, dir);   // side ⟂ dir along the floor
-  const across = 0.5 * (req.tray.width * Math.abs(side.x) + req.tray.depth * Math.abs(side.z));
+  const span = req.tray.area || req.tray;
+  const across = 0.5 * (span.width * Math.abs(side.x) + span.depth * Math.abs(side.z));
   const n = req.dice.length;
   const spacing = 0.036;
   const perRow = Math.max(1, Math.min(n, Math.floor((2 * across - 0.04) / spacing)));
   // Keep every start inside the walls (a fling can begin near one).
   const hx = req.tray.width / 2 - 0.022, hz = req.tray.depth / 2 - 0.022;
-  const inside = (p) => v3(Math.max(-hx, Math.min(hx, p.x)), p.y, Math.max(-hz, Math.min(hz, p.z)));
+  const inside = req.tray.bounds ? (p) => insideBounds(p, req.tray.bounds, 0.022)
+    : (p) => v3(Math.max(-hx, Math.min(hx, p.x)), p.y, Math.max(-hz, Math.min(hz, p.z)));
   return req.dice.map((d, i) => {
     const row = Math.floor(i / perRow), col = i % perRow, inRow = Math.min(perRow, n - row * perRow);
     const lateral = (col - (inRow - 1) / 2) * spacing + rng.range(-0.003, 0.003);
@@ -192,15 +218,35 @@ function throwStates(req, seed, attempt) {
   });
 }
 
-/** The default toss: from the far side of the tray, along `direction`, at `strength`. */
+/**
+ * A point moved, along the floor, until it is at least `margin` inside every side plane: each plane
+ * it is short of pushes it straight in. A few sweeps settle it in any convex region the size of a
+ * throw. Only + − × ÷ (the determinism contract).
+ */
+function insideBounds(p, bounds, margin) {
+  let x = p.x, z = p.z;
+  for (let sweep = 0; sweep < 4; sweep++) {
+    for (const b of bounds) {
+      const n = b.normal, nn = n.x * n.x + n.y * n.y + n.z * n.z;
+      const h = n.x * n.x + n.z * n.z;   // how much of the (unnormalised) normal lies along the floor
+      if (h < 1e-9 * nn) continue;        // a floor- or ceiling-like plane: nothing to push along
+      const short = b.offset * Math.sqrt(nn) + margin * Math.sqrt(nn) - (n.x * x + n.y * p.y + n.z * z);
+      if (short > 0) { x += n.x * short / h; z += n.z * short / h; }
+    }
+  }
+  return v3(x, p.y, z);
+}
+
+/** The default toss: from the far side of the tray (or of tray.area), along `direction`, at `strength`. */
 function tossPlan(req) {
   const dir = req.direction;
-  const reach = 0.5 * (req.tray.width * Math.abs(dir.x) + req.tray.depth * Math.abs(dir.z));
+  const span = req.tray.area || req.tray, mid = (req.tray.area && req.tray.area.center) || { x: 0, z: 0 };
+  const reach = 0.5 * (span.width * Math.abs(dir.x) + span.depth * Math.abs(dir.z));
   // A die slides v²/2μg before it stops, so a tray of a different size is matched by √(size):
   // dice come to rest the same fraction of the way across any tray. Exactly 1 for the 26 cm tray.
   const fit = Math.sqrt(reach / TOSS_REACH);
   return {
-    dir, origin: scale(dir, -(reach - 0.045)),
+    dir, origin: add(v3(mid.x, 0, mid.z), scale(dir, -(reach - 0.045))),
     speed: (rng) => fit * req.strength * rng.range(0.9, 1.5), spread: req.strength, spin: req.strength,
   };
 }
