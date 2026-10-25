@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#0f1115">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Dice">
 <style>
   :root {
@@ -27,6 +27,13 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
   body { display: grid; grid-template-columns: 1fr 300px; height: 100dvh; overflow: hidden; }
+  /* The top inset, Traffic and Dragons' technique (its #658): on a Home Screen iPhone the page runs under
+     the status bar, and since iOS 26.1 a glass blur reaches ~40pt below the bar that nothing switches off.
+     So the layout starts 1.7 × the safe-area inset down (0 in a browser tab or on a desktop), clearing
+     the clock and the meters (owner 2026-10-24: Reset view was hidden under them). Rules read
+     --top-inset, never env() directly. */
+  :root { --top-inset: calc(env(safe-area-inset-top, 0px) * 1.7); }
+  body { padding-top: var(--top-inset); }
   #stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; cursor: grab; }
   #stage:active { cursor: grabbing; }
   #stage { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -44,6 +51,9 @@
   /* No tray: the dice roll over the page itself — a soft backdrop here, so their shadows read. */
   #stage[data-surface="none"] { background: radial-gradient(ellipse at 50% 42%, #3b4352 0%, #262c38 55%, #181b22 100%); }
   #panel { border-left: 1px solid var(--line); background: var(--panel); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+  /* Rows keep their size and the panel scrolls: in a panel of fixed height (the phone drawer) a
+     shrinking row drew its text over the next one (the roll summary over the die buttons). */
+  #panel > * { flex-shrink: 0; }
   h1 { font-size: 17px; margin: 0; letter-spacing: .3px; }
   h1 small { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -111,7 +121,7 @@
   <h1>Dice Simulator <small id="version"></small></h1>
   <div class="row" id="adders" aria-label="Add a die"></div>
   <label>Dice <span class="field"><input id="notation" value="d4 + d6 + d8 + d10 + d12 + d20" placeholder="e.g. 2d6 + d20" autocomplete="off" spellcheck="false"><button class="clear" id="clear-dice" type="button" aria-label="Clear the dice" title="Clear">×</button></span></label>
-  <label>Force results, in order <input id="forced" placeholder="blank = honest roll, e.g. 20, 3" autocomplete="off"></label>
+  <label>Force results, in order <span class="field"><input id="forced" placeholder="blank = honest roll, e.g. 20, 3" autocomplete="off"><button class="clear" id="clear-forced" type="button" aria-label="Clear the forced results" title="Clear">×</button></span></label>
   <div class="preset-row">
     <label>Preset <select id="preset"></select></label>
     <button class="ghost" id="preset-delete" type="button" disabled title="Delete this saved preset">Delete</button>

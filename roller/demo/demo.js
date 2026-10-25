@@ -200,6 +200,7 @@ for (const id of ['body-color', 'ink-color']) $(id).addEventListener('input', ap
 $('finish').addEventListener('change', applyLook);
 $('font').addEventListener('change', applyLook);
 $('clear-dice').addEventListener('click', () => { $('notation').value = ''; $('notation').focus(); });
+$('clear-forced').addEventListener('click', () => { $('forced').value = ''; $('forced').focus(); });
 const speed = () => Number($('speed').value);
 $('speed').addEventListener('input', () => { $('speed-out').textContent = speed().toFixed(2) + '×'; });
 $('tray').addEventListener('input', () => {
