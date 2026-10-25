@@ -1,0 +1,465 @@
+{
+  "schema": 1,
+  "file": "clicks-v1.mp3",
+  "sha256": "84c48edc8d289fa4a1a123d67a575a3950027f98986d405b34a45b397ac36150",
+  "bytes": 126720,
+  "sampleRate": 48000,
+  "duration": 6.2724,
+  "license": "CC0 1.0",
+  "author": "aunrea",
+  "source": "Freesound pack \"Dice Rolls\" https://freesound.org/people/aunrea/packs/27882/ — a plastic die rolled on a wooden table (the HQ previews, 192 kbps mp3, 48 kHz mono)",
+  "licenseVerified": "2026-10-23 — \"Creative Commons 0\" on the pack page and on sound 485950's page (recorded in Traffic and Dragons dice/sfx/manifest.json)",
+  "cut": "2026-10-24",
+  "method": "dev/cut-clicks.js (its header): onsets in a 2 ms RMS envelope, clean single impacts, up to two per 6 dB band of strength, −1 dBFS, gapless libmp3lame 160 kbps",
+  "timelineCheck": "decoded back and cross-correlated: the largest shift was 0 samples",
+  "sources": [
+    {
+      "type": "d4",
+      "freesound": 485943,
+      "url": "https://freesound.org/people/aunrea/sounds/485943/",
+      "file": "fs485943__aunrea__d4-rolled-on-wood-table-hq.mp3",
+      "sha256": "44329b4f3a206ad86e8344bc4333a01a3201294c5c06281680699af80f06dad5"
+    },
+    {
+      "type": "d6",
+      "freesound": 485950,
+      "url": "https://freesound.org/people/aunrea/sounds/485950/",
+      "file": "fs485950__aunrea__d6-rolled-on-wood-table-hq.mp3",
+      "sha256": "50397ec57449f3deee9cc2f97d448395b8c7affe14d0995e74d6fce6b60ae436"
+    },
+    {
+      "type": "d8",
+      "freesound": 485949,
+      "url": "https://freesound.org/people/aunrea/sounds/485949/",
+      "file": "fs485949__aunrea__d8-rolled-on-wood-table-hq.mp3",
+      "sha256": "a5bc8367dd467a539c191274622a4a548fe53fecebf1b76f910fe2aa89c50254"
+    },
+    {
+      "type": "d10",
+      "freesound": 485946,
+      "url": "https://freesound.org/people/aunrea/sounds/485946/",
+      "file": "fs485946__aunrea__d10-rolled-on-wood-table-hq.mp3",
+      "sha256": "05e3452db7181ff10323ee4ff08a2bef075301d6e0b458924ede6a6c9092a21a"
+    },
+    {
+      "type": "d12",
+      "freesound": 485945,
+      "url": "https://freesound.org/people/aunrea/sounds/485945/",
+      "file": "fs485945__aunrea__d12-rolled-on-wood-table-hq.mp3",
+      "sha256": "214217ee761397e9aaa08858dc4153a2b79b8dcfedbf89176730fdc3ad958025"
+    },
+    {
+      "type": "d20",
+      "freesound": 485944,
+      "url": "https://freesound.org/people/aunrea/sounds/485944/",
+      "file": "fs485944__aunrea__d20-rolled-on-wood-table-hq.mp3",
+      "sha256": "ba6afd033acd881e114806410177cef52389ed597f4cb6e7b9168bf0c6b88806"
+    }
+  ],
+  "clicks": {
+    "d4": [
+      {
+        "start": 0.05,
+        "length": 0.031167,
+        "strength": 1,
+        "db": 0,
+        "from": 1.2908
+      },
+      {
+        "start": 0.151167,
+        "length": 0.037979,
+        "strength": 0.4438,
+        "db": -7.1,
+        "from": 4.836
+      },
+      {
+        "start": 0.259146,
+        "length": 0.04025,
+        "strength": 0.3688,
+        "db": -8.7,
+        "from": 8.5017
+      },
+      {
+        "start": 0.369396,
+        "length": 0.050521,
+        "strength": 0.1834,
+        "db": -14.7,
+        "from": 8.6515
+      },
+      {
+        "start": 0.489917,
+        "length": 0.051271,
+        "strength": 0.1313,
+        "db": -17.6,
+        "from": 1.8467
+      },
+      {
+        "start": 0.611187,
+        "length": 0.040125,
+        "strength": 0.1224,
+        "db": -18.2,
+        "from": 5.0829
+      },
+      {
+        "start": 0.721313,
+        "length": 0.061292,
+        "strength": 0.1165,
+        "db": -18.7,
+        "from": 8.7517
+      },
+      {
+        "start": 0.852604,
+        "length": 0.088583,
+        "strength": 0.0542,
+        "db": -25.3,
+        "from": 1.8994
+      },
+      {
+        "start": 1.011187,
+        "length": 0.115708,
+        "strength": 0.0396,
+        "db": -28.1,
+        "from": 3.7313
+      }
+    ],
+    "d6": [
+      {
+        "start": 1.196896,
+        "length": 0.031042,
+        "strength": 0.6512,
+        "db": -3.7,
+        "from": 4.358
+      },
+      {
+        "start": 1.297937,
+        "length": 0.031771,
+        "strength": 0.6469,
+        "db": -3.8,
+        "from": 1.0112
+      },
+      {
+        "start": 1.399708,
+        "length": 0.033521,
+        "strength": 0.4352,
+        "db": -7.2,
+        "from": 1.1415
+      },
+      {
+        "start": 1.503229,
+        "length": 0.034583,
+        "strength": 0.2769,
+        "db": -11.2,
+        "from": 7.7924
+      },
+      {
+        "start": 1.607813,
+        "length": 0.036125,
+        "strength": 0.2335,
+        "db": -12.6,
+        "from": 7.9679
+      },
+      {
+        "start": 1.713937,
+        "length": 0.034563,
+        "strength": 0.1769,
+        "db": -15,
+        "from": 1.4414
+      },
+      {
+        "start": 1.8185,
+        "length": 0.066896,
+        "strength": 0.1032,
+        "db": -19.7,
+        "from": 4.6471
+      },
+      {
+        "start": 1.955396,
+        "length": 0.045875,
+        "strength": 0.079,
+        "db": -22,
+        "from": 1.5731
+      },
+      {
+        "start": 2.071271,
+        "length": 0.042438,
+        "strength": 0.0512,
+        "db": -25.8,
+        "from": 8.4656
+      },
+      {
+        "start": 2.183708,
+        "length": 0.02925,
+        "strength": 0.0322,
+        "db": -29.9,
+        "from": 4.9627
+      }
+    ],
+    "d8": [
+      {
+        "start": 2.282958,
+        "length": 0.027979,
+        "strength": 1,
+        "db": 0,
+        "from": 3.734
+      },
+      {
+        "start": 2.380937,
+        "length": 0.031271,
+        "strength": 0.6655,
+        "db": -3.5,
+        "from": 7.2607
+      },
+      {
+        "start": 2.482208,
+        "length": 0.047667,
+        "strength": 0.3274,
+        "db": -9.7,
+        "from": 0.2813
+      },
+      {
+        "start": 2.599875,
+        "length": 0.036625,
+        "strength": 0.2823,
+        "db": -11,
+        "from": 4.0264
+      },
+      {
+        "start": 2.7065,
+        "length": 0.031708,
+        "strength": 0.1974,
+        "db": -14.1,
+        "from": 4.2143
+      },
+      {
+        "start": 2.808208,
+        "length": 0.044521,
+        "strength": 0.1793,
+        "db": -14.9,
+        "from": 7.3505
+      },
+      {
+        "start": 2.922729,
+        "length": 0.0305,
+        "strength": 0.1208,
+        "db": -18.4,
+        "from": 0.7325
+      },
+      {
+        "start": 3.023229,
+        "length": 0.031854,
+        "strength": 0.1113,
+        "db": -19.1,
+        "from": 7.7951
+      },
+      {
+        "start": 3.125083,
+        "length": 0.082958,
+        "strength": 0.0119,
+        "db": -38.5,
+        "from": 0.191
+      }
+    ],
+    "d10": [
+      {
+        "start": 3.278042,
+        "length": 0.030312,
+        "strength": 1,
+        "db": 0,
+        "from": 0.1357
+      },
+      {
+        "start": 3.378354,
+        "length": 0.030292,
+        "strength": 0.7337,
+        "db": -2.7,
+        "from": 3.9927
+      },
+      {
+        "start": 3.478646,
+        "length": 0.038333,
+        "strength": 0.3078,
+        "db": -10.2,
+        "from": 0.2677
+      },
+      {
+        "start": 3.586979,
+        "length": 0.03425,
+        "strength": 0.2699,
+        "db": -11.4,
+        "from": 0.4657
+      },
+      {
+        "start": 3.691229,
+        "length": 0.036896,
+        "strength": 0.2129,
+        "db": -13.4,
+        "from": 0.5271
+      },
+      {
+        "start": 3.798125,
+        "length": 0.030042,
+        "strength": 0.142,
+        "db": -17,
+        "from": 11.291
+      },
+      {
+        "start": 3.898167,
+        "length": 0.028021,
+        "strength": 0.1082,
+        "db": -19.3,
+        "from": 8.317
+      },
+      {
+        "start": 3.996188,
+        "length": 0.029521,
+        "strength": 0.0954,
+        "db": -20.4,
+        "from": 8.2295
+      },
+      {
+        "start": 4.095708,
+        "length": 0.038792,
+        "strength": 0.0228,
+        "db": -32.8,
+        "from": 11.7552
+      },
+      {
+        "start": 4.2045,
+        "length": 0.033,
+        "strength": 0.0133,
+        "db": -37.5,
+        "from": 10.896
+      }
+    ],
+    "d12": [
+      {
+        "start": 4.3075,
+        "length": 0.029188,
+        "strength": 0.9319,
+        "db": -0.6,
+        "from": 0.1188
+      },
+      {
+        "start": 4.406688,
+        "length": 0.029479,
+        "strength": 0.9251,
+        "db": -0.7,
+        "from": 10.9715
+      },
+      {
+        "start": 4.506167,
+        "length": 0.029521,
+        "strength": 0.439,
+        "db": -7.2,
+        "from": 0.4115
+      },
+      {
+        "start": 4.605688,
+        "length": 0.030312,
+        "strength": 0.2569,
+        "db": -11.8,
+        "from": 0.3227
+      },
+      {
+        "start": 4.706,
+        "length": 0.030875,
+        "strength": 0.1871,
+        "db": -14.6,
+        "from": 11.2231
+      },
+      {
+        "start": 4.806875,
+        "length": 0.031229,
+        "strength": 0.1766,
+        "db": -15.1,
+        "from": 0.6348
+      },
+      {
+        "start": 4.908104,
+        "length": 0.030104,
+        "strength": 0.1232,
+        "db": -18.2,
+        "from": 11.4039
+      },
+      {
+        "start": 5.008208,
+        "length": 0.033375,
+        "strength": 0.0667,
+        "db": -23.5,
+        "from": 7.1246
+      },
+      {
+        "start": 5.111583,
+        "length": 0.047958,
+        "strength": 0.0464,
+        "db": -26.7,
+        "from": 11.694
+      },
+      {
+        "start": 5.229542,
+        "length": 0.043458,
+        "strength": 0.0427,
+        "db": -27.4,
+        "from": 0.7795
+      },
+      {
+        "start": 5.343,
+        "length": 0.079812,
+        "strength": 0.021,
+        "db": -33.5,
+        "from": 11.9342
+      }
+    ],
+    "d20": [
+      {
+        "start": 5.492813,
+        "length": 0.031563,
+        "strength": 1,
+        "db": 0,
+        "from": 5.6314
+      },
+      {
+        "start": 5.594375,
+        "length": 0.041375,
+        "strength": 0.5162,
+        "db": -5.7,
+        "from": 0.0816
+      },
+      {
+        "start": 5.70575,
+        "length": 0.0335,
+        "strength": 0.332,
+        "db": -9.6,
+        "from": 0.2185
+      },
+      {
+        "start": 5.80925,
+        "length": 0.031354,
+        "strength": 0.2827,
+        "db": -11,
+        "from": 5.9466
+      },
+      {
+        "start": 5.910604,
+        "length": 0.033375,
+        "strength": 0.244,
+        "db": -12.3,
+        "from": 6.0066
+      },
+      {
+        "start": 6.013979,
+        "length": 0.040438,
+        "strength": 0.2313,
+        "db": -12.7,
+        "from": 0.2536
+      },
+      {
+        "start": 6.124417,
+        "length": 0.028021,
+        "strength": 0.1173,
+        "db": -18.6,
+        "from": 6.051
+      }
+    ]
+  }
+}

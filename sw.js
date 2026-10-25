@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261024d";
+var CACHE = "tnd-v3-20261024e";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -154,6 +154,9 @@ self.addEventListener("activate", function(e){
 self.addEventListener("fetch", function(e){
   if(e.request.method !== "GET") return;
   if(e.request.url.indexOf(self.location.origin) !== 0) return;
+  // #668: the dice roller (/roller/, a release copy of the dice-sim web app) has its own offline worker
+  // scoped to its folder. Hands off: the cache-first app-shell path below would pin its files to CACHE.
+  if(new URL(e.request.url).pathname.indexOf("/roller/") === 0) return;
   // #650: a roll clip — cache-first against DICE_CACHE (see its comment); never precached, a miss fetches and keeps it.
   // #653: the damage dice (d4_FF … d12_FF) ride the same path. #659: so does the dice sound sprite (dice/sfx/dice-rolls-vN.mp3,
   // ~350 KB, every take of the owner-chosen CC0 recordings) — versioned in its name, since this cache keeps it forever.

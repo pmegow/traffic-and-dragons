@@ -32,3 +32,10 @@
 # only needs to outlive a session, not a deploy; a re-rendered batch bumps DICE_CACHE and is fresh within a day.
 /dice/*
   Cache-Control: public, max-age=86400
+
+# #668: the dice roller (/roller/, a release copy of the dice-sim web app). Its own offline worker keeps
+# the files between releases; always revalidate so its install fetches the current publish, never a
+# stale edge copy (the "! Cache-Control" detaches the overlapping /*.js and /*.html rules first).
+/roller/*
+  ! Cache-Control
+  Cache-Control: no-cache

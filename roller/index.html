@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dice Simulator</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#0f1115">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Dice">
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --line: #2a2f3a;
+    --text: #e6e2d8;
+    --muted: #9a968c;
+    --acc: #d9a441;
+    --acc-ink: #1a1408;
+    --bad: #e0705a;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  body { display: grid; grid-template-columns: 1fr 300px; height: 100dvh; overflow: hidden; }
+  #stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; cursor: grab; }
+  #stage:active { cursor: grabbing; }
+  #stage { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  /* Held still for a moment, a press turns the view: a ring round the hand says so (owner 2026-10-24). */
+  #orbit-ring { position: absolute; z-index: 2; left: 0; top: 0; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%;
+    border: 2px solid var(--acc); box-shadow: 0 0 0 1px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(0, 0, 0, .45);
+    pointer-events: none; opacity: 0; transform: scale(.55); transition: opacity .12s ease-out, transform .12s ease-out; }
+  #stage.orbiting #orbit-ring { opacity: 1; transform: scale(1); }
+  #stage.orbiting { cursor: grabbing; }
+  #stage.zooming { cursor: ns-resize; }
+  /* Shown once the view is turned or zoomed; eases the camera home. */
+  #reset-view { position: absolute; z-index: 3; top: 12px; right: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
+    background: rgba(15, 17, 21, .78); color: var(--text); font: 13px system-ui, sans-serif; cursor: pointer; }
+  #reset-view:hover { border-color: var(--acc); }
+  /* No tray: the dice roll over the page itself — a soft backdrop here, so their shadows read. */
+  #stage[data-surface="none"] { background: radial-gradient(ellipse at 50% 42%, #3b4352 0%, #262c38 55%, #181b22 100%); }
+  #panel { border-left: 1px solid var(--line); background: var(--panel); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+  h1 { font-size: 17px; margin: 0; letter-spacing: .3px; }
+  h1 small { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  #adders { flex-wrap: nowrap; gap: 4px; }   /* every die type on one row: the 20 is not special */
+  .add { flex: 1 1 0; min-width: 0; padding: 8px 0; border: 1px solid var(--line); border-radius: 8px; background: #1e222b; color: var(--text); font: inherit; cursor: pointer; }
+  .add:hover { border-color: var(--acc); }
+  label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+  input[type=range] { width: 100%; padding: 0; accent-color: var(--acc); }
+  label output { float: right; color: var(--text); font-variant-numeric: tabular-nums; }
+  label.check { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 14px; }
+  label.check input { width: auto; }
+  #sound-state { color: var(--muted); font-size: 12px; }
+  input, select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: #0f1218; color: var(--text); font: inherit; }
+  input:focus, select:focus { outline: 2px solid var(--acc); outline-offset: -1px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .preset-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+  .ghost:disabled { opacity: .45; cursor: default; }
+  .three { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 8px; }
+  input[type=color] { height: 36px; padding: 3px; cursor: pointer; }
+  .field { position: relative; display: block; }
+  .field input { padding-right: 36px; }
+  .clear { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
+    background: transparent; color: var(--muted); font: 18px/26px system-ui, sans-serif; cursor: pointer; }
+  .clear:hover, .clear:focus-visible { color: var(--text); background: #262b36; }
+  .field input:placeholder-shown + .clear { visibility: hidden; }   /* nothing to clear */
+  #roll { padding: 12px; border: 0; border-radius: 10px; background: var(--acc); color: var(--acc-ink); font: 600 16px system-ui, sans-serif; cursor: pointer; }
+  .ghost { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+  #result { min-height: 72px; }
+  #total { font: 700 34px Georgia, serif; }
+  #faces { color: var(--text); margin-top: 2px; }
+  #meta { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  #status { font-size: 13px; color: var(--bad); white-space: pre-wrap; }
+  #status:empty { display: none; }
+  .hint { color: var(--muted); font-size: 12px; margin: 0; }
+  @media (max-width: 760px) {
+    body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    #panel { border-left: 0; border-top: 1px solid var(--line); max-height: 46dvh; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); gap: 10px; }
+    #result { min-height: 0; }
+    #panel h1 { order: -3; }
+    #roll { order: -2; }          /* on a phone the panel scrolls: keep Roll and the result in reach */
+    #result { order: -1; }
+    #total { font-size: 26px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+</head>
+<body>
+<main id="stage" aria-label="Dice tray: drag across it to fling the dice, hold then drag to turn the view, pinch or right-drag to zoom"><div id="orbit-ring" aria-hidden="true"></div><button id="reset-view" type="button" hidden>Reset view</button></main>
+<aside id="panel">
+  <h1>Dice Simulator <small id="version"></small></h1>
+  <div class="row" id="adders" aria-label="Add a die"></div>
+  <label>Dice <span class="field"><input id="notation" value="d4 + d6 + d8 + d10 + d12 + d20" placeholder="e.g. 2d6 + d20" autocomplete="off" spellcheck="false"><button class="clear" id="clear-dice" type="button" aria-label="Clear the dice" title="Clear">×</button></span></label>
+  <label>Force results, in order <input id="forced" placeholder="blank = honest roll, e.g. 20, 3" autocomplete="off"></label>
+  <div class="preset-row">
+    <label>Preset <select id="preset"></select></label>
+    <button class="ghost" id="preset-delete" type="button" disabled title="Delete this saved preset">Delete</button>
+  </div>
+  <div class="preset-row">
+    <input id="preset-name" placeholder="Name this look" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Preset name">
+    <button class="ghost" id="preset-save" type="button">Save preset</button>
+  </div>
+  <div class="three">
+    <label>Body <input id="body-color" type="color" value="#8a49a2"></label>
+    <label>Numbers <input id="ink-color" type="color" value="#ffffff"></label>
+    <label>Finish <select id="finish"></select></label>
+  </div>
+  <label>Numbers font <select id="font"></select></label>
+  <div class="two">
+    <label>Seed <input id="seed" placeholder="random" inputmode="numeric" autocomplete="off"></label>
+    <label>Surface <select id="surface"></select></label>
+  </div>
+  <label>Speed <output id="speed-out">1.00×</output><input id="speed" type="range" min="0.25" max="2" step="0.05" value="1"></label>
+  <label>Tray size <output id="tray-out">0.50×</output><input id="tray" type="range" min="0.35" max="1.5" step="0.05" value="0.5"></label>
+  <div class="two">
+    <label class="check"><input id="sound" type="checkbox" checked> Sound</label>
+    <button class="ghost" id="replay" type="button">Replay last</button>
+  </div>
+  <button id="roll" type="button">Roll</button>
+  <div id="status" role="alert"></div>
+  <div id="result" aria-live="polite">
+    <div id="total"></div>
+    <div id="faces"></div>
+    <div id="meta"></div>
+  </div>
+  <p class="hint">Drag across the tray to throw. Hold, then drag, to turn the view; pinch or right-drag to zoom. Space rolls. <span id="sound-state"></span></p>
+</aside>
+<script type="module" src="./demo/demo.js"></script>
+</body>
+</html>
