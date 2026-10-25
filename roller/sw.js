@@ -10,7 +10,7 @@
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.19.1';
+const VERSION = '0.19.2';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
@@ -66,11 +66,23 @@ const FILES = [
 
 const CACHE = 'dice-sim-' + VERSION;
 
+// A host may answer a file through a redirect — Cloudflare Pages sends index.html to the folder's own
+// address (308). A browser refuses a redirected response as the answer to opening a page, so storing
+// one broke every visit after the first (2026-10-24, on the live site). A redirected response is
+// stored as a clean copy, without the redirect.
+const clean = async (response) => (response.redirected
+  ? new Response(await response.blob(), { status: response.status, statusText: response.statusText, headers: response.headers })
+  : response);
+
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    // 'reload' goes past the HTTP cache, so a new version never stores an older copy of a file.
-    await cache.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })));
+    await Promise.all(FILES.map(async (f) => {
+      // 'reload' goes past the HTTP cache, so a new version never stores an older copy of a file.
+      const response = await fetch(new Request(f, { cache: 'reload' }));
+      if (!response.ok) throw new Error('sw: ' + f + ' answered ' + response.status);
+      await cache.put(f, await clean(response));
+    }));
     await self.skipWaiting();
   })());
 });
@@ -82,13 +94,17 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
+// The app's own address (the folder, or index.html in it): opening it is answered with the stored page.
+const HOME = [new URL('./', self.location).pathname, new URL('index.html', self.location).pathname];
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     const hit = (await cache.match(request, { ignoreSearch: true }))
-      || (request.mode === 'navigate' ? await cache.match('index.html') : undefined);
+      || (HOME.includes(url.pathname) ? await cache.match('index.html') : undefined);
     return hit || fetch(request);
   })());
 });
