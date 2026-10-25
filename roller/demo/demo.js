@@ -450,6 +450,9 @@ const stage = $('stage');
 const ring = $('pan-ring');
 const resetButton = $('reset-view');
 const ZOOM_PER_PX = 0.006;   // a right-drag of 100 px up brings the camera to 0.55 of its distance
+// The wheel (owner 2026-10-25: "add mouse wheel to zoom on desktop"): a notch (100 px) moves the camera
+// about 10%; a trackpad pinch, which Chrome and Edge send as a wheel with ctrlKey, takes bigger steps.
+const WHEEL_ZOOM_PER_PX = { scroll: 0.001, pinch: 0.01 };
 const syncReset = () => { resetButton.hidden = !view.cameraMoved; };
 resetButton.addEventListener('pointerdown', (e) => e.stopPropagation());   // a press on the button is not a press on the tray
 resetButton.addEventListener('click', () => {
@@ -475,7 +478,7 @@ stage.addEventListener('pointerdown', (e) => {
   const secondary = e.pointerType === 'mouse' && e.button === 2;
   if (e.pointerType === 'mouse' && e.button !== 0 && !secondary) return;   // the middle button does nothing
   try { stage.setPointerCapture(e.pointerId); } catch { /* capture is a nicety: without it a drag that leaves the tray still ends on pointerup here */ }
-  if (e.pointerType === 'touch' && pinch.down(e.pointerId, e.clientX, e.clientY)) {
+  if (e.pointerType === 'touch' && pinch.down(e.pointerId, e.clientX, e.clientY, e.isPrimary)) {
     // A second finger: the first finger's press becomes a pinch, and never taps, throws or turns.
     gesture.cancel();
     endPress();
@@ -545,6 +548,16 @@ stage.addEventListener('pointercancel', (e) => {
   if (e.pointerType === 'touch') pinch.up(e.pointerId);
   if (press && e.pointerId === press.id) { gesture.cancel(); endPress(); }
 });
+// The wheel zooms: down to stand back, up to come nearer. The page itself never scrolls under the tray.
+stage.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const px = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? stage.clientHeight : 1);   // lines and pages to pixels
+  view.zoom(Math.exp(px * (e.ctrlKey ? WHEEL_ZOOM_PER_PX.pinch : WHEEL_ZOOM_PER_PX.scroll)));
+  syncReset();
+}, { passive: false });
+// The platform's own count of fingers is the truth: when the last one lifts, the pinch holds nothing,
+// whatever pointer events went missing (input/pinch.js ▸ THE PLATFORM IS THE TRUTH).
+for (const type of ['touchend', 'touchcancel']) stage.addEventListener(type, (e) => { if (e.touches.length === 0) pinch.reset(); }, { passive: true });
 stage.addEventListener('gesturestart', (e) => e.preventDefault());   // Safari's own pinch would zoom the page
 stage.addEventListener('contextmenu', (e) => e.preventDefault());   // a long press turns the view and a right-drag zooms: no menu
 
