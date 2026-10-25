@@ -7,7 +7,7 @@ import { createPresetStore } from './preset-store.js';
 import { createDrawer } from './drawer.js';
 import { sameLook } from '../render/presets.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
-import { createDicePicker } from './dice-picker.js';
+import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg || ''; };
@@ -51,6 +51,7 @@ window.__dice = { view, audio };   // the test seam: drive the page from a scrip
 // ---------------------------------------------------------------- panel
 // The dice: chosen only with these buttons (demo/dice-picker.js), kept on this browser; one of each to start.
 const DICE_KEY = 'dice-sim:dice';
+const HOLD_TO_REMOVE_MS = 1000;   // a press held this long on a die button takes one off (touch screens)
 let savedDice = null;
 try { savedDice = JSON.parse(localStorage.getItem(DICE_KEY) || 'null'); } catch { /* storage blocked: one of each */ }
 const picker = createDicePicker({ types: dieTypes(), max: MAX_DICE, counts: savedDice || Object.fromEntries(dieTypes().map((t) => [t, 1])) });
@@ -60,8 +61,11 @@ const paintDice = () => {
     const c = picker.count(t), a = adders[t];
     a.count.textContent = String(c);
     a.count.hidden = c === 0;
-    a.add.disabled = picker.full;
-    a.add.title = picker.full ? 'The roll is full (' + picker.max + ' dice)' : 'Add a ' + t;
+    // Full: dimmed but never disabled, because a disabled button would also refuse the right-click and
+    // the hold that take a die off.
+    a.add.classList.toggle('full', picker.full);
+    a.add.setAttribute('aria-disabled', String(picker.full));
+    a.add.title = (picker.full ? 'The roll is full (' + picker.max + ' dice)' : 'Add a ' + t) + '; right-click, or press and hold, to take one off';
     a.add.setAttribute('aria-label', 'Add a ' + t + ' (' + c + ' in the roll)');
   }
   $('clear-all').disabled = picker.total === 0;
@@ -78,7 +82,23 @@ for (const t of dieTypes()) {
   count.className = 'count';
   count.setAttribute('aria-hidden', 'true');
   add.appendChild(count);
-  add.addEventListener('click', () => { picker.add(t); paintDice(); });
+  // Taking one off (owner 2026-10-25): a right-click with a mouse, one per click; on a touch screen,
+  // pressing and holding for HOLD_TO_REMOVE_MS, and the release that ends the hold adds nothing. A
+  // long press's own context menu (Android) is not a second removal.
+  let removeTimer = 0, held = false, touchPress = false;
+  add.addEventListener('pointerdown', (e) => {
+    touchPress = e.pointerType !== 'mouse';
+    held = false;
+    clearTimeout(removeTimer);
+    if (touchPress) removeTimer = setTimeout(() => { held = true; if (picker.remove(t)) diceChanged(); }, HOLD_TO_REMOVE_MS);
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) add.addEventListener(type, () => clearTimeout(removeTimer));
+  add.addEventListener('click', () => {
+    if (held) { held = false; return; }
+    soundFromTap = unlockSound();
+    if (picker.add(t)) diceChanged();
+  });
+  add.addEventListener('contextmenu', (e) => { e.preventDefault(); if (!touchPress && picker.remove(t)) diceChanged(); });
   $('adders').appendChild(add);
   adders[t] = { add, count };
 }
@@ -88,8 +108,9 @@ clearAll.id = 'clear-all';
 clearAll.type = 'button';
 clearAll.textContent = 'Clear';
 clearAll.title = 'Take every die out';
-clearAll.addEventListener('click', () => { picker.clear(); paintDice(); });
+clearAll.addEventListener('click', clearDice);
 $('adders').appendChild(clearAll);
+$('table-hint').textContent = (window.matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click') + ' the table to roll';
 // The row floats over the tray: a press on it is not a press on the tray (no roll, throw, turn or pinch).
 for (const type of ['pointerdown', 'pointerup', 'pointercancel']) $('adders').addEventListener(type, (e) => e.stopPropagation());
 
@@ -231,14 +252,18 @@ $('surface').addEventListener('change', () => { applySurface(); applyLook(); });
 for (const id of ['body-color', 'ink-color']) $(id).addEventListener('input', applyLook);
 $('finish').addEventListener('change', applyLook);
 $('font').addEventListener('change', applyLook);
-$('clear-dice').addEventListener('click', () => { picker.clear(); paintDice(); });
+$('clear-dice').addEventListener('click', clearDice);
 $('clear-forced').addEventListener('click', () => { $('forced').value = ''; $('forced').focus(); });
 const speed = () => Number($('speed').value);
 $('speed').addEventListener('input', () => { $('speed-out').textContent = speed().toFixed(2) + '×'; });
 $('tray').addEventListener('input', () => {
   $('tray-out').textContent = Number($('tray').value).toFixed(2) + '×';
-  view.setTrayScale(Number($('tray').value));
+  ++current;
+  last = null;
+  view.setTrayScale(Number($('tray').value));   // a new tray starts empty …
+  showTable('');
 });
+$('tray').addEventListener('change', syncTable);   // … and the dice drop into it when the slider is let go
 
 /** The roll request the panel describes (throws a readable error for a bad field). */
 function request(extra = {}) {
@@ -262,21 +287,112 @@ function request(extra = {}) {
 }
 
 let last = null;
-let current = 0;   // the newest roll; an older one still playing is abandoned
+let current = 0;   // the newest roll or drop; an older one still playing is abandoned
+let playing = null;   // the play under way (a roll, a replay or a drop); null while the table is still
 
-/** Plays a baked roll with its clicks scheduled on the audio clock. */
-function playWithSound(result) {
-  return view.play(result, {
+/** Plays a baked roll (or drop) with its clicks scheduled on the audio clock. */
+function playWithSound(result, options = {}) {
+  const p = view.play(result, {
     speed: speed(),
     onStart: ({ timeScale }) => {
       if (!soundOn()) return;
       audio.scheduleRoll(result, { timeScale, pan: (i, t) => 0.7 * view.panFor(samplePose(result, i, t).position) });
     },
+    ...options,
   });
+  playing = p;
+  p.then(() => { if (playing === p) playing = null; });
+  return p;
+}
+
+// ---------------------------------------------------------------- the table follows the buttons
+// The die buttons are the truth, and the dice on the table follow them (owner 2026-10-25): a die
+// added drops in, one taken away (right-click its button) leaves, Clear empties the table. Dice taken
+// away leave at once, even mid-roll; drops wait until the table is still and then fall together, and
+// the dice left settle (a die resting on one taken away falls). Real physics: a landing die may knock
+// the others (owner ruling), and the total counts the table as it lies.
+let soundFromTap = Promise.resolve();   // the tap that changed the dice starts sound for the drop
+let syncing = false, resync = false, unsettled = false;
+const onTable = () => view.table().map((d) => d.type);
+
+/** The dice changed on the buttons: the last roll no longer describes them, and the table follows. */
+function diceChanged() {
+  last = null;
+  paintDice();
+  syncTable();
+}
+
+function clearDice() {
+  picker.clear();
+  ++current;
+  audio.stop();
+  view.stop();
+  diceChanged();
+}
+
+/** Dice taken off the buttons leave the table now. */
+function takeAway() {
+  const { remove } = tableChanges(picker.list(), onTable());
+  if (!remove.length) return;
+  const gone = remove.map((i) => onTable()[i]);
+  for (const i of remove) view.removeDie(i);
+  unsettled = true;
+  ++current;   // a roll under way no longer describes the table: the settle after it reports instead
+  if (!playing) showTable('took off ' + groupDice(gone));
+}
+
+async function syncTable() {
+  takeAway();
+  if (syncing) { resync = true; return; }
+  syncing = true;
+  try {
+    do {
+      resync = false;
+      while (playing) await playing;
+      const { drop } = tableChanges(picker.list(), onTable());
+      if (drop.length || (unsettled && view.dice.length)) await dropIn(drop);
+      else if (unsettled) { unsettled = false; showTable(''); }
+    } while (resync);
+  } finally {
+    syncing = false;
+  }
+}
+
+async function dropIn(types) {
+  const mine = ++current;
+  status('');
+  unsettled = false;
+  const fromTable = view.dice.length;
+  let result;
+  try {
+    result = view.bakeDrop(types);
+  } catch (e) {
+    // The drop could not be made: the buttons go back to what is on the table, and say why.
+    for (const t of types) picker.remove(t);
+    paintDice();
+    status('Could not drop ' + groupDice(types) + ': ' + e.message);
+    console.error(e);
+    return;
+  }
+  if (types.length) show(null);
+  await soundFromTap;
+  if (mine !== current) return;
+  await playWithSound(result, { fromTable });
+  if (mine !== current) return;
+  showTable(types.length ? 'dropped in ' + groupDice(types) : 'the dice settled');
+}
+
+/** The result line for the table as it lies: its total, each die, and what just happened. */
+function showTable(note) {
+  const t = view.table();
+  $('total').textContent = t.length ? String(t.reduce((s, d) => s + d.value, 0)) : '';
+  $('faces').textContent = t.length > 1 ? t.map((d) => d.type + ': ' + d.value).join('   ') : t.length ? t[0].type : '';
+  $('meta').textContent = note;
 }
 
 async function go(req, { unlocking = Promise.resolve() } = {}) {
   const mine = ++current;
+  unsettled = false;   // the roll replaces the table
   status('');
   audio.stop();
   let result, bakeMs;
@@ -314,7 +430,7 @@ function rollFromPanel(extra, options) {
 
 $('roll').addEventListener('click', () => rollFromPanel(undefined, { unlocking: unlockSound() }));
 $('replay').addEventListener('click', () => {
-  if (!last) { status('Nothing to replay yet.'); return; }
+  if (!last) { status('Roll first: there is no roll of these dice to replay.'); return; }
   unlockSound();
   ++current;
   audio.stop();
@@ -331,15 +447,14 @@ document.addEventListener('keydown', (e) => {
 // does, and a right-button drag or a two-finger pinch zooms (owner 2026-10-24). Reset view eases
 // the camera home. Each press follows its own pointer: another finger's moves are the pinch's.
 const stage = $('stage');
-const ring = $('orbit-ring');
+const ring = $('pan-ring');
 const resetButton = $('reset-view');
-const ORBIT_DEG_PER_PX = { yaw: 0.4, pitch: 0.3 };
 const ZOOM_PER_PX = 0.006;   // a right-drag of 100 px up brings the camera to 0.55 of its distance
-const syncReset = () => { resetButton.hidden = !view.orbitMoved; };
+const syncReset = () => { resetButton.hidden = !view.cameraMoved; };
 resetButton.addEventListener('pointerdown', (e) => e.stopPropagation());   // a press on the button is not a press on the tray
 resetButton.addEventListener('click', () => {
   resetButton.hidden = true;
-  view.resetOrbit().then(syncReset);
+  view.resetCamera().then(syncReset);
 });
 const gesture = createPressGesture();
 const pinch = createPinch();   // touch pointers only: a mouse has one
@@ -351,7 +466,7 @@ const placeRing = (x, y) => {
 };
 const endPress = () => {
   clearTimeout(holdTimer);
-  stage.classList.remove('orbiting', 'zooming');
+  stage.classList.remove('panning', 'zooming');
   const d = press;
   press = null;
   return d;
@@ -380,7 +495,8 @@ stage.addEventListener('pointerdown', (e) => {
   holdTimer = setTimeout(() => {
     if (!press || !gesture.hold(performance.now())) return;
     placeRing(press.at.x, press.at.y);
-    stage.classList.add('orbiting');
+    press.grab = view.floorHit(press.at.x, press.at.y);   // the floor point the hand holds
+    stage.classList.add('panning');
   }, gesture.holdMs);
 });
 stage.addEventListener('pointermove', (e) => {
@@ -392,9 +508,11 @@ stage.addEventListener('pointermove', (e) => {
   if (!press || e.pointerId !== press.id) return;
   press.at = { x: e.clientX, y: e.clientY };
   const m = gesture.move(e.timeStamp, e.clientX, e.clientY);
-  if (m && m.kind === 'orbit') {
+  if (m && m.kind === 'pan') {
     placeRing(e.clientX, e.clientY);
-    view.orbit(-m.dx * ORBIT_DEG_PER_PX.yaw, m.dy * ORBIT_DEG_PER_PX.pitch);   // the tray turns with the hand
+    const under = view.floorHit(e.clientX, e.clientY);
+    if (!press.grab) press.grab = under;   // a hold that began above the horizon takes hold of the floor here
+    else if (under) view.panCamera(press.grab.x - under.x, press.grab.z - under.z);   // the floor held stays under the hand
     syncReset();
     return;
   }
@@ -413,7 +531,7 @@ stage.addEventListener('pointerup', (e) => {
   if (!press || e.pointerId !== press.id) return;
   const kind = gesture.up();
   const d = endPress();
-  if (kind === 'orbit' || kind === 'zoom' || !d.start) return;   // a turn or zoom of the view, or a press that began off the floor
+  if (kind === 'pan' || kind === 'zoom' || !d.start) return;   // a pan or zoom of the view, or a press that began off the floor
   const end = d.samples[d.samples.length - 1];
   const from = d.samples.find((s) => end.t - s.t <= 90) || d.samples[0];
   const dt = (end.t - from.t) / 1000;
@@ -484,4 +602,4 @@ if ('serviceWorker' in navigator) {
 }
 
 paintDice();
-rollFromPanel();
+if (picker.total) rollFromPanel();

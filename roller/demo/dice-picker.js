@@ -32,6 +32,32 @@ export function createDicePicker({ types, max, counts = {} } = {}) {
     remove(t) { known(t); if (!n[t]) return false; n[t]--; total--; return true; },
     clear() { for (const t of types) n[t] = 0; total = 0; },
     list() { return types.flatMap((t) => Array(n[t]).fill(t)); },
-    notation() { return types.filter((t) => n[t]).map((t) => (n[t] > 1 ? n[t] : '') + t).join(' + '); },
+    notation() { return groupDice(this.list()); },
   };
+}
+
+/** A list of die types written grouped, in first-seen order: ['d6', 'd20', 'd6'] → '2d6 + d20' ('' when empty). */
+export function groupDice(list) {
+  const n = new Map();
+  for (const t of list) n.set(t, (n.get(t) || 0) + 1);
+  return [...n].map(([t, c]) => (c > 1 ? c : '') + t).join(' + ');
+}
+
+/**
+ * What brings the table to the picker (owner 2026-10-25: dice added drop in, dice taken away leave):
+ * `remove` — the table indices to take off, highest first so each removal leaves the rest in place;
+ * of a type with too many, the last to land leaves first — and `drop`, the types the table lacks, in
+ * the picker's order. Both lists are of die types; nothing is moved that already matches.
+ *
+ *   tableChanges(['d6', 'd6', 'd20'], ['d6', 'd8', 'd6', 'd6'])  →  { remove: [3, 1], drop: ['d20'] }
+ */
+export function tableChanges(wanted, onTable) {
+  const keep = {}, have = {};
+  for (const t of wanted) keep[t] = (keep[t] || 0) + 1;
+  const remove = [];
+  onTable.forEach((t, i) => { if (keep[t] > 0) keep[t]--; else remove.push(i); });
+  for (const t of onTable) have[t] = (have[t] || 0) + 1;
+  const drop = [];
+  for (const t of wanted) { if (have[t] > 0) have[t]--; else drop.push(t); }
+  return { remove: remove.reverse(), drop };
 }

@@ -95,10 +95,11 @@ export function standCamera(stage, pose, limits) {
  *   center, width, depth   the floor's bounding box, for where a throw starts
  *   reach    the farthest floor corner from the tray's centre (what the shadows must cover)
  */
-export function screenBounds({ position, fov, aspect, margin = 0.002, maxRange = 3 }) {
+export function screenBounds({ position, target = { x: 0, y: 0, z: 0 }, fov, aspect, margin = 0.002, maxRange = 3 }) {
   const c = position;
-  const len = Math.hypot(c.x, c.y, c.z);
-  const f = { x: -c.x / len, y: -c.y / len, z: -c.z / len };                 // forward, to the centre
+  const to = { x: target.x - c.x, y: target.y - c.y, z: target.z - c.z };
+  const len = Math.hypot(to.x, to.y, to.z);
+  const f = { x: to.x / len, y: to.y / len, z: to.z / len };                 // forward, to what the camera looks at
   const rl = Math.hypot(f.x, f.z);
   const r = { x: -f.z / rl, y: 0, z: f.x / rl };                             // right: forward × up
   const u = { x: r.y * f.z - r.z * f.y, y: r.z * f.x - r.x * f.z, z: r.x * f.y - r.y * f.x };   // up: right × forward

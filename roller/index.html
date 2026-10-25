@@ -40,14 +40,14 @@
   #stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; cursor: grab; }
   #stage:active { cursor: grabbing; }
   #stage { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-  /* Held still for a moment, a press turns the view: a ring round the hand says so (owner 2026-10-24). */
-  #orbit-ring { position: absolute; z-index: 2; left: 0; top: 0; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%;
+  /* Held still for a moment, a press pans the view: a ring round the hand says so (owner 2026-10-24; a pan since 2026-10-25). */
+  #pan-ring { position: absolute; z-index: 2; left: 0; top: 0; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%;
     border: 2px solid var(--acc); box-shadow: 0 0 0 1px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(0, 0, 0, .45);
     pointer-events: none; opacity: 0; transform: scale(.55); transition: opacity .12s ease-out, transform .12s ease-out; }
-  #stage.orbiting #orbit-ring { opacity: 1; transform: scale(1); }
-  #stage.orbiting { cursor: grabbing; }
+  #stage.panning #pan-ring { opacity: 1; transform: scale(1); }
+  #stage.panning { cursor: grabbing; }
   #stage.zooming { cursor: ns-resize; }
-  /* Shown once the view is turned or zoomed; eases the camera home. Bottom right, clear of the die
+  /* Shown once the view is panned or zoomed; eases the camera home. Bottom right, clear of the die
      buttons along the top (owner 2026-10-25). */
   #reset-view { position: absolute; z-index: 3; bottom: 12px; right: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
     background: rgba(15, 17, 21, .78); color: var(--text); font: 13px system-ui, sans-serif; cursor: pointer; }
@@ -62,15 +62,19 @@
   h1 small { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; }
   /* The die buttons are the only way to choose the dice, and float over the top of the view (owner 2026-10-25):
-     a tap adds one and the count shows on the button; Clear empties the roll (the minus was too small to hit
-     on a phone). The panel's line shows the roll and its × clears it too. Every die type on one row: the 20
+     a tap adds one, which drops onto the table, and the count shows on the button; a right-click (or, on a
+     touch screen, a one-second press) takes one back off the table; Clear empties it (the minus was too small to hit on a phone). The panel's line
+     shows the roll and its × clears it too. Every die type on one row: the 20
      is not special. Inside the stage, whose touch-action is none, so tapping fast never zooms. */
-  #adders { flex-wrap: nowrap; position: absolute; z-index: 3; top: 12px; left: 10px; right: 10px; justify-content: center; gap: 6px; }
+  #dice-bar { position: absolute; z-index: 3; top: 12px; left: 10px; right: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  #adders { flex-wrap: nowrap; align-self: stretch; justify-content: center; gap: 6px; pointer-events: auto; }
+  /* Under the buttons (owner 2026-10-25); a press on it is a press on the table, so it says true. */
+  #table-hint { margin: 0; font-size: 12px; color: rgba(230, 226, 216, .78); text-shadow: 0 1px 2px rgba(0, 0, 0, .85); }
   .add { position: relative; flex: 1 1 0; min-width: 0; max-width: 72px; min-height: 36px; padding: 8px 0; border: 1px solid var(--line); border-radius: 8px;
     background: rgba(15, 17, 21, .78); color: var(--text); font: inherit; cursor: pointer; }
   @media (pointer: coarse) { .add { min-height: 42px; } }
   .add:hover { border-color: var(--acc); }
-  .add:disabled { opacity: .45; cursor: default; }
+  .add:disabled, .add.full { opacity: .45; cursor: default; }
   .add .count { position: absolute; top: -7px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
     background: var(--acc); color: var(--acc-ink); font: 700 11px/18px system-ui, sans-serif; text-align: center; pointer-events: none; }
   .add .count[hidden] { display: none; }
@@ -136,7 +140,7 @@
 </script>
 </head>
 <body>
-<main id="stage" aria-label="Dice tray: drag across it to fling the dice, hold then drag to turn the view, pinch or right-drag to zoom"><div id="orbit-ring" aria-hidden="true"></div><div class="row" id="adders" aria-label="Choose the dice"></div><button id="reset-view" type="button" hidden>Reset view</button></main>
+<main id="stage" aria-label="Dice tray: drag across it to fling the dice, hold then drag to pan the view, pinch or right-drag to zoom"><div id="pan-ring" aria-hidden="true"></div><div id="dice-bar"><div class="row" id="adders" aria-label="Choose the dice"></div><p id="table-hint">Click the table to roll</p></div><button id="reset-view" type="button" hidden>Reset view</button></main>
 <aside id="panel">
   <button id="drawer-grab" type="button" role="separator" aria-orientation="horizontal" aria-label="Resize the options panel" aria-valuemin="24" title="Drag to raise or lower; double tap to close or reopen; arrow keys also resize"></button>
   <h1>Dice Simulator <small id="version"></small></h1>
@@ -173,7 +177,7 @@
     <div id="faces"></div>
     <div id="meta"></div>
   </div>
-  <p class="hint">Drag across the tray to throw. Hold, then drag, to turn the view; pinch or right-drag to zoom. Space rolls. <span id="sound-state"></span></p>
+  <p class="hint">Drag across the tray to throw. Hold, then drag, to pan the view; pinch or right-drag to zoom. Space rolls. <span id="sound-state"></span></p>
 </aside>
 <script type="module" src="./demo/demo.js"></script>
 </body>

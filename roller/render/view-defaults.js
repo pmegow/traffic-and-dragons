@@ -20,9 +20,14 @@ export const VIEW_DEFAULTS = {
   // minHeight (m): the camera never comes lower than this above the floor, so zooming in at a low
   // angle cannot put it level with the dice (about 2 cm tall).
   orbit: { minPitch: 15, maxPitch: 88, minZoom: 0.35, maxZoom: 2.5, minHeight: 0.04 },
-  resetSeconds: 0.35,                        // how long view.resetOrbit() takes to ease the camera home
+  resetSeconds: 0.35,                        // how long view.resetCamera() takes to ease the camera home
   pixelRatio: Math.min(globalThis.devicePixelRatio || 1, 2),
-  shadowMapSize: 2048,
+  // Soft shadows (owner 2026-10-25: "a little intense ... blur them" if it costs little). three.js's PCF
+  // takes 5 filtered samples whatever the radius, so the blur is free; a 1024 map at radius 12 is
+  // twice 2048-at-6's softness in texels and four times wider on the floor, with a quarter of the
+  // shadow pixels to draw — cheaper on a phone, not dearer. No grain at 3× magnification.
+  shadowMapSize: 1024,
+  shadowRadius: 12,   // texels of PCF blur
 };
 
 /**

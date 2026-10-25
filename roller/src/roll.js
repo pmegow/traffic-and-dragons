@@ -17,7 +17,7 @@ import { Body, plane } from './body.js';
 import { World, WORLD_DEFAULTS } from './world.js';
 import { SURFACES, lookup } from './materials.js';
 import { createRng, mixSeed } from './rng.js';
-import { v3, add, scale, dot, cross, normalize, qrotate, qmul, mvec, UP } from './math.js';
+import { v3, add, scale, dot, cross, normalize, qrotate, qmul, qnormalize, mvec, UP } from './math.js';
 import { VERSION } from './version.js';
 
 export const TRAY_DEFAULTS = {
@@ -78,7 +78,9 @@ export function trayFor(count, partial = {}) {
  *   tray?:  partial TRAY_DEFAULTS (unset width and depth grow with the dice count: trayFor)
  *   throw?: { strength?, direction?: {x, z},                 the default toss
  *             fling?: { from: {x, z}, velocity: {x, z} },     a player's drag across the floor (m, m/s)
- *             states?: [{position, orientation, velocity, angularVelocity}] }   full control, one per die
+ *             states?: [{position, orientation, velocity, angularVelocity}],   full control, one per die
+ *             drop?: { resting: [{position, orientation}, …] } }   the first dice lie on the table at rest,
+ *                                                                   the others fall onto open floor
  *   world?: partial WORLD_DEFAULTS (dt, iterations, …)
  *   gates?: { minTurns?, maxSeconds?, maxAttempts?, cockedAlignment?, tips? }
  *   readUp?: {x, y, z}, fps?
@@ -141,15 +143,28 @@ function validate(request) {
     const s = Math.sqrt(f.velocity.x * f.velocity.x + f.velocity.z * f.velocity.z);
     if (!(s > 0.05)) throw new Error('roll: throw.fling velocity is too slow to throw (' + s.toFixed(3) + ' m/s)');
   }
+  if (thr.drop !== undefined) {
+    if (thr.states || thr.fling) throw new Error('roll: throw takes one of states, fling or drop');
+    const rest = thr.drop && thr.drop.resting, finite = (...xs) => xs.every(Number.isFinite);
+    if (!Array.isArray(rest)) throw new Error('roll: throw.drop.resting must be a list of the poses of the dice already on the table');
+    if (rest.length > dice.length) throw new Error('roll: throw.drop.resting has ' + rest.length + ' dice for ' + dice.length + ' in the roll');
+    rest.forEach((s, i) => {
+      const p = s && s.position, q = s && s.orientation;
+      if (!p || !finite(p.x, p.y, p.z)) throw new Error('roll: throw.drop.resting[' + i + '] needs a finite position {x, y, z}');
+      if (!q || !finite(q.x, q.y, q.z, q.w) || !(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w > 1e-12)) throw new Error('roll: throw.drop.resting[' + i + '] needs a finite, non-zero orientation {x, y, z, w}');
+    });
+  }
   const pick = (k) => gates[k] ?? ROLL_DEFAULTS[k];
   return {
     dice, seed: seed >>> 0, tray, world, fps, stepsPerFrame,
-    maxSeconds: pick('maxSeconds'), maxAttempts: pick('maxAttempts'), minTurns: pick('minTurns'), tips: pick('tips'),
+    // A drop's table does not turn, and a die falling a few centimetres turns little: no turn gate unless asked.
+    maxSeconds: pick('maxSeconds'), maxAttempts: pick('maxAttempts'), minTurns: gates.minTurns ?? (thr.drop ? 0 : ROLL_DEFAULTS.minTurns), tips: pick('tips'),
     cockedAlignment: pick('cockedAlignment'), hitMerge: ROLL_DEFAULTS.hitMerge,
     strength: thr.strength ?? ROLL_DEFAULTS.strength,
     direction: normalize(v3((thr.direction || ROLL_DEFAULTS.direction).x, 0, (thr.direction || ROLL_DEFAULTS.direction).z)),
     states: thr.states || null,
     fling: thr.fling || null,
+    drop: thr.drop ? { resting: thr.drop.resting.map((s) => ({ position: v3(s.position.x, s.position.y, s.position.z), orientation: qnormalize(s.orientation) })) } : null,
     readUp: normalize(request.readUp || ROLL_DEFAULTS.readUp),
   };
 }
@@ -192,6 +207,7 @@ function throwStates(req, seed, attempt) {
       angularVelocity: add(s.angularVelocity || v3(), scale(rng.unitVector(), nudge * 20)),
     }));
   }
+  if (req.drop) return dropStates(req, rng);
   const plan = req.fling ? flingPlan(req) : tossPlan(req);
   const dir = plan.dir, side = cross(UP, dir);   // side ⟂ dir along the floor
   const span = req.tray.area || req.tray;
@@ -199,10 +215,7 @@ function throwStates(req, seed, attempt) {
   const n = req.dice.length;
   const spacing = 0.036;
   const perRow = Math.max(1, Math.min(n, Math.floor((2 * across - 0.04) / spacing)));
-  // Keep every start inside the walls (a fling can begin near one).
-  const hx = req.tray.width / 2 - 0.022, hz = req.tray.depth / 2 - 0.022;
-  const inside = req.tray.bounds ? (p) => insideBounds(p, req.tray.bounds, 0.022)
-    : (p) => v3(Math.max(-hx, Math.min(hx, p.x)), p.y, Math.max(-hz, Math.min(hz, p.z)));
+  const inside = keepInside(req.tray, 0.022);   // every start inside the walls (a fling can begin near one)
   return req.dice.map((d, i) => {
     const row = Math.floor(i / perRow), col = i % perRow, inRow = Math.min(perRow, n - row * perRow);
     const lateral = (col - (inRow - 1) / 2) * spacing + rng.range(-0.003, 0.003);
@@ -217,6 +230,65 @@ function throwStates(req, seed, attempt) {
       angularVelocity: scale(rng.unitVector(), plan.spin * rng.range(15, 35)),
     };
   });
+}
+
+/** Moves a point along the floor until it is `margin` inside the tray's walls, or its side planes. */
+function keepInside(tray, margin) {
+  if (tray.bounds) return (p) => insideBounds(p, tray.bounds, margin);
+  const hx = tray.width / 2 - margin, hz = tray.depth / 2 - margin;
+  return (p) => v3(Math.max(-hx, Math.min(hx, p.x)), p.y, Math.max(-hz, Math.min(hz, p.z)));
+}
+
+const DROP_CANDIDATES = 24;   // floor spots tried for each dropped die; the most open one wins
+const DROP_HEIGHT = 0.07;     // m: where the first dropped die starts above the floor; each further one starts higher
+
+/**
+ * A drop (owner 2026-10-25: "as dice are added, drop them into the play area"): the dice already on
+ * the table (the first resting.length) start where they lie, at rest; each new die falls from above
+ * onto the most open spot of the floor among a few seeded candidates — the farthest from both the dice
+ * already there and the walls, so the first die lands mid-table, not under an edge — tumbling a little. A re-throw
+ * draws new spots and spins for the new dice only: the table is where it was before every attempt.
+ */
+function dropStates(req, rng) {
+  const rest = req.drop.resting;
+  const span = req.tray.area || req.tray, mid = (req.tray.area && req.tray.area.center) || { x: 0, z: 0 };
+  const inside = keepInside(req.tray, 0.022), clearance = wallClearance(req.tray);
+  const taken = rest.map((s) => s.position);
+  return req.dice.map((d, i) => {
+    if (i < rest.length) return { position: rest[i].position, orientation: rest[i].orientation, velocity: v3(), angularVelocity: v3() };
+    let spot = null, open = -1;
+    for (let c = 0; c < DROP_CANDIDATES; c++) {
+      const p = inside(v3(mid.x + rng.range(-0.5, 0.5) * span.width, 0, mid.z + rng.range(-0.5, 0.5) * span.depth));
+      let room = 2 * Math.max(0, clearance(p));   // a wall counts half as near as a die: a die needs only a little room from one
+      room *= room;   // squared, like the gaps to the dice
+      for (const q of taken) room = Math.min(room, (p.x - q.x) * (p.x - q.x) + (p.z - q.z) * (p.z - q.z));
+      if (room > open) { open = room; spot = p; }
+    }
+    taken.push(spot);
+    const k = i - rest.length;   // dice dropped together start one above another
+    const y = Math.min(req.tray.height - 0.03, DROP_HEIGHT + k * 0.03 + rng.range(0, 0.01));
+    return {
+      position: v3(spot.x, y, spot.z),
+      orientation: rng.quaternion(),
+      velocity: v3(rng.range(-0.15, 0.15), -0.3, rng.range(-0.15, 0.15)),
+      angularVelocity: scale(rng.unitVector(), rng.range(8, 16)),
+    };
+  });
+}
+
+/** How far a floor point is inside the tray's nearest wall, or nearest side plane (negative outside). */
+function wallClearance(tray) {
+  if (tray.bounds) {
+    return (p) => {
+      let least = Infinity;
+      for (const b of tray.bounds) {
+        const n = b.normal, l = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
+        least = Math.min(least, (n.x * p.x + n.y * p.y + n.z * p.z) / l - b.offset);
+      }
+      return least;
+    };
+  }
+  return (p) => Math.min(tray.width / 2 - Math.abs(p.x), tray.depth / 2 - Math.abs(p.z));
 }
 
 /**
