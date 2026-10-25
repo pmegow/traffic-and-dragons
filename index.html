@@ -129,15 +129,12 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 .hbw{flex:1;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden}.hb{height:100%;border-radius:3px;transition:width .4s}.hb.eb{background:var(--red)}.hb.pb{background:var(--grn)}
 .hpt{font-size:11px;color:var(--t1);width:48px;text-align:right}.mbdg{font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid var(--brd);color:var(--t2)}
 #story-area{flex:1;display:flex;overflow:hidden;position:relative}
-/* #650: the roll overlay (ui-dice.js) — the clip over the dimmed story; the transparent WebM floats the die, the felt MP4 reads as a tray */
-.dice-roll{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:transparent;z-index:50;cursor:pointer;transform:translateZ(0)}/* no backdrop (owner 2026-10-21: a dark band in light mode) — the die and its shadow float over the story as they are. No fade-in: the clip opens on empty felt anyway, and one fewer way for the overlay to sit at opacity 0. z-index 50 + its own compositing layer: the phone's scroller must never paint over the die */
-.dice-roll video,.dice-roll canvas{width:100%;max-width:800px;max-height:100%;object-fit:contain;border-radius:var(--r);display:block}
-/* #653: several damage dice — a grid of square tiles, each a window onto its clip's 2:1 frame cropped around the landing spot (diceTileLayout sizes and offsets them inline) */
-.dice-roll .dice-grid{display:grid;max-width:100%}
-.dice-roll .dice-tile{position:relative;overflow:hidden}
-.dice-roll .dice-tile video,.dice-roll .dice-tile canvas{position:absolute;max-width:none;max-height:none;border-radius:0}
-.dice-roll video.dice-stacked-src{position:absolute;width:2px;height:1px;opacity:0;pointer-events:none}/* the stacked clip plays hidden; the canvas shows it */
-.dice-roll.out{opacity:0;transition:opacity .25s}
+/* #669: the live dice (ui-dice.js over dice-sim's embed, roller/): one layer over the story for the session, shown while dice
+   are out — the dice and their shadows float over the text (no backdrop: owner 2026-10-21, a dark band in light mode), the
+   screen's edges their walls; a click dismisses them */
+#dice-layer{position:absolute;inset:0;z-index:50;cursor:pointer;display:none;opacity:1;transition:opacity .25s;transform:translateZ(0)}
+#dice-layer.on{display:block}
+#dice-layer.out{opacity:0}
 #story-narrative,#story-tabletalk{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px;background:var(--bg0)}
 #story-tabletalk:empty::before{content:attr(data-welcome);color:var(--t2);font-style:italic;font-size:14px;line-height:1.6;padding:5px 3px}/* #656: an empty Table Talk pane says who has joined (syncUI paints data-welcome); the first .msg ends :empty and the line goes */
 .rpanel{width:168px;flex-shrink:0;background:var(--bg1);border-left:1px solid var(--brd);overflow-y:auto;display:flex;flex-direction:column;transition:width .2s}
@@ -429,7 +426,9 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 <script type="importmap">
 {
   "imports": {
-    "onnxruntime-web": "/vendor/piper/ort/ort.wasm.min.js?tnd=ort-r1"
+    "onnxruntime-web": "/vendor/piper/ort/ort.wasm.min.js?tnd=ort-r1",
+    "three": "/roller/vendor/three/three.module.js",
+    "three/addons/": "/roller/vendor/three/addons/"
   }
 }
 </script>
@@ -585,9 +584,6 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
 <script src="ui-character-voice.js"></script>
 <script src="stt.js"></script>
 <script src="sound.js"></script>
-<script src="dice/manifest.js"></script>
-<script src="dice/sfx/manifest.js"></script>
-<script src="dice-sound.js"></script>
 <script src="audio-catalog.js"></script>
 <script src="audio-profile.js"></script>
 <script src="audio-scenes.js"></script>

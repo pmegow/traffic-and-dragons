@@ -1,127 +1,181 @@
-/* ui-dice.js — THE ROLL OVERLAY (#650, owner rulings 2026-10-19/20): when the player clicks a pending check, the rolled
-   d20 plays as a rendered clip over the story area — the die thrown onto the felt, tumbling, settling with the result
-   face up, right side up, the other faces dimmed as it comes to rest. A thin DOM shell: the clip choice is the pure
-   diceClipSrc (helpers.js), the roll itself is rollPendingCheck (game.js), which calls showDiceRoll(face) AFTER the result
-   card and the GM call are on their way — the clip never delays the turn, and dismissing it changes nothing.
-   Two players behind one door: a <video> for the VP9 WebM with alpha, and for WebKit (no VP9 alpha, no HEVC-alpha
-   encoder on this side) the STACKED-ALPHA canvas — the H.264 clip is twice as wide, colour | matte, played hidden and
-   recombined per frame: the left half's pixels with the right half's grey as their alpha (the colour is premultiplied
-   over black, so a partial pixel is divided back out). ~320k pixels a frame for three seconds, fine on a phone.
-   The settled die stays until the player clicks or taps the overlay (owner 2026-10-20) — no timer takes it away.
-   #653 — THE DAMAGE DICE (owner rulings 2026-10-21): showDamageRoll(sides,faces) plays d4/d6/d8/d10/d12 clips the same way,
-   one clip per die COMPOSITED — two to four tiles in a row (two-by-two when narrow), each a square window onto its clip's
-   frame cropped around the landing spot (the pure diceTileLayout, helpers.js), the starts staggered a beat so a double is
-   two dice, not one clip twice. One die plays full-frame, exactly like the d20. The same overlay, the same door out.
+/* ui-dice.js — THE LIVE DICE (#669, owner 2026-10-25: "roll it into TnD"; rulings: the Blender roll clips are retired,
+   the dice start as the Bone preset with a Dice appearance setting under File ▸ Settings, the damage dice still roll after
+   the settled d20 is dismissed (#654), and the sound is dice-sim's recorded impact clicks).
+   When the player clicks a pending check, rollPendingCheck (game.js) decides the d20 — and, on a hit, the damage faces —
+   sends the turn, and THEN calls showDiceRoll(face,{onClose}) (#650's door, unchanged): the dice are thrown live over the
+   story by dice-sim (C:\Projects\dice-sim, published to roller/ by its dev/publish-to-tnd.js; its embed API is
+   roller/embed/), landing on exactly the faces the engine rolled — the dice decide nothing and never delay the turn. With no
+   tray drawn the screen's edges are the dice's walls. The settled dice stay until the player clicks or taps them (owner
+   2026-10-20); that click runs opts.onClose, which plays the damage dice (#654) through showDamageRoll(sides,faces).
+   A thin DOM shell over a module: this file is ES5, the module (roller/embed/global.js, ES2020) is loaded by a script tag
+   and sets window.DiceSim; index.html's import map points "three" at roller/vendor/three/. ONE overlay — one WebGL context,
+   one sound engine — for the whole session (the monotonic-resources rule), made at the first roll; diceLivePreload()
+   (showGame) fetches the module early so the first roll does not wait for it.
    Skipped (returns false, nothing shown): headless, no story area, Car Mode (its own screen covers the page), a reduced-
-   motion preference, a face outside the die, more than DICE_TILE_MAX dice. A clip that fails to load or play says so on the
-   console and through reportError once per session (the phone's console is invisible) and closes at once — the card already
-   holds the number; a play() the device itself refused (NotAllowedError, an autoplay policy) is not our bug and is not reported.
-   Assets: dice/dN_FF.webm | dice/dN_FF-stacked.mp4 (dev/blender/dice-clips.js), served cache-first from the SW's DICE_CACHE. */
-var DICE_ROLL_FADE_MS=250;      /* matches .dice-roll.out in index.html */
-var DICE_TILE_STAGGER_MS=90;    /* #653: each further die starts this much later — a handful lands a beat apart */
-/* Owner 2026-10-20: the settled die STAYS until the player clicks or taps it — no timer takes the number away. */
-var _diceClipReported=false;
-/* The skips every roll shares; returns the environment diceClipFormat reads, or false when nothing may show. */
+   motion preference, a face outside its die. A module that fails to load, or a device that cannot start the dice (no
+   WebGL), says so on the console and through reportError once per session (the phone's console is invisible) — the card
+   already holds the number. Sound: the clicks share Sound's AudioContext and fall silent with the master mute (#657) or
+   the UI-sounds switch. */
+var DICE_LIVE_SRC="roller/embed/global.js";
+var DICE_LOOK_KEY="tnd_dice_look_v1";   /* {name, style}: the player's dice look on this device */
+var DICE_LOOK_DEFAULT="Bone";           /* owner 2026-10-25 */
+var DICE_ROLL_FADE_MS=250;              /* matches #dice-layer.out in index.html */
+var _diceLive={state:"idle",overlay:null,layer:null,waiting:[],reported:false,muteHooked:false,token:0,last:null};
+
+/* Says why the live dice did not show, on the console every time and through reportError once per session. */
+function diceLiveFail(why,detail){
+  var msg="live dice: "+why;
+  console.warn(msg);
+  if(!_diceLive.reported&&typeof reportError==="function"){_diceLive.reported=true;reportError("dice-live",msg,detail||{});}
+}
+
+/* Fetches the dice module (once). Its 'dicesim-ready' event runs whatever waited for it. */
+function diceLivePreload(){
+  if(_diceLive.state!=="idle"||typeof document==="undefined"||typeof window==="undefined")return;
+  if(window.DiceSim){_diceLive.state="ready";return;}
+  _diceLive.state="loading";
+  window.addEventListener("dicesim-ready",function(){
+    _diceLive.state="ready";
+    var waiting=_diceLive.waiting;_diceLive.waiting=[];
+    waiting.forEach(function(f){f();});
+  });
+  var s=document.createElement("script");s.type="module";s.src=DICE_LIVE_SRC;
+  s.onerror=function(){_diceLive.state="failed";_diceLive.waiting=[];diceLiveFail("the dice module did not load ("+DICE_LIVE_SRC+")");};
+  document.head.appendChild(s);
+}
+/* Runs f once the module is there; never, if it failed to load (that was already said). */
+function diceLiveWhenReady(f){
+  if(typeof window!=="undefined"&&window.DiceSim){f();return;}
+  if(_diceLive.state==="failed")return;
+  _diceLive.waiting.push(f);
+  diceLivePreload();
+}
+
+/* The skips every roll shares: true when dice may show. */
 function diceRollEnv(){
-  if(typeof document==="undefined"||typeof diceClipSrc!=="function")return false;
+  if(typeof document==="undefined"||typeof window==="undefined")return false;
   if(!document.getElementById("story-area"))return false;
   if(typeof carMode!=="undefined"&&carMode)return false;
-  if(typeof window!=="undefined"&&window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)return false;
-  var nav=typeof navigator!=="undefined"?navigator:{};
-  var env={ua:nav.userAgent,platform:nav.platform,maxTouchPoints:nav.maxTouchPoints};
-  return env;
+  if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)return false;
+  return true;
 }
-function showDiceRoll(face,opts){
-  var env=diceRollEnv();if(!env)return false;
-  var src=diceClipSrc(face,env);
-  if(!src)return false;
-  return diceOverlay([src],env,face,opts,[{sides:20,face:face}]);
+
+/* The player's dice look: the saved one, else the Bone preset. */
+function diceLookSaved(){try{var v=JSON.parse(localStorage.getItem(DICE_LOOK_KEY)||"null");return v&&v.name&&v.style?v:null;}catch(e){return null;}}
+function diceLookPreset(name){var list=window.DiceSim?window.DiceSim.presets():[],i;for(i=0;i<list.length;i++)if(list[i].name===name)return list[i];return null;}
+function diceLookStyle(){
+  var saved=diceLookSaved();if(saved)return saved.style;
+  var p=diceLookPreset(DICE_LOOK_DEFAULT);return p?window.DiceSim.presetStyle(p):undefined;
 }
-/* #653: faces is the array of rolled faces (one per die), sides the die; every face must name a clip or nothing shows. */
-function showDamageRoll(sides,faces,opts){
-  var env=diceRollEnv();if(!env)return false;
-  var list=Array.isArray(faces)?faces:[faces],srcs=[],dice=[],i,s;
-  if(!list.length||list.length>DICE_TILE_MAX)return false;
-  for(i=0;i<list.length;i++){s=diceClipSrc(list[i],env,sides);if(!s)return false;srcs.push(s);dice.push({sides:sides,face:list[i]});}
-  return diceOverlay(srcs,env,"d"+sides+":"+list.join("+"),opts,dice);
+function diceLookName(){var saved=diceLookSaved();return saved?saved.name:DICE_LOOK_DEFAULT;}
+function diceLookChoose(p){
+  var style=window.DiceSim.presetStyle(p);
+  try{localStorage.setItem(DICE_LOOK_KEY,JSON.stringify({name:p.name,style:style}));}
+  catch(e){if(typeof showToast==="function")showToast("Dice appearance could not be saved on this device ("+(e&&e.message||e)+")");console.warn("dice look not saved",e);}
+  if(_diceLive.overlay)_diceLive.overlay.setLook(style).catch(function(e){diceLiveFail("the dice look did not change ("+(e&&e.message||e)+")",{look:p.name});});
 }
-/* The overlay itself: one clip full-frame, several as tiles. `face` labels the roll in a failure report; `dice` names
-   each clip's die and face so its sound (#659, dice-sound.js) can start the moment that clip's playback does. */
-function diceOverlay(srcs,env,face,opts,dice){
-  var area=document.getElementById("story-area");
-  var stacked=diceClipFormat(env)==="stacked";
-  var old=document.getElementById("dice-roll");if(old&&old.parentNode)old.parentNode.removeChild(old);
-  var wrap=document.createElement("div");wrap.id="dice-roll";wrap.className="dice-roll";wrap.title="Click to dismiss";
-  var layout=null,grid=null;
-  if(srcs.length>1){
-    layout=diceTileLayout(srcs.length,area.clientWidth-32,area.clientHeight-32);
-    grid=document.createElement("div");grid.className="dice-grid";
-    grid.style.gridTemplateColumns="repeat("+layout.cols+","+layout.tile+"px)";grid.style.gap=layout.gap+"px";
-    wrap.appendChild(grid);
-  }
-  var closed=false,videos=[];
-  function close(){
-    if(closed)return;closed=true;wrap.classList.add("out");
-    setTimeout(function(){if(wrap.parentNode)wrap.parentNode.removeChild(wrap);if(opts&&typeof opts.onClose==="function")opts.onClose();},DICE_ROLL_FADE_MS);
-  }
-  function fail(src,why,quiet){
-    var msg="dice clip "+src+": "+why;
-    console.warn(msg);
-    if(!quiet&&!_diceClipReported&&typeof reportError==="function"){_diceClipReported=true;reportError("dice-clip",msg,{face:face,src:src});}
-    close();
-  }
-  wrap.onclick=close;/* the only way out: the settled die stays until the player clicks (owner 2026-10-20) */
-  srcs.forEach(function(src,i){
-    var v=document.createElement("video");v.muted=true;v.playsInline=true;v.setAttribute("playsinline","");v.setAttribute("muted","");v.preload="auto";v.src=src;
-    var canvas=null,host=wrap;
-    if(layout){host=document.createElement("div");host.className="dice-tile";host.style.width=layout.tile+"px";host.style.height=layout.tile+"px";grid.appendChild(host);}
-    if(stacked){v.className="dice-stacked-src";canvas=document.createElement("canvas");host.appendChild(canvas);}
-    host.appendChild(v);
-    if(layout){var shown=canvas||v;shown.style.width=layout.frameW+"px";shown.style.height=layout.frameH+"px";shown.style.left=layout.left+"px";shown.style.top=layout.top+"px";}
-    v.onerror=function(){fail(src,"failed to load"+(v.error&&v.error.message?" ("+v.error.message+")":""));};
-    if(stacked)diceStackedPlayer(v,canvas,function(){return closed;});
-    videos.push({v:v,src:src,die:dice&&dice[i]});
-  });
-  area.appendChild(wrap);
-  videos.forEach(function(it,i){
-    function start(){
-      if(closed)return;
-      var p=it.v.play();
-      /* #659: the sound starts when THIS clip's playback does (the promise resolves at the first frame), so the ticks land
-         where the die lands; a tile's stagger is already in its start, so the recipe's offset is 0 */
-      if(p&&typeof p.then==="function")p.then(function(){if(!closed&&it.die&&typeof DiceSound!=="undefined")DiceSound.play(it.die.sides,it.die.face,0);},function(e){fail(it.src,"would not play ("+(e&&e.message||e)+")",!!(e&&e.name==="NotAllowedError"));});
-    }
-    if(i===0)start();else setTimeout(start,i*DICE_TILE_STAGGER_MS);/* a double is two dice landing a beat apart, not one clip twice */
+
+/* The one layer over the story, made once; put back if the story area was rebuilt. */
+function diceLiveLayer(){
+  var area=document.getElementById("story-area"),el=_diceLive.layer;
+  if(!el){el=document.createElement("div");el.id="dice-layer";el.title="Click to dismiss";_diceLive.layer=el;}
+  if(el.parentNode!==area)area.appendChild(el);
+  return el;
+}
+/* The one overlay for the session (one WebGL context, one sound engine), made at the first roll. */
+function diceLiveOverlay(){
+  if(_diceLive.overlay)return _diceLive.overlay;
+  var ctx=null;
+  try{if(typeof Sound!=="undefined"&&typeof Sound.context==="function")ctx=Sound.context();}catch(e){ctx=null;}
+  _diceLive.overlay=window.DiceSim.createDiceOverlay({container:diceLiveLayer(),look:diceLookStyle(),context:ctx||null});
+  if(!_diceLive.muteHooked&&typeof AudioMaster!=="undefined"&&typeof AudioMaster.onChange==="function"){_diceLive.muteHooked=true;AudioMaster.onChange(function(){diceLiveMute();});}
+  return _diceLive.overlay;
+}
+/* Silent while the master mute (#657) is on or the UI sounds are switched off. */
+function diceLiveMute(){
+  if(!_diceLive.overlay)return;
+  var muted=(typeof AudioMaster!=="undefined"&&AudioMaster.muted())||(typeof Sound!=="undefined"&&typeof Sound.enabled==="function"&&!Sound.enabled());
+  _diceLive.overlay.setMuted(!!muted);
+}
+
+/* Throws `dice` ([{type,value}]) over the story; the click that dismisses them runs opts.onClose. */
+function diceLiveRoll(dice,label,opts){
+  if(!diceRollEnv())return false;
+  if(_diceLive.state==="failed")return false;
+  diceLiveWhenReady(function(){
+    var overlay;
+    try{overlay=diceLiveOverlay();}
+    catch(e){_diceLive.state="failed";diceLiveFail("the dice could not start ("+(e&&e.message||e)+")",{roll:label});return;}
+    var layer=diceLiveLayer(),token=++_diceLive.token;
+    layer.classList.remove("out");layer.classList.add("on");
+    layer.onclick=function(){diceLiveClose(token,opts);};/* the only way out: the settled dice stay until the player clicks (owner 2026-10-20) */
+    diceLiveMute();
+    overlay.roll(dice).then(function(r){if(r)_diceLive.last=r.dice.map(function(d){return d.type+":"+d.value;});}).catch(function(e){diceLiveFail("the roll did not play ("+(e&&e.message||e)+")",{roll:label});diceLiveClose(token,null);});
   });
   return true;
 }
-/* The stacked-alpha recombiner: draws each video frame to a work canvas, reads the two halves, runs the pure
-   diceStackedRecombine (helpers.js) and paints the result. Frames arrive through
-   requestVideoFrameCallback where the browser has it (Safari 15.4+), else requestAnimationFrame. The last frame stays
-   painted after the clip ends. Never throws: a canvas the browser refuses (no 2d context) closes nothing and says why. */
-function diceStackedPlayer(v,canvas,isClosed){
-  var ctx=canvas.getContext("2d"),work=document.createElement("canvas"),wctx=work.getContext("2d"),W=0,H=0,ready=false;
-  if(!ctx||!wctx){console.warn("dice clip: no 2d canvas for the stacked player");return;}
-  function size(){W=Math.floor(v.videoWidth/2);H=v.videoHeight;if(!W||!H)return false;canvas.width=W;canvas.height=H;work.width=W*2;work.height=H;ready=true;return true;}
-  var seenDie=false,skipped=0;
-  function draw(){
-    if(isClosed())return;
-    if(!ready&&!size()){schedule();return;}
-    /* The settled die must STAY (owner 2026-10-20; it vanished on the phone before the tap): an ended video is never
-       drawn from — iOS hands back an empty frame once playback is over — and once the die has been seen, a frame whose
-       matte holds no die (a decoder blank) is skipped, so the last good frame stays painted. */
-    if(v.ended)return;
-    wctx.drawImage(v,0,0);
-    var c=wctx.getImageData(0,0,W,H),m=wctx.getImageData(W,0,W,H),white=diceStackedWhite(m.data);
-    if(white>128)seenDie=true;
-    else if(seenDie){skipped++;if(skipped===1)console.warn("dice clip: a blank frame after the die was seen — kept the last good frame");schedule();return;}
-    diceStackedRecombine(c.data,m.data);
-    ctx.putImageData(c,0,0);
-    schedule();
-  }
-  function schedule(){
-    if(typeof v.requestVideoFrameCallback==="function")v.requestVideoFrameCallback(draw);
-    else requestAnimationFrame(draw);
-  }
-  schedule();
+function diceLiveClose(token,opts){
+  if(token!==_diceLive.token)return;/* a newer roll took the layer */
+  var layer=_diceLive.layer;
+  layer.onclick=null;_diceLive.token++;
+  layer.classList.add("out");
+  setTimeout(function(){
+    layer.classList.remove("on");layer.classList.remove("out");
+    if(_diceLive.overlay)_diceLive.overlay.clear();
+    if(opts&&typeof opts.onClose==="function")opts.onClose();
+  },DICE_ROLL_FADE_MS);
 }
+
+/* #650's door: the check's d20, landing on `face`. */
+function showDiceRoll(face,opts){
+  if(!(face>=1&&face<=20&&Math.floor(face)===face))return false;
+  return diceLiveRoll([{type:"d20",value:face}],"d20:"+face,opts);
+}
+/* #653/#654's door: the damage dice — `faces`, one per die, each a d`sides` — after the d20 is dismissed. */
+function showDamageRoll(sides,faces,opts){
+  var list=Array.isArray(faces)?faces:[faces],dice=[],i;
+  if(typeof DAMAGE_DICE_SIDES!=="undefined"&&DAMAGE_DICE_SIDES.indexOf(sides)<0)return false;
+  if(!list.length||(typeof DAMAGE_DICE_MAX!=="undefined"&&list.length>DAMAGE_DICE_MAX))return false;
+  for(i=0;i<list.length;i++){if(!(list[i]>=1&&list[i]<=sides&&Math.floor(list[i])===list[i]))return false;dice.push({type:"d"+sides,value:list[i]});}
+  return diceLiveRoll(dice,"d"+sides+":"+list.join("+"),opts);
+}
+
+/* File ▸ Settings ▸ 🎲 Dice appearance: the presets (the built-ins, and any saved in the dice roller on this site); a
+   choice is kept on this device and the next roll wears it. "Roll a test d20" shows it over the story. */
+function showDiceLookModal(){
+  var modal=modalShell("dice-look-modal",
+    "<div style='font-family:var(--font);font-size:16px;font-weight:700;color:var(--acc);margin-bottom:4px;'>&#127922; Dice appearance</div>"
+    +"<div style='font-size:12px;color:var(--t2);margin-bottom:12px;'>The look of the dice you roll. Saved on this device.</div>"
+    +"<div id='dice-look-list' role='radiogroup' aria-label='Dice presets' style='display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;'>Loading the dice&hellip;</div>"
+    +"<div style='display:flex;gap:8px;justify-content:flex-end;margin-top:14px;'>"
+    +"<button id='dice-look-test' type='button' style='font:inherit;font-size:13px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);padding:6px 12px;cursor:pointer;'>Roll a test d20</button>"
+    +"<button id='dice-look-done' type='button' style='font:inherit;font-size:13px;background:var(--acc);border:0;border-radius:6px;color:var(--bg0);padding:6px 14px;cursor:pointer;'>Done</button></div>",
+    {closeId:"dice-look-done",outside:true,maxWidth:380});
+  var test=document.getElementById("dice-look-test"),area=document.getElementById("story-area");
+  if(!area||!area.offsetParent)test.style.display="none";/* no story on screen (the wizard's menu): nowhere to roll */
+  test.addEventListener("click",function(){
+    modal.remove();
+    showDiceRoll(1+Math.floor(Math.random()*20));
+  });
+  diceLiveWhenReady(function(){
+    var box=document.getElementById("dice-look-list");if(!box)return;
+    var current=diceLookName(),h="";
+    window.DiceSim.presets().forEach(function(p,i){
+      h+="<label style='display:flex;align-items:center;gap:10px;padding:6px 8px;border:1px solid var(--brd);border-radius:8px;cursor:pointer;'>"
+        +"<input type='radio' name='dice-look' value='"+i+"'"+(p.name===current?" checked":"")+" style='accent-color:var(--acc);'/>"
+        +"<span style='width:22px;height:22px;border-radius:5px;background:"+escHtml(p.body)+";border:1px solid var(--brd2);display:flex;align-items:center;justify-content:center;font:700 12px var(--font);color:"+escHtml(p.ink)+";'>6</span>"
+        +"<span style='flex:1;font-size:13px;color:var(--t1);'>"+escHtml(p.name)+(p.builtIn?"":" <span style='color:var(--t2);font-size:11px;'>(saved)</span>")+"</span>"
+        +"<span style='font-size:11px;color:var(--t2);'>"+escHtml(p.finish)+"</span></label>";
+    });
+    box.innerHTML=h;
+    var list=window.DiceSim.presets();
+    Array.prototype.forEach.call(box.querySelectorAll("input[name='dice-look']"),function(r){
+      r.addEventListener("change",function(){if(r.checked)diceLookChoose(list[Number(r.value)]);});
+    });
+  });
+  if(_diceLive.state==="failed"){var b=document.getElementById("dice-look-list");if(b)b.textContent="The dice could not load on this device.";}
+  return modal;
+}
+
+/* The test seam (#669): what the live dice are doing, for dev/tests-669-live-dice-browser.js. */
+function diceLiveState(){return {state:_diceLive.state,overlay:!!_diceLive.overlay,showing:!!(_diceLive.layer&&_diceLive.layer.classList.contains("on")),look:diceLookName(),last:_diceLive.last,muted:!!(_diceLive.overlay&&_diceLive.overlay.audio&&_diceLive.overlay.audio.muted)};}

@@ -101,6 +101,7 @@ function buildFileMenus(){
       +btn(p+"fal-key","🖼 Render Options&hellip;",0,{cls:"fm-dev-only"});
     var dm=chk(p+"dark-cb","🌙 Dark mode",0)/* #634: default on; off = the light palette (ui-modals.js loadTheme/toggleDarkMode) */
       +chk(p+"font-lg","Large text",0)
+      +btn(p+"dice-look","&#127922; Dice appearance&hellip;",0)/* #669 (owner 2026-10-25): the live dice's look, a preset kept per device (ui-dice.js) */
       +drawer(p+"audio",p+"audiomenu","🔊 Audio",0,null,aud)
       +drawer(p+"narropts",p+"narroptsmenu","&#128214; Narrative options",0,null,narr)
       +chk(p+"autosend","&#127908; Auto-send voice input",0)
@@ -284,6 +285,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   // TTS
   document.getElementById("tts-btn").addEventListener("click",function(){if(typeof TTS!=="undefined")TTS.toggle();});
   eachMenuEl("tts-settings",function(el){el.addEventListener("click",function(){closeAllMenus();if(typeof TTS!=="undefined")TTS.showSettingsModal();});});
+  eachMenuEl("dice-look",function(el){el.addEventListener("click",function(){closeAllMenus();if(typeof showDiceLookModal==="function")showDiceLookModal();});});/* #669 */
   if(typeof TTS!=="undefined")TTS.loadSettings();
   // TODO #7: UI sound library toggle + test (see the buildFileMenus comment above for why this
   // lives here instead of inside the Voice Settings modal).

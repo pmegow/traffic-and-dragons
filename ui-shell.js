@@ -193,7 +193,7 @@ function showGame(){
   document.getElementById("game-screen").style.display="flex";
   if(typeof audioScenePublish==="function")audioScenePublish("load");
   if(typeof Ambient!=="undefined")Ambient.sync();
-  if(typeof DiceSound!=="undefined")DiceSound.preload();/* #659: the dice sprite decodes now, so the first roll sounds (a miss says so once) */
+  if(typeof diceLivePreload==="function")diceLivePreload();/* #669: the live dice module loads now, so the first roll does not wait for it */
   var ca=document.getElementById("creation-arch");if(ca)ca.remove();
   var cb=document.getElementById("creation-bump");if(cb)cb.remove();
   var cs3=document.getElementById("creation-spells");if(cs3)cs3.remove();

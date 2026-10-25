@@ -54,7 +54,6 @@ var SUITES = [
   "dev/tests-372-register-reach.js",
   "dev/tests-b38-extractor-refusal.js",
   "dev/tests-b39-resume-observed.js",
-  "dev/tests-659-dice-loader.js",/* #659 v1.1315: the dice sprite decodes OFF the live context (born suspended before a gesture, it silenced the review page); every load failure said once and reported */
   "dev/tests-c13-adapter.js",
   "dev/tests-29-callgm-transport.js",
   "dev/tests-621-portrait-vision.js",

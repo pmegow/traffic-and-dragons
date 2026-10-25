@@ -83,6 +83,9 @@ the glass sprite. See [verification receipt](../audits/VERIFY_559_covered_alchem
 
 The alchemist seed names this `cued` asset through its `entry` field. Only a committed turn from another node in the same campaign/generation can ring. Reload, save, resume and profile edits establish state without ringing. Bell and random accents share one short-sound voice. Mic, pause, mute and exit stop it; a load arriving more than five seconds late is discarded as an entry cue. The modest bell ducks under speech; random glass still waits for silence. No narration text is parsed and no campaign state is written. Owner audition pending.
 
-## The dice rolls (v1.1314 — CC0, under `dice/sfx/`)
+## The dice rolls (v1.1314 — CC0, under `dice/sfx/`) — retired in #669
+
+The game's dice now sound through dice-sim (`roller/audio/bank/`, one recorded click per impact, cut from the same aunrea
+recordings); the sprite below and `dice/sfx/` were removed with the roll clips (2026-10-25). The record stays for its provenance.
 
 `dice/sfx/dice-rolls-v1.mp3`: 22.320 s, mono, 48 kHz, 128 kbps (357,888 bytes). **CC0 1.0** — aunrea, the Freesound pack "Dice Rolls" (sounds 485943–485950; verified on the pack and sound pages 2026-10-23; the owner chose the pack by ear the same day, TODO #659). Nineteen one-shot takes — a plastic d4, d6, d8, d10, d12 and d20 thrown on a wooden table, three or four throws each — cut by `dev/dice-sfx.js` from the HQ previews (ignored under `Audio/CC0/Dice/`) and joined by 0.25 s of silence, the accent-sprite shape. It lives beside the roll clips rather than here because the service worker keeps it in `DICE_CACHE` with them (fetched once, never purged — hence the version in its name). The receipt is `dice/sfx/manifest.json` (each die's Freesound id and download SHA-256, the sprite's SHA-256, every take's cut, landing and length); `dice/sfx/manifest.js` is the same as data for the game, and `dice/sfx/dice-rolls-v1.js` is the sprite's bytes as a base64 data script for a page opened from file:// (where a fetch is refused; pinned to the sprite's SHA-256 by the #659 test).

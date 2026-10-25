@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261024e";
+var CACHE = "tnd-v3-20261025a";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -11,11 +11,10 @@ var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,
 // EVERY deploy because CACHE bumps every deploy. Without a separate cache name, the purge (which
 // deletes every cache !== CACHE) would wipe the wasm and force a re-download per device per deploy.
 var PIPER_CACHE = "tnd-piper-v1";
-// #650: the twenty d20 roll clips (dice/d20_NN.webm and d20_NN-stacked.mp4, ~8 MB in all; #653 adds the forty damage-dice clips, ~14 MB) — fetched on first use, then permanent
-// in their own purge-exempt cache, like the Piper wasm. The name carries the batch date: a re-render of dice/
-// (dev/blender/dice-clips.js) bumps it, the activate purge drops the old cache, and the next roll fetches fresh
-// (within the one-day edge/browser cache _headers gives /dice/*).
-var DICE_CACHE = "tnd-dice-20261021e";
+// #669: the live dice — the dice-sim modules, three.js and the click bank under /roller/ (a release copy of dice-sim, ~2.5 MB)
+// that the game loads for every roll. Network-first into their own purge-exempt cache, so a publish shows at once online
+// and the dice still roll offline. (The #650 roll clips and their DICE_CACHE are retired: the activate purge drops it.)
+var ROLLER_CACHE = "tnd-roller-v1";
 var APP_SHELL = [
   "/",
   "/globals.js",
@@ -77,9 +76,6 @@ var APP_SHELL = [
   "/piper-host.html",
   "/stt.js",
   "/sound.js",
-  "/dice/manifest.js",
-  "/dice/sfx/manifest.js",
-  "/dice-sound.js",
   "/vendor/html-to-image/html-to-image.js",
   "/manifest.json",
   "/icon.svg",
@@ -130,7 +126,7 @@ self.addEventListener("activate", function(e){
       // Spare PIPER_CACHE from the per-deploy purge (LOAD-BEARING — see the PIPER_CACHE comment
       // above). Without this exemption the purge deletes it right along with the old app-shell
       // cache on every deploy, and the dedicated cache name buys nothing.
-      return Promise.all(keys.filter(function(k){return k!==CACHE && k!==PIPER_CACHE && k!==AUDIO_CACHE_NAME && k!==DICE_CACHE;}).map(function(k){return caches.delete(k);}));
+      return Promise.all(keys.filter(function(k){return k!==CACHE && k!==PIPER_CACHE && k!==AUDIO_CACHE_NAME && k!==ROLLER_CACHE;}).map(function(k){return caches.delete(k);}));
     })
   );
   self.clients.claim();
@@ -154,23 +150,18 @@ self.addEventListener("activate", function(e){
 self.addEventListener("fetch", function(e){
   if(e.request.method !== "GET") return;
   if(e.request.url.indexOf(self.location.origin) !== 0) return;
-  // #668: the dice roller (/roller/, a release copy of the dice-sim web app) has its own offline worker
-  // scoped to its folder. Hands off: the cache-first app-shell path below would pin its files to CACHE.
-  if(new URL(e.request.url).pathname.indexOf("/roller/") === 0) return;
-  // #650: a roll clip — cache-first against DICE_CACHE (see its comment); never precached, a miss fetches and keeps it.
-  // #653: the damage dice (d4_FF … d12_FF) ride the same path. #659: so does the dice sound sprite (dice/sfx/dice-rolls-vN.mp3,
-  // ~350 KB, every take of the owner-chosen CC0 recordings) — versioned in its name, since this cache keeps it forever.
-  if(/\/dice\/(d\d+_\d\d(\.webm|-stacked\.mp4)|sfx\/dice-rolls-v\d+\.mp3)$/.test(new URL(e.request.url).pathname)){
+  // #668/#669: /roller/ — the dice roller's pages (its own worker controls them once installed) and the live dice the game
+  // loads. Network-first into ROLLER_CACHE: a publish shows at once online, the dice still roll offline.
+  if(new URL(e.request.url).pathname.indexOf("/roller/") === 0){
     e.respondWith(
-      caches.match(e.request).then(function(cached){
-        if(cached) return cached;
-        return fetch(e.request).then(function(response){
-          if(response && response.status === 200 && response.type === "basic"){
-            var clone = response.clone();
-            holdRuntimeIo(e,caches.open(DICE_CACHE).then(function(cache){ return cache.put(e.request,clone); }),"dice cache write for "+e.request.url);
-          }
-          return response;
-        });
+      fetch(e.request).then(function(response){
+        if(response && response.ok && response.type === "basic"){
+          var clone = response.clone();
+          holdRuntimeIo(e,caches.open(ROLLER_CACHE).then(function(cache){ return cache.put(e.request,clone); }),"roller cache write for "+e.request.url);
+        }
+        return response;
+      }).catch(function(){
+        return caches.open(ROLLER_CACHE).then(function(cache){ return cache.match(e.request); }).then(function(hit){ return hit || Response.error(); });
       })
     );
     return;
