@@ -11,7 +11,7 @@
 //
 // Pass { context } (an OfflineAudioContext, say) to render without speakers — the tests do.
 
-import { rollEvents, TIMBRES } from './plan.js';
+import { rollEvents, exitSoundEvent, TIMBRES } from './plan.js';
 
 const PRE_ROLL = 0.001;   // s of silence before each click's attack (dev/cut-clicks.js cuts 1 ms early)
 
@@ -119,6 +119,16 @@ export class DiceAudio {
     const t0 = at ?? this.context().currentTime;
     for (const e of events) this.play(e, t0 + e.time, pan ? pan(e.die, e.t) : 0);
     return events;
+  }
+
+  /**
+   * An exit's sound (audio/plan.js ▸ exitSoundEvent) now — a few ms on, by the event — panned −1 … 1:
+   * what a DiceView exit's onSound reports ({ kind, type, surface, strength, pan }).
+   */
+  playExitSound(kind, { type, surface, strength = 1, pan = 0 } = {}) {
+    this.requireLoaded();
+    const e = exitSoundEvent(kind, { bank: this.bank, type, surface, strength });
+    return this.play(e, this.context().currentTime + e.after, pan);
   }
 
   /** Silences everything scheduled or sounding (a new roll took over). */

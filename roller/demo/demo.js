@@ -376,7 +376,8 @@ function takeAway() {
   const gone = remove.map((i) => onTable()[i]);
   // Each leaves through the Exit animation, several one after another (Clear): 0.2 s apart, give or take.
   const delays = exitDelays(remove.length);
-  const leavingNow = remove.map((i, k) => view.removeDie(i, { exit: $('exit').value, delay: delays[k] }));
+  const onSound = (s) => { if (soundOn()) audio.playExitSound(s.kind, { ...s, pan: 0.7 * s.pan }); };
+  const leavingNow = remove.map((i, k) => view.removeDie(i, { exit: $('exit').value, delay: delays[k], onSound }));
   leaving = Promise.all([leaving, ...leavingNow]);
   unsettled = true;
   ++current;   // a roll under way no longer describes the table: the settle after it reports instead

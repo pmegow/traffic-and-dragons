@@ -389,7 +389,7 @@ export class DiceView {
    * Empties the table: at once, or with an exit (EXITS) each die leaving a moment after the last.
    * Resolves when every die has gone.
    */
-  clear({ exit = null } = {}) {
+  clear({ exit = null, onSound = null } = {}) {
     if (exit !== null && !EXITS[exit]) throw new Error('DiceView: no exit "' + exit + '" (known: ' + Object.keys(EXITS).join(', ') + ')');
     const gone = this.dice;
     this.dice = [];
@@ -399,7 +399,7 @@ export class DiceView {
       return Promise.resolve();
     }
     const delays = exitDelays(gone.length);
-    return Promise.all(gone.map((d, k) => this.runExit(d, exit, delays[k])));
+    return Promise.all(gone.map((d, k) => this.runExit(d, exit, delays[k], onSound)));
   }
 
   /**
@@ -456,8 +456,14 @@ export class DiceView {
    * Plays an exit on a die already off the table: drawn where it was until the effect has run, then
    * freed. A start or a step that throws is reported, and the die goes at once.
    */
-  runExit(d, exit, delay = 0) {
+  runExit(d, exit, delay = 0, onSound = null) {
     const name = chooseExit(exit), spec = EXITS[name];   // Random picks here, for each die (round 12)
+    // What an exit hears itself make (a spider's step): kind, how hard (0 … 1) and where, handed to the
+    // host's onSound with the die's type, the table's surface and the pan.
+    const sound = (kind, position, strength = 1) => {
+      if (!onSound) return;
+      try { onSound({ kind, type: d.die.type, surface: this.tray.surface, strength, pan: this.panFor(position) }); } catch (e) { console.error('DiceView onSound threw:', e); }
+    };
     return new Promise((resolve) => {
       let effect = null, start = null, last = 0, elapsed = 0, done = false;
       const record = {
@@ -479,7 +485,7 @@ export class DiceView {
         elapsed += dt;
         let u = spec.seconds > 0 ? Math.min(1, elapsed / spec.seconds) : 1;
         try {
-          if (!effect) effect = spec.start({ view: this, entry: d });
+          if (!effect) effect = spec.start({ view: this, entry: d, sound });
           effect.step(u, dt);
         } catch (e) {
           console.error('DiceView: the "' + name + '" exit failed, so the die goes at once:', e);
@@ -544,9 +550,10 @@ export class DiceView {
    * Takes die i (play order) off the table now, even while a roll plays; the others stay where they
    * are. With an exit (EXITS: 'burn', 'smoke', 'pit') it leaves through that effect, `delay` seconds
    * from now: off the table at once (table() no longer lists it, so a drop or a settle may follow) and
-   * drawn until the effect ends. Resolves when it has gone.
+   * drawn until the effect ends. onSound({ kind, type, surface, strength, pan }) hears the sounds the exit
+   * makes (a spider's steps), for the host to play. Resolves when it has gone.
    */
-  removeDie(i, { exit = null, delay = 0 } = {}) {
+  removeDie(i, { exit = null, delay = 0, onSound = null } = {}) {
     const d = this.dice[i];
     if (!d) throw new Error('DiceView.removeDie: the table has no die ' + i + ' (' + this.dice.length + ' on it)');
     if (exit !== null && !EXITS[exit]) throw new Error('DiceView: no exit "' + exit + '" (known: ' + Object.keys(EXITS).join(', ') + ')');
@@ -556,7 +563,7 @@ export class DiceView {
       this.render();
       return Promise.resolve();
     }
-    return this.runExit(d, exit, delay);
+    return this.runExit(d, exit, delay, onSound);
   }
 
   /**

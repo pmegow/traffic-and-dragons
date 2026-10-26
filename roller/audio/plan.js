@@ -6,6 +6,7 @@
 //
 //   rollEvents(result, …)   one event per impact the physics recorded — the click's loudness from
 //                           the impact speed, its choice from the recorded clicks of that strength
+//   exitSoundEvent(kind, …) a sound an exit makes (EXIT_SOUNDS): a spider's step
 //
 // (A cup rattle before the throw, built from these clicks, was tried on 2026-10-24 and removed the
 // same day: too uniform — owner.)
@@ -87,6 +88,35 @@ export function rollEvents(result, { bank, timeScale = 1, voices = 6 } = {}) {
   });
   events.sort((a, b) => a.time - b.time || a.die - b.die);
   return limitVoices(events, voices);
+}
+
+/**
+ * Sounds an exit makes, by kind. A step (Scurry off, owner 2026-10-26: "a sound for the spider legs
+ * hitting the ground. The die click, but slightly quicker, slightly quieter, slightly higher pitch"): one
+ * of the die's own softly recorded clicks (`strength`) on the table's surface, played `rate` × as fast
+ * (higher and shorter) at `gain` × the surface's level. Each step varies by up to `vary` (pitch, level)
+ * and sounds up to `spread` s late, so the feet of a stride patter rather than land as one.
+ */
+export const EXIT_SOUNDS = {
+  step: { rate: 1.22, gain: 0.35, strength: 0.3, spread: 0.012, vary: { rate: 0.04, gain: 0.2 } },
+};
+
+/**
+ * One exit sound as an event the engine plays (DiceAudio.playExitSound): `kind` an EXIT_SOUNDS key, `type`
+ * the die's, `surface` the table's (a TIMBRES key), `strength` 0 … 1 how hard it lands.
+ */
+export function exitSoundEvent(kind, { bank, type, surface, strength = 1, random = Math.random }) {
+  const sound = EXIT_SOUNDS[kind];
+  if (!sound) throw new Error('exitSoundEvent: no exit sound "' + kind + '" (known: ' + Object.keys(EXIT_SOUNDS).join(', ') + ')');
+  const spec = TIMBRES[surface];
+  if (!spec) throw new Error('exitSoundEvent: no timbre for "' + surface + '"');
+  return {
+    kind, type, timbre: surface,
+    click: pickClick(bank, type, sound.strength, random()),
+    rate: spec.rate * sound.rate * (1 + sound.vary.rate * (2 * random() - 1)),
+    gain: spec.gain * sound.gain * strength * (1 + sound.vary.gain * (2 * random() - 1)),
+    after: sound.spread * random(),
+  };
 }
 
 function limitVoices(events, voices) {

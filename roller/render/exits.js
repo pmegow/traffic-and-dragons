@@ -13,12 +13,14 @@
 //   fade   Fade: the die fades out, its shadow with it
 //   scurry Scurry off: eight spider legs grow out of it — coxa, femur, knee, tibia, metatarsus and a
 //          tapering tarsus, in its own material, the knuckles in its numerals' — it stands up on them
-//          and runs out of frame
+//          and runs out of frame, each foot heard as it touches the floor (sound('step', …))
 //   pit    Going down: a hole opens under the die, which tips and falls through it at once (cut at
 //          the floor, darkening at the rim), and the hole closes the moment it is through
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
 //
-// Effects only draw: nothing here touches the physics, and the timings are the table's.
+// Effects only draw: nothing here touches the physics, and the timings are the table's. A sound an effect
+// makes it reports through start's `sound(kind, position, strength)`; the host plays it (DiceView ▸
+// removeDie's onSound).
 
 import * as THREE from 'three';
 import { EXIT_TABLE, SCURRY, BURN, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
@@ -233,7 +235,7 @@ const LOWER_JOINTS = [0.45, 0.78];   // where along the lower leg the tibia, met
 // knuckle, in the die's numeral material (round 7: "make the knuckle material match the number material").
 const JOINTS = [{ size: 1.45 }, { size: 1.9, knuckle: true }, { size: 0.85 }, { size: 0.6 }];
 
-function startScurry({ view, entry }) {
+function startScurry({ view, entry, sound }) {
   const R = entry.die.boundingRadius, mesh = entry.mesh, centre = mesh.position.clone();
   const turn0 = mesh.quaternion.clone();
   const toward = towardNearestEdge(view, centre), heading0 = Math.atan2(toward.z, toward.x);
@@ -292,7 +294,12 @@ function startScurry({ view, entry }) {
           if (!l.foot) { l.foot = centre.clone().addScaledVector(outward(heading0, i, home), LEG.reach * R); l.foot.y = 0; }
           const front = LEG.front.indexOf(i);   // while it wonders, a front foot taps
           l.foot.y = front < 0 ? 0 : t.tap[front] * SCURRY.tap * LEG.lift * R;
+          // A foot touching the floor is heard (owner 2026-10-26): as its leg finishes growing, and as a
+          // front foot comes down from a tap.
+          if (l.tapping && l.foot.y === 0) sound('step', l.foot, 0.5);
+          l.tapping = l.foot.y > 0;
           const grown = legGrown(t.legs, l.sprout);
+          if (grown === 1 && !l.planted) { l.planted = true; sound('step', l.foot, 0.6); }
           placeLeg(l, base, hip, l.foot, R, grown);
           continue;
         }
@@ -302,7 +309,7 @@ function startScurry({ view, entry }) {
           l.swing.s = Math.min(1, l.swing.s + dt / l.swing.time);
           l.foot.lerpVectors(l.swing.from, l.swing.to, l.swing.s);
           l.foot.y = Math.sin(Math.PI * l.swing.s) * LEG.lift * R;
-          if (l.swing.s >= 1) { l.foot.y = 0; l.swing = null; }
+          if (l.swing.s >= 1) { l.foot.y = 0; l.swing = null; sound('step', l.foot, 1); }
         } else if (l.group === active && l.foot.distanceTo(rest) > stride * 0.5) {
           l.swing = { from: l.foot.clone(), to: rest.clone().addScaledVector(way, speed * swingTime), s: 0, time: swingTime };
         }
