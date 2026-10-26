@@ -20,13 +20,16 @@
  */
 export const BURN = { heat: 1.2, hold: 0.1, fade: 0.5, stainFade: 0.7 };
 
+/** Scurry off, in seconds: legs grow, the body lifts, it runs; it stands `ride` radii up. */
+export const SCURRY = { grow: 0.45, lift: 0.25, run: 1.65 / 1.5, ride: 0.9 };
+
 export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
   burn: { label: 'Burn out', seconds: BURN.heat + BURN.hold + BURN.fade + 0.3 + BURN.stainFade },   // 2.8 s
   smoke: { label: 'Smoke puff', seconds: 1.8 },
   pit: { label: 'Going down', seconds: 0.75 },   // ends as the hole shuts behind the die (art direction 2026-10-25)
   fade: { label: 'Fade', seconds: 1.2 },          // round 5: "slow it down 100%" (was 0.6)
-  scurry: { label: 'Scurry off', seconds: 0.35 + 1.65 / 1.5 },   // round 5: it runs half again as fast
+  scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.run },   // 1.8 s
 };
 
 /** Seconds between dice leaving together (Clear), so they go one after another, not as one. */
@@ -124,15 +127,17 @@ export function fadeTimeline(u) {
 
 /**
  * Scurry off (round 4: "make the dice grow spider legs and scurry out of frame"), in seconds: eight legs
- * grow out of the die over `grow`, standing it up `ride` radii (legs: 0 … 1, ride: metres), then it runs
- * for the nearest edge of the screen, gathering speed (travel: the share of the way out of frame,
- * 0 … 1, reached at the end). It never moves before it has its legs.
+ * grow out of the die over `grow` while it stays where it lay (legs: 0 … 1); then, the feet planted, it
+ * lifts `ride` radii over `lift` (ride: metres); then it runs for the nearest edge of the screen over
+ * `run`, gathering speed (travel: the share of the way out of frame, 0 … 1, reached at the end). Round 6:
+ * "grow out of the body, with the die in place. then once the legs are grown, lift the body up and scurry
+ * off" (it rose as they grew). Round 5 made the run half again as fast (1.1 s, was 1.65) and the stance
+ * taller (0.9 radii, was 0.6).
  */
-export const SCURRY = { grow: 0.35, ride: 0.9 };   // round 5: legs half again as long stand it taller (was 0.6)
-
 export function scurryTimeline(u, R) {
   const t = u * EXIT_TABLE.scurry.seconds;
   const legs = smooth(t / SCURRY.grow);
-  const x = clamp01((t - SCURRY.grow) / (EXIT_TABLE.scurry.seconds - SCURRY.grow));
-  return { legs, ride: SCURRY.ride * R * legs, travel: Math.pow(x, 1.6) };
+  const lifted = smooth((t - SCURRY.grow) / SCURRY.lift);
+  const x = clamp01((t - SCURRY.grow - SCURRY.lift) / SCURRY.run);
+  return { legs, ride: SCURRY.ride * R * lifted, travel: Math.pow(x, 1.6) };
 }

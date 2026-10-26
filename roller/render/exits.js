@@ -198,7 +198,11 @@ const LEG = {
   // Round 5: every length half again as long (the femur was 1.25, the tibia 1.45, the reach 1.9, the step
   // 0.8, the lift 0.5); a knob at each knee, `knob` times the leg's thickness.
   thick: 0.06, femur: 1.875, tibia: 2.175, hip: 0.5, reach: 2.85, step: 1.2, lift: 0.75, knob: 1.9,
+  // Round 6: each leg starts growing a little after the last (a share of the growing time), so they
+  // unfold one by one rather than as one.
+  sprout: [0, 0.1, 0.05, 0.15, 0.03, 0.12, 0.08, 0.2],
 };
+const SPROUT_SPAN = 1 - Math.max(...LEG.sprout);
 
 function startScurry({ view, entry }) {
   const R = entry.die.boundingRadius, mesh = entry.mesh, centre = mesh.position.clone();
@@ -210,11 +214,16 @@ function startScurry({ view, entry }) {
     return dir.clone().multiplyScalar(Math.cos(a)).addScaledVector(side, Math.sin(a));
   });
   const geometry = new THREE.CylinderGeometry(1, 0.6, 1, 6);
-  // The legs are the die's own colour (round 5: "match the leg color to the die color").
+  // The legs are the die's own colour (round 5: "match the leg color to the die color"), the knuckles
+  // half as light (round 6: "50% darker than the legs themselves").
   const material = new THREE.MeshStandardMaterial({ color: mesh.material.color.clone(), roughness: 0.45, metalness: 0.1 });
+  const knuckle = mesh.material.color.clone(), hsl = {};
+  knuckle.getHSL(hsl);
+  knuckle.setHSL(hsl.h, hsl.s, hsl.l * 0.5);
+  const knuckles = new THREE.MeshStandardMaterial({ color: knuckle, roughness: 0.45, metalness: 0.1 });
   const ball = new THREE.SphereGeometry(1, 12, 8);
   const segment = (r) => { const s = new THREE.Mesh(geometry, material); s.castShadow = true; s.userData.r = r; view.scene.add(s); return s; };
-  const knob = () => { const k = new THREE.Mesh(ball, material); k.castShadow = true; k.scale.setScalar(LEG.thick * LEG.knob * R); view.scene.add(k); return k; };
+  const knob = () => { const k = new THREE.Mesh(ball, knuckles); k.castShadow = true; view.scene.add(k); return k; };
   const legs = outward.map((o, i) => ({ o, group: LEG.group[i], femur: segment(LEG.thick * R), tibia: segment(LEG.thick * R * 0.7), knob: knob(), foot: null, swing: null }));
   let active = 0, last = 0, bob = 0;
   const body = new THREE.Vector3(), hip = new THREE.Vector3(), rest = new THREE.Vector3(), knee = new THREE.Vector3();
@@ -230,13 +239,20 @@ function startScurry({ view, entry }) {
       const stride = Math.max(LEG.step * R, speed * 0.1), swingTime = Math.min(0.1, Math.max(0.035, stride / Math.max(speed, 1e-6) / 2));
       // Which group steps: the other once every foot of this one is down and none needs to step.
       const moving = (g) => legs.some((l) => l.group === g && l.swing);
-      for (const l of legs) {
-        hip.copy(body).addScaledVector(l.o, LEG.hip * R * t.legs);
+      for (const [i, l] of legs.entries()) {
+        hip.copy(body).addScaledVector(l.o, LEG.hip * R);
         hip.y = body.y + 0.1 * R;
-        rest.copy(body).addScaledVector(l.o, LEG.reach * R * t.legs).addScaledVector(dir, stride * 0.5);
+        if (!t.travel) {
+          // Growing, then lifting: each foot has its spot on the floor from the start, and the leg grows
+          // out of the die toward it along the pose it will stand in; the feet stay as the body lifts.
+          if (!l.foot) { l.foot = centre.clone().addScaledVector(l.o, LEG.reach * R); l.foot.y = 0; }
+          const grown = Math.min(1, Math.max(0, (t.legs - LEG.sprout[i]) / SPROUT_SPAN));
+          placeLeg(l, hip, l.foot, R, knee, grown);
+          continue;
+        }
+        rest.copy(body).addScaledVector(l.o, LEG.reach * R).addScaledVector(dir, stride * 0.5);
         rest.y = 0;
-        if (t.legs < 1 || !l.foot) { l.foot = (l.foot || new THREE.Vector3()).copy(rest); l.foot.y = 0; }
-        else if (l.swing) {
+        if (l.swing) {
           l.swing.s = Math.min(1, l.swing.s + dt / l.swing.time);
           l.foot.lerpVectors(l.swing.from, l.swing.to, l.swing.s);
           l.foot.y = Math.sin(Math.PI * l.swing.s) * LEG.lift * R;
@@ -244,7 +260,7 @@ function startScurry({ view, entry }) {
         } else if (l.group === active && l.foot.distanceTo(rest) > stride * 0.5) {
           l.swing = { from: l.foot.clone(), to: rest.clone().addScaledVector(dir, speed * swingTime), s: 0, time: swingTime };
         }
-        placeLeg(l, hip, l.foot, R * t.legs, knee);
+        placeLeg(l, hip, l.foot, R, knee, 1);
       }
       if (!moving(active)) active = 1 - active;
     },
@@ -253,15 +269,19 @@ function startScurry({ view, entry }) {
       geometry.dispose();
       ball.dispose();
       material.dispose();
+      knuckles.dispose();
     },
   };
 }
 
-/** Two-bone legs: the knee bends up and out, found from the hip, the foot and the segment lengths. */
-function placeLeg(l, hip, foot, scale, knee) {
-  const L1 = LEG.femur * scale, L2 = LEG.tibia * scale;
-  if (!(L1 > 1e-6)) { l.femur.visible = l.tibia.visible = l.knob.visible = false; return; }
-  l.femur.visible = l.tibia.visible = l.knob.visible = true;
+/**
+ * Two-bone legs: the knee bends up and out, found from the hip, the foot and the segment lengths. A leg
+ * still growing (grown < 1) is drawn only so far along its pose: the upper leg out from the hip first,
+ * then the lower down toward the foot, the knuckle swelling as the knee is reached.
+ */
+const part = new THREE.Vector3();
+function placeLeg(l, hip, foot, R, knee, grown) {
+  const L1 = LEG.femur * R, L2 = LEG.tibia * R, drawn = grown * (L1 + L2);
   const d = foot.clone().sub(hip);
   const len = Math.min(Math.max(d.length(), Math.abs(L1 - L2) + 1e-6), (L1 + L2) * 0.999);
   d.normalize();
@@ -269,10 +289,14 @@ function placeLeg(l, hip, foot, scale, knee) {
   const pole = new THREE.Vector3(0, 1, 0).addScaledVector(d, -d.y).normalize();
   knee.copy(hip).addScaledVector(d, L1 * cosA).addScaledVector(pole, L1 * sinA);
   const end = hip.clone().addScaledVector(d, len);
-  placeSegment(l.femur, hip, knee);
-  placeSegment(l.tibia, knee, end);
+  l.femur.visible = drawn > 1e-6;
+  if (l.femur.visible) placeSegment(l.femur, hip, part.lerpVectors(hip, knee, Math.min(1, drawn / L1)));
+  l.tibia.visible = drawn > L1;
+  if (l.tibia.visible) placeSegment(l.tibia, knee, part.lerpVectors(knee, end, (drawn - L1) / L2));
+  const knob = Math.min(1, Math.max(0, (drawn - 0.9 * L1) / (0.25 * L2)));
+  l.knob.visible = knob > 0;
   l.knob.position.copy(knee);
-  l.knob.scale.setScalar(LEG.thick * LEG.knob * scale);
+  l.knob.scale.setScalar(LEG.thick * LEG.knob * R * knob);
 }
 
 const Y = new THREE.Vector3(0, 1, 0);
