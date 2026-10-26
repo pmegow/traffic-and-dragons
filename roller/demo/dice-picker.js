@@ -9,7 +9,6 @@
 //   p.add('d8')       → true, or false when the roll is full
 //   p.remove('d6')    → true, or false when there is none to take
 //   p.list()          → ['d6', 'd6', 'd8', 'd20']   (what roll() takes)
-//   p.notation()      → '2d6 + d8 + d20'             ('' when empty)
 
 export function createDicePicker({ types, max, counts = {} } = {}) {
   if (!Array.isArray(types) || !types.length) throw new Error('createDicePicker: types must be a non-empty list of die types');
@@ -32,7 +31,6 @@ export function createDicePicker({ types, max, counts = {} } = {}) {
     remove(t) { known(t); if (!n[t]) return false; n[t]--; total--; return true; },
     clear() { for (const t of types) n[t] = 0; total = 0; },
     list() { return types.flatMap((t) => Array(n[t]).fill(t)); },
-    notation() { return groupDice(this.list()); },
   };
 }
 

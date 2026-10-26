@@ -8,6 +8,7 @@ import { createDrawer } from './drawer.js';
 import { sameLook } from '../render/presets.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
+import { rollLine } from './roll-line.js';
 import { EXIT_TABLE, exitDelays, chooseExit } from '../render/exit-table.js';
 
 const $ = (id) => document.getElementById(id);
@@ -74,7 +75,6 @@ const paintDice = () => {
     a.add.setAttribute('aria-label', 'Add a ' + t + ' (' + c + ' in the roll)');
   }
   $('clear-all').disabled = picker.total === 0;
-  $('dice-shown').textContent = picker.notation();
   $('roll').disabled = picker.total === 0;
   try { localStorage.setItem(DICE_KEY, JSON.stringify(picker.counts())); } catch { /* storage blocked */ }
 };
@@ -267,7 +267,6 @@ $('surface').addEventListener('change', () => { applySurface(); applyLook(); });
 for (const id of ['body-color', 'ink-color']) $(id).addEventListener('input', applyLook);
 $('finish').addEventListener('change', applyLook);
 $('font').addEventListener('change', applyLook);
-$('clear-dice').addEventListener('click', clearDice);
 $('clear-forced').addEventListener('click', () => { $('forced').value = ''; $('forced').focus(); });
 const speed = () => Number($('speed').value);
 $('speed').addEventListener('input', () => { $('speed-out').textContent = speed().toFixed(2) + '×'; });
@@ -410,11 +409,9 @@ async function dropIn(types) {
   showTable(types.length ? 'dropped in ' + groupDice(types) : 'the dice settled');
 }
 
-/** The result line for the table as it lies: its total, each die, and what just happened. */
+/** The roll line for the table as it lies (each die, the total at the end), and what just happened. */
 function showTable(note) {
-  const t = view.table();
-  $('total').textContent = t.length ? String(t.reduce((s, d) => s + d.value, 0)) : '';
-  $('faces').textContent = t.length > 1 ? t.map((d) => d.type + ': ' + d.value).join('   ') : t.length ? t[0].type : '';
+  $('roll-line').textContent = rollLine(view.table());
   $('meta').textContent = note;
 }
 
@@ -443,9 +440,8 @@ async function go(req, { unlocking = Promise.resolve() } = {}) {
 }
 
 function show(result, bakeMs) {
-  if (!result) { $('total').textContent = '…'; $('faces').textContent = ''; $('meta').textContent = ''; return; }
-  $('total').textContent = String(result.total);
-  $('faces').textContent = result.dice.length > 1 ? result.dice.map((d) => d.type + ': ' + d.value + (d.forced ? '*' : '')).join('   ') : result.dice[0].type + (result.dice[0].forced ? ' (forced)' : '');
+  if (!result) { $('roll-line').textContent = ''; $('meta').textContent = ''; return; }
+  $('roll-line').textContent = rollLine(result.dice);
   $('meta').textContent = 'seed ' + result.seed + ' · ' + result.attempts + (result.attempts === 1 ? ' throw' : ' throws') +
     ' · settled in ' + result.duration.toFixed(2) + ' s · baked in ' + bakeMs.toFixed(0) + ' ms';
 }
