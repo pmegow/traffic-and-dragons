@@ -11,8 +11,9 @@
 //          fire — bright, many-coloured sparks — swirling up out of it
 //   none   None: the die goes at once
 //   fade   Fade: the die fades out, its shadow with it
-//   scurry Scurry off: it grows eight spider legs in its own colour, knobbed at the knees, stands up on
-//          them and runs out of frame
+//   scurry Scurry off: eight spider legs grow out of it — coxa, femur, knee, tibia, metatarsus and a
+//          tapering tarsus, in its own material, the knuckles in its numerals' — it stands up on them
+//          and runs out of frame
 //   pit    Going down: a hole opens under the die, which tips and falls through it at once (cut at
 //          the floor, darkening at the rim), and the hole closes the moment it is through
 //
@@ -21,7 +22,8 @@
 import * as THREE from 'three';
 import { EXIT_TABLE, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline } from './exit-table.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_DEPTH_PARS, EXIT_DEPTH } from './exit-shader.js';
-import { PATTERN_GLSL } from './patterns.js';
+import { PATTERN_GLSL, PATTERN_SCALE } from './patterns.js';
+import { dieMaterial } from './finishes.js';
 import { createParticles } from './particles.js';
 
 const STARTS = { none: startNone, burn: startBurn, smoke: startSmoke, pit: startPit, fade: startFade, scurry: startScurry };
@@ -52,6 +54,10 @@ function startBurn({ view, entry }) {
       const t = burnTimeline(u);
       uniforms.uExitHeat.value = t.heat;
       m.opacity = t.opacity;
+      // Once it fades it must stop writing depth, or the smoke and cinders behind it are cut out by an
+      // invisible die: on glass and quartz a die-shaped ghost, and with no tray a hole in the canvas
+      // (owner 2026-10-25: "burn out doesn't seem to be working with translucent or transparent").
+      m.depthWrite = t.opacity >= 1;
       uniforms.uExitFade.value = t.opacity;
       glow.set(t.glow);
       stain.set(t.stain);
@@ -191,18 +197,35 @@ function startFade({ entry }) {
 }
 
 // ---------------------------------------------------------------- scurry off
-// Eight legs, four a side, fanned from the heading (degrees): two forward, two back. Lengths in die radii.
+// Eight legs, four a side, fanned from the heading (degrees): two forward, two back. Lengths in die radii;
+// thicknesses in units of `thick` die radii.
 const LEG = {
   angles: [40, 75, 105, 140, -40, -75, -105, -140],
   group: [0, 1, 0, 1, 1, 0, 1, 0],   // the alternating tetrapod gait: one group steps while the other stands
-  // Round 5: every length half again as long (the femur was 1.25, the tibia 1.45, the reach 1.9, the step
-  // 0.8, the lift 0.5); a knob at each knee, `knob` times the leg's thickness.
-  thick: 0.06, femur: 1.875, tibia: 2.175, hip: 0.5, reach: 2.85, step: 1.2, lift: 0.75, knob: 1.9,
-  // Round 6: each leg starts growing a little after the last (a share of the growing time), so they
-  // unfold one by one rather than as one.
+  // Round 5: every length half again as long. The two bones the knee is found from: the femur (hip to
+  // knee) and the lower leg (knee to foot: tibia, metatarsus and tarsus).
+  femur: 1.875, lower: 2.175,
+  thick: 0.06, base: 0.25, hip: 0.6, reach: 2.85, step: 1.2, lift: 0.75,
+  bow: 0.06,   // how far the lower leg bows out, a share of its length (the drawing's curve)
+  // Round 6: each leg starts growing a little after the last (a share of the growing time).
   sprout: [0, 0.1, 0.05, 0.15, 0.03, 0.12, 0.08, 0.2],
 };
 const SPROUT_SPAN = 1 - Math.max(...LEG.sprout);
+
+// A spider's leg, after the drawing the owner sent (round 7, 2026-10-25): a short thick coxa from the
+// body, a long femur up to the knee, then the tibia, the metatarsus and a long tarsus tapering to a
+// point at the floor. Each part's thickness where it starts (near) and where it ends (far).
+const LEG_PARTS = [
+  { name: 'coxa', near: 1.6, far: 1.35 },
+  { name: 'femur', near: 1.3, far: 1.0 },
+  { name: 'tibia', near: 0.95, far: 0.75 },
+  { name: 'metatarsus', near: 0.7, far: 0.5 },
+  { name: 'tarsus', near: 0.45, far: 0.08 },
+];
+const LOWER_JOINTS = [0.45, 0.78];   // where along the lower leg the tibia, metatarsus and tarsus meet
+// The knobs at the joints (hip, knee, and the two lower joints), in thickness units; the knee's is the
+// knuckle, in the die's numeral material (round 7: "make the knuckle material match the number material").
+const JOINTS = [{ size: 1.45 }, { size: 1.9, knuckle: true }, { size: 0.85 }, { size: 0.6 }];
 
 function startScurry({ view, entry }) {
   const R = entry.die.boundingRadius, mesh = entry.mesh, centre = mesh.position.clone();
@@ -213,20 +236,25 @@ function startScurry({ view, entry }) {
     const a = deg * Math.PI / 180;
     return dir.clone().multiplyScalar(Math.cos(a)).addScaledVector(side, Math.sin(a));
   });
-  const geometry = new THREE.CylinderGeometry(1, 0.6, 1, 6);
-  // The legs are the die's own colour (round 5: "match the leg color to the die color"), the knuckles
-  // half as light (round 6: "50% darker than the legs themselves").
-  const material = new THREE.MeshStandardMaterial({ color: mesh.material.color.clone(), roughness: 0.45, metalness: 0.1 });
-  const knuckle = mesh.material.color.clone(), hsl = {};
-  knuckle.getHSL(hsl);
-  knuckle.setHSL(hsl.h, hsl.s, hsl.l * 0.5);
-  const knuckles = new THREE.MeshStandardMaterial({ color: knuckle, roughness: 0.45, metalness: 0.1 });
-  const ball = new THREE.SphereGeometry(1, 12, 8);
-  const segment = (r) => { const s = new THREE.Mesh(geometry, material); s.castShadow = true; s.userData.r = r; view.scene.add(s); return s; };
-  const knob = () => { const k = new THREE.Mesh(ball, knuckles); k.castShadow = true; view.scene.add(k); return k; };
-  const legs = outward.map((o, i) => ({ o, group: LEG.group[i], femur: segment(LEG.thick * R), tibia: segment(LEG.thick * R * 0.7), knob: knob(), foot: null, swing: null }));
+  // The legs are the die's own material (round 7: "make sure the material of the leg matches the die's
+  // material"): its finish, colour and pattern, with no numerals — the pattern at the die's grain round
+  // the leg; the knuckles are all numeral. The same shader as the dice, so nothing compiles.
+  const dice = mesh.material.userData.dice, finish = dice.finish;
+  const style = { body: '#' + mesh.material.color.getHexString(), ink: '#' + dice.uniforms.uInk.value.getHexString() };
+  const legMaterial = dieMaterial(finish, style, glyphOf(0), dice.seed, { radius: R, onTray: view.trayDrawn });
+  legMaterial.userData.dice.uniforms.uScale.value = PATTERN_SCALE * LEG.thick * R;
+  if (legMaterial.transmission > 0) legMaterial.thickness = 2 * LEG.thick * R * 1.4;   // glass as thin as the leg, or it tints black
+  const knuckleMaterial = dieMaterial(finish, style, glyphOf(255), dice.seed, { radius: R, onTray: view.trayDrawn });
+  const partGeometry = LEG_PARTS.map((p) => paintWhite(new THREE.CylinderGeometry(p.far, p.near, 1, 8, 1)));
+  const ball = paintWhite(new THREE.SphereGeometry(1, 12, 8));
+  const add = (geometry, material) => { const m = new THREE.Mesh(geometry, material); m.castShadow = true; view.scene.add(m); return m; };
+  const legs = outward.map((o, i) => ({
+    o, group: LEG.group[i], foot: null, swing: null,
+    parts: partGeometry.map((g) => add(g, legMaterial)),
+    knobs: JOINTS.map((j) => add(ball, j.knuckle ? knuckleMaterial : legMaterial)),
+  }));
   let active = 0, last = 0, bob = 0;
-  const body = new THREE.Vector3(), hip = new THREE.Vector3(), rest = new THREE.Vector3(), knee = new THREE.Vector3();
+  const body = new THREE.Vector3(), base = new THREE.Vector3(), hip = new THREE.Vector3(), rest = new THREE.Vector3();
   return {
     step(u, dt) {
       const t = scurryTimeline(u, R);
@@ -240,14 +268,16 @@ function startScurry({ view, entry }) {
       // Which group steps: the other once every foot of this one is down and none needs to step.
       const moving = (g) => legs.some((l) => l.group === g && l.swing);
       for (const [i, l] of legs.entries()) {
+        base.copy(body).addScaledVector(l.o, LEG.base * R);
+        base.y = body.y + 0.05 * R;
         hip.copy(body).addScaledVector(l.o, LEG.hip * R);
-        hip.y = body.y + 0.1 * R;
+        hip.y = body.y + 0.15 * R;
         if (!t.travel) {
           // Growing, then lifting: each foot has its spot on the floor from the start, and the leg grows
           // out of the die toward it along the pose it will stand in; the feet stay as the body lifts.
           if (!l.foot) { l.foot = centre.clone().addScaledVector(l.o, LEG.reach * R); l.foot.y = 0; }
           const grown = Math.min(1, Math.max(0, (t.legs - LEG.sprout[i]) / SPROUT_SPAN));
-          placeLeg(l, hip, l.foot, R, knee, grown);
+          placeLeg(l, base, hip, l.foot, R, grown);
           continue;
         }
         rest.copy(body).addScaledVector(l.o, LEG.reach * R).addScaledVector(dir, stride * 0.5);
@@ -260,51 +290,85 @@ function startScurry({ view, entry }) {
         } else if (l.group === active && l.foot.distanceTo(rest) > stride * 0.5) {
           l.swing = { from: l.foot.clone(), to: rest.clone().addScaledVector(dir, speed * swingTime), s: 0, time: swingTime };
         }
-        placeLeg(l, hip, l.foot, R, knee, 1);
+        placeLeg(l, base, hip, l.foot, R, 1);
       }
       if (!moving(active)) active = 1 - active;
     },
     dispose() {
-      for (const l of legs) { l.femur.removeFromParent(); l.tibia.removeFromParent(); l.knob.removeFromParent(); }
-      geometry.dispose();
+      for (const l of legs) for (const m of [...l.parts, ...l.knobs]) m.removeFromParent();
+      for (const g of partGeometry) g.dispose();
       ball.dispose();
-      material.dispose();
-      knuckles.dispose();
+      legMaterial.dispose();
+      knuckleMaterial.dispose();
     },
   };
 }
 
 /**
- * Two-bone legs: the knee bends up and out, found from the hip, the foot and the segment lengths. A leg
- * still growing (grown < 1) is drawn only so far along its pose: the upper leg out from the hip first,
- * then the lower down toward the foot, the knuckle swelling as the knee is reached.
+ * One leg: the knee from the hip, the foot and the two bones (it bends up and out); the lower leg bowing
+ * out a little through its two joints; then each part drawn in turn — the coxa from the body, the femur,
+ * the tibia, the metatarsus, the tarsus — as far as the leg has grown (grown < 1 while it grows), each
+ * joint's knob swelling as the leg reaches it.
  */
-const part = new THREE.Vector3();
-function placeLeg(l, hip, foot, R, knee, grown) {
-  const L1 = LEG.femur * R, L2 = LEG.tibia * R, drawn = grown * (L1 + L2);
+const part = new THREE.Vector3(), knee = new THREE.Vector3(), end = new THREE.Vector3(), bowOut = new THREE.Vector3();
+const lowerPoints = LOWER_JOINTS.map(() => new THREE.Vector3());
+function placeLeg(l, base, hip, foot, R, grown) {
+  const L1 = LEG.femur * R, L2 = LEG.lower * R;
   const d = foot.clone().sub(hip);
   const len = Math.min(Math.max(d.length(), Math.abs(L1 - L2) + 1e-6), (L1 + L2) * 0.999);
   d.normalize();
   const cosA = (L1 * L1 + len * len - L2 * L2) / (2 * L1 * len), sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA));
   const pole = new THREE.Vector3(0, 1, 0).addScaledVector(d, -d.y).normalize();
   knee.copy(hip).addScaledVector(d, L1 * cosA).addScaledVector(pole, L1 * sinA);
-  const end = hip.clone().addScaledVector(d, len);
-  l.femur.visible = drawn > 1e-6;
-  if (l.femur.visible) placeSegment(l.femur, hip, part.lerpVectors(hip, knee, Math.min(1, drawn / L1)));
-  l.tibia.visible = drawn > L1;
-  if (l.tibia.visible) placeSegment(l.tibia, knee, part.lerpVectors(knee, end, (drawn - L1) / L2));
-  const knob = Math.min(1, Math.max(0, (drawn - 0.9 * L1) / (0.25 * L2)));
-  l.knob.visible = knob > 0;
-  l.knob.position.copy(knee);
-  l.knob.scale.setScalar(LEG.thick * LEG.knob * R * knob);
+  end.copy(hip).addScaledVector(d, len);
+  const down = end.clone().sub(knee).normalize();
+  bowOut.set(0, 1, 0).addScaledVector(down, -down.y).normalize();
+  LOWER_JOINTS.forEach((s, k) => lowerPoints[k].lerpVectors(knee, end, s).addScaledVector(bowOut, LEG.bow * L2 * Math.sin(Math.PI * s)));
+  const points = [base, hip, knee, ...lowerPoints, end];
+  const lengths = points.slice(1).map((p, k) => p.distanceTo(points[k]));
+  let left = grown * lengths.reduce((a, b) => a + b, 0), reached = 0;
+  l.parts.forEach((m, k) => {
+    const a = points[k], b = points[k + 1], len = lengths[k];
+    m.visible = left > 1e-9;
+    if (m.visible) {
+      const drawnTo = part.lerpVectors(a, b, Math.min(1, left / len));
+      placeSegment(m, a, drawnTo, LEG.thick * R);
+    }
+    left -= len;
+    reached += len;
+    const knob = l.knobs[k];
+    if (knob) {   // the joint at the end of this part, swelling as the leg reaches it
+      const swell = Math.min(1, Math.max(0, (left + 0.04 * L2) / (0.12 * L2)));
+      knob.visible = swell > 0;
+      knob.position.copy(b);
+      knob.scale.setScalar(JOINTS[k].size * LEG.thick * R * swell);
+    }
+  });
 }
 
 const Y = new THREE.Vector3(0, 1, 0);
-function placeSegment(s, a, b) {
+function placeSegment(s, a, b, r) {
   const v = b.clone().sub(a), len = v.length();
   s.position.copy(a).addScaledVector(v, 0.5);
   s.quaternion.setFromUnitVectors(Y, v.multiplyScalar(1 / Math.max(len, 1e-9)));
-  s.scale.set(s.userData.r, len, s.userData.r);
+  s.scale.set(r, Math.max(len, 1e-6), r);
+}
+
+/** The die material colours by vertex (its dimming); a leg's geometry is all white, so it draws its own colour. */
+function paintWhite(g) {
+  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 3).fill(1), 3));
+  return g;
+}
+
+/** A one-texel numeral mask: 0, no numeral anywhere (the body); 255, numeral everywhere (the ink). */
+const GLYPHS = new Map();
+function glyphOf(v) {
+  if (!GLYPHS.has(v)) {
+    const t = new THREE.DataTexture(new Uint8Array([v, v, v, 255]), 1, 1);
+    t.needsUpdate = true;
+    GLYPHS.set(v, t);   // two tiny textures, kept for the page's life
+  }
+  return GLYPHS.get(v);
 }
 
 /** The floor direction that carries a point at `p` toward the screen edge nearest it. */

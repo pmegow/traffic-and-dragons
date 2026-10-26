@@ -21,7 +21,7 @@
 export const BURN = { heat: 1.2, hold: 0.1, fade: 0.5, stainFade: 0.7 };
 
 /** Scurry off, in seconds: legs grow, the body lifts, it runs; it stands `ride` radii up. */
-export const SCURRY = { grow: 0.45, lift: 0.25, run: 1.65 / 1.5, ride: 0.9 };
+export const SCURRY = { grow: 0.45 / 2, lift: 0.25, run: 1.65 / 1.5, ride: 0.9 };   // round 7: legs drawn twice as fast
 
 export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
@@ -138,6 +138,7 @@ export function scurryTimeline(u, R) {
   const t = u * EXIT_TABLE.scurry.seconds;
   const legs = smooth(t / SCURRY.grow);
   const lifted = smooth((t - SCURRY.grow) / SCURRY.lift);
-  const x = clamp01((t - SCURRY.grow - SCURRY.lift) / SCURRY.run);
+  const runFrom = (SCURRY.grow + SCURRY.lift) / EXIT_TABLE.scurry.seconds;   // as a share, so the end lands on 1 exactly
+  const x = clamp01((u - runFrom) / (1 - runFrom));
   return { legs, ride: SCURRY.ride * R * lifted, travel: Math.pow(x, 1.6) };
 }
