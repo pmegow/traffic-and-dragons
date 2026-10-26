@@ -15,7 +15,7 @@ const status = (msg) => { $('status').textContent = msg || ''; };
 
 let view;
 try {
-  view = new DiceView({ container: $('stage') });
+  view = new DiceView({ container: $('view') });
 } catch (e) {
   status('Could not start the 3D view: ' + e.message);
   throw e;

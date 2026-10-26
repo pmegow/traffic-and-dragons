@@ -22,6 +22,7 @@
     --acc: #d9a441;
     --acc-ink: #1a1408;
     --bad: #e0705a;
+    --adder-gap: 6px;   /* between the die buttons, and between them and the view below */
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -37,7 +38,7 @@
      still zooms it (the owner's ruling); the stage's own none keeps a pinch there for the camera. */
   html { touch-action: manipulation; }
   body { padding-top: var(--top-inset); }
-  #stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; cursor: grab; }
+  #stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; cursor: grab; display: flex; flex-direction: column; }
   #stage:active { cursor: grabbing; }
   #stage { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   /* Held still for a moment, a press pans the view: a ring round the hand says so (owner 2026-10-24; a pan since 2026-10-25). */
@@ -52,8 +53,9 @@
   #reset-view { position: absolute; z-index: 3; bottom: 12px; right: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
     background: rgba(15, 17, 21, .78); color: var(--text); font: 13px system-ui, sans-serif; cursor: pointer; }
   #reset-view:hover { border-color: var(--acc); }
-  /* No tray: the dice roll over the page itself — a soft backdrop here, so their shadows read. */
-  #stage[data-surface="none"] { background: radial-gradient(ellipse at 50% 42%, #3b4352 0%, #262c38 55%, #181b22 100%); }
+  /* No tray: the dice roll over the page itself — a soft backdrop here, so their shadows read. The view's, so the
+     buttons above it sit on the page. */
+  #stage[data-surface="none"] #view { background: radial-gradient(ellipse at 50% 42%, #3b4352 0%, #262c38 55%, #181b22 100%); }
   #panel { border-left: 1px solid var(--line); background: var(--panel); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
   /* Rows keep their size and the panel scrolls: in a panel of fixed height (the phone drawer) a
      shrinking row drew its text over the next one (the roll summary over the die buttons). */
@@ -61,15 +63,22 @@
   h1 { font-size: 17px; margin: 0; letter-spacing: .3px; }
   h1 small { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; }
-  /* The die buttons are the only way to choose the dice, and float over the top of the view (owner 2026-10-25):
-     a tap adds one, which drops onto the table, and the count shows on the button; a right-click (or, on a
-     touch screen, a one-second press) takes one back off the table; Clear empties it (the minus was too small to hit on a phone). The panel's line
-     shows the roll and its × clears it too. Every die type on one row: the 20
-     is not special. Inside the stage, whose touch-action is none, so tapping fast never zooms. */
-  #dice-bar { position: absolute; z-index: 3; top: 12px; left: 10px; right: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
-  #adders { flex-wrap: nowrap; align-self: stretch; justify-content: center; gap: 6px; pointer-events: auto; }
-  /* Under the buttons (owner 2026-10-25); a press on it is a press on the table, so it says true. */
-  #table-hint { margin: 0; font-size: 12px; color: rgba(230, 226, 216, .78); text-shadow: 0 1px 2px rgba(0, 0, 0, .85); }
+  /* The die buttons are the only way to choose the dice (owner 2026-10-25): a tap adds one, which drops onto the
+     table, and the count shows on the button; a right-click (or, on a touch screen, a one-second press) takes one
+     back off the table; Clear empties it (the minus was too small to hit on a phone). The panel's line shows the
+     roll and its × clears it too. Every die type on one row: the 20 is not special. Inside the stage, whose
+     touch-action is none, so tapping fast never zooms.
+     They sit ABOVE the camera's view, never over it (owner 2026-10-26: a die was hidden under them): as high as the
+     iPhone's glass allows — the stage starts at --top-inset, and the 7 px above the row is the count badge's
+     overhang, which would be clipped or blurred otherwise — and the view starts one button gap below them, so the
+     camera's frame, and with no tray the walls the dice bounce off, begin there. */
+  #dice-bar { flex: none; position: relative; z-index: 3; display: flex; padding: 7px 10px var(--adder-gap); pointer-events: none; }
+  #adders { flex-wrap: nowrap; flex: 1 1 auto; justify-content: center; gap: var(--adder-gap); pointer-events: auto; }
+  /* The camera's view: the canvas fills it (render/view.js sizes to its container). */
+  #view { position: relative; flex: 1 1 auto; min-width: 0; min-height: 0; }
+  /* At the top of the view, under the buttons (owner 2026-10-25); a press on it is a press on the table, so it says true. */
+  #table-hint { position: absolute; z-index: 1; top: 2px; left: 0; right: 0; margin: 0; text-align: center; pointer-events: none;
+    font-size: 12px; color: rgba(230, 226, 216, .78); text-shadow: 0 1px 2px rgba(0, 0, 0, .85); }
   .add { position: relative; flex: 1 1 0; min-width: 0; max-width: 72px; min-height: 36px; padding: 8px 0; border: 1px solid var(--line); border-radius: 8px;
     background: rgba(15, 17, 21, .78); color: var(--text); font: inherit; cursor: pointer; }
   @media (pointer: coarse) { .add { min-height: 42px; } }
@@ -140,7 +149,7 @@
 </script>
 </head>
 <body>
-<main id="stage" aria-label="Dice tray: drag across it to fling the dice, hold then drag to pan the view, pinch, scroll or right-drag to zoom"><div id="pan-ring" aria-hidden="true"></div><div id="dice-bar"><div class="row" id="adders" aria-label="Choose the dice"></div><p id="table-hint">Click the table to roll</p></div><button id="reset-view" type="button" hidden>Reset view</button></main>
+<main id="stage" aria-label="Dice tray: drag across it to fling the dice, hold then drag to pan the view, pinch, scroll or right-drag to zoom"><div id="pan-ring" aria-hidden="true"></div><div id="dice-bar"><div class="row" id="adders" aria-label="Choose the dice"></div></div><div id="view"><p id="table-hint">Click the table to roll</p></div><button id="reset-view" type="button" hidden>Reset view</button></main>
 <aside id="panel">
   <button id="drawer-grab" type="button" role="separator" aria-orientation="horizontal" aria-label="Resize the options panel" aria-valuemin="24" title="Drag to raise or lower; double tap to close or reopen; arrow keys also resize"></button>
   <h1>Dice Simulator <small id="version"></small></h1>
