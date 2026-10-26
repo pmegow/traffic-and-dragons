@@ -33,7 +33,8 @@ export const BURN = { heat: 1.2, hold: 0.1, early: 4 / 24, fade: 0.5, stainFade:
 export const SCURRY = {
   // Round 10: the look is off for now ("skip the look left and look right. We may revisit later": 0.3 brings
   // it back, with the beat at 1.0 s) and the beat is short again.
-  grow: 0.45 / 2, lift: 0.25, wonder: 0.5, run: 1.65 / 1.5, ride: 0.9, look: 0, tap: 0.8, crouch: 0.3,
+  // Round 11: the legs grow one after another over `grow` (was 0.225 s, all eight at once to the eye).
+  grow: 0.7, lift: 0.25, wonder: 0.5, run: 1.65 / 1.5, ride: 0.9, look: 0, tap: 0.8, crouch: 0.3,
   // Round 9: where in the beat (shares of it) it holds its look — left, right, then at centre — and how
   // far it leans into its run (radians, the body tipping forward along its heading).
   pauses: [[0.1, 0.26], [0.38, 0.54], [0.66, 0.84]],
@@ -46,7 +47,7 @@ export const EXIT_TABLE = {
   smoke: { label: 'Smoke puff', seconds: 1.8 },
   pit: { label: 'Going down', seconds: 0.75 },   // ends as the hole shuts behind the die (art direction 2026-10-25)
   fade: { label: 'Fade', seconds: 1.2 },          // round 5: "slow it down 100%" (was 0.6)
-  scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.175 s
+  scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.55 s
 };
 
 /** Seconds between dice leaving together (Clear), so they go one after another, not as one. */
@@ -154,7 +155,7 @@ export function fadeTimeline(u) {
  */
 export function scurryTimeline(u, R) {
   const t = u * EXIT_TABLE.scurry.seconds;
-  const legs = smooth(t / SCURRY.grow);
+  const legs = clamp01(t / SCURRY.grow);   // evenly (round 11): each leg eases on its own (legGrown)
   const lifted = smooth((t - SCURRY.grow) / SCURRY.lift);
   // Round 8, the beat: it has just woken to itself — it looks one way, then the other, taps one front foot
   // then the other, and as it realizes, crouches and bolts.
@@ -189,17 +190,32 @@ function bump(w, a, b) {
 }
 
 /**
- * When each leg grows (round 8: "vary that up a little. +-20% growth rate"): a rate 1 ± `rate`, taking
- * `duration` of the growing time at rate 1 (less when faster), starting at a random moment that still
- * lets it finish within the growing time. start and duration are shares of the growing time.
+ * When each leg grows (round 8: "vary that up a little. +-20% growth rate"; round 11: "legs still seem to
+ * grow simultaneously, need to increase the variation in speed and start time"): a rate 1 ± `rate`, a leg
+ * taking `leg` seconds to draw out at rate 1 (less when faster). The legs take shuffled turns, each its own
+ * slot of the starts and its own slot of the speeds, jittered within it — so every die's legs come one after
+ * another across the growing time, fast and slow, never bunched by chance. start and duration are shares of
+ * the growing time; the slowest leg starting last still finishes in it.
  */
-export const SPROUT = { rate: 0.2, duration: 0.6 };
+export const SPROUT = { leg: 0.6 * 0.45 / 2, rate: 0.4 };
 
 export function sproutSchedule(count, random = Math.random) {
-  return Array.from({ length: count }, () => {
-    const rate = 1 + SPROUT.rate * (2 * random() - 1), duration = SPROUT.duration / rate;
-    return { rate, duration, start: random() * (1 - duration) };
+  const shuffled = () => {
+    const a = Array.from({ length: count }, (_, i) => i);
+    for (let i = count - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  };
+  const speedSlot = shuffled(), startSlot = shuffled();
+  const longest = SPROUT.leg / SCURRY.grow / (1 - SPROUT.rate);
+  return Array.from({ length: count }, (_, i) => {
+    const rate = 1 + SPROUT.rate * (2 * (speedSlot[i] + random()) / count - 1);
+    return { rate, duration: SPROUT.leg / SCURRY.grow / rate, start: (startSlot[i] + random()) / count * (1 - longest) };
   });
+}
+
+/** How far one leg has grown (0 … 1) when the legs as a whole are `legs` of the way grown: easing out of the body. */
+export function legGrown(legs, sprout) {
+  return smooth((legs - sprout.start) / sprout.duration);
 }
 
 /**

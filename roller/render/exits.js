@@ -20,7 +20,7 @@
 // Effects only draw: nothing here touches the physics, and the timings are the table's.
 
 import * as THREE from 'three';
-import { EXIT_TABLE, SCURRY, BURN, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline, sproutSchedule, scurryWander } from './exit-table.js';
+import { EXIT_TABLE, SCURRY, BURN, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_DEPTH_PARS, EXIT_DEPTH } from './exit-shader.js';
 import { PATTERN_GLSL, PATTERN_SCALE } from './patterns.js';
 import { dieMaterial, FINISHES } from './finishes.js';
@@ -249,7 +249,7 @@ function startScurry({ view, entry }) {
   const partGeometry = LEG_PARTS.map((p) => paintWhite(new THREE.CylinderGeometry(p.far, p.near, 1, 8, 1)));
   const ball = paintWhite(new THREE.SphereGeometry(1, 12, 8));
   const add = (geometry, material) => { const m = new THREE.Mesh(geometry, material); m.castShadow = true; view.scene.add(m); return m; };
-  const schedule = sproutSchedule(LEG.angles.length);   // round 8: each leg grows on its own, at ±20%
+  const schedule = sproutSchedule(LEG.angles.length);   // each leg grows on its own (rounds 8, 11)
   const legs = LEG.angles.map((deg, i) => ({
     o: new THREE.Vector3(), sprout: schedule[i], group: LEG.group[i], foot: null, swing: null,
     parts: partGeometry.map((g) => add(g, legMaterial)),
@@ -289,7 +289,7 @@ function startScurry({ view, entry }) {
           if (!l.foot) { l.foot = centre.clone().addScaledVector(outward(heading0, i, home), LEG.reach * R); l.foot.y = 0; }
           const front = LEG.front.indexOf(i);   // while it wonders, a front foot taps
           l.foot.y = front < 0 ? 0 : t.tap[front] * SCURRY.tap * LEG.lift * R;
-          const grown = Math.min(1, Math.max(0, (t.legs - l.sprout.start) / l.sprout.duration));
+          const grown = legGrown(t.legs, l.sprout);
           placeLeg(l, base, hip, l.foot, R, grown);
           continue;
         }
