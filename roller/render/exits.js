@@ -4,10 +4,9 @@
 // every frame (u 0 … 1 over the exit's seconds) and dispose() at the end. Adding an exit is an entry in
 // the table and a start function here.
 //
-//   burn   Burn out: the die chars and heats, its glow spreading from the cracks until it is yellow
-//          all over, then burns away along a noise with a glowing edge (the die shader:
-//          render/exit-shader.js), throwing wandering cinders and ash and a warm light on the floor,
-//          and leaves a charred stain that fades last
+//   burn   Burn out: the die heats evenly from red to yellow, then burns away along a noise with a
+//          glowing edge (the die shader: render/exit-shader.js), throwing slow wandering cinders and
+//          ash and a warm light on the floor, and leaves a charred stain that fades last
 //   smoke  Smoke puff: the die swells a little and blinks out inside a puff of smoke, with faerie
 //          fire — bright, many-coloured sparks — swirling up out of it
 //   pit    Going down: a hole opens under the die, which tips and falls through it at once (cut at
@@ -53,9 +52,9 @@ function startBurn({ view, entry }) {
         const s = onSphere();
         embers.emit({
           position: along(centre, s, R * 0.7),
-          velocity: { x: s.x * 0.025 + rand(-0.02, 0.02), y: rand(0.03, 0.08), z: s.z * 0.025 + rand(-0.02, 0.02) },
+          velocity: { x: s.x * 0.0125 + rand(-0.01, 0.01), y: rand(0.015, 0.04), z: s.z * 0.0125 + rand(-0.01, 0.01) },
           life: rand(0.4, 0.9), size: [rand(0.0012, 0.0024), 0.0006], colour: EMBER.colour, alpha: [1, 0],
-          drag: 1.2, lift: 0.04, wander: rand(0.25, 0.45), twinkle: 0.4,   // never straight up (art direction 2026-10-25)
+          drag: 1.2, lift: 0.02, wander: rand(0.125, 0.225), twinkle: 0.4,   // never straight up; half speed (round 3)
         });
       }
       for (ashDue += t.ash * ASH.rate * dt; ashDue >= 1; ashDue--) {

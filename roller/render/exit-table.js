@@ -34,15 +34,17 @@ export const BURN_HEATED = 0.4;
  * direction 2026-10-25); then it burns away along a noise with a glowing edge (dissolve: 0 whole … past
  * 1 gone). Cinders fly while it is hot, ash as it goes; both stop before the end so the last fade in
  * time. glow is the light it throws on the floor; stain the char it leaves there, the last thing to fade.
+ * Round 3 (2026-10-25): the heat-up is even and linear, red to yellow (no noise), and the embers wait
+ * for yellow.
  */
 export function burnTimeline(u) {
-  const heat = smooth(u / BURN_HEATED);
+  const heat = clamp01(u / BURN_HEATED);   // linear: red to yellow at an even pace (round 3)
   const dissolve = u <= BURN_HEATED ? 0 : 1.08 * smooth((u - BURN_HEATED) / 0.33);
   const flying = u < 0.7;
   return {
     heat,
     dissolve,
-    embers: flying ? heat * (dissolve > 0 ? 1 : 0.35) : 0,
+    embers: flying && u > BURN_HEATED ? 1 : 0,   // only once it is yellow (round 3)
     ash: flying ? clamp01(dissolve * 1.5) : 0,
     glow: heat * Math.max(0, 1 - dissolve),
     stain: smooth(dissolve) * (1 - smooth((u - 0.75) / 0.25)),

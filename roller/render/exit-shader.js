@@ -24,13 +24,11 @@ varying float vExitWorldY;
 vec3 exitGlow = vec3( 0.0 );
 float exitChar = 0.0;
 float exitShade = 1.0;
-// Black body, roughly: dull red, orange, yellow, near white.
-vec3 exitHeatColour( float h ) {
-  vec3 c = mix( vec3( 0.0 ), vec3( 0.55, 0.02, 0.0 ), smoothstep( 0.0, 0.3, h ) );
-  c = mix( c, vec3( 1.0, 0.32, 0.02 ), smoothstep( 0.3, 0.6, h ) );
-  c = mix( c, vec3( 1.0, 0.7, 0.08 ), smoothstep( 0.6, 0.85, h ) );   // a deep yellow: the tone mapping whitens a pale one
-  return mix( c, vec3( 1.0, 0.93, 0.75 ), smoothstep( 0.85, 1.0, h ) );
-}
+// The heat's glow: red to yellow, straight across (art direction 2026-10-25, round 3), at a brightness that
+// glows without washing out — a deep yellow, since the tone mapping whitens a pale one.
+const vec3 EXIT_RED = vec3( 0.55, 0.02, 0.0 );
+const vec3 EXIT_YELLOW = vec3( 1.0, 0.7, 0.08 );
+const float EXIT_GLOW = 1.1;
 `;
 
 /** After the die's colour (and its ink): the pit's cut and shade, then the burn. */
@@ -41,15 +39,11 @@ if ( uExitHeat > 0.0 || uExitDissolve > 0.0 ) {
   float exitN = ${EXIT_NOISE};
   float exitEdge = exitN - uExitDissolve;
   if ( uExitDissolve > 0.0 && exitEdge < 0.0 ) discard;
-  // It chars black first; the heat glows in its cracks (the noise's low valleys, where it will burn
-  // through first), never whiter than yellow, with only a dull ember everywhere else until it spreads.
+  // It chars as it heats, so its own colour does not tint the glow, and glows evenly all over, red to
+  // yellow (round 3: the glow first rose in the noise's cracks). The noise is for burning through.
   exitChar = smoothstep( 0.1, 0.55, uExitHeat );
   diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.012, 0.010, 0.009 ), exitChar );
-  // The glow starts in the cracks and spreads as it heats (art direction 2026-10-25): at full heat it
-  // reaches past every value of the noise, and the die is yellow all over.
-  float exitReach = mix( 0.42, 1.1, smoothstep( 0.45, 1.0, uExitHeat ) );
-  float exitCracks = 1.0 - smoothstep( exitReach - 0.09, exitReach, exitN );
-  exitGlow = exitHeatColour( 0.85 * uExitHeat ) * uExitHeat * ( 0.06 + 1.4 * exitCracks ) * 0.75;   // bright enough to glow, not to wash out
+  exitGlow = mix( EXIT_RED, EXIT_YELLOW, uExitHeat ) * uExitHeat * EXIT_GLOW;
   if ( uExitDissolve > 0.0 ) exitGlow += vec3( 1.0, 0.5, 0.05 ) * ( 1.0 - smoothstep( 0.0, 0.04, exitEdge ) ) * 3.0;
 }
 `;
