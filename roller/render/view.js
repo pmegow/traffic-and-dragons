@@ -399,7 +399,8 @@ export class DiceView {
       return Promise.resolve();
     }
     const delays = exitDelays(gone.length);
-    return Promise.all(gone.map((d, k) => this.runExit(d, exit, delays[k], onSound)));
+    const name = chooseExit(exit);   // Random picks once for them all (round 13)
+    return Promise.all(gone.map((d, k) => this.runExit(d, name, delays[k], onSound)));
   }
 
   /**
@@ -457,7 +458,7 @@ export class DiceView {
    * freed. A start or a step that throws is reported, and the die goes at once.
    */
   runExit(d, exit, delay = 0, onSound = null) {
-    const name = chooseExit(exit), spec = EXITS[name];   // Random picks here, for each die (round 12)
+    const name = chooseExit(exit), spec = EXITS[name];   // Random picks here for a die on its own (clear() picks for all)
     // What an exit hears itself make (a spider's step): kind, how hard (0 … 1) and where, handed to the
     // host's onSound with the die's type, the table's surface and the pan.
     const sound = (kind, position, strength = 1) => {

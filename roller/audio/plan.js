@@ -98,7 +98,8 @@ export function rollEvents(result, { bank, timeScale = 1, voices = 6 } = {}) {
  * and sounds up to `spread` s late, so the feet of a stride patter rather than land as one.
  */
 export const EXIT_SOUNDS = {
-  step: { rate: 1.22, gain: 0.35, strength: 0.3, spread: 0.012, vary: { rate: 0.04, gain: 0.2 } },
+  // Round 13: "for the patter cut the volume in half" (was 0.35).
+  step: { rate: 1.22, gain: 0.35 / 2, strength: 0.3, spread: 0.012, vary: { rate: 0.04, gain: 0.2 } },
 };
 
 /**
