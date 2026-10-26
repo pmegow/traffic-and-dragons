@@ -8,7 +8,7 @@ import { createDrawer } from './drawer.js';
 import { sameLook } from '../render/presets.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
-import { rollLine } from './roll-line.js';
+import { rollParts } from './roll-line.js';
 import { EXIT_TABLE, exitDelays, chooseExit } from '../render/exit-table.js';
 
 const $ = (id) => document.getElementById(id);
@@ -411,8 +411,17 @@ async function dropIn(types) {
 
 /** The roll line for the table as it lies (each die, the total at the end), and what just happened. */
 function showTable(note) {
-  $('roll-line').textContent = rollLine(view.table());
+  paintRoll(view.table());
   $('meta').textContent = note;
+}
+
+/** The roll line along the bottom of the view: each die, then the total in bold (owner 2026-10-26). */
+function paintRoll(dice) {
+  const p = rollParts(dice), el = $('roll-line');
+  if (!p) { el.replaceChildren(); return; }
+  const total = document.createElement('b');
+  total.textContent = p.total;
+  el.replaceChildren(p.lead, total, p.tail);
 }
 
 async function go(req, { unlocking = Promise.resolve() } = {}) {
@@ -440,8 +449,8 @@ async function go(req, { unlocking = Promise.resolve() } = {}) {
 }
 
 function show(result, bakeMs) {
-  if (!result) { $('roll-line').textContent = ''; $('meta').textContent = ''; return; }
-  $('roll-line').textContent = rollLine(result.dice);
+  if (!result) { paintRoll([]); $('meta').textContent = ''; return; }
+  paintRoll(result.dice);
   $('meta').textContent = 'seed ' + result.seed + ' · ' + result.attempts + (result.attempts === 1 ? ' throw' : ' throws') +
     ' · settled in ' + result.duration.toFixed(2) + ' s · baked in ' + bakeMs.toFixed(0) + ' ms';
 }
