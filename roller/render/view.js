@@ -19,8 +19,15 @@ import { roll, samplePose, rollDuration, buildDie, trayFor } from '../src/index.
 import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, facesShowing } from './die-mesh.js';
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
-import { EXITS } from './exits.js';
 import { EXIT_STAGGER } from './exit-table.js';
+import { EXITS, exitWarmUp } from './exits.js';
+
+/**
+ * The most one frame may advance an exit (s): a frame that stalled (a shader compiling, a busy page)
+ * holds the effect rather than skipping it ahead (owner 2026-10-25: on glass and quartz the burn came
+ * out of a stall already yellow).
+ */
+const EXIT_FRAME_MAX = 1 / 30;
 import { dieMaterial, recolour, setGlyph, setOnTray, FINISHES } from './finishes.js';
 import { NUMERAL_FONTS } from './numeral-fonts.js';
 import { SURFACE_LOOKS, RIM_LOOK } from './surface-looks.js';
@@ -394,6 +401,39 @@ export class DiceView {
     return Promise.all(gone.map((d, k) => this.runExit(d, exit, k * EXIT_STAGGER)));
   }
 
+  /**
+   * Compiles every shader an exit will ask for with the current finish — the die seen through as it
+   * fades, its shadow's material, every particle look and floor disc — in the background where the
+   * browser can (KHR_parallel_shader_compile), and keeps them, so no exit compiles one. A burn's first
+   * frame otherwise stalled for up to 6.9 s on quartz while they compiled (measured 2026-10-25). The
+   * shadow material is compiled as the shadow pass draws it: into a render target, so without tone
+   * mapping — and so is a see-through die's far faces, as three.js draws them into its transmission
+   * buffer. Call it after setDieStyle; the last finish's are freed once the new ones are ready. Resolves
+   * when they are ready.
+   */
+  warmExits() {
+    const finish = this.o.dieStyle.finish;
+    if (this.warm && this.warm.finish === finish) return this.warm.ready;
+    const old = this.warm, made = exitWarmUp(this);
+    const onScreen = new THREE.Scene(), inShadow = new THREE.Scene();
+    for (const o of made.screen) onScreen.add(o);
+    for (const o of made.offscreen) inShadow.add(o);
+    const target = new THREE.WebGLRenderTarget(1, 1), before = this.renderer.getRenderTarget();
+    let shadows;
+    try {
+      this.renderer.setRenderTarget(target);
+      shadows = this.renderer.compileAsync(inShadow, this.camera, this.scene);
+    } finally {
+      this.renderer.setRenderTarget(before);
+    }
+    const ready = Promise.all([this.renderer.compileAsync(onScreen, this.camera, this.scene), shadows])
+      .then(() => { if (old) old.dispose(); })
+      .catch((e) => console.error('DiceView: the exit shaders could not be readied ahead, so an exit may stall to compile them:', e))
+      .finally(() => target.dispose());
+    this.warm = { finish, ready, dispose: made.dispose };
+    return ready;
+  }
+
   /** Runs fn(now) every frame until it returns false; the view renders once a frame for everything animating. */
   animate(fn) {
     this.animators.add(fn);
@@ -418,7 +458,7 @@ export class DiceView {
   runExit(d, name, delay = 0) {
     const spec = EXITS[name];
     return new Promise((resolve) => {
-      let effect = null, start = null, last = 0, done = false;
+      let effect = null, start = null, last = 0, elapsed = 0, done = false;
       const record = {
         finish: () => {
           if (done) return;
@@ -434,10 +474,12 @@ export class DiceView {
         if (done) return false;
         if (start === null) start = now + delay * 1000;
         if (now < start) return true;
-        let u = spec.seconds > 0 ? Math.min(1, (now - start) / 1000 / spec.seconds) : 1;
+        const dt = effect ? Math.min(EXIT_FRAME_MAX, (now - last) / 1000) : 0;
+        elapsed += dt;
+        let u = spec.seconds > 0 ? Math.min(1, elapsed / spec.seconds) : 1;
         try {
-          if (!effect) { effect = spec.start({ view: this, entry: d }); last = now; }
-          effect.step(u, Math.min(0.05, (now - last) / 1000));
+          if (!effect) effect = spec.start({ view: this, entry: d });
+          effect.step(u, dt);
         } catch (e) {
           console.error('DiceView: the "' + name + '" exit failed, so the die goes at once:', e);
           u = 1;
@@ -643,6 +685,7 @@ export class DiceView {
     if (this.playing) this.playing.cancel();
     for (const r of [...this.exiting]) r.finish();
     this.animators.clear();
+    if (this.warm) this.warm.dispose();
     this.clear();
     this.resizeObserver.disconnect();
     for (const a of this.atlases.values()) { a.geometry.dispose(); for (const g of a.glyphs.values()) g.dispose(); }

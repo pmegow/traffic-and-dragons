@@ -23,7 +23,7 @@ import * as THREE from 'three';
 import { EXIT_TABLE, SCURRY, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline, sproutSchedule, scurryWander } from './exit-table.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_DEPTH_PARS, EXIT_DEPTH } from './exit-shader.js';
 import { PATTERN_GLSL, PATTERN_SCALE } from './patterns.js';
-import { dieMaterial } from './finishes.js';
+import { dieMaterial, FINISHES } from './finishes.js';
 import { createParticles } from './particles.js';
 
 const STARTS = { none: startNone, burn: startBurn, smoke: startSmoke, pit: startPit, fade: startFade, scurry: startScurry };
@@ -252,7 +252,7 @@ function startScurry({ view, entry }) {
   }));
   let active = 0, last = 0, bob = 0;
   const body = new THREE.Vector3(), base = new THREE.Vector3(), hip = new THREE.Vector3(), rest = new THREE.Vector3();
-  const home = new THREE.Vector3(), way = new THREE.Vector3(), yaw = new THREE.Quaternion();
+  const home = new THREE.Vector3(), way = new THREE.Vector3(), sideways = new THREE.Vector3(), yaw = new THREE.Quaternion(), tilt = new THREE.Quaternion();
   return {
     step(u, dt) {
       const t = scurryTimeline(u, R);
@@ -265,8 +265,9 @@ function startScurry({ view, entry }) {
       // The body turns with its heading as it runs, and as it looks about while it wonders (the hips turn
       // with it; the feet stay where they stand).
       const facing = heading + t.look;
-      mesh.quaternion.copy(yaw.setFromAxisAngle(Y, heading0 - facing)).multiply(turn0);
       way.set(Math.cos(heading), 0, Math.sin(heading));
+      // Round 9: as it takes off it leans into its run — the body tips forward along its heading.
+      mesh.quaternion.copy(tilt.setFromAxisAngle(sideways.set(-way.z, 0, way.x), t.lean)).multiply(yaw.setFromAxisAngle(Y, heading0 - facing)).multiply(turn0);
       const stride = Math.max(LEG.step * R, speed * 0.1), swingTime = Math.min(0.1, Math.max(0.035, stride / Math.max(speed, 1e-6) / 2));
       // Which group steps: the other once every foot of this one is down and none needs to step.
       const moving = (g) => legs.some((l) => l.group === g && l.swing);
@@ -494,10 +495,7 @@ void main() {
 function floorDisc(view, centre, radius, fragment, { blending, scales = false, order = 1 }) {
   const geometry = new THREE.PlaneGeometry(2 * radius, 2 * radius);
   geometry.rotateX(-Math.PI / 2);
-  const material = new THREE.ShaderMaterial({
-    uniforms: { uAmount: { value: 0 } }, vertexShader: DISC_VERTEX,
-    fragmentShader: fragment + '', blending, transparent: true, depthWrite: false,
-  });
+  const material = discMaterial(fragment, blending);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(centre.x, 0.0004, centre.z);
   mesh.renderOrder = order;
@@ -509,6 +507,43 @@ function floorDisc(view, centre, radius, fragment, { blending, scales = false, o
       mesh.visible = x > 0;
     },
     dispose() { mesh.removeFromParent(); geometry.dispose(); material.dispose(); },
+  };
+}
+
+function discMaterial(fragment, blending) {
+  return new THREE.ShaderMaterial({
+    uniforms: { uAmount: { value: 0 } }, vertexShader: DISC_VERTEX,
+    fragmentShader: fragment + '', blending, transparent: true, depthWrite: false,
+  });
+}
+
+/**
+ * Stand-ins carrying every material an exit will ask for with the view's current finish, for
+ * view.warmExits to compile ahead and keep: `screen` as they are drawn on screen, `offscreen` as they are
+ * drawn into a render target — the shadow pass, and a see-through die's far faces, which three.js draws
+ * into its transmission buffer (a burning glass die stalled 0.3 s on that variant alone). The same shaders
+ * the exits make, so theirs are found compiled.
+ */
+export function exitWarmUp(view) {
+  const style = view.o.dieStyle;
+  const see = dieMaterial(style.finish, style, glyphOf(0), 0, { radius: 0.012, onTray: view.trayDrawn });
+  see.transparent = true;   // the die seen through as it burns off or fades
+  const depth = exitDepthMaterial(see.userData.dice.uniforms);
+  depth.side = FINISHES[style.finish].doubleSided ? THREE.DoubleSide : THREE.BackSide;   // as the shadow pass sets it
+  const f = FINISHES[style.finish], far = f.transmission > 0 && f.doubleSided ? dieMaterial(style.finish, style, glyphOf(0), 0, { radius: 0.012, onTray: view.trayDrawn }) : null;
+  if (far) { far.transparent = true; far.side = THREE.BackSide; }   // its far faces, into the transmission buffer
+  const box = paintWhite(new THREE.BoxGeometry(0.01, 0.01, 0.01)), flat = new THREE.PlaneGeometry(0.01, 0.01);
+  const looks = ['glow', 'soft', 'smoke'].map((look) => createParticles({ max: 1, look }));
+  const discs = [GLOW_FRAGMENT, STAIN_FRAGMENT, HOLE_FRAGMENT].map((f) => discMaterial(f, THREE.NormalBlending));
+  return {
+    screen: [new THREE.Mesh(box, see), ...looks.map((p) => p.points), ...discs.map((m) => new THREE.Mesh(flat, m))],
+    offscreen: [new THREE.Mesh(box, depth), ...(far ? [new THREE.Mesh(box, far)] : [])],
+    dispose() {
+      see.dispose(); depth.dispose(); box.dispose(); flat.dispose();
+      if (far) far.dispose();
+      for (const p of looks) p.dispose();
+      for (const m of discs) m.dispose();
+    },
   };
 }
 

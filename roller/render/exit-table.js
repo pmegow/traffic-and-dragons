@@ -22,10 +22,18 @@ export const BURN = { heat: 1.2, hold: 0.1, fade: 0.5, stainFade: 0.7 };
 
 /**
  * Scurry off, in seconds: legs grow, the body lifts, a beat while it wonders (round 8), it runs; it
- * stands `ride` radii up. During the beat it looks `look` radians one way and the other, taps each front
- * foot up `tap` of a step's lift, and crouches `crouch` of its height before it bolts.
+ * stands `ride` radii up. During the beat it looks `look` radians one way and the other — pausing at
+ * each, then holding at centre (round 9; the beat 1.0 s, was 0.6) — taps a front foot up `tap` of a
+ * step's lift in each pause, and crouches `crouch` of its height before it bolts, leaning `lean` into
+ * its run.
  */
-export const SCURRY = { grow: 0.45 / 2, lift: 0.25, wonder: 0.6, run: 1.65 / 1.5, ride: 0.9, look: 0.3, tap: 0.8, crouch: 0.3 };   // round 7: legs drawn twice as fast
+export const SCURRY = {
+  grow: 0.45 / 2, lift: 0.25, wonder: 1.0, run: 1.65 / 1.5, ride: 0.9, look: 0.3, tap: 0.8, crouch: 0.3,
+  // Round 9: where in the beat (shares of it) it holds its look — left, right, then at centre — and how
+  // far it leans into its run (radians, the body tipping forward along its heading).
+  pauses: [[0.1, 0.26], [0.38, 0.54], [0.66, 0.84]],
+  lean: 0.26,
+};
 
 export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
@@ -145,19 +153,27 @@ export function scurryTimeline(u, R) {
   // Round 8, the beat: it has just woken to itself — it looks one way, then the other, taps one front foot
   // then the other, and as it realizes, crouches and bolts.
   const w = (t - SCURRY.grow - SCURRY.lift) / SCURRY.wonder;
+  const [left, right, centre] = SCURRY.pauses;
   const look = w <= 0 || w >= 1 ? 0 : SCURRY.look * lookAbout(w);
-  const tap = [bump(w, 0.12, 0.32), bump(w, 0.42, 0.62)];
-  const crouch = SCURRY.crouch * bump(w, 0.78, 1);
+  const tap = [bump(w, left[0], left[1]), bump(w, right[0], right[1])];   // a front foot taps in each pause
+  const crouch = SCURRY.crouch * bump(w, centre[1], 1);
   const runFrom = (SCURRY.grow + SCURRY.lift + SCURRY.wonder) / EXIT_TABLE.scurry.seconds;   // a share, so the end lands on 1 exactly
   const x = clamp01((u - runFrom) / (1 - runFrom));
-  return { legs, ride: SCURRY.ride * R * (lifted - crouch), travel: Math.pow(x, 1.3), look, tap };
+  return { legs, ride: SCURRY.ride * R * (lifted - crouch), travel: Math.pow(x, 1.3), look, tap, lean: SCURRY.lean * smooth(x / 0.15) };
 }
 
-/** A look about, over the beat (0 … 1): to one side, across to the other, back to the front. */
+/**
+ * A look about, over the beat (0 … 1), in shares of SCURRY.look: it turns to one side and pauses, turns
+ * across to the other and pauses, turns back to the front and holds there (round 9: the first look
+ * swept without a stop).
+ */
 function lookAbout(w) {
-  if (w < 0.25) return -smooth(w / 0.25);
-  if (w < 0.55) return -1 + 2 * smooth((w - 0.25) / 0.3);
-  if (w < 0.8) return 1 - smooth((w - 0.55) / 0.25);
+  const [left, right, centre] = SCURRY.pauses;
+  if (w < left[0]) return -smooth(w / left[0]);
+  if (w <= left[1]) return -1;
+  if (w < right[0]) return -1 + 2 * smooth((w - left[1]) / (right[0] - left[1]));
+  if (w <= right[1]) return 1;
+  if (w < centre[0]) return 1 - smooth((w - right[1]) / (centre[0] - right[1]));
   return 0;
 }
 

@@ -256,7 +256,7 @@ $('preset-delete').addEventListener('click', () => {
 
 const applyLook = () => {
   const { body, ink, finish, font } = look();
-  view.setDieStyle({ body, ink, finish, font }).catch((e) => { status('Could not change the look: ' + e.message); console.error(e); });
+  view.setDieStyle({ body, ink, finish, font }).then(() => view.warmExits()).catch((e) => { status('Could not change the look: ' + e.message); console.error(e); });
   try { localStorage.setItem(LOOK_KEY, JSON.stringify(look())); } catch { /* storage blocked */ }
   syncPreset();
 };
