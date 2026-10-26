@@ -6,11 +6,13 @@
 // numerals on black, in the die's atlas UVs) mixes in the solid ink colour, zeroes the
 // transmission under the ink and engraves it through the bump map — so on every finish the
 // numbers are opaque and the colour picked for them. A granite's mica flakes (FINISHES.granite.mica)
-// get a higher specular intensity than the rest of the stone.
+// get a higher specular intensity than the rest of the stone. Every die also carries its exit
+// (render/exit-shader.js): heat, burning away and a pit's cut, all off until it leaves the table.
 
 import * as THREE from 'three';
 import { FINISHES, SPECULAR, SEE_THROUGH_DEPTH_OFFSET } from './finish-table.js';
 import { patternUniforms, injectPattern } from './patterns.js';
+import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_FRAGMENT_PARS, EXIT_SURFACE, EXIT_EMISSIVE, EXIT_OUTGOING } from './exit-shader.js';
 
 export { FINISHES };
 
@@ -29,6 +31,10 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
     uInk: { value: new THREE.Color(style.ink) },
     uGlyph: { value: glyph },
     ...(f.scatter ? scatterUniforms(f.scatter, radius, onTray) : {}),
+    // The exit (render/exits.js drives them): off at rest.
+    uExitHeat: { value: 0 },
+    uExitDissolve: { value: 0 },
+    uExitClipY: { value: EXIT_CLIP_OFF },
   };
   const m = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(style.body),
@@ -61,19 +67,28 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
       'float diceGlyph = texture2D( uGlyph, vUv ).r;\n' +
       'diffuseColor.rgb = mix( diffuseColor.rgb, uInk, diceGlyph );\n' +
       // dev/mica-probe.js: paint the mica flakes magenta, to see which specks they are.
-      '#ifdef MICA_DEBUG\n diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 1.0, 0.0, 1.0 ), pMica * ( 1.0 - diceGlyph ) );\n#endif');
+      '#ifdef MICA_DEBUG\n diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 1.0, 0.0, 1.0 ), pMica * ( 1.0 - diceGlyph ) );\n#endif\n' +
+      EXIT_SURFACE);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\n' + EXIT_VERTEX_PARS)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n' + EXIT_VERTEX);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 uInk;\nuniform sampler2D uGlyph;\nuniform float uMicaBoost;')
+      .replace('#include <common>', '#include <common>\nuniform vec3 uInk;\nuniform sampler2D uGlyph;\nuniform float uMicaBoost;' + EXIT_FRAGMENT_PARS)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + EXIT_EMISSIVE)
+      .replace('#include <opaque_fragment>', EXIT_OUTGOING + '\n#include <opaque_fragment>')
       // Mica flakes reflect more: their specular intensity is raised by uMicaBoost (never under the ink).
       .replace('#include <lights_physical_fragment>', THREE.ShaderChunk.lights_physical_fragment
         .replace('float specularIntensityFactor = specularIntensity;', MICA_SPECULAR))
       .replace('#include <transmission_fragment>', THREE.ShaderChunk.transmission_fragment
-        .replace('material.transmission = transmission;', 'material.transmission = transmission * ( 1.0 - diceGlyph );'));
+        .replace('material.transmission = transmission;', 'material.transmission = transmission * ( 1.0 - diceGlyph ) * ( 1.0 - exitChar );'));
     if (f.mica && !shader.fragmentShader.includes(MICA_SPECULAR)) {
       console.error('dieMaterial: the mica hook did not apply (a three.js chunk changed?)');
     }
     if (f.transmission > 0 && !shader.fragmentShader.includes('transmission * ( 1.0 - diceGlyph )')) {
       console.error('dieMaterial: the opaque-ink hook did not apply (a three.js chunk changed?)');
+    }
+    if (![EXIT_VERTEX, EXIT_EMISSIVE, EXIT_OUTGOING].every((line) => shader.vertexShader.includes(line) || shader.fragmentShader.includes(line))) {
+      console.error('dieMaterial: the exit hook did not apply (a three.js chunk changed?)');
     }
     if (f.scatter) injectScatter(shader);
   };

@@ -19,6 +19,8 @@ import { roll, samplePose, rollDuration, buildDie, trayFor } from '../src/index.
 import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, facesShowing } from './die-mesh.js';
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
+import { EXITS } from './exits.js';
+import { EXIT_STAGGER } from './exit-table.js';
 import { dieMaterial, recolour, setGlyph, setOnTray, FINISHES } from './finishes.js';
 import { NUMERAL_FONTS } from './numeral-fonts.js';
 import { SURFACE_LOOKS, RIM_LOOK } from './surface-looks.js';
@@ -50,6 +52,9 @@ export class DiceView {
     this.dice = [];
     this.atlases = new Map();
     this.playing = null;
+    this.animators = new Set();   // what moves each frame (a roll, a die leaving): one render per frame for all
+    this.frameRequested = false;
+    this.exiting = new Set();     // dice off the table, still drawn until their exit ends
 
     // Always able to show the page through: a transparent view and the 'none' tray draw no background.
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: false });
@@ -373,10 +378,76 @@ export class DiceView {
     this.render();
   }
 
-  clear() {
-    for (const d of this.dice) disposeDie(this.scene, d);
+  /**
+   * Empties the table: at once, or with an exit (EXITS) each die leaving a moment after the last.
+   * Resolves when every die has gone.
+   */
+  clear({ exit = null } = {}) {
+    if (exit !== null && !EXITS[exit]) throw new Error('DiceView: no exit "' + exit + '" (known: ' + Object.keys(EXITS).join(', ') + ')');
+    const gone = this.dice;
     this.dice = [];
+    if (exit === null) {
+      for (const d of gone) disposeDie(this.scene, d);
+      this.render();
+      return Promise.resolve();
+    }
+    return Promise.all(gone.map((d, k) => this.runExit(d, exit, k * EXIT_STAGGER)));
+  }
+
+  /** Runs fn(now) every frame until it returns false; the view renders once a frame for everything animating. */
+  animate(fn) {
+    this.animators.add(fn);
+    if (!this.frameRequested) { this.frameRequested = true; requestAnimationFrame((now) => this.frameStep(now)); }
+  }
+
+  frameStep(now) {
+    this.frameRequested = false;
+    for (const fn of [...this.animators]) {
+      let more = false;
+      try { more = fn(now); } catch (e) { console.error('DiceView: an animation threw, and stops:', e); }
+      if (!more) this.animators.delete(fn);
+    }
     this.render();
+    if (this.animators.size && !this.frameRequested) { this.frameRequested = true; requestAnimationFrame((n) => this.frameStep(n)); }
+  }
+
+  /**
+   * Plays an exit on a die already off the table: drawn where it was until the effect has run, then
+   * freed. A start or a step that throws is reported, and the die goes at once.
+   */
+  runExit(d, name, delay = 0) {
+    const spec = EXITS[name];
+    return new Promise((resolve) => {
+      let effect = null, start = null, last = 0, done = false;
+      const record = {
+        finish: () => {
+          if (done) return;
+          done = true;
+          this.exiting.delete(record);
+          if (effect) { try { effect.dispose(); } catch (e) { console.error('DiceView: the "' + name + '" exit could not clean up:', e); } }
+          disposeDie(this.scene, d);
+          resolve();
+        },
+      };
+      this.exiting.add(record);
+      this.animate((now) => {
+        if (done) return false;
+        if (start === null) start = now + delay * 1000;
+        if (now < start) return true;
+        let u = Math.min(1, (now - start) / 1000 / spec.seconds);
+        try {
+          if (!effect) { effect = spec.start({ view: this, entry: d }); last = now; }
+          effect.step(u, Math.min(0.05, (now - last) / 1000));
+        } catch (e) {
+          console.error('DiceView: the "' + name + '" exit failed, so the die goes at once:', e);
+          u = 1;
+        }
+        last = now;
+        if (u < 1) return true;
+        record.finish();
+        return false;
+      });
+    });
   }
 
   /**
@@ -399,13 +470,23 @@ export class DiceView {
     this.playing = null;
   }
 
-  /** Takes die i (play order) off the table now, even while a roll plays; the others stay where they are. */
-  removeDie(i) {
+  /**
+   * Takes die i (play order) off the table now, even while a roll plays; the others stay where they
+   * are. With an exit (EXITS: 'burn', 'smoke', 'pit') it leaves through that effect, `delay` seconds
+   * from now: off the table at once (table() no longer lists it, so a drop or a settle may follow) and
+   * drawn until the effect ends. Resolves when it has gone.
+   */
+  removeDie(i, { exit = null, delay = 0 } = {}) {
     const d = this.dice[i];
     if (!d) throw new Error('DiceView.removeDie: the table has no die ' + i + ' (' + this.dice.length + ' on it)');
-    disposeDie(this.scene, d);
+    if (exit !== null && !EXITS[exit]) throw new Error('DiceView: no exit "' + exit + '" (known: ' + Object.keys(EXITS).join(', ') + ')');
     this.dice.splice(i, 1);
-    this.render();
+    if (exit === null) {
+      disposeDie(this.scene, d);
+      this.render();
+      return Promise.resolve();
+    }
+    return this.runExit(d, exit, delay);
   }
 
   /**
@@ -497,8 +578,8 @@ export class DiceView {
     return new Promise((resolve) => {
       let cancelled = false, start = null;
       this.playing = { cancel: () => { cancelled = true; resolve(result); } };
-      const frame = (now) => {
-        if (cancelled) return;
+      this.animate((now) => {
+        if (cancelled) return false;
         if (start === null) {
           start = now;
           if (onStart) { try { onStart({ timeScale }); } catch (e) { console.error('DiceView onStart threw:', e); } }
@@ -521,20 +602,19 @@ export class DiceView {
           }
         });
         if (t >= duration) {
-          this.render();
           this.playing = null;
           resolve(result);
-          return;
+          return false;   // the frame loop renders this last pose
         }
-        this.render();
-        requestAnimationFrame(frame);
-      };
-      requestAnimationFrame(frame);
+        return true;
+      });
     });
   }
 
   dispose() {
     if (this.playing) this.playing.cancel();
+    for (const r of [...this.exiting]) r.finish();
+    this.animators.clear();
     this.clear();
     this.resizeObserver.disconnect();
     for (const a of this.atlases.values()) { a.geometry.dispose(); for (const g of a.glyphs.values()) g.dispose(); }

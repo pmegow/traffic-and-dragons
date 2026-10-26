@@ -8,6 +8,7 @@ import { createDrawer } from './drawer.js';
 import { sameLook } from '../render/presets.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
+import { EXIT_TABLE, EXIT_STAGGER } from '../render/exit-table.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg || ''; };
@@ -110,6 +111,16 @@ clearAll.textContent = 'Clear';
 clearAll.title = 'Take every die out';
 clearAll.addEventListener('click', clearDice);
 $('adders').appendChild(clearAll);
+// How a die leaves the table (owner 2026-10-25): the exits in render/exit-table.js, kept on this browser.
+const EXIT_KEY = 'dice-sim:exit';
+for (const [key, e] of Object.entries(EXIT_TABLE)) {
+  const o = document.createElement('option');
+  o.value = key;
+  o.textContent = e.label;
+  $('exit').appendChild(o);
+}
+try { const saved = localStorage.getItem(EXIT_KEY); if (EXIT_TABLE[saved]) $('exit').value = saved; } catch { /* storage blocked: the first */ }
+$('exit').addEventListener('change', () => { try { localStorage.setItem(EXIT_KEY, $('exit').value); } catch { /* storage blocked */ } });
 $('table-hint').textContent = (window.matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click') + ' the table to roll';
 // The row floats over the tray: a press on it is not a press on the tray (no roll, throw, turn or pinch).
 for (const type of ['pointerdown', 'pointerup', 'pointercancel']) $('adders').addEventListener(type, (e) => e.stopPropagation());
@@ -312,6 +323,7 @@ function playWithSound(result, options = {}) {
 // the dice left settle (a die resting on one taken away falls). Real physics: a landing die may knock
 // the others (owner ruling), and the total counts the table as it lies.
 let soundFromTap = Promise.resolve();   // the tap that changed the dice starts sound for the drop
+let leaving = Promise.resolve();        // dice taken off, still playing their exit
 let syncing = false, resync = false, unsettled = false;
 const onTable = () => view.table().map((d) => d.type);
 
@@ -335,7 +347,10 @@ function takeAway() {
   const { remove } = tableChanges(picker.list(), onTable());
   if (!remove.length) return;
   const gone = remove.map((i) => onTable()[i]);
-  for (const i of remove) view.removeDie(i);
+  // Each leaves through the Exit animation, several a moment apart (Clear), the whole lot within 0.6 s.
+  const stagger = Math.min(EXIT_STAGGER, 0.6 / remove.length);
+  const leavingNow = remove.map((i, k) => view.removeDie(i, { exit: $('exit').value, delay: k * stagger }));
+  leaving = Promise.all([leaving, ...leavingNow]);
   unsettled = true;
   ++current;   // a roll under way no longer describes the table: the settle after it reports instead
   if (!playing) showTable('took off ' + groupDice(gone));
@@ -349,6 +364,7 @@ async function syncTable() {
     do {
       resync = false;
       while (playing) await playing;
+      await leaving;   // the table settles once the dice taken off have gone
       const { drop } = tableChanges(picker.list(), onTable());
       if (drop.length || (unsettled && view.dice.length)) await dropIn(drop);
       else if (unsettled) { unsettled = false; showTable(''); }
