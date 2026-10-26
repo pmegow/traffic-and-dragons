@@ -13,13 +13,20 @@
 // effect is tested here and only drawn in exits.js. Every number is plain data: art direction
 // changes these, not the drawing code.
 
+/**
+ * Burn out, in seconds (round 5): the heat rises red to yellow over `heat`, yellow holds `hold` ("yellow
+ * holds too long" — it held a second), then the die fades off over `fade` ("fade off the yellow instead
+ * of eroding it away"); the stain it leaves holds 0.3 s and fades over `stainFade`, last of all.
+ */
+export const BURN = { heat: 1.2, hold: 0.1, fade: 0.5, stainFade: 0.7 };
+
 export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
-  burn: { label: 'Burn out', seconds: 3.0 },   // 2.2 until the stain that fades last (art direction 2026-10-25)
+  burn: { label: 'Burn out', seconds: BURN.heat + BURN.hold + BURN.fade + 0.3 + BURN.stainFade },   // 2.8 s
   smoke: { label: 'Smoke puff', seconds: 1.8 },
   pit: { label: 'Going down', seconds: 0.75 },   // ends as the hole shuts behind the die (art direction 2026-10-25)
-  fade: { label: 'Fade', seconds: 0.6 },
-  scurry: { label: 'Scurry off', seconds: 2.0 }, // "make the dice grow spider legs and scurry out of frame"
+  fade: { label: 'Fade', seconds: 1.2 },          // round 5: "slow it down 100%" (was 0.6)
+  scurry: { label: 'Scurry off', seconds: 0.35 + 1.65 / 1.5 },   // round 5: it runs half again as fast
 };
 
 /** Seconds between dice leaving together (Clear), so they go one after another, not as one. */
@@ -28,8 +35,8 @@ export const EXIT_STAGGER = 0.06;
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
 const smooth = (x) => { const t = clamp01(x); return t * t * (3 - 2 * t); };
 
-/** Where in a burn the heat-up ends: full heat, yellow all over, and the burning away begins. */
-export const BURN_HEATED = 0.4;
+/** Where in a burn (a share of it) the heat-up ends: full heat, yellow all over. */
+export const BURN_HEATED = BURN.heat / EXIT_TABLE.burn.seconds;
 
 /**
  * Burn out: the die chars and heats, its glow spreading from the cracks until, at the last frame of the
@@ -38,19 +45,22 @@ export const BURN_HEATED = 0.4;
  * 1 gone). Cinders fly while it is hot, smoke rises as it goes; both stop before the end so the last fade in
  * time. glow is the light it throws on the floor; stain the char it leaves there, the last thing to fade.
  * Round 3 (2026-10-25): the heat-up is even and linear, red to yellow (no noise), and the embers wait
- * for yellow.
+ * for yellow. Round 5: yellow holds a moment, then the die fades off (opacity) instead of burning away
+ * along the noise; the timing is BURN's, in seconds.
  */
 export function burnTimeline(u) {
-  const heat = clamp01(u / BURN_HEATED);   // linear: red to yellow at an even pace (round 3)
-  const dissolve = u <= BURN_HEATED ? 0 : 1.08 * smooth((u - BURN_HEATED) / 0.33);
-  const flying = u < 0.7;
+  const secs = EXIT_TABLE.burn.seconds, t = u * secs;
+  const heat = clamp01(t / BURN.heat);   // linear: red to yellow at an even pace (round 3)
+  const fadeFrom = BURN.heat + BURN.hold, gone = fadeFrom + BURN.fade;
+  const opacity = 1 - smooth((t - fadeFrom) / BURN.fade);   // round 5: it fades off, no longer erodes
+  const burning = t > BURN.heat && t < gone;
   return {
     heat,
-    dissolve,
-    embers: flying && u > BURN_HEATED ? 1 : 0,   // only once it is yellow (round 3)
-    smoke: flying ? clamp01(dissolve * 1.5) : 0,   // the Smoke puff's smoke, where the ash was (round 4)
-    glow: heat * Math.max(0, 1 - dissolve),
-    stain: smooth(dissolve) * (1 - smooth((u - 0.75) / 0.25)),
+    opacity,
+    embers: burning ? 1 : 0,   // only once it is yellow (round 3), until it has gone
+    smoke: burning ? 1 : 0,    // the Smoke puff's smoke, where the ash was (round 4)
+    glow: heat * opacity,
+    stain: smooth((t - BURN.heat) / (BURN.hold + BURN.fade)) * (1 - smooth((t - (secs - BURN.stainFade)) / BURN.stainFade)),
   };
 }
 
@@ -118,7 +128,7 @@ export function fadeTimeline(u) {
  * for the nearest edge of the screen, gathering speed (travel: the share of the way out of frame,
  * 0 … 1, reached at the end). It never moves before it has its legs.
  */
-export const SCURRY = { grow: 0.35, ride: 0.6 };
+export const SCURRY = { grow: 0.35, ride: 0.9 };   // round 5: legs half again as long stand it taller (was 0.6)
 
 export function scurryTimeline(u, R) {
   const t = u * EXIT_TABLE.scurry.seconds;
