@@ -14,11 +14,14 @@
 // changes these, not the drawing code.
 
 /**
- * Burn out, in seconds (round 5): the heat rises red to yellow over `heat`, yellow holds `hold` ("yellow
- * holds too long" — it held a second), then the die fades off over `fade` ("fade off the yellow instead
- * of eroding it away"); the stain it leaves holds 0.3 s and fades over `stainFade`, last of all.
+ * Burn out, in seconds (round 5): the heat rises red to yellow over `heat`, then the die fades off over
+ * `fade` ("fade off the yellow instead of eroding it away"); the stain it leaves holds 0.3 s and fades over
+ * `stainFade`, last of all. The fade starts `hold` after full heat less `early`, and the cinders and
+ * smoke `early` before full heat — round 10: "start the fade out and particles 4 frames sooner. It should
+ * feel that as soon as it hits the yellow color, it's too much, it gets unstable and dematerializes"; from
+ * the particles' start until it has gone it is unstable.
  */
-export const BURN = { heat: 1.2, hold: 0.1, fade: 0.5, stainFade: 0.7 };
+export const BURN = { heat: 1.2, hold: 0.1, early: 4 / 24, fade: 0.5, stainFade: 0.7 };
 
 /**
  * Scurry off, in seconds: legs grow, the body lifts, a beat while it wonders (round 8), it runs; it
@@ -28,7 +31,9 @@ export const BURN = { heat: 1.2, hold: 0.1, fade: 0.5, stainFade: 0.7 };
  * its run.
  */
 export const SCURRY = {
-  grow: 0.45 / 2, lift: 0.25, wonder: 1.0, run: 1.65 / 1.5, ride: 0.9, look: 0.3, tap: 0.8, crouch: 0.3,
+  // Round 10: the look is off for now ("skip the look left and look right. We may revisit later": 0.3 brings
+  // it back, with the beat at 1.0 s) and the beat is short again.
+  grow: 0.45 / 2, lift: 0.25, wonder: 0.5, run: 1.65 / 1.5, ride: 0.9, look: 0, tap: 0.8, crouch: 0.3,
   // Round 9: where in the beat (shares of it) it holds its look — left, right, then at centre — and how
   // far it leans into its run (radians, the body tipping forward along its heading).
   pauses: [[0.1, 0.26], [0.38, 0.54], [0.66, 0.84]],
@@ -37,7 +42,7 @@ export const SCURRY = {
 
 export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
-  burn: { label: 'Burn out', seconds: BURN.heat + BURN.hold + BURN.fade + 0.3 + BURN.stainFade },   // 2.8 s
+  burn: { label: 'Burn out', seconds: BURN.heat + BURN.hold - BURN.early + BURN.fade + 0.3 + BURN.stainFade },   // 2.6 s
   smoke: { label: 'Smoke puff', seconds: 1.8 },
   pit: { label: 'Going down', seconds: 0.75 },   // ends as the hole shuts behind the die (art direction 2026-10-25)
   fade: { label: 'Fade', seconds: 1.2 },          // round 5: "slow it down 100%" (was 0.6)
@@ -66,16 +71,17 @@ export const BURN_HEATED = BURN.heat / EXIT_TABLE.burn.seconds;
 export function burnTimeline(u) {
   const secs = EXIT_TABLE.burn.seconds, t = u * secs;
   const heat = clamp01(t / BURN.heat);   // linear: red to yellow at an even pace (round 3)
-  const fadeFrom = BURN.heat + BURN.hold, gone = fadeFrom + BURN.fade;
+  const fadeFrom = BURN.heat + BURN.hold - BURN.early, gone = fadeFrom + BURN.fade, flying = BURN.heat - BURN.early;
   const opacity = 1 - smooth((t - fadeFrom) / BURN.fade);   // round 5: it fades off, no longer erodes
-  const burning = t > BURN.heat && t < gone;
+  const burning = t > flying && t < gone;
   return {
     heat,
     opacity,
-    embers: burning ? 1 : 0,   // only once it is yellow (round 3), until it has gone
+    embers: burning ? 1 : 0,   // only as it reaches yellow (rounds 3, 10), until it has gone
     smoke: burning ? 1 : 0,    // the Smoke puff's smoke, where the ash was (round 4)
+    unstable: burning ? smooth((t - flying) / 0.1) : 0,   // round 10: too much — it shakes and flickers as it goes
     glow: heat * opacity,
-    stain: smooth((t - BURN.heat) / (BURN.hold + BURN.fade)) * (1 - smooth((t - (secs - BURN.stainFade)) / BURN.stainFade)),
+    stain: smooth((t - fadeFrom) / BURN.fade) * (1 - smooth((t - (secs - BURN.stainFade)) / BURN.stainFade)),
   };
 }
 

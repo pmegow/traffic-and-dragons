@@ -20,7 +20,7 @@
 // Effects only draw: nothing here touches the physics, and the timings are the table's.
 
 import * as THREE from 'three';
-import { EXIT_TABLE, SCURRY, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline, sproutSchedule, scurryWander } from './exit-table.js';
+import { EXIT_TABLE, SCURRY, BURN, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline, sproutSchedule, scurryWander } from './exit-table.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_DEPTH_PARS, EXIT_DEPTH } from './exit-shader.js';
 import { PATTERN_GLSL, PATTERN_SCALE } from './patterns.js';
 import { dieMaterial, FINISHES } from './finishes.js';
@@ -35,7 +35,10 @@ export const EXITS = Object.fromEntries(Object.entries(EXIT_TABLE).map(([key, en
 
 // ---------------------------------------------------------------- burn out
 const EMBER = { rate: 70, colour: [[3.0, 1.4, 0.35], [0.8, 0.08, 0.0]] };   // half the first pass's 140 (art direction 2026-10-25)
-const BURN_SMOKE = { rate: 16 };   // puffs a second as it burns: the Smoke puff's smoke, where the ash was (round 4)
+const BURN_SMOKE = { rate: 16 };
+// Round 10: unstable as it reaches yellow — it shakes up to BURN_SHAKE of its radius and its opacity
+// flickers down by up to BURN_FLICKER, every frame, as it dematerializes.
+const BURN_SHAKE = 0.035, BURN_FLICKER = 0.3;   // puffs a second as it burns: the Smoke puff's smoke, where the ash was (round 4)
 
 function startBurn({ view, entry }) {
   const m = entry.mesh.material, uniforms = m.userData.dice.uniforms;
@@ -53,11 +56,13 @@ function startBurn({ view, entry }) {
     step(u, dt) {
       const t = burnTimeline(u);
       uniforms.uExitHeat.value = t.heat;
-      m.opacity = t.opacity;
+      m.opacity = t.opacity * (1 - BURN_FLICKER * t.unstable * Math.random());
+      const shake = t.unstable * BURN_SHAKE * R;
+      entry.mesh.position.set(centre.x + shake * rand(-1, 1), centre.y + shake * rand(-1, 1), centre.z + shake * rand(-1, 1));
       // Once it fades it must stop writing depth, or the smoke and cinders behind it are cut out by an
       // invisible die: on glass and quartz a die-shaped ghost, and with no tray a hole in the canvas
       // (owner 2026-10-25: "burn out doesn't seem to be working with translucent or transparent").
-      m.depthWrite = t.opacity >= 1;
+      m.depthWrite = t.opacity >= 1 && !t.unstable;
       uniforms.uExitFade.value = t.opacity;
       glow.set(t.glow);
       stain.set(t.stain);
@@ -266,8 +271,9 @@ function startScurry({ view, entry }) {
       // with it; the feet stay where they stand).
       const facing = heading + t.look;
       way.set(Math.cos(heading), 0, Math.sin(heading));
-      // Round 9: as it takes off it leans into its run — the body tips forward along its heading.
-      mesh.quaternion.copy(tilt.setFromAxisAngle(sideways.set(-way.z, 0, way.x), t.lean)).multiply(yaw.setFromAxisAngle(Y, heading0 - facing)).multiply(turn0);
+      // Round 9: as it takes off it leans into its run — the body tips forward along its heading (round 10:
+      // turning about up × heading, so its top goes the way it runs; it tipped back).
+      mesh.quaternion.copy(tilt.setFromAxisAngle(sideways.set(way.z, 0, -way.x), t.lean)).multiply(yaw.setFromAxisAngle(Y, heading0 - facing)).multiply(turn0);
       const stride = Math.max(LEG.step * R, speed * 0.1), swingTime = Math.min(0.1, Math.max(0.035, stride / Math.max(speed, 1e-6) / 2));
       // Which group steps: the other once every foot of this one is down and none needs to step.
       const moving = (g) => legs.some((l) => l.group === g && l.swing);
