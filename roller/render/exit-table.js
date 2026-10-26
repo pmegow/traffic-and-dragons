@@ -16,7 +16,7 @@
 export const EXIT_TABLE = {
   burn: { label: 'Burn out', seconds: 3.0 },   // 2.2 until the stain that fades last (art direction 2026-10-25)
   smoke: { label: 'Smoke puff', seconds: 1.8 },
-  pit: { label: 'Going down', seconds: 1.5 },
+  pit: { label: 'Going down', seconds: 0.75 },   // ends as the hole shuts behind the die (art direction 2026-10-25)
 };
 
 /** Seconds between dice leaving together (Clear), so they go one after another, not as one. */
@@ -64,25 +64,34 @@ export function smokeTimeline(u) {
   };
 }
 
+/** Going down, in seconds: the hole opens — and closes — in `open`; the die falls 3.75 radii in `fall`. */
+export const PIT = { open: 0.18, fall: 0.78 };
+
 /**
- * Going down: a hole opens under the die (hole: its radius as a share of the full, with a little
- * overshoot as it snaps open), the die drops through it from the first moment (drop: metres below where
- * it lay, for a die of radius R) tipping as it falls (tilt, radians), and the hole closes once it has
- * gone. Art direction 2026-10-25: the hole opens by 0.12 (was 0.2), the die no longer waits for it, and
- * it falls a quarter faster.
+ * Going down: a hole opens under the die (hole: its radius as a share of the full), the die drops
+ * through it from the first moment (drop: metres below where it lay, for a die of radius R whose centre
+ * lay `rise` above the floor) tipping as it falls (tilt, radians), and the hole closes behind it the
+ * moment its highest point passes the floor (clear, seconds), the opening run backwards. Art direction
+ * 2026-10-25: round 1, the hole opens quicker (0.18 s, was 0.3), the die no longer waits for it and
+ * falls a quarter faster; round 2, no overshoot as it opens (it eased out past full and back), and it
+ * closes as soon as the die is through, as fast as it opened (it stood open, empty, for 0.6 s).
  */
-export function pitTimeline(u, R) {
-  const open = u < 0.12 ? easeOutBack(u / 0.12) : 1;
-  const close = u > 0.82 ? 1 - smooth((u - 0.82) / 0.18) : 1;
-  const fall = Math.max(0, u / 0.52);
+export function pitTimeline(u, R, rise = R) {
+  const t = u * EXIT_TABLE.pit.seconds;
+  const clear = PIT.fall * Math.sqrt((rise + R) / (3.75 * R));   // drop = rise + R: its top is through the floor
+  const opening = easeOutCubic(t / PIT.open);
+  const closing = t <= clear ? 1 : easeOutCubic(1 - (t - clear) / PIT.open);
+  const fall = t / PIT.fall;
   return {
-    hole: u >= 1 ? 0 : Math.max(0, open) * close,
-    drop: 1.25 * 3 * R * fall * fall,
+    hole: Math.min(opening, closing),
+    drop: 3.75 * R * fall * fall,
     tilt: 0.5 * smooth(fall),
+    clear,
   };
 }
 
-function easeOutBack(x) {
-  const c = 1.7, t = clamp01(x) - 1;
-  return 1 + (c + 1) * t * t * t + c * t * t;
+/** Fast at first, settling into place, never past it. */
+function easeOutCubic(x) {
+  const t = 1 - clamp01(x);
+  return 1 - t * t * t;
 }

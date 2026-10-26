@@ -10,8 +10,8 @@
 //          and leaves a charred stain that fades last
 //   smoke  Smoke puff: the die swells a little and blinks out inside a puff of smoke, with faerie
 //          fire — bright, many-coloured sparks — swirling up out of it
-//   pit    Going down: a hole opens under the die, which tips and falls through it (cut at the
-//          floor, darkening at the rim), and the hole closes over it
+//   pit    Going down: a hole opens under the die, which tips and falls through it at once (cut at
+//          the floor, darkening at the rim), and the hole closes the moment it is through
 //
 // Effects only draw: nothing here touches the physics, and the timings are the table's.
 
@@ -141,11 +141,15 @@ function startPit({ view, entry }) {
   uniforms.uExitClipY.value = 0;   // nothing of it below the floor shows: it is in the hole
   mesh.customDepthMaterial = exitDepthMaterial(uniforms);
   const hole = floorDisc(view, centre, R * 1.4, HOLE_FRAGMENT, { blending: THREE.NormalBlending, scales: true });
+  // Its real highest point at rest, not its bounding sphere's: the hole closes the moment that point is
+  // through the floor (pitTimeline's rise is the height that makes rise + R this top).
+  mesh.updateMatrixWorld();
+  const top = new THREE.Box3().setFromObject(mesh, true).max.y;
   const a = Math.random() * 2 * Math.PI, axis = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
   const tip = new THREE.Quaternion();
   return {
     step(u) {
-      const t = pitTimeline(u, R);
+      const t = pitTimeline(u, R, top - R);   // closes once its highest point is through the floor
       hole.set(t.hole);
       mesh.position.y = centre.y - t.drop;
       mesh.quaternion.copy(tip.setFromAxisAngle(axis, t.tilt).multiply(turn0));
