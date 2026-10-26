@@ -4,9 +4,10 @@
 // every frame (u 0 … 1 over the exit's seconds) and dispose() at the end. Adding an exit is an entry in
 // the table and a start function here.
 //
-//   burn   Burn out: the die heats from dull red to near white, chars, then burns away along a noise
-//          with a glowing edge (the die shader: render/exit-shader.js), throwing embers and ash and a
-//          warm light on the floor
+//   burn   Burn out: the die chars and heats, its glow spreading from the cracks until it is yellow
+//          all over, then burns away along a noise with a glowing edge (the die shader:
+//          render/exit-shader.js), throwing wandering cinders and ash and a warm light on the floor,
+//          and leaves a charred stain that fades last
 //   smoke  Smoke puff: the die swells a little and blinks out inside a puff of smoke, with faerie
 //          fire — bright, many-coloured sparks — swirling up out of it
 //   pit    Going down: a hole opens under the die, which tips and falls through it (cut at the
@@ -28,7 +29,7 @@ export const EXITS = Object.fromEntries(Object.entries(EXIT_TABLE).map(([key, en
 }));
 
 // ---------------------------------------------------------------- burn out
-const EMBER = { rate: 140, colour: [[3.0, 1.4, 0.35], [0.8, 0.08, 0.0]] };
+const EMBER = { rate: 70, colour: [[3.0, 1.4, 0.35], [0.8, 0.08, 0.0]] };   // half the first pass's 140 (art direction 2026-10-25)
 const ASH = { rate: 60, colour: [[0.32, 0.31, 0.3], [0.22, 0.22, 0.22]] };   // pale grey flakes
 
 function startBurn({ view, entry }) {
@@ -37,7 +38,8 @@ function startBurn({ view, entry }) {
   entry.mesh.customDepthMaterial = exitDepthMaterial(uniforms);   // its shadow burns away with it
   const embers = createParticles({ max: 220, look: 'glow' });
   const ash = createParticles({ max: 140, look: 'soft' });
-  const glow = floorDisc(view, centre, R * 3.2, GLOW_FRAGMENT, THREE.AdditiveBlending);
+  const stain = floorDisc(view, centre, R * 1.5, STAIN_FRAGMENT, { blending: THREE.NormalBlending, order: 1 });
+  const glow = floorDisc(view, centre, R * 3.2, GLOW_FRAGMENT, { blending: THREE.AdditiveBlending, order: 2 });
   view.scene.add(embers.points, ash.points);
   let emberDue = 0, ashDue = 0;
   return {
@@ -46,13 +48,14 @@ function startBurn({ view, entry }) {
       uniforms.uExitHeat.value = t.heat;
       uniforms.uExitDissolve.value = t.dissolve;
       glow.set(t.glow);
+      stain.set(t.stain);
       for (emberDue += t.embers * EMBER.rate * dt; emberDue >= 1; emberDue--) {
         const s = onSphere();
         embers.emit({
           position: along(centre, s, R * 0.7),
-          velocity: { x: s.x * 0.015 + rand(-0.01, 0.01), y: rand(0.03, 0.08), z: s.z * 0.015 + rand(-0.01, 0.01) },
+          velocity: { x: s.x * 0.025 + rand(-0.02, 0.02), y: rand(0.03, 0.08), z: s.z * 0.025 + rand(-0.02, 0.02) },
           life: rand(0.4, 0.9), size: [rand(0.0012, 0.0024), 0.0006], colour: EMBER.colour, alpha: [1, 0],
-          drag: 1.2, lift: 0.04, twinkle: 0.4,
+          drag: 1.2, lift: 0.04, wander: rand(0.25, 0.45), twinkle: 0.4,   // never straight up (art direction 2026-10-25)
         });
       }
       for (ashDue += t.ash * ASH.rate * dt; ashDue >= 1; ashDue--) {
@@ -71,6 +74,7 @@ function startBurn({ view, entry }) {
       embers.dispose();
       ash.dispose();
       glow.dispose();
+      stain.dispose();
       entry.mesh.customDepthMaterial.dispose();
     },
   };
@@ -136,7 +140,7 @@ function startPit({ view, entry }) {
   const R = entry.die.boundingRadius, mesh = entry.mesh, centre = mesh.position.clone(), turn0 = mesh.quaternion.clone();
   uniforms.uExitClipY.value = 0;   // nothing of it below the floor shows: it is in the hole
   mesh.customDepthMaterial = exitDepthMaterial(uniforms);
-  const hole = floorDisc(view, centre, R * 1.4, HOLE_FRAGMENT, THREE.NormalBlending);
+  const hole = floorDisc(view, centre, R * 1.4, HOLE_FRAGMENT, { blending: THREE.NormalBlending, scales: true });
   const a = Math.random() * 2 * Math.PI, axis = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
   const tip = new THREE.Quaternion();
   return {
@@ -185,6 +189,24 @@ void main() {
   gl_FragColor = vec4( vec3( 1.0, 0.42, 0.1 ) * a * 0.9, a );
 }
 `;
+// The char a burnt die leaves on the floor: dark, its edge ragged.
+const STAIN_FRAGMENT = /* glsl */ `
+uniform float uAmount;
+varying vec2 vUv;
+float sHash( vec2 p ) { return fract( sin( dot( p, vec2( 127.1, 311.7 ) ) ) * 43758.5453 ); }
+float sNoise( vec2 p ) {
+  vec2 i = floor( p ), f = fract( p );
+  f = f * f * ( 3.0 - 2.0 * f );
+  return mix( mix( sHash( i ), sHash( i + vec2( 1.0, 0.0 ) ), f.x ), mix( sHash( i + vec2( 0.0, 1.0 ) ), sHash( i + vec2( 1.0, 1.0 ) ), f.x ), f.y );
+}
+void main() {
+  vec2 q = vUv - 0.5;
+  float r = length( q ) * 2.0;
+  float n = sNoise( q * 7.0 + 3.1 ) * 0.6 + sNoise( q * 15.0 ) * 0.4;
+  float a = ( 1.0 - smoothstep( 0.35, 0.9, r + ( n - 0.5 ) * 0.45 ) ) * uAmount * 0.8;
+  gl_FragColor = vec4( vec3( 0.035, 0.028, 0.022 ), a );
+}
+`;
 // A hole: black, its edge soft, a faint violet rim.
 const HOLE_FRAGMENT = /* glsl */ `
 uniform float uAmount;
@@ -200,9 +222,10 @@ void main() {
 
 /**
  * A disc on the floor at `centre` (radius in m) drawn by `fragment`, whose uAmount set(x) changes:
- * a light's strength, or for a hole how far open it is (it scales with it).
+ * a light's or a stain's strength, or with `scales` how far a hole is open. `order` stacks discs
+ * (a light over a stain).
  */
-function floorDisc(view, centre, radius, fragment, blending) {
+function floorDisc(view, centre, radius, fragment, { blending, scales = false, order = 1 }) {
   const geometry = new THREE.PlaneGeometry(2 * radius, 2 * radius);
   geometry.rotateX(-Math.PI / 2);
   const material = new THREE.ShaderMaterial({
@@ -211,8 +234,7 @@ function floorDisc(view, centre, radius, fragment, blending) {
   });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(centre.x, 0.0004, centre.z);
-  mesh.renderOrder = 1;
-  const scales = fragment === HOLE_FRAGMENT;
+  mesh.renderOrder = order;
   view.scene.add(mesh);
   return {
     set(x) {

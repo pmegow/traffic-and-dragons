@@ -28,7 +28,7 @@ float exitShade = 1.0;
 vec3 exitHeatColour( float h ) {
   vec3 c = mix( vec3( 0.0 ), vec3( 0.55, 0.02, 0.0 ), smoothstep( 0.0, 0.3, h ) );
   c = mix( c, vec3( 1.0, 0.32, 0.02 ), smoothstep( 0.3, 0.6, h ) );
-  c = mix( c, vec3( 1.0, 0.72, 0.25 ), smoothstep( 0.6, 0.85, h ) );
+  c = mix( c, vec3( 1.0, 0.7, 0.08 ), smoothstep( 0.6, 0.85, h ) );   // a deep yellow: the tone mapping whitens a pale one
   return mix( c, vec3( 1.0, 0.93, 0.75 ), smoothstep( 0.85, 1.0, h ) );
 }
 `;
@@ -42,12 +42,15 @@ if ( uExitHeat > 0.0 || uExitDissolve > 0.0 ) {
   float exitEdge = exitN - uExitDissolve;
   if ( uExitDissolve > 0.0 && exitEdge < 0.0 ) discard;
   // It chars black first; the heat glows in its cracks (the noise's low valleys, where it will burn
-  // through first), never whiter than a yellow-orange, with only a dull ember everywhere else.
+  // through first), never whiter than yellow, with only a dull ember everywhere else until it spreads.
   exitChar = smoothstep( 0.1, 0.55, uExitHeat );
   diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.012, 0.010, 0.009 ), exitChar );
-  float exitCracks = 1.0 - smoothstep( 0.33, 0.42, exitN );
-  exitGlow = exitHeatColour( 0.75 * uExitHeat ) * uExitHeat * ( 0.06 + 1.4 * exitCracks ) * 1.3;
-  if ( uExitDissolve > 0.0 ) exitGlow += vec3( 1.0, 0.55, 0.12 ) * ( 1.0 - smoothstep( 0.0, 0.04, exitEdge ) ) * 5.0;
+  // The glow starts in the cracks and spreads as it heats (art direction 2026-10-25): at full heat it
+  // reaches past every value of the noise, and the die is yellow all over.
+  float exitReach = mix( 0.42, 1.1, smoothstep( 0.45, 1.0, uExitHeat ) );
+  float exitCracks = 1.0 - smoothstep( exitReach - 0.09, exitReach, exitN );
+  exitGlow = exitHeatColour( 0.85 * uExitHeat ) * uExitHeat * ( 0.06 + 1.4 * exitCracks ) * 0.75;   // bright enough to glow, not to wash out
+  if ( uExitDissolve > 0.0 ) exitGlow += vec3( 1.0, 0.5, 0.05 ) * ( 1.0 - smoothstep( 0.0, 0.04, exitEdge ) ) * 3.0;
 }
 `;
 

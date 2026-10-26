@@ -464,6 +464,33 @@ export class DiceView {
     }));
   }
 
+  /**
+   * The table this moment, moving or not: table() plus, while a roll or drop plays, each die's velocity
+   * (m/s) and spin (rad/s, about the world axes), read off the play over one frame. A drop baked from it
+   * (bakeDrop) lets every die still moving carry on as it was going, so an added die drops on its click
+   * even mid-fall (art direction 2026-10-25). A die at rest, or with no play, has neither.
+   */
+  liveTable() {
+    const table = this.table(), p = this.playing;
+    if (!p || !p.result) return table;
+    const r = p.result, t = p.time(), h = 1 / r.fps;
+    const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
+    return table.map((entry, i) => {
+      const d = this.dice[i];
+      if (!r.dice[d.index]) return entry;
+      const a = samplePose(r, d.index, t), b = samplePose(r, d.index, t + h);
+      qa.set(a.orientation.x, a.orientation.y, a.orientation.z, a.orientation.w);
+      qb.set(b.orientation.x, b.orientation.y, b.orientation.z, b.orientation.w);
+      const turn = qb.multiply(qa.invert());   // the frame's turn, in world axes
+      const s = turn.w < 0 ? -2 / h : 2 / h;  // small angle: ω ≈ 2·(x, y, z) / h, on the short way round
+      return {
+        ...entry,
+        velocity: { x: (b.position.x - a.position.x) / h, y: (b.position.y - a.position.y) / h, z: (b.position.z - a.position.z) / h },
+        angularVelocity: { x: turn.x * s, y: turn.y * s, z: turn.z * s },
+      };
+    });
+  }
+
   /** Stops the play under way where it is (its promise resolves); the dice stay as they are. */
   stop() {
     if (this.playing) this.playing.cancel();
@@ -496,12 +523,12 @@ export class DiceView {
    * shrunk under them. Play it with play(result, { fromTable: <the table's length> }).
    */
   bakeDrop(types, request = {}) {
-    const table = this.table();
+    const table = this.liveTable();
     const dice = [...table.map((d) => d.type), ...types];
     if (!dice.length) throw new Error('DiceView.bakeDrop: nothing on the table and nothing to drop');
     const grown = trayFor(dice.length, this.trayOptions);
     const size = { width: Math.max(this.tray.width, grown.width), depth: Math.max(this.tray.depth, grown.depth) };
-    const resting = table.map(({ position, orientation }) => ({ position, orientation }));
+    const resting = table.map(({ position, orientation, velocity, angularVelocity }) => ({ position, orientation, ...(velocity ? { velocity, angularVelocity } : {}) }));
     return this.bake({ ...request, dice, throw: { drop: { resting } }, tray: { ...size, ...(request.tray || {}) } });
   }
 
@@ -577,14 +604,15 @@ export class DiceView {
     const duration = rollDuration(result);
     return new Promise((resolve) => {
       let cancelled = false, start = null;
-      this.playing = { cancel: () => { cancelled = true; resolve(result); } };
+      let tNow = 0;   // where in the roll the frame just drawn stands (liveTable reads the dice's motion there)
+      this.playing = { cancel: () => { cancelled = true; resolve(result); }, result, time: () => tNow };
       this.animate((now) => {
         if (cancelled) return false;
         if (start === null) {
           start = now;
           if (onStart) { try { onStart({ timeScale }); } catch (e) { console.error('DiceView onStart threw:', e); } }
         }
-        const t = Math.min(duration, ((now - start) / 1000) * timeScale);
+        const t = tNow = Math.min(duration, ((now - start) / 1000) * timeScale);
         // The result's highlight eases in over the whole roll (smoothstep), so nothing changes when
         // the dice stop. Darkening the other faces on the last frame read as a lighting pop (owner
         // 2026-10-24).

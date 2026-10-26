@@ -45,6 +45,10 @@ function unlockSound() {
   return audio.unlock().then((ok) => { if (ok) { audioState = 'on'; soundLine(); } }).catch((e) => { audioState = 'failed'; status('Sound is off: ' + e.message); });
 }
 const soundOn = () => $('sound').checked && audioState === 'on';
+// Sound never holds a roll or a drop back: a start that does not come (no gesture, a browser that
+// keeps the audio asleep) is waited for this long at most, and the dice go on silent.
+const SOUND_WAIT_MS = 250;
+const soon = (p) => Promise.race([p, new Promise((r) => setTimeout(r, SOUND_WAIT_MS))]);
 $('sound').addEventListener('change', () => { audio.setMuted(!$('sound').checked); if ($('sound').checked) unlockSound(); soundLine(); });
 
 window.__dice = { view, audio };   // the test seam: drive the page from a script
@@ -324,7 +328,7 @@ function playWithSound(result, options = {}) {
 // the others (owner ruling), and the total counts the table as it lies.
 let soundFromTap = Promise.resolve();   // the tap that changed the dice starts sound for the drop
 let leaving = Promise.resolve();        // dice taken off, still playing their exit
-let syncing = false, resync = false, unsettled = false;
+let unsettled = false;
 const onTable = () => view.table().map((d) => d.type);
 
 /** The dice changed on the buttons: the last roll no longer describes them, and the table follows. */
@@ -342,6 +346,29 @@ function clearDice() {
   diceChanged();
 }
 
+/**
+ * The table follows the buttons: dice taken off leave now; dice added drop now, onto the table as it is
+ * this moment, still moving or not (art direction 2026-10-25: four quick clicks, four dice, each on its
+ * click — they used to queue behind the first and fall together); the rest settle once the table is
+ * still and the leaving dice have gone.
+ */
+function syncTable() {
+  takeAway();
+  const { drop } = tableChanges(picker.list(), onTable());
+  if (drop.length) dropIn(drop);
+  else if (unsettled) settleWhenStill();
+}
+
+let settling = 0;
+async function settleWhenStill() {
+  const mine = ++settling;
+  await leaving;   // the table settles once the dice taken off have gone
+  while (playing) await playing;
+  if (mine !== settling || !unsettled) return;
+  if (!view.dice.length) { unsettled = false; showTable(''); return; }
+  await dropIn([]);
+}
+
 /** Dice taken off the buttons leave the table now. */
 function takeAway() {
   const { remove } = tableChanges(picker.list(), onTable());
@@ -354,24 +381,6 @@ function takeAway() {
   unsettled = true;
   ++current;   // a roll under way no longer describes the table: the settle after it reports instead
   if (!playing) showTable('took off ' + groupDice(gone));
-}
-
-async function syncTable() {
-  takeAway();
-  if (syncing) { resync = true; return; }
-  syncing = true;
-  try {
-    do {
-      resync = false;
-      while (playing) await playing;
-      await leaving;   // the table settles once the dice taken off have gone
-      const { drop } = tableChanges(picker.list(), onTable());
-      if (drop.length || (unsettled && view.dice.length)) await dropIn(drop);
-      else if (unsettled) { unsettled = false; showTable(''); }
-    } while (resync);
-  } finally {
-    syncing = false;
-  }
 }
 
 async function dropIn(types) {
@@ -391,8 +400,9 @@ async function dropIn(types) {
     return;
   }
   if (types.length) show(null);
-  await soundFromTap;
+  await soon(soundFromTap);
   if (mine !== current) return;
+  audio.stop();   // dice still moving carry on in this drop, their clicks rescheduled with it
   await playWithSound(result, { fromTable });
   if (mine !== current) return;
   showTable(types.length ? 'dropped in ' + groupDice(types) : 'the dice settled');
@@ -422,7 +432,7 @@ async function go(req, { unlocking = Promise.resolve() } = {}) {
     return;
   }
   show(null);
-  await unlocking;   // the first tap starts sound; the roll waits for it so its clicks play
+  await soon(unlocking);   // the first tap starts sound; the roll waits a moment for it so its clicks play
   if (mine !== current) return;
   await playWithSound(result);
   if (mine !== current) return;   // a newer roll took over the tray

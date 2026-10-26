@@ -14,7 +14,7 @@
 // changes these, not the drawing code.
 
 export const EXIT_TABLE = {
-  burn: { label: 'Burn out', seconds: 2.2 },
+  burn: { label: 'Burn out', seconds: 3.0 },   // 2.2 until the stain that fades last (art direction 2026-10-25)
   smoke: { label: 'Smoke puff', seconds: 1.8 },
   pit: { label: 'Going down', seconds: 1.5 },
 };
@@ -25,22 +25,27 @@ export const EXIT_STAGGER = 0.06;
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
 const smooth = (x) => { const t = clamp01(x); return t * t * (3 - 2 * t); };
 
+/** Where in a burn the heat-up ends: full heat, yellow all over, and the burning away begins. */
+export const BURN_HEATED = 0.4;
+
 /**
- * Burn out: the die heats from cold through dull red, orange and yellow to near white (heat, 0 … 1),
- * charring as it goes, then burns away along a noise with a glowing edge (dissolve: 0 whole … past 1
- * gone). Embers fly while it is hot, ash as it goes; both stop before the end so the last fade in
- * time. glow is the light it throws on the floor under it.
+ * Burn out: the die chars and heats, its glow spreading from the cracks until, at the last frame of the
+ * heat-up (BURN_HEATED), it is yellow all over (heat, 0 … 1, never levelling off before then — art
+ * direction 2026-10-25); then it burns away along a noise with a glowing edge (dissolve: 0 whole … past
+ * 1 gone). Cinders fly while it is hot, ash as it goes; both stop before the end so the last fade in
+ * time. glow is the light it throws on the floor; stain the char it leaves there, the last thing to fade.
  */
 export function burnTimeline(u) {
-  const heat = smooth(u / 0.5);
-  const dissolve = u < 0.38 ? 0 : 1.08 * smooth((u - 0.38) / 0.52);
-  const flying = u < 0.85;
+  const heat = smooth(u / BURN_HEATED);
+  const dissolve = u <= BURN_HEATED ? 0 : 1.08 * smooth((u - BURN_HEATED) / 0.33);
+  const flying = u < 0.7;
   return {
     heat,
     dissolve,
     embers: flying ? heat * (dissolve > 0 ? 1 : 0.35) : 0,
     ash: flying ? clamp01(dissolve * 1.5) : 0,
     glow: heat * Math.max(0, 1 - dissolve),
+    stain: smooth(dissolve) * (1 - smooth((u - 0.75) / 0.25)),
   };
 }
 
@@ -61,16 +66,18 @@ export function smokeTimeline(u) {
 
 /**
  * Going down: a hole opens under the die (hole: its radius as a share of the full, with a little
- * overshoot as it snaps open), the die drops through it (drop: metres below where it lay, for a die
- * of radius R) tipping as it falls (tilt, radians), and the hole closes once it has gone.
+ * overshoot as it snaps open), the die drops through it from the first moment (drop: metres below where
+ * it lay, for a die of radius R) tipping as it falls (tilt, radians), and the hole closes once it has
+ * gone. Art direction 2026-10-25: the hole opens by 0.12 (was 0.2), the die no longer waits for it, and
+ * it falls a quarter faster.
  */
 export function pitTimeline(u, R) {
-  const open = u < 0.2 ? easeOutBack(u / 0.2) : 1;
+  const open = u < 0.12 ? easeOutBack(u / 0.12) : 1;
   const close = u > 0.82 ? 1 - smooth((u - 0.82) / 0.18) : 1;
-  const fall = Math.max(0, (u - 0.18) / 0.52);
+  const fall = Math.max(0, u / 0.52);
   return {
     hole: u >= 1 ? 0 : Math.max(0, open) * close,
-    drop: 3 * R * fall * fall,
+    drop: 1.25 * 3 * R * fall * fall,
     tilt: 0.5 * smooth(fall),
   };
 }

@@ -79,8 +79,8 @@ export function trayFor(count, partial = {}) {
  *   throw?: { strength?, direction?: {x, z},                 the default toss
  *             fling?: { from: {x, z}, velocity: {x, z} },     a player's drag across the floor (m, m/s)
  *             states?: [{position, orientation, velocity, angularVelocity}],   full control, one per die
- *             drop?: { resting: [{position, orientation}, …] } }   the first dice lie on the table at rest,
- *                                                                   the others fall onto open floor
+ *             drop?: { resting: [{position, orientation, velocity?, angularVelocity?}, …] } }   the first dice
+ *                                    are on the table (at rest, or still moving as given), the others fall onto open floor
  *   world?: partial WORLD_DEFAULTS (dt, iterations, …)
  *   gates?: { minTurns?, maxSeconds?, maxAttempts?, cockedAlignment?, tips? }
  *   readUp?: {x, y, z}, fps?
@@ -152,6 +152,10 @@ function validate(request) {
       const p = s && s.position, q = s && s.orientation;
       if (!p || !finite(p.x, p.y, p.z)) throw new Error('roll: throw.drop.resting[' + i + '] needs a finite position {x, y, z}');
       if (!q || !finite(q.x, q.y, q.z, q.w) || !(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w > 1e-12)) throw new Error('roll: throw.drop.resting[' + i + '] needs a finite, non-zero orientation {x, y, z, w}');
+      for (const k of ['velocity', 'angularVelocity']) {   // a die still moving carries on as it was going
+        const w = s[k];
+        if (w !== undefined && !(w && finite(w.x, w.y, w.z))) throw new Error('roll: throw.drop.resting[' + i + '].' + k + ' must be a finite {x, y, z}');
+      }
     });
   }
   const pick = (k) => gates[k] ?? ROLL_DEFAULTS[k];
@@ -164,7 +168,11 @@ function validate(request) {
     direction: normalize(v3((thr.direction || ROLL_DEFAULTS.direction).x, 0, (thr.direction || ROLL_DEFAULTS.direction).z)),
     states: thr.states || null,
     fling: thr.fling || null,
-    drop: thr.drop ? { resting: thr.drop.resting.map((s) => ({ position: v3(s.position.x, s.position.y, s.position.z), orientation: qnormalize(s.orientation) })) } : null,
+    drop: thr.drop ? { resting: thr.drop.resting.map((s) => ({
+      position: v3(s.position.x, s.position.y, s.position.z), orientation: qnormalize(s.orientation),
+      velocity: s.velocity ? v3(s.velocity.x, s.velocity.y, s.velocity.z) : v3(),
+      angularVelocity: s.angularVelocity ? v3(s.angularVelocity.x, s.angularVelocity.y, s.angularVelocity.z) : v3(),
+    })) } : null,
     readUp: normalize(request.readUp || ROLL_DEFAULTS.readUp),
   };
 }
@@ -244,7 +252,8 @@ const DROP_HEIGHT = 0.07;     // m: where the first dropped die starts above the
 
 /**
  * A drop (owner 2026-10-25: "as dice are added, drop them into the play area"): the dice already on
- * the table (the first resting.length) start where they lie, at rest; each new die falls from above
+ * the table (the first resting.length) start where they lie — at rest, or still moving with the
+ * velocity and spin given, when a die is dropped onto a table not yet still; each new die falls from above
  * onto the most open spot of the floor among a few seeded candidates — the farthest from both the dice
  * already there and the walls, so the first die lands mid-table, not under an edge — tumbling a little. A re-throw
  * draws new spots and spins for the new dice only: the table is where it was before every attempt.
@@ -255,7 +264,7 @@ function dropStates(req, rng) {
   const inside = keepInside(req.tray, 0.022), clearance = wallClearance(req.tray);
   const taken = rest.map((s) => s.position);
   return req.dice.map((d, i) => {
-    if (i < rest.length) return { position: rest[i].position, orientation: rest[i].orientation, velocity: v3(), angularVelocity: v3() };
+    if (i < rest.length) return { position: rest[i].position, orientation: rest[i].orientation, velocity: rest[i].velocity, angularVelocity: rest[i].angularVelocity };
     let spot = null, open = -1;
     for (let c = 0; c < DROP_CANDIDATES; c++) {
       const p = inside(v3(mid.x + rng.range(-0.5, 0.5) * span.width, 0, mid.z + rng.range(-0.5, 0.5) * span.depth));

@@ -5,13 +5,14 @@
 //   const sparks = createParticles({ max: 120, look: 'glow' });   // 'glow' adds light; 'smoke' and 'soft' cover
 //   view.scene.add(sparks.points);
 //   sparks.emit({ position, velocity, life, size: [from, to], colour: [from, to], alpha: [from, to],
-//                 drag, lift, swirl, twinkle, centre });
+//                 drag, lift, swirl, wander, twinkle, centre });
 //   sparks.update(dt, pixelsPerMetre)   // each frame: moves, ages and redraws them
 //   sparks.dispose()
 //
 // Each particle eases from its first size, colour and alpha to its last over its life (alpha also
 // fades in over its first tenth, so nothing pops); drag slows it (per second), lift pushes it up
-// (m/s², negative falls), swirl turns it round the vertical through `centre` (rad/s), and twinkle
+// (m/s², negative falls), swirl turns it round the vertical through `centre` (rad/s), wander pushes it
+// sideways (m/s²) in a direction that turns over its life, so no two paths are straight, and twinkle
 // flickers its size.
 
 import * as THREE from 'three';
@@ -99,6 +100,7 @@ export function createParticles({ max, look }) {
         p: { ...p.position }, v: { ...p.velocity }, age: 0, life: p.life,
         size: p.size, colour: p.colour, alpha: p.alpha ?? [1, 0],
         drag: p.drag ?? 0, lift: p.lift ?? 0, swirl: p.swirl ?? 0, twinkle: p.twinkle ?? 0,
+        wander: p.wander ?? 0, wanderRate: 5 + Math.random() * 6,
         centre: p.centre || p.position, seed: Math.random(),
       });
       return true;
@@ -111,6 +113,11 @@ export function createParticles({ max, look }) {
         if (q.age >= q.life) { live.splice(i, 1); continue; }
         const slow = Math.exp(-q.drag * dt);
         q.v.x *= slow; q.v.y = q.v.y * slow + q.lift * dt; q.v.z *= slow;
+        if (q.wander) {
+          const a = q.seed * 40 + q.age * q.wanderRate;
+          q.v.x += q.wander * Math.cos(a) * dt;
+          q.v.z += q.wander * Math.sin(a * 1.3) * dt;
+        }
         if (q.swirl) {   // turn round the vertical through the centre
           const dx = q.p.x - q.centre.x, dz = q.p.z - q.centre.z, a = q.swirl * dt, c = Math.cos(a), s = Math.sin(a);
           q.p.x = q.centre.x + dx * c - dz * s;
