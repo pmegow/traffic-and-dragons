@@ -19,7 +19,7 @@ import { roll, samplePose, rollDuration, buildDie, trayFor } from '../src/index.
 import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, facesShowing } from './die-mesh.js';
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
-import { EXIT_STAGGER } from './exit-table.js';
+import { exitDelays, chooseExit } from './exit-table.js';
 import { EXITS, exitWarmUp } from './exits.js';
 
 /**
@@ -398,7 +398,8 @@ export class DiceView {
       this.render();
       return Promise.resolve();
     }
-    return Promise.all(gone.map((d, k) => this.runExit(d, exit, k * EXIT_STAGGER)));
+    const delays = exitDelays(gone.length);
+    return Promise.all(gone.map((d, k) => this.runExit(d, exit, delays[k])));
   }
 
   /**
@@ -455,8 +456,8 @@ export class DiceView {
    * Plays an exit on a die already off the table: drawn where it was until the effect has run, then
    * freed. A start or a step that throws is reported, and the die goes at once.
    */
-  runExit(d, name, delay = 0) {
-    const spec = EXITS[name];
+  runExit(d, exit, delay = 0) {
+    const name = chooseExit(exit), spec = EXITS[name];   // Random picks here, for each die (round 12)
     return new Promise((resolve) => {
       let effect = null, start = null, last = 0, elapsed = 0, done = false;
       const record = {

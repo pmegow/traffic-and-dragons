@@ -16,6 +16,7 @@
 //          and runs out of frame
 //   pit    Going down: a hole opens under the die, which tips and falls through it at once (cut at
 //          the floor, darkening at the rim), and the hole closes the moment it is through
+//   random Random: one of the others, picked for each die as it leaves (chooseExit)
 //
 // Effects only draw: nothing here touches the physics, and the timings are the table's.
 
@@ -28,7 +29,9 @@ import { createParticles } from './particles.js';
 
 const STARTS = { none: startNone, burn: startBurn, smoke: startSmoke, pit: startPit, fade: startFade, scurry: startScurry };
 
+// Random (round 12) plays nothing itself: the view asks chooseExit for one of the others as each die leaves.
 export const EXITS = Object.fromEntries(Object.entries(EXIT_TABLE).map(([key, entry]) => {
+  if (entry.random) return [key, entry];
   if (!STARTS[key]) throw new Error('render/exits.js: the exit "' + key + '" has no effect to play it');
   return [key, { ...entry, start: STARTS[key] }];
 }));

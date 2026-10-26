@@ -8,7 +8,7 @@ import { createDrawer } from './drawer.js';
 import { sameLook } from '../render/presets.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
-import { EXIT_TABLE, EXIT_STAGGER } from '../render/exit-table.js';
+import { EXIT_TABLE, exitDelays } from '../render/exit-table.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg || ''; };
@@ -374,9 +374,9 @@ function takeAway() {
   const { remove } = tableChanges(picker.list(), onTable());
   if (!remove.length) return;
   const gone = remove.map((i) => onTable()[i]);
-  // Each leaves through the Exit animation, several a moment apart (Clear), the whole lot within 0.6 s.
-  const stagger = Math.min(EXIT_STAGGER, 0.6 / remove.length);
-  const leavingNow = remove.map((i, k) => view.removeDie(i, { exit: $('exit').value, delay: k * stagger }));
+  // Each leaves through the Exit animation, several one after another (Clear): 0.2 s apart, give or take.
+  const delays = exitDelays(remove.length);
+  const leavingNow = remove.map((i, k) => view.removeDie(i, { exit: $('exit').value, delay: delays[k] }));
   leaving = Promise.all([leaving, ...leavingNow]);
   unsettled = true;
   ++current;   // a roll under way no longer describes the table: the settle after it reports instead

@@ -33,8 +33,9 @@ export const BURN = { heat: 1.2, hold: 0.1, early: 4 / 24, fade: 0.5, stainFade:
 export const SCURRY = {
   // Round 10: the look is off for now ("skip the look left and look right. We may revisit later": 0.3 brings
   // it back, with the beat at 1.0 s) and the beat is short again.
-  // Round 11: the legs grow one after another over `grow` (was 0.225 s, all eight at once to the eye).
-  grow: 0.7, lift: 0.25, wonder: 0.5, run: 1.65 / 1.5, ride: 0.9, look: 0, tap: 0.8, crouch: 0.3,
+  // Round 11: the legs grow one after another over `grow` (was 0.225 s, all eight at once to the eye);
+  // round 12: overlapping, the last starting before the first has finished (0.7 s read one at a time).
+  grow: 0.45, lift: 0.25, wonder: 0.5, run: 1.65 / 1.5, ride: 0.9, look: 0, tap: 0.8, crouch: 0.3,
   // Round 9: where in the beat (shares of it) it holds its look — left, right, then at centre — and how
   // far it leans into its run (radians, the body tipping forward along its heading).
   pauses: [[0.1, 0.26], [0.38, 0.54], [0.66, 0.84]],
@@ -47,11 +48,33 @@ export const EXIT_TABLE = {
   smoke: { label: 'Smoke puff', seconds: 1.8 },
   pit: { label: 'Going down', seconds: 0.75 },   // ends as the hole shuts behind the die (art direction 2026-10-25)
   fade: { label: 'Fade', seconds: 1.2 },          // round 5: "slow it down 100%" (was 0.6)
-  scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.55 s
+  scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
+  random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
 };
 
-/** Seconds between dice leaving together (Clear), so they go one after another, not as one. */
-export const EXIT_STAGGER = 0.06;
+/** The exits Random picks from: every one that plays — not None, not Random itself. */
+export const RANDOM_EXITS = Object.keys(EXIT_TABLE).filter((k) => !EXIT_TABLE[k].random && EXIT_TABLE[k].seconds > 0);
+
+/** The exit a die leaves by when `name` is asked for: Random picks one of RANDOM_EXITS; any other is itself. */
+export function chooseExit(name, random = Math.random) {
+  return EXIT_TABLE[name] && EXIT_TABLE[name].random ? RANDOM_EXITS[Math.floor(random() * RANDOM_EXITS.length)] : name;
+}
+
+/**
+ * Dice leaving together (Clear) go one after another: each `gap` seconds after the one before, give or take
+ * `jitter` (owner 2026-10-26: "stagger the start of the animation by .2 seconds", ±0.1 s; it was 0.06 s).
+ */
+export const EXIT_STAGGER = { gap: 0.2, jitter: 0.1 };
+
+/** When each of `count` dice leaving together sets off (seconds from now): the first at once. */
+export function exitDelays(count, random = Math.random) {
+  const delays = [];
+  for (let k = 0, at = 0; k < count; k++) {
+    if (k) at += EXIT_STAGGER.gap + EXIT_STAGGER.jitter * (2 * random() - 1);
+    delays.push(at);
+  }
+  return delays;
+}
 
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
 const smooth = (x) => { const t = clamp01(x); return t * t * (3 - 2 * t); };
@@ -192,25 +215,30 @@ function bump(w, a, b) {
 /**
  * When each leg grows (round 8: "vary that up a little. +-20% growth rate"; round 11: "legs still seem to
  * grow simultaneously, need to increase the variation in speed and start time"): a rate 1 ± `rate`, a leg
- * taking `leg` seconds to draw out at rate 1 (less when faster). The legs take shuffled turns, each its own
- * slot of the starts and its own slot of the speeds, jittered within it — so every die's legs come one after
- * another across the growing time, fast and slow, never bunched by chance. start and duration are shares of
- * the growing time; the slowest leg starting last still finishes in it.
+ * taking `leg` seconds to draw out at rate 1 (less when faster); each leg its own slot of the speeds, shuffled
+ * and jittered within it, so every die has fast legs and slow. Round 12: "the legs now seem to grow one at a
+ * time. The last one should start before or as the first one finishes": the first to grow is one of the
+ * slower half, and the others start one after another (shuffled slots, jittered) while it grows — the last
+ * before it has finished. start and duration are shares of the growing time; all finish in it.
  */
 export const SPROUT = { leg: 0.6 * 0.45 / 2, rate: 0.4 };
 
 export function sproutSchedule(count, random = Math.random) {
-  const shuffled = () => {
-    const a = Array.from({ length: count }, (_, i) => i);
-    for (let i = count - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  const shuffled = (n) => {
+    const a = Array.from({ length: n }, (_, i) => i);
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
     return a;
   };
-  const speedSlot = shuffled(), startSlot = shuffled();
-  const longest = SPROUT.leg / SCURRY.grow / (1 - SPROUT.rate);
-  return Array.from({ length: count }, (_, i) => {
-    const rate = 1 + SPROUT.rate * (2 * (speedSlot[i] + random()) / count - 1);
-    return { rate, duration: SPROUT.leg / SCURRY.grow / rate, start: (startSlot[i] + random()) / count * (1 - longest) };
-  });
+  const speedSlot = shuffled(count), startSlot = shuffled(count - 1);
+  const rates = speedSlot.map((s) => 1 + SPROUT.rate * (2 * (s + random()) / count - 1));
+  const slower = rates.map((_, i) => i).filter((i) => speedSlot[i] < count / 2);
+  const first = slower[Math.floor(random() * slower.length)], firstTakes = SPROUT.leg / rates[first];   // seconds
+  let k = 0;
+  return rates.map((rate, i) => ({
+    rate,
+    duration: SPROUT.leg / SCURRY.grow / rate,
+    start: i === first ? 0 : (startSlot[k++] + random()) / (count - 1) * firstTakes / SCURRY.grow,
+  }));
 }
 
 /** How far one leg has grown (0 … 1) when the legs as a whole are `legs` of the way grown: easing out of the body. */
