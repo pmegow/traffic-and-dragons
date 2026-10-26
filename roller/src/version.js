@@ -1,2 +1,2 @@
 // src/version.js — the build marker. Bump on every code change (CLAUDE.md ▸ Version).
-export const VERSION = '0.32.1';
+export const VERSION = '0.33.0';

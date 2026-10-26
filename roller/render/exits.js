@@ -20,7 +20,7 @@
 // Effects only draw: nothing here touches the physics, and the timings are the table's.
 
 import * as THREE from 'three';
-import { EXIT_TABLE, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline } from './exit-table.js';
+import { EXIT_TABLE, SCURRY, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline, sproutSchedule, scurryWander } from './exit-table.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_DEPTH_PARS, EXIT_DEPTH } from './exit-shader.js';
 import { PATTERN_GLSL, PATTERN_SCALE } from './patterns.js';
 import { dieMaterial } from './finishes.js';
@@ -207,10 +207,8 @@ const LEG = {
   femur: 1.875, lower: 2.175,
   thick: 0.06, base: 0.25, hip: 0.6, reach: 2.85, step: 1.2, lift: 0.75,
   bow: 0.06,   // how far the lower leg bows out, a share of its length (the drawing's curve)
-  // Round 6: each leg starts growing a little after the last (a share of the growing time).
-  sprout: [0, 0.1, 0.05, 0.15, 0.03, 0.12, 0.08, 0.2],
+  front: [0, 4],   // the two front legs, which tap while it wonders (round 8)
 };
-const SPROUT_SPAN = 1 - Math.max(...LEG.sprout);
 
 // A spider's leg, after the drawing the owner sent (round 7, 2026-10-25): a short thick coxa from the
 // body, a long femur up to the knee, then the tibia, the metatarsus and a long tarsus tapering to a
@@ -229,13 +227,11 @@ const JOINTS = [{ size: 1.45 }, { size: 1.9, knuckle: true }, { size: 0.85 }, { 
 
 function startScurry({ view, entry }) {
   const R = entry.die.boundingRadius, mesh = entry.mesh, centre = mesh.position.clone();
-  const dir = towardNearestEdge(view, centre);
-  const distance = distanceOutOfFrame(view, centre, dir, R * (LEG.reach + 1.2));
-  const up = new THREE.Vector3(0, 1, 0), side = new THREE.Vector3().crossVectors(up, dir);
-  const outward = LEG.angles.map((deg) => {
-    const a = deg * Math.PI / 180;
-    return dir.clone().multiplyScalar(Math.cos(a)).addScaledVector(side, Math.sin(a));
-  });
+  const turn0 = mesh.quaternion.clone();
+  const toward = towardNearestEdge(view, centre), heading0 = Math.atan2(toward.z, toward.x);
+  const path = wanderingPath(view, centre, heading0, R);   // round 8: it wanders a little on its way out
+  // A leg's way out from a body facing `heading` (radians, on the floor): fanned from it.
+  const outward = (heading, i, out) => { const a = heading - LEG.angles[i] * Math.PI / 180; return out.set(Math.cos(a), 0, Math.sin(a)); };
   // The legs are the die's own material (round 7: "make sure the material of the leg matches the die's
   // material"): its finish, colour and pattern, with no numerals — the pattern at the die's grain round
   // the leg; the knuckles are all numeral. The same shader as the dice, so nothing compiles.
@@ -248,26 +244,34 @@ function startScurry({ view, entry }) {
   const partGeometry = LEG_PARTS.map((p) => paintWhite(new THREE.CylinderGeometry(p.far, p.near, 1, 8, 1)));
   const ball = paintWhite(new THREE.SphereGeometry(1, 12, 8));
   const add = (geometry, material) => { const m = new THREE.Mesh(geometry, material); m.castShadow = true; view.scene.add(m); return m; };
-  const legs = outward.map((o, i) => ({
-    o, group: LEG.group[i], foot: null, swing: null,
+  const schedule = sproutSchedule(LEG.angles.length);   // round 8: each leg grows on its own, at ±20%
+  const legs = LEG.angles.map((deg, i) => ({
+    o: new THREE.Vector3(), sprout: schedule[i], group: LEG.group[i], foot: null, swing: null,
     parts: partGeometry.map((g) => add(g, legMaterial)),
     knobs: JOINTS.map((j) => add(ball, j.knuckle ? knuckleMaterial : legMaterial)),
   }));
   let active = 0, last = 0, bob = 0;
   const body = new THREE.Vector3(), base = new THREE.Vector3(), hip = new THREE.Vector3(), rest = new THREE.Vector3();
+  const home = new THREE.Vector3(), way = new THREE.Vector3(), yaw = new THREE.Quaternion();
   return {
     step(u, dt) {
       const t = scurryTimeline(u, R);
-      const along = t.travel * distance, speed = dt > 0 ? (along - last) / dt : 0;
+      const along = t.travel * path.length, speed = dt > 0 ? (along - last) / dt : 0;
       last = along;
       bob += dt * 22;
-      body.copy(centre).addScaledVector(dir, along);
-      body.y = centre.y + t.ride + (speed > 0.001 ? Math.sin(bob) * 0.06 * R : 0);
+      const at = path.at(along), heading = at.heading;
+      body.set(at.x, centre.y + t.ride + (speed > 0.001 ? Math.sin(bob) * 0.06 * R : 0), at.z);
       mesh.position.copy(body);
+      // The body turns with its heading as it runs, and as it looks about while it wonders (the hips turn
+      // with it; the feet stay where they stand).
+      const facing = heading + t.look;
+      mesh.quaternion.copy(yaw.setFromAxisAngle(Y, heading0 - facing)).multiply(turn0);
+      way.set(Math.cos(heading), 0, Math.sin(heading));
       const stride = Math.max(LEG.step * R, speed * 0.1), swingTime = Math.min(0.1, Math.max(0.035, stride / Math.max(speed, 1e-6) / 2));
       // Which group steps: the other once every foot of this one is down and none needs to step.
       const moving = (g) => legs.some((l) => l.group === g && l.swing);
       for (const [i, l] of legs.entries()) {
+        outward(facing, i, l.o);
         base.copy(body).addScaledVector(l.o, LEG.base * R);
         base.y = body.y + 0.05 * R;
         hip.copy(body).addScaledVector(l.o, LEG.hip * R);
@@ -275,12 +279,14 @@ function startScurry({ view, entry }) {
         if (!t.travel) {
           // Growing, then lifting: each foot has its spot on the floor from the start, and the leg grows
           // out of the die toward it along the pose it will stand in; the feet stay as the body lifts.
-          if (!l.foot) { l.foot = centre.clone().addScaledVector(l.o, LEG.reach * R); l.foot.y = 0; }
-          const grown = Math.min(1, Math.max(0, (t.legs - LEG.sprout[i]) / SPROUT_SPAN));
+          if (!l.foot) { l.foot = centre.clone().addScaledVector(outward(heading0, i, home), LEG.reach * R); l.foot.y = 0; }
+          const front = LEG.front.indexOf(i);   // while it wonders, a front foot taps
+          l.foot.y = front < 0 ? 0 : t.tap[front] * SCURRY.tap * LEG.lift * R;
+          const grown = Math.min(1, Math.max(0, (t.legs - l.sprout.start) / l.sprout.duration));
           placeLeg(l, base, hip, l.foot, R, grown);
           continue;
         }
-        rest.copy(body).addScaledVector(l.o, LEG.reach * R).addScaledVector(dir, stride * 0.5);
+        rest.copy(body).addScaledVector(outward(heading, i, home), LEG.reach * R).addScaledVector(way, stride * 0.5);
         rest.y = 0;
         if (l.swing) {
           l.swing.s = Math.min(1, l.swing.s + dt / l.swing.time);
@@ -288,7 +294,7 @@ function startScurry({ view, entry }) {
           l.foot.y = Math.sin(Math.PI * l.swing.s) * LEG.lift * R;
           if (l.swing.s >= 1) { l.foot.y = 0; l.swing = null; }
         } else if (l.group === active && l.foot.distanceTo(rest) > stride * 0.5) {
-          l.swing = { from: l.foot.clone(), to: rest.clone().addScaledVector(dir, speed * swingTime), s: 0, time: swingTime };
+          l.swing = { from: l.foot.clone(), to: rest.clone().addScaledVector(way, speed * swingTime), s: 0, time: swingTime };
         }
         placeLeg(l, base, hip, l.foot, R, 1);
       }
@@ -383,19 +389,39 @@ function towardNearestEdge(view, p) {
   return dir.lengthSq() > 1e-12 ? dir.normalize() : new THREE.Vector3(1, 0, 0);
 }
 
-/** How far along `dir` a thing of radius `r` at `p` must go before no part of it is on screen. */
-function distanceOutOfFrame(view, p, dir, r) {
-  const cam = view.camera, q = new THREE.Vector3(), probe = new THREE.Vector3();
-  const offsets = [[r, 0, 0], [-r, 0, 0], [0, 0, r], [0, 0, -r], [0, r, 0]];
-  for (let d = 0; d < 3; d += r * 0.5) {
-    q.copy(p).addScaledVector(dir, d);
-    const gone = offsets.every(([x, y, z]) => {
-      probe.set(q.x + x, q.y + y, q.z + z).project(cam);
-      return Math.abs(probe.x) > 1 || Math.abs(probe.y) > 1 || probe.z > 1;
-    });
-    if (gone) return d;
+/** True when no part of a thing of radius `r` at `q` is on screen. */
+const probe = new THREE.Vector3();
+function offScreen(view, q, r) {
+  return [[r, 0, 0], [-r, 0, 0], [0, 0, r], [0, 0, -r], [0, r, 0]].every(([x, y, z]) => {
+    probe.set(q.x + x, q.y + y, q.z + z).project(view.camera);
+    return Math.abs(probe.x) > 1 || Math.abs(probe.y) > 1 || probe.z > 1;
+  });
+}
+
+/**
+ * The way out (round 8: "noise in their path so they change directions slightly as they go"): from
+ * `centre`, heading first for the nearest edge (heading0: radians on the floor) and wandering off it a
+ * little as it goes (scurryWander), in steps of a quarter radius, until no part of the spider is on
+ * screen. at(s): the point and the heading `s` metres along it.
+ */
+function wanderingPath(view, centre, heading0, R) {
+  const phase = [Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI];
+  const ds = R * 0.25, r = R * (LEG.reach + 1.2), q = new THREE.Vector3();
+  const points = [{ x: centre.x, z: centre.z, heading: heading0 }];
+  while (points.length < 4000) {
+    const p = points[points.length - 1], heading = heading0 + scurryWander((points.length - 1) * ds, R, phase);
+    const next = { x: p.x + Math.cos(heading) * ds, z: p.z + Math.sin(heading) * ds, heading };
+    points.push(next);
+    if (offScreen(view, q.set(next.x, centre.y, next.z), r)) break;
   }
-  return 3;
+  return {
+    length: (points.length - 1) * ds,
+    at(s) {
+      const f = Math.min(Math.max(s / ds, 0), points.length - 1), k = Math.min(Math.floor(f), points.length - 2), w = f - k;
+      const a = points[k], b = points[k + 1];
+      return { x: a.x + (b.x - a.x) * w, z: a.z + (b.z - a.z) * w, heading: b.heading };
+    },
+  };
 }
 
 // ---------------------------------------------------------------- shared pieces

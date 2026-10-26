@@ -20,8 +20,12 @@
  */
 export const BURN = { heat: 1.2, hold: 0.1, fade: 0.5, stainFade: 0.7 };
 
-/** Scurry off, in seconds: legs grow, the body lifts, it runs; it stands `ride` radii up. */
-export const SCURRY = { grow: 0.45 / 2, lift: 0.25, run: 1.65 / 1.5, ride: 0.9 };   // round 7: legs drawn twice as fast
+/**
+ * Scurry off, in seconds: legs grow, the body lifts, a beat while it wonders (round 8), it runs; it
+ * stands `ride` radii up. During the beat it looks `look` radians one way and the other, taps each front
+ * foot up `tap` of a step's lift, and crouches `crouch` of its height before it bolts.
+ */
+export const SCURRY = { grow: 0.45 / 2, lift: 0.25, wonder: 0.6, run: 1.65 / 1.5, ride: 0.9, look: 0.3, tap: 0.8, crouch: 0.3 };   // round 7: legs drawn twice as fast
 
 export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
@@ -29,7 +33,7 @@ export const EXIT_TABLE = {
   smoke: { label: 'Smoke puff', seconds: 1.8 },
   pit: { label: 'Going down', seconds: 0.75 },   // ends as the hole shuts behind the die (art direction 2026-10-25)
   fade: { label: 'Fade', seconds: 1.2 },          // round 5: "slow it down 100%" (was 0.6)
-  scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.run },   // 1.8 s
+  scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.175 s
 };
 
 /** Seconds between dice leaving together (Clear), so they go one after another, not as one. */
@@ -138,7 +142,53 @@ export function scurryTimeline(u, R) {
   const t = u * EXIT_TABLE.scurry.seconds;
   const legs = smooth(t / SCURRY.grow);
   const lifted = smooth((t - SCURRY.grow) / SCURRY.lift);
-  const runFrom = (SCURRY.grow + SCURRY.lift) / EXIT_TABLE.scurry.seconds;   // as a share, so the end lands on 1 exactly
+  // Round 8, the beat: it has just woken to itself — it looks one way, then the other, taps one front foot
+  // then the other, and as it realizes, crouches and bolts.
+  const w = (t - SCURRY.grow - SCURRY.lift) / SCURRY.wonder;
+  const look = w <= 0 || w >= 1 ? 0 : SCURRY.look * lookAbout(w);
+  const tap = [bump(w, 0.12, 0.32), bump(w, 0.42, 0.62)];
+  const crouch = SCURRY.crouch * bump(w, 0.78, 1);
+  const runFrom = (SCURRY.grow + SCURRY.lift + SCURRY.wonder) / EXIT_TABLE.scurry.seconds;   // a share, so the end lands on 1 exactly
   const x = clamp01((u - runFrom) / (1 - runFrom));
-  return { legs, ride: SCURRY.ride * R * lifted, travel: Math.pow(x, 1.6) };
+  return { legs, ride: SCURRY.ride * R * (lifted - crouch), travel: Math.pow(x, 1.3), look, tap };
+}
+
+/** A look about, over the beat (0 … 1): to one side, across to the other, back to the front. */
+function lookAbout(w) {
+  if (w < 0.25) return -smooth(w / 0.25);
+  if (w < 0.55) return -1 + 2 * smooth((w - 0.25) / 0.3);
+  if (w < 0.8) return 1 - smooth((w - 0.55) / 0.25);
+  return 0;
+}
+
+/** 0 outside a … b, rising to 1 and back across it. */
+function bump(w, a, b) {
+  return w > a && w < b ? Math.sin(Math.PI * (w - a) / (b - a)) : 0;
+}
+
+/**
+ * When each leg grows (round 8: "vary that up a little. +-20% growth rate"): a rate 1 ± `rate`, taking
+ * `duration` of the growing time at rate 1 (less when faster), starting at a random moment that still
+ * lets it finish within the growing time. start and duration are shares of the growing time.
+ */
+export const SPROUT = { rate: 0.2, duration: 0.6 };
+
+export function sproutSchedule(count, random = Math.random) {
+  return Array.from({ length: count }, () => {
+    const rate = 1 + SPROUT.rate * (2 * random() - 1), duration = SPROUT.duration / rate;
+    return { rate, duration, start: random() * (1 - duration) };
+  });
+}
+
+/**
+ * How far its heading has wandered (radians) after running s metres (round 8: "noise in their path so
+ * they change directions slightly as they go"): two slow waves, wavelengths `wave` die radii, set off at
+ * `phase`, from 0 at the start — so it sets off straight for the edge and never turns from it far.
+ */
+export const WANDER = { amp: [0.2, 0.08], wave: [9, 3.5] };
+
+export function scurryWander(s, R, phase) {
+  let h = 0;
+  for (let k = 0; k < 2; k++) h += WANDER.amp[k] * (Math.sin(2 * Math.PI * s / (WANDER.wave[k] * R) + phase[k]) - Math.sin(phase[k]));
+  return h;
 }
