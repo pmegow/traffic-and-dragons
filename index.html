@@ -135,6 +135,7 @@ html,body{height:100%;background:var(--bg0);color:var(--t0);font-family:var(--fo
 #dice-layer{position:absolute;inset:0;z-index:50;cursor:pointer;display:none;opacity:1;transition:opacity .25s;transform:translateZ(0)}
 #dice-layer.on{display:block}
 #dice-layer.out{opacity:0}
+#dice-layer.leaving{pointer-events:none;cursor:default}
 #story-narrative,#story-tabletalk{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px;background:var(--bg0)}
 #story-tabletalk:empty::before{content:attr(data-welcome);color:var(--t2);font-style:italic;font-size:14px;line-height:1.6;padding:5px 3px}/* #656: an empty Table Talk pane says who has joined (syncUI paints data-welcome); the first .msg ends :empty and the line goes */
 .rpanel{width:168px;flex-shrink:0;background:var(--bg1);border-left:1px solid var(--brd);overflow-y:auto;display:flex;flex-direction:column;transition:width .2s}

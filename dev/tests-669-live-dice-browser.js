@@ -74,6 +74,66 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       assert.equal(r.menu,true,'the Settings row is there');
     });
 
+    // #670 (owner 2026-10-26): the dice leave by an exit — Smoke puff until the player picks; the damage dice roll as the d20 leaves.
+    const until=`var until=async(f,ms)=>{const t=Date.now();while(!f()){if(Date.now()-t>(ms||30000))throw new Error('timed out: '+f);await new Promise(r=>setTimeout(r,40));}};`;
+    await check('#670 a dismiss plays the exit (Smoke puff until the player picks): the story stays clickable while the dice go, the layer hides once they have gone',async()=>{
+      const r=await page.evaluate(until+`(async()=>{
+        const exit=diceLiveState().exit;
+        showDiceRoll(9);
+        await until(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d20:9';});
+        const layer=document.getElementById('dice-layer');
+        layer.click();
+        const going={leaving:layer.classList.contains('leaving'),pointer:getComputedStyle(layer).pointerEvents,showing:diceLiveState().showing,exiting:diceLiveState().exiting};
+        await until(()=>!diceLiveState().showing,5000);
+        return {exit,going,after:diceLiveState().exiting};
+      })()`);
+      assert.equal(r.exit,'smoke','Smoke puff until the player picks');
+      assert.deepEqual(r.going,{leaving:true,pointer:'none',showing:true,exiting:1},'the die leaves on the layer, which lets the story be clicked');
+      assert.equal(r.after,0,'gone, and the layer hidden');
+    });
+    await check('#670 after a hit the damage dice roll as the d20 leaves',async()=>{
+      const r=await page.evaluate(until+`(async()=>{
+        window.__dmg=null;
+        showDiceRoll(15,{onClose:function(){window.__dmg=showDamageRoll(8,[5]);}});
+        await until(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d20:15';});
+        document.getElementById('dice-layer').click();
+        const atClick={dmg:window.__dmg,exiting:diceLiveState().exiting,leaving:document.getElementById('dice-layer').classList.contains('leaving')};
+        await until(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d8:5';});
+        const landed=diceLiveState();
+        document.getElementById('dice-layer').click();
+        await until(()=>!diceLiveState().showing,5000);
+        return {atClick,showingWhenLanded:landed.showing};
+      })()`);
+      assert.deepEqual(r.atClick,{dmg:true,exiting:1,leaving:false},'the damage dice are thrown at the click, while the d20 is still leaving, and take the layer');
+      assert.equal(r.showingWhenLanded,true,'the damage dice land on theirs, on show');
+    });
+    await check('#670 Dice appearance lists the exits; a choice is kept and worn; None goes at once',async()=>{
+      const r=await page.evaluate(until+`(async()=>{
+        showDiceLookModal();
+        await until(()=>document.querySelectorAll('#dice-exit option').length>0,5000);
+        const sel=document.getElementById('dice-exit');
+        const options=[...sel.options].map(o=>o.value+'='+o.textContent),selected=sel.value;
+        sel.value='none';sel.dispatchEvent(new Event('change'));
+        const kept=localStorage.getItem('tnd_dice_exit_v1'),worn=_diceLive.overlay.exit;
+        document.getElementById('dice-look-done').click();
+        showDiceRoll(4);
+        await until(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d20:4';});
+        document.getElementById('dice-layer').click();
+        const exiting=diceLiveState().exiting;
+        await until(()=>!diceLiveState().showing,2000);
+        localStorage.setItem('tnd_dice_exit_v1','teleport');
+        const unknown=diceExitName();
+        localStorage.removeItem('tnd_dice_exit_v1');
+        return {options,selected,kept,worn,exiting,unknown};
+      })()`);
+      assert.equal(r.options.join(', '),'none=None, burn=Burn out, smoke=Smoke puff, pit=Going down, fade=Fade, scurry=Scurry off, random=Random');
+      assert.equal(r.selected,'smoke');
+      assert.equal(r.kept,'none');
+      assert.equal(r.worn,'none','the overlay wears it at once');
+      assert.equal(r.exiting,0,'None: the dice go with the fade, no exit');
+      assert.equal(r.unknown,'smoke','an exit the dice no longer have is replaced by the default');
+    });
+
     await check('no page errors',async()=>{assert.deepEqual(errors,[]);});
   }finally{await browser.close();}
   process.exitCode=failed?1:0;

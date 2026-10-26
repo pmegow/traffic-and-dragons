@@ -35424,6 +35424,32 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(u.indexOf('var muted=(typeof AudioMaster!=="undefined"&&AudioMaster.muted())||(typeof Sound!=="undefined"&&typeof Sound.enabled==="function"&&!Sound.enabled());')<0)return "silent with the master mute or the UI-sounds switch";
     return true;
   });
+  section("#670 — the dice leave by an exit (owner 2026-10-26: 'Bring the exit animations and footsteps into TnD's game'; rulings: Smoke puff until the player picks one, the damage dice roll as the d20 leaves): the overlay is told the player's exit, a dismiss plays it and its sounds (dice-sim's dismiss), the story stays clickable while the dice go, the choice sits in Dice appearance — the behaviour itself is dev/tests-669-live-dice-browser.js");
+  t("#670 the exit: Smoke puff until the player picks, kept per device, an unknown saved one said and replaced",function(){
+    var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");
+    if(u.indexOf('var DICE_EXIT_DEFAULT="smoke";')<0)return "Smoke puff until the player picks";
+    if(u.indexOf('var DICE_EXIT_KEY="tnd_dice_exit_v1";')<0)return "the exit is kept per device";
+    if(u.indexOf('look:diceLookStyle(),context:ctx||null,exit:diceExitName()});')<0)return "the overlay is told the player's exit when it is made";
+    if(u.indexOf('console.warn("live dice: the saved exit \\""+saved+"\\" is not one the dice have; using "+DICE_EXIT_DEFAULT);return DICE_EXIT_DEFAULT;')<0)return "an unknown saved exit is said and replaced";
+    return true;
+  });
+  t("#670 the dismiss: the dice leave by it, heard; the damage dice roll as the d20 leaves; the story stays clickable; the layer hides once they have gone",function(){
+    var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8"),h=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
+    var close=u.slice(u.indexOf("function diceLiveClose(token,opts){"),u.indexOf("/* #650's door"));
+    if(close.indexOf("overlay.dismiss().then(function(){")<0)return "a dismiss plays the exit through dice-sim's dismiss";
+    if(close.indexOf('if(opts&&typeof opts.onClose==="function"){var rollDamage=opts.onClose;rollDamage();}/* the damage dice roll as the d20 leaves (owner 2026-10-26) */')<0)return "the damage dice roll as the d20 leaves";
+    if(close.indexOf("if(mine!==_diceLive.token)return;")<0)return "the layer hides once they have gone, unless a newer roll took it";
+    if(h.indexOf("#dice-layer.leaving{pointer-events:none;cursor:default}")<0||close.indexOf('layer.classList.add("leaving");')<0)return "the story stays clickable while the dice go";
+    if(u.indexOf('layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.add("on");')<0)return "a new roll takes the layer back from dice still leaving";
+    return true;
+  });
+  t("#670 Dice appearance lists the exits and keeps a choice",function(){
+    var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");
+    if(u.indexOf("<select id='dice-exit'")<0||u.indexOf("window.DiceSim.exits().forEach(function(x){")<0)return "the modal lists dice-sim's exits";
+    if(u.indexOf('sel.addEventListener("change",function(){diceExitChoose(sel.value);});')<0)return "a choice is kept and told to the overlay";
+    if(u.indexOf("try{_diceLive.overlay.setExit(name);}")<0)return "the overlay wears the new exit";
+    return true;
+  });
   section("#661 — Gemini 3.8 Flash is the default GM (owner 2026-10-22: a bunch cheaper and equal in performance): a fresh install's provider is gemini, whose default model is gemini-3.8-flash; a stored choice still wins; the key screen's hint follows the provider");
   t("#661 the default: globals.js starts activeProvider at gemini; the gemini entry's default model is gemini-3.8-flash, listed in its menu and priced; Anthropic keeps MDL as its own default; the api screen's key hint is painted from the provider at boot, never hard-wired to sk-ant",function(){
     var g=__fsForTests.readFileSync(__rootForTests+"/globals.js","utf8");

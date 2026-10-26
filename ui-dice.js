@@ -15,11 +15,14 @@
    motion preference, a face outside its die. A module that fails to load, or a device that cannot start the dice (no
    WebGL), says so on the console and through reportError once per session (the phone's console is invisible) — the card
    already holds the number. Sound: the clicks share Sound's AudioContext and fall silent with the master mute (#657) or
-   the UI-sounds switch. */
+   the UI-sounds switch. #670 (owner 2026-10-26): a dismissed roll leaves by the player's exit (Smoke puff until they pick
+   one under Dice appearance), with dice-sim's sounds; the damage dice roll as the d20 leaves. */
 var DICE_LIVE_SRC="roller/embed/global.js";
 var DICE_LOOK_KEY="tnd_dice_look_v1";   /* {name, style}: the player's dice look on this device */
 var DICE_LOOK_DEFAULT="Bone";           /* owner 2026-10-25 */
 var DICE_ROLL_FADE_MS=250;              /* matches #dice-layer.out in index.html */
+var DICE_EXIT_KEY="tnd_dice_exit_v1";   /* #670: how dismissed dice leave on this device — a dice-sim exit name */
+var DICE_EXIT_DEFAULT="smoke";          /* #670, owner 2026-10-26: Smoke puff until the player picks one */
 var _diceLive={state:"idle",overlay:null,layer:null,waiting:[],reported:false,muteHooked:false,token:0,last:null};
 
 /* Says why the live dice did not show, on the console every time and through reportError once per session. */
@@ -75,6 +78,23 @@ function diceLookChoose(p){
   if(_diceLive.overlay)_diceLive.overlay.setLook(style).catch(function(e){diceLiveFail("the dice look did not change ("+(e&&e.message||e)+")",{look:p.name});});
 }
 
+/* #670: how dismissed dice leave — the saved exit, else Smoke puff. One the dice no longer have (a later dice release
+   dropped it) is said on the console and replaced by the default. */
+function diceExitName(){
+  var saved=null,list,i;
+  try{saved=localStorage.getItem(DICE_EXIT_KEY);}catch(e){saved=null;}
+  if(!saved)return DICE_EXIT_DEFAULT;
+  if(typeof window==="undefined"||!window.DiceSim)return saved;
+  list=window.DiceSim.exits();
+  for(i=0;i<list.length;i++)if(list[i].name===saved)return saved;
+  console.warn("live dice: the saved exit \""+saved+"\" is not one the dice have; using "+DICE_EXIT_DEFAULT);return DICE_EXIT_DEFAULT;
+}
+function diceExitChoose(name){
+  try{localStorage.setItem(DICE_EXIT_KEY,name);}
+  catch(e){if(typeof showToast==="function")showToast("The dice exit could not be saved on this device ("+(e&&e.message||e)+")");console.warn("dice exit not saved",e);}
+  if(_diceLive.overlay){try{_diceLive.overlay.setExit(name);}catch(e){diceLiveFail("the dice exit did not change ("+(e&&e.message||e)+")",{exit:name});}}
+}
+
 /* The one layer over the story, made once; put back if the story area was rebuilt. */
 function diceLiveLayer(){
   var area=document.getElementById("story-area"),el=_diceLive.layer;
@@ -87,7 +107,7 @@ function diceLiveOverlay(){
   if(_diceLive.overlay)return _diceLive.overlay;
   var ctx=null;
   try{if(typeof Sound!=="undefined"&&typeof Sound.context==="function")ctx=Sound.context();}catch(e){ctx=null;}
-  _diceLive.overlay=window.DiceSim.createDiceOverlay({container:diceLiveLayer(),look:diceLookStyle(),context:ctx||null});
+  _diceLive.overlay=window.DiceSim.createDiceOverlay({container:diceLiveLayer(),look:diceLookStyle(),context:ctx||null,exit:diceExitName()});
   if(!_diceLive.muteHooked&&typeof AudioMaster!=="undefined"&&typeof AudioMaster.onChange==="function"){_diceLive.muteHooked=true;AudioMaster.onChange(function(){diceLiveMute();});}
   return _diceLive.overlay;
 }
@@ -107,7 +127,7 @@ function diceLiveRoll(dice,label,opts){
     try{overlay=diceLiveOverlay();}
     catch(e){_diceLive.state="failed";diceLiveFail("the dice could not start ("+(e&&e.message||e)+")",{roll:label});return;}
     var layer=diceLiveLayer(),token=++_diceLive.token;
-    layer.classList.remove("out");layer.classList.add("on");
+    layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.add("on");
     layer.onclick=function(){diceLiveClose(token,opts);};/* the only way out: the settled dice stay until the player clicks (owner 2026-10-20) */
     diceLiveMute();
     overlay.roll(dice).then(function(r){if(r)_diceLive.last=r.dice.map(function(d){return d.type+":"+d.value;});}).catch(function(e){diceLiveFail("the roll did not play ("+(e&&e.message||e)+")",{roll:label});diceLiveClose(token,null);});
@@ -116,8 +136,23 @@ function diceLiveRoll(dice,label,opts){
 }
 function diceLiveClose(token,opts){
   if(token!==_diceLive.token)return;/* a newer roll took the layer */
-  var layer=_diceLive.layer;
-  layer.onclick=null;_diceLive.token++;
+  var layer=_diceLive.layer,overlay=_diceLive.overlay;
+  layer.onclick=null;var mine=++_diceLive.token;
+  /* #670 (owner 2026-10-26): the dice leave by the player's exit, heard (dice-sim's dismiss). The layer lets the story be
+     clicked while they go and hides once they have gone — unless a newer roll took it: the damage dice roll as the d20
+     leaves (owner ruling), coming in as it goes. */
+  if(overlay&&overlay.exit!=="none"){
+    layer.classList.add("leaving");
+    overlay.dismiss().then(function(){
+      if(mine!==_diceLive.token)return;
+      layer.classList.remove("on");layer.classList.remove("leaving");
+    }).catch(function(e){
+      diceLiveFail("the dice did not leave by their exit ("+(e&&e.message||e)+")",{exit:overlay.exit});
+      if(mine===_diceLive.token){layer.classList.remove("on");layer.classList.remove("leaving");}
+    });
+    if(opts&&typeof opts.onClose==="function"){var rollDamage=opts.onClose;rollDamage();}/* the damage dice roll as the d20 leaves (owner 2026-10-26) */
+    return;
+  }
   layer.classList.add("out");
   setTimeout(function(){
     layer.classList.remove("on");layer.classList.remove("out");
@@ -141,12 +176,15 @@ function showDamageRoll(sides,faces,opts){
 }
 
 /* File ▸ Settings ▸ 🎲 Dice appearance: the presets (the built-ins, and any saved in the dice roller on this site); a
-   choice is kept on this device and the next roll wears it. "Roll a test d20" shows it over the story. */
+   choice is kept on this device and the next roll wears it. "Roll a test d20" shows it over the story. #670: and how the
+   dice leave when dismissed — dice-sim's exits, Smoke puff until the player picks. */
 function showDiceLookModal(){
   var modal=modalShell("dice-look-modal",
     "<div style='font-family:var(--font);font-size:16px;font-weight:700;color:var(--acc);margin-bottom:4px;'>&#127922; Dice appearance</div>"
-    +"<div style='font-size:12px;color:var(--t2);margin-bottom:12px;'>The look of the dice you roll. Saved on this device.</div>"
+    +"<div style='font-size:12px;color:var(--t2);margin-bottom:12px;'>The look of the dice you roll, and how they leave when you dismiss them. Saved on this device.</div>"
     +"<div id='dice-look-list' role='radiogroup' aria-label='Dice presets' style='display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;'>Loading the dice&hellip;</div>"
+    +"<label style='display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:var(--t1);'>When dismissed"
+    +"<select id='dice-exit' aria-label='How the dice leave when dismissed' style='flex:1;font:inherit;font-size:13px;background:var(--bg1);color:var(--t1);border:1px solid var(--brd2);border-radius:6px;padding:4px 6px;'></select></label>"
     +"<div style='display:flex;gap:8px;justify-content:flex-end;margin-top:14px;'>"
     +"<button id='dice-look-test' type='button' style='font:inherit;font-size:13px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);padding:6px 12px;cursor:pointer;'>Roll a test d20</button>"
     +"<button id='dice-look-done' type='button' style='font:inherit;font-size:13px;background:var(--acc);border:0;border-radius:6px;color:var(--bg0);padding:6px 14px;cursor:pointer;'>Done</button></div>",
@@ -172,10 +210,16 @@ function showDiceLookModal(){
     Array.prototype.forEach.call(box.querySelectorAll("input[name='dice-look']"),function(r){
       r.addEventListener("change",function(){if(r.checked)diceLookChoose(list[Number(r.value)]);});
     });
+    var sel=document.getElementById("dice-exit"),chosen=diceExitName(),o="";
+    if(sel){
+      window.DiceSim.exits().forEach(function(x){o+="<option value='"+escHtml(x.name)+"'"+(x.name===chosen?" selected":"")+">"+escHtml(x.label)+"</option>";});
+      sel.innerHTML=o;
+      sel.addEventListener("change",function(){diceExitChoose(sel.value);});
+    }
   });
   if(_diceLive.state==="failed"){var b=document.getElementById("dice-look-list");if(b)b.textContent="The dice could not load on this device.";}
   return modal;
 }
 
 /* The test seam (#669): what the live dice are doing, for dev/tests-669-live-dice-browser.js. */
-function diceLiveState(){return {state:_diceLive.state,overlay:!!_diceLive.overlay,showing:!!(_diceLive.layer&&_diceLive.layer.classList.contains("on")),look:diceLookName(),last:_diceLive.last,muted:!!(_diceLive.overlay&&_diceLive.overlay.audio&&_diceLive.overlay.audio.muted)};}
+function diceLiveState(){return {state:_diceLive.state,overlay:!!_diceLive.overlay,showing:!!(_diceLive.layer&&_diceLive.layer.classList.contains("on")),look:diceLookName(),last:_diceLive.last,muted:!!(_diceLive.overlay&&_diceLive.overlay.audio&&_diceLive.overlay.audio.muted),exit:diceExitName(),exiting:_diceLive.overlay?_diceLive.overlay.view.exiting.size:0};}
