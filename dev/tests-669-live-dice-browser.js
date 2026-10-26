@@ -5,6 +5,10 @@ const fs=require('fs'),path=require('path'),assert=require('assert/strict');
 const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..');let failed=0;
 const TYPES={'.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.mp3':'audio/mpeg','.ttf':'font/ttf','.png':'image/png','.webmanifest':'application/manifest+json'};
+// A dismiss plays the exit (#670), and an exit advances at most 1/30 s a frame (dice-sim's EXIT_FRAME_MAX): on CI's
+// GPU-less runner the dice draw at about 5 frames a second, so the 1.8 s Smoke puff takes 11-13 s there. The old 5 s
+// budget was the fade's (250 ms) and turned CI red on dacc10b2; a dismiss that never ends still fails.
+const DISMISS_MS=30000;
 async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+' — '+e.message);}}
 (async()=>{
   const browser=await chromium.launch({headless:true});
@@ -30,7 +34,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       assert.equal(s.showing,true,'the layer shows over the story');
       assert.equal(s.overlay,true,'one overlay');
       await page.evaluate(()=>document.getElementById('dice-layer').click());
-      await page.waitForFunction(()=>window.__closed===1&&!diceLiveState().showing,null,{timeout:5000});
+      await page.waitForFunction(()=>window.__closed===1&&!diceLiveState().showing,null,{timeout:DISMISS_MS});
     });
 
     await check('the damage dice land on theirs, through the same overlay (one WebGL context for the session)',async()=>{
@@ -39,7 +43,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       await page.waitForFunction(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d6:3,d6:5';},null,{timeout:30000});
       assert.equal(await page.evaluate(()=>document.querySelectorAll('#dice-layer canvas').length),before,'no second canvas');
       await page.evaluate(()=>document.getElementById('dice-layer').click());
-      await page.waitForFunction(()=>!diceLiveState().showing,null,{timeout:5000});
+      await page.waitForFunction(()=>!diceLiveState().showing,null,{timeout:DISMISS_MS});
     });
 
     await check('faces outside their die, and Car Mode, show nothing',async()=>{
@@ -84,7 +88,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         const layer=document.getElementById('dice-layer');
         layer.click();
         const going={leaving:layer.classList.contains('leaving'),pointer:getComputedStyle(layer).pointerEvents,showing:diceLiveState().showing,exiting:diceLiveState().exiting};
-        await until(()=>!diceLiveState().showing,5000);
+        await until(()=>!diceLiveState().showing,${DISMISS_MS});
         return {exit,going,after:diceLiveState().exiting};
       })()`);
       assert.equal(r.exit,'smoke','Smoke puff until the player picks');
@@ -101,7 +105,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         await until(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d8:5';});
         const landed=diceLiveState();
         document.getElementById('dice-layer').click();
-        await until(()=>!diceLiveState().showing,5000);
+        await until(()=>!diceLiveState().showing,${DISMISS_MS});
         return {atClick,showingWhenLanded:landed.showing};
       })()`);
       assert.deepEqual(r.atClick,{dmg:true,exiting:1,leaving:false},'the damage dice are thrown at the click, while the d20 is still leaving, and take the layer');
