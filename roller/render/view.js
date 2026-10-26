@@ -434,7 +434,7 @@ export class DiceView {
         if (done) return false;
         if (start === null) start = now + delay * 1000;
         if (now < start) return true;
-        let u = Math.min(1, (now - start) / 1000 / spec.seconds);
+        let u = spec.seconds > 0 ? Math.min(1, (now - start) / 1000 / spec.seconds) : 1;
         try {
           if (!effect) { effect = spec.start({ view: this, entry: d }); last = now; }
           effect.step(u, Math.min(0.05, (now - last) / 1000));

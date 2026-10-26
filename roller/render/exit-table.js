@@ -14,9 +14,12 @@
 // changes these, not the drawing code.
 
 export const EXIT_TABLE = {
+  none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
   burn: { label: 'Burn out', seconds: 3.0 },   // 2.2 until the stain that fades last (art direction 2026-10-25)
   smoke: { label: 'Smoke puff', seconds: 1.8 },
   pit: { label: 'Going down', seconds: 0.75 },   // ends as the hole shuts behind the die (art direction 2026-10-25)
+  fade: { label: 'Fade', seconds: 0.6 },
+  scurry: { label: 'Scurry off', seconds: 2.0 }, // "make the dice grow spider legs and scurry out of frame"
 };
 
 /** Seconds between dice leaving together (Clear), so they go one after another, not as one. */
@@ -32,7 +35,7 @@ export const BURN_HEATED = 0.4;
  * Burn out: the die chars and heats, its glow spreading from the cracks until, at the last frame of the
  * heat-up (BURN_HEATED), it is yellow all over (heat, 0 … 1, never levelling off before then — art
  * direction 2026-10-25); then it burns away along a noise with a glowing edge (dissolve: 0 whole … past
- * 1 gone). Cinders fly while it is hot, ash as it goes; both stop before the end so the last fade in
+ * 1 gone). Cinders fly while it is hot, smoke rises as it goes; both stop before the end so the last fade in
  * time. glow is the light it throws on the floor; stain the char it leaves there, the last thing to fade.
  * Round 3 (2026-10-25): the heat-up is even and linear, red to yellow (no noise), and the embers wait
  * for yellow.
@@ -45,7 +48,7 @@ export function burnTimeline(u) {
     heat,
     dissolve,
     embers: flying && u > BURN_HEATED ? 1 : 0,   // only once it is yellow (round 3)
-    ash: flying ? clamp01(dissolve * 1.5) : 0,
+    smoke: flying ? clamp01(dissolve * 1.5) : 0,   // the Smoke puff's smoke, where the ash was (round 4)
     glow: heat * Math.max(0, 1 - dissolve),
     stain: smooth(dissolve) * (1 - smooth((u - 0.75) / 0.25)),
   };
@@ -66,8 +69,12 @@ export function smokeTimeline(u) {
   };
 }
 
-/** Going down, in seconds: the hole opens — and closes — in `open`; the die falls 3.75 radii in `fall`. */
-export const PIT = { open: 0.18, fall: 0.78 };
+/**
+ * Going down, in seconds: the hole opens in `open` and closes in `close` (80% of the opening's speed),
+ * starting `early` before the die's top is through (two frames at 24 fps — round 4); the die falls 3.75
+ * radii in `fall`.
+ */
+export const PIT = { open: 0.18, close: 0.18 / 0.8, early: 2 / 24, fall: 0.78 };
 
 /**
  * Going down: a hole opens under the die (hole: its radius as a share of the full), the die drops
@@ -76,13 +83,15 @@ export const PIT = { open: 0.18, fall: 0.78 };
  * moment its highest point passes the floor (clear, seconds), the opening run backwards. Art direction
  * 2026-10-25: round 1, the hole opens quicker (0.18 s, was 0.3), the die no longer waits for it and
  * falls a quarter faster; round 2, no overshoot as it opens (it eased out past full and back), and it
- * closes as soon as the die is through, as fast as it opened (it stood open, empty, for 0.6 s).
+ * closes as soon as the die is through, as fast as it opened (it stood open, empty, for 0.6 s); round 4,
+ * it starts closing two frames (at 24 fps) before the die's top is through, and closes 20% slower.
  */
 export function pitTimeline(u, R, rise = R) {
   const t = u * EXIT_TABLE.pit.seconds;
   const clear = PIT.fall * Math.sqrt((rise + R) / (3.75 * R));   // drop = rise + R: its top is through the floor
   const opening = easeOutCubic(t / PIT.open);
-  const closing = t <= clear ? 1 : easeOutCubic(1 - (t - clear) / PIT.open);
+  const shut = clear - PIT.early;
+  const closing = t <= shut ? 1 : easeOutCubic(1 - (t - shut) / PIT.close);
   const fall = t / PIT.fall;
   return {
     hole: Math.min(opening, closing),
@@ -96,4 +105,24 @@ export function pitTimeline(u, R, rise = R) {
 function easeOutCubic(x) {
   const t = 1 - clamp01(x);
   return 1 - t * t * t;
+}
+
+/** Fade: the die fades out (opacity 1 … 0), its shadow with it. */
+export function fadeTimeline(u) {
+  return { opacity: 1 - smooth(u) };
+}
+
+/**
+ * Scurry off (round 4: "make the dice grow spider legs and scurry out of frame"), in seconds: eight legs
+ * grow out of the die over `grow`, standing it up `ride` radii (legs: 0 … 1, ride: metres), then it runs
+ * for the nearest edge of the screen, gathering speed (travel: the share of the way out of frame,
+ * 0 … 1, reached at the end). It never moves before it has its legs.
+ */
+export const SCURRY = { grow: 0.35, ride: 0.6 };
+
+export function scurryTimeline(u, R) {
+  const t = u * EXIT_TABLE.scurry.seconds;
+  const legs = smooth(t / SCURRY.grow);
+  const x = clamp01((t - SCURRY.grow) / (EXIT_TABLE.scurry.seconds - SCURRY.grow));
+  return { legs, ride: SCURRY.ride * R * legs, travel: Math.pow(x, 1.6) };
 }

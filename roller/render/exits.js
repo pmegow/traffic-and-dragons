@@ -6,21 +6,24 @@
 //
 //   burn   Burn out: the die heats evenly from red to yellow, then burns away along a noise with a
 //          glowing edge (the die shader: render/exit-shader.js), throwing slow wandering cinders and
-//          ash and a warm light on the floor, and leaves a charred stain that fades last
+//          the Smoke puff's smoke and a warm light on the floor, and leaves a charred stain that fades last
 //   smoke  Smoke puff: the die swells a little and blinks out inside a puff of smoke, with faerie
 //          fire — bright, many-coloured sparks — swirling up out of it
+//   none   None: the die goes at once
+//   fade   Fade: the die fades out, its shadow with it
+//   scurry Scurry off: it grows eight spider legs, stands up on them and runs out of frame
 //   pit    Going down: a hole opens under the die, which tips and falls through it at once (cut at
 //          the floor, darkening at the rim), and the hole closes the moment it is through
 //
 // Effects only draw: nothing here touches the physics, and the timings are the table's.
 
 import * as THREE from 'three';
-import { EXIT_TABLE, burnTimeline, smokeTimeline, pitTimeline } from './exit-table.js';
+import { EXIT_TABLE, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline } from './exit-table.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_DEPTH_PARS, EXIT_DEPTH } from './exit-shader.js';
 import { PATTERN_GLSL } from './patterns.js';
 import { createParticles } from './particles.js';
 
-const STARTS = { burn: startBurn, smoke: startSmoke, pit: startPit };
+const STARTS = { none: startNone, burn: startBurn, smoke: startSmoke, pit: startPit, fade: startFade, scurry: startScurry };
 
 export const EXITS = Object.fromEntries(Object.entries(EXIT_TABLE).map(([key, entry]) => {
   if (!STARTS[key]) throw new Error('render/exits.js: the exit "' + key + '" has no effect to play it');
@@ -29,18 +32,18 @@ export const EXITS = Object.fromEntries(Object.entries(EXIT_TABLE).map(([key, en
 
 // ---------------------------------------------------------------- burn out
 const EMBER = { rate: 70, colour: [[3.0, 1.4, 0.35], [0.8, 0.08, 0.0]] };   // half the first pass's 140 (art direction 2026-10-25)
-const ASH = { rate: 60, colour: [[0.32, 0.31, 0.3], [0.22, 0.22, 0.22]] };   // pale grey flakes
+const BURN_SMOKE = { rate: 16 };   // puffs a second as it burns: the Smoke puff's smoke, where the ash was (round 4)
 
 function startBurn({ view, entry }) {
   const uniforms = entry.mesh.material.userData.dice.uniforms;
   const R = entry.die.boundingRadius, centre = entry.mesh.position.clone();
   entry.mesh.customDepthMaterial = exitDepthMaterial(uniforms);   // its shadow burns away with it
   const embers = createParticles({ max: 220, look: 'glow' });
-  const ash = createParticles({ max: 140, look: 'soft' });
+  const smoke = createParticles({ max: 40, look: 'smoke' });
   const stain = floorDisc(view, centre, R * 1.5, STAIN_FRAGMENT, { blending: THREE.NormalBlending, order: 1 });
   const glow = floorDisc(view, centre, R * 3.2, GLOW_FRAGMENT, { blending: THREE.AdditiveBlending, order: 2 });
-  view.scene.add(embers.points, ash.points);
-  let emberDue = 0, ashDue = 0;
+  view.scene.add(embers.points, smoke.points);
+  let emberDue = 0, smokeDue = 0;
   return {
     step(u, dt) {
       const t = burnTimeline(u);
@@ -57,21 +60,21 @@ function startBurn({ view, entry }) {
           drag: 1.2, lift: 0.02, wander: rand(0.125, 0.225), twinkle: 0.4,   // never straight up; half speed (round 3)
         });
       }
-      for (ashDue += t.ash * ASH.rate * dt; ashDue >= 1; ashDue--) {
-        ash.emit({
-          position: along(centre, onSphere(), R * 0.6),
-          velocity: { x: rand(-0.015, 0.015), y: rand(0.015, 0.045), z: rand(-0.015, 0.015) },
-          life: rand(0.6, 1.1), size: [rand(0.0006, 0.0012), rand(0.0004, 0.0008)], colour: ASH.colour, alpha: [0.95, 0],
-          drag: 1.5, lift: -0.01, swirl: rand(-2, 2), centre,
+      for (smokeDue += t.smoke * BURN_SMOKE.rate * dt; smokeDue >= 1; smokeDue--) {
+        smoke.emit({
+          position: along(centre, onSphere(), R * 0.5),
+          velocity: { x: rand(-0.01, 0.01), y: rand(0.02, 0.04), z: rand(-0.01, 0.01) },
+          life: rand(0.8, 1.3), size: [R * rand(0.6, 0.9), R * rand(1.6, 2.2)], colour: SMOKE.colour, alpha: [0.5, 0],
+          drag: 1.5, lift: 0.03, wander: rand(0.05, 0.1),
         });
       }
       const ppm = pixelsPerMetre(view);
       embers.update(dt, ppm);
-      ash.update(dt, ppm);
+      smoke.update(dt, ppm);
     },
     dispose() {
       embers.dispose();
-      ash.dispose();
+      smoke.dispose();
       glow.dispose();
       stain.dispose();
       entry.mesh.customDepthMaterial.dispose();
@@ -161,12 +164,146 @@ function startPit({ view, entry }) {
   };
 }
 
+// ---------------------------------------------------------------- none
+function startNone() {
+  return { step() {}, dispose() {} };
+}
+
+// ---------------------------------------------------------------- fade
+function startFade({ entry }) {
+  const m = entry.mesh.material, uniforms = m.userData.dice.uniforms;
+  m.transparent = true;    // one compile per finish, on its first fade; the die is freed after
+  m.depthWrite = false;
+  m.needsUpdate = true;
+  entry.mesh.customDepthMaterial = exitDepthMaterial(uniforms);   // its shadow fades with it
+  return {
+    step(u) {
+      const o = fadeTimeline(u).opacity;
+      m.opacity = o;
+      uniforms.uExitFade.value = o;
+    },
+    dispose() { entry.mesh.customDepthMaterial.dispose(); },
+  };
+}
+
+// ---------------------------------------------------------------- scurry off
+// Eight legs, four a side, fanned from the heading (degrees): two forward, two back. Lengths in die radii.
+const LEG = {
+  angles: [40, 75, 105, 140, -40, -75, -105, -140],
+  group: [0, 1, 0, 1, 1, 0, 1, 0],   // the alternating tetrapod gait: one group steps while the other stands
+  colour: '#1d1612', thick: 0.06, femur: 1.25, tibia: 1.45, hip: 0.5, reach: 1.9, step: 0.8, lift: 0.5,
+};
+
+function startScurry({ view, entry }) {
+  const R = entry.die.boundingRadius, mesh = entry.mesh, centre = mesh.position.clone();
+  const dir = towardNearestEdge(view, centre);
+  const distance = distanceOutOfFrame(view, centre, dir, R * (LEG.reach + 1.2));
+  const up = new THREE.Vector3(0, 1, 0), side = new THREE.Vector3().crossVectors(up, dir);
+  const outward = LEG.angles.map((deg) => {
+    const a = deg * Math.PI / 180;
+    return dir.clone().multiplyScalar(Math.cos(a)).addScaledVector(side, Math.sin(a));
+  });
+  const geometry = new THREE.CylinderGeometry(1, 0.6, 1, 6);
+  const material = new THREE.MeshStandardMaterial({ color: LEG.colour, roughness: 0.45, metalness: 0.1 });
+  const segment = (r) => { const s = new THREE.Mesh(geometry, material); s.castShadow = true; s.userData.r = r; view.scene.add(s); return s; };
+  const legs = outward.map((o, i) => ({ o, group: LEG.group[i], femur: segment(LEG.thick * R), tibia: segment(LEG.thick * R * 0.7), foot: null, swing: null }));
+  let active = 0, last = 0, bob = 0;
+  const body = new THREE.Vector3(), hip = new THREE.Vector3(), rest = new THREE.Vector3(), knee = new THREE.Vector3();
+  return {
+    step(u, dt) {
+      const t = scurryTimeline(u, R);
+      const along = t.travel * distance, speed = dt > 0 ? (along - last) / dt : 0;
+      last = along;
+      bob += dt * 22;
+      body.copy(centre).addScaledVector(dir, along);
+      body.y = centre.y + t.ride + (speed > 0.001 ? Math.sin(bob) * 0.06 * R : 0);
+      mesh.position.copy(body);
+      const stride = Math.max(LEG.step * R, speed * 0.1), swingTime = Math.min(0.1, Math.max(0.035, stride / Math.max(speed, 1e-6) / 2));
+      // Which group steps: the other once every foot of this one is down and none needs to step.
+      const moving = (g) => legs.some((l) => l.group === g && l.swing);
+      for (const l of legs) {
+        hip.copy(body).addScaledVector(l.o, LEG.hip * R * t.legs);
+        hip.y = body.y + 0.1 * R;
+        rest.copy(body).addScaledVector(l.o, LEG.reach * R * t.legs).addScaledVector(dir, stride * 0.5);
+        rest.y = 0;
+        if (t.legs < 1 || !l.foot) { l.foot = (l.foot || new THREE.Vector3()).copy(rest); l.foot.y = 0; }
+        else if (l.swing) {
+          l.swing.s = Math.min(1, l.swing.s + dt / l.swing.time);
+          l.foot.lerpVectors(l.swing.from, l.swing.to, l.swing.s);
+          l.foot.y = Math.sin(Math.PI * l.swing.s) * LEG.lift * R;
+          if (l.swing.s >= 1) { l.foot.y = 0; l.swing = null; }
+        } else if (l.group === active && l.foot.distanceTo(rest) > stride * 0.5) {
+          l.swing = { from: l.foot.clone(), to: rest.clone().addScaledVector(dir, speed * swingTime), s: 0, time: swingTime };
+        }
+        placeLeg(l, hip, l.foot, R * t.legs, knee);
+      }
+      if (!moving(active)) active = 1 - active;
+    },
+    dispose() {
+      for (const l of legs) { l.femur.removeFromParent(); l.tibia.removeFromParent(); }
+      geometry.dispose();
+      material.dispose();
+    },
+  };
+}
+
+/** Two-bone legs: the knee bends up and out, found from the hip, the foot and the segment lengths. */
+function placeLeg(l, hip, foot, scale, knee) {
+  const L1 = LEG.femur * scale, L2 = LEG.tibia * scale;
+  if (!(L1 > 1e-6)) { l.femur.visible = l.tibia.visible = false; return; }
+  l.femur.visible = l.tibia.visible = true;
+  const d = foot.clone().sub(hip);
+  const len = Math.min(Math.max(d.length(), Math.abs(L1 - L2) + 1e-6), (L1 + L2) * 0.999);
+  d.normalize();
+  const cosA = (L1 * L1 + len * len - L2 * L2) / (2 * L1 * len), sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA));
+  const pole = new THREE.Vector3(0, 1, 0).addScaledVector(d, -d.y).normalize();
+  knee.copy(hip).addScaledVector(d, L1 * cosA).addScaledVector(pole, L1 * sinA);
+  const end = hip.clone().addScaledVector(d, len);
+  placeSegment(l.femur, hip, knee);
+  placeSegment(l.tibia, knee, end);
+}
+
+const Y = new THREE.Vector3(0, 1, 0);
+function placeSegment(s, a, b) {
+  const v = b.clone().sub(a), len = v.length();
+  s.position.copy(a).addScaledVector(v, 0.5);
+  s.quaternion.setFromUnitVectors(Y, v.multiplyScalar(1 / Math.max(len, 1e-9)));
+  s.scale.set(s.userData.r, len, s.userData.r);
+}
+
+/** The floor direction that carries a point at `p` toward the screen edge nearest it. */
+function towardNearestEdge(view, p) {
+  const cam = view.camera, ndc = p.clone().project(cam);
+  const ways = [[1 - ndc.x, 1, 0], [1 + ndc.x, -1, 0], [1 - ndc.y, 0, 1], [1 + ndc.y, 0, -1]].sort((a, b) => a[0] - b[0]);
+  const [, sx, sy] = ways[0];
+  const there = new THREE.Vector3(ndc.x + sx * 0.05, ndc.y + sy * 0.05, ndc.z).unproject(cam);
+  const ray = there.sub(cam.position), k = (p.y - cam.position.y) / ray.y;
+  const hit = cam.position.clone().addScaledVector(ray, k);
+  const dir = new THREE.Vector3(hit.x - p.x, 0, hit.z - p.z);
+  return dir.lengthSq() > 1e-12 ? dir.normalize() : new THREE.Vector3(1, 0, 0);
+}
+
+/** How far along `dir` a thing of radius `r` at `p` must go before no part of it is on screen. */
+function distanceOutOfFrame(view, p, dir, r) {
+  const cam = view.camera, q = new THREE.Vector3(), probe = new THREE.Vector3();
+  const offsets = [[r, 0, 0], [-r, 0, 0], [0, 0, r], [0, 0, -r], [0, r, 0]];
+  for (let d = 0; d < 3; d += r * 0.5) {
+    q.copy(p).addScaledVector(dir, d);
+    const gone = offsets.every(([x, y, z]) => {
+      probe.set(q.x + x, q.y + y, q.z + z).project(cam);
+      return Math.abs(probe.x) > 1 || Math.abs(probe.y) > 1 || probe.z > 1;
+    });
+    if (gone) return d;
+  }
+  return 3;
+}
+
 // ---------------------------------------------------------------- shared pieces
 /** A shadow's depth material for a leaving die: the same cut and burn-through as the die (exit-shader.js). */
 function exitDepthMaterial(u) {
   const m = new THREE.MeshDepthMaterial();
   m.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, { uScale: u.uScale, uSeed: u.uSeed, uExitDissolve: u.uExitDissolve, uExitClipY: u.uExitClipY });
+    Object.assign(shader.uniforms, { uScale: u.uScale, uSeed: u.uSeed, uExitDissolve: u.uExitDissolve, uExitClipY: u.uExitClipY, uExitFade: u.uExitFade });
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vPatternPos;\n' + EXIT_VERTEX_PARS)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPatternPos = position;\n' + EXIT_VERTEX);

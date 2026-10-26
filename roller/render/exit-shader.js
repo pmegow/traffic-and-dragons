@@ -51,13 +51,16 @@ if ( uExitHeat > 0.0 || uExitDissolve > 0.0 ) {
 export const EXIT_EMISSIVE = 'totalEmissiveRadiance += exitGlow;';
 export const EXIT_OUTGOING = 'outgoingLight *= exitShade;';
 
-/** The shadow's depth pass: the same cut and the same burn-through, nothing else. */
+/** The shadow's depth pass: the same cut, the same burn-through and the same fade, nothing else. */
 export const EXIT_DEPTH_PARS = /* glsl */ `
 uniform float uExitDissolve;
 uniform float uExitClipY;
+uniform float uExitFade;
 varying float vExitWorldY;
+float exitHash( vec2 p ) { return fract( sin( dot( p, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 ); }
 `;
 export const EXIT_DEPTH = /* glsl */ `
 if ( vExitWorldY < uExitClipY ) discard;
+if ( exitHash( gl_FragCoord.xy ) > uExitFade ) discard;   // a fading die's shadow: a fine dither the blur smooths
 if ( uExitDissolve > 0.0 && ${EXIT_NOISE} < uExitDissolve ) discard;
 `;
