@@ -52,6 +52,11 @@ export const EXIT_TABLE = {
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
 };
 
+/** The exits as a host's menu lists them, in order: [{ name, label }] (embed/global.js ▸ DiceSim.exits). */
+export function exitMenu() {
+  return Object.entries(EXIT_TABLE).map(([name, e]) => ({ name, label: e.label }));
+}
+
 /** The exits Random picks from: every one that plays — not None, not Random itself. */
 export const RANDOM_EXITS = Object.keys(EXIT_TABLE).filter((k) => !EXIT_TABLE[k].random && EXIT_TABLE[k].seconds > 0);
 

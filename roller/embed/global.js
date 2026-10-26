@@ -6,9 +6,11 @@
 //   DiceSim.createDiceOverlay({ container })   embed/overlay.js
 //   DiceSim.presets()                          the built-in presets and the ones saved on this site
 //   DiceSim.presetStyle(preset)                a preset's die style, for overlay.setLook
+//   DiceSim.exits()                            the exits, [{ name, label }], for overlay.setExit
 //   DiceSim.VERSION
 
 import { createDiceOverlay, OVERLAY_DEFAULTS } from './overlay.js';
+import { exitMenu } from '../render/exit-table.js';
 import { DIE_PRESETS, presetStyle } from '../render/presets.js';
 import { createPresetStore } from '../demo/preset-store.js';
 import { VERSION } from '../src/version.js';
@@ -21,5 +23,5 @@ function presets() {
   }
 }
 
-globalThis.DiceSim = Object.freeze({ VERSION, createDiceOverlay, OVERLAY_DEFAULTS, presets, presetStyle });
+globalThis.DiceSim = Object.freeze({ VERSION, createDiceOverlay, OVERLAY_DEFAULTS, presets, presetStyle, exits: exitMenu });
 if (typeof globalThis.dispatchEvent === 'function') globalThis.dispatchEvent(new Event('dicesim-ready'));
