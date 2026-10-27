@@ -49,9 +49,10 @@ export const SCURRY = {
  * hovers a `beat` before the hole opens under it in `open`; it hovers on over the open hole for `hover`
  * (round 17 floated it 0.25 s, the hole already open); then it is sucked down `depth` radii in `suck` (round
  * 17's six frames at 24 fps), the drop growing as the `power`th power of the time, stretching as it goes, from
- * its top down, to 1 + `stretch` times its height (its girth narrowing to keep its volume). The hole closes in
- * `close` (80% of the opening's speed), starting `early` (two frames at 24 fps) before the die's top is
- * through, never before it is pulled (round 4). As it shuts it breathes out a puff of dark smoke; the cinders
+ * its top down, to 1 + `stretch` times its height (its girth narrowing to keep its volume). The hole snaps shut in
+ * `close` (round 4's 80% of the opening's speed, then round 20's "snap the portal shut 25% faster": as quick as it
+ * opens), starting `early` (two frames at 24 fps) before the die's top is
+ * through, never before it is pulled (round 4). As it shuts it cracks (burn out's crack) and breathes out a puff of dark smoke; the cinders
  * (round 18: 0.7 … 1.225 s, 75% longer than round 16's) and the smoke have `linger` to rise and fade.
  * Round 19 ("Add a gentle vertical bob to the dice after they lift. Hold just a hair longer before the portal opens
  * up"): once it has risen it bobs up and down, `bob` radii either way every `bobPeriod`, easing in over `bobEase`
@@ -59,7 +60,7 @@ export const SCURRY = {
  * beat before the portal is 0.35 s (round 18's 0.25 s and a tenth). (Round 16 sat the die spinning ever faster
  * for a beat and sucked it down in three frames; round 14 pulled it slowly, trembling.)
  */
-export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, spin: 0.35, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8, early: 2 / 24, linger: 1.225 };
+export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, spin: 0.35, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225 };
 
 /** When Going down's hole starts to open: the die risen and its beat sat out. */
 export const PIT_OPENS = PIT.rise + PIT.beat;
@@ -71,7 +72,7 @@ export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
   burn: { label: 'Burn out', seconds: BURN.heat + BURN.hold - BURN.early + BURN.fade + 0.3 + BURN.stainFade },   // 2.6 s
   smoke: { label: 'Smoke puff', seconds: 1.8 },
-  pit: { label: 'Going down', seconds: PIT_PULL + PIT.suck + PIT.close + PIT.linger },   // 3.03 s: until the pit's last cinder and smoke have gone (round 19)
+  pit: { label: 'Going down', seconds: PIT_PULL + PIT.suck + PIT.close + PIT.linger },   // 2.985 s: until the pit's last cinder and smoke have gone (round 20)
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
@@ -166,7 +167,8 @@ export function smokeTimeline(u) {
  * seen and felt through the hole, so it opens and shuts with it; the cinders rise from it. Art direction
  * 2026-10-25: round 1, the hole opens quicker (0.18 s, was 0.3); round 2, no overshoot as it opens, and it
  * closes as soon as the die goes (it stood open, empty, for 0.6 s); round 4, it starts closing two frames (at
- * 24 fps) before the die's top is through, and closes 20% slower.
+ * 24 fps) before the die's top is through, and closes 20% slower; round 20 (owner 2026-10-27), it snaps shut 25%
+ * faster than that.
  */
 export function pitTimeline(u, R, rise = R) {
   const t = u * EXIT_TABLE.pit.seconds;

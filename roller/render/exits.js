@@ -18,8 +18,8 @@
 //   pit    Going down: a hole opens under the die onto an orange glow far down the pit, which lights the
 //          die from beneath and sends cinders up, crackling (sound('crackle')); the die has risen and hovers,
 //          bobbing gently and turning slowly, before it opens and for a while after, then is sucked down through it, stretching as it goes (cut at the floor),
-//          the hole's sharp red ring round it, and the hole closes behind it with a soft puff of dark smoke
-//          (sound('softPuff'))
+//          the hole's sharp red ring round it, and the hole snaps shut behind it with a crack and a soft puff of
+//          dark smoke (sound('crack'), burn out's; sound('softPuff'))
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
 //
 // Effects only draw: nothing here touches the physics, and the timings are the table's. A sound an effect
@@ -240,10 +240,11 @@ function startPit({ view, entry, sound = () => {} }) {
         });
       }
       // As it shuts, it breathes out a soft puff of dark smoke (round 17: "add a puff of dark smoke at the end with a
-      // soft puff sound").
+      // soft puff sound"), and cracks (round 20: "add a crack sound at the end (same one as burn out is great)").
       if (t.closed && !puffed) {
         puffed = true;
         sound('softPuff', centre);
+        sound('crack', centre);   // burn out's crack, the same sound (audio/plan.js ▸ EXIT_SOUNDS.crack)
         for (let k = 0; k < PIT_SMOKE.puffs; k++) {
           const a = rand(0, 2 * Math.PI), r = R * rand(0, 0.5);
           smoke.emit({
