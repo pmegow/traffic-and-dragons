@@ -16,9 +16,10 @@
 //          tapering tarsus, in its own material, the knuckles in its numerals' — it stands up on them
 //          and runs out of frame, each foot heard as it touches the floor (sound('step', …))
 //   pit    Going down: a hole opens under the die onto an orange glow far down the pit, which lights the
-//          die from beneath and sends cinders up; the die sits on it a beat, spinning, then is sucked down
-//          through it in three frames, stretching as it goes (cut at the floor), the hole's sharp red ring
-//          round it, and the hole closes behind it
+//          die from beneath and sends cinders up, crackling (sound('crackle')); the die rises off it, floats a
+//          moment turning slowly, then is sucked down through it, stretching as it goes (cut at the floor),
+//          the hole's sharp red ring round it, and the hole closes behind it with a soft puff of dark smoke
+//          (sound('softPuff'))
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
 //
 // Effects only draw: nothing here touches the physics, and the timings are the table's. A sound an effect
@@ -170,13 +171,20 @@ function startSmoke({ view, entry, sound = () => {} }) {
 // and burn out's cinders rising out of it, straighter up. Round 14's tongues of flame are gone.
 const HELL = {
   cinders: 45,     // a second with the pit wide open (burn out throws 70)
+  // Round 17 (owner 2026-10-27: "shift the glow in the pit forward, right now it's centered, it should make the
+  // pit feel deeper"): seen at a slant, the floor of a deep shaft shows toward the near rim, so the glow sits
+  // toward the camera by `deep` times the slant (horizontal over height), at most `shiftMax` of the hole's radius.
+  deep: 0.55,
+  shiftMax: 0.45,
   flicker: 0.35,   // how far the light dips, at most
   under: 1,        // the die's light from below at full glow
   floor: 0.6,      // the floor's glow round the rim at full glow
 };
+// The pit's last breath: a few puffs of dark smoke, the Smoke puff's look in soot.
+const PIT_SMOKE = { puffs: 10, colour: [[0.1, 0.09, 0.09], [0.04, 0.04, 0.04]] };
 const UP = new THREE.Vector3(0, 1, 0);
 
-function startPit({ view, entry }) {
+function startPit({ view, entry, sound = () => {} }) {
   const uniforms = entry.mesh.material.userData.dice.uniforms;
   const R = entry.die.boundingRadius, mesh = entry.mesh, centre = mesh.position.clone(), turn0 = mesh.quaternion.clone();
   uniforms.uExitClipY.value = 0;   // nothing of it below the floor shows: it is in the hole
@@ -184,7 +192,9 @@ function startPit({ view, entry }) {
   const glow = floorDisc(view, centre, R * 3.5, HELL_GLOW_FRAGMENT, { blending: THREE.AdditiveBlending, order: 1 });
   const hole = floorDisc(view, centre, R * 1.4, HOLE_FRAGMENT, { blending: THREE.NormalBlending, scales: true, order: 2 });
   const cinders = createParticles({ max: 120, look: 'glow' });
-  view.scene.add(cinders.points);
+  const smoke = createParticles({ max: PIT_SMOKE.puffs, look: 'smoke' });
+  view.scene.add(cinders.points, smoke.points);
+  sound('crackle', centre);   // the fire below, heard while the hole is open (audio/plan.js ▸ EXIT_SOUNDS)
   // Its real highest point at rest, not its bounding sphere's: it stretches from there, and pitTimeline's rise
   // is the height that makes rise + R this top.
   mesh.updateMatrixWorld();
@@ -193,7 +203,8 @@ function startPit({ view, entry }) {
   mesh.matrixAutoUpdate = false;
   const spin = new THREE.Quaternion(), hang = new THREE.Matrix4(), scale = new THREE.Matrix4(), back = new THREE.Matrix4();
   const phase = [rand(0, 2 * Math.PI), rand(0, 2 * Math.PI)];
-  let clock = 0, cinderDue = 0;
+  const look = new THREE.Vector3();
+  let clock = 0, cinderDue = 0, puffed = false;
   return {
     step(u, dt) {
       clock += dt;
@@ -202,14 +213,18 @@ function startPit({ view, entry }) {
       const flicker = 1 - HELL.flicker * (0.35 * (1 + Math.sin(clock * 29 + phase[0])) + 0.15 * (1 + Math.sin(clock * 47 + phase[1])) + 0.3 * Math.random()) / 1.3;
       hole.set(t.hole);
       hole.uniforms.uFire.value = t.fire * flicker;
+      // The glow sits toward the camera, as the floor of a deep shaft does (its uv's y runs along the world's −z).
+      look.copy(view.camera.position).sub(centre);
+      const across = Math.hypot(look.x, look.z), slant = Math.min(HELL.shiftMax, HELL.deep * across / Math.max(look.y, 1e-6));
+      hole.uniforms.uShift.value.set(across > 1e-9 ? look.x / across * slant : 0, across > 1e-9 ? -look.z / across * slant : 0);
       glow.set(t.fire * HELL.floor * flicker);
       uniforms.uExitUnder.value = t.fire * HELL.under * flicker;
-      // It spins where it sits, then is pulled down, stretched along the pull from its top, its girth narrowing
-      // to keep its volume.
-      mesh.position.set(centre.x, centre.y - t.drop, centre.z);
+      // It rises, floats turning slowly, then is pulled down, stretched along the pull from its top, its girth
+      // narrowing to keep its volume.
+      mesh.position.set(centre.x, centre.y + t.lift - t.drop, centre.z);
       mesh.quaternion.copy(spin.setFromAxisAngle(UP, t.twist)).multiply(turn0);
       mesh.updateMatrix();
-      const k = 1 + t.stretch, girth = 1 / Math.sqrt(k), from = top - t.drop;
+      const k = 1 + t.stretch, girth = 1 / Math.sqrt(k), from = top + t.lift - t.drop;
       mesh.matrix.premultiply(hang.makeTranslation(centre.x, from, centre.z).multiply(scale.makeScale(girth, k, girth)).multiply(back.makeTranslation(-centre.x, -from, -centre.z)));
       mesh.matrixWorldNeedsUpdate = true;
       // Cinders rise from the glow far down, out of the open hole: round the die while it sits, from all of it
@@ -219,16 +234,34 @@ function startPit({ view, entry }) {
         cinders.emit({
           position: { x: centre.x + r * Math.cos(a), y: 0.001, z: centre.z + r * Math.sin(a) },
           velocity: { x: rand(-0.006, 0.006), y: rand(0.025, 0.055), z: rand(-0.006, 0.006) },
-          life: rand(0.4, PIT.cinders), size: [rand(0.0012, 0.0024), 0.0006], colour: EMBER.colour, alpha: [1, 0],
+          life: rand(0.4, 0.7), size: [rand(0.0012, 0.0024), 0.0006], colour: EMBER.colour, alpha: [1, 0],
           drag: 1.2, lift: 0.03, wander: rand(0.08, 0.15), twinkle: 0.4,   // burn out's embers, straighter up: less sideways, more rise
         });
       }
-      cinders.update(dt, pixelsPerMetre(view));
+      // As it shuts, it breathes out a soft puff of dark smoke (round 17: "add a puff of dark smoke at the end with a
+      // soft puff sound").
+      if (t.closed && !puffed) {
+        puffed = true;
+        sound('softPuff', centre);
+        for (let k = 0; k < PIT_SMOKE.puffs; k++) {
+          const a = rand(0, 2 * Math.PI), r = R * rand(0, 0.5);
+          smoke.emit({
+            position: { x: centre.x + r * Math.cos(a), y: 0.002, z: centre.z + r * Math.sin(a) },
+            velocity: { x: Math.cos(a) * rand(0.01, 0.03), y: rand(0.02, 0.04), z: Math.sin(a) * rand(0.01, 0.03) },
+            life: rand(0.6, PIT.linger), size: [R * rand(0.7, 1.0), R * rand(1.6, 2.2)], colour: PIT_SMOKE.colour, alpha: [0.6, 0],
+            drag: 3, lift: 0.02,
+          });
+        }
+      }
+      const ppm = pixelsPerMetre(view);
+      cinders.update(dt, ppm);
+      smoke.update(dt, ppm);
     },
     dispose() {
       hole.dispose();
       glow.dispose();
       cinders.dispose();
+      smoke.dispose();
       mesh.matrixAutoUpdate = true;
       uniforms.uExitClipY.value = EXIT_CLIP_OFF;
       uniforms.uExitUnder.value = 0;
@@ -555,14 +588,16 @@ void main() {
 }
 `;
 // A hole, solid black, onto an orange glow far down the pit (round 16: "a flickering orange glow coming from
-// down in the pit where the cinders are coming from"; round 14 had fire there): brightest at the centre, where
-// the eye sees furthest down, deepening to red toward the dark walls; the effect flickers it (uFire). Its rim is
+// down in the pit where the cinders are coming from"; round 14 had fire there): brightest where the eye sees
+// furthest down — toward the near rim, by uShift (round 17: "shift the glow in the pit forward"), as the floor of
+// a deep shaft seen at a slant is — deepening to red toward the dark walls; the effect flickers it (uFire). Its rim is
 // a sharp red ring — round 5's soft violet rim back, "red and sharp" (owner 2026-10-26); fwidth keeps its edges
 // one pixel soft at any size. The hole is solid black up to it, nothing outside it (its old soft edge left a
 // dark halo round the ring).
 const HOLE_FRAGMENT = /* glsl */ `
 uniform float uAmount;
 uniform float uFire;
+uniform vec2 uShift;
 varying vec2 vUv;
 const vec3 PIT_ORANGE = vec3( 1.0, 0.45, 0.06 );
 const vec3 PIT_RED = vec3( 0.5, 0.06, 0.0 );
@@ -573,7 +608,7 @@ void main() {
   if ( r > 1.0 ) discard;
   float aa = fwidth( r );
   float core = 1.0 - smoothstep( 0.9 - aa, 0.9 + aa, r );
-  float deep = ( 1.0 - smoothstep( 0.2, 1.0, r ) ) * uFire;
+  float deep = ( 1.0 - smoothstep( 0.2, 1.0, length( q * 2.0 - uShift ) ) ) * uFire;
   vec3 colour = mix( PIT_RED, PIT_ORANGE, deep ) * deep * 1.3;
   float ring = smoothstep( 0.84 - aa, 0.84 + aa, r ) * ( 1.0 - smoothstep( 0.9 - aa, 0.9 + aa, r ) );
   gl_FragColor = vec4( mix( colour, RING_RED, ring ), max( core, ring ) );
@@ -606,7 +641,7 @@ function floorDisc(view, centre, radius, fragment, { blending, scales = false, o
 
 function discMaterial(fragment, blending) {
   return new THREE.ShaderMaterial({
-    uniforms: { uAmount: { value: 0 }, uFire: { value: 0 } }, vertexShader: DISC_VERTEX,
+    uniforms: { uAmount: { value: 0 }, uFire: { value: 0 }, uShift: { value: new THREE.Vector2() } }, vertexShader: DISC_VERTEX,
     fragmentShader: fragment + '', blending, transparent: true, depthWrite: false,
   });
 }

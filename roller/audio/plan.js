@@ -2,13 +2,13 @@
 //
 // Every sound is a recording: a click from the click bank (dev/cut-clicks.js: a plastic die on a
 // wooden table, cut from aunrea's CC0 recordings) or a take from the exit bank (dev/cut-exit-sounds.js:
-// a sizzle, ice cracks, a puff of air, a breeze). Nothing is synthesized: another surface is the same
+// a sizzle, ice cracks, a puff of air, a breeze, a crackling fire). Nothing is synthesized: another surface is the same
 // recording through a different filter, a ramp is the playback's level.
 //
 //   rollEvents(result, …)   one event per impact the physics recorded — the click's loudness from
 //                           the impact speed, its choice from the recorded clicks of that strength
 //   exitSoundEvent(kind, …) a sound an exit makes (EXIT_SOUNDS): a spider's step, a burn's sizzle and
-//                           crack, a smoke puff's puff of air, a fade's breeze
+//                           crack, a smoke puff's puff of air, a fade's breeze, a pit's crackle and soft puff
 //
 // (A cup rattle before the throw, built from these clicks, was tried on 2026-10-24 and removed the
 // same day: too uniform — owner.)
@@ -18,7 +18,7 @@
 // panning) }; an exit's may carry an envelope.
 
 import { createRng, mixSeed } from '../src/rng.js';
-import { BURN, EXIT_TABLE } from '../render/exit-table.js';
+import { BURN, EXIT_TABLE, PIT, PIT_PULL } from '../render/exit-table.js';
 
 /** m/s: an impact this fast plays its click at full strength (≈ the 90th percentile of a roll's hits). */
 export const REF_SPEED = 1.0;
@@ -129,11 +129,22 @@ export const EXIT_SOUNDS = {
   puff: { bank: 'exits', take: 'puff', rate: 1, gain: 0.35, after: 0, spread: 0, vary: { rate: 0.05, gain: 0.1 } },
   // Fade (round 16, owner 2026-10-27: "for fade, add the sound of a gentle a gentle breeze"): a calm wind in the trees
   // (Nox_Sound), swelling in as the die starts to fade, fullest as it is half gone, trailing off after it has
-  // gone; at its fullest about 10 dB under a hard die click (50 ms RMS, the same measure as the sizzle's).
+  // gone; at its fullest about 10 dB under a hard die click (50 ms RMS, the same measure as the sizzle's). Round
+  // 17: "cut the volume of the breeze of 50%" — half the level (was 0.16), about 16 dB under the click.
   breeze: {
-    bank: 'exits', take: 'breeze', rate: 1, gain: 0.16, after: 0, spread: 0, vary: { rate: 0.04, gain: 0.1 },
+    bank: 'exits', take: 'breeze', rate: 1, gain: 0.08, after: 0, spread: 0, vary: { rate: 0.04, gain: 0.1 },
     envelope: [[0, -30], [FADE / 2, 0], [FADE, -4], [FADE + 0.7, -45]],
   },
+  // Going down (round 17, owner 2026-10-27: "add flame crackling sounds"; "add a puff of dark smoke at the end with a
+  // soft puff sound"): a small campfire crackling (Nox_Sound) while the hole is open — in as it opens, fading as it
+  // shuts — and, as it shuts, Smoke puff's puff played slower, lower and softer. Levels against a hard die click
+  // (rendered through the engine): the crackle about 8 dB under it (its pops 7 dB under the click's peak), the
+  // soft puff about 7 dB under, 9 under Smoke puff's.
+  crackle: {
+    bank: 'exits', take: 'crackle', rate: 1, gain: 0.5, after: 0, spread: 0, vary: { rate: 0.06, gain: 0.1 },
+    envelope: [[0, -30], [PIT.open, 0], [PIT_PULL + 0.1, -2], [PIT_PULL + 0.1 + PIT.close, -40]],
+  },
+  softPuff: { bank: 'exits', take: 'puff', rate: 0.8, gain: 0.12, after: 0, spread: 0, vary: { rate: 0.05, gain: 0.1 } },
 };
 
 /** Where an exit sound's recording comes from, by its bank: the region it plays and the timbre it plays through. */
