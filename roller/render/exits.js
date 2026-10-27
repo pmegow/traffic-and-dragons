@@ -16,8 +16,8 @@
 //          tapering tarsus, in its own material, the knuckles in its numerals' — it stands up on them
 //          and runs out of frame, each foot heard as it touches the floor (sound('step', …))
 //   pit    Going down: a hole opens under the die onto an orange glow far down the pit, which lights the
-//          die from beneath and sends cinders up, crackling (sound('crackle')); the die rises off it, floats a
-//          moment turning slowly, then is sucked down through it, stretching as it goes (cut at the floor),
+//          die from beneath and sends cinders up, crackling (sound('crackle')); the die has risen and hovers,
+//          turning slowly, before it opens and for a while after, then is sucked down through it, stretching as it goes (cut at the floor),
 //          the hole's sharp red ring round it, and the hole closes behind it with a soft puff of dark smoke
 //          (sound('softPuff'))
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
@@ -194,7 +194,6 @@ function startPit({ view, entry, sound = () => {} }) {
   const cinders = createParticles({ max: 120, look: 'glow' });
   const smoke = createParticles({ max: PIT_SMOKE.puffs, look: 'smoke' });
   view.scene.add(cinders.points, smoke.points);
-  sound('crackle', centre);   // the fire below, heard while the hole is open (audio/plan.js ▸ EXIT_SOUNDS)
   // Its real highest point at rest, not its bounding sphere's: it stretches from there, and pitTimeline's rise
   // is the height that makes rise + R this top.
   mesh.updateMatrixWorld();
@@ -204,7 +203,7 @@ function startPit({ view, entry, sound = () => {} }) {
   const spin = new THREE.Quaternion(), hang = new THREE.Matrix4(), scale = new THREE.Matrix4(), back = new THREE.Matrix4();
   const phase = [rand(0, 2 * Math.PI), rand(0, 2 * Math.PI)];
   const look = new THREE.Vector3();
-  let clock = 0, cinderDue = 0, puffed = false;
+  let clock = 0, cinderDue = 0, puffed = false, crackling = false;
   return {
     step(u, dt) {
       clock += dt;
@@ -212,6 +211,8 @@ function startPit({ view, entry, sound = () => {} }) {
       // Firelight: two quick waves and a little noise, never below 1 - HELL.flicker.
       const flicker = 1 - HELL.flicker * (0.35 * (1 + Math.sin(clock * 29 + phase[0])) + 0.15 * (1 + Math.sin(clock * 47 + phase[1])) + 0.3 * Math.random()) / 1.3;
       hole.set(t.hole);
+      // The fire below is heard from the moment the hole starts to open (audio/plan.js ▸ EXIT_SOUNDS times it from there).
+      if (t.hole > 0 && !crackling) { crackling = true; sound('crackle', centre); }
       hole.uniforms.uFire.value = t.fire * flicker;
       // The glow sits toward the camera, as the floor of a deep shaft does (its uv's y runs along the world's −z).
       look.copy(view.camera.position).sub(centre);
@@ -219,7 +220,7 @@ function startPit({ view, entry, sound = () => {} }) {
       hole.uniforms.uShift.value.set(across > 1e-9 ? look.x / across * slant : 0, across > 1e-9 ? -look.z / across * slant : 0);
       glow.set(t.fire * HELL.floor * flicker);
       uniforms.uExitUnder.value = t.fire * HELL.under * flicker;
-      // It rises, floats turning slowly, then is pulled down, stretched along the pull from its top, its girth
+      // It rises, hovers turning slowly, then is pulled down, stretched along the pull from its top, its girth
       // narrowing to keep its volume.
       mesh.position.set(centre.x, centre.y + t.lift - t.drop, centre.z);
       mesh.quaternion.copy(spin.setFromAxisAngle(UP, t.twist)).multiply(turn0);
@@ -234,8 +235,8 @@ function startPit({ view, entry, sound = () => {} }) {
         cinders.emit({
           position: { x: centre.x + r * Math.cos(a), y: 0.001, z: centre.z + r * Math.sin(a) },
           velocity: { x: rand(-0.006, 0.006), y: rand(0.025, 0.055), z: rand(-0.006, 0.006) },
-          life: rand(0.4, 0.7), size: [rand(0.0012, 0.0024), 0.0006], colour: EMBER.colour, alpha: [1, 0],
-          drag: 1.2, lift: 0.03, wander: rand(0.08, 0.15), twinkle: 0.4,   // burn out's embers, straighter up: less sideways, more rise
+          life: rand(0.7, 1.225), size: [rand(0.0012, 0.0024), 0.0006], colour: EMBER.colour, alpha: [1, 0],
+          drag: 1.2, lift: 0.03, wander: rand(0.08, 0.15), twinkle: 0.4,   // burn out's embers, straighter up: less sideways, more rise; round 18: living 75% longer (was 0.4 … 0.7 s)
         });
       }
       // As it shuts, it breathes out a soft puff of dark smoke (round 17: "add a puff of dark smoke at the end with a
@@ -248,7 +249,7 @@ function startPit({ view, entry, sound = () => {} }) {
           smoke.emit({
             position: { x: centre.x + r * Math.cos(a), y: 0.002, z: centre.z + r * Math.sin(a) },
             velocity: { x: Math.cos(a) * rand(0.01, 0.03), y: rand(0.02, 0.04), z: Math.sin(a) * rand(0.01, 0.03) },
-            life: rand(0.6, PIT.linger), size: [R * rand(0.7, 1.0), R * rand(1.6, 2.2)], colour: PIT_SMOKE.colour, alpha: [0.6, 0],
+            life: rand(0.6, 0.9), size: [R * rand(0.7, 1.0), R * rand(1.6, 2.2)], colour: PIT_SMOKE.colour, alpha: [0.6, 0],
             drag: 3, lift: 0.02,
           });
         }
