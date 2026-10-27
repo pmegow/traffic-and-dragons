@@ -17,7 +17,7 @@
 //          and runs out of frame, each foot heard as it touches the floor (sound('step', …))
 //   pit    Going down: a hole opens under the die onto an orange glow far down the pit, which lights the
 //          die from beneath and sends cinders up, crackling (sound('crackle')); the die has risen and hovers,
-//          turning slowly, before it opens and for a while after, then is sucked down through it, stretching as it goes (cut at the floor),
+//          bobbing gently and turning slowly, before it opens and for a while after, then is sucked down through it, stretching as it goes (cut at the floor),
 //          the hole's sharp red ring round it, and the hole closes behind it with a soft puff of dark smoke
 //          (sound('softPuff'))
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
@@ -222,10 +222,10 @@ function startPit({ view, entry, sound = () => {} }) {
       uniforms.uExitUnder.value = t.fire * HELL.under * flicker;
       // It rises, hovers turning slowly, then is pulled down, stretched along the pull from its top, its girth
       // narrowing to keep its volume.
-      mesh.position.set(centre.x, centre.y + t.lift - t.drop, centre.z);
+      mesh.position.set(centre.x, centre.y + t.lift + t.bob - t.drop, centre.z);
       mesh.quaternion.copy(spin.setFromAxisAngle(UP, t.twist)).multiply(turn0);
       mesh.updateMatrix();
-      const k = 1 + t.stretch, girth = 1 / Math.sqrt(k), from = top + t.lift - t.drop;
+      const k = 1 + t.stretch, girth = 1 / Math.sqrt(k), from = top + t.lift + t.bob - t.drop;
       mesh.matrix.premultiply(hang.makeTranslation(centre.x, from, centre.z).multiply(scale.makeScale(girth, k, girth)).multiply(back.makeTranslation(-centre.x, -from, -centre.z)));
       mesh.matrixWorldNeedsUpdate = true;
       // Cinders rise from the glow far down, out of the open hole: round the die while it sits, from all of it
