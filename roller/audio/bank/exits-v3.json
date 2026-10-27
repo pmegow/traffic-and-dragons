@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "file": "exits-v2.mp3",
-  "sha256": "e994859e085deca110ff2a81991e0679dcde4bfd88a6c694665be33605eccb21",
-  "bytes": 72480,
+  "file": "exits-v3.mp3",
+  "sha256": "508ca06cd1461c34c3c573e2e566cfae4192c68e2581611e44b53d0eeade60e5",
+  "bytes": 162720,
   "sampleRate": 48000,
-  "duration": 3.57,
+  "duration": 8.07,
   "license": "CC0 1.0",
-  "licenseVerified": "2026-10-26 — \"Creative Commons 0\" on each Freesound sound page (382313, 342546, 714257)",
+  "licenseVerified": "2026-10-26 — \"Creative Commons 0\" on each Freesound sound page (382313, 342546, 714257); 2026-10-27 — the Nox_Sound Essentials Series README: \"All these sounds are under CC0 license.\"",
   "cut": "2026-10-27",
   "method": "dev/cut-exit-sounds.js (its header): fixed regions chosen by measurement, attacks checked, −1 dBFS, raised-cosine fades, gapless libmp3lame 160 kbps",
   "timelineCheck": "decoded back and cross-correlated: the largest shift was 0 samples",
@@ -40,6 +40,15 @@
       "what": "a puff of air, made for a cloud of smoke",
       "file": "Exits/fs714257__qubodup__puff-of-smoke-hq.mp3",
       "sha256": "e73c30c76507aa349f6b63e158918043bcc24fbe0ee76840958a6ddb7ea166a3"
+    },
+    {
+      "key": "nox",
+      "url": "https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound",
+      "author": "Nox_Sound",
+      "title": "Ambiance Wind Forest Loop Stereo (Essentials Series)",
+      "what": "a calm wind in a forest",
+      "file": "Essentials_Series_NOX_SOUND/Nature_Essentials_NOX_SOUND/Ambiance_Wind_Forest_Loop_Stereo.wav",
+      "sha256": "e2ec7e5d2e74db52bc21a5b1830c2b983ec8270e976d6b0ef393912f6d383133"
     }
   ],
   "takes": {
@@ -82,6 +91,29 @@
         "source": "qubodup",
         "from": 0,
         "peakAt": 0.0607
+      }
+    ],
+    "breeze": [
+      {
+        "start": 3.52,
+        "length": 1.4,
+        "source": "nox",
+        "from": 6,
+        "peakAt": 0.0683
+      },
+      {
+        "start": 5.02,
+        "length": 1.4,
+        "source": "nox",
+        "from": 16.4,
+        "peakAt": 0.8485
+      },
+      {
+        "start": 6.52,
+        "length": 1.4,
+        "source": "nox",
+        "from": 1.3,
+        "peakAt": 0.9145
       }
     ]
   }

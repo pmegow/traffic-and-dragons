@@ -42,11 +42,29 @@ export const SCURRY = {
   lean: 0.26,
 };
 
+/**
+ * Going down, in seconds. Round 16 (owner 2026-10-27: "Let the die sit spinning above the hole for a beat
+ * before it is violently sucked down. Stretch the die slightly as it is pulled down. Try to suck the die down
+ * in 3 frames or less"): the hole opens under the die in `open` and the die sits over it, spinning about the
+ * vertical ever faster from rest (`spin` turns by the pull), for `beat` more; then it is sucked down `depth`
+ * radii in `suck` — three frames at 24 fps, the frames rounds 4 and 10 counted in — the drop growing as the
+ * `power`th power of the time, so its top is through the floor in under two of them. As it goes it stretches
+ * along the pull, from its top down, to 1 + `stretch` times its height (its girth narrowing to keep its
+ * volume), reaching into the hole. The hole closes in `close` (80% of the opening's speed, round 4) from the
+ * moment the die is pulled (round 4 started the close two frames before its top was through: the suck is
+ * quicker than that now). Cinders rise from the pit while it is open, the last living `cinders` after it shuts.
+ * (Round 14's pull took hold slowly over 0.7 s, trembling, twisting and tipping; round 16 replaced it.)
+ */
+export const PIT = { open: 0.18, beat: 0.45, spin: 0.7, suck: 3 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8, cinders: 0.7 };
+
+/** When Going down's pull starts: the hole open and the beat sat out. */
+export const PIT_PULL = PIT.open + PIT.beat;
+
 export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
   burn: { label: 'Burn out', seconds: BURN.heat + BURN.hold - BURN.early + BURN.fade + 0.3 + BURN.stainFade },   // 2.6 s
   smoke: { label: 'Smoke puff', seconds: 1.8 },
-  pit: { label: 'Going down', seconds: 0.7 },    // ends as the hole shuts behind the die (art direction 2026-10-25)
+  pit: { label: 'Going down', seconds: PIT.open + PIT.beat + PIT.close + PIT.cinders },   // 1.555 s: until the last cinder from the pit has gone (round 16)
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
@@ -131,42 +149,28 @@ export function smokeTimeline(u) {
 }
 
 /**
- * Going down, in seconds: the hole opens in `open` and closes in `close` (80% of the opening's speed),
- * starting `early` before the die's top is through (two frames at 24 fps — round 4). Round 14 (owner
- * 2026-10-26: "this should be the die getting sucked into the world below. Right now it reads as lazy
- * falling"): the die is drawn down `depth` radii over `pull`, slowly at first and then all at once (the
- * drop grows as the `power`th power of the time, where a fall grows as its square), trembling up to
- * `tremble` radii while the pull takes hold, and twisting `twist` radians about the vertical as it goes,
- * like water down a drain, tipping `tilt`. It moves from the first frame (round 1).
- */
-export const PIT = { open: 0.18, close: 0.18 / 0.8, early: 2 / 24, pull: 0.7, depth: 6, power: 4, tremble: 0.04, twist: 2.5 * Math.PI, tilt: 0.35 };
-
-/**
- * Going down: a hole opens under the die (hole: its radius as a share of the full), the die is sucked
- * down through it from the first moment (drop: metres below where it lay, for a die of radius R whose
- * centre lay `rise` above the floor), trembling as the pull takes hold (tremble, a share of PIT.tremble),
- * twisting (twist) and tipping (tilt, radians) as it goes, and the hole closes behind it the moment its
- * highest point passes the floor (clear, seconds), the opening run backwards. fire is the hellfire below
- * (round 14: "underlighting that looks like hell flames coming from below"), seen and felt through the
- * hole, so it opens and shuts with it. Art direction
- * 2026-10-25: round 1, the hole opens quicker (0.18 s, was 0.3), the die no longer waits for it and
- * falls a quarter faster; round 2, no overshoot as it opens (it eased out past full and back), and it
- * closes as soon as the die is through, as fast as it opened (it stood open, empty, for 0.6 s); round 4,
- * it starts closing two frames (at 24 fps) before the die's top is through, and closes 20% slower.
+ * Going down: a hole opens under the die (hole: its radius as a share of the full); the die sits over it
+ * spinning (twist: radians about the vertical, one way, ever faster) until PIT_PULL, then is sucked down through
+ * it (drop: metres below where it lay, for a die of radius R whose centre lay `rise` above the floor),
+ * stretched along the pull as it goes (stretch: how much taller, a share of its height); its highest point is
+ * through the floor at `clear` (seconds). The hole closes behind it from the pull, the opening run backwards.
+ * fire is the glow far down the pit, seen and felt through the hole, so it opens and shuts with it; the cinders
+ * rise from it. Art direction 2026-10-25: round 1, the hole opens quicker (0.18 s, was 0.3); round 2, no
+ * overshoot as it opens, and it closes as soon as the die goes (it stood open, empty, for 0.6 s); round 4, it
+ * closes 20% slower. Round 16: the die waits for the hole again, sitting a beat on it before it goes.
  */
 export function pitTimeline(u, R, rise = R) {
   const t = u * EXIT_TABLE.pit.seconds;
-  const clear = PIT.pull * Math.pow((rise + R) / (PIT.depth * R), 1 / PIT.power);   // drop = rise + R: its top is through the floor
+  const s = Math.max(0, (t - PIT_PULL) / PIT.suck);   // how far through the suck (past 1 it is far below)
+  const clear = PIT_PULL + PIT.suck * Math.pow((rise + R) / (PIT.depth * R), 1 / PIT.power);   // drop = rise + R: its top is through the floor
   const opening = easeOutCubic(t / PIT.open);
-  const shut = clear - PIT.early;
-  const closing = t <= shut ? 1 : easeOutCubic(1 - (t - shut) / PIT.close);
-  const x = t / PIT.pull, hole = Math.min(opening, closing);
+  const closing = t <= PIT_PULL ? 1 : easeOutCubic(1 - (t - PIT_PULL) / PIT.close);
+  const x = t / PIT_PULL, hole = Math.min(opening, closing);
   return {
     hole,
-    drop: PIT.depth * R * Math.pow(x, PIT.power),
-    tremble: smooth(t / PIT.open) * (1 - smooth((x - 0.45) / 0.25)),   // as the pull takes hold, until it gives way
-    twist: PIT.twist * x * x * x,
-    tilt: PIT.tilt * smooth(x),
+    drop: PIT.depth * R * Math.pow(s, PIT.power),
+    twist: 2 * Math.PI * PIT.spin * x * x,   // its speed rising evenly from rest
+    stretch: PIT.stretch * smooth(s / 0.4),
     fire: hole,
     clear,
   };

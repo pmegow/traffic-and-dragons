@@ -11,13 +11,14 @@
 //   smoke  Smoke puff: the die swells a little and blinks out inside a puff of smoke, with faerie
 //          fire — bright, many-coloured sparks — swirling up out of it, with a puff of air (sound('puff'))
 //   none   None: the die goes at once
-//   fade   Fade: the die fades out, its shadow with it
+//   fade   Fade: the die fades out, its shadow with it, on a gentle breeze (sound('breeze'))
 //   scurry Scurry off: eight spider legs grow out of it — coxa, femur, knee, tibia, metatarsus and a
 //          tapering tarsus, in its own material, the knuckles in its numerals' — it stands up on them
 //          and runs out of frame, each foot heard as it touches the floor (sound('step', …))
-//   pit    Going down: a hole opens under the die onto hellfire far below, whose flames lick up out of
-//          it and light the die from beneath; the die trembles, then is sucked down through it, twisting
-//          (cut at the floor), the hole's sharp red ring round it, and the hole closes the moment it is through
+//   pit    Going down: a hole opens under the die onto an orange glow far down the pit, which lights the
+//          die from beneath and sends cinders up; the die sits on it a beat, spinning, then is sucked down
+//          through it in three frames, stretching as it goes (cut at the floor), the hole's sharp red ring
+//          round it, and the hole closes behind it
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
 //
 // Effects only draw: nothing here touches the physics, and the timings are the table's. A sound an effect
@@ -162,14 +163,16 @@ function startSmoke({ view, entry, sound = () => {} }) {
 }
 
 // ---------------------------------------------------------------- going down
-// Round 14 (owner 2026-10-26: "underlighting that looks like hell flames coming from below"): fire far down
-// the hole (HOLE_FRAGMENT), flames licking up out of it, and their light on the die from beneath (the die
-// shader's uExitUnder) and on the floor round the rim, all flickering together.
+// Round 16 (owner 2026-10-27: "Lose the flames. Add gentle cinders coming up from the hole. They can match the
+// ones from burn out, but have a slightly more upward motion. Add a flickering orange glow coming from down in
+// the pit where the cinders are coming from"): an orange glow far down the hole (HOLE_FRAGMENT), its light on
+// the die from beneath (the die shader's uExitUnder) and on the floor round the rim, all flickering together,
+// and burn out's cinders rising out of it, straighter up. Round 14's tongues of flame are gone.
 const HELL = {
-  flames: { rate: 150, colour: [[2.6, 0.8, 0.12], [1.0, 0.05, 0.0]] },
-  flicker: 0.3,   // how far the light dips, at most
-  under: 1,       // the die's light from below at full fire
-  floor: 1,       // the floor's glow round the rim at full fire
+  cinders: 45,     // a second with the pit wide open (burn out throws 70)
+  flicker: 0.35,   // how far the light dips, at most
+  under: 1,        // the die's light from below at full glow
+  floor: 0.6,      // the floor's glow round the rim at full glow
 };
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -180,47 +183,53 @@ function startPit({ view, entry }) {
   mesh.customDepthMaterial = exitDepthMaterial(uniforms);
   const glow = floorDisc(view, centre, R * 3.5, HELL_GLOW_FRAGMENT, { blending: THREE.AdditiveBlending, order: 1 });
   const hole = floorDisc(view, centre, R * 1.4, HOLE_FRAGMENT, { blending: THREE.NormalBlending, scales: true, order: 2 });
-  const flames = createParticles({ max: 160, look: 'flame' });
-  view.scene.add(flames.points);
-  // Its real highest point at rest, not its bounding sphere's: the hole closes the moment that point is
-  // through the floor (pitTimeline's rise is the height that makes rise + R this top).
+  const cinders = createParticles({ max: 120, look: 'glow' });
+  view.scene.add(cinders.points);
+  // Its real highest point at rest, not its bounding sphere's: it stretches from there, and pitTimeline's rise
+  // is the height that makes rise + R this top.
   mesh.updateMatrixWorld();
   const top = new THREE.Box3().setFromObject(mesh, true).max.y;
-  const a = Math.random() * 2 * Math.PI, axis = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
-  const tip = new THREE.Quaternion(), spin = new THREE.Quaternion();
+  // The stretch is along the world's vertical, not the die's own axes, so the effect writes the die's matrix.
+  mesh.matrixAutoUpdate = false;
+  const spin = new THREE.Quaternion(), hang = new THREE.Matrix4(), scale = new THREE.Matrix4(), back = new THREE.Matrix4();
   const phase = [rand(0, 2 * Math.PI), rand(0, 2 * Math.PI)];
-  let clock = 0, flameDue = 0;
+  let clock = 0, cinderDue = 0;
   return {
     step(u, dt) {
       clock += dt;
-      const t = pitTimeline(u, R, top - R);   // closes once its highest point is through the floor
-      // Fire light: two quick waves and a little noise, never below 1 - HELL.flicker.
+      const t = pitTimeline(u, R, top - R);
+      // Firelight: two quick waves and a little noise, never below 1 - HELL.flicker.
       const flicker = 1 - HELL.flicker * (0.35 * (1 + Math.sin(clock * 29 + phase[0])) + 0.15 * (1 + Math.sin(clock * 47 + phase[1])) + 0.3 * Math.random()) / 1.3;
       hole.set(t.hole);
-      hole.uniforms.uTime.value = clock;
       hole.uniforms.uFire.value = t.fire * flicker;
       glow.set(t.fire * HELL.floor * flicker);
       uniforms.uExitUnder.value = t.fire * HELL.under * flicker;
-      const shake = t.tremble * PIT.tremble * R;
-      mesh.position.set(centre.x + shake * rand(-1, 1), centre.y - t.drop, centre.z + shake * rand(-1, 1));
-      mesh.quaternion.copy(tip.setFromAxisAngle(axis, t.tilt).premultiply(spin.setFromAxisAngle(UP, t.twist)).multiply(turn0));
-      // Flames lick up out of the open hole round the die (the die hides the middle): short-lived tongues
-      // rising from between its edge and the ring.
-      for (flameDue += t.fire * t.fire * HELL.flames.rate * dt; flameDue >= 1; flameDue--) {   // dying fast as it shuts
-        const a = rand(0, 2 * Math.PI), r = R * t.hole * rand(0.7, 1.12);
-        flames.emit({
+      // It spins where it sits, then is pulled down, stretched along the pull from its top, its girth narrowing
+      // to keep its volume.
+      mesh.position.set(centre.x, centre.y - t.drop, centre.z);
+      mesh.quaternion.copy(spin.setFromAxisAngle(UP, t.twist)).multiply(turn0);
+      mesh.updateMatrix();
+      const k = 1 + t.stretch, girth = 1 / Math.sqrt(k), from = top - t.drop;
+      mesh.matrix.premultiply(hang.makeTranslation(centre.x, from, centre.z).multiply(scale.makeScale(girth, k, girth)).multiply(back.makeTranslation(-centre.x, -from, -centre.z)));
+      mesh.matrixWorldNeedsUpdate = true;
+      // Cinders rise from the glow far down, out of the open hole: round the die while it sits, from all of it
+      // once it has gone; fewer and fewer as the hole shuts.
+      for (cinderDue += t.fire * t.fire * HELL.cinders * dt; cinderDue >= 1; cinderDue--) {
+        const a = rand(0, 2 * Math.PI), r = R * 1.2 * t.hole * Math.sqrt(Math.random());
+        cinders.emit({
           position: { x: centre.x + r * Math.cos(a), y: 0.001, z: centre.z + r * Math.sin(a) },
-          velocity: { x: Math.cos(a) * 0.006 + rand(-0.004, 0.004), y: rand(0.04, 0.08), z: Math.sin(a) * 0.006 + rand(-0.004, 0.004) },
-          life: rand(0.15, 0.3), size: [R * rand(0.8, 1.6), R * 0.4], colour: HELL.flames.colour, alpha: [0.7, 0],
-          drag: 1.5, lift: 0.05, wander: rand(0.05, 0.12), twinkle: 0.5,
+          velocity: { x: rand(-0.006, 0.006), y: rand(0.025, 0.055), z: rand(-0.006, 0.006) },
+          life: rand(0.4, PIT.cinders), size: [rand(0.0012, 0.0024), 0.0006], colour: EMBER.colour, alpha: [1, 0],
+          drag: 1.2, lift: 0.03, wander: rand(0.08, 0.15), twinkle: 0.4,   // burn out's embers, straighter up: less sideways, more rise
         });
       }
-      flames.update(dt, pixelsPerMetre(view));
+      cinders.update(dt, pixelsPerMetre(view));
     },
     dispose() {
       hole.dispose();
       glow.dispose();
-      flames.dispose();
+      cinders.dispose();
+      mesh.matrixAutoUpdate = true;
       uniforms.uExitClipY.value = EXIT_CLIP_OFF;
       uniforms.uExitUnder.value = 0;
       mesh.customDepthMaterial.dispose();
@@ -234,8 +243,9 @@ function startNone() {
 }
 
 // ---------------------------------------------------------------- fade
-function startFade({ entry }) {
+function startFade({ entry, sound = () => {} }) {
   const m = entry.mesh.material, uniforms = m.userData.dice.uniforms;
+  sound('breeze', entry.mesh.position.clone());   // round 16: it goes on a gentle breeze (audio/plan.js ▸ EXIT_SOUNDS)
   m.transparent = true;    // one compile per finish, on its first fade; the die is freed after
   m.depthWrite = false;
   m.needsUpdate = true;
@@ -534,34 +544,28 @@ void main() {
   gl_FragColor = vec4( vec3( 0.035, 0.028, 0.022 ), a );
 }
 `;
-// Going down's light on the floor round the rim, from the flames below: red, falling off outward.
+// Going down's light on the floor round the rim, from the glow down the pit: orange, falling off outward.
 const HELL_GLOW_FRAGMENT = /* glsl */ `
 uniform float uAmount;
 varying vec2 vUv;
 void main() {
   float r = length( vUv - 0.5 ) * 2.0;
   float a = pow( max( 0.0, 1.0 - r ), 1.6 ) * uAmount;
-  gl_FragColor = vec4( vec3( 1.0, 0.16, 0.03 ) * a, a );
+  gl_FragColor = vec4( vec3( 1.0, 0.36, 0.05 ) * a, a );
 }
 `;
-// A hole, its edge soft, onto fire far below: brightest at the centre, where the eye sees furthest down,
-// the walls dark (round 14). Its rim is a sharp red ring — round 5's soft violet rim (removed with "we can
-// bring it back if we miss it") back, "red and sharp" (owner 2026-10-26); fwidth keeps its edges one
-// pixel soft at any size. The hole is solid black up to it, nothing outside it (its old soft edge left a dark
-// halo round the ring).
+// A hole, solid black, onto an orange glow far down the pit (round 16: "a flickering orange glow coming from
+// down in the pit where the cinders are coming from"; round 14 had fire there): brightest at the centre, where
+// the eye sees furthest down, deepening to red toward the dark walls; the effect flickers it (uFire). Its rim is
+// a sharp red ring — round 5's soft violet rim back, "red and sharp" (owner 2026-10-26); fwidth keeps its edges
+// one pixel soft at any size. The hole is solid black up to it, nothing outside it (its old soft edge left a
+// dark halo round the ring).
 const HOLE_FRAGMENT = /* glsl */ `
 uniform float uAmount;
 uniform float uFire;
-uniform float uTime;
 varying vec2 vUv;
-float hHash( vec2 p ) { return fract( sin( dot( p, vec2( 127.1, 311.7 ) ) ) * 43758.5453 ); }
-float hNoise( vec2 p ) {
-  vec2 i = floor( p ), f = fract( p );
-  f = f * f * ( 3.0 - 2.0 * f );
-  return mix( mix( hHash( i ), hHash( i + vec2( 1.0, 0.0 ) ), f.x ), mix( hHash( i + vec2( 0.0, 1.0 ) ), hHash( i + vec2( 1.0, 1.0 ) ), f.x ), f.y );
-}
-const vec3 HELL_DEEP = vec3( 0.45, 0.02, 0.0 );
-const vec3 HELL_HOT = vec3( 1.0, 0.42, 0.04 );
+const vec3 PIT_ORANGE = vec3( 1.0, 0.45, 0.06 );
+const vec3 PIT_RED = vec3( 0.5, 0.06, 0.0 );
 const vec3 RING_RED = vec3( 1.0, 0.04, 0.02 );
 void main() {
   vec2 q = vUv - 0.5;
@@ -569,9 +573,8 @@ void main() {
   if ( r > 1.0 ) discard;
   float aa = fwidth( r );
   float core = 1.0 - smoothstep( 0.9 - aa, 0.9 + aa, r );
-  float n = hNoise( q * 6.0 + vec2( 0.0, -uTime * 2.2 ) ) * 0.6 + hNoise( q * 13.0 + vec2( uTime * 1.3, -uTime * 3.1 ) ) * 0.4;
-  float deep = ( 1.0 - smoothstep( 0.05, 0.8, r ) ) * uFire;
-  vec3 colour = mix( HELL_DEEP, HELL_HOT, n * n ) * deep * ( 0.55 + 0.9 * n );
+  float deep = ( 1.0 - smoothstep( 0.2, 1.0, r ) ) * uFire;
+  vec3 colour = mix( PIT_RED, PIT_ORANGE, deep ) * deep * 1.3;
   float ring = smoothstep( 0.84 - aa, 0.84 + aa, r ) * ( 1.0 - smoothstep( 0.9 - aa, 0.9 + aa, r ) );
   gl_FragColor = vec4( mix( colour, RING_RED, ring ), max( core, ring ) );
 }
@@ -603,7 +606,7 @@ function floorDisc(view, centre, radius, fragment, { blending, scales = false, o
 
 function discMaterial(fragment, blending) {
   return new THREE.ShaderMaterial({
-    uniforms: { uAmount: { value: 0 }, uFire: { value: 0 }, uTime: { value: 0 } }, vertexShader: DISC_VERTEX,
+    uniforms: { uAmount: { value: 0 }, uFire: { value: 0 } }, vertexShader: DISC_VERTEX,
     fragmentShader: fragment + '', blending, transparent: true, depthWrite: false,
   });
 }
@@ -624,7 +627,7 @@ export function exitWarmUp(view) {
   const f = FINISHES[style.finish], far = f.transmission > 0 && f.doubleSided ? dieMaterial(style.finish, style, glyphOf(0), 0, { radius: 0.012, onTray: view.trayDrawn }) : null;
   if (far) { far.transparent = true; far.side = THREE.BackSide; }   // its far faces, into the transmission buffer
   const box = paintWhite(new THREE.BoxGeometry(0.01, 0.01, 0.01)), flat = new THREE.PlaneGeometry(0.01, 0.01);
-  const looks = ['glow', 'soft', 'smoke', 'flame'].map((look) => createParticles({ max: 1, look }));
+  const looks = ['glow', 'soft', 'smoke'].map((look) => createParticles({ max: 1, look }));
   const discs = [GLOW_FRAGMENT, STAIN_FRAGMENT, HOLE_FRAGMENT, HELL_GLOW_FRAGMENT].map((f) => discMaterial(f, THREE.NormalBlending));
   return {
     screen: [new THREE.Mesh(box, see), ...looks.map((p) => p.points), ...discs.map((m) => new THREE.Mesh(flat, m))],

@@ -24,7 +24,7 @@ const BANKS = {
 };
 
 export class DiceAudio {
-  constructor({ bank = new URL('./bank/clicks-v1.json', import.meta.url), exitBank = new URL('./bank/exits-v2.json', import.meta.url), volume = 0.9, context = null } = {}) {
+  constructor({ bank = new URL('./bank/clicks-v1.json', import.meta.url), exitBank = new URL('./bank/exits-v3.json', import.meta.url), volume = 0.9, context = null } = {}) {
     this.bankUrls = { clicks: bank, exits: exitBank };
     this.volume = volume;
     this.injected = context;

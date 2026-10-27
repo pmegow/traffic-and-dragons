@@ -31,9 +31,9 @@ float exitShade = 1.0;
 const vec3 EXIT_RED = vec3( 0.55, 0.02, 0.0 );
 const vec3 EXIT_YELLOW = vec3( 1.0, 0.7, 0.08 );
 const float EXIT_GLOW = 1.1;
-// Going down's hellfire (round 14): its light on the die from below, strongest at the rim and gone
-// EXIT_UNDER_REACH (m) above it, more on the faces turned down to it.
-const vec3 EXIT_HELL = vec3( 2.4, 0.55, 0.06 );
+// Going down's glow from the pit (rounds 14, 16): its light on the die from below, orange, strongest at the rim
+// and gone EXIT_UNDER_REACH (m) above it, more on the faces turned down to it.
+const vec3 EXIT_HELL = vec3( 2.0, 0.8, 0.1 );
 const float EXIT_UNDER_REACH = 0.025;
 `;
 
@@ -59,7 +59,7 @@ if ( uExitHeat > 0.0 || uExitDissolve > 0.0 ) {
 `;
 
 export const EXIT_EMISSIVE = 'totalEmissiveRadiance += exitGlow;';
-// The hellfire's light is added after the shade: the rim side goes dark in its own colour and glows red.
+// The pit's light is added after the shade: the rim side goes dark in its own colour and glows orange.
 export const EXIT_OUTGOING = 'outgoingLight *= exitShade;\n' +
   'if ( uExitUnder > 0.0 ) outgoingLight += exitUnderGlow * ( 0.35 + 0.65 * max( 0.0, -inverseTransformDirection( normal, viewMatrix ).y ) );';
 
