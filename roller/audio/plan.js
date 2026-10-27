@@ -1,20 +1,24 @@
 // audio/plan.js — WHAT the dice sound plays and WHEN: the pure half (no Web Audio; node tests it).
 //
-// Every sound is a recorded click from the bank (dev/cut-clicks.js: a plastic die on a wooden
-// table, cut from aunrea's CC0 recordings). Nothing is synthesized: another surface is the same
-// recording through a different filter.
+// Every sound is a recording: a click from the click bank (dev/cut-clicks.js: a plastic die on a
+// wooden table, cut from aunrea's CC0 recordings) or a take from the exit bank (dev/cut-exit-sounds.js:
+// a sizzle, ice cracks, a puff of air, wind chimes). Nothing is synthesized: another surface is the same
+// recording through a different filter, a ramp is the playback's level.
 //
 //   rollEvents(result, …)   one event per impact the physics recorded — the click's loudness from
 //                           the impact speed, its choice from the recorded clicks of that strength
-//   exitSoundEvent(kind, …) a sound an exit makes (EXIT_SOUNDS): a spider's step
+//   exitSoundEvent(kind, …) a sound an exit makes (EXIT_SOUNDS): a spider's step, a burn's sizzle and
+//                           crack, a smoke puff's puff and chimes
 //
 // (A cup rattle before the throw, built from these clicks, was tried on 2026-10-24 and removed the
 // same day: too uniform — owner.)
 //
-// An event: { time (s from the start), die, type, click {start, length, strength}, gain, rate,
-// timbre (a TIMBRES key), t (the roll's own time, for panning) }.
+// An event: { time (s from the start), die, type, source (the bank: 'clicks' or 'exits'), region (the
+// sprite's {start, length, …} it plays), gain, rate, timbre (a TIMBRES key), t (the roll's own time, for
+// panning) }; an exit's may carry an envelope.
 
 import { createRng, mixSeed } from '../src/rng.js';
+import { BURN } from '../render/exit-table.js';
 
 /** m/s: an impact this fast plays its click at full strength (≈ the 90th percentile of a roll's hits). */
 export const REF_SPEED = 1.0;
@@ -29,6 +33,8 @@ export const TIMBRES = {
   felt: { gain: 0.5, lowpass: 2300, highpass: 70, rate: 0.94 },
   stone: { gain: 1.1, lowpass: 20000, highpass: 350, rate: 1.06 },
   die: { gain: 0.75, lowpass: 18000, highpass: 900, rate: 1.18 },
+  // Not the table's: a sound in the air (an exit's sizzle, crack, puff or chimes), as recorded.
+  air: { gain: 1.0, lowpass: 20000, highpass: 40, rate: 1.0 },
 };
 
 /** Click amplitude for an impact speed: sound pressure follows the impact velocity (gently compressed). */
@@ -80,7 +86,8 @@ export function rollEvents(result, { bank, timeScale = 1, voices = 6 } = {}) {
       const g = loudness(speed);
       events.push({
         time: t / timeScale, t, die: i, type: d.type, timbre,
-        click: pickClick(bank, d.type, Math.min(1, g), rng.next()),
+        source: 'clicks',
+        region: pickClick(bank, d.type, Math.min(1, g), rng.next()),
         gain: g * spec.gain,
         rate: spec.rate * (1 + rng.range(-0.03, 0.03)),
       });
@@ -90,33 +97,69 @@ export function rollEvents(result, { bank, timeScale = 1, voices = 6 } = {}) {
   return limitVoices(events, voices);
 }
 
+/** Burn out, in seconds from its start: when the die starts to fade (the crack), and when it has gone. */
+const BURN_FADES = BURN.heat + BURN.hold - BURN.early, BURN_GONE = BURN_FADES + BURN.fade;
+
 /**
- * Sounds an exit makes, by kind. A step (Scurry off, owner 2026-10-26: "a sound for the spider legs
- * hitting the ground. The die click, but slightly quicker, slightly quieter, slightly higher pitch"): one
- * of the die's own softly recorded clicks (`strength`) on the table's surface, played `rate` × as fast
- * (higher and shorter) at `gain` × the surface's level. Each step varies by up to `vary` (pitch, level)
- * and sounds up to `spread` s late, so the feet of a stride patter rather than land as one.
+ * Sounds an exit makes, by kind, all one shape. `bank` is where the sound comes from (EXIT_PICKS): 'clicks',
+ * one of the die's own recorded clicks of strength `strength` on the table's surface; 'exits', a take of
+ * `take` from the exit bank, in the air. It plays `rate` × as fast (higher and shorter) at `gain` × the
+ * timbre's level, each varied by up to `vary`, `after` s on and up to `spread` s later still; `envelope`
+ * ([[seconds, dB], …], exponential between points, from the sound's start) shapes its level as it plays.
  */
 export const EXIT_SOUNDS = {
+  // Scurry off (owner 2026-10-26: "a sound for the spider legs hitting the ground. The die click, but slightly
+  // quicker, slightly quieter, slightly higher pitch"): the feet of a stride patter rather than land as one.
   // Round 13: "for the patter cut the volume in half" (was 0.35).
-  step: { rate: 1.22, gain: 0.35 / 2, strength: 0.3, spread: 0.012, vary: { rate: 0.04, gain: 0.2 } },
+  step: { bank: 'clicks', strength: 0.3, rate: 1.22, gain: 0.35 / 2, after: 0, spread: 0.012, vary: { rate: 0.04, gain: 0.2 } },
+  // Burn out (round 14, owner 2026-10-26: "a sizzling sound that slowly ramps up, then a cracking sound as the
+  // die starts to fade away"): water on a hot pan, rising evenly (in dB) from near silence to full as the die
+  // heats, gone as the die is; the crack is its own sound, fired by the effect as the fade starts. Levels set
+// against a hard die click (50 ms RMS, rendered through the engine 2026-10-26): the full sizzle ~8 dB under it,
+// the crack level with it, the puff a little over, the chimes ~10 dB under.
+  sizzle: {
+    bank: 'exits', take: 'sizzle', rate: 1, gain: 1.5, after: 0, spread: 0, vary: { rate: 0.03, gain: 0 },
+    envelope: [[0, -40], [BURN_FADES, 0], [BURN_FADES + 0.06, -2], [BURN_GONE, -45]],
+  },
+  crack: { bank: 'exits', take: 'crack', rate: 1, gain: 0.7, after: 0, spread: 0, vary: { rate: 0.06, gain: 0.1 } },
+  // Smoke puff (round 14: "a puff of air sound, then some quickly fading twinkling faerie-esq windchimes"): the
+  // puff on the burst, the chimes a beat after it, half again as high (a fifth: brighter, smaller chimes),
+  // gone within the second.
+  puff: { bank: 'exits', take: 'puff', rate: 1, gain: 0.35, after: 0, spread: 0, vary: { rate: 0.05, gain: 0.1 } },
+  chimes: {
+    bank: 'exits', take: 'chimes', rate: 1.5, gain: 0.6, after: 0.07, spread: 0.03, vary: { rate: 0.03, gain: 0.1 },
+    envelope: [[0, 0], [0.2, -2], [0.95, -42]],
+  },
+};
+
+/** Where an exit sound's recording comes from, by its bank: the region it plays and the timbre it plays through. */
+const EXIT_PICKS = {
+  clicks: (sound, { bank, type, surface, random }) => ({ region: pickClick(bank, type, sound.strength, random()), timbre: surface }),
+  exits: (sound, { exitBank, random }) => {
+    if (!exitBank) throw new Error('exitSoundEvent: the exit bank is required for "' + sound.take + '"');
+    const takes = exitBank.takes[sound.take];
+    if (!takes || !takes.length) throw new Error('exitSoundEvent: the exit bank has no "' + sound.take + '" takes');
+    return { region: takes[Math.floor(random() * takes.length)], timbre: 'air' };
+  },
 };
 
 /**
  * One exit sound as an event the engine plays (DiceAudio.playExitSound): `kind` an EXIT_SOUNDS key, `type`
- * the die's, `surface` the table's (a TIMBRES key), `strength` 0 … 1 how hard it lands.
+ * the die's, `surface` the table's (a TIMBRES key), `strength` 0 … 1 how hard it lands; `bank` the click
+ * bank, `exitBank` the exit bank.
  */
-export function exitSoundEvent(kind, { bank, type, surface, strength = 1, random = Math.random }) {
+export function exitSoundEvent(kind, { bank, exitBank, type, surface, strength = 1, random = Math.random }) {
   const sound = EXIT_SOUNDS[kind];
   if (!sound) throw new Error('exitSoundEvent: no exit sound "' + kind + '" (known: ' + Object.keys(EXIT_SOUNDS).join(', ') + ')');
-  const spec = TIMBRES[surface];
-  if (!spec) throw new Error('exitSoundEvent: no timbre for "' + surface + '"');
+  if (!TIMBRES[surface]) throw new Error('exitSoundEvent: no timbre for "' + surface + '"');
+  const { region, timbre } = EXIT_PICKS[sound.bank](sound, { bank, exitBank, type, surface, random });
+  const spec = TIMBRES[timbre];
   return {
-    kind, type, timbre: surface,
-    click: pickClick(bank, type, sound.strength, random()),
+    kind, type, timbre, source: sound.bank, region,
     rate: spec.rate * sound.rate * (1 + sound.vary.rate * (2 * random() - 1)),
     gain: spec.gain * sound.gain * strength * (1 + sound.vary.gain * (2 * random() - 1)),
-    after: sound.spread * random(),
+    after: sound.after + sound.spread * random(),
+    ...(sound.envelope ? { envelope: sound.envelope } : {}),
   };
 }
 

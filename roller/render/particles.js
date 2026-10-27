@@ -2,7 +2,7 @@
 // smoke and faerie fire. One THREE.Points per system, moved on the CPU (a few hundred particles at
 // most, so nothing to gain from the GPU), drawn as round sprites whose size is in metres.
 //
-//   const sparks = createParticles({ max: 120, look: 'glow' });   // 'glow' adds light; 'smoke' and 'soft' cover
+//   const sparks = createParticles({ max: 120, look: 'glow' });   // 'glow' and 'flame' add light; 'smoke' and 'soft' cover
 //   view.scene.add(sparks.points);
 //   sparks.emit({ position, velocity, life, size: [from, to], colour: [from, to], alpha: [from, to],
 //                 drag, lift, swirl, wander, twinkle, centre });
@@ -20,6 +20,19 @@ import * as THREE from 'three';
 const LOOKS = {
   // A soft round light, added to what is behind: embers and sparks.
   glow: { blending: THREE.AdditiveBlending, shape: 'float a = smoothstep( 1.0, 0.0, r ); a *= a; gl_FragColor = vec4( vColour * a * vAlpha, a * vAlpha );' },
+  // A tongue of flame, pointing up the screen, adding light: wide and hot at its foot, swaying to a point
+  // (Going down's hellfire, round 14).
+  flame: {
+    blending: THREE.AdditiveBlending,
+    shape: 'vec2 p = gl_PointCoord * 2.0 - 1.0;\n' +
+      'float up = 0.5 - 0.5 * p.y;\n' +
+      'float sway = ( pNoise2( vec2( up * 2.5 - vSeed * 3.0, vSeed * 17.0 ) ) - 0.5 ) * 0.7 * up;\n' +
+      'float w = max( 0.6 * pow( 1.0 - up, 0.9 ), 0.001 );\n' +
+      'float across = abs( p.x - sway ) / w;\n' +
+      'float a = ( 1.0 - smoothstep( 0.25, 1.0, across ) ) * smoothstep( 1.0, 0.6, p.y ) * sqrt( 1.0 - up );\n' +
+      'vec3 c = vColour * ( 0.7 + 0.8 * ( 1.0 - smoothstep( 0.0, 0.6, across ) ) * ( 1.0 - up ) );\n' +
+      'gl_FragColor = vec4( c * a * vAlpha, a * vAlpha );',
+  },
   // A soft disc that covers: ash.
   soft: { blending: THREE.NormalBlending, shape: 'float a = smoothstep( 1.0, 0.55, r ); gl_FragColor = vec4( vColour, a * vAlpha );' },
   // A billow with a ragged, turning edge: smoke.

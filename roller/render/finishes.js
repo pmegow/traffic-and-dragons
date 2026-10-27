@@ -35,6 +35,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
     uExitHeat: { value: 0 },
     uExitDissolve: { value: 0 },
     uExitClipY: { value: EXIT_CLIP_OFF },
+    uExitUnder: { value: 0 },   // Going down's hellfire, lighting it from below
     uExitFade: { value: 1 },   // its shadow's share left as it fades (the die itself fades by opacity)
   };
   const m = new THREE.MeshPhysicalMaterial({

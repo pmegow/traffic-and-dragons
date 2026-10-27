@@ -46,8 +46,8 @@ export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
   burn: { label: 'Burn out', seconds: BURN.heat + BURN.hold - BURN.early + BURN.fade + 0.3 + BURN.stainFade },   // 2.6 s
   smoke: { label: 'Smoke puff', seconds: 1.8 },
-  pit: { label: 'Going down', seconds: 0.75 },   // ends as the hole shuts behind the die (art direction 2026-10-25)
-  fade: { label: 'Fade', seconds: 1.2 },          // round 5: "slow it down 100%" (was 0.6)
+  pit: { label: 'Going down', seconds: 0.7 },    // ends as the hole shuts behind the die (art direction 2026-10-25)
+  fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
 };
@@ -109,6 +109,7 @@ export function burnTimeline(u) {
     embers: burning ? 1 : 0,   // only as it reaches yellow (rounds 3, 10), until it has gone
     smoke: burning ? 1 : 0,    // the Smoke puff's smoke, where the ash was (round 4)
     unstable: burning ? smooth((t - flying) / 0.1) : 0,   // round 10: too much — it shakes and flickers as it goes
+    fading: t >= fadeFrom,   // round 14: the crack sounds as it starts to fade
     glow: heat * opacity,
     stain: smooth((t - fadeFrom) / BURN.fade) * (1 - smooth((t - (secs - BURN.stainFade)) / BURN.stainFade)),
   };
@@ -131,16 +132,23 @@ export function smokeTimeline(u) {
 
 /**
  * Going down, in seconds: the hole opens in `open` and closes in `close` (80% of the opening's speed),
- * starting `early` before the die's top is through (two frames at 24 fps — round 4); the die falls 3.75
- * radii in `fall`.
+ * starting `early` before the die's top is through (two frames at 24 fps — round 4). Round 14 (owner
+ * 2026-10-26: "this should be the die getting sucked into the world below. Right now it reads as lazy
+ * falling"): the die is drawn down `depth` radii over `pull`, slowly at first and then all at once (the
+ * drop grows as the `power`th power of the time, where a fall grows as its square), trembling up to
+ * `tremble` radii while the pull takes hold, and twisting `twist` radians about the vertical as it goes,
+ * like water down a drain, tipping `tilt`. It moves from the first frame (round 1).
  */
-export const PIT = { open: 0.18, close: 0.18 / 0.8, early: 2 / 24, fall: 0.78 };
+export const PIT = { open: 0.18, close: 0.18 / 0.8, early: 2 / 24, pull: 0.7, depth: 6, power: 4, tremble: 0.04, twist: 2.5 * Math.PI, tilt: 0.35 };
 
 /**
- * Going down: a hole opens under the die (hole: its radius as a share of the full), the die drops
- * through it from the first moment (drop: metres below where it lay, for a die of radius R whose centre
- * lay `rise` above the floor) tipping as it falls (tilt, radians), and the hole closes behind it the
- * moment its highest point passes the floor (clear, seconds), the opening run backwards. Art direction
+ * Going down: a hole opens under the die (hole: its radius as a share of the full), the die is sucked
+ * down through it from the first moment (drop: metres below where it lay, for a die of radius R whose
+ * centre lay `rise` above the floor), trembling as the pull takes hold (tremble, a share of PIT.tremble),
+ * twisting (twist) and tipping (tilt, radians) as it goes, and the hole closes behind it the moment its
+ * highest point passes the floor (clear, seconds), the opening run backwards. fire is the hellfire below
+ * (round 14: "underlighting that looks like hell flames coming from below"), seen and felt through the
+ * hole, so it opens and shuts with it. Art direction
  * 2026-10-25: round 1, the hole opens quicker (0.18 s, was 0.3), the die no longer waits for it and
  * falls a quarter faster; round 2, no overshoot as it opens (it eased out past full and back), and it
  * closes as soon as the die is through, as fast as it opened (it stood open, empty, for 0.6 s); round 4,
@@ -148,15 +156,18 @@ export const PIT = { open: 0.18, close: 0.18 / 0.8, early: 2 / 24, fall: 0.78 };
  */
 export function pitTimeline(u, R, rise = R) {
   const t = u * EXIT_TABLE.pit.seconds;
-  const clear = PIT.fall * Math.sqrt((rise + R) / (3.75 * R));   // drop = rise + R: its top is through the floor
+  const clear = PIT.pull * Math.pow((rise + R) / (PIT.depth * R), 1 / PIT.power);   // drop = rise + R: its top is through the floor
   const opening = easeOutCubic(t / PIT.open);
   const shut = clear - PIT.early;
   const closing = t <= shut ? 1 : easeOutCubic(1 - (t - shut) / PIT.close);
-  const fall = t / PIT.fall;
+  const x = t / PIT.pull, hole = Math.min(opening, closing);
   return {
-    hole: Math.min(opening, closing),
-    drop: 3.75 * R * fall * fall,
-    tilt: 0.5 * smooth(fall),
+    hole,
+    drop: PIT.depth * R * Math.pow(x, PIT.power),
+    tremble: smooth(t / PIT.open) * (1 - smooth((x - 0.45) / 0.25)),   // as the pull takes hold, until it gives way
+    twist: PIT.twist * x * x * x,
+    tilt: PIT.tilt * smooth(x),
+    fire: hole,
     clear,
   };
 }

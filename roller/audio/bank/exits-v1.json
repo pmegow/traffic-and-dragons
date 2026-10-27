@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "file": "exits-v1.mp3",
+  "sha256": "17daeaa7ee8f438b82ce361694f93a0b7bd22c41e4cc5a8dff12118e90242974",
+  "bytes": 140640,
+  "sampleRate": 48000,
+  "duration": 6.97,
+  "license": "CC0 1.0",
+  "licenseVerified": "2026-10-26 — \"Creative Commons 0\" on each Freesound sound page (382313, 342546, 714257); 376001 verified 2026-09-22 (Traffic and Dragons Audio/CC0/provenance_freesound.json)",
+  "cut": "2026-10-27",
+  "method": "dev/cut-exit-sounds.js (its header): fixed regions chosen by measurement, attacks checked, −1 dBFS, raised-cosine fades, gapless libmp3lame 160 kbps",
+  "timelineCheck": "decoded back and cross-correlated: the largest shift was 0 samples",
+  "sources": [
+    {
+      "key": "bottles",
+      "freesound": 382313,
+      "url": "https://freesound.org/s/382313/",
+      "author": "bottles",
+      "title": "Sizzle / Acid Burn",
+      "what": "water squirted from a pipette onto a hot frying pan",
+      "file": "Exits/fs382313__bottles__sizzle-acid-burn-hq.mp3",
+      "sha256": "a47d705449e1cdff47614c51b42304a73fb2494a90a5a0097feb05458b342918"
+    },
+    {
+      "key": "timbreknight",
+      "freesound": 342546,
+      "url": "https://freesound.org/s/342546/",
+      "author": "timbreknight",
+      "title": "Ice cracking",
+      "what": "ice cracked by hand",
+      "file": "Exits/fs342546__timbreknight__ice-cracking-hq.mp3",
+      "sha256": "b0fc5db758c884ed597de16c9c9093d3d91741dc02891f0f02ec0485861e8546"
+    },
+    {
+      "key": "qubodup",
+      "freesound": 714257,
+      "url": "https://freesound.org/s/714257/",
+      "author": "qubodup",
+      "title": "Puff of Smoke",
+      "what": "a puff of air, made for a cloud of smoke",
+      "file": "Exits/fs714257__qubodup__puff-of-smoke-hq.mp3",
+      "sha256": "e73c30c76507aa349f6b63e158918043bcc24fbe0ee76840958a6ddb7ea166a3"
+    },
+    {
+      "key": "koshi",
+      "freesound": 376001,
+      "url": "https://freesound.org/s/376001/",
+      "author": "Kinoton",
+      "title": "Koshi Wind Chime",
+      "what": "a Koshi wind chime",
+      "file": "Accents/fs376001__kinoton__koshi-wind-chime.wav",
+      "sha256": "bcd9fb192471623bcfc28654ca8c43702eaadd9f1facd945ae41fb86e010513e"
+    }
+  ],
+  "takes": {
+    "sizzle": [
+      {
+        "start": 0.05,
+        "length": 1.8,
+        "source": "bottles",
+        "from": 84.5,
+        "peakAt": 0.141
+      }
+    ],
+    "crack": [
+      {
+        "start": 1.95,
+        "length": 0.3,
+        "source": "timbreknight",
+        "from": 4.072,
+        "peakAt": 0.0202
+      },
+      {
+        "start": 2.35,
+        "length": 0.2,
+        "source": "timbreknight",
+        "from": 2.752,
+        "peakAt": 0.0084
+      },
+      {
+        "start": 2.65,
+        "length": 0.17,
+        "source": "timbreknight",
+        "from": 0.552,
+        "peakAt": 0.0221
+      }
+    ],
+    "puff": [
+      {
+        "start": 2.92,
+        "length": 0.5,
+        "source": "qubodup",
+        "from": 0,
+        "peakAt": 0.0607
+      }
+    ],
+    "chimes": [
+      {
+        "start": 3.52,
+        "length": 1.6,
+        "source": "koshi",
+        "from": 74.44,
+        "peakAt": 0.9435
+      },
+      {
+        "start": 5.22,
+        "length": 1.6,
+        "source": "koshi",
+        "from": 72.04,
+        "peakAt": 1.5707
+      }
+    ]
+  }
+}

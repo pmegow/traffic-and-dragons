@@ -20,8 +20,10 @@ export const EXIT_FRAGMENT_PARS = /* glsl */ `
 uniform float uExitHeat;
 uniform float uExitDissolve;
 uniform float uExitClipY;
+uniform float uExitUnder;
 varying float vExitWorldY;
 vec3 exitGlow = vec3( 0.0 );
+vec3 exitUnderGlow = vec3( 0.0 );
 float exitChar = 0.0;
 float exitShade = 1.0;
 // The heat's glow: red to yellow, straight across (art direction 2026-10-25, round 3), at a brightness that
@@ -29,12 +31,20 @@ float exitShade = 1.0;
 const vec3 EXIT_RED = vec3( 0.55, 0.02, 0.0 );
 const vec3 EXIT_YELLOW = vec3( 1.0, 0.7, 0.08 );
 const float EXIT_GLOW = 1.1;
+// Going down's hellfire (round 14): its light on the die from below, strongest at the rim and gone
+// EXIT_UNDER_REACH (m) above it, more on the faces turned down to it.
+const vec3 EXIT_HELL = vec3( 2.4, 0.55, 0.06 );
+const float EXIT_UNDER_REACH = 0.025;
 `;
 
 /** After the die's colour (and its ink): the pit's cut and shade, then the burn. */
 export const EXIT_SURFACE = /* glsl */ `
 if ( vExitWorldY < uExitClipY ) discard;
 exitShade = smoothstep( uExitClipY, uExitClipY + 0.01, vExitWorldY );   // dark just above a pit's rim
+if ( uExitUnder > 0.0 ) {
+  float exitLow = 1.0 - smoothstep( uExitClipY, uExitClipY + EXIT_UNDER_REACH, vExitWorldY );
+  exitUnderGlow = EXIT_HELL * uExitUnder * exitLow;
+}
 if ( uExitHeat > 0.0 || uExitDissolve > 0.0 ) {
   float exitN = ${EXIT_NOISE};
   float exitEdge = exitN - uExitDissolve;
@@ -49,7 +59,9 @@ if ( uExitHeat > 0.0 || uExitDissolve > 0.0 ) {
 `;
 
 export const EXIT_EMISSIVE = 'totalEmissiveRadiance += exitGlow;';
-export const EXIT_OUTGOING = 'outgoingLight *= exitShade;';
+// The hellfire's light is added after the shade: the rim side goes dark in its own colour and glows red.
+export const EXIT_OUTGOING = 'outgoingLight *= exitShade;\n' +
+  'if ( uExitUnder > 0.0 ) outgoingLight += exitUnderGlow * ( 0.35 + 0.65 * max( 0.0, -inverseTransformDirection( normal, viewMatrix ).y ) );';
 
 /** The shadow's depth pass: the same cut, the same burn-through and the same fade, nothing else. */
 export const EXIT_DEPTH_PARS = /* glsl */ `
