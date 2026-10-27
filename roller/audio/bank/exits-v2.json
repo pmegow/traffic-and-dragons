@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "file": "exits-v1.mp3",
-  "sha256": "17daeaa7ee8f438b82ce361694f93a0b7bd22c41e4cc5a8dff12118e90242974",
-  "bytes": 140640,
+  "file": "exits-v2.mp3",
+  "sha256": "e994859e085deca110ff2a81991e0679dcde4bfd88a6c694665be33605eccb21",
+  "bytes": 72480,
   "sampleRate": 48000,
-  "duration": 6.97,
+  "duration": 3.57,
   "license": "CC0 1.0",
-  "licenseVerified": "2026-10-26 — \"Creative Commons 0\" on each Freesound sound page (382313, 342546, 714257); 376001 verified 2026-09-22 (Traffic and Dragons Audio/CC0/provenance_freesound.json)",
+  "licenseVerified": "2026-10-26 — \"Creative Commons 0\" on each Freesound sound page (382313, 342546, 714257)",
   "cut": "2026-10-27",
   "method": "dev/cut-exit-sounds.js (its header): fixed regions chosen by measurement, attacks checked, −1 dBFS, raised-cosine fades, gapless libmp3lame 160 kbps",
   "timelineCheck": "decoded back and cross-correlated: the largest shift was 0 samples",
@@ -40,16 +40,6 @@
       "what": "a puff of air, made for a cloud of smoke",
       "file": "Exits/fs714257__qubodup__puff-of-smoke-hq.mp3",
       "sha256": "e73c30c76507aa349f6b63e158918043bcc24fbe0ee76840958a6ddb7ea166a3"
-    },
-    {
-      "key": "koshi",
-      "freesound": 376001,
-      "url": "https://freesound.org/s/376001/",
-      "author": "Kinoton",
-      "title": "Koshi Wind Chime",
-      "what": "a Koshi wind chime",
-      "file": "Accents/fs376001__kinoton__koshi-wind-chime.wav",
-      "sha256": "bcd9fb192471623bcfc28654ca8c43702eaadd9f1facd945ae41fb86e010513e"
     }
   ],
   "takes": {
@@ -92,22 +82,6 @@
         "source": "qubodup",
         "from": 0,
         "peakAt": 0.0607
-      }
-    ],
-    "chimes": [
-      {
-        "start": 3.52,
-        "length": 1.6,
-        "source": "koshi",
-        "from": 74.44,
-        "peakAt": 0.9435
-      },
-      {
-        "start": 5.22,
-        "length": 1.6,
-        "source": "koshi",
-        "from": 72.04,
-        "peakAt": 1.5707
       }
     ]
   }

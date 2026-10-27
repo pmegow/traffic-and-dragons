@@ -10,12 +10,12 @@
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.41.0';
+const VERSION = '0.41.1';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
-  'audio/bank/exits-v1.json',
-  'audio/bank/exits-v1.mp3',
+  'audio/bank/exits-v2.json',
+  'audio/bank/exits-v2.mp3',
   'audio/engine.js',
   'audio/index.js',
   'audio/plan.js',

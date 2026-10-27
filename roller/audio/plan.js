@@ -2,13 +2,13 @@
 //
 // Every sound is a recording: a click from the click bank (dev/cut-clicks.js: a plastic die on a
 // wooden table, cut from aunrea's CC0 recordings) or a take from the exit bank (dev/cut-exit-sounds.js:
-// a sizzle, ice cracks, a puff of air, wind chimes). Nothing is synthesized: another surface is the same
+// a sizzle, ice cracks, a puff of air). Nothing is synthesized: another surface is the same
 // recording through a different filter, a ramp is the playback's level.
 //
 //   rollEvents(result, …)   one event per impact the physics recorded — the click's loudness from
 //                           the impact speed, its choice from the recorded clicks of that strength
 //   exitSoundEvent(kind, …) a sound an exit makes (EXIT_SOUNDS): a spider's step, a burn's sizzle and
-//                           crack, a smoke puff's puff and chimes
+//                           crack, a smoke puff's puff of air
 //
 // (A cup rattle before the throw, built from these clicks, was tried on 2026-10-24 and removed the
 // same day: too uniform — owner.)
@@ -33,7 +33,7 @@ export const TIMBRES = {
   felt: { gain: 0.5, lowpass: 2300, highpass: 70, rate: 0.94 },
   stone: { gain: 1.1, lowpass: 20000, highpass: 350, rate: 1.06 },
   die: { gain: 0.75, lowpass: 18000, highpass: 900, rate: 1.18 },
-  // Not the table's: a sound in the air (an exit's sizzle, crack, puff or chimes), as recorded.
+  // Not the table's: a sound in the air (an exit's sizzle, crack or puff), as recorded.
   air: { gain: 1.0, lowpass: 20000, highpass: 40, rate: 1.0 },
 };
 
@@ -115,21 +115,16 @@ export const EXIT_SOUNDS = {
   // Burn out (round 14, owner 2026-10-26: "a sizzling sound that slowly ramps up, then a cracking sound as the
   // die starts to fade away"): water on a hot pan, rising evenly (in dB) from near silence to full as the die
   // heats, gone as the die is; the crack is its own sound, fired by the effect as the fade starts. Levels set
-// against a hard die click (50 ms RMS, rendered through the engine 2026-10-26): the full sizzle ~8 dB under it,
-// the crack level with it, the puff a little over, the chimes ~10 dB under.
+  // against a hard die click (50 ms RMS, rendered through the engine 2026-10-26): the full sizzle ~4 dB under it,
+  // the crack level with it, the puff a little over. Owner 2026-10-26: "Burn out sounds are great."
   sizzle: {
     bank: 'exits', take: 'sizzle', rate: 1, gain: 1.5, after: 0, spread: 0, vary: { rate: 0.03, gain: 0 },
     envelope: [[0, -40], [BURN_FADES, 0], [BURN_FADES + 0.06, -2], [BURN_GONE, -45]],
   },
   crack: { bank: 'exits', take: 'crack', rate: 1, gain: 0.7, after: 0, spread: 0, vary: { rate: 0.06, gain: 0.1 } },
   // Smoke puff (round 14: "a puff of air sound, then some quickly fading twinkling faerie-esq windchimes"): the
-  // puff on the burst, the chimes a beat after it, half again as high (a fifth: brighter, smaller chimes),
-  // gone within the second.
+  // puff on the burst. Round 15: "let's lose the chimes" — they went, and their takes left the bank (exits-v2).
   puff: { bank: 'exits', take: 'puff', rate: 1, gain: 0.35, after: 0, spread: 0, vary: { rate: 0.05, gain: 0.1 } },
-  chimes: {
-    bank: 'exits', take: 'chimes', rate: 1.5, gain: 0.6, after: 0.07, spread: 0.03, vary: { rate: 0.03, gain: 0.1 },
-    envelope: [[0, 0], [0.2, -2], [0.95, -42]],
-  },
 };
 
 /** Where an exit sound's recording comes from, by its bank: the region it plays and the timbre it plays through. */

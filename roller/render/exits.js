@@ -9,8 +9,7 @@
 //          warm light on the floor, and leaves a charred stain that fades last; a sizzle rises as it heats
 //          and it cracks as it starts to fade (sound('sizzle'), sound('crack'))
 //   smoke  Smoke puff: the die swells a little and blinks out inside a puff of smoke, with faerie
-//          fire — bright, many-coloured sparks — swirling up out of it; a puff of air, then chimes
-//          (sound('puff'), sound('chimes'))
+//          fire — bright, many-coloured sparks — swirling up out of it, with a puff of air (sound('puff'))
 //   none   None: the die goes at once
 //   fade   Fade: the die fades out, its shadow with it
 //   scurry Scurry off: eight spider legs grow out of it — coxa, femur, knee, tibia, metatarsus and a
@@ -139,7 +138,6 @@ function startSmoke({ view, entry, sound = () => {} }) {
       if (t.burst && !burst) {
         burst = true;
         sound('puff', centre);
-        sound('chimes', centre);   // a beat after the puff (its `after`)
         for (let k = 0; k < SMOKE.puffs; k++) {
           const s = onSphere();
           smoke.emit({

@@ -7,7 +7,7 @@
 //
 // Every click is scheduled ahead on the audio clock, so it lands on its frame however busy the
 // page is. A click runs source → high-pass → low-pass → gain → pan → the master gain, then a gentle
-// compressor so a pile of dice never clips. An exit's sound (a sizzle, a crack, a puff, chimes) plays
+// compressor so a pile of dice never clips. An exit's sound (a sizzle, a crack, a puff) plays
 // the same way from the exit bank, its gain following its envelope.
 //
 // Pass { context } (an OfflineAudioContext, say) to render without speakers — the tests do.
@@ -24,7 +24,7 @@ const BANKS = {
 };
 
 export class DiceAudio {
-  constructor({ bank = new URL('./bank/clicks-v1.json', import.meta.url), exitBank = new URL('./bank/exits-v1.json', import.meta.url), volume = 0.9, context = null } = {}) {
+  constructor({ bank = new URL('./bank/clicks-v1.json', import.meta.url), exitBank = new URL('./bank/exits-v2.json', import.meta.url), volume = 0.9, context = null } = {}) {
     this.bankUrls = { clicks: bank, exits: exitBank };
     this.volume = volume;
     this.injected = context;
