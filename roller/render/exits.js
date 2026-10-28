@@ -25,6 +25,8 @@
 //          (sound('crack')); then it breaks into 8 ± 2 Voronoi pieces (render/fracture.js), sharply
 //          (sound('shatter')), which burst away spinning, fall and tumble to rest on the floor
 //          (render/shards.js), each strike a small click (sound('shard', …)), and fade
+//   melt   Melt: the die goes soft and trembles, slumps into a glossy puddle, its numerals smearing as it spreads,
+//          lies a moment, then dries up from its rim inward in wisps of steam, a low sizzle under it all (sound('melt'))
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
 //
 // Effects only draw: nothing here touches the physics, and the timings are the table's. A sound an effect
@@ -32,16 +34,17 @@
 // removeDie's onSound).
 
 import * as THREE from 'three';
-import { EXIT_TABLE, SCURRY, BURN, PIT, SHATTER, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, shatterTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
+import { EXIT_TABLE, SCURRY, BURN, PIT, SHATTER, MELT, meltTimeline, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, shatterTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
 import { fractureSeeds, fracturePieces, pieceCount } from './fracture.js';
 import { burstShards, stepShards } from './shards.js';
+import { subdividePasses } from './subdivide.js';
 import { blankUV } from './die-mesh.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_DEPTH_PARS, EXIT_DEPTH } from './exit-shader.js';
 import { PATTERN_GLSL, PATTERN_SCALE } from './patterns.js';
 import { dieMaterial, FINISHES } from './finishes.js';
 import { createParticles } from './particles.js';
 
-const STARTS = { none: startNone, burn: startBurn, smoke: startSmoke, pit: startPit, fade: startFade, scurry: startScurry, shatter: startShatter };
+const STARTS = { none: startNone, burn: startBurn, smoke: startSmoke, pit: startPit, fade: startFade, scurry: startScurry, shatter: startShatter, melt: startMelt };
 
 // Random (round 12) plays nothing itself: the view asks chooseExit for one of the others as each die leaves.
 export const EXITS = Object.fromEntries(Object.entries(EXIT_TABLE).map(([key, entry]) => {
@@ -634,12 +637,82 @@ function startShatter({ view, entry, sound = () => {} }) {
   };
 }
 
+// ---------------------------------------------------------------- melt
+// 2026-10-28 (owner: "come up with a new exit animation, build it"). The die itself bends, in its vertex shader
+// (render/exit-shader.js ▸ exitMelt), its shadow with it; it is split finer while it trembles (render/subdivide.js, a
+// pass a frame), so the slump is smooth; the puddle dries in its fragment shader. Nothing compiles mid-exit: the code
+// is in every die's shader from the start, behind uniform branches.
+const STEAM = { colour: [[1.0, 1.0, 0.98], [0.9, 0.9, 0.9]] };   // white wisps: grey read as smoke in the first strip
+function startMelt({ view, entry, sound = () => {} }) {
+  const mesh = entry.mesh, m = mesh.material, uniforms = m.userData.dice.uniforms, R = entry.die.boundingRadius;
+  const centre = mesh.position.clone(), coarse = mesh.geometry, at = coarse.attributes, roughness = m.roughness;
+  mesh.updateMatrixWorld();
+  uniforms.uExitMeltAt.value.set(centre.x, 0, centre.z, R);   // its centre on the floor, and its size
+  uniforms.uExitMeltInverse.value.copy(mesh.matrixWorld).invert();
+  uniforms.uExitMeltSeed.value = rand(0, 2 * Math.PI);
+  mesh.customDepthMaterial = exitDepthMaterial(uniforms);   // its shadow slumps and dries with it
+  const steam = createParticles({ max: 60, look: 'smoke' });
+  view.scene.add(steam.points);
+  sound('melt', centre);   // a low sizzle under it all (audio/plan.js ▸ EXIT_SOUNDS)
+  const splitting = subdividePasses({ position: at.position.array, normal: at.normal.array, uv: at.uv.array, color: at.color.array }, MELT.maxEdge * R);
+  let soup = null, fine = null, steamDue = 0;
+  // A pass of the split a frame while it trembles; the finer die takes over once the split is done.
+  const split = (all) => {
+    if (fine) return;
+    for (;;) {
+      const next = splitting.next();
+      if (next.done) break;
+      soup = next.value;
+      if (!all) return;
+    }
+    fine = new THREE.BufferGeometry();
+    if (soup) {
+      for (const [name, size] of [['position', 3], ['normal', 3], ['uv', 2], ['color', 3]]) fine.setAttribute(name, new THREE.BufferAttribute(soup[name], size));
+      fine.computeBoundingSphere();
+      fine.userData = coarse.userData;
+      mesh.geometry = fine;
+    }
+  };
+  return {
+    step(u, dt) {
+      const t = meltTimeline(u);
+      split(t.melt > 0);
+      uniforms.uExitWobble.value = t.wobble;
+      uniforms.uExitMelt.value = t.melt;
+      uniforms.uExitDry.value = t.dry;
+      m.roughness = roughness + (MELT.gloss - roughness) * t.melt;   // wet as it pools
+      // Steam rises from what is left of the puddle as it dries.
+      const reach = R * (1 + MELT.spread) * (1 - t.dry);
+      for (steamDue += t.steam * MELT.steam * dt; steamDue >= 1; steamDue--) {
+        const a = rand(0, 2 * Math.PI), r = reach * Math.sqrt(Math.random());
+        steam.emit({
+          position: { x: centre.x + r * Math.cos(a), y: 0.002, z: centre.z + r * Math.sin(a) },
+          velocity: { x: rand(-0.003, 0.003), y: rand(0.012, 0.025), z: rand(-0.003, 0.003) },
+          life: rand(0.6, MELT.linger + 0.4), size: [R * rand(0.3, 0.5), R * rand(0.8, 1.2)], colour: STEAM.colour, alpha: [0.12, 0],
+          drag: 1.5, lift: 0.01, wander: rand(0.05, 0.1),
+        });
+      }
+      steam.update(dt, pixelsPerMetre(view));
+    },
+    dispose() {
+      steam.dispose();
+      if (mesh.geometry !== coarse) { mesh.geometry = coarse; fine.dispose(); }   // the view frees the die's own
+      uniforms.uExitMelt.value = 0;
+      uniforms.uExitWobble.value = 0;
+      uniforms.uExitDry.value = 0;
+      m.roughness = roughness;
+      mesh.customDepthMaterial.dispose();
+    },
+  };
+}
+
 // ---------------------------------------------------------------- shared pieces
 /** A shadow's depth material for a leaving die: the same cut and burn-through as the die (exit-shader.js). */
 function exitDepthMaterial(u) {
   const m = new THREE.MeshDepthMaterial();
   m.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, { uScale: u.uScale, uSeed: u.uSeed, uExitDissolve: u.uExitDissolve, uExitClipY: u.uExitClipY, uExitFade: u.uExitFade });
+    Object.assign(shader.uniforms, { uScale: u.uScale, uSeed: u.uSeed, uExitDissolve: u.uExitDissolve, uExitClipY: u.uExitClipY, uExitFade: u.uExitFade,
+      uExitMelt: u.uExitMelt, uExitWobble: u.uExitWobble, uExitDry: u.uExitDry, uExitMeltAt: u.uExitMeltAt, uExitMeltInverse: u.uExitMeltInverse, uExitMeltSeed: u.uExitMeltSeed });
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vPatternPos;\n' + EXIT_VERTEX_PARS)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPatternPos = position;\n' + EXIT_VERTEX);

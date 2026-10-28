@@ -130,7 +130,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         localStorage.removeItem('tnd_dice_exit_v1');
         return {options,selected,kept,worn,exiting,unknown};
       })()`);
-      assert.equal(r.options.join(', '),'none=None, burn=Burn out, smoke=Smoke puff, pit=Going down, fade=Fade, scurry=Scurry off, shatter=Shatter, random=Random');
+      assert.equal(r.options.join(', '),'none=None, burn=Burn out, smoke=Smoke puff, pit=Going down, fade=Fade, scurry=Scurry off, shatter=Shatter, melt=Melt, random=Random');
       assert.equal(r.selected,'smoke');
       assert.equal(r.kept,'none');
       assert.equal(r.worn,'none','the overlay wears it at once');

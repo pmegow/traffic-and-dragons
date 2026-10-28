@@ -92,6 +92,25 @@ export const SHATTER = {
   fly: 1.0, fade: 0.5,
 };
 
+/**
+ * Melt (owner 2026-10-28: "come up with a new exit animation, build it"), in seconds: the die goes soft for `soften`,
+ * trembling `wobble` of its height either way at `wobbleHz`, ever more; it slumps over `slump` into a glossy puddle —
+ * its height to `flat` of what it was, its foot spreading `spread` radii further out than the rest of it over an uneven
+ * rim (`lump`) while its top draws in by `top` of its width, a mound rather than a sheet (the first frame strip spread
+ * it 1.3 radii to 7% of its height, and it read as a flat sheet of all its faces); its foot pulled `round` of the way to a
+ * round, lumpy outline, its sides bulging `bulge` radii, and its shading blended `blob` of the way to a smooth blob's, so
+ * it reads as melted rather than squashed (the second strip was a faceted, squashed die); its roughness falling to
+ * `gloss` (wet) — lies a moment (`hold`), then dries up from its rim inward over
+ * `dry`, wisps of steam rising (`steam` a second), which have `linger` to fade. The die is split finer while it
+ * trembles, to edges of `maxEdge` radii (render/subdivide.js), so the slump bends it smoothly.
+ */
+export const MELT = {
+  soften: 0.3, wobble: 0.05, wobbleHz: 7,
+  slump: 0.8, flat: 0.2, spread: 0.8, top: 0.3, lump: 0.18, round: 0.8, bulge: 0.25, blob: 0.7, gloss: 0.12,
+  hold: 0.25, dry: 0.8, steam: 18, linger: 0.5,
+  maxEdge: 0.25,   // 0.2 split a d20 into 11,520 triangles, its last pass 7.8 ms on a desktop; 0.25 gives 5,160, each pass under 3 ms
+};
+
 /** When Going down's hole starts to open: the die risen and its beat sat out. */
 export const PIT_OPENS = PIT.rise + PIT.beat;
 
@@ -106,6 +125,7 @@ export const EXIT_TABLE = {
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
+  melt: { label: 'Melt', seconds: MELT.soften + MELT.slump + MELT.hold + MELT.dry + MELT.linger },   // 2.65 s (2026-10-28)
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
 };
 
@@ -248,6 +268,23 @@ export function shatterTimeline(u) {
     crack: Math.pow(clamp01(t / SHATTER.crack), 0.7),
     broken: t >= SHATTER.crack,
     opacity: t < gone ? 1 : 1 - smooth((t - gone) / SHATTER.fade),
+  };
+}
+
+/**
+ * Melt: wobble (± a share of its height) as it goes soft, growing, and gone early in the slump; melt (0 whole … 1 a
+ * puddle), slow to start, quicker, then settling; dry (0 … 1 dried away), slow at first, quicker as the puddle
+ * shrinks; steam (0 … 1) as it dries.
+ */
+export function meltTimeline(u) {
+  const t = clamp01(u) * EXIT_TABLE.melt.seconds;
+  const slumping = (t - MELT.soften) / MELT.slump, drying = (t - MELT.soften - MELT.slump - MELT.hold) / MELT.dry;
+  const tremble = t < MELT.soften ? smooth(t / MELT.soften) : 1 - smooth(slumping / 0.25);
+  return {
+    wobble: MELT.wobble * tremble * Math.sin(2 * Math.PI * MELT.wobbleHz * t),
+    melt: smooth(clamp01(slumping)),
+    dry: Math.pow(clamp01(drying), 1.2),
+    steam: drying > 0 && drying < 1 ? 1 : 0,
   };
 }
 

@@ -12,7 +12,7 @@
 import * as THREE from 'three';
 import { FINISHES, SPECULAR, SEE_THROUGH_DEPTH_OFFSET } from './finish-table.js';
 import { patternUniforms, injectPattern } from './patterns.js';
-import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_FRAGMENT_PARS, EXIT_SURFACE, EXIT_EMISSIVE, EXIT_OUTGOING } from './exit-shader.js';
+import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_NORMAL, EXIT_FRAGMENT_PARS, EXIT_SURFACE, EXIT_EMISSIVE, EXIT_OUTGOING } from './exit-shader.js';
 import { SHATTER } from './exit-table.js';
 
 export { FINISHES };
@@ -42,6 +42,12 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
     uExitCrackFrom: { value: new THREE.Vector3() },
     uExitSeeds: { value: Array.from({ length: SHATTER.pieces + SHATTER.spread }, () => new THREE.Vector3()) },
     uExitSeedCount: { value: 0 },
+    uExitMelt: { value: 0 },   // Melt: 0 whole … 1 a puddle
+    uExitWobble: { value: 0 },
+    uExitDry: { value: 0 },
+    uExitMeltAt: { value: new THREE.Vector4() },
+    uExitMeltInverse: { value: new THREE.Matrix4() },
+    uExitMeltSeed: { value: 0 },
   };
   const m = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(style.body),
@@ -78,6 +84,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
       EXIT_SURFACE);
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\n' + EXIT_VERTEX_PARS)
+      .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\n' + EXIT_NORMAL)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n' + EXIT_VERTEX);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\nuniform vec3 uInk;\nuniform sampler2D uGlyph;\nuniform float uMicaBoost;' + EXIT_FRAGMENT_PARS)
@@ -105,7 +112,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
     if (f.transmission > 0 && !shader.fragmentShader.includes('transmission * ( 1.0 - diceGlyph )')) {
       console.error('dieMaterial: the opaque-ink hook did not apply (a three.js chunk changed?)');
     }
-    if (![EXIT_VERTEX, EXIT_EMISSIVE, EXIT_OUTGOING].every((line) => shader.vertexShader.includes(line) || shader.fragmentShader.includes(line))) {
+    if (![EXIT_VERTEX, EXIT_NORMAL, EXIT_EMISSIVE, EXIT_OUTGOING].every((line) => shader.vertexShader.includes(line) || shader.fragmentShader.includes(line))) {
       console.error('dieMaterial: the exit hook did not apply (a three.js chunk changed?)');
     }
     if (f.scatter) injectScatter(shader);
