@@ -21,6 +21,9 @@ import { EXIT_TABLE } from '../render/exit-table.js';
 /** How long a roll waits for its sound (ms): the click bank loading, the browser unlocking audio. */
 export const SOUND_WAIT_MS = { bank: 1500, unlock: 250 };
 
+/** How long a roll waits for a vendored numeral font to load (ms), so the first roll is painted in it; painted sooner, the dice are repainted when it arrives. */
+export const FONT_WAIT_MS = 1500;
+
 /** A promise's value, or false if it has not settled within ms. */
 const soon = (promise, ms) => Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(false), ms))]);
 
@@ -70,6 +73,8 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
       // until the next one, so waiting on it hung the roll (found in TnD's browser suite, 2026-10-25): a moment for
       // the unlock and the bank, then the dice go, silent if the sound is not ready.
       const withSound = (await soon(loading, SOUND_WAIT_MS.bank)) && (await soon(unlocking, SOUND_WAIT_MS.unlock));
+      // The look's font too (a vendored one loads from a file): a moment, so the first roll is painted in it.
+      await soon(view.readyFont(view.o.dieStyle.font).catch(() => false), FONT_WAIT_MS);
       if (mine !== current) return null;
       await view.play(result, {
         onStart: ({ timeScale }) => {
@@ -105,10 +110,10 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
     /** The dice's look for the next roll (and the dice now showing). */
     setLook(style) { return view.setDieStyle(style).then(() => warm()); },
     setMuted(muted) { if (audio) audio.setMuted(muted); },
-    /** Ends the overlay: its WebGL context and its sound go. */
+    /** Ends the overlay: its WebGL context and its sound engine go (the engine closes the audio context it made; one the host lent stays the host's). */
     dispose() {
       this.clear();
-      if (audio) audio.stop();
+      if (audio) audio.dispose();
       view.dispose();
     },
   };

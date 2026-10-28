@@ -145,6 +145,19 @@ export class DiceAudio {
     for (const src of this.active) { try { src.stop(); } catch { /* already ended */ } }
     this.active.clear();
   }
+
+  /**
+   * Ends the engine: everything sounding stops, and the context it made is closed and let go — a browser allows only
+   * a few at once (Chrome: six), so a host that makes and ends engines must not leave one behind each time. A context
+   * the host lent is the host's to close. Resolves when the context has closed.
+   */
+  async dispose() {
+    this.stop();
+    const ctx = this.ctx;
+    this.ctx = null;
+    this.master = null;
+    if (ctx && !this.injected && typeof ctx.close === 'function' && ctx.state !== 'closed') await ctx.close();
+  }
 }
 
 /** Fetches and decodes one bank (its manifest and sprite); refuses one that does not match its own receipt. */

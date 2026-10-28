@@ -16,7 +16,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { roll, samplePose, rollDuration, buildDie, trayFor } from '../src/index.js';
-import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, facesShowing } from './die-mesh.js';
+import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, numeralFontLoaded, facesShowing } from './die-mesh.js';
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
 import { exitDelays, chooseExit } from './exit-table.js';
@@ -61,7 +61,8 @@ export class DiceView {
     this.playing = null;
     this.animators = new Set();   // what moves each frame (a roll, a die leaving): one render per frame for all
     this.frameRequested = false;
-    this.exiting = new Set();     // dice off the table, still drawn until their exit ends
+    this.exiting = new Set();     // dice off the table, still drawn until their exit ends: { die, finish }
+    this.fonts = new Map();       // a numeral font's load and repaint under way (readyFont), by NUMERAL_FONTS key
 
     // Always able to show the page through: a transparent view and the 'none' tray draw no background.
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: false });
@@ -88,6 +89,8 @@ export class DiceView {
     this.camera = new THREE.PerspectiveCamera(30, 1, 0.01, 10);
     this.buildLights();
     this.setTray(this.tray);
+    // The opening font (a host's look may name a vendored one): loaded now, so the first roll is painted in it.
+    this.readyFont(o.dieStyle.font).catch((e) => console.error('DiceView: the opening numeral font did not load, so its numerals stay in the fallback:', e));
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.container);
@@ -354,8 +357,45 @@ export class DiceView {
     }
     const a = this.atlases.get(type);
     const font = this.o.dieStyle.font;
-    if (!a.glyphs.has(font)) a.glyphs.set(font, paintGlyphMask(a.die, a.geometry.userData.layout, NUMERAL_FONTS[font]));
+    if (!a.glyphs.has(font)) {
+      a.glyphs.set(font, paintGlyphMask(a.die, a.geometry.userData.layout, NUMERAL_FONTS[font]));
+      // A vendored face not yet loaded paints in its fallback for now: the mask is repainted, and every die wearing
+      // it given the new one, the moment the face arrives (readyFont); one that never arrives is said.
+      if (!numeralFontLoaded(NUMERAL_FONTS[font])) this.readyFont(font).catch((e) => console.error('DiceView: the numeral font "' + font + '" did not load, so its numerals stay in the fallback:', e));
+    }
     return { die: a.die, geometry: a.geometry, glyph: a.glyphs.get(font) };
+  }
+
+  /**
+   * Readies a numeral font (NUMERAL_FONTS key) to paint in: a vendored face is loaded (render/die-mesh.js ▸
+   * loadNumeralFont) and, once it is, any mask already painted in its fallback is repainted and every die wearing it
+   * given the new one. Resolves when the font can be painted in (a system stack: at once); rejects, with the reason,
+   * when the face cannot be loaded. An unknown font is refused by name.
+   */
+  readyFont(font) {
+    const spec = NUMERAL_FONTS[font];
+    if (!spec) throw new Error('DiceView: no numeral font "' + font + '" (known: ' + Object.keys(NUMERAL_FONTS).join(', ') + ')');
+    if (numeralFontLoaded(spec)) return Promise.resolve();
+    if (!this.fonts.has(font)) this.fonts.set(font, loadNumeralFont(spec).then(() => this.repaintFont(font)));
+    return this.fonts.get(font);
+  }
+
+  /**
+   * Repaints every mask of a font that was painted before its face had loaded, and gives the new mask to every die
+   * wearing the old one — on the table or leaving. (A material that still reads the old mask after it is freed, an
+   * exit's own copy, has it uploaded again: nothing goes blank.)
+   */
+  repaintFont(font) {
+    const wearing = [...this.dice, ...[...this.exiting].map((r) => r.die)];
+    for (const a of this.atlases.values()) {
+      const old = a.glyphs.get(font);
+      if (!old) continue;
+      const mask = paintGlyphMask(a.die, a.geometry.userData.layout, NUMERAL_FONTS[font]);
+      a.glyphs.set(font, mask);
+      for (const d of wearing) if (d.mesh.material.userData.dice.uniforms.uGlyph.value === old) setGlyph(d.mesh.material, mask);
+      old.dispose();
+    }
+    this.render();
   }
 
   /**
@@ -368,7 +408,7 @@ export class DiceView {
     const next = { ...this.o.dieStyle, ...style };
     if (!FINISHES[next.finish]) throw new Error('DiceView: no finish "' + next.finish + '" (known: ' + Object.keys(FINISHES).join(', ') + ')');
     if (!NUMERAL_FONTS[next.font]) throw new Error('DiceView: no numeral font "' + next.font + '" (known: ' + Object.keys(NUMERAL_FONTS).join(', ') + ')');
-    if (next.font !== this.o.dieStyle.font) await loadNumeralFont(NUMERAL_FONTS[next.font]);
+    if (next.font !== this.o.dieStyle.font) await this.readyFont(next.font);
     const refinish = next.finish !== this.o.dieStyle.finish;
     this.o.dieStyle = next;
     for (const d of this.dice) {
@@ -468,6 +508,7 @@ export class DiceView {
     return new Promise((resolve) => {
       let effect = null, start = null, last = 0, elapsed = 0, done = false;
       const record = {
+        die: d,
         finish: () => {
           if (done) return;
           done = true;
@@ -578,7 +619,8 @@ export class DiceView {
     const dice = [...table.map((d) => d.type), ...types];
     if (!dice.length) throw new Error('DiceView.bakeDrop: nothing on the table and nothing to drop');
     const grown = trayFor(dice.length, this.trayOptions);
-    const size = { width: Math.max(this.tray.width, grown.width), depth: Math.max(this.tray.depth, grown.depth) };
+    // With no tray drawn the tray is only the camera's frame (bake): it keeps its size, never grown under the camera.
+    const size = this.trayDrawn === false ? { width: this.tray.width, depth: this.tray.depth } : { width: Math.max(this.tray.width, grown.width), depth: Math.max(this.tray.depth, grown.depth) };
     const resting = table.map(({ position, orientation, velocity, angularVelocity }) => ({ position, orientation, ...(velocity ? { velocity, angularVelocity } : {}) }));
     return this.bake({ ...request, dice, throw: { drop: { resting } }, tray: { ...size, ...(request.tray || {}) } });
   }
@@ -602,11 +644,16 @@ export class DiceView {
   bake(request) {
     const edges = this.trayDrawn === false ? this.screenEdges() : null;
     const bounds = edges ? { bounds: edges.planes, area: { center: edges.center, width: edges.width, depth: edges.depth } } : {};
-    return roll({ readUp: this.readUp, ...request, tray: { ...this.trayOptions, ...bounds, ...(request.tray || {}) } });
+    // With no tray drawn the tray is only what the camera frames: its size is pinned to what it frames now, so the
+    // roll's tray is this one and the play never reframes the camera away from the edges the dice were kept inside
+    // (grown with the dice count, 16 dice stood the camera back 1.6× and bounced off walls well inside the screen).
+    const fixed = edges ? { width: this.tray.width, depth: this.tray.depth } : {};
+    return roll({ readUp: this.readUp, ...request, tray: { ...this.trayOptions, ...fixed, ...bounds, ...(request.tray || {}) } });
   }
 
-  /** Bakes a roll and plays it. */
+  /** Bakes a roll and plays it, once the dice's font is ready to paint in. */
   async roll(request, playOptions = {}) {
+    await this.readyFont(this.o.dieStyle.font);
     const result = this.bake(request);
     await this.play(result, playOptions);
     return result;

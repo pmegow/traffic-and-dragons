@@ -27,9 +27,10 @@ export const TRAY_DEFAULTS = {
   surface: 'felt',    // the floor (SURFACES)
   walls: 'felt',      // the four walls (SURFACES)
   scale: 0.6,         // multiplies the default width and depth (owner 2026-10-24: the full-size tray was much too large on screen)
-  // bounds (optional): side planes [{ normal: {x, y, z}, offset }] in place of the four walls — a point
-  //   p is inside when normal·p ≥ offset. The renderer passes the screen's edges here when no tray is
-  //   drawn (render/framing.js ▸ screenBounds; owner 2026-10-24). The floor and the ceiling stay.
+  // bounds (optional): side planes [{ normal: {x, y, z}, offset }] in place of the four walls — the normal is a
+  //   direction (it is normalised) and a point p is inside when n̂·p ≥ offset, metres along it. The renderer passes
+  //   the screen's edges here when no tray is drawn (render/framing.js ▸ screenBounds; owner 2026-10-24). The floor
+  //   and the ceiling stay.
   // area (optional, with bounds): { center: {x, z}, width, depth } — where in the bounds a throw starts.
 };
 
@@ -65,11 +66,16 @@ const TOSS_REACH = 0.13;   // m: the half-width the toss speeds were tuned in (t
  * and is not scaled).
  */
 export function trayFor(count, partial = {}) {
-  const s = partial.scale ?? TRAY_DEFAULTS.scale;
+  // A key set to undefined is unset (a host spreading an option it never had), never undefined over a default.
+  const given = Object.fromEntries(Object.entries(partial).filter(([, v]) => v !== undefined));
+  const s = given.scale ?? TRAY_DEFAULTS.scale;
   if (!(s > 0)) throw new Error('trayFor: tray.scale must be positive, got ' + s);
   const k = s * Math.max(1, Math.sqrt(count / CROWD));
-  return { ...TRAY_DEFAULTS, width: TRAY_DEFAULTS.width * k, depth: TRAY_DEFAULTS.depth * k, ...partial, scale: s };
+  return { ...TRAY_DEFAULTS, width: TRAY_DEFAULTS.width * k, depth: TRAY_DEFAULTS.depth * k, ...given, scale: s };
 }
+
+/** What a die in the request may carry besides its type and value: overrides of its registry entry (src/dice.js). */
+const DIE_OPTIONS = ['material', 'circumradius', 'edgeRadius', 'materialOverrides'];
 
 /**
  * Roll dice. request = {
@@ -108,6 +114,9 @@ function validate(request) {
   const dice = request.dice.map((d, i) => {
     const spec = typeof d === 'string' ? { type: d } : d;
     const { type, value, ...options } = spec;
+    for (const k of Object.keys(options)) {
+      if (!DIE_OPTIONS.includes(k)) throw new Error('roll: die ' + i + ' (' + type + '): unknown option "' + k + '" (known: ' + DIE_OPTIONS.join(', ') + ')');
+    }
     const die = buildDie(type, options);
     if (value !== undefined && value !== null) {
       if (!die.featureOfValue.has(value)) throw new Error('roll: die ' + i + ' (' + type + ') cannot show ' + value + ' (values 1..' + die.sides + ')');
@@ -119,6 +128,9 @@ function validate(request) {
   const seed = request.seed ?? Math.floor(Math.random() * 4294967296);
   if (!Number.isInteger(seed)) throw new Error('roll: seed must be an integer, got ' + request.seed);
   const tray = trayFor(dice.length, request.tray || {});
+  for (const k of ['width', 'depth', 'height']) {
+    if (!(Number.isFinite(tray[k]) && tray[k] > 0)) throw new Error('roll: tray.' + k + ' must be a positive number, got ' + tray[k]);
+  }
   lookup(SURFACES, tray.surface, 'surface');
   lookup(SURFACES, tray.walls, 'surface');
   if (tray.bounds !== undefined) {
@@ -469,7 +481,12 @@ function finish(req, sim, seed, attempts, rejected) {
     // An honest roll gets one too: a turn about the up face keeps its value and only chooses which
     // way round its numeral sits — square to the die's edges, as on a real die, and as legible as
     // the die allows (a d6 within 45° of upright, a d20 within 60°; a d10 has no such turn).
-    const s = chooseSymmetry(b.die, feature, value, b.orientation, req.readUp);
+    // A drop's resting die keeps the identity: its pose IS what the player saw, printing included,
+    // so its first frame shows it exactly as it lay. Read afresh, it turned a quarter on the spot
+    // whenever the camera had turned since its roll, and a die knocked to a new face would have
+    // shown a different number before anything touched it (2026-10-28).
+    const resting = req.drop !== null && i < req.drop.resting.length && spec.value === null;
+    const s = resting ? b.die.identity : chooseSymmetry(b.die, feature, value, b.orientation, req.readUp);
     const track = new Float32Array(frames.length * 7);
     frames.forEach((f, k) => track.set(f[i], k * 7));
     return {

@@ -169,18 +169,27 @@ const DIGIT_HEIGHT = 0.7;
  * Loads a vendored numeral font (an entry of NUMERAL_FONTS with a `file`) so a canvas can paint in
  * it; resolves at once for a system font stack. A font that fails to load is refused loudly.
  */
-const loaded = new Map();
+const loaded = new Map();        // face → its load (a promise)
+const loadedFaces = new Set();   // the faces the document has: ready to paint in
 export function loadNumeralFont(font) {
   if (!font.file) return Promise.resolve();
   if (!loaded.has(font.face)) {
     const url = new URL('../' + font.file, import.meta.url);
     const face = new FontFace(font.face, 'url(' + url.href + ')', { weight: font.weights || 'normal' });
-    loaded.set(font.face, face.load().then((f) => { document.fonts.add(f); }).catch((e) => {
+    loaded.set(font.face, face.load().then((f) => { document.fonts.add(f); loadedFaces.add(font.face); }).catch((e) => {
       loaded.delete(font.face);
       throw new Error('loadNumeralFont: ' + font.face + ' (' + url.href + ') did not load: ' + e.message);
     }));
   }
   return loaded.get(font.face);
+}
+
+/**
+ * True when a canvas paints in the font now: a system stack always, a vendored face once loadNumeralFont has loaded
+ * it. Painted sooner, a vendored font's mask comes out in its fallback (DiceView repaints it once the face arrives).
+ */
+export function numeralFontLoaded(font) {
+  return !font.file || loadedFaces.has(font.face);
 }
 
 /**

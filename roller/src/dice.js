@@ -182,6 +182,10 @@ export function buildDie(type, options = {}) {
   });
   const featureOfValue = new Map(features.map((f, k) => [f.value, k]));
   if (featureOfValue.size !== entry.sides) throw new Error('buildDie ' + type + ': values are not 1..' + entry.sides);
+  const symmetries = symmetryGroup(core, features);
+  // The turn that turns nothing: a die printed as it lies (a drop's resting dice keep it, src/roll.js ▸ finish).
+  const identity = symmetries.find((s) => s.perm.every((p, k) => p === k));
+  if (!identity) throw new Error('buildDie ' + type + ': the symmetry group has no identity');
 
   const die = {
     type,
@@ -197,7 +201,8 @@ export function buildDie(type, options = {}) {
     features,
     featureOfValue,
     glyphs: core.faces.map((_, fi) => readout.glyphs(core, fi, entry)),
-    symmetries: symmetryGroup(core, features),
+    symmetries,
+    identity,
     text: (value) => (entry.zeroForMax && value === entry.sides ? '0' : String(value)),
   };
   cache.set(key, Object.freeze(die));

@@ -4,7 +4,7 @@ import { DiceAudio } from '../audio/index.js';
 import { createPressGesture } from '../input/press-gesture.js';
 import { createPinch } from '../input/pinch.js';
 import { createPresetStore } from './preset-store.js';
-import { createDrawer } from './drawer.js';
+import { createDrawer, DRAWER } from './drawer.js';
 import { sameLook } from '../render/presets.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
@@ -626,7 +626,9 @@ stage.addEventListener('contextmenu', (e) => e.preventDefault());   // a long pr
 const narrow = window.matchMedia('(max-width: 760px)');
 const panel = $('panel'), grab = $('drawer-grab');
 const DRAWER_KEY = 'dice-sim:drawer';
-const drawerMax = () => Math.round(window.innerHeight * 0.85);
+// Never below what the drawer accepts: a page opened in a window of no height yet (a hidden tab, a pre-render) refused
+// the drawer and died there, before the buttons were painted or the first roll thrown (2026-10-28); a resize sets it right.
+const drawerMax = () => Math.max(DRAWER.min + 1, Math.round(window.innerHeight * 0.85));
 let drawerSaved = null;
 try { drawerSaved = JSON.parse(localStorage.getItem(DRAWER_KEY) || 'null'); } catch { /* storage blocked: the default height */ }
 const drawerStart = Math.round(window.innerHeight * 0.46);   // the layout's old fixed share

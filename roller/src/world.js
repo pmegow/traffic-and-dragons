@@ -150,7 +150,12 @@ export class World {
 
   /** A manifold record, inheriting last step's impulses for contacts that have not moved on the die. */
   manifold(key, A, B, m, mat, surface, partner = A ? A.index : -1) {
-    const old = this.manifolds.get(key);
+    // Only last step's record of this pair WITH THE SAME DIE AS B carries over. A pair keeps its key when one die
+    // falls asleep and stands in as ground for the other (A null, B the other): were the other die then B, the
+    // old rolling and spin impulses would land on it with their signs turned, and a contact that happened to
+    // match in its frame would bring the first die's impulses with it.
+    const prev = this.manifolds.get(key);
+    const old = prev && prev.B === B ? prev : null;
     const RT = mtranspose(B.rotation);
     const used = new Set();
     const tol2 = this.o.matchDistance * this.o.matchDistance;
