@@ -21,6 +21,10 @@
 //          bobbing gently and turning slowly, before it opens and for a while after, then is sucked down through it, stretching as it goes (cut at the floor),
 //          the hole's sharp red ring round it, and the hole snaps shut behind it with a crack and a soft puff of
 //          dark smoke (sound('crack'), burn out's; sound('softPuff'))
+//   shatter Shatter: cracks run over the die from its top along the very lines it will break on, with a crack
+//          (sound('crack')); then it breaks into 10 ± 3 Voronoi pieces (render/fracture.js), sharply
+//          (sound('shatter')), which burst away spinning, fall and tumble to rest on the floor
+//          (render/shards.js), each strike a small click (sound('shard', …)), and fade
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
 //
 // Effects only draw: nothing here touches the physics, and the timings are the table's. A sound an effect
@@ -28,13 +32,16 @@
 // removeDie's onSound).
 
 import * as THREE from 'three';
-import { EXIT_TABLE, SCURRY, BURN, PIT, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
+import { EXIT_TABLE, SCURRY, BURN, PIT, SHATTER, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, shatterTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
+import { fractureSeeds, fracturePieces, pieceCount } from './fracture.js';
+import { burstShards, stepShards } from './shards.js';
+import { blankUV } from './die-mesh.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_DEPTH_PARS, EXIT_DEPTH } from './exit-shader.js';
 import { PATTERN_GLSL, PATTERN_SCALE } from './patterns.js';
 import { dieMaterial, FINISHES } from './finishes.js';
 import { createParticles } from './particles.js';
 
-const STARTS = { none: startNone, burn: startBurn, smoke: startSmoke, pit: startPit, fade: startFade, scurry: startScurry };
+const STARTS = { none: startNone, burn: startBurn, smoke: startSmoke, pit: startPit, fade: startFade, scurry: startScurry, shatter: startShatter };
 
 // Random (round 12) plays nothing itself: the view asks chooseExit for one of the others as each die leaves.
 export const EXITS = Object.fromEntries(Object.entries(EXIT_TABLE).map(([key, entry]) => {
@@ -531,6 +538,98 @@ function wanderingPath(view, centre, heading0, R) {
       const f = Math.min(Math.max(s / ds, 0), points.length - 1), k = Math.min(Math.floor(f), points.length - 2), w = f - k;
       const a = points[k], b = points[k + 1];
       return { x: a.x + (b.x - a.x) * w, z: a.z + (b.z - a.z) * w, heading: b.heading };
+    },
+  };
+}
+
+// ---------------------------------------------------------------- shatter
+// Owner 2026-10-27: "Yes start the shatter ... Let's start with 10 pieces +-3. Take the idea all the way to a play
+// test." Its seeds are drawn as it starts, so its cracks run along the lines it will break on; it is cut into its
+// pieces (render/fracture.js) a few a frame while they run, so no frame stalls; the pieces share its material, kept
+// in its own space, so its veins run on through every break.
+function startShatter({ view, entry, sound = () => {} }) {
+  const mesh = entry.mesh, m = mesh.material, uniforms = m.userData.dice.uniforms, R = entry.die.boundingRadius;
+  m.transparent = true;   // the pieces fade at the end: one compile per finish (warmed ahead), now rather than then
+  m.needsUpdate = true;
+  const g = mesh.geometry, at = g.attributes, colours = at.color.array;
+  let dim = 1;
+  for (let i = 0; i < colours.length; i++) dim = Math.min(dim, colours[i]);   // a broken face is as dim as the die's
+  const seeds = fractureSeeds(entry.die.core, pieceCount());
+  const cutting = fracturePieces({ position: at.position.array, normal: at.normal.array, uv: at.uv.array, color: colours }, seeds,
+    { innerUV: blankUV(g.userData.layout), innerColor: dim });
+  // The cracks run from its highest point, along the boundaries between the cells.
+  mesh.updateMatrixWorld();
+  const p = new THREE.Vector3(), top = new THREE.Vector3(), topWorld = new THREE.Vector3();
+  for (let i = 0, high = -Infinity; i < at.position.count; i++) {
+    p.fromBufferAttribute(at.position, i);
+    const y = p.clone().applyMatrix4(mesh.matrixWorld).y;
+    if (y > high) { high = y; top.copy(p); }
+  }
+  topWorld.copy(top).applyMatrix4(mesh.matrixWorld);
+  uniforms.uExitCrackFrom.value.copy(top);
+  seeds.forEach((s, k) => uniforms.uExitSeeds.value[k].set(s[0], s[1], s[2]));
+  uniforms.uExitSeedCount.value = seeds.length;
+  const depth = exitDepthMaterial(uniforms);   // their shadows fade with them
+  const cut = [], shards = [];
+  const addShard = (c) => {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(c.position, 3));
+    geometry.setAttribute('normal', new THREE.BufferAttribute(c.normal, 3));
+    geometry.setAttribute('uv', new THREE.BufferAttribute(c.uv, 2));
+    geometry.setAttribute('color', new THREE.BufferAttribute(c.color, 3));
+    geometry.computeBoundingSphere();
+    const s = new THREE.Mesh(geometry, m);
+    s.castShadow = mesh.castShadow;
+    s.receiveShadow = mesh.receiveShadow;
+    s.renderOrder = mesh.renderOrder;
+    s.customDepthMaterial = depth;
+    s.matrixAutoUpdate = false;   // its pose is the motion's (render/shards.js), turned about its own centroid
+    s.visible = false;
+    view.scene.add(s);
+    cut.push(c);
+    shards.push(s);
+  };
+  // Cuts pieces until `ms` have gone (at least one); true once every piece is cut.
+  let whole = true;
+  const cutFor = (ms) => {
+    const t0 = performance.now();
+    while (whole) {
+      const next = cutting.next();
+      if (next.done) whole = false;
+      else addShard(next.value);
+      if (performance.now() - t0 >= ms) break;
+    }
+    return !whole;
+  };
+  const at3 = new THREE.Vector3(), turn = new THREE.Quaternion(), back = new THREE.Matrix4(), ONE = new THREE.Vector3(1, 1, 1);
+  let states = null, cracking = false;
+  return {
+    step(u, dt) {
+      const t = shatterTimeline(u);
+      if (!cracking) { cracking = true; sound('crack', topWorld); }
+      if (!t.broken) { uniforms.uExitCrack.value = t.crack * SHATTER.reach * R; cutFor(SHATTER.cutBudget); return; }
+      if (!states) {
+        cutFor(Infinity);   // whatever the cracks left uncut (a frame that ran long)
+        uniforms.uExitCrack.value = 0;
+        mesh.visible = false;
+        states = burstShards(cut, { position: mesh.position.toArray(), quaternion: mesh.quaternion.toArray() });
+        for (const s of shards) s.visible = true;
+        sound('shatter', mesh.position.clone());
+      }
+      stepShards(states, dt, (s, point, speed) => sound('shard', new THREE.Vector3(point[0], point[1], point[2]), Math.min(1, speed / SHATTER.loudHit)));
+      states.forEach((s, k) => {
+        const c = cut[k].centroid;
+        shards[k].matrix.compose(at3.set(s.x[0], s.x[1], s.x[2]), turn.set(s.q[0], s.q[1], s.q[2], s.q[3]), ONE).multiply(back.makeTranslation(-c[0], -c[1], -c[2]));
+        shards[k].matrixWorldNeedsUpdate = true;
+      });
+      m.opacity = t.opacity;
+      uniforms.uExitFade.value = t.opacity;
+    },
+    dispose() {
+      for (const s of shards) { view.scene.remove(s); s.geometry.dispose(); }
+      depth.dispose();
+      uniforms.uExitCrack.value = 0;
+      uniforms.uExitSeedCount.value = 0;
     },
   };
 }

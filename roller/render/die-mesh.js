@@ -64,7 +64,8 @@ function faceUV(layout, fi, p) {
   ];
 }
 
-function blankUV(layout) {
+/** The UV of the atlas's blank cell: no numeral (the rounded parts, and a shattered die's broken faces). */
+export function blankUV(layout) {
   const c = layout.blank, col = c % layout.cols, row = Math.floor(c / layout.cols);
   return [(col + 0.5) / layout.cols, 1 - (row + 0.5) / layout.rows];
 }

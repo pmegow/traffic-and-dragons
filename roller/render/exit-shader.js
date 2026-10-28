@@ -7,6 +7,8 @@
 // behind a uniform branch, so a die that is not leaving costs nothing — and since the code is in
 // every die's shader from the start, a die leaving never compiles a shader mid-game.
 
+import { SHATTER } from './exit-table.js';
+
 /** The clip height that clips nothing: far below any floor. */
 export const EXIT_CLIP_OFF = -10;
 
@@ -16,12 +18,22 @@ const EXIT_NOISE = 'pFbm( ( vPatternPos * uScale + uSeed ) * 1.6 )';
 export const EXIT_VERTEX_PARS = 'varying float vExitWorldY;';
 export const EXIT_VERTEX = 'vExitWorldY = ( modelMatrix * vec4( transformed, 1.0 ) ).y;';
 
+/** The most seeds a die's cracks are drawn from: the most pieces it breaks into. */
+const SHATTER_SEEDS = SHATTER.pieces + SHATTER.spread;
+
 export const EXIT_FRAGMENT_PARS = /* glsl */ `
 uniform float uExitHeat;
 uniform float uExitDissolve;
 uniform float uExitClipY;
 uniform float uExitUnder;
+// Shatter's cracks (owner 2026-10-27): uExitCrack is how far they have spread (m) from uExitCrackFrom, along the
+// boundaries between the cells of uExitSeeds (the die's own space, as render/fracture.js cuts it).
+uniform float uExitCrack;
+uniform vec3 uExitCrackFrom;
+uniform vec3 uExitSeeds[ ${SHATTER_SEEDS} ];
+uniform int uExitSeedCount;
 varying float vExitWorldY;
+float exitCrack = 0.0;
 vec3 exitGlow = vec3( 0.0 );
 vec3 exitUnderGlow = vec3( 0.0 );
 float exitChar = 0.0;
@@ -35,11 +47,30 @@ const float EXIT_GLOW = 1.1;
 // and gone EXIT_UNDER_REACH (m) above it, more on the faces turned down to it.
 const vec3 EXIT_HELL = vec3( 2.0, 0.8, 0.1 );
 const float EXIT_UNDER_REACH = 0.025;
+const float EXIT_CRACK_WIDTH = ${SHATTER.width};
+const vec3 EXIT_CRACK_COLOUR = vec3( 0.015, 0.013, 0.012 );
 `;
 
 /** After the die's colour (and its ink): the pit's cut and shade, then the burn. */
 export const EXIT_SURFACE = /* glsl */ `
 if ( vExitWorldY < uExitClipY ) discard;
+if ( uExitCrack > 0.0 ) {
+  // The boundary between the two nearest cells: the distance to the plane halfway between their seeds.
+  float exitD1 = 1e9, exitD2 = 1e9;
+  vec3 exitS1 = vec3( 0.0 ), exitS2 = vec3( 0.0 );
+  for ( int i = 0; i < ${SHATTER_SEEDS}; i++ ) {
+    if ( i >= uExitSeedCount ) break;
+    float d = distance( vPatternPos, uExitSeeds[ i ] );
+    if ( d < exitD1 ) { exitD2 = exitD1; exitS2 = exitS1; exitD1 = d; exitS1 = uExitSeeds[ i ]; }
+    else if ( d < exitD2 ) { exitD2 = d; exitS2 = uExitSeeds[ i ]; }
+  }
+  float exitEdge = abs( dot( vPatternPos - 0.5 * ( exitS1 + exitS2 ), normalize( exitS2 - exitS1 ) ) );
+  // It runs out from where it began, thinning to nothing at its tip.
+  float exitTip = uExitCrack - distance( vPatternPos, uExitCrackFrom );
+  float exitW = EXIT_CRACK_WIDTH * clamp( exitTip / ( 8.0 * EXIT_CRACK_WIDTH ), 0.0, 1.0 );
+  exitCrack = ( 1.0 - smoothstep( exitW, exitW + fwidth( exitEdge ), exitEdge ) ) * step( 0.0, exitTip );
+  diffuseColor.rgb = mix( diffuseColor.rgb, EXIT_CRACK_COLOUR, exitCrack );
+}
 exitShade = smoothstep( uExitClipY, uExitClipY + 0.01, vExitWorldY );   // dark just above a pit's rim
 if ( uExitUnder > 0.0 ) {
   float exitLow = 1.0 - smoothstep( uExitClipY, uExitClipY + EXIT_UNDER_REACH, vExitWorldY );

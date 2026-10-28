@@ -67,6 +67,28 @@ export const SCURRY = {
  */
 export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, spin: 0.35 / 2, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225, herald: 0.5, heraldRise: 3 };
 
+/**
+ * Shatter (owner 2026-10-27: "Yes start the shatter ... Let's start with 10 pieces +-3. Take the idea all the way to a
+ * play test"), in seconds: cracks spread over the die from its top for `crack` (reaching `reach` radii, `width` m
+ * wide, along the very lines it will break on: render/fracture.js's cells), then it breaks into `pieces` ± `spread`
+ * pieces that burst away from its centre (`burst` m/s, `pop` m/s up, `spin` rad/s), fall in the dice's own slow
+ * motion (`gravity`: g at VIEW_DEFAULTS.pace 0.3) and tumble to rest on the floor (render/shards.js: `bounce`
+ * above `bounceSpeed`, `friction`, `settle`, resting under `restSpeed` and `restSpin`, sub-stepped at `substep`;
+ * a strike over `hitSpeed` is heard, `hitsHeard` times a piece at most, at full strength from `loudHit`); after
+ * `fly` they fade over `fade`. The die is cut while its cracks run, a few pieces a frame, for at most `cutBudget` ms
+ * a frame (a d20 in 13 pieces is ~17 ms of cutting on a desktop), so no frame stalls.
+ */
+export const SHATTER = {
+  pieces: 10, spread: 3,
+  crack: 0.4, reach: 2.2, width: 0.00025,
+  burst: [0.05, 0.12], pop: [0.05, 0.1], spin: [4, 12],
+  gravity: 9.81 * 0.3 * 0.3, substep: 1 / 240,
+  bounce: 0.3, bounceSpeed: 0.02, friction: 0.5, settle: 6, restSpeed: 0.003, restSpin: 0.5,
+  hitSpeed: 0.02, hitsHeard: 2, loudHit: 0.2,
+  cutBudget: 3,
+  fly: 1.0, fade: 0.5,
+};
+
 /** When Going down's hole starts to open: the die risen and its beat sat out. */
 export const PIT_OPENS = PIT.rise + PIT.beat;
 
@@ -80,6 +102,7 @@ export const EXIT_TABLE = {
   pit: { label: 'Going down', seconds: PIT_PULL + PIT.suck + PIT.close + PIT.linger },   // 2.985 s: until the pit's last cinder and smoke have gone (round 20)
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
+  shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
 };
 
@@ -212,6 +235,19 @@ function easeOutCubic(x) {
 }
 
 /** Fade: the die fades out (opacity 1 … 0), its shadow with it. */
+/**
+ * Shatter: crack (0 … 1) is how far the cracks have spread, quickly at first as cracks run; broken from the end of
+ * the crack, when the pieces take over (render/shards.js moves them); opacity falls to 0 over the fade at the end.
+ */
+export function shatterTimeline(u) {
+  const t = clamp01(u) * EXIT_TABLE.shatter.seconds, gone = SHATTER.crack + SHATTER.fly;
+  return {
+    crack: Math.pow(clamp01(t / SHATTER.crack), 0.7),
+    broken: t >= SHATTER.crack,
+    opacity: t < gone ? 1 : 1 - smooth((t - gone) / SHATTER.fade),
+  };
+}
+
 export function fadeTimeline(u) {
   return { opacity: 1 - smooth(u) };
 }

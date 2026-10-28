@@ -8,7 +8,8 @@
 //   rollEvents(result, …)   one event per impact the physics recorded — the click's loudness from
 //                           the impact speed, its choice from the recorded clicks of that strength
 //   exitSoundEvent(kind, …) a sound an exit makes (EXIT_SOUNDS): a spider's step, a burn's sizzle and
-//                           crack, a smoke puff's puff of air, a fade's breeze, a pit's crackle and soft puff
+//                           crack, a smoke puff's puff of air, a fade's breeze, a pit's crackle and soft puff,
+//                           a shatter's break and its pieces' clicks
 //
 // (A cup rattle before the throw, built from these clicks, was tried on 2026-10-24 and removed the
 // same day: too uniform — owner.)
@@ -167,6 +168,11 @@ export const EXIT_SOUNDS = {
     envelope: [...swellEnvelope({ full: PIT_OPENS + PIT.open }), [PIT_PULL + 0.1, -2], [PIT_PULL + 0.1 + PIT.close, -40]],
   },
   softPuff: { bank: 'exits', take: 'puff', rate: 0.8, gain: 0.12, after: 0, spread: 0, vary: { rate: 0.05, gain: 0.1 } },
+  // Shatter (owner 2026-10-27): no glass shatter is in the approved library, so it is made of what is — burn out's
+  // ice crack as the cracks run (its own entry, crack), the same crack played higher and brighter as it breaks, and
+  // a die's own click, small and high, as each piece strikes the floor (strength by how hard).
+  shatter: { bank: 'exits', take: 'crack', rate: 1.3, gain: 0.8, after: 0, spread: 0, vary: { rate: 0.06, gain: 0.1 } },
+  shard: { bank: 'clicks', strength: 0.3, rate: 1.7, gain: 0.2, after: 0, spread: 0.01, vary: { rate: 0.1, gain: 0.3 } },
 };
 
 /** Where an exit sound's recording comes from, by its bank: the region it plays and the timbre it plays through. */

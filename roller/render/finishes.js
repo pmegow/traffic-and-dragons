@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { FINISHES, SPECULAR, SEE_THROUGH_DEPTH_OFFSET } from './finish-table.js';
 import { patternUniforms, injectPattern } from './patterns.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_FRAGMENT_PARS, EXIT_SURFACE, EXIT_EMISSIVE, EXIT_OUTGOING } from './exit-shader.js';
+import { SHATTER } from './exit-table.js';
 
 export { FINISHES };
 
@@ -37,6 +38,10 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
     uExitClipY: { value: EXIT_CLIP_OFF },
     uExitUnder: { value: 0 },   // Going down's hellfire, lighting it from below
     uExitFade: { value: 1 },   // its shadow's share left as it fades (the die itself fades by opacity)
+    uExitCrack: { value: 0 },   // Shatter's cracks: how far they have spread (m)
+    uExitCrackFrom: { value: new THREE.Vector3() },
+    uExitSeeds: { value: Array.from({ length: SHATTER.pieces + SHATTER.spread }, () => new THREE.Vector3()) },
+    uExitSeedCount: { value: 0 },
   };
   const m = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(style.body),
@@ -82,7 +87,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
       .replace('#include <lights_physical_fragment>', THREE.ShaderChunk.lights_physical_fragment
         .replace('float specularIntensityFactor = specularIntensity;', MICA_SPECULAR))
       .replace('#include <transmission_fragment>', THREE.ShaderChunk.transmission_fragment
-        .replace('material.transmission = transmission;', 'material.transmission = transmission * ( 1.0 - diceGlyph ) * ( 1.0 - exitChar );'));
+        .replace('material.transmission = transmission;', 'material.transmission = transmission * ( 1.0 - diceGlyph ) * ( 1.0 - exitChar ) * ( 1.0 - exitCrack );'));
     if (f.mica && !shader.fragmentShader.includes(MICA_SPECULAR)) {
       console.error('dieMaterial: the mica hook did not apply (a three.js chunk changed?)');
     }
