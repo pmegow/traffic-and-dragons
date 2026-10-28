@@ -3974,18 +3974,50 @@ function voiceNoteTrim(note){
    from them, spoiler-safe by construction since they compress what was narrated — and shows it only to the GM; the
    premise is GM-eyes (a freeform premise can state the villain's design) and the compass shows titles only for the
    same reason. Rulings (two chips): ① the model writes from PLAYER-KNOWN material only — the stake, the chapters and
-   eras, the quests the player has seen, the COMPLETED and CURRENT act and arc titles — never skeleton.premise, an
-   act's goal or turning point, an arc's objective or dnaHint, a pending title; ② it is refreshed after an
-   [ARC_COMPLETE:] or [ACT_COMPLETE:] lands (synopsisDue, read after the commit, never awaited by the turn) and by the
+   eras, the quests the player has seen, the COMPLETED and CURRENT act and arc titles — never skeleton.premise, the
+   CURRENT act's goal or turning point, the CURRENT arc's objective or dnaHint, a pending title; ② it is refreshed after
+   an [ARC_COMPLETE:] or [ACT_COMPLETE:] lands (synopsisDue, read after the commit, never awaited by the turn) and by the
    journal's Refresh button, never on a quest completion. Everything here is pure over worldState and memory; the call
    and the record live in game.js (refreshSynopsis, applySynopsisResp), the block's wiring in ui-modals.js. The record
-   (worldState.synopsis) is player-facing only — nothing in the prompt reads it, which keeps it off the drift surface. */
+   (worldState.synopsis) is player-facing only — nothing in the prompt reads it, which keeps it off the drift surface.
+   THE WHY (owner 2026-10-28, after the first live recap: "a good history … what I STILL don't know is why"): chapters
+   are EVENTS — the summarizer writes what happened, never why — so the recap read as a run-down with no purpose. The
+   why lives elsewhere in the save, all of it player-known by construction: the lore on file (filed from narration),
+   the facts and events on file for the people the chapters name (never an NPC's withheld `secrets`), the key
+   decisions, the hero's backstory and record, the opening scene (the GM must state the hero's stake in-fiction, #425),
+   and — ruled 2026-10-28, completed only — the goal of a COMPLETED act and the objective of a COMPLETED arc: purpose
+   the player has already lived through. The model is asked for the why and the aim as the story has told them, and
+   for what it has NOT yet told (so a forgotten answer can be told from an unrevealed one). */
+var SYNOPSIS_CAPS={backstory:1200,record:1500,opening:1200,lore:2500,people:2500,person:450,decisions:1500};
+/* Keep a line list under a character cap by keeping its head and its tail (the oldest facts shape the why, the newest
+   are where things stand) — never the middle alone. Pure. */
+function synopsisCapLines(lines,cap){
+  var total=0,i;for(i=0;i<lines.length;i++)total+=lines[i].length+1;
+  if(total<=cap)return lines.slice();
+  var head=[],tail=[],used=0,h=0,t=lines.length-1;
+  while(h<=t){if(used+lines[h].length+1>cap/2)break;head.push(lines[h]);used+=lines[h].length+1;h++;}
+  while(t>=h){if(used+lines[t].length+1>cap)break;tail.unshift(lines[t]);used+=lines[t].length+1;t--;}
+  return head.concat(tail);
+}
+/* The opening scene — the first GM entry of the transcript (never a bookkeeping or refusal entry), cut at a sentence
+   near the cap. The player read it; the hero's stake is stated there in-fiction (#425). Pure. */
+function synopsisOpening(ws){
+  var tr=(ws&&ws.transcript)||[],i;
+  for(i=0;i<tr.length;i++){var e=tr[i];if(!e||e.r!=="gm"||e.bk||e.rf)continue;
+    var x=String(e.x||"");if(typeof cleanTxt==="function")x=cleanTxt(x);x=x.replace(/\s+/g," ").trim();if(!x)continue;
+    if(x.length>SYNOPSIS_CAPS.opening){var cut=x.lastIndexOf(". ",SYNOPSIS_CAPS.opening);x=x.slice(0,cut>SYNOPSIS_CAPS.opening/2?cut+1:SYNOPSIS_CAPS.opening);}
+    return x;}
+  return "";
+}
 function synopsisBasis(){
   var ws=(typeof worldState!=="undefined"&&worldState)||null,mem=(typeof memory!=="undefined"&&memory)||null;
-  var out={stake:"",hero:"",where:"",eras:[],chapters:[],quests:[],active:[],spine:[],bearing:null},i,j;
+  var out={stake:"",hero:"",backstory:"",record:"",opening:"",where:"",eras:[],chapters:[],lore:[],people:[],decisions:[],quests:[],active:[],spine:[],bearing:null},i,j;
   if(!ws)return out;
   out.stake=String(ws.stake||"").trim();
   out.hero=(ws.character&&ws.character.name)?String(ws.character.name):"";
+  out.backstory=ws.character?String(ws.character.backstory||"").replace(/\s+/g," ").trim().slice(0,SYNOPSIS_CAPS.backstory):"";
+  out.record=(ws.character&&typeof charRecordDigest==="function")?String(charRecordDigest(ws.character)||"").slice(0,SYNOPSIS_CAPS.record):"";
+  out.opening=synopsisOpening(ws);
   out.where=ws.world?String(ws.world.sublocation||ws.world.location||""):"";
   if(mem){
     var eras=mem.eras||[];
@@ -3996,13 +4028,30 @@ function synopsisBasis(){
     var qk=mem.quests?Object.keys(mem.quests):[];
     for(i=0;i<qk.length;i++){var aq=mem.quests[qk[i]];if(!aq)continue;out.quests.push({title:String(aq.title||qk[i]),status:String(aq.status||""),desc:String(aq.desc||""),turn:aq.turn||0});}
     out.quests.sort(function(a,b){return a.turn-b.turn;});
+    /* the why: lore on file (oldest first, head and tail under the cap), the key decisions, and the facts and events on
+       file for the people the chapters, eras and quests NAME — an NPC's withheld secrets never */
+    var loreAll=((mem.archive&&mem.archive.lore)||[]).concat(mem.lore||[]).map(function(l){return String(l==null?"":(l.text||l)).replace(/\s+/g," ").trim();}).filter(function(l){return !!l;});
+    out.lore=synopsisCapLines(loreAll,SYNOPSIS_CAPS.lore);
+    var decAll=((mem.archive&&mem.archive.decisions)||[]).concat(mem.keyDecisions||[]).map(function(d){return d&&d.desc?"[turn "+(d.turn||0)+"] "+String(d.desc).replace(/\s+/g," ").trim():"";}).filter(function(l){return !!l;});
+    out.decisions=synopsisCapLines(decAll,SYNOPSIS_CAPS.decisions);
+    var told=out.eras.map(function(e){return e.text;}).concat(out.chapters.map(function(c){return c.text;}),out.quests.map(function(q){return q.title+" "+q.desc;})).join("\n");
+    var names=mem.npcs?Object.keys(mem.npcs):[],used=0;
+    for(i=0;i<names.length&&used<SYNOPSIS_CAPS.people;i++){var n=mem.npcs[names[i]];if(!n)continue;
+      var first=String(names[i]).split(/\s+/)[0];if(first.length<3)first=String(names[i]);
+      var re=new RegExp("(^|[^A-Za-z])"+first.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"($|[^A-Za-z])","i");
+      if(!re.test(told))continue;
+      var kn=(n.knowledge||[]).concat((n.events||[]).map(function(e){return e&&e.note?String(e.note):"";})).map(function(s){return String(s||"").replace(/\s+/g," ").trim();}).filter(function(s){return !!s;});
+      if(!kn.length)continue;
+      var lines=synopsisCapLines(kn,SYNOPSIS_CAPS.person),text=lines.join(" ");
+      if(used+text.length>SYNOPSIS_CAPS.people)break;
+      out.people.push({name:String(names[i]),facts:lines});used+=text.length;}
   }
   var ql=ws.questLog||[];
   for(i=0;i<ql.length;i++){if(!ql[i]||ql[i].status!=="active")continue;var obs=[],os=ql[i].objectives||[];for(j=0;j<os.length;j++)obs.push({text:String(os[j].text||""),done:!!os[j].done});out.active.push({title:String(ql[i].title||""),desc:String(ql[i].desc||""),objectives:obs});}
   var sk=ws.skeleton;
   if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){var a=sk.acts[i];if(!a||(a.status!=="completed"&&a.status!=="active"))continue;/* a pending act is the author's, not the player's */
-    var arcs=[],aa=a.arcs||[];for(j=0;j<aa.length;j++){if(!aa[j]||(aa[j].status!=="completed"&&aa[j].status!=="active"))continue;arcs.push({title:String(aa[j].title||""),status:String(aa[j].status),startTurn:aa[j].startTurn,completedTurn:aa[j].completedTurn});}
-    out.spine.push({label:actLabel(i+1,a.title),status:String(a.status),completedTurn:a.completedTurn,parallel:!!a.parallel,arcs:arcs});}}
+    var arcs=[],aa=a.arcs||[];for(j=0;j<aa.length;j++){if(!aa[j]||(aa[j].status!=="completed"&&aa[j].status!=="active"))continue;arcs.push({title:String(aa[j].title||""),status:String(aa[j].status),startTurn:aa[j].startTurn,completedTurn:aa[j].completedTurn,objective:aa[j].status==="completed"?String(aa[j].objective||""):""/* ruled 2026-10-28: a COMPLETED arc's purpose was lived; the current one stays the author's */});}
+    out.spine.push({label:actLabel(i+1,a.title),status:String(a.status),completedTurn:a.completedTurn,parallel:!!a.parallel,goal:a.status==="completed"?String(a.goal||""):""/* a COMPLETED act's goal, never the current one's */,arcs:arcs});}}
   out.bearing=(typeof questBearing==="function")?questBearing():null;
   return out;
 }
@@ -4058,19 +4107,25 @@ function synopsisNowLines(basis){
   return out;
 }
 var SYNOPSIS_SYS="You write a short, spoiler-free recap for a player returning to their own role-playing campaign. Output ONLY valid JSON. No prose outside it, no markdown, no backticks.";
-/* The side call's prompt — the basis and nothing else; the author's spine never enters. Pure. */
+/* The side call's prompt — the basis and nothing else; the author's live spine never enters. Pure. */
 function synopsisPrompt(basis){
   var b=basis||synopsisBasis(),L=[],i,j;
-  L.push("THE PLAYER IS COMING BACK after days away and cannot remember what this campaign is about, what has happened, or why the current objective matters. Write them a recap from the material below and NOTHING else: it is everything the player has seen. Never invent a fact, a name or a motive the material does not contain; never guess at what is coming.");
+  L.push("THE PLAYER IS COMING BACK after days away and cannot remember what this campaign is about, WHY their hero is in this fight, what has happened, or why the current objective matters. Write them a recap from the material below and NOTHING else: it is everything the player has seen. Never invent a fact, a name or a motive the material does not contain; never guess at what is coming. Where the material does not say why, say that the story has not told it yet.");
   if(b.hero)L.push("THE HERO: "+b.hero+".");
+  if(b.backstory)L.push("THE HERO'S OWN BACKSTORY (the player wrote this): "+b.backstory);
+  if(b.record)L.push("THE HERO'S RECORD (their lived history, earlier adventures included):\n"+b.record);
   if(b.stake)L.push("THE PLAYER'S OWN STAKE (their words at the start): "+b.stake);
-  if(b.spine.length){var sp=[];for(i=0;i<b.spine.length;i++){var a=b.spine[i],arcs=[];for(j=0;j<a.arcs.length;j++)arcs.push(a.arcs[j].title+(a.arcs[j].status==="completed"?" (done)":" (current)"));sp.push(a.label+(a.status==="completed"?" (complete)":" (current)")+(arcs.length?" — arcs: "+arcs.join("; "):""));}L.push("THE STORY'S SHAPE (titles only, as far as it has gone):\n"+sp.join("\n"));}
+  if(b.opening)L.push("HOW THE TALE OPENED (the first scene, as told to the player): "+b.opening);
+  if(b.spine.length){var sp=[];for(i=0;i<b.spine.length;i++){var a=b.spine[i],arcs=[];for(j=0;j<a.arcs.length;j++)arcs.push(a.arcs[j].title+(a.arcs[j].status==="completed"?" (done"+(a.arcs[j].objective?" — its purpose: "+a.arcs[j].objective:"")+")":" (current)"));sp.push(a.label+(a.status==="completed"?" (complete"+(a.goal?" — its goal: "+a.goal:"")+")":" (current)")+(arcs.length?"\n  arcs: "+arcs.join("; "):""));}L.push("THE STORY'S SHAPE (titles only, as far as it has gone; a completed act's goal and a completed arc's purpose are what the hero has already lived through):\n"+sp.join("\n"));}
   if(b.eras.length){var er=[];for(i=0;i<b.eras.length;i++)er.push("[turns "+b.eras[i].from+"-"+b.eras[i].to+"] "+b.eras[i].text);L.push("THE EARLIER CHAPTERS, compressed (oldest first):\n"+er.join("\n"));}
   if(b.chapters.length){var ch=[];for(i=0;i<b.chapters.length;i++)ch.push("[turn "+b.chapters[i].turn+"] "+b.chapters[i].text);L.push("THE CHAPTERS (oldest first):\n"+ch.join("\n"));}
+  if(b.lore.length)L.push("WHAT THE WORLD HAS TOLD YOU (lore on file, oldest first):\n- "+b.lore.join("\n- "));
+  if(b.people.length){var pp=[];for(i=0;i<b.people.length;i++)pp.push(b.people[i].name+": "+b.people[i].facts.join(" "));L.push("WHAT YOU KNOW OF THE PEOPLE the chapters name (facts and events on file):\n- "+pp.join("\n- "));}
+  if(b.decisions.length)L.push("WHAT YOU DECIDED (key decisions on file):\n- "+b.decisions.join("\n- "));
   if(b.quests.length){var qs=[];for(i=0;i<b.quests.length;i++)qs.push(b.quests[i].title+" ("+b.quests[i].status+")"+(b.quests[i].desc?": "+b.quests[i].desc:""));L.push("QUESTS SEEN THROUGH (oldest first):\n"+qs.join("\n"));}
   if(b.active.length){var ac=[];for(i=0;i<b.active.length;i++){var q=b.active[i],os=[];for(j=0;j<q.objectives.length;j++)os.push((q.objectives[j].done?"[done] ":"[ ] ")+q.objectives[j].text);ac.push(q.title+(q.desc?": "+q.desc:"")+(os.length?"\n  "+os.join("\n  "):""));}L.push("THE OPEN QUESTS NOW:\n"+ac.join("\n"));}
   if(b.where)L.push("WHERE THE PARTY IS: "+b.where+".");
-  L.push("Write in the second person, to the player, in plain present-tense prose a friend would use to catch them up. No clerical images — this world keeps no books.\nOutput ONLY this JSON:\n{\"about\":\"ONE paragraph of four to seven sentences: what this campaign is about as far as the hero knows it, then the through line — what the hero set out to do, the people who mattered and what became of them, the arcs in the order they happened and how each changed the situation. Name the names.\",\"now\":\"One or two sentences: where things stand this moment and why the current objective matters to the whole.\"}");
+  L.push("Write in the second person, to the player, in plain present-tense prose a friend would use to catch them up. No clerical images — this world keeps no books.\nOutput ONLY this JSON:\n{\"about\":\"ONE paragraph of four to seven sentences: what this campaign is about as far as the hero knows it, then the through line — what the hero set out to do, the people who mattered and what became of them, the arcs in the order they happened and how each changed the situation. Name the names.\",\"why\":\"Two to four sentences: WHY the hero is in this fight, who the enemy is and what they want, and the ultimate aim as the hero understands it today — only as far as the material states it.\",\"open\":\"One or two sentences naming what the story has NOT yet told the player that they might expect to know by now (a motive, a name, an aim); the single word nothing if the material answers it all.\",\"now\":\"One or two sentences: where things stand this moment and why the current objective matters to the whole.\"}");
   return L.join("\n\n");
 }
 /* The journal's block — a string, so the engine suite can read it. A save without a recap says so and offers the
@@ -4079,9 +4134,11 @@ function synopsisBlockHtml(syn,groups,nowLines,turn){
   var h="<div id='qm-syn' style='margin:2px 0 12px;'>",i,j,k;
   var ago=(syn&&turn!=null&&turn>syn.turn)?turn-syn.turn:0;
   var stamp=syn?("as of t"+syn.turn+(ago?" · "+ago+" turn"+(ago===1?"":"s")+" ago":"")):"not written yet";
+  var lbl="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin:6px 0 4px;'>";
   h+="<div style='display:flex;justify-content:space-between;align-items:baseline;gap:8px;'><span style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc);'>Story so far</span><span style='font-size:10px;color:var(--t2);'>"+escHtml(stamp)+"</span></div>";
   h+=syn?"<div style='font-size:13px;color:var(--t1);line-height:1.55;margin:6px 0 8px;'>"+escHtml(syn.about)+"</div>"
        :"<div style='font-size:12px;color:var(--t2);font-style:italic;margin:6px 0 8px;'>No recap yet — one is written when an arc or act completes, or now with Refresh.</div>";
+  if(syn&&syn.why)h+=lbl+"Why you fight</div><div style='font-size:13px;color:var(--t1);line-height:1.55;margin:0 0 8px;'>"+escHtml(syn.why)+"</div>";
   var n=0;for(i=0;i<groups.length;i++){n+=groups[i].items.length;for(j=0;j<groups[i].arcs.length;j++)n+=groups[i].arcs[j].items.length;}
   function items(list,indent){var s="";for(k=0;k<list.length;k++){var it=list[k];s+="<div style='font-size:12px;color:var(--t2);margin:3px 0 3px "+indent+"px;line-height:1.45;'><span style='font-size:10px;opacity:.7;'>"+(it.era?"t"+it.from+"–"+it.turn:"t"+it.turn)+"</span> "+escHtml(it.text)+"</div>";}return s;}
   if(n){h+="<details style='margin:4px 0 8px;'><summary style='cursor:pointer;font-size:12px;color:var(--t2);'>What has happened · "+n+" chapter"+(n===1?"":"s")+"</summary>";
@@ -4091,9 +4148,11 @@ function synopsisBlockHtml(syn,groups,nowLines,turn){
       for(j=0;j<g.arcs.length;j++){var a=g.arcs[j];h+="<div style='font-size:12px;color:var(--t2);margin:5px 0 2px 16px;'>“"+escHtml(a.title)+"”"+(a.status==="completed"?" <span style='color:var(--grn);'>✓</span>":a.status==="active"?" (current)":"")+"</div>"+items(a.items,28);}
     }
     h+="</details>";}
-  if(nowLines.length||(syn&&syn.now)){h+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin:6px 0 4px;'>Where you stand</div>";
+  if(nowLines.length||(syn&&syn.now)){h+=lbl+"Where you stand</div>";
     for(i=0;i<nowLines.length;i++)h+="<div style='font-size:12px;color:var(--t1);margin:2px 0;'>"+escHtml(nowLines[i])+"</div>";
     if(syn&&syn.now)h+="<div style='font-size:12px;color:var(--t1);line-height:1.5;margin:4px 0 0;font-style:italic;'>"+escHtml(syn.now)+"</div>";}
-  h+="<div style='display:flex;gap:8px;align-items:center;margin-top:8px;'><button class='qa' id='qm-syn-refresh' title='Ask the GM to write the story so far again from what you have seen: the chapters, the quests, the shape of the story. Never from the author’s notes.'>Refresh</button><span id='qm-syn-status' style='font-size:11px;color:var(--t2);'></span></div>";
+  var open=syn?String(syn.open||"").trim():"";
+  if(open&&!/^nothing\.?$/i.test(open))h+=lbl+"Still unknown</div><div style='font-size:12px;color:var(--t1);line-height:1.5;margin:0 0 4px;'>"+escHtml(open)+"</div>";
+  h+="<div style='display:flex;gap:8px;align-items:center;margin-top:8px;'><button class='qa' id='qm-syn-refresh' title='Ask the GM to write the story so far again from what you have seen: the chapters, the lore, the people, the quests, the shape of the story. Never from the author’s notes.'>Refresh</button><span id='qm-syn-status' style='font-size:11px;color:var(--t2);'></span></div>";
   return h+"</div><div style='border-top:1px solid var(--brd);margin-bottom:12px;'></div>";
 }

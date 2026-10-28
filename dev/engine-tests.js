@@ -35539,29 +35539,35 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return dr.indexOf("var falBody=usingI2I?")>text?true:"the count must land before the body is built";
   });
 
-  section("#671 — the story so far (owner 2026-10-27: back after a day away, the player cannot recall what the campaign is about or how the current quest fits; the journal is a to-done list): a player-facing recap at the top of the Quest Journal — the model's paragraph and where-you-stand line written from PLAYER-KNOWN material only (the stake, the chapters and eras, the quests seen, the completed and current act/arc titles — never the premise, a goal, a turning point, an objective, a dnaHint or a pending title), refreshed after an arc or act completes (synopsisDue after the commit, never awaited) and by the journal's Refresh button, never on a quest; the by-act receipt is derived (synopsisGroups); the record worldState.synopsis is player-facing only, nothing in the prompt reads it");
+  section("#671 — the story so far (owner 2026-10-27: back after a day away, the player cannot recall what the campaign is about or how the current quest fits; the journal is a to-done list): a player-facing recap at the top of the Quest Journal — the model's paragraph and where-you-stand line written from PLAYER-KNOWN material only (the stake, the chapters and eras, the quests seen, the completed and current act/arc titles — never the premise, the current act's goal or turning point, the current arc's objective or dnaHint, a pending title), refreshed after an arc or act completes (synopsisDue after the commit, never awaited) and by the journal's Refresh button, never on a quest; the by-act receipt is derived (synopsisGroups); the record worldState.synopsis is player-facing only, nothing in the prompt reads it. THE WHY (owner 2026-10-28, after the first live recap: a good history, no why): the lore on file, the facts and events on file for the people the chapters name (never a withheld secret), the key decisions, the hero's backstory and record, the opening scene, and — ruled, completed only — a completed act's goal and a completed arc's objective feed it; the model is asked for the why and the aim, and for what the story has not yet told");
   function mk671(){
     makeWorld();worldState.turn=140;worldState.stake="I want to find who burned my village.";
+    worldState.character.backstory="A Perdrath courier with a debt she could not refuse.";
     worldState.world={location:"the Ash Spire",region:"the Hollow Wastes",sublocation:"the cinder gate"};
+    worldState.transcript=[{t:0,r:"player",x:"begin"},{t:0,r:"gm",x:"OPENING-SCENE: Dawn bleeds over the Reach. The Harrow's riders took the grain. [HP:10]"},{t:1,r:"gm",x:"LATER-SCENE never the opening"}];
     worldState.skeleton={premise:"SECRET-PREMISE the Baron is the lich.",acts:[
-      {title:"Act 1: Ashfall",goal:"SECRET-GOAL-1",turningPoint:"SECRET-TP-1",status:"completed",completedTurn:60,arcs:[
-        {title:"Reading the Palisades",objective:"SECRET-OBJ-A",status:"completed",startTurn:0,completedTurn:30},
-        {title:"The Glass Spire Skirmish",objective:"SECRET-OBJ-B",status:"completed",startTurn:31,completedTurn:60}]},
+      {title:"Act 1: Ashfall",goal:"LIVED-GOAL-1 hold the threshold against the Harrow",turningPoint:"SECRET-TP-1",status:"completed",completedTurn:60,arcs:[
+        {title:"Reading the Palisades",objective:"LIVED-OBJ-A learn the walls",status:"completed",startTurn:0,completedTurn:30},
+        {title:"The Glass Spire Skirmish",objective:"LIVED-OBJ-B break the skirmish",status:"completed",startTurn:31,completedTurn:60}]},
       {title:"A Reason to Stay",goal:"SECRET-GOAL-2",turningPoint:"SECRET-TP-2",status:"active",arcs:[
-        {title:"Breaching the Ash Spires",objective:"SECRET-OBJ-C",dnaHint:"SECRET-DNA",status:"completed",startTurn:61,completedTurn:129},
+        {title:"Breaching the Ash Spires",objective:"LIVED-OBJ-C breach the spires",dnaHint:"SECRET-DNA",status:"completed",startTurn:61,completedTurn:129},
         {title:"The Jewel of Ruin",objective:"SECRET-OBJ-D",status:"active",startTurn:130}]},
       {title:"SECRET-ACT-3",goal:"SECRET-GOAL-3",turningPoint:"SECRET-TP-3",status:"pending",arcs:[{title:"SECRET-ARC-E",objective:"SECRET-OBJ-E",status:"pending"}]}]};
     worldState.questLog=[{title:"The Jewel of Ruin",status:"active",desc:"Destroy the master cinder jewel",objectives:[{text:"Reach the citadel",done:true},{text:"Destroy the master cinder jewel",done:false}]}];
-    memory.chapters=[{turn:70,summary:"Chapter seventy: Nyla led the party under the spires."},{turn:100,summary:"Chapter hundred: the pyre-foundry fell."},{turn:135,summary:"Chapter one-three-five: the gate opened."}];
+    memory.chapters=[{turn:70,summary:"Chapter seventy: Sable and Nyla led the party under the spires."},{turn:100,summary:"Chapter hundred: the pyre-foundry fell."},{turn:135,summary:"Chapter one-three-five: the gate opened."}];
     if(!memory.archive)memory.archive={};memory.archive.chapters=[{turn:20,summary:"Archived twenty."},{turn:45,summary:"Archived forty-five."}];
     memory.eras=[{summary:"Era one: the palisades were read and the spire skirmish won.",turnRange:[1,45],sourceChapterTurns:[20,45]}];
     memory.quests={"Reading the Palisades":{title:"Reading the Palisades",status:"completed",desc:"Scout the walls",turn:8},"A Reason to Stay":{title:"A Reason to Stay",status:"abandoned",by:"wall",desc:"",turn:128}};
+    memory.lore=["LORE-ONE The Harrow claims dominion over the frontier.","LORE-TWO The cinder pillars anchor the wards."];memory.archive.lore=[];
+    memory.keyDecisions=[{turn:12,desc:"DECISION-ONE spared Sable at the grain store"}];memory.archive.decisions=[];
+    memory.npcs={"Sable Pallwick":{attitude:"ally",knowledge:["SABLE-FACT poisons the grain on Ashvane's orders"],events:[{turn:5,note:"SABLE-EVENT met at the grain store"}],aliases:[],secrets:[{source:"blueprint",text:"SECRET-NPC Sable is the Baron's daughter",revealAct:3}]},
+      "Unnamed Nobody":{attitude:"",knowledge:["NOBODY-FACT never named in a chapter"],events:[],aliases:[]}};
     delete worldState.synopsis;
   }
   function leak671(s){var m=String(s).match(/SECRET-[A-Z0-9-]+/g);return m?m.join(","):"";}
-  t("#671 the basis carries only what the player has seen: the stake, the eras and the chapters past them, the quests, the completed and current titles, the open quests and the place — never the premise, a goal, a turning point, an objective, a dnaHint or a pending title",function(){
+  t("#671 the basis carries only what the player has seen: the stake, the eras and the chapters past them, the quests, the completed and current titles, the open quests and the place — never the premise, the current act's goal or turning point, the current arc's objective or dnaHint, a pending title",function(){
     mk671();var b=synopsisBasis(),s=JSON.stringify(b);
-    if(leak671(s))return "the basis leaks the author's spine: "+leak671(s);
+    if(leak671(s))return "the basis leaks the author's live spine: "+leak671(s);
     if(b.stake!=="I want to find who burned my village.")return "stake missing";
     if(b.eras.length!==1||b.eras[0].to!==45)return "one era to t45 expected: "+JSON.stringify(b.eras);
     if(b.chapters.length!==3||b.chapters[0].turn!==70)return "the chapters an era covers are not repeated; the three past it are kept: "+JSON.stringify(b.chapters);
@@ -35571,16 +35577,44 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(b.where!=="the cinder gate")return "the sublocation names the place: "+b.where;
     return b.bearing&&b.bearing.arcTitle==="The Jewel of Ruin"?true:"the compass rides along";
   });
-  t("#671 the prompt is built from the basis alone: the player's material in, the author's spine out, JSON {about, now} asked, second person, the register line",function(){
+  t("#671 THE WHY — the basis carries the lore, the facts and events on file for the people the chapters NAME (never a withheld secret, never an unnamed NPC), the decisions, the backstory, the record, the opening scene, and a COMPLETED act's goal and a COMPLETED arc's objective — the current ones stay the author's",function(){
+    mk671();var b=synopsisBasis();
+    if(b.lore.length!==2||b.lore[0].indexOf("LORE-ONE")<0)return "the lore on file, oldest first: "+JSON.stringify(b.lore);
+    if(b.people.length!==1||b.people[0].name!=="Sable Pallwick")return "only the people the chapters name: "+JSON.stringify(b.people);
+    var pf=b.people[0].facts.join(" ");if(pf.indexOf("SABLE-FACT")<0||pf.indexOf("SABLE-EVENT")<0)return "knowledge and events on file: "+pf;
+    if(/SECRET-NPC|NOBODY-FACT/.test(JSON.stringify(b)))return "a withheld secret or an unnamed NPC's fact reached the basis";
+    if(b.decisions.length!==1||b.decisions[0].indexOf("DECISION-ONE")<0)return "the decisions: "+JSON.stringify(b.decisions);
+    if(b.backstory.indexOf("Perdrath courier")<0)return "the backstory: "+b.backstory;
+    if(b.opening.indexOf("OPENING-SCENE")!==0||b.opening.indexOf("[HP:10]")>=0||b.opening.indexOf("LATER-SCENE")>=0)return "the opening is the FIRST GM entry, tags stripped: "+b.opening;
+    if(b.spine[0].goal.indexOf("LIVED-GOAL-1")<0||b.spine[0].arcs[0].objective.indexOf("LIVED-OBJ-A")<0||b.spine[1].arcs[0].objective.indexOf("LIVED-OBJ-C")<0)return "a completed act's goal and a completed arc's objective ride along: "+JSON.stringify(b.spine);
+    return (b.spine[1].goal===""&&b.spine[1].arcs[1].objective==="")?true:"the current act's goal and the current arc's objective never: "+JSON.stringify(b.spine[1]);
+  });
+  t("#671 the opening scene skips bookkeeping and refusal entries and cuts at a sentence under its cap",function(){
+    mk671();worldState.transcript=[{t:0,r:"gm",x:"BOOK",bk:1},{t:0,r:"gm",x:"REFUSED",rf:1},{t:0,r:"gm",x:"FIRST. "+new Array(300).join("A word falls. ")+"END."}];
+    var o=synopsisOpening(worldState);
+    if(o.indexOf("FIRST.")!==0)return "the first real GM entry: "+o.slice(0,40);
+    if(o.length>SYNOPSIS_CAPS.opening)return "over the cap: "+o.length;
+    return /\.$/.test(o)?true:"cut at a sentence end: ..."+o.slice(-30);
+  });
+  t("#671 synopsisCapLines keeps the head and the tail under the cap, never the middle alone; under the cap it keeps everything",function(){
+    var l=["a1","b2","c3","d4","e5","f6"];
+    if(synopsisCapLines(l,100).join()!==l.join())return "under the cap: everything";
+    var c=synopsisCapLines(l,12);/* 3 chars per line: 4 lines fit */
+    return c.join()==="a1,b2,e5,f6"?true:"head and tail: "+c.join();
+  });
+  t("#671 the prompt is built from the basis alone: the player's material in, the author's live spine out, JSON {about, why, open, now} asked, second person, the register line",function(){
     mk671();var p=synopsisPrompt(synopsisBasis());
     if(leak671(p))return "the prompt leaks: "+leak671(p);
+    if(/SECRET-NPC|NOBODY-FACT/.test(p))return "a withheld secret or an unnamed NPC's fact reached the prompt";
     if(p.indexOf("I want to find who burned my village.")<0)return "the stake is in";
     if(p.indexOf("Era one: the palisades")<0||p.indexOf("Chapter hundred")<0)return "eras and chapters are in";
-    if(p.indexOf("Reading the Palisades (done)")<0||p.indexOf("The Jewel of Ruin (current)")<0)return "completed and current arc titles are in, marked";
-    if(p.indexOf("Act 1: Ashfall (complete)")<0||p.indexOf("Act 2: A Reason to Stay (current)")<0)return "act labels ride actLabel: "+p.slice(p.indexOf("THE STORY'S SHAPE"),p.indexOf("THE STORY'S SHAPE")+220);
+    if(p.indexOf("LORE-ONE")<0||p.indexOf("SABLE-FACT")<0||p.indexOf("DECISION-ONE")<0||p.indexOf("OPENING-SCENE")<0||p.indexOf("Perdrath courier")<0)return "the why sources are in";
+    if(p.indexOf("Reading the Palisades (done — its purpose: LIVED-OBJ-A")<0||p.indexOf("The Jewel of Ruin (current)")<0)return "completed arcs carry their purpose, the current one its title alone: "+p.slice(p.indexOf("THE STORY'S SHAPE"),p.indexOf("THE STORY'S SHAPE")+400);
+    if(p.indexOf("Act 1: Ashfall (complete — its goal: LIVED-GOAL-1")<0||p.indexOf("Act 2: A Reason to Stay (current)")<0)return "act labels ride actLabel; a completed act carries its goal: "+p.slice(p.indexOf("THE STORY'S SHAPE"),p.indexOf("THE STORY'S SHAPE")+300);
     if(p.indexOf("[ ] Destroy the master cinder jewel")<0)return "the open objective is in";
-    if(p.indexOf('{"about":')<0||p.indexOf('"now":')<0)return "the JSON shape is asked";
+    if(p.indexOf('{"about":')<0||p.indexOf('"why":')<0||p.indexOf('"open":')<0||p.indexOf('"now":')<0)return "the JSON shape is asked";
     if(p.indexOf("second person")<0)return "second person asked";
+    if(p.indexOf("has not told it yet")<0)return "an unrevealed why is said as such, never guessed";
     return p.indexOf("keeps no books")>=0?true:"the register line rides along (#437)";
   });
   t("#671 synopsisDue: nothing to recap before the first arc closes; due once the spine moved past the record's count; settled after a record at that count",function(){
@@ -35615,6 +35649,12 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(g.length!==2)return "the pending third act still never shows: "+g.length;
     return g[1].arcs[1].items.length===1&&g[1].arcs[1].items[0].turn===135?true:"t135, past every boundary, stays with the last group under the arc open at 130: "+JSON.stringify(g[1]);
   });
+  t("#671 a PARALLEL act's arcs open together: its chapters file under the act, never under whichever arc sorts last (the Frizwick t95 save put all sixteen under the third arc)",function(){
+    mk671();var act=worldState.skeleton.acts[1];act.parallel=true;act.arcs[0].status="active";act.arcs[0].startTurn=61;act.arcs[1].startTurn=61;
+    var g=synopsisGroups(synopsisBasis());if(g.length!==2)return "two groups";
+    if(g[1].items.length!==3||g[1].arcs[0].items.length||g[1].arcs[1].items.length)return "act 2 holds its three chapters itself: "+JSON.stringify(g[1]);
+    return g[1].arcs.length===2?true:"its arcs are still listed as the story's shape";
+  });
   t("#671 synopsisNowLines: the compass, each open quest with its next undone objective, the place",function(){
     mk671();var l=synopsisNowLines(synopsisBasis());
     if(l.length!==3)return "three lines: "+JSON.stringify(l);
@@ -35622,23 +35662,29 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(l[1]!=="The Jewel of Ruin: Destroy the master cinder jewel")return "the quest and its next objective: "+l[1];
     return l[2]==="You are at the cinder gate."?true:"the place: "+l[2];
   });
-  t("#671 synopsisBlockHtml: a save without a recap says so and offers Refresh; with one, the paragraph, the stamp with turns ago, the receipt collapsed with its count, where you stand — escaped, and the author's spine nowhere",function(){
+  t("#671 synopsisBlockHtml: a save without a recap says so and offers Refresh; with one, the paragraph, Why you fight, the stamp with turns ago, the receipt collapsed with its count, where you stand, Still unknown (hidden when the model says nothing) — escaped, and the author's spine nowhere",function(){
     mk671();var b=synopsisBasis(),h=synopsisBlockHtml(null,synopsisGroups(b),synopsisNowLines(b),140);
     if(h.indexOf("No recap yet")<0||h.indexOf("id='qm-syn-refresh'")<0)return "the empty state and the button";
     if(h.indexOf("not written yet")<0)return "the stamp says not written yet";
+    if(h.indexOf("Why you fight")>=0||h.indexOf("Still unknown")>=0)return "no why and no unknown without a record";
     if(leak671(h))return "the block leaks: "+leak671(h);
-    var syn={turn:129,about:"You came <b>home</b> to ash.",now:"The jewel is the last of it.",basis:{spine:4}};
+    var syn={turn:129,about:"You came <b>home</b> to ash.",why:"The Harrow took the grain; you mean to end it.",open:"Why Sable poisoned the grain has not been told.",now:"The jewel is the last of it.",basis:{spine:4}};
     h=synopsisBlockHtml(syn,synopsisGroups(b),synopsisNowLines(b),140);
     if(h.indexOf("You came &lt;b&gt;home&lt;/b&gt; to ash.")<0)return "the paragraph, escaped";
+    if(h.indexOf("Why you fight")<0||h.indexOf("The Harrow took the grain; you mean to end it.")<0)return "why you fight";
     if(h.indexOf("as of t129")<0||h.indexOf("11 turns ago")<0)return "the stamp: as of t129 · 11 turns ago: "+h.slice(h.indexOf("as of"),h.indexOf("as of")+40);
     if(h.indexOf("What has happened")<0||h.indexOf("4 chapters")<0)return "the receipt with its count";
     if(h.indexOf("<details")<0)return "the receipt is collapsed";
     if(h.indexOf("Where you stand")<0||h.indexOf("The jewel is the last of it.")<0)return "where you stand carries the model's line";
-    return h.indexOf("Era one: the palisades")>=0&&h.indexOf("Chapter hundred")>=0?true:"the eras and chapters are listed";
+    if(h.indexOf("Still unknown")<0||h.indexOf("Why Sable poisoned the grain has not been told.")<0)return "still unknown";
+    if(h.indexOf("Era one: the palisades")<0||h.indexOf("Chapter hundred")<0)return "the eras and chapters are listed";
+    syn.open="Nothing.";h=synopsisBlockHtml(syn,synopsisGroups(b),synopsisNowLines(b),140);
+    return h.indexOf("Still unknown")<0?true:"a 'nothing' answer draws no Still unknown";
   });
-  t("#671 applySynopsisResp: a valid reply becomes the record stamped with the turn and the spine count; an empty paragraph or junk is refused (the previous recap stays)",function(){
-    mk671();var r=applySynopsisResp('{"about":"You came home to ash.","now":"The jewel is the last of it."}',synopsisBasis(),"spine");
+  t("#671 applySynopsisResp: a valid reply becomes the record stamped with the turn and the spine count, why and open kept; an empty paragraph or junk is refused (the previous recap stays)",function(){
+    mk671();var r=applySynopsisResp('{"about":"You came home to ash.","why":"To end the Harrow.","open":"nothing","now":"The jewel is the last of it."}',synopsisBasis(),"spine");
     if(r.turn!==140||r.about!=="You came home to ash."||r.now!=="The jewel is the last of it."||r.reason!=="spine")return "the record: "+JSON.stringify(r);
+    if(r.why!=="To end the Harrow."||r.open!=="nothing")return "why and open are kept: "+JSON.stringify(r);
     if(!r.basis||r.basis.spine!==4||r.basis.chapters!==3||r.basis.eras!==1)return "the basis counts: "+JSON.stringify(r.basis);
     var threw=false;try{applySynopsisResp('{"about":"","now":"x"}',synopsisBasis(),"button");}catch(e){threw=/paragraph/.test(e.message);}
     if(!threw)return "an empty paragraph must be refused by name";
@@ -35667,13 +35713,6 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(fn.indexOf("elapsedTicker(")<0)return "the button's wait ticks (#356)";
     var api=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
     return api.indexOf("worldState.synopsis")<0?true:"nothing in the prompt reads the record — the recap is the player's, never the GM's";
-  });
-
-  t("#671 a PARALLEL act's arcs open together: its chapters file under the act, never under whichever arc sorts last (the Frizwick t95 save put all sixteen under the third arc)",function(){
-    mk671();var act=worldState.skeleton.acts[1];act.parallel=true;act.arcs[0].status="active";act.arcs[0].startTurn=61;act.arcs[1].startTurn=61;
-    var g=synopsisGroups(synopsisBasis());if(g.length!==2)return "two groups";
-    if(g[1].items.length!==3||g[1].arcs[0].items.length||g[1].arcs[1].items.length)return "act 2 holds its three chapters itself: "+JSON.stringify(g[1]);
-    return g[1].arcs.length===2?true:"its arcs are still listed as the story's shape";
   });
 
 }

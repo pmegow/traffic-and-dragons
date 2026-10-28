@@ -20,6 +20,12 @@ prove("helpers.js", [
     find: "for(i=0;i<b.eras.length;i++)items.push({turn:b.eras[i].to", replace: "for(i=1;i<b.eras.length;i++)items.push({turn:b.eras[i].to" },
   { label: "a parallel act files its chapters under whichever arc sorts last again (the Frizwick t95 misfile)",
     find: "if(!a.parallel)for(j=g.arcs.length-1;j>=0;j--)", replace: "if(a.parallel||!a.parallel)for(j=g.arcs.length-1;j>=0;j--)" },
+  { label: "an NPC's withheld secret reaches the recap (the blueprint's hidden truth, before its reveal act)",
+    find: "var kn=(n.knowledge||[]).concat((n.events||[]).map(function(e){return e&&e.note?String(e.note):\"\";}))", replace: "var kn=(n.knowledge||[]).concat((n.events||[]).map(function(e){return e&&e.note?String(e.note):\"\";}),(n.secrets||[]).map(function(s){return s&&s.text?String(s.text):\"\";}))" },
+  { label: "the CURRENT act's goal reaches the recap (the turning point not yet reached, told ahead)",
+    find: "goal:a.status===\"completed\"?String(a.goal||\"\"):\"\"", replace: "goal:String(a.goal||\"\")" },
+  { label: "the why is dropped from the block (the record carries it, the journal never shows it)",
+    find: "if(syn&&syn.why)h+=lbl+\"Why you fight</div>", replace: "if(syn&&syn.why&&!syn.why)h+=lbl+\"Why you fight</div>" },
   { label: "the block prints the paragraph unescaped",
     find: '"+escHtml(syn.about)+"', replace: '"+syn.about+"' }
 ]);

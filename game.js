@@ -4450,9 +4450,9 @@ async function suggestQuestCompletion(title){
    trigger's odometer, synopsisDue). An empty paragraph or junk throws by name: the previous recap stays. Pure. */
 function applySynopsisResp(resp,basis,reason){
   var got=JSON.parse(repairModelJson(resp));
-  var about=got?String(got.about||"").trim():"",now=got?String(got.now||"").trim():"";
+  var about=got?String(got.about||"").trim():"",now=got?String(got.now||"").trim():"",why=got?String(got.why||"").trim():"",open=got?String(got.open||"").trim():"";/* why/open: the 2026-10-28 ruling — the why and what is still untold */
   if(!about)throw new Error("the recap came back without its paragraph");
-  return {turn:(worldState&&worldState.turn)||0,at:Date.now(),about:about,now:now,reason:String(reason||""),
+  return {turn:(worldState&&worldState.turn)||0,at:Date.now(),about:about,why:why,open:open,now:now,reason:String(reason||""),
     basis:{spine:synopsisSpineCount(worldState),chapters:basis?basis.chapters.length:0,eras:basis?basis.eras.length:0}};
 }
 /* refreshSynopsis: ONE side call — the basis, the prompt, its own system line (a sysOverride: the gameplay prompt and its
