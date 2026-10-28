@@ -87,7 +87,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
       .replace('#include <lights_physical_fragment>', THREE.ShaderChunk.lights_physical_fragment
         .replace('float specularIntensityFactor = specularIntensity;', MICA_SPECULAR))
       .replace('#include <transmission_fragment>', THREE.ShaderChunk.transmission_fragment
-        .replace('material.transmission = transmission;', 'material.transmission = transmission * ( 1.0 - diceGlyph ) * ( 1.0 - exitChar ) * ( 1.0 - exitCrack );'));
+        .replace('material.transmission = transmission;', 'material.transmission = transmission * ( 1.0 - diceGlyph ) * ( 1.0 - exitChar ) * mix( 1.0, EXIT_CRACK_SHADE, exitCrack );'));
     if (f.mica && !shader.fragmentShader.includes(MICA_SPECULAR)) {
       console.error('dieMaterial: the mica hook did not apply (a three.js chunk changed?)');
     }

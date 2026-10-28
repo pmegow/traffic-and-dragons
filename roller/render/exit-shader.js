@@ -48,7 +48,9 @@ const float EXIT_GLOW = 1.1;
 const vec3 EXIT_HELL = vec3( 2.0, 0.8, 0.1 );
 const float EXIT_UNDER_REACH = 0.025;
 const float EXIT_CRACK_WIDTH = ${SHATTER.width};
-const vec3 EXIT_CRACK_COLOUR = vec3( 0.015, 0.013, 0.012 );
+// A crack is the die's own colour at a shade of its value (owner 2026-10-27: "tint them, but to 90% of the die's
+// value. That part should be subtle"; they were near-black at first).
+const float EXIT_CRACK_SHADE = ${SHATTER.crackShade.toFixed(3)};
 `;
 
 /** After the die's colour (and its ink): the pit's cut and shade, then the burn. */
@@ -69,7 +71,7 @@ if ( uExitCrack > 0.0 ) {
   float exitTip = uExitCrack - distance( vPatternPos, uExitCrackFrom );
   float exitW = EXIT_CRACK_WIDTH * clamp( exitTip / ( 8.0 * EXIT_CRACK_WIDTH ), 0.0, 1.0 );
   exitCrack = ( 1.0 - smoothstep( exitW, exitW + fwidth( exitEdge ), exitEdge ) ) * step( 0.0, exitTip );
-  diffuseColor.rgb = mix( diffuseColor.rgb, EXIT_CRACK_COLOUR, exitCrack );
+  diffuseColor.rgb *= mix( 1.0, EXIT_CRACK_SHADE, exitCrack );
 }
 exitShade = smoothstep( uExitClipY, uExitClipY + 0.01, vExitWorldY );   // dark just above a pit's rim
 if ( uExitUnder > 0.0 ) {

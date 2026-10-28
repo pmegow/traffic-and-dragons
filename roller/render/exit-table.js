@@ -70,7 +70,8 @@ export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2,
 /**
  * Shatter (owner 2026-10-27: "Yes start the shatter ... Let's start with 10 pieces +-3. Take the idea all the way to a
  * play test"), in seconds: cracks spread over the die from its top for `crack` (reaching `reach` radii, `width` m
- * wide, along the very lines it will break on: render/fracture.js's cells), then it breaks into `pieces` ± `spread`
+ * wide, along the very lines it will break on: render/fracture.js's cells; the die's own colour at `crackShade` of its
+ * value — owner 2026-10-27: "tint them, but to 90% of the die's value. That part should be subtle"), then it breaks into `pieces` ± `spread`
  * pieces that burst away from its centre (`burst` m/s, `pop` m/s up, `spin` rad/s), fall in the dice's own slow
  * motion (`gravity`: g at VIEW_DEFAULTS.pace 0.3) and tumble to rest on the floor (render/shards.js: `bounce`
  * above `bounceSpeed`, `friction`, `settle`, resting under `restSpeed` and `restSpin`, sub-stepped at `substep`;
@@ -80,7 +81,7 @@ export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2,
  */
 export const SHATTER = {
   pieces: 10, spread: 3,
-  crack: 0.4, reach: 2.2, width: 0.00025,
+  crack: 0.4, reach: 2.2, width: 0.00025, crackShade: 0.9,
   burst: [0.05, 0.12], pop: [0.05, 0.1], spin: [4, 12],
   gravity: 9.81 * 0.3 * 0.3, substep: 1 / 240,
   bounce: 0.3, bounceSpeed: 0.02, friction: 0.5, settle: 6, restSpeed: 0.003, restSpin: 0.5,
