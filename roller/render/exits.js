@@ -16,7 +16,7 @@
 //          tapering tarsus, in its own material, the knuckles in its numerals' — it stands up on them
 //          and runs out of frame, each foot heard as it touches the floor (sound('step', …))
 //   pit    Going down: a hole opens under the die onto an orange glow far down the pit, which lights the
-//          die from beneath and sends cinders up, crackling (sound('crackle')); the die has risen and hovers,
+//          die from beneath and sends cinders up, crackling (sound('crackle'), from the start, rising as it opens); the die has risen and hovers,
 //          bobbing gently and turning slowly, before it opens and for a while after, then is sucked down through it, stretching as it goes (cut at the floor),
 //          the hole's sharp red ring round it, and the hole snaps shut behind it with a crack and a soft puff of
 //          dark smoke (sound('crack'), burn out's; sound('softPuff'))
@@ -203,7 +203,8 @@ function startPit({ view, entry, sound = () => {} }) {
   const spin = new THREE.Quaternion(), hang = new THREE.Matrix4(), scale = new THREE.Matrix4(), back = new THREE.Matrix4();
   const phase = [rand(0, 2 * Math.PI), rand(0, 2 * Math.PI)];
   const look = new THREE.Vector3();
-  let clock = 0, cinderDue = 0, puffed = false, crackling = false;
+  sound('crackle', centre);   // round 21: from the start, silent, full once the portal is open (audio/plan.js ▸ EXIT_SOUNDS)
+  let clock = 0, cinderDue = 0, puffed = false;
   return {
     step(u, dt) {
       clock += dt;
@@ -211,8 +212,6 @@ function startPit({ view, entry, sound = () => {} }) {
       // Firelight: two quick waves and a little noise, never below 1 - HELL.flicker.
       const flicker = 1 - HELL.flicker * (0.35 * (1 + Math.sin(clock * 29 + phase[0])) + 0.15 * (1 + Math.sin(clock * 47 + phase[1])) + 0.3 * Math.random()) / 1.3;
       hole.set(t.hole);
-      // The fire below is heard from the moment the hole starts to open (audio/plan.js ▸ EXIT_SOUNDS times it from there).
-      if (t.hole > 0 && !crackling) { crackling = true; sound('crackle', centre); }
       hole.uniforms.uFire.value = t.fire * flicker;
       // The glow sits toward the camera, as the floor of a deep shaft does (its uv's y runs along the world's −z).
       look.copy(view.camera.position).sub(centre);

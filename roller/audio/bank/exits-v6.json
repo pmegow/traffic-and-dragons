@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "file": "exits-v5.mp3",
-  "sha256": "286d5b8935181dc13d289738c98a5b3704a9fa273871c5ac4841eb49746d61cd",
-  "bytes": 210720,
+  "file": "exits-v6.mp3",
+  "sha256": "e9777fde5b1c82dc1da2cc7bf48ecb7acd51ff4dd0b9f10f4c2ff4f31f709a2d",
+  "bytes": 234720,
   "sampleRate": 48000,
-  "duration": 10.47,
+  "duration": 11.67,
   "license": "CC0 1.0",
   "licenseVerified": "2026-10-26 — \"Creative Commons 0\" on each Freesound sound page (382313, 342546, 714257); 2026-10-27 — the Nox_Sound Essentials Series README: \"All these sounds are under CC0 license.\"",
-  "cut": "2026-10-27",
+  "cut": "2026-10-28",
   "method": "dev/cut-exit-sounds.js (its header): fixed regions chosen by measurement, attacks checked, −1 dBFS, raised-cosine fades, gapless libmp3lame 160 kbps",
   "timelineCheck": "decoded back and cross-correlated: the largest shift was 0 samples",
   "sources": [
@@ -128,14 +128,14 @@
     "crackle": [
       {
         "start": 8.02,
-        "length": 1.1,
+        "length": 1.7,
         "source": "noxCampfire",
-        "from": 0.9,
-        "peakAt": 0.3669
+        "from": 0.2,
+        "peakAt": 1.0669
       },
       {
-        "start": 9.22,
-        "length": 1.1,
+        "start": 9.82,
+        "length": 1.7,
         "source": "noxCampfire",
         "from": 6,
         "peakAt": 0.281

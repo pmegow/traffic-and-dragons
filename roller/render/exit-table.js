@@ -54,13 +54,14 @@ export const SCURRY = {
  * opens), starting `early` (two frames at 24 fps) before the die's top is
  * through, never before it is pulled (round 4). As it shuts it cracks (burn out's crack) and breathes out a puff of dark smoke; the cinders
  * (round 18: 0.7 … 1.225 s, 75% longer than round 16's) and the smoke have `linger` to rise and fade.
+ * Round 21 ("When the dice float, rotate the 1/2 as fast"): `spin` is half round 17's 0.35 turns a second.
  * Round 19 ("Add a gentle vertical bob to the dice after they lift. Hold just a hair longer before the portal opens
  * up"): once it has risen it bobs up and down, `bob` radii either way every `bobPeriod`, easing in over `bobEase`
  * after the rise and out over `bobEase` before the pull, so it starts and ends at rest, half its width up; the
  * beat before the portal is 0.35 s (round 18's 0.25 s and a tenth). (Round 16 sat the die spinning ever faster
  * for a beat and sucked it down in three frames; round 14 pulled it slowly, trembling.)
  */
-export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, spin: 0.35, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225 };
+export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, spin: 0.35 / 2, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225 };
 
 /** When Going down's hole starts to open: the die risen and its beat sat out. */
 export const PIT_OPENS = PIT.rise + PIT.beat;

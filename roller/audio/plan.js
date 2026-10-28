@@ -137,13 +137,14 @@ export const EXIT_SOUNDS = {
     envelope: [[0, -30], [FADE / 2, 0], [FADE, -4], [FADE + 0.7, -45]],
   },
   // Going down (round 17, owner 2026-10-27: "add flame crackling sounds"; "add a puff of dark smoke at the end with a
-  // soft puff sound"): a small campfire crackling (Nox_Sound) while the hole is open — fired as it starts to open
-  // (round 18: the die hovers a beat first), in as it opens, fading as it shuts — and, as it shuts, Smoke puff's puff played slower, lower and softer. Levels against a hard die click
+  // soft puff sound"): a small campfire crackling (Nox_Sound) — round 21 ("Start the sound at the beginning of the
+  // animation. Start with a volume of zero then ramp it up to full when the portal opens"): fired as the exit starts,
+  // rising evenly (in dB) from silence to full as the portal finishes opening, fading as it shuts — and, as it shuts, Smoke puff's puff played slower, lower and softer. Levels against a hard die click
   // (rendered through the engine): the crackle about 8 dB under it (its pops 7 dB under the click's peak), the
   // soft puff about 7 dB under, 9 under Smoke puff's.
   crackle: {
     bank: 'exits', take: 'crackle', rate: 1, gain: 0.5, after: 0, spread: 0, vary: { rate: 0.06, gain: 0.1 },
-    envelope: [[0, -30], [PIT.open, 0], [PIT_PULL - PIT_OPENS + 0.1, -2], [PIT_PULL - PIT_OPENS + 0.1 + PIT.close, -40]],
+    envelope: [[0, -60], [PIT_OPENS + PIT.open, 0], [PIT_PULL + 0.1, -2], [PIT_PULL + 0.1 + PIT.close, -40]],
   },
   softPuff: { bank: 'exits', take: 'puff', rate: 0.8, gain: 0.12, after: 0, spread: 0, vary: { rate: 0.05, gain: 0.1 } },
 };
