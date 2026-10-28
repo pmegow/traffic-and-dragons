@@ -103,6 +103,22 @@ const BURN_FADES = BURN.heat + BURN.hold - BURN.early, BURN_GONE = BURN_FADES + 
 const FADE = EXIT_TABLE.fade.seconds;
 
 /**
+ * A swell, as an envelope's [[seconds, dB], …]: in from silence over `fadeIn` s to `floorDb`, then the level itself
+ * (not its dB) growing exponentially at rate `k` to full at `full` s, so most of the change comes just before full —
+ * sampled at `steps` even points (the engine runs dB-linear between them). Owner 2026-10-27 (exits round 23): "should
+ * be an exponential curve, when most of the change comes right before it hits full volume".
+ */
+export function swellEnvelope({ full, fadeIn = 0.06, floorDb = -20, k = 3, steps = 8 }) {
+  const a0 = Math.pow(10, floorDb / 20);
+  const points = [[0, -60], [fadeIn, floorDb]];
+  for (let i = 1; i <= steps; i++) {
+    const x = i / steps, a = a0 + (1 - a0) * (Math.exp(k * x) - 1) / (Math.exp(k) - 1);
+    points.push([fadeIn + (full - fadeIn) * x, 20 * Math.log10(a)]);
+  }
+  return points;
+}
+
+/**
  * Sounds an exit makes, by kind, all one shape. `bank` is where the sound comes from (EXIT_PICKS): 'clicks',
  * one of the die's own recorded clicks of strength `strength` on the table's surface; 'exits', a take of
  * `take` from the exit bank, in the air. It plays `rate` × as fast (higher and shorter) at `gain` × the
@@ -139,15 +155,16 @@ export const EXIT_SOUNDS = {
   // Going down (round 17, owner 2026-10-27: "add flame crackling sounds"; "add a puff of dark smoke at the end with a
   // soft puff sound"): a small campfire crackling (Nox_Sound) — round 21 ("Start the sound at the beginning of the
   // animation. Start with a volume of zero then ramp it up to full when the portal opens"): fired as the exit starts,
-  // in from silence in its first 60 ms to 14 dB under full — far off, but a level a phone plays (round 21 rose evenly
-  // from -60 dB, under -24 dB for its first half second, and so was first heard as the hole opened; round 22: "it
-  // should begin ramping up at the very begining of the exit animation as if if the flames are approaching") —
-  // then rising evenly (in dB) to full as the portal finishes opening, fading as it shuts — and, as it shuts, Smoke puff's puff played slower, lower and softer. Levels against a hard die click
+  // swelling as the flames approach (swellEnvelope): in from silence over 60 ms to a faint 20 dB under full, then
+  // growing exponentially to full as the portal finishes opening, most of the swell in its last third, and fading
+  // as it shuts (round 21 rose evenly in dB from -60 dB and was first heard as the hole opened; round 22, "it should
+  // begin ramping up at the very begining", came in at 14 dB under and rose evenly in dB; round 23: "volume comes on
+  // to fast, should be an exponential curve, when most of the change comes right before it hits full volume") — and, as it shuts, Smoke puff's puff played slower, lower and softer. Levels against a hard die click
   // (rendered through the engine): the crackle about 8 dB under it (its pops 7 dB under the click's peak), the
   // soft puff about 7 dB under, 9 under Smoke puff's.
   crackle: {
     bank: 'exits', take: 'crackle', rate: 1, gain: 0.5, after: 0, spread: 0, vary: { rate: 0.06, gain: 0.1 },
-    envelope: [[0, -60], [0.06, -14], [PIT_OPENS + PIT.open, 0], [PIT_PULL + 0.1, -2], [PIT_PULL + 0.1 + PIT.close, -40]],
+    envelope: [...swellEnvelope({ full: PIT_OPENS + PIT.open }), [PIT_PULL + 0.1, -2], [PIT_PULL + 0.1 + PIT.close, -40]],
   },
   softPuff: { bank: 'exits', take: 'puff', rate: 0.8, gain: 0.12, after: 0, spread: 0, vary: { rate: 0.05, gain: 0.1 } },
 };
