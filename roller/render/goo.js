@@ -72,7 +72,8 @@ export function fallApart(states, R) {
  * Where the goo joins the pieces: across the faces they broke apart along (render/fracture.js ▸ faces), the widest
  * first, at most MELT.strands, two across a face wider than MELT.wideFace R². Each starts at a point of its face (in
  * the die's own space), as thick as MELT.strandWidth of the face's own radius within MELT.strandRadius, and snaps
- * somewhere in MELT.snap (R) of stretch, at a point along it of its own.
+ * somewhere in MELT.snap (R) of stretch, at a point along it of its own; it bows sideways by MELT.bow of its length, a way
+ * of its own (round 2's last strip: a strand hanging straight down between two lumps read as a table leg).
  */
 export function strandsBetween(pieces, R, random = Math.random) {
   const shared = [];
@@ -88,7 +89,8 @@ export function strandsBetween(pieces, R, random = Math.random) {
       const pull = two ? 0.35 + 0.3 * random() : 0.3 * random();   // two apart on a wide face; one near the middle
       const at = face.centre.map((c, n) => c + pull * (corner[n] - c));
       const r = clamp(MELT.strandWidth * Math.sqrt(face.area / Math.PI), MELT.strandRadius[0] * R, MELT.strandRadius[1] * R);
-      strands.push({ i, j, at, r, snapAt: range(MELT.snap, random) * R, breakAt: 0.3 + 0.4 * random(), snapped: -1 });
+      const snapAt = range(MELT.snap, random) * R, breakAt = 0.3 + 0.4 * random(), way = 2 * Math.PI * random(), bow = range(MELT.bow, random);
+      strands.push({ i, j, at, r, snapAt, breakAt, bow: [bow * Math.cos(way), bow * Math.sin(way)], snapped: -1 });
     }
   }
   return strands;
@@ -105,6 +107,10 @@ export function strandTubes(s, a, b, since, melt) {
   if (s.snapped < 0 && L > s.snapAt) s.snapped = since;
   const sag = (MELT.sag + 0.5 * melt) * L * smooth(since / MELT.sagIn);
   const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - sag, (a[2] + b[2]) / 2];
+  if (L > 1e-9) {   // bowed sideways, across the strand
+    const d = scale(sub(b, a), 1 / L), w = [s.bow[0], 0, s.bow[1]], across = sub(w, scale(d, dot(w, d)));
+    for (let k = 0; k < 3; k++) mid[k] += across[k] * L * smooth(since / MELT.sagIn);
+  }
   const along = (t) => bezier(a, mid, b, t);
   if (s.snapped < 0) return [tube(along, 0, 1, r, melt, false)];
   const left = 1 - smooth((since - s.snapped) / MELT.recoil);   // how much of each half is still out of its piece
@@ -202,6 +208,7 @@ const range = ([lo, hi], random) => lo + (hi - lo) * random();
 function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
 function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
 function scale(a, s) { return [a[0] * s, a[1] * s, a[2] * s]; }
+function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
 function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
 function dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); }
 function normalize(a) { const l = Math.hypot(a[0], a[1], a[2]); return [a[0] / l, a[1] / l, a[2] / l]; }

@@ -112,7 +112,7 @@ export const SHATTER = {
  * now a piece's), its numerals fading from `inkFrom` to `inkTo` of the way; the blobs run together into the puddle. Goo stretches between neighbours as they part
  * (render/goo.js): at most `strands` strands, two across a broken face wider than `wideFace` R², each `strandWidth` of
  * its face's own radius thick within `strandRadius` (R), thinning as it stretches (its volume kept), widest at its
- * ends by `flare`, sagging `sag` of its length (in over `sagIn`), snapping somewhere past `snap` (R) and springing
+ * ends by `flare`, sagging `sag` of its length and bowing sideways `bow` of it, a way of its own (in over `sagIn`), snapping somewhere past `snap` (R) and springing
  * back over `recoil`, and lying down in the puddle as its pieces melt, as wide again by `strandSpread`; drawn as tubes
  * of `rings` rings of `sides`. The puddle lies `hold`, then holes eat it over `eat` (render/holes.js): `holes`
  * circles, opening over the first `holeOpen` of it, each growing as time to the `holeGrow` (`holeVary` either way,
@@ -133,7 +133,7 @@ export const MELT = {
   jiggle: 0.08, jiggleHz: 9, jiggleDecay: 7, land: 0.08, slumpBy: 0.4,
   slump: 0.7, flat: 0.14, spread: 0.8, top: 0.3, lump: 0.18, round: 0.8, bulge: 0.15, blob: 0.85, gloss: 0.12, inkFrom: 0.1, inkTo: 0.6,
   strands: 10, wideFace: 0.25, strandWidth: 0.35, strandRadius: [0.04, 0.11], flare: 0.6, sag: 0.6, sagIn: 0.3,
-  snap: [1.1, 2.6], recoil: 0.18, strandSpread: 0.8, rings: 12, sides: 8,
+  snap: [1.1, 2.6], recoil: 0.18, strandSpread: 0.8, bow: [0.15, 0.35], rings: 12, sides: 8,
   hold: 0.15, eat: 1.1, holes: 16, holeOpen: 0.55, holeGrow: 1.4, holeVary: 0.3, holeDone: 0.9, holeEdge: 0.0004, holeShade: 0.85,
   maxEdge: 0.25, workBudget: 3,
 };
