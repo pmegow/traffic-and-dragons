@@ -18,6 +18,15 @@ const EXIT_NOISE = 'pFbm( ( vPatternPos * uScale + uSeed ) * 1.6 )';
 export const EXIT_VERTEX_PARS = 'varying float vExitWorldY;';
 export const EXIT_VERTEX = 'vExitWorldY = ( modelMatrix * vec4( transformed, 1.0 ) ).y;';
 
+/**
+ * A number as a GLSL float literal: a whole number gets its decimal point, since GLSL ES refuses an int for a const
+ * float — and a die whose shader fails to compile is not drawn at all (a groove depth of 0, tried 2026-10-27).
+ */
+export function glslFloat(x) {
+  if (!Number.isFinite(x)) throw new Error('glslFloat: ' + x + ' is not a finite number');
+  return Number.isInteger(x) ? x.toFixed(1) : String(x);
+}
+
 /** The most seeds a die's cracks are drawn from: the most pieces it breaks into. */
 const SHATTER_SEEDS = SHATTER.pieces + SHATTER.spread;
 
@@ -34,6 +43,7 @@ uniform vec3 uExitSeeds[ ${SHATTER_SEEDS} ];
 uniform int uExitSeedCount;
 varying float vExitWorldY;
 float exitCrack = 0.0;
+float exitCrackHeight = 0.0;   // the crack's groove, in metres below the surface (render/finishes.js bends the normals by it)
 vec3 exitGlow = vec3( 0.0 );
 vec3 exitUnderGlow = vec3( 0.0 );
 float exitChar = 0.0;
@@ -47,10 +57,14 @@ const float EXIT_GLOW = 1.1;
 // and gone EXIT_UNDER_REACH (m) above it, more on the faces turned down to it.
 const vec3 EXIT_HELL = vec3( 2.0, 0.8, 0.1 );
 const float EXIT_UNDER_REACH = 0.025;
-const float EXIT_CRACK_WIDTH = ${SHATTER.width};
+const float EXIT_CRACK_WIDTH = ${glslFloat(SHATTER.width)};
 // A crack is the die's own colour at a shade of its value (owner 2026-10-27: "tint them, but to 90% of the die's
 // value. That part should be subtle"; they were near-black at first).
-const float EXIT_CRACK_SHADE = ${SHATTER.crackShade.toFixed(3)};
+const float EXIT_CRACK_SHADE = ${glslFloat(SHATTER.crackShade)};
+// And carved (owner 2026-10-27: "they wont show up on a dark die... is it possible to apply it as a normal map in
+// addition to the color mult?"): a groove, so its walls catch the light a dark die shows only in its highlights.
+const float EXIT_CRACK_GROOVE = ${glslFloat(SHATTER.groove)};
+const float EXIT_CRACK_DEPTH = ${glslFloat(SHATTER.grooveDepth)};
 `;
 
 /** After the die's colour (and its ink): the pit's cut and shade, then the burn. */
@@ -69,9 +83,13 @@ if ( uExitCrack > 0.0 ) {
   float exitEdge = abs( dot( vPatternPos - 0.5 * ( exitS1 + exitS2 ), normalize( exitS2 - exitS1 ) ) );
   // It runs out from where it began, thinning to nothing at its tip.
   float exitTip = uExitCrack - distance( vPatternPos, uExitCrackFrom );
-  float exitW = EXIT_CRACK_WIDTH * clamp( exitTip / ( 8.0 * EXIT_CRACK_WIDTH ), 0.0, 1.0 );
+  float exitTaper = clamp( exitTip / ( 8.0 * EXIT_CRACK_WIDTH ), 0.0, 1.0 );
+  float exitW = EXIT_CRACK_WIDTH * exitTaper;
   exitCrack = ( 1.0 - smoothstep( exitW, exitW + fwidth( exitEdge ), exitEdge ) ) * step( 0.0, exitTip );
   diffuseColor.rgb *= mix( 1.0, EXIT_CRACK_SHADE, exitCrack );
+  // The groove: deepest on the crack, rising to the surface either side, tapering with it to its tip (the max keeps
+  // smoothstep's edges apart past the tip, where the taper is 0).
+  exitCrackHeight = - EXIT_CRACK_DEPTH * exitTaper * ( 1.0 - smoothstep( 0.0, max( EXIT_CRACK_GROOVE * exitTaper, 1e-6 ), exitEdge ) );
 }
 exitShade = smoothstep( uExitClipY, uExitClipY + 0.01, vExitWorldY );   // dark just above a pit's rim
 if ( uExitUnder > 0.0 ) {

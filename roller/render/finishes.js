@@ -86,10 +86,21 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
       // Mica flakes reflect more: their specular intensity is raised by uMicaBoost (never under the ink).
       .replace('#include <lights_physical_fragment>', THREE.ShaderChunk.lights_physical_fragment
         .replace('float specularIntensityFactor = specularIntensity;', MICA_SPECULAR))
+      // Shatter's cracks are carved: their groove (exitCrackHeight) bends the die's own bump — its recessed numerals —
+      // and its clear coat, so a crack catches the light on a dark die (owner 2026-10-27). three.js's bump takes a slope
+      // per pixel over unit screen steps (perturbNormalArb normalises them), so the groove's change across a pixel is
+      // over that pixel's own width on the die: in metres it tilted nothing (seen in a frame strip, 2026-10-27).
+      .replace('#include <normal_fragment_maps>', 'vec2 exitCrackDHdxy = vec2( dFdx( exitCrackHeight ) / max( length( dFdx( vViewPosition ) ), 1e-9 ), dFdy( exitCrackHeight ) / max( length( dFdy( vViewPosition ) ), 1e-9 ) );\n' +
+        THREE.ShaderChunk.normal_fragment_maps.replace('dHdxy_fwd()', 'dHdxy_fwd() + exitCrackDHdxy'))
+      .replace('#include <clearcoat_normal_fragment_begin>', THREE.ShaderChunk.clearcoat_normal_fragment_begin
+        .replace('vec3 clearcoatNormal = nonPerturbedNormal;', 'vec3 clearcoatNormal = uExitCrack > 0.0 ? perturbNormalArb( - vViewPosition, nonPerturbedNormal, exitCrackDHdxy, faceDirection ) : nonPerturbedNormal;'))
       .replace('#include <transmission_fragment>', THREE.ShaderChunk.transmission_fragment
         .replace('material.transmission = transmission;', 'material.transmission = transmission * ( 1.0 - diceGlyph ) * ( 1.0 - exitChar ) * mix( 1.0, EXIT_CRACK_SHADE, exitCrack );'));
     if (f.mica && !shader.fragmentShader.includes(MICA_SPECULAR)) {
       console.error('dieMaterial: the mica hook did not apply (a three.js chunk changed?)');
+    }
+    if (!shader.fragmentShader.includes('dHdxy_fwd() + exitCrackDHdxy') || !shader.fragmentShader.includes('perturbNormalArb( - vViewPosition, nonPerturbedNormal, exitCrackDHdxy')) {
+      console.error('dieMaterial: the crack groove hook did not apply (a three.js chunk changed?)');
     }
     if (f.transmission > 0 && !shader.fragmentShader.includes('transmission * ( 1.0 - diceGlyph )')) {
       console.error('dieMaterial: the opaque-ink hook did not apply (a three.js chunk changed?)');
