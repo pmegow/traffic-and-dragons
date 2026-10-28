@@ -8,17 +8,17 @@
 //   for (const piece of fracturePieces(mesh, seeds, …)) …   // the same, a piece at a time (spread over frames)
 //
 // mesh is a triangle soup in the die's own space ({ position, normal, uv, color }, flat arrays, as
-// render/die-mesh.js builds it). Each piece is the same, plus its centroid, its volume and `support`: a few of its
-// points (the furthest along 26 directions) that stand in for it on the floor. A piece keeps the die's own
+// render/die-mesh.js builds it). Each piece is the same, plus its centroid, its volume, `support`: a few of its
+// points (the furthest along 26 directions) that stand in for it on the floor, and `faces`: its broken faces, each
+// with the piece it was broken from (Melt's goo stretches between them). A piece keeps the die's own
 // attributes where it keeps its surface, so its numerals stay printed; a cut face takes `innerUV` (the atlas's
 // blank cell: no numeral) and `innerColor`, and its flat normal. The die's patterns are solid (render/patterns.js
 // reads the die's own space), so a piece kept in the die's space shows the veins running on through the break.
 
 import { SHATTER } from './exit-table.js';
 
-/** How many pieces a die breaks into: SHATTER.pieces ± SHATTER.spread, evenly. */
-export function pieceCount(random = Math.random) {
-  const { pieces, spread } = SHATTER;
+/** How many pieces a die breaks into: pieces ± spread, evenly (Shatter's by default; Melt asks for its own). */
+export function pieceCount(random = Math.random, { pieces, spread } = SHATTER) {
   return pieces - spread + Math.floor(random() * (2 * spread + 1));
 }
 
@@ -74,7 +74,7 @@ export function* fracturePieces(mesh, seeds, { innerUV = [0, 0], innerColor = 1 
       const n = normalize(sub(sj, si));
       planes.push({ j, n, d: dot(n, scale(add(si, sj), 0.5)) });
     });
-    const polys = [];
+    const polys = [], faces = [];
     for (let t = 0; t < tris.length; t++) {
       const tri = tris[t], o = 9 * t;
       let out = false;
@@ -97,10 +97,13 @@ export function* fracturePieces(mesh, seeds, { innerUV = [0, 0], innerColor = 1 
       if (!face) continue;
       if (i > pl.j) face = [...face].reverse();   // the same face, seen from the other side
       for (const other of planes) if (other !== pl && face.length >= 3) face = clipPoints(face, other.n, other.d);
-      if (face.length >= 3) polys.push({ v: face.map((p) => vtx(p, pl.n, innerUV, innerColor)), inner: true });
+      if (face.length >= 3) {
+        polys.push({ v: face.map((p) => vtx(p, pl.n, innerUV, innerColor)), inner: true });
+        faces.push(faceOf(pl.j, face, pl.n));
+      }
     }
     if (!polys.length) throw new Error('fractureMesh: piece ' + i + ' came out empty (its seed is outside the die?)');
-    yield soupOf(polys);
+    yield { ...soupOf(polys), faces };
   }
 }
 
@@ -238,6 +241,17 @@ function soupOf(polys) {
     position: Float32Array.from(position), normal: Float32Array.from(normal), uv: Float32Array.from(uv), color: Float32Array.from(color),
     volume, centroid, support, inner,
   };
+}
+
+/**
+ * A broken face, as Melt's goo needs it (render/goo.js stretches a strand across it): the piece `j` it was broken from,
+ * its points, its middle, its area and the way it faces (out of this piece).
+ */
+function faceOf(j, points, n) {
+  const centre = scale(points.reduce(add, [0, 0, 0]), 1 / points.length);
+  let twice = [0, 0, 0];
+  for (let k = 1; k + 1 < points.length; k++) twice = add(twice, cross(sub(points[k], points[0]), sub(points[k + 1], points[0])));
+  return { j, points: points.map((p) => [...p]), centre, area: Math.hypot(...twice) / 2, normal: [...n] };
 }
 
 /** The volume and centroid of a closed triangle soup, by the divergence theorem (about `origin`). */

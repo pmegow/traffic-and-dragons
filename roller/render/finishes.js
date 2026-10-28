@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { FINISHES, SPECULAR, SEE_THROUGH_DEPTH_OFFSET } from './finish-table.js';
 import { patternUniforms, injectPattern } from './patterns.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_NORMAL, EXIT_FRAGMENT_PARS, EXIT_SURFACE, EXIT_EMISSIVE, EXIT_OUTGOING } from './exit-shader.js';
-import { SHATTER } from './exit-table.js';
+import { SHATTER, MELT } from './exit-table.js';
 
 export { FINISHES };
 
@@ -42,12 +42,15 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
     uExitCrackFrom: { value: new THREE.Vector3() },
     uExitSeeds: { value: Array.from({ length: SHATTER.pieces + SHATTER.spread }, () => new THREE.Vector3()) },
     uExitSeedCount: { value: 0 },
-    uExitMelt: { value: 0 },   // Melt: 0 whole … 1 a puddle
+    uExitMelt: { value: 0 },   // Melt: a piece 0 whole … 1 a blob
     uExitWobble: { value: 0 },
-    uExitDry: { value: 0 },
     uExitMeltAt: { value: new THREE.Vector4() },
     uExitMeltInverse: { value: new THREE.Matrix4() },
     uExitMeltSeed: { value: 0 },
+    uExitMeltFoot: { value: 0 },
+    uExitInk: { value: 1 },   // Melt fades a melting lump's numerals
+    uExitHoles: { value: Array.from({ length: MELT.holes }, () => new THREE.Vector3()) },   // Melt's holes in the puddle
+    uExitHoleCount: { value: 0 },
   };
   const m = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(style.body),
@@ -77,7 +80,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
   m.userData.dice = { finish: finishName, uniforms, seed };
   m.onBeforeCompile = (shader) => {
     injectPattern(shader, uniforms, 'object',
-      'float diceGlyph = texture2D( uGlyph, vUv ).r;\n' +
+      'float diceGlyph = texture2D( uGlyph, vUv ).r * uExitInk;\n' +
       'diffuseColor.rgb = mix( diffuseColor.rgb, uInk, diceGlyph );\n' +
       // dev/mica-probe.js: paint the mica flakes magenta, to see which specks they are.
       '#ifdef MICA_DEBUG\n diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 1.0, 0.0, 1.0 ), pMica * ( 1.0 - diceGlyph ) );\n#endif\n' +

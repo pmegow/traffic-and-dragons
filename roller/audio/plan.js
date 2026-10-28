@@ -19,7 +19,7 @@
 // panning) }; an exit's may carry an envelope.
 
 import { createRng, mixSeed } from '../src/rng.js';
-import { BURN, EXIT_TABLE, MELT, PIT, PIT_OPENS, PIT_PULL } from '../render/exit-table.js';
+import { BURN, EXIT_TABLE, MELT, MELT_EATS, PIT, PIT_OPENS, PIT_PULL } from '../render/exit-table.js';
 
 /** m/s: an impact this fast plays its click at full strength (≈ the 90th percentile of a roll's hits). */
 export const REF_SPEED = 1.0;
@@ -172,11 +172,11 @@ export const EXIT_SOUNDS = {
   // ice crack as the cracks run (its own entry, crack), the same crack played higher and brighter as it breaks, and
   // a die's own click, small and high, as each piece strikes the floor (strength by how hard).
   shatter: { bank: 'exits', take: 'crack', rate: 1.3, gain: 0.8, after: 0, spread: 0, vary: { rate: 0.06, gain: 0.1 } },
-  // Melt (2026-10-28): burn out's sizzle played low and slow, so it bubbles — in as the die goes soft, fullest as it
-  // pools and dries, gone with the last of the steam.
+  // Melt (2026-10-28): burn out's sizzle played low and slow, so it bubbles — in as the die goes soft, fuller as its
+  // lumps melt, fullest as the holes start to eat the puddle, gone with the last of it (round 2).
   melt: {
     bank: 'exits', take: 'sizzle', rate: 0.55, gain: 1.0, after: 0, spread: 0, vary: { rate: 0.04, gain: 0.1 },
-    envelope: [[0, -40], [MELT.soften, -14], [MELT.soften + MELT.slump, -3], [MELT.soften + MELT.slump + MELT.hold, -1], [MELT.soften + MELT.slump + MELT.hold + MELT.dry, -24], [EXIT_TABLE.melt.seconds, -50]],
+    envelope: [[0, -40], [MELT.soften, -14], [MELT.soften + MELT.slumpBy, -4], [MELT_EATS, -1], [EXIT_TABLE.melt.seconds - 0.25, -24], [EXIT_TABLE.melt.seconds, -50]],
   },
   shard: { bank: 'clicks', strength: 0.3, rate: 1.7, gain: 0.2, after: 0, spread: 0.01, vary: { rate: 0.1, gain: 0.3 } },
 };

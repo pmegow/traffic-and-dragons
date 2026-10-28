@@ -25,8 +25,10 @@
 //          (sound('crack')); then it breaks into 8 ± 2 Voronoi pieces (render/fracture.js), sharply
 //          (sound('shatter')), which burst away spinning, fall and tumble to rest on the floor
 //          (render/shards.js), each strike a small click (sound('shard', …)), and fade
-//   melt   Melt: the die goes soft and trembles, slumps into a glossy puddle, its numerals smearing as it spreads,
-//          lies a moment, then dries up from its rim inward in wisps of steam, a low sizzle under it all (sound('melt'))
+//   melt   Melt: the die goes soft and trembles, cracking along the lines it will part on; it comes apart into soft
+//          lumps that fall away, goo stretching between them (render/goo.js), and each jiggles as it lands and melts
+//          into a glossy blob; the blobs run together into a puddle, which holes eat away until it has gone
+//          (render/holes.js), a low sizzle under it all (sound('melt'))
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
 //
 // Effects only draw: nothing here touches the physics, and the timings are the table's. A sound an effect
@@ -34,9 +36,11 @@
 // removeDie's onSound).
 
 import * as THREE from 'three';
-import { EXIT_TABLE, SCURRY, BURN, PIT, SHATTER, MELT, meltTimeline, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, shatterTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
+import { EXIT_TABLE, SCURRY, BURN, PIT, SHATTER, MELT, meltTimeline, meltPiece, meltJiggle, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, shatterTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
 import { fractureSeeds, fracturePieces, pieceCount } from './fracture.js';
-import { burstShards, stepShards } from './shards.js';
+import { burstShards, stepShards, rotate } from './shards.js';
+import { meltRel, fallApart, strandsBetween, strandTubes, writeTube, tubeIndices, TUBE_VERTICES } from './goo.js';
+import { holePlan, holesAt } from './holes.js';
 import { subdividePasses } from './subdivide.js';
 import { blankUV } from './die-mesh.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_DEPTH_PARS, EXIT_DEPTH } from './exit-shader.js';
@@ -562,13 +566,7 @@ function startShatter({ view, entry, sound = () => {} }) {
     { innerUV: blankUV(g.userData.layout), innerColor: dim });
   // The cracks run from its highest point, along the boundaries between the cells.
   mesh.updateMatrixWorld();
-  const p = new THREE.Vector3(), top = new THREE.Vector3(), topWorld = new THREE.Vector3();
-  for (let i = 0, high = -Infinity; i < at.position.count; i++) {
-    p.fromBufferAttribute(at.position, i);
-    const y = p.clone().applyMatrix4(mesh.matrixWorld).y;
-    if (y > high) { high = y; top.copy(p); }
-  }
-  topWorld.copy(top).applyMatrix4(mesh.matrixWorld);
+  const top = highestPoint(mesh), topWorld = top.clone().applyMatrix4(mesh.matrixWorld);
   uniforms.uExitCrackFrom.value.copy(top);
   seeds.forEach((s, k) => uniforms.uExitSeeds.value[k].set(s[0], s[1], s[2]));
   uniforms.uExitSeedCount.value = seeds.length;
@@ -638,81 +636,236 @@ function startShatter({ view, entry, sound = () => {} }) {
 }
 
 // ---------------------------------------------------------------- melt
-// 2026-10-28 (owner: "come up with a new exit animation, build it"). The die itself bends, in its vertex shader
-// (render/exit-shader.js ▸ exitMelt), its shadow with it; it is split finer while it trembles (render/subdivide.js, a
-// pass a frame), so the slump is smooth; the puddle dries in its fragment shader. Nothing compiles mid-exit: the code
-// is in every die's shader from the start, behind uniform branches.
-const STEAM = { colour: [[1.0, 1.0, 0.98], [0.9, 0.9, 0.9]] };   // white wisps: grey read as smoke in the first strip
+// Round 2 (owner 2026-10-28: "break into gooey parts that form a puddle, then the puddle is eaten away by expanding
+// holes"; round 1 slumped the whole die, and "reads as just the die scaling flat"). The die trembles and cracks along
+// the lines it will part on (Shatter's cracks) while it is cut (render/fracture.js) and split finer (render/subdivide.js),
+// a few milliseconds a frame; then it comes apart into soft lumps that fall away (render/shards.js with Melt's motion;
+// render/goo.js ▸ fallApart). Each lump is its own copy of the die's material — the same shader, so nothing compiles —
+// and so melts on its own clock as it lands, in its vertex shader (render/exit-shader.js ▸ exitMelt), its shadow with
+// it. The goo between them (render/goo.js) is one mesh whose shape is written each frame, stuck to the melting lumps by
+// the same slump in JS (meltRel). The blobs run together into the puddle, which holes eat (render/holes.js) in every one
+// of their shaders and shadows.
 function startMelt({ view, entry, sound = () => {} }) {
-  const mesh = entry.mesh, m = mesh.material, uniforms = m.userData.dice.uniforms, R = entry.die.boundingRadius;
-  const centre = mesh.position.clone(), coarse = mesh.geometry, at = coarse.attributes, roughness = m.roughness;
+  const mesh = entry.mesh, m = mesh.material, dice = m.userData.dice, uniforms = dice.uniforms, R = entry.die.boundingRadius;
+  const centre = mesh.position.clone(), g = mesh.geometry, at = g.attributes, colours = at.color.array;
+  let dim = 1;
+  for (let i = 0; i < colours.length; i++) dim = Math.min(dim, colours[i]);   // a broken face is as dim as the die's
+  const seeds = fractureSeeds(entry.die.core, pieceCount(Math.random, { pieces: MELT.pieces, spread: MELT.vary }));
+  // It trembles about its centre on the floor, and cracks from its highest point along the lines it will part on.
   mesh.updateMatrixWorld();
-  uniforms.uExitMeltAt.value.set(centre.x, 0, centre.z, R);   // its centre on the floor, and its size
+  uniforms.uExitMeltAt.value.set(centre.x, 0, centre.z, R);
   uniforms.uExitMeltInverse.value.copy(mesh.matrixWorld).invert();
-  uniforms.uExitMeltSeed.value = rand(0, 2 * Math.PI);
-  mesh.customDepthMaterial = exitDepthMaterial(uniforms);   // its shadow slumps and dries with it
-  const steam = createParticles({ max: 60, look: 'smoke' });
-  view.scene.add(steam.points);
-  sound('melt', centre);   // a low sizzle under it all (audio/plan.js ▸ EXIT_SOUNDS)
-  const splitting = subdividePasses({ position: at.position.array, normal: at.normal.array, uv: at.uv.array, color: at.color.array }, MELT.maxEdge * R);
-  let soup = null, fine = null, steamDue = 0;
-  // A pass of the split a frame while it trembles; the finer die takes over once the split is done.
-  const split = (all) => {
-    if (fine) return;
-    for (;;) {
-      const next = splitting.next();
-      if (next.done) break;
-      soup = next.value;
-      if (!all) return;
+  uniforms.uExitCrackFrom.value.copy(highestPoint(mesh));
+  seeds.forEach((s, k) => uniforms.uExitSeeds.value[k].set(s[0], s[1], s[2]));
+  uniforms.uExitSeedCount.value = seeds.length;
+  mesh.customDepthMaterial = exitDepthMaterial(uniforms);   // its shadow trembles with it
+  // Every lump its own copy of the die's material, so each melts on its own; the goo the die's colour, unprinted. All
+  // of them share one set of holes.
+  const style = { body: '#' + m.color.getHexString(), ink: '#' + uniforms.uInk.value.getHexString() };
+  const holes = Array.from({ length: MELT.holes }, () => new THREE.Vector3());
+  const materials = [];
+  const copy = (glyph) => {
+    const c = dieMaterial(dice.finish, style, glyph, dice.seed, { radius: R, onTray: view.trayDrawn });
+    c.userData.dice.uniforms.uExitHoles.value = holes;
+    materials.push(c);
+    return c;
+  };
+  const rough = m.roughness, bump = m.bumpScale;
+  const lumps = [];
+  const addLump = (piece) => {
+    const material = copy(uniforms.uGlyph.value), u = material.userData.dice.uniforms;
+    u.uExitMeltSeed.value = rand(0, 2 * Math.PI);   // each blob's rim its own
+    const lump = new THREE.Mesh(geometryOf(piece), material);
+    lump.castShadow = mesh.castShadow;
+    lump.receiveShadow = mesh.receiveShadow;
+    lump.renderOrder = mesh.renderOrder;
+    lump.customDepthMaterial = exitDepthMaterial(u);
+    lump.matrixAutoUpdate = false;   // its pose is the motion's, turned about its own centroid
+    lump.visible = false;
+    view.scene.add(lump);
+    lumps.push({ piece, mesh: lump, material, uniforms: u, landed: -1, melting: -1, w: R, foot: R, melt: 0, wobble: 0 });
+  };
+  // The work, a little a frame while it trembles: cut every lump, then split each finer for its slump.
+  const work = (function* () {
+    const cutting = fracturePieces({ position: at.position.array, normal: at.normal.array, uv: at.uv.array, color: colours }, seeds,
+      { innerUV: blankUV(g.userData.layout), innerColor: dim });
+    for (const piece of cutting) { addLump(piece); yield; }
+    for (const l of lumps) {
+      let soup = null;
+      for (soup of subdividePasses(l.piece, MELT.maxEdge * R)) yield;
+      if (soup) { const coarse = l.mesh.geometry; l.mesh.geometry = geometryOf(soup); coarse.dispose(); }
     }
-    fine = new THREE.BufferGeometry();
-    if (soup) {
-      for (const [name, size] of [['position', 3], ['normal', 3], ['uv', 2], ['color', 3]]) fine.setAttribute(name, new THREE.BufferAttribute(soup[name], size));
-      fine.computeBoundingSphere();
-      fine.userData = coarse.userData;
-      mesh.geometry = fine;
+  })();
+  let working = true;
+  const workFor = (ms, until = () => false) => {
+    const t0 = performance.now();
+    while (working && !until()) {
+      if (work.next().done) working = false;
+      if (performance.now() - t0 >= ms) break;
     }
   };
+  sound('melt', centre);   // a low sizzle under it all (audio/plan.js ▸ EXIT_SOUNDS)
+  let states = null, strands = null, goo = null, plan = null;
+  // A strand's end on its lump, in the world: carried with the lump, then slumped with it (the shader's sums in JS).
+  const anchor = (l, s, a) => {
+    const c = l.piece.centroid, r = rotate(s.q, [a[0] - c[0], a[1] - c[1], a[2] - c[2]]);
+    const rel = [r[0], s.x[1] + r[1], r[2]];   // from the lump's centre on the floor
+    if (!l.melt && !l.wobble) return [s.x[0] + rel[0], rel[1], s.x[2] + rel[2]];
+    const q = meltRel(rel, { melt: l.melt, wobble: l.wobble, w: l.w, foot: l.foot, seed: l.uniforms.uExitMeltSeed.value });
+    return [s.x[0] + q[0], q[1], s.x[2] + q[2]];
+  };
+  const breakApart = () => {
+    workFor(Infinity, () => lumps.length === seeds.length);   // every lump cut by now (a frame that ran long)
+    uniforms.uExitWobble.value = 0;
+    uniforms.uExitCrack.value = 0;
+    mesh.visible = false;
+    states = fallApart(burstShards(lumps.map((l) => l.piece), { position: mesh.position.toArray(), quaternion: mesh.quaternion.toArray() }, Math.random, MELT), R);
+    for (const l of lumps) l.mesh.visible = true;
+    strands = strandsBetween(lumps.map((l) => l.piece), R);
+    const n = 2 * strands.length * TUBE_VERTICES, geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3 * n), 3).setUsage(THREE.DynamicDrawUsage));
+    geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(3 * n), 3).setUsage(THREE.DynamicDrawUsage));
+    geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(2 * n), 2));
+    geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(3 * n).fill(dim), 3));
+    geometry.setIndex(tubeIndices(2 * strands.length));
+    const material = copy(glyphOf(0));
+    if (material.transmission > 0) material.thickness = 4 * MELT.strandRadius[1] * R;   // glass as thin as the goo, or it tints black
+    goo = new THREE.Mesh(geometry, material);
+    goo.castShadow = mesh.castShadow;
+    goo.receiveShadow = mesh.receiveShadow;
+    goo.frustumCulled = false;   // its shape is written every frame, never bounded
+    goo.customDepthMaterial = exitDepthMaterial(material.userData.dice.uniforms);
+    view.scene.add(goo);
+  };
+  // The puddle, for the holes: its lumps' points slumped (one in PUDDLE_SAMPLE), and its strands' rings; middles away
+  // from the rims.
+  const puddle = () => {
+    const points = [], middles = [], v = new THREE.Vector3();
+    lumps.forEach((l, k) => {
+      const s = states[k], pos = l.mesh.geometry.attributes.position, mine = [];
+      for (let i = 0; i < pos.count; i += PUDDLE_SAMPLE) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(l.mesh.matrix);
+        const q = meltRel([v.x - s.x[0], v.y, v.z - s.x[2]], { melt: l.melt, wobble: 0, w: l.w, foot: l.foot, seed: l.uniforms.uExitMeltSeed.value });
+        mine.push([s.x[0] + q[0], s.x[2] + q[2], Math.hypot(q[0], q[2])]);
+      }
+      const reach = Math.max(...mine.map((p) => p[2]));
+      for (const p of mine) { points.push([p[0], p[1]]); if (p[2] < 0.6 * reach) middles.push([p[0], p[1]]); }
+    });
+    for (const st of strands) for (const tube of st.tubes) for (const q of tube.points) { points.push([q[0], q[2]]); middles.push([q[0], q[2]]); }
+    return { points, middles };
+  };
+  const p = new THREE.Vector3(), turn = new THREE.Quaternion(), back = new THREE.Matrix4(), ONE = new THREE.Vector3(1, 1, 1);
   return {
     step(u, dt) {
       const t = meltTimeline(u);
-      split(t.melt > 0);
-      uniforms.uExitWobble.value = t.wobble;
-      uniforms.uExitMelt.value = t.melt;
-      uniforms.uExitDry.value = t.dry;
-      m.roughness = roughness + (MELT.gloss - roughness) * t.melt;   // wet as it pools
-      // Steam rises from what is left of the puddle as it dries.
-      const reach = R * (1 + MELT.spread) * (1 - t.dry);
-      for (steamDue += t.steam * MELT.steam * dt; steamDue >= 1; steamDue--) {
-        const a = rand(0, 2 * Math.PI), r = reach * Math.sqrt(Math.random());
-        steam.emit({
-          position: { x: centre.x + r * Math.cos(a), y: 0.002, z: centre.z + r * Math.sin(a) },
-          velocity: { x: rand(-0.003, 0.003), y: rand(0.012, 0.025), z: rand(-0.003, 0.003) },
-          life: rand(0.6, MELT.linger + 0.4), size: [R * rand(0.3, 0.5), R * rand(0.8, 1.2)], colour: STEAM.colour, alpha: [0.12, 0],
-          drag: 1.5, lift: 0.01, wander: rand(0.05, 0.1),
-        });
+      if (!t.broken) {
+        uniforms.uExitWobble.value = t.wobble;
+        uniforms.uExitCrack.value = t.crack * SHATTER.reach * R;
+        workFor(MELT.workBudget);
+        return;
       }
-      steam.update(dt, pixelsPerMetre(view));
+      if (!states) breakApart();
+      workFor(MELT.workBudget);
+      stepShards(states, dt, undefined, MELT);
+      for (const [k, s] of states.entries()) if (lumps[k].melting >= 0 && s.touched) s.w = [0, 0, 0];   // a melting lump slides on, no longer turning
+      states.forEach((s, k) => {
+        const l = lumps[k];
+        if (s.touched && l.landed < 0) { l.landed = t.since; l.w = Math.max(0.25 * R, topOf(s) / 2); }
+        if (l.melting < 0 && ((l.landed >= 0 && t.since >= l.landed + MELT.land) || t.since >= MELT.slumpBy)) {
+          // It melts where it lies — once down, no more tumbling (it may slide on); split finer first, if the frames have
+          // not done it yet.
+          l.melting = t.since;
+          l.w = Math.max(0.25 * R, topOf(s) / 2);
+          l.foot = footOf(s);
+          workFor(Infinity);
+        }
+        const c = l.piece.centroid;
+        l.mesh.matrix.compose(p.set(s.x[0], s.x[1], s.x[2]), turn.set(s.q[0], s.q[1], s.q[2], s.q[3]), ONE).multiply(back.makeTranslation(-c[0], -c[1], -c[2]));
+        l.mesh.matrixWorldNeedsUpdate = true;
+        l.melt = meltPiece(l.melting < 0 ? 0 : t.since - l.melting);
+        l.wobble = l.landed < 0 ? 0 : meltJiggle(t.since - l.landed);
+        l.uniforms.uExitMelt.value = l.melt;
+        l.uniforms.uExitWobble.value = l.wobble;
+        l.uniforms.uExitMeltAt.value.set(s.x[0], 0, s.x[2], l.w);   // its centre on the floor, and its size
+        l.uniforms.uExitMeltInverse.value.copy(l.mesh.matrix).invert();
+        l.uniforms.uExitMeltFoot.value = l.foot;
+        l.material.roughness = rough + (MELT.gloss - rough) * l.melt;   // wet as it melts
+        // Its numerals fade as it melts, their engraving with them (owner: "preserving the numbers isn't important").
+        const ink = 1 - smoothstep01((l.melt - MELT.inkFrom) / (MELT.inkTo - MELT.inkFrom));
+        l.uniforms.uExitInk.value = ink;
+        l.material.bumpScale = bump * ink;
+      });
+      const P = goo.geometry.attributes.position, N = goo.geometry.attributes.normal;
+      goo.material.roughness = rough + (MELT.gloss - rough) * lumps.reduce((t, l) => t + l.melt, 0) / lumps.length;   // the die's own, wet as it melts
+      strands.forEach((st, k) => {
+        const a = anchor(lumps[st.i], states[st.i], st.at), b = anchor(lumps[st.j], states[st.j], st.at);
+        st.tubes = strandTubes(st, a, b, t.since, (lumps[st.i].melt + lumps[st.j].melt) / 2);
+        writeTube(st.tubes[0] || null, P.array, N.array, 2 * k * TUBE_VERTICES);
+        writeTube(st.tubes[1] || null, P.array, N.array, (2 * k + 1) * TUBE_VERTICES);
+      });
+      P.needsUpdate = true;
+      N.needsUpdate = true;
+      if (t.eaten >= 0) {
+        if (!plan) { const { points, middles } = puddle(); plan = holePlan(points, middles); }
+        const open = holesAt(plan, t.eaten);
+        open.forEach((h, k) => holes[k].set(h[0], h[1], h[2]));
+        for (const c of materials) c.userData.dice.uniforms.uExitHoleCount.value = open.length;
+      }
     },
     dispose() {
-      steam.dispose();
-      if (mesh.geometry !== coarse) { mesh.geometry = coarse; fine.dispose(); }   // the view frees the die's own
-      uniforms.uExitMelt.value = 0;
-      uniforms.uExitWobble.value = 0;
-      uniforms.uExitDry.value = 0;
-      m.roughness = roughness;
+      for (const l of lumps) { view.scene.remove(l.mesh); l.mesh.geometry.dispose(); l.mesh.customDepthMaterial.dispose(); }
+      if (goo) { view.scene.remove(goo); goo.geometry.dispose(); goo.customDepthMaterial.dispose(); }
+      for (const c of materials) c.dispose();
       mesh.customDepthMaterial.dispose();
+      uniforms.uExitCrack.value = 0;
+      uniforms.uExitSeedCount.value = 0;
+      uniforms.uExitWobble.value = 0;
     },
   };
 }
 
+/** One of every this many of a melted lump's vertices stands for it in the holes' plan (every third took 4–12 ms a die). */
+const PUDDLE_SAMPLE = 7;
+
+/** A mesh's highest point at rest, in its own space: where cracks start from (Shatter, Melt). */
+function highestPoint(mesh) {
+  const pos = mesh.geometry.attributes.position, p = new THREE.Vector3(), top = new THREE.Vector3();
+  for (let i = 0, high = -Infinity; i < pos.count; i++) {
+    p.fromBufferAttribute(pos, i);
+    const y = p.clone().applyMatrix4(mesh.matrixWorld).y;
+    if (y > high) { high = y; top.copy(p); }
+  }
+  return top;
+}
+
+/** A piece's highest point above the floor, as it lies (render/shards.js's state). */
+function topOf(s) {
+  return Math.max(...s.arms.map((a) => s.x[1] + rotate(s.q, a)[1]));
+}
+
+/** How far a piece reaches across the floor from its centroid, as it lies: its foot, which it melts out from. */
+function footOf(s) {
+  return Math.max(...s.arms.map((a) => { const r = rotate(s.q, a); return Math.hypot(r[0], r[2]); }));
+}
+
+const smoothstep01 = (x) => { const t = Math.min(1, Math.max(0, x)); return t * t * (3 - 2 * t); };
+
+/** A triangle soup (render/fracture.js, render/subdivide.js) as a geometry. */
+function geometryOf(soup) {
+  const geometry = new THREE.BufferGeometry();
+  for (const [name, size] of [['position', 3], ['normal', 3], ['uv', 2], ['color', 3]]) geometry.setAttribute(name, new THREE.BufferAttribute(soup[name], size));
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
 // ---------------------------------------------------------------- shared pieces
-/** A shadow's depth material for a leaving die: the same cut and burn-through as the die (exit-shader.js). */
+/** A shadow's depth material for a leaving die: the same cut, burn-through, slump and holes as the die (exit-shader.js). */
 function exitDepthMaterial(u) {
   const m = new THREE.MeshDepthMaterial();
   m.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, { uScale: u.uScale, uSeed: u.uSeed, uExitDissolve: u.uExitDissolve, uExitClipY: u.uExitClipY, uExitFade: u.uExitFade,
-      uExitMelt: u.uExitMelt, uExitWobble: u.uExitWobble, uExitDry: u.uExitDry, uExitMeltAt: u.uExitMeltAt, uExitMeltInverse: u.uExitMeltInverse, uExitMeltSeed: u.uExitMeltSeed });
+      uExitMelt: u.uExitMelt, uExitWobble: u.uExitWobble, uExitMeltAt: u.uExitMeltAt, uExitMeltInverse: u.uExitMeltInverse, uExitMeltSeed: u.uExitMeltSeed, uExitMeltFoot: u.uExitMeltFoot,
+      uExitHoles: u.uExitHoles, uExitHoleCount: u.uExitHoleCount });
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vPatternPos;\n' + EXIT_VERTEX_PARS)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPatternPos = position;\n' + EXIT_VERTEX);

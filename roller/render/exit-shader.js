@@ -15,10 +15,12 @@ export const EXIT_CLIP_OFF = -10;
 /** Where on the die the burn's noise is read: its own pattern space, a little finer than its grain. */
 const EXIT_NOISE = 'pFbm( ( vPatternPos * uScale + uSeed ) * 1.6 )';
 
-// Melt's slump (2026-10-28), in the world: the die's height falls to EXIT_MELT_FLAT of itself while its foot spreads,
-// the lower the further, over an uneven rim, about its centre on the floor (uExitMeltAt.xyz, its radius .w); then back to
-// its own space (uExitMeltInverse: the world to its own space, as it lay). Its normals follow the squash, so the puddle's
-// top looks up and its rim out. uExitWobble trembles it as it goes soft. Off at rest: behind a uniform branch.
+// Melt's slump (2026-10-28), in the world: a melting piece's height falls to EXIT_MELT_FLAT of itself while its foot
+// spreads, the lower the further, over an uneven rim, about its centre on the floor (uExitMeltAt.xyz, its size .w); then
+// back to its own space (uExitMeltInverse: the world to its own space, as it lies). Its normals follow the squash, so a
+// blob's top looks up and its rim out. uExitWobble trembles the die as it goes soft, and a piece as it lands. Round 2
+// melts each piece on its own (render/exits.js gives each its own copy of the die's material); render/goo.js ▸ meltRel
+// is the same sums in JS. Off at rest: behind a uniform branch.
 export const EXIT_VERTEX_PARS = /* glsl */ `
 varying float vExitWorldY;
 varying vec2 vExitWorldXZ;
@@ -27,6 +29,7 @@ uniform float uExitWobble;
 uniform vec4 uExitMeltAt;
 uniform mat4 uExitMeltInverse;
 uniform float uExitMeltSeed;
+uniform float uExitMeltFoot;   // a lump's foot (m): how far it reaches from its centre as it lands
 const float EXIT_MELT_FLAT = ${glslFloat(MELT.flat)};
 const float EXIT_MELT_SPREAD = ${glslFloat(MELT.spread)};
 const float EXIT_MELT_LUMP = ${glslFloat(MELT.lump)};
@@ -44,7 +47,8 @@ vec2 exitMeltScale( vec3 rel ) {
   return vec2( squash, spread );
 }
 // Where a point rel from its centre on the floor goes: squashed and spread, its foot pulled toward a round, lumpy
-// puddle's outline and its sides bulging — melted rather than squashed.
+// outline (its own foot spread by EXIT_MELT_SPREAD: corners in, sides out) and its sides bulging — melted rather than
+// squashed (round 2: pulled only outward, a lump stayed a flattened polygon).
 vec3 exitMeltRel( vec3 rel ) {
   vec2 s = exitMeltScale( rel );
   float h = clamp( rel.y / ( 2.0 * uExitMeltAt.w ), 0.0, 1.0 );
@@ -53,8 +57,9 @@ vec3 exitMeltRel( vec3 rel ) {
   float a = atan( rel.z, rel.x );
   float rim = 1.0 + EXIT_MELT_LUMP * ( 0.6 * sin( 3.0 * a + uExitMeltSeed ) + 0.4 * sin( 5.0 * a + 2.3 * uExitMeltSeed ) );
   float reach = r * s.y;
-  float puddle = uExitMeltAt.w * ( 1.0 + EXIT_MELT_SPREAD ) * rim * ( 1.0 - h );   // the round outline, for its foot
-  reach = mix( reach, max( reach, puddle * min( r / ( 0.6 * uExitMeltAt.w ), 1.0 ) ), uExitMelt * EXIT_MELT_ROUND * ( 1.0 - h ) * ( 1.0 - h ) );
+  float foot = max( uExitMeltFoot, 1e-6 );   // never 0 into a sum, even times nothing: NaN times 0 is NaN
+  float puddle = foot * ( 1.0 + EXIT_MELT_SPREAD ) * rim * ( 1.0 - h );   // the round outline, for its foot
+  reach = mix( reach, puddle * min( r / ( 0.6 * foot ), 1.0 ), uExitMelt * EXIT_MELT_ROUND * ( 1.0 - h ) * ( 1.0 - h ) );
   reach += uExitMelt * EXIT_MELT_BULGE * uExitMeltAt.w * sin( 3.14159265 * h );
   return vec3( dir.x * reach, max( rel.y, 0.0 ) * s.x, dir.y * reach );
 }
@@ -70,7 +75,7 @@ vec3 exitMeltNormal( vec3 p, vec3 n ) {
   w = normalize( vec3( w.x / s.y, w.y / s.x, w.z / s.y ) );
   // Blended toward a smooth blob's: the normal of a low dome over the puddle, at where the point has gone.
   vec3 q = exitMeltRel( rel );
-  float wide = uExitMeltAt.w * ( 1.0 + 0.6 * EXIT_MELT_SPREAD ), high = max( 2.0 * uExitMeltAt.w * s.x, 1e-4 );
+  float wide = max( uExitMeltFoot * ( 1.0 + 0.6 * EXIT_MELT_SPREAD ), 1e-4 ), high = max( 2.0 * uExitMeltAt.w * s.x, 1e-4 );
   vec3 blob = normalize( vec3( q.x / ( wide * wide ), q.y / ( high * high ), q.z / ( wide * wide ) ) );
   w = normalize( mix( w, blob, uExitMelt * EXIT_MELT_BLOB ) );
   return transpose( turn ) * w;
@@ -99,12 +104,16 @@ uniform float uExitHeat;
 uniform float uExitDissolve;
 uniform float uExitClipY;
 uniform float uExitUnder;
-// Melt's puddle drying up from its rim inward (uExitDry 0 … 1), round its centre on the floor (uExitMeltAt).
-uniform float uExitDry;
-uniform vec4 uExitMeltAt;
-uniform float uExitMeltSeed;
+// Melt's ink, fading as a lump melts (1 printed … 0 gone: render/finishes.js multiplies the numeral mask by it).
+uniform float uExitInk;
+// Melt's holes (round 2, owner 2026-10-28: "swiss cheese where the holes just expand until it's gone"): uExitHoles[i] is
+// a hole in the puddle, its centre on the floor (.xy: the world's x and z) and its radius (.z, m); nothing of the puddle
+// shows inside one, and the puddle is a little darker (EXIT_HOLE_SHADE) within EXIT_HOLE_EDGE of one.
+uniform vec3 uExitHoles[ ${MELT.holes} ];
+uniform int uExitHoleCount;
 varying vec2 vExitWorldXZ;
-const float EXIT_MELT_REACH = ${glslFloat(1 + MELT.spread + MELT.lump)};   // its rim's furthest, in radii
+const float EXIT_HOLE_EDGE = ${glslFloat(MELT.holeEdge)};
+const float EXIT_HOLE_SHADE = ${glslFloat(MELT.holeShade)};
 // Shatter's cracks (owner 2026-10-27): uExitCrack is how far they have spread (m) from uExitCrackFrom, along the
 // boundaries between the cells of uExitSeeds (the die's own space, as render/fracture.js cuts it).
 uniform float uExitCrack;
@@ -140,12 +149,15 @@ const float EXIT_CRACK_DEPTH = ${glslFloat(SHATTER.grooveDepth)};
 /** After the die's colour (and its ink): the pit's cut and shade, then the burn. */
 export const EXIT_SURFACE = /* glsl */ `
 if ( vExitWorldY < uExitClipY ) discard;
-if ( uExitDry > 0.0 ) {
-  // The puddle dries from its rim inward, over an uneven edge, and the drying edge is darker.
-  float exitFrom = length( vExitWorldXZ - uExitMeltAt.xz );
-  float exitRim = uExitMeltAt.w * EXIT_MELT_REACH * ( 1.0 - uExitDry ) * ( 0.8 + 0.4 * pFbm( vec3( vExitWorldXZ * 400.0, uExitMeltSeed ) ) );
-  if ( exitFrom > exitRim ) discard;
-  diffuseColor.rgb *= mix( 1.0, 0.8, smoothstep( exitRim * 0.8, exitRim, exitFrom ) );
+if ( uExitHoleCount > 0 ) {
+  float exitNear = 1e9;
+  for ( int i = 0; i < ${MELT.holes}; i++ ) {
+    if ( i >= uExitHoleCount ) break;
+    float d = distance( vExitWorldXZ, uExitHoles[ i ].xy ) - uExitHoles[ i ].z;
+    if ( d < 0.0 ) discard;
+    exitNear = min( exitNear, d );
+  }
+  diffuseColor.rgb *= mix( EXIT_HOLE_SHADE, 1.0, smoothstep( 0.0, EXIT_HOLE_EDGE, exitNear ) );
 }
 if ( uExitCrack > 0.0 ) {
   // The boundary between the two nearest cells: the distance to the plane halfway between their seeds.
@@ -196,9 +208,8 @@ export const EXIT_DEPTH_PARS = /* glsl */ `
 uniform float uExitDissolve;
 uniform float uExitClipY;
 uniform float uExitFade;
-uniform float uExitDry;
-uniform vec4 uExitMeltAt;
-uniform float uExitMeltSeed;
+uniform vec3 uExitHoles[ ${MELT.holes} ];
+uniform int uExitHoleCount;
 varying float vExitWorldY;
 varying vec2 vExitWorldXZ;
 float exitHash( vec2 p ) { return fract( sin( dot( p, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 ); }
@@ -207,5 +218,8 @@ export const EXIT_DEPTH = /* glsl */ `
 if ( vExitWorldY < uExitClipY ) discard;
 if ( exitHash( gl_FragCoord.xy ) > uExitFade ) discard;   // a fading die's shadow: a fine dither the blur smooths
 if ( uExitDissolve > 0.0 && ${EXIT_NOISE} < uExitDissolve ) discard;
-if ( uExitDry > 0.0 && length( vExitWorldXZ - uExitMeltAt.xz ) > uExitMeltAt.w * ${glslFloat(1 + MELT.spread + MELT.lump)} * ( 1.0 - uExitDry ) * ( 0.8 + 0.4 * pFbm( vec3( vExitWorldXZ * 400.0, uExitMeltSeed ) ) ) ) discard;
+for ( int i = 0; i < ${MELT.holes}; i++ ) {
+  if ( i >= uExitHoleCount ) break;
+  if ( distance( vExitWorldXZ, uExitHoles[ i ].xy ) < uExitHoles[ i ].z ) discard;   // Melt's holes, in its shadow too
+}
 `;

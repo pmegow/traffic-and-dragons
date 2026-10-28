@@ -74,7 +74,7 @@ export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2,
  * value — owner 2026-10-27: "tint them, but to 90% of the die's value. That part should be subtle" — and carved, a
  * groove `groove` m either side of the line and `grooveDepth` m deep in the die's bump and clear coat, so a dark die's
  * highlights show it: "they wont show up on a dark die... is it possible to apply it as a normal map"), then it breaks into `pieces` ± `spread`
- * pieces that burst away from its centre (`burst` m/s, `pop` m/s up, `spin` rad/s), fall in the dice's own slow
+ * pieces that burst away from its centre (`burst` m/s, `pop` m/s up, `spin` rad/s, all of the way out kept: `rise`), fall in the dice's own slow
  * motion (`gravity`: g at VIEW_DEFAULTS.pace 0.3) and tumble to rest on the floor (render/shards.js: `bounce`
  * above `bounceSpeed`, `friction`, `settle`, resting under `restSpeed` and `restSpin`, sub-stepped at `substep`;
  * a strike over `hitSpeed` is heard, `hitsHeard` times a piece at most, at full strength from `loudHit`); after
@@ -84,7 +84,7 @@ export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2,
 export const SHATTER = {
   pieces: 8, spread: 2,   // owner 2026-10-28: "reduce the count to 8 +-2" (it began at 10 ± 3)
   crack: 0.4, reach: 2.2, width: 0.00025, crackShade: 0.9, groove: 0.0004, grooveDepth: 0.0003,
-  burst: [0.05, 0.12], pop: [0.05, 0.1], spin: [4, 12],
+  burst: [0.05, 0.12], pop: [0.05, 0.1], spin: [4, 12], rise: 1,
   gravity: 9.81 * 0.3 * 0.3, substep: 1 / 240,
   bounce: 0.3, bounceSpeed: 0.02, friction: 0.5, settle: 6, restSpeed: 0.003, restSpin: 0.5,
   hitSpeed: 0.02, hitsHeard: 2, loudHit: 0.2,
@@ -93,23 +93,53 @@ export const SHATTER = {
 };
 
 /**
- * Melt (owner 2026-10-28: "come up with a new exit animation, build it"), in seconds: the die goes soft for `soften`,
- * trembling `wobble` of its height either way at `wobbleHz`, ever more; it slumps over `slump` into a glossy puddle —
- * its height to `flat` of what it was, its foot spreading `spread` radii further out than the rest of it over an uneven
- * rim (`lump`) while its top draws in by `top` of its width, a mound rather than a sheet (the first frame strip spread
- * it 1.3 radii to 7% of its height, and it read as a flat sheet of all its faces); its foot pulled `round` of the way to a
- * round, lumpy outline, its sides bulging `bulge` radii, and its shading blended `blob` of the way to a smooth blob's, so
- * it reads as melted rather than squashed (the second strip was a faceted, squashed die); its roughness falling to
- * `gloss` (wet) — lies a moment (`hold`), then dries up from its rim inward over
- * `dry`, wisps of steam rising (`steam` a second), which have `linger` to fade. The die is split finer while it
- * trembles, to edges of `maxEdge` radii (render/subdivide.js), so the slump bends it smoothly.
+ * Melt, in seconds. Round 2 (owner 2026-10-28: "what we have now reads as just the die scaling flat ... It's the
+ * evenness that's the biggest issue. Let's try out first fracturing the die then melting the individual pieces. Break
+ * apart the die, let the pieces fall, and try to have some goo stretch between the pieces ... To get rid of the puddle,
+ * grow circles of transparency ... Imagine swiss cheese where the holes just expand until it's gone"; the steam was
+ * "unnecessary" and is gone, the numerals need not survive).
+ *
+ * It goes soft for `soften`, trembling `wobble` of its height either way at `wobbleHz`, while cracks run over it along
+ * the lines it will part on (Shatter's, render/exit-shader.js); then it comes apart into `pieces` ± `vary` soft lumps
+ * (render/fracture.js), fewer and bigger than Shatter's, which fall away level from its centre (`burst` m/s, the higher
+ * the faster, by `byHeight`; no `pop`), toppling outward (`topple`, `spin` rad/s) in the dice's slow motion, landing without a bounce and gripping
+ * the floor (render/shards.js, with the rest of the motion's numbers) — far enough apart for the goo to stretch (the third
+ * strip's 0.012–0.022 m/s on a floor of grip 0.9 hardly parted them); each jiggles as it lands (`jiggle` of its
+ * height, at `jiggleHz`, dying away at `jiggleDecay`) and, `land` after it lands — `slumpBy` after the break at the
+ * latest — melts over `slump` into a glossy blob: its height to `flat`, its foot spreading `spread` of its size over
+ * an uneven rim (`lump`), its top drawn in by `top`, its foot pulled `round` of the way to a round outline, its sides
+ * bulging `bulge`, its shading blended `blob` of the way to a smooth blob's, its roughness to `gloss` (round 1's slump,
+ * now a piece's), its numerals fading from `inkFrom` to `inkTo` of the way; the blobs run together into the puddle. Goo stretches between neighbours as they part
+ * (render/goo.js): at most `strands` strands, two across a broken face wider than `wideFace` R², each `strandWidth` of
+ * its face's own radius thick within `strandRadius` (R), thinning as it stretches (its volume kept), widest at its
+ * ends by `flare`, sagging `sag` of its length (in over `sagIn`), snapping somewhere past `snap` (R) and springing
+ * back over `recoil`, and lying down in the puddle as its pieces melt, as wide again by `strandSpread`; drawn as tubes
+ * of `rings` rings of `sides`. The puddle lies `hold`, then holes eat it over `eat` (render/holes.js): `holes`
+ * circles, opening over the first `holeOpen` of it, each growing as time to the `holeGrow` (`holeVary` either way,
+ * hole to hole), fast enough that the last of it is gone `holeDone` of the way through; the puddle a little darker
+ * (`holeShade`) within `holeEdge` m of a hole. The die is cut and split finer (render/subdivide.js, to edges of
+ * `maxEdge` R) while it trembles, at most `workBudget` ms a frame, so no frame stalls.
+ *
+ * Round 1 (2026-10-28, owner: "come up with a new exit animation, build it") slumped the whole die into one puddle that
+ * dried from its rim in steam; the first frame strip spread it 1.3 radii to 7% of its height (a flat sheet), the second
+ * read as a squashed die.
  */
 export const MELT = {
-  soften: 0.3, wobble: 0.05, wobbleHz: 7,
-  slump: 0.8, flat: 0.2, spread: 0.8, top: 0.3, lump: 0.18, round: 0.8, bulge: 0.25, blob: 0.7, gloss: 0.12,
-  hold: 0.25, dry: 0.8, steam: 18, linger: 0.5,
-  maxEdge: 0.25,   // 0.2 split a d20 into 11,520 triangles, its last pass 7.8 ms on a desktop; 0.25 gives 5,160, each pass under 3 ms
+  soften: 0.35, wobble: 0.05, wobbleHz: 7,
+  pieces: 6, vary: 1,
+  burst: [0.02, 0.035], byHeight: 2, pop: [0, 0], spin: [1.5, 3], rise: 0, topple: true,
+  gravity: SHATTER.gravity, substep: SHATTER.substep,
+  bounce: 0, bounceSpeed: Infinity, friction: 0.35, settle: 12, restSpeed: 0.004, restSpin: 0.8, hitSpeed: Infinity, hitsHeard: 0,
+  jiggle: 0.08, jiggleHz: 9, jiggleDecay: 7, land: 0.08, slumpBy: 0.4,
+  slump: 0.7, flat: 0.14, spread: 0.8, top: 0.3, lump: 0.18, round: 0.8, bulge: 0.15, blob: 0.85, gloss: 0.12, inkFrom: 0.1, inkTo: 0.6,
+  strands: 10, wideFace: 0.25, strandWidth: 0.35, strandRadius: [0.04, 0.11], flare: 0.6, sag: 0.6, sagIn: 0.3,
+  snap: [1.1, 2.6], recoil: 0.18, strandSpread: 0.8, rings: 12, sides: 8,
+  hold: 0.15, eat: 1.1, holes: 16, holeOpen: 0.55, holeGrow: 1.4, holeVary: 0.3, holeDone: 0.9, holeEdge: 0.0004, holeShade: 0.85,
+  maxEdge: 0.25, workBudget: 3,
 };
+
+/** When Melt's holes start to eat the puddle: every piece has melted (each starts `slumpBy` after the break at the latest). */
+export const MELT_EATS = MELT.soften + MELT.slumpBy + MELT.slump + MELT.hold;
 
 /** When Going down's hole starts to open: the die risen and its beat sat out. */
 export const PIT_OPENS = PIT.rise + PIT.beat;
@@ -125,7 +155,7 @@ export const EXIT_TABLE = {
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
-  melt: { label: 'Melt', seconds: MELT.soften + MELT.slump + MELT.hold + MELT.dry + MELT.linger },   // 2.65 s (2026-10-28)
+  melt: { label: 'Melt', seconds: MELT_EATS + MELT.eat },   // 2.9 s (round 2, 2026-10-28)
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
 };
 
@@ -272,20 +302,30 @@ export function shatterTimeline(u) {
 }
 
 /**
- * Melt: wobble (± a share of its height) as it goes soft, growing, and gone early in the slump; melt (0 whole … 1 a
- * puddle), slow to start, quicker, then settling; dry (0 … 1 dried away), slow at first, quicker as the puddle
- * shrinks; steam (0 … 1) as it dries.
+ * Melt, the die's part: wobble (± a share of its height) as it goes soft, swelling and gone again by the break, so the
+ * pieces take over from a die at rest; crack (0 … 1), how far the cracks have run, quickly at first; broken from the end
+ * of the soften; since, the seconds since it came apart; eaten, the seconds the holes have been eating the puddle
+ * (-1 before). Each piece melts on its own clock (meltPiece, meltJiggle).
  */
 export function meltTimeline(u) {
-  const t = clamp01(u) * EXIT_TABLE.melt.seconds;
-  const slumping = (t - MELT.soften) / MELT.slump, drying = (t - MELT.soften - MELT.slump - MELT.hold) / MELT.dry;
-  const tremble = t < MELT.soften ? smooth(t / MELT.soften) : 1 - smooth(slumping / 0.25);
+  const t = clamp01(u) * EXIT_TABLE.melt.seconds, s = clamp01(t / MELT.soften);
   return {
-    wobble: MELT.wobble * tremble * Math.sin(2 * Math.PI * MELT.wobbleHz * t),
-    melt: smooth(clamp01(slumping)),
-    dry: Math.pow(clamp01(drying), 1.2),
-    steam: drying > 0 && drying < 1 ? 1 : 0,
+    wobble: t < MELT.soften ? MELT.wobble * Math.sin(Math.PI * s) * Math.sin(2 * Math.PI * MELT.wobbleHz * t) : 0,
+    crack: Math.pow(s, 0.7),
+    broken: t >= MELT.soften,
+    since: Math.max(0, t - MELT.soften),
+    eaten: t >= MELT_EATS ? t - MELT_EATS : -1,
   };
+}
+
+/** How far a piece has melted (0 … 1), `since` seconds after it began to: slow to start, quicker, then settling. */
+export function meltPiece(since) {
+  return since <= 0 ? 0 : smooth(clamp01(since / MELT.slump));
+}
+
+/** A soft piece's jiggle, `since` seconds after it landed (± a share of its height): a quick tremble, dying away. */
+export function meltJiggle(since) {
+  return since <= 0 ? 0 : MELT.jiggle * Math.exp(-MELT.jiggleDecay * since) * Math.sin(2 * Math.PI * MELT.jiggleHz * since);
 }
 
 export function fadeTimeline(u) {
