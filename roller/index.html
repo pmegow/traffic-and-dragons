@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Dice Simulator</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
@@ -34,9 +34,11 @@
      the clock and the meters (owner 2026-10-24: Reset view was hidden under them). Rules read
      --top-inset, never env() directly. */
   :root { --top-inset: calc(env(safe-area-inset-top, 0px) * 1.7); }
-  /* Tapping fast never zooms the page (owner 2026-10-25: quick taps on the die buttons zoomed in). Pinching
-     still zooms it (the owner's ruling); the stage's own none keeps a pinch there for the camera. */
-  html { touch-action: manipulation; }
+  /* The page itself never zooms (owner 2026-10-27: "the screen zooming in some how, then it becomes nigh impossible
+     to UN-zoom since pinching just wants to zoom in and out of the playing surface"; 2026-10-25 had kept pinch and
+     stopped only double-tap zoom). It scrolls; a pinch on the tray is the camera's (the stage's own none), and Safari's
+     own pinch, which ignores the viewport, is stopped in demo/demo.js. */
+  html { touch-action: pan-x pan-y; }
   body { padding-top: var(--top-inset); }
   #stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; cursor: grab; display: flex; flex-direction: column; }
   #stage:active { cursor: grabbing; }

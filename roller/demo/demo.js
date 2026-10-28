@@ -25,27 +25,41 @@ $('version').textContent = 'v' + VERSION;
 
 // ---------------------------------------------------------------- sound
 const audio = new DiceAudio();
-let audioState = 'loading';   // loading → ready (waiting for a tap) → on | failed
+let audioState = 'loading';   // loading → ready (waiting for a tap) ⇄ on | failed (the banks did not load)
+// Why sound is not on, said in the sound line until it is — never on the status line, which the next roll clears
+// (2026-10-27: a refused start was said there and wiped by the very roll its tap threw).
+let soundWhy = '';
 const soundLine = () => {
-  const words = { loading: 'Loading sound…', ready: 'Tap Roll or the tray to start sound.', on: '', failed: '' };
+  const words = { loading: 'Loading sound…', ready: soundWhy || 'Tap Roll or the tray to start sound.', on: '', failed: soundWhy };
   $('sound-state').textContent = $('sound').checked ? words[audioState] : '';
 };
 audio.load().then(() => { audioState = 'ready'; soundLine(); }).catch((e) => {
   audioState = 'failed';
-  status('Sound is off: ' + e.message);
+  soundWhy = 'Sound is off: ' + e.message;
   console.error(e);
   soundLine();
 });
 soundLine();
 /**
- * Starts sound from inside a gesture; resolves once it is settled either way. Never rejects: a
- * failure is shown and the roll goes on silently.
+ * Starts sound from inside a gesture — a click, or a finger lifting (an iPhone refuses one coming down) — and
+ * resolves once it is settled either way. Never rejects. A refused start is not the end of sound: the sound line
+ * says why and the next tap tries again, as it does for a clock the phone paused while the page was away.
  */
 function unlockSound() {
   if (audioState !== 'ready' && audioState !== 'on') return Promise.resolve();
-  return audio.unlock().then((ok) => { if (ok) { audioState = 'on'; soundLine(); } }).catch((e) => { audioState = 'failed'; status('Sound is off: ' + e.message); });
+  return audio.unlock().then((ok) => {
+    audioState = ok ? 'on' : 'ready';
+    soundWhy = ok ? '' : 'Sound did not start (the browser keeps it ' + audio.ctx.state + '). Tap Roll to try again.';
+    soundLine();
+  }).catch((e) => {
+    audioState = 'ready';
+    soundWhy = 'Sound did not start: ' + e.message + ' Tap Roll to try again.';
+    console.warn('dice-sim: ' + soundWhy);
+    soundLine();
+  });
 }
-const soundOn = () => $('sound').checked && audioState === 'on';
+// Only on a running clock: sound scheduled on a paused one would all come out at once when it wakes.
+const soundOn = () => $('sound').checked && audioState === 'on' && audio.ctx && audio.ctx.state === 'running';
 // Sound never holds a roll or a drop back: a start that does not come (no gesture, a browser that
 // keeps the audio asleep) is waited for this long at most, and the dice go on silent.
 const SOUND_WAIT_MS = 250;
@@ -525,7 +539,7 @@ stage.addEventListener('pointerdown', (e) => {
     return;
   }
   const p = view.floorPoint(e.clientX, e.clientY);            // null off the floor: no throw, but the view still turns
-  press = { id: e.pointerId, start: p, samples: p ? [{ t: e.timeStamp, p }] : [], at: { x: e.clientX, y: e.clientY }, unlocking: unlockSound() };
+  press = { id: e.pointerId, start: p, samples: p ? [{ t: e.timeStamp, p }] : [], at: { x: e.clientX, y: e.clientY } };
   gesture.down(e.timeStamp, e.clientX, e.clientY);
   clearTimeout(holdTimer);
   holdTimer = setTimeout(() => {
@@ -565,6 +579,8 @@ stage.addEventListener('pointermove', (e) => {
 stage.addEventListener('pointerup', (e) => {
   if (e.pointerType === 'touch' && pinch.up(e.pointerId) === 'pinch') return;   // a finger off a pinch: never a roll
   if (!press || e.pointerId !== press.id) return;
+  // Sound starts as the finger lifts: an iPhone refuses it as one comes down (2026-10-27, the silent visits).
+  const unlocking = unlockSound();
   const kind = gesture.up();
   const d = endPress();
   if (kind === 'pan' || kind === 'zoom' || !d.start) return;   // a pan or zoom of the view, or a press that began off the floor
@@ -573,9 +589,9 @@ stage.addEventListener('pointerup', (e) => {
   const dt = (end.t - from.t) / 1000;
   const vx = dt > 0 ? (end.p.x - from.p.x) / dt : 0, vz = dt > 0 ? (end.p.z - from.p.z) / dt : 0;
   const v = Math.hypot(vx, vz);
-  if (v < 0.25) { rollFromPanel(undefined, { unlocking: d.unlocking }); return; }   // a tap, not a fling: the default toss
+  if (v < 0.25) { rollFromPanel(undefined, { unlocking }); return; }   // a tap, not a fling: the default toss
   const k = Math.min(3.2, Math.max(0.6, v)) / v;
-  rollFromPanel({ throw: { fling: { from: d.start, velocity: { x: vx * k, z: vz * k } } } }, { unlocking: d.unlocking });
+  rollFromPanel({ throw: { fling: { from: d.start, velocity: { x: vx * k, z: vz * k } } } }, { unlocking });
 });
 stage.addEventListener('pointercancel', (e) => {
   if (e.pointerType === 'touch') pinch.up(e.pointerId);
@@ -591,7 +607,12 @@ stage.addEventListener('wheel', (e) => {
 // The platform's own count of fingers is the truth: when the last one lifts, the pinch holds nothing,
 // whatever pointer events went missing (input/pinch.js ▸ THE PLATFORM IS THE TRUTH).
 for (const type of ['touchend', 'touchcancel']) stage.addEventListener(type, (e) => { if (e.touches.length === 0) pinch.reset(); }, { passive: true });
-stage.addEventListener('gesturestart', (e) => e.preventDefault());   // Safari's own pinch would zoom the page
+// touchend is the end of a touch WebKit itself counts as the gesture that may start sound; the pointerup before it
+// should be too, and if it was refused this starts it.
+stage.addEventListener('touchend', () => unlockSound(), { passive: true });
+// Safari's own pinch would zoom the page, wherever it begins (owner 2026-10-27: the page must never zoom; Safari
+// ignores the viewport's user-scalable=no): a pinch on the tray is the camera's, anywhere else it is nothing.
+for (const type of ['gesturestart', 'gesturechange']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
 stage.addEventListener('contextmenu', (e) => e.preventDefault());   // a long press turns the view and a right-drag zooms: no menu
 
 // ---------------------------------------------------------------- the options drawer (phone layout)

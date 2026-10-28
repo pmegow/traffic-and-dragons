@@ -2,7 +2,7 @@
 //
 //   const audio = new DiceAudio();
 //   await audio.load();                         // the click bank (fetch + decode, verified)
-//   await audio.unlock();                       // inside a click or tap: browsers start sound only then
+//   await audio.unlock();                       // inside a click, or as a finger lifts: browsers start sound only then
 //   view.play(result, { onStart: ({ timeScale }) => audio.scheduleRoll(result, { timeScale, pan }) });
 //
 // Every click is scheduled ahead on the audio clock, so it lands on its frame however busy the
@@ -62,10 +62,15 @@ export class DiceAudio {
     return ctx;
   }
 
-  /** Starts (or resumes) sound. Call from a click or tap; resolves true when sound can play. */
+  /**
+   * Starts (or resumes) sound. Call from a click, or as a finger lifts: an iPhone refuses a finger coming down.
+   * Resolves true when sound can play, false when the browser keeps the clock asleep; a refusal rejects with its
+   * reason. A context the browser holds is started whether it is suspended or interrupted (WebKit's own state for
+   * one an iPhone paused while the page was away, 2026-10-27).
+   */
   async unlock() {
     const ctx = this.context();
-    if (ctx.state === 'suspended' && ctx.resume) await ctx.resume();
+    if ((ctx.state === 'suspended' || ctx.state === 'interrupted') && ctx.resume) await ctx.resume();
     return this.injected ? true : ctx.state === 'running';
   }
 
