@@ -54,6 +54,10 @@ export const SCURRY = {
  * opens), starting `early` (two frames at 24 fps) before the die's top is
  * through, never before it is pulled (round 4). As it shuts it cracks (burn out's crack) and breathes out a puff of dark smoke; the cinders
  * (round 18: 0.7 … 1.225 s, 75% longer than round 16's) and the smoke have `linger` to rise and fade.
+ * Round 24 ("Add a slight growing glow where the hole will open to herald the approaching portal"): from the start a
+ * faint glow grows there, on the floor and on the die from below, faster and faster (`heraldRise`, an exponential)
+ * to `herald` of the open pit's light as the hole starts to open, and is held while it opens, until the pit's own
+ * light outshines it.
  * Round 21 ("When the dice float, rotate the 1/2 as fast"): `spin` is half round 17's 0.35 turns a second.
  * Round 19 ("Add a gentle vertical bob to the dice after they lift. Hold just a hair longer before the portal opens
  * up"): once it has risen it bobs up and down, `bob` radii either way every `bobPeriod`, easing in over `bobEase`
@@ -61,7 +65,7 @@ export const SCURRY = {
  * beat before the portal is 0.35 s (round 18's 0.25 s and a tenth). (Round 16 sat the die spinning ever faster
  * for a beat and sucked it down in three frames; round 14 pulled it slowly, trembling.)
  */
-export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, spin: 0.35 / 2, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225 };
+export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, spin: 0.35 / 2, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225, herald: 0.5, heraldRise: 3 };
 
 /** When Going down's hole starts to open: the die risen and its beat sat out. */
 export const PIT_OPENS = PIT.rise + PIT.beat;
@@ -165,7 +169,8 @@ export function smokeTimeline(u) {
  * floor), stretched along the pull as it goes (stretch: how much taller, a share of its height); its highest
  * point is through the floor at `clear` (seconds). The hole closes behind it from `shut`, the opening run
  * backwards, and is shut (closed) PIT.close later, when the smoke puffs out. fire is the glow far down the pit,
- * seen and felt through the hole, so it opens and shuts with it; the cinders rise from it. Art direction
+ * seen and felt through the hole, so it opens and shuts with it; the cinders rise from it. herald is the glow
+ * before the hole opens (round 24), as a share of the open pit's (fire 1), 0 once the portal is open. Art direction
  * 2026-10-25: round 1, the hole opens quicker (0.18 s, was 0.3); round 2, no overshoot as it opens, and it
  * closes as soon as the die goes (it stood open, empty, for 0.6 s); round 4, it starts closing two frames (at
  * 24 fps) before the die's top is through, and closes 20% slower; round 20 (owner 2026-10-27), it snaps shut 25%
@@ -182,6 +187,7 @@ export function pitTimeline(u, R, rise = R) {
   const x = t / PIT.rise;   // its turn eases in as it rises, then keeps an even pace
   const turned = x < 1 ? PIT.rise * (x * x * x - x * x * x * x / 2) : PIT.rise / 2 + (t - PIT.rise);
   const hole = Math.min(opening, closing);
+  const heralding = t < PIT_OPENS ? (Math.exp(PIT.heraldRise * t / PIT_OPENS) - 1) / (Math.exp(PIT.heraldRise) - 1) : 1;
   const b = t - PIT.rise, bobbing = PIT_PULL - PIT.rise;   // the bob, from the top of the rise to the pull
   const bob = b <= 0 || b >= bobbing ? 0 : PIT.bob * R * Math.sin(2 * Math.PI * b / PIT.bobPeriod) * smooth(b / PIT.bobEase) * smooth((bobbing - b) / PIT.bobEase);
   return {
@@ -192,6 +198,7 @@ export function pitTimeline(u, R, rise = R) {
     twist: 2 * Math.PI * PIT.spin * turned,
     stretch: PIT.stretch * smooth(s / 0.4),
     fire: hole,
+    herald: t < PIT_OPENS + PIT.open ? PIT.herald * heralding : 0,
     clear,
     shut,
     closed: t >= shut + PIT.close,

@@ -15,7 +15,8 @@
 //   scurry Scurry off: eight spider legs grow out of it — coxa, femur, knee, tibia, metatarsus and a
 //          tapering tarsus, in its own material, the knuckles in its numerals' — it stands up on them
 //          and runs out of frame, each foot heard as it touches the floor (sound('step', …))
-//   pit    Going down: a hole opens under the die onto an orange glow far down the pit, which lights the
+//   pit    Going down: a faint glow grows on the floor, heralding it, then a hole opens under the die onto an
+//          orange glow far down the pit, which lights the
 //          die from beneath and sends cinders up, crackling (sound('crackle'), from the start, rising as it opens); the die has risen and hovers,
 //          bobbing gently and turning slowly, before it opens and for a while after, then is sucked down through it, stretching as it goes (cut at the floor),
 //          the hole's sharp red ring round it, and the hole snaps shut behind it with a crack and a soft puff of
@@ -179,6 +180,9 @@ const HELL = {
   flicker: 0.35,   // how far the light dips, at most
   under: 1,        // the die's light from below at full glow
   floor: 0.6,      // the floor's glow round the rim at full glow
+  // Round 24: the herald's pool on the floor, as a multiple of its light on the die, so the pool reaches the open
+  // pit's own just as the hole opens (at the herald's half it could hardly be seen).
+  heraldPool: 2,
 };
 // The pit's last breath: a few puffs of dark smoke, the Smoke puff's look in soot.
 const PIT_SMOKE = { puffs: 10, colour: [[0.1, 0.09, 0.09], [0.04, 0.04, 0.04]] };
@@ -217,8 +221,10 @@ function startPit({ view, entry, sound = () => {} }) {
       look.copy(view.camera.position).sub(centre);
       const across = Math.hypot(look.x, look.z), slant = Math.min(HELL.shiftMax, HELL.deep * across / Math.max(look.y, 1e-6));
       hole.uniforms.uShift.value.set(across > 1e-9 ? look.x / across * slant : 0, across > 1e-9 ? -look.z / across * slant : 0);
-      glow.set(t.fire * HELL.floor * flicker);
-      uniforms.uExitUnder.value = t.fire * HELL.under * flicker;
+      // Round 24: heralded, before it opens, by a faint glow (t.herald) on the floor and on the die from below.
+      const light = Math.max(t.herald, t.fire), pool = Math.max(t.herald * HELL.heraldPool, t.fire);
+      glow.set(pool * HELL.floor * flicker);
+      uniforms.uExitUnder.value = light * HELL.under * flicker;
       // It rises, hovers turning slowly, then is pulled down, stretched along the pull from its top, its girth
       // narrowing to keep its volume.
       mesh.position.set(centre.x, centre.y + t.lift + t.bob - t.drop, centre.z);
