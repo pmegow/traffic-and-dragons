@@ -79,10 +79,10 @@ export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2,
  * above `bounceSpeed`, `friction`, `settle`, resting under `restSpeed` and `restSpin`, sub-stepped at `substep`;
  * a strike over `hitSpeed` is heard, `hitsHeard` times a piece at most, at full strength from `loudHit`); after
  * `fly` they fade over `fade`. The die is cut while its cracks run, a few pieces a frame, for at most `cutBudget` ms
- * a frame (a d20 in 13 pieces is ~17 ms of cutting on a desktop), so no frame stalls.
+ * a frame (a d20 in 13 pieces was ~17 ms of cutting on a desktop; 10 at most now), so no frame stalls.
  */
 export const SHATTER = {
-  pieces: 10, spread: 3,
+  pieces: 8, spread: 2,   // owner 2026-10-28: "reduce the count to 8 +-2" (it began at 10 ± 3)
   crack: 0.4, reach: 2.2, width: 0.00025, crackShade: 0.9, groove: 0.0004, grooveDepth: 0.0003,
   burst: [0.05, 0.12], pop: [0.05, 0.1], spin: [4, 12],
   gravity: 9.81 * 0.3 * 0.3, substep: 1 / 240,

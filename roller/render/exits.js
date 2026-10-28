@@ -22,7 +22,7 @@
 //          the hole's sharp red ring round it, and the hole snaps shut behind it with a crack and a soft puff of
 //          dark smoke (sound('crack'), burn out's; sound('softPuff'))
 //   shatter Shatter: cracks run over the die from its top along the very lines it will break on, with a crack
-//          (sound('crack')); then it breaks into 10 ± 3 Voronoi pieces (render/fracture.js), sharply
+//          (sound('crack')); then it breaks into 8 ± 2 Voronoi pieces (render/fracture.js), sharply
 //          (sound('shatter')), which burst away spinning, fall and tumble to rest on the floor
 //          (render/shards.js), each strike a small click (sound('shard', …)), and fade
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
