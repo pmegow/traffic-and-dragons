@@ -35539,4 +35539,141 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return dr.indexOf("var falBody=usingI2I?")>text?true:"the count must land before the body is built";
   });
 
+  section("#671 — the story so far (owner 2026-10-27: back after a day away, the player cannot recall what the campaign is about or how the current quest fits; the journal is a to-done list): a player-facing recap at the top of the Quest Journal — the model's paragraph and where-you-stand line written from PLAYER-KNOWN material only (the stake, the chapters and eras, the quests seen, the completed and current act/arc titles — never the premise, a goal, a turning point, an objective, a dnaHint or a pending title), refreshed after an arc or act completes (synopsisDue after the commit, never awaited) and by the journal's Refresh button, never on a quest; the by-act receipt is derived (synopsisGroups); the record worldState.synopsis is player-facing only, nothing in the prompt reads it");
+  function mk671(){
+    makeWorld();worldState.turn=140;worldState.stake="I want to find who burned my village.";
+    worldState.world={location:"the Ash Spire",region:"the Hollow Wastes",sublocation:"the cinder gate"};
+    worldState.skeleton={premise:"SECRET-PREMISE the Baron is the lich.",acts:[
+      {title:"Act 1: Ashfall",goal:"SECRET-GOAL-1",turningPoint:"SECRET-TP-1",status:"completed",completedTurn:60,arcs:[
+        {title:"Reading the Palisades",objective:"SECRET-OBJ-A",status:"completed",startTurn:0,completedTurn:30},
+        {title:"The Glass Spire Skirmish",objective:"SECRET-OBJ-B",status:"completed",startTurn:31,completedTurn:60}]},
+      {title:"A Reason to Stay",goal:"SECRET-GOAL-2",turningPoint:"SECRET-TP-2",status:"active",arcs:[
+        {title:"Breaching the Ash Spires",objective:"SECRET-OBJ-C",dnaHint:"SECRET-DNA",status:"completed",startTurn:61,completedTurn:129},
+        {title:"The Jewel of Ruin",objective:"SECRET-OBJ-D",status:"active",startTurn:130}]},
+      {title:"SECRET-ACT-3",goal:"SECRET-GOAL-3",turningPoint:"SECRET-TP-3",status:"pending",arcs:[{title:"SECRET-ARC-E",objective:"SECRET-OBJ-E",status:"pending"}]}]};
+    worldState.questLog=[{title:"The Jewel of Ruin",status:"active",desc:"Destroy the master cinder jewel",objectives:[{text:"Reach the citadel",done:true},{text:"Destroy the master cinder jewel",done:false}]}];
+    memory.chapters=[{turn:70,summary:"Chapter seventy: Nyla led the party under the spires."},{turn:100,summary:"Chapter hundred: the pyre-foundry fell."},{turn:135,summary:"Chapter one-three-five: the gate opened."}];
+    if(!memory.archive)memory.archive={};memory.archive.chapters=[{turn:20,summary:"Archived twenty."},{turn:45,summary:"Archived forty-five."}];
+    memory.eras=[{summary:"Era one: the palisades were read and the spire skirmish won.",turnRange:[1,45],sourceChapterTurns:[20,45]}];
+    memory.quests={"Reading the Palisades":{title:"Reading the Palisades",status:"completed",desc:"Scout the walls",turn:8},"A Reason to Stay":{title:"A Reason to Stay",status:"abandoned",by:"wall",desc:"",turn:128}};
+    delete worldState.synopsis;
+  }
+  function leak671(s){var m=String(s).match(/SECRET-[A-Z0-9-]+/g);return m?m.join(","):"";}
+  t("#671 the basis carries only what the player has seen: the stake, the eras and the chapters past them, the quests, the completed and current titles, the open quests and the place — never the premise, a goal, a turning point, an objective, a dnaHint or a pending title",function(){
+    mk671();var b=synopsisBasis(),s=JSON.stringify(b);
+    if(leak671(s))return "the basis leaks the author's spine: "+leak671(s);
+    if(b.stake!=="I want to find who burned my village.")return "stake missing";
+    if(b.eras.length!==1||b.eras[0].to!==45)return "one era to t45 expected: "+JSON.stringify(b.eras);
+    if(b.chapters.length!==3||b.chapters[0].turn!==70)return "the chapters an era covers are not repeated; the three past it are kept: "+JSON.stringify(b.chapters);
+    if(b.quests.length!==2||b.quests[0].title!=="Reading the Palisades")return "the quests seen, oldest first: "+JSON.stringify(b.quests);
+    if(b.active.length!==1||b.active[0].objectives.length!==2)return "the open quest with its objectives";
+    if(b.spine.length!==2||b.spine[1].arcs.length!==2)return "the spine is the completed and current acts and their completed and current arcs, nothing pending: "+JSON.stringify(b.spine);
+    if(b.where!=="the cinder gate")return "the sublocation names the place: "+b.where;
+    return b.bearing&&b.bearing.arcTitle==="The Jewel of Ruin"?true:"the compass rides along";
+  });
+  t("#671 the prompt is built from the basis alone: the player's material in, the author's spine out, JSON {about, now} asked, second person, the register line",function(){
+    mk671();var p=synopsisPrompt(synopsisBasis());
+    if(leak671(p))return "the prompt leaks: "+leak671(p);
+    if(p.indexOf("I want to find who burned my village.")<0)return "the stake is in";
+    if(p.indexOf("Era one: the palisades")<0||p.indexOf("Chapter hundred")<0)return "eras and chapters are in";
+    if(p.indexOf("Reading the Palisades (done)")<0||p.indexOf("The Jewel of Ruin (current)")<0)return "completed and current arc titles are in, marked";
+    if(p.indexOf("Act 1: Ashfall (complete)")<0||p.indexOf("Act 2: A Reason to Stay (current)")<0)return "act labels ride actLabel: "+p.slice(p.indexOf("THE STORY'S SHAPE"),p.indexOf("THE STORY'S SHAPE")+220);
+    if(p.indexOf("[ ] Destroy the master cinder jewel")<0)return "the open objective is in";
+    if(p.indexOf('{"about":')<0||p.indexOf('"now":')<0)return "the JSON shape is asked";
+    if(p.indexOf("second person")<0)return "second person asked";
+    return p.indexOf("keeps no books")>=0?true:"the register line rides along (#437)";
+  });
+  t("#671 synopsisDue: nothing to recap before the first arc closes; due once the spine moved past the record's count; settled after a record at that count",function(){
+    mk671();worldState.skeleton=null;if(synopsisDue(worldState))return "no skeleton: never due";
+    mk671();if(synopsisSpineCount(worldState)!==4)return "four completions (one act, three arcs) expected: "+synopsisSpineCount(worldState);
+    if(!synopsisDue(worldState))return "a spine with completions and no record is due";
+    worldState.synopsis={turn:129,about:"x",now:"y",basis:{spine:4}};if(synopsisDue(worldState))return "a record at the current count is not due";
+    worldState.skeleton.acts[1].arcs[1].status="completed";if(!synopsisDue(worldState))return "a fresh completion makes it due";
+    worldState.skeleton={premise:"p",acts:[{title:"A",status:"active",arcs:[{title:"x",status:"active"}]}]};delete worldState.synopsis;
+    return synopsisDue(worldState)?"no completion yet: not due":true;
+  });
+  t("#671 synopsisGroups: the receipt is by act, by arc — an act's range ends at its completedTurn, an arc's opens at its startTurn; an era sits at the end of its range; nothing is dropped and no pending act shows",function(){
+    mk671();var g=synopsisGroups(synopsisBasis());
+    if(g.length!==2)return "two groups (the completed act, the current act) — the pending act never shows: "+g.length;
+    if(g[0].label!=="Act 1: Ashfall"||g[1].label!=="Act 2: A Reason to Stay")return "labels: "+g[0].label+" / "+g[1].label;
+    var a1=g[0];if(a1.items.length!==0||a1.arcs.length!==2||a1.arcs[0].items.length!==0||a1.arcs[1].items.length!==1||!a1.arcs[1].items[0].era)return "act 1: the era (ending t45) files under the arc open at t45, the Glass Spire Skirmish: "+JSON.stringify(a1);
+    var a2=g[1];if(a2.arcs.length!==2)return "act 2 has its two arcs";
+    var c1=a2.arcs[0].items.map(function(x){return x.turn;}).join(","),c2=a2.arcs[1].items.map(function(x){return x.turn;}).join(",");
+    if(c1!=="70,100"||c2!=="135")return "act 2's chapters by arc: Breaching got "+c1+" (want 70,100), the Jewel got "+c2+" (want 135)";
+    var n=0;g.forEach(function(x){n+=x.items.length;x.arcs.forEach(function(r){n+=r.items.length;});});
+    return n===4?true:"four items in all (one era, three chapters): "+n;
+  });
+  t("#671 synopsisGroups degrades, never loses: an act completed before its stamp existed borrows the next act's first arc start as its end; with no skeleton the items list flat; an item past the last boundary stays with the last group",function(){
+    mk671();delete worldState.skeleton.acts[0].completedTurn;/* a pre-#148 act: act 2's first arc opened at t61 */
+    var g=synopsisGroups(synopsisBasis());
+    if(g[0].arcs[1].items.length!==1)return "the unstamped act still owns the era that ended before act 2 opened: "+JSON.stringify(g[0]);
+    if(g[1].arcs[0].items.length!==2)return "act 2 keeps its own";
+    mk671();worldState.skeleton=null;g=synopsisGroups(synopsisBasis());
+    if(g.length!==1||g[0].label!==""||g[0].items.length!==4)return "no skeleton: one unlabelled flat group of four: "+JSON.stringify(g.map(function(x){return [x.label,x.items.length];}));
+    mk671();worldState.skeleton.acts[1].status="completed";worldState.skeleton.acts[1].completedTurn=129;worldState.skeleton.acts[1].arcs[1].status="completed";worldState.skeleton.acts[1].arcs[1].completedTurn=129;
+    g=synopsisGroups(synopsisBasis());
+    if(g.length!==2)return "the pending third act still never shows: "+g.length;
+    return g[1].arcs[1].items.length===1&&g[1].arcs[1].items[0].turn===135?true:"t135, past every boundary, stays with the last group under the arc open at 130: "+JSON.stringify(g[1]);
+  });
+  t("#671 synopsisNowLines: the compass, each open quest with its next undone objective, the place",function(){
+    mk671();var l=synopsisNowLines(synopsisBasis());
+    if(l.length!==3)return "three lines: "+JSON.stringify(l);
+    if(l[0].indexOf("Act 2: A Reason to Stay")<0||l[0].indexOf("The Jewel of Ruin")<0)return "the compass line: "+l[0];
+    if(l[1]!=="The Jewel of Ruin: Destroy the master cinder jewel")return "the quest and its next objective: "+l[1];
+    return l[2]==="You are at the cinder gate."?true:"the place: "+l[2];
+  });
+  t("#671 synopsisBlockHtml: a save without a recap says so and offers Refresh; with one, the paragraph, the stamp with turns ago, the receipt collapsed with its count, where you stand — escaped, and the author's spine nowhere",function(){
+    mk671();var b=synopsisBasis(),h=synopsisBlockHtml(null,synopsisGroups(b),synopsisNowLines(b),140);
+    if(h.indexOf("No recap yet")<0||h.indexOf("id='qm-syn-refresh'")<0)return "the empty state and the button";
+    if(h.indexOf("not written yet")<0)return "the stamp says not written yet";
+    if(leak671(h))return "the block leaks: "+leak671(h);
+    var syn={turn:129,about:"You came <b>home</b> to ash.",now:"The jewel is the last of it.",basis:{spine:4}};
+    h=synopsisBlockHtml(syn,synopsisGroups(b),synopsisNowLines(b),140);
+    if(h.indexOf("You came &lt;b&gt;home&lt;/b&gt; to ash.")<0)return "the paragraph, escaped";
+    if(h.indexOf("as of t129")<0||h.indexOf("11 turns ago")<0)return "the stamp: as of t129 · 11 turns ago: "+h.slice(h.indexOf("as of"),h.indexOf("as of")+40);
+    if(h.indexOf("What has happened")<0||h.indexOf("4 chapters")<0)return "the receipt with its count";
+    if(h.indexOf("<details")<0)return "the receipt is collapsed";
+    if(h.indexOf("Where you stand")<0||h.indexOf("The jewel is the last of it.")<0)return "where you stand carries the model's line";
+    return h.indexOf("Era one: the palisades")>=0&&h.indexOf("Chapter hundred")>=0?true:"the eras and chapters are listed";
+  });
+  t("#671 applySynopsisResp: a valid reply becomes the record stamped with the turn and the spine count; an empty paragraph or junk is refused (the previous recap stays)",function(){
+    mk671();var r=applySynopsisResp('{"about":"You came home to ash.","now":"The jewel is the last of it."}',synopsisBasis(),"spine");
+    if(r.turn!==140||r.about!=="You came home to ash."||r.now!=="The jewel is the last of it."||r.reason!=="spine")return "the record: "+JSON.stringify(r);
+    if(!r.basis||r.basis.spine!==4||r.basis.chapters!==3||r.basis.eras!==1)return "the basis counts: "+JSON.stringify(r.basis);
+    var threw=false;try{applySynopsisResp('{"about":"","now":"x"}',synopsisBasis(),"button");}catch(e){threw=/paragraph/.test(e.message);}
+    if(!threw)return "an empty paragraph must be refused by name";
+    threw=false;try{applySynopsisResp("The baron laughs.",synopsisBasis(),"button");}catch(e){threw=true;}
+    return threw?true:"junk must throw";
+  });
+  t("#671 [ARC_COMPLETE:] stamps the closing arc's completedTurn (the act's #148 stamp, for arcs — the receipt's boundary)",function(){
+    makeWorld();worldState.turn=129;
+    worldState.skeleton={premise:"p",acts:[{title:"A",goal:"g",turningPoint:"tp",status:"active",arcs:[
+      {title:"Breaching",objective:"o",status:"active",startTurn:61},{title:"Jewel",objective:"o",status:"pending"}]}]};
+    applyMuts("[ARC_COMPLETE:Breaching]");
+    var arcs=worldState.skeleton.acts[0].arcs;
+    if(arcs[0].status!=="completed")return "the arc closed";
+    return arcs[0].completedTurn===129?true:"completedTurn stamped at the current turn (got "+arcs[0].completedTurn+")";
+  });
+  t("#671 the hook: sendAction asks synopsisDue after the commit and fires refreshSynopsis without awaiting it, Table Talk excluded; the call is a side call (noHistory, kind synopsis, its own system line, the button's wait ticking) and nothing in the prompt reads the record",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    var at=g.indexOf("commitGmTurn(resp,{userMsg:apiTxt");if(at<0)return "the commit site moved";
+    var tail=g.slice(at,at+1200);
+    if(!/syncUI\(\);if\(!isTT\)maybeRefreshSynopsis\(\);/.test(tail))return "maybeRefreshSynopsis() must follow the post-commit syncUI(), Table Talk excluded";
+    if(/await\s+maybeRefreshSynopsis|await\s+refreshSynopsis\("spine"/.test(g))return "the turn must never wait on the recap";
+    var fs=g.indexOf("async function refreshSynopsis(");if(fs<0)return "refreshSynopsis lives in game.js";
+    var fn=g.slice(fs,fs+2600);
+    if(fn.indexOf('{noHistory:true,kind:"synopsis"}')<0)return "noHistory + kind synopsis";
+    if(fn.indexOf("SYNOPSIS_SYS")<0)return "its own system line (a sysOverride keeps the gameplay cache untouched)";
+    if(fn.indexOf("elapsedTicker(")<0)return "the button's wait ticks (#356)";
+    var api=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
+    return api.indexOf("worldState.synopsis")<0?true:"nothing in the prompt reads the record — the recap is the player's, never the GM's";
+  });
+
+  t("#671 a PARALLEL act's arcs open together: its chapters file under the act, never under whichever arc sorts last (the Frizwick t95 save put all sixteen under the third arc)",function(){
+    mk671();var act=worldState.skeleton.acts[1];act.parallel=true;act.arcs[0].status="active";act.arcs[0].startTurn=61;act.arcs[1].startTurn=61;
+    var g=synopsisGroups(synopsisBasis());if(g.length!==2)return "two groups";
+    if(g[1].items.length!==3||g[1].arcs[0].items.length||g[1].arcs[1].items.length)return "act 2 holds its three chapters itself: "+JSON.stringify(g[1]);
+    return g[1].arcs.length===2?true:"its arcs are still listed as the story's shape";
+  });
+
 }

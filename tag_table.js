@@ -1562,7 +1562,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
       for(_sj=0;_sj<_act.arcs.length;_sj++){
         if(_act.arcs[_sj].status!=="active")continue;
         if(skeletonTitleKey(_act.arcs[_sj].title)!==_adk)continue;/* #481 C4 *//* #136① RULING (oversight, not design): the title is validated for SEQUENTIAL acts too — the old parallel-only guard let a hallucinated/misspelled title close the running arc silently (Sol's probe closed "True Arc" via "Totally Wrong"), while the strict sibling ARC_CONTINUE proves the intended discipline. The #127 escalation machinery re-demands the fork if the arc is genuinely finished under another name. */
-        _act.arcs[_sj].status="completed";_matched=true;
+        _act.arcs[_sj].status="completed";_act.arcs[_sj].completedTurn=worldState.turn;/* #671: the journal's by-act receipt reads it — the act's #148 stamp, for arcs */_matched=true;
         R.muts.push("Arc complete: "+_act.arcs[_sj].title);
         /* #231 THE ARC WALL (owner ruling 2026-08-24, hard wall — no promotion path). Field
            evidence: the closed-eye thread reached 18 quests (1.8x the entire 10-arc spine) and

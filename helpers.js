@@ -3966,3 +3966,134 @@ function voiceNoteTrim(note){
   return s.replace(/[ ,;:.]+$/,"");
 }
 
+
+// ── #671 THE STORY SO FAR (owner 2026-10-27) ──────────────────────────────────────────────────
+/* Back after a day away, the player cannot recall what the campaign is about, what the current objectives are or how
+   they fit the whole: the quest tab is empty between quests and the journal reads as a to-done list with no through
+   line. The engine already writes the synopsis the player needs — the turn-stamped chapters and the eras compressed
+   from them, spoiler-safe by construction since they compress what was narrated — and shows it only to the GM; the
+   premise is GM-eyes (a freeform premise can state the villain's design) and the compass shows titles only for the
+   same reason. Rulings (two chips): ① the model writes from PLAYER-KNOWN material only — the stake, the chapters and
+   eras, the quests the player has seen, the COMPLETED and CURRENT act and arc titles — never skeleton.premise, an
+   act's goal or turning point, an arc's objective or dnaHint, a pending title; ② it is refreshed after an
+   [ARC_COMPLETE:] or [ACT_COMPLETE:] lands (synopsisDue, read after the commit, never awaited by the turn) and by the
+   journal's Refresh button, never on a quest completion. Everything here is pure over worldState and memory; the call
+   and the record live in game.js (refreshSynopsis, applySynopsisResp), the block's wiring in ui-modals.js. The record
+   (worldState.synopsis) is player-facing only — nothing in the prompt reads it, which keeps it off the drift surface. */
+function synopsisBasis(){
+  var ws=(typeof worldState!=="undefined"&&worldState)||null,mem=(typeof memory!=="undefined"&&memory)||null;
+  var out={stake:"",hero:"",where:"",eras:[],chapters:[],quests:[],active:[],spine:[],bearing:null},i,j;
+  if(!ws)return out;
+  out.stake=String(ws.stake||"").trim();
+  out.hero=(ws.character&&ws.character.name)?String(ws.character.name):"";
+  out.where=ws.world?String(ws.world.sublocation||ws.world.location||""):"";
+  if(mem){
+    var eras=mem.eras||[];
+    for(i=0;i<eras.length;i++){if(!eras[i])continue;var tr=eras[i].turnRange||[0,0];out.eras.push({from:tr[0]||0,to:tr[1]||0,text:String(eras[i].summary||"").trim()});}
+    var covered=out.eras.length?out.eras[out.eras.length-1].to:0;
+    var all=((mem.archive&&mem.archive.chapters)||[]).concat(mem.chapters||[]);
+    for(i=0;i<all.length;i++){if(!all[i])continue;if(out.eras.length&&(all[i].turn||0)<=covered)continue;/* an era replaced the chapters it covers */out.chapters.push({turn:all[i].turn||0,text:String(all[i].summary||"").trim()});}
+    var qk=mem.quests?Object.keys(mem.quests):[];
+    for(i=0;i<qk.length;i++){var aq=mem.quests[qk[i]];if(!aq)continue;out.quests.push({title:String(aq.title||qk[i]),status:String(aq.status||""),desc:String(aq.desc||""),turn:aq.turn||0});}
+    out.quests.sort(function(a,b){return a.turn-b.turn;});
+  }
+  var ql=ws.questLog||[];
+  for(i=0;i<ql.length;i++){if(!ql[i]||ql[i].status!=="active")continue;var obs=[],os=ql[i].objectives||[];for(j=0;j<os.length;j++)obs.push({text:String(os[j].text||""),done:!!os[j].done});out.active.push({title:String(ql[i].title||""),desc:String(ql[i].desc||""),objectives:obs});}
+  var sk=ws.skeleton;
+  if(sk&&sk.acts){for(i=0;i<sk.acts.length;i++){var a=sk.acts[i];if(!a||(a.status!=="completed"&&a.status!=="active"))continue;/* a pending act is the author's, not the player's */
+    var arcs=[],aa=a.arcs||[];for(j=0;j<aa.length;j++){if(!aa[j]||(aa[j].status!=="completed"&&aa[j].status!=="active"))continue;arcs.push({title:String(aa[j].title||""),status:String(aa[j].status),startTurn:aa[j].startTurn,completedTurn:aa[j].completedTurn});}
+    out.spine.push({label:actLabel(i+1,a.title),status:String(a.status),completedTurn:a.completedTurn,parallel:!!a.parallel,arcs:arcs});}}
+  out.bearing=(typeof questBearing==="function")?questBearing():null;
+  return out;
+}
+/* The spine's count of completions (acts and arcs) — the trigger's odometer. Pure. */
+function synopsisSpineCount(ws){
+  ws=ws||((typeof worldState!=="undefined")?worldState:null);
+  var sk=ws&&ws.skeleton,n=0,i,j;if(!sk||!sk.acts)return 0;
+  for(i=0;i<sk.acts.length;i++){var a=sk.acts[i];if(!a)continue;if(a.status==="completed")n++;var arcs=a.arcs||[];for(j=0;j<arcs.length;j++)if(arcs[j]&&arcs[j].status==="completed")n++;}
+  return n;
+}
+/* Due when the spine has moved past the count the record was written at; never before the first completion (there is
+   nothing to recap), never for a save with no skeleton (the button still works there). Pure. */
+function synopsisDue(ws){
+  ws=ws||((typeof worldState!=="undefined")?worldState:null);if(!ws)return false;
+  var n=synopsisSpineCount(ws);if(!n)return false;
+  var s=ws.synopsis;if(!s||!s.basis)return true;
+  return (s.basis.spine||0)<n;
+}
+/* "What has happened" — the receipt under the paragraph, derived with no call: each completed or current act, then
+   the eras and chapters whose turns fell inside it (an act's range ends at its completedTurn, #148's stamp; an act
+   completed before the stamp existed borrows the next act's first arc start; the arcs inside an act open at their
+   startTurn — in a PARALLEL act the arcs open together, so its items stay at the act level), oldest first. An era sits at the END of its range. A chapter filed at turn T summarizes the turns before
+   it, so a boundary chapter may straddle — the receipt is a reading aid, not a ledger. Nothing is dropped: an item past
+   the last boundary stays with the last group; with no spine the items list flat under one unlabelled group. */
+function synopsisGroups(basis){
+  var b=basis||synopsisBasis(),items=[],i,j;
+  for(i=0;i<b.eras.length;i++)items.push({turn:b.eras[i].to,from:b.eras[i].from,text:b.eras[i].text,era:true});
+  for(i=0;i<b.chapters.length;i++)items.push({turn:b.chapters[i].turn,text:b.chapters[i].text,era:false});
+  items.sort(function(x,y){return x.turn-y.turn;});
+  var groups=[],spine=b.spine||[];
+  if(!spine.length){if(items.length)groups.push({label:"",status:"",items:items,arcs:[]});return groups;}
+  var k=0;
+  for(i=0;i<spine.length;i++){
+    var a=spine[i],last=(i===spine.length-1),end=null,owns=true;
+    if(a.status==="completed"){if(a.completedTurn!=null)end=a.completedTurn;else if(!last&&spine[i+1].arcs.length&&spine[i+1].arcs[0].startTurn!=null)end=spine[i+1].arcs[0].startTurn-1;else if(!last)owns=false;/* no boundary at all: its chapters fall to the next act, listed there, never lost */}
+    var g={label:a.label,status:a.status,items:[],arcs:[]};
+    for(j=0;j<a.arcs.length;j++)g.arcs.push({title:a.arcs[j].title,status:a.arcs[j].status,startTurn:a.arcs[j].startTurn,items:[]});
+    while(owns&&k<items.length&&(end==null||last||items[k].turn<=end)){
+      var it=items[k++],home=null;
+      if(!a.parallel)for(j=g.arcs.length-1;j>=0;j--){if(g.arcs[j].startTurn!=null&&it.turn>=g.arcs[j].startTurn){home=g.arcs[j];break;}}/* a PARALLEL act's arcs open together (the Frizwick t95 save filed all sixteen chapters under the arc that sorted last): its chapters stay at the act level */
+      (home?home.items:g.items).push(it);
+    }
+    groups.push(g);
+  }
+  return groups;
+}
+/* "Where you stand" — the compass, each open quest with its next undone objective, the place. Pure. */
+function synopsisNowLines(basis){
+  var b=basis||synopsisBasis(),out=[],i,j;
+  if(b.bearing){var s=actLabel(b.bearing.actN,b.bearing.actTitle);if(b.bearing.arcN)s+=" — arc "+b.bearing.arcN+" of "+b.bearing.arcOf+", “"+b.bearing.arcTitle+"”";out.push(s);}
+  for(i=0;i<b.active.length;i++){var q=b.active[i],next="";for(j=0;j<q.objectives.length;j++){if(!q.objectives[j].done){next=q.objectives[j].text;break;}}out.push(q.title+(next?": "+next:(q.desc?": "+q.desc:"")));}
+  if(b.where)out.push("You are at "+b.where+".");
+  return out;
+}
+var SYNOPSIS_SYS="You write a short, spoiler-free recap for a player returning to their own role-playing campaign. Output ONLY valid JSON. No prose outside it, no markdown, no backticks.";
+/* The side call's prompt — the basis and nothing else; the author's spine never enters. Pure. */
+function synopsisPrompt(basis){
+  var b=basis||synopsisBasis(),L=[],i,j;
+  L.push("THE PLAYER IS COMING BACK after days away and cannot remember what this campaign is about, what has happened, or why the current objective matters. Write them a recap from the material below and NOTHING else: it is everything the player has seen. Never invent a fact, a name or a motive the material does not contain; never guess at what is coming.");
+  if(b.hero)L.push("THE HERO: "+b.hero+".");
+  if(b.stake)L.push("THE PLAYER'S OWN STAKE (their words at the start): "+b.stake);
+  if(b.spine.length){var sp=[];for(i=0;i<b.spine.length;i++){var a=b.spine[i],arcs=[];for(j=0;j<a.arcs.length;j++)arcs.push(a.arcs[j].title+(a.arcs[j].status==="completed"?" (done)":" (current)"));sp.push(a.label+(a.status==="completed"?" (complete)":" (current)")+(arcs.length?" — arcs: "+arcs.join("; "):""));}L.push("THE STORY'S SHAPE (titles only, as far as it has gone):\n"+sp.join("\n"));}
+  if(b.eras.length){var er=[];for(i=0;i<b.eras.length;i++)er.push("[turns "+b.eras[i].from+"-"+b.eras[i].to+"] "+b.eras[i].text);L.push("THE EARLIER CHAPTERS, compressed (oldest first):\n"+er.join("\n"));}
+  if(b.chapters.length){var ch=[];for(i=0;i<b.chapters.length;i++)ch.push("[turn "+b.chapters[i].turn+"] "+b.chapters[i].text);L.push("THE CHAPTERS (oldest first):\n"+ch.join("\n"));}
+  if(b.quests.length){var qs=[];for(i=0;i<b.quests.length;i++)qs.push(b.quests[i].title+" ("+b.quests[i].status+")"+(b.quests[i].desc?": "+b.quests[i].desc:""));L.push("QUESTS SEEN THROUGH (oldest first):\n"+qs.join("\n"));}
+  if(b.active.length){var ac=[];for(i=0;i<b.active.length;i++){var q=b.active[i],os=[];for(j=0;j<q.objectives.length;j++)os.push((q.objectives[j].done?"[done] ":"[ ] ")+q.objectives[j].text);ac.push(q.title+(q.desc?": "+q.desc:"")+(os.length?"\n  "+os.join("\n  "):""));}L.push("THE OPEN QUESTS NOW:\n"+ac.join("\n"));}
+  if(b.where)L.push("WHERE THE PARTY IS: "+b.where+".");
+  L.push("Write in the second person, to the player, in plain present-tense prose a friend would use to catch them up. No clerical images — this world keeps no books.\nOutput ONLY this JSON:\n{\"about\":\"ONE paragraph of four to seven sentences: what this campaign is about as far as the hero knows it, then the through line — what the hero set out to do, the people who mattered and what became of them, the arcs in the order they happened and how each changed the situation. Name the names.\",\"now\":\"One or two sentences: where things stand this moment and why the current objective matters to the whole.\"}");
+  return L.join("\n\n");
+}
+/* The journal's block — a string, so the engine suite can read it. A save without a recap says so and offers the
+   button, never a blank; the receipt is collapsed with its count; every text is escaped. */
+function synopsisBlockHtml(syn,groups,nowLines,turn){
+  var h="<div id='qm-syn' style='margin:2px 0 12px;'>",i,j,k;
+  var ago=(syn&&turn!=null&&turn>syn.turn)?turn-syn.turn:0;
+  var stamp=syn?("as of t"+syn.turn+(ago?" · "+ago+" turn"+(ago===1?"":"s")+" ago":"")):"not written yet";
+  h+="<div style='display:flex;justify-content:space-between;align-items:baseline;gap:8px;'><span style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc);'>Story so far</span><span style='font-size:10px;color:var(--t2);'>"+escHtml(stamp)+"</span></div>";
+  h+=syn?"<div style='font-size:13px;color:var(--t1);line-height:1.55;margin:6px 0 8px;'>"+escHtml(syn.about)+"</div>"
+       :"<div style='font-size:12px;color:var(--t2);font-style:italic;margin:6px 0 8px;'>No recap yet — one is written when an arc or act completes, or now with Refresh.</div>";
+  var n=0;for(i=0;i<groups.length;i++){n+=groups[i].items.length;for(j=0;j<groups[i].arcs.length;j++)n+=groups[i].arcs[j].items.length;}
+  function items(list,indent){var s="";for(k=0;k<list.length;k++){var it=list[k];s+="<div style='font-size:12px;color:var(--t2);margin:3px 0 3px "+indent+"px;line-height:1.45;'><span style='font-size:10px;opacity:.7;'>"+(it.era?"t"+it.from+"–"+it.turn:"t"+it.turn)+"</span> "+escHtml(it.text)+"</div>";}return s;}
+  if(n){h+="<details style='margin:4px 0 8px;'><summary style='cursor:pointer;font-size:12px;color:var(--t2);'>What has happened · "+n+" chapter"+(n===1?"":"s")+"</summary>";
+    for(i=0;i<groups.length;i++){var g=groups[i];
+      if(g.label)h+="<div style='font-size:12px;color:var(--t1);margin:8px 0 2px;'>"+escHtml(g.label)+(g.status==="completed"?" <span style='color:var(--grn);'>✓</span>":"")+"</div>";
+      h+=items(g.items,16);
+      for(j=0;j<g.arcs.length;j++){var a=g.arcs[j];h+="<div style='font-size:12px;color:var(--t2);margin:5px 0 2px 16px;'>“"+escHtml(a.title)+"”"+(a.status==="completed"?" <span style='color:var(--grn);'>✓</span>":a.status==="active"?" (current)":"")+"</div>"+items(a.items,28);}
+    }
+    h+="</details>";}
+  if(nowLines.length||(syn&&syn.now)){h+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin:6px 0 4px;'>Where you stand</div>";
+    for(i=0;i<nowLines.length;i++)h+="<div style='font-size:12px;color:var(--t1);margin:2px 0;'>"+escHtml(nowLines[i])+"</div>";
+    if(syn&&syn.now)h+="<div style='font-size:12px;color:var(--t1);line-height:1.5;margin:4px 0 0;font-style:italic;'>"+escHtml(syn.now)+"</div>";}
+  h+="<div style='display:flex;gap:8px;align-items:center;margin-top:8px;'><button class='qa' id='qm-syn-refresh' title='Ask the GM to write the story so far again from what you have seen: the chapters, the quests, the shape of the story. Never from the author’s notes.'>Refresh</button><span id='qm-syn-status' style='font-size:11px;color:var(--t2);'></span></div>";
+  return h+"</div><div style='border-top:1px solid var(--brd);margin-bottom:12px;'></div>";
+}

@@ -2978,7 +2978,7 @@ async function sendAction(override,opts){
       // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
       commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
     }
-    syncUI();
+    syncUI();if(!isTT)maybeRefreshSynopsis();/* #671: the story so far — due after an arc or act completed in this commit; fire-and-forget, the turn never waits on it */
   }catch(e){th.remove();
     if(!_committed&&typeof _latchSnap!=="undefined"&&_latchSnap&&typeof restoreNoteLatches==="function"){restoreNoteLatches(_latchSnap);if(typeof noteLogDiscard==="function")noteLogDiscard();}/* #309 *//* #151: the request never committed — un-burn every audit/nudge latch the builders stamped composing it, so the same audit fires again next turn instead of silently skipping its cooldown window */
     var _hid1=(typeof document!=="undefined"&&document.hidden)?1:0;
@@ -4443,6 +4443,55 @@ async function suggestQuestCompletion(title){
     if(typeof showToast==="function")showToast("Quest review failed: "+(e.message||"unknown error"));
   }
   busy=false;
+}
+// ── #671 THE STORY SO FAR — the side call and the record (the pure half is in helpers.js) ─────────────────────────
+/* applySynopsisResp: the model's JSON becomes ONE record on worldState, overwritten each time — the turn it was written
+   at, the paragraph, the where-you-stand line, why it ran (spine | button) and the counts it was written from (the
+   trigger's odometer, synopsisDue). An empty paragraph or junk throws by name: the previous recap stays. Pure. */
+function applySynopsisResp(resp,basis,reason){
+  var got=JSON.parse(repairModelJson(resp));
+  var about=got?String(got.about||"").trim():"",now=got?String(got.now||"").trim():"";
+  if(!about)throw new Error("the recap came back without its paragraph");
+  return {turn:(worldState&&worldState.turn)||0,at:Date.now(),about:about,now:now,reason:String(reason||""),
+    basis:{spine:synopsisSpineCount(worldState),chapters:basis?basis.chapters.length:0,eras:basis?basis.eras.length:0}};
+}
+/* refreshSynopsis: ONE side call — the basis, the prompt, its own system line (a sysOverride: the gameplay prompt and its
+   cache are untouched), noHistory, kind "synopsis" so the Usage modal and the server's per-purpose rows (#662) show it.
+   Never sets busy (the player may keep playing; the era maintenance precedent), guards its own re-entry, never throws:
+   a failure is said on the console and in a toast and the journal keeps the previous recap. The button's wait rides
+   elapsedTicker on the status line it passes (#356); the ticker stops before any terminal text. */
+var _synopsisBusy=false;
+async function refreshSynopsis(reason,opts){
+  if(!worldState)return false;
+  opts=opts||{};
+  if(_synopsisBusy){if(typeof showToast==="function")showToast("The story so far is already being written.");return false;}
+  _synopsisBusy=true;
+  var basis=synopsisBasis(),ok=false,tick=opts.statusEl?elapsedTicker(opts.statusEl,"Writing the story so far…"):null;
+  try{
+    var resp=await callGM(synopsisPrompt(basis),SYNOPSIS_SYS,700,null,{noHistory:true,kind:"synopsis"});
+    worldState.synopsis=applySynopsisResp(resp,basis,reason);
+    if(typeof saveCore==="function")saveCore();
+    ok=true;if(tick)tick.stop();
+    if(typeof console!=="undefined")console.info("[synopsis] #671 the story so far written ("+reason+") at t"+worldState.turn+" from "+basis.eras.length+" eras + "+basis.chapters.length+" chapters");
+    if(reason!=="button"&&typeof showToast==="function")showToast("✎ The story so far is up to date — see the Quest Journal");
+    if(reason!=="button"&&typeof document!=="undefined"&&document.getElementById("quest-modal")&&typeof showQuestModal==="function")showQuestModal();/* the journal is open: repaint it in place */
+  }catch(e){
+    if(tick)tick.stop();
+    var why=(e&&e.message)||String(e);
+    if(typeof console!=="undefined")console.warn("[synopsis] #671 the story so far could not be written ("+reason+"): "+why+" — the journal keeps the previous recap");
+    if(typeof showToast==="function")showToast("The story so far could not be written: "+why);
+    if(typeof opts.onError==="function")opts.onError(why);
+  }
+  _synopsisBusy=false;
+  if(typeof opts.onDone==="function")opts.onDone(ok);
+  return ok;
+}
+/* The trigger — read after every committed turn (sendAction's tail): due when the spine moved past the record's count.
+   Fire-and-forget: the turn never waits on the recap. */
+function maybeRefreshSynopsis(){
+  if(typeof synopsisDue!=="function"||!synopsisDue(worldState))return false;
+  refreshSynopsis("spine");
+  return true;
 }
 // Pure inventory diff for the loud correction trail (engine-tested): human-readable lines for
 // items added/removed between two snapshots. Order-insensitive, count-aware.

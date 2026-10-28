@@ -868,6 +868,11 @@ function showQuestModal(){
       +"<div style='font-size:12px;color:var(--t2);margin-top:3px;'>Every act of "+escHtml((worldState&&worldState.campName)||"this campaign")+" is complete. Tie off what you like, then call for the ending here.</div>"
       +"<div style='display:flex;gap:8px;margin-top:10px;'><button class='qa' id='qm-ending' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Write the ending</button></div></div>";
   }
+  /* #671 (owner 2026-10-27): THE STORY SO FAR — the recap a returning player needs, above everything else. The paragraph
+     and the where-you-stand line are the model's (refreshSynopsis, game.js — written after an arc or act completes, or by
+     the Refresh button here, never on a quest); the by-act list underneath is derived (synopsisGroups, helpers.js), the
+     receipt. A save without a recap says so and offers the button — never a blank. One renderer, synopsisBlockHtml. */
+  var _synB=synopsisBasis();body+=synopsisBlockHtml(worldState&&worldState.synopsis||null,synopsisGroups(_synB),synopsisNowLines(_synB),worldState&&worldState.turn);
   /* #426: the player's own stake, written at Begin — theirs, so it spoils nothing. */
   var _stk=(worldState&&worldState.stake)?String(worldState.stake).trim():"";
   if(_stk)body+="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin:2px 0 6px;'>Your stake</div><div style='font-size:12px;color:var(--t1);line-height:1.5;margin-bottom:8px;'>"+escHtml(_stk)+"</div>";
@@ -880,6 +885,10 @@ function showQuestModal(){
   // modal is open (a completed quest archives), and an index baked into onclick would then hit the
   // wrong quest — declineQuest could even archive a still-active quest.
   var _qmEnd=modal.querySelector("#qm-ending");if(_qmEnd)_qmEnd.addEventListener("click",function(){modal.remove();if(typeof showEndingOfferModal==="function")showEndingOfferModal();});/* #325c */
+  var _synBtn=modal.querySelector("#qm-syn-refresh");if(_synBtn)_synBtn.addEventListener("click",function(){/* #671: the wait ticks on the status line; a success repaints the journal, a failure names its reason there and keeps the old recap */
+    var _st=modal.querySelector("#qm-syn-status");_synBtn.disabled=true;
+    refreshSynopsis("button",{statusEl:_st,onError:function(why){if(_st)_st.innerHTML="<span style='color:var(--red);'>"+escHtml(why)+"</span>";},onDone:function(ok){if(!document.getElementById("quest-modal"))return;if(ok)showQuestModal();else _synBtn.disabled=false;}});
+  });
   Array.prototype.forEach.call(modal.querySelectorAll("[data-qacc]"),function(b){b.addEventListener("click",function(){acceptQuest(b.getAttribute("data-qacc"));});});
   Array.prototype.forEach.call(modal.querySelectorAll("[data-qdec]"),function(b){b.addEventListener("click",function(){declineQuest(b.getAttribute("data-qdec"));});});
   // #229 — wired by TITLE like the pair above (audit E24: applyMuts can splice while open).
