@@ -8,6 +8,8 @@
 //
 //   label     what the menu shows
 //   seconds   how long the effect plays, in real time (not the roll's slowed pace)
+//   shelved   (optional) true: kept, tested and playable by name, but off the menu and out of Random — an exit
+//             being reworked (exitMenu and RANDOM_EXITS are the only readers)
 //
 // A timeline maps the effect's progress u (0 … 1) to the numbers that drive it, so the shape of an
 // effect is tested here and only drawn in exits.js. Every number is plain data: art direction
@@ -155,17 +157,19 @@ export const EXIT_TABLE = {
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
-  melt: { label: 'Melt', seconds: MELT_EATS + MELT.eat },   // 2.9 s (round 2, 2026-10-28)
+  // Shelved (owner 2026-10-28, after round 2: "it's not quite working yet. Let's take it out of the menu for now, but
+  // retain the code so we can finesse it later").
+  melt: { label: 'Melt', seconds: MELT_EATS + MELT.eat, shelved: true },   // 2.7 s (round 2, 2026-10-28)
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
 };
 
-/** The exits as a host's menu lists them, in order: [{ name, label }] (embed/global.js ▸ DiceSim.exits). */
+/** The exits as a host's menu lists them, in order: [{ name, label }] (embed/global.js ▸ DiceSim.exits); never a shelved one. */
 export function exitMenu() {
-  return Object.entries(EXIT_TABLE).map(([name, e]) => ({ name, label: e.label }));
+  return Object.entries(EXIT_TABLE).filter(([, e]) => !e.shelved).map(([name, e]) => ({ name, label: e.label }));
 }
 
-/** The exits Random picks from: every one that plays — not None, not Random itself. */
-export const RANDOM_EXITS = Object.keys(EXIT_TABLE).filter((k) => !EXIT_TABLE[k].random && EXIT_TABLE[k].seconds > 0);
+/** The exits Random picks from: every one that plays — not None, not Random itself, not a shelved one. */
+export const RANDOM_EXITS = Object.keys(EXIT_TABLE).filter((k) => !EXIT_TABLE[k].random && !EXIT_TABLE[k].shelved && EXIT_TABLE[k].seconds > 0);
 
 /** The exit a die leaves by when `name` is asked for: Random picks one of RANDOM_EXITS; any other is itself. */
 export function chooseExit(name, random = Math.random) {

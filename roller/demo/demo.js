@@ -9,7 +9,7 @@ import { sameLook } from '../render/presets.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
 import { rollParts } from './roll-line.js';
-import { EXIT_TABLE, exitDelays, chooseExit } from '../render/exit-table.js';
+import { exitMenu, exitDelays, chooseExit } from '../render/exit-table.js';
 import { TOY_DEFAULTS } from './toy-defaults.js';
 
 const $ = (id) => document.getElementById(id);
@@ -130,16 +130,18 @@ clearAll.textContent = 'Clear';
 clearAll.title = 'Take every die out';
 clearAll.addEventListener('click', clearDice);
 $('adders').appendChild(clearAll);
-// How a die leaves the table (owner 2026-10-25): the exits in render/exit-table.js, kept on this browser.
+// How a die leaves the table (owner 2026-10-25): the exits on the menu (render/exit-table.js ▸ exitMenu: a shelved one
+// is not), kept on this browser.
 const EXIT_KEY = 'dice-sim:exit';
-for (const [key, e] of Object.entries(EXIT_TABLE)) {
+const EXIT_MENU = exitMenu();
+for (const e of EXIT_MENU) {
   const o = document.createElement('option');
-  o.value = key;
+  o.value = e.name;
   o.textContent = e.label;
   $('exit').appendChild(o);
 }
-$('exit').value = TOY_DEFAULTS.exit;   // Random (owner 2026-10-27), unless this browser kept another
-try { const saved = localStorage.getItem(EXIT_KEY); if (EXIT_TABLE[saved]) $('exit').value = saved; } catch { /* storage blocked: the default */ }
+$('exit').value = TOY_DEFAULTS.exit;   // Random (owner 2026-10-27), unless this browser kept another still on the menu
+try { const saved = localStorage.getItem(EXIT_KEY); if (EXIT_MENU.some((e) => e.name === saved)) $('exit').value = saved; } catch { /* storage blocked: the default */ }
 $('exit').addEventListener('change', () => { try { localStorage.setItem(EXIT_KEY, $('exit').value); } catch { /* storage blocked */ } });
 $('table-hint').textContent = (window.matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click') + ' the table to roll';
 // The row floats over the tray: a press on it is not a press on the tray (no roll, throw, turn or pinch).
