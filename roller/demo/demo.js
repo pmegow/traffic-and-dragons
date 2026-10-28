@@ -10,6 +10,7 @@ import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
 import { rollParts } from './roll-line.js';
 import { EXIT_TABLE, exitDelays, chooseExit } from '../render/exit-table.js';
+import { TOY_DEFAULTS } from './toy-defaults.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg || ''; };
@@ -137,7 +138,8 @@ for (const [key, e] of Object.entries(EXIT_TABLE)) {
   o.textContent = e.label;
   $('exit').appendChild(o);
 }
-try { const saved = localStorage.getItem(EXIT_KEY); if (EXIT_TABLE[saved]) $('exit').value = saved; } catch { /* storage blocked: the first */ }
+$('exit').value = TOY_DEFAULTS.exit;   // Random (owner 2026-10-27), unless this browser kept another
+try { const saved = localStorage.getItem(EXIT_KEY); if (EXIT_TABLE[saved]) $('exit').value = saved; } catch { /* storage blocked: the default */ }
 $('exit').addEventListener('change', () => { try { localStorage.setItem(EXIT_KEY, $('exit').value); } catch { /* storage blocked */ } });
 $('table-hint').textContent = (window.matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click') + ' the table to roll';
 // The row floats over the tray: a press on it is not a press on the tray (no roll, throw, turn or pinch).
@@ -169,12 +171,13 @@ for (const [key, f] of Object.entries(NUMERAL_FONTS)) {
   o.textContent = f.label;
   $('font').appendChild(o);
 }
-// The controls open on the view's own defaults (render/view-defaults.js), never a second copy in the HTML.
+// The controls open on the view's own defaults (render/view-defaults.js), never a second copy in the HTML — but for
+// the surface, which is the roller's own (demo/toy-defaults.js: no tray, owner 2026-10-27).
 $('body-color').value = VIEW_DEFAULTS.dieStyle.body;
 $('ink-color').value = VIEW_DEFAULTS.dieStyle.ink;
 $('finish').value = VIEW_DEFAULTS.dieStyle.finish;
 $('font').value = VIEW_DEFAULTS.dieStyle.font;
-$('surface').value = VIEW_DEFAULTS.tray.surface;
+$('surface').value = TOY_DEFAULTS.surface;
 $('speed').value = VIEW_DEFAULTS.speed;
 $('tray').value = VIEW_DEFAULTS.tray.scale;
 $('speed-out').textContent = Number($('speed').value).toFixed(2) + '×';
