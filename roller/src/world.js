@@ -142,7 +142,9 @@ export class World {
       for (const pl of this.planes) {
         if (dot(pl.normal, b.position) - pl.offset - b.die.boundingRadius > th) continue;
         const m = collidePlane(b, pl, th);
-        if (m) out.push(this.manifold('p' + pl.index + ':' + b.index, null, b, m, combine(b.material, pl.material), pl.kind));
+        // A plane that carries a velocity (a held cup's wall, src/hold.js) meets the die as moving ground: its velocity
+        // enters every contact and no impulse moves it. A static plane is A = null, exactly as before.
+        if (m) out.push(this.manifold('p' + pl.index + ':' + b.index, pl.velocity ? movingGround(pl) : null, b, m, combine(b.material, pl.material), pl.kind));
       }
     }
     return out;
@@ -271,6 +273,20 @@ export class World {
 
 // ---------------------------------------------------------------- impulse helpers
 const crossR = (r, P) => cross(r, P);
+
+const ZERO_MAT3 = Object.freeze([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+/**
+ * A moving plane as the A of a manifold: a body of infinite mass (every impulse leaves it as it is) moving at the
+ * plane's velocity, never turning, standing at the plane's foot. index −1: the hit record names no partner die.
+ */
+function movingGround(pl) {
+  return {
+    index: -1, invMass: 0, invInertiaWorld: ZERO_MAT3,
+    position: scale(pl.normal, pl.offset), velocity: pl.velocity, angularVelocity: ZERO, pseudoVelocity: ZERO, pseudoAngular: ZERO,
+    velocityAt() { return pl.velocity; },
+  };
+}
 
 /** The inverse effective mass of a point impulse along unit d. */
 function linearK(A, B, rA, rB, d) {

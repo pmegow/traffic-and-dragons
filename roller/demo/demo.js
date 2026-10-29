@@ -302,8 +302,7 @@ $('tray').addEventListener('input', () => {
 $('tray').addEventListener('change', syncTable);   // … and the dice drop into it when the slider is let go
 
 /** The roll request the panel describes (throws a readable error for a bad field). */
-function request(extra = {}) {
-  const types = picker.list();
+function request(extra = {}, types = picker.list()) {
   if (!types.length) throw new Error('Add a die first: tap one of the die buttons.');
   const forcedText = $('forced').value.trim();
   const forced = forcedText ? forcedText.split(/[\s,]+/).map((x) => {
@@ -447,7 +446,7 @@ function paintRoll(dice) {
   el.replaceChildren(p.lead, total, p.tail);
 }
 
-async function go(req, { unlocking = Promise.resolve() } = {}) {
+async function go(req, { unlocking = Promise.resolve(), fromTable = 0 } = {}) {
   const mine = ++current;
   unsettled = false;   // the roll replaces the table
   status('');
@@ -466,7 +465,7 @@ async function go(req, { unlocking = Promise.resolve() } = {}) {
   await soon(unlocking);   // the first tap starts sound; the roll waits a moment for it so its clicks play
   await soon(view.warmTable(), WARM_WAIT_MS);   // and for the dice's pipeline, built ahead (at once, but for the first roll after a look)
   if (mine !== current) return;
-  await playWithSound(result);
+  await playWithSound(result, fromTable ? { fromTable } : {});
   if (mine !== current) return;   // a newer roll took over the tray
   last = { result, bakeMs };
   show(result, bakeMs);
@@ -507,6 +506,25 @@ const stage = $('stage');
 const ring = $('pan-ring');
 const resetButton = $('reset-view');
 const ZOOM_PER_PX = 0.006;   // a right-drag of 100 px up brings the camera to 0.55 of its distance
+// Pick up and shake (owner 2026-10-29): a press held still ON A DIE picks the whole table up into the hand (one held
+// elsewhere pans the view, as before); the hand follows the pointer, a quick back and forth rattles the dice for real
+// (src/hold.js), and letting go throws them from the hand as they are. The hand feels like felt to the dice; at most
+// HAND_VOICES of a frame's knocks sound, the hardest first.
+const HAND_TIMBRE = 'felt', HAND_VOICES = 4;
+let handKnocks = [];
+const onHandHit = (i, speed, surface) => {
+  if (!soundOn()) return;
+  handKnocks.push({ i, speed, surface });
+  if (handKnocks.length > 1) return;   // the frame's knocks play together once the frame's hits are all in
+  requestAnimationFrame(() => {
+    const knocks = handKnocks.sort((a, b) => b.speed - a.speed).slice(0, HAND_VOICES);
+    handKnocks = [];
+    for (const k of knocks) {
+      const d = view.dice[k.i];
+      if (d) audio.playHit({ type: d.die.type, surface: k.surface === 'die' ? 'die' : HAND_TIMBRE, speed: k.speed, pan: 0.7 * view.panFor(d.mesh.position) });
+    }
+  });
+};
 // The wheel (owner 2026-10-25: "add mouse wheel to zoom on desktop"): a notch (100 px) moves the camera
 // about 10%; a trackpad pinch, which Chrome and Edge send as a wheel with ctrlKey, takes bigger steps.
 const WHEEL_ZOOM_PER_PX = { scroll: 0.001, pinch: 0.01 };
@@ -526,7 +544,7 @@ const placeRing = (x, y) => {
 };
 const endPress = () => {
   clearTimeout(holdTimer);
-  stage.classList.remove('panning', 'zooming');
+  stage.classList.remove('panning', 'zooming', 'holding');
   const d = press;
   press = null;
   return d;
@@ -555,7 +573,23 @@ stage.addEventListener('pointerdown', (e) => {
   holdTimer = setTimeout(() => {
     if (!press || !gesture.hold(performance.now())) return;
     placeRing(press.at.x, press.at.y);
-    press.grab = view.floorHit(press.at.x, press.at.y);   // the floor point the hand holds
+    const under = view.floorHit(press.at.x, press.at.y);
+    if (view.dice.length && !view.held && under && view.dieAt(press.at.x, press.at.y) >= 0) {
+      // Held still on a die: the hand picks the table up (never while a die leaves: the table is settling).
+      press.holding = true;
+      ++current;
+      audio.stop();
+      view.pickUp(under, { onHit: onHandHit, surface: HAND_TIMBRE });
+      // The hand moves as the pointer moves across the floor, from where the view put it (the cup is kept over the
+      // table, so a die picked up at the edge sits a little in from the pointer; a hand that jumped to the pointer
+      // would then be held at the edge, and a shake there would shake nothing).
+      press.handAt = view.handTarget();
+      press.lastFloor = under;
+      stage.classList.add('holding');
+      showTable('picked up ' + groupDice(onTable()) + ' — shake, then let go');
+      return;
+    }
+    press.grab = under;   // the floor point the hand holds
     stage.classList.add('panning');
   }, gesture.holdMs);
 });
@@ -568,6 +602,13 @@ stage.addEventListener('pointermove', (e) => {
   if (!press || e.pointerId !== press.id) return;
   press.at = { x: e.clientX, y: e.clientY };
   const m = gesture.move(e.timeStamp, e.clientX, e.clientY);
+  if (m && m.kind === 'pan' && press.holding) {
+    placeRing(e.clientX, e.clientY);
+    const under = view.floorHit(e.clientX, e.clientY);
+    if (under && press.lastFloor) { press.handAt = { x: press.handAt.x + under.x - press.lastFloor.x, z: press.handAt.z + under.z - press.lastFloor.z }; view.moveHand(press.handAt); }
+    if (under) press.lastFloor = under;
+    return;
+  }
   if (m && m.kind === 'pan') {
     placeRing(e.clientX, e.clientY);
     const under = view.floorHit(e.clientX, e.clientY);
@@ -593,6 +634,7 @@ stage.addEventListener('pointerup', (e) => {
   const unlocking = unlockSound();
   const kind = gesture.up();
   const d = endPress();
+  if (d.holding) { letGo(unlocking); return; }   // the hand opens: the dice are thrown from it as they are
   if (kind === 'pan' || kind === 'zoom' || !d.start) return;   // a pan or zoom of the view, or a press that began off the floor
   const end = d.samples[d.samples.length - 1];
   const from = d.samples.find((s) => end.t - s.t <= 90) || d.samples[0];
@@ -605,8 +647,17 @@ stage.addEventListener('pointerup', (e) => {
 });
 stage.addEventListener('pointercancel', (e) => {
   if (e.pointerType === 'touch') pinch.up(e.pointerId);
-  if (press && e.pointerId === press.id) { gesture.cancel(); endPress(); }
+  if (press && e.pointerId === press.id) { const d = press; gesture.cancel(); endPress(); if (d.holding) letGo(Promise.resolve()); }
 });
+/** The hand lets go: the dice it held are thrown from where they are, as they move, in the roll the panel describes. */
+function letGo(unlocking) {
+  const let_ = view.release();
+  if (!let_) return;   // the hand had already opened (the table changed under it)
+  let req;
+  // From a hand the dice may just fall: a short drop that hardly turns is a fair throw of its own (no minimum turns).
+  try { req = request({ throw: { states: let_.states }, gates: { minTurns: 0 } }, onTable()); } catch (e) { status(e.message); return; }
+  go(req, { unlocking, fromTable: view.dice.length });
+}
 // The wheel zooms: down to stand back, up to come nearer. The page itself never scrolls under the tray.
 stage.addEventListener('wheel', (e) => {
   e.preventDefault();

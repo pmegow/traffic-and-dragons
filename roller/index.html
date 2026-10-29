@@ -49,6 +49,8 @@
     pointer-events: none; opacity: 0; transform: scale(.55); transition: opacity .12s ease-out, transform .12s ease-out; }
   #stage.panning #pan-ring { opacity: 1; transform: scale(1); }
   #stage.panning { cursor: grabbing; }
+  #stage.holding #pan-ring { opacity: 1; transform: scale(1); }   /* the hand holding the dice (pick up and shake) */
+  #stage.holding { cursor: grabbing; }
   #stage.zooming { cursor: ns-resize; }
   /* Shown once the view is panned or zoomed; eases the camera home. Bottom right, clear of the die
      buttons along the top (owner 2026-10-25). */

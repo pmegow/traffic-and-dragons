@@ -5,6 +5,7 @@
 //   parseNotation('2d6+d20') a dice list for roll()                             (notation.js)
 //   buildDie(type)           a die's full definition (shape, features, glyphs)  (dice.js)
 //   World, Body, plane       the solver itself, for hosts that run their own scene
+//   createHold(dice, hand)   the dice picked up into a moving cup, shaken live, let go   (hold.js)
 //
 // The renderer lives apart in render/ and depends on three.js; this core depends on nothing.
 
@@ -16,3 +17,4 @@ export { buildDie, dieTypes, DIE_TYPES } from './dice.js';
 export { DIE_MATERIALS, SURFACES } from './materials.js';
 export { World, WORLD_DEFAULTS } from './world.js';
 export { Body, plane } from './body.js';
+export { createHold, cupSize, cupSlots, HOLD_DEFAULTS } from './hold.js';

@@ -15,7 +15,8 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { roll, samplePose, rollDuration, buildDie, trayFor, dieTypes } from '../src/index.js';
+import { roll, samplePose, rollDuration, buildDie, trayFor, dieTypes, createHold, cupSize, cupSlots, HOLD_DEFAULTS } from '../src/index.js';
+import { createRng } from '../src/rng.js';
 import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, numeralFontLoaded, facesShowing } from './die-mesh.js';
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
@@ -45,6 +46,8 @@ export { VIEW_DEFAULTS };
 const RIM_HEIGHT = 0.014;   // m: the tray's rim, low enough that a die resting against the near wall stays in view
 const SCREEN_MARGIN = 0.002;   // m: the screen's edges, moved in a little, so a die never touches the frame
 const WARM_DIE = 'd6';   // the die type whose geometry stands in for the dice's pipeline (warmTable)
+/** The hand (pickUp): the cup's centre this high above the table, the dice gathering into it over this long. */
+export const HAND = { height: 0.05, gather: 0.25, frameMax: 0.05 };
 
 export class DiceView {
   constructor(options = {}) {
@@ -66,6 +69,7 @@ export class DiceView {
     this.exiting = new Set();     // dice off the table, still drawn until their exit ends: { die, finish }
     this.fonts = new Map();       // a numeral font's load and repaint under way (readyFont), by NUMERAL_FONTS key
     this.warmed = null;           // the dice's pipeline readied for the current finish and font (warmTable)
+    this.held = null;             // the hand holding the table (pickUp … release): { phase, hold, target, onHit, … }
 
     // Always able to show the page through: a transparent view and the 'none' tray draw no background.
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: false });
@@ -434,6 +438,7 @@ export class DiceView {
    */
   clear({ exit = null, onSound = null } = {}) {
     if (exit !== null && !EXITS[exit]) throw new Error('DiceView: no exit "' + exit + '" (known: ' + Object.keys(EXITS).join(', ') + ')');
+    this.held = null;   // the hand opens: nothing left to hold
     const gone = this.dice;
     this.dice = [];
     if (exit === null) {
@@ -590,6 +595,112 @@ export class DiceView {
     });
   }
 
+  /** The die under a client (page) position: its index in play order, or −1 when none is there. */
+  dieAt(clientX, clientY) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(ndc, this.camera);
+    const hit = ray.intersectObjects(this.dice.map((d) => d.mesh), false)[0];
+    return hit ? this.dice.findIndex((d) => d.mesh === hit.object) : -1;
+  }
+
+  /**
+   * Picks the whole table up into a hand over `at` ({x, z} on the floor; the cup hangs HAND.height above it): the dice
+   * gather into the cup over HAND.gather s, then the hold runs LIVE (src/hold.js) frame by frame, the cup following
+   * moveHand()'s target, until release() hands the dice to a roll. onHit(dieIndex, speed, surface, other) hears every
+   * knock inside the cup — surface 'wall' | 'floor' | 'ceiling' the cup's, 'die' another die — for the host's clicks;
+   * `surface` is what the hand feels like (SURFACES, felt). A play under way stops where it is. Refused with nothing
+   * on the table; a second pickUp while one holds is ignored. Owner 2026-10-29: "A kinematic hand that holds the
+   * dice, shakes them and lets go".
+   */
+  pickUp(at, { onHit = null, surface = HOLD_DEFAULTS.surface } = {}) {
+    if (!this.dice.length) throw new Error('DiceView.pickUp: nothing on the table to pick up');
+    if (this.held) return;
+    this.stop();
+    const n = this.dice.length, size = cupSize(n), rng = createRng((Date.now() >>> 0) ^ n);
+    const centre = this.handClamp({ x: at.x, y: HAND.height, z: at.z }, size);
+    const slots = cupSlots(n, size, rng);
+    const from = this.dice.map((d) => d.mesh.position.clone());
+    const to = this.dice.map((d, i) => new THREE.Vector3(centre.x + slots[i].x, centre.y - HOLD_DEFAULTS.height / 2 + d.die.boundingRadius, centre.z + slots[i].z));
+    const held = this.held = { phase: 'gather', hold: null, target: centre, surface, onHit, size, start: null, last: 0 };
+    this.animate((now) => {
+      if (this.held !== held) return false;
+      if (held.phase === 'gather') {
+        if (held.start === null) held.start = now;
+        const u = Math.min(1, (now - held.start) / 1000 / HAND.gather), e = u * u * (3 - 2 * u);
+        this.dice.forEach((d, i) => d.mesh.position.lerpVectors(from[i], to[i], e));
+        if (u < 1) return true;
+        held.hold = createHold(this.dice.map((d, i) => ({ die: d.die, position: { x: to[i].x, y: to[i].y, z: to[i].z }, orientation: { x: d.mesh.quaternion.x, y: d.mesh.quaternion.y, z: d.mesh.quaternion.z, w: d.mesh.quaternion.w } })), centre, { surface, size });
+        held.phase = 'hold';
+        held.last = now;
+        return true;
+      }
+      // The frame's own length drives the world (never more than frameMax: a tab away for a while is not a leap).
+      const dt = Math.min(HAND.frameMax, Math.max(1 / 240, (now - held.last) / 1000));
+      held.last = now;
+      const hits = held.hold.step(dt, held.target);
+      held.hold.states().forEach((s, i) => {
+        this.dice[i].mesh.position.set(s.position.x, s.position.y, s.position.z);
+        this.dice[i].mesh.quaternion.set(s.orientation.x, s.orientation.y, s.orientation.z, s.orientation.w);
+      });
+      if (onHit) for (const h of hits) { try { onHit(h.body, h.speed, h.surface, h.other); } catch (e) { console.error('DiceView onHit threw:', e); } }
+      return true;
+    });
+  }
+
+  /** Where the hand is going ({x, z} on the floor): the cup follows at the hand's own pace, kept over the floor the dice may land on. */
+  moveHand(at) {
+    if (!this.held) return;
+    this.held.target = this.handClamp({ x: at.x, y: HAND.height, z: at.z }, this.held.size);
+  }
+
+  /** Where the hand is going now ({x, z}), as clamped — what a host moves it from; null when nothing is held. */
+  handTarget() {
+    return this.held ? { x: this.held.target.x, z: this.held.target.z } : null;
+  }
+
+  /**
+   * The hand's centre kept inside the tray's walls — or, with no tray drawn, inside the screen's edges where they meet
+   * the floor — by half the cup, so the dice let go start over the table the roll keeps them on. (The edge planes lean:
+   * held to them at the cup's own height, a small stage left the hand no room at all, 2026-10-29.)
+   */
+  handClamp(p, size) {
+    const r = size / 2;
+    if (this.trayDrawn !== false) {
+      const clamp = (v, h) => (h > r ? Math.max(-h + r, Math.min(h - r, v)) : 0);
+      return { x: clamp(p.x, this.tray.width / 2), y: p.y, z: clamp(p.z, this.tray.depth / 2) };
+    }
+    // Each edge plane, where it meets the floor, must hold the cup's footprint: its centre at least r inside; a centre
+    // short of that is pushed in along the plane's floor direction, a few sweeps over all of them.
+    let x = p.x, z = p.z;
+    const planes = this.screenEdges().planes;
+    for (let sweep = 0; sweep < 4; sweep++) {
+      for (const b of planes) {
+        const n = b.normal, h = n.x * n.x + n.z * n.z;
+        if (h < 1e-9) continue;
+        const short = b.offset + r * Math.sqrt(h) - (n.x * x + n.z * z);
+        if (short > 0) { x += n.x * short / h; z += n.z * short / h; }
+      }
+    }
+    return { x, y: p.y, z };
+  }
+
+  /**
+   * Lets go: ends the hold and returns { states, velocity } — every die where it is and as it moves (src/hold.js ▸
+   * states), for roll({ throw: { states } }), and the hand's last velocity (m/s); the dice stay drawn where they are,
+   * so a play of that roll with fromTable set carries straight on from them. Null when nothing is held. Let go while
+   * still gathering, the dice are where they are, still.
+   */
+  release() {
+    const held = this.held;
+    if (!held) return null;
+    this.held = null;
+    if (held.hold) return { states: held.hold.states(), velocity: held.hold.velocity };
+    const still = { x: 0, y: 0, z: 0 };
+    return { states: this.dice.map((d) => ({ position: { x: d.mesh.position.x, y: d.mesh.position.y, z: d.mesh.position.z }, orientation: { x: d.mesh.quaternion.x, y: d.mesh.quaternion.y, z: d.mesh.quaternion.z, w: d.mesh.quaternion.w }, velocity: still, angularVelocity: still })), velocity: still };
+  }
+
   /**
    * The dice on the table as they lie now, in play order: [{ type, value, position, orientation }],
    * the orientation the VISUAL one (the printing included), so a die read from it shows what the
@@ -631,10 +742,11 @@ export class DiceView {
     });
   }
 
-  /** Stops the play under way where it is (its promise resolves); the dice stay as they are. */
+  /** Stops the play under way where it is (its promise resolves), or opens the hand (the dice hang where they are); the dice stay as they are. */
   stop() {
     if (this.playing) this.playing.cancel();
     this.playing = null;
+    this.held = null;
   }
 
   /**
@@ -648,6 +760,7 @@ export class DiceView {
     const d = this.dice[i];
     if (!d) throw new Error('DiceView.removeDie: the table has no die ' + i + ' (' + this.dice.length + ' on it)');
     if (exit !== null && !EXITS[exit]) throw new Error('DiceView: no exit "' + exit + '" (known: ' + Object.keys(EXITS).join(', ') + ')');
+    this.held = null;   // the hand opens: the dice it held are no longer the table
     this.dice.splice(i, 1);
     if (exit === null) {
       disposeDie(this.scene, d);
@@ -732,6 +845,7 @@ export class DiceView {
       if (this.dice[i].die.type !== d.type) throw new Error('DiceView.play: die ' + i + ' on the table is a ' + this.dice[i].die.type + ', the result has a ' + d.type + ' there');
     });
     if (this.playing) this.playing.cancel();
+    this.held = null;   // a play takes the dice from a hand too
     const carried = this.dice.slice(0, fromTable);
     for (const d of this.dice.slice(fromTable)) disposeDie(this.scene, d);
     this.dice = carried;   // a tray rebuilt below tells the carried dice whether it is drawn

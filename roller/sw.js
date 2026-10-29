@@ -10,7 +10,7 @@
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.61.0';
+const VERSION = '0.62.0';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
@@ -63,6 +63,7 @@ const FILES = [
   'src/collide.js',
   'src/dice.js',
   'src/geometry.js',
+  'src/hold.js',
   'src/index.js',
   'src/materials.js',
   'src/math.js',

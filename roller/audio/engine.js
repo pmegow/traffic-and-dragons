@@ -12,7 +12,7 @@
 //
 // Pass { context } (an OfflineAudioContext, say) to render without speakers — the tests do.
 
-import { rollEvents, exitSoundEvent, TIMBRES } from './plan.js';
+import { rollEvents, exitSoundEvent, hitEvent, TIMBRES } from './plan.js';
 
 /** s of silence before each region's attack, by bank (dev/cut-clicks.js cuts 1 ms early; the exit takes start on it). */
 const PRE_ROLL = { clicks: 0.001, exits: 0 };
@@ -138,6 +138,16 @@ export class DiceAudio {
     this.requireLoaded();
     const e = exitSoundEvent(kind, { bank: this.bank, exitBank: this.exitBank, type, surface, strength });
     return this.play(e, this.context().currentTime + e.after, pan);
+  }
+
+  /**
+   * A knock inside a hand, now (audio/plan.js ▸ hitEvent): what DiceView.pickUp's onHit reports — the die's `type`, the
+   * `surface` struck (a TIMBRES key: the hand's, or 'die'), the impact `speed` (m/s) — panned −1 … 1.
+   */
+  playHit({ type, surface, speed, pan = 0 }) {
+    this.requireLoaded();
+    const e = hitEvent({ bank: this.bank, type, surface, speed });
+    return this.play(e, this.context().currentTime, pan);
   }
 
   /** Silences everything scheduled or sounding (a new roll took over). */

@@ -212,6 +212,19 @@ export function exitSoundEvent(kind, { bank, exitBank, type, surface, strength =
   };
 }
 
+/**
+ * One knock inside a hand (src/hold.js ▸ step's hits), as an event the engine plays now (DiceAudio.playHit): the
+ * die's own recorded click at the impact's loudness, through `surface`'s timbre — the hand's (felt) for its walls and
+ * floor, 'die' for a knock between dice.
+ */
+export function hitEvent({ bank, type, surface, speed, random = Math.random }) {
+  if (!bank) throw new Error('hitEvent: a click bank is required');
+  const spec = TIMBRES[surface];
+  if (!spec) throw new Error('hitEvent: no timbre for "' + surface + '"');
+  const g = loudness(speed);
+  return { kind: 'hit', type, timbre: surface, source: 'clicks', region: pickClick(bank, type, Math.min(1, g), random()), gain: g * spec.gain, rate: spec.rate * (1 + 0.03 * (2 * random() - 1)) };
+}
+
 function limitVoices(events, voices) {
   const kept = [];
   for (const e of events) {
