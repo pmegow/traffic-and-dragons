@@ -1,8 +1,8 @@
 {
   "name": "dice-sim",
   "note": "A release copy of the dice-sim web app (C:\\Projects\\dice-sim, dev/publish-to-tnd.js). Do not edit here: change dice-sim and publish again.",
-  "version": "0.62.0",
-  "commit": "feeb96a4af395bf2460cf714342841435ce6574f",
+  "version": "0.62.1",
+  "commit": "0f8dcb8087970946c27b0ccf465aea067a6d557e",
   "files": {
     "audio/bank/clicks-v1.json": "7aea27e74e8611f8943b4eeb328845d3d1f137bb7be9bc19bf7a206e9dd34883",
     "audio/bank/clicks-v1.mp3": "84c48edc8d289fa4a1a123d67a575a3950027f98986d405b34a45b397ac36150",
@@ -63,9 +63,9 @@
     "src/rng.js": "32aeabb3dc9b2f52cb7ea39fadfc19e4879127e81591773f23ddc96d9828070f",
     "src/roll.js": "bbbb6a9d379d6ebd2766f23fd4a7fce50cbb0e325a57e535ffaccabe704b3c88",
     "src/track.js": "53a08867dbdd11261def5caf446699023d9f4d1ee5b59425db23976be6eb28cc",
-    "src/version.js": "3e6deb8292a8b5fb47e2d3c495f21f3251c7ba82771de53fdfa674bd668a9b55",
+    "src/version.js": "cb5b4cda9590b841959ad362c5d12dd5ca97dff39b6dc511c7a2aaed22fc1b4e",
     "src/world.js": "d83afc7fd08d2ffb2d9dd5cba10b7c93d27de60ecee641a8f0be3f3649f88b85",
-    "sw.js": "ec97565f954aa60d8adf7bb8ee5b8d78d47190d08ff6d6b7f7324f997854d4ec",
+    "sw.js": "6bbce790122051fa22080c41c9724e6255192309b0aa9ce8145d911b8e940861",
     "vendor/three/LICENSE": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc",
     "vendor/three/README.md": "6c47bb80d0abd3d797c9a4c78b1a7bc5393d7a5cf5acf4e1236090632aadc1f2",
     "vendor/three/addons/environments/RoomEnvironment.js": "55f466192cc84298755a424c5e040345006b2ee1455589b3b54126c2ea4123f4",

@@ -28,6 +28,6 @@ prove("roller/RELEASE.json", [
   { label: "the receipt names a file the copy lacks", find: '"src/hold.js": "', replace: '"src/hold-x.js": "', mustFail: "named by RELEASE.json but missing" }
 ]);
 prove("roller/src/version.js", [
-  { label: "a release file edited in place", find: "export const VERSION = '0.62.0';", replace: "export const VERSION = '0.62.1';", mustFail: "differs from its RELEASE.json sha256" }
+  { label: "a release file edited in place", find: "// src/version.js — the build marker.", replace: "// src/version.js — the build marker!", mustFail: "differs from its RELEASE.json sha256" }
 ]);
 process.exit(code);

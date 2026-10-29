@@ -4,13 +4,14 @@
 // opens and rolls with no network (owner 2026-10-24: a web app on the Traffic and Dragons site, and
 // on a phone's Home Screen). A new release is a new sw.js — the list below changes with every
 // version — so the browser installs it beside the old one; it takes over at once and drops the old
-// cache, and the open page keeps its files until it is next loaded.
+// cache, and the open page keeps its files until it is next loaded. An install that cannot get every
+// file as itself (a missing one comes back as the host's page) fails, and the version in service stays.
 //
 // The list is written by dev/write-sw.js from dev/app-files.js, never by hand; test/app.test.js
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.62.0';
+const VERSION = '0.62.1';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
@@ -98,6 +99,12 @@ self.addEventListener('install', (event) => {
       // 'reload' goes past the HTTP cache, so a new version never stores an older copy of a file.
       const response = await fetch(new Request(f, { cache: 'reload' }));
       if (!response.ok) throw new Error('sw: ' + f + ' answered ' + response.status);
+      // A host answers a MISSING file with its index page, 200 (Cloudflare Pages). A release copy without
+      // src/hold.js stored the page as the module, and the app stayed locked after the file was deployed:
+      // cache-first, same version, nothing re-fetched (2026-10-29, on the live site). A page where a file
+      // should be is not stored — the install fails, and the version in service stays.
+      const type = (response.headers.get('content-type') || '').toLowerCase();
+      if (type.startsWith('text/html') && !/\.html?$/.test(f)) throw new Error('sw: ' + f + ' answered a page, not the file — not stored; the version in service stays');
       await cache.put(f, await clean(response));
     }));
     await self.skipWaiting();
