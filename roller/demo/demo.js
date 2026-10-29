@@ -64,7 +64,10 @@ const soundOn = () => $('sound').checked && audioState === 'on' && audio.ctx && 
 // Sound never holds a roll or a drop back: a start that does not come (no gesture, a browser that
 // keeps the audio asleep) is waited for this long at most, and the dice go on silent.
 const SOUND_WAIT_MS = 250;
-const soon = (p) => Promise.race([p, new Promise((r) => setTimeout(r, SOUND_WAIT_MS))]);
+const soon = (p, ms = SOUND_WAIT_MS) => Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+// The first drop or roll after a look waits this long at most for the dice's pipeline (view.warmTable), readied as the
+// page opens and after each look: a die drawn before it is built stalled 0.6 s in the air after a reload (2026-10-28).
+const WARM_WAIT_MS = 1500;
 $('sound').addEventListener('change', () => { audio.setMuted(!$('sound').checked); if ($('sound').checked) unlockSound(); soundLine(); });
 
 window.__dice = { view, audio };   // the test seam: drive the page from a script
@@ -275,7 +278,7 @@ $('preset-delete').addEventListener('click', () => {
 
 const applyLook = () => {
   const { body, ink, finish, font } = look();
-  view.setDieStyle({ body, ink, finish, font }).then(() => view.warmExits()).catch((e) => { status('Could not change the look: ' + e.message); console.error(e); });
+  view.setDieStyle({ body, ink, finish, font }).then(() => view.warmUp()).catch((e) => { status('Could not change the look: ' + e.message); console.error(e); });
   try { localStorage.setItem(LOOK_KEY, JSON.stringify(look())); } catch { /* storage blocked */ }
   syncPreset();
 };
@@ -421,6 +424,7 @@ async function dropIn(types) {
   }
   if (types.length) show(null);
   await soon(soundFromTap);
+  await soon(view.warmTable(), WARM_WAIT_MS);   // the dice's pipeline, built ahead: at once, but for the first drop after a look
   if (mine !== current) return;
   audio.stop();   // dice still moving carry on in this drop, their clicks rescheduled with it
   await playWithSound(result, { fromTable });
@@ -460,6 +464,7 @@ async function go(req, { unlocking = Promise.resolve() } = {}) {
   }
   show(null);
   await soon(unlocking);   // the first tap starts sound; the roll waits a moment for it so its clicks play
+  await soon(view.warmTable(), WARM_WAIT_MS);   // and for the dice's pipeline, built ahead (at once, but for the first roll after a look)
   if (mine !== current) return;
   await playWithSound(result);
   if (mine !== current) return;   // a newer roll took over the tray

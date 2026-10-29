@@ -23,6 +23,8 @@ export const SOUND_WAIT_MS = { bank: 1500, unlock: 250 };
 
 /** How long a roll waits for a vendored numeral font to load (ms), so the first roll is painted in it; painted sooner, the dice are repainted when it arrives. */
 export const FONT_WAIT_MS = 1500;
+/** How long a roll waits at most for the dice's pipeline (view.warmTable), readied as the overlay is made and for each look. */
+export const WARM_WAIT_MS = 1500;
 
 /** A promise's value, or false if it has not settled within ms. */
 const soon = (promise, ms) => Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(false), ms))]);
@@ -49,7 +51,10 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
   let leaveBy = checkExit(exit);
   // An exit compiles shaders the first time it plays (a burn's first frame stalled 6.9 s on glass, measured
   // 2026-10-25): they are readied while the dice rest, and for a new look — never in the middle of a dismiss.
-  const warm = () => { if (leaveBy !== 'none') view.warmExits(); };
+  const warm = () => { view.warmTable(); if (leaveBy !== 'none') view.warmExits(); };
+  // The look's own pipeline is readied as the overlay is made (a host makes it ahead of the first roll: the first die
+  // drawn before it was built stalled 0.6 s in the air after a reload, 2026-10-28), and the exit's shaders with it.
+  warm();
   // An exit's sounds (a spider's steps) play only once the sound is up: the bank loaded and the context running
   // (a step on a sleeping clock would wait for it and then sound with all the rest at once).
   const exitSound = (s) => { if (audio.buffer && audio.ctx && audio.ctx.state === 'running') audio.playExitSound(s.kind, { ...s, pan: 0.7 * s.pan }); };
@@ -75,6 +80,8 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
       const withSound = (await soon(loading, SOUND_WAIT_MS.bank)) && (await soon(unlocking, SOUND_WAIT_MS.unlock));
       // The look's font too (a vendored one loads from a file): a moment, so the first roll is painted in it.
       await soon(view.readyFont(view.o.dieStyle.font).catch(() => false), FONT_WAIT_MS);
+      // And the dice's pipeline (warmTable): built as the overlay was made, or for the first roll after a look, now.
+      await soon(view.warmTable(), WARM_WAIT_MS);
       if (mine !== current) return null;
       await view.play(result, {
         onStart: ({ timeScale }) => {

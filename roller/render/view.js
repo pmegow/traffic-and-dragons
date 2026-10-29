@@ -15,7 +15,7 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { roll, samplePose, rollDuration, buildDie, trayFor } from '../src/index.js';
+import { roll, samplePose, rollDuration, buildDie, trayFor, dieTypes } from '../src/index.js';
 import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, numeralFontLoaded, facesShowing } from './die-mesh.js';
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
@@ -43,6 +43,7 @@ export { VIEW_DEFAULTS };
 
 const RIM_HEIGHT = 0.014;   // m: the tray's rim, low enough that a die resting against the near wall stays in view
 const SCREEN_MARGIN = 0.002;   // m: the screen's edges, moved in a little, so a die never touches the frame
+const WARM_DIE = 'd6';   // the die type whose geometry stands in for the dice's pipeline (warmTable)
 
 export class DiceView {
   constructor(options = {}) {
@@ -63,6 +64,7 @@ export class DiceView {
     this.frameRequested = false;
     this.exiting = new Set();     // dice off the table, still drawn until their exit ends: { die, finish }
     this.fonts = new Map();       // a numeral font's load and repaint under way (readyFont), by NUMERAL_FONTS key
+    this.warmed = null;           // the dice's pipeline readied for the current finish and font (warmTable)
 
     // Always able to show the page through: a transparent view and the 'none' tray draw no background.
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: false });
@@ -476,6 +478,52 @@ export class DiceView {
     return ready;
   }
 
+  /**
+   * Readies the dice's own pipeline for the current finish and font, so the first die to land never waits for it:
+   * every die type's geometry and numeral mask are built and uploaded now, the material a die wears on the table is
+   * compiled — in the background where the browser can — and then DRAWN once, as a stand-in of no size in the scene for
+   * one frame. A compiled program is not yet something the GPU can run: its first draw builds that (and a see-through
+   * finish's transmission buffers, the shadow pass's depth variant), and after a reload the first drop paid 0.6 s for it
+   * on a desktop GPU (measured 2026-10-28) — the die hung in the air, then popped onto the floor, because play()'s clock
+   * was already running (it now starts once the first frame is drawn). Kept per finish and font, as warmExits keeps
+   * the exits'; the stand-in's material stays alive so its program is never freed and built again. Resolves once the
+   * pipeline has been drawn. Call it after setDieStyle (warmUp does, with warmExits).
+   */
+  warmTable() {
+    const { finish, font } = this.o.dieStyle, key = finish + '/' + font;
+    if (this.warmed && this.warmed.key === key) return this.warmed.ready;
+    const old = this.warmed;
+    let die = null, geometry = null, glyph = null;
+    for (const type of dieTypes()) {
+      const a = this.atlasFor(type);
+      this.renderer.initTexture(a.glyph);   // uploaded now, not as its first die lands
+      if (type === WARM_DIE) ({ die, geometry, glyph } = a);
+    }
+    const material = dieMaterial(finish, this.o.dieStyle, glyph, 0, { radius: die.boundingRadius, onTray: this.trayDrawn });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = mesh.receiveShadow = true;
+    mesh.frustumCulled = false;   // drawn, though it has no size
+    mesh.scale.setScalar(0);
+    const standIn = new THREE.Scene();
+    standIn.add(mesh);
+    const ready = this.renderer.compileAsync(standIn, this.camera, this.scene)
+      .then(() => {
+        if (this.warmed.ready !== ready) { if (old) old.dispose(); return; }   // a newer look took over; its own draw follows
+        this.scene.add(mesh);
+        this.render();
+        this.scene.remove(mesh);
+        if (old) old.dispose();
+      })
+      .catch((e) => console.error('DiceView: the dice pipeline could not be readied ahead, so the first die may wait while it is built:', e));
+    this.warmed = { key, ready, dispose: () => material.dispose() };
+    return ready;
+  }
+
+  /** Readies everything the current look will draw — the dice's pipeline (warmTable) and the exits' (warmExits). */
+  warmUp() {
+    return Promise.all([this.warmTable(), this.warmExits()]);
+  }
+
   /** Runs fn(now) every frame until it returns false; the view renders once a frame for everything animating. */
   animate(fn) {
     this.animators.add(fn);
@@ -660,10 +708,11 @@ export class DiceView {
   }
 
   /**
-   * Plays a RollResult. Resolves when the dice have settled. onStart({ timeScale }) fires on the
-   * first frame — timeScale is roll seconds per real second, so a sound layer can schedule every
-   * hit ahead on its own clock; onHit(dieIndex, speed, surface, other) fires as each recorded impact
-   * is reached on screen. A new play() cancels the one in progress.
+   * Plays a RollResult. Resolves when the dice have settled. onStart({ timeScale }) fires as the
+   * roll's clock starts — the frame after the dice were first drawn at their start — timeScale is
+   * roll seconds per real second, so a sound layer can schedule every hit ahead on its own clock;
+   * onHit(dieIndex, speed, surface, other) fires as each recorded impact is reached on screen. A new
+   * play() cancels the one in progress.
    *
    * fromTable: the first fromTable dice of the result are the dice on the table (a drop: bakeDrop),
    * in play order. They keep their meshes, so their look and their place in the marble carry on, and
@@ -700,33 +749,42 @@ export class DiceView {
       return { mesh, die, value: d.value, meshFeature, keep: facesShowing(die, meshFeature), steady: false, hitIndex: 0, index: i };
     });
     const duration = rollDuration(result);
+    // The dice at roll time t (seconds): their poses and the highlight's dim — it eases in over the whole roll
+    // (smoothstep), so nothing changes when the dice stop; darkening the other faces on the last frame read as a
+    // lighting pop (owner 2026-10-24) — and, once the clock runs, the hits reached.
+    const place = (t, hitsToo) => {
+      const u = duration > 0 ? t / duration : 1, ease = u * u * (3 - 2 * u);
+      const dim = 1 - (1 - this.o.dimOthers) * ease;
+      this.dice.forEach((d) => {
+        if (this.o.dimOthers < 1) setDim(d.mesh.geometry, d.keep, d.steady ? this.o.dimOthers : dim);
+        const p = samplePose(result, d.index, t);
+        d.mesh.position.set(p.position.x, p.position.y, p.position.z);
+        d.mesh.quaternion.set(p.orientation.x, p.orientation.y, p.orientation.z, p.orientation.w);
+        if (!hitsToo) return;
+        const hits = result.dice[d.index].hits;
+        while (onHit && d.hitIndex < hits.length && hits[d.hitIndex][0] <= t) {
+          const [, s, surface, other] = hits[d.hitIndex++];
+          try { onHit(d.index, s, surface, other); } catch (e) { console.error('DiceView onHit threw:', e); }
+        }
+      });
+    };
     return new Promise((resolve) => {
-      let cancelled = false, start = null;
+      let cancelled = false, start = null, drawn = false;
       let tNow = 0;   // where in the roll the frame just drawn stands (liveTable reads the dice's motion there)
       this.playing = { cancel: () => { cancelled = true; resolve(result); }, result, time: () => tNow };
       this.animate((now) => {
         if (cancelled) return false;
+        // The first frame only puts the dice at the roll's start and is drawn; the clock starts from the NEXT frame's
+        // time. Whatever the GPU must build to draw them the first time (a pipeline, a buffer: 0.6 s after a reload on
+        // a desktop, measured 2026-10-28; warmTable does it ahead) is then spent before the roll, never skipped from
+        // it — the die used to pop from the air onto the floor.
+        if (!drawn) { drawn = true; if (duration > 0) { place(0, false); return true; } }
         if (start === null) {
           start = now;
           if (onStart) { try { onStart({ timeScale }); } catch (e) { console.error('DiceView onStart threw:', e); } }
         }
         const t = tNow = Math.min(duration, ((now - start) / 1000) * timeScale);
-        // The result's highlight eases in over the whole roll (smoothstep), so nothing changes when
-        // the dice stop. Darkening the other faces on the last frame read as a lighting pop (owner
-        // 2026-10-24).
-        const u = duration > 0 ? t / duration : 1, ease = u * u * (3 - 2 * u);
-        const dim = 1 - (1 - this.o.dimOthers) * ease;
-        this.dice.forEach((d) => {
-          if (this.o.dimOthers < 1) setDim(d.mesh.geometry, d.keep, d.steady ? this.o.dimOthers : dim);
-          const p = samplePose(result, d.index, t);
-          d.mesh.position.set(p.position.x, p.position.y, p.position.z);
-          d.mesh.quaternion.set(p.orientation.x, p.orientation.y, p.orientation.z, p.orientation.w);
-          const hits = result.dice[d.index].hits;
-          while (onHit && d.hitIndex < hits.length && hits[d.hitIndex][0] <= t) {
-            const [, s, surface, other] = hits[d.hitIndex++];
-            try { onHit(d.index, s, surface, other); } catch (e) { console.error('DiceView onHit threw:', e); }
-          }
-        });
+        place(t, true);
         if (t >= duration) {
           this.playing = null;
           resolve(result);
@@ -742,6 +800,7 @@ export class DiceView {
     for (const r of [...this.exiting]) r.finish();
     this.animators.clear();
     if (this.warm) this.warm.dispose();
+    if (this.warmed) this.warmed.dispose();
     this.clear();
     this.resizeObserver.disconnect();
     for (const a of this.atlases.values()) { a.geometry.dispose(); for (const g of a.glyphs.values()) g.dispose(); }

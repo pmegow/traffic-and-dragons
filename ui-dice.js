@@ -9,8 +9,10 @@
    2026-10-20); that click runs opts.onClose, which plays the damage dice (#654) through showDamageRoll(sides,faces).
    A thin DOM shell over a module: this file is ES5, the module (roller/embed/global.js, ES2020) is loaded by a script tag
    and sets window.DiceSim; index.html's import map points "three" at roller/vendor/three/. ONE overlay — one WebGL context,
-   one sound engine — for the whole session (the monotonic-resources rule), made at the first roll; diceLivePreload()
-   (showGame) fetches the module early so the first roll does not wait for it.
+   one sound engine — for the whole session (the monotonic-resources rule), made as soon as the module is there:
+   diceLivePreload() (showGame) fetches the module early and diceLiveWarm() then makes the overlay, which readies its
+   look's pipeline and the exit's shaders while the player reads (dice-sim 0.60.0: the first die drawn before they were
+   built stalled 0.6 s in the air after a reload and popped onto the floor — owner 2026-10-28, dice-sim TODO row 47).
    Skipped (returns false, nothing shown): headless, no story area, Car Mode (its own screen covers the page), a reduced-
    motion preference, a face outside its die. A module that fails to load, or a device that cannot start the dice (no
    WebGL), says so on the console and through reportError once per session (the phone's console is invisible) — the card
@@ -35,16 +37,25 @@ function diceLiveFail(why,detail){
 /* Fetches the dice module (once). Its 'dicesim-ready' event runs whatever waited for it. */
 function diceLivePreload(){
   if(_diceLive.state!=="idle"||typeof document==="undefined"||typeof window==="undefined")return;
-  if(window.DiceSim){_diceLive.state="ready";return;}
+  if(window.DiceSim){_diceLive.state="ready";diceLiveWarm();return;}
   _diceLive.state="loading";
   window.addEventListener("dicesim-ready",function(){
     _diceLive.state="ready";
+    diceLiveWarm();
     var waiting=_diceLive.waiting;_diceLive.waiting=[];
     waiting.forEach(function(f){f();});
   });
   var s=document.createElement("script");s.type="module";s.src=DICE_LIVE_SRC;
   s.onerror=function(){_diceLive.state="failed";_diceLive.waiting=[];diceLiveFail("the dice module did not load ("+DICE_LIVE_SRC+")");};
   document.head.appendChild(s);
+}
+/* Makes the overlay as soon as the module is there, so its look's pipeline and the exit's shaders are built while the
+   player reads, not at the first click (dice-sim 0.60.0 readies them as the overlay is made and its roll() waits for
+   them up to 1.5 s). Never where the dice would not show (diceRollEnv): a roll there makes it later, if ever. */
+function diceLiveWarm(){
+  if(_diceLive.overlay||!diceRollEnv())return;
+  try{diceLiveOverlay();}
+  catch(e){_diceLive.state="failed";diceLiveFail("the dice could not start ("+(e&&e.message||e)+")",{at:"preload"});}
 }
 /* Runs f once the module is there; never, if it failed to load (that was already said). */
 function diceLiveWhenReady(f){
@@ -102,7 +113,8 @@ function diceLiveLayer(){
   if(el.parentNode!==area)area.appendChild(el);
   return el;
 }
-/* The one overlay for the session (one WebGL context, one sound engine), made at the first roll. */
+/* The one overlay for the session (one WebGL context, one sound engine): made by diceLiveWarm once the module is there,
+   or by the first roll where that did not happen. */
 function diceLiveOverlay(){
   if(_diceLive.overlay)return _diceLive.overlay;
   var ctx=null;
