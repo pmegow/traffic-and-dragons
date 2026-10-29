@@ -29,6 +29,7 @@ import { EXITS, exitWarmUp } from './exits.js';
  */
 const EXIT_FRAME_MAX = 1 / 30;
 import { dieMaterial, recolour, setGlyph, setOnTray, FINISHES } from './finishes.js';
+import { DIE_MATERIALS } from '../src/materials.js';
 import { NUMERAL_FONTS } from './numeral-fonts.js';
 import { SURFACE_LOOKS, RIM_LOOK } from './surface-looks.js';
 import { SPECULAR } from './finish-table.js';
@@ -696,7 +697,12 @@ export class DiceView {
     // roll's tray is this one and the play never reframes the camera away from the edges the dice were kept inside
     // (grown with the dice count, 16 dice stood the camera back 1.6× and bounced off walls well inside the screen).
     const fixed = edges ? { width: this.tray.width, depth: this.tray.depth } : {};
-    return roll({ readUp: this.readUp, ...request, tray: { ...this.trayOptions, ...fixed, ...bounds, ...(request.tray || {}) } });
+    // Every die is made of what its finish says (FINISHES ▸ material: a metal die is heavy and dead, a wooden one light),
+    // unless the request names a material for it.
+    const material = FINISHES[this.o.dieStyle.finish].material;
+    if (!DIE_MATERIALS[material]) throw new Error('DiceView: the finish "' + this.o.dieStyle.finish + '" names no die material (known: ' + Object.keys(DIE_MATERIALS).join(', ') + ')');
+    const dice = (request.dice || []).map((d) => (typeof d === 'string' ? { type: d, material } : { material, ...d }));
+    return roll({ readUp: this.readUp, ...request, dice, tray: { ...this.trayOptions, ...fixed, ...bounds, ...(request.tray || {}) } });
   }
 
   /** Bakes a roll and plays it, once the dice's font is ready to paint in. */

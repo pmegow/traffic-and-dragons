@@ -55,7 +55,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
   const m = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(style.body),
     roughness: f.roughness,
-    metalness: 0,
+    metalness: f.metalness ?? 0,
     specularIntensity: SPECULAR,
     clearcoat: f.clearcoat * SPECULAR,
     clearcoatRoughness: f.clearcoatRoughness,

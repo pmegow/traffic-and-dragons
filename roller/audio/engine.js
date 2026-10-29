@@ -189,17 +189,25 @@ function compressorSettings(comp) {
   comp.threshold.value = -10; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.002; comp.release.value = 0.08;
 }
 
+/** s: the compressor's look-ahead in Chromium and Firefox (both measured at 6.00 ms), used when the probe hears nothing. */
+export const LATENCY_FALLBACK = 0.006;
+
 /**
  * The output path's delay, measured: a DynamicsCompressor looks ahead (about 6 ms in Chromium) and
- * Web Audio does not report it. An impulse through the same compressor, rendered offline, shows it.
- * Without this every click sounded ~7 ms after its frame (measured 2026-10-24).
+ * Web Audio does not report it. A burst through the same compressor, rendered offline, shows it.
+ * Without this every click sounded ~7 ms after its frame (measured 2026-10-24). The burst is 10 ms:
+ * Firefox's compressor renders a one-sample impulse, and a 1 ms burst, as exact silence (measured
+ * 2026-10-29 in Firefox 159 — the probe threw, load() rejected and Firefox had no sound at all); a
+ * 10 ms burst is heard by both engines, first at the same 6 ms. A probe that still hears nothing
+ * says so on the console and the fallback stands, so no engine is silenced by its own probe.
  */
 async function measureLatency(sampleRate = 48000) {
   const ctx = new OfflineAudioContext(1, Math.round(sampleRate * 0.05), sampleRate);
   const comp = ctx.createDynamicsCompressor();
   compressorSettings(comp);
-  const imp = ctx.createBuffer(1, 1, sampleRate);
-  imp.getChannelData(0)[0] = 0.5;
+  const burst = Math.round(sampleRate * 0.01);
+  const imp = ctx.createBuffer(1, burst, sampleRate);
+  imp.getChannelData(0).fill(0.5);
   const src = ctx.createBufferSource();
   src.buffer = imp;
   src.connect(comp).connect(ctx.destination);
@@ -207,6 +215,9 @@ async function measureLatency(sampleRate = 48000) {
   const x = (await ctx.startRendering()).getChannelData(0);
   let i = 0;
   while (i < x.length && Math.abs(x[i]) < 1e-4) i++;
-  if (i === x.length) throw new Error('DiceAudio: the latency probe heard nothing through the compressor');
+  if (i === x.length) {
+    console.warn('DiceAudio: the latency probe heard nothing through the compressor; the clicks are timed for a ' + (LATENCY_FALLBACK * 1000) + ' ms look-ahead');
+    return LATENCY_FALLBACK;
+  }
   return Math.max(0, i / sampleRate - 0.01);
 }
