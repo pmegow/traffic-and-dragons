@@ -24,4 +24,10 @@ prove("sw.js", [
 prove("ui-boot.js", [
   { label: "no Settings row", find: 'btn(p+"dice-look","&#127922; Dice appearance&hellip;",0)', replace: '""', mustFail: "the Settings row" }
 ]);
+prove("roller/RELEASE.json", [
+  { label: "the receipt names a file the copy lacks", find: '"src/hold.js": "', replace: '"src/hold-x.js": "', mustFail: "named by RELEASE.json but missing" }
+]);
+prove("roller/src/version.js", [
+  { label: "a release file edited in place", find: "export const VERSION = '0.62.0';", replace: "export const VERSION = '0.62.1';", mustFail: "differs from its RELEASE.json sha256" }
+]);
 process.exit(code);

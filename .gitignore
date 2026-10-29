@@ -1,5 +1,7 @@
 # Auto-exported narrative files
 *.txt
+# The roller is a release copy of dice-sim (publish-to-tnd.js): every file its RELEASE.json names ships, the font licence included (#669 guard, 2026-10-29)
+!roller/**/*.txt
 !dev/golden_stable_PRE.txt
 
 # OS junk

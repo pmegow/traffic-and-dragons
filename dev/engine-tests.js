@@ -35424,6 +35424,20 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(u.indexOf('var muted=(typeof AudioMaster!=="undefined"&&AudioMaster.muted())||(typeof Sound!=="undefined"&&typeof Sound.enabled==="function"&&!Sound.enabled());')<0)return "silent with the master mute or the UI-sounds switch";
     return true;
   });
+  t("#669 the release copy is whole: every file roller/RELEASE.json names is tracked by git and on disk with its sha256 (the 0.62.0 publish staged its changed files and left the one it ADDED, src/hold.js, untracked — CI's checkout 404ed the module graph and the 669 browser suite timed out, 2026-10-29)",function(){
+    var r=JSON.parse(__fsForTests.readFileSync(__rootForTests+"/roller/RELEASE.json","utf8")),names=Object.keys(r.files||{});
+    if(names.length<60)return "RELEASE.json names only "+names.length+" files";
+    var g=__cpForTests.spawnSync("git",["ls-files","-z","--","roller"],{cwd:__rootForTests,encoding:"utf8"});
+    if(g.status!==0)return "git ls-files over roller/ failed: "+(g.stderr||g.error);
+    var tracked={};g.stdout.split("\u0000").forEach(function(p){if(p)tracked[p.replace(/^roller\//,"")]=true;});
+    if(!tracked["RELEASE.json"])return "roller/RELEASE.json must be tracked";
+    for(var i=0;i<names.length;i++){var f=names[i],p=__rootForTests+"/roller/"+f;
+      if(!__fsForTests.existsSync(p))return "roller/"+f+" is named by RELEASE.json but missing (publish again)";
+      if(!tracked[f])return "roller/"+f+" is named by RELEASE.json but not tracked by git — git add it: a checkout has no untracked files";
+      if(__cryptoForTests.createHash("sha256").update(__fsForTests.readFileSync(p)).digest("hex")!==r.files[f])return "roller/"+f+" differs from its RELEASE.json sha256 (never edited here: change dice-sim and publish again)";
+    }
+    return true;
+  });
   section("#670 — the dice leave by an exit (owner 2026-10-26: 'Bring the exit animations and footsteps into TnD's game'; rulings: Smoke puff until the player picks one, the damage dice roll as the d20 leaves): the overlay is told the player's exit, a dismiss plays it and its sounds (dice-sim's dismiss), the story stays clickable while the dice go, the choice sits in Dice appearance — the behaviour itself is dev/tests-669-live-dice-browser.js");
   t("#670 the exit: Smoke puff until the player picks, kept per device, an unknown saved one said and replaced",function(){
     var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");
