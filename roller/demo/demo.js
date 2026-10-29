@@ -11,6 +11,7 @@ import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
 import { rollParts } from './roll-line.js';
 import { exitMenu, exitDelays, chooseExit } from '../render/exit-table.js';
 import { TOY_DEFAULTS } from './toy-defaults.js';
+import { attachColorPicker } from './color-picker.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg || ''; };
@@ -195,6 +196,9 @@ try {
   if (saved && SURFACE_LOOKS[saved.surface]) $('surface').value = saved.surface;
   if (saved && NUMERAL_FONTS[saved.font]) $('font').value = saved.font;
 } catch { /* storage blocked: the defaults stand */ }
+// The colour pickers (demo/color-picker.js, owner 2026-10-29: HSV sliders as well as RGB): a swatch over each native
+// input, which stays the value's home — a slide writes it and fires 'input', the listener below applies the look.
+const colorPickers = ['body-color', 'ink-color'].map((id) => attachColorPicker($(id)));
 // ---------------------------------------------------------------- presets (owner 2026-10-24)
 // A preset is the dice's look — body and number colours, finish, font — under a name: the built-ins
 // (render/presets.js) and the ones saved on this browser (demo/preset-store.js).
@@ -280,6 +284,7 @@ const applyLook = () => {
   const { body, ink, finish, font } = look();
   view.setDieStyle({ body, ink, finish, font }).then(() => view.warmUp()).catch((e) => { status('Could not change the look: ' + e.message); console.error(e); });
   try { localStorage.setItem(LOOK_KEY, JSON.stringify(look())); } catch { /* storage blocked */ }
+  for (const p of colorPickers) p.sync();
   syncPreset();
 };
 fillPresets();
