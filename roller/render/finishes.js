@@ -10,7 +10,7 @@
 // (render/exit-shader.js): heat, burning away and a pit's cut, all off until it leaves the table.
 
 import * as THREE from 'three';
-import { FINISHES, SPECULAR, SEE_THROUGH_DEPTH_OFFSET } from './finish-table.js';
+import { FINISHES, SPECULAR, ENGRAVING, SEE_THROUGH_DEPTH_OFFSET } from './finish-table.js';
 import { patternUniforms, injectPattern } from './patterns.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_NORMAL, EXIT_FRAGMENT_PARS, EXIT_SURFACE, EXIT_EMISSIVE, EXIT_OUTGOING } from './exit-shader.js';
 import { SHATTER, MELT } from './exit-table.js';
@@ -60,7 +60,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
     clearcoat: f.clearcoat * SPECULAR,
     clearcoatRoughness: f.clearcoatRoughness,
     bumpMap: glyph,
-    bumpScale: -1.2,            // the numerals are recessed: the mask is white where they are
+    bumpScale: -ENGRAVING * (f.engraving ?? 1),   // the numerals are recessed (the mask is white where they are), as deep as the finish says
     vertexColors: true,
     transmission: f.transmission,
     side: f.doubleSided ? THREE.DoubleSide : THREE.FrontSide,
