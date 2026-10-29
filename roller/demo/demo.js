@@ -261,7 +261,10 @@ $('preset').addEventListener('change', () => {
   $('ink-color').value = p.ink;
   $('finish').value = p.finish;
   $('font').value = p.font;
-  if (!p.builtIn) $('preset-name').value = p.name;
+  // The name field follows the choice: a saved preset's own name (Save then overwrites it), nothing for a built-in
+  // one (owner 2026-10-29: a name typed earlier stayed under the new choice — "clear the preset name when a new
+  // preset is selected").
+  $('preset-name').value = p.builtIn ? '' : p.name;
   applyLook();
 });
 $('preset-save').addEventListener('click', savePreset);
