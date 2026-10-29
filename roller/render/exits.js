@@ -317,6 +317,14 @@ function startFade({ entry, sound = () => {} }) {
 // ---------------------------------------------------------------- scurry off
 // Eight legs, four a side, fanned from the heading (degrees): two forward, two back. Lengths in die radii;
 // thicknesses in units of `thick` die radii.
+/**
+ * The scurry's gait, watched (a seam for the page and the tests): per leg, how many frames of its run its foot lay
+ * beyond its leg's reach — the leg then drawn short of the foot, sliding after the body (owner 2026-10-29: "Every so
+ * often, the back legs seem to drag") — and the farthest any foot got, as a share of the leg's length; `frames` is
+ * every running frame, `steps` every step begun. Reset by hand.
+ */
+export const SCURRY_WATCH = { frames: 0, steps: 0, dragged: [0, 0, 0, 0, 0, 0, 0, 0], farthest: 0 };
+
 const LEG = {
   angles: [40, 75, 105, 140, -40, -75, -105, -140],
   group: [0, 1, 0, 1, 1, 0, 1, 0],   // the alternating tetrapod gait: one group steps while the other stands
@@ -326,6 +334,13 @@ const LEG = {
   thick: 0.06, base: 0.25, hip: 0.6, reach: 2.85, step: 1.2, lift: 0.75,
   bow: 0.06,   // how far the lower leg bows out, a share of its length (the drawing's curve)
   front: [0, 4],   // the two front legs, which tap while it wonders (round 8)
+  // A foot this share of the leg's length from the hip steps at once, whatever the gait says (owner 2026-10-29:
+  // "Every so often, the back legs seem to drag"). The alternating gait waits for the other group's swing to end,
+  // and a frame per flip besides; as it runs faster (the far end of a long path, x^1.3), turns, or a slow frame
+  // (several spiders at once), a back foot left planted through that wait went past the leg's reach — the leg was
+  // then drawn straight and short of its foot, sliding after the body: measured 7–59 frames of a run, a foot up
+  // to twice the leg's length away. A run's stance never passes 0.83 of the reach (traced); the guard sits above it.
+  guard: 0.85,
 };
 
 // A spider's leg, after the drawing the owner sent (round 7, 2026-10-25): a short thick coxa from the
@@ -364,7 +379,7 @@ function startScurry({ view, entry, sound }) {
   const add = (geometry, material) => { const m = new THREE.Mesh(geometry, material); m.castShadow = true; view.scene.add(m); return m; };
   const schedule = sproutSchedule(LEG.angles.length);   // each leg grows on its own (rounds 8, 11)
   const legs = LEG.angles.map((deg, i) => ({
-    o: new THREE.Vector3(), sprout: schedule[i], group: LEG.group[i], foot: null, swing: null,
+    index: i, o: new THREE.Vector3(), sprout: schedule[i], group: LEG.group[i], foot: null, swing: null,
     parts: partGeometry.map((g) => add(g, legMaterial)),
     knobs: JOINTS.map((j) => add(ball, j.knuckle ? knuckleMaterial : legMaterial)),
   }));
@@ -388,6 +403,7 @@ function startScurry({ view, entry, sound }) {
       // turning about up × heading, so its top goes the way it runs; it tipped back).
       mesh.quaternion.copy(tilt.setFromAxisAngle(sideways.set(way.z, 0, -way.x), t.lean)).multiply(yaw.setFromAxisAngle(Y, heading0 - facing)).multiply(turn0);
       const stride = Math.max(LEG.step * R, speed * 0.1), swingTime = Math.min(0.1, Math.max(0.035, stride / Math.max(speed, 1e-6) / 2));
+      const reach = (LEG.femur + LEG.lower) * R;   // the leg's full length, hip to foot (LEG.guard)
       // Which group steps: the other once every foot of this one is down and none needs to step.
       const moving = (g) => legs.some((l) => l.group === g && l.swing);
       for (const [i, l] of legs.entries()) {
@@ -418,11 +434,13 @@ function startScurry({ view, entry, sound }) {
           l.foot.lerpVectors(l.swing.from, l.swing.to, l.swing.s);
           l.foot.y = Math.sin(Math.PI * l.swing.s) * LEG.lift * R;
           if (l.swing.s >= 1) { l.foot.y = 0; l.swing = null; sound('step', l.foot, 1); }
-        } else if (l.group === active && l.foot.distanceTo(rest) > stride * 0.5) {
+        } else if ((l.group === active && l.foot.distanceTo(rest) > stride * 0.5) || l.foot.distanceTo(hip) > LEG.guard * reach) {
           l.swing = { from: l.foot.clone(), to: rest.clone().addScaledVector(way, speed * swingTime), s: 0, time: swingTime };
+          SCURRY_WATCH.steps++;
         }
         placeLeg(l, base, hip, l.foot, R, 1);
       }
+      if (t.travel) SCURRY_WATCH.frames++;
       if (!moving(active)) active = 1 - active;
     },
     dispose() {
@@ -447,6 +465,11 @@ function placeLeg(l, base, hip, foot, R, grown) {
   const L1 = LEG.femur * R, L2 = LEG.lower * R;
   const d = foot.clone().sub(hip);
   const len = Math.min(Math.max(d.length(), Math.abs(L1 - L2) + 1e-6), (L1 + L2) * 0.999);
+  if (grown === 1) {   // running: a foot beyond the leg's reach is a dragged leg (SCURRY_WATCH)
+    const share = d.length() / (L1 + L2);
+    if (share > SCURRY_WATCH.farthest) SCURRY_WATCH.farthest = share;
+    if (share > 0.999) SCURRY_WATCH.dragged[l.index]++;
+  }
   d.normalize();
   const cosA = (L1 * L1 + len * len - L2 * L2) / (2 * L1 * len), sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA));
   const pole = new THREE.Vector3(0, 1, 0).addScaledVector(d, -d.y).normalize();
