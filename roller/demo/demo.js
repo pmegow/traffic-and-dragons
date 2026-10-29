@@ -34,6 +34,7 @@ let soundWhy = '';
 const soundLine = () => {
   const words = { loading: 'Loading sound…', ready: soundWhy || 'Tap Roll or the tray to start sound.', on: '', failed: soundWhy };
   $('sound-state').textContent = $('sound').checked ? words[audioState] : '';
+  $('sound-state').classList.toggle('why', !!($('sound').checked && soundWhy));   // a refusal reads in the accent, not grey
 };
 audio.load().then(() => { audioState = 'ready'; soundLine(); }).catch((e) => {
   audioState = 'failed';

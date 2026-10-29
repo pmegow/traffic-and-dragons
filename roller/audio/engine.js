@@ -54,6 +54,9 @@ export class DiceAudio {
     if (this.ctx) return this.ctx;
     const ctx = this.injected || new AudioContext();
     this.ctx = ctx;
+    // The clock's every change, on the console: a phone that pauses it (interrupted) or refuses it (suspended) is
+    // then a line to read, not a silence to guess at (2026-10-29: a visit on an iPhone had no sound, the next had).
+    if (!this.injected && typeof ctx.addEventListener === 'function') ctx.addEventListener('statechange', () => console.info('dice-sim sound: the clock is ' + ctx.state));
     this.master = ctx.createGain();
     this.master.gain.value = this.muted ? 0 : this.volume;
     const comp = ctx.createDynamicsCompressor();
@@ -145,6 +148,9 @@ export class DiceAudio {
    * `surface` struck (a TIMBRES key: the hand's, or 'die'), the impact `speed` (m/s) — panned −1 … 1.
    */
   playHit({ type, surface, speed, pan = 0 }) {
+    // A knock comes from the hand's timer, never a gesture: before a lift has started sound there is no clock, and
+    // making one here would make it outside a gesture — a phone keeps such a clock asleep. The knock is silent.
+    if (!this.ctx) return null;
     this.requireLoaded();
     const e = hitEvent({ bank: this.bank, type, surface, speed });
     return this.play(e, this.context().currentTime, pan);

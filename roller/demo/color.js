@@ -46,9 +46,3 @@ export function hsvToRgb({ h, s, v }) {
 
 /** The hex of an HSV colour, by way of its bytes. */
 export const hsvToHex = (hsv) => rgbToHex(hsvToRgb(hsv));
-
-/** Black or white, whichever reads on this colour (for the hex printed on a swatch). */
-export function inkOn({ r, g, b }) {
-  const lum = 0.2126 * byte(r) + 0.7152 * byte(g) + 0.0722 * byte(b);
-  return lum > 140 ? '#000000' : '#ffffff';
-}

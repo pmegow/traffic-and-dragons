@@ -1,8 +1,9 @@
-// demo/color-picker.js — the toy's colour control: a swatch in the Body and Numbers fields that opens a panel of
-// sliders — Hue · Saturation · Value and Red · Green · Blue, each track painted in the colours it runs through —
-// with a hex field and the browser's own picker behind a button (its eyedropper, on a desktop). Owner 2026-10-29:
-// "the color picker sliders now are RGB only, add HSV sliders" — the system picker's sliders are the system's (RGB
-// on an iPhone); these are ours, and both kinds move together.
+// demo/color-picker.js — the toy's colour control: a plain swatch in the Body and Numbers fields that opens a panel
+// of sliders — Hue · Saturation · Value, or Red · Green · Blue by a toggle (HSV by default, the choice kept on this
+// browser), each track painted in the colours it runs through — with a hex field and the browser's own picker
+// behind a button (its eyedropper, on a desktop). Owner 2026-10-29: "the color picker sliders now are RGB only, add
+// HSV sliders" — the system picker's sliders are the system's (RGB on an iPhone); these are ours — then "No need to
+// draw them both at the same time. Put a toggle on there. Default to HSV. No hex values in the color swatches."
 //
 // The <input type="color"> stays the value's home: the picker writes it and fires its 'input' event, so everything
 // that read the input before reads it still (the look, the presets, the saved look). sync() takes the input's value
@@ -15,8 +16,18 @@
 //   picker.sync()                              // after input.value was written by code
 //   picker.open() / picker.close() / picker.isOpen / picker.hex
 //   attachColorPicker.closeAll()
+//   attachColorPicker.mode                     // 'hsv' | 'rgb': the sliders showing, for every picker
 
-import { hexToRgb, rgbToHex, rgbToHsv, hsvToRgb, hsvToHex, inkOn } from './color.js';
+import { hexToRgb, rgbToHex, rgbToHsv, hsvToRgb, hsvToHex } from './color.js';
+
+export const COLOR_MODE_KEY = 'dice-sim:colour-sliders';
+export const COLOR_MODES = [{ key: 'hsv', label: 'HSV' }, { key: 'rgb', label: 'RGB' }];
+const DEFAULT_MODE = 'hsv';
+let mode = DEFAULT_MODE;
+try {
+  const saved = localStorage.getItem(COLOR_MODE_KEY);
+  if (COLOR_MODES.some((m) => m.key === saved)) mode = saved;
+} catch { /* storage blocked: HSV it is */ }
 
 const CHANNELS = [
   { key: 'h', group: 'hsv', label: 'Hue', min: 0, max: 360, step: 1, unit: '°' },
@@ -59,7 +70,21 @@ export function attachColorPicker(input) {
   swatch.setAttribute('aria-label', name + ' colour');
   input.insertAdjacentElement('afterend', swatch);
 
-  let panel = null, controls = null, hexField = null, big = null;
+  let panel = null, controls = null, hexField = null, big = null, modeButtons = null, boxes = null;
+  /** Shows one kind of slider and remembers the choice; every picker follows, since the choice is the module's. */
+  const showMode = () => {
+    if (!panel) return;
+    for (const m of COLOR_MODES) {
+      boxes[m.key].hidden = m.key !== mode;
+      modeButtons[m.key].setAttribute('aria-pressed', String(m.key === mode));
+    }
+  };
+  const setMode = (key) => {
+    if (!COLOR_MODES.some((m) => m.key === key)) throw new Error('colour sliders: no mode "' + key + '"');
+    mode = key;
+    try { localStorage.setItem(COLOR_MODE_KEY, mode); } catch { /* storage blocked: this page remembers */ }
+    showMode();
+  };
   const build = () => {
     panel = document.createElement('div');
     panel.className = 'color-panel';
@@ -87,10 +112,27 @@ export function attachColorPicker(input) {
     close.textContent = '×';
     head.append(big, hexField, system, close);
     panel.appendChild(head);
+    // The toggle: one kind of slider showing at a time, HSV unless this browser chose RGB.
+    const modes = document.createElement('div');
+    modes.className = 'color-mode';
+    modes.setAttribute('role', 'group');
+    modes.setAttribute('aria-label', 'Which sliders');
+    modeButtons = {};
+    for (const m of COLOR_MODES) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = m.label;
+      b.addEventListener('click', () => setMode(m.key));
+      modes.appendChild(b);
+      modeButtons[m.key] = b;
+    }
+    panel.appendChild(modes);
     controls = {};
+    boxes = {};
     for (const group of ['hsv', 'rgb']) {
       const box = document.createElement('div');
       box.className = 'color-sliders ' + group;
+      boxes[group] = box;
       for (const ch of CHANNELS.filter((c) => c.group === group)) {
         const row = document.createElement('label');
         row.className = 'chan';
@@ -144,10 +186,8 @@ export function attachColorPicker(input) {
   const track = (stops) => 'linear-gradient(to right, ' + stops.join(', ') + ')';
   /** The swatch, the panel's big swatch, the hex field and every slider — its position and its track. */
   const paint = ({ keepHex = false, moving = null } = {}) => {
-    const rgb = rgbNow(), hex = rgbToHex(rgb), ink = inkOn(rgb);
-    swatch.style.background = hex;
-    swatch.style.color = ink;
-    swatch.textContent = hex;
+    const rgb = rgbNow(), hex = rgbToHex(rgb);
+    swatch.style.background = hex;   // the colour alone: no hex on a swatch (owner 2026-10-29)
     if (!panel) return;
     big.style.background = hex;
     if (!keepHex) hexField.value = hex;
@@ -184,9 +224,10 @@ export function attachColorPicker(input) {
       (row || input.parentElement).insertAdjacentElement('afterend', panel);
       open = api;
       swatch.setAttribute('aria-expanded', 'true');
+      showMode();
       paint();
       document.addEventListener('pointerdown', onOutside, true);
-      controls.h.range.focus({ preventScroll: true });
+      controls[mode === 'hsv' ? 'h' : 'r'].range.focus({ preventScroll: true });
     },
     close() {
       if (open !== api) return;
@@ -204,3 +245,4 @@ export function attachColorPicker(input) {
 }
 
 attachColorPicker.closeAll = () => { if (open) open.close(); };
+Object.defineProperty(attachColorPicker, 'mode', { get: () => mode });

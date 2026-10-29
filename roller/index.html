@@ -105,6 +105,7 @@
   label.check { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 14px; }
   label.check input { width: auto; }
   #sound-state { color: var(--muted); font-size: 12px; }
+  #sound-state.why { color: var(--acc); }   /* sound was expected and is not on: the reason must be seen (2026-10-29) */
   input, select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: #0f1218; color: var(--text); font: inherit; }
   /* iOS Safari zooms into a focused field whose text is under 16px, and stays zoomed — the fields sit
      in 12px labels and inherited it (owner 2026-10-24, on an iPhone: tapping × or Force results
@@ -119,8 +120,7 @@
   /* The colour picker (demo/color-picker.js, owner 2026-10-29): the native input hides behind a swatch that opens a
      panel of HSV and RGB sliders, each track painted in the colours it runs through. */
   input[type=color].has-picker { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }
-  .swatch { height: 36px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer;
-    font: 600 12px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .5px; text-transform: uppercase; }
+  .swatch { height: 36px; padding: 0; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; }
   .swatch:hover, .swatch:focus-visible { outline: 2px solid var(--acc); outline-offset: -1px; }
   .swatch[aria-expanded=true] { box-shadow: 0 0 0 2px var(--acc) inset; }
   .color-panel { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #0f1218; }
@@ -128,8 +128,12 @@
   .color-big { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); }
   .color-hex { font: 600 14px ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; }
   .color-close { position: static; transform: none; }
+  .color-mode { display: inline-grid; grid-auto-flow: column; width: max-content; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .color-mode button { padding: 6px 16px; border: 0; background: transparent; color: var(--muted); font: 600 12px system-ui, sans-serif; cursor: pointer; }
+  .color-mode button[aria-pressed=true] { background: var(--acc); color: var(--acc-ink); }
+  .color-mode button:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; }
   .color-sliders { display: grid; gap: 6px; }
-  .color-sliders.rgb { padding-top: 8px; border-top: 1px solid var(--line); }
+  .color-sliders[hidden] { display: none; }   /* the display rule above would beat the attribute */
   .chan { grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; }
   .chan .chan-range { grid-column: 1 / -1; }
   .chan-range { -webkit-appearance: none; appearance: none; height: 16px; margin: 4px 0; padding: 0; border-radius: 8px; border: 1px solid rgba(0, 0, 0, .5);
