@@ -15,9 +15,10 @@
 //                 friction — the view bakes every die of this finish as that material (owner 2026-10-29: "Add the
 //                 metal and wood looks", each matched to its physics material)
 //   envMapIntensity  how strongly the room reflects in it (glass reads as glass by its reflections)
-//   engraving     how deep the numerals are cut, as a share of ENGRAVING (1 when absent). A metal shows its engraving
-//                 as bright rims that swallow the glyph on a dark face (owner 2026-10-29: "brass is still not super
-//                 legible. Can you reduce the normal map influence by 75%?"), so metal cuts at a quarter
+//   engraving     how deep the numerals are cut, as a share of ENGRAVING (1 when absent; 0 is flat ink). A metal showed
+//                 its engraving as bright rims that swallowed the glyph on a dark face (owner 2026-10-29: "brass is
+//                 still not super legible" — a quarter first, then "kill the normal mapping on the metal material
+//                 entirely"), so metal has none
 //   mica          mica flakes in a granite: share (of the crystals, picked at random) and boost (how much
 //                 more specular they have than the rest: 2 = +200 %)
 //   scatter       a faked subsurface scatter (render/finishes.js): light that enters the die and comes
@@ -63,8 +64,12 @@ export const FINISHES = {
     scatter: { glow: 1.0, distortion: 0.3, power: 2.5, ambient: 0.04, bleed: 1.5, trayBleed: 2.25 }, material: 'resin' },
   // Metal (owner 2026-10-29): a cast die, brushed rather than mirror-polished (a mirror shows the room and little else),
   // no clear coat, the room reflecting a little more strongly so it reads as metal in motion; its numerals are the
-  // ink, as on every finish — black ink reads as enamel in an engraving. Heavy and dead in the physics (DIE_MATERIALS).
-  metal: { label: 'Metal', pattern: 'plain', roughness: 0.3, clearcoat: 0, clearcoatRoughness: 0, transmission: 0, metalness: 1, envMapIntensity: 1.5, engraving: 0.25, material: 'metal' },
+  // ink, as on every finish — flat, with no engraving. Heavy and dead in the physics (DIE_MATERIALS). Later the same
+  // day, on a brass d20 whose dark faces hid their numerals: "add a little diffuse to the metal shader, and rough up
+  // the surface slightly. Then kill the normal mapping on the metal material entirely" — metalness 0.85 (three.js's
+  // diffuse is the body colour × (1 − metalness): a face no light reflects into the camera still shows its colour),
+  // roughness 0.3 → 0.4, engraving 0.
+  metal: { label: 'Metal', pattern: 'plain', roughness: 0.4, clearcoat: 0, clearcoatRoughness: 0, transmission: 0, metalness: 0.85, envMapIntensity: 1.5, engraving: 0, material: 'metal' },
   // Wood (owner 2026-10-29): the tray's wood grain along the die's own x (a die cut from a block), satin varnish —
   // a thin, soft clear coat over a matte body. Light and a little grippy in the physics.
   wood: { label: 'Wood', pattern: 'wood', roughness: 0.5, clearcoat: 0.35, clearcoatRoughness: 0.3, transmission: 0, material: 'wood' },
