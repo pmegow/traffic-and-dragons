@@ -60,7 +60,7 @@
   /* No tray: the dice roll over the page itself — a soft backdrop here, so their shadows read. The view's, so the
      buttons above it sit on the page. */
   #stage[data-surface="none"] #view { background: radial-gradient(ellipse at 50% 42%, #3b4352 0%, #262c38 55%, #181b22 100%); }
-  #panel { border-left: 1px solid var(--line); background: var(--panel); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+  #panel { border-left: 1px solid var(--line); background: var(--panel); padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }   /* the bottom inset: an iPad on its side keeps a home indicator there */
   /* Rows keep their size and the panel scrolls: in a panel of fixed height (the phone drawer) a
      shrinking row drew its text over the next one (the roll summary over the die buttons). */
   #panel > * { flex-shrink: 0; }
@@ -159,7 +159,10 @@
   #status:empty { display: none; }
   .hint { color: var(--muted); font-size: 12px; margin: 0; }
   #drawer-grab { display: none; }
-  @media (max-width: 760px) {
+  /* THE DRAWER LAYOUT: a phone, or a tablet held upright (owner 2026-10-29, the iPad: beside a 300 px panel the
+     tray had 468 px of a 768 px screen). The tray takes the width; the options are a drawer under it. The same
+     query is in demo/demo.js (`narrow`) — change both. A tablet on its side keeps the panel beside the tray. */
+  @media (max-width: 760px), (orientation: portrait) and (max-width: 1100px) {
     /* The options drawer's handle (demo/drawer.js), like Traffic and Dragons' side-panel grip: drag to
        raise or lower, double tap to close or reopen. Sticky at the panel's top edge while it scrolls. */
     #drawer-grab { display: flex; order: -10; position: sticky; top: -12px; z-index: 3; flex: 0 0 24px;
@@ -171,6 +174,13 @@
     #panel { border-left: 0; border-top: 1px solid var(--line); max-height: 46dvh; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); gap: 10px; }
     #panel h1 { order: -3; }
     #roll { order: -2; }          /* on a phone the panel scrolls: keep Roll and the result in reach */
+    #result { order: -1; }
+  }
+  /* A short wide screen (an iPad on its side, 1024 × 768): the options outrun the panel's height and Roll sat below
+     its bottom edge (owner 2026-10-29), so Roll and the result lead there too, and the rest scrolls under them. */
+  @media (min-width: 761px) and (max-height: 820px) {
+    #panel h1 { order: -3; }
+    #roll { order: -2; }
     #result { order: -1; }
   }
 </style>

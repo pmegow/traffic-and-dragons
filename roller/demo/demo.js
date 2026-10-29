@@ -688,7 +688,7 @@ stage.addEventListener('contextmenu', (e) => e.preventDefault());   // a long pr
 // ---------------------------------------------------------------- the options drawer (phone layout)
 // On a narrow screen the options sit in a drawer under the tray; its handle raises and lowers it
 // (demo/drawer.js). Its height is remembered on this browser. The wide layout ignores it.
-const narrow = window.matchMedia('(max-width: 760px)');
+const narrow = window.matchMedia('(max-width: 760px), (orientation: portrait) and (max-width: 1100px)');   // the same query as index.html's drawer layout: a phone, or a tablet held upright
 const panel = $('panel'), grab = $('drawer-grab');
 const DRAWER_KEY = 'dice-sim:drawer';
 // Never below what the drawer accepts: a page opened in a window of no height yet (a hidden tab, a pre-render) refused
