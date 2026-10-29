@@ -13,19 +13,16 @@
 // so the light is as bright as before (a more saturated colour carries less luminance): the light
 // colour changes, not the scene's brightness.
 //
-// Owner 2026-10-29: "Add a white light shining directly down on the board. The reason is to more
-// intentionally light the top face. Increase the saturation of the other two lights so their color
-// still reads. New light can be the same intensity as the warm light." The top light stands straight
-// over the tray's centre (side 0, toward 0: no sideways or forward pull, so every top face takes it
-// full on and the colours come from the sides alone). Its brightness is the warm light's: a white's
-// luminance is 1, the warm colour's about 0.37, so the NUMBER is the warm intensity × that — the
-// same number on a white light would be two and a half times as bright. The colours went up once
-// more at the same hue: warm to full saturation (#ff8000, the only room it had), cool by a third to
-// 90 % (#1a6aff), each intensity again raised to hold its brightness. The three numbers are the
-// owner's to tweak by eye: `intensity` here, nothing else.
+// Owner 2026-10-29: "Increase the saturation of the other two lights so their color still reads" —
+// the colours went up once more at the same hue: warm to full saturation (#ff8000, the only room it
+// had), cool by a third to 90 % (#1a6aff), each intensity again raised to hold its brightness. A
+// white light straight down on the tray (v0.64.0, to light the top face on purpose) came and went
+// the same day: a straight-down light does nothing for a flat metal face seen from the camera (only
+// a light at the camera's mirror position across the tray does), and once the metal finish carried a
+// little diffuse the top face read without it — "We don't need the straight down light anymore".
+// The two `intensity` numbers are the owner's to tweak by eye.
 
 export const LIGHTS = [
   { name: 'warm', color: '#ff8000', intensity: 2.32, side: -1, up: 1.35, toward: 0.25 },
   { name: 'cool', color: '#1a6aff', intensity: 2.23, side: 1, up: 1.2, toward: -0.15 },
-  { name: 'top', color: '#ffffff', intensity: 0.85, side: 0, up: 1.5, toward: 0 },
 ];
