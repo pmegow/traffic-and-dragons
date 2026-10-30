@@ -19,7 +19,7 @@ import { roll, samplePose, rollDuration, buildDie, trayFor, dieTypes, createHold
 import { createRng } from '../src/rng.js';
 import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, numeralFontLoaded, facesShowing } from './die-mesh.js';
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
-import { stillRatio, STILL_FRAME } from './still-frame.js';
+import { supersampleRatio, stepDown, SUPERSAMPLE } from './supersample.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
 import { exitDelays, chooseExit } from './exit-table.js';
 import { EXITS, exitWarmUp } from './exits.js';
@@ -71,8 +71,10 @@ export class DiceView {
     this.fonts = new Map();       // a numeral font's load and repaint under way (readyFont), by NUMERAL_FONTS key
     this.warmed = null;           // the dice's pipeline readied for the current finish and font (warmTable)
     this.held = null;             // the hand holding the table (pickUp … release): { phase, hold, target, onHit, … }
-    this.stillTimer = 0;          // the still frame waiting for the quiet (render/still-frame.js)
-    this.stillRatio = 1;          // the pixel-ratio multiplier the canvas holds now: 1 live, the rung drawn at rest
+    this.supersampleRung = 1;     // the pixel-ratio multiplier the canvas draws at (render/supersample.js), set by resize
+    this.supersampleCap = Infinity;   // the governor's ceiling: a rung the GPU could not keep up with is not tried again
+    this.slowFrames = 0;          // frames over SUPERSAMPLE.maxFrameMs in a row
+    this.lastFrameAt = 0;         // the previous animation frame's time, 0 between sequences
 
     // Always able to show the page through: a transparent view and the 'none' tray draw no background.
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: false });
@@ -182,6 +184,7 @@ export class DiceView {
   /** Fits the canvas to its container and reframes the camera. */
   resize() {
     const w = Math.max(1, this.container.clientWidth), h = Math.max(1, this.container.clientHeight);
+    this.renderer.setPixelRatio(this.o.pixelRatio * this.supersample(w, h));
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.frame();
@@ -353,45 +356,34 @@ export class DiceView {
     return { x: d.x, y: 0, z: d.z };
   }
 
-  /** Draws the frame, live; a moment after the last one, the still frame draws it again supersampled (render/still-frame.js). */
-  render() {
-    this.liveFrame();
-    this.renderer.render(this.scene, this.camera);
-    this.queueStillFrame();
-  }
-
-  /** Back to the live pixel ratio, a pending still frame dropped: anything about to move draws at the live cost. */
-  liveFrame() {
-    if (this.stillTimer) { clearTimeout(this.stillTimer); this.stillTimer = 0; }
-    if (this.stillRatio !== 1) { this.stillRatio = 1; this.renderer.setPixelRatio(this.o.pixelRatio); }
-  }
-
-  /** The still frame's pixel-ratio multiplier for this view now: the rung the pixel budget allows, 1 when none (or when off). */
-  stillRatioNow() {
-    if (!this.o.stillFrame) return 1;
-    const size = this.renderer.getSize(new THREE.Vector2());
-    return stillRatio({ width: size.x, height: size.y, pixelRatio: this.o.pixelRatio,
-      budget: this.o.stillBudget ?? (globalThis.matchMedia && matchMedia('(pointer: coarse)').matches ? STILL_FRAME.budgetTouch : STILL_FRAME.budget) });
-  }
-
-  /** The still frame, drawn for a render outside the frame loop (a drag, a resize): after STILL_FRAME.after ms of quiet. */
-  queueStillFrame() {
-    if (this.stillRatioNow() === 1) return;
-    this.stillTimer = setTimeout(() => { this.stillTimer = 0; this.renderStill(); }, STILL_FRAME.after);
-  }
+  render() { this.renderer.render(this.scene, this.camera); }
 
   /**
-   * The still frame now: one frame at the rung the budget allows (the live frame when it allows none). The frame loop
-   * draws it as the LAST frame of an animation, so a roll ends sharp in one step and the sharpening is never a second
-   * frame to notice (owner 2026-10-29: "I'm worried that the pop will be distracting" — measured first: 0.15/255 mean
-   * over the frame, a third of a percent of the pixels over 4/255, the numerals' outlines and the dice's edges).
+   * The supersample's pixel-ratio multiplier for a view of this size (render/supersample.js): on a desktop the best
+   * rung the pixel budget allows, 1 on a touch device or when off, never above the governor's cap. Owner 2026-10-29:
+   * a still frame drawn supersampled alone made the switch visible ("the pop is noticeable and jarring"), so every
+   * frame is drawn so, where a frame is cheap: "Yes, desktop only".
    */
-  renderStill() {
-    if (this.stillTimer) { clearTimeout(this.stillTimer); this.stillTimer = 0; }
-    const ratio = this.stillRatioNow();
-    if (ratio === 1) { this.render(); return; }
-    if (this.stillRatio !== ratio) { this.stillRatio = ratio; this.renderer.setPixelRatio(this.o.pixelRatio * ratio); }
-    this.renderer.render(this.scene, this.camera);
+  supersample(width, height) {
+    if (!this.o.supersample) return 1;
+    this.supersampleRung = Math.min(this.supersampleCap, supersampleRatio({
+      width, height, pixelRatio: this.o.pixelRatio,
+      touch: !!(globalThis.matchMedia && matchMedia('(pointer: coarse)').matches),
+      budget: this.o.supersampleBudget,
+    }));
+    return this.supersampleRung;
+  }
+
+  /** The governor: SUPERSAMPLE.slowFrames frames in a row over SUPERSAMPLE.maxFrameMs while animating step the rung down, for this view's life. */
+  governSupersample(now) {
+    const dt = this.lastFrameAt ? now - this.lastFrameAt : 0;
+    this.lastFrameAt = now;
+    if (!(dt > SUPERSAMPLE.maxFrameMs && dt < 200) || this.supersampleRung <= 1) { this.slowFrames = 0; return; }   // a hidden tab's second-long gaps are not slow frames
+    if (++this.slowFrames < SUPERSAMPLE.slowFrames) return;
+    this.slowFrames = 0;
+    this.supersampleCap = stepDown(this.supersampleRung);
+    console.info('DiceView: ' + dt.toFixed(0) + ' ms a frame at ' + this.supersampleRung + '×: drawing at ' + this.supersampleCap + '× from here');
+    this.resize();
   }
 
   // ---------------------------------------------------------------- dice
@@ -580,17 +572,15 @@ export class DiceView {
 
   frameStep(now) {
     this.frameRequested = false;
+    this.governSupersample(now);
     for (const fn of [...this.animators]) {
       let more = false;
       try { more = fn(now); } catch (e) { console.error('DiceView: an animation threw, and stops:', e); }
       if (!more) this.animators.delete(fn);
     }
-    if (this.animators.size) {
-      this.render();
-      if (!this.frameRequested) { this.frameRequested = true; requestAnimationFrame((n) => this.frameStep(n)); }
-    } else {
-      this.renderStill();   // the last frame of the sequence is the still frame itself (render/still-frame.js)
-    }
+    this.render();
+    if (this.animators.size && !this.frameRequested) { this.frameRequested = true; requestAnimationFrame((n) => this.frameStep(n)); }
+    else if (!this.animators.size) this.lastFrameAt = 0;   // the governor's clock stops with the loop
   }
 
   /**
@@ -962,7 +952,6 @@ export class DiceView {
   }
 
   dispose() {
-    this.liveFrame();
     if (this.playing) this.playing.cancel();
     for (const r of [...this.exiting]) r.finish();
     this.animators.clear();
