@@ -19,6 +19,7 @@ import { roll, samplePose, rollDuration, buildDie, trayFor, dieTypes, createHold
 import { createRng } from '../src/rng.js';
 import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, numeralFontLoaded, facesShowing } from './die-mesh.js';
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
+import { stillRatio, STILL_FRAME } from './still-frame.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
 import { exitDelays, chooseExit } from './exit-table.js';
 import { EXITS, exitWarmUp } from './exits.js';
@@ -70,6 +71,8 @@ export class DiceView {
     this.fonts = new Map();       // a numeral font's load and repaint under way (readyFont), by NUMERAL_FONTS key
     this.warmed = null;           // the dice's pipeline readied for the current finish and font (warmTable)
     this.held = null;             // the hand holding the table (pickUp … release): { phase, hold, target, onHit, … }
+    this.stillTimer = 0;          // the still frame waiting for the quiet (render/still-frame.js)
+    this.stillRatio = 1;          // the pixel-ratio multiplier the canvas holds now: 1 live, the rung drawn at rest
 
     // Always able to show the page through: a transparent view and the 'none' tray draw no background.
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: false });
@@ -350,7 +353,33 @@ export class DiceView {
     return { x: d.x, y: 0, z: d.z };
   }
 
-  render() { this.renderer.render(this.scene, this.camera); }
+  /** Draws the frame, live; a moment after the last one, the still frame draws it again supersampled (render/still-frame.js). */
+  render() {
+    this.liveFrame();
+    this.renderer.render(this.scene, this.camera);
+    this.queueStillFrame();
+  }
+
+  /** Back to the live pixel ratio, a pending still frame dropped: anything about to move draws at the live cost. */
+  liveFrame() {
+    if (this.stillTimer) { clearTimeout(this.stillTimer); this.stillTimer = 0; }
+    if (this.stillRatio !== 1) { this.stillRatio = 1; this.renderer.setPixelRatio(this.o.pixelRatio); }
+  }
+
+  /** The still frame: after STILL_FRAME.after ms of quiet, one frame at the rung the pixel budget allows (none on a view too big for it). */
+  queueStillFrame() {
+    if (!this.o.stillFrame) return;
+    const size = this.renderer.getSize(new THREE.Vector2());
+    const ratio = stillRatio({ width: size.x, height: size.y, pixelRatio: this.o.pixelRatio,
+      budget: this.o.stillBudget ?? (globalThis.matchMedia && matchMedia('(pointer: coarse)').matches ? STILL_FRAME.budgetTouch : STILL_FRAME.budget) });
+    if (ratio === 1) return;
+    this.stillTimer = setTimeout(() => {
+      this.stillTimer = 0;
+      this.stillRatio = ratio;
+      this.renderer.setPixelRatio(this.o.pixelRatio * ratio);
+      this.renderer.render(this.scene, this.camera);
+    }, STILL_FRAME.after);
+  }
 
   // ---------------------------------------------------------------- dice
   /**
@@ -916,6 +945,7 @@ export class DiceView {
   }
 
   dispose() {
+    this.liveFrame();
     if (this.playing) this.playing.cancel();
     for (const r of [...this.exiting]) r.finish();
     this.animators.clear();

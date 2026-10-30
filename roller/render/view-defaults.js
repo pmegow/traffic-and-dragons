@@ -22,6 +22,10 @@ export const VIEW_DEFAULTS = {
   orbit: { minPitch: 15, maxPitch: 88, minZoom: 0.35, maxZoom: 2.5, minHeight: 0.04 },
   resetSeconds: 0.35,                        // how long view.resetCamera() takes to ease the camera home
   pixelRatio: Math.min(globalThis.devicePixelRatio || 1, 2),
+  // THE STILL FRAME (owner 2026-10-29, row 60: the beaded edge): when the view goes quiet, one frame at a higher pixel
+  // ratio, drawn down by the browser — four samples a pixel at 2× — so a still die's edges are lines, not dots
+  // (render/still-frame.js: the ratio comes from a pixel budget; stillBudget overrides it, in pixels).
+  stillFrame: true,
   // Soft shadows (owner 2026-10-25: "a little intense ... blur them" if it costs little). three.js's PCF
   // takes 5 filtered samples whatever the radius, so the blur is free; a 1024 map at radius 12 is
   // twice 2048-at-6's softness in texels and four times wider on the floor, with a quarter of the
