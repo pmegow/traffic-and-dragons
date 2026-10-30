@@ -16,7 +16,7 @@ export const DIE_MATERIALS = {
   wood: { density: 700, friction: 0.55, restitution: 0.45, rolling: 0.00005, spinning: 0.00005 },
 };
 
-/** Tray surfaces (the floor and the walls). */
+/** Tray surfaces: the floor as it is, the walls and the ceiling as boundary(surface). */
 export const SURFACES = {
   felt: { friction: 0.9, restitution: 0.35, rolling: 0.0004, spinning: 0.0003 },
   wood: { friction: 0.5, restitution: 0.65, rolling: 0.00008, spinning: 0.00008 },
@@ -31,6 +31,17 @@ export function combine(a, b) {
     rolling: Math.max(a.rolling, b.rolling),
     spinning: Math.max(a.spinning, b.spinning),
   };
+}
+
+/**
+ * A boundary made of `surface` — a tray's walls, the screen's edges, the ceiling, the hand's cup sides — with NO GRIP
+ * (owner 2026-10-30: "If there's any friction values for the boundaries, set it to 0 so dice just slip off it"): it
+ * bounces as its surface does, but a die meeting it is pushed only along its normal, so a die leaning on a wall slides
+ * down it and a spinning die is not turned into a push along it. Its own rolling and spin resistance are none too (a
+ * contact keeps the die's own, combine()). The floors keep their grip: it stops a die, and the hand drags with it.
+ */
+export function boundary(surface) {
+  return { ...surface, friction: 0, rolling: 0, spinning: 0 };
 }
 
 /** A registry lookup that names the registry and its keys when the key is missing. */

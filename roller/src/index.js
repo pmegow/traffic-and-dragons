@@ -14,7 +14,7 @@ export { roll, readDie, chooseSymmetry, trayFor, TRAY_DEFAULTS, ROLL_DEFAULTS, M
 export { samplePose, rollDuration } from './track.js';
 export { parseNotation } from './notation.js';
 export { buildDie, dieTypes, DIE_TYPES } from './dice.js';
-export { DIE_MATERIALS, SURFACES } from './materials.js';
+export { DIE_MATERIALS, SURFACES, boundary } from './materials.js';
 export { World, WORLD_DEFAULTS } from './world.js';
 export { Body, plane } from './body.js';
 export { createHold, cupSize, cupSlots, HOLD_DEFAULTS } from './hold.js';

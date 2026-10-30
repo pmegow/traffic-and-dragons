@@ -515,10 +515,12 @@ const stage = $('stage');
 const ring = $('pan-ring');
 const resetButton = $('reset-view');
 const ZOOM_PER_PX = 0.006;   // a right-drag of 100 px up brings the camera to 0.55 of its distance
-// Pick up and shake (owner 2026-10-29): a press held still ON A DIE picks the whole table up into the hand (one held
-// elsewhere pans the view, as before); the hand follows the pointer, a quick back and forth rattles the dice for real
-// (src/hold.js), and letting go throws them from the hand as they are. The hand feels like felt to the dice; at most
-// HAND_VOICES of a frame's knocks sound, the hardest first.
+// Pick up and shake (owner 2026-10-29): a press held still ON A DIE picks that die up into the hand, and only it
+// (owner 2026-10-30: "Rather than picking up ALL the dice, just pick up the one clicked. This should give an option
+// for dice that get stuck"); one held elsewhere pans the view, as before. The hand follows the pointer, a quick back
+// and forth rattles the die for real (src/hold.js), and letting go throws it from the hand as it is, onto the table
+// the others still lie on. The hand feels like felt to the dice; at most HAND_VOICES of a frame's knocks sound, the
+// hardest first.
 const HAND_TIMBRE = 'felt', HAND_VOICES = 4;
 let handKnocks = [];
 const onHandHit = (i, speed, surface) => {
@@ -583,19 +585,20 @@ stage.addEventListener('pointerdown', (e) => {
     if (!press || !gesture.hold(performance.now())) return;
     placeRing(press.at.x, press.at.y);
     const under = view.floorHit(press.at.x, press.at.y);
-    if (view.dice.length && !view.held && under && view.dieAt(press.at.x, press.at.y) >= 0) {
-      // Held still on a die: the hand picks the table up (never while a die leaves: the table is settling).
+    const k = under ? view.dieAt(press.at.x, press.at.y) : -1;
+    if (view.dice.length && !view.held && k >= 0) {
+      // Held still on a die: the hand picks that die up (never while a die leaves: the table is settling).
       press.holding = true;
       ++current;
       audio.stop();
-      view.pickUp(under, { onHit: onHandHit, surface: HAND_TIMBRE });
+      view.pickUp(under, { onHit: onHandHit, surface: HAND_TIMBRE, dice: [k] });
       // The hand moves as the pointer moves across the floor, from where the view put it (the cup is kept over the
       // table, so a die picked up at the edge sits a little in from the pointer; a hand that jumped to the pointer
       // would then be held at the edge, and a shake there would shake nothing).
       press.handAt = view.handTarget();
       press.lastFloor = under;
       stage.classList.add('holding');
-      showTable('picked up ' + groupDice(onTable()) + ' — shake, then let go');
+      showTable('picked up ' + groupDice([onTable()[k]]) + ' — shake, then let go');
       return;
     }
     press.grab = under;   // the floor point the hand holds

@@ -17,7 +17,7 @@ import { buildDie } from './dice.js';
 import { Body, plane } from './body.js';
 import { World, WORLD_DEFAULTS } from './world.js';
 import { collideHulls } from './collide.js';
-import { SURFACES, lookup } from './materials.js';
+import { SURFACES, lookup, boundary } from './materials.js';
 import { createRng, mixSeed } from './rng.js';
 import { v3, add, scale, dot, cross, normalize, qrotate, qmul, qnormalize, mvec, UP } from './math.js';
 import { VERSION } from './version.js';
@@ -151,6 +151,10 @@ function validate(request) {
   const stepsPerFrame = Math.round(1 / (fps * dt));
   if (Math.abs(stepsPerFrame * fps * dt - 1) > 1e-9) throw new Error('roll: fps ' + fps + ' does not divide the step rate ' + (1 / dt));
   if (thr.states && thr.states.length !== dice.length) throw new Error('roll: throw.states has ' + thr.states.length + ' entries for ' + dice.length + ' dice');
+  if (thr.states) thr.states.forEach((s, i) => {   // a resting state: a die left on the table while the hand held another
+    if (s && s.resting !== undefined && typeof s.resting !== 'boolean') throw new Error('roll: throw.states[' + i + '].resting must be true or false, got ' + JSON.stringify(s.resting));
+    if (s && s.resting && !s.orientation) throw new Error('roll: throw.states[' + i + '] rests and needs the orientation it lies in');
+  });
   if (thr.fling) {
     const f = thr.fling, ok = (p) => p && Number.isFinite(p.x) && Number.isFinite(p.z);
     if (!ok(f.from) || !ok(f.velocity)) throw new Error('roll: throw.fling needs from {x, z} and velocity {x, z}');
@@ -181,6 +185,9 @@ function validate(request) {
     strength: thr.strength ?? ROLL_DEFAULTS.strength,
     direction: normalize(v3((thr.direction || ROLL_DEFAULTS.direction).x, 0, (thr.direction || ROLL_DEFAULTS.direction).z)),
     states: thr.states || null,
+    // The dice on the table as they lie (a drop's first resting.length, or a state marked resting): each starts as
+    // given on every attempt, never nudged, and keeps the printing the player saw (finish).
+    resting: dice.map((d, i) => (thr.drop ? i < thr.drop.resting.length : !!(thr.states && thr.states[i] && thr.states[i].resting))),
     fling: thr.fling || null,
     drop: thr.drop ? { resting: thr.drop.resting.map((s) => ({
       position: v3(s.position.x, s.position.y, s.position.z), orientation: qnormalize(s.orientation),
@@ -193,7 +200,7 @@ function validate(request) {
 
 // ---------------------------------------------------------------- the tray and the throw
 function trayPlanes(tray) {
-  const floor = SURFACES[tray.surface], wall = SURFACES[tray.walls];
+  const floor = SURFACES[tray.surface], wall = boundary(SURFACES[tray.walls]);   // the sides and the ceiling slip (owner 2026-10-30)
   if (tray.bounds) {
     return [
       plane(v3(0, 1, 0), 0, floor, 'floor'),
@@ -216,13 +223,15 @@ function trayPlanes(tray) {
  * The seeded throw: the dice start in a loose cluster above the floor — on the far side from
  * `direction` for a toss, at the drag's start for a fling — tumbling, and are thrown along it.
  * Explicit states are used as given on the first attempt and nudged a little by the seed on a
- * re-roll.
+ * re-roll — but for a resting one, a die left lying on the table, which starts as given every time.
  */
 function throwStates(req, seed, attempt) {
   const rng = createRng(seed);
   if (req.states) {
     const nudge = attempt === 0 ? 0 : 0.04;
-    return req.states.map((s) => ({
+    return req.states.map((s, i) => (req.resting[i] ? {
+      position: s.position, orientation: s.orientation, velocity: s.velocity || v3(), angularVelocity: s.angularVelocity || v3(),
+    } : {
       position: s.position,
       orientation: s.orientation || rng.quaternion(),
       velocity: scale(s.velocity || v3(), 1 + nudge * rng.range(-1, 1)),
@@ -518,8 +527,9 @@ function finish(req, sim, seed, attempts, rejected) {
     // A drop's resting die keeps the identity: its pose IS what the player saw, printing included,
     // so its first frame shows it exactly as it lay. Read afresh, it turned a quarter on the spot
     // whenever the camera had turned since its roll, and a die knocked to a new face would have
-    // shown a different number before anything touched it (2026-10-28).
-    const resting = req.drop !== null && i < req.drop.resting.length && spec.value === null;
+    // shown a different number before anything touched it (2026-10-28). So does a die left lying while the hand
+    // held another (a resting state, owner 2026-10-30).
+    const resting = req.resting[i] && spec.value === null;
     const s = resting ? b.die.identity : chooseSymmetry(b.die, feature, value, b.orientation, req.readUp);
     const track = new Float32Array(frames.length * 7);
     frames.forEach((f, k) => track.set(f[i], k * 7));

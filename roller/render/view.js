@@ -49,6 +49,9 @@ const SCREEN_MARGIN = 0.002;   // m: the screen's edges, moved in a little, so a
 const WARM_DIE = 'd6';   // the die type whose geometry stands in for the dice's pipeline (warmTable)
 /** The hand (pickUp): the cup's centre this high above the table, the dice gathering into it over this long. */
 export const HAND = { height: 0.05, gather: 0.25, frameMax: 0.05 };
+/** A three.js vector or quaternion as the core's plain {x, y, z} or {x, y, z, w}. */
+const vec = (v) => ({ x: v.x, y: v.y, z: v.z });
+const quat = (q) => ({ x: q.x, y: q.y, z: q.z, w: q.w });
 
 export class DiceView {
   constructor(options = {}) {
@@ -642,32 +645,39 @@ export class DiceView {
   }
 
   /**
-   * Picks the whole table up into a hand over `at` ({x, z} on the floor; the cup hangs HAND.height above it): the dice
-   * gather into the cup over HAND.gather s, then the hold runs LIVE (src/hold.js) frame by frame, the cup following
-   * moveHand()'s target, until release() hands the dice to a roll. onHit(dieIndex, speed, surface, other) hears every
-   * knock inside the cup — surface 'wall' | 'floor' | 'ceiling' the cup's, 'die' another die — for the host's clicks;
-   * `surface` is what the hand feels like (SURFACES, felt). A play under way stops where it is. Refused with nothing
-   * on the table; a second pickUp while one holds is ignored. Owner 2026-10-29: "A kinematic hand that holds the
-   * dice, shakes them and lets go".
+   * Picks dice up into a hand over `at` ({x, z} on the floor; the cup hangs HAND.height above it): `dice` the indices
+   * of the dice to take (play order; all of them unless given — the toy takes the one held, owner 2026-10-30: "just
+   * pick up the one clicked. This should give an option for dice that get stuck"). They gather into the cup over
+   * HAND.gather s, then the hold runs LIVE (src/hold.js) frame by frame, the cup following moveHand()'s target, until
+   * release() hands the dice to a roll; the dice left on the table lie where they are. onHit(dieIndex, speed, surface,
+   * other) hears every knock inside the cup — surface 'wall' | 'floor' | 'ceiling' the cup's, 'die' another die, the
+   * dice by their place on the table — for the host's clicks; `surface` is what the hand feels like (SURFACES, felt).
+   * A play under way stops where it is. Refused with nothing on the table, or a pick of dice not on it; a second pickUp
+   * while one holds is ignored. Owner 2026-10-29: "A kinematic hand that holds the dice, shakes them and lets go".
    */
-  pickUp(at, { onHit = null, surface = HOLD_DEFAULTS.surface } = {}) {
+  pickUp(at, { onHit = null, surface = HOLD_DEFAULTS.surface, dice = null } = {}) {
     if (!this.dice.length) throw new Error('DiceView.pickUp: nothing on the table to pick up');
     if (this.held) return;
+    const picked = dice ?? this.dice.map((d, i) => i);
+    if (!Array.isArray(picked) || !picked.length || new Set(picked).size !== picked.length || picked.some((i) => !(Number.isInteger(i) && i >= 0 && i < this.dice.length))) {
+      throw new Error('DiceView.pickUp: dice must list dice on the table by index, each once, got ' + JSON.stringify(dice));
+    }
+    const live = this.liveTable();   // read before the play stops: a die left on the table carries on, when let go, as it was going
     this.stop();
-    const n = this.dice.length, size = cupSize(n), rng = createRng((Date.now() >>> 0) ^ n);
+    const n = picked.length, size = cupSize(n), rng = createRng((Date.now() >>> 0) ^ n);
     const centre = this.handClamp({ x: at.x, y: HAND.height, z: at.z }, size);
     const slots = cupSlots(n, size, rng);
-    const from = this.dice.map((d) => d.mesh.position.clone());
-    const to = this.dice.map((d, i) => new THREE.Vector3(centre.x + slots[i].x, centre.y - HOLD_DEFAULTS.height / 2 + d.die.boundingRadius, centre.z + slots[i].z));
-    const held = this.held = { phase: 'gather', hold: null, target: centre, surface, onHit, size, start: null, last: 0 };
+    const from = picked.map((i) => this.dice[i].mesh.position.clone());
+    const to = picked.map((i, j) => new THREE.Vector3(centre.x + slots[j].x, centre.y - HOLD_DEFAULTS.height / 2 + this.dice[i].die.boundingRadius, centre.z + slots[j].z));
+    const held = this.held = { phase: 'gather', hold: null, target: centre, surface, onHit, size, start: null, last: 0, picked, live };
     this.animate((now) => {
       if (this.held !== held) return false;
       if (held.phase === 'gather') {
         if (held.start === null) held.start = now;
         const u = Math.min(1, (now - held.start) / 1000 / HAND.gather), e = u * u * (3 - 2 * u);
-        this.dice.forEach((d, i) => d.mesh.position.lerpVectors(from[i], to[i], e));
+        picked.forEach((i, j) => this.dice[i].mesh.position.lerpVectors(from[j], to[j], e));
         if (u < 1) return true;
-        held.hold = createHold(this.dice.map((d, i) => ({ die: d.die, position: { x: to[i].x, y: to[i].y, z: to[i].z }, orientation: { x: d.mesh.quaternion.x, y: d.mesh.quaternion.y, z: d.mesh.quaternion.z, w: d.mesh.quaternion.w } })), centre, { surface, size });
+        held.hold = createHold(picked.map((i, j) => ({ die: this.dice[i].die, position: { x: to[j].x, y: to[j].y, z: to[j].z }, orientation: quat(this.dice[i].mesh.quaternion) })), centre, { surface, size });
         held.phase = 'hold';
         held.last = now;
         return true;
@@ -676,11 +686,12 @@ export class DiceView {
       const dt = Math.min(HAND.frameMax, Math.max(1 / 240, (now - held.last) / 1000));
       held.last = now;
       const hits = held.hold.step(dt, held.target);
-      held.hold.states().forEach((s, i) => {
-        this.dice[i].mesh.position.set(s.position.x, s.position.y, s.position.z);
-        this.dice[i].mesh.quaternion.set(s.orientation.x, s.orientation.y, s.orientation.z, s.orientation.w);
+      held.hold.states().forEach((s, j) => {
+        const m = this.dice[picked[j]].mesh;
+        m.position.set(s.position.x, s.position.y, s.position.z);
+        m.quaternion.set(s.orientation.x, s.orientation.y, s.orientation.z, s.orientation.w);
       });
-      if (onHit) for (const h of hits) { try { onHit(h.body, h.speed, h.surface, h.other); } catch (e) { console.error('DiceView onHit threw:', e); } }
+      if (onHit) for (const h of hits) { try { onHit(picked[h.body], h.speed, h.surface, h.other >= 0 ? picked[h.other] : h.other); } catch (e) { console.error('DiceView onHit threw:', e); } }
       return true;
     });
   }
@@ -726,15 +737,23 @@ export class DiceView {
    * Lets go: ends the hold and returns { states, velocity } — every die where it is and as it moves (src/hold.js ▸
    * states), for roll({ throw: { states } }), and the hand's last velocity (m/s); the dice stay drawn where they are,
    * so a play of that roll with fromTable set carries straight on from them. Null when nothing is held. Let go while
-   * still gathering, the dice are where they are, still.
+   * still gathering, the dice are where they are, still. A die the hand did not take is a RESTING state (src/roll.js:
+   * it starts where it lies on every attempt and keeps the printing the player saw), moving as it was when the hand
+   * took the others.
    */
   release() {
     const held = this.held;
     if (!held) return null;
     this.held = null;
-    if (held.hold) return { states: held.hold.states(), velocity: held.hold.velocity };
     const still = { x: 0, y: 0, z: 0 };
-    return { states: this.dice.map((d) => ({ position: { x: d.mesh.position.x, y: d.mesh.position.y, z: d.mesh.position.z }, orientation: { x: d.mesh.quaternion.x, y: d.mesh.quaternion.y, z: d.mesh.quaternion.z, w: d.mesh.quaternion.w }, velocity: still, angularVelocity: still })), velocity: still };
+    const inHand = held.hold ? held.hold.states() : held.picked.map((i) => ({ position: vec(this.dice[i].mesh.position), orientation: quat(this.dice[i].mesh.quaternion), velocity: still, angularVelocity: still }));
+    const states = this.dice.map((d, i) => {
+      const j = held.picked.indexOf(i);
+      if (j >= 0) return inHand[j];
+      const t = held.live[i];
+      return { position: t.position, orientation: t.orientation, velocity: t.velocity || still, angularVelocity: t.angularVelocity || still, resting: true };
+    });
+    return { states, velocity: held.hold ? held.hold.velocity : still };
   }
 
   /**

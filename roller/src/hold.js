@@ -13,7 +13,7 @@
 
 import { Body, plane } from './body.js';
 import { World } from './world.js';
-import { SURFACES, lookup } from './materials.js';
+import { SURFACES, lookup, boundary } from './materials.js';
 import { v3, add, sub, scale, dot, length } from './math.js';
 
 export const HOLD_DEFAULTS = {
@@ -80,7 +80,7 @@ export function createHold(dice, hand, options = {}) {
     { normal: v3(0, 1, 0), kind: 'floor' }, { normal: v3(0, -1, 0), kind: 'ceiling' },
     { normal: v3(1, 0, 0), kind: 'wall' }, { normal: v3(-1, 0, 0), kind: 'wall' },
     { normal: v3(0, 0, 1), kind: 'wall' }, { normal: v3(0, 0, -1), kind: 'wall' },
-  ].map((w) => world.addPlane(plane(w.normal, 0, surface, w.kind)));
+  ].map((w) => world.addPlane(plane(w.normal, 0, w.kind === 'floor' ? surface : boundary(surface), w.kind)));   // the floor drags, the sides slip
   let at = v3(hand.x, hand.y, hand.z), velocity = v3();
   const placeCup = (v) => {
     for (const pl of walls) {
