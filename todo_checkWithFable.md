@@ -662,4 +662,4 @@ Collapsible activity, deployment-backed release notes and direct beta mail: [imp
 
 ## 2026-10-30 — #675 Gmail invitations
 
-Owner-requested invitation UI and pure adapter methods, with server-owned Google claims and atomic access grant. No campaign, prompt, parser or memory writes. [Design and verification](DOC/invitations_675.md). Review focuses on saved-contact confusion, token replay, seven-day boundary, linked identities and duplicate email outcomes.
+Owner-requested invitation UI and pure adapter methods, with server-owned Google claims and atomic access grant. No campaign, prompt, parser or memory writes. [Design and verification](DOC/invitations_675.md). Review focuses on saved-contact confusion, token replay, seven-day boundary, linked identities and duplicate email outcomes. Published v1.1331 after green PR/branch CI; server v1.14.0/schema 14, production byte comparisons and clean phone renders verified. Real Gmail inbox/human acceptance remains manual.

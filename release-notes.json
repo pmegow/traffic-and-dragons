@@ -2,6 +2,17 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1331",
+      "actions": [
+        "Added Gmail invitations with Google sign-in, single-use links and automatic approval on acceptance.",
+        "Added seven-day invitation expiry, resend and revoke controls, and persistent email delivery receipts.",
+        "Preserved existing active access when accepting an invitation."
+      ],
+      "sourceCommit": "0eade11e0d2625ddba45fcd63d5aa335f7b83369",
+      "commit": "379929bbad418778c0efc1983074cd9f7f6deebd",
+      "releasedAt": "2026-10-30T22:55:13Z"
+    },
+    {
       "version": "v1.1330",
       "actions": [
         "Grouped player activity into collapsible panels with new request counts since the operator’s previous visit.",

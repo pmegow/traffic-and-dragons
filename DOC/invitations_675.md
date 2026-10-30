@@ -14,6 +14,10 @@ Verification: disposable SQLite tests exercise authorization, malicious domains,
 
 Local gates passed: 3196 engine assertions, 129 standalone suites, the complete server suite, 22 invitation server checks, five client mutation proofs and twelve server mutation proofs. The browser fixture includes the 390-pixel phone and desktop views.
 
-Rollout: run full server and frontend gates, rehearse migration against a fresh backup, snapshot the Fly volume, deploy schema-14-capable server, then publish the frontend and record the confirmed production deployment. No real invitation has been sent by automated verification. A real Gmail inbox and consent-screen acceptance remain the owner's manual check.
+Deployed 2026-10-30. Server v1.14.0 is Fly release 70; schema 14, integrity_check and foreign-key checks passed using a read-only production connection. The fresh backup migration rehearsal and snapshot vs_Agzk6ga8V1AsKLLN1O9B preceded deployment. See the [server deployment receipt](https://github.com/pmegow/traffic-and-dragons-server/blob/master/DEPLOY_1.14.0_invitations.md).
+
+[PR #18](https://github.com/pmegow/traffic-and-dragons/pull/18) passed both branch and PR CI, including all affected mutation batteries. Production merge 379929bbad418778c0efc1983074cd9f7f6deebd deployed at 2026-10-30T22:55:13Z (15:55:13 PDT). Nine production assets matched the checkout byte-for-byte after line-ending normalization. A clean phone browser showed an inert invitation, refused an incomplete link and kept operator controls protected. Both production invitation APIs refused anonymous requests.
+
+No real invitation has been sent by automated verification. A real Gmail inbox and consent-screen acceptance remain the owner's manual check.
 
 Rollback: schema 14 is additive, but old servers reject a newer database stamp. Prefer a forward fix or a schema-14-compatible rollback. Restoring an older snapshot loses subsequent writes and requires a separate decision.
