@@ -21,7 +21,7 @@ import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, numeralFontL
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { supersampleRatio, stepDown, SUPERSAMPLE } from './supersample.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
-import { exitDelays, chooseExit } from './exit-table.js';
+import { exitDelays, chooseExit, exitsFor } from './exit-table.js';
 import { towardEye, tossSpin, restHeight, cupFor, keepInFrame } from './hand.js';
 import { bagOf, deal, looksFor, retire, pairsOf } from './die-looks.js';
 import { EXITS, exitWarmUp } from './exits.js';
@@ -517,6 +517,21 @@ export class DiceView {
     return Promise.all([...new Set(this.bag.map((s) => s.font))].map((f) => this.readyFont(f)));
   }
 
+  /** Whether every finish and font a look can deal has its pipeline readied (warmTable): dressing the dice in it then builds nothing as they are drawn. */
+  lookReady(look) {
+    return pairsOf(bagOf(look)).every((p) => this.warmed.has(p.finish + '/' + p.font));
+  }
+
+  /**
+   * Readies a look's pipelines before it is put on the dice (warmTableFor each finish and font it can deal): compiled
+   * in the background where the browser can, so dressing the dice in it afterwards draws without building them — put
+   * on first, the dice's first draw built every program at once and blocked the page (sixteen dice switched to the
+   * mixed bag: 15 s headless, owner 2026-10-30: "there's a pause while the various looks load in").
+   */
+  warmLook(look) {
+    return Promise.all(pairsOf(bagOf(look)).map((p) => this.warmTableFor(p.style)));
+  }
+
   /**
    * Empties the table: at once, or with an exit (EXITS) each die leaving a moment after the last.
    * Resolves when every die has gone.
@@ -532,8 +547,8 @@ export class DiceView {
       return Promise.resolve();
     }
     const delays = exitDelays(gone.length);
-    const name = chooseExit(exit);   // Random picks once for them all (round 13)
-    return Promise.all(gone.map((d, k) => this.runExit(d, name, delays[k], onSound)));
+    const names = exitsFor(exit, gone.length);   // Random picks once for them all (round 13); Mixed bag, for each die
+    return Promise.all(gone.map((d, k) => this.runExit(d, names[k], delays[k], onSound)));
   }
 
   /**

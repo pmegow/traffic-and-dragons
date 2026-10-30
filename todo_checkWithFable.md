@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-10-30 · #668/#669 · test-only · Opus 5.5 (owner-asked: "add a 'mixed bag' to exit animation as well. Random exit animation for each"): `dev/tests-669-live-dice-browser.js`'s pinned "When dismissed" list re-baselined to add `mixed=Mixed bag` — the roller (dice-sim v0.78.0) now lists a Mixed bag exit (each die leaving by its own) and DiceSim.exits() hands it to the game; an exact list, extended by the one new entry, no assertion loosened.
+
 - 2026-10-26 · #669/#670 · test-only · Opus 5.5: `dev/tests-669-live-dice-browser.js`'s four dismiss waits raised 5 s → 30 s (`DISMISS_MS`). CI went red on dacc10b2: an exit advances at most 1/30 s a frame (dice-sim's `EXIT_FRAME_MAX`) and the GPU-less runner draws about 5 frames a second, so the 1.8 s Smoke puff took 11–13 s. The same conditions are asserted and only the wait budget changed; reproduced red, then green, under SwiftShader with the page throttled 16×. Flagged for the skim because it touches existing checks.
 
 - 2026-10-28 · #668/#669 · test-only · Opus 5.5 (owner-asked: "Let's take it out of the menu for now, but retain the code"): `dev/tests-669-live-dice-browser.js`'s pinned "When dismissed" list re-baselined to the roller's menu without Melt (dice-sim v0.58.0 shelves it: `shelved: true`, off `DiceSim.exits()` and Random, still playable by name). The list is a mirror of the roller's menu and moves with each owner-ruled exit (Shatter 477f3f38 and Melt fc54362d added theirs the same way); a device that kept Melt falls back to Smoke puff, as the same test's `teleport` check already proves. Flagged for the skim because it re-baselines an existing assertion.

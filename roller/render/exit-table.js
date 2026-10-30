@@ -161,6 +161,7 @@ export const EXIT_TABLE = {
   // retain the code so we can finesse it later").
   melt: { label: 'Melt', seconds: MELT_EATS + MELT.eat, shelved: true },   // 2.7 s (round 2, 2026-10-28)
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
+  mixed: { label: 'Mixed bag', random: true, each: true },   // owner 2026-10-30: "add a 'mixed bag' to exit animation as well. Random exit animation for each"
 };
 
 /** The exits as a host's menu lists them, in order: [{ name, label }] (embed/global.js ▸ DiceSim.exits); never a shelved one. */
@@ -174,6 +175,18 @@ export const RANDOM_EXITS = Object.keys(EXIT_TABLE).filter((k) => !EXIT_TABLE[k]
 /** The exit a die leaves by when `name` is asked for: Random picks one of RANDOM_EXITS; any other is itself. */
 export function chooseExit(name, random = Math.random) {
   return EXIT_TABLE[name] && EXIT_TABLE[name].random ? RANDOM_EXITS[Math.floor(random() * RANDOM_EXITS.length)] : name;
+}
+
+/**
+ * The exit each of `count` dice leaving together goes by, when `name` is asked for: Random picks one of RANDOM_EXITS
+ * for them all (round 13); Mixed bag picks one for each die (owner 2026-10-30: "add a 'mixed bag' to exit animation as
+ * well. Random exit animation for each"); any other is itself for every die.
+ */
+export function exitsFor(name, count, random = Math.random) {
+  const entry = EXIT_TABLE[name];
+  if (entry && entry.each) return Array.from({ length: count }, () => chooseExit(name, random));
+  const one = chooseExit(name, random);
+  return Array.from({ length: count }, () => one);
 }
 
 /**

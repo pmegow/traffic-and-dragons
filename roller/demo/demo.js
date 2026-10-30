@@ -4,13 +4,14 @@ import { DiceAudio } from '../audio/index.js';
 import { createPressGesture } from '../input/press-gesture.js';
 import { createPinch } from '../input/pinch.js';
 import { createPresetStore } from './preset-store.js';
+import { tapThrow } from './tap-throw.js';
 import { createDrawer, DRAWER } from './drawer.js';
 import { sameLook, presetStyle } from '../render/presets.js';
 import { MIXED_BAG } from '../render/die-looks.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
 import { rollParts } from './roll-line.js';
-import { exitMenu, exitDelays, chooseExit } from '../render/exit-table.js';
+import { exitMenu, exitDelays, exitsFor } from '../render/exit-table.js';
 import { TOY_DEFAULTS } from './toy-defaults.js';
 import { attachColorPicker } from './color-picker.js';
 
@@ -70,6 +71,17 @@ const soon = (p, ms = SOUND_WAIT_MS) => Promise.race([p, new Promise((r) => setT
 // The first drop or roll after a look waits this long at most for the dice's pipeline (view.warmTable), readied as the
 // page opens and after each look: a die drawn before it is built stalled 0.6 s in the air after a reload (2026-10-28).
 const WARM_WAIT_MS = 1500;
+// The loading notice (index.html ▸ #dice-loading; owner 2026-10-30: "add a 'Loading Dice Library...' pulsing while the
+// dies load. Feels like a hang right now, and it'll get worse the more dice a player has"): up from the page's first
+// paint until the dice are first drawn — the GPU builds each finish's programs as its dice are first drawn, and the
+// page blocked for seconds meanwhile (headless, sixteen dice in a mixed bag: three blocks of 2.8 to 6.4 s) — and again
+// for a look whose programs are not built yet. Down at a play's first frame (playWithSound ▸ onStart), when a look is
+// ready, or when there is nothing to draw.
+const showLoading = () => { $('dice-loading').hidden = false; };
+let loadingHolds = 0;   // looks being readied (dressIn): the notice stays up until the last is ready
+const hideLoading = () => { if (!loadingHolds) $('dice-loading').hidden = true; };
+/** The next frame painted: a notice shown now is on screen before a step that blocks the page begins. */
+const painted = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 $('sound').addEventListener('change', () => { audio.setMuted(!$('sound').checked); if ($('sound').checked) unlockSound(); soundLine(); });
 
 window.__dice = { view, audio };   // the test seam: drive the page from a script
@@ -295,11 +307,26 @@ $('preset-delete').addEventListener('click', () => {
 const rememberLook = () => {
   try { localStorage.setItem(LOOK_KEY, JSON.stringify({ ...look(), mixed })); } catch { /* storage blocked */ }
 };
+/**
+ * Puts a look on the dice (`put` dresses them in it) and readies its pipelines. A look whose finish and font programs
+ * are not built yet blocked the page as the dice on the table were first drawn in it: now the loading notice goes up and
+ * is painted, the look's pipelines are readied (view.warmLook, in the background where the browser can), and only then
+ * are the dice dressed; the notice comes down once the look is ready.
+ */
+let dressing = 0;   // the newest look being put on: an older one still readying gives way to it
+async function dressIn(look, put, failure) {
+  const mine = ++dressing;
+  const building = view.dice.length > 0 && !view.lookReady(look);
+  if (building) { loadingHolds++; showLoading(); await painted(); await view.warmLook(look); }   // built first, then worn: no draw builds them
+  const release = () => { if (building) { loadingHolds--; hideLoading(); } };
+  if (mine !== dressing) { release(); return; }
+  try { await put(); await view.warmUp(); } catch (e) { status(failure + e.message); console.error(e); } finally { release(); }
+}
 /** One look on every die: what the controls say (a preset chosen fills them first). */
 const applyLook = () => {
   mixed = false;
-  const { body, ink, finish, font } = look();
-  view.setDieStyle({ body, ink, finish, font }).then(() => view.warmUp()).catch((e) => { status('Could not change the look: ' + e.message); console.error(e); });
+  const { body, ink, finish, font } = look(), style = { body, ink, finish, font };
+  dressIn(style, () => view.setDieStyle(style), 'Could not change the look: ');
   rememberLook();
   for (const p of colorPickers) p.sync();
   syncPreset();
@@ -307,7 +334,8 @@ const applyLook = () => {
 /** The mixed bag: each die dealt a preset at random; `keep` leaves the dice on the table as they are dressed. */
 const applyBag = ({ keep = false } = {}) => {
   mixed = true;
-  view.setDieBag({ bag: presetStore.list().map(presetStyle) }, { keep }).then(() => view.warmUp()).catch((e) => { status('Could not deal the mixed bag: ' + e.message); console.error(e); });
+  const bag = { bag: presetStore.list().map(presetStyle) };
+  dressIn(bag, () => view.setDieBag(bag, { keep }), 'Could not deal the mixed bag: ');
   rememberLook();
   syncPreset();
 };
@@ -359,6 +387,7 @@ function playWithSound(result, options = {}) {
   const p = view.play(result, {
     speed: speed(),
     onStart: ({ timeScale }) => {
+      hideLoading();   // the dice have been drawn: whatever the GPU had to build is built
       if (!soundOn()) return;
       audio.scheduleRoll(result, { timeScale, pan: (i, t) => 0.7 * view.panFor(samplePose(result, i, t).position) });
     },
@@ -425,9 +454,9 @@ function takeAway() {
   const gone = remove.map((i) => onTable()[i]);
   // Each leaves through the Exit animation, several one after another (Clear): 0.2 s apart, give or take.
   const delays = exitDelays(remove.length);
-  const exit = chooseExit($('exit').value);   // Random picks once for them all (round 13)
+  const exits = exitsFor($('exit').value, remove.length);   // Random picks once for them all (round 13); Mixed bag, for each die
   const onSound = (s) => { if (soundOn()) audio.playExitSound(s.kind, { ...s, pan: 0.7 * s.pan }); };
-  const leavingNow = remove.map((i, k) => view.removeDie(i, { exit, delay: delays[k], onSound }));
+  const leavingNow = remove.map((i, k) => view.removeDie(i, { exit: exits[k], delay: delays[k], onSound }));
   leaving = Promise.all([leaving, ...leavingNow]);
   unsettled = true;
   ++current;   // a roll under way no longer describes the table: the settle after it reports instead
@@ -447,6 +476,7 @@ async function dropIn(types) {
     for (const t of types) picker.remove(t);
     paintDice();
     status('Could not drop ' + groupDice(types) + ': ' + e.message);
+    hideLoading();
     console.error(e);
     return;
   }
@@ -487,6 +517,7 @@ async function go(req, { unlocking = Promise.resolve(), fromTable = 0 } = {}) {
     bakeMs = performance.now() - t0;
   } catch (e) {
     status(e.message);
+    hideLoading();   // nothing will be drawn: the reason is on the status line
     console.error(e);
     return;
   }
@@ -509,7 +540,7 @@ function show(result, bakeMs) {
 
 function rollFromPanel(extra, options) {
   let req;
-  try { req = request(extra); } catch (e) { status(e.message); return; }
+  try { req = request(extra); } catch (e) { status(e.message); hideLoading(); return; }
   go(req, options);
 }
 
@@ -687,12 +718,16 @@ stage.addEventListener('pointerup', (e) => {
     return;
   }
   if (kind === 'pan' || kind === 'zoom' || !d.start) return;   // a pan or zoom of the view, or a press that began off the floor
-  // A double-click on the empty table rolls every die, as the Roll button does (owner 2026-10-30: "set double click on
-  // the table to re-roll the all the dice"); a single click there does nothing.
+  // A double-click on the empty table rolls every die, thrown from the bottom middle of the view toward where it was
+  // clicked (owner 2026-10-30: "Double click should throw the dice up from the bottom of the screen towards the double
+  // click... just like the old click used to work" — demo/tap-throw.js); a single click there does nothing.
   if (kind === 'tap') {
     const again = lastTableClick && d.t - lastTableClick.t <= DOUBLE_MS && Math.hypot(e.clientX - lastTableClick.x, e.clientY - lastTableClick.y) <= 4 * CLICK_SLOP;
     lastTableClick = again ? null : { t: e.timeStamp, x: e.clientX, y: e.clientY };
-    if (again) rollFromPanel(undefined, { unlocking });
+    if (!again) return;
+    const r = $('view').getBoundingClientRect(), cx = (r.left + r.right) / 2;
+    const t = tapThrow({ at: d.samples[d.samples.length - 1].p, edge: view.floorHit(cx, r.bottom - 1), ahead: view.floorHit(cx, (r.top + r.bottom) / 2), tray: view.trayDrawn === false ? null : view.tray });
+    rollFromPanel(t ? { throw: { fling: t } } : undefined, { unlocking });
     return;
   }
   const end = d.samples[d.samples.length - 1];
@@ -715,8 +750,11 @@ stage.addEventListener('pointercancel', (e) => {
  * speed across the floor over its last TOSS.window ms before `now` (m/s), held to TOSS.max, the fling's own ceiling;
  * null for a hand that was still (under TOSS.min), which drops the die. The cup alone gave a die next to nothing: the
  * hand stops each frame where the pointer is, so it had always caught up, and stood still, by the time it opened.
+ * The die leaves at TOSS.boost times the pointer's speed, up to TOSS.max (owner 2026-10-30: "We need to impart more
+ * force when a die is picked up and flung. Double what's there now": 1× to 3.2 m/s before), and its spin follows
+ * (render/hand.js ▸ tossSpin, rad/s per m/s).
  */
-const TOSS = { window: 90, min: 0.25, max: 3.2 };
+const TOSS = { window: 90, min: 0.25, boost: 2, max: 6.4 };
 function tossOf(samples, now) {
   const recent = samples.filter((s) => now - s.t <= TOSS.window);
   if (recent.length < 2) return null;
@@ -724,7 +762,7 @@ function tossOf(samples, now) {
   if (!(dt > 0)) return null;
   const vx = (b.p.x - a.p.x) / dt, vz = (b.p.z - a.p.z) / dt, s = Math.hypot(vx, vz);
   if (s < TOSS.min) return null;
-  const k = Math.min(TOSS.max, s) / s;
+  const k = Math.min(TOSS.max, s * TOSS.boost) / s;
   return { x: vx * k, z: vz * k };
 }
 /** The hand lets go: the dice it held are thrown from where they are, as they move — tossed at `toss` (m/s) when given. */
@@ -855,5 +893,5 @@ if ('serviceWorker' in navigator) {
 }
 
 paintDice();
-if (picker.total) rollFromPanel();
+if (picker.total) rollFromPanel(); else hideLoading();   // nothing to draw: nothing to wait for
 document.documentElement.setAttribute('data-dice-started', '');   // the start check (index.html) is silent from here
