@@ -13,6 +13,14 @@ function install(){
     listAdminUsers:function(cb){cb(f.usersError,f.users);},
     pingServerHealth:function(cb){cb(null,{status:'ok',time:'2026-10-30T18:00:00Z'});},
     readAdminActivity:function(since,visitId,cb){f.visits=f.visits||0;if(since===null)f.visits++;cb(f.activityError,{since:100,previousVisit:'2026-10-29T10:00:00Z',counts:f.counts||{'fixture-0':3,'fixture-1':2}});},
+    listInvitations:function(cb){cb(f.inviteError,f.invitations||[]);},
+    sendInvitation:function(body,cb){
+      f.inviteSends=(f.inviteSends||0)+1;
+      var r={id:body.requestId,email:body.email,tier:body.tier,days:body.days,createdAt:'2026-10-30T12:00:00Z',expiresAt:'2026-11-06T12:00:00Z',status:'pending',delivery:{status:'accepted',message:'Accepted by the mail service'}};
+      f.invitations=[r];if(f.holdInvite)f.finishInvite=function(){cb(null,r);};else cb(null,r);
+    },
+    resendInvitation:function(id,body,cb){f.inviteResends=(f.inviteResends||0)+1;cb(null,f.invitations[0]);},
+    revokeInvitation:function(id,cb){f.inviteRevokes=(f.inviteRevokes||0)+1;f.invitations[0].status='revoked';cb(null,f.invitations[0]);},
     listBetaMailings:function(cb){cb(null,f.mailings||[]);},
     previewBetaMail:function(body,cb){f.mailings=[{id:'fixture-mail',subject:body.subject,text:body.text,createdAt:'2026-10-30T19:00:00Z',missingEmail:1,duplicates:1,deliveries:[{id:'d1',recipient:'tester@example.test',status:'pending',retryable:true,message:'Pending'},{id:'d2',recipient:'another@example.test',status:'pending',retryable:true,message:'Pending'}]}];cb(null,f.mailings[0]);},
     sendBetaMail:function(id,deliveryId,cb){f.mailSends=(f.mailSends||0)+1;var m=f.mailings[0],d=m.deliveries.filter(function(x){return x.id===deliveryId;})[0];d.status=f.mailFailure?'uncertain':'accepted';d.retryable=false;d.message=f.mailFailure?'Delivery uncertain; check Email Logs.':'Accepted by Cloudflare';if(f.holdMail){f.heldMail=function(){cb(null,m);};}else cb(null,m);},
