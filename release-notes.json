@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "releases": [
+    {
+      "version": "v1.1329",
+      "releasedAt": "2026-10-30T19:53:33Z",
+      "actions": [
+        "Reorganized Settings into focused groups.",
+        "Kept every menu item reachable on short phone and desktop screens."
+      ],
+      "commit": "487cbd6398d7b921494daa07d1b6edba547db46d"
+    },
+    {
+      "version": "v1.1328",
+      "releasedAt": "2026-10-30T19:14:00Z",
+      "actions": [
+        "Moved Player rolls own dice beside Dice appearance in Settings.",
+        "Retired the obsolete in-band action button setting.",
+        "Updated the dice roller with pointer-aligned dragging, double-click rerolls, and spinning tosses."
+      ],
+      "commit": "f18d835f819c35477bd47c5d17e4a278e9fad28f"
+    },
+    {
+      "version": "v1.1327",
+      "releasedAt": "2026-10-30T18:18:17Z",
+      "actions": [
+        "Renamed the Assassin feature to Inevitability throughout its class reference."
+      ],
+      "commit": "6e736b7a03834df784eaaa75f3981668e971a945"
+    },
+    {
+      "version": "v1.1326",
+      "releasedAt": "2026-10-29T05:49:53Z",
+      "actions": [
+        "Preloaded the live dice rendering pipeline to reduce the first roll delay."
+      ],
+      "commit": "7e484ca5252ad651c7cb40fefd8945f5082fc9a7"
+    }
+  ]
+}

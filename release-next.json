@@ -1,0 +1,8 @@
+{
+  "version": "v1.1330",
+  "actions": [
+    "Grouped player activity into collapsible panels with new request counts since the operator’s previous visit.",
+    "Added production release history with dated, concise action notes.",
+    "Added recipient previews and direct beta email sending with persistent delivery receipts."
+  ]
+}

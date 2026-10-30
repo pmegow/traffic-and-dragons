@@ -1,0 +1,40 @@
+name: Record production release
+on:
+  workflow_run:
+    workflows: ["Engine tests"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: write
+  checks: read
+concurrency:
+  group: production-release-ledger
+  cancel-in-progress: false
+jobs:
+  record:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'master' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Record the confirmed production deployment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: node dev/record-release.js "$RELEASE_SHA"
+      - name: Commit the release ledger
+        shell: bash
+        run: |
+          if git diff --quiet -- release-notes.json; then exit 0; fi
+          node dev/run-tests.js
+          git config user.name "TnD release recorder"
+          git config user.email "release-recorder@users.noreply.github.com"
+          git add release-notes.json
+          git commit -m "docs(releases): record confirmed production deployment"
+          git pull --rebase origin master
+          git push origin HEAD:master

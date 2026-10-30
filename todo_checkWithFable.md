@@ -653,3 +653,7 @@ zero 2026-07-27 and again 2026-07-30.
 - 2026-10-14 · #630 · Codex, owner-requested Princess Is Not In Danger blueprint review: live baseline plus three full panel rereads, v1.02 RC; four local repairs (dawn deadline, ceremonial objection, restored left-elbow Cloak, conditional audience), preserving absurdity and prior live revisions. Content/review records only; no engine change. Record: DOC/panel/reviews/princess-not-in-danger/review_cycles.html.
 
 - 2026-10-15 · #632 · Codex, owner-requested Bible Study light/dark support: opt-in browser preference listener, shared palette tokens for three status labels, and presentation-only token substitutions in the existing card renderers; no canon, prompt or state changes. Browser tests reproduce initial/light-change failures and low badge contrast; one media listener per page, no stored settings or accumulated nodes.
+
+## 2026-10-30 — #674 operator console
+
+Collapsible activity, deployment-backed release notes and direct beta mail: [implementation and rollout](DOC/admin_console_674.md). Only operator surfaces and pure adapter methods changed; no campaign, prompt, parser or memory writes. App v1.1330, server v1.13.0/schema 13. Deployment and owner inbox check remain pending.

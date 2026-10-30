@@ -48,12 +48,12 @@ async function main() {
   function invoke(name, args) { return new Promise(function (resolve) { adapter[name].apply(adapter, args.concat(function (err, data) { resolve({ err: err, data: data }); })); }); }
   await test("admin API methods share authenticated bounded transport", async function () {
     adapter.setServer("https://unit.test", "TEST_ONLY");
-    for (var spec of [["listAdminUsers", [], "/api/admin/users", undefined], ["getAdminStats", [], "/api/admin/stats", undefined],
+    for (var spec of [["readAdminActivity", [null,"fixture-visit"], "/api/admin/activity/visit", "POST"], ["readAdminActivity", [100,"fixture-visit"], "/api/admin/activity?since=100", undefined], ["listBetaMailings", [], "/api/admin/mailings", undefined], ["previewBetaMail", [{subject:"hello",text:"test"}], "/api/admin/mailings", "POST"], ["sendBetaMail", ["job","recipient"], "/api/admin/mailings/job/send", "POST"], ["listAdminUsers", [], "/api/admin/users", undefined], ["getAdminStats", [], "/api/admin/stats", undefined],
       ["pingServerHealth", [], "/health", undefined], ["updateSubscription", [{ userId: "u", action: "extend", days: 30 }], "/api/admin/subscription", "POST"]]) {
       var result = await invoke(spec[0], spec[1]), call = calls[calls.length - 1];
       assert.ifError(result.err); assert.equal(call.url, "https://unit.test" + spec[2]); assert.equal(call.opts.method, spec[3]);
       assert.equal(call.opts.headers.Authorization, "Bearer TEST_ONLY"); assert(call.opts.signal, "missing deadline signal");
-      if (spec[3]) assert.deepEqual(JSON.parse(call.opts.body), spec[1][0]);
+      if (spec[3]) assert.deepEqual(JSON.parse(call.opts.body), spec[0]==="readAdminActivity"?{visitId:"fixture-visit"}:spec[0]==="sendBetaMail"?{deliveryId:"recipient"}:spec[1][0]);
     }
   });
   await test("admin refusal retains the server reason", async function () {
