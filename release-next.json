@@ -1,8 +1,8 @@
 {
-  "version": "v1.1330",
+  "version": "v1.1331",
   "actions": [
-    "Grouped player activity into collapsible panels with new request counts since the operator’s previous visit.",
-    "Added production release history with dated, concise action notes.",
-    "Added recipient previews and direct beta email sending with persistent delivery receipts."
+    "Added Gmail invitations with Google sign-in, single-use links and automatic approval on acceptance.",
+    "Added seven-day invitation expiry, resend and revoke controls, and persistent email delivery receipts.",
+    "Preserved existing active access when accepting an invitation."
   ]
 }

@@ -13,6 +13,7 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
 #status{min-height:24px;margin:12px 0;color:var(--t1)}#status.error,.error{color:var(--hp)}#who{color:var(--t1);font-size:13px}.user{padding:20px 0;border-top:1px solid var(--brd)}
 .user-top{display:grid;grid-template-columns:minmax(180px,1fr) minmax(170px,1fr) minmax(190px,1fr);gap:18px}.user h3{margin:0 0 5px;font-size:18px;overflow-wrap:anywhere}.meta{font-size:12px;color:var(--t1);line-height:1.6;overflow-wrap:anywhere}.value{font-size:19px;color:var(--t0);margin-bottom:3px}.controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:14px}.controls label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--t1)}.controls input{width:90px}.controls select{max-width:100%}.controls button{font-size:13px}.empty{padding:24px 0;color:var(--t1)}details{margin-top:10px;font-size:12px;color:var(--t1)}summary{cursor:pointer;color:var(--acc)}.model{margin-top:6px;overflow-wrap:anywhere}.purpose{margin:2px 0 0 1.4em;color:var(--t1);overflow-wrap:anywhere}
 .frame{margin:20px 0;padding:18px;background:var(--bg1);border:1px solid var(--brd);border-radius:var(--rl)}.frame>summary{font-size:18px;font-weight:bold;padding:6px 0;overflow-wrap:anywhere}.user>summary{font-size:16px;line-height:1.5;overflow-wrap:anywhere}.user-top{margin-top:16px}.release-entry{border-top:1px solid var(--brd);padding:14px 0}.release-entry h3{margin:0 0 6px}.release-entry time{color:var(--t1);font-size:12px}.release-entry li,#mail-review li{line-height:1.6;overflow-wrap:anywhere}.mail-fields{display:grid;gap:12px}.mail-fields label{display:grid;gap:6px}.mail-fields textarea{min-height:140px;resize:vertical;box-sizing:border-box;width:100%}.mail-fields input{box-sizing:border-box;width:100%}.mail-copy{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}#mail-recent{display:grid;gap:8px}#mail-recent button{text-align:left;overflow-wrap:anywhere}.mail-actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.invite-entry{padding:14px 0;border-top:1px solid var(--brd);overflow-wrap:anywhere}.invite-entry>summary{font-size:15px;line-height:1.5}.invite-entry p{line-height:1.6}#invite-email{max-width:520px}#invite-list{margin-top:20px}
 @media(max-width:640px){body{padding:0 16px 32px}.overview,.user-top{grid-template-columns:1fr;gap:14px}.overview{margin:20px 0}.controls{gap:10px}.controls button{min-height:44px}.sat-header nav a{margin:0 16px 0 0}.user{padding:20px 0}.controls select{width:190px}}
 </style>
 </head>
@@ -32,6 +33,14 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
   <p class="sub">Activity = last metered request, not last login. Usage is a rolling 30-day window. USD estimates use the game’s current LLM rate table, not historical invoices; cached OpenAI/Gemini input is an upper bound. Unpriced models (including images) are listed, never counted as free.</p>
   <div id="users"></div></details>
   <details id="release-notes" class="frame"><summary>Release Notes</summary><p id="release-status" class="sub" role="status">Loading release history…</p><div id="release-history"></div></details>
+  <details id="invitations" class="frame"><summary>Send Invitation</summary>
+    <p class="sub">Invite a Gmail account with pre-approved access. The link expires in 7 days; access starts when they accept with Google.</p>
+    <form id="invite-form">
+      <div class="mail-fields"><label for="invite-email">Recipient’s Gmail address<input id="invite-email" type="email" maxlength="254" placeholder="player@gmail.com" autocomplete="off" required></label></div>
+      <div class="controls"><label for="invite-tier">Access<select id="invite-tier"><option value="tester">Tester</option><option value="beta">Beta</option></select></label><label for="invite-days">Days of access<input id="invite-days" type="number" min="1" max="3650" value="30" required></label><button id="invite-send" type="submit" disabled>Send Invitation</button><button id="invite-history" type="button" disabled>Refresh invitations</button></div>
+    </form>
+    <p id="invite-status" class="sub" role="status" aria-live="polite"></p><div id="invite-list"></div>
+  </details>
   <details id="beta-mail" class="frame"><summary>Email beta testers</summary><p class="sub">Send an individual email to each active Tester or Beta account with a verified address. Operators are excluded; duplicate addresses receive one copy.</p>
     <div class="mail-fields"><label for="mail-subject">Subject<input id="mail-subject" maxlength="200"></label><label for="mail-body">Message<textarea id="mail-body" maxlength="20000"></textarea></label></div>
     <div class="mail-actions"><button id="mail-preview" type="button">Preview recipients</button><button id="mail-send" type="button" disabled>Send email</button><button id="mail-history" type="button">Load recent mailings</button></div>
@@ -46,6 +55,7 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
 <script src="state.js"></script>
 <script src="storage-adapter.js?admin_console"></script>
 <script src="admin-mail.js?admin_console"></script>
+<script src="admin-invitations.js?admin_console"></script>
 <script src="admin-release-notes.js?admin_console"></script>
 <script>
 (function(){
@@ -124,9 +134,10 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
     });
   }
   function refresh(){
-    if(pending||(window.AdminMail&&window.AdminMail.isBusy()))return;
+    if(pending||(window.AdminMail&&window.AdminMail.isBusy())||(window.AdminInvitations&&window.AdminInvitations.isBusy()))return;
     var thisRefresh=++refreshId;
     if(window.AdminMail)window.AdminMail.enable(false);
+    if(window.AdminInvitations)window.AdminInvitations.enable(false);
     activity=null;$("activity-title").textContent="Player Activity (loading)";
     authorized=false;tiers={};roster=[];controls=[];$("users").textContent="";$("console").hidden=true;
     if(!storageAdapter.hasToken()){$("who").textContent="Not signed in.";status("Sign in from the game on this origin, then return here.",false);return;}
@@ -144,6 +155,7 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
           if(usersErr||Object.prototype.toString.call(list)!=="[object Array]"){status("Users unavailable: "+(usersErr||"invalid server response"),true);return;}
           authorized=true;
           if(window.AdminMail)window.AdminMail.enable(true);
+          if(window.AdminInvitations)window.AdminInvitations.enable(true);
           renderUsers(list);status(list.length+" account(s) · refreshed "+new Date().toLocaleTimeString(),false);
           if(!storageAdapter.readAdminActivity){$("activity-title").textContent="Player Activity (updates unavailable)";$("activity-status").textContent="Activity counts require the updated server.";return;}
           setPending(true);

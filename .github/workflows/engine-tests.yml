@@ -138,6 +138,8 @@ jobs:
         run: node dev/tests-501-shop-button-browser.js
       - name: The live dice in the game page (#669)
         run: node dev/tests-669-live-dice-browser.js
+      - name: Gmail invitation controls and acceptance (#675)
+        run: node dev/tests-675-invitations-browser.js
       - name: Operator activity and beta mail controls (#674)
         run: node dev/tests-674-admin-updates-browser.js
       # #312 ①: a battery whose target file changed in this push runs in this push (the weekly

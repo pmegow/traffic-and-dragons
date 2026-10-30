@@ -1204,6 +1204,11 @@ var storageAdapter = (function() {
   function getAdminStats(cb) { _apiJson("/api/admin/stats", "GET", null, cb, true); }
   function updateSubscription(change, cb) { _apiJson("/api/admin/subscription", "POST", change, cb, true); }
   function readAdminActivity(since, visitId, cb) { _apiJson(since===null?"/api/admin/activity/visit":"/api/admin/activity?since="+encodeURIComponent(since), since===null?"POST":"GET", since===null?{visitId:visitId}:null, cb, true); }
+  function listInvitations(cb) { _apiJson("/api/admin/invitations", "GET", null, cb, true); }
+  function sendInvitation(body, cb) { _apiJson("/api/admin/invitations", "POST", body, cb, true); }
+  function resendInvitation(id, body, cb) { _apiJson("/api/admin/invitations/"+encodeURIComponent(id)+"/resend", "POST", body, cb, true); }
+  function revokeInvitation(id, cb) { _apiJson("/api/admin/invitations/"+encodeURIComponent(id)+"/revoke", "POST", {}, cb, true); }
+  function acceptInvitation(token, cb) { _apiJson("/api/invitations/accept", "POST", {token:token}, cb, true); }
   function listBetaMailings(cb) { _apiJson("/api/admin/mailings", "GET", null, cb, true); }
   function previewBetaMail(body, cb) { _apiJson("/api/admin/mailings", "POST", body, cb, true); }
   function sendBetaMail(id, deliveryId, cb) { _apiJson("/api/admin/mailings/"+encodeURIComponent(id)+"/send", "POST", {deliveryId:deliveryId}, cb, true); }
@@ -1378,6 +1383,11 @@ var storageAdapter = (function() {
     updateSubscription:   updateSubscription,
     pingServerHealth:     pingServerHealth,
     readAdminActivity: readAdminActivity,
+    listInvitations: listInvitations,
+    sendInvitation: sendInvitation,
+    resendInvitation: resendInvitation,
+    revokeInvitation: revokeInvitation,
+    acceptInvitation: acceptInvitation,
     listBetaMailings: listBetaMailings,
     previewBetaMail: previewBetaMail,
     sendBetaMail: sendBetaMail,
