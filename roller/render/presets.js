@@ -23,7 +23,7 @@ export const DIE_PRESETS = [
   { name: 'Bone', body: '#e8dcc0', ink: '#1b1b1b', finish: 'granite', font: 'sans' },   // granite: owner 2026-10-24
   { name: 'Jade', body: '#1b6515', ink: '#ffffff', finish: 'quartz', font: 'sans' },
   { name: 'Ember', body: '#000000', ink: '#c80404', finish: 'granite', font: 'sans' },
-  { name: 'Brass', body: '#b8893c', ink: '#1b1b1b', finish: 'metal', font: 'sans' },   // metal and wood: owner 2026-10-29
+  { name: 'Brass', body: '#ccbb66', ink: '#1b1b1b', finish: 'metal', font: 'sans' },   // metal and wood: owner 2026-10-29; brass HSV 50/50/80 (owner, the same day: "#b8893c looks like a pumpkin")
   { name: 'Steel', body: '#9aa0a8', ink: '#15181c', finish: 'metal', font: 'sans' },
   { name: 'Walnut', body: '#5e3a1e', ink: '#eadfc8', finish: 'wood', font: 'sans' },
 ];

@@ -12,6 +12,7 @@ import { rollParts } from './roll-line.js';
 import { exitMenu, exitDelays, chooseExit } from '../render/exit-table.js';
 import { TOY_DEFAULTS } from './toy-defaults.js';
 import { attachColorPicker } from './color-picker.js';
+import { tapThrow } from './tap-throw.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg || ''; };
@@ -649,7 +650,14 @@ stage.addEventListener('pointerup', (e) => {
   const dt = (end.t - from.t) / 1000;
   const vx = dt > 0 ? (end.p.x - from.p.x) / dt : 0, vz = dt > 0 ? (end.p.z - from.p.z) / dt : 0;
   const v = Math.hypot(vx, vz);
-  if (v < 0.25) { rollFromPanel(undefined, { unlocking }); return; }   // a tap, not a fling: the default toss
+  if (v < 0.25) {
+    // A tap, or a drag too slow to be a fling: thrown from the bottom middle of the view toward where the finger lifted
+    // (owner 2026-10-29; demo/tap-throw.js). Before, the default toss: left to right whatever the tap.
+    const r = $('view').getBoundingClientRect(), cx = (r.left + r.right) / 2;
+    const t = tapThrow({ at: end.p, edge: view.floorHit(cx, r.bottom - 1), ahead: view.floorHit(cx, (r.top + r.bottom) / 2), tray: view.trayDrawn === false ? null : view.tray });
+    rollFromPanel(t ? { throw: { fling: t } } : undefined, { unlocking });
+    return;
+  }
   const k = Math.min(3.2, Math.max(0.6, v)) / v;
   rollFromPanel({ throw: { fling: { from: d.start, velocity: { x: vx * k, z: vz * k } } } }, { unlocking });
 });
