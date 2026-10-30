@@ -2,9 +2,10 @@
 //
 // roll(request) is the library's front door. It bakes the WHOLE roll before anything is shown:
 // the dice are thrown from a seed, the world steps until every die sleeps, each die is read, and
-// the roll is judged. A roll that fails a gate (a die still moving, a cocked die, a lazy roll
-// that barely turned) is thrown again from the next seed — the way a player re-rolls a die
-// leaning on the tray wall. The result carries a track (position + orientation per frame) that
+// the roll is judged. A roll that fails a gate (a die still moving, a die cocked on a wall or
+// the floor, a lazy roll that barely turned) is thrown again from the next seed — the way a
+// player re-rolls a die leaning on the tray wall. A die leaning on another die is read as it
+// lies, by its most-up face, as a pile is read. The result carries a track (position + orientation per frame) that
 // any renderer plays back, the hits a sound layer can follow, and every die's value.
 //
 // FORCED RESULTS. A die may be asked to show a value. The physics is never touched: the roll is
@@ -15,6 +16,7 @@
 import { buildDie } from './dice.js';
 import { Body, plane } from './body.js';
 import { World, WORLD_DEFAULTS } from './world.js';
+import { collideHulls } from './collide.js';
 import { SURFACES, lookup } from './materials.js';
 import { createRng, mixSeed } from './rng.js';
 import { v3, add, scale, dot, cross, normalize, qrotate, qmul, qnormalize, mvec, UP } from './math.js';
@@ -447,12 +449,28 @@ export function readDie(die, orientation) {
   return { feature, alignment };
 }
 
+/**
+ * Whether die b touches another of the bodies: their hulls within `reach` of each other (the world keeps a contact from
+ * that far, so a die resting on another is well inside it — measured at rest in sixteen-dice piles, 317 of 322 cocked dice
+ * within 0.1 mm of the die they lean on, and the rest of them leaning on a wall, a millimetre or more from any die).
+ */
+export function leansOnDie(bodies, b, reach = WORLD_DEFAULTS.speculative) {
+  return bodies.some((o) => {
+    if (o === b) return false;
+    const r = b.die.boundingRadius + o.die.boundingRadius + reach;
+    const dx = o.position.x - b.position.x, dy = o.position.y - b.position.y, dz = o.position.z - b.position.z;
+    return dx * dx + dy * dy + dz * dz <= r * r && collideHulls(b, o, reach) !== null;
+  });
+}
+
 function judge(req, sim) {
   if (!sim.world.settled) return 'still moving after ' + req.maxSeconds + ' s';
   for (const b of sim.bodies) {
-    // A die lying flat on another die reads fine; only a die leaning on something is cocked.
+    // READ AS IT LIES (owner 2026-10-30, row 62). A die cocked against a wall or on the floor is thrown again; a die
+    // leaning on another die is read by its most-up face, as players read a pile. With the solver making no energy, a
+    // sixteen-dice pile rests with about five dice leaning on dice, and refusing them all refused up to nine piles in ten.
     const { alignment } = readDie(b.die, b.orientation);
-    if (alignment < req.cockedAlignment) return 'die ' + b.index + ' cocked (alignment ' + alignment.toFixed(4) + ')';
+    if (alignment < req.cockedAlignment && !leansOnDie(sim.bodies, b, sim.world.o.speculative)) return 'die ' + b.index + ' cocked (alignment ' + alignment.toFixed(4) + ')';
   }
   const mean = sim.bodies.reduce((s, b) => s + b.turns, 0) / sim.bodies.length;
   if (mean < req.minTurns) return 'the dice turned only ' + mean.toFixed(2) + ' times on average';

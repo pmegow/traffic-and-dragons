@@ -90,7 +90,13 @@ export class World {
     }
 
     const manifolds = this.detect();
+    // Every contact's approach speed — and so its bounce — is read before ANY of last step's impulses is applied
+    // (owner 2026-10-30, row 61: a die at rest in a pile shot across the table). Warm-starting each pair as it was
+    // prepared let the pairs read after it see the die moving at the speed those impulses gave it: a die wedged in a
+    // corner read several m/s into a wall it was resting against and was handed a bounce of 7 m/s — the solver adding
+    // 0.20 J to a 0.28 J throw in two steps (dev/energy-probe.js).
     for (const m of manifolds) this.prepare(m);
+    for (const m of manifolds) this.warmStart(m);
     for (let i = 0; i < o.iterations; i++) for (const m of manifolds) this.solveVelocity(m);
     // The caps (WORLD_DEFAULTS ▸ maxRise, maxSpeed): the positions still separate — the split impulses below are
     // untouched — so a squeezed pile unpacks at a hop's pace instead of bursting.
@@ -227,6 +233,11 @@ export class World {
     m.mR1 = 1 / angularK(A, B, m.t1);
     m.mR2 = 1 / angularK(A, B, m.t2);
     m.mS = 1 / angularK(A, B, n);
+  }
+
+  /** Applies last step's impulses (warm starting): after every manifold is prepared, so no bounce reads them. */
+  warmStart(m) {
+    const n = m.normal, A = m.A, B = m.B;
     for (const c of m.contacts) {
       c.Pt1 = dot(c.Pt, m.t1);
       c.Pt2 = dot(c.Pt, m.t2);
