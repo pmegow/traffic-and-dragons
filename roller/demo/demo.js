@@ -23,7 +23,6 @@ try {
   status('Could not start the 3D view: ' + e.message);
   throw e;
 }
-$('version').textContent = 'v' + VERSION;
 
 // ---------------------------------------------------------------- sound
 const audio = new DiceAudio();
@@ -742,3 +741,4 @@ if ('serviceWorker' in navigator) {
 
 paintDice();
 if (picker.total) rollFromPanel();
+document.documentElement.setAttribute('data-dice-started', '');   // the start check (index.html) is silent from here
