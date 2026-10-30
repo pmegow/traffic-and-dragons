@@ -154,10 +154,12 @@ var _agendaRoll=function(){return Math.random();};
 // #325: after "play on", the offered ending stays off the fourth button this many turns before it is offered again.
 var ENDING_REOFFER_TURNS=15;
 // #328 (owner ruling 2026-09-03): the suggestion buttons ride the GM's own turn as a [SUGGEST:] tag
-// instead of a second full-prompt call ($2.40 of the $5.42 Iron Meridian run). ONE switch, ON by
+// instead of a second full-prompt call ($2.40 of the $5.42 Iron Meridian run). Was ONE switch, ON by
 // default: off = the doc line leaves the prompt and generateActions runs the v1.288 un-starved call
-// exactly as before (the rollback). File menu checkbox; stored under SUGGEST_INBAND_K.
-var SUGGEST_INBAND_K="tnd_suggest_inband_v1";
+// exactly as before (the rollback). The switch is RETIRED (owner 2026-10-30, "we've proven that
+// works"): no checkbox, loadSuggestInband (ui-modals.js) forces ON and clears a stored "0". The flag
+// stays for the engine's OFF path — the floor when a turn arrives without [SUGGEST:] — and the tests.
+var SUGGEST_INBAND_K="tnd_suggest_inband_v1";/* retired key: read once at load to clear it, never written */
 var suggestInband=true;
 // #329 (owner design 2026-09-03): the player rolls their own d20. OFF by default. On: the GM emits
 // [CHECK:label|mod|DC n] and stops; the chip reads "d20 · click to roll"; the click rolls client-side
@@ -441,7 +443,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1327";
+var APP_VERSION="v1.1328";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

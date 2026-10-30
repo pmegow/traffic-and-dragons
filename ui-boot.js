@@ -70,8 +70,8 @@ function buildFileMenus(){
     var narr=btn(p+"rules","Narrative rules",0)
       +btn(p+"prose","✍ Prose style&hellip;",0)
       +chk(p+"adult-cb","18+ Adult content",0,p+"adult-label")
-      +chk(p+"inband-cb","Buttons ride the GM's turn",0,p+"inband-label")/* #328 — off = the separate suggestion call (rollback) */
-      +chk(p+"dice-cb","Player rolls own dice",0,p+"dice-label")/* #329 — off (default) = the GM rolls */
+      /* #328's "Buttons ride the GM's turn" switch RETIRED here (owner 2026-10-30: proven) — ui-modals.js loadSuggestInband.
+         #329's "Player rolls own dice" moved to the Settings top level beside Dice appearance (#673, owner 2026-10-30). */
       +chk(p+"stake-cb","Name the stake before a roll",0,p+"stake-label");/* #371 — off = the pre-#371 MECHANICS line (rollback) */
     // #634 (owner 2026-10-15): Settings holds three drawers — 🔊 Audio (voice, UI sounds, ambience),
     // 📖 Narrative options, and 🛠 Dev tools (operator-only: the language model, usage & cost, render
@@ -101,6 +101,7 @@ function buildFileMenus(){
       +btn(p+"fal-key","🖼 Render Options&hellip;",0,{cls:"fm-dev-only"});
     var dm=chk(p+"dark-cb","🌙 Dark mode",0)/* #634: default on; off = the light palette (ui-modals.js loadTheme/toggleDarkMode) */
       +chk(p+"font-lg","Large text",0)
+      +chk(p+"dice-cb","Player rolls own dice",0,p+"dice-label")/* #329 — off = the GM rolls; ON for a new player (#641). At the top level since #673 (owner 2026-10-30): under Narrative options it was out of reach on a short phone */
       +btn(p+"dice-look","&#127922; Dice appearance&hellip;",0)/* #669 (owner 2026-10-25): the live dice's look, a preset kept per device (ui-dice.js) */
       +drawer(p+"audio",p+"audiomenu","🔊 Audio",0,null,aud)
       +drawer(p+"narropts",p+"narroptsmenu","&#128214; Narrative options",0,null,narr)
@@ -206,7 +207,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",it[1]);
     });
     // Change handlers
-    [["adult-cb",toggleAdultMode],["inband-cb",toggleSuggestInband],["dice-cb",togglePlayerDice],["stake-cb",toggleDiceStake],["font-lg",toggleFontSize],["dark-cb",toggleDarkMode]].forEach(function(it){
+    [["adult-cb",toggleAdultMode],["dice-cb",togglePlayerDice],["stake-cb",toggleDiceStake],["font-lg",toggleFontSize],["dark-cb",toggleDarkMode]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("change",it[1]);
     });
     // Cascading submenu toggles: Settings, Save/Load, and the three nested in Settings —
@@ -235,7 +236,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
     var ic=document.getElementById(m.imp+"import-char-btn");if(ic)ic.addEventListener("click",showCharacterBrowser);
   });
   // Stop checkbox label clicks from bubbling to the document close-menu handler
-  ["adult-cb","inband-cb","dice-cb","stake-cb","font-lg","dark-cb","legacy-cb","autosend","autolisten","sttconfirm","sound-cb","ambient-cb","ambient-volume","ambient-unlock"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤); sttconfirm joined at #77 */
+  ["adult-cb","dice-cb","stake-cb","font-lg","dark-cb","legacy-cb","autosend","autolisten","sttconfirm","sound-cb","ambient-cb","ambient-volume","ambient-unlock"].forEach(function(sfx){/* autosend/autolisten added so toggling them doesn't close the File menu (audit E67); walks via eachMenuEl (#15⑤); sttconfirm joined at #77 */
     eachMenuEl(sfx,function(el){
       var lbl=el.closest("label")||el.parentElement;
       if(lbl)lbl.addEventListener("click",function(e){e.stopPropagation();});

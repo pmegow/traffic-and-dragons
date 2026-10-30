@@ -155,9 +155,11 @@ function loadTheme(){applyTheme(store.get(THEME_KEY)!=="light");}
 if(typeof window!=="undefined"&&window.addEventListener)window.addEventListener("storage",function(e){if(!e||e.key===null||e.key===THEME_KEY)loadTheme();});
 function toggleDarkMode(){var dark=document.documentElement.getAttribute("data-theme")!=="dark";store.set(THEME_KEY,dark?"dark":"light");applyTheme(dark);}
 function toggleAdultMode(){adultMode=!adultMode;store.set(ADK,adultMode?"1":"");eachMenuEl("adult-cb",function(cb){cb.checked=adultMode;});showToast(adultMode?"18+ content enabled":"18+ content disabled");}
-/* #328: the in-band buttons switch — off = the ask leaves the prompt and the separate call returns (rollback). */
-function toggleSuggestInband(){suggestInband=!suggestInband;store.set(SUGGEST_INBAND_K,suggestInband?"1":"0");eachMenuEl("inband-cb",function(cb){cb.checked=suggestInband;});showToast(suggestInband?"Buttons ride the GM's turn (one call per turn)":"Buttons use their own call again (the v1.288 path)");}
-function loadSuggestInband(){var v=store.get(SUGGEST_INBAND_K);suggestInband=(v==null||v==="")?true:v==="1";eachMenuEl("inband-cb",function(cb){cb.checked=suggestInband;});}
+/* #328: the in-band buttons switch is RETIRED (owner 2026-10-30: "we've proven that works") — the buttons ride the GM's
+   turn on every device. A "0" stored in the rollback days is cleared on load, so no device stays on the v1.288 second
+   call unseen. `suggestInband` remains a global for the engine's OFF path, which is still the honest floor when a turn
+   arrives without [SUGGEST:] (#344) and still the tests' subject. */
+function loadSuggestInband(){suggestInband=true;if(store.get(SUGGEST_INBAND_K)!=null){store.del(SUGGEST_INBAND_K);console.info("[menu] #328 a stored in-band rollback was cleared — the switch is retired, the buttons ride the GM's turn");}}
 /* #329: the player-rolls-dice switch — off = today's GM-rolled [DICE:] contract. Toggling changes the stable prompt once. */
 function togglePlayerDice(){playerRollsDice=!playerRollsDice;store.set(PLAYER_DICE_K,playerRollsDice?"1":"0");eachMenuEl("dice-cb",function(cb){cb.checked=playerRollsDice;});showToast(playerRollsDice?"You roll the dice \u2014 the GM stops at each check":"The GM rolls again");}
 /* #371: the stake-clause switch — off = the pre-#371 MECHANICS line, byte-identical (rollback). */

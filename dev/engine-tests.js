@@ -1845,7 +1845,7 @@ function runEngineTests(R){
     var was=suggestInband;try{suggestInband=true;if(buildStateTagsDoc().indexOf("[SUGGEST:")<0)return "doc line missing while on";suggestInband=false;if(buildStateTagsDoc().indexOf("[SUGGEST:")>=0)return "doc line present while off (rollback must remove the ask)";}finally{suggestInband=was;}
     return true;
   });
-  t("#328 generateActions consumes the turn's in-band buttons and skips the suggestion call; a missing or short tag, or the setting off, falls through to the v1.288 un-starved call byte-for-byte; the record is cleared either way; the switch is a File-menu checkbox with a stored pref",function(){
+  t("#328 generateActions consumes the turn's in-band buttons and skips the suggestion call; a missing or short tag, or the flag off, falls through to the v1.288 un-starved call byte-for-byte; the record is cleared either way; the File-menu switch is RETIRED (owner 2026-10-30): no checkbox, no toggle, the load forces ON and clears the stored rollback, the key is never written",function(){
     var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("async function generateActions("),body=src.slice(i,src.indexOf("// ── #96: dialogue attribution"));
     var ib=body.indexOf("worldState.suggestInband"),call=body.indexOf("resp=await callGM("),gate=body.indexOf("applySuggestionGate(");
     if(ib<0||!(ib<call)||!(call<gate))return "the in-band consumer must sit before the call and both must feed the same gate";
@@ -1853,8 +1853,12 @@ function runEngineTests(R){
     if(body.indexOf("delete worldState.suggestInband")<0)return "the turn's record must be cleared";
     if(!/_ib&&_ib\.length>=3/.test(body))return "fewer than three in-band actions must fall through to the call";
     var boot=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");
-    if(boot.indexOf("inband-cb")<0||boot.indexOf("toggleSuggestInband")<0||um.indexOf("function loadSuggestInband")<0||boot.indexOf("loadSuggestInband()")<0)return "the switch is not wired";
-    return typeof SUGGEST_INBAND_K==="string"&&um.indexOf("store.set(SUGGEST_INBAND_K")>=0?true:"no stored pref";
+    if(boot.indexOf("inband-cb")>=0||boot.indexOf("toggleSuggestInband")>=0||um.indexOf("function toggleSuggestInband")>=0)return "the retired switch is back in the menu";
+    if(um.indexOf("function loadSuggestInband")<0||boot.indexOf("loadSuggestInband()")<0)return "the load that forces the flag ON is not wired";
+    var lf=um.slice(um.indexOf("function loadSuggestInband"));lf=lf.slice(0,lf.indexOf("\n"));
+    if(lf.indexOf("suggestInband=true")<0||lf.indexOf("store.del(SUGGEST_INBAND_K)")<0)return "the load must force ON and clear a stored rollback: "+lf.slice(0,160);
+    if(um.indexOf("store.set(SUGGEST_INBAND_K")>=0||boot.indexOf("store.set(SUGGEST_INBAND_K")>=0)return "the retired key is still written";
+    return typeof SUGGEST_INBAND_K==="string"?true:"the retired key's constant must stay (the load reads it once to clear it; the storage-key doc derives from it)";
   });
   // ── #329 roll your own dice (owner design 2026-09-03: a checkbox off by default; "d20 · click to roll") ──
   t("#329 the pure half: parseCheckTag reads label/modifier/DC; resolveCheck turns a d20 into total, outcome, the [DICE:] record and the continuation note (the roll is final); no DC → rolled/critical/fumble",function(){
@@ -18715,7 +18719,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
       diceStakeClause=false;var off=buildSysPrompt().stable;if(off.indexOf("what failure would cost")>=0)return "clause survived the switch";
       var onCut=on.replace(diceStakeText.call(null)||"","");diceStakeClause=true;var clause=diceStakeText();diceStakeClause=false;if(on.replace(clause,"")!==off)return "the switch changes more than the clause";
       playerRollsDice=true;diceStakeClause=true;var pr=buildSysPrompt().stable;if(pr.indexOf("THE PLAYER ROLLS")<0||pr.indexOf("what failure would cost")<0)return "the player-rolls contract lost the clause";
-      var ub=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8");if(ub.indexOf("chk(p+\"stake-cb\",\"Name the stake before a roll\"")<0||ub.indexOf("[\"stake-cb\",toggleDiceStake]")<0||ub.indexOf("loadDiceStake();")<0||!/\["adult-cb","inband-cb","dice-cb","stake-cb"/.test(ub))return "File menu checkbox not generated, wired, kept-open or loaded";
+      var ub=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8");if(ub.indexOf("chk(p+\"stake-cb\",\"Name the stake before a roll\"")<0||ub.indexOf("[\"stake-cb\",toggleDiceStake]")<0||ub.indexOf("loadDiceStake();")<0||!/\["adult-cb","dice-cb","stake-cb"/.test(ub))return "File menu checkbox not generated, wired, kept-open or loaded";/* the kept-open list lost "inband-cb" when #328's switch was retired (2026-10-30) */
       var um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8");return /function toggleDiceStake\(\)\{diceStakeClause=!diceStakeClause;store\.set\(DICE_STAKE_K/.test(um)&&/function loadDiceStake\(\)/.test(um)?true:"toggle/load missing";
     }finally{diceStakeClause=was;playerRollsDice=wasP;}
   });
