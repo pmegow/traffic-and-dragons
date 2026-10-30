@@ -11,7 +11,7 @@
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.74.0';
+const VERSION = '0.75.2';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
@@ -42,6 +42,7 @@ const FILES = [
   'input/pinch.js',
   'input/press-gesture.js',
   'manifest.webmanifest',
+  'render/die-looks.js',
   'render/die-mesh.js',
   'render/exit-shader.js',
   'render/exit-table.js',

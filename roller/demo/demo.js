@@ -5,7 +5,8 @@ import { createPressGesture } from '../input/press-gesture.js';
 import { createPinch } from '../input/pinch.js';
 import { createPresetStore } from './preset-store.js';
 import { createDrawer, DRAWER } from './drawer.js';
-import { sameLook } from '../render/presets.js';
+import { sameLook, presetStyle } from '../render/presets.js';
+import { MIXED_BAG } from '../render/die-looks.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
 import { rollParts } from './roll-line.js';
@@ -189,12 +190,16 @@ $('tray').value = VIEW_DEFAULTS.tray.scale;
 $('speed-out').textContent = Number($('speed').value).toFixed(2) + '×';
 $('tray-out').textContent = Number($('tray').value).toFixed(2) + '×';
 const look = () => ({ body: $('body-color').value, ink: $('ink-color').value, finish: $('finish').value, font: $('font').value, surface: $('surface').value });
+// The mixed bag (owner 2026-10-30: "add a 'mixed bag' preset that will randomly assign a preset to each die"): every
+// preset, built in and saved, dealt one to a die at random, each die keeping its own (render/die-looks.js).
+let mixed = false;
 try {
   // A per-viewer convenience: the last look chosen on this browser (fine to lose).
   const saved = JSON.parse(localStorage.getItem(LOOK_KEY) || 'null');
   if (saved && FINISHES[saved.finish]) { $('body-color').value = saved.body; $('ink-color').value = saved.ink; $('finish').value = saved.finish; }
   if (saved && SURFACE_LOOKS[saved.surface]) $('surface').value = saved.surface;
   if (saved && NUMERAL_FONTS[saved.font]) $('font').value = saved.font;
+  mixed = !!(saved && saved.mixed);
 } catch { /* storage blocked: the defaults stand */ }
 // The colour pickers (demo/color-picker.js, owner 2026-10-29: HSV sliders as well as RGB): a swatch over each native
 // input, which stays the value's home — a slide writes it and fires 'input', the listener below applies the look.
@@ -219,8 +224,9 @@ const presetStore = createPresetStore(presetStorage);
   for (const { from, to } of presetStore.renamed) problems.push('A built-in preset is now called "' + from + '", so your own saved "' + from + '" is now "' + to + '".');
   if (problems.length) { console.warn('presets:', problems.join(' ')); status(problems.join(' ')); }
 }
-/** The picker shows the preset the dice are wearing, or "Custom look"; Delete only for a saved one. */
+/** The picker shows the preset the dice are wearing, the mixed bag, or "Custom look"; Delete only for a saved one. */
 const syncPreset = () => {
+  if (mixed) { $('preset').value = MIXED_BAG; $('preset-delete').disabled = true; return; }
   const style = currentStyle();
   const chosen = presetStore.find($('preset').value);
   const showing = chosen && sameLook(chosen, style) ? chosen : presetStore.match(style);
@@ -239,6 +245,7 @@ const fillPresets = (select = null) => {
     const group = document.createElement('optgroup');
     group.label = label;
     for (const p of items) group.appendChild(new Option(p.name, p.name));
+    if (builtIn) group.appendChild(new Option(MIXED_BAG, MIXED_BAG));
     picker.appendChild(group);
   }
   if (select) picker.value = select;
@@ -246,6 +253,7 @@ const fillPresets = (select = null) => {
 };
 const savePreset = () => {
   const name = $('preset-name').value.trim();
+  if (mixed) { status('The mixed bag deals every preset: choose one look, then save it.'); return; }
   if (!name) { status('Name the look first, then save it.'); $('preset-name').focus(); return; }
   try {
     presetStore.save(name, currentStyle());
@@ -254,6 +262,7 @@ const savePreset = () => {
   } catch (e) { status(e.message); console.error('presets:', e); }
 };
 $('preset').addEventListener('change', () => {
+  if ($('preset').value === MIXED_BAG) { $('preset-name').value = ''; applyBag(); return; }
   const p = presetStore.find($('preset').value);
   if (!p) return;
   $('body-color').value = p.body;
@@ -283,17 +292,29 @@ $('preset-delete').addEventListener('click', () => {
   } catch (e) { status(e.message); console.error('presets:', e); }
 });
 
+const rememberLook = () => {
+  try { localStorage.setItem(LOOK_KEY, JSON.stringify({ ...look(), mixed })); } catch { /* storage blocked */ }
+};
+/** One look on every die: what the controls say (a preset chosen fills them first). */
 const applyLook = () => {
+  mixed = false;
   const { body, ink, finish, font } = look();
   view.setDieStyle({ body, ink, finish, font }).then(() => view.warmUp()).catch((e) => { status('Could not change the look: ' + e.message); console.error(e); });
-  try { localStorage.setItem(LOOK_KEY, JSON.stringify(look())); } catch { /* storage blocked */ }
+  rememberLook();
   for (const p of colorPickers) p.sync();
   syncPreset();
 };
+/** The mixed bag: each die dealt a preset at random; `keep` leaves the dice on the table as they are dressed. */
+const applyBag = ({ keep = false } = {}) => {
+  mixed = true;
+  view.setDieBag({ bag: presetStore.list().map(presetStyle) }, { keep }).then(() => view.warmUp()).catch((e) => { status('Could not deal the mixed bag: ' + e.message); console.error(e); });
+  rememberLook();
+  syncPreset();
+};
 fillPresets();
-applyLook();
+if (mixed) applyBag(); else applyLook();
 applySurface();
-$('surface').addEventListener('change', () => { applySurface(); applyLook(); });
+$('surface').addEventListener('change', () => { applySurface(); if (mixed) applyBag({ keep: true }); else applyLook(); });
 for (const id of ['body-color', 'ink-color']) $(id).addEventListener('input', applyLook);
 $('finish').addEventListener('change', applyLook);
 $('font').addEventListener('change', applyLook);

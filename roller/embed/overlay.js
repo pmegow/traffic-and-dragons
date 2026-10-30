@@ -33,14 +33,16 @@ const soon = (promise, ms) => Promise.race([promise, new Promise((resolve) => se
 export const OVERLAY_DEFAULTS = { tilt: 68, tray: { width: 0.15, depth: 0.10 } };
 
 /**
- * container: the host's element (required). look: a die style {body, ink, finish, font} (default the
+ * container: the host's element (required). look: a die style {body, ink, finish, font}, or a bag of them to deal
+ * each die one of ({ bag: [styles] }, render/die-looks.js: the mixed bag; DiceSim.presetStyle gives either) (default the
  * view's). sound: false for none. context: the host's own AudioContext, so the dice share its unlock
  * and its output. exit: how dismiss() takes the dice away (an EXIT_TABLE name; 'none', at once). tilt,
  * tray: the view's (OVERLAY_DEFAULTS).
  */
 export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, sound = true, context = null, exit = 'none', tilt = OVERLAY_DEFAULTS.tilt, tray = OVERLAY_DEFAULTS.tray } = {}) {
   if (!container) throw new Error('createDiceOverlay: a container element is required');
-  const view = new DiceView({ container, transparent: true, tilt, tray, dieStyle: look });
+  const view = new DiceView({ container, transparent: true, tilt, tray, dieStyle: look && look.bag ? look.bag[0] : look });
+  if (look && look.bag) view.setDieBag(look).catch((e) => console.error('dice-sim: the mixed bag could not be put on the dice:', e));
   const audio = sound ? new DiceAudio({ context }) : null;
   const loading = audio ? audio.load().catch((e) => { console.warn('dice-sim: the dice sound is off: ' + e.message); return null; }) : Promise.resolve(null);
   let current = 0;   // the newest roll wins: an older one still playing is abandoned
@@ -79,7 +81,7 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
       // the unlock and the bank, then the dice go, silent if the sound is not ready.
       const withSound = (await soon(loading, SOUND_WAIT_MS.bank)) && (await soon(unlocking, SOUND_WAIT_MS.unlock));
       // The look's font too (a vendored one loads from a file): a moment, so the first roll is painted in it.
-      await soon(view.readyFont(view.o.dieStyle.font).catch(() => false), FONT_WAIT_MS);
+      await soon(view.readyFonts().catch(() => false), FONT_WAIT_MS);
       // And the dice's pipeline (warmTable): built as the overlay was made, or for the first roll after a look, now.
       await soon(view.warmTable(), WARM_WAIT_MS);
       if (mine !== current) return null;
@@ -114,8 +116,8 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
       view.clear();
       view.render();
     },
-    /** The dice's look for the next roll (and the dice now showing). */
-    setLook(style) { return view.setDieStyle(style).then(() => warm()); },
+    /** The dice's look for the next roll (and the dice now showing): a die style, or a bag ({ bag: [styles] }) to deal each die one of. */
+    setLook(look) { return (look && look.bag ? view.setDieBag(look) : view.setDieStyle(look)).then(() => warm()); },
     setMuted(muted) { if (audio) audio.setMuted(muted); },
     /** Ends the overlay: its WebGL context and its sound engine go (the engine closes the audio context it made; one the host lent stays the host's). */
     dispose() {

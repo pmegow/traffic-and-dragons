@@ -1008,8 +1008,7 @@ function discMaterial(fragment, blending) {
  * into its transmission buffer (a burning glass die stalled 0.3 s on that variant alone). The same shaders
  * the exits make, so theirs are found compiled.
  */
-export function exitWarmUp(view) {
-  const style = view.o.dieStyle;
+export function exitWarmUp(view, style = view.o.dieStyle) {
   const see = dieMaterial(style.finish, style, glyphOf(0), 0, { radius: 0.012, onTray: view.trayDrawn });
   see.transparent = true;   // the die seen through as it burns off or fades
   const depth = exitDepthMaterial(see.userData.dice.uniforms);

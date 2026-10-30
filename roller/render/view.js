@@ -23,6 +23,7 @@ import { supersampleRatio, stepDown, SUPERSAMPLE } from './supersample.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
 import { exitDelays, chooseExit } from './exit-table.js';
 import { towardEye, tossSpin, restHeight, cupFor, keepInFrame } from './hand.js';
+import { bagOf, deal, looksFor, retire, pairsOf } from './die-looks.js';
 import { EXITS, exitWarmUp } from './exits.js';
 
 /**
@@ -73,7 +74,10 @@ export class DiceView {
     this.frameRequested = false;
     this.exiting = new Set();     // dice off the table, still drawn until their exit ends: { die, finish }
     this.fonts = new Map();       // a numeral font's load and repaint under way (readyFont), by NUMERAL_FONTS key
-    this.warmed = null;           // the dice's pipeline readied for the current finish and font (warmTable)
+    this.warmed = new Map();      // the dice's pipeline readied, by finish and font (warmTable)
+    this.warm = new Map();        // the exits' shaders readied, by finish (warmExits)
+    this.bag = [o.dieStyle];      // the look: the styles a die is dealt from (render/die-looks.js); one style, every die alike
+    this.wardrobe = new Map();    // the look each die wears, by type and rank, dealt from the bag and kept (render/die-looks.js)
     this.held = null;             // the hand holding the table (pickUp … release): { phase, hold, target, onHit, … }
     this.supersampleRung = 1;     // the pixel-ratio multiplier the canvas draws at (render/supersample.js), set by resize
     this.supersampleCap = Infinity;   // the governor's ceiling: a rung the GPU could not keep up with is not tried again
@@ -400,13 +404,12 @@ export class DiceView {
    * A die type's rounded geometry (built once) and its numeral mask in the current font (built once
    * per font). Colours and finish are the material's.
    */
-  atlasFor(type) {
+  atlasFor(type, font = this.o.dieStyle.font) {
     if (!this.atlases.has(type)) {
       const die = buildDie(type);
       this.atlases.set(type, { die, geometry: buildDieGeometry(die), glyphs: new Map() });
     }
     const a = this.atlases.get(type);
-    const font = this.o.dieStyle.font;
     if (!a.glyphs.has(font)) {
       a.glyphs.set(font, paintGlyphMask(a.die, a.geometry.userData.layout, NUMERAL_FONTS[font]));
       // A vendored face not yet loaded paints in its fallback for now: the mask is repainted, and every die wearing
@@ -452,27 +455,66 @@ export class DiceView {
    * Changes the dice's look — {body, ink} colours, the finish (FINISHES) and the numeral font
    * (NUMERAL_FONTS) — for the dice on the tray now and every roll after. Colours change in place; a
    * new finish rebuilds the materials; a new font is loaded first (it may be a file) and repaints
-   * the numerals. Resolves when the change is on screen.
+   * the numerals. Every die wears it (a bag of one, render/die-looks.js). Resolves when the change is on screen.
    */
   async setDieStyle(style) {
     const next = { ...this.o.dieStyle, ...style };
     if (!FINISHES[next.finish]) throw new Error('DiceView: no finish "' + next.finish + '" (known: ' + Object.keys(FINISHES).join(', ') + ')');
     if (!NUMERAL_FONTS[next.font]) throw new Error('DiceView: no numeral font "' + next.font + '" (known: ' + Object.keys(NUMERAL_FONTS).join(', ') + ')');
-    if (next.font !== this.o.dieStyle.font) await this.readyFont(next.font);
-    const refinish = next.finish !== this.o.dieStyle.finish;
+    await this.readyFont(next.font);
     this.o.dieStyle = next;
-    for (const d of this.dice) {
-      const { glyph } = this.atlasFor(d.die.type);
-      if (refinish) {
-        const old = d.mesh.material;
-        d.mesh.material = dieMaterial(next.finish, next, glyph, old.userData.dice.seed, { radius: d.die.boundingRadius, onTray: this.trayDrawn });
-        old.dispose();
-      } else {
-        recolour(d.mesh.material, next);
-        setGlyph(d.mesh.material, glyph);
-      }
-    }
+    this.bag = [next];
+    this.wardrobe = new Map();
+    this.dressTable();
     this.render();
+  }
+
+  /**
+   * Puts a look of many styles on the dice — `look` a bag ({ bag: [styles] }) or one style (render/die-looks.js) — each
+   * die on the table dealt one at random, and each die after as it arrives (owner 2026-10-30: "add a 'mixed bag' preset
+   * that will randomly assign a preset to each die"; dealt once, then kept). `keep` changes only what is dealt from now
+   * on, the dice on the table keeping theirs (a surface changed while the bag is on). The bag deals from the moment it
+   * is set — a roll baked meanwhile is dealt from it, and waits for its fonts (roll ▸ readyFonts) — and the dice on the
+   * table are dressed once every font in it has loaded. Resolves when the change is on screen.
+   */
+  async setDieBag(look, { keep = false } = {}) {
+    const bag = bagOf(look);
+    this.bag = bag;
+    if (!keep) this.wardrobe = new Map();   // dealt anew: the old looks go back in the bag
+    await Promise.all([...new Set(bag.map((s) => s.font))].map((f) => this.readyFont(f)));
+    if (this.bag !== bag) return;   // a newer look took over while the fonts loaded
+    if (!keep) this.dressTable();
+    this.render();
+  }
+
+  /** Dresses every die on the table in the look the wardrobe gives it, dealing from the bag any it has none for. */
+  dressTable() {
+    const looks = looksFor(this.dice.map((d) => d.die.type), this.wardrobe, this.bag);
+    this.dice.forEach((d, i) => this.dress(d, looks[i]));
+  }
+
+  /** Dresses a die on the table in a style: colours and numerals in place, or a new material for a new finish. */
+  dress(d, style) {
+    const { glyph } = this.atlasFor(d.die.type, style.font);
+    if (d.style && d.style.finish === style.finish) {
+      recolour(d.mesh.material, style);
+      setGlyph(d.mesh.material, glyph);
+    } else {
+      const old = d.mesh.material;
+      d.mesh.material = dieMaterial(style.finish, style, glyph, old.userData.dice.seed, { radius: d.die.boundingRadius, onTray: this.trayDrawn });
+      old.dispose();
+    }
+    d.style = style;
+  }
+
+  /** The style each die of the table wears now, in play order. */
+  dieStyles() {
+    return this.dice.map((d) => d.style);
+  }
+
+  /** Readies every font the look can deal (a vendored one loads from a file). */
+  readyFonts() {
+    return Promise.all([...new Set(this.bag.map((s) => s.font))].map((f) => this.readyFont(f)));
   }
 
   /**
@@ -501,13 +543,21 @@ export class DiceView {
    * frame otherwise stalled for up to 6.9 s on quartz while they compiled (measured 2026-10-25). The
    * shadow material is compiled as the shadow pass draws it: into a render target, so without tone
    * mapping — and so is a see-through die's far faces, as three.js draws them into its transmission
-   * buffer. Call it after setDieStyle; the last finish's are freed once the new ones are ready. Resolves
-   * when they are ready.
+   * buffer. Call it after setDieStyle or setDieBag: every finish the look can deal is readied (a mixed bag, several),
+   * and a finish it no longer deals is freed once they are. Resolves when they are ready.
    */
   warmExits() {
-    const finish = this.o.dieStyle.finish;
-    if (this.warm && this.warm.finish === finish) return this.warm.ready;
-    const old = this.warm, made = exitWarmUp(this);
+    const byFinish = new Map(pairsOf(this.bag).map((p) => [p.finish, p.style]));
+    const ready = Promise.all([...byFinish.values()].map((style) => this.warmExitsFor(style)));
+    ready.then(() => { for (const [finish, w] of this.warm) if (!byFinish.has(finish)) { w.dispose(); this.warm.delete(finish); } });
+    return ready;
+  }
+
+  /** warmExits for one finish (a style that wears it), kept by finish. */
+  warmExitsFor(style) {
+    const finish = style.finish, had = this.warm.get(finish);
+    if (had) return had.ready;
+    const made = exitWarmUp(this, style);
     const onScreen = new THREE.Scene(), inShadow = new THREE.Scene();
     for (const o of made.screen) onScreen.add(o);
     for (const o of made.offscreen) inShadow.add(o);
@@ -520,10 +570,9 @@ export class DiceView {
       this.renderer.setRenderTarget(before);
     }
     const ready = Promise.all([this.renderer.compileAsync(onScreen, this.camera, this.scene), shadows])
-      .then(() => { if (old) old.dispose(); })
       .catch((e) => console.error('DiceView: the exit shaders could not be readied ahead, so an exit may stall to compile them:', e))
       .finally(() => target.dispose());
-    this.warm = { finish, ready, dispose: made.dispose };
+    this.warm.set(finish, { ready, dispose: made.dispose });
     return ready;
   }
 
@@ -536,19 +585,28 @@ export class DiceView {
    * on a desktop GPU (measured 2026-10-28) — the die hung in the air, then popped onto the floor, because play()'s clock
    * was already running (it now starts once the first frame is drawn). Kept per finish and font, as warmExits keeps
    * the exits'; the stand-in's material stays alive so its program is never freed and built again. Resolves once the
-   * pipeline has been drawn. Call it after setDieStyle (warmUp does, with warmExits).
+   * pipeline has been drawn. Call it after setDieStyle or setDieBag (warmUp does, with warmExits): every finish and
+   * font pair the look can deal is readied (render/die-looks.js ▸ pairsOf), and a pair it no longer deals is freed once
+   * they are.
    */
   warmTable() {
-    const { finish, font } = this.o.dieStyle, key = finish + '/' + font;
-    if (this.warmed && this.warmed.key === key) return this.warmed.ready;
-    const old = this.warmed;
+    const pairs = pairsOf(this.bag), keys = new Set(pairs.map((p) => p.finish + '/' + p.font));
+    const ready = Promise.all(pairs.map((p) => this.warmTableFor(p.style)));
+    ready.then(() => { for (const [key, w] of this.warmed) if (!keys.has(key)) { w.dispose(); this.warmed.delete(key); } });
+    return ready;
+  }
+
+  /** warmTable for one finish and font (a style that wears them), kept by the pair. */
+  warmTableFor(style) {
+    const { finish, font } = style, key = finish + '/' + font, had = this.warmed.get(key);
+    if (had) return had.ready;
     let die = null, geometry = null, glyph = null;
     for (const type of dieTypes()) {
-      const a = this.atlasFor(type);
+      const a = this.atlasFor(type, font);
       this.renderer.initTexture(a.glyph);   // uploaded now, not as its first die lands
       if (type === WARM_DIE) ({ die, geometry, glyph } = a);
     }
-    const material = dieMaterial(finish, this.o.dieStyle, glyph, 0, { radius: die.boundingRadius, onTray: this.trayDrawn });
+    const material = dieMaterial(finish, style, glyph, 0, { radius: die.boundingRadius, onTray: this.trayDrawn });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = mesh.receiveShadow = true;
     mesh.frustumCulled = false;   // drawn, though it has no size
@@ -557,14 +615,14 @@ export class DiceView {
     standIn.add(mesh);
     const ready = this.renderer.compileAsync(standIn, this.camera, this.scene)
       .then(() => {
-        if (this.warmed.ready !== ready) { if (old) old.dispose(); return; }   // a newer look took over; its own draw follows
+        if (this.warmed.get(key) !== entry) return;   // freed before it was drawn: the look moved on
         this.scene.add(mesh);
         this.render();
         this.scene.remove(mesh);
-        if (old) old.dispose();
       })
       .catch((e) => console.error('DiceView: the dice pipeline could not be readied ahead, so the first die may wait while it is built:', e));
-    this.warmed = { key, ready, dispose: () => material.dispose() };
+    const entry = { ready, dispose: () => material.dispose() };
+    this.warmed.set(key, entry);
     return ready;
   }
 
@@ -842,6 +900,7 @@ export class DiceView {
     if (!d) throw new Error('DiceView.removeDie: the table has no die ' + i + ' (' + this.dice.length + ' on it)');
     if (exit !== null && !EXITS[exit]) throw new Error('DiceView: no exit "' + exit + '" (known: ' + Object.keys(EXITS).join(', ') + ')');
     this.held = null;   // the hand opens: the dice it held are no longer the table
+    retire(this.wardrobe, this.dice.map((t) => t.die.type), i);   // the dice of its type after it keep their looks
     this.dice.splice(i, 1);
     if (exit === null) {
       disposeDie(this.scene, d);
@@ -901,17 +960,25 @@ export class DiceView {
     // roll's tray is this one and the play never reframes the camera away from the edges the dice were kept inside
     // (grown with the dice count, 16 dice stood the camera back 1.6× and bounced off walls well inside the screen).
     const fixed = edges ? { width: this.tray.width, depth: this.tray.depth } : {};
-    // Every die is made of what its finish says (FINISHES ▸ material: a metal die is heavy and dead, a wooden one light),
-    // unless the request names a material for it.
-    const material = FINISHES[this.o.dieStyle.finish].material;
-    if (!DIE_MATERIALS[material]) throw new Error('DiceView: the finish "' + this.o.dieStyle.finish + '" names no die material (known: ' + Object.keys(DIE_MATERIALS).join(', ') + ')');
-    const dice = (request.dice || []).map((d) => (typeof d === 'string' ? { type: d, material } : { material, ...d }));
-    return roll({ readUp: this.readUp, ...request, dice, tray: { ...this.trayOptions, ...fixed, ...bounds, ...(request.tray || {}) } });
+    // Each die wears a look (render/die-looks.js): a die at a place the same die held keeps the one it wears, any other is
+    // dealt one from the bag — the result carries them (result.looks) for play to dress the dice in. Each die is made
+    // of what its own finish says (FINISHES ▸ material: a metal die is heavy and dead, a wooden one light), unless the
+    // request names a material for it.
+    const types = (request.dice || []).map((d) => (typeof d === 'string' ? d : d.type));
+    const looks = looksFor(types, this.wardrobe, this.bag);
+    const dice = (request.dice || []).map((d, i) => {
+      const material = FINISHES[looks[i].finish].material;
+      if (!DIE_MATERIALS[material]) throw new Error('DiceView: the finish "' + looks[i].finish + '" names no die material (known: ' + Object.keys(DIE_MATERIALS).join(', ') + ')');
+      return typeof d === 'string' ? { type: d, material } : { material, ...d };
+    });
+    const result = roll({ readUp: this.readUp, ...request, dice, tray: { ...this.trayOptions, ...fixed, ...bounds, ...(request.tray || {}) } });
+    result.looks = looks;
+    return result;
   }
 
-  /** Bakes a roll and plays it, once the dice's font is ready to paint in. */
+  /** Bakes a roll and plays it, once every font the look can deal is ready to paint in. */
   async roll(request, playOptions = {}) {
-    await this.readyFont(this.o.dieStyle.font);
+    await this.readyFonts();
     const result = this.bake(request);
     await this.play(result, playOptions);
     return result;
@@ -942,22 +1009,24 @@ export class DiceView {
     this.dice = carried;   // a tray rebuilt below tells the carried dice whether it is drawn
     if (result.tray.width !== this.tray.width || result.tray.depth !== this.tray.depth) this.setTray(result.tray);
     this.dice = result.dice.map((d, i) => {
-      const { die, geometry, glyph } = this.atlasFor(d.type);
-      const meshFeature = die.featureOfValue.get(d.value);
       if (i < fromTable) {
-        const c = carried[i];
-        return { mesh: c.mesh, die, value: d.value, meshFeature, keep: facesShowing(die, meshFeature), steady: meshFeature === c.meshFeature, hitIndex: 0, index: i };
+        const c = carried[i], die = c.die, meshFeature = die.featureOfValue.get(d.value);
+        return { mesh: c.mesh, die, style: c.style, value: d.value, meshFeature, keep: facesShowing(die, meshFeature), steady: meshFeature === c.meshFeature, hitIndex: 0, index: i };
       }
+      // The look its bake dealt it (render/die-looks.js): a die the table held keeps the one it wore.
+      const style = (result.looks && result.looks[i]) || deal(this.bag);
+      const { die, geometry, glyph } = this.atlasFor(d.type, style.font);
+      const meshFeature = die.featureOfValue.get(d.value);
       const g = geometry.clone();
       g.userData = geometry.userData;
       // Each die its own material: its own place in the marble or granite (seed from the roll).
       const seed = (Math.imul((result.seedUsed >>> 0) ^ 0x9e3779b9, i + 1) >>> 0) / 4294967296;
-      const material = dieMaterial(this.o.dieStyle.finish, this.o.dieStyle, glyph, seed, { radius: die.boundingRadius, onTray: this.trayDrawn });
+      const material = dieMaterial(style.finish, style, glyph, seed, { radius: die.boundingRadius, onTray: this.trayDrawn });
       const mesh = new THREE.Mesh(g, material);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       this.scene.add(mesh);
-      return { mesh, die, value: d.value, meshFeature, keep: facesShowing(die, meshFeature), steady: false, hitIndex: 0, index: i };
+      return { mesh, die, style, value: d.value, meshFeature, keep: facesShowing(die, meshFeature), steady: false, hitIndex: 0, index: i };
     });
     const duration = rollDuration(result);
     // The dice at roll time t (seconds): their poses and the highlight's dim — it eases in over the whole roll
@@ -1010,8 +1079,8 @@ export class DiceView {
     if (this.playing) this.playing.cancel();
     for (const r of [...this.exiting]) r.finish();
     this.animators.clear();
-    if (this.warm) this.warm.dispose();
-    if (this.warmed) this.warmed.dispose();
+    for (const w of this.warm.values()) w.dispose();
+    for (const w of this.warmed.values()) w.dispose();
     this.clear();
     this.resizeObserver.disconnect();
     for (const a of this.atlases.values()) { a.geometry.dispose(); for (const g of a.glyphs.values()) g.dispose(); }
