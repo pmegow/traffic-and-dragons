@@ -1,4 +1,4 @@
-const assert=require('assert/strict'),fs=require('fs'),{validate,append}=require('./record-release.js');
+const assert=require('assert/strict'),fs=require('fs'),{validate,append,releaseIdentity,hasRelease}=require('./record-release.js');
 let passed=0;
 function test(name,fn){try{fn();passed++;console.log('PASS #674 releases '+name);}catch(e){console.error('FAIL #674 releases '+name+': '+e.message);process.exitCode=1;}}
 test('action limit rejects 25 words and malformed data',()=>{
@@ -18,6 +18,16 @@ test('release ledger and next version remain valid',()=>{
  const next=validate(JSON.parse(fs.readFileSync('release-next.json')));
  assert.equal(next.version,fs.readFileSync('globals.js','utf8').match(/var APP_VERSION="([^"]+)"/)[1],'update release-next.json with every version bump');
 });
+
+test('merge releases use the production head while metadata commits only deduplicate entries',()=>{
+ const head='b'.repeat(40),source='a'.repeat(40);
+ const identity=releaseIdentity('production',args=>args[0]==='rev-parse'?head:source);
+ assert.deepEqual(identity,{commit:head,sourceCommit:source});
+ assert.equal(hasRelease({releases:[{commit:head,sourceCommit:source}]},source),true);
+ assert.equal(hasRelease({releases:[{commit:source}]},source),true);
+ assert.equal(hasRelease({releases:[{commit:head,sourceCommit:'c'.repeat(40)}]},source),false);
+});
+
 console.log('#674 release notes: '+passed+' passed');
 
 (async()=>{

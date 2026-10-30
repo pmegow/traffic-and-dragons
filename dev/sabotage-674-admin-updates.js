@@ -2,6 +2,7 @@
 const sabotage=require('./sabotage.js'),verdict=require('./battery-verdict.js'),chrome=require('./cdp-browser.js').locateChrome();
 let bad=0;
 bad|=sabotage.prove({file:'dev/record-release.js',command:['node',['dev/tests-674-release-notes.js']],cases:[
+ {label:'preview commit replaces production head',find:"commit:runGit(['rev-parse',head])",replace:"commit:runGit(['log','-1','--format=%H',head,'--','release-next.json'])",mustFail:'#674 releases merge releases use the production head while metadata commits only deduplicate entries'},
  {label:'overlong action slips through',find:'.length<25',replace:'.length<26',mustFail:'#674 releases action limit rejects 25 words and malformed data'},
  {label:'failed deploy becomes a release',find:"c.conclusion==='success'",replace:'true',mustFail:'#674 releases only a confirmed production receipt supplies a release date'},
  {label:'duplicate ledger receipt',find:'if(ledger.releases.some(r=>r.commit===commit))return false;',replace:'',mustFail:'#674 releases only a confirmed production receipt supplies a release date'}
