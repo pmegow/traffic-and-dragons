@@ -9,9 +9,10 @@
 <style>
 body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{font-size:16px;margin:0 0 12px}p{line-height:1.5}.sub{font-size:13px;color:var(--t1)}
 .overview{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:24px 0}.overview section{padding:18px;background:var(--bg1);border-radius:var(--rl)}
-.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 12px}.toolbar h2{margin:0}button,input,select{font:inherit;color:var(--t0);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);padding:8px 10px}button{cursor:pointer}button:hover{border-color:var(--acc)}button:disabled{opacity:.45;cursor:default}button.danger{color:var(--hp)}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 12px}.toolbar h2{margin:0}button,input,select,textarea{font:inherit;color:var(--t0);background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);padding:8px 10px}button{cursor:pointer}button:hover{border-color:var(--acc)}button:disabled{opacity:.45;cursor:default}button.danger{color:var(--hp)}
 #status{min-height:24px;margin:12px 0;color:var(--t1)}#status.error,.error{color:var(--hp)}#who{color:var(--t1);font-size:13px}.user{padding:20px 0;border-top:1px solid var(--brd)}
 .user-top{display:grid;grid-template-columns:minmax(180px,1fr) minmax(170px,1fr) minmax(190px,1fr);gap:18px}.user h3{margin:0 0 5px;font-size:18px;overflow-wrap:anywhere}.meta{font-size:12px;color:var(--t1);line-height:1.6;overflow-wrap:anywhere}.value{font-size:19px;color:var(--t0);margin-bottom:3px}.controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:14px}.controls label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--t1)}.controls input{width:90px}.controls select{max-width:100%}.controls button{font-size:13px}.empty{padding:24px 0;color:var(--t1)}details{margin-top:10px;font-size:12px;color:var(--t1)}summary{cursor:pointer;color:var(--acc)}.model{margin-top:6px;overflow-wrap:anywhere}.purpose{margin:2px 0 0 1.4em;color:var(--t1);overflow-wrap:anywhere}
+.frame{margin:20px 0;padding:18px;background:var(--bg1);border:1px solid var(--brd);border-radius:var(--rl)}.frame>summary{font-size:18px;font-weight:bold;padding:6px 0;overflow-wrap:anywhere}.user>summary{font-size:16px;line-height:1.5;overflow-wrap:anywhere}.user-top{margin-top:16px}.release-entry{border-top:1px solid var(--brd);padding:14px 0}.release-entry h3{margin:0 0 6px}.release-entry time{color:var(--t1);font-size:12px}.release-entry li,#mail-review li{line-height:1.6;overflow-wrap:anywhere}.mail-fields{display:grid;gap:12px}.mail-fields label{display:grid;gap:6px}.mail-fields textarea{min-height:140px;resize:vertical;box-sizing:border-box;width:100%}.mail-fields input{box-sizing:border-box;width:100%}.mail-copy{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}#mail-recent{display:grid;gap:8px}#mail-recent button{text-align:left;overflow-wrap:anywhere}.mail-actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
 @media(max-width:640px){body{padding:0 16px 32px}.overview,.user-top{grid-template-columns:1fr;gap:14px}.overview{margin:20px 0}.controls{gap:10px}.controls button{min-height:44px}.sat-header nav a{margin:0 16px 0 0}.user{padding:20px 0}.controls select{width:190px}}
 </style>
 </head>
@@ -26,8 +27,16 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
     <section><h2>Server health</h2><div id="health">Not checked</div><p id="metered" class="sub"></p><p class="sub">Error counts cover recorded upstream responses only. Local refusals, transport failures and billing refusals are not recorded here.</p></section>
     <section><h2>Bug feed</h2><p class="sub">The existing tracker owns the live report feed, its access secret and triage history.</p><a href="bug_tracker.html">Open live reports and triage →</a></section>
   </div>
+  <details id="player-activity" class="frame"><summary id="activity-title">Player Activity (loading)</summary>
+  <p id="activity-status" class="sub" role="status"></p>
   <p class="sub">Activity = last metered request, not last login. Usage is a rolling 30-day window. USD estimates use the game’s current LLM rate table, not historical invoices; cached OpenAI/Gemini input is an upper bound. Unpriced models (including images) are listed, never counted as free.</p>
-  <div id="users"></div>
+  <div id="users"></div></details>
+  <details id="release-notes" class="frame"><summary>Release Notes</summary><p id="release-status" class="sub" role="status">Loading release history…</p><div id="release-history"></div></details>
+  <details id="beta-mail" class="frame"><summary>Email beta testers</summary><p class="sub">Send an individual email to each active Tester or Beta account with a verified address. Operators are excluded; duplicate addresses receive one copy.</p>
+    <div class="mail-fields"><label for="mail-subject">Subject<input id="mail-subject" maxlength="200"></label><label for="mail-body">Message<textarea id="mail-body" maxlength="20000"></textarea></label></div>
+    <div class="mail-actions"><button id="mail-preview" type="button">Preview recipients</button><button id="mail-send" type="button" disabled>Send email</button><button id="mail-history" type="button">Load recent mailings</button></div>
+    <p id="mail-status" class="sub" role="status" aria-live="polite"></p><div id="mail-review" hidden></div><div id="mail-recent"></div>
+  </details>
 </div>
 </main>
 <script src="globals.js"></script>
@@ -35,10 +44,12 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
 <script src="helpers.js"></script>
 <script src="inventory.js"></script>
 <script src="state.js"></script>
-<script src="storage-adapter.js"></script>
+<script src="storage-adapter.js?admin_console"></script>
+<script src="admin-mail.js?admin_console"></script>
+<script src="admin-release-notes.js?admin_console"></script>
 <script>
 (function(){
-  var authorized=false,pending=false,tiers={},controls=[],roster=[],refreshId=0;
+  var authorized=false,pending=false,tiers={},controls=[],roster=[],refreshId=0,activitySince=null,activity=null,visitText="",activityOperator=null,visitId="v"+Date.now()+"-"+Math.random().toString(36).slice(2),expanded=Object.create(null);
   function $(id){return document.getElementById(id);}
   function el(tag,text,cls){var n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
   function status(text,bad){$("status").textContent=text;$("status").className=bad?"error":"";if(bad)console.warn("[admin] "+text);}
@@ -76,7 +87,10 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
     roster=list;controls=[];$("users").textContent="";
     if(!list.length){$("users").appendChild(el("p","No accounts found.","empty"));return;}
     list.forEach(function(u){
-      var row=el("article",undefined,"user"),top=el("div",undefined,"user-top"),identity=el("div"),plan=el("div"),usage=el("div"),s=summarizeUsage(u.usage30d);
+      var row=el("details",undefined,"user"),top=el("div",undefined,"user-top"),identity=el("div"),plan=el("div"),usage=el("div"),s=summarizeUsage(u.usage30d);
+      row.setAttribute("data-user-id",u.userId);row.open=!!expanded[u.userId];
+      row.addEventListener("toggle",function(){if(row.isConnected!==false)expanded[u.userId]=row.open;});
+      row.appendChild(el("summary",(u.username||u.userId)+" -- "+(activity?number(activity[u.userId]||0):"Unavailable")+" Updates"));
       identity.appendChild(el("h3",u.username||u.userId));identity.appendChild(el("div",u.userId,"meta"));
       identity.appendChild(el("div",u.email||"No verified email — player must sign in again.","meta"));
       identity.appendChild(el("div","Joined "+dateText(u.createdAt),"meta"));identity.appendChild(el("div",u.lastActive?"Last metered: "+dateText(u.lastActive):"No metered activity","meta"));
@@ -110,13 +124,16 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
     });
   }
   function refresh(){
-    if(pending)return;
+    if(pending||(window.AdminMail&&window.AdminMail.isBusy()))return;
     var thisRefresh=++refreshId;
+    if(window.AdminMail)window.AdminMail.enable(false);
+    activity=null;$("activity-title").textContent="Player Activity (loading)";
     authorized=false;tiers={};roster=[];controls=[];$("users").textContent="";$("console").hidden=true;
     if(!storageAdapter.hasToken()){$("who").textContent="Not signed in.";status("Sign in from the game on this origin, then return here.",false);return;}
     setPending(true);status("Checking operator access…",false);
     storageAdapter.fetchAccount(function(err,a){
       if(err||!a||a.isAdmin!==true){setPending(false);$("who").textContent="Operator access required.";status(err?"Account check failed: "+err:"This account is not an operator.",true);return;}
+      if(activityOperator!==a.userId){activitySince=null;activityOperator=a.userId;expanded=Object.create(null);}
       $("who").textContent="Signed in as "+a.username;$("console").hidden=false;$("health").textContent="Checking…";$("metered").textContent="";
       storageAdapter.getAdminStats(function(statsErr,stats){
         if(statsErr||!stats||!stats.tiers||!stats.metered24h){setPending(false);status("Operator stats unavailable: "+(statsErr||"invalid server response"),true);return;}
@@ -125,7 +142,23 @@ body{margin:0;padding:0 24px 48px}main,header{max-width:1180px;margin:auto}h2{fo
         storageAdapter.listAdminUsers(function(usersErr,list){
           setPending(false);
           if(usersErr||Object.prototype.toString.call(list)!=="[object Array]"){status("Users unavailable: "+(usersErr||"invalid server response"),true);return;}
-          authorized=true;renderUsers(list);status(list.length+" account(s) · refreshed "+new Date().toLocaleTimeString(),false);
+          authorized=true;
+          if(window.AdminMail)window.AdminMail.enable(true);
+          renderUsers(list);status(list.length+" account(s) · refreshed "+new Date().toLocaleTimeString(),false);
+          if(!storageAdapter.readAdminActivity){$("activity-title").textContent="Player Activity (updates unavailable)";$("activity-status").textContent="Activity counts require the updated server.";return;}
+          setPending(true);
+          storageAdapter.readAdminActivity(activitySince,visitId,function(activityErr,result){
+            setPending(false);
+            if(activityErr||!result||!result.counts||typeof result.since!=="number"){
+              $("activity-title").textContent="Player Activity (updates unavailable)";$("activity-status").textContent="New activity unavailable: "+(activityErr||"invalid server response");$("activity-status").className="error";console.warn("[admin] "+$("activity-status").textContent);return;
+            }
+            if(activitySince===null)visitText=result.firstVisit?"First visit: baseline saved.":"Since your previous visit: "+dateText(result.previousVisit)+".";
+            activitySince=result.since;activity=result.counts;
+            var count=0;list.forEach(function(u){count+=Number(activity[u.userId]||0);});
+            $("activity-title").textContent="Player Activity ("+number(count)+" updates)";
+            $("activity-status").className="sub";$("activity-status").textContent=visitText+" Updates count metered requests. Refresh keeps this visit’s baseline; opening the console starts a new visit.";
+            renderUsers(list);
+          });
         });
       });
     });

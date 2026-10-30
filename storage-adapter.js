@@ -1203,6 +1203,10 @@ var storageAdapter = (function() {
   function listAdminUsers(cb) { _apiJson("/api/admin/users", "GET", null, cb, true); }
   function getAdminStats(cb) { _apiJson("/api/admin/stats", "GET", null, cb, true); }
   function updateSubscription(change, cb) { _apiJson("/api/admin/subscription", "POST", change, cb, true); }
+  function readAdminActivity(since, visitId, cb) { _apiJson(since===null?"/api/admin/activity/visit":"/api/admin/activity?since="+encodeURIComponent(since), since===null?"POST":"GET", since===null?{visitId:visitId}:null, cb, true); }
+  function listBetaMailings(cb) { _apiJson("/api/admin/mailings", "GET", null, cb, true); }
+  function previewBetaMail(body, cb) { _apiJson("/api/admin/mailings", "POST", body, cb, true); }
+  function sendBetaMail(id, deliveryId, cb) { _apiJson("/api/admin/mailings/"+encodeURIComponent(id)+"/send", "POST", {deliveryId:deliveryId}, cb, true); }
   function pingServerHealth(cb) { _apiJson("/health", "GET", null, cb, true); }
 
   function listMementos(cb) { _apiJson("/api/mementos", "GET", null, cb, true); }
@@ -1373,6 +1377,10 @@ var storageAdapter = (function() {
     getAdminStats:         getAdminStats,
     updateSubscription:   updateSubscription,
     pingServerHealth:     pingServerHealth,
+    readAdminActivity: readAdminActivity,
+    listBetaMailings: listBetaMailings,
+    previewBetaMail: previewBetaMail,
+    sendBetaMail: sendBetaMail,
     listMementos:         listMementos,
     getMemento:           getMemento,
     putMemento:           putMemento,

@@ -1,0 +1,68 @@
+// Operator console at a beta-sized roster; all network traffic uses disposable fixtures.
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const {chromium}=require('./cdp-browser.js'),fixture=require('./admin-console-fixture.js');
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ try{
+  const ctx=await browser.newContext({viewport:{width:1280,height:900}});
+  await ctx.route('**/*',fixture.route);
+  const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(String(e)));
+  await page.goto('http://admin.fixture/admin_console.html');
+  await page.waitForFunction(()=>window.__adminTest&&document.querySelectorAll('#users > details').length===30);
+  await page.waitForFunction(()=>document.querySelectorAll('#release-history article').length>0);
+  const out=process.env.TND_SCREENSHOT_DIR||process.env.ADMIN_SCREENSHOT_DIR||path.join(__dirname,'..','testRuns','admin-674');
+  fs.mkdirSync(out,{recursive:true});
+  assert.equal(await page.evaluate(()=>!!document.querySelector('details#player-activity')),true,'#674 activity has a collapsible frame');
+  assert.equal(await page.evaluate(()=>document.querySelector('#player-activity').open),false,'activity starts collapsed');
+  assert.equal(await page.evaluate(()=>document.getElementById('activity-title').textContent),'Player Activity (5 updates)','#674 counts use new activity');
+  assert.equal(await page.evaluate(()=>document.querySelector('#users>details>summary').textContent),'Player 0 -- 3 Updates');
+  assert.equal(await page.evaluate(()=>document.querySelectorAll('#users img').length),0,'hostile player name remains inert');
+  await page.screenshot({path:path.join(out,'after-desktop.png')});
+  await page.evaluate(()=>{document.getElementById('player-activity').open=true;document.querySelector('#users>details').open=true;});
+  await page.waitForFunction(()=>document.querySelector('#users>details').open);
+  await page.evaluate(()=>new Promise(r=>setTimeout(r,30)));
+  await page.evaluate(()=>{window.__adminFixture.counts={'fixture-0':8};window.__adminTest.refresh();});
+  assert.equal(await page.evaluate(()=>window.__adminFixture.visits),1,'#674 refresh keeps visit cursor');
+  assert.equal(await page.evaluate(()=>document.getElementById('activity-title').textContent),'Player Activity (8 updates)');
+  assert.equal(await page.evaluate(()=>document.querySelector('#users>details').open),true,'#674 player expansion survives refresh');
+  await page.screenshot({path:path.join(out,'after-players-desktop.png')});
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>{document.getElementById('player-activity').open=false;window.scrollTo(0,0);});
+  await page.screenshot({path:path.join(out,'after-phone.png')});
+  await page.evaluate(()=>{document.getElementById('player-activity').open=true;document.querySelectorAll('#users>details')[1].open=true;document.querySelectorAll('#users>details')[1].scrollIntoView();});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true,'#674 long names fit phone width');
+  await page.screenshot({path:path.join(out,'after-player-phone.png')});
+  await page.evaluate(()=>{document.getElementById('player-activity').open=false;document.getElementById('release-notes').open=true;document.getElementById('release-notes').scrollIntoView();});
+  assert.equal(await page.evaluate(()=>document.querySelectorAll('#release-history time[datetime]').length),JSON.parse(fs.readFileSync(path.join(__dirname,'..','release-notes.json'))).releases.length,'#674 releases include times');
+  await page.screenshot({path:path.join(out,'after-releases-phone.png')});
+  await page.evaluate(()=>{
+    document.getElementById('release-notes').open=false;document.getElementById('beta-mail').open=true;
+    document.getElementById('mail-subject').value='Release <img src=x>';
+    document.getElementById('mail-body').value='Fixture message for beta testers.';
+    document.getElementById('mail-preview').click();
+  });
+  assert.equal(await page.evaluate(()=>window.__adminFixture.mailSends||0),0,'#674 preview never sends mail');
+  assert.equal(await page.evaluate(()=>document.querySelectorAll('#mail-review img').length),0,'email text stays inert');
+  await page.evaluate(()=>{window.confirm=()=>false;document.getElementById('mail-send').click();});
+  assert.equal(await page.evaluate(()=>window.__adminFixture.mailSends||0),0,'#674 cancelled send does nothing');
+  await page.evaluate(()=>{window.confirm=()=>true;window.__adminFixture.holdMail=true;document.getElementById('mail-send').click();document.getElementById('mail-send').click();});
+  assert.equal(await page.evaluate(()=>window.__adminFixture.mailSends),1,'#674 repeated send is latched');
+  await page.evaluate(()=>{window.__adminFixture.holdMail=false;window.__adminFixture.heldMail();});
+  assert.equal(await page.evaluate(()=>window.__adminFixture.mailSends),2,'one request per recipient');
+  assert.equal(await page.evaluate(()=>document.getElementById('mail-send').disabled),true,'#674 accepted recipients cannot resend');
+  await page.evaluate(()=>{document.getElementById('mail-preview').click();window.__adminFixture.mailFailure=true;document.getElementById('mail-send').click();});
+  assert.match(await page.evaluate(()=>document.getElementById('mail-status').textContent),/Sending stopped:.*uncertain/,'#674 uncertain delivery is visible');
+  assert.equal(await page.evaluate(()=>window.__adminFixture.mailSends),3,'#674 ambiguous send stops the batch');
+  await page.evaluate(()=>document.getElementById('beta-mail').scrollIntoView());
+  await page.screenshot({path:path.join(out,'after-mail-phone.png')});
+  await page.evaluate(()=>{window.__adminFixture.activityError='HTTP 503 fixture outage';window.__adminTest.refresh();});
+  assert.match(await page.evaluate(()=>document.getElementById('activity-title').textContent),/unavailable/,'#674 failed activity is not zero');
+  assert.match(await page.evaluate(()=>document.getElementById('activity-status').textContent),/503/);
+  fixture.releaseOverride={schemaVersion:1,releases:[{version:'v1.1',commit:'a'.repeat(40),releasedAt:'2026-10-30T00:00:00Z',actions:[Array(25).fill('word').join(' ')]}]};
+  await page.goto('http://admin.fixture/admin_console.html');
+  await page.waitForFunction(()=>document.getElementById('release-status').className==='error');
+  assert.match(await page.evaluate(()=>document.getElementById('release-status').textContent),/Invalid release history/,'#674 malformed releases are visible failures');
+  assert.deepEqual(errors,[],'browser errors');
+  console.log('PASS #674 nested activity, visit cursor, release dates, mobile layout, private mail preview, confirmation, duplicate prevention and visible failures');
+ }finally{delete fixture.releaseOverride;await browser.close();}
+})().catch(e=>{console.error(e.stack);process.exitCode=1;});
