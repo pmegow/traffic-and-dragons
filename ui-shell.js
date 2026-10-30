@@ -365,3 +365,17 @@ function syncFrameButtons(){
   }
 }
 function closeAllMenus(){eachMenuEl("file-menu",function(el){el.style.display="none";},MENU_ID_PREFIXES);}
+/* #673 (owner 2026-10-30): a menu is never scrolled. One that would run past the bottom of the screen is sat up so its
+   bottom lands on the screen's bottom (a transform — the layout is untouched; cleared first, so a re-fit after a drawer
+   closes lets the menu drop back). It is never sat above the top edge: a menu taller than the screen keeps its top and
+   loses its tail, which is a design fault for the File menu spec (ui-boot.js) and dev/tests-673-menu-fit.js fails it.
+   Returns the shift in px (0 = it fit as it was). Node-safe: no window, no shift. */
+function menuFit(el){
+  if(!el||typeof window==="undefined"||!el.getBoundingClientRect)return 0;
+  el.style.transform="";
+  var r=el.getBoundingClientRect(),over=r.bottom-window.innerHeight;
+  if(over<=0)return 0;
+  var shift=Math.min(over,Math.max(0,r.top));
+  if(shift>0)el.style.transform="translateY(-"+Math.round(shift)+"px)";
+  return shift;
+}

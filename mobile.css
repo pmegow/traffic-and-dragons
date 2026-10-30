@@ -37,8 +37,10 @@
  #hud-btns{position:absolute;right:11px;top:max(7px,var(--top-inset));gap:0!important}
  #hud-btns>button,#hud-ways,#hud-ways-more{display:none!important}
  #file-btn{display:block;width:49px;height:24px;font-size:10px!important;padding:0 2px;border-radius:6px}
- /* Reuse the generated menu and its tap-to-expand groups; constrain the whole dropdown. */
- #file-menu{width:min(280px,calc(100vw - 22px));max-height:calc(100dvh - 60px);overflow-y:auto;overscroll-behavior:contain}
+ /* Reuse the generated menu and its tap-to-expand groups. #673 (owner 2026-10-30): the dropdown is NEVER scrolled — menuFit
+    (ui-shell.js) sits it up so its bottom lands on the screen's bottom, and one taller than the screen is a design fault of
+    the spec (dev/tests-673-menu-fit.js measures it). The #611 max-height + overflow-y scroll is gone. */
+ #file-menu{width:min(280px,calc(100vw - 22px))}
  #file-menu .fm-sub{margin-left:10px;border-left:1px solid var(--brd2)}
  #file-menu button,#file-menu label{min-height:36px;white-space:normal}
  #mobile-place{display:block;width:100%;min-width:0;border-top:1px solid var(--brd);padding-top:6px;font-size:11px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

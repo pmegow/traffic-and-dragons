@@ -48,7 +48,7 @@ function buildFileMenus(){
     h+=btn(p+"home","&#127968; Home",0);/* #290: bibles, designer, curated shelf, the account library */
     h+=btn(p+"guide","&#10067; Beta guide",0);/* #642: the beta guide (DOC/beta-guide.html) — sign-in to the first adventure, the UI tour, this menu row by row; it links the Player FAQ (owner 2026-10-18: the guide is the default); opens in its own tab so the campaign stays put */
     h+=btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only",hidden:true});
-    h+=g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true});
+    /* #673 (owner 2026-10-30): Car Mode moved into Settings ▸ 🚗 Auto Mode with the voice-input switches */
     h+=g?btn(p+"talk","&#128483; Talk to&hellip;",0):btn(null,"&#128483; Talk to&hellip;",0,{dim:true});/* #633: a spoken conversation with your character, outside the story */
     /* #634 (owner 2026-10-15): the Re-roll button and its mobile row are gone from every surface; rerollLast (game.js) stays as the engine's re-narration path, pinned by the #158/#172 contracts, reachable from no button */
     if(g)h+=btn(p+"ending","&#9997; Write the ending&hellip;",0,{hidden:true,color:"var(--warn)",extra:"font-weight:bold;"});/* #364: shown by updateMemStatus while the tale is told and the campaign is open */
@@ -62,7 +62,10 @@ function buildFileMenus(){
       +(g?btn(p+"export-party","&#9729; Upload party members to library",0):btn(null,"&#9729; Upload party members to library",0,{dim:true}))/* #470 */
       +(g?btn(p+"export-bp","Export as Blueprint",0):btn(null,"Export as Blueprint",0,{dim:true}))
       +(g?btn(p+"export-narr","&#128220; Export Narrative",0):btn(null,"&#128220; Export Narrative",0,{dim:true}))
-      +(g?btn(p+"save-memento","&#9729; Save story to account",0):btn(null,"&#9729; Save story to account",0,{dim:true}));
+      +(g?btn(p+"save-memento","&#9729; Save story to account",0):btn(null,"&#9729; Save story to account",0,{dim:true}))
+      /* #673 (owner 2026-10-30): the campaigns folder lives with the files it holds */
+      +btn(p+"set-folder","📁 Set campaigns folder&hellip;",0,{cls:"fm-dev-only"})
+      +btn(p+"clear-folder","📁 &times;",0,{hidden:true,cls:"fm-dev-only",color:"var(--acc)",extra:"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"});
     h+=drawer(p+"saveload",p+"saveloadmenu","&#128190; Save / Load",0,null,sl);
     /* #634 (owner 2026-10-15): no Campaign Blueprints row — the wizard's Browse button, Home and the designer reach showBlueprintBrowser */
     h+=g?btn(p+"bugreport","⚠ Report bug&hellip;",0):btn(null,"⚠ Report bug&hellip;",0,{dim:true});/* #16b: game screen only — it reports on live play */
@@ -72,10 +75,27 @@ function buildFileMenus(){
       +chk(p+"adult-cb","18+ Adult content",0,p+"adult-label")
       /* #328's "Buttons ride the GM's turn" switch RETIRED here (owner 2026-10-30: proven) — ui-modals.js loadSuggestInband.
          #329's "Player rolls own dice" moved to the Settings top level beside Dice appearance (#673, owner 2026-10-30). */
-      +chk(p+"stake-cb","Name the stake before a roll",0,p+"stake-label");/* #371 — off = the pre-#371 MECHANICS line (rollback) */
-    // #634 (owner 2026-10-15): Settings holds three drawers — 🔊 Audio (voice, UI sounds, ambience),
-    // 📖 Narrative options, and 🛠 Dev tools (operator-only: the language model, usage & cost, render
-    // options) — plus the plain prefs. A row moves between drawers by moving its line here.
+      +chk(p+"stake-cb","Name the stake before a roll",0,p+"stake-label")/* #371 — off = the pre-#371 MECHANICS line (rollback) */
+      /* #673 (owner 2026-10-30): the legacy-characters block is a narrative option; operator-only as before */
+      +"<div class='fm-dev-only'>"
+      +chk(p+"legacy-cb","&#9760; Legacy characters as NPCs",0)
+      +"<div style='display:flex;align-items:center;gap:6px;padding:2px 14px 7px;'><span style='font-size:11px;color:var(--t2);'>Chance per session:</span><input type='number' id='"+p+"legacy-pct' min='1' max='100' value='5' style='width:44px;padding:3px 5px;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);font-size:12px;font-family:var(--font);'/><span style='font-size:11px;color:var(--t2);'>%</span></div>"
+      +"</div>";
+    // #634 (owner 2026-10-15) / #673 (owner 2026-10-30): Settings holds five drawers — 🎨 Appearance (dark
+    // mode, large text, the dice look), 🔊 Audio (voice, UI sounds, ambience), 📖 Narrative options (rules,
+    // prose, adult, the stake switch, the operator's legacy block), 🚗 Auto Mode (Car Mode and the voice-input
+    // switches) and 🛠 Dev tools (operator-only: the language model, usage & cost, render options) — plus the
+    // plain "Player rolls own dice" switch. A row moves between drawers by moving its line here. A menu must
+    // FIT the screen (owner 2026-10-30: never scroll it — a menu too long for the screen is a design fault
+    // to fix here); menuFit (ui-shell.js) sits an overflowing menu's bottom at the screen's bottom, and
+    // dev/tests-673-menu-fit.js fails a drawer that cannot fit a 375×667 phone.
+    var app=chk(p+"dark-cb","🌙 Dark mode",0)/* #634: default on; off = the light palette (ui-modals.js loadTheme/toggleDarkMode) */
+      +chk(p+"font-lg","Large text",0)
+      +btn(p+"dice-look","&#127922; Dice appearance&hellip;",0);/* #669 (owner 2026-10-25): the live dice's look, a preset kept per device (ui-dice.js) */
+    var auto=(g?btn(p+"carmode","&#128663; Car Mode",0):btn(null,"&#128663; Car Mode",0,{dim:true}))
+      +chk(p+"autosend","&#127908; Auto-send voice input",0)
+      +chk(p+"autolisten","&#128663; Auto-listen after narration",0)
+      +chk(p+"sttconfirm","&#128737; Confirm unclear voice input",0);/* #77 Layer-2 gate — default ON */
     var aud=btn(p+"tts-settings","🔊 Voice Settings&hellip;",0)/* #622 (owner ruling 2026-10-12, amends 2026-09-11): the ROW is for everyone — a keyless tester picks the server's Speechify here; the KEY FIELDS inside the modal carry fm-dev-only instead (ui-voice-settings.js), and a non-admin's picker lists only reachable readers */
       // TODO #7: UI sound library toggle + test. Deliberately NOT inside the Voice Settings modal
       // (that modal lives in ui-voice-settings.js since #401; the sound toggle stays a menu row) — lives here
@@ -99,23 +119,13 @@ function buildFileMenus(){
     var dev=btn(p+"llm","🧠 Language Model&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"usage","📊 Usage &amp; cost&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"fal-key","🖼 Render Options&hellip;",0,{cls:"fm-dev-only"});
-    var dm=chk(p+"dark-cb","🌙 Dark mode",0)/* #634: default on; off = the light palette (ui-modals.js loadTheme/toggleDarkMode) */
-      +chk(p+"font-lg","Large text",0)
-      +chk(p+"dice-cb","Player rolls own dice",0,p+"dice-label")/* #329 — off = the GM rolls; ON for a new player (#641). At the top level since #673 (owner 2026-10-30): under Narrative options it was out of reach on a short phone */
-      +btn(p+"dice-look","&#127922; Dice appearance&hellip;",0)/* #669 (owner 2026-10-25): the live dice's look, a preset kept per device (ui-dice.js) */
+    var dm=chk(p+"dice-cb","Player rolls own dice",0,p+"dice-label")/* #329 — off = the GM rolls; ON for a new player (#641). At the Settings top level since #673 (owner 2026-10-30): under Narrative options it was out of reach on a short phone */
+      +drawer(p+"appearance",p+"appearancemenu","🎨 Appearance",0,null,app)
       +drawer(p+"audio",p+"audiomenu","🔊 Audio",0,null,aud)
       +drawer(p+"narropts",p+"narroptsmenu","&#128214; Narrative options",0,null,narr)
-      +chk(p+"autosend","&#127908; Auto-send voice input",0)
-      +chk(p+"autolisten","&#128663; Auto-listen after narration",0)
-      +chk(p+"sttconfirm","&#128737; Confirm unclear voice input",0)/* #77 Layer-2 gate — default ON */
+      +drawer(p+"automode",p+"automodemenu","&#128663; Auto Mode",0,null,auto)
       +"<div class='fm-dev-only'>"+drawer(p+"devtools",p+"devtoolsmenu","🛠 Dev tools",0,null,dev)+"</div>"
-      +"<div class='fm-dev-only'>"
-      +chk(p+"legacy-cb","&#9760; Legacy characters as NPCs",0)
-      +"<div style='display:flex;align-items:center;gap:6px;padding:2px 14px 7px;'><span style='font-size:11px;color:var(--t2);'>Chance per session:</span><input type='number' id='"+p+"legacy-pct' min='1' max='100' value='5' style='width:44px;padding:3px 5px;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;color:var(--t0);font-size:12px;font-family:var(--font);'/><span style='font-size:11px;color:var(--t2);'>%</span></div>"
-      +"</div>"
       +sep(true)
-      +btn(p+"set-folder","📁 Set campaigns folder&hellip;",0,{cls:"fm-dev-only"})
-      +btn(p+"clear-folder","📁 &times;",0,{hidden:true,cls:"fm-dev-only",color:"var(--acc)",extra:"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"})
       +btn(p+"server-connect","☁ Connect to server",0,{cls:"fm-dev-only"})
       +btn(p+"server-disconnect","☁ Disconnect (<span id='"+p+"server-user'></span>)",0,{hidden:true,cls:"fm-dev-only"})
       +btn(p+"clearcache","⟳ Clear cache &amp; reload",0,{color:"var(--t2)",cls:"fm-dev-only"});
@@ -189,7 +199,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   document.getElementById("input-clear").addEventListener("click",function(){var inp=document.getElementById("action-input");inp.value="";inp.focus();});
   document.getElementById("sync-btn").addEventListener("click",showSyncModal);/* #634: the button is operator-only (fm-dev-only in index.html) */
   document.getElementById("render-btn").addEventListener("click",doRender);
-  document.getElementById("file-btn").addEventListener("click",function(e){e.stopPropagation();var fm=document.getElementById("file-menu");var opening=fm.style.display!=="block";if(opening)resetFileSubmenus(fm);fm.style.display=opening?"block":"none";});
+  document.getElementById("file-btn").addEventListener("click",function(e){e.stopPropagation();var fm=document.getElementById("file-menu");var opening=fm.style.display!=="block";if(opening)resetFileSubmenus(fm);fm.style.display=opening?"block":"none";if(opening&&typeof menuFit==="function")menuFit(fm);/* #673 */});
   document.addEventListener("click",closeAllMenus);/* #15④: was the closeAllMenus body unrolled inline */
   // ── Shared menu wiring across all three File menus (fm-, cs-fm-, api-fm-) ──
   var _menus=[{pfx:"fm-",menu:"file-menu",imp:""},{pfx:"cs-fm-",menu:"cs-file-menu",imp:"cs-"},{pfx:"api-fm-",menu:"api-file-menu",imp:"api-"}];
@@ -197,7 +207,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
     var close=function(){document.getElementById(m.menu).style.display="none";};
     var vd=document.getElementById(m.pfx+"version");if(vd)vd.textContent=APP_VERSION;
     // Toggle button
-    if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);var opening=mu.style.display!=="block";if(opening)resetFileSubmenus(mu);mu.style.display=opening?"block":"none";});}
+    if(m.pfx!=="fm-"){var tb=document.getElementById(m.imp+"file-btn");if(tb)tb.addEventListener("click",function(e){e.stopPropagation();var mu=document.getElementById(m.menu);var opening=mu.style.display!=="block";if(opening)resetFileSubmenus(mu);mu.style.display=opening?"block":"none";if(opening&&typeof menuFit==="function")menuFit(mu);/* #673 */});}
     // Items that close the menu then call a function
     [["campaigns",showCampaignPicker],["account",showAccountModal],["bugreport",showBugReportModal],["rules",showRulesModal],["llm",showProviderModal],["prose",showProseModal],["usage",showUsageModal],["fal-key",showRenderOptionsModal],["server-connect",connectToServer],["server-disconnect",disconnectFromServer],["set-folder",setCampaignFolder],["clear-folder",clearCampaignFolder]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("click",function(){close();it[1]();});
@@ -210,12 +220,12 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
     [["adult-cb",toggleAdultMode],["dice-cb",togglePlayerDice],["stake-cb",toggleDiceStake],["font-lg",toggleFontSize],["dark-cb",toggleDarkMode]].forEach(function(it){
       var el=document.getElementById(m.pfx+it[0]);if(el)el.addEventListener("change",it[1]);
     });
-    // Cascading submenu toggles: Settings, Save/Load, and the three nested in Settings —
-    // Audio, Narrative options, Dev tools (#634).
+    // Cascading submenu toggles: Settings, Save/Load, and the five nested in Settings —
+    // Appearance, Audio, Narrative options, Auto Mode (#673), Dev tools (#634).
     // Desktop flyouts pick their side from the PARENT ITEM's position before opening:
     // whichever side of the screen has more room gets the panel (away from the closest
     // edge). CSS default is leftward (right:100%); rightward is the inline override.
-    [["devmode","devmenu"],["saveload","saveloadmenu"],["audio","audiomenu"],["narropts","narroptsmenu"],["devtools","devtoolsmenu"]].forEach(function(sm){
+    [["devmode","devmenu"],["saveload","saveloadmenu"],["appearance","appearancemenu"],["audio","audiomenu"],["narropts","narroptsmenu"],["automode","automodemenu"],["devtools","devtoolsmenu"]].forEach(function(sm){
       var tg=document.getElementById(m.pfx+sm[0]);
       if(tg)tg.addEventListener("click",function(e){
         e.stopPropagation();
@@ -229,6 +239,10 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
           sub.style.display="block";
         }
         if(arrow)arrow.style.transform=open?"":"rotate(90deg)";
+        /* #673 (owner 2026-10-30): a menu's bottom never passes the screen's bottom — a desktop flyout is sat up on its own;
+           a phone accordion grows the File menu, so the File menu is sat up. Never scrolled: a menu too tall for the screen
+           is a design fault for the spec above (dev/tests-673-menu-fit.js). */
+        if(typeof menuFit==="function"){if(!open&&getComputedStyle(sub).position==="absolute")menuFit(sub);else{var fm=document.getElementById(m.menu);if(fm)menuFit(fm);}}
       });
     });
     // Import inputs (different prefix pattern: "", "cs-", "api-")
