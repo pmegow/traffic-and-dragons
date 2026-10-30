@@ -366,19 +366,32 @@ export class DiceView {
     if (this.stillRatio !== 1) { this.stillRatio = 1; this.renderer.setPixelRatio(this.o.pixelRatio); }
   }
 
-  /** The still frame: after STILL_FRAME.after ms of quiet, one frame at the rung the pixel budget allows (none on a view too big for it). */
-  queueStillFrame() {
-    if (!this.o.stillFrame) return;
+  /** The still frame's pixel-ratio multiplier for this view now: the rung the pixel budget allows, 1 when none (or when off). */
+  stillRatioNow() {
+    if (!this.o.stillFrame) return 1;
     const size = this.renderer.getSize(new THREE.Vector2());
-    const ratio = stillRatio({ width: size.x, height: size.y, pixelRatio: this.o.pixelRatio,
+    return stillRatio({ width: size.x, height: size.y, pixelRatio: this.o.pixelRatio,
       budget: this.o.stillBudget ?? (globalThis.matchMedia && matchMedia('(pointer: coarse)').matches ? STILL_FRAME.budgetTouch : STILL_FRAME.budget) });
-    if (ratio === 1) return;
-    this.stillTimer = setTimeout(() => {
-      this.stillTimer = 0;
-      this.stillRatio = ratio;
-      this.renderer.setPixelRatio(this.o.pixelRatio * ratio);
-      this.renderer.render(this.scene, this.camera);
-    }, STILL_FRAME.after);
+  }
+
+  /** The still frame, drawn for a render outside the frame loop (a drag, a resize): after STILL_FRAME.after ms of quiet. */
+  queueStillFrame() {
+    if (this.stillRatioNow() === 1) return;
+    this.stillTimer = setTimeout(() => { this.stillTimer = 0; this.renderStill(); }, STILL_FRAME.after);
+  }
+
+  /**
+   * The still frame now: one frame at the rung the budget allows (the live frame when it allows none). The frame loop
+   * draws it as the LAST frame of an animation, so a roll ends sharp in one step and the sharpening is never a second
+   * frame to notice (owner 2026-10-29: "I'm worried that the pop will be distracting" — measured first: 0.15/255 mean
+   * over the frame, a third of a percent of the pixels over 4/255, the numerals' outlines and the dice's edges).
+   */
+  renderStill() {
+    if (this.stillTimer) { clearTimeout(this.stillTimer); this.stillTimer = 0; }
+    const ratio = this.stillRatioNow();
+    if (ratio === 1) { this.render(); return; }
+    if (this.stillRatio !== ratio) { this.stillRatio = ratio; this.renderer.setPixelRatio(this.o.pixelRatio * ratio); }
+    this.renderer.render(this.scene, this.camera);
   }
 
   // ---------------------------------------------------------------- dice
@@ -572,8 +585,12 @@ export class DiceView {
       try { more = fn(now); } catch (e) { console.error('DiceView: an animation threw, and stops:', e); }
       if (!more) this.animators.delete(fn);
     }
-    this.render();
-    if (this.animators.size && !this.frameRequested) { this.frameRequested = true; requestAnimationFrame((n) => this.frameStep(n)); }
+    if (this.animators.size) {
+      this.render();
+      if (!this.frameRequested) { this.frameRequested = true; requestAnimationFrame((n) => this.frameStep(n)); }
+    } else {
+      this.renderStill();   // the last frame of the sequence is the still frame itself (render/still-frame.js)
+    }
   }
 
   /**
