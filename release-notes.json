@@ -2,6 +2,17 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1330",
+      "actions": [
+        "Grouped player activity into collapsible panels with new request counts since the operator’s previous visit.",
+        "Added production release history with dated, concise action notes.",
+        "Added recipient previews and direct beta email sending with persistent delivery receipts."
+      ],
+      "sourceCommit": "9c3e4719aa05851cfdcffe3387b486884ac5af1a",
+      "commit": "54c9acb385ed6fb32a1403f83c043def62878661",
+      "releasedAt": "2026-10-30T21:40:34Z"
+    },
+    {
       "version": "v1.1329",
       "releasedAt": "2026-10-30T19:53:33Z",
       "actions": [

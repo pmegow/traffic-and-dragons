@@ -656,4 +656,4 @@ zero 2026-07-27 and again 2026-07-30.
 
 ## 2026-10-30 — #674 operator console
 
-Collapsible activity, deployment-backed release notes and direct beta mail: [implementation and rollout](DOC/admin_console_674.md). Only operator surfaces and pure adapter methods changed; no campaign, prompt, parser or memory writes. App v1.1330, server v1.13.0/schema 13. Deployment and owner inbox check remain pending.
+Collapsible activity, deployment-backed release notes and direct beta mail: [implementation and rollout](DOC/admin_console_674.md). Only operator surfaces and pure adapter methods changed; no campaign, prompt, parser or memory writes. App v1.1330, server v1.13.0/schema 13. Deployed 2026-10-30: frontend production bytes and signed-out browser verified; server Fly release 69/schema 13 with integrity checks passed. Owner login/inbox checks remain pending.
