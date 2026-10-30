@@ -27,7 +27,7 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  body { display: grid; grid-template-columns: 1fr 300px; height: 100dvh; overflow: hidden; }
+  body { display: grid; grid-template-columns: 1fr auto auto; height: 100dvh; overflow: hidden; }   /* the tray, the grip, the panel (its own width) */
   /* The top inset, Traffic and Dragons' technique (its #658): on a Home Screen iPhone the page runs under
      the status bar, and since iOS 26.1 a glass blur reaches ~40pt below the bar that nothing switches off.
      So the layout starts 1.7 × the safe-area inset down (0 in a browser tab or on a desktop), clearing
@@ -60,7 +60,8 @@
   /* No tray: the dice roll over the page itself — a soft backdrop here, so their shadows read. The view's, so the
      buttons above it sit on the page. */
   #stage[data-surface="none"] #view { background: radial-gradient(ellipse at 50% 42%, #3b4352 0%, #262c38 55%, #181b22 100%); }
-  #panel { border-left: 1px solid var(--line); background: var(--panel); padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }   /* the bottom inset: an iPad on its side keeps a home indicator there */
+  #panel { background: var(--panel); width: 300px; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }   /* the bottom inset: an iPad on its side keeps a home indicator there */
+  #panel.drawer-closed { display: none; }   /* closed: only the grip shows, the tray takes the rest */
   /* Rows keep their size and the panel scrolls: in a panel of fixed height (the phone drawer) a
      shrinking row drew its text over the next one (the roll summary over the die buttons). */
   #panel > * { flex-shrink: 0; }
@@ -159,20 +160,21 @@
   #status { font-size: 13px; color: var(--bad); white-space: pre-wrap; }
   #status:empty { display: none; }
   .hint { color: var(--muted); font-size: 12px; margin: 0; }
-  #drawer-grab { display: none; }
+  /* THE GRIP (demo/drawer.js), like Traffic and Dragons' side-panel grip, between the tray and the panel: on a wide
+     screen a vertical bar that drags the panel's width (owner 2026-10-29: "the drawer grip is missing when the drawer
+     is arranged vertically"), on the drawer layout the bar across the drawer's top that drags its height. Drag to
+     resize, double tap to close or reopen, arrow keys step it. */
+  #drawer-grab { display: flex; width: 14px; padding: 0; border: 0; border-left: 1px solid var(--line); background: var(--panel); cursor: col-resize; touch-action: none; }
+  #drawer-grab::after { content: ''; margin: auto; width: 5px; height: 36px; border-radius: 3px; background: #777; pointer-events: none; }
+  #drawer-grab:focus-visible { outline: 1px solid var(--acc); outline-offset: -1px; }
   /* THE DRAWER LAYOUT: a phone, or a tablet held upright (owner 2026-10-29, the iPad: beside a 300 px panel the
      tray had 468 px of a 768 px screen). The tray takes the width; the options are a drawer under it. The same
      query is in demo/demo.js (`narrow`) — change both. A tablet on its side keeps the panel beside the tray. */
   @media (max-width: 760px), (orientation: portrait) and (max-width: 1100px) {
-    /* The options drawer's handle (demo/drawer.js), like Traffic and Dragons' side-panel grip: drag to
-       raise or lower, double tap to close or reopen. Sticky at the panel's top edge while it scrolls. */
-    #drawer-grab { display: flex; order: -10; position: sticky; top: -12px; z-index: 3; flex: 0 0 24px;
-      margin: -12px -16px -4px; padding: 0; border: 0; background: var(--panel); cursor: row-resize; touch-action: none; }
-    #drawer-grab::after { content: ''; margin: auto; width: 36px; height: 5px; border-radius: 3px; background: #777; pointer-events: none; }
-    #drawer-grab:focus-visible { outline: 1px solid var(--acc); outline-offset: -1px; }
-    #panel.drawer-closed { overflow: hidden; }
-    body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-    #panel { border-left: 0; border-top: 1px solid var(--line); max-height: 46dvh; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); gap: 10px; }
+    #drawer-grab { width: auto; height: 24px; border-left: 0; border-top: 1px solid var(--line); cursor: row-resize; }   /* the bar across the drawer's top */
+    #drawer-grab::after { width: 36px; height: 5px; }
+    body { grid-template-columns: 1fr; grid-template-rows: 1fr auto auto; }   /* the tray, the grip, the drawer */
+    #panel { width: auto; max-height: 46dvh; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); gap: 10px; }
     #panel h1 { order: -3; }
     #roll { order: -2; }          /* on a phone the panel scrolls: keep Roll and the result in reach */
     #status { order: -1; }        /* the start check's line, right under Roll, not below the fold */
@@ -193,9 +195,9 @@
 </head>
 <body>
 <main id="stage" aria-label="Dice tray: drag across it to fling the dice, hold then drag to pan the view, pinch, scroll or right-drag to zoom"><div id="pan-ring" aria-hidden="true"></div><div id="dice-bar"><div class="row" id="adders" aria-label="Choose the dice"></div></div><div id="view"><p id="table-hint">Click the table to roll</p><p id="roll-line" aria-live="polite"></p></div><button id="reset-view" type="button" hidden>Reset view</button></main>
+<button id="drawer-grab" type="button" role="separator" aria-orientation="vertical" aria-label="Resize the options panel" aria-valuemin="24" title="Drag to resize; double tap to close or reopen; arrow keys also resize"></button>
 <aside id="panel">
-  <button id="drawer-grab" type="button" role="separator" aria-orientation="horizontal" aria-label="Resize the options panel" aria-valuemin="24" title="Drag to raise or lower; double tap to close or reopen; arrow keys also resize"></button>
-  <h1>Dice Simulator <small id="version">v0.64.8</small></h1>   <!-- stamped by dev/write-sw.js from src/version.js -->
+  <h1>Dice Simulator <small id="version">v0.64.9</small></h1>   <!-- stamped by dev/write-sw.js from src/version.js -->
   <label>Force results, in order <span class="field"><input id="forced" placeholder="blank = honest roll, e.g. 20, 3" autocomplete="off"><button class="clear" id="clear-forced" type="button" aria-label="Clear the forced results" title="Clear">×</button></span></label>
   <div class="preset-row">
     <label>Preset <select id="preset"></select></label>

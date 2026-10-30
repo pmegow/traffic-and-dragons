@@ -692,12 +692,15 @@ stage.addEventListener('touchend', () => unlockSound(), { passive: true });
 for (const type of ['gesturestart', 'gesturechange']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
 stage.addEventListener('contextmenu', (e) => e.preventDefault());   // a long press turns the view and a right-drag zooms: no menu
 
-// ---------------------------------------------------------------- the options drawer (phone layout)
-// On a narrow screen the options sit in a drawer under the tray; its handle raises and lowers it
-// (demo/drawer.js). Its height is remembered on this browser. The wide layout ignores it.
+// ---------------------------------------------------------------- the options drawer, and the side panel's grip
+// On a narrow screen the options sit in a drawer under the tray and the grip raises and lowers it; on a wide one
+// they sit in a panel beside the tray and the same grip, a vertical bar between the two, drags its width (owner
+// 2026-10-29: "the drawer grip is missing when the drawer is arranged vertically"). One model each (demo/drawer.js),
+// the layout choosing which the grip drives; a size counts the grip, so the panel is the size less the grip, and
+// closed is the panel hidden with the grip left. Both sizes are remembered on this browser.
 const narrow = window.matchMedia('(max-width: 760px), (orientation: portrait) and (max-width: 1100px)');   // the same query as index.html's drawer layout: a phone, or a tablet held upright
 const panel = $('panel'), grab = $('drawer-grab');
-const DRAWER_KEY = 'dice-sim:drawer';
+const DRAWER_KEY = 'dice-sim:drawer', SIDE_KEY = 'dice-sim:side';
 // Never below what the drawer accepts: a page opened in a window of no height yet (a hidden tab, a pre-render) refused
 // the drawer and died there, before the buttons were painted or the first roll thrown (2026-10-28); a resize sets it right.
 const drawerMax = () => Math.max(DRAWER.min + 1, Math.round(window.innerHeight * 0.85));
@@ -705,35 +708,55 @@ let drawerSaved = null;
 try { drawerSaved = JSON.parse(localStorage.getItem(DRAWER_KEY) || 'null'); } catch { /* storage blocked: the default height */ }
 const drawerStart = Math.round(window.innerHeight * 0.46);   // the layout's old fixed share
 const drawer = createDrawer({ height: drawerSaved?.height ?? drawerStart, open: drawerSaved?.reopen ?? drawerStart, max: drawerMax() });
+// The side panel: 300 px wide by its stylesheet, at most 60% of the window, dragged by the same grip on the wide layout.
+const sideMax = () => Math.max(DRAWER.min + 1, Math.round(window.innerWidth * 0.6));
+let sideSaved = null;
+try { sideSaved = JSON.parse(localStorage.getItem(SIDE_KEY) || 'null'); } catch { /* storage blocked: the default width */ }
+const sideStart = 300 + DRAWER.min;
+const side = createDrawer({ height: sideSaved?.height ?? sideStart, open: sideSaved?.reopen ?? sideStart, max: sideMax(), axis: 'x' });
+const active = () => (narrow.matches ? drawer : side);   // the model the grip drives in this layout
 const paintDrawer = () => {
-  if (!narrow.matches) { panel.style.removeProperty('height'); panel.style.removeProperty('max-height'); panel.classList.remove('drawer-closed'); return; }
-  panel.style.height = drawer.height + 'px';
-  panel.style.maxHeight = 'none';
-  panel.classList.toggle('drawer-closed', drawer.closed);
-  grab.setAttribute('aria-valuenow', String(drawer.height));
-  grab.setAttribute('aria-valuemax', String(drawerMax()));
+  const d = active();
+  if (narrow.matches) {
+    panel.style.removeProperty('width');
+    panel.style.height = (drawer.height - DRAWER.min) + 'px';   // the size counts the grip, which sits above the drawer
+    panel.style.maxHeight = 'none';
+  } else {
+    panel.style.removeProperty('height'); panel.style.removeProperty('max-height');
+    panel.style.width = (side.height - DRAWER.min) + 'px';   // the grip stands beside the panel
+  }
+  panel.classList.toggle('drawer-closed', d.closed);
+  grab.setAttribute('aria-orientation', narrow.matches ? 'horizontal' : 'vertical');
+  grab.setAttribute('aria-valuenow', String(d.height));
+  grab.setAttribute('aria-valuemax', String(narrow.matches ? drawerMax() : sideMax()));
 };
-const keepDrawer = () => { try { localStorage.setItem(DRAWER_KEY, JSON.stringify({ height: drawer.height, reopen: drawer.reopen })); } catch { /* storage blocked */ } };
+const keepDrawer = () => {
+  try {
+    localStorage.setItem(DRAWER_KEY, JSON.stringify({ height: drawer.height, reopen: drawer.reopen }));
+    localStorage.setItem(SIDE_KEY, JSON.stringify({ height: side.height, reopen: side.reopen }));
+  } catch { /* storage blocked */ }
+};
+const along = (e) => (narrow.matches ? e.clientY : e.clientX);   // the grip's coordinate in this layout
 let drawerPointer = null;
 grab.addEventListener('pointerdown', (e) => {
   if (e.isPrimary === false || (e.pointerType === 'mouse' && e.button !== 0)) return;
   drawerPointer = e.pointerId;
   try { grab.setPointerCapture(e.pointerId); } catch { /* the drag still ends on pointerup */ }
-  drawer.down(e.clientY, e.timeStamp);
+  active().down(along(e), e.timeStamp);
   e.preventDefault();
 });
-grab.addEventListener('pointermove', (e) => { if (e.pointerId === drawerPointer) { drawer.move(e.clientY); paintDrawer(); } });
+grab.addEventListener('pointermove', (e) => { if (e.pointerId === drawerPointer) { active().move(along(e)); paintDrawer(); } });
 grab.addEventListener('pointerup', (e) => {
   if (e.pointerId !== drawerPointer) return;
   drawerPointer = null;
-  drawer.up(e.clientY, e.timeStamp);
+  active().up(along(e), e.timeStamp);
   paintDrawer();
   keepDrawer();
 });
-grab.addEventListener('pointercancel', () => { drawerPointer = null; drawer.cancel(); });
-grab.addEventListener('keydown', (e) => { if (drawer.key(e.key) !== null) { e.preventDefault(); paintDrawer(); keepDrawer(); } });
-narrow.addEventListener('change', paintDrawer);
-window.addEventListener('resize', () => { drawer.setMax(drawerMax()); paintDrawer(); });
+grab.addEventListener('pointercancel', () => { drawerPointer = null; drawer.cancel(); side.cancel(); });
+grab.addEventListener('keydown', (e) => { if (active().key(e.key) !== null) { e.preventDefault(); paintDrawer(); keepDrawer(); } });
+narrow.addEventListener('change', () => { drawerPointer = null; drawer.cancel(); side.cancel(); paintDrawer(); });   // a drag across the change is over
+window.addEventListener('resize', () => { drawer.setMax(drawerMax()); side.setMax(sideMax()); paintDrawer(); });
 paintDrawer();
 
 // ---------------------------------------------------------------- offline (the installed web app)
