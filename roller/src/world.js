@@ -36,6 +36,14 @@ export const WORLD_DEFAULTS = {
   sleepAngular: 0.15,          // rad/s
   sleepTime: 0.2,              // s below both thresholds before a die sleeps
   matchDistance: 0.002,        // m: a contact this close to last step's (in the die's frame) inherits its impulses
+  // THE CAPS (owner 2026-10-29, row 61: sixteen dice flung into a corner "force each other into the corner, causing them
+  // to burst out"). The contact solver, pushing penetrating dice apart, can hand one a speed no throw gave it: measured
+  // in that pile, up at 3.7 m/s and a 28 cm leap on a 21 cm tray (dev/corner-probe.js). A die never rises faster than
+  // maxRise — a hop of v²/2g, 8 cm — nor moves faster than maxSpeed, whatever the solver asked; ordinary play stays under
+  // both (its fastest rise 1.25 m/s, a hard fling's bounce; its fastest die 4.3 m/s, knocked in the hand). The owner's
+  // rule was a quarter of the burst (1.08 m/s); the cap sits where ordinary play ends, so no honest roll changes. 0 = off.
+  maxRise: 1.25,               // m/s: the fastest a die may rise
+  maxSpeed: 5,                 // m/s: the fastest a die may move
 };
 
 const TWO_PI = 2 * Math.PI;
@@ -82,6 +90,18 @@ export class World {
     const manifolds = this.detect();
     for (const m of manifolds) this.prepare(m);
     for (let i = 0; i < o.iterations; i++) for (const m of manifolds) this.solveVelocity(m);
+    // The caps (WORLD_DEFAULTS ▸ maxRise, maxSpeed): the positions still separate — the split impulses below are
+    // untouched — so a squeezed pile unpacks at a hop's pace instead of bursting.
+    if (o.maxRise > 0 || o.maxSpeed > 0) {
+      for (const b of this.bodies) {
+        if (b.asleep) continue;
+        let v = b.velocity;
+        if (o.maxRise > 0 && v.y > o.maxRise) v = { x: v.x, y: o.maxRise, z: v.z };
+        const s2 = lengthSq(v);
+        if (o.maxSpeed > 0 && s2 > o.maxSpeed * o.maxSpeed) v = scale(v, o.maxSpeed / Math.sqrt(s2));
+        b.velocity = v;
+      }
+    }
     for (let i = 0; i < o.positionIterations; i++) for (const m of manifolds) this.solvePosition(m);
 
     for (const b of this.bodies) {

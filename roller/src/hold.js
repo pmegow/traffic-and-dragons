@@ -71,7 +71,9 @@ export function createHold(dice, hand, options = {}) {
   const size = o.size ?? cupSize(dice.length);
   if (!(size > 0 && o.height > 0)) throw new Error('createHold: the cup needs a positive size and height, got ' + size + ' × ' + o.height);
   const surface = lookup(SURFACES, o.surface, 'hand surface');
-  const world = new World(o.world || {});
+  // No rise cap in the hand: the cup's floor may lift the dice as fast as the hand moves (a cap would leave them in the
+  // floor), and its ceiling bounds any leap; the speed cap stays (the hand's walls move at most maxSpeed).
+  const world = new World({ maxRise: 0, ...(o.world || {}) });
   const half = { x: size / 2, y: o.height / 2, z: size / 2 };
   // The cup: inward normals; offsets follow the hand (placeCup).
   const walls = [
