@@ -22,6 +22,7 @@ import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { supersampleRatio, stepDown, SUPERSAMPLE } from './supersample.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
 import { exitDelays, chooseExit } from './exit-table.js';
+import { towardEye, tossSpin, restHeight, cupFor } from './hand.js';
 import { EXITS, exitWarmUp } from './exits.js';
 
 /**
@@ -330,12 +331,17 @@ export class DiceView {
 
   /** The point of the floor plane (y = 0, tray or not) under a client (page) position, or null above the horizon. */
   floorHit(clientX, clientY) {
+    return this.planeHit(clientX, clientY, 0);
+  }
+
+  /** The point of the level plane at height `y` under a client (page) position, or null where the pointer's ray misses it. */
+  planeHit(clientX, clientY, y) {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, this.camera);
     const p = new THREE.Vector3();
-    return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), p) ? { x: p.x, y: 0, z: p.z } : null;
+    return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), p) ? { x: p.x, y, z: p.z } : null;
   }
 
   /** The point on the tray floor under a client (page) position, or null when off the floor. */
@@ -645,17 +651,20 @@ export class DiceView {
   }
 
   /**
-   * Picks dice up into a hand over `at` ({x, z} on the floor; the cup hangs HAND.height above it): `dice` the indices
-   * of the dice to take (play order; all of them unless given — the toy takes the one held, owner 2026-10-30: "just
-   * pick up the one clicked. This should give an option for dice that get stuck"). They gather into the cup over
-   * HAND.gather s, then the hold runs LIVE (src/hold.js) frame by frame, the cup following moveHand()'s target, until
+   * Picks dice up into a hand under the pointer (`pointer` {clientX, clientY}, the press): `dice` the indices of the
+   * dice to take (play order; all of them unless given — the toy takes the one pressed, owner 2026-10-30: "just pick
+   * up the one clicked. This should give an option for dice that get stuck"). Each rises STRAIGHT TOWARD THE CAMERA
+   * to the cup's floor (render/hand.js ▸ towardEye; owner 2026-10-30: "the die elevates away from the hand... Instead
+   * of moving UP, move the die along a vector from its current position towards the camera to meet the hand"), so on
+   * screen it never leaves the pointer; the cup is centred where they rose to, over HAND.gather s, then the hold runs
+   * LIVE (src/hold.js) frame by frame, the cup following moveHand(), kept under the pointer as it was grabbed, until
    * release() hands the dice to a roll; the dice left on the table lie where they are. onHit(dieIndex, speed, surface,
    * other) hears every knock inside the cup — surface 'wall' | 'floor' | 'ceiling' the cup's, 'die' another die, the
    * dice by their place on the table — for the host's clicks; `surface` is what the hand feels like (SURFACES, felt).
    * A play under way stops where it is. Refused with nothing on the table, or a pick of dice not on it; a second pickUp
    * while one holds is ignored. Owner 2026-10-29: "A kinematic hand that holds the dice, shakes them and lets go".
    */
-  pickUp(at, { onHit = null, surface = HOLD_DEFAULTS.surface, dice = null } = {}) {
+  pickUp(pointer, { onHit = null, surface = HOLD_DEFAULTS.surface, dice = null } = {}) {
     if (!this.dice.length) throw new Error('DiceView.pickUp: nothing on the table to pick up');
     if (this.held) return;
     const picked = dice ?? this.dice.map((d, i) => i);
@@ -664,12 +673,22 @@ export class DiceView {
     }
     const live = this.liveTable();   // read before the play stops: a die left on the table carries on, when let go, as it was going
     this.stop();
-    const n = picked.length, size = cupSize(n), rng = createRng((Date.now() >>> 0) ^ n);
-    const centre = this.handClamp({ x: at.x, y: HAND.height, z: at.z }, size);
+    const n = picked.length, size = cupFor(picked.map((i) => this.dice[i].die.boundingRadius)), rng = createRng((Date.now() >>> 0) ^ n);
     const slots = cupSlots(n, size, rng);
     const from = picked.map((i) => this.dice[i].mesh.position.clone());
-    const to = picked.map((i, j) => new THREE.Vector3(centre.x + slots[j].x, centre.y - HOLD_DEFAULTS.height / 2 + this.dice[i].die.boundingRadius, centre.z + slots[j].z));
-    const held = this.held = { phase: 'gather', hold: null, target: centre, surface, onHit, size, start: null, last: 0, picked, live };
+    // Where each die rises to: toward the camera, to its height resting on the cup's floor; the cup is centred so each
+    // die's slot is there (one die: exactly), then kept over the table.
+    const restY = (i) => HAND.height - HOLD_DEFAULTS.height / 2 + restHeight(this.dice[i].die, quat(this.dice[i].mesh.quaternion));
+    const rise = picked.map((i, j) => towardEye(from[j], this.camera.position, restY(i)) || { x: from[j].x, y: restY(i), z: from[j].z });
+    const mid = rise.reduce((s, r, j) => ({ x: s.x + (r.x - slots[j].x) / n, z: s.z + (r.z - slots[j].z) / n }), { x: 0, z: 0 });
+    const centre = this.handClamp({ x: mid.x, y: HAND.height, z: mid.z }, size);
+    const to = picked.map((i, j) => new THREE.Vector3(centre.x + slots[j].x, restY(i), centre.z + slots[j].z));
+    // The grab: the level the dice are held at, and where the cup's centre sits from the pointer's point on it — kept
+    // as the pointer moves, so the die it pressed stays under it.
+    const grabY = to.reduce((s, t) => s + t.y / n, 0);
+    const at = pointer ? this.planeHit(pointer.clientX, pointer.clientY, grabY) : null;
+    const grab = at ? { x: centre.x - at.x, z: centre.z - at.z } : { x: 0, z: 0 };
+    const held = this.held = { phase: 'gather', hold: null, target: centre, surface, onHit, size, start: null, last: 0, picked, live, grabY, grab };
     this.animate((now) => {
       if (this.held !== held) return false;
       if (held.phase === 'gather') {
@@ -696,10 +715,20 @@ export class DiceView {
     });
   }
 
-  /** Where the hand is going ({x, z} on the floor): the cup follows at the hand's own pace, kept over the floor the dice may land on. */
-  moveHand(at) {
-    if (!this.held) return;
-    this.held.target = this.handClamp({ x: at.x, y: HAND.height, z: at.z }, this.held.size);
+  /**
+   * Where the hand is going: under the pointer (`pointer` {clientX, clientY}) at the level the dice are held, as it
+   * was grabbed — the die pressed stays under it; the cup follows at the hand's own pace, kept over the floor the dice
+   * may land on.
+   */
+  moveHand(pointer) {
+    const p = this.handPoint(pointer.clientX, pointer.clientY);
+    if (!p) return;
+    this.held.target = this.handClamp({ x: p.x + this.held.grab.x, y: HAND.height, z: p.z + this.held.grab.z }, this.held.size);
+  }
+
+  /** The pointer's point on the level the held dice are at (what a toss is measured on), or null: nothing held, or a pointer above the horizon. */
+  handPoint(clientX, clientY) {
+    return this.held ? this.planeHit(clientX, clientY, this.held.grabY) : null;
   }
 
   /** Where the hand is going now ({x, z}), as clamped — what a host moves it from; null when nothing is held. */
@@ -740,7 +769,8 @@ export class DiceView {
    * still gathering, the dice are where they are, still. A die the hand did not take is a RESTING state (src/roll.js:
    * it starts where it lies on every attempt and keeps the printing the player saw), moving as it was when the hand
    * took the others. `velocity` ({x, z} m/s) is a TOSS: the hand opens moving that fast along the floor, and each die it
-   * held leaves with it, on top of its own motion within the cup (owner 2026-10-30: "allow the user to toss the die").
+   * held leaves with it, on top of its own motion within the cup (owner 2026-10-30: "allow the user to toss the die"),
+   * spun forward the faster it goes (render/hand.js ▸ tossSpin: a die flung without it slid and kept its face).
    */
   release({ velocity = null } = {}) {
     const held = this.held;
@@ -752,7 +782,10 @@ export class DiceView {
     const inHand = held.hold ? held.hold.states() : held.picked.map((i) => ({ position: vec(this.dice[i].mesh.position), orientation: quat(this.dice[i].mesh.quaternion), velocity: still, angularVelocity: still }));
     const states = this.dice.map((d, i) => {
       const j = held.picked.indexOf(i);
-      if (j >= 0) { const s = inHand[j]; return { ...s, velocity: { x: s.velocity.x + toss.x, y: s.velocity.y, z: s.velocity.z + toss.z } }; }
+      if (j >= 0) {
+        const s = inHand[j], w = velocity ? tossSpin(velocity, { x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, z: Math.random() * 2 - 1 }) : still;
+        return { ...s, velocity: { x: s.velocity.x + toss.x, y: s.velocity.y, z: s.velocity.z + toss.z }, angularVelocity: { x: s.angularVelocity.x + w.x, y: s.angularVelocity.y + w.y, z: s.angularVelocity.z + w.z } };
+      }
       const t = held.live[i];
       return { position: t.position, orientation: t.orientation, velocity: t.velocity || still, angularVelocity: t.angularVelocity || still, resting: true };
     });

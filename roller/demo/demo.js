@@ -582,25 +582,26 @@ stage.addEventListener('pointerdown', (e) => {
   }
   const p = view.floorPoint(e.clientX, e.clientY);            // null off the floor: no throw, but the view still turns
   const under = view.floorHit(e.clientX, e.clientY);
+  // The second press of a double-click rolls the die the click was on again where it lies — the die the click held,
+  // not the one under the pointer now: the click dropped it, and it may have rolled from under the pointer since.
+  const again = lastClick && !view.held && lastClick.die < view.dice.length && e.timeStamp - lastClick.t <= DOUBLE_MS && Math.hypot(e.clientX - lastClick.x, e.clientY - lastClick.y) <= 4 * CLICK_SLOP;
+  const clicked = lastClick && lastClick.die;
+  lastClick = null;
+  if (again) {
+    press = { id: e.pointerId, reroll: true };
+    rerollDie(clicked);
+    return;
+  }
   const k = under ? view.dieAt(e.clientX, e.clientY) : -1;
   if (view.dice.length && !view.held && k >= 0) {
-    const again = lastClick && lastClick.die === k && e.timeStamp - lastClick.t <= DOUBLE_MS && Math.hypot(e.clientX - lastClick.x, e.clientY - lastClick.y) <= 4 * CLICK_SLOP;
-    lastClick = null;
-    if (again) {   // the second press of a double-click: that die is rolled again where it lies
-      press = { id: e.pointerId, reroll: true };
-      rerollDie(k);
-      return;
-    }
-    // A press on a die: the hand picks it up at once (never while a die leaves: the table is settling).
-    press = { id: e.pointerId, holding: true, die: k, t: e.timeStamp, at: { x: e.clientX, y: e.clientY }, from: { x: e.clientX, y: e.clientY }, wander: 0, samples: [{ t: e.timeStamp, p: under }] };
+    // A press on a die: the hand picks it up at once (never while a die leaves: the table is settling). It rises
+    // toward the camera, so it stays under the pointer, and the hand keeps it there as the pointer moves.
+    press = { id: e.pointerId, holding: true, die: k, t: e.timeStamp, at: { x: e.clientX, y: e.clientY }, from: { x: e.clientX, y: e.clientY }, wander: 0, samples: [] };
     ++current;
     audio.stop();
-    view.pickUp(under, { onHit: onHandHit, surface: HAND_TIMBRE, dice: [k] });
-    // The hand moves as the pointer moves across the floor, from where the view put it (the cup is kept over the
-    // table, so a die picked up at the edge sits a little in from the pointer; a hand that jumped to the pointer
-    // would then be held at the edge, and a shake there would shake nothing).
-    press.handAt = view.handTarget();
-    press.lastFloor = under;
+    view.pickUp({ clientX: e.clientX, clientY: e.clientY }, { onHit: onHandHit, surface: HAND_TIMBRE, dice: [k] });
+    const hp = view.handPoint(e.clientX, e.clientY);
+    if (hp) press.samples.push({ t: e.timeStamp, p: hp });   // its path at the die's height, for the toss
     stage.classList.add('holding');
     showTable('picked up ' + groupDice([onTable()[k]]) + ' — toss it, or let go');
     return;
@@ -623,12 +624,11 @@ stage.addEventListener('pointermove', (e) => {
   }
   if (!press || e.pointerId !== press.id || press.reroll) return;
   press.at = { x: e.clientX, y: e.clientY };
-  if (press.holding) {   // the hand carries the die across the floor as the pointer moves
+  if (press.holding) {   // the hand carries the die as the pointer moves, keeping it under the pointer
     press.wander = Math.max(press.wander, Math.hypot(e.clientX - press.from.x, e.clientY - press.from.y));
-    const under = view.floorHit(e.clientX, e.clientY);
-    if (under && press.lastFloor) { press.handAt = { x: press.handAt.x + under.x - press.lastFloor.x, z: press.handAt.z + under.z - press.lastFloor.z }; view.moveHand(press.handAt); }
-    if (under) press.lastFloor = under;
-    if (under) { press.samples.push({ t: e.timeStamp, p: under }); if (press.samples.length > 40) press.samples.shift(); }   // its path, for the toss
+    view.moveHand({ clientX: e.clientX, clientY: e.clientY });
+    const hp = view.handPoint(e.clientX, e.clientY);
+    if (hp) { press.samples.push({ t: e.timeStamp, p: hp }); if (press.samples.length > 40) press.samples.shift(); }   // its path, for the toss
     return;
   }
   const m = gesture.move(e.timeStamp, e.clientX, e.clientY);
