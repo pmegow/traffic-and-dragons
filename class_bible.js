@@ -524,7 +524,7 @@ var CLASS_BIBLE = {
           "18": {
             "features": [
               {
-                "nm": "Inevitably",
+                "nm": "Inevitability",
                 "ds": "Once per day, nothing bars your approach to a target within 150 feet — walls gap, wards seam, guards look away. The kill and the leaving are still yours."
               }
             ]

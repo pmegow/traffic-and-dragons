@@ -54,6 +54,12 @@ process.exit(sabotage.prove({
       mustFail: "dry run wrote to a file",
       find: "  if (args.dryRun) {",
       replace: "  if (false) {"
+    },
+    {
+      label: "the destination retarget is dropped (an earlier row keeps pointing at the retired name — a dead key in the table, two loads to land)",
+      mustFail: "was not retargeted",
+      find: "    if (capBaseName(dest) !== oldKey) return whole;",
+      replace: "    if (true) return whole;"
     }
   ]
 }));

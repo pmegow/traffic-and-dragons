@@ -262,6 +262,11 @@ var NAMES={
 // release (a Clear-for-Release concern) once no live save can predate the renames — leaving it
 // in forever would make an old name resolve to a new one for eternity, and a future capability
 // that legitimately reuses a retired name would be silently hijacked by its own history.
+//
+// A row's DESTINATION moves when that name is itself renamed later (dev/rename-capability.js
+// retargets every row pointing at the old name as it appends the new one, 2026-10-30): every `to`
+// is a live bible key, so migrateCapabilityRenames lands a sheet from ANY generation of the name
+// in one pass. Append-only applies to what the table migrates FROM; a `from` is never edited.
 var CAPABILITY_RENAMES=[
   {from:"wall of  thorns",to:"Wall of Thorns",replaces:"wall of thorns"},
   {from:"the turning tide",to:"The Turning Tide"},
@@ -269,7 +274,7 @@ var CAPABILITY_RENAMES=[
   {from:"absorb elements",to:"Redirect Element"},
   {from:"accelerated decay",to:"Accelerate Decay"},
   {from:"action surge",to:"Surge"},
-  {from:"angel of death",to:"Inevitably"},
+  {from:"angel of death",to:"Inevitability"},
   {from:"avalanche of one",to:"Primal Avalanche"},
   {from:"avatar of the totem",to:"Primal Icon"},
   {from:"awaken",to:"Sapient Spark"},
@@ -317,7 +322,8 @@ var CAPABILITY_RENAMES=[
   {from:"toll the dead",to:"For Whom the Bell Tolls"},
   {from:"tree stride",to:"Arboreal Gate"},
   {from:"unstoppable",to:"Juggernaut"},
-  {from:"where lights die",to:"Where The Light Dies"}
+  {from:"where lights die",to:"Where The Light Dies"},
+  {from:"Inevitably",to:"Inevitability"}
 ];
 
 // #307 — the authored APP FAQ Table Talk may answer from (plain facts about the interface; the live File-menu

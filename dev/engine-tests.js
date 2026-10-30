@@ -3030,8 +3030,8 @@ function runEngineTests(R){
     }
     if(miss.length)return miss.join(" | ");
     if(as.levels["20"].features[0].nm!=="The Inevitable End")return "capstone drifted: "+as.levels["20"].features[0].nm;
-    var aod=capabilityLookup("Inevitably");
-    return aod&&aod.range==="150ft"?true:"Inevitably must carry the 150ft limit (the end-run guard), got "+JSON.stringify(aod&&aod.range);
+    var aod=capabilityLookup("Inevitability");
+    return aod&&aod.range==="150ft"?true:"Inevitability must carry the 150ft limit (the end-run guard), got "+JSON.stringify(aod&&aod.range);
   });
   t("the Thief is authored end-to-end: six rows, every feature carries injectable canon, all martial",function(){
     // Third authored archetype (v1.475, slate approved 2026-07-28): spine verb THE TAKE.
@@ -32693,14 +32693,14 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     if(cs.level!==18)return "level "+cs.level;
     if(cs.archetype!=="assassin")return "the engine picks the archetype the sheet describes (Infiltrator → Assassin's 'Infiltration'): "+cs.archetype;
     if(cs.archetypeNm!=="Infiltrator")return "the sheet's own archetype name stays as display: "+cs.archetypeNm;
-    return count487(cs,"Inevitably")===1?true:"the level-18 archetype row lands: "+names487(cs).join(", ");
+    return count487(cs,"Inevitability")===1?true:"the level-18 archetype row lands: "+names487(cs).join(", ");
   });
   t("#487 the rows a sheet missed are granted once: 3, 6, 10 and 14 arrive with the pick, and a second heal changes nothing",function(){
     makeWorld();var cs=c487(),want=["The First Blow Is the Last","Master Poisoner","Sure Shot","Set the Scene"],i;
     worldState.character.abilities=classDef("Warrior").abilities.map(function(x){return {nm:x.nm,ds:x.ds};});/* a hero as the wizard makes one: nothing owed */
     if(healAbilitySheets()!==1)return "one sheet healed";
     for(i=0;i<want.length;i++){if(count487(cs,want[i])!==1)return want[i]+" ×"+count487(cs,want[i])+": "+names487(cs).join(", ");}
-    if(count487(cs,"Inevitably")!==0)return "a row above the sheet's level is not granted early";
+    if(count487(cs,"Inevitability")!==0)return "a row above the sheet's level is not granted early";
     var snap=JSON.stringify(cs);
     if(healAbilitySheets()!==0)return "a healed sheet heals to nothing";
     return JSON.stringify(cs)===snap?true:"the second heal changed the sheet";

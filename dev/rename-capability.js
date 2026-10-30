@@ -202,17 +202,32 @@ function rewriteData(src, oldKey, newDisplay) {
 }
 
 // ── data.js: append the save-migration entry ────────────────────────────────────────────────
+// RETARGET (2026-10-30, the Inevitably → Inevitability typo): when the name being renamed is
+// itself the DESTINATION of earlier rows, those rows now point at the new name. Every `to` in
+// the table is thereby a live bible key, so the load-time walker's single pass lands a sheet
+// from ANY generation of the name — an "Angel of Death" sheet goes straight to the current name,
+// never through the retired one — and the #221 engine test ("every shipped destination
+// resolves") stays a true invariant. A row's `from` is never touched: the table stays
+// append-only in what it migrates FROM.
 function appendRenameEntry(src, from, to) {
   var at = src.indexOf("var CAPABILITY_RENAMES=");
   if (at < 0) return { error: "data.js has no CAPABILITY_RENAMES table — a rename with no save migration would orphan every existing character's spell list" };
   var sp = spanFrom(src, at, "[", "]");
   if (!sp) return { error: "data.js CAPABILITY_RENAMES array is unterminated" };
-  var inner = src.slice(sp.start + 1, sp.end - 1);
+  var inner = src.slice(sp.start + 1, sp.end - 1), oldKey = capBaseName(from), edits = [];
+  inner = inner.replace(/(\{from:"(?:[^"\\]|\\.)*",to:)("(?:[^"\\]|\\.)*")/g, function (whole, head, t) {
+    var dest;
+    try { dest = JSON.parse(t); } catch (e) { return whole; }
+    if (capBaseName(dest) !== oldKey) return whole;
+    edits.push({ what: "CAPABILITY_RENAMES " + head + t + "} retargeted → to:" + JSON.stringify(to) });
+    return head + JSON.stringify(to);
+  });
   var entry = "  {from:" + JSON.stringify(from) + ",to:" + JSON.stringify(to) + "}";
   var body = inner.replace(/^\s+|\s+$/g, "").length
     ? inner.replace(/\s+$/, "").replace(/,\s*$/, "") + ",\n" + entry + "\n"
     : "\n" + entry + "\n";
-  return { text: src.slice(0, sp.start) + "[" + body + "]" + src.slice(sp.end), edits: [{ what: "CAPABILITY_RENAMES += " + entry.trim() }] };
+  edits.push({ what: "CAPABILITY_RENAMES += " + entry.trim() });
+  return { text: src.slice(0, sp.start) + "[" + body + "]" + src.slice(sp.end), edits: edits };
 }
 
 // ── the coverage proof, run against what is actually on disk ─────────────────────────────────

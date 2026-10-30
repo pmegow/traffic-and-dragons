@@ -216,6 +216,28 @@ try {
     pass("both renamed capabilities resolve after two sequential renames");
   })();
 
+  // ── ⑦ renaming a DESTINATION retargets the rows that point at it ───────────────────────────
+  // (2026-10-30, Inevitably → Inevitability): the walker takes a sheet through ONE row, so a row
+  // whose `to` is a retired name would land a sheet on a dead key and need a second load to
+  // finish. Every `to` must stay a live bible key.
+  (function () {
+    var dir = scratch();
+    if (run(dir, [SUBJECT, TARGET]).status !== 0) fail("first rename failed");
+    var r = run(dir, [TARGET, "Veilstep"]);
+    if (r.status !== 0) fail("the destination rename exited " + r.status + "\n" + r.out);
+    // The TABLE first — it is the clause that matters; the report line is checked after it so a
+    // dropped retarget is attributed to the dead row, not to a missing log line.
+    var ctx = load(dir), t = ctx.CAPABILITY_RENAMES;
+    if (t.length !== BASE_RENAMES.length + 2) fail("expected two rows appended, got " + JSON.stringify(t.slice(BASE_RENAMES.length)));
+    var first = t[BASE_RENAMES.length], second = t[BASE_RENAMES.length + 1];
+    if (first.from !== SUBJECT || first.to !== "Veilstep") fail("the first row was not retargeted at the final name: " + JSON.stringify(first));
+    if (second.from !== TARGET || second.to !== "Veilstep") fail("the second row is wrong: " + JSON.stringify(second));
+    if (JSON.stringify(t.slice(0, BASE_RENAMES.length)) !== JSON.stringify(BASE_RENAMES)) fail("a retarget touched an unrelated row");
+    for (var i = 0; i < t.length; i++) if (!ctx.capabilityLookup(t[i].to)) fail("a rename destination is not a live key after the retarget: " + JSON.stringify(t[i]));
+    if (r.out.indexOf("retargeted") < 0) fail("the destination rename did not report the retarget\n" + r.out);
+    pass("renaming a destination retargets every row that pointed at it: every `to` a live key, a sheet from any generation lands in one pass");
+  })();
+
   console.log("ALL GREEN — " + passed + " assertions passed (#221 rename-capability)");
 } catch (e) {
   console.error("FAILED — " + (e && e.message));

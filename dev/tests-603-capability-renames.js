@@ -5,10 +5,13 @@ const {loadEngine,makeTestWorld}=require('./load-engine.js');loadEngine();
 const publication=JSON.parse(fs.readFileSync(path.join(root,'audits/capability_descriptions_applied.json'),'utf8'));
 const published=new Map(publication.rows.map(r=>[r.from,r]));
 const retired=new Map(publication.retired.map(r=>[r.from,r]));
-function currentName(r){return published.get(capBaseName(r.to)).name;}
+/* 2026-10-30: a published key renamed AFTER the publication (Inevitably → Inevitability, the owner's typo ruling — an adverb is not an ability). The historical rows stay as published; the test reads them through this map, so the hash chain stays strict (the definition is unchanged under its new key) and the rebase claim stays honest */
+const RENAMED_SINCE_PUBLICATION={inevitably:{key:'inevitability',name:'Inevitability'}};
+function currentKey(key){return RENAMED_SINCE_PUBLICATION[key]?RENAMED_SINCE_PUBLICATION[key].key:key;}
+function currentName(r){const key=capBaseName(r.to);return RENAMED_SINCE_PUBLICATION[key]?RENAMED_SINCE_PUBLICATION[key].name:published.get(key).name;}
 const changed=receipt.names.filter(r=>capBaseName(r.from)!==capBaseName(r.to));
 assert.equal(receipt.names.length,507);assert.equal(changed.length,53);
-for(const r of receipt.names){const key=capBaseName(r.to),next=published.get(key)||retired.get(key);assert.ok(next,'historical definition missing: '+r.to);assert.equal(next.beforeSha256,r.definitionSha256,'historical definition changed: '+r.to);if(!published.has(key))continue;const entry=CAPABILITY_BIBLE[next.key];assert.ok(entry,'approved capability missing: '+r.to);assert.equal(crypto.createHash('sha256').update(JSON.stringify(entry)).digest('hex'),next.afterSha256,'definition changed: '+r.to);}
+for(const r of receipt.names){const key=capBaseName(r.to),next=published.get(key)||retired.get(key);assert.ok(next,'historical definition missing: '+r.to);assert.equal(next.beforeSha256,r.definitionSha256,'historical definition changed: '+r.to);if(!published.has(key))continue;const entry=CAPABILITY_BIBLE[currentKey(next.key)];assert.ok(entry,'approved capability missing: '+r.to);assert.equal(crypto.createHash('sha256').update(JSON.stringify(entry)).digest('hex'),next.afterSha256,'definition changed: '+r.to);}
 for(const r of changed){assert.ok(!CAPABILITY_BIBLE[r.from],'old capability key remains: '+r.from);assert.ok(CAPABILITY_RENAMES.some(n=>capBaseName(n.from)===r.from&&n.to===currentName(r)),'migration missing: '+r.from);}
 const world=makeTestWorld();
 function sheet(){return {name:'Rename fixture',spells:changed.map(r=>({nm:r.from+' (1/day)',used:true,lvl:2})),abilities:changed.map(r=>({nm:r.from,ds:'unchanged'}))};}
@@ -19,11 +22,15 @@ const html=fs.readFileSync(path.join(root,'capability-names.html'),'utf8'),vm=re
 const old=JSON.stringify({format:'traffic-and-dragons/capability-names/v1',names:receipt.names.map(({from,to})=>({from,to}))});
 /* #628: the bible grows after a publication (Intimidate, 2026-10-13); the historical draft is read against the bible it was made FOR — every key added since the publication is listed here, so the strict read() stays strict and the rebase claim stays honest */
 const ADDED_SINCE_PUBLICATION=["intimidate"],bibleAsPublished={};Object.keys(CAPABILITY_BIBLE).forEach(k=>{if(ADDED_SINCE_PUBLICATION.indexOf(k)<0)bibleAsPublished[k]=CAPABILITY_BIBLE[k];});
-const restored=box.CapabilityNames.read(old,bibleAsPublished);assert.equal(restored.length,506);for(const r of restored)assert.equal(capBaseName(r.to),r.from,'approved old browser draft should rebase to current key');
+/* the publication-era view of a key renamed since: the definition back under its published key, and every rename row the tool retargeted at the new name pointing at the published name again — the old draft is read against the bible AND the table it was made for */
+Object.keys(RENAMED_SINCE_PUBLICATION).forEach(k=>{const s=RENAMED_SINCE_PUBLICATION[k];delete bibleAsPublished[s.key];bibleAsPublished[k]=CAPABILITY_BIBLE[s.key];});
+const renamesAsPublished=CAPABILITY_RENAMES.map(n=>{const k=Object.keys(RENAMED_SINCE_PUBLICATION).find(k=>RENAMED_SINCE_PUBLICATION[k].key===capBaseName(n.to));return k?Object.assign({},n,{to:published.get(k).name}):n;});
+function asPublished(f){box.CAPABILITY_RENAMES=renamesAsPublished;try{return f();}finally{box.CAPABILITY_RENAMES=CAPABILITY_RENAMES;}}
+const restored=asPublished(()=>box.CapabilityNames.read(old,bibleAsPublished));assert.equal(restored.length,506);for(const r of restored)assert.equal(capBaseName(r.to),r.from,'approved old browser draft should rebase to current key');
 assert.equal(box.CapabilityNames.forImplementation(fs.readFileSync(path.join(root,'capability-names.json'),'utf8'),CAPABILITY_BIBLE).length,507);
 console.log('PASS #603 approved 53 renames: historical hashes chained to approved publication, migration/player/companion/idempotence, draft restoration');
 
 const legacy=JSON.parse(old);legacy.names.find(r=>r.from==='wall of  thorns').to='Bramble Rampart';legacy.names.find(r=>r.from==='wall of thorns').to='Retired Choice';
-assert.equal(box.CapabilityNames.read(JSON.stringify(legacy),bibleAsPublished).find(r=>r.from==='wall of thorns').to,'Bramble Rampart','consolidation preserves surviving row choice');
-legacy.names.push({...legacy.names[0]});assert.throws(()=>box.CapabilityNames.read(JSON.stringify(legacy),bibleAsPublished),/unknown, repeated, or malformed original name/,'consolidation must not hide duplicate originals');
+assert.equal(asPublished(()=>box.CapabilityNames.read(JSON.stringify(legacy),bibleAsPublished)).find(r=>r.from==='wall of thorns').to,'Bramble Rampart','consolidation preserves surviving row choice');
+legacy.names.push({...legacy.names[0]});assert.throws(()=>asPublished(()=>box.CapabilityNames.read(JSON.stringify(legacy),bibleAsPublished)),/unknown, repeated, or malformed original name/,'consolidation must not hide duplicate originals');
 const current=JSON.parse(fs.readFileSync(path.join(root,'capability-names.json'),'utf8'));current.names.push({from:'unknown ability',to:'Unknown Ability'});assert.throws(()=>box.CapabilityNames.read(JSON.stringify(current),CAPABILITY_BIBLE),/does not match/,'unknown extra rows remain invalid');
