@@ -22,7 +22,7 @@ import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { supersampleRatio, stepDown, SUPERSAMPLE } from './supersample.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
 import { exitDelays, chooseExit } from './exit-table.js';
-import { towardEye, tossSpin, restHeight, cupFor } from './hand.js';
+import { towardEye, tossSpin, restHeight, cupFor, keepInFrame } from './hand.js';
 import { EXITS, exitWarmUp } from './exits.js';
 
 /**
@@ -48,8 +48,8 @@ export { VIEW_DEFAULTS };
 const RIM_HEIGHT = 0.014;   // m: the tray's rim, low enough that a die resting against the near wall stays in view
 const SCREEN_MARGIN = 0.002;   // m: the screen's edges, moved in a little, so a die never touches the frame
 const WARM_DIE = 'd6';   // the die type whose geometry stands in for the dice's pipeline (warmTable)
-/** The hand (pickUp): the cup's centre this high above the table, the dice gathering into it over this long. */
-export const HAND = { height: 0.05, gather: 0.12, frameMax: 0.05 };   // gather 0.25 s until a press picked a die up at once (2026-10-30)
+/** The hand (pickUp): the dice gathering into it over this long; how high it holds them is render/hand.js ▸ HAND_LIFT. */
+export const HAND = { gather: 0.12, frameMax: 0.05 };   // gather 0.25 s until a press picked a die up at once; height 0.05 until it rose toward the camera (2026-10-30)
 /** A three.js vector or quaternion as the core's plain {x, y, z} or {x, y, z, w}. */
 const vec = (v) => ({ x: v.x, y: v.y, z: v.z });
 const quat = (q) => ({ x: q.x, y: q.y, z: q.z, w: q.w });
@@ -676,16 +676,18 @@ export class DiceView {
     const n = picked.length, size = cupFor(picked.map((i) => this.dice[i].die.boundingRadius)), rng = createRng((Date.now() >>> 0) ^ n);
     const slots = cupSlots(n, size, rng);
     const from = picked.map((i) => this.dice[i].mesh.position.clone());
-    // Where each die rises to: toward the camera, to its height resting on the cup's floor; the cup is centred so each
-    // die's slot is there (one die: exactly), then kept over the table.
-    const restY = (i) => HAND.height - HOLD_DEFAULTS.height / 2 + restHeight(this.dice[i].die, quat(this.dice[i].mesh.quaternion));
-    const rise = picked.map((i, j) => towardEye(from[j], this.camera.position, restY(i)) || { x: from[j].x, y: restY(i), z: from[j].z });
+    // Where each die rises to: HAND_LIFT of the way to the camera (render/hand.js); the cup's floor under the dice at
+    // that level, each resting on it at its own height (one die: exactly where it rose to); the cup centred so each
+    // die's slot is there, then kept in the frame at that level.
+    const rest = picked.map((i) => restHeight(this.dice[i].die, quat(this.dice[i].mesh.quaternion)));
+    const rise = picked.map((i, j) => towardEye(from[j], this.camera.position));
+    const floorY = rise.reduce((s, r, j) => s + (r.y - rest[j]) / n, 0), cupY = floorY + HOLD_DEFAULTS.height / 2;
+    const grabY = floorY + rest.reduce((s, h) => s + h / n, 0);   // the level the dice are held at
     const mid = rise.reduce((s, r, j) => ({ x: s.x + (r.x - slots[j].x) / n, z: s.z + (r.z - slots[j].z) / n }), { x: 0, z: 0 });
-    const centre = this.handClamp({ x: mid.x, y: HAND.height, z: mid.z }, size);
-    const to = picked.map((i, j) => new THREE.Vector3(centre.x + slots[j].x, restY(i), centre.z + slots[j].z));
-    // The grab: the level the dice are held at, and where the cup's centre sits from the pointer's point on it — kept
-    // as the pointer moves, so the die it pressed stays under it.
-    const grabY = to.reduce((s, t) => s + t.y / n, 0);
+    const centre = this.handClamp({ x: mid.x, y: cupY, z: mid.z }, size, grabY);
+    const to = picked.map((i, j) => new THREE.Vector3(centre.x + slots[j].x, floorY + rest[j], centre.z + slots[j].z));
+    // The grab: where the cup's centre sits from the pointer's point on the dice's level — kept as the pointer moves,
+    // so the die it pressed stays under it.
     const at = pointer ? this.planeHit(pointer.clientX, pointer.clientY, grabY) : null;
     const grab = at ? { x: centre.x - at.x, z: centre.z - at.z } : { x: 0, z: 0 };
     const held = this.held = { phase: 'gather', hold: null, target: centre, surface, onHit, size, start: null, last: 0, picked, live, grabY, grab };
@@ -723,7 +725,7 @@ export class DiceView {
   moveHand(pointer) {
     const p = this.handPoint(pointer.clientX, pointer.clientY);
     if (!p) return;
-    this.held.target = this.handClamp({ x: p.x + this.held.grab.x, y: HAND.height, z: p.z + this.held.grab.z }, this.held.size);
+    this.held.target = this.handClamp({ x: p.x + this.held.grab.x, y: this.held.target.y, z: p.z + this.held.grab.z }, this.held.size, this.held.grabY);
   }
 
   /** The pointer's point on the level the held dice are at (what a toss is measured on), or null: nothing held, or a pointer above the horizon. */
@@ -737,29 +739,17 @@ export class DiceView {
   }
 
   /**
-   * The hand's centre kept inside the tray's walls — or, with no tray drawn, inside the screen's edges where they meet
-   * the floor — by half the cup, so the dice let go start over the table the roll keeps them on. (The edge planes lean:
-   * held to them at the cup's own height, a small stage left the hand no room at all, 2026-10-29.)
+   * The hand's centre kept, by half the cup, inside the screen's edges at `level`, the height the dice are held at
+   * (render/hand.js ▸ keepInFrame: the edges lean, so the floor's frame let a held die out at the top and shut off a
+   * band at the bottom, owner 2026-10-30), and inside the tray's walls when one is drawn — so a held die stays on screen
+   * and the dice let go start inside the walls the roll keeps them in (with no tray those walls are the screen's edges).
    */
-  handClamp(p, size) {
+  handClamp(p, size, level = 0) {
     const r = size / 2;
-    if (this.trayDrawn !== false) {
-      const clamp = (v, h) => (h > r ? Math.max(-h + r, Math.min(h - r, v)) : 0);
-      return { x: clamp(p.x, this.tray.width / 2), y: p.y, z: clamp(p.z, this.tray.depth / 2) };
-    }
-    // Each edge plane, where it meets the floor, must hold the cup's footprint: its centre at least r inside; a centre
-    // short of that is pushed in along the plane's floor direction, a few sweeps over all of them.
-    let x = p.x, z = p.z;
-    const planes = this.screenEdges().planes;
-    for (let sweep = 0; sweep < 4; sweep++) {
-      for (const b of planes) {
-        const n = b.normal, h = n.x * n.x + n.z * n.z;
-        if (h < 1e-9) continue;
-        const short = b.offset + r * Math.sqrt(h) - (n.x * x + n.z * z);
-        if (short > 0) { x += n.x * short / h; z += n.z * short / h; }
-      }
-    }
-    return { x, y: p.y, z };
+    const { x, z } = keepInFrame(p, r, level, this.screenEdges().planes);
+    if (this.trayDrawn === false) return { x, y: p.y, z };
+    const clamp = (v, h) => (h > r ? Math.max(-h + r, Math.min(h - r, v)) : 0);
+    return { x: clamp(x, this.tray.width / 2), y: p.y, z: clamp(z, this.tray.depth / 2) };
   }
 
   /**

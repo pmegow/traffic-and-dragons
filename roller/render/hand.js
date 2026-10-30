@@ -4,16 +4,38 @@
 import { qrotate } from '../src/math.js';
 
 /**
- * The point on the line from `p` toward the camera's `eye` where that line reaches height `y` (owner 2026-10-30:
- * "Instead of moving UP, move the die along a vector from its current position towards the camera to meet the hand"):
- * a die lifted along it never moves on screen, so the hand that pressed it is still on it. Null when the line never
- * reaches `y` (the eye level with the die).
+ * How far toward the camera a die picked up comes: this share of the way from where it lies (owner 2026-10-30: "change
+ * the 12% to 25%" — it had risen to the cup's old floor, 2.5 cm, about 12% of the way).
  */
-export function towardEye(p, eye, y) {
-  const dy = eye.y - p.y;
-  if (Math.abs(dy) < 1e-9) return null;
-  const t = (y - p.y) / dy;
-  return { x: p.x + (eye.x - p.x) * t, y, z: p.z + (eye.z - p.z) * t };
+export const HAND_LIFT = 0.25;
+
+/**
+ * The point `t` of the way from `p` to the camera's `eye` (owner 2026-10-30: "Instead of moving UP, move the die along
+ * a vector from its current position towards the camera to meet the hand"): a die lifted along it never moves on
+ * screen, so the hand that pressed it is still on it.
+ */
+export function towardEye(p, eye, t = HAND_LIFT) {
+  return { x: p.x + (eye.x - p.x) * t, y: p.y + (eye.y - p.y) * t, z: p.z + (eye.z - p.z) * t };
+}
+
+/**
+ * Where a held die may go: the point (x, z) at height `level` moved inside every plane of `planes` ({ normal, offset }:
+ * inside where normal · p ≥ offset — the screen's edges, render/framing.js ▸ screenBounds) by at least `r` across the
+ * floor, a few sweeps over them all. The edges lean, each running from the camera through an edge of the frame, so they
+ * are tested at the level the dice are held (owner 2026-10-30: tested on the floor, a held die "can move out of frame at
+ * the top of the scene, but at the bottom, there's a significant area that's blocked off").
+ */
+export function keepInFrame(p, r, level, planes) {
+  let x = p.x, z = p.z;
+  for (let sweep = 0; sweep < 4; sweep++) {
+    for (const b of planes) {
+      const n = b.normal, h = n.x * n.x + n.z * n.z;
+      if (h < 1e-9) continue;
+      const short = b.offset + r * Math.sqrt(h) - (n.x * x + n.y * level + n.z * z);
+      if (short > 0) { x += (n.x * short) / h; z += (n.z * short) / h; }
+    }
+  }
+  return { x, z };
 }
 
 /**

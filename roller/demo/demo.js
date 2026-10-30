@@ -147,7 +147,7 @@ for (const e of EXIT_MENU) {
 $('exit').value = TOY_DEFAULTS.exit;   // Random (owner 2026-10-27), unless this browser kept another still on the menu
 try { const saved = localStorage.getItem(EXIT_KEY); if (EXIT_MENU.some((e) => e.name === saved)) $('exit').value = saved; } catch { /* storage blocked: the default */ }
 $('exit').addEventListener('change', () => { try { localStorage.setItem(EXIT_KEY, $('exit').value); } catch { /* storage blocked */ } });
-$('table-hint').textContent = 'Drag a die to toss it · ' + (window.matchMedia('(pointer: coarse)').matches ? 'double-tap' : 'double-click') + ' one to roll it again';
+$('table-hint').textContent = 'Drag a die to toss it · ' + (window.matchMedia('(pointer: coarse)').matches ? 'double-tap' : 'double-click') + ' a die to roll it again, the table to roll them all';
 // The row floats over the tray: a press on it is not a press on the tray (no roll, throw, turn or pinch).
 for (const type of ['pointerdown', 'pointerup', 'pointercancel']) $('adders').addEventListener(type, (e) => e.stopPropagation());
 
@@ -524,6 +524,7 @@ const ZOOM_PER_PX = 0.006;   // a right-drag of 100 px up brings the camera to 0
 const HAND_TIMBRE = 'felt', HAND_VOICES = 4;
 const DOUBLE_MS = 400, CLICK_SLOP = 6;   // ms between a click's release and the next press on the same die; px a click may wander
 let lastClick = null;   // the last click on a die: { die, t, x, y }
+let lastTableClick = null;   // the last click on the empty table: { t, x, y }
 let handKnocks = [];
 const onHandHit = (i, speed, surface) => {
   if (!soundOn()) return;
@@ -606,7 +607,7 @@ stage.addEventListener('pointerdown', (e) => {
     showTable('picked up ' + groupDice([onTable()[k]]) + ' — toss it, or let go');
     return;
   }
-  press = { id: e.pointerId, start: p, samples: p ? [{ t: e.timeStamp, p }] : [], at: { x: e.clientX, y: e.clientY } };
+  press = { id: e.pointerId, t: e.timeStamp, start: p, samples: p ? [{ t: e.timeStamp, p }] : [], at: { x: e.clientX, y: e.clientY } };
   gesture.down(e.timeStamp, e.clientX, e.clientY);
   clearTimeout(holdTimer);
   holdTimer = setTimeout(() => {   // held still on the table: the view pans
@@ -665,6 +666,14 @@ stage.addEventListener('pointerup', (e) => {
     return;
   }
   if (kind === 'pan' || kind === 'zoom' || !d.start) return;   // a pan or zoom of the view, or a press that began off the floor
+  // A double-click on the empty table rolls every die, as the Roll button does (owner 2026-10-30: "set double click on
+  // the table to re-roll the all the dice"); a single click there does nothing.
+  if (kind === 'tap') {
+    const again = lastTableClick && d.t - lastTableClick.t <= DOUBLE_MS && Math.hypot(e.clientX - lastTableClick.x, e.clientY - lastTableClick.y) <= 4 * CLICK_SLOP;
+    lastTableClick = again ? null : { t: e.timeStamp, x: e.clientX, y: e.clientY };
+    if (again) rollFromPanel(undefined, { unlocking });
+    return;
+  }
   const end = d.samples[d.samples.length - 1];
   const from = d.samples.find((s) => end.t - s.t <= 90) || d.samples[0];
   const dt = (end.t - from.t) / 1000;
