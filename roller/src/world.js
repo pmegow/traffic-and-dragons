@@ -42,6 +42,8 @@ export const WORLD_DEFAULTS = {
   // maxRise — a hop of v²/2g, 8 cm — nor moves faster than maxSpeed, whatever the solver asked; ordinary play stays under
   // both (its fastest rise 1.25 m/s, a hard fling's bounce; its fastest die 4.3 m/s, knocked in the hand). The owner's
   // rule was a quarter of the burst (1.08 m/s); the cap sits where ordinary play ends, so no honest roll changes. 0 = off.
+  // maxSpeed is the world's own ceiling (the hand's cup, a world with no throw); a roll lowers it to its throw's energy
+  // (roll.js, throwCap; owner 2026-10-30: "cap their velocity at the initial throw speed").
   maxRise: 1.25,               // m/s: the fastest a die may rise
   maxSpeed: 5,                 // m/s: the fastest a die may move
 };

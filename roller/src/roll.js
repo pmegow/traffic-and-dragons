@@ -356,11 +356,27 @@ function flingPlan(req) {
   };
 }
 
+/**
+ * THE THROW'S ENERGY, as a speed (owner 2026-10-30: cap their velocity at the initial throw speed; they should not be
+ * increasing in speed). Nothing a throw does not put in may come out: a die is as fast as its start speed, and the fall from
+ * where it starts adds what gravity gives it by the table, sqrt(v^2 + 2gh). The fastest die caps every die: a contact may
+ * hand speed from one die to another, never make it from nothing. No throw at all (a speed of zero, a height of zero)
+ * keeps the world's own ceiling.
+ */
+export function throwCap(states) {
+  let cap = 0;
+  for (const s of states) {
+    const v = s.velocity, h = Math.max(0, s.position.y);
+    cap = Math.max(cap, Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z - 2 * WORLD_DEFAULTS.gravity * h));
+  }
+  return cap > 0 ? cap : WORLD_DEFAULTS.maxSpeed;
+}
+
 // ---------------------------------------------------------------- simulation
 function simulate(req, seed, attempt) {
-  const world = new World(req.world);
-  trayPlanes(req.tray).forEach((p) => world.addPlane(p));
   const states = throwStates(req, seed, attempt);
+  const world = new World({ ...req.world, maxSpeed: req.world.maxSpeed ?? throwCap(states) });
+  trayPlanes(req.tray).forEach((p) => world.addPlane(p));
   const bodies = req.dice.map((d, i) => world.addBody(new Body(d.die, states[i])));
   const frames = [];
   const record = () => frames.push(bodies.map((b) => [b.position.x, b.position.y, b.position.z, b.orientation.x, b.orientation.y, b.orientation.z, b.orientation.w]));
