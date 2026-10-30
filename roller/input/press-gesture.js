@@ -20,7 +20,7 @@
 // (right-button) press zooms from the start: it has nothing to be confused with, so it needs no hold.
 
 export const PRESS_DEFAULTS = {
-  holdMs: 350,   // how long a press must stay still before it pans the view
+  holdMs: 175,   // how long a press must stay still before it pans the view (owner 2026-10-30: half the 350 it was)
   slop: 6,       // px a still press may wander (a hand is never perfectly still)
 };
 

@@ -175,25 +175,33 @@ function validate(request) {
         if (w !== undefined && !(w && finite(w.x, w.y, w.z))) throw new Error('roll: throw.drop.resting[' + i + '].' + k + ' must be a finite {x, y, z}');
       }
     });
+    const again = thr.drop.again;   // dice of the table rolled again from where they lie
+    if (again !== undefined && !(Array.isArray(again) && again.every((i) => Number.isInteger(i) && i >= 0 && i < rest.length) && new Set(again).size === again.length)) {
+      throw new Error('roll: throw.drop.again must list dice of throw.drop.resting by index, each once, got ' + JSON.stringify(again));
+    }
   }
   const pick = (k) => gates[k] ?? ROLL_DEFAULTS[k];
   return {
     dice, seed: seed >>> 0, tray, world, fps, stepsPerFrame,
-    // A drop's table does not turn, and a die falling a few centimetres turns little: no turn gate unless asked.
-    maxSeconds: pick('maxSeconds'), maxAttempts: pick('maxAttempts'), minTurns: gates.minTurns ?? (thr.drop ? 0 : ROLL_DEFAULTS.minTurns), tips: pick('tips'),
+    // A drop's table does not turn, and a die falling a few centimetres turns little: no turn gate unless asked — but a
+    // die rolled again must turn (REROLL.minTurns), or a flick that hardly turns it would show the face it lay on.
+    maxSeconds: pick('maxSeconds'), maxAttempts: pick('maxAttempts'), minTurns: gates.minTurns ?? (thr.drop ? (thr.drop.again && thr.drop.again.length ? REROLL.minTurns : 0) : ROLL_DEFAULTS.minTurns), tips: pick('tips'),
     cockedAlignment: pick('cockedAlignment'), hitMerge: ROLL_DEFAULTS.hitMerge,
     strength: thr.strength ?? ROLL_DEFAULTS.strength,
     direction: normalize(v3((thr.direction || ROLL_DEFAULTS.direction).x, 0, (thr.direction || ROLL_DEFAULTS.direction).z)),
     states: thr.states || null,
-    // The dice on the table as they lie (a drop's first resting.length, or a state marked resting): each starts as
-    // given on every attempt, never nudged, and keeps the printing the player saw (finish).
-    resting: dice.map((d, i) => (thr.drop ? i < thr.drop.resting.length : !!(thr.states && thr.states[i] && thr.states[i].resting))),
+    // The dice on the table as they lie (a drop's resting dice not rolled again, or a state marked resting): each
+    // starts as given on every attempt, never nudged, and is left out of the turn gate.
+    resting: dice.map((d, i) => (thr.drop ? i < thr.drop.resting.length && !(thr.drop.again || []).includes(i) : !!(thr.states && thr.states[i] && thr.states[i].resting))),
+    // The dice whose pose is the one the player saw, printing included: every die of a drop's table, rolled again or
+    // not, and a resting state. Each keeps that printing (finish), so its first frame is exactly what was on screen.
+    printed: dice.map((d, i) => (thr.drop ? i < thr.drop.resting.length : !!(thr.states && thr.states[i] && thr.states[i].resting))),
     fling: thr.fling || null,
     drop: thr.drop ? { resting: thr.drop.resting.map((s) => ({
       position: v3(s.position.x, s.position.y, s.position.z), orientation: qnormalize(s.orientation),
       velocity: s.velocity ? v3(s.velocity.x, s.velocity.y, s.velocity.z) : v3(),
       angularVelocity: s.angularVelocity ? v3(s.angularVelocity.x, s.angularVelocity.y, s.angularVelocity.z) : v3(),
-    })) } : null,
+    })), again: thr.drop.again || [] } : null,
     readUp: normalize(request.readUp || ROLL_DEFAULTS.readUp),
   };
 }
@@ -272,6 +280,14 @@ function keepInside(tray, margin) {
 
 const DROP_CANDIDATES = 24;   // floor spots tried for each dropped die; the most open one wins
 const DROP_HEIGHT = 0.07;     // m: where the first dropped die starts above the floor; each further one starts higher
+/**
+ * A die rolled again (drop.again): tossed from where it lies, up at `rise` m/s (under the world's rise cap) and `drift`
+ * m/s along the floor in a seeded direction, tumbling end over end at `spin` rad/s about a level axis; it must turn
+ * `minTurns`. Measured (dev/reroll-probe.js): a hop straight up spinning about any axis came down on the face it lay on
+ * up to twice as often as chance (a spin near vertical twirls it on the spot; a short tumble sweeps the face down round
+ * a circle back through itself); tossed along the floor it bounces into a fair face, the face it lay on at chance.
+ */
+export const REROLL = { rise: [0.9, 1.2], drift: [0.8, 1.5], spin: [40, 70], minTurns: 0.5 };
 
 /**
  * A drop (owner 2026-10-25: "as dice are added, drop them into the play area"): the dice already on
@@ -287,6 +303,15 @@ function dropStates(req, rng) {
   const inside = keepInside(req.tray, 0.022), clearance = wallClearance(req.tray);
   const taken = rest.map((s) => s.position);
   return req.dice.map((d, i) => {
+    if (i < rest.length && req.drop.again.includes(i)) {
+      // Rolled again (owner 2026-10-30: a double-click on a die rerolls it): flicked up from where it lies, a little
+      // sideways, spinning fast about a seeded axis — the same die, so no jump on screen; the turn gate sees it turn.
+      return {
+        position: rest[i].position, orientation: rest[i].orientation,
+        velocity: add(scale(level(rng), rng.range(REROLL.drift[0], REROLL.drift[1])), v3(0, rng.range(REROLL.rise[0], REROLL.rise[1]), 0)),
+        angularVelocity: scale(level(rng), rng.range(REROLL.spin[0], REROLL.spin[1])),
+      };
+    }
     if (i < rest.length) return { position: rest[i].position, orientation: rest[i].orientation, velocity: rest[i].velocity, angularVelocity: rest[i].angularVelocity };
     let spot = null, open = -1;
     for (let c = 0; c < DROP_CANDIDATES; c++) {
@@ -481,7 +506,9 @@ function judge(req, sim) {
     const { alignment } = readDie(b.die, b.orientation);
     if (alignment < req.cockedAlignment && !leansOnDie(sim.bodies, b, sim.world.o.speculative)) return 'die ' + b.index + ' cocked (alignment ' + alignment.toFixed(4) + ')';
   }
-  const mean = sim.bodies.reduce((s, b) => s + b.turns, 0) / sim.bodies.length;
+  // The dice thrown: a die left lying on the table (resting) never turns, and would hold every roll that has one back.
+  const thrown = sim.bodies.filter((b, i) => !req.resting[i]);
+  const mean = thrown.length ? thrown.reduce((s, b) => s + b.turns, 0) / thrown.length : Infinity;
   if (mean < req.minTurns) return 'the dice turned only ' + mean.toFixed(2) + ' times on average';
   return null;
 }
@@ -528,9 +555,9 @@ function finish(req, sim, seed, attempts, rejected) {
     // so its first frame shows it exactly as it lay. Read afresh, it turned a quarter on the spot
     // whenever the camera had turned since its roll, and a die knocked to a new face would have
     // shown a different number before anything touched it (2026-10-28). So does a die left lying while the hand
-    // held another (a resting state, owner 2026-10-30).
-    const resting = req.resting[i] && spec.value === null;
-    const s = resting ? b.die.identity : chooseSymmetry(b.die, feature, value, b.orientation, req.readUp);
+    // held another (a resting state, owner 2026-10-30), and a die of the table rolled again (drop.again).
+    const printed = req.printed[i] && spec.value === null;
+    const s = printed ? b.die.identity : chooseSymmetry(b.die, feature, value, b.orientation, req.readUp);
     const track = new Float32Array(frames.length * 7);
     frames.forEach((f, k) => track.set(f[i], k * 7));
     return {
@@ -565,4 +592,12 @@ function finish(req, sim, seed, attempts, rejected) {
     total: dice.reduce((s, d) => s + d.value, 0),
     dice,
   };
+}
+
+/** A seeded unit vector along the floor (as rng.unitVector, by rejection: no trigonometry in the core). */
+function level(rng) {
+  for (;;) {
+    const x = rng.range(-1, 1), z = rng.range(-1, 1), l2 = x * x + z * z;
+    if (l2 > 1e-6 && l2 <= 1) return v3(x / Math.sqrt(l2), 0, z / Math.sqrt(l2));
+  }
 }

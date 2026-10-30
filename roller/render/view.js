@@ -48,7 +48,7 @@ const RIM_HEIGHT = 0.014;   // m: the tray's rim, low enough that a die resting 
 const SCREEN_MARGIN = 0.002;   // m: the screen's edges, moved in a little, so a die never touches the frame
 const WARM_DIE = 'd6';   // the die type whose geometry stands in for the dice's pipeline (warmTable)
 /** The hand (pickUp): the cup's centre this high above the table, the dice gathering into it over this long. */
-export const HAND = { height: 0.05, gather: 0.25, frameMax: 0.05 };
+export const HAND = { height: 0.05, gather: 0.12, frameMax: 0.05 };   // gather 0.25 s until a press picked a die up at once (2026-10-30)
 /** A three.js vector or quaternion as the core's plain {x, y, z} or {x, y, z, w}. */
 const vec = (v) => ({ x: v.x, y: v.y, z: v.z });
 const quat = (q) => ({ x: q.x, y: q.y, z: q.z, w: q.w });
@@ -739,17 +739,20 @@ export class DiceView {
    * so a play of that roll with fromTable set carries straight on from them. Null when nothing is held. Let go while
    * still gathering, the dice are where they are, still. A die the hand did not take is a RESTING state (src/roll.js:
    * it starts where it lies on every attempt and keeps the printing the player saw), moving as it was when the hand
-   * took the others.
+   * took the others. `velocity` ({x, z} m/s) is a TOSS: the hand opens moving that fast along the floor, and each die it
+   * held leaves with it, on top of its own motion within the cup (owner 2026-10-30: "allow the user to toss the die").
    */
-  release() {
+  release({ velocity = null } = {}) {
     const held = this.held;
     if (!held) return null;
     this.held = null;
     const still = { x: 0, y: 0, z: 0 };
+    const hand = held.hold ? held.hold.velocity : still;
+    const toss = velocity ? { x: velocity.x - hand.x, y: 0, z: velocity.z - hand.z } : still;   // the hand's own motion is in the dice already
     const inHand = held.hold ? held.hold.states() : held.picked.map((i) => ({ position: vec(this.dice[i].mesh.position), orientation: quat(this.dice[i].mesh.quaternion), velocity: still, angularVelocity: still }));
     const states = this.dice.map((d, i) => {
       const j = held.picked.indexOf(i);
-      if (j >= 0) return inHand[j];
+      if (j >= 0) { const s = inHand[j]; return { ...s, velocity: { x: s.velocity.x + toss.x, y: s.velocity.y, z: s.velocity.z + toss.z } }; }
       const t = held.live[i];
       return { position: t.position, orientation: t.orientation, velocity: t.velocity || still, angularVelocity: t.angularVelocity || still, resting: true };
     });
@@ -829,9 +832,10 @@ export class DiceView {
    * Bakes a drop (core roll() ▸ throw.drop): the table's dice start where they lie and `types` fall
    * onto open floor; an empty list lets the table settle (a die resting on one taken away falls).
    * The tray is the one the table lies in, grown when the dice now need more floor (trayFor), never
-   * shrunk under them. Play it with play(result, { fromTable: <the table's length> }).
+   * shrunk under them. `again` lists dice of the table to roll again, tossed from where they lie (core drop.again).
+   * Play it with play(result, { fromTable: <the table's length> }).
    */
-  bakeDrop(types, request = {}) {
+  bakeDrop(types, request = {}, { again = [] } = {}) {
     const table = this.liveTable();
     const dice = [...table.map((d) => d.type), ...types];
     if (!dice.length) throw new Error('DiceView.bakeDrop: nothing on the table and nothing to drop');
@@ -839,7 +843,16 @@ export class DiceView {
     // With no tray drawn the tray is only the camera's frame (bake): it keeps its size, never grown under the camera.
     const size = this.trayDrawn === false ? { width: this.tray.width, depth: this.tray.depth } : { width: Math.max(this.tray.width, grown.width), depth: Math.max(this.tray.depth, grown.depth) };
     const resting = table.map(({ position, orientation, velocity, angularVelocity }) => ({ position, orientation, ...(velocity ? { velocity, angularVelocity } : {}) }));
-    return this.bake({ ...request, dice, throw: { drop: { resting } }, tray: { ...size, ...(request.tray || {}) } });
+    return this.bake({ ...request, dice, throw: { drop: { resting, ...(again.length ? { again } : {}) } }, tray: { ...size, ...(request.tray || {}) } });
+  }
+
+  /**
+   * Bakes a reroll of dice on the table (owner 2026-10-30: a double-click on a die rerolls it): `indices` tossed
+   * again from where they lie, the others lying as they are. Play it like a drop, with fromTable.
+   */
+  bakeReroll(indices, request = {}) {
+    if (!Array.isArray(indices) || !indices.length) throw new Error('DiceView.bakeReroll: indices must list dice on the table, got ' + JSON.stringify(indices));
+    return this.bakeDrop([], request, { again: indices });
   }
 
   /**

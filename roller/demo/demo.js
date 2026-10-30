@@ -12,7 +12,6 @@ import { rollParts } from './roll-line.js';
 import { exitMenu, exitDelays, chooseExit } from '../render/exit-table.js';
 import { TOY_DEFAULTS } from './toy-defaults.js';
 import { attachColorPicker } from './color-picker.js';
-import { tapThrow } from './tap-throw.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg || ''; };
@@ -148,7 +147,7 @@ for (const e of EXIT_MENU) {
 $('exit').value = TOY_DEFAULTS.exit;   // Random (owner 2026-10-27), unless this browser kept another still on the menu
 try { const saved = localStorage.getItem(EXIT_KEY); if (EXIT_MENU.some((e) => e.name === saved)) $('exit').value = saved; } catch { /* storage blocked: the default */ }
 $('exit').addEventListener('change', () => { try { localStorage.setItem(EXIT_KEY, $('exit').value); } catch { /* storage blocked */ } });
-$('table-hint').textContent = (window.matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click') + ' the table to roll';
+$('table-hint').textContent = 'Drag a die to toss it · ' + (window.matchMedia('(pointer: coarse)').matches ? 'double-tap' : 'double-click') + ' one to roll it again';
 // The row floats over the tray: a press on it is not a press on the tray (no roll, throw, turn or pinch).
 for (const type of ['pointerdown', 'pointerup', 'pointercancel']) $('adders').addEventListener(type, (e) => e.stopPropagation());
 
@@ -515,13 +514,16 @@ const stage = $('stage');
 const ring = $('pan-ring');
 const resetButton = $('reset-view');
 const ZOOM_PER_PX = 0.006;   // a right-drag of 100 px up brings the camera to 0.55 of its distance
-// Pick up and shake (owner 2026-10-29): a press held still ON A DIE picks that die up into the hand, and only it
-// (owner 2026-10-30: "Rather than picking up ALL the dice, just pick up the one clicked. This should give an option
-// for dice that get stuck"); one held elsewhere pans the view, as before. The hand follows the pointer, a quick back
-// and forth rattles the die for real (src/hold.js), and letting go throws it from the hand as it is, onto the table
-// the others still lie on. The hand feels like felt to the dice; at most HAND_VOICES of a frame's knocks sound, the
-// hardest first.
+// Pick up and toss (owner 2026-10-29, 2026-10-30): a press ON A DIE picks that die up into the hand at once, and only
+// it ("just pick up the die with the click and drop it with release (goal here is to allow the user to toss the
+// die)"); the hand follows the pointer, a quick back and forth rattles the die for real (src/hold.js), and letting go
+// throws it from the hand as it moves, onto the table the others still lie on. A double-click on a die rolls it again
+// where it lies (DOUBLE_MS; its second press picks nothing up). A press on the empty table does nothing but pan, once
+// held still (input/press-gesture.js), or fling every die when dragged fast. The hand feels like felt to the dice; at
+// most HAND_VOICES of a frame's knocks sound, the hardest first.
 const HAND_TIMBRE = 'felt', HAND_VOICES = 4;
+const DOUBLE_MS = 400, CLICK_SLOP = 6;   // ms between a click's release and the next press on the same die; px a click may wander
+let lastClick = null;   // the last click on a die: { die, t, x, y }
 let handKnocks = [];
 const onHandHit = (i, speed, surface) => {
   if (!soundOn()) return;
@@ -565,9 +567,10 @@ stage.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'mouse' && e.button !== 0 && !secondary) return;   // the middle button does nothing
   try { stage.setPointerCapture(e.pointerId); } catch { /* capture is a nicety: without it a drag that leaves the tray still ends on pointerup here */ }
   if (e.pointerType === 'touch' && pinch.down(e.pointerId, e.clientX, e.clientY, e.isPrimary)) {
-    // A second finger: the first finger's press becomes a pinch, and never taps, throws or turns.
+    // A second finger: the first finger's press becomes a pinch, and never taps, throws or turns; a die it held is let go.
     gesture.cancel();
-    endPress();
+    const d = endPress();
+    if (d && d.holding) letGo(Promise.resolve());
     return;
   }
   if (pinch.active) return;   // a further finger while a pinch is under way
@@ -578,30 +581,37 @@ stage.addEventListener('pointerdown', (e) => {
     return;
   }
   const p = view.floorPoint(e.clientX, e.clientY);            // null off the floor: no throw, but the view still turns
+  const under = view.floorHit(e.clientX, e.clientY);
+  const k = under ? view.dieAt(e.clientX, e.clientY) : -1;
+  if (view.dice.length && !view.held && k >= 0) {
+    const again = lastClick && lastClick.die === k && e.timeStamp - lastClick.t <= DOUBLE_MS && Math.hypot(e.clientX - lastClick.x, e.clientY - lastClick.y) <= 4 * CLICK_SLOP;
+    lastClick = null;
+    if (again) {   // the second press of a double-click: that die is rolled again where it lies
+      press = { id: e.pointerId, reroll: true };
+      rerollDie(k);
+      return;
+    }
+    // A press on a die: the hand picks it up at once (never while a die leaves: the table is settling).
+    press = { id: e.pointerId, holding: true, die: k, t: e.timeStamp, at: { x: e.clientX, y: e.clientY }, from: { x: e.clientX, y: e.clientY }, wander: 0, samples: [{ t: e.timeStamp, p: under }] };
+    ++current;
+    audio.stop();
+    view.pickUp(under, { onHit: onHandHit, surface: HAND_TIMBRE, dice: [k] });
+    // The hand moves as the pointer moves across the floor, from where the view put it (the cup is kept over the
+    // table, so a die picked up at the edge sits a little in from the pointer; a hand that jumped to the pointer
+    // would then be held at the edge, and a shake there would shake nothing).
+    press.handAt = view.handTarget();
+    press.lastFloor = under;
+    stage.classList.add('holding');
+    showTable('picked up ' + groupDice([onTable()[k]]) + ' — toss it, or let go');
+    return;
+  }
   press = { id: e.pointerId, start: p, samples: p ? [{ t: e.timeStamp, p }] : [], at: { x: e.clientX, y: e.clientY } };
   gesture.down(e.timeStamp, e.clientX, e.clientY);
   clearTimeout(holdTimer);
-  holdTimer = setTimeout(() => {
+  holdTimer = setTimeout(() => {   // held still on the table: the view pans
     if (!press || !gesture.hold(performance.now())) return;
     placeRing(press.at.x, press.at.y);
-    const under = view.floorHit(press.at.x, press.at.y);
-    const k = under ? view.dieAt(press.at.x, press.at.y) : -1;
-    if (view.dice.length && !view.held && k >= 0) {
-      // Held still on a die: the hand picks that die up (never while a die leaves: the table is settling).
-      press.holding = true;
-      ++current;
-      audio.stop();
-      view.pickUp(under, { onHit: onHandHit, surface: HAND_TIMBRE, dice: [k] });
-      // The hand moves as the pointer moves across the floor, from where the view put it (the cup is kept over the
-      // table, so a die picked up at the edge sits a little in from the pointer; a hand that jumped to the pointer
-      // would then be held at the edge, and a shake there would shake nothing).
-      press.handAt = view.handTarget();
-      press.lastFloor = under;
-      stage.classList.add('holding');
-      showTable('picked up ' + groupDice([onTable()[k]]) + ' — shake, then let go');
-      return;
-    }
-    press.grab = under;   // the floor point the hand holds
+    press.grab = view.floorHit(press.at.x, press.at.y);   // the floor point the hand holds
     stage.classList.add('panning');
   }, gesture.holdMs);
 });
@@ -611,16 +621,17 @@ stage.addEventListener('pointermove', (e) => {
     if (z) { view.zoom(z.factor); syncReset(); return; }   // fingers apart to come nearer, together to stand back
     if (pinch.active) return;
   }
-  if (!press || e.pointerId !== press.id) return;
+  if (!press || e.pointerId !== press.id || press.reroll) return;
   press.at = { x: e.clientX, y: e.clientY };
-  const m = gesture.move(e.timeStamp, e.clientX, e.clientY);
-  if (m && m.kind === 'pan' && press.holding) {
-    placeRing(e.clientX, e.clientY);
+  if (press.holding) {   // the hand carries the die across the floor as the pointer moves
+    press.wander = Math.max(press.wander, Math.hypot(e.clientX - press.from.x, e.clientY - press.from.y));
     const under = view.floorHit(e.clientX, e.clientY);
     if (under && press.lastFloor) { press.handAt = { x: press.handAt.x + under.x - press.lastFloor.x, z: press.handAt.z + under.z - press.lastFloor.z }; view.moveHand(press.handAt); }
     if (under) press.lastFloor = under;
+    if (under) { press.samples.push({ t: e.timeStamp, p: under }); if (press.samples.length > 40) press.samples.shift(); }   // its path, for the toss
     return;
   }
+  const m = gesture.move(e.timeStamp, e.clientX, e.clientY);
   if (m && m.kind === 'pan') {
     placeRing(e.clientX, e.clientY);
     const under = view.floorHit(e.clientX, e.clientY);
@@ -644,23 +655,24 @@ stage.addEventListener('pointerup', (e) => {
   if (!press || e.pointerId !== press.id) return;
   // Sound starts as the finger lifts: an iPhone refuses it as one comes down (2026-10-27, the silent visits).
   const unlocking = unlockSound();
-  const kind = gesture.up();
+  if (press.reroll) { endPress(); return; }   // the second press of a double-click: its die is already rolling again
+  const kind = press.holding ? null : gesture.up();
   const d = endPress();
-  if (d.holding) { letGo(unlocking); return; }   // the hand opens: the dice are thrown from it as they are
+  if (d.holding) {   // the hand opens: the die is thrown from it as it moves, tossed at the pointer's own speed
+    letGo(unlocking, tossOf(d.samples, e.timeStamp));
+    // A click (quick, unmoved) arms a double-click: the next press on this die soon after rolls it again.
+    if (e.timeStamp - d.t <= DOUBLE_MS && d.wander <= CLICK_SLOP) lastClick = { die: d.die, t: e.timeStamp, x: e.clientX, y: e.clientY };
+    return;
+  }
   if (kind === 'pan' || kind === 'zoom' || !d.start) return;   // a pan or zoom of the view, or a press that began off the floor
   const end = d.samples[d.samples.length - 1];
   const from = d.samples.find((s) => end.t - s.t <= 90) || d.samples[0];
   const dt = (end.t - from.t) / 1000;
   const vx = dt > 0 ? (end.p.x - from.p.x) / dt : 0, vz = dt > 0 ? (end.p.z - from.p.z) / dt : 0;
   const v = Math.hypot(vx, vz);
-  if (v < 0.25) {
-    // A tap, or a drag too slow to be a fling: thrown from the bottom middle of the view toward where the finger lifted
-    // (owner 2026-10-29; demo/tap-throw.js). Before, the default toss: left to right whatever the tap.
-    const r = $('view').getBoundingClientRect(), cx = (r.left + r.right) / 2;
-    const t = tapThrow({ at: end.p, edge: view.floorHit(cx, r.bottom - 1), ahead: view.floorHit(cx, (r.top + r.bottom) / 2), tray: view.trayDrawn === false ? null : view.tray });
-    rollFromPanel(t ? { throw: { fling: t } } : undefined, { unlocking });
-    return;
-  }
+  // A click on the empty table, or a drag too slow to be a fling, throws nothing (owner 2026-10-30; it threw toward the
+  // click from 2026-10-29, demo/tap-throw.js): the dice are rolled by the Roll button, a toss from the hand, or a double-click.
+  if (v < 0.25) return;
   const k = Math.min(3.2, Math.max(0.6, v)) / v;
   rollFromPanel({ throw: { fling: { from: d.start, velocity: { x: vx * k, z: vz * k } } } }, { unlocking });
 });
@@ -668,14 +680,53 @@ stage.addEventListener('pointercancel', (e) => {
   if (e.pointerType === 'touch') pinch.up(e.pointerId);
   if (press && e.pointerId === press.id) { const d = press; gesture.cancel(); endPress(); if (d.holding) letGo(Promise.resolve()); }
 });
-/** The hand lets go: the dice it held are thrown from where they are, as they move, in the roll the panel describes. */
-function letGo(unlocking) {
-  const let_ = view.release();
+/**
+ * The toss as the hand opens (owner 2026-10-30: "the goal here is to allow the user to toss the die"): the pointer's
+ * speed across the floor over its last TOSS.window ms before `now` (m/s), held to TOSS.max, the fling's own ceiling;
+ * null for a hand that was still (under TOSS.min), which drops the die. The cup alone gave a die next to nothing: the
+ * hand stops each frame where the pointer is, so it had always caught up, and stood still, by the time it opened.
+ */
+const TOSS = { window: 90, min: 0.25, max: 3.2 };
+function tossOf(samples, now) {
+  const recent = samples.filter((s) => now - s.t <= TOSS.window);
+  if (recent.length < 2) return null;
+  const a = recent[0], b = recent[recent.length - 1], dt = (b.t - a.t) / 1000;
+  if (!(dt > 0)) return null;
+  const vx = (b.p.x - a.p.x) / dt, vz = (b.p.z - a.p.z) / dt, s = Math.hypot(vx, vz);
+  if (s < TOSS.min) return null;
+  const k = Math.min(TOSS.max, s) / s;
+  return { x: vx * k, z: vz * k };
+}
+/** The hand lets go: the dice it held are thrown from where they are, as they move — tossed at `toss` (m/s) when given. */
+function letGo(unlocking, toss = null) {
+  const let_ = view.release(toss ? { velocity: toss } : {});
   if (!let_) return;   // the hand had already opened (the table changed under it)
   let req;
   // From a hand the dice may just fall: a short drop that hardly turns is a fair throw of its own (no minimum turns).
   try { req = request({ throw: { states: let_.states }, gates: { minTurns: 0 } }, onTable()); } catch (e) { status(e.message); return; }
   go(req, { unlocking, fromTable: view.dice.length });
+}
+/** A double-click on a die (owner 2026-10-30): that die is tossed again from where it lies, the others lying as they are. */
+async function rerollDie(k) {
+  const mine = ++current;
+  status('');
+  unsettled = false;
+  audio.stop();
+  const type = onTable()[k], fromTable = view.dice.length;
+  let result;
+  try {
+    result = view.bakeReroll([k]);
+  } catch (e) {
+    status('Could not roll ' + groupDice([type]) + ' again: ' + e.message);
+    console.error(e);
+    return;
+  }
+  await soon(unlockSound());
+  await soon(view.warmTable(), WARM_WAIT_MS);
+  if (mine !== current) return;
+  await playWithSound(result, { fromTable });
+  if (mine !== current) return;
+  showTable('rolled ' + groupDice([type]) + ' again');
 }
 // The wheel zooms: down to stand back, up to come nearer. The page itself never scrolls under the tray.
 stage.addEventListener('wheel', (e) => {
