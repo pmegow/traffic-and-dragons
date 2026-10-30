@@ -24,6 +24,7 @@ import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
 import { exitDelays, chooseExit, exitsFor } from './exit-table.js';
 import { towardEye, tossSpin, restHeight, cupFor, keepInFrame } from './hand.js';
 import { bagOf, deal, looksFor, retire, pairsOf } from './die-looks.js';
+import { createBaker } from './baker.js';
 import { EXITS, exitWarmUp } from './exits.js';
 
 /**
@@ -78,6 +79,7 @@ export class DiceView {
     this.warm = new Map();        // the exits' shaders readied, by finish (warmExits)
     this.bag = [o.dieStyle];      // the look: the styles a die is dealt from (render/die-looks.js); one style, every die alike
     this.wardrobe = new Map();    // the look each die wears, by type and rank, dealt from the bag and kept (render/die-looks.js)
+    this.baker = createBaker();   // where a roll is baked: a worker, made at the first roll, or the page (render/baker.js)
     this.held = null;             // the hand holding the table (pickUp … release): { phase, hold, target, onHit, … }
     this.supersampleRung = 1;     // the pixel-ratio multiplier the canvas draws at (render/supersample.js), set by resize
     this.supersampleCap = Infinity;   // the governor's ceiling: a rung the GPU could not keep up with is not tried again
@@ -933,6 +935,22 @@ export class DiceView {
    * Play it with play(result, { fromTable: <the table's length> }).
    */
   bakeDrop(types, request = {}, { again = [] } = {}) {
+    return this.bake(this.dropRequest(types, request, again));
+  }
+
+  /**
+   * bakeDrop off the page (bakeAsync): a Promise of the result. The table stops where it was read, so a play of the
+   * result carries on from it without a jump back (baked meanwhile, the dice still moving would have gone on; baked on
+   * the page, nothing moved while it ran).
+   */
+  bakeDropAsync(types, request = {}, { again = [] } = {}) {
+    const req = this.dropRequest(types, request, again);
+    if (this.playing) this.stop();
+    return this.bakeAsync(req);
+  }
+
+  /** The roll request of a drop (bakeDrop): the table as it lies now, moving or not, then `types`, `again` rolled again. */
+  dropRequest(types, request, again) {
     const table = this.liveTable();
     const dice = [...table.map((d) => d.type), ...types];
     if (!dice.length) throw new Error('DiceView.bakeDrop: nothing on the table and nothing to drop');
@@ -940,7 +958,7 @@ export class DiceView {
     // With no tray drawn the tray is only the camera's frame (bake): it keeps its size, never grown under the camera.
     const size = this.trayDrawn === false ? { width: this.tray.width, depth: this.tray.depth } : { width: Math.max(this.tray.width, grown.width), depth: Math.max(this.tray.depth, grown.depth) };
     const resting = table.map(({ position, orientation, velocity, angularVelocity }) => ({ position, orientation, ...(velocity ? { velocity, angularVelocity } : {}) }));
-    return this.bake({ ...request, dice, throw: { drop: { resting, ...(again.length ? { again } : {}) } }, tray: { ...size, ...(request.tray || {}) } });
+    return { ...request, dice, throw: { drop: { resting, ...(again.length ? { again } : {}) } }, tray: { ...size, ...(request.tray || {}) } };
   }
 
   /**
@@ -948,8 +966,17 @@ export class DiceView {
    * again from where they lie, the others lying as they are. Play it like a drop, with fromTable.
    */
   bakeReroll(indices, request = {}) {
+    return this.bakeDrop([], request, { again: this.rerolled(indices) });
+  }
+
+  /** bakeReroll off the page, as bakeDropAsync. */
+  bakeRerollAsync(indices, request = {}) {
+    return this.bakeDropAsync([], request, { again: this.rerolled(indices) });
+  }
+
+  rerolled(indices) {
     if (!Array.isArray(indices) || !indices.length) throw new Error('DiceView.bakeReroll: indices must list dice on the table, got ' + JSON.stringify(indices));
-    return this.bakeDrop([], request, { again: indices });
+    return indices;
   }
 
   /**
@@ -969,6 +996,25 @@ export class DiceView {
    * edges sound like walls of the tray's wall surface.
    */
   bake(request) {
+    const { full, looks } = this.prepareBake(request);
+    const result = roll(full);
+    result.looks = looks;
+    return result;
+  }
+
+  /**
+   * bake off the page (TODO row 3, owner 2026-10-30: "Build 3"): prepared here as bake is — the tray, the camera's
+   * edges, each die's look and material — then baked in a Web Worker (render/baker.js), so a big roll never stalls the
+   * page's frames; on the page when no worker can be had (said once on the console). A Promise of the same result,
+   * byte for byte; rejects with a refusal's reason.
+   */
+  bakeAsync(request) {
+    const { full, looks } = this.prepareBake(request);
+    return this.baker.roll(full).then((result) => { result.looks = looks; return result; });
+  }
+
+  /** The full roll() request a bake makes of `request` on this view, and the look each die is dealt (render/die-looks.js). */
+  prepareBake(request) {
     const edges = this.trayDrawn === false ? this.screenEdges() : null;
     const bounds = edges ? { bounds: edges.planes, area: { center: edges.center, width: edges.width, depth: edges.depth } } : {};
     // With no tray drawn the tray is only what the camera frames: its size is pinned to what it frames now, so the
@@ -986,15 +1032,14 @@ export class DiceView {
       if (!DIE_MATERIALS[material]) throw new Error('DiceView: the finish "' + looks[i].finish + '" names no die material (known: ' + Object.keys(DIE_MATERIALS).join(', ') + ')');
       return typeof d === 'string' ? { type: d, material } : { material, ...d };
     });
-    const result = roll({ readUp: this.readUp, ...request, dice, tray: { ...this.trayOptions, ...fixed, ...bounds, ...(request.tray || {}) } });
-    result.looks = looks;
-    return result;
+    const readUp = { x: this.readUp.x, y: this.readUp.y, z: this.readUp.z };   // plain, so a worker can be sent it
+    return { full: { readUp, ...request, dice, tray: { ...this.trayOptions, ...fixed, ...bounds, ...(request.tray || {}) } }, looks };
   }
 
-  /** Bakes a roll and plays it, once every font the look can deal is ready to paint in. */
+  /** Bakes a roll (off the page) and plays it, once every font the look can deal is ready to paint in. */
   async roll(request, playOptions = {}) {
     await this.readyFonts();
-    const result = this.bake(request);
+    const result = await this.bakeAsync(request);
     await this.play(result, playOptions);
     return result;
   }
@@ -1096,6 +1141,7 @@ export class DiceView {
     this.animators.clear();
     for (const w of this.warm.values()) w.dispose();
     for (const w of this.warmed.values()) w.dispose();
+    this.baker.close();
     this.clear();
     this.resizeObserver.disconnect();
     for (const a of this.atlases.values()) { a.geometry.dispose(); for (const g of a.glyphs.values()) g.dispose(); }

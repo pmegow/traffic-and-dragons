@@ -470,8 +470,9 @@ async function dropIn(types) {
   const fromTable = view.dice.length;
   let result;
   try {
-    result = view.bakeDrop(types);
+    result = await view.bakeDropAsync(types);   // off the page (TODO row 3): the table stops where it was read
   } catch (e) {
+    if (mine !== current) return;   // a newer drop or roll took over while this one baked
     // The drop could not be made: the buttons go back to what is on the table, and say why.
     for (const t of types) picker.remove(t);
     paintDice();
@@ -513,9 +514,10 @@ async function go(req, { unlocking = Promise.resolve(), fromTable = 0 } = {}) {
   let result, bakeMs;
   try {
     const t0 = performance.now();
-    result = view.bake(req);
+    result = await view.bakeAsync(req);   // off the page (TODO row 3): a big roll never stalls a frame
     bakeMs = performance.now() - t0;
   } catch (e) {
+    if (mine !== current) return;
     status(e.message);
     hideLoading();   // nothing will be drawn: the reason is on the status line
     console.error(e);
@@ -783,8 +785,9 @@ async function rerollDie(k) {
   const type = onTable()[k], fromTable = view.dice.length;
   let result;
   try {
-    result = view.bakeReroll([k]);
+    result = await view.bakeRerollAsync([k]);
   } catch (e) {
+    if (mine !== current) return;
     status('Could not roll ' + groupDice([type]) + ' again: ' + e.message);
     console.error(e);
     return;

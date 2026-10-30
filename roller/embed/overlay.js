@@ -75,7 +75,7 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
       const unlocking = audio ? audio.unlock().catch(() => false) : Promise.resolve(false);
       view.resize();                 // the container is showing now: the screen's edges come from its size
       view.clear();
-      const result = view.bake({ dice });
+      const result = await view.bakeAsync({ dice });   // off the page (TODO row 3)
       // Sound never holds the dice back. Outside a user gesture a browser leaves the AudioContext's resume() pending
       // until the next one, so waiting on it hung the roll (found in TnD's browser suite, 2026-10-25): a moment for
       // the unlock and the bank, then the dice go, silent if the sound is not ready.
