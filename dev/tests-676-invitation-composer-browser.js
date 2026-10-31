@@ -1,0 +1,45 @@
+// #676: composition and preview must never send, including a replacement invitation.
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const {chromium}=require('./cdp-browser.js'),fixture=require('./admin-console-fixture.js');
+(async()=>{const browser=await chromium.launch({headless:true});try{
+ const ctx=await browser.newContext({viewport:{width:1280,height:1000}});await ctx.route('**/*',fixture.route);
+ const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ await page.goto('http://admin.fixture/admin_console.html');
+ await page.waitForFunction(()=>window.__adminTest&&document.querySelectorAll('#users>details').length===30);
+ assert.equal(await page.evaluate(()=>!!document.getElementById('invite-message')),true,'#676 invitation message is editable');
+ const out=process.env.TND_SCREENSHOT_DIR||path.join(__dirname,'..','testRuns','invitations-676');fs.mkdirSync(out,{recursive:true});
+ await page.evaluate(()=>{
+  document.getElementById('invitations').open=true;document.getElementById('invite-email').value='alice@gmail.com';
+  document.getElementById('invite-subject').value='Alice, join our adventure!';
+  document.getElementById('invite-message').value='Hi Alice,\n\nPlease try the dice roller and tell me what you think.\n\nThanks!';
+  document.getElementById('invitations').scrollIntoView();
+ });
+ assert.equal(await page.evaluate(()=>document.getElementById('invite-send').disabled),true,'#676 send is disabled before preview');
+ await page.evaluate(()=>document.getElementById('invite-preview').click());
+ assert.equal(await page.evaluate(()=>window.__adminFixture.inviteSends||0),0,'#676 preview never sends');
+ assert.match(await page.evaluate(()=>document.getElementById('invite-review').textContent),/Please try the dice roller/,'#676 preview includes personalized message');
+ assert.match(await page.evaluate(()=>document.getElementById('invite-review').textContent),/Secure invitation link/,'#676 preview shows protected link placeholder');
+ await page.screenshot({path:path.join(out,'preview-desktop.png')});
+ await page.evaluate(()=>{document.getElementById('invite-message').value+=' <img src=x onerror=alert(1)>';document.getElementById('invite-message').dispatchEvent(new Event('input',{bubbles:true}));});
+ assert.equal(await page.evaluate(()=>document.getElementById('invite-send').disabled),true,'#676 edits invalidate the preview');
+ await page.evaluate(()=>{document.getElementById('invite-preview').click();window.confirm=()=>true;document.getElementById('invite-send').click();});
+ assert.equal(await page.evaluate(()=>window.__adminFixture.inviteSends),1,'#676 explicit send delivers once');
+ assert.match(await page.evaluate(()=>window.__adminFixture.inviteBody.message),/Please try/,'#676 personalized copy reaches the adapter');
+ assert.equal(await page.evaluate(()=>document.querySelectorAll('#invite-list img,#invite-review img').length),0,'#676 message text stays inert');
+ await page.evaluate(()=>document.querySelector('[data-invite-action="resend"]').click());
+ assert.equal(await page.evaluate(()=>window.__adminFixture.inviteResends||0),0,'#676 resend opens composer without sending');
+ assert.match(await page.evaluate(()=>document.getElementById('invite-message').value),/Please try/,'#676 resend restores the saved message');
+ await page.evaluate(()=>document.getElementById('invite-preview').click());
+ assert.equal(await page.evaluate(()=>window.__adminFixture.inviteResends||0),0,'#676 replacement preview never sends');
+ await page.setViewportSize({width:390,height:844});
+ await page.evaluate(()=>document.getElementById('invite-review').scrollIntoView());
+ await page.screenshot({path:path.join(out,'preview-phone.png')});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'#676 long preview fits phone');
+ await page.evaluate(()=>document.getElementById('invite-send').click());
+ assert.equal(await page.evaluate(()=>window.__adminFixture.inviteResends),1,'#676 explicit resend delivers once');
+ await page.evaluate(()=>{document.getElementById('invite-new').click();document.getElementById('invite-email').value='next@gmail.com';window.__adminFixture.invitePreviewError='HTTP 503';document.getElementById('invite-preview').click();});
+ assert.equal(await page.evaluate(()=>document.getElementById('invite-send').disabled),true,'#676 failed preview cannot send');
+ assert.match(await page.evaluate(()=>document.getElementById('invite-status').textContent),/503/,'#676 failed preview explains why');
+ assert.deepEqual(errors,[],'#676 no browser exceptions');
+ console.log('PASS #676 compose, preview, edit invalidation, explicit send, resend and phone layout');
+}finally{await browser.close();}})().catch(e=>{console.error(e.stack);process.exitCode=1;});

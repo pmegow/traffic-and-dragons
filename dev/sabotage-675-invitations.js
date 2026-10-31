@@ -6,7 +6,7 @@ bad|=sabotage.prove({file:'invitation.js',command:['node',['dev/tests-675-invita
  {label:'late authentication bypasses timeout',find:'if(id!==attempt)return;clearTimeout(deadline);',replace:'clearTimeout(deadline);',mustFail:'#675 timed out authentication cannot approve from a late callback'}
 ]});
 bad|=sabotage.prove({file:'admin-invitations.js',skip:!chrome.path,command:['node',['dev/tests-675-invitations-browser.js']],cases:[
- {label:'invitation confirmation bypassed',find:'if(!window.confirm("Send an invitation to "',replace:'if(false&&!window.confirm("Send an invitation to "',mustFail:'#675 cancelled invitation sends nothing'}
+ {label:'invitation confirmation bypassed',find:'if(!window.confirm(prompt))return;\n    var key="send:"',replace:'if(false&&!window.confirm(prompt))return;\n    var key="send:"',mustFail:'#675 cancelled invitation sends nothing'}
 ]});
 bad|=sabotage.prove({file:'invitation.js',skip:!chrome.path,command:['node',['dev/tests-675-invitations-browser.js']],cases:[
  {label:'invitation accepts through GitHub',find:'},"google");',replace:'},"github");',mustFail:'#675 acceptance uses Google only'},
