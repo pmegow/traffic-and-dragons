@@ -37,6 +37,15 @@ try {
     if (result.status === 0 || out(result).indexOf("NOT APPLIED") < 0) return "verdict/status wrong: " + out(result);
     return intact() ? "" : "target bytes changed";
   });
+  test("a guarded command whose run-tests filter ran NO section is UNOBSERVED, never caught (the #677 battery, 2026-10-30)", function () {
+    reset();
+    var cmdJs = 'console.error("FILTER \\"zzz\\" matched 0 sections - NOTHING ran (typo?)");process.exit(1)';
+    var result = runChild("empty-filter", prelude() +
+      'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e",' + JSON.stringify(cmdJs) + ']],cases:[{label:"a real mutation under an empty filter",mustFail:"zzz",find:"ORIGINAL",replace:"MUTATED"}]}));');
+    if (result.status === 0) return "a run that ran nothing must fail the battery";
+    if (out(result).indexOf("UNOBSERVED") < 0 || /✓ caught/.test(out(result))) return "verdict wrong: " + out(result);
+    return intact() ? "" : "target bytes changed";
+  });
   test("an LF-authored multi-line find matches a CRLF target (the 2026-08-22 newline rot)", function () {
     // The rot: source files are CRLF on disk, clauses are authored with LF escapes in their find
     // strings, and exact indexOf can never match. 39 clauses across 14 files were candidates and

@@ -238,6 +238,14 @@ function prove(opts) {
         results.push({ label: c.label, verdict: "UNOBSERVED", detail: "the guarded command " + run.unobserved + " — this clause is UNTESTED" });
         continue;
       }
+      /* 2026-10-30 (the #677 battery): a run-tests FILTER that names no section exits 1 having run NOTHING — every mutation then
+         "fails" the command, and a mustFail naming the filter's own text is even attributed, since the filter's error line
+         carries it. Eight clauses proved "caught" that way before the filter was corrected (a filter names SECTIONS, not
+         tests). A run that ran nothing gets no verdict. */
+      if (/matched 0 sections/.test(String(run.stdout || "") + String(run.stderr || ""))) {
+        results.push({ label: c.label, verdict: "UNOBSERVED", detail: "the guarded command ran NO section (its run-tests filter matched nothing — a filter names sections, not tests) — this clause is UNTESTED" });
+        continue;
+      }
 
       /* #170 (entry-13 brief F): an exit-status-only verdict cannot tell a REAL catch from a
          mutation that tripped some unrelated red — measured: 2 of 25 v1.601 W7 clauses were
