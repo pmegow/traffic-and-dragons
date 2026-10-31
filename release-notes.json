@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1333",
+      "actions": [
+        "Made the roll a modal: when the Game Master asks for a check, the die and Hold back are the only ways on.",
+        "A reload or leaving Car Mode brings a waiting roll back; nothing can be typed past it."
+      ],
+      "sourceCommit": "7cefbed75b7c3a33acc61f4092500ae8e58de58f",
+      "commit": "ce0d2318c9019d153f597d0bdb51da5844de7f49",
+      "releasedAt": "2026-10-31T05:35:06Z"
+    },
+    {
       "version": "v1.1332",
       "actions": [
         "Added editable invitation subjects and messages with a full email preview before sending.",
