@@ -1,7 +1,7 @@
 {
-  "version": "v1.1333",
+  "version": "v1.1334",
   "actions": [
-    "Made the roll a modal: when the Game Master asks for a check, the die and Hold back are the only ways on.",
-    "A reload or leaving Car Mode brings a waiting roll back; nothing can be typed past it."
+    "The die you are asked to roll now waits ready at the bottom of the story; Roll throws it from where it lies.",
+    "Hold back, or the car screen, takes the waiting die away quietly."
   ]
 }

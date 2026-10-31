@@ -2397,6 +2397,19 @@ function runEngineTests(R){
     if(rb.indexOf('if(worldState.pendingCheck&&typeof showRollModal==="function")showRollModal();')<0)return "the transcript rebuild must reopen the modal — a reload is not a way out";
     var uc=__fsForTests.readFileSync(__rootForTests+"/ui-carmode.js","utf8");
     if(!/function hideCarMode\(\) \{ carSessionStop\(\); if \(typeof showRollModal === "function"\) showRollModal\(\); \}/.test(uc))return "leaving Car Mode must reopen a waiting roll";
+    /* the ready die (dice-sim 0.80.0, 2026-10-31): laid out when the modal opens, kept for a Roll, taken away by any other close */
+    if(sm.indexOf('diceLivePresent([{type:"d20"}],chk.label);')<0)return "the modal must lay the check's d20 out ready (diceLivePresent)";
+    if(sm.indexOf("closeRollModal(true);fn();")<0)return "a take must keep the die for the roll (closeRollModal(true)) — showDiceRoll throws it from where it lies";
+    if(sm.indexOf("diceLiveUnpresent();")<0)return "a take that did not roll (Hold back) must take the ready die away";
+    var cm=um.slice(um.indexOf("function closeRollModal("),um.indexOf("function closeRollModal(")+300);
+    if(cm.indexOf('if(!keepDie&&typeof diceLiveUnpresent==="function")diceLiveUnpresent();')<0)return "closeRollModal must take the ready die away unless the die is kept for a roll";
+    var ud=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8"),dp=ud.slice(ud.indexOf("function diceLivePresent("),ud.indexOf("function showDiceRoll(")),dr=ud.slice(ud.indexOf("function diceLiveRoll("),ud.indexOf("function diceLiveClose("));
+    if(dp.indexOf('layer.classList.add("ready");')<0||dp.indexOf("overlay.present(dice)")<0)return "diceLivePresent must lift the layer (ready) and lay the dice through dice-sim's present()";
+    if(dp.indexOf("function diceLiveUnpresent(")<0||dp.indexOf("overlay.clear();")<0)return "diceLiveUnpresent must clear the presented die";
+    if(dr.indexOf('layer.classList.remove("ready");')<0)return "a roll must bring the layer back under the modal level (the click dismisses again)";
+    var ih=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8"),rz=ih.match(/#dice-layer\.ready\{z-index:(\d+);pointer-events:none;cursor:default\}/),mz=__fsForTests.readFileSync(__rootForTests+"/ui-shell.js","utf8").match(/"z-index:"\+\(opts\.z\|\|(\d+)\)/);
+    if(!rz)return "the ready layer's CSS: lifted, and taking no clicks (the modal's buttons must still be hit)";
+    if(!mz||!(Number(rz[1])>Number(mz[1])))return "the ready layer must paint ABOVE modalShell's default z (ready "+(rz&&rz[1])+", modal "+(mz&&mz[1])+")";
     return true;
   });
   t("#348 curve change keeps every character at their level: a Lv17 with 131,190 XP (Ammut at t2419) loads as Lv17 with XP floored to the new gate, companions likewise; nobody de-levels and nobody levels up on load",function(){

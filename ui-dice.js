@@ -25,7 +25,7 @@ var DICE_LOOK_DEFAULT="Bone";           /* owner 2026-10-25 */
 var DICE_ROLL_FADE_MS=250;              /* matches #dice-layer.out in index.html */
 var DICE_EXIT_KEY="tnd_dice_exit_v1";   /* #670: how dismissed dice leave on this device — a dice-sim exit name */
 var DICE_EXIT_DEFAULT="smoke";          /* #670, owner 2026-10-26: Smoke puff until the player picks one */
-var _diceLive={state:"idle",overlay:null,layer:null,waiting:[],reported:false,muteHooked:false,token:0,last:null};
+var _diceLive={state:"idle",overlay:null,layer:null,waiting:[],reported:false,muteHooked:false,token:0,last:null,lastAimed:false,presentToken:0};
 
 /* Says why the live dice did not show, on the console every time and through reportError once per session. */
 function diceLiveFail(why,detail){
@@ -139,10 +139,10 @@ function diceLiveRoll(dice,label,opts){
     try{overlay=diceLiveOverlay();}
     catch(e){_diceLive.state="failed";diceLiveFail("the dice could not start ("+(e&&e.message||e)+")",{roll:label});return;}
     var layer=diceLiveLayer(),token=++_diceLive.token;
-    layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.add("on");
+    layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.remove("ready");layer.classList.add("on");/* #677: a die lying ready is thrown from where it lies; the layer comes back under the modal level and the click dismisses */
     layer.onclick=function(){diceLiveClose(token,opts);};/* the only way out: the settled dice stay until the player clicks (owner 2026-10-20) */
     diceLiveMute();
-    overlay.roll(dice).then(function(r){if(r)_diceLive.last=r.dice.map(function(d){return d.type+":"+d.value;});}).catch(function(e){diceLiveFail("the roll did not play ("+(e&&e.message||e)+")",{roll:label});diceLiveClose(token,null);});
+    overlay.roll(dice).then(function(r){if(r){_diceLive.last=r.dice.map(function(d){return d.type+":"+d.value;});_diceLive.lastAimed=r.dice.some(function(d){return !!d.aimed;});}}).catch(function(e){diceLiveFail("the roll did not play ("+(e&&e.message||e)+")",{roll:label});diceLiveClose(token,null);});
   });
   return true;
 }
@@ -171,6 +171,54 @@ function diceLiveClose(token,opts){
     if(_diceLive.overlay)_diceLive.overlay.clear();
     if(opts&&typeof opts.onClose==="function")opts.onClose();
   },DICE_ROLL_FADE_MS);
+}
+
+/* #677 (owner 2026-10-30: "it would be cool if the die that will be rolled appeared at the bottom of the screen ready to
+   roll"; dice-sim 0.80.0's present()): the check's die laid at rest along the bottom of the story while the roll modal
+   waits. The layer is lifted ABOVE the modal (#dice-layer.ready, index.html: a z-index over modalShell's 300, and
+   pointer-events none so the modal's buttons take every click — nothing to dismiss, the modal is the way out). Roll then
+   throws it from where it lies (showDiceRoll → diceLiveRoll: dice-sim's aimed throw, landing the face the engine rolled);
+   Hold back and the car screen take it away quietly through diceLiveUnpresent (no exit — it was never rolled). Dice still
+   showing from the last roll (the player had not clicked them away when the next check landed) leave by the player's
+   exit first, and the ready die drops once they have gone; their damage dice do not roll — the card holds the faces. */
+function diceLivePresent(dice,label){
+  if(!diceRollEnv())return false;
+  if(_diceLive.state==="failed")return false;
+  var token=++_diceLive.token;_diceLive.presentToken=token;/* claimed now: an unpresent before the module is there cancels it */
+  diceLiveWhenReady(function(){
+    if(token!==_diceLive.token)return;/* cancelled, or a roll took the layer meanwhile */
+    var overlay;
+    try{overlay=diceLiveOverlay();}
+    catch(e){_diceLive.state="failed";diceLiveFail("the dice could not start ("+(e&&e.message||e)+")",{present:label});return;}
+    var layer=diceLiveLayer(),showing=layer.classList.contains("on")&&!layer.classList.contains("ready")&&!layer.classList.contains("leaving");
+    layer.onclick=null;
+    function lay(){
+      if(token!==_diceLive.token)return;/* cancelled (diceLiveUnpresent hid the layer), or a roll took it */
+      layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.add("on");layer.classList.add("ready");
+      overlay.present(dice).then(function(ok){if(ok===null)return;/* superseded: the newer call owns the layer */}).catch(function(e){
+        diceLiveFail("the die could not be laid out ("+(e&&e.message||e)+")",{present:label});
+        if(token===_diceLive.token)diceLiveUnpresent();
+      });
+    }
+    if(showing&&overlay.exit!=="none"){
+      console.debug("[dice] #677 the next check landed before the dice were clicked away: they leave by the exit; their damage dice stay on the card");
+      layer.classList.add("leaving");
+      overlay.dismiss().then(lay).catch(function(e){diceLiveFail("the dice did not leave by their exit ("+(e&&e.message||e)+")",{exit:overlay.exit});lay();});
+      return;
+    }
+    lay();
+  });
+  return true;
+}
+/* The ready die goes quietly (Hold back, the car screen, a roll that did not happen) — lying there, dropping, or still
+   waiting for the last roll's dice to leave; true when there was one to take away. */
+function diceLiveUnpresent(){
+  var layer=_diceLive.layer,overlay=_diceLive.overlay,pending=_diceLive.presentToken===_diceLive.token;
+  if(!pending&&!(layer&&layer.classList.contains("ready")))return false;
+  ++_diceLive.token;_diceLive.presentToken=0;
+  if(layer){layer.classList.remove("ready");layer.classList.remove("leaving");layer.classList.remove("on");}
+  if(overlay)overlay.clear();
+  return true;
 }
 
 /* #650's door: the check's d20, landing on `face`. */
@@ -234,4 +282,5 @@ function showDiceLookModal(){
 }
 
 /* The test seam (#669): what the live dice are doing, for dev/tests-669-live-dice-browser.js. */
-function diceLiveState(){return {state:_diceLive.state,overlay:!!_diceLive.overlay,showing:!!(_diceLive.layer&&_diceLive.layer.classList.contains("on")),look:diceLookName(),last:_diceLive.last,muted:!!(_diceLive.overlay&&_diceLive.overlay.audio&&_diceLive.overlay.audio.muted),exit:diceExitName(),exiting:_diceLive.overlay?_diceLive.overlay.view.exiting.size:0};}
+function diceLiveState(){return {state:_diceLive.state,overlay:!!_diceLive.overlay,showing:!!(_diceLive.layer&&_diceLive.layer.classList.contains("on")),look:diceLookName(),last:_diceLive.last,muted:!!(_diceLive.overlay&&_diceLive.overlay.audio&&_diceLive.overlay.audio.muted),exit:diceExitName(),exiting:_diceLive.overlay?_diceLive.overlay.view.exiting.size:0,
+  ready:!!(_diceLive.layer&&_diceLive.layer.classList.contains("ready")),presented:(_diceLive.overlay&&_diceLive.overlay.presented)||null,lastAimed:!!_diceLive.lastAimed};}/* #677: the ready die (the layer lifted, dice-sim's presented types) and whether the last roll was thrown from rest */

@@ -1262,9 +1262,11 @@ function showRollModal(){
   if(!chk||typeof document==="undefined")return false;
   if(typeof carMode!=="undefined"&&carMode)return false;
   modalShell("roll-modal",rollModalHtml(chk),{wireClose:false,noEscape:true,maxWidth:360,boxExtra:"text-align:center;"});
+  if(typeof diceLivePresent==="function")diceLivePresent([{type:"d20"}],chk.label);/* #677 (dice-sim 0.80.0): the d20 lies ready at the bottom of the story, above the backdrop; Roll throws it from where it lies */
   function take(fn){
     if(busy){showToast("One moment — the turn is still landing.");return;}
-    closeRollModal();fn();
+    closeRollModal(true);fn();/* the die stays for the roll: showDiceRoll throws it from where it lies */
+    if(typeof diceLiveUnpresent==="function")diceLiveUnpresent();/* a die still lying ready was not rolled (Hold back, a roll that did not happen): it goes quietly */
     if(worldState&&worldState.pendingCheck===chk){console.warn("[dice] #677 the take left the check pending — the modal is shown again");showToast("The roll is still waiting.");showRollModal();}
   }
   var rb=document.getElementById("roll-modal-roll"),hb=document.getElementById("roll-modal-hold");
@@ -1272,7 +1274,8 @@ function showRollModal(){
   if(hb)hb.addEventListener("click",function(){take(reconsiderPendingCheck);});
   return true;
 }
-function closeRollModal(){var m=document.getElementById("roll-modal");if(m)m.remove();}
+/* Closes the modal; the ready die goes with it unless keepDie (a Roll about to throw it). */
+function closeRollModal(keepDie){var m=document.getElementById("roll-modal");if(m)m.remove();if(!keepDie&&typeof diceLiveUnpresent==="function")diceLiveUnpresent();}
 /* #599 (a): the saved campaign was written by a NEWER build than the one running. The wizard is never shown over it (a new
    game would save over the newer copy); the only way on is a reload, which fetches the newer build (the SW serves it on the
    next navigation; a stuck one is File ▸ Clear cache & reload). Undismissable by design: no ×, no Escape, no outside click. */
