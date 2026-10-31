@@ -1205,6 +1205,7 @@ var storageAdapter = (function() {
   function updateSubscription(change, cb) { _apiJson("/api/admin/subscription", "POST", change, cb, true); }
   function readAdminActivity(since, visitId, cb) { _apiJson(since===null?"/api/admin/activity/visit":"/api/admin/activity?since="+encodeURIComponent(since), since===null?"POST":"GET", since===null?{visitId:visitId}:null, cb, true); }
   function listInvitations(cb) { _apiJson("/api/admin/invitations", "GET", null, cb, true); }
+  function previewInvitation(body, cb) { _apiJson("/api/admin/invitations/preview", "POST", body, cb, true); }
   function sendInvitation(body, cb) { _apiJson("/api/admin/invitations", "POST", body, cb, true); }
   function resendInvitation(id, body, cb) { _apiJson("/api/admin/invitations/"+encodeURIComponent(id)+"/resend", "POST", body, cb, true); }
   function revokeInvitation(id, cb) { _apiJson("/api/admin/invitations/"+encodeURIComponent(id)+"/revoke", "POST", {}, cb, true); }
@@ -1384,6 +1385,7 @@ var storageAdapter = (function() {
     pingServerHealth:     pingServerHealth,
     readAdminActivity: readAdminActivity,
     listInvitations: listInvitations,
+    previewInvitation: previewInvitation,
     sendInvitation: sendInvitation,
     resendInvitation: resendInvitation,
     revokeInvitation: revokeInvitation,

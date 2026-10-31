@@ -28,7 +28,7 @@ function page(){
   const err=await new Promise(r=>box.storageAdapter.acceptInvitation('SECRET',r));
   assert.match(err,/different Gmail/);assert.equal(calls[0].url,'https://fixture.test/api/invitations/accept');
   assert.equal(calls[0].opts.headers.Authorization,'Bearer fixture-session');assert.equal(calls[0].opts.method,'POST');assert.deepEqual(JSON.parse(calls[0].opts.body),{token:'SECRET'});
-  for(const [method,args,path] of [['listInvitations',[],''],['sendInvitation',[{requestId:'id'}],''],['resendInvitation',['a/b',{requestId:'id'}],'/a%2Fb/resend'],['revokeInvitation',['a/b'],'/a%2Fb/revoke']]){
+  for(const [method,args,path] of [['listInvitations',[],''],['previewInvitation',[{email:'alice@gmail.com'}],'/preview'],['sendInvitation',[{requestId:'id'}],''],['resendInvitation',['a/b',{requestId:'id'}],'/a%2Fb/resend'],['revokeInvitation',['a/b'],'/a%2Fb/revoke']]){
    await new Promise(r=>box.storageAdapter[method](...args,r));assert.equal(calls.at(-1).url,'https://fixture.test/api/admin/invitations'+path);
   }
  });

@@ -1,8 +1,8 @@
 {
-  "version": "v1.1331",
+  "version": "v1.1332",
   "actions": [
-    "Added Gmail invitations with Google sign-in, single-use links and automatic approval on acceptance.",
-    "Added seven-day invitation expiry, resend and revoke controls, and persistent email delivery receipts.",
-    "Preserved existing active access when accepting an invitation."
+    "Added editable invitation subjects and messages with a full email preview before sending.",
+    "Changed Resend to open the saved message for editing and review before delivery.",
+    "Kept secure invitation links and access instructions in the preview and outgoing email."
   ]
 }
