@@ -669,3 +669,7 @@ Owner-requested invitation UI and pure adapter methods, with server-owned Google
 Owner confirmed #675 acceptance worked and requested editable mail before sending. Added Compose → Preview → Send in the operator surface and one pure adapter method. Server owns the full email renderer and content-consistency check; no campaign, prompt, parser or memory changes. [Design and verification](DOC/invitations_676.md).
 
 Published app v1.1332 / server v1.15.0 on October 30 at 21:52 PDT after full local gates, all 23 browser suites and the backup rehearsal. Verified live schema/integrity, exact public assets and a clean phone load. No real email was sent during verification; personalized inbox delivery remains manual. Production receipt and CI links are in the design record.
+
+## 2026-10-31 — B56 development bug-feed isolation
+
+Read-only review and a failing-first fake-transport test confirmed Node fixture crashes reached the production feed before test setup. The shared dev loader now disables that endpoint immediately; reporter tests configure fake transports explicitly. Browser reporting, engine files and memory guards are untouched. Full/partial loads and both report species are covered; two attributed mutation proofs pass.

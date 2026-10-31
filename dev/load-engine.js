@@ -40,7 +40,12 @@ function loadEngine(upTo) {
     end += 1;
   }
   for (var i = 0; i < end; i++) {
-    try { geval(fs.readFileSync(path.join(ROOT, FILES[i]), "utf8")); }
+    try {
+      geval(fs.readFileSync(path.join(ROOT, FILES[i]), "utf8"));
+      // Development fixtures must not deliver failures to the production bug feed.
+      // Reporter tests explicitly configure their own fake URL and transport.
+      if (FILES[i] === "error-report.js") global.ERROR_WEBHOOK_URL = "";
+    }
     catch (e) { throw new Error("ENGINE LOAD FAILED in " + FILES[i] + ": " + e.message); }
   }
   return FILES.slice(0, end);
