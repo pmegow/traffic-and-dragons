@@ -12,6 +12,15 @@
 // simulated honestly and the die's printing is turned by one of its rotation symmetries so the
 // requested value is on the face (or corner) that came up. The die's shape is unchanged by a
 // symmetry, so every frame of the roll is a real roll of a real, correctly numbered die.
+//
+// AIMED THROWS (2026-10-31, for a host that lays the dice out before the roll — embed/overlay.js ▸ present). A die
+// thrown from the pose the player SEES (a state marked `shown`, or a die of a drop's table rolled again) keeps its
+// printing, so its first frame is exactly what was on screen — and then a value asked of it cannot be printed on:
+// turning the printing would change the numerals on a die that has not moved yet. So the throw itself lands it: the
+// die's throw is drawn again (its speed within ±8%, its spin within ±25% about an axis tipped a little) until the
+// physics shows the value. Each aimed die is searched ALONE first, among the dice that lie still, then all are thrown
+// together and any die a neighbour knocked off its value is searched on. Every attempt is a real roll; nothing is
+// turned. A die that cannot be landed in its budget (AIM.perSide throws per side) fails loudly.
 
 import { buildDie } from './dice.js';
 import { Body, plane } from './body.js';
@@ -86,9 +95,13 @@ const DIE_OPTIONS = ['material', 'circumradius', 'edgeRadius', 'materialOverride
  *   tray?:  partial TRAY_DEFAULTS (unset width and depth grow with the dice count: trayFor)
  *   throw?: { strength?, direction?: {x, z},                 the default toss
  *             fling?: { from: {x, z}, velocity: {x, z} },     a player's drag across the floor (m, m/s)
- *             states?: [{position, orientation, velocity, angularVelocity}],   full control, one per die
- *             drop?: { resting: [{position, orientation, velocity?, angularVelocity?}, …] } }   the first dice
- *                                    are on the table (at rest, or still moving as given), the others fall onto open floor
+ *             states?: [{position, orientation, velocity, angularVelocity, resting?, shown?}],   full control, one per die:
+ *                                    resting — lies on the table as given, never nudged, printed as it lay;
+ *                                    shown — thrown from the pose on screen, printed as it lay; a value asked of it is
+ *                                    landed by the throw itself (AIMED THROWS above), never printed on
+ *             drop?: { resting: [{position, orientation, velocity?, angularVelocity?}, …], again?: [i] } }   the first dice
+ *                                    are on the table (at rest, or still moving as given), the others fall onto open floor;
+ *                                    `again` lists dice of the table tossed again where they lie (a value: aimed)
  *   world?: partial WORLD_DEFAULTS (dt, iterations, …)
  *   gates?: { minTurns?, maxSeconds?, maxAttempts?, cockedAlignment?, tips? }
  *   readUp?: {x, y, z}, fps?
@@ -97,6 +110,7 @@ const DIE_OPTIONS = ['material', 'circumradius', 'edgeRadius', 'materialOverride
  */
 export function roll(request) {
   const req = validate(request);
+  if (req.aimed.some(Boolean)) return rollAimed(req);
   const rejected = [];
   for (let attempt = 0; attempt < req.maxAttempts; attempt++) {
     const seed = attempt === 0 ? req.seed : mixSeed(req.seed, attempt);
@@ -154,6 +168,8 @@ function validate(request) {
   if (thr.states) thr.states.forEach((s, i) => {   // a resting state: a die left on the table while the hand held another
     if (s && s.resting !== undefined && typeof s.resting !== 'boolean') throw new Error('roll: throw.states[' + i + '].resting must be true or false, got ' + JSON.stringify(s.resting));
     if (s && s.resting && !s.orientation) throw new Error('roll: throw.states[' + i + '] rests and needs the orientation it lies in');
+    if (s && s.shown !== undefined && typeof s.shown !== 'boolean') throw new Error('roll: throw.states[' + i + '].shown must be true or false, got ' + JSON.stringify(s.shown));
+    if (s && s.shown && !s.orientation) throw new Error('roll: throw.states[' + i + '] is shown and needs the orientation it shows');
   });
   if (thr.fling) {
     const f = thr.fling, ok = (p) => p && Number.isFinite(p.x) && Number.isFinite(p.z);
@@ -194,8 +210,11 @@ function validate(request) {
     // starts as given on every attempt, never nudged, and is left out of the turn gate.
     resting: dice.map((d, i) => (thr.drop ? i < thr.drop.resting.length && !(thr.drop.again || []).includes(i) : !!(thr.states && thr.states[i] && thr.states[i].resting))),
     // The dice whose pose is the one the player saw, printing included: every die of a drop's table, rolled again or
-    // not, and a resting state. Each keeps that printing (finish), so its first frame is exactly what was on screen.
-    printed: dice.map((d, i) => (thr.drop ? i < thr.drop.resting.length : !!(thr.states && thr.states[i] && thr.states[i].resting))),
+    // not, and a resting or shown state. Each keeps that printing (finish), so its first frame is exactly what was on screen.
+    printed: dice.map((d, i) => (thr.drop ? i < thr.drop.resting.length : !!(thr.states && thr.states[i] && (thr.states[i].resting || thr.states[i].shown)))),
+    // The dice thrown from a pose on screen with a value asked: the throw must land it (AIMED THROWS; rollAimed).
+    aimed: dice.map((d, i) => d.value !== null && (thr.drop ? !!(thr.drop.again && thr.drop.again.includes(i)) : !!(thr.states && thr.states[i] && thr.states[i].shown && !thr.states[i].resting))),
+    origin: null,   // in a die's own search (rollAimed ▸ alone): each die's index in the whole roll, so its throws are drawn the same there and together
     fling: thr.fling || null,
     drop: thr.drop ? { resting: thr.drop.resting.map((s) => ({
       position: v3(s.position.x, s.position.y, s.position.z), orientation: qnormalize(s.orientation),
@@ -233,20 +252,20 @@ function trayPlanes(tray) {
  * Explicit states are used as given on the first attempt and nudged a little by the seed on a
  * re-roll — but for a resting one, a die left lying on the table, which starts as given every time.
  */
-function throwStates(req, seed, attempt) {
+function throwStates(req, seed, attempt, picks = null) {
   const rng = createRng(seed);
   if (req.states) {
     const nudge = attempt === 0 ? 0 : 0.04;
     return req.states.map((s, i) => (req.resting[i] ? {
       position: s.position, orientation: s.orientation, velocity: s.velocity || v3(), angularVelocity: s.angularVelocity || v3(),
-    } : {
+    } : req.aimed[i] ? aimedState(s, aimRng(req, i, picks[i]), picks[i]) : {
       position: s.position,
       orientation: s.orientation || rng.quaternion(),
       velocity: scale(s.velocity || v3(), 1 + nudge * rng.range(-1, 1)),
       angularVelocity: add(s.angularVelocity || v3(), scale(rng.unitVector(), nudge * 20)),
     }));
   }
-  if (req.drop) return dropStates(req, rng);
+  if (req.drop) return dropStates(req, rng, picks);
   const plan = req.fling ? flingPlan(req) : tossPlan(req);
   const dir = plan.dir, side = cross(UP, dir);   // side ⟂ dir along the floor
   const span = req.tray.area || req.tray;
@@ -297,7 +316,7 @@ export const REROLL = { rise: [0.9, 1.2], drift: [0.8, 1.5], spin: [40, 70], min
  * already there and the walls, so the first die lands mid-table, not under an edge — tumbling a little. A re-throw
  * draws new spots and spins for the new dice only: the table is where it was before every attempt.
  */
-function dropStates(req, rng) {
+function dropStates(req, rng, picks = null) {
   const rest = req.drop.resting;
   const span = req.tray.area || req.tray, mid = (req.tray.area && req.tray.area.center) || { x: 0, z: 0 };
   const inside = keepInside(req.tray, 0.022), clearance = wallClearance(req.tray);
@@ -306,10 +325,12 @@ function dropStates(req, rng) {
     if (i < rest.length && req.drop.again.includes(i)) {
       // Rolled again (owner 2026-10-30: a double-click on a die rerolls it): flicked up from where it lies, a little
       // sideways, spinning fast about a seeded axis — the same die, so no jump on screen; the turn gate sees it turn.
+      // Asked a value, its tosses are drawn from its own stream (AIMED THROWS), the k-th the same alone and together.
+      const r = req.aimed[i] ? aimRng(req, i, picks[i]) : rng;
       return {
         position: rest[i].position, orientation: rest[i].orientation,
-        velocity: add(scale(level(rng), rng.range(REROLL.drift[0], REROLL.drift[1])), v3(0, rng.range(REROLL.rise[0], REROLL.rise[1]), 0)),
-        angularVelocity: scale(level(rng), rng.range(REROLL.spin[0], REROLL.spin[1])),
+        velocity: add(scale(level(r), r.range(REROLL.drift[0], REROLL.drift[1])), v3(0, r.range(REROLL.rise[0], REROLL.rise[1]), 0)),
+        angularVelocity: scale(level(r), r.range(REROLL.spin[0], REROLL.spin[1])),
       };
     }
     if (i < rest.length) return { position: rest[i].position, orientation: rest[i].orientation, velocity: rest[i].velocity, angularVelocity: rest[i].angularVelocity };
@@ -408,9 +429,117 @@ export function throwCap(states) {
   return cap > 0 ? cap : WORLD_DEFAULTS.maxSpeed;
 }
 
+// ---------------------------------------------------------------- aimed throws
+/**
+ * The search (AIMED THROWS, header): perSide — throws tried for one die per side it has before the roll gives up
+ * (a fair tumble lands a face in `sides` throws on average; ten times that fails about once in e¹⁰); rounds — how often
+ * all the dice are thrown together, the ones knocked off their value searched on between; speed, spin — how far a
+ * shown state's toss is redrawn each throw (the fling's own ±8%; a quarter of the spin); wobble — how far its spin axis
+ * is tipped (render/hand.js ▸ TOSS_SPIN.wobble, the hand's own); tumble — the spin (rad/s, about a level axis, drawn
+ * afresh each throw) of a shown state thrown with no spin of its own. Measured from a hand's lift (6 cm up, 0.7 m/s,
+ * dev/aim-probe.js): a toss spun only as the hand spins it (tossSpin, a forward roll) reaches a band of faces, 32 throws
+ * for a d20 against the fair 20 and a refusal in 60; tumbled at 40–70 rad/s (the reroll's) 35, at 80–120 23, at the
+ * rate below about the fair 20 — a die in the air for an eighth of a second needs a few turns to forget its face.
+ */
+export const AIM = { perSide: 10, rounds: 8, speed: 0.08, spin: 0.25, wobble: 0.3, tumble: [100, 150] };
+
+/** Die i's own stream for its k-th throw: the same alone (its index in the whole roll, req.origin) and together. */
+function aimRng(req, i, k) {
+  const index = req.origin ? req.origin[i] : i;
+  return createRng(mixSeed(mixSeed(req.seed, 0x51ed270b), index * 4096 + k));
+}
+
+/**
+ * A shown state's k-th throw: the first (k = 0) exactly as given; after it the speed within ±AIM.speed along the same
+ * line (the die leaves the way it was thrown) and the spin within ±AIM.spin about an axis tipped by AIM.wobble. A state
+ * thrown with no spin at all is tumbled (AIM.tumble: fast, about a level axis, drawn afresh every throw) — spun by
+ * nothing, a short toss lands the face it left on, and no search could land another.
+ */
+function aimedState(s, r, k) {
+  const v = s.velocity || v3(), w = s.angularVelocity || v3();
+  const spin = Math.sqrt(dot(w, w));
+  let velocity = v, angularVelocity = w;
+  if (spin < 1e-9) angularVelocity = scale(level(r), r.range(AIM.tumble[0], AIM.tumble[1]));
+  else if (k > 0) angularVelocity = scale(normalize(add(scale(w, 1 / spin), scale(r.unitVector(), AIM.wobble))), spin * r.range(1 - AIM.spin, 1 + AIM.spin));
+  if (k > 0) velocity = scale(v, r.range(1 - AIM.speed, 1 + AIM.speed));
+  return { position: s.position, orientation: s.orientation, velocity, angularVelocity };
+}
+
+/** The roll with only die i thrown, among the dice that lie still (its obstacles); every other die left out. */
+function alone(req, i) {
+  const idx = req.dice.map((d, j) => j).filter((j) => j === i || req.resting[j]);
+  const pick = (a) => (a ? idx.map((j) => a[j]) : a);
+  const sub = { ...req, dice: pick(req.dice), states: pick(req.states), resting: pick(req.resting), printed: pick(req.printed), aimed: pick(req.aimed), origin: idx };
+  if (req.drop) {
+    const table = idx.filter((j) => j < req.drop.resting.length);
+    sub.drop = { resting: table.map((j) => req.drop.resting[j]), again: req.drop.again.filter((j) => idx.includes(j)).map((j) => idx.indexOf(j)) };
+  }
+  return sub;
+}
+
+/** Whether aimed die i of a simulation lies on its value, flat or leaning on another die. */
+function landed(req, sim, i) {
+  const b = sim.bodies[i], { feature, alignment } = readDie(b.die, b.orientation);
+  return b.die.features[feature].value === req.dice[i].value && (alignment >= req.cockedAlignment || leansOnDie(sim.bodies, b, sim.world.o.speculative));
+}
+
+/**
+ * The roll of a request with aimed dice: each aimed die's throw is searched ALONE first (its own stream, among the dice
+ * that lie still) until it lands its value and passes the gates; then all are thrown together and judged. A die a
+ * neighbour knocked off its value is searched on IN COMPANY — every die thrown as it now is, its own throw drawn again
+ * until every aimed die lands — and the last such throw, every die's current, is judged again; up to AIM.rounds
+ * judgements, AIM.perSide × sides throws per die in all (alone and in company). A round only a die not aimed failed
+ * (cocked, or the turn gate) is thrown again from the next seed, as an ordinary roll is. The result's `aim` says how
+ * many throws each die took. Deterministic: the same request searches the same throws.
+ */
+function rollAimed(req) {
+  const picks = req.dice.map(() => 0), tried = req.dice.map(() => 0), rejected = [];
+  const most = (i) => AIM.perSide * req.dice[i].die.sides;
+  const spent = (i) => { throw new Error('roll: die ' + i + ' (' + req.dice[i].type + ') could not be thrown to ' + req.dice[i].value + ' in ' + tried[i] + ' throws from where it lies'); };
+  const aloneSearch = (i) => {
+    const sub = alone(req, i);
+    for (;;) {
+      if (tried[i] >= most(i)) spent(i);
+      picks[i] = tried[i]++;
+      const sim = simulate(sub, req.seed, 0, sub.origin.map((j) => picks[j]));
+      if (!judge(sub, sim)) return;
+    }
+  };
+  // In company a throw counts only when EVERY aimed die lands: a die's new throw may knock a neighbour off its face, and
+  // a search that let it did so round after round in a crowded row (each die landing itself and unseating the next).
+  const companySearch = (i, seed, attempt) => {
+    for (;;) {
+      if (tried[i] >= most(i)) spent(i);
+      picks[i] = tried[i]++;
+      const sim = simulate(req, seed, attempt, picks);
+      if (sim.world.settled && req.aimed.every((on, j) => !on || landed(req, sim, j))) return sim;
+    }
+  };
+  req.aimed.forEach((on, i) => { if (on) aloneSearch(i); });
+  let attempt = 0, seed = req.seed, sim = simulate(req, seed, attempt, picks);
+  for (let round = 0; round < AIM.rounds; round++) {
+    const reason = judge(req, sim);
+    if (!reason) {
+      const result = finish(req, sim, seed, round + 1, rejected);
+      result.aim = { throws: tried };
+      return result;
+    }
+    rejected.push({ seed, reason });
+    const missed = req.dice.map((d, i) => i).filter((i) => req.aimed[i] && !landed(req, sim, i));
+    if (!missed.length) {   // a die not aimed failed the gates: the next seed nudges it, the aimed dice thrown as they are
+      seed = mixSeed(req.seed, ++attempt);
+      sim = simulate(req, seed, attempt, picks);
+      continue;
+    }
+    for (const i of missed) sim = companySearch(i, seed, attempt);   // the last is every die's current throw, judged above
+  }
+  const summary = rejected.slice(0, 5).map((r) => r.seed + ': ' + r.reason).join('; ');
+  throw new Error('roll: the aimed dice could not be landed together in ' + AIM.rounds + ' rounds (' + summary + ')');
+}
+
 // ---------------------------------------------------------------- simulation
-function simulate(req, seed, attempt) {
-  const states = throwStates(req, seed, attempt);
+function simulate(req, seed, attempt, picks = null) {
+  const states = throwStates(req, seed, attempt, picks);
   const world = new World({ ...req.world, maxSpeed: req.world.maxSpeed ?? throwCap(states) });
   trayPlanes(req.tray).forEach((p) => world.addPlane(p));
   const bodies = req.dice.map((d, i) => world.addBody(new Body(d.die, states[i])));
@@ -503,8 +632,10 @@ function judge(req, sim) {
     // READ AS IT LIES (owner 2026-10-30, row 62). A die cocked against a wall or on the floor is thrown again; a die
     // leaning on another die is read by its most-up face, as players read a pile. With the solver making no energy, a
     // sixteen-dice pile rests with about five dice leaning on dice, and refusing them all refused up to nine piles in ten.
-    const { alignment } = readDie(b.die, b.orientation);
+    const { feature, alignment } = readDie(b.die, b.orientation);
     if (alignment < req.cockedAlignment && !leansOnDie(sim.bodies, b, sim.world.o.speculative)) return 'die ' + b.index + ' cocked (alignment ' + alignment.toFixed(4) + ')';
+    // An aimed die (AIMED THROWS): the throw itself must land the value asked, since its printing stays as shown.
+    if (req.aimed[b.index] && b.die.features[feature].value !== req.dice[b.index].value) return 'die ' + b.index + ' landed ' + b.die.features[feature].value + ', not ' + req.dice[b.index].value;
   }
   // The dice thrown: a die left lying on the table (resting) never turns, and would hold every roll that has one back.
   const thrown = sim.bodies.filter((b, i) => !req.resting[i]);
@@ -555,8 +686,9 @@ function finish(req, sim, seed, attempts, rejected) {
     // so its first frame shows it exactly as it lay. Read afresh, it turned a quarter on the spot
     // whenever the camera had turned since its roll, and a die knocked to a new face would have
     // shown a different number before anything touched it (2026-10-28). So does a die left lying while the hand
-    // held another (a resting state, owner 2026-10-30), and a die of the table rolled again (drop.again).
-    const printed = req.printed[i] && spec.value === null;
+    // held another (a resting state, owner 2026-10-30), a die of the table rolled again (drop.again) and a shown
+    // state — and an AIMED die, whose throw landed the value asked, so its printing need not turn (2026-10-31).
+    const printed = req.printed[i] && (spec.value === null || req.aimed[i]);
     const s = printed ? b.die.identity : chooseSymmetry(b.die, feature, value, b.orientation, req.readUp);
     const track = new Float32Array(frames.length * 7);
     frames.forEach((f, k) => track.set(f[i], k * 7));
@@ -564,6 +696,7 @@ function finish(req, sim, seed, attempts, rejected) {
       type: spec.type,
       value,
       forced: spec.value !== null,
+      aimed: req.aimed[i],   // the value was landed by the throw itself, the printing as shown (AIMED THROWS)
       feature,
       printing: { x: s.q.x, y: s.q.y, z: s.q.z, w: s.q.w },
       rest: {

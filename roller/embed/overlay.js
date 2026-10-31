@@ -3,7 +3,8 @@
 // "roll it into TnD").
 //
 //   const dice = createDiceOverlay({ container });     // once: the host's own element, over its content
-//   const result = await dice.roll([{ type: 'd20', value: 17 }]);   // resolves when the dice rest
+//   await dice.present([{ type: 'd20' }]);            // the dice laid at rest along the bottom edge, ready to roll (2026-10-31)
+//   const result = await dice.roll([{ type: 'd20', value: 17 }]);   // resolves when the dice rest; presented dice are thrown from where they lie
 //   dice.setExit('smoke');                            // how they leave (render/exit-table.js; 'none' by default)
 //   await dice.dismiss();                             // the host's dismiss (a click, say): they leave by it, heard
 //   dice.clear();                                     // or at once, silently
@@ -12,11 +13,28 @@
 // since the screen's edges are the dice's walls — render/framing.js ▸ screenBounds). One view, one
 // WebGL context and one sound engine for the overlay's whole life, however many rolls; dispose() ends
 // them. A transparent view: no tray, only the dice and their shadows over whatever is behind.
+//
+// PRESENT (owner 2026-10-30, with TnD's check modal: "it would be cool if the die (dice) that will be rolled appeared at
+// the bottom of the screen ready to roll"). present(dice) drops the dice onto a strip of floor along the bottom edge
+// (embed/present.js ▸ edgeStrip; core drop, so they lie as a settled roll lies, on honest faces that promise nothing),
+// silently, and lays them out at rest. They stay until a roll, a dismiss, a clear or another present takes them. A roll
+// of the same die then lifts it into a hand (view.lift: toward the camera, so nothing moves on screen) and throws it up
+// the screen toward the middle of the table as the app's tap throw goes from the bottom edge (edgeToss), tumbling. The
+// face: a die thrown from the pose on screen keeps its printing — turning it would change the numerals on a die that has
+// not moved — so the core lands the value asked by the throw itself, drawing the toss again until the physics shows it
+// (src/roll.js ▸ AIMED THROWS: a `shown` state; about `sides` throws, measured in dev/aim-probe.js). Every frame is a
+// real throw. ONE die is thrown so (present.js ▸ THROWN_FROM_REST): a handful thrown together meets in the air, and landing
+// every die's face is then a search over them all at once — a handful is laid out all the same, and its roll comes in
+// from the edge. A roll of other dice than those laid out, or with nothing laid out, is the roll as it always was, byte
+// for byte.
 
 import { DiceView, VIEW_DEFAULTS } from '../render/index.js';
 import { DiceAudio } from '../audio/index.js';
 import { samplePose } from '../src/index.js';
 import { EXIT_TABLE } from '../render/exit-table.js';
+import { edgeStrip, edgeFence, edgeToss, typesOf, sameDice, THROWN_FROM_REST } from './present.js';
+
+const NO_SPIN = { x: 0, y: 0, z: 0 };
 
 /** How long a roll waits for its sound (ms): the click bank loading, the browser unlocking audio. */
 export const SOUND_WAIT_MS = { bank: 1500, unlock: 250 };
@@ -46,6 +64,7 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
   const audio = sound ? new DiceAudio({ context }) : null;
   const loading = audio ? audio.load().catch((e) => { console.warn('dice-sim: the dice sound is off: ' + e.message); return null; }) : Promise.resolve(null);
   let current = 0;   // the newest roll wins: an older one still playing is abandoned
+  let laid = null;   // the dice presented and lying there, by type in order (present); null when the table is not a presentation
   const checkExit = (name) => {
     if (!EXIT_TABLE[name]) throw new Error('createDiceOverlay: no exit "' + name + '" (known: ' + Object.keys(EXIT_TABLE).join(', ') + ')');
     return name;
@@ -60,6 +79,24 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
   // An exit's sounds (a spider's steps) play only once the sound is up: the bank loaded and the context running
   // (a step on a sleeping clock would wait for it and then sound with all the rest at once).
   const exitSound = (s) => { if (audio.buffer && audio.ctx && audio.ctx.state === 'running') audio.playExitSound(s.kind, { ...s, pan: 0.7 * s.pan }); };
+  /** The moments a roll gives its sound, its font and its pipeline before the dice go (never longer): whether the sound is on. */
+  const readied = async (unlocking) => {
+    // Sound never holds the dice back. Outside a user gesture a browser leaves the AudioContext's resume() pending
+    // until the next one, so waiting on it hung the roll (found in TnD's browser suite, 2026-10-25): a moment for
+    // the unlock and the bank, then the dice go, silent if the sound is not ready.
+    const withSound = (await soon(loading, SOUND_WAIT_MS.bank)) && (await soon(unlocking, SOUND_WAIT_MS.unlock));
+    // The look's font too (a vendored one loads from a file): a moment, so the first roll is painted in it.
+    await soon(view.readyFonts().catch(() => false), FONT_WAIT_MS);
+    // And the dice's pipeline (warmTable): built as the overlay was made, or for the first roll after a look, now.
+    await soon(view.warmTable(), WARM_WAIT_MS);
+    return withSound;
+  };
+  const playWithSound = (result, withSound, fromTable = 0) => view.play(result, {
+    fromTable,
+    onStart: ({ timeScale }) => {
+      if (withSound) audio.scheduleRoll(result, { timeScale, pan: (i, t) => 0.7 * view.panFor(samplePose(result, i, t).position) });
+    },
+  });
 
   return {
     view,
@@ -68,28 +105,81 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
      * Rolls dice = [{ type: 'd20', value: 17 }, …] (a value the die shows; leave it out for an honest
      * roll). Resolves with the roll's result when the dice rest, or null when a newer roll or clear()
      * took over. Call it from inside the user's gesture when you can: browsers start sound only there.
+     * The one die present() laid out (the same type) is thrown from where it lies (PRESENT above); a handful laid
+     * out, other dice, or none, roll in from the edge as always.
      */
     async roll(dice) {
       const mine = ++current;
       if (audio) audio.stop();
       const unlocking = audio ? audio.unlock().catch(() => false) : Promise.resolve(false);
+      const fromRest = sameDice(laid, dice) && laid.length <= THROWN_FROM_REST;
+      if (laid && laid.length && !sameDice(laid, dice)) console.warn('dice-sim: the dice rolled (' + typesOf(dice).join(', ') + ') are not the dice laid out (' + laid.join(', ') + '), so they roll in from the edge');
+      laid = null;
+      if (fromRest) return this.throwLaid(dice, mine, unlocking);
       view.resize();                 // the container is showing now: the screen's edges come from its size
       view.clear();
       const result = await view.bakeAsync({ dice });   // off the page (TODO row 3)
-      // Sound never holds the dice back. Outside a user gesture a browser leaves the AudioContext's resume() pending
-      // until the next one, so waiting on it hung the roll (found in TnD's browser suite, 2026-10-25): a moment for
-      // the unlock and the bank, then the dice go, silent if the sound is not ready.
-      const withSound = (await soon(loading, SOUND_WAIT_MS.bank)) && (await soon(unlocking, SOUND_WAIT_MS.unlock));
-      // The look's font too (a vendored one loads from a file): a moment, so the first roll is painted in it.
+      const withSound = await readied(unlocking);
+      if (mine !== current) return null;
+      await playWithSound(result, withSound);
+      if (mine === current) warm();
+      return mine === current ? result : null;
+    },
+    /**
+     * Lays dice = [{ type: 'd20' }, …] (strings or { type }; a value given here is ignored — the faces they rest on
+     * promise nothing) at rest along the bottom edge of the overlay, silently, ready for roll(): dropped onto that
+     * strip of floor (PRESENT above) in the current look, with no result highlighted. Resolves true when they are
+     * placed, or null when a newer roll, present or clear() took over; a roll in progress is abandoned. They stay
+     * until a roll, a dismiss, a clear or another present takes them. Refused by name for dice the core cannot roll.
+     */
+    async present(dice) {
+      const mine = ++current;
+      laid = null;
+      if (audio) audio.stop();
+      if (view.playing) view.playing.cancel();   // a roll under way is abandoned: the newest call wins, as with roll()
+      view.resize();                 // the container is showing now: the strip lies along its bottom edge
+      view.clear();
+      const types = typesOf(dice), edges = view.screenEdges(), readUp = view.readUp;
+      // Dropped onto the strip, fenced for the drop so they stay by the edge; the screen's edges stay their other walls.
+      const result = await view.bakeAsync({ dice: types, throw: { drop: { resting: [] } }, tray: { area: edgeStrip(edges, readUp, types.length), bounds: [...edges.planes, edgeFence(edges, readUp)] } });
       await soon(view.readyFonts().catch(() => false), FONT_WAIT_MS);
-      // And the dice's pipeline (warmTable): built as the overlay was made, or for the first roll after a look, now.
       await soon(view.warmTable(), WARM_WAIT_MS);
       if (mine !== current) return null;
-      await view.play(result, {
-        onStart: ({ timeScale }) => {
-          if (withSound) audio.scheduleRoll(result, { timeScale, pan: (i, t) => 0.7 * view.panFor(samplePose(result, i, t).position) });
-        },
-      });
+      view.show(result);
+      laid = result.dice.map((d) => d.type);
+      warm();
+      return true;
+    },
+    /**
+     * roll() of the die present() laid out: lifted into a hand (view.lift) and thrown from there toward the middle of
+     * the table (edgeToss, tumbling), the throw itself landing the face asked (core AIMED THROWS: a `shown` state),
+     * the mesh carrying on from where it lay. A roll the core cannot land (said by name on the console) rolls in from
+     * the edge instead, as a roll with nothing laid out does.
+     */
+    async throwLaid(dice, mine, unlocking) {
+      const { states: lifted, done } = view.lift();
+      const velocities = edgeToss(lifted.map((s) => s.position), view.screenEdges(), view.readUp, view.cameraTarget);
+      // Spun by nothing of the overlay's: the core tumbles each throw afresh (AIM.tumble) — spun only as a hand's toss
+      // spins (render/hand.js ▸ tossSpin, a forward roll) a die reached a band of faces, and the search ran long.
+      const states = lifted.map((s, i) => ({ ...s, velocity: { x: velocities[i].x, y: 0, z: velocities[i].z }, angularVelocity: NO_SPIN, shown: true }));
+      let result;
+      try {
+        result = await view.bakeAsync({ dice, throw: { states } });
+      } catch (e) {
+        if (mine !== current) return null;
+        console.warn('dice-sim: the presented dice could not be thrown from where they lie (' + e.message + '), so they roll in from the edge');
+        view.clear();
+        result = await view.bakeAsync({ dice });
+        const withSound = await readied(unlocking);
+        if (mine !== current) return null;
+        await playWithSound(result, withSound);
+        if (mine === current) warm();
+        return mine === current ? result : null;
+      }
+      const withSound = await readied(unlocking);
+      await done;
+      if (mine !== current) return null;
+      await playWithSound(result, withSound, states.length);
       if (mine === current) warm();
       return mine === current ? result : null;
     },
@@ -101,6 +191,7 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
     dismiss() {
       if (leaveBy === 'none') { this.clear(); return Promise.resolve(); }
       current++;
+      laid = null;
       if (audio) audio.stop();
       if (view.playing) view.playing.cancel();
       return view.clear({ exit: leaveBy, onSound: audio ? exitSound : null });
@@ -108,9 +199,12 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
     /** How dismiss() takes the dice away from now on (an EXIT_TABLE name); an unknown one is refused. */
     setExit(name) { leaveBy = checkExit(name); warm(); },
     get exit() { return leaveBy; },
-    /** Takes the dice away and stops their sound; a roll in progress resolves null. */
+    /** The dice present() laid out and still lying there, by type in order; null when the table is not a presentation. */
+    get presented() { return laid ? laid.slice() : null; },
+    /** Takes the dice away (presented or rolled) and stops their sound; a roll in progress resolves null. */
     clear() {
       current++;
+      laid = null;
       if (audio) audio.stop();
       if (view.playing) view.playing.cancel();
       view.clear();

@@ -11,7 +11,7 @@
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.79.0';
+const VERSION = '0.80.0';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
@@ -31,6 +31,7 @@ const FILES = [
   'demo/toy-defaults.js',
   'embed/global.js',
   'embed/overlay.js',
+  'embed/present.js',
   'fonts/README.md',
   'fonts/grenze-gotisch/GrenzeGotisch-wght.ttf',
   'fonts/grenze-gotisch/OFL.txt',

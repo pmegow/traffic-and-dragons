@@ -1045,23 +1045,11 @@ export class DiceView {
   }
 
   /**
-   * Plays a RollResult. Resolves when the dice have settled. onStart({ timeScale }) fires as the
-   * roll's clock starts — the frame after the dice were first drawn at their start — timeScale is
-   * roll seconds per real second, so a sound layer can schedule every hit ahead on its own clock;
-   * onHit(dieIndex, speed, surface, other) fires as each recorded impact is reached on screen. A new
-   * play() cancels the one in progress.
-   *
-   * fromTable: the first fromTable dice of the result are the dice on the table (a drop: bakeDrop),
-   * in play order. They keep their meshes, so their look and their place in the marble carry on, and
-   * one still showing its face keeps its highlight as it is rather than easing it in again.
+   * The table a RollResult is played on: the first fromTable dice keep their meshes (a drop's table), every other die on
+   * the table goes, the tray is rebuilt to the result's, and each new die is made in the look its bake dealt it. A play
+   * under way stops, and a hand opens. play() and show() stage their result here.
    */
-  play(result, { speed = this.o.speed, onHit = null, onStart = null, fromTable = 0 } = {}) {
-    const timeScale = this.o.pace * speed;
-    const most = Math.min(this.dice.length, result.dice.length);
-    if (!(Number.isInteger(fromTable) && fromTable >= 0 && fromTable <= most)) throw new Error('DiceView.play: fromTable must be a whole number from 0 to ' + most + ', got ' + fromTable);
-    result.dice.slice(0, fromTable).forEach((d, i) => {
-      if (this.dice[i].die.type !== d.type) throw new Error('DiceView.play: die ' + i + ' on the table is a ' + this.dice[i].die.type + ', the result has a ' + d.type + ' there');
-    });
+  stage(result, fromTable) {
     if (this.playing) this.playing.cancel();
     this.held = null;   // a play takes the dice from a hand too
     const carried = this.dice.slice(0, fromTable);
@@ -1088,6 +1076,89 @@ export class DiceView {
       this.scene.add(mesh);
       return { mesh, die, style, value: d.value, meshFeature, keep: facesShowing(die, meshFeature), steady: false, hitIndex: 0, index: i };
     });
+  }
+
+  /**
+   * Lays a RollResult out at its end, nothing played: the dice at their settled poses, every face lit alike — the faces
+   * they show promise nothing (the overlay's presented dice, embed/overlay.js ▸ present: laid out before the roll, the
+   * value comes with the roll). The first fromTable dice keep their meshes, as play() keeps a drop's table. A roll played
+   * from here (play with fromTable) eases its highlight in from the start, as any roll does. Returns the result.
+   */
+  show(result, { fromTable = 0 } = {}) {
+    const most = Math.min(this.dice.length, result.dice.length);
+    if (!(Number.isInteger(fromTable) && fromTable >= 0 && fromTable <= most)) throw new Error('DiceView.show: fromTable must be a whole number from 0 to ' + most + ', got ' + fromTable);
+    this.stage(result, fromTable);
+    const t = rollDuration(result);
+    for (const d of this.dice) {
+      const p = samplePose(result, d.index, t);
+      d.mesh.position.set(p.position.x, p.position.y, p.position.z);
+      d.mesh.quaternion.set(p.orientation.x, p.orientation.y, p.orientation.z, p.orientation.w);
+      setDim(d.mesh.geometry, d.keep, 1);
+      d.meshFeature = null;   // no result is shown: a roll from here never takes its face for one already highlighted
+    }
+    this.playing = null;
+    this.render();
+    return result;
+  }
+
+  /**
+   * Lifts every die on the table into a hand, as pickUp lifts a pressed die: the table rises toward the camera as one —
+   * its centroid HAND_LIFT of the way (render/hand.js ▸ towardEye), every die moved by the same vector, so a row keeps its
+   * spacing (each on its own ray to the eye, a row closed up by a quarter and dice already touching were lifted into one
+   * another) and a lone die never moves on screen — over HAND.gather s, each kept inside the frame at its own level and
+   * inside a drawn tray's walls (handClamp). The overlay's presented dice rise so before they are thrown (embed/overlay.js
+   * ▸ roll after present): a throw from a hand, not a hop off the floor. Returns { states, done } — `states` the pose each
+   * die holds when the lift ends ([{ position, orientation }], play order; what a throw from the hand starts from, known
+   * at once so its bake need not wait for the lift) and `done`, a Promise that resolves when the dice are there, or sooner
+   * should the table change under it (a clear, a new present). A play under way stops where it is. Refused with nothing
+   * on the table.
+   */
+  lift() {
+    if (!this.dice.length) throw new Error('DiceView.lift: nothing on the table to lift');
+    this.stop();
+    const eye = this.camera.position, dice = this.dice.slice(), n = dice.length;
+    const from = dice.map((d) => d.mesh.position.clone());
+    const centroid = from.reduce((s, p) => s.addScaledVector(p, 1 / n), new THREE.Vector3());
+    const up = towardEye(centroid, eye), by = new THREE.Vector3(up.x - centroid.x, up.y - centroid.y, up.z - centroid.z);
+    const to = dice.map((d, i) => {
+      const r = from[i].clone().add(by), c = this.handClamp({ x: r.x, y: r.y, z: r.z }, 2 * d.die.boundingRadius, r.y);
+      return new THREE.Vector3(c.x, r.y, c.z);
+    });
+    const states = dice.map((d, i) => ({ position: { x: to[i].x, y: to[i].y, z: to[i].z }, orientation: quat(d.mesh.quaternion) }));
+    const done = new Promise((resolve) => {
+      let start = null;
+      this.animate((now) => {
+        if (this.dice.length !== dice.length || dice.some((d, i) => this.dice[i] !== d)) { resolve(); return false; }   // the table changed: the lift is off
+        if (start === null) start = now;
+        const u = Math.min(1, (now - start) / 1000 / HAND.gather), e = u * u * (3 - 2 * u);
+        dice.forEach((d, i) => d.mesh.position.lerpVectors(from[i], to[i], e));
+        if (u < 1) return true;
+        resolve();
+        return false;
+      });
+    });
+    return { states, done };
+  }
+
+  /**
+   * Plays a RollResult. Resolves when the dice have settled. onStart({ timeScale }) fires as the
+   * roll's clock starts — the frame after the dice were first drawn at their start — timeScale is
+   * roll seconds per real second, so a sound layer can schedule every hit ahead on its own clock;
+   * onHit(dieIndex, speed, surface, other) fires as each recorded impact is reached on screen. A new
+   * play() cancels the one in progress.
+   *
+   * fromTable: the first fromTable dice of the result are the dice on the table (a drop: bakeDrop),
+   * in play order. They keep their meshes, so their look and their place in the marble carry on, and
+   * one still showing its face keeps its highlight as it is rather than easing it in again.
+   */
+  play(result, { speed = this.o.speed, onHit = null, onStart = null, fromTable = 0 } = {}) {
+    const timeScale = this.o.pace * speed;
+    const most = Math.min(this.dice.length, result.dice.length);
+    if (!(Number.isInteger(fromTable) && fromTable >= 0 && fromTable <= most)) throw new Error('DiceView.play: fromTable must be a whole number from 0 to ' + most + ', got ' + fromTable);
+    result.dice.slice(0, fromTable).forEach((d, i) => {
+      if (this.dice[i].die.type !== d.type) throw new Error('DiceView.play: die ' + i + ' on the table is a ' + this.dice[i].die.type + ', the result has a ' + d.type + ' there');
+    });
+    this.stage(result, fromTable);
     const duration = rollDuration(result);
     // The dice at roll time t (seconds): their poses and the highlight's dim — it eases in over the whole roll
     // (smoothstep), so nothing changes when the dice stop; darkening the other faces on the last frame read as a
