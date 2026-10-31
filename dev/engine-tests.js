@@ -2379,6 +2379,26 @@ function runEngineTests(R){
       return true;
     }finally{showToast=_st;playerRollsDice=false;}
   });
+  t("#677 the roll modal (owner 2026-10-30: 'too easy to miss the roll? dialog — make it a modal', 'block typing'): rollModalHtml paints the check — the label escaped (model text), the formula from the parsed integers, the damage only when the check carries dice — with EXACTLY two ways out, the die and Hold back; showRollModal (ui-modals.js) rides modalShell with no ×, no Escape and no outside click, skips Car Mode, and a refused take keeps the modal; generateActions opens it in place of the buttons; the transcript rebuild reopens it (a reload is not a way out); leaving Car Mode reopens it",function(){
+    var h=rollModalHtml({label:"<img src=x onerror=alert(1)> attack",mod:5,dc:14,dmg:{text:"1d8+3"},turn:3});
+    if(h.indexOf("<img")>=0||h.indexOf("&lt;img src=x onerror=alert(1)&gt; attack")<0)return "the label is model text and must be escaped: "+h;
+    if(h.indexOf("d20+5 vs DC 14")<0||h.indexOf("1d8+3 on a hit")<0)return "formula: "+h;
+    var btns=h.match(/<button\b/g)||[];if(btns.length!==2||h.indexOf("id='roll-modal-roll'")<0||h.indexOf("id='roll-modal-hold'")<0)return "exactly two ways out: "+h;
+    var h2=rollModalHtml({label:"Stealth check",mod:-1,dc:null});if(h2.indexOf("d20-1")<0||/DC |on a hit/.test(h2))return "a check without a DC or dice: "+h2;
+    if(rollModalHtml(null)!==""||rollModalHtml({})!=="")return "no check, no body";
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),ga=g.slice(g.indexOf("async function generateActions("),g.indexOf("async function generateActions(")+1500);
+    if(!/if\(worldState&&worldState\.pendingCheck\)\{worldState\.lastActions=null;if\(typeof showRollModal==="function"\)showRollModal\(\);return;\}/.test(ga))return "generateActions must open the roll modal in place of the buttons";
+    var um=__fsForTests.readFileSync(__rootForTests+"/ui-modals.js","utf8"),sm=um.slice(um.indexOf("function showRollModal("),um.indexOf("function closeRollModal("));
+    if(sm.indexOf('modalShell("roll-modal",rollModalHtml(chk),{wireClose:false,noEscape:true')<0)return "the modal must have no x, no Escape and no outside click";
+    if(sm.indexOf('if(typeof carMode!=="undefined"&&carMode)return false;')<0)return "Car Mode must be skipped (its screen covers the page; 'roll' is spoken there)";
+    if(sm.indexOf("take(rollPendingCheck)")<0||sm.indexOf("take(reconsiderPendingCheck)")<0)return "the two handlers must run the story card's own functions";
+    if(sm.indexOf("if(busy){showToast(")<0||sm.indexOf("worldState.pendingCheck===chk")<0)return "a refused take (busy) must keep the modal, not strand the check";
+    var ub=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),rb=ub.slice(ub.indexOf("function rebuildNarrativeFromTranscript("),ub.indexOf("var _storyShown="));
+    if(rb.indexOf('if(worldState.pendingCheck&&typeof showRollModal==="function")showRollModal();')<0)return "the transcript rebuild must reopen the modal — a reload is not a way out";
+    var uc=__fsForTests.readFileSync(__rootForTests+"/ui-carmode.js","utf8");
+    if(!/function hideCarMode\(\) \{ carSessionStop\(\); if \(typeof showRollModal === "function"\) showRollModal\(\); \}/.test(uc))return "leaving Car Mode must reopen a waiting roll";
+    return true;
+  });
   t("#348 curve change keeps every character at their level: a Lv17 with 131,190 XP (Ammut at t2419) loads as Lv17 with XP floored to the new gate, companions likewise; nobody de-levels and nobody levels up on load",function(){
     makeWorld();var c=worldState.character;c.level=17;c.xp=131190;
     worldState.npcs.push({name:"Daeris",partyMember:true,status:"steady",charSheet:{name:"Daeris",cls:"Cleric",level:16,xp:114240,hp:60,maxHp:60,stats:{},abilities:[],spells:[],inventory:[]}});

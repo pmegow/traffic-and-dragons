@@ -134,6 +134,8 @@ jobs:
         run: node dev/tests-611-mobile-browser.js
       - name: A menu is never scrolled — sat up to the screen bottom, measured at 375×667 (#673)
         run: node dev/tests-673-menu-fit.js
+      - name: The roll is a modal — the die and Hold back are the only ways out, at 375×667 (#677)
+        run: node dev/tests-677-roll-modal-browser.js
       - name: The narration Shop button in a real browser (#501)
         run: node dev/tests-501-shop-button-browser.js
       - name: The live dice in the game page (#669)

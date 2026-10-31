@@ -1245,6 +1245,34 @@ function showStakeModal(done){
   bg.addEventListener("click",function(){finish(ta.value);});
   bs.addEventListener("click",function(){finish("");});
 }
+/* #677 (owner 2026-10-30: "It's too easy currently to miss the 'roll?' dialog. Let's make it a modal", then "block typing"):
+   while a [CHECK:] waits, the roll is a MODAL and the die and Hold back are the ONLY ways out — no ×, no Escape, no outside
+   click (wireClose:false, noEscape:true); modalShell moves the keyboard inside and keeps it there, so nothing is typed or sent
+   behind it (the #329 lapse-by-typing path is unreachable from this screen; Car Mode keeps its spoken "roll" and the lapse —
+   its own screen covers the page, so the modal is skipped there and shown again when the drive ends, ui-carmode.js). Opened
+   by generateActions in place of the buttons (game.js) and by the transcript rebuild (ui-boot.js — a reload is not a way
+   out). The body is the pure rollModalHtml (helpers.js); the two handlers run the story card's OWN functions,
+   rollPendingCheck / reconsiderPendingCheck, so the roll, the record and the GM's note are the card's byte for byte. A take
+   while the turn is still landing (busy — both functions refuse under it) keeps the modal and says so: a closed modal over a
+   check they refused would leave the player no way to roll; and should a take leave the check pending, the modal comes back
+   loudly. Returns true when shown. The ready die at the screen's bottom (the owner's wish) waits on a dice-sim release: the
+   roller's embed cannot present a die at rest today. */
+function showRollModal(){
+  var chk=(typeof worldState!=="undefined"&&worldState)?worldState.pendingCheck:null;
+  if(!chk||typeof document==="undefined")return false;
+  if(typeof carMode!=="undefined"&&carMode)return false;
+  modalShell("roll-modal",rollModalHtml(chk),{wireClose:false,noEscape:true,maxWidth:360,boxExtra:"text-align:center;"});
+  function take(fn){
+    if(busy){showToast("One moment — the turn is still landing.");return;}
+    closeRollModal();fn();
+    if(worldState&&worldState.pendingCheck===chk){console.warn("[dice] #677 the take left the check pending — the modal is shown again");showToast("The roll is still waiting.");showRollModal();}
+  }
+  var rb=document.getElementById("roll-modal-roll"),hb=document.getElementById("roll-modal-hold");
+  if(rb)rb.addEventListener("click",function(){take(rollPendingCheck);});
+  if(hb)hb.addEventListener("click",function(){take(reconsiderPendingCheck);});
+  return true;
+}
+function closeRollModal(){var m=document.getElementById("roll-modal");if(m)m.remove();}
 /* #599 (a): the saved campaign was written by a NEWER build than the one running. The wizard is never shown over it (a new
    game would save over the newer copy); the only way on is a reload, which fetches the newer build (the SW serves it on the
    next navigation; a stuck one is File ▸ Clear cache & reload). Undismissable by design: no ×, no Escape, no outside click. */

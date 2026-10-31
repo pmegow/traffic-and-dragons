@@ -116,8 +116,9 @@ var CAR_HOST = {
 // The doors. ui-boot.js wires the File ▸ Car Mode row and the × button here, and restores a mid-drive reload through showCarMode.
 function showCarMode() {
   if (!worldState || !worldState.character) { showToast("Start a game first."); return; }
+  if (typeof closeRollModal === "function") closeRollModal();   /* #677: the car screen is the surface — "roll" is spoken there */
   carSessionStart();
 }
-function hideCarMode() { carSessionStop(); }
+function hideCarMode() { carSessionStop(); if (typeof showRollModal === "function") showRollModal(); }   /* #677: a roll left waiting comes back as the modal */
 
 carSessionHost(CAR_HOST);   // at load, loudly: an incomplete host names its missing rows and this file stops here

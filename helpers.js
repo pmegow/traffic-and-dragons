@@ -2715,6 +2715,21 @@ function checkLapseToAction(text){
   if(typeof console!=="undefined")console.info("[dice] #329 pending "+worldState.turn+" check lapsed — the player acted instead of rolling ("+String(text||"").slice(0,60)+"); B47: the GM is told this turn");
   return true;
 }
+// #677 (owner 2026-10-30: "it's too easy to miss the 'roll?' dialog — make it a modal"; the ruling "block typing"): the roll
+// modal's body, the pure half of showRollModal (ui-modals.js). The label is MODEL TEXT and is escaped; the formula is rebuilt
+// from the parsed integers exactly as the story card's is (diceTxt, api.js), never model text; the damage line only when the
+// check carries dice (#654). EXACTLY two ways out and no third: the die (roll-modal-roll → rollPendingCheck) and Hold back
+// (roll-modal-hold → reconsiderPendingCheck) — the composer, the tabs and the menus wait behind the backdrop.
+function rollModalHtml(chk){
+  if(!chk||!chk.label)return "";
+  var formula="d20"+(chk.mod?(chk.mod>0?"+":"")+chk.mod:"")+(chk.dc!=null?" vs DC "+chk.dc:"");
+  return "<div style='font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-bottom:6px;'>"+escHtml(chk.label)+"</div>"
+    +"<div style='font-size:20px;color:var(--acc);font-weight:bold;margin-bottom:6px;'>"+escHtml(formula)+"</div>"
+    +(chk.dmg&&chk.dmg.text?"<div style='font-size:14px;color:var(--t1);margin-bottom:6px;'>"+escHtml(chk.dmg.text)+" on a hit</div>":"")
+    +"<div style='font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:14px;'>The Game Master waits on your die.</div>"
+    +"<div style='display:flex;gap:8px;'><button class='qa' id='roll-modal-roll' style='flex:2;min-height:48px;font-size:16px;font-weight:bold;background:var(--acc);color:var(--on-acc);border:none;'>&#127922; Roll</button>"
+    +"<button class='qa' id='roll-modal-hold' style='flex:1;min-height:48px;' title='No roll is made; say what you do instead'>Hold back</button></div>";
+}
 function restClearPartyOwnSpellConditions(){var out=[],i,j,h=restClearOwnSpellConditions(worldState.character);for(i=0;i<h.length;i++)out.push(h[i]);var p=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];for(i=0;i<p.length;i++){var f=restClearOwnSpellConditions(p[i].charSheet);for(j=0;j<f.length;j++)out.push(f[j]+" ("+p[i].name+")");}return out;}
 // #648 (owner 2026-10-19): the pure halves of the LASTING ABILITY ask (buildLastingAbilityNote, api.js). An ability has no
 // use tag, so the engine cannot file it the way #644 files a cast; it can only notice the ability being NAMED and ask.

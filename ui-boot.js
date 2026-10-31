@@ -389,6 +389,7 @@ function rebuildNarrativeFromTranscript(maxEntries,clearFirst){
   }
   if(lastNar&&worldState.lastActions){var bd=document.createElement("div");bd.innerHTML=buildActionButtons(worldState.lastActions);if(bd.firstChild)lastNar.appendChild(bd.firstChild);}
   if(typeof storyEarlierNote==="function")storyEarlierNote();/* #206b */
+  if(worldState.pendingCheck&&typeof showRollModal==="function")showRollModal();/* #677: a reload is not a way out — the roll waits as a modal until the die or Hold back */
   story.scrollTop=story.scrollHeight;
   return true;
 }

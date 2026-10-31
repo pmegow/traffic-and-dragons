@@ -776,7 +776,7 @@ async function generateActions(msgEl){
   /* #300: a downed hero gets the engine's two moves — no model call, no token, no invented rescue. */
   if(worldState&&worldState.deathScene&&worldState.deathScene.stage==="choose"&&typeof deathChoiceButtons==="function"){var _dcb=deathChoiceButtons();msgEl.insertAdjacentHTML("beforeend",buildActionButtons(_dcb));worldState.lastActions=_dcb;if(typeof saveAll==="function")saveAll();return;}/* #301 */
   if(worldState&&worldState.deathScene){worldState.lastActions=null;return;}/* #301: no suggestions while Death speaks — the next line is the question */
-  if(worldState&&worldState.pendingCheck){worldState.lastActions=null;return;}/* #329: the die is the only button while a roll is pending */
+  if(worldState&&worldState.pendingCheck){worldState.lastActions=null;if(typeof showRollModal==="function")showRollModal();return;}/* #329: the die is the only button while a roll is pending — #677: and the die is a modal (ui-modals.js) */
   if(worldState&&worldState.downed&&typeof downedChoices==="function"){var _dc=downedChoices();msgEl.insertAdjacentHTML("beforeend",buildActionButtons(_dc));worldState.lastActions=_dc;if(typeof saveAll==="function")saveAll();return;}
   var btnDiv=document.createElement("div");
   btnDiv.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;";
