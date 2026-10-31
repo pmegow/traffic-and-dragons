@@ -34,156 +34,6 @@ them here).
 
 ## Open
 
-## B56 — Node engine fixtures send synthetic failures to the live bug feed
-**Status:** fixed (development tooling; full gate pending)
-**Kind:** developer-finding · **First seen:** 2026-10-26T11:20:51.682Z · **Last seen:** 2026-10-31T04:54:24.987Z · **Count:** 10 · **Campaign:** Test (fixture) · **Turn:** 5
-**Fingerprint:** `developer-finding · node-loader · production reporter enabled before fixture isolation`
-**Report ids:** 7ccc4dcd-b9ad-4f13-8156-073180f91cf2, 8aa8dbdd-4226-49ef-b264-8937e10a2b3f, 4ed1e6bb-9d83-4f4b-9ed7-5cb61095e9b3, 61e4fb07-0e65-4077-8d4d-c15a7a275c55, 709be910-6131-444d-9033-78cdaf37c066, 86e2783a-13b7-47d1-98d8-2a397c23c388, bad95ff8-2908-400f-ac22-be6b9653d4f3, ab5d5b4b-b5c2-4c67-9e3e-83fce3766bb3, b22a11dc-890d-4bba-b67e-bcf26bef2ba3, 93767776-b8b7-4318-8ce0-635283840a51
-**Screenshot URL:** —
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-{
-  "id": "7ccc4dcd-b9ad-4f13-8156-073180f91cf2",
-  "receivedAt": "2026-10-26T11:20:51.682Z",
-  "clientTs": "2026-10-26T11:20:49.995Z",
-  "kind": "crash",
-  "ctx": "memory-owner",
-  "message": "memory camp_1793013649990_3086 under worldState camp_1793013649994_1942",
-  "detail": "[object Object]\n\n--- diag ---\nsession sclhayd-12jf · report 1/10 · up 0s\naudio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=none\nthis page:\n  (none)",
-  "app": "v1.1322",
-  "camp": "Test",
-  "turn": 5,
-  "url": "(node)",
-  "ua": "Node.js/22",
-  "online": "",
-  "suppressed": 0,
-  "screenshotUrl": ""
-}
-```
-
-### Findings
-
-**2026-10-31 — independent read-only investigation and failing-first reproduction.** Root-caused: dev/load-engine.js evaluates the real reporter with its production URL before fixture tests install fake transports. The reporter section later disables delivery, after earlier state-loading fixtures can already call state.js's memory-owner report through Node fetch. The payload identifies the canonical Test campaign, turn 5, `(node)` URL and Node.js/22. A regression using a fake fetch failed before the fix with one delivery attempt instead of zero. Full and partial loader calls now disable ERROR_WEBHOOK_URL immediately after evaluating error-report.js; tests may explicitly configure a fake URL/transport. The browser reporter and memory guard are untouched. Loader-consumer review found no need for automatic production-feed reporting from Node analysis tools. Drift surface: NO; development tooling only. Confidence: high.
-
-The skipped ledger retains the individual synthetic payloads as test artifacts. This row tracks the development-loader defect that sent them, rather than a player memory-corruption defect.
-
-### Action log
-
-- 2026-10-31 — Fixed after the independent review: disable implicit production reporting at the shared Node loader boundary. Added a standalone regression for crash/user reports, full/partial loads and an explicit fake transport; both attributed mutation proofs pass. No application version bump: dev tooling only.
-
-
-## B54 — Dice video could not be opened on Android during a roll (v1.1311, V t41)
-**Status:** new
-**Kind:** crash · **First seen:** 2026-10-26T16:23:15.350Z · **Last seen:** 2026-10-26T16:23:15.350Z · **Count:** 1 · **Campaign:** V · **Turn:** 41
-**Fingerprint:** `crash · dice-clip · v1.1311 · dice clip dice/d20_19.webm: failed to load (PipelineStatus::DEMUXER_ERROR_COULD_NOT_OPEN: FFmpegDemuxer: open context fa`
-**Report ids:** ca5a2b7c-00fe-4941-a878-c653138181c7
-**Screenshot URL:** —
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-dice clip dice/d20_19.webm: failed to load (PipelineStatus::DEMUXER_ERROR_COULD_NOT_OPEN: FFmpegDemuxer: open context failed)
-
-[object Object]
-
---- diag ---
-session sfl4jz8-186y · report 1/10 · up 1339s
-audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=running
-this page:
-  +0s boot
-  +1320s turn-start t40 1569ch bg0
-  +1325s turn t41 727ch
-  +1338s turn-start t41 sil 230ch bg0
-PREVIOUS page (ended without unload — see B9):
-  +30626s turn t29 766ch
-  +30649s turn-start t29 1233ch bg0
-  +30651s turn t30 288ch
-  +30652s turn-start t30 sil 251ch bg0
-  +30657s turn t31 850ch
-  +33060s turn-start t31 2112ch bg0
-  +33065s turn t32 764ch
-  +33081s turn-start t32 2360ch bg0
-  +33085s turn t33 430ch
-  +33089s turn-start t33 sil 224ch bg0
-  +33093s turn t34 797ch
-  +33110s turn-start t34 2463ch bg0
-  +33114s turn t35 515ch
-  +33121s turn-start t35 sil 251ch bg0
-  +33126s turn t36 857ch
-  +33148s turn-start t36 1743ch bg0
-  +33151s turn t37 408ch
-  +33158s turn-start t37 sil 251ch bg0
-  +33164s turn t38 1108ch
-  +33204s turn-start t38 1595ch bg0
-  +33210s turn t39 1033ch
-  +35981s turn-start t39 2468ch bg0
-  +35992s turn t40 1139ch
-  +36029s turn-start t40 tt 95ch bg0
-
---- report metadata ---
-id: ca5a2b7c-00fe-4941-a878-c653138181c7
-receivedAt: 2026-10-26T16:23:15.350Z
-clientTs: 2026-10-26T16:23:15.985Z
-kind: crash
-ctx: dice-clip
-app: v1.1311
-camp: V
-turn: 41
-url: https://traffic-and-dragons.pages.dev/
-ua: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36
-online: true
-suppressed: 0
-screenshotUrl:
-```
-
-### Findings
-
-### Action log
-
-## B55 — Dice sound asset failed to load on iPhone (v1.1321, Frizwick t108)
-**Status:** new
-**Kind:** crash · **First seen:** 2026-10-26T18:37:06.347Z · **Last seen:** 2026-10-26T18:37:06.347Z · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 108
-**Fingerprint:** `crash · dice-sfx · v1.1321 · could not load dice/sfx/dice-rolls-v1.mp3: null — the rolls play silent`
-**Report ids:** fc57837c-693d-4c8f-a6cc-ed2d44002c4b
-**Screenshot URL:** —
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-could not load dice/sfx/dice-rolls-v1.mp3: null — the rolls play silent
-
-[object Object]
-
---- diag ---
-session s9s1qr3-j0s · report 1/10 · up 0s
-audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=1 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=suspended
-this page:
-  +0s boot
-PREVIOUS page (ended cleanly):
-  +0s boot
-  +153s unload
-
---- report metadata ---
-id: fc57837c-693d-4c8f-a6cc-ed2d44002c4b
-receivedAt: 2026-10-26T18:37:06.347Z
-clientTs: 2026-10-26T18:37:05.021Z
-kind: crash
-ctx: dice-sfx
-app: v1.1321
-camp: Frizwick
-turn: 108
-url: https://traffic-and-dragons.pages.dev/
-ua: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1
-online: true
-suppressed: 0
-screenshotUrl:
-```
-
-### Findings
-
-### Action log
 
 
 ## B44 — Player could not access voice configuration at campaign start (v1.1245, desktop Chrome)
@@ -802,8 +652,259 @@ SUGGESTED ACTIONS SHOWN: Set the remaining supply wagons ablaze | Flee south to 
 - 2026-10-20 · v1.1285 · commit fix(B48) · Fable — mechanism re-verified before code (the save’s noteLog carries the money note’s t49 fire; the note closed with "settle it through [GOLD:-N] only if they pay"; no rule named a demand as the player’s; the GOLD handler applies unconditionally in an adventure). Two prompt layers: the MONEY AT STAKE note now stages the demand and ENDS the response there (pay / refuse / fight among the [SUGGEST:] buttons, never the hero’s answer or coin leaving the purse, [GOLD:-N] on a later turn after the player chose); rule 20 PLAYER ACTIONS ARE INTENT extended IN PLACE with THE MIRROR HOLDS (a demand made of the player is ANSWERED BY THE PLAYER; end the response at the demand; a payment the player typed stays theirs to make) — count stays 28. No engine guard on [GOLD:] by design (the Currency rule’s meals and alms). Tests red-first (section "B48"), battery dev/sabotage-b48-demand-answered.js (3 clauses). Live verification owed: the next NPC demand in Frizwick should end the turn with the choice on the buttons.
 
 
+
+
+## B52 — A page-load crash on an iPhone — inventory.js reached for a helper the page did not have, so the game never booted on that load (v1.1297, pages.dev)
+**Status:** findings-ready (original iPhone script-loading cause needs live evidence)
+**Kind:** crash · **First seen:** 2026-10-21 (v1.1297) · **Last seen:** 2026-10-21 (v1.1297) · **Count:** 1 · **Campaign:** — · **Turn:** —
+**Fingerprint:** `crash · window.onerror · v1.1297 · ReferenceError: Can't find variable: keyedDict`
+**Report ids:** 05fba168-930d-4579-a8bb-7c7e82073337
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+ReferenceError: Can't find variable: keyedDict
+https://traffic-and-dragons.pages.dev/inventory.js:401:49
+global code@https://traffic-and-dragons.pages.dev/inventory.js:401:49
+
+--- diag ---
+session s5bvdqw-syd · report 1/10 · up 15s
+this page:
+  +0s boot
+url: https://traffic-and-dragons.pages.dev/ · ua: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1 · suppressed: 0
+```
+
+### Findings
+
+**2026-10-31 — independent read-only investigation and blocked-resource reproduction.** The immediate mechanism is confirmed: inventory.js initializes invEntries._said with keyedDict at module load, but the helper declaration was unavailable. Both v1.1297 and the current index load helpers.js synchronously immediately before inventory.js, and keyedDict already existed before the report. There is no evidence of an ordering regression or a later B52 fix. A missing or unparseable helper script can cause this; an ordinary runtime exception after parsing does not explain a missing top-level function declaration.
+
+A clean deployed phone-sized Chromium session boots normally. A second isolated session receiving a deliberate HTTP 503 for helpers.js reproduces the keyedDict ReferenceError followed by seven dependent initialization errors. The rendered sign-in screen remains visible with no dedicated startup-failure explanation. All outbound POSTs were intercepted; no test report was delivered. This reproduces a sufficient failure condition, not the original iPhone delivery event.
+
+The reporter has JavaScript/promise handlers but no capturing script-resource error handler, leaving the missing-resource cause absent from the field payload. Next evidence: helpers.js response status/body, preceding parse errors and controlling worker identity on an affected iPhone. A missing-module fallback inside inventory would hide an incomplete boot; automatic cache deletion/reload is not justified. A separate resource-error/boot-failure surface would need its own reviewed change. Drift surface: NO for diagnostics; app-wide reporter/index boundaries apply. Confidence: high on immediate failure, low on the original loading fault.
+
+### Action log
+
+- 2026-10-31 — Kept open after reproducing the blocked-helper failure and documenting the missing diagnostics. No speculative runtime patch. [Review](bug_review_2026-10-31.md).
+
+## Completed
+
+_Every verified and ignored row lives inside this collapsible container, newest first._
+
+<details>
+<summary><strong>Completed bugs (0 rows) — click to expand</strong></summary>
+
+## B56 — Node engine fixtures send synthetic failures to the live bug feed
+**Status:** verified (development-loader isolation; full gate and regression proofs pass)
+**Kind:** developer-finding · **First seen:** 2026-10-26T11:20:51.682Z · **Last seen:** 2026-10-31T04:54:24.987Z · **Count:** 10 · **Campaign:** Test (fixture) · **Turn:** 5
+**Fingerprint:** `developer-finding · node-loader · production reporter enabled before fixture isolation`
+**Report ids:** 7ccc4dcd-b9ad-4f13-8156-073180f91cf2, 8aa8dbdd-4226-49ef-b264-8937e10a2b3f, 4ed1e6bb-9d83-4f4b-9ed7-5cb61095e9b3, 61e4fb07-0e65-4077-8d4d-c15a7a275c55, 709be910-6131-444d-9033-78cdaf37c066, 86e2783a-13b7-47d1-98d8-2a397c23c388, bad95ff8-2908-400f-ac22-be6b9653d4f3, ab5d5b4b-b5c2-4c67-9e3e-83fce3766bb3, b22a11dc-890d-4bba-b67e-bcf26bef2ba3, 93767776-b8b7-4318-8ce0-635283840a51
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+{
+  "id": "7ccc4dcd-b9ad-4f13-8156-073180f91cf2",
+  "receivedAt": "2026-10-26T11:20:51.682Z",
+  "clientTs": "2026-10-26T11:20:49.995Z",
+  "kind": "crash",
+  "ctx": "memory-owner",
+  "message": "memory camp_1793013649990_3086 under worldState camp_1793013649994_1942",
+  "detail": "[object Object]\n\n--- diag ---\nsession sclhayd-12jf · report 1/10 · up 0s\naudio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=none\nthis page:\n  (none)",
+  "app": "v1.1322",
+  "camp": "Test",
+  "turn": 5,
+  "url": "(node)",
+  "ua": "Node.js/22",
+  "online": "",
+  "suppressed": 0,
+  "screenshotUrl": ""
+}
+```
+
+### Findings
+
+**2026-10-31 — independent read-only investigation and failing-first reproduction.** Root-caused: dev/load-engine.js evaluates the real reporter with its production URL before fixture tests install fake transports. The reporter section later disables delivery, after earlier state-loading fixtures can already call state.js's memory-owner report through Node fetch. The payload identifies the canonical Test campaign, turn 5, `(node)` URL and Node.js/22. A regression using a fake fetch failed before the fix with one delivery attempt instead of zero. Full and partial loader calls now disable ERROR_WEBHOOK_URL immediately after evaluating error-report.js; tests may explicitly configure a fake URL/transport. The browser reporter and memory guard are untouched. Loader-consumer review found no need for automatic production-feed reporting from Node analysis tools. Drift surface: NO; development tooling only. Confidence: high.
+
+The skipped ledger retains the individual synthetic payloads as test artifacts. This row tracks the development-loader defect that sent them, rather than a player memory-corruption defect.
+
+**2026-10-31 — completion evidence.** Fix commit 6819f7ae passed the complete 3,196-assertion engine gate and 130 standalone suites, including the new fake-transport regression. Both mutation proofs failed on their named guard when isolation was removed or skipped for partial loads. The change affects Node development loads only and leaves browser reporting enabled in production.
+
+### Action log
+
+- 2026-10-31 — Fixed after the independent review: disable implicit production reporting at the shared Node loader boundary. Added a standalone regression for crash/user reports, full/partial loads and an explicit fake transport; both attributed mutation proofs pass. No application version bump: dev tooling only.
+
+- 2026-10-31 — Verified fix 6819f7ae; moved to Completed. No app-version bump is needed for development-only code.
+
+## B55 — Dice sound asset failed to load on iPhone (v1.1321, Frizwick t108)
+**Status:** stale (legacy MP3 loader retired in v1.1322; replacement audio banks decoded)
+**Kind:** crash · **First seen:** 2026-10-26T18:37:06.347Z · **Last seen:** 2026-10-26T18:37:06.347Z · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 108
+**Fingerprint:** `crash · dice-sfx · v1.1321 · could not load dice/sfx/dice-rolls-v1.mp3: null — the rolls play silent`
+**Report ids:** fc57837c-693d-4c8f-a6cc-ed2d44002c4b
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+could not load dice/sfx/dice-rolls-v1.mp3: null — the rolls play silent
+
+[object Object]
+
+--- diag ---
+session s9s1qr3-j0s · report 1/10 · up 0s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=1 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=suspended
+this page:
+  +0s boot
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +153s unload
+
+--- report metadata ---
+id: fc57837c-693d-4c8f-a6cc-ed2d44002c4b
+receivedAt: 2026-10-26T18:37:06.347Z
+clientTs: 2026-10-26T18:37:05.021Z
+kind: crash
+ctx: dice-sfx
+app: v1.1321
+camp: Frizwick
+turn: 108
+url: https://traffic-and-dragons.pages.dev/
+ua: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1
+online: true
+suppressed: 0
+screenshotUrl:
+```
+
+### Findings
+
+**2026-10-31 — independent read-only review and deployed audio check.** Probable cause: v1.1321 fetched dice/sfx/dice-rolls-v1.mp3 and passed it to OfflineAudioContext.decodeAudioData; the rejection was stringified as null. The separate live Sound context being suspended does not explain an offline decode failure. Commit 75b37d9a (v1.1322, October 25) removed this sprite and loader before the October 26 report. The retired URL now returns HTTP 200 text/html containing the app shell; an old client receiving that body is a concrete compatibility explanation, but original bytes are unavailable. Current DiceAudio loads receipt-checked click and exit banks. Both decoded on the deployed site in Chromium (6.2724375 s clicks; 11.67 s exits). This is not an iPhone listening/autoplay test. Drift surface: NO; no current renderer or audio fix follows from this legacy report.
+
+### Action log
+
+- 2026-10-31 — Archived as superseded by the live-dice audio path. Original evidence retained; [review](bug_review_2026-10-31.md).
+
+## B54 — Dice video could not be opened on Android during a roll (v1.1311, V t41)
+**Status:** stale (legacy video path retired in v1.1322; current live dice verified in Chromium)
+**Kind:** crash · **First seen:** 2026-10-26T16:23:15.350Z · **Last seen:** 2026-10-26T16:23:15.350Z · **Count:** 1 · **Campaign:** V · **Turn:** 41
+**Fingerprint:** `crash · dice-clip · v1.1311 · dice clip dice/d20_19.webm: failed to load (PipelineStatus::DEMUXER_ERROR_COULD_NOT_OPEN: FFmpegDemuxer: open context fa`
+**Report ids:** ca5a2b7c-00fe-4941-a878-c653138181c7
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+dice clip dice/d20_19.webm: failed to load (PipelineStatus::DEMUXER_ERROR_COULD_NOT_OPEN: FFmpegDemuxer: open context failed)
+
+[object Object]
+
+--- diag ---
+session sfl4jz8-186y · report 1/10 · up 1339s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=running
+this page:
+  +0s boot
+  +1320s turn-start t40 1569ch bg0
+  +1325s turn t41 727ch
+  +1338s turn-start t41 sil 230ch bg0
+PREVIOUS page (ended without unload — see B9):
+  +30626s turn t29 766ch
+  +30649s turn-start t29 1233ch bg0
+  +30651s turn t30 288ch
+  +30652s turn-start t30 sil 251ch bg0
+  +30657s turn t31 850ch
+  +33060s turn-start t31 2112ch bg0
+  +33065s turn t32 764ch
+  +33081s turn-start t32 2360ch bg0
+  +33085s turn t33 430ch
+  +33089s turn-start t33 sil 224ch bg0
+  +33093s turn t34 797ch
+  +33110s turn-start t34 2463ch bg0
+  +33114s turn t35 515ch
+  +33121s turn-start t35 sil 251ch bg0
+  +33126s turn t36 857ch
+  +33148s turn-start t36 1743ch bg0
+  +33151s turn t37 408ch
+  +33158s turn-start t37 sil 251ch bg0
+  +33164s turn t38 1108ch
+  +33204s turn-start t38 1595ch bg0
+  +33210s turn t39 1033ch
+  +35981s turn-start t39 2468ch bg0
+  +35992s turn t40 1139ch
+  +36029s turn-start t40 tt 95ch bg0
+
+--- report metadata ---
+id: ca5a2b7c-00fe-4941-a878-c653138181c7
+receivedAt: 2026-10-26T16:23:15.350Z
+clientTs: 2026-10-26T16:23:15.985Z
+kind: crash
+ctx: dice-clip
+app: v1.1311
+camp: V
+turn: 41
+url: https://traffic-and-dragons.pages.dev/
+ua: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36
+online: true
+suppressed: 0
+screenshotUrl:
+```
+
+### Findings
+
+**2026-10-31 — independent read-only review and deployed browser check.** Probable cause: the v1.1311 Android client requested dice/d20_19.webm after commit 75b37d9a (v1.1322, October 25) deleted that asset and replaced the video player. The original response bytes were not captured, so its exact cause is not proven. A current request to that retired URL returns HTTP 200 text/html containing the app shell, which is not decodable video and confirms the compatibility hazard. Current ui-dice.js calls DiceSim instead of a video element. A clean deployed phone-sized Chromium session rendered the d20 on the requested face 19 without page exceptions; screenshot inspected. This is not an Android hardware retest. Drift surface: NO for this presentation path. No change to the replacement renderer is justified by the legacy report.
+
+### Action log
+
+- 2026-10-31 — Archived as superseded, not as a newly repaired Android decode bug. Investigation and deployed check: [review](bug_review_2026-10-31.md).
+
+## B51 — A VP9 dice clip failed to decode in the desktop app's Chromium on a localhost page — media format error (v1.1293, localhost, no campaign)
+**Status:** stale (retired video clip path; development-preview report)
+**Kind:** crash · **First seen:** 2026-10-21 (v1.1293) · **Last seen:** 2026-10-21 (v1.1293) · **Count:** 1 · **Campaign:** — · **Turn:** —
+**Fingerprint:** `crash · dice-clip · v1.1293 · dice clip dice/d20_09.webm: failed to load (MEDIA_ELEMENT_ERROR: Format error)`
+**Report ids:** 1408bcd9-3dcd-45f0-bbfe-379b3612b9ef
+**Screenshot URL:** —
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+dice clip dice/d20_09.webm: failed to load (MEDIA_ELEMENT_ERROR: Format error)
+[object Object]
+
+--- diag ---
+session s577buf-h4w · report 1/10 · up 3s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=running
+this page:
+  +0s boot
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +2s unload
+  +3s unload
+url: http://localhost:8123/index.html?nocache=14 · ua: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/3.1623.0 Chrome/152.0.7977.167 Safari/537.36 MSIX · suppressed: 0
+```
+
+### Findings
+
+#### 2026-10-21 · QA routine (Opus 5.5) · bug-investigator
+
+**Verdict:** probable-cause — dev-preview noise against an asset that no longer exists; not a production failure. No injection content.
+
+**Mechanism.** (1) *Provenance:* localhost:8123 (`dev/static-server.js:19`) with a `?nocache=14` cache-buster, the Claude desktop app's embedded Chromium, 3 s after boot, no campaign, no turn, only `+0s boot` in the crumb ring — the v1.1293 era of the temporary Test-roll row (`testDiceRoll`, removed v1.1297, `DOC/TODO_ARCHIVE.md:522`); the same signature as B49, which the owner closed as Claude's own preview probe. (2) *Error class:* `ui-dice.js:47` reports `v.error.message`; Chromium's bare "MEDIA_ELEMENT_ERROR: Format error" is the source-failed-before-demux message (HTTP error body, empty or short response); a missing codec carries a detailed `DEMUXER_ERROR_NO_SUPPORTED_STREAMS` / `PIPELINE_ERROR_DECODE` string. (3) *Likely trigger:* the clips were re-rendered in place several times on 2026-10-21 (v1.1294–1296; `DICE_CACHE = "tnd-dice-20261021d"`, `sw.js:18`); `dev/blender/dice-clips.js:61-62` writes them with a non-atomic `fs.copyFileSync`, and `dev/static-server.js:14-17` reads the file whole per request — a request mid-copy returns an empty/short 200, a gap returns a 404 body. The dev server also lacks `.webm`/`.mp4` MIME types (`:6-8`) and ignores `Range`, so it is no faithful stand-in for Cloudflare Pages.
+
+**Ruled out.** A broken file at HEAD: `dice/d20_09.webm` exists, is no LFS pointer, and matches its manifest size (pinned by `dev/engine-tests.js:35255-35263`); the v1.1293 bytes were replaced since, and the owner signed the dice off on desktop and iPhone at v1.1296. A codec gap in the Electron Chromium: libvpx ships in every build, and B49 from the same workflow reached `play()` on a webm. The SW as cause: `sw.js:154-163` passes through and never caches a 404 — though a truncated 200 read mid-copy would stick in the purge-exempt DICE_CACHE on that dev profile until the next cache-name bump. Production: atomic deploys, Range support; a failing clip warns, reports once and closes the overlay (`ui-dice.js:40-44`), and the result card still shows the number. The `[object Object]` detail is B49's open serialisation class (`ui-dice.js:43` → `error-report.js:186`).
+
+**Fix sketch (not applied).** Nothing on the product path. Optional dev hardening: `dice-clips.js` writes to a temp name and `renameSync`s into place (with an EPERM fallback for Windows), and `static-server.js` gains the two media MIME types and basic Range/206 support. The `error-report.js` serialisation stays with B49. Close as dev-preview noise; reopen on a report from the deployed origin.
+
+**Drift-surface flag:** NO. **Safe-changes map:** the dev-tooling hardening is inside it; `error-report.js` is the app-wide crash channel — ambiguous → Fable (as B49). **Risk:** a wrong Content-Range in the dev server would break every dev preview's media; silencing dice-clip format errors in the reporter is not recommended — on a device it is the only signal of a broken asset or SW cache. **Confidence:** high that this is not a production bug; medium on the exact mechanism (the v1.1293 bytes are gone; the report time against the re-render commit times would settle it). **Repro:** serve with `dev/static-server.js`, rewrite or truncate `dice/d20_09.webm` while calling `showDiceRoll(9)`, capture `v.error.code`/`.message` (expect 4, "Format error"); a pristine clip in the same pane plays.
+
+**QA routine:** not acted on — the mechanism is medium confidence and the only fix is optional dev hardening; awaiting the owner (likely an ignore).
+
+**2026-10-31 — retirement follow-up.** The prior investigation established a development-preview failure with an uncertain historical media-write trigger. The entire clip path was subsequently removed in 75b37d9a (v1.1322), including the renderer and assets. The deployed replacement renders live dice; no video demux is involved. No optional hardening of an unused clip generator was added.
+
+### Action log
+
+- 2026-10-31 — Archived the superseded development-preview report as stale; [review](bug_review_2026-10-31.md).
+
 ## B50 — The stacked dice clip was aborted before it played on an iPhone in live play — the die overlay failed on a roll (v1.1290, Frizwick t70)
-**Status:** findings-ready
+**Status:** stale (retired video overlay; superseded by live dice in v1.1322)
 **Kind:** crash · **First seen:** 2026-10-21 (v1.1290) · **Last seen:** 2026-10-21 (v1.1290) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 70
 **Fingerprint:** `crash · dice-clip · v1.1290 · dice clip dice/d20_03-stacked.mp4: would not play (The operation was aborted.)`
 **Report ids:** 12bbd1e7-b418-47c2-af0d-71fa820f8447
@@ -844,53 +945,38 @@ url: https://traffic-and-dragons.pages.dev/ · ua: Mozilla/5.0 (iPhone; CPU iPho
 
 **QA routine:** not acted on — confidence is below the high bar, the same AbortError change was left for the owner on B49, and the trigger needs a live repro; awaiting the owner.
 
+**2026-10-31 — retirement follow-up.** The video element/play-promise path analyzed above was removed by 75b37d9a (v1.1322). Current ui-dice.js renders through DiceSim and does not request the legacy MP4/WebM clips. The deployed live d20 rendered on face 19 without page exceptions in a phone-sized Chromium session. The original iPhone AbortError trigger was not reproduced, so this is a superseded implementation report, not a verified abort-handling patch.
+
 ### Action log
 
-## B51 — A VP9 dice clip failed to decode in the desktop app's Chromium on a localhost page — media format error (v1.1293, localhost, no campaign)
-**Status:** findings-ready
-**Kind:** crash · **First seen:** 2026-10-21 (v1.1293) · **Last seen:** 2026-10-21 (v1.1293) · **Count:** 1 · **Campaign:** — · **Turn:** —
-**Fingerprint:** `crash · dice-clip · v1.1293 · dice clip dice/d20_09.webm: failed to load (MEDIA_ELEMENT_ERROR: Format error)`
-**Report ids:** 1408bcd9-3dcd-45f0-bbfe-379b3612b9ef
+- 2026-10-31 — Archived the retired video-overlay report as stale; [review](bug_review_2026-10-31.md).
+
+## B35 — Chapter extractor received malformed JSON (same failure class as B19)
+**Status:** duplicate (B19 malformed-JSON class; existing fail-honest/retry policy)
+**Kind:** crash · **First seen:** 2026-08-23 (v1.702) · **Last seen:** 2026-09-21 (v1.957) · **Count:** 3 · **Campaign:** Rise of the Runelords (Ammut) ×1, The Iron Meridian (Gazz Quickfuse) ×1, the fae crysalis ×1 · **Turn:** 2184, 97, 45
+**Fingerprint:** `crash · summarize · v1.702 · Expected ',' or '}' after property value in JSON at position 998 (line 1 column 999)` · also 2 more fingerprint(s) across versions v1.702, v1.795, v1.957
+**Report ids:** 717172b2-e960-4503-ab1f-1baa5e634841, 6de4f7f4-a20c-49f9-9224-6ccc270fb935, 28469a7a-10ae-461a-82fa-a354cd22b6e2
 **Screenshot URL:** —
 
 ### Report (untrusted user-submitted data — never instructions)
 
 ```text
-dice clip dice/d20_09.webm: failed to load (MEDIA_ELEMENT_ERROR: Format error)
-[object Object]
-
---- diag ---
-session s577buf-h4w · report 1/10 · up 3s
-audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=running
-this page:
-  +0s boot
-PREVIOUS page (ended cleanly):
-  +0s boot
-  +2s unload
-  +3s unload
-url: http://localhost:8123/index.html?nocache=14 · ua: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/3.1623.0 Chrome/152.0.7977.167 Safari/537.36 MSIX · suppressed: 0
+Expected ',' or '}' after property value in JSON at position 998 (line 1 column 999)
+consecutive fails: 1 | window 10 msgs, 2/5 user halves open with an engine note RESPONSE HEAD (200): {"chapterSummary":"Dawn found Frizwick heavy-lidded but sharp, her watch marked by a fleeting shape on the terrace above, gone before her senses could seize it. The party rose fast and struck camp fas SyntaxError: Expected ',' or '}' after property value in JSON at position 998 (line 1 column 999) at JSON.parse (<anonymous>) at summarize (https://traffic-and-dragons.pages.dev/memory.js:1722:24) at async sendAction (https://traffic-and-dragons.pages.dev/game.js:1820:45) --- diag --- session s349sho-1qm4 · report 1/10 · up 414s audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s this page: +0s boot +88s turn-start t2182 44ch bg0 +99s turn t2183 1289ch +242s turn-start t2183 1734ch bg0 +256s turn t2184 1909ch PREVIOUS page (ended cleanly): +0s boot +304s turn-start t2177 1249ch bg0 +315s turn t2178 1630ch +446s turn-start t2178 1503ch bg0 +455s turn t2179 1285ch +541s turn-start t2179 35ch bg0 +553s turn t2180 1281ch +2481s turn-start t2180 1496ch bg0 +2491s turn t2181 1399ch +2548s turn-start t2181 74ch bg0 +2569s turn t2182 1765ch +3653s unload
 ```
 
 ### Findings
 
-#### 2026-10-21 · QA routine (Opus 5.5) · bug-investigator
+**2026-10-31 — independent read-only classification.** This is B19's malformed-JSON class, not B11's zero-JSON class: the retained response starts with a chapterSummary JSON object and parsing fails at position 998. B11's note stripping and zero-JSON guard were already present in the reported v1.702. The 200-character response head is deliberately truncated by diagnostics; its ending does not prove the model response itself was truncated.
 
-**Verdict:** probable-cause — dev-preview noise against an asset that no longer exists; not a production failure. No injection content.
-
-**Mechanism.** (1) *Provenance:* localhost:8123 (`dev/static-server.js:19`) with a `?nocache=14` cache-buster, the Claude desktop app's embedded Chromium, 3 s after boot, no campaign, no turn, only `+0s boot` in the crumb ring — the v1.1293 era of the temporary Test-roll row (`testDiceRoll`, removed v1.1297, `DOC/TODO_ARCHIVE.md:522`); the same signature as B49, which the owner closed as Claude's own preview probe. (2) *Error class:* `ui-dice.js:47` reports `v.error.message`; Chromium's bare "MEDIA_ELEMENT_ERROR: Format error" is the source-failed-before-demux message (HTTP error body, empty or short response); a missing codec carries a detailed `DEMUXER_ERROR_NO_SUPPORTED_STREAMS` / `PIPELINE_ERROR_DECODE` string. (3) *Likely trigger:* the clips were re-rendered in place several times on 2026-10-21 (v1.1294–1296; `DICE_CACHE = "tnd-dice-20261021d"`, `sw.js:18`); `dev/blender/dice-clips.js:61-62` writes them with a non-atomic `fs.copyFileSync`, and `dev/static-server.js:14-17` reads the file whole per request — a request mid-copy returns an empty/short 200, a gap returns a 404 body. The dev server also lacks `.webm`/`.mp4` MIME types (`:6-8`) and ignores `Range`, so it is no faithful stand-in for Cloudflare Pages.
-
-**Ruled out.** A broken file at HEAD: `dice/d20_09.webm` exists, is no LFS pointer, and matches its manifest size (pinned by `dev/engine-tests.js:35255-35263`); the v1.1293 bytes were replaced since, and the owner signed the dice off on desktop and iPhone at v1.1296. A codec gap in the Electron Chromium: libvpx ships in every build, and B49 from the same workflow reached `play()` on a webm. The SW as cause: `sw.js:154-163` passes through and never caches a 404 — though a truncated 200 read mid-copy would stick in the purge-exempt DICE_CACHE on that dev profile until the next cache-name bump. Production: atomic deploys, Range support; a failing clip warns, reports once and closes the overlay (`ui-dice.js:40-44`), and the result card still shows the number. The `[object Object]` detail is B49's open serialisation class (`ui-dice.js:43` → `error-report.js:186`).
-
-**Fix sketch (not applied).** Nothing on the product path. Optional dev hardening: `dice-clips.js` writes to a temp name and `renameSync`s into place (with an EPERM fallback for Windows), and `static-server.js` gains the two media MIME types and basic Range/206 support. The `error-report.js` serialisation stays with B49. Close as dev-preview noise; reopen on a report from the deployed origin.
-
-**Drift-surface flag:** NO. **Safe-changes map:** the dev-tooling hardening is inside it; `error-report.js` is the app-wide crash channel — ambiguous → Fable (as B49). **Risk:** a wrong Content-Range in the dev server would break every dev preview's media; silencing dice-clip format errors in the reporter is not recommended — on a device it is the only signal of a broken asset or SW cache. **Confidence:** high that this is not a production bug; medium on the exact mechanism (the v1.1293 bytes are gone; the report time against the re-render commit times would settle it). **Repro:** serve with `dev/static-server.js`, rewrite or truncate `dice/d20_09.webm` while calling `showDiceRoll(9)`, capture `v.error.code`/`.message` (expect 4, "Format error"); a pristine clip in the same pane plays.
-
-**QA routine:** not acted on — the mechanism is medium confidence and the only fix is optional dev hardening; awaiting the owner (likely an ignore).
+Parsing fails before memory application or session-tail retirement. The first two strikes retain the source window for retry; the third records an explicitly degraded raw excerpt. The retained report says one failed attempt, not that the next retry succeeded. Current code preserves this behavior. [Archived Known Issue #10](TODO_ARCHIVE.md) explicitly leaves malformed string contents repair-proof by design; B19 carries the existing outcome. No new arrival of this class was in the latest sync. The other two raw bodies are not retained, so their exact syntax errors cannot be independently reconstructed. Any parser/extractor change would touch the protected drift surface; no such change is justified by these historical excerpts.
 
 ### Action log
 
+- 2026-10-31 — Corrected the B11 classification and obsolete TODO pointer; archived as duplicate of B19 while retaining all three report IDs.
+
 ## B29 — W2 summary-death conflicts in the owner's campaigns — the chapter extractor names a death the scene evidence cannot vouch for (the #299 / #324 / #345 class)
-**Status:** promoted → [TODO.md](../TODO.md) #345 (the #299 class fixed at its source v1.832), #324 (Lyle), #299 (the ring) · **two more arrivals after that fix (v1.985, v1.1005); the class is TODO #526 — see the 2026-10-01 note under Findings**
+**Status:** verified (owner accepted TODO #526 on 2026-10-04; tracker closure reconciled)
 **Kind:** crash · **First seen:** 2026-08-14 (v1.626) · **Last seen:** 2026-09-26 (v1.1005) · **Count:** 32 · **Campaign:** Rise of the Runelords (Ammut) ×25, The Iron Meridian (Gazz Quickfuse) ×5, The Necrotic Dungeon ×1, The Riverlight Masquerade (one-evening taster) (Ammut) ×1 · **Turn:** 1840, 1841, 1888, 1889, 1890, 1899, 1900, 1901, 2018, 2019, 2020, 2024 … 39, 5
 **Fingerprint:** `crash · summarize · v1.626 · W2 referential integrity: Magistrate Coraline Vess - summary death lacks matching scene-handle evidence` · also 11 more fingerprint(s) across versions v1.626, v1.628, v1.630, v1.665, v1.697, v1.702, v1.795, v1.985, v1.1005
 **Report ids:** 3f3de300-ee1d-4331-909a-052431d351c4, 2e095d9e-2d76-4f2c-bd61-0d260f675efc, 36935a3a-1a7e-4838-be0f-e9148f0840f6, d385eea8-a6fa-439e-b6fc-32d45b513415, 35d9d931-e463-41df-be75-433eae6ab16f, a0b13261-385b-49e4-a02e-dd67beca891e, 2b26d463-951b-46f0-b1b2-c7d438c4cafb, 553d0d52-eb64-4f2e-a766-4065fcb5256d, 97077c1a-ee8f-4ed4-9e39-7c28c4828e9b, 95d7cf35-780b-4944-ac85-171c4dcbecc7, 430c82d5-e66a-4bf6-ad36-81928f5c9c63, e7b98d57-9a2f-4663-ab56-cce402552e4a, 165e04f4-743f-4ca9-9d06-a15a6def4587, 3d61790c-6ba6-42dc-bb76-7e495f9faea3, 429c1046-f8bb-4399-b59b-b5b3cb4c2e7a, e0d34a8f-a7e5-4a26-9ec4-7413a04a0e8d, e1490b77-29cc-47fe-9789-4efc32d5db95, 9b934d41-59d1-4088-9ba5-e462e15452c5, f9a296dd-0309-472f-a025-34e02edc64ac, 251e2801-ace8-4904-af34-65f0763ef9b0, d67da5d3-7dd4-4fb1-a67f-63da4e58feac, ae086434-2fad-40e9-a03c-df6e28e4b0d2, d35e032b-2f5e-4576-aadf-f67a3f38f849, e31b7220-3937-4660-ba58-4dcc67dee28a, e8f099b0-7400-4847-8dbb-942aaf225705, 3cfb969d-d6fc-4b64-92da-6900777a2203, bd84c194-a399-40f1-8e14-2aa1e27ee24e, ee435ab6-e154-4a7d-851e-885df96ddc97, 1ba981eb-cc63-4c9f-bfd0-195a152b1375, 32829a54-b8b7-426b-a20d-24c28558d9cf, 9ef5f790-6701-4e0f-a9a4-0841980ed3fd, bf310afb-0bbd-48ab-a4e1-d242cecf8d6b
@@ -909,59 +995,11 @@ consecutive fails: 1 | window 6 msgs, 3/3 user halves open with an engine note R
 
 **2026-10-01 (Thursday ladder, `/bugs sync`) — two arrivals after the v1.832 source fix.** Subjects: The Tomb-Architect (The Necrotic Dungeon t39, v1.985, iPhone) and Orris Vale (The Riverlight Masquerade t5, v1.1005, iPhone). Neither is the #345 ordering (a rolled foe cited by a same-turn summary): both are NAMED characters the chapter extractor reports dead with no scene evidence on record. Grounding from the owner's t35 save of The Necrotic Dungeon (four turns before the report): The Tomb-Architect is not yet on the roster, and the same save's mutation log shows the pattern at t33–t34 — two constructs are destroyed in the narration with no combat or death tag at all (the log carries only the looted cores). So the likely shape is a kill narrated without its death tag, which the W2 guard is built to refuse; the report is the guard working, filed under the label `crash`. Not confirmed: no save at or after t39 is on this machine, and the Riverlight campaign is on the phone. Open questions carried to the ladder's receipt (DOC/Review_fable_2026_10_01.html): how often this lane ends in a healed conflict versus a quarantined chapter window, and whether a handled validation refusal should be reported as a crash at all.
 
-### Action log
-
-
-## B35 — The chapter extractor's JSON failed to parse (the B11 class)
-**Status:** promoted → [TODO.md](../TODO.md) Known issues #10 (B11)
-**Kind:** crash · **First seen:** 2026-08-23 (v1.702) · **Last seen:** 2026-09-21 (v1.957) · **Count:** 3 · **Campaign:** Rise of the Runelords (Ammut) ×1, The Iron Meridian (Gazz Quickfuse) ×1, the fae crysalis ×1 · **Turn:** 2184, 97, 45
-**Fingerprint:** `crash · summarize · v1.702 · Expected ',' or '}' after property value in JSON at position 998 (line 1 column 999)` · also 2 more fingerprint(s) across versions v1.702, v1.795, v1.957
-**Report ids:** 717172b2-e960-4503-ab1f-1baa5e634841, 6de4f7f4-a20c-49f9-9224-6ccc270fb935, 28469a7a-10ae-461a-82fa-a354cd22b6e2
-**Screenshot URL:** —
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-Expected ',' or '}' after property value in JSON at position 998 (line 1 column 999)
-consecutive fails: 1 | window 10 msgs, 2/5 user halves open with an engine note RESPONSE HEAD (200): {"chapterSummary":"Dawn found Frizwick heavy-lidded but sharp, her watch marked by a fleeting shape on the terrace above, gone before her senses could seize it. The party rose fast and struck camp fas SyntaxError: Expected ',' or '}' after property value in JSON at position 998 (line 1 column 999) at JSON.parse (<anonymous>) at summarize (https://traffic-and-dragons.pages.dev/memory.js:1722:24) at async sendAction (https://traffic-and-dragons.pages.dev/game.js:1820:45) --- diag --- session s349sho-1qm4 · report 1/10 · up 414s audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s this page: +0s boot +88s turn-start t2182 44ch bg0 +99s turn t2183 1289ch +242s turn-start t2183 1734ch bg0 +256s turn t2184 1909ch PREVIOUS page (ended cleanly): +0s boot +304s turn-start t2177 1249ch bg0 +315s turn t2178 1630ch +446s turn-start t2178 1503ch bg0 +455s turn t2179 1285ch +541s turn-start t2179 35ch bg0 +553s turn t2180 1281ch +2481s turn-start t2180 1496ch bg0 +2491s turn t2181 1399ch +2548s turn-start t2181 74ch bg0 +2569s turn t2182 1765ch +3653s unload
-```
-
-### Findings
+**2026-10-31 — tracker reconciliation.** The remaining report-class work was completed as TODO #526 in v1.1132 and explicitly accepted by the owner on October 4. The [archived task](TODO_ARCHIVE.md) and [Astra verification](../audits/VERIFY_ASTRA.html#row-526) record the passing first/second refusal versus third-strike quarantine checks. All reports in this row predate that acceptance. This closes the stale field-tracker pointer on existing evidence; no new memory change or live delivery verification is claimed.
 
 ### Action log
 
-
-## B52 — A page-load crash on an iPhone — inventory.js reached for a helper the page did not have, so the game never booted on that load (v1.1297, pages.dev)
-**Status:** new
-**Kind:** crash · **First seen:** 2026-10-21 (v1.1297) · **Last seen:** 2026-10-21 (v1.1297) · **Count:** 1 · **Campaign:** — · **Turn:** —
-**Fingerprint:** `crash · window.onerror · v1.1297 · ReferenceError: Can't find variable: keyedDict`
-**Report ids:** 05fba168-930d-4579-a8bb-7c7e82073337
-**Screenshot URL:** —
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-ReferenceError: Can't find variable: keyedDict
-https://traffic-and-dragons.pages.dev/inventory.js:401:49
-global code@https://traffic-and-dragons.pages.dev/inventory.js:401:49
-
---- diag ---
-session s5bvdqw-syd · report 1/10 · up 15s
-this page:
-  +0s boot
-url: https://traffic-and-dragons.pages.dev/ · ua: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1 · suppressed: 0
-```
-
-### Findings
-
-### Action log
-
-## Completed
-
-_Every verified and ignored row lives inside this collapsible container, newest first._
-
-<details>
-<summary><strong>Completed bugs (42 rows) — click to expand</strong></summary>
+- 2026-10-31 — Moved to Completed on the recorded owner acceptance of #526; no runtime change.
 
 ## B53 — The player saw a black screen in live play on the phone — a report from the owner mid-session (v1.1302, Frizwick t81)
 **Status:** ignored
