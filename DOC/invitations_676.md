@@ -14,4 +14,14 @@ Schema 15 adds nullable subject/message columns to invitations. Existing records
 
 Verification covers zero effects on preview, custom copy, exact preview/delivery parity apart from the generated link, missing/stale previews, reused request ids, header injection, resend timing and migration of an accepted schema-14 record. Browser checks cover edit invalidation, explicit sends, escaped text, saved copy, visible failures and desktop/phone layout. No real email is used in automated tests.
 
-Deployment pending: full gates, additive migration rehearsal and fresh snapshot before server deployment, then frontend publication and production release-date recording.
+## Production receipt
+
+Published as app v1.1332 on 2026-10-31T04:52:26Z (October 30, 21:52:26 PDT). PR #19 merged as 2d1aa6e5e5f28d657cdb60a935d30857f4b04c25; feature source eecbc9e0ae5236b7e4985bb75804bc9caec7d1fd. The timestamp comes from the successful production Cloudflare check and is recorded in release-notes.json.
+
+Server v1.15.0 deployed as Fly release 71 at 04:51 UTC, source 249185efacb669efb4f38cb5141621d43ad154f0. Fresh snapshot vs_DByjGB4X1mMhbzKQ1aM was created at 04:47:03 UTC with five-day retention after the successful backup rehearsal. Read-only production checks confirmed schema 15, integrity_check=ok, no foreign-key violations and the subject/message columns. GEMINI_EXPLICIT_CACHE stayed 1. Anonymous preview/send requests returned 401.
+
+Verification passed the full local gate (3,196 engine assertions and 129 standalone suites), all 23 browser suites, the complete server npm test suite, seven composer/API/migration checks, six server composer mutation proofs and four browser composer proofs. Existing invitation/OAuth checks and their mutation proofs also passed. Desktop and phone screenshots were inspected. The old form was reproduced with fake transport to confirm it sent directly without editable copy.
+
+All six changed public console/version assets matched the tested source after publication; a clean phone browser loaded with the operator console protected, composer controls present and no page exceptions. No real email or account was created during verification. A personalized real-inbox send remains an owner check.
+
+Publication followed green local gates and server CI under the repository's independent deployment workflow; frontend CI was still running at publication. Results: [branch CI](https://github.com/pmegow/traffic-and-dragons/actions/runs/41169538544), [PR CI](https://github.com/pmegow/traffic-and-dragons/actions/runs/41169575243), [server CI](https://github.com/pmegow/traffic-and-dragons-server/actions/runs/41169163358), [backup rehearsal](https://github.com/pmegow/traffic-and-dragons-server/actions/runs/41169211463).

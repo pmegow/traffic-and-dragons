@@ -2,6 +2,17 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1332",
+      "actions": [
+        "Added editable invitation subjects and messages with a full email preview before sending.",
+        "Changed Resend to open the saved message for editing and review before delivery.",
+        "Kept secure invitation links and access instructions in the preview and outgoing email."
+      ],
+      "sourceCommit": "eecbc9e0ae5236b7e4985bb75804bc9caec7d1fd",
+      "commit": "2d1aa6e5e5f28d657cdb60a935d30857f4b04c25",
+      "releasedAt": "2026-10-31T04:52:26Z"
+    },
+    {
       "version": "v1.1331",
       "actions": [
         "Added Gmail invitations with Google sign-in, single-use links and automatic approval on acceptance.",

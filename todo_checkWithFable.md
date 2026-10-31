@@ -667,3 +667,5 @@ Owner-requested invitation UI and pure adapter methods, with server-owned Google
 ## 2026-10-30 — #676 invitation composer
 
 Owner confirmed #675 acceptance worked and requested editable mail before sending. Added Compose → Preview → Send in the operator surface and one pure adapter method. Server owns the full email renderer and content-consistency check; no campaign, prompt, parser or memory changes. [Design and verification](DOC/invitations_676.md).
+
+Published app v1.1332 / server v1.15.0 on October 30 at 21:52 PDT after full local gates, all 23 browser suites and the backup rehearsal. Verified live schema/integrity, exact public assets and a clean phone load. No real email was sent during verification; personalized inbox delivery remains manual. Production receipt and CI links are in the design record.
