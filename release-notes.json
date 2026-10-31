@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1334",
+      "actions": [
+        "The die you are asked to roll now waits ready at the bottom of the story; Roll throws it from where it lies.",
+        "Hold back, or the car screen, takes the waiting die away quietly."
+      ],
+      "sourceCommit": "1ad184992d0dd33b3f57a7873a13cf5369df9d01",
+      "commit": "1ad184992d0dd33b3f57a7873a13cf5369df9d01",
+      "releasedAt": "2026-10-31T21:37:00Z"
+    },
+    {
       "version": "v1.1333",
       "actions": [
         "Made the roll a modal: when the Game Master asks for a check, the die and Hold back are the only ways on.",
