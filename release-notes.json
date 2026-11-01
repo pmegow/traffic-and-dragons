@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1339",
+      "actions": [
+        "Replace expanding holes with a smooth fade after melting dice flow into one puddle.",
+        "Fade the puddle and its shadow together."
+      ],
+      "sourceCommit": "a43f9c1f5e0204b624694230d60889dbceb72c9c",
+      "commit": "a43f9c1f5e0204b624694230d60889dbceb72c9c",
+      "releasedAt": "2026-11-01T05:58:37Z"
+    },
+    {
       "version": "v1.1338",
       "actions": [
         "Melting dice flow into one smooth, continuous puddle before dissolving.",
