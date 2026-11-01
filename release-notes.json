@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1335",
+      "actions": [
+        "Bug reports now include the signed-in reporter’s username in email notifications and the bug tracker.",
+        "Reports from several players retain each reporter’s name when combined during bug sync."
+      ],
+      "sourceCommit": "0a453b3205cb22877ec2a4f890cb07ba903242be",
+      "commit": "0a453b3205cb22877ec2a4f890cb07ba903242be",
+      "releasedAt": "2026-11-01T03:50:41Z"
+    },
+    {
       "version": "v1.1334",
       "actions": [
         "The die you are asked to roll now waits ready at the bottom of the story; Roll throws it from where it lies.",
