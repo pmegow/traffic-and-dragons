@@ -1257,11 +1257,12 @@ function showStakeModal(done){
    check they refused would leave the player no way to roll; and should a take leave the check pending, the modal comes back
    loudly. Returns true when shown. The ready die at the screen's bottom (the owner's wish) waits on a dice-sim release: the
    roller's embed cannot present a die at rest today. */
+/* The larger ready die occupies the lower story; the choice box stays above its presentation strip. */
 function showRollModal(){
   var chk=(typeof worldState!=="undefined"&&worldState)?worldState.pendingCheck:null;
   if(!chk||typeof document==="undefined")return false;
   if(typeof carMode!=="undefined"&&carMode)return false;
-  modalShell("roll-modal",rollModalHtml(chk),{wireClose:false,noEscape:true,maxWidth:360,boxExtra:"text-align:center;"});
+  modalShell("roll-modal",rollModalHtml(chk),{wireClose:false,noEscape:true,maxWidth:360,align:"flex-start",boxExtra:"text-align:center;"});
   if(typeof diceLivePresent==="function")diceLivePresent([{type:"d20"}],chk.label);/* #677 (dice-sim 0.80.0): the d20 lies ready at the bottom of the story, above the backdrop; Roll throws it from where it lies */
   function take(fn){
     if(busy){showToast("One moment — the turn is still landing.");return;}

@@ -1,0 +1,36 @@
+[
+  {
+    "label": "desktop",
+    "width": 2.069634062085889,
+    "height": 2.065189349178015,
+    "canvas": [
+      1150,
+      732
+    ],
+    "tray": {
+      "width": 0.15,
+      "depth": 0.1,
+      "height": 0.3,
+      "surface": "stone",
+      "walls": "stone",
+      "scale": 1
+    }
+  },
+  {
+    "label": "phone",
+    "width": 2.0501601976425468,
+    "height": 2.0642104476726297,
+    "canvas": [
+      375,
+      480
+    ],
+    "tray": {
+      "width": 0.15,
+      "depth": 0.1,
+      "height": 0.3,
+      "surface": "stone",
+      "walls": "stone",
+      "scale": 1
+    }
+  }
+]

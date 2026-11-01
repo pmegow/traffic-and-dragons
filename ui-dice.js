@@ -21,6 +21,7 @@
    one under Dice appearance), with dice-sim's sounds; the damage dice roll as the d20 leaves. */
 var DICE_LIVE_SRC="roller/embed/global.js";
 var DICE_LOOK_KEY="tnd_dice_look_v1";   /* {name, style}: the player's dice look on this device */
+var DICE_LIVE_SIZE=2;                 /* camera distance divisor; the frame fit includes a fixed margin, so halving tray dimensions is insufficient */
 var DICE_LOOK_DEFAULT="Bone";           /* owner 2026-10-25 */
 var DICE_ROLL_FADE_MS=250;              /* matches #dice-layer.out in index.html */
 var DICE_EXIT_KEY="tnd_dice_exit_v1";   /* #670: how dismissed dice leave on this device — a dice-sim exit name */
@@ -120,6 +121,7 @@ function diceLiveOverlay(){
   var ctx=null;
   try{if(typeof Sound!=="undefined"&&typeof Sound.context==="function")ctx=Sound.context();}catch(e){ctx=null;}
   _diceLive.overlay=window.DiceSim.createDiceOverlay({container:diceLiveLayer(),look:diceLookStyle(),context:ctx||null,exit:diceExitName()});
+  _diceLive.overlay.view.setOrbit({zoom:1/DICE_LIVE_SIZE});
   if(!_diceLive.muteHooked&&typeof AudioMaster!=="undefined"&&typeof AudioMaster.onChange==="function"){_diceLive.muteHooked=true;AudioMaster.onChange(function(){diceLiveMute();});}
   return _diceLive.overlay;
 }

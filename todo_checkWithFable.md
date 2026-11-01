@@ -673,3 +673,7 @@ Published app v1.1332 / server v1.15.0 on October 30 at 21:52 PDT after full loc
 ## 2026-10-31 — B56 development bug-feed isolation
 
 Read-only review and a failing-first fake-transport test confirmed Node fixture crashes reached the production feed before test setup. The shared dev loader now disables that endpoint immediately; reporter tests configure fake transports explicitly. Browser reporting, engine files and memory guards are untouched. Full/partial loads and both report species are covered; two attributed mutation proofs pass.
+
+## 2026-11-01 — #680/#681 dice size
+
+Thin host display changes: publish Dice 0.84.0 normalization, set the existing view camera zoom to 0.5, and align the roll modal above the larger ready die. No prompt, parser, campaign or memory logic changed. Failing-first rendered size and seeded control-overlap checks pass; see [verification](DOC/dice-size_681.md).

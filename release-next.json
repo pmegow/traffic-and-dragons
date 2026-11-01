@@ -1,6 +1,7 @@
 {
-  "version": "v1.1340",
+  "version": "v1.1341",
   "actions": [
-    "Set the dice roller’s default tray size to 1 while preserving its visible dice size and full adjustment range."
+    "Set the dice roller’s default tray size to 1 while preserving its visible dice size and full adjustment range.",
+    "Make dice in the game approximately twice as large, including the ready die and damage rolls."
   ]
 }
