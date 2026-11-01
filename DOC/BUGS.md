@@ -186,131 +186,6 @@ screenshotUrl: https://drive.google.com/file/d/1_dTYshmS_ucAdP6z1scH_j2cMesuLib1
 - 2026-10-20 · B47 filed as this class recurring after the fix (Frizwick t38, v1.1281): the floor held on the first shot, the check lapsed to a typed ability and the next shot inherited the silence — fixed as v1.1286 under B47.
 
 
-## B46 — The introduction of captive NPCs omits ancestry details the player needs for a decision (v1.1275, turn 22)
-**Status:** fixed (v1.1278, 2026-10-18 — rule 4 says what a figure is on first sight; live verification owed)
-**Kind:** user-report · **First seen:** 2026-10-18 (v1.1275) · **Last seen:** 2026-10-18 (v1.1275) · **Count:** 1 · **Campaign:** Ammut · **Turn:** 22
-**Fingerprint:** `user-report · user-report · v1.1275 · There’s a large group of conscripts overseen by an overlord. I think we need to describe the race of new npcs a little b`
-**Report ids:** 99809669-baef-4edb-9b7a-373b4051187c
-**Screenshot URL:** https://drive.google.com/file/d/1NGiBJLiFq31KYJfQm1QY3kPT_zRTGZpW/view?usp=drivesdk
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-There’s a large group of conscripts overseen by an overlord.  I think we need to describe the race of new npcs a little better.  If the conscripts are goblins or kobolds or orcs, they’re dangerous to free.   If they’re a bunch of elves or humans or gnomes, I’ll free them.   Need slightly better descriptions
-
-STATE: Ammut (Rogue Lv19) HP 145/145, 28136 gp — The Gilded Sepulcher of Sunken Oaths, Day 1, 10:20 am — turn 22
-LAST EXCHANGES (clean text):
-[t17 player] Head south toward the Sepulcher.
-[t18 GM · gemini-3.8-flash] You kick the orchard gate open. The wood splinters in the frost.
-
-You head south through the dead scrub. Daeris keeps pace, her boots crunching on frozen grit. The wind smells of burnt copper and stale water.
-
-Within forty minutes, the earth gives up entirely.
-
-The ground drops into an inverted stone amphitheater. It sinks into a black sinkhole like a pulled tooth. Crumbled gold leaf clings to the stone balustrades. Huge bas-reliefs show pilgrims bowing beneath weeping trees, their faces chipped away by frost.
-
-Down in the pit, three massive bronze warding pylons hum with dull blue light. Below them, tangled deep in the gloom, pale primordial branches thrash against stone.
-
-"Look at the pylons, Ammut. The pilgrims built them to hold back the salt table. If you smash the seals, the brine drowns the whole valley."
-
-"I'm not here to save the valley. I'm here for the sap."
-
-You unhook your crossbow.
-[t18 player] Accept the offer: The Court of the Rust Siphon.
-[t19 GM · gemini-3.8-flash] You turn your back on the drop. The treant can scream.
-
-"The sap waits. We hit the scavengers first."
-
-Daeris blinks. She wipes black rot from her lip with a calloused thumb.
-
-"The Rust Siphon holds the high ridge. Warlord Gallowmere conscripts every mouth he feeds. They burn the needle for warmth. Stealing it starves them, Ammut."
-
-"Fuck them. I need the fire for home."
-
-You check the heavy bolts in your quiver. Up on the redoubt crags, the scavengers' smoke stains the grey sky.
-[t19 player] Scout the scavenger perimeter path.
-[t20 GM · gemini-3.8-flash] You leave the pit behind. The climb up the ridge is pure gravel and spite.
-
-You belly down in the grey scree. Daeris crawls beside you, staying low. The wind smells of burning pitch and old lard.
-
-Two scavengers patrol the perimeter trench thirty yards up. They wear boiled hide stitched with rusted scrap iron. One carries a barbed harpoon wired to an alchemical battery. The other leans on a notched heavy blade, shivering violently in the frost. A trip-wire runs between two blackened limestone cairns right across their gap.
-
-Past them, the redoubt sits on the high bluff. It is a rat's nest of scavenged beams, sheet metal, and greasy canvas. Thick black smoke chokes the sky above it. Deep inside the sprawl, a steady orange flare pulses like an open furnace. That is the Pyre Needle.
-
-"Two sentries. But look past them, Ammut. There are three dozen cooking fires in that yard. If you start a bloodbath, we fight a whole starving army."
-
-"Then I won't start a fight. I'll just take their fucking heat."
-[t20 player] Cut down the two sentries quietly.
-[t21 GM · gemini-3.8-flash] You draw the runeforged cleaver and an iron knife.
-
-The wind kicks up a gust of grey grit. You move on the count of three. Silent Stalker means zero boot-scrape on the scree. You cross the thirty yards like a bad thought.
-
-You catch the shivering sentry first. Your left hand clamps his mouth shut. The cleaver slides behind his collarbone, hard and down. The blade bites deep into his lung. He twitches once and goes dead weight.
-
-The harpooner hears the armor rattle. He turns. His mouth opens to yell.
-
-You snap your wrist. The throwing knife punches through his throat before he draws breath. He drops to his knees in the dirt. Blue spark sizzles once in his crude harpoon battery, then dies in the mud.
-
-You drag both bodies behind the blackened cairns. Blood pools black in the frost. Daeris slips up the trench behind you. She stays crouched, watching the smoke drift above the redoubt gates.
-
-"Clean. But the trench ends ten paces up. Then we cross forty feet of bare mud to reach the needle kiln."
-
-"They won't look at the mud. They're busy shivering."
-
-The redoubt gate is twenty yards ahead, braced with scrap timber. Through the cracked planks, you see the iron chimney of the Pyre N
-[t21 player] Pick the lock on the timber gate.
-[t22 GM · gemini-3.8-flash] You drop into the mud by the gate post. The cold seeps right through your leather trousers.
-
-The lock is crude iron, pitted with rust and frozen spit. A novice's puzzle. You slide a bent wire into the keyhole. You don't need a roll for garbage like this. One twist of tension. The tumbler snaps back with a wet click.
-
-"Fast."
-
-"Shit iron gives up easy."
-
-You ease the gate open an inch. Beyond the timber lies the inner yard. A dozen conscripts in rags huddle around an iron crucible. In the center rises the Pyre Needle, glowing dull cherry-red and humming with stolen heat. A heavy-set man in boiled hide stands watch over them with a notched billhook.
-NEWEST RAW GM RESPONSE (tags intact):
-[TIME_CHECK:mid-morning]
-[TIME_ADVANCE:5m]
-[NO_CHANGE:Pyre Needle is an object]
-[SCENE_CAST:none]
-
-You drop into the mud by the gate post. The cold seeps right through your leather trousers.
-
-The lock is crude iron, pitted with rust and frozen spit. A novice's puzzle. You slide a bent wire into the keyhole. You don't need a roll for garbage like this. One twist of tension. The tumbler snaps back with a wet click.
-
-[SAY:Daeris|whispering]"Fast."
-
-[SAY:Ammut|flat]"Shit iron gives up easy."
-
-You ease the gate open an inch. Beyond the timber lies the inner yard. A dozen conscripts in rags huddle around an iron crucible. In the center rises the Pyre Needle, glowing dull cherry-red and humming with stolen heat. A heavy-set man in boiled hide stands watch over them with a notched billhook.
-
-[SUGGEST:Slip behind the fuel stacks|Use Invisibility on yourself and Daeris|Drop the guard with a crossbow bolt]
-SUGGESTED ACTIONS SHOWN: Slip behind the fuel stacks | Use Invisibility on yourself and Daeris | Drop the guard with a crossbow bolt | Accept the offer: The Siege of the Salt Weirs.
-
---- report metadata ---
-id: 99809669-baef-4edb-9b7a-373b4051187c
-receivedAt: 2026-10-18T17:35:57.698Z
-clientTs: 2026-10-18T17:35:52.591Z
-kind: user-report
-ctx: user-report
-app: v1.1275
-camp: Ammut
-turn: 22
-url: https://traffic-and-dragons.pages.dev/
-ua: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1
-online: true
-suppressed: 0
-screenshotUrl: https://drive.google.com/file/d/1NGiBJLiFq31KYJfQm1QY3kPT_zRTGZpW/view?usp=drivesdk
-```
-
-### Findings
-**2026-10-18 — read-only investigator, citations re-verified by the triage session.** Verdict: **confirmed prompt gap**, not model disobedience; no tag defect — an unnamed group legitimately gets `[SCENE_CAST:none]` (tag_table.js:208) and rule 16 (data.js:127) lets pure background figures stay anonymous. Mechanism: the prompt asks the GM to CAST varied ancestries (rule 4, data.js:115: "the cast is NOT all human… Never default every figure to an ordinary human") and to REGISTER only NPCs the player directly interacts with, but nothing — rules, STATE TAGS doc, the naming clause (identity.js:134 "or leave them unnamed"), STYLE (api.js:2764) — asks the prose to say what a figure IS on first sight, and the `[NPC:name|status|relation]` tag (tag_table.js:137) has no ancestry or appearance field, so a GM-introduced person never carries one; ancestry reaches the prompt only from authored sheets (api.js:2521 party, :763 record people, :2467-2469 `look:` from `appear`). Rule 11 PROSE (data.js:122, "tight, roughly 3-5 sentences") and STYLE's "write LESS" push the other way, so "a dozen conscripts in rags" is fully compliant output. No setting/peoples field exists in the skeleton or blueprint schema (campaign_generator.js:185-187); the bestiary (api.js:2664) is creatures, `buildGeoBlock` geography only. Table Talk cannot answer it (table-talk.js:272-273 forbids describing what the character sees; :294-296 answers stored facts only, none exist for the group). Prior rows: none; nearest is #165 (DOC/TODO_ARCHIVE.md:231, one sentence of physical description — the image-render writer only) and #621 (the portrait describer). The local Ammut save (t67) is an older same-named campaign; the phone campaign is not on disk. Fix sketch: extend rule 4 IN PLACE (same slot and count — data.js:107-108 records the 28→20 merge because long lists dilute compliance; never a 21st rule): on first sight give every figure and every group its kind in a word or two, unnamed crowds included; sheeted characters keep their sheet's look; a figure with no stated kind is a hole in the scene, not a mystery. Channel: the "channel beats position" rule covers an instruction losing to the GM's own output; here no instruction exists, so step one is the stable-half rule measured live; escalate to a detect-and-ask engine note (`NOTE_SHAPES`, api.js:2263) only if it fails in the field — detection (a group noun with no ancestry or monster word) is brittle. Tests: a failing-first clause test in the #557/#207① pattern (dev/engine-tests.js:7933-7947) plus a `dev/capture-prompt.js` stable diff showing exactly one hunk. Drift-surface: **YES** — DEFAULT_RULES → `getRulesBlock` → buildSysPrompt stable half (one cache re-write per campaign; the UA5 stable-purity tripwire warns once). Risk: over-compliance restating kinds every turn (fights rule 6 NEVER REPEAT); the GM inventing an ancestry for a sheeted NPC (the #623 "pale Daeris" class — hence the sheet clause); the village inherits it harmlessly (residents are sheeted). Touches no parser or memory path. Confidence: high on the gap; medium on efficacy with gemini-3.8-flash until a 10-turn harness run counts kind-cues on first-sight introductions.
-
-### Action log
-
-- 2026-10-18 · v1.1278 · commit fix(B46) · Fable — mechanism re-verified before code (rule 4 casts many peoples, rule 16 registers only the NPCs the player deals with, the NPC tag has no ancestry field, and rule 11 PROSE plus STYLE push toward less — so a kindless crowd was compliant output). Fix: rule 4 extended IN PLACE (the count stays 28; data.js records why long lists dilute compliance) with SAY WHAT THEY ARE — on first sight every figure and every group gets its kind in a word or two, unnamed crowds included; a character who has a sheet keeps the sheet's look (the #623 class); a figure whose kind is never stated is a hole in the scene, not a mystery. Tests: the B46 section (the clause, its scope, the sheet clause, one rule only, the rules block and the stable half); `dev/sabotage-b46-say-what-they-are.js` proves five mutations. Prompt diff on the owner's Frizwick t11 save: exactly one stable hunk (rule 4), the volatile half byte-identical. Live verification owed: the next new crowd in play should carry its kind; escalate to a detect-and-ask engine note only if the rule loses in the field.
-
-
 ## B47 — An attack after a Sure Shot was narrated without a roll — the B45 roll floor did not hold on the following strike (v1.1281, Frizwick t38)
 **Status:** fixed (v1.1286, 2026-10-20 — the lapse tells the GM the same turn, the floor binds automatic abilities to one strike; live verification owed)
 **Kind:** user-report · **First seen:** 2026-10-19 (v1.1281) · **Last seen:** 2026-10-19 (v1.1281) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 38
@@ -643,7 +518,132 @@ The reporter has JavaScript/promise handlers but no capturing script-resource er
 _Every verified and ignored row lives inside this collapsible container, newest first._
 
 <details>
-<summary><strong>Completed bugs (51 rows) — click to expand</strong></summary>
+<summary><strong>Completed bugs (52 rows) — click to expand</strong></summary>
+
+## B46 — The introduction of captive NPCs omits ancestry details the player needs for a decision (v1.1275, turn 22)
+**Status:** verified (closed at the owner's request 2026-10-31; existing fix v1.1278 accepted for closure)
+**Kind:** user-report · **First seen:** 2026-10-18 (v1.1275) · **Last seen:** 2026-10-18 (v1.1275) · **Count:** 1 · **Campaign:** Ammut · **Turn:** 22
+**Fingerprint:** `user-report · user-report · v1.1275 · There’s a large group of conscripts overseen by an overlord. I think we need to describe the race of new npcs a little b`
+**Report ids:** 99809669-baef-4edb-9b7a-373b4051187c
+**Screenshot URL:** https://drive.google.com/file/d/1NGiBJLiFq31KYJfQm1QY3kPT_zRTGZpW/view?usp=drivesdk
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+There’s a large group of conscripts overseen by an overlord.  I think we need to describe the race of new npcs a little better.  If the conscripts are goblins or kobolds or orcs, they’re dangerous to free.   If they’re a bunch of elves or humans or gnomes, I’ll free them.   Need slightly better descriptions
+
+STATE: Ammut (Rogue Lv19) HP 145/145, 28136 gp — The Gilded Sepulcher of Sunken Oaths, Day 1, 10:20 am — turn 22
+LAST EXCHANGES (clean text):
+[t17 player] Head south toward the Sepulcher.
+[t18 GM · gemini-3.8-flash] You kick the orchard gate open. The wood splinters in the frost.
+
+You head south through the dead scrub. Daeris keeps pace, her boots crunching on frozen grit. The wind smells of burnt copper and stale water.
+
+Within forty minutes, the earth gives up entirely.
+
+The ground drops into an inverted stone amphitheater. It sinks into a black sinkhole like a pulled tooth. Crumbled gold leaf clings to the stone balustrades. Huge bas-reliefs show pilgrims bowing beneath weeping trees, their faces chipped away by frost.
+
+Down in the pit, three massive bronze warding pylons hum with dull blue light. Below them, tangled deep in the gloom, pale primordial branches thrash against stone.
+
+"Look at the pylons, Ammut. The pilgrims built them to hold back the salt table. If you smash the seals, the brine drowns the whole valley."
+
+"I'm not here to save the valley. I'm here for the sap."
+
+You unhook your crossbow.
+[t18 player] Accept the offer: The Court of the Rust Siphon.
+[t19 GM · gemini-3.8-flash] You turn your back on the drop. The treant can scream.
+
+"The sap waits. We hit the scavengers first."
+
+Daeris blinks. She wipes black rot from her lip with a calloused thumb.
+
+"The Rust Siphon holds the high ridge. Warlord Gallowmere conscripts every mouth he feeds. They burn the needle for warmth. Stealing it starves them, Ammut."
+
+"Fuck them. I need the fire for home."
+
+You check the heavy bolts in your quiver. Up on the redoubt crags, the scavengers' smoke stains the grey sky.
+[t19 player] Scout the scavenger perimeter path.
+[t20 GM · gemini-3.8-flash] You leave the pit behind. The climb up the ridge is pure gravel and spite.
+
+You belly down in the grey scree. Daeris crawls beside you, staying low. The wind smells of burning pitch and old lard.
+
+Two scavengers patrol the perimeter trench thirty yards up. They wear boiled hide stitched with rusted scrap iron. One carries a barbed harpoon wired to an alchemical battery. The other leans on a notched heavy blade, shivering violently in the frost. A trip-wire runs between two blackened limestone cairns right across their gap.
+
+Past them, the redoubt sits on the high bluff. It is a rat's nest of scavenged beams, sheet metal, and greasy canvas. Thick black smoke chokes the sky above it. Deep inside the sprawl, a steady orange flare pulses like an open furnace. That is the Pyre Needle.
+
+"Two sentries. But look past them, Ammut. There are three dozen cooking fires in that yard. If you start a bloodbath, we fight a whole starving army."
+
+"Then I won't start a fight. I'll just take their fucking heat."
+[t20 player] Cut down the two sentries quietly.
+[t21 GM · gemini-3.8-flash] You draw the runeforged cleaver and an iron knife.
+
+The wind kicks up a gust of grey grit. You move on the count of three. Silent Stalker means zero boot-scrape on the scree. You cross the thirty yards like a bad thought.
+
+You catch the shivering sentry first. Your left hand clamps his mouth shut. The cleaver slides behind his collarbone, hard and down. The blade bites deep into his lung. He twitches once and goes dead weight.
+
+The harpooner hears the armor rattle. He turns. His mouth opens to yell.
+
+You snap your wrist. The throwing knife punches through his throat before he draws breath. He drops to his knees in the dirt. Blue spark sizzles once in his crude harpoon battery, then dies in the mud.
+
+You drag both bodies behind the blackened cairns. Blood pools black in the frost. Daeris slips up the trench behind you. She stays crouched, watching the smoke drift above the redoubt gates.
+
+"Clean. But the trench ends ten paces up. Then we cross forty feet of bare mud to reach the needle kiln."
+
+"They won't look at the mud. They're busy shivering."
+
+The redoubt gate is twenty yards ahead, braced with scrap timber. Through the cracked planks, you see the iron chimney of the Pyre N
+[t21 player] Pick the lock on the timber gate.
+[t22 GM · gemini-3.8-flash] You drop into the mud by the gate post. The cold seeps right through your leather trousers.
+
+The lock is crude iron, pitted with rust and frozen spit. A novice's puzzle. You slide a bent wire into the keyhole. You don't need a roll for garbage like this. One twist of tension. The tumbler snaps back with a wet click.
+
+"Fast."
+
+"Shit iron gives up easy."
+
+You ease the gate open an inch. Beyond the timber lies the inner yard. A dozen conscripts in rags huddle around an iron crucible. In the center rises the Pyre Needle, glowing dull cherry-red and humming with stolen heat. A heavy-set man in boiled hide stands watch over them with a notched billhook.
+NEWEST RAW GM RESPONSE (tags intact):
+[TIME_CHECK:mid-morning]
+[TIME_ADVANCE:5m]
+[NO_CHANGE:Pyre Needle is an object]
+[SCENE_CAST:none]
+
+You drop into the mud by the gate post. The cold seeps right through your leather trousers.
+
+The lock is crude iron, pitted with rust and frozen spit. A novice's puzzle. You slide a bent wire into the keyhole. You don't need a roll for garbage like this. One twist of tension. The tumbler snaps back with a wet click.
+
+[SAY:Daeris|whispering]"Fast."
+
+[SAY:Ammut|flat]"Shit iron gives up easy."
+
+You ease the gate open an inch. Beyond the timber lies the inner yard. A dozen conscripts in rags huddle around an iron crucible. In the center rises the Pyre Needle, glowing dull cherry-red and humming with stolen heat. A heavy-set man in boiled hide stands watch over them with a notched billhook.
+
+[SUGGEST:Slip behind the fuel stacks|Use Invisibility on yourself and Daeris|Drop the guard with a crossbow bolt]
+SUGGESTED ACTIONS SHOWN: Slip behind the fuel stacks | Use Invisibility on yourself and Daeris | Drop the guard with a crossbow bolt | Accept the offer: The Siege of the Salt Weirs.
+
+--- report metadata ---
+id: 99809669-baef-4edb-9b7a-373b4051187c
+receivedAt: 2026-10-18T17:35:57.698Z
+clientTs: 2026-10-18T17:35:52.591Z
+kind: user-report
+ctx: user-report
+app: v1.1275
+camp: Ammut
+turn: 22
+url: https://traffic-and-dragons.pages.dev/
+ua: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1
+online: true
+suppressed: 0
+screenshotUrl: https://drive.google.com/file/d/1NGiBJLiFq31KYJfQm1QY3kPT_zRTGZpW/view?usp=drivesdk
+```
+
+### Findings
+**2026-10-18 — read-only investigator, citations re-verified by the triage session.** Verdict: **confirmed prompt gap**, not model disobedience; no tag defect — an unnamed group legitimately gets `[SCENE_CAST:none]` (tag_table.js:208) and rule 16 (data.js:127) lets pure background figures stay anonymous. Mechanism: the prompt asks the GM to CAST varied ancestries (rule 4, data.js:115: "the cast is NOT all human… Never default every figure to an ordinary human") and to REGISTER only NPCs the player directly interacts with, but nothing — rules, STATE TAGS doc, the naming clause (identity.js:134 "or leave them unnamed"), STYLE (api.js:2764) — asks the prose to say what a figure IS on first sight, and the `[NPC:name|status|relation]` tag (tag_table.js:137) has no ancestry or appearance field, so a GM-introduced person never carries one; ancestry reaches the prompt only from authored sheets (api.js:2521 party, :763 record people, :2467-2469 `look:` from `appear`). Rule 11 PROSE (data.js:122, "tight, roughly 3-5 sentences") and STYLE's "write LESS" push the other way, so "a dozen conscripts in rags" is fully compliant output. No setting/peoples field exists in the skeleton or blueprint schema (campaign_generator.js:185-187); the bestiary (api.js:2664) is creatures, `buildGeoBlock` geography only. Table Talk cannot answer it (table-talk.js:272-273 forbids describing what the character sees; :294-296 answers stored facts only, none exist for the group). Prior rows: none; nearest is #165 (DOC/TODO_ARCHIVE.md:231, one sentence of physical description — the image-render writer only) and #621 (the portrait describer). The local Ammut save (t67) is an older same-named campaign; the phone campaign is not on disk. Fix sketch: extend rule 4 IN PLACE (same slot and count — data.js:107-108 records the 28→20 merge because long lists dilute compliance; never a 21st rule): on first sight give every figure and every group its kind in a word or two, unnamed crowds included; sheeted characters keep their sheet's look; a figure with no stated kind is a hole in the scene, not a mystery. Channel: the "channel beats position" rule covers an instruction losing to the GM's own output; here no instruction exists, so step one is the stable-half rule measured live; escalate to a detect-and-ask engine note (`NOTE_SHAPES`, api.js:2263) only if it fails in the field — detection (a group noun with no ancestry or monster word) is brittle. Tests: a failing-first clause test in the #557/#207① pattern (dev/engine-tests.js:7933-7947) plus a `dev/capture-prompt.js` stable diff showing exactly one hunk. Drift-surface: **YES** — DEFAULT_RULES → `getRulesBlock` → buildSysPrompt stable half (one cache re-write per campaign; the UA5 stable-purity tripwire warns once). Risk: over-compliance restating kinds every turn (fights rule 6 NEVER REPEAT); the GM inventing an ancestry for a sheeted NPC (the #623 "pale Daeris" class — hence the sheet clause); the village inherits it harmlessly (residents are sheeted). Touches no parser or memory path. Confidence: high on the gap; medium on efficacy with gemini-3.8-flash until a 10-turn harness run counts kind-cues on first-sight introductions.
+
+### Action log
+
+- 2026-10-18 · v1.1278 · commit fix(B46) · Fable — mechanism re-verified before code (rule 4 casts many peoples, rule 16 registers only the NPCs the player deals with, the NPC tag has no ancestry field, and rule 11 PROSE plus STYLE push toward less — so a kindless crowd was compliant output). Fix: rule 4 extended IN PLACE (the count stays 28; data.js records why long lists dilute compliance) with SAY WHAT THEY ARE — on first sight every figure and every group gets its kind in a word or two, unnamed crowds included; a character who has a sheet keeps the sheet's look (the #623 class); a figure whose kind is never stated is a hole in the scene, not a mystery. Tests: the B46 section (the clause, its scope, the sheet clause, one rule only, the rules block and the stable half); `dev/sabotage-b46-say-what-they-are.js` proves five mutations. Prompt diff on the owner's Frizwick t11 save: exactly one stable hunk (rule 4), the volatile half byte-identical. Live verification owed: the next new crowd in play should carry its kind; escalate to a detect-and-ask engine note only if the rule loses in the field.
+- 2026-10-31 — Closed and moved to Completed at the owner's explicit request. The v1.1278 first-sight ancestry fix is accepted for closure. No new live campaign test was performed or claimed.
 
 ## B44 — Player could not access voice configuration at campaign start (v1.1245, desktop Chrome)
 **Status:** verified (2026-10-31 — live non-admin beta verification on v1.1334 / server 1.15.0; TODO #622)

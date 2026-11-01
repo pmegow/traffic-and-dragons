@@ -1,6 +1,6 @@
 # Bug review — 2026-10-31
 
-Document version 1.1. Work follows the owner's request to investigate and fix what can be confirmed after the bug sync.
+Document version 1.2. Work follows the owner's request to investigate and fix what can be confirmed after the bug sync.
 
 ## Outcomes
 
@@ -13,7 +13,8 @@ Document version 1.1. Work follows the owner's request to investigate and fix wh
 | B35 | Corrected to B19's malformed-JSON class and archived as a duplicate; existing failure/retry policy retained. |
 | B52 | Missing helper reproduced by blocking its request; original iPhone loading cause remains unconfirmed. Kept open. |
 | B44 | Verified and closed after live non-admin beta testing: accessible settings, real keyless Speechify catalog/synthesis and completed browser audio playback. [Record](B44_verification_2026-10-31.md). |
-| B45–B48 | Existing story/prompt fixes retain their recorded live-play verification requirements. |
+| B46 | Closed at the owner's request on 2026-10-31; existing v1.1278 fix accepted for closure. No new live campaign test claimed. |
+| B45, B47, B48 | Existing story/prompt fixes retain their recorded live-play verification requirements. |
 
 ## Implemented fix
 
@@ -37,6 +38,6 @@ During the initial bug review, all browser POSTs were intercepted and reporter t
 
 B52 needs original-device evidence before a cause-specific fix. Resource-load diagnostics and an explicit failed-boot screen are a possible separate change; they must preserve the real error rather than silently supplying missing globals.
 
-Previously fixed story issues retain their existing human verification steps. B44's beta access and browser audio path passed the separate live check; physical-device listening was not performed. No parser salvage, memory rewrite, new prompt rule or unrelated dice work was included.
+B46 is closed on the owner's instruction. The other previously fixed story issues retain their existing human verification steps. B44's beta access and browser audio path passed the separate live check; physical-device listening was not performed. No parser salvage, memory rewrite, new prompt rule or unrelated dice work was included.
 
 Individual findings, original evidence and action logs remain in [the bug tracker](BUGS.md).
