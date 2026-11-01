@@ -25,6 +25,7 @@ export const EXIT_VERTEX_PARS = /* glsl */ `
 varying float vExitWorldY;
 varying vec2 vExitWorldXZ;
 uniform float uExitMelt;
+uniform float uExitMeltSink;
 uniform float uExitWobble;
 uniform vec4 uExitMeltAt;
 uniform mat4 uExitMeltInverse;
@@ -67,7 +68,9 @@ vec3 exitMeltRel( vec3 rel ) {
   float width = foot * ( 1.0 + EXIT_MELT_SPREAD ) * rim, height = uExitMeltAt.w * EXIT_MELT_FLAT;
   vec3 liquid = vec3( ray.x * width, ( 1.0 + ray.y ) * height, ray.z * width );
   vec3 shaped = vec3( dir.x * reach, max( rel.y, 0.0 ) * s.x, dir.y * reach );
-  return mix( shaped, liquid, uExitMelt * uExitMelt );
+  vec3 softened = mix( shaped, liquid, uExitMelt * uExitMelt );
+  softened.y *= 1.0 - uExitMeltSink;
+  return softened;
 }
 vec3 exitMelt( vec3 p ) {
   vec3 rel = exitMeltRel( ( modelMatrix * vec4( p, 1.0 ) ).xyz - uExitMeltAt.xyz );
@@ -76,6 +79,7 @@ vec3 exitMelt( vec3 p ) {
 vec3 exitMeltNormal( vec3 p, vec3 n ) {
   vec3 rel = ( modelMatrix * vec4( p, 1.0 ) ).xyz - uExitMeltAt.xyz;
   vec2 s = exitMeltScale( rel );
+  s.x *= max( 1.0 - uExitMeltSink, 1e-4 );
   mat3 turn = mat3( modelMatrix );   // a die is never scaled: its turn alone, whose transpose turns it back
   vec3 w = turn * n;
   w = normalize( vec3( w.x / s.y, w.y / s.x, w.z / s.y ) );

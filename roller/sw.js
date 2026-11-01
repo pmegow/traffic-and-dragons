@@ -11,7 +11,7 @@
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.81.0';
+const VERSION = '0.82.0';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
@@ -64,6 +64,7 @@ const FILES = [
   'render/particles.js',
   'render/patterns.js',
   'render/presets.js',
+  'render/puddle.js',
   'render/shards.js',
   'render/subdivide.js',
   'render/supersample.js',

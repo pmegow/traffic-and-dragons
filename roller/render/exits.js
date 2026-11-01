@@ -41,6 +41,7 @@ import { fractureSeeds, fracturePieces, pieceCount } from './fracture.js';
 import { burstShards, stepShards, rotate } from './shards.js';
 import { meltRel, fallApart, strandsBetween, strandTubes, writeTube, tubeIndices, TUBE_VERTICES } from './goo.js';
 import { holePlan, holesAt } from './holes.js';
+import { createPoolSurface, PUDDLE } from './puddle.js';
 import { subdividePasses } from './subdivide.js';
 import { blankUV } from './die-mesh.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_DEPTH_PARS, EXIT_DEPTH } from './exit-shader.js';
@@ -666,8 +667,8 @@ function startShatter({ view, entry, sound = () => {} }) {
 // render/goo.js ▸ fallApart). Each lump is its own copy of the die's material — the same shader, so nothing compiles —
 // and so melts on its own clock as it lands, in its vertex shader (render/exit-shader.js ▸ exitMelt), its shadow with
 // it. The goo between them (render/goo.js) is one mesh whose shape is written each frame, stuck to the melting lumps by
-// the same slump in JS (meltRel). The blobs run together into the puddle, which holes eat (render/holes.js) in every one
-// of their shaders and shadows.
+// the same slump in JS (meltRel). The soft pieces flow inward and sink into one shared liquid surface (puddle.js);
+// their separate shells are retired before holes eat the joined pool (holes.js).
 function startMelt({ view, entry, sound = () => {} }) {
   const mesh = entry.mesh, m = mesh.material, dice = m.userData.dice, uniforms = dice.uniforms, R = entry.die.boundingRadius;
   const centre = mesh.position.clone(), g = mesh.geometry, at = g.attributes, colours = at.color.array;
@@ -728,13 +729,13 @@ function startMelt({ view, entry, sound = () => {} }) {
     }
   };
   sound('melt', centre);   // a low sizzle under it all (audio/plan.js ▸ EXIT_SOUNDS)
-  let states = null, strands = null, goo = null, plan = null;
+  let states = null, strands = null, goo = null, plan = null, pool = null, poolSurface = null, lastFlow = -1;
   // A strand's end on its lump, in the world: carried with the lump, then slumped with it (the shader's sums in JS).
   const anchor = (l, s, a) => {
     const c = l.piece.centroid, r = rotate(s.q, [a[0] - c[0], a[1] - c[1], a[2] - c[2]]);
     const rel = [r[0], s.x[1] + r[1], r[2]];   // from the lump's centre on the floor
     if (!l.melt && !l.wobble) return [s.x[0] + rel[0], rel[1], s.x[2] + rel[2]];
-    const q = meltRel(rel, { melt: l.melt, wobble: l.wobble, w: l.w, foot: l.foot, centreY: s.x[1], seed: l.uniforms.uExitMeltSeed.value });
+    const q = meltRel(rel, { melt: l.melt, wobble: l.wobble, w: l.w, foot: l.foot, centreY: s.x[1], sink: l.uniforms.uExitMeltSink.value, seed: l.uniforms.uExitMeltSeed.value });
     return [s.x[0] + q[0], q[1], s.x[2] + q[2]];
   };
   const breakApart = () => {
@@ -760,22 +761,40 @@ function startMelt({ view, entry, sound = () => {} }) {
     goo.customDepthMaterial = exitDepthMaterial(material.userData.dice.uniforms);
     view.scene.add(goo);
   };
-  // The puddle, for the holes: its lumps' points slumped (one in PUDDLE_SAMPLE), and its strands' rings; middles away
-  // from the rims.
+  const mergePool = (flow) => {
+    if (!poolSurface) {
+      poolSurface = createPoolSurface(lumps.map((l, k) => ({ x: states[k].x[0] - centre.x, z: states[k].x[2] - centre.z, radius: Math.max(0.45 * R, 0.85 * l.foot * (1 + MELT.spread)) })), R);
+      const geometry = new THREE.BufferGeometry(), size = poolSurface.position.length / 3;
+      geometry.setAttribute('position', new THREE.BufferAttribute(poolSurface.position, 3).setUsage(THREE.DynamicDrawUsage));
+      geometry.setAttribute('normal', new THREE.BufferAttribute(poolSurface.normal, 3).setUsage(THREE.DynamicDrawUsage));
+      geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(2 * size), 2));
+      geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(3 * size).fill(1), 3));
+      const material = copy(glyphOf(0));
+      material.roughness = MELT.gloss;
+      if (material.transmission > 0) material.thickness = 2 * R * PUDDLE.height;
+      pool = new THREE.Mesh(geometry, material);
+      pool.position.set(centre.x, 0, centre.z);
+      pool.castShadow = mesh.castShadow;
+      pool.receiveShadow = mesh.receiveShadow;
+      pool.renderOrder = mesh.renderOrder;
+      pool.frustumCulled = false;
+      pool.customDepthMaterial = exitDepthMaterial(material.userData.dice.uniforms);
+      view.scene.add(pool);
+    }
+    if (flow !== lastFlow) {
+      poolSurface.write(flow);
+      pool.geometry.setDrawRange(0, poolSurface.count);
+      pool.geometry.attributes.position.needsUpdate = true;
+      pool.geometry.attributes.normal.needsUpdate = true;
+      lastFlow = flow;
+    }
+    // The remaining solid moves with the liquid feeding the shared surface, then sinks beneath it.
+    poolSurface.lobes.forEach((l, k) => { states[k].x[0] = centre.x + l.x; states[k].x[2] = centre.z + l.z; });
+  };
   const puddle = () => {
-    const points = [], middles = [], v = new THREE.Vector3();
-    lumps.forEach((l, k) => {
-      const s = states[k], pos = l.mesh.geometry.attributes.position, mine = [];
-      for (let i = 0; i < pos.count; i += PUDDLE_SAMPLE) {
-        v.fromBufferAttribute(pos, i).applyMatrix4(l.mesh.matrix);
-        const q = meltRel([v.x - s.x[0], v.y, v.z - s.x[2]], { melt: l.melt, wobble: 0, w: l.w, foot: l.foot, centreY: s.x[1], seed: l.uniforms.uExitMeltSeed.value });
-        mine.push([s.x[0] + q[0], s.x[2] + q[2], Math.hypot(q[0], q[2])]);
-      }
-      const reach = Math.max(...mine.map((p) => p[2]));
-      for (const p of mine) { points.push([p[0], p[1]]); if (p[2] < 0.6 * reach) middles.push([p[0], p[1]]); }
-    });
-    for (const st of strands) for (const tube of st.tubes) for (const q of tube.points) { points.push([q[0], q[2]]); middles.push([q[0], q[2]]); }
-    return { points, middles };
+    const samples = poolSurface.samples();
+    const world = p => [centre.x + p[0], centre.z + p[1]];
+    return { points: samples.points.map(world), middles: samples.middles.map(world) };
   };
   const p = new THREE.Vector3(), turn = new THREE.Quaternion(), back = new THREE.Matrix4(), ONE = new THREE.Vector3(1, 1, 1);
   return {
@@ -802,12 +821,18 @@ function startMelt({ view, entry, sound = () => {} }) {
           l.foot = footOf(s);
           workFor(Infinity);
         }
-        const c = l.piece.centroid;
-        l.mesh.matrix.compose(p.set(s.x[0], s.x[1], s.x[2]), turn.set(s.q[0], s.q[1], s.q[2], s.q[3]), ONE).multiply(back.makeTranslation(-c[0], -c[1], -c[2]));
-        l.mesh.matrixWorldNeedsUpdate = true;
         l.melt = meltPiece(l.melting < 0 ? 0 : t.since - l.melting);
         l.wobble = l.landed < 0 ? 0 : meltJiggle(t.since - l.landed);
+      });
+      if (t.flow > 0) mergePool(t.flow);
+      const sink = smoothstep01(t.flow);
+      states.forEach((s, k) => {
+        const l = lumps[k], c = l.piece.centroid;
+        l.mesh.visible = t.flow < 1;
+        l.mesh.matrix.compose(p.set(s.x[0], s.x[1], s.x[2]), turn.set(s.q[0], s.q[1], s.q[2], s.q[3]), ONE).multiply(back.makeTranslation(-c[0], -c[1], -c[2]));
+        l.mesh.matrixWorldNeedsUpdate = true;
         l.uniforms.uExitMelt.value = l.melt;
+        l.uniforms.uExitMeltSink.value = sink;
         l.uniforms.uExitWobble.value = l.wobble;
         l.uniforms.uExitMeltAt.value.set(s.x[0], 0, s.x[2], l.w);   // its centre on the floor, and its size
         l.uniforms.uExitMeltInverse.value.copy(l.mesh.matrix).invert();
@@ -819,6 +844,7 @@ function startMelt({ view, entry, sound = () => {} }) {
         l.uniforms.uExitInk.value = ink;
         l.material.bumpScale = bump * ink;
       });
+      goo.visible = t.flow < 1;
       const P = goo.geometry.attributes.position, N = goo.geometry.attributes.normal;
       goo.material.roughness = rough + (MELT.gloss - rough) * lumps.reduce((t, l) => t + l.melt, 0) / lumps.length;   // the die's own, wet as it melts
       strands.forEach((st, k) => {
@@ -839,6 +865,7 @@ function startMelt({ view, entry, sound = () => {} }) {
     dispose() {
       for (const l of lumps) { view.scene.remove(l.mesh); l.mesh.geometry.dispose(); l.mesh.customDepthMaterial.dispose(); }
       if (goo) { view.scene.remove(goo); goo.geometry.dispose(); goo.customDepthMaterial.dispose(); }
+      if (pool) { view.scene.remove(pool); pool.geometry.dispose(); pool.customDepthMaterial.dispose(); }
       for (const c of materials) c.dispose();
       mesh.customDepthMaterial.dispose();
       uniforms.uExitCrack.value = 0;
@@ -847,9 +874,6 @@ function startMelt({ view, entry, sound = () => {} }) {
     },
   };
 }
-
-/** One of every this many of a melted lump's vertices stands for it in the holes' plan (every third took 4–12 ms a die). */
-const PUDDLE_SAMPLE = 7;
 
 /** A mesh's highest point at rest, in its own space: where cracks start from (Shatter, Melt). */
 function highestPoint(mesh) {
@@ -888,7 +912,7 @@ function exitDepthMaterial(u) {
   const m = new THREE.MeshDepthMaterial();
   m.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, { uScale: u.uScale, uSeed: u.uSeed, uExitDissolve: u.uExitDissolve, uExitClipY: u.uExitClipY, uExitFade: u.uExitFade,
-      uExitMelt: u.uExitMelt, uExitWobble: u.uExitWobble, uExitMeltAt: u.uExitMeltAt, uExitMeltInverse: u.uExitMeltInverse, uExitMeltSeed: u.uExitMeltSeed, uExitMeltFoot: u.uExitMeltFoot, uExitMeltCenterY: u.uExitMeltCenterY,
+      uExitMelt: u.uExitMelt, uExitMeltSink: u.uExitMeltSink, uExitWobble: u.uExitWobble, uExitMeltAt: u.uExitMeltAt, uExitMeltInverse: u.uExitMeltInverse, uExitMeltSeed: u.uExitMeltSeed, uExitMeltFoot: u.uExitMeltFoot, uExitMeltCenterY: u.uExitMeltCenterY,
       uExitHoles: u.uExitHoles, uExitHoleCount: u.uExitHoleCount });
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vPatternPos;\n' + EXIT_VERTEX_PARS)

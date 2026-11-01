@@ -53,7 +53,9 @@ export function meltRel(rel, o) {
   const liquid = [ray[0] / length * width, (1 + ray[1] / length) * height, ray[2] / length * width];
   const soft = melt * melt;
   const shaped = [dx * reach, Math.max(rel[1], 0) * squash, dz * reach];
-  return shaped.map((v, k) => v + (liquid[k] - v) * soft);
+  const softened = shaped.map((v, k) => v + (liquid[k] - v) * soft);
+  softened[1] *= 1 - (o.sink ?? 0);
+  return softened;
 }
 
 function rimOf(a, seed) {

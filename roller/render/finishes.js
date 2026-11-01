@@ -44,6 +44,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
     uExitSeedCount: { value: 0 },
     uExitMelt: { value: 0 },   // Melt: a piece 0 whole … 1 a blob
     uExitWobble: { value: 0 },
+    uExitMeltSink: { value: 0 },
     uExitMeltAt: { value: new THREE.Vector4() },
     uExitMeltInverse: { value: new THREE.Matrix4() },
     uExitMeltSeed: { value: 0 },

@@ -1,7 +1,7 @@
 {
-  "version": "v1.1336",
+  "version": "v1.1337",
   "actions": [
-    "Add Melt: dice soften into glossy puddles, stretch into goo, and disappear through expanding holes.",
-    "Prepare melting shadows during loading to prevent a cold animation pause."
+    "Melting dice flow into one continuous puddle before dissolving.",
+    "Remove separate blob rims and keep the liquid outline smooth."
   ]
 }

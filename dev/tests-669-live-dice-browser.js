@@ -138,6 +138,8 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       assert.equal(r.unknown,'smoke','an exit the dice no longer have is replaced by the default');
     });
 
+    // The frame-clamped clock needs more rendered frames for Melt than Smoke. Use the same per-frame
+    // allowance: the old 30-second Smoke budget timed out a progressing 3.1-second Melt on CI.
     await check('#679 Melt is selected, persisted and plays through the real game dismiss flow',async()=>{
       const r=await page.evaluate(until+`(async()=>{
         showDiceLookModal();
@@ -151,7 +153,9 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         await until(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d20:19';});
         document.getElementById('dice-layer').click();
         const started=diceLiveState().exiting;
-        await until(()=>!diceLiveState().showing,${DISMISS_MS});
+        const {EXIT_TABLE}=await import('./roller/render/exit-table.js');
+        const dismissMs=Math.ceil(${DISMISS_MS}*EXIT_TABLE.melt.seconds/EXIT_TABLE.smoke.seconds);
+        await until(()=>!diceLiveState().showing,dismissMs);
         return {kept,worn,started,remaining:diceLiveState().exiting,closed:window.__meltClosed};
       })()`);
       assert.deepEqual(r,{kept:'melt',worn:'melt',started:1,remaining:0,closed:1});
