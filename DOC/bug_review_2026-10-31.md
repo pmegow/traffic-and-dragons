@@ -1,6 +1,6 @@
 # Bug review — 2026-10-31
 
-Document version 1.0. Work follows the owner's request to investigate and fix what can be confirmed after the bug sync.
+Document version 1.1. Work follows the owner's request to investigate and fix what can be confirmed after the bug sync.
 
 ## Outcomes
 
@@ -12,7 +12,7 @@ Document version 1.0. Work follows the owner's request to investigate and fix wh
 | B29 | Closed on the owner's existing October 4 acceptance of TODO #526. |
 | B35 | Corrected to B19's malformed-JSON class and archived as a duplicate; existing failure/retry policy retained. |
 | B52 | Missing helper reproduced by blocking its request; original iPhone loading cause remains unconfirmed. Kept open. |
-| B44 | Existing voice-settings fix remains ready for the tester's check. |
+| B44 | Verified and closed after live non-admin beta testing: accessible settings, real keyless Speechify catalog/synthesis and completed browser audio playback. [Record](B44_verification_2026-10-31.md). |
 | B45–B48 | Existing story/prompt fixes retain their recorded live-play verification requirements. |
 
 ## Implemented fix
@@ -31,12 +31,12 @@ A fresh 390×844 Chromium session rendered the current live d20 on its requested
 
 A separate browser session deliberately returned HTTP 503 for helpers.js. It reproduced keyedDict missing, seven dependent initialization errors, and a sign-in screen without a startup-failure explanation. The original iPhone incident still needs the helper response/parse evidence and worker identity. No fallback or cache-clearing workaround was applied.
 
-All browser POSTs were intercepted during verification. Tests used fake report transports; no verification email/report was intentionally delivered.
+During the initial bug review, all browser POSTs were intercepted and reporter tests used fake transports. The later owner-requested B44 verification allowed one real Speechify POST from a disposable beta account; unrelated writes were blocked, and no email/report was delivered. The test identity and usage were removed afterward.
 
 ## Remaining work
 
 B52 needs original-device evidence before a cause-specific fix. Resource-load diagnostics and an explicit failed-boot screen are a possible separate change; they must preserve the real error rather than silently supplying missing globals.
 
-Previously fixed story and voice issues retain their existing human verification steps. No parser salvage, memory rewrite, new prompt rule or unrelated dice work was included.
+Previously fixed story issues retain their existing human verification steps. B44's beta access and browser audio path passed the separate live check; physical-device listening was not performed. No parser salvage, memory rewrite, new prompt rule or unrelated dice work was included.
 
 Individual findings, original evidence and action logs remain in [the bug tracker](BUGS.md).

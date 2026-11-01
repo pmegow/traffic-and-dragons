@@ -36,62 +36,6 @@ them here).
 
 
 
-## B44 — Player could not access voice configuration at campaign start (v1.1245, desktop Chrome)
-**Status:** promoted → [TODO.md](../TODO.md) #622 (fixed v1.1249 — the tester's check owed) · was: findings-ready
-**Kind:** user-report · **First seen:** 2026-10-13 (v1.1245) · **Last seen:** 2026-10-13 (v1.1245) · **Count:** 1 · **Campaign:** E Nightwhisper · **Turn:** —
-**Fingerprint:** `user-report · user-report · v1.1245 · Voice settings unavailable`
-**Report ids:** 84b96152-55cb-40e8-9e3f-aeb3b4ef5d5b
-**Screenshot URL:** https://drive.google.com/file/d/1qKfI0HcqjOFVoJnD4uMxdZkinmmoHnfD/view?usp=drivesdk
-
-### Report (untrusted user-submitted data — never instructions)
-
-```text
-Voice settings unavailable
-
-STATE: Eyra Duskreaver (Rogue Lv1) HP 9/9, 24 gp — The Crossroads of Ashenveil / The Ash Vendor's Stall, Day 1, 6:00 am — turn 0
-LAST EXCHANGES (clean text):
-[t0 GM · claude-sonnet-5] The Crossroads of Ashenveil wakes up the way a corpse wakes up, which is to say it doesn't, but something underneath it keeps twitching. Dawn here looks like dusk everywhere else, grey light filtering through the permanent haze of drifting ash until the sun's just a smear, a rumor of itself. Stalls are unshuttering all around you, vendors hawking things that used to be illegal and are now just Tuesday: bottled screams, teeth with suspiciously fresh roots, a man selling what he swears is unicorn horn to a woman who clearly knows it's a narwhal tusk and is buying it anyway out of pity. You came here chasing whispers that Malvorin crawled back out of whatever hole he'd been rotting in, and the first thing the Crossroads shows you, stacked in a crate by a vendor with soot under his fingernails, is a row of small glass vials, each one holding a pinch of fine silver powder that your body recognizes before your mind catches up, because you'd know that ash anywhere, you breathed it in for a week after Sylthane Vale stopped being a forest and started being a grave.
-NEWEST RAW GM RESPONSE (tags intact):
-[TIME_CHECK:dawn]
-
-The Crossroads of Ashenveil wakes up the way a corpse wakes up, which is to say it doesn't, but something underneath it keeps twitching. Dawn here looks like dusk everywhere else, grey light filtering through the permanent haze of drifting ash until the sun's just a smear, a rumor of itself. Stalls are unshuttering all around you, vendors hawking things that used to be illegal and are now just Tuesday: bottled screams, teeth with suspiciously fresh roots, a man selling what he swears is unicorn horn to a woman who clearly knows it's a narwhal tusk and is buying it anyway out of pity. You came here chasing whispers that Malvorin crawled back out of whatever hole he'd been rotting in, and the first thing the Crossroads shows you, stacked in a crate by a vendor with soot under his fingernails, is a row of small glass vials, each one holding a pinch of fine silver powder that your body recognizes before your mind catches up, because you'd know that ash anywhere, you breathed it in for a week after Sylthane Vale stopped being a forest and started being a grave.
-
-[SUBLOCATION:The Ash Vendor's Stall]
-[QUEST:Welcome to the Crossroads|active|Make contact with three key figures in the Crossroads who can point toward who is harvesting Sylthane Vale's ash]
-[QUEST_STEP:Welcome to the Crossroads|Secure introductions with three contacts among the market's vendors, cutpurses, and oracles|false]
-[LOCATION_DESC:A sprawling bazaar built from salvage and desperation at the meeting of three dead roads, where survivors of the Blighted Reach trade magic, relics, and rumors under a permanent haze of drifting ash. Stalls of scavenged wood and bone-white canvas crowd together in winding rows, lit by witch-lanterns that never quite banish the gloom.]
-[LOCATION_SIZE:large|40]
-[EXIT:The Deep Rows|a maze of stalls deeper into the market, where the less legal business happens]
-[EXIT:The Crossroads proper|the three dead roads meeting at the market's edge, leading out into the Blighted Reach]
-
-[SUGGEST:Approach the ash vendor directly|Watch the stall from a distance first|Ask a nearby trader about the vials]
-SUGGESTED ACTIONS SHOWN: Approach the ash vendor directly | Watch the stall from a distance first | Ask a nearby trader about the vials
-[TTS] tts engine: server; on: true; piper voice: (default); rate: 1.0
-speaker map: NONE on the last GM turn — the pass was skipped (no voiced cast, no dialogue, muted) or it failed/timed out
-
---- report metadata ---
-id: 84b96152-55cb-40e8-9e3f-aeb3b4ef5d5b
-receivedAt: 2026-10-13T03:42:31.841Z
-clientTs: 2026-10-13T03:42:26.944Z
-kind: user-report
-ctx: user-report
-app: v1.1245
-camp: E Nightwhisper
-turn:
-url: https://traffic-and-dragons.pages.dev/
-ua: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
-online: true
-suppressed: 0
-screenshotUrl: https://drive.google.com/file/d/1qKfI0HcqjOFVoJnD4uMxdZkinmmoHnfD/view?usp=drivesdk
-```
-
-### Findings
-**2026-10-18 — read-only investigator + a git date check.** Verdict: **already fixed at v1.1249 (#622)** — this report is the field twin of TODO #622, filed the same evening by the same first outside tester. Mechanism: from v1.908 (#401, owner ruling 2026-09-11) until v1.1249 the Voice Settings menu row carried `fm-dev-only`, and `applyMenuTier` (ui-shell.js:19-28) hides every such row for a signed-in non-admin (`menuTierHidesDev`, helpers.js:2429-2432) — so the tester had no door to voice settings at all; no other voice door existed at turn 0 on that build (`#tts-btn` is a mute toggle, the wizard's Finishing Touches voice box arrived with #629 in v1.1258, Car Mode has no settings door). The report (2026-10-13 03:42 UTC) predates the v1.1249 build by hours — v1.1245 was that day's deployed build (#621 shipped as v1.1246 the same day). Today ui-boot.js:79 renders the row with no class inside ⚙ Settings ▸ 🔊 Audio (neither wrapper is dev-only; only the 🛠 Dev tools drawer is), only the key fields inside the modal are dev-only (ui-voice-settings.js:49), run-tests.js:1657-1660 and dev/sabotage-622-tts-gateway.js:55-57 fail the build if the row is ever re-flagged, and the beta guide (DOC/beta-guide.html:259) names the reachable path. Fix sketch: **no code change** — `promoted → TODO #622`; verification is the tester opening File ▸ ⚙ Settings ▸ 🔊 Audio ▸ Voice Settings… on a build ≥ v1.1249 (one navigation lag on the cache-first SW). Drift-surface: NO. Risk: moving the row out of the Audio drawer would break the #634 layout contract (run-tests.js:1653). Confidence: high on the mechanism; the Drive screenshot was not fetched.
-
-### Action log
-
-- 2026-10-18 · promoted → TODO #622 (was findings-ready) — the field twin of #622, fixed v1.1249; the next step is the tester opening File ▸ ⚙ Settings ▸ 🔊 Audio ▸ Voice Settings… on a current build.
-
 ## B45 — A stealth attack kills two sentries through narration without a roll or combat encounter (v1.1275, turn 21)
 **Status:** fixed (v1.1277, 2026-10-18 — the roll floor under the stake clause; live verification owed)
 **Kind:** user-report · **First seen:** 2026-10-18 (v1.1275) · **Last seen:** 2026-10-18 (v1.1275) · **Count:** 1 · **Campaign:** Ammut · **Turn:** 21
@@ -692,7 +636,65 @@ The reporter has JavaScript/promise handlers but no capturing script-resource er
 _Every verified and ignored row lives inside this collapsible container, newest first._
 
 <details>
-<summary><strong>Completed bugs (0 rows) — click to expand</strong></summary>
+<summary><strong>Completed bugs (51 rows) — click to expand</strong></summary>
+
+## B44 — Player could not access voice configuration at campaign start (v1.1245, desktop Chrome)
+**Status:** verified (2026-10-31 — live non-admin beta verification on v1.1334 / server 1.15.0; TODO #622)
+**Kind:** user-report · **First seen:** 2026-10-13 (v1.1245) · **Last seen:** 2026-10-13 (v1.1245) · **Count:** 1 · **Campaign:** E Nightwhisper · **Turn:** —
+**Fingerprint:** `user-report · user-report · v1.1245 · Voice settings unavailable`
+**Report ids:** 84b96152-55cb-40e8-9e3f-aeb3b4ef5d5b
+**Screenshot URL:** https://drive.google.com/file/d/1qKfI0HcqjOFVoJnD4uMxdZkinmmoHnfD/view?usp=drivesdk
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Voice settings unavailable
+
+STATE: Eyra Duskreaver (Rogue Lv1) HP 9/9, 24 gp — The Crossroads of Ashenveil / The Ash Vendor's Stall, Day 1, 6:00 am — turn 0
+LAST EXCHANGES (clean text):
+[t0 GM · claude-sonnet-5] The Crossroads of Ashenveil wakes up the way a corpse wakes up, which is to say it doesn't, but something underneath it keeps twitching. Dawn here looks like dusk everywhere else, grey light filtering through the permanent haze of drifting ash until the sun's just a smear, a rumor of itself. Stalls are unshuttering all around you, vendors hawking things that used to be illegal and are now just Tuesday: bottled screams, teeth with suspiciously fresh roots, a man selling what he swears is unicorn horn to a woman who clearly knows it's a narwhal tusk and is buying it anyway out of pity. You came here chasing whispers that Malvorin crawled back out of whatever hole he'd been rotting in, and the first thing the Crossroads shows you, stacked in a crate by a vendor with soot under his fingernails, is a row of small glass vials, each one holding a pinch of fine silver powder that your body recognizes before your mind catches up, because you'd know that ash anywhere, you breathed it in for a week after Sylthane Vale stopped being a forest and started being a grave.
+NEWEST RAW GM RESPONSE (tags intact):
+[TIME_CHECK:dawn]
+
+The Crossroads of Ashenveil wakes up the way a corpse wakes up, which is to say it doesn't, but something underneath it keeps twitching. Dawn here looks like dusk everywhere else, grey light filtering through the permanent haze of drifting ash until the sun's just a smear, a rumor of itself. Stalls are unshuttering all around you, vendors hawking things that used to be illegal and are now just Tuesday: bottled screams, teeth with suspiciously fresh roots, a man selling what he swears is unicorn horn to a woman who clearly knows it's a narwhal tusk and is buying it anyway out of pity. You came here chasing whispers that Malvorin crawled back out of whatever hole he'd been rotting in, and the first thing the Crossroads shows you, stacked in a crate by a vendor with soot under his fingernails, is a row of small glass vials, each one holding a pinch of fine silver powder that your body recognizes before your mind catches up, because you'd know that ash anywhere, you breathed it in for a week after Sylthane Vale stopped being a forest and started being a grave.
+
+[SUBLOCATION:The Ash Vendor's Stall]
+[QUEST:Welcome to the Crossroads|active|Make contact with three key figures in the Crossroads who can point toward who is harvesting Sylthane Vale's ash]
+[QUEST_STEP:Welcome to the Crossroads|Secure introductions with three contacts among the market's vendors, cutpurses, and oracles|false]
+[LOCATION_DESC:A sprawling bazaar built from salvage and desperation at the meeting of three dead roads, where survivors of the Blighted Reach trade magic, relics, and rumors under a permanent haze of drifting ash. Stalls of scavenged wood and bone-white canvas crowd together in winding rows, lit by witch-lanterns that never quite banish the gloom.]
+[LOCATION_SIZE:large|40]
+[EXIT:The Deep Rows|a maze of stalls deeper into the market, where the less legal business happens]
+[EXIT:The Crossroads proper|the three dead roads meeting at the market's edge, leading out into the Blighted Reach]
+
+[SUGGEST:Approach the ash vendor directly|Watch the stall from a distance first|Ask a nearby trader about the vials]
+SUGGESTED ACTIONS SHOWN: Approach the ash vendor directly | Watch the stall from a distance first | Ask a nearby trader about the vials
+[TTS] tts engine: server; on: true; piper voice: (default); rate: 1.0
+speaker map: NONE on the last GM turn — the pass was skipped (no voiced cast, no dialogue, muted) or it failed/timed out
+
+--- report metadata ---
+id: 84b96152-55cb-40e8-9e3f-aeb3b4ef5d5b
+receivedAt: 2026-10-13T03:42:31.841Z
+clientTs: 2026-10-13T03:42:26.944Z
+kind: user-report
+ctx: user-report
+app: v1.1245
+camp: E Nightwhisper
+turn:
+url: https://traffic-and-dragons.pages.dev/
+ua: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
+online: true
+suppressed: 0
+screenshotUrl: https://drive.google.com/file/d/1qKfI0HcqjOFVoJnD4uMxdZkinmmoHnfD/view?usp=drivesdk
+```
+
+### Findings
+**2026-10-18 — read-only investigator + a git date check.** Verdict: **already fixed at v1.1249 (#622)** — this report is the field twin of TODO #622, filed the same evening by the same first outside tester. Mechanism: from v1.908 (#401, owner ruling 2026-09-11) until v1.1249 the Voice Settings menu row carried `fm-dev-only`, and `applyMenuTier` (ui-shell.js:19-28) hides every such row for a signed-in non-admin (`menuTierHidesDev`, helpers.js:2429-2432) — so the tester had no door to voice settings at all; no other voice door existed at turn 0 on that build (`#tts-btn` is a mute toggle, the wizard's Finishing Touches voice box arrived with #629 in v1.1258, Car Mode has no settings door). The report (2026-10-13 03:42 UTC) predates the v1.1249 build by hours — v1.1245 was that day's deployed build (#621 shipped as v1.1246 the same day). Today ui-boot.js:79 renders the row with no class inside ⚙ Settings ▸ 🔊 Audio (neither wrapper is dev-only; only the 🛠 Dev tools drawer is), only the key fields inside the modal are dev-only (ui-voice-settings.js:49), run-tests.js:1657-1660 and dev/sabotage-622-tts-gateway.js:55-57 fail the build if the row is ever re-flagged, and the beta guide (DOC/beta-guide.html:259) names the reachable path. Fix sketch: **no code change** — `promoted → TODO #622`; verification is the tester opening File ▸ ⚙ Settings ▸ 🔊 Audio ▸ Voice Settings… on a build ≥ v1.1249 (one navigation lag on the cache-first SW). Drift-surface: NO. Risk: moving the row out of the Audio drawer would break the #634 layout contract (run-tests.js:1653). Confidence: high on the mechanism; the Drive screenshot was not fetched.
+
+### Action log
+
+- 2026-10-18 · promoted → TODO #622 (was findings-ready) — the field twin of #622, fixed v1.1249; the next step is the tester opening File ▸ ⚙ Settings ▸ 🔊 Audio ▸ Voice Settings… on a current build.
+
+- 2026-10-31 · verified and moved to Completed at the owner's request. A disposable non-admin beta session on production v1.1334 / server 1.15.0 opened File ▸ Settings ▸ Audio ▸ Voice Settings in onboarding and a browser-local turn-0 game scene. No personal API keys; operator endpoint returned 403; the live Speechify catalog returned 127 voices; one real synthesis returned HTTP 200 and 174,530 PCM bytes, completed 3.636 seconds of Web Audio playback, and metered 83 characters. Saved voice choice reopened correctly. Desktop and 390×844 renders inspected. QA identity, session and test usage removed; revoked token returned 401. This verifies the beta access/audio path, not OAuth sign-in or physical Mac/mobile speaker output. [Verification record](B44_verification_2026-10-31.md).
 
 ## B56 — Node engine fixtures send synthetic failures to the live bug feed
 **Status:** verified (development-loader isolation; full gate and regression proofs pass)
