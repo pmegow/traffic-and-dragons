@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1338",
+      "actions": [
+        "Melting dice flow into one smooth, continuous puddle before dissolving.",
+        "Correct release checksums across Windows and Linux checkouts."
+      ],
+      "sourceCommit": "71ecc4fc76c9128314fe1dae1c2c1226f3c0c919",
+      "commit": "71ecc4fc76c9128314fe1dae1c2c1226f3c0c919",
+      "releasedAt": "2026-11-01T05:20:16Z"
+    },
+    {
       "version": "v1.1337",
       "actions": [
         "Melting dice flow into one continuous puddle before dissolving.",
