@@ -1,7 +1,7 @@
 {
-  "version": "v1.1338",
+  "version": "v1.1339",
   "actions": [
-    "Melting dice flow into one smooth, continuous puddle before dissolving.",
-    "Correct release checksums across Windows and Linux checkouts."
+    "Replace expanding holes with a smooth fade after melting dice flow into one puddle.",
+    "Fade the puddle and its shadow together."
   ]
 }

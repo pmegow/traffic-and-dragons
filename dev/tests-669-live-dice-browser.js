@@ -138,8 +138,8 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       assert.equal(r.unknown,'smoke','an exit the dice no longer have is replaced by the default');
     });
 
-    // The frame-clamped clock needs more rendered frames for Melt than Smoke. Use the same per-frame
-    // allowance: the old 30-second Smoke budget timed out a progressing 3.1-second Melt on CI.
+    // Functional coverage uses native-resolution pixels: desktop supersampling can leave software CI
+    // above 200 ms/frame, outside the quality governor's slow-frame window. The exit clock is frame-clamped.
     await check('#679 Melt is selected, persisted and plays through the real game dismiss flow',async()=>{
       const r=await page.evaluate(until+`(async()=>{
         showDiceLookModal();
@@ -148,11 +148,13 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         sel.value='melt';sel.dispatchEvent(new Event('change'));
         const kept=localStorage.getItem('tnd_dice_exit_v1'),worn=_diceLive.overlay.exit;
         document.getElementById('dice-look-done').click();
+        const view=_diceLive.overlay.view;view.o.supersample=false;view.resize();
         window.__meltClosed=0;
         showDiceRoll(19,{onClose:function(){window.__meltClosed++;}});
         await until(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d20:19';});
         document.getElementById('dice-layer').click();
         const started=diceLiveState().exiting;
+        if(view.renderer.domElement.width<100||view.renderer.domElement.height<100)throw Error('Melt must render in the visible game layer');
         const {EXIT_TABLE}=await import('./roller/render/exit-table.js');
         const dismissMs=Math.ceil(${DISMISS_MS}*EXIT_TABLE.melt.seconds/EXIT_TABLE.smoke.seconds);
         await until(()=>!diceLiveState().showing,dismissMs);

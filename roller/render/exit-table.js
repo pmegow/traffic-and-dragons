@@ -99,7 +99,8 @@ export const SHATTER = {
  * evenness that's the biggest issue. Let's try out first fracturing the die then melting the individual pieces. Break
  * apart the die, let the pieces fall, and try to have some goo stretch between the pieces ... To get rid of the puddle,
  * grow circles of transparency ... Imagine swiss cheese where the holes just expand until it's gone"; the steam was
- * "unnecessary" and is gone, the numerals need not survive).
+ * "unnecessary" and is gone, the numerals need not survive). The owner replaced the hole ending with a whole-puddle
+ * fade on 2026-10-31; the earlier erosion parameters remain only for the dormant experimental helper.
  *
  * It goes soft for `soften`, trembling `wobble` of its height either way at `wobbleHz`, while cracks run over it along
  * the lines it will part on (Shatter's, render/exit-shader.js); then it comes apart into `pieces` ± `vary` soft lumps
@@ -116,10 +117,8 @@ export const SHATTER = {
  * its face's own radius thick within `strandRadius` (R), thinning as it stretches (its volume kept), widest at its
  * ends by `flare`, sagging `sag` of its length and bowing sideways `bow` of it, a way of its own (in over `sagIn`), snapping somewhere past `snap` (R) and springing
  * back over `recoil`, and lying down in the puddle as its pieces melt, as wide again by `strandSpread`; drawn as tubes
- * of `rings` rings of `sides`. The puddle lies `hold`, then holes eat it over `eat` (render/holes.js): `holes`
- * circles, opening over the first `holeOpen` of it, each growing as time to the `holeGrow` (`holeVary` either way,
- * hole to hole), fast enough that the last of it is gone `holeDone` of the way through; the puddle a little darker
- * (`holeShade`) within `holeEdge` m of a hole. The die is cut and split finer (render/subdivide.js, to edges of
+ * of `rings` rings of `sides`. After the pieces have joined, the puddle lies `hold`, then its whole surface and
+ * shadow fade over `fade`. The die is cut and split finer (render/subdivide.js, to edges of
  * `maxEdge` R) while it trembles, at most `workBudget` ms a frame, so no frame stalls.
  *
  * Round 1 (2026-10-28, owner: "come up with a new exit animation, build it") slumped the whole die into one puddle that
@@ -136,13 +135,15 @@ export const MELT = {
   slump: 1.0, flat: 0.24, spread: 0.8, top: 0.3, lump: 0.18, round: 0.8, bulge: 0.15, blob: 1, gloss: 0.12, inkFrom: 0.1, inkTo: 0.6,
   strands: 10, wideFace: 0.25, strandWidth: 0.35, strandRadius: [0.04, 0.11], flare: 0.6, sag: 0.6, sagIn: 0.3,
   snap: [1.1, 2.6], recoil: 0.18, strandSpread: 0.8, bow: [0.15, 0.35], rings: 12, sides: 8,
-  flowDelay: 0.45, flow: 1.0, hold: 0.25, eat: 0.65, holes: 16, holeOpen: 0.55, holeGrow: 1.4, holeVary: 0.3, holeDone: 0.9, holeEdge: 0.0004, holeShade: 0.85,
+  flowDelay: 0.45, flow: 1.0, hold: 0.25, fade: 0.65,
+  // Dormant erosion experiment: its pure geometry helpers remain available, but Melt does not cut holes.
+  eat: 0.65, holes: 16, holeOpen: 0.55, holeGrow: 1.4, holeVary: 0.3, holeDone: 0.9, holeEdge: 0.0004, holeShade: 0.85,
   maxEdge: 0.16, workBudget: 3,
 };
 
-/** Flow starts once the pieces are soft; erosion waits until all liquid has joined and rested. */
+/** Flow starts once the pieces are soft; fading waits until all liquid has joined and rested. */
 export const MELT_FLOWS = MELT.soften + MELT.slumpBy + MELT.flowDelay;
-export const MELT_EATS = Math.max(MELT.soften + MELT.slumpBy + MELT.slump, MELT_FLOWS + MELT.flow) + MELT.hold;
+export const MELT_FADES = Math.max(MELT.soften + MELT.slumpBy + MELT.slump, MELT_FLOWS + MELT.flow) + MELT.hold;
 
 /** When Going down's hole starts to open: the die risen and its beat sat out. */
 export const PIT_OPENS = PIT.rise + PIT.beat;
@@ -158,7 +159,7 @@ export const EXIT_TABLE = {
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
-  melt: { label: 'Melt', seconds: MELT_EATS + MELT.eat },   // 3.1 s: soft pieces flow together, one puddle, expanding holes
+  melt: { label: 'Melt', seconds: MELT_FADES + MELT.fade },   // 3.1 s: soft pieces flow together, one puddle, whole-surface fade
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
   mixed: { label: 'Mixed bag', random: true, each: true },   // owner 2026-10-30: "add a 'mixed bag' to exit animation as well. Random exit animation for each"
 };
@@ -320,8 +321,7 @@ export function shatterTimeline(u) {
 /**
  * Melt, the die's part: wobble (± a share of its height) as it goes soft, swelling and gone again by the break, so the
  * pieces take over from a die at rest; crack (0 … 1), how far the cracks have run, quickly at first; broken from the end
- * of the soften; since, the seconds since it came apart; eaten, the seconds the holes have been eating the puddle
- * (-1 before). Each piece melts on its own clock (meltPiece, meltJiggle).
+ * of the soften; since, the seconds since it came apart; opacity, the whole pool's remaining visibility. Each piece melts on its own clock (meltPiece, meltJiggle).
  */
 export function meltTimeline(u) {
   const t = clamp01(u) * EXIT_TABLE.melt.seconds, s = clamp01(t / MELT.soften);
@@ -331,7 +331,7 @@ export function meltTimeline(u) {
     broken: t >= MELT.soften,
     since: Math.max(0, t - MELT.soften),
     flow: clamp01((t - MELT_FLOWS) / MELT.flow),
-    eaten: t >= MELT_EATS ? t - MELT_EATS : -1,
+    opacity: 1 - smooth(clamp01((t - MELT_FADES) / MELT.fade)),
   };
 }
 

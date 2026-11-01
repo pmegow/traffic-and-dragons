@@ -27,8 +27,8 @@
 //          (render/shards.js), each strike a small click (sound('shard', …)), and fade
 //   melt   Melt: the die goes soft and trembles, cracking along the lines it will part on; it comes apart into soft
 //          lumps that fall away, goo stretching between them (render/goo.js), and each jiggles as it lands and melts
-//          into a glossy blob; the blobs run together into a puddle, which holes eat away until it has gone
-//          (render/holes.js), a low sizzle under it all (sound('melt'))
+//          into a glossy blob; the blobs run together into a puddle, which fades away with its shadow,
+//          a low sizzle under it all (sound('melt'))
 //   random Random: one of the others, picked for each die as it leaves (chooseExit)
 //
 // Effects only draw: nothing here touches the physics, and the timings are the table's. A sound an effect
@@ -40,7 +40,6 @@ import { EXIT_TABLE, SCURRY, BURN, PIT, SHATTER, MELT, meltTimeline, meltPiece, 
 import { fractureSeeds, fracturePieces, pieceCount } from './fracture.js';
 import { burstShards, stepShards, rotate } from './shards.js';
 import { meltRel, fallApart, strandsBetween, strandTubes, writeTube, tubeIndices, TUBE_VERTICES } from './goo.js';
-import { holePlan, holesAt } from './holes.js';
 import { createPoolSurface, PUDDLE } from './puddle.js';
 import { subdividePasses } from './subdivide.js';
 import { blankUV } from './die-mesh.js';
@@ -660,15 +659,14 @@ function startShatter({ view, entry, sound = () => {} }) {
 }
 
 // ---------------------------------------------------------------- melt
-// Round 2 (owner 2026-10-28: "break into gooey parts that form a puddle, then the puddle is eaten away by expanding
-// holes"; round 1 slumped the whole die, and "reads as just the die scaling flat"). The die trembles and cracks along
+// Soft pieces merge into a shared pool, which fades with its shadow. The die trembles and cracks along
 // the lines it will part on (Shatter's cracks) while it is cut (render/fracture.js) and split finer (render/subdivide.js),
 // a few milliseconds a frame; then it comes apart into soft lumps that fall away (render/shards.js with Melt's motion;
 // render/goo.js ▸ fallApart). Each lump is its own copy of the die's material — the same shader, so nothing compiles —
 // and so melts on its own clock as it lands, in its vertex shader (render/exit-shader.js ▸ exitMelt), its shadow with
 // it. The goo between them (render/goo.js) is one mesh whose shape is written each frame, stuck to the melting lumps by
 // the same slump in JS (meltRel). The soft pieces flow inward and sink into one shared liquid surface (puddle.js);
-// their separate shells are retired before holes eat the joined pool (holes.js).
+// their separate shells are retired before the joined pool fades away.
 function startMelt({ view, entry, sound = () => {} }) {
   const mesh = entry.mesh, m = mesh.material, dice = m.userData.dice, uniforms = dice.uniforms, R = entry.die.boundingRadius;
   const centre = mesh.position.clone(), g = mesh.geometry, at = g.attributes, colours = at.color.array;
@@ -683,14 +681,11 @@ function startMelt({ view, entry, sound = () => {} }) {
   seeds.forEach((s, k) => uniforms.uExitSeeds.value[k].set(s[0], s[1], s[2]));
   uniforms.uExitSeedCount.value = seeds.length;
   mesh.customDepthMaterial = exitDepthMaterial(uniforms);   // its shadow trembles with it
-  // Every lump its own copy of the die's material, so each melts on its own; the goo the die's colour, unprinted. All
-  // of them share one set of holes.
+  // Every lump has its own copy of the die's material; the goo and shared pool keep its colour, unprinted.
   const style = { body: '#' + m.color.getHexString(), ink: '#' + uniforms.uInk.value.getHexString() };
-  const holes = Array.from({ length: MELT.holes }, () => new THREE.Vector3());
   const materials = [];
   const copy = (glyph) => {
     const c = dieMaterial(dice.finish, style, glyph, dice.seed, { radius: R, onTray: view.trayDrawn });
-    c.userData.dice.uniforms.uExitHoles.value = holes;
     materials.push(c);
     return c;
   };
@@ -729,7 +724,7 @@ function startMelt({ view, entry, sound = () => {} }) {
     }
   };
   sound('melt', centre);   // a low sizzle under it all (audio/plan.js ▸ EXIT_SOUNDS)
-  let states = null, strands = null, goo = null, plan = null, pool = null, poolSurface = null, lastFlow = -1;
+  let states = null, strands = null, goo = null, pool = null, poolSurface = null, lastFlow = -1;
   // A strand's end on its lump, in the world: carried with the lump, then slumped with it (the shader's sums in JS).
   const anchor = (l, s, a) => {
     const c = l.piece.centroid, r = rotate(s.q, [a[0] - c[0], a[1] - c[1], a[2] - c[2]]);
@@ -771,6 +766,8 @@ function startMelt({ view, entry, sound = () => {} }) {
       geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(3 * size).fill(1), 3));
       const material = copy(glyphOf(0));
       material.roughness = MELT.gloss;
+      material.transparent = true;
+      material.depthWrite = false;
       if (material.transmission > 0) material.thickness = 2 * R * PUDDLE.height;
       pool = new THREE.Mesh(geometry, material);
       pool.position.set(centre.x, 0, centre.z);
@@ -790,11 +787,6 @@ function startMelt({ view, entry, sound = () => {} }) {
     }
     // The remaining solid moves with the liquid feeding the shared surface, then sinks beneath it.
     poolSurface.lobes.forEach((l, k) => { states[k].x[0] = centre.x + l.x; states[k].x[2] = centre.z + l.z; });
-  };
-  const puddle = () => {
-    const samples = poolSurface.samples();
-    const world = p => [centre.x + p[0], centre.z + p[1]];
-    return { points: samples.points.map(world), middles: samples.middles.map(world) };
   };
   const p = new THREE.Vector3(), turn = new THREE.Quaternion(), back = new THREE.Matrix4(), ONE = new THREE.Vector3(1, 1, 1);
   return {
@@ -855,11 +847,9 @@ function startMelt({ view, entry, sound = () => {} }) {
       });
       P.needsUpdate = true;
       N.needsUpdate = true;
-      if (t.eaten >= 0) {
-        if (!plan) { const { points, middles } = puddle(); plan = holePlan(points, middles); }
-        const open = holesAt(plan, t.eaten);
-        open.forEach((h, k) => holes[k].set(h[0], h[1], h[2]));
-        for (const c of materials) c.userData.dice.uniforms.uExitHoleCount.value = open.length;
+      if (pool) {
+        pool.material.opacity = t.opacity;
+        pool.material.userData.dice.uniforms.uExitFade.value = t.opacity;
       }
     },
     dispose() {
