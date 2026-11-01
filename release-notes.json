@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1336",
+      "actions": [
+        "Add Melt: dice soften into glossy puddles, stretch into goo, and disappear through expanding holes.",
+        "Prepare melting shadows during loading to prevent a cold animation pause."
+      ],
+      "sourceCommit": "4a5b91f34dcdd436b7d6ded7673387050b2adfcc",
+      "commit": "4a5b91f34dcdd436b7d6ded7673387050b2adfcc",
+      "releasedAt": "2026-11-01T04:30:04Z"
+    },
+    {
       "version": "v1.1335",
       "actions": [
         "Bug reports now include the signed-in reporter’s username in email notifications and the bug tracker.",
