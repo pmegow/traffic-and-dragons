@@ -130,12 +130,31 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         localStorage.removeItem('tnd_dice_exit_v1');
         return {options,selected,kept,worn,exiting,unknown};
       })()`);
-      assert.equal(r.options.join(', '),'none=None, burn=Burn out, smoke=Smoke puff, pit=Going down, fade=Fade, scurry=Scurry off, shatter=Shatter, random=Random, mixed=Mixed bag');   // Melt shelved by the owner 2026-10-28 (dice-sim v0.58.0); Mixed bag (each die its own exit) added 2026-10-30 (dice-sim v0.78.0)
+      assert.equal(r.options.join(', '),'none=None, burn=Burn out, smoke=Smoke puff, pit=Going down, fade=Fade, scurry=Scurry off, shatter=Shatter, melt=Melt, random=Random, mixed=Mixed bag');   // Melt reopened in dice-sim 0.81.0.
       assert.equal(r.selected,'smoke');
       assert.equal(r.kept,'none');
       assert.equal(r.worn,'none','the overlay wears it at once');
       assert.equal(r.exiting,0,'None: the dice go with the fade, no exit');
       assert.equal(r.unknown,'smoke','an exit the dice no longer have is replaced by the default');
+    });
+
+    await check('#679 Melt is selected, persisted and plays through the real game dismiss flow',async()=>{
+      const r=await page.evaluate(until+`(async()=>{
+        showDiceLookModal();
+        await until(()=>document.querySelectorAll('#dice-exit option').length>0,5000);
+        const sel=document.getElementById('dice-exit');
+        sel.value='melt';sel.dispatchEvent(new Event('change'));
+        const kept=localStorage.getItem('tnd_dice_exit_v1'),worn=_diceLive.overlay.exit;
+        document.getElementById('dice-look-done').click();
+        window.__meltClosed=0;
+        showDiceRoll(19,{onClose:function(){window.__meltClosed++;}});
+        await until(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d20:19';});
+        document.getElementById('dice-layer').click();
+        const started=diceLiveState().exiting;
+        await until(()=>!diceLiveState().showing,${DISMISS_MS});
+        return {kept,worn,started,remaining:diceLiveState().exiting,closed:window.__meltClosed};
+      })()`);
+      assert.deepEqual(r,{kept:'melt',worn:'melt',started:1,remaining:0,closed:1});
     });
 
     await check('no page errors',async()=>{assert.deepEqual(errors,[]);});

@@ -587,6 +587,12 @@ export class DiceView {
       this.renderer.setRenderTarget(before);
     }
     const ready = Promise.all([this.renderer.compileAsync(onScreen, this.camera, this.scene), shadows])
+      .then(() => {
+        // Compiling alone leaves the driver's first draw deferred until the die melts.
+        if (this.warm.get(finish)?.ready !== ready) return;
+        this.scene.add(made.pipeline);
+        try { this.render(); } finally { this.scene.remove(made.pipeline); }
+      })
       .catch((e) => console.error('DiceView: the exit shaders could not be readied ahead, so an exit may stall to compile them:', e))
       .finally(() => target.dispose());
     this.warm.set(finish, { ready, dispose: made.dispose });

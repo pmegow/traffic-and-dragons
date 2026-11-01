@@ -48,6 +48,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
     uExitMeltInverse: { value: new THREE.Matrix4() },
     uExitMeltSeed: { value: 0 },
     uExitMeltFoot: { value: 0 },
+    uExitMeltCenterY: { value: 0 },
     uExitInk: { value: 1 },   // Melt fades a melting lump's numerals
     uExitHoles: { value: Array.from({ length: MELT.holes }, () => new THREE.Vector3()) },   // Melt's holes in the puddle
     uExitHoleCount: { value: 0 },

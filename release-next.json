@@ -1,7 +1,7 @@
 {
-  "version": "v1.1335",
+  "version": "v1.1336",
   "actions": [
-    "Bug reports now include the signed-in reporter’s username in email notifications and the bug tracker.",
-    "Reports from several players retain each reporter’s name when combined during bug sync."
+    "Add Melt: dice soften into glossy puddles, stretch into goo, and disappear through expanding holes.",
+    "Prepare melting shadows during loading to prevent a cold animation pause."
   ]
 }

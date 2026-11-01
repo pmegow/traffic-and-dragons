@@ -133,11 +133,11 @@ export const MELT = {
   gravity: SHATTER.gravity, substep: SHATTER.substep,
   bounce: 0, bounceSpeed: Infinity, friction: 0.35, settle: 12, restSpeed: 0.004, restSpin: 0.8, hitSpeed: Infinity, hitsHeard: 0,
   jiggle: 0.08, jiggleHz: 9, jiggleDecay: 7, land: 0.08, slumpBy: 0.4,
-  slump: 0.7, flat: 0.14, spread: 0.8, top: 0.3, lump: 0.18, round: 0.8, bulge: 0.15, blob: 0.85, gloss: 0.12, inkFrom: 0.1, inkTo: 0.6,
+  slump: 1.0, flat: 0.24, spread: 0.8, top: 0.3, lump: 0.18, round: 0.8, bulge: 0.15, blob: 1, gloss: 0.12, inkFrom: 0.1, inkTo: 0.6,
   strands: 10, wideFace: 0.25, strandWidth: 0.35, strandRadius: [0.04, 0.11], flare: 0.6, sag: 0.6, sagIn: 0.3,
   snap: [1.1, 2.6], recoil: 0.18, strandSpread: 0.8, bow: [0.15, 0.35], rings: 12, sides: 8,
-  hold: 0.15, eat: 1.1, holes: 16, holeOpen: 0.55, holeGrow: 1.4, holeVary: 0.3, holeDone: 0.9, holeEdge: 0.0004, holeShade: 0.85,
-  maxEdge: 0.25, workBudget: 3,
+  hold: 0.25, eat: 1.1, holes: 16, holeOpen: 0.55, holeGrow: 1.4, holeVary: 0.3, holeDone: 0.9, holeEdge: 0.0004, holeShade: 0.85,
+  maxEdge: 0.16, workBudget: 3,
 };
 
 /** When Melt's holes start to eat the puddle: every piece has melted (each starts `slumpBy` after the break at the latest). */
@@ -157,9 +157,7 @@ export const EXIT_TABLE = {
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
-  // Shelved (owner 2026-10-28, after round 2: "it's not quite working yet. Let's take it out of the menu for now, but
-  // retain the code so we can finesse it later").
-  melt: { label: 'Melt', seconds: MELT_EATS + MELT.eat, shelved: true },   // 2.7 s (round 2, 2026-10-28)
+  melt: { label: 'Melt', seconds: MELT_EATS + MELT.eat },   // 3.1 s: soft pieces, liquid puddle, expanding holes
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
   mixed: { label: 'Mixed bag', random: true, each: true },   // owner 2026-10-30: "add a 'mixed bag' to exit animation as well. Random exit animation for each"
 };

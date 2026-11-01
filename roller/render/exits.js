@@ -734,7 +734,7 @@ function startMelt({ view, entry, sound = () => {} }) {
     const c = l.piece.centroid, r = rotate(s.q, [a[0] - c[0], a[1] - c[1], a[2] - c[2]]);
     const rel = [r[0], s.x[1] + r[1], r[2]];   // from the lump's centre on the floor
     if (!l.melt && !l.wobble) return [s.x[0] + rel[0], rel[1], s.x[2] + rel[2]];
-    const q = meltRel(rel, { melt: l.melt, wobble: l.wobble, w: l.w, foot: l.foot, seed: l.uniforms.uExitMeltSeed.value });
+    const q = meltRel(rel, { melt: l.melt, wobble: l.wobble, w: l.w, foot: l.foot, centreY: s.x[1], seed: l.uniforms.uExitMeltSeed.value });
     return [s.x[0] + q[0], q[1], s.x[2] + q[2]];
   };
   const breakApart = () => {
@@ -768,7 +768,7 @@ function startMelt({ view, entry, sound = () => {} }) {
       const s = states[k], pos = l.mesh.geometry.attributes.position, mine = [];
       for (let i = 0; i < pos.count; i += PUDDLE_SAMPLE) {
         v.fromBufferAttribute(pos, i).applyMatrix4(l.mesh.matrix);
-        const q = meltRel([v.x - s.x[0], v.y, v.z - s.x[2]], { melt: l.melt, wobble: 0, w: l.w, foot: l.foot, seed: l.uniforms.uExitMeltSeed.value });
+        const q = meltRel([v.x - s.x[0], v.y, v.z - s.x[2]], { melt: l.melt, wobble: 0, w: l.w, foot: l.foot, centreY: s.x[1], seed: l.uniforms.uExitMeltSeed.value });
         mine.push([s.x[0] + q[0], s.x[2] + q[2], Math.hypot(q[0], q[2])]);
       }
       const reach = Math.max(...mine.map((p) => p[2]));
@@ -812,6 +812,7 @@ function startMelt({ view, entry, sound = () => {} }) {
         l.uniforms.uExitMeltAt.value.set(s.x[0], 0, s.x[2], l.w);   // its centre on the floor, and its size
         l.uniforms.uExitMeltInverse.value.copy(l.mesh.matrix).invert();
         l.uniforms.uExitMeltFoot.value = l.foot;
+        l.uniforms.uExitMeltCenterY.value = s.x[1];
         l.material.roughness = rough + (MELT.gloss - rough) * l.melt;   // wet as it melts
         // Its numerals fade as it melts, their engraving with them (owner: "preserving the numbers isn't important").
         const ink = 1 - smoothstep01((l.melt - MELT.inkFrom) / (MELT.inkTo - MELT.inkFrom));
@@ -887,7 +888,7 @@ function exitDepthMaterial(u) {
   const m = new THREE.MeshDepthMaterial();
   m.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, { uScale: u.uScale, uSeed: u.uSeed, uExitDissolve: u.uExitDissolve, uExitClipY: u.uExitClipY, uExitFade: u.uExitFade,
-      uExitMelt: u.uExitMelt, uExitWobble: u.uExitWobble, uExitMeltAt: u.uExitMeltAt, uExitMeltInverse: u.uExitMeltInverse, uExitMeltSeed: u.uExitMeltSeed, uExitMeltFoot: u.uExitMeltFoot,
+      uExitMelt: u.uExitMelt, uExitWobble: u.uExitWobble, uExitMeltAt: u.uExitMeltAt, uExitMeltInverse: u.uExitMeltInverse, uExitMeltSeed: u.uExitMeltSeed, uExitMeltFoot: u.uExitMeltFoot, uExitMeltCenterY: u.uExitMeltCenterY,
       uExitHoles: u.uExitHoles, uExitHoleCount: u.uExitHoleCount });
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vPatternPos;\n' + EXIT_VERTEX_PARS)
@@ -1016,13 +1017,21 @@ export function exitWarmUp(view, style = view.o.dieStyle) {
   const f = FINISHES[style.finish], far = f.transmission > 0 && f.doubleSided ? dieMaterial(style.finish, style, glyphOf(0), 0, { radius: 0.012, onTray: view.trayDrawn }) : null;
   if (far) { far.transparent = true; far.side = THREE.BackSide; }   // its far faces, into the transmission buffer
   const box = paintWhite(new THREE.BoxGeometry(0.01, 0.01, 0.01)), flat = new THREE.PlaneGeometry(0.01, 0.01);
+  // Melt needs the opaque surface AND the deformed shadow pipeline drawn before the first exit.
+  const liquid = dieMaterial(style.finish, style, glyphOf(0), 0, { radius: 0.012, onTray: view.trayDrawn });
+  const pipeline = new THREE.Mesh(box, liquid);
+  pipeline.castShadow = pipeline.receiveShadow = true;
+  pipeline.customDepthMaterial = depth;
+  pipeline.frustumCulled = false;
+  pipeline.scale.setScalar(0);
   const looks = ['glow', 'soft', 'smoke'].map((look) => createParticles({ max: 1, look }));
   const discs = [GLOW_FRAGMENT, STAIN_FRAGMENT, HOLE_FRAGMENT, HELL_GLOW_FRAGMENT].map((f) => discMaterial(f, THREE.NormalBlending));
   return {
-    screen: [new THREE.Mesh(box, see), ...looks.map((p) => p.points), ...discs.map((m) => new THREE.Mesh(flat, m))],
+    pipeline,
+    screen: [pipeline, new THREE.Mesh(box, see), ...looks.map((p) => p.points), ...discs.map((m) => new THREE.Mesh(flat, m))],
     offscreen: [new THREE.Mesh(box, depth), ...(far ? [new THREE.Mesh(box, far)] : [])],
     dispose() {
-      see.dispose(); depth.dispose(); box.dispose(); flat.dispose();
+      see.dispose(); liquid.dispose(); depth.dispose(); box.dispose(); flat.dispose();
       if (far) far.dispose();
       for (const p of looks) p.dispose();
       for (const m of discs) m.dispose();

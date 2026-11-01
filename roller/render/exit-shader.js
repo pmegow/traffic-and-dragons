@@ -29,6 +29,7 @@ uniform float uExitWobble;
 uniform vec4 uExitMeltAt;
 uniform mat4 uExitMeltInverse;
 uniform float uExitMeltSeed;
+uniform float uExitMeltCenterY;   // interior of the convex lump: projecting from outside folds its surface
 uniform float uExitMeltFoot;   // a lump's foot (m): how far it reaches from its centre as it lands
 const float EXIT_MELT_FLAT = ${glslFloat(MELT.flat)};
 const float EXIT_MELT_SPREAD = ${glslFloat(MELT.spread)};
@@ -61,7 +62,12 @@ vec3 exitMeltRel( vec3 rel ) {
   float puddle = foot * ( 1.0 + EXIT_MELT_SPREAD ) * rim * ( 1.0 - h );   // the round outline, for its foot
   reach = mix( reach, puddle * min( r / ( 0.6 * foot ), 1.0 ), uExitMelt * EXIT_MELT_ROUND * ( 1.0 - h ) * ( 1.0 - h ) );
   reach += uExitMelt * EXIT_MELT_BULGE * uExitMeltAt.w * sin( 3.14159265 * h );
-  return vec3( dir.x * reach, max( rel.y, 0.0 ) * s.x, dir.y * reach );
+  vec3 ray = vec3( rel.x / foot, ( rel.y - uExitMeltCenterY ) / uExitMeltAt.w, rel.z / foot );
+  ray /= max( length( ray ), 1e-6 );
+  float width = foot * ( 1.0 + EXIT_MELT_SPREAD ) * rim, height = uExitMeltAt.w * EXIT_MELT_FLAT;
+  vec3 liquid = vec3( ray.x * width, ( 1.0 + ray.y ) * height, ray.z * width );
+  vec3 shaped = vec3( dir.x * reach, max( rel.y, 0.0 ) * s.x, dir.y * reach );
+  return mix( shaped, liquid, uExitMelt * uExitMelt );
 }
 vec3 exitMelt( vec3 p ) {
   vec3 rel = exitMeltRel( ( modelMatrix * vec4( p, 1.0 ) ).xyz - uExitMeltAt.xyz );
@@ -75,8 +81,11 @@ vec3 exitMeltNormal( vec3 p, vec3 n ) {
   w = normalize( vec3( w.x / s.y, w.y / s.x, w.z / s.y ) );
   // Blended toward a smooth blob's: the normal of a low dome over the puddle, at where the point has gone.
   vec3 q = exitMeltRel( rel );
-  float wide = max( uExitMeltFoot * ( 1.0 + 0.6 * EXIT_MELT_SPREAD ), 1e-4 ), high = max( 2.0 * uExitMeltAt.w * s.x, 1e-4 );
-  vec3 blob = normalize( vec3( q.x / ( wide * wide ), q.y / ( high * high ), q.z / ( wide * wide ) ) );
+  float a = atan( q.z, q.x );
+  float rim = 1.0 + EXIT_MELT_LUMP * ( 0.6 * sin( 3.0 * a + uExitMeltSeed ) + 0.4 * sin( 5.0 * a + 2.3 * uExitMeltSeed ) );
+  float wide = max( uExitMeltFoot * ( 1.0 + EXIT_MELT_SPREAD ) * rim, 1e-4 ), high = max( uExitMeltAt.w * s.x, 1e-4 );
+  vec3 slope = vec3( q.x / ( wide * wide ), ( q.y - high ) / ( high * high ), q.z / ( wide * wide ) );
+  vec3 blob = length( slope ) > 1e-6 ? normalize( slope ) : vec3( 0.0, 1.0, 0.0 );
   w = normalize( mix( w, blob, uExitMelt * EXIT_MELT_BLOB ) );
   return transpose( turn ) * w;
 }

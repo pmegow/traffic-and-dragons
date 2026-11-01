@@ -45,7 +45,15 @@ export function meltRel(rel, o) {
   const puddle = foot * (1 + MELT.spread) * rim * (1 - h);   // the round outline, for its foot
   reach += (puddle * Math.min(r / (0.6 * foot), 1) - reach) * melt * MELT.round * (1 - h) * (1 - h);
   reach += melt * MELT.bulge * w * Math.sin(Math.PI * h);
-  return [dx * reach, Math.max(rel[1], 0) * squash, dz * reach];
+  // A fractured face stays planar under squash alone. Morph its surface rays onto a closed liquid
+  // ellipsoid as it melts; the shader uses the same map for the surface and its shadow.
+  const ray = [rel[0] / foot, (rel[1] - (o.centreY ?? w)) / w, rel[2] / foot];
+  const length = Math.max(Math.hypot(...ray), 1e-6);
+  const width = foot * (1 + MELT.spread) * rim, height = w * MELT.flat;
+  const liquid = [ray[0] / length * width, (1 + ray[1] / length) * height, ray[2] / length * width];
+  const soft = melt * melt;
+  const shaped = [dx * reach, Math.max(rel[1], 0) * squash, dz * reach];
+  return shaped.map((v, k) => v + (liquid[k] - v) * soft);
 }
 
 function rimOf(a, seed) {
