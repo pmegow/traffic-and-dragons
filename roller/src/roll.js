@@ -32,12 +32,12 @@ import { v3, add, scale, dot, cross, normalize, qrotate, qmul, qnormalize, mvec,
 import { VERSION } from './version.js';
 
 export const TRAY_DEFAULTS = {
-  width: 0.26,        // m along x (a small dice tray: dice reach the walls and show up on screen)
-  depth: 0.17,        // m along z
+  width: 0.13,        // m along x at scale 1 (the former 0.5 tray)
+  depth: 0.085,       // m along z at scale 1
   height: 0.3,        // m: the ceiling that keeps dice in the tray
   surface: 'felt',    // the floor (SURFACES)
   walls: 'felt',      // the four walls (SURFACES)
-  scale: 0.6,         // multiplies the default width and depth (owner 2026-10-24: the full-size tray was much too large on screen)
+  scale: 1.2,         // preserves the core's 15.6 × 10.2 cm default; the view opens at scale 1
   // bounds (optional): side planes [{ normal: {x, y, z}, offset }] in place of the four walls — the normal is a
   //   direction (it is normalised) and a point p is inside when n̂·p ≥ offset, metres along it. The renderer passes
   //   the screen's edges here when no tray is drawn (render/framing.js ▸ screenBounds; owner 2026-10-24). The floor
@@ -55,7 +55,7 @@ export const ROLL_DEFAULTS = {
   minTurns: 0.25,          // the dice must average at least this many turns after reaching the floor — a roll
                            // that only slid looks staged (a lone die: its own turns; a game's big d20 might ask 1.5).
                            // An average, not a per-die floor: in a crowd one die knocked flat is a natural roll.
-                           // A small felt tray tumbles little (mean 0.35–0.7 turns in the 0.6 tray, measured
+                           // A small felt tray tumbles little (mean 0.35–0.7 turns in the 15.6 × 10.2 cm tray, measured
                            // 2026-10-24, whatever the strength or spin), so the default only rejects a slide.
   cockedAlignment: 0.985,  // the up feature's alignment with vertical below this = cocked (≈ 10°)
   tips: 3,                 // times a die coming to rest cocked may be eased flat before the roll is thrown again (0 = re-throw at once)

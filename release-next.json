@@ -1,7 +1,6 @@
 {
-  "version": "v1.1339",
+  "version": "v1.1340",
   "actions": [
-    "Replace expanding holes with a smooth fade after melting dice flow into one puddle.",
-    "Fade the puddle and its shadow together."
+    "Set the dice roller’s default tray size to 1 while preserving its visible dice size and full adjustment range."
   ]
 }

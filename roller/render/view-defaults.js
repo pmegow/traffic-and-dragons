@@ -4,9 +4,9 @@
 export const VIEW_DEFAULTS = {
   transparent: false,
   // A partial TRAY_DEFAULTS (src/roll.js), merged over by a host's own tray option. The view opens on
-  // stone at half size (owner 2026-10-24: "make these the defaults"); the core's own roll() default
-  // stays felt at 0.6, so a headless roll's physics are unchanged.
-  tray: { surface: 'stone', walls: 'stone', scale: 0.5 },
+  // stone at scale 1 (13 × 8.5 cm); the core's own roll() default stays felt at 1.2
+  // (15.6 × 10.2 cm). Explicit width and depth are metres, independent of scale.
+  tray: { surface: 'stone', walls: 'stone', scale: 1 },
   // finish: a FINISHES key; font: a NUMERAL_FONTS key. Owner 2026-10-24: violet glass, white sans numerals.
   dieStyle: { body: '#8a49a2', ink: '#ffffff', finish: 'glass', font: 'sans' },
   dimOthers: 0.82,                           // by the end, the faces not showing the result have darkened to this (1 = off)
