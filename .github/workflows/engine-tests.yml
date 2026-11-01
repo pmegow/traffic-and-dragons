@@ -140,6 +140,8 @@ jobs:
         run: node dev/tests-501-shop-button-browser.js
       - name: The live dice in the game page (#669)
         run: node dev/tests-669-live-dice-browser.js
+      - name: Reporter usernames in live and filed bug cards (#678)
+        run: node dev/tests-678-reporter-browser.js
       - name: Personalized invitation composer and preview (#676)
         run: node dev/tests-676-invitation-composer-browser.js
       - name: Gmail invitation controls and acceptance (#675)

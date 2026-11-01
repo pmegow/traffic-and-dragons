@@ -58,6 +58,7 @@
          background:var(--bg1);border:1px solid var(--line);border-radius:6px;padding:3px 8px;
          white-space:nowrap;z-index:1;}
   .xhint.fail{color:var(--bad);}
+  .reporter{overflow-wrap:anywhere;}
   .row1{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
   .bid{font-family:Consolas,Menlo,monospace;color:var(--acc);font-weight:700;}
   .tldr{font-weight:600;flex:1;min-width:200px;}
@@ -175,6 +176,32 @@ function ignoreBtn(card,id){
   return b;
 }
 
+// Reporter metadata is diagnostic, not an authorization claim; all names use the inert sink.
+function reporterData(value){
+  if(!value||typeof value!=="object")return null;
+  if(value.state==="account"&&typeof value.username==="string"&&value.username.trim())return {username:value.username.replace(/\s+/g," ").trim().slice(0,120),state:"account"};
+  if(value.state==="signed-out"||value.state==="unavailable")return {username:null,state:value.state};
+  return null;
+}
+function reportReporter(report){
+  if(!report||typeof report!=="object")return null;
+  var named=reporterData(report.reporter);if(named)return named;
+  var match=String(report.detail||"").match(/^Reporter: (\{[^\r\n]*\})(?:\r?\n|$)/);
+  if(match){try{return reporterData(JSON.parse(match[1]));}catch(e){return null;}}
+  return null;
+}
+function filedReporters(body,report){
+  var found=[],section=body.match(/### Reporters[^\n]*\n+```json\n([\s\S]*?)\n```/),data,i;
+  if(section){try{data=JSON.parse(section[1]);if(Array.isArray(data))for(i=0;i<data.length;i++){var item=reporterData(data[i]);if(item)found.push(item);}}catch(e){/* malformed metadata remains visible in its source record */}}
+  if(!found.length&&report){try{var named=reportReporter(JSON.parse(report));if(named)found.push(named);}catch(e){/* older report bodies are prose and contain no structured account metadata */}}
+  return found;
+}
+function reporterNode(reporters){
+  var labels=[];
+  (reporters||[]).forEach(function(r){var label=r.state==="account"?r.username:r.state==="signed-out"?"Not signed in":"Unavailable";if(labels.indexOf(label)<0)labels.push(label);});
+  return el("div","meta reporter","Reported by: "+(labels.length?labels.join(", "):"Not recorded"));
+}
+
 // ── DOC/BUGS.md parser — tolerant; format contract lives in that file's header ────────────────
 function parseBugs(md){
   var bugs=[],section="";
@@ -206,6 +233,7 @@ function parseBugs(md){
     if(rid)rid[1].trim().split(/[\s,]+/).forEach(function(x){if(x)bug.ids.push(x);});
     var rep=body.match(/### Report[^\n]*\n+```text\n([\s\S]*?)\n```/);
     if(rep)bug.report=rep[1];
+    bug.reporters=filedReporters(body,bug.report);
     var fin=body.match(/### Findings\n([\s\S]*?)(?=\n### |$)/);
     if(fin)bug.findings=fin[1].trim();
     var act=body.match(/### Action log\n([\s\S]*?)(?=\n### |$)/);
@@ -222,6 +250,7 @@ function renderBug(b){
   r1.appendChild(el("span","badge "+(STATUS_CLASS[b.status]||"b-dim"),b.status));
   r1.appendChild(el("span","tldr",b.tldr));
   card.appendChild(r1);
+  card.appendChild(reporterNode(b.reporters));
   if(b.meta.length)card.appendChild(el("div","meta",b.meta.join("\n")));
   if(b.shot){
     var sd=el("div","meta shot");
@@ -285,6 +314,8 @@ function renderFeedReport(r){
   r1.appendChild(el("span","badge b-new","unfiled"));
   r1.appendChild(el("span","tldr",String(r.message||"(no message)").slice(0,160)));
   card.appendChild(r1);
+  var reporter=reportReporter(r);
+  card.appendChild(reporterNode(reporter?[reporter]:[]));
   card.appendChild(el("div","meta",
     "Kind: "+r.kind+" · Received: "+r.receivedAt+" · App: "+r.app
     +" · Campaign: "+(r.camp||"—")+" · Turn: "+(r.turn===""?"—":r.turn)+" · id: "+r.id));

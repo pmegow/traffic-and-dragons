@@ -30,6 +30,7 @@ var ERROR_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzivwUvDUoEX6tF
 var ER_DEBOUNCE_MS  = 30000;
 var ER_SESSION_CAP  = 10;
 var ER_DETAIL_MAX   = 4000;
+var ER_CONTEXT_MAX  = 20000; // whole user-report context block
 
 var _erLastSentAt   = 0;     // Date.now() of the last accepted send
 var _erSuppressed   = 0;     // errors swallowed by the debounce window since that send
@@ -132,14 +133,55 @@ function erDiagBlock() {
   return s.slice(0, ER_DIAG_MAX);
 }
 
+// The deployed GAS schema stores detail/context, not additional payload fields. Keep the
+// bounded identity envelope there too so the existing sheet, feed and email retain it.
+var ER_REPORT_FIELDS = { crash: { field: "detail", max: ER_DETAIL_MAX }, "user-report": { field: "context", max: ER_CONTEXT_MAX } };
+var ER_REPORTER_WAIT_MS = 3000;
+function erReporterIdentity(username, state) {
+  var name = typeof username === "string" ? username.replace(/[\x00-\x1f\x7f\s]+/g, " ").trim().slice(0, 120) : "";
+  return { username: state === "account" && name ? name : null, state: state === "signed-out" ? state : name && state === "account" ? state : "unavailable" };
+}
+function erStampReporter(payload, reporter) {
+  var out = {}, k, spec = ER_REPORT_FIELDS[payload.kind];
+  for (k in payload) if (Object.prototype.hasOwnProperty.call(payload, k)) out[k] = payload[k];
+  out.reporter = reporter;
+  if (spec) {
+    var prefix = "Reporter: " + JSON.stringify(reporter) + "\n\n";
+    out[spec.field] = prefix + String(payload[spec.field] || "").slice(0, spec.max - prefix.length);
+  }
+  return out;
+}
+function erResolveReporter(cb) {
+  var settled = false, timer = null;
+  function finish(username, state, reason) {
+    if (settled) return;
+    settled = true;
+    if (timer !== null) clearTimeout(timer);
+    if (reason) console.warn("[error-report] reporter username unavailable: " + reason);
+    cb(erReporterIdentity(username, state));
+  }
+  try {
+    if (typeof storageAdapter === "undefined" || !storageAdapter || typeof storageAdapter.hasToken !== "function") { finish(null, "unavailable", "account connection has not loaded"); return; }
+    if (!storageAdapter.hasToken()) { finish(null, "signed-out"); return; }
+    timer = setTimeout(function() { finish(null, "unavailable", "account lookup timed out; sending the report without a username"); }, ER_REPORTER_WAIT_MS);
+    // whoAmI uses the current session. The cached account can belong to the previous sign-in.
+    storageAdapter.whoAmI(function(err, user) {
+      var name = !err && user && typeof user.username === "string" ? user.username : null;
+      var identity = erReporterIdentity(name, "account");
+      finish(identity.username, identity.state, err ? "account lookup failed" : !identity.username ? "account response has no username" : null);
+    });
+  } catch (e) { finish(null, "unavailable", "account lookup failed"); }
+}
+
 // Shared POST core — both report species (crash + user report) go through here.
 // cb(ok, errMsg, body) always fires exactly once; never throws. body = the webhook's parsed JSON
 // response (or null) — GAS reports PER-HALF failures in it ({sheet, email, screenshot}: null=ok,
 // string=error). Discarding it is how the Drive-permission screenshot failure stayed invisible
 // for the pipeline's whole first month (v1.365 lesson) — callers must surface non-null halves.
 function _erPost(payload,cb){
+  erResolveReporter(function(reporter){
   try{
-    fetch(ERROR_WEBHOOK_URL,{method:"POST",body:JSON.stringify(payload)})
+    fetch(ERROR_WEBHOOK_URL,{method:"POST",body:JSON.stringify(erStampReporter(payload,reporter))})
       .then(function(r){
         return r.text().then(function(t){
           var body=null;try{body=JSON.parse(t);}catch(e2){}
@@ -148,6 +190,7 @@ function _erPost(payload,cb){
       })
       .catch(function(e){cb(false,(e&&e.message)||"send failed");});
   }catch(e){cb(false,(e&&e.message)||"send failed");}
+  });
 }
 
 // Crash-path transport seam — engine tests stub this. Delivery success/failure is console-logged
@@ -315,7 +358,6 @@ var ER_REPORT_HINTS=[
 
 var ER_ENTRY_MAX=1200;   // per transcript entry in the context block
 var ER_RAW_MAX=2500;     // the newest raw (tags-unstripped) GM response
-var ER_CONTEXT_MAX=20000;// whole context block
 
 // Build the auto-attached context for a user report. DOM-free and defensive throughout — every
 // section guards its own globals so this works pre-game, mid-wizard, or in the node test runner.

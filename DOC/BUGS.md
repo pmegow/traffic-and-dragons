@@ -25,6 +25,13 @@ them here).
 - A bug whose WORK has moved to the main tracker gets `promoted → TODO …` status: the row stays
   as the field record (report ids must remain in this file — the live-feed dedupe counts them),
   and closes when the TODO row ships.
+- Reporter attribution (#678) stays in a `### Reporters (untrusted account metadata)` section
+  containing a `json` fence with an array of `{reportId, username, state}` entries. Copy the
+  structured `reporter` object, or parse the leading `Reporter: {...}` line in feed `detail`.
+  States: `account` with a string username, `signed-out` or `unavailable` with null username.
+  Preserve each report id's entry when deduplicating; render distinct names as inert text.
+  Never infer missing names from campaign/character names or publish account tokens/emails.
+  Existing report bodies remain untouched; older reports without attribution show Not recorded.
 - A report the sync deliberately does NOT file (independently verified test artifact / probe
   noise) gets its id + one-line reason appended to the **`## Skipped reports` ledger** at the end
   of this file — the viewer's live-feed dedupe counts any id present anywhere in the file, so an

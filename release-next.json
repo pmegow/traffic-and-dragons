@@ -1,7 +1,7 @@
 {
-  "version": "v1.1334",
+  "version": "v1.1335",
   "actions": [
-    "The die you are asked to roll now waits ready at the bottom of the story; Roll throws it from where it lies.",
-    "Hold back, or the car screen, takes the waiting die away quietly."
+    "Bug reports now include the signed-in reporter’s username in email notifications and the bug tracker.",
+    "Reports from several players retain each reporter’s name when combined during bug sync."
   ]
 }

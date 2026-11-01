@@ -16334,6 +16334,28 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return all[all.length-1].n===STT_LOG_CAP+4?true:"newest lost: "+JSON.stringify(all[all.length-1]);
   });
 
+  section("Reporter username (#678)");
+  t("#678 reporter metadata survives the deployed webhook detail fields for both report kinds",function(){
+    var specs=[{kind:"crash",field:"detail",cap:ER_DETAIL_MAX},{kind:"user-report",field:"context",cap:ER_CONTEXT_MAX}],i;
+    for(i=0;i<specs.length;i++){
+      var spec=specs[i],p={kind:spec.kind,msg:"crash",report:"player words"};p[spec.field]=new Array(spec.cap+20).join("x");
+      var out=erStampReporter(p,erReporterIdentity("Mira Vale","account")),line=out[spec.field].split("\n")[0];
+      if(line!=="Reporter: "+JSON.stringify({username:"Mira Vale",state:"account"}))return "missing persisted reporter header for "+spec.kind;
+      if(out[spec.field].length>spec.cap)return "reporter exceeds "+spec.kind+" body budget";
+      if(out[spec.field].split("\n\n")[1].slice(0,20)!==new Array(21).join("x"))return "primary diagnostic content lost";
+      if(out.msg!==p.msg||out.report!==p.report)return "reporter's own message changed";
+    }
+    return true;
+  });
+  t("#678 reporter identity is a bounded username, never account credentials or character names",function(){
+    var named=erReporterIdentity("  Mira\r\nVale\t ","account");
+    if(named.username!=="Mira Vale"||named.state!=="account")return "username not normalized";
+    if(erReporterIdentity(new Array(200).join("x"),"account").username.length!==120)return "username cap missing";
+    if(erReporterIdentity({username:"Mira",email:"private@example.invalid",token:"secret"},"account").username!==null)return "non-string account data accepted";
+    if(erReporterIdentity("","account").state!=="unavailable")return "empty account username presented as identified";
+    return true;
+  });
+
   // ── error reporting (#16) — flood control + payload, transport stubbed ───────
   section("reportError (#16)");
   var __erOrigSend=_erSend,__erSent=[];
