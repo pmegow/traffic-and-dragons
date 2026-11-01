@@ -1,7 +1,7 @@
 {
-  "version": "v1.1337",
+  "version": "v1.1338",
   "actions": [
-    "Melting dice flow into one continuous puddle before dissolving.",
-    "Remove separate blob rims and keep the liquid outline smooth."
+    "Melting dice flow into one smooth, continuous puddle before dissolving.",
+    "Correct release checksums across Windows and Linux checkouts."
   ]
 }

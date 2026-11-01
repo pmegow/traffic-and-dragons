@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1337",
+      "actions": [
+        "Melting dice flow into one continuous puddle before dissolving.",
+        "Remove separate blob rims and keep the liquid outline smooth."
+      ],
+      "sourceCommit": "e3ac1641b23fb708291e055ce93e570c70514237",
+      "commit": "e3ac1641b23fb708291e055ce93e570c70514237",
+      "releasedAt": "2026-11-01T05:09:41Z"
+    },
+    {
       "version": "v1.1336",
       "actions": [
         "Add Melt: dice soften into glossy puddles, stretch into goo, and disappear through expanding holes.",
