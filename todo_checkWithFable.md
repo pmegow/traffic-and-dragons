@@ -677,3 +677,7 @@ Read-only review and a failing-first fake-transport test confirmed Node fixture 
 ## 2026-11-01 — #680/#681 dice size
 
 Thin host display changes: publish Dice 0.84.0 normalization, set the existing view camera zoom to 0.5, and align the roll modal above the larger ready die. No prompt, parser, campaign or memory logic changed. Failing-first rendered size and seeded control-overlap checks pass; see [verification](DOC/dice-size_681.md).
+
+## 2026-11-02 — #682 roller camera
+
+Publish Dice 0.85.0 with a configured standalone startup/reset zoom of 0.7. Shared renderer default remains 1 and TnD's existing 0.5 override stays in place. No game behavior or drift surface is changed; only the release copy, app/cache markers and release notes. Upstream phone/desktop reference and 24-die cases pass. [Verification](DOC/dice-camera_682.md).

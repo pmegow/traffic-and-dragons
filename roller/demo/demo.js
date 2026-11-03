@@ -20,7 +20,7 @@ const status = (msg) => { $('status').textContent = msg || ''; };
 
 let view;
 try {
-  view = new DiceView({ container: $('view') });
+  view = new DiceView({ container: $('view'), zoom: TOY_DEFAULTS.zoom });
 } catch (e) {
   status('Could not start the 3D view: ' + e.message);
   throw e;

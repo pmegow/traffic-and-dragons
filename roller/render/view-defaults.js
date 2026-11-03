@@ -14,6 +14,7 @@ export const VIEW_DEFAULTS = {
   pace: 0.3,                                 // 1× plays at 0.3 of real time: 2 cm dice at full speed are too quick to follow
                                              // (owner 2026-10-24: first half speed, then 0.6 of that made the new 1×)
   environment: 0.36,                         // the room reflection's strength (the lights carry the scene)
+  zoom: 1,                                  // opening/reset camera distance as a multiple of the tray fit
   tilt: 55,                                  // camera elevation in degrees (90 = straight down)
   // How low and how high view.orbit() may take the camera (degrees; straight down, 90, would leave it
   // no 'up'), and how near and far view.zoom() may take it, as a multiple of the distance that fits the tray.

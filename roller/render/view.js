@@ -61,7 +61,7 @@ export class DiceView {
     const o = viewOptions(options);
     if (!o.container) throw new Error('DiceView: options.container (an element to draw into) is required');
     this.o = o;
-    this.orbitPose = { yaw: 0, pitch: o.tilt, zoom: 1 };   // where the camera stands round the tray (view.orbit, view.zoom)
+    this.orbitPose = this.homePose;   // where the camera stands round the tray (view.orbit, view.zoom)
     this.orbitTween = null;
     this.cameraTarget = { x: 0, z: 0 };   // the floor point the camera looks at (view.panCamera), kept over the tray
     this.trayOptions = { ...o.tray };          // what the host fixed; the rest follows each roll's dice count
@@ -203,7 +203,7 @@ export class DiceView {
 
   /**
    * Frames the tray (render/framing.js): the camera stands at its orbit pose — `tilt` degrees up,
-   * no turn and no zoom until view.orbit() or view.zoom() moves it — looking at the tray's centre,
+   * the configured zoom and no turn until view.orbit() or view.zoom() moves it — looking at the tray's centre,
    * just far enough back to fit it, times the zoom. A stage taller than wide starts from the tray's
    * side, so its long edge runs up the screen. The lights stand with the camera, and readUp follows
    * it, so the next roll's numerals read upright from wherever the player now looks.
@@ -271,8 +271,8 @@ export class DiceView {
     this.render();
   }
 
-  /** The opening pose: `tilt` degrees up, no turn, no zoom. */
-  get homePose() { return { yaw: 0, pitch: this.o.tilt, zoom: 1 }; }
+  /** The configured opening pose: tilt and zoom, with no turn. */
+  get homePose() { return { yaw: 0, pitch: this.o.tilt, zoom: this.o.zoom }; }
 
   /** True once the camera has been turned, zoomed or panned away from where the view opened. */
   get cameraMoved() {
@@ -282,7 +282,7 @@ export class DiceView {
   }
 
   /**
-   * Back to where the view opened (no turn, zoom or pan), eased over `seconds` (default
+   * Back to the configured opening tilt and zoom with no turn or pan, eased over `seconds` (default
    * resetSeconds) so the camera glides home rather than jumping; 0 jumps. A move by the player while
    * it eases takes over. Resolves when the camera is home (or the player took over).
    */
