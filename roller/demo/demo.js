@@ -14,6 +14,7 @@ import { rollParts } from './roll-line.js';
 import { exitMenu, exitDelays, exitsFor } from '../render/exit-table.js';
 import { TOY_DEFAULTS } from './toy-defaults.js';
 import { attachColorPicker } from './color-picker.js';
+import { SLIDER_RANGES, bindCenteredSlider } from './centered-slider.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg || ''; };
@@ -197,10 +198,8 @@ $('ink-color').value = VIEW_DEFAULTS.dieStyle.ink;
 $('finish').value = VIEW_DEFAULTS.dieStyle.finish;
 $('font').value = VIEW_DEFAULTS.dieStyle.font;
 $('surface').value = TOY_DEFAULTS.surface;
-$('speed').value = VIEW_DEFAULTS.speed;
-$('tray').value = VIEW_DEFAULTS.tray.scale;
-$('speed-out').textContent = Number($('speed').value).toFixed(2) + '×';
-$('tray-out').textContent = Number($('tray').value).toFixed(2) + '×';
+const speed = bindCenteredSlider($('speed'), $('speed-out'), SLIDER_RANGES.speed);
+const trayScale = bindCenteredSlider($('tray'), $('tray-out'), SLIDER_RANGES.tray);
 const look = () => ({ body: $('body-color').value, ink: $('ink-color').value, finish: $('finish').value, font: $('font').value, surface: $('surface').value });
 // The mixed bag (owner 2026-10-30: "add a 'mixed bag' preset that will randomly assign a preset to each die"): every
 // preset, built in and saved, dealt one to a die at random, each die keeping its own (render/die-looks.js).
@@ -347,13 +346,10 @@ for (const id of ['body-color', 'ink-color']) $(id).addEventListener('input', ap
 $('finish').addEventListener('change', applyLook);
 $('font').addEventListener('change', applyLook);
 $('clear-forced').addEventListener('click', () => { $('forced').value = ''; $('forced').focus(); });
-const speed = () => Number($('speed').value);
-$('speed').addEventListener('input', () => { $('speed-out').textContent = speed().toFixed(2) + '×'; });
 $('tray').addEventListener('input', () => {
-  $('tray-out').textContent = Number($('tray').value).toFixed(2) + '×';
   ++current;
   last = null;
-  view.setTrayScale(Number($('tray').value));   // a new tray starts empty …
+  view.setTrayScale(trayScale());   // a new tray starts empty …
   showTable('');
 });
 $('tray').addEventListener('change', syncTable);   // … and the dice drop into it when the slider is let go

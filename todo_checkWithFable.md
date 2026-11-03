@@ -681,3 +681,7 @@ Thin host display changes: publish Dice 0.84.0 normalization, set the existing v
 ## 2026-11-02 — #682 roller camera
 
 Publish Dice 0.85.0 with a configured standalone startup/reset zoom of 0.7. Shared renderer default remains 1 and TnD's existing 0.5 override stays in place. No game behavior or drift surface is changed; only the release copy, app/cache markers and release notes. Upstream phone/desktop reference and 24-die cases pass. [Verification](DOC/dice-camera_682.md).
+
+## 2026-11-02 — #683 centered roller sliders
+
+Publish Dice 0.86.0: a shared standalone control mapping centers 1.00× while retaining the original speed/tray ranges and steps; Surface is labelled Tray Type. Release-copy and marker changes only; game and drift surfaces remain unchanged. [Verification](DOC/dice-sliders_683.md).

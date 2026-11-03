@@ -1,7 +1,7 @@
 {
-  "version": "v1.1342",
+  "version": "v1.1343",
   "actions": [
-    "Open the dice roller at a closer default camera distance, matching the requested phone view.",
-    "Return Reset view to the closer starting zoom."
+    "Center the dice roller’s Speed and Tray size sliders at their 1.00× defaults while preserving their ranges.",
+    "Rename Surface to Tray Type."
   ]
 }
