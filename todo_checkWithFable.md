@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-11-05 · #687 · v1.1347 · Codex: vendor committed Dice 0.90.0/7c91e00, applying the owner-requested smaller standalone camera default. Required marker/cache/release records only in host code; embedded camera, engine, state and prompts unchanged. Upstream screenshot, reset and 24-die checks pass; no host assertion relaxed.
+
 - 2026-11-05 · #686 · v1.1346 · Codex: vendor committed Dice 0.89.0/01d6f0c (short-sweep input retention and quarter-area refraction buffers), with required version/cache/release notes. Source fixes and failing-first evidence live upstream. No host engine, state, prompt, camera or parser changes; no host assertions relaxed.
 
 - 2026-10-30 · #668/#669 · test-only · Opus 5.5 (owner-asked: "add a 'mixed bag' to exit animation as well. Random exit animation for each"): `dev/tests-669-live-dice-browser.js`'s pinned "When dismissed" list re-baselined to add `mixed=Mixed bag` — the roller (dice-sim v0.78.0) now lists a Mixed bag exit (each die leaving by its own) and DiceSim.exits() hands it to the game; an exact list, extended by the one new entry, no assertion loosened.

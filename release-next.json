@@ -1,7 +1,6 @@
 {
-  "version": "v1.1346",
+  "version": "v1.1347",
   "actions": [
-    "Give short dice sweeps useful momentum, including movement reported only when the finger lifts.",
-    "Reduce glass and quartz refraction rendering cost while preserving sharp front numerals and the current camera distance."
+    "Move the standalone dice roller camera back to match the smaller phone reference; Reset view returns to the same distance."
   ]
 }
