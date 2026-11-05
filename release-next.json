@@ -1,7 +1,6 @@
 {
-  "version": "v1.1343",
+  "version": "v1.1344",
   "actions": [
-    "Center the dice roller’s Speed and Tray size sliders at their 1.00× defaults while preserving their ranges.",
-    "Rename Surface to Tray Type."
+    "Add the TnD Maps library to the game, pinned to its source by hash. No map is drawn yet."
   ]
 }

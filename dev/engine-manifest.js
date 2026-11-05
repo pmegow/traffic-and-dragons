@@ -26,6 +26,7 @@ var ENGINE_MANIFEST = [
   { file: "library-slug.js",       sym: "LibrarySlug" },/* #481 F5: the library slug the server vendors */
   { file: "car-commands.js",       sym: "parseCarCommand" },/* #631: the spoken Car Mode grammar (portable; the game's table is game.js CAR_COMMANDS) */
   { file: "conversation.js",       sym: "Conversation" },/* #633: car-talk's conversation engine, pinned byte-identical (dev/conversation.sha256) */
+  { file: "tndmaps.js",            sym: "TnDMaps" },/* #684: the TnD Maps library, pinned byte-identical (dev/tndmaps.sha256) */
   { file: "helpers.js",            sym: "skillLevel" },
   { file: "inventory.js",          sym: "itemKey" },/* #599 (b): the inventory module — both forms, one key */
   { file: "state.js",              sym: "blankMemory" },
