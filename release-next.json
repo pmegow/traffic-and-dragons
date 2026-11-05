@@ -1,6 +1,7 @@
 {
-  "version": "v1.1345",
+  "version": "v1.1346",
   "actions": [
-    "Make dice pickup instant so a quick fling starts with the die already held at the pointer."
+    "Give short dice sweeps useful momentum, including movement reported only when the finger lifts.",
+    "Reduce glass and quartz refraction rendering cost while preserving sharp front numerals and the current camera distance."
   ]
 }

@@ -28,6 +28,8 @@ export const VIEW_DEFAULTS = {
   // so a die's edges are lines, not dots; a touch device draws at 1× (render/supersample.js; supersampleBudget
   // overrides the budget, in pixels). A GPU that cannot keep 45 frames a second steps down a rung for the view's life.
   supersample: true,
+  // Refraction and far faces use a quarter-area buffer; front faces and ink keep the main canvas resolution.
+  transmissionResolutionScale: 0.5,
   // Soft shadows (owner 2026-10-25: "a little intense ... blur them" if it costs little). three.js's PCF
   // takes 5 filtered samples whatever the radius, so the blur is free; a 1024 map at radius 12 is
   // twice 2048-at-6's softness in texels and four times wider on the floor, with a quarter of the

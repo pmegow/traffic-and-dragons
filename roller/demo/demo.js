@@ -5,6 +5,7 @@ import { createPressGesture } from '../input/press-gesture.js';
 import { createPinch } from '../input/pinch.js';
 import { createPresetStore } from './preset-store.js';
 import { tapThrow } from './tap-throw.js';
+import { samplePointer, tossOf } from './toss.js';
 import { createDrawer, DRAWER } from './drawer.js';
 import { sameLook, presetStyle } from '../render/presets.js';
 import { MIXED_BAG } from '../render/die-looks.js';
@@ -650,8 +651,7 @@ stage.addEventListener('pointerdown', (e) => {
     ++current;
     audio.stop();
     view.pickUp({ clientX: e.clientX, clientY: e.clientY }, { onHit: onHandHit, surface: HAND_TIMBRE, dice: [k] });
-    const hp = view.handPoint(e.clientX, e.clientY);
-    if (hp) press.samples.push({ t: e.timeStamp, p: hp });   // its path at the die's height, for the toss
+    sampleHandPointer(e);
     stage.classList.add('holding');
     showTable('picked up ' + groupDice([onTable()[k]]) + ' — toss it, or let go');
     return;
@@ -675,10 +675,8 @@ stage.addEventListener('pointermove', (e) => {
   if (!press || e.pointerId !== press.id || press.reroll) return;
   press.at = { x: e.clientX, y: e.clientY };
   if (press.holding) {   // the hand carries the die as the pointer moves, keeping it under the pointer
-    press.wander = Math.max(press.wander, Math.hypot(e.clientX - press.from.x, e.clientY - press.from.y));
     view.moveHand({ clientX: e.clientX, clientY: e.clientY });
-    const hp = view.handPoint(e.clientX, e.clientY);
-    if (hp) { press.samples.push({ t: e.timeStamp, p: hp }); if (press.samples.length > 40) press.samples.shift(); }   // its path, for the toss
+    sampleHandPointer(e);
     return;
   }
   const m = gesture.move(e.timeStamp, e.clientX, e.clientY);
@@ -706,6 +704,7 @@ stage.addEventListener('pointerup', (e) => {
   // Sound starts as the finger lifts: an iPhone refuses it as one comes down (2026-10-27, the silent visits).
   const unlocking = unlockSound();
   if (press.reroll) { endPress(); return; }   // the second press of a double-click: its die is already rolling again
+  if (press.holding) sampleHandPointer(e);   // release can contain the only movement after the press
   const kind = press.holding ? null : gesture.up();
   const d = endPress();
   if (d.holding) {   // the hand opens: the die is thrown from it as it moves, tossed at the pointer's own speed
@@ -742,25 +741,10 @@ stage.addEventListener('pointercancel', (e) => {
   if (e.pointerType === 'touch') pinch.up(e.pointerId);
   if (press && e.pointerId === press.id) { const d = press; gesture.cancel(); endPress(); if (d.holding) letGo(Promise.resolve()); }
 });
-/**
- * The toss as the hand opens (owner 2026-10-30: "the goal here is to allow the user to toss the die"): the pointer's
- * speed across the floor over its last TOSS.window ms before `now` (m/s), held to TOSS.max, the fling's own ceiling;
- * null for a hand that was still (under TOSS.min), which drops the die. The cup alone gave a die next to nothing: the
- * hand stops each frame where the pointer is, so it had always caught up, and stood still, by the time it opened.
- * The die leaves at TOSS.boost times the pointer's speed, up to TOSS.max (owner 2026-10-30: "We need to impart more
- * force when a die is picked up and flung. Double what's there now": 1× to 3.2 m/s before), and its spin follows
- * (render/hand.js ▸ tossSpin, rad/s per m/s).
- */
-const TOSS = { window: 90, min: 0.25, boost: 2, max: 6.4 };
-function tossOf(samples, now) {
-  const recent = samples.filter((s) => now - s.t <= TOSS.window);
-  if (recent.length < 2) return null;
-  const a = recent[0], b = recent[recent.length - 1], dt = (b.t - a.t) / 1000;
-  if (!(dt > 0)) return null;
-  const vx = (b.p.x - a.p.x) / dt, vz = (b.p.z - a.p.z) / dt, s = Math.hypot(vx, vz);
-  if (s < TOSS.min) return null;
-  const k = Math.min(TOSS.max, s * TOSS.boost) / s;
-  return { x: vx * k, z: vz * k };
+/** One input history for press, coalesced moves and release, at the held die's level. */
+function sampleHandPointer(e) {
+  press.wander = Math.max(press.wander, Math.hypot(e.clientX - press.from.x, e.clientY - press.from.y));
+  samplePointer(press.samples, e, (x, y) => view.handPoint(x, y));
 }
 /** The hand lets go: the dice it held are thrown from where they are, as they move — tossed at `toss` (m/s) when given. */
 function letGo(unlocking, toss = null) {

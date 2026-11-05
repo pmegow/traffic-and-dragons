@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-11-05 · #686 · v1.1346 · Codex: vendor committed Dice 0.89.0/01d6f0c (short-sweep input retention and quarter-area refraction buffers), with required version/cache/release notes. Source fixes and failing-first evidence live upstream. No host engine, state, prompt, camera or parser changes; no host assertions relaxed.
+
 - 2026-10-30 · #668/#669 · test-only · Opus 5.5 (owner-asked: "add a 'mixed bag' to exit animation as well. Random exit animation for each"): `dev/tests-669-live-dice-browser.js`'s pinned "When dismissed" list re-baselined to add `mixed=Mixed bag` — the roller (dice-sim v0.78.0) now lists a Mixed bag exit (each die leaving by its own) and DiceSim.exits() hands it to the game; an exact list, extended by the one new entry, no assertion loosened.
 
 - 2026-10-26 · #669/#670 · test-only · Opus 5.5: `dev/tests-669-live-dice-browser.js`'s four dismiss waits raised 5 s → 30 s (`DISMISS_MS`). CI went red on dacc10b2: an exit advances at most 1/30 s a frame (dice-sim's `EXIT_FRAME_MAX`) and the GPU-less runner draws about 5 frames a second, so the 1.8 s Smoke puff took 11–13 s. The same conditions are asserted and only the wait budget changed; reproduced red, then green, under SwiftShader with the page throttled 16×. Flagged for the skim because it touches existing checks.

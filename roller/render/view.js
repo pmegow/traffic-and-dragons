@@ -89,6 +89,7 @@ export class DiceView {
     // Always able to show the page through: a transparent view and the 'none' tray draw no background.
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: false });
     r.setPixelRatio(o.pixelRatio);
+    r.transmissionResolutionScale = o.transmissionResolutionScale;
     r.outputColorSpace = THREE.SRGBColorSpace;
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 0.95;
