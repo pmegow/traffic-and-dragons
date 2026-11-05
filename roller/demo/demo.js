@@ -645,8 +645,7 @@ stage.addEventListener('pointerdown', (e) => {
   }
   const k = under ? view.dieAt(e.clientX, e.clientY) : -1;
   if (view.dice.length && !view.held && k >= 0) {
-    // A press on a die: the hand picks it up at once (never while a die leaves: the table is settling). It rises
-    // toward the camera, so it stays under the pointer, and the hand keeps it there as the pointer moves.
+    // Pickup pops the die toward the camera into its live hold, under the pointer, before a quick swipe can release it.
     press = { id: e.pointerId, holding: true, die: k, t: e.timeStamp, at: { x: e.clientX, y: e.clientY }, from: { x: e.clientX, y: e.clientY }, wander: 0, samples: [] };
     ++current;
     audio.stop();

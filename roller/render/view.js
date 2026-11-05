@@ -50,8 +50,8 @@ export { VIEW_DEFAULTS };
 const RIM_HEIGHT = 0.014;   // m: the tray's rim, low enough that a die resting against the near wall stays in view
 const SCREEN_MARGIN = 0.002;   // m: the screen's edges, moved in a little, so a die never touches the frame
 const WARM_DIE = 'd6';   // the die type whose geometry stands in for the dice's pipeline (warmTable)
-/** The hand (pickUp): the dice gathering into it over this long; how high it holds them is render/hand.js ▸ HAND_LIFT. */
-export const HAND = { gather: 0.12, frameMax: 0.05 };   // gather 0.25 s until a press picked a die up at once; height 0.05 until it rose toward the camera (2026-10-30)
+/** Scripted lift duration and live-hand frame limit; pickup itself is immediate. Height is render/hand.js ▸ HAND_LIFT. */
+export const HAND = { gather: 0.12, frameMax: 0.05 };
 /** A three.js vector or quaternion as the core's plain {x, y, z} or {x, y, z, w}. */
 const vec = (v) => ({ x: v.x, y: v.y, z: v.z });
 const quat = (q) => ({ x: q.x, y: q.y, z: q.z, w: q.w });
@@ -734,10 +734,10 @@ export class DiceView {
   /**
    * Picks dice up into a hand under the pointer (`pointer` {clientX, clientY}, the press): `dice` the indices of the
    * dice to take (play order; all of them unless given — the toy takes the one pressed, owner 2026-10-30: "just pick
-   * up the one clicked. This should give an option for dice that get stuck"). Each rises STRAIGHT TOWARD THE CAMERA
+   * up the one clicked. This should give an option for dice that get stuck"). Each moves immediately TOWARD THE CAMERA
    * to the cup's floor (render/hand.js ▸ towardEye; owner 2026-10-30: "the die elevates away from the hand... Instead
    * of moving UP, move the die along a vector from its current position towards the camera to meet the hand"), so on
-   * screen it never leaves the pointer; the cup is centred where they rose to, over HAND.gather s, then the hold runs
+   * screen it never leaves the pointer; the cup is ready at the held pose before pickUp returns. The hold runs
    * LIVE (src/hold.js) frame by frame, the cup following moveHand(), kept under the pointer as it was grabbed, until
    * release() hands the dice to a roll; the dice left on the table lie where they are. onHit(dieIndex, speed, surface,
    * other) hears every knock inside the cup — surface 'wall' | 'floor' | 'ceiling' the cup's, 'die' another die, the
@@ -771,19 +771,11 @@ export class DiceView {
     // so the die it pressed stays under it.
     const at = pointer ? this.planeHit(pointer.clientX, pointer.clientY, grabY) : null;
     const grab = at ? { x: centre.x - at.x, z: centre.z - at.z } : { x: 0, z: 0 };
-    const held = this.held = { phase: 'gather', hold: null, target: centre, surface, onHit, size, start: null, last: 0, picked, live, grabY, grab };
+    const hold = createHold(picked.map((i, j) => ({ die: this.dice[i].die, position: { x: to[j].x, y: to[j].y, z: to[j].z }, orientation: quat(this.dice[i].mesh.quaternion) })), centre, { surface, size });
+    picked.forEach((i, j) => this.dice[i].mesh.position.copy(to[j]));
+    const held = this.held = { hold, target: centre, surface, onHit, size, last: performance.now(), picked, live, grabY, grab };
     this.animate((now) => {
       if (this.held !== held) return false;
-      if (held.phase === 'gather') {
-        if (held.start === null) held.start = now;
-        const u = Math.min(1, (now - held.start) / 1000 / HAND.gather), e = u * u * (3 - 2 * u);
-        picked.forEach((i, j) => this.dice[i].mesh.position.lerpVectors(from[j], to[j], e));
-        if (u < 1) return true;
-        held.hold = createHold(picked.map((i, j) => ({ die: this.dice[i].die, position: { x: to[j].x, y: to[j].y, z: to[j].z }, orientation: quat(this.dice[i].mesh.quaternion) })), centre, { surface, size });
-        held.phase = 'hold';
-        held.last = now;
-        return true;
-      }
       // The frame's own length drives the world (never more than frameMax: a tab away for a while is not a leap).
       const dt = Math.min(HAND.frameMax, Math.max(1 / 240, (now - held.last) / 1000));
       held.last = now;
@@ -836,8 +828,8 @@ export class DiceView {
   /**
    * Lets go: ends the hold and returns { states, velocity } — every die where it is and as it moves (src/hold.js ▸
    * states), for roll({ throw: { states } }), and the hand's last velocity (m/s); the dice stay drawn where they are,
-   * so a play of that roll with fromTable set carries straight on from them. Null when nothing is held. Let go while
-   * still gathering, the dice are where they are, still. A die the hand did not take is a RESTING state (src/roll.js:
+   * so a play of that roll with fromTable set carries straight on from them. Null when nothing is held. Even before
+   * the first held frame, release starts from the pickup pose. A die the hand did not take is a RESTING state (src/roll.js:
    * it starts where it lies on every attempt and keeps the printing the player saw), moving as it was when the hand
    * took the others. `velocity` ({x, z} m/s) is a TOSS: the hand opens moving that fast along the floor, and each die it
    * held leaves with it, on top of its own motion within the cup (owner 2026-10-30: "allow the user to toss the die"),
@@ -848,9 +840,9 @@ export class DiceView {
     if (!held) return null;
     this.held = null;
     const still = { x: 0, y: 0, z: 0 };
-    const hand = held.hold ? held.hold.velocity : still;
+    const hand = held.hold.velocity;
     const toss = velocity ? { x: velocity.x - hand.x, y: 0, z: velocity.z - hand.z } : still;   // the hand's own motion is in the dice already
-    const inHand = held.hold ? held.hold.states() : held.picked.map((i) => ({ position: vec(this.dice[i].mesh.position), orientation: quat(this.dice[i].mesh.quaternion), velocity: still, angularVelocity: still }));
+    const inHand = held.hold.states();
     const states = this.dice.map((d, i) => {
       const j = held.picked.indexOf(i);
       if (j >= 0) {
@@ -860,7 +852,7 @@ export class DiceView {
       const t = held.live[i];
       return { position: t.position, orientation: t.orientation, velocity: t.velocity || still, angularVelocity: t.angularVelocity || still, resting: true };
     });
-    return { states, velocity: held.hold ? held.hold.velocity : still };
+    return { states, velocity: held.hold.velocity };
   }
 
   /**
@@ -1108,7 +1100,7 @@ export class DiceView {
   }
 
   /**
-   * Lifts every die on the table into a hand, as pickUp lifts a pressed die: the table rises toward the camera as one —
+   * Lifts every die on the table into a hand: the table rises toward the camera as one —
    * its centroid HAND_LIFT of the way (render/hand.js ▸ towardEye), every die moved by the same vector, so a row keeps its
    * spacing (each on its own ray to the eye, a row closed up by a quarter and dice already touching were lifted into one
    * another) and a lone die never moves on screen — over HAND.gather s, each kept inside the frame at its own level and

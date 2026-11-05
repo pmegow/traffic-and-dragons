@@ -685,3 +685,7 @@ Publish Dice 0.85.0 with a configured standalone startup/reset zoom of 0.7. Shar
 ## 2026-11-02 — #683 centered roller sliders
 
 Publish Dice 0.86.0: a shared standalone control mapping centers 1.00× while retaining the original speed/tray ranges and steps; Surface is labelled Tray Type. Release-copy and marker changes only; game and drift surfaces remain unchanged. [Verification](DOC/dice-sliders_683.md).
+
+## 2026-11-05 — #685 instant pickup experiment
+
+Publish Dice 0.87.0's immediate interactive pickup. The held pose and live hand exist before the first frame, removing an inert 120 ms pickup phase. Core physics and the game's scripted Roll-button lift are unchanged. Upstream immediate/quick-release probes pass; no drift surface is touched. [Verification](DOC/dice-pickup_685.md).
