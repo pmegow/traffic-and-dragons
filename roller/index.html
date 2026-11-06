@@ -66,6 +66,15 @@
   /* Rows keep their size and the panel scrolls: in a panel of fixed height (the phone drawer) a
      shrinking row drew its text over the next one (the roll summary over the die buttons). */
   #panel > * { flex-shrink: 0; }
+  #customize { border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+  #customize > summary { padding: 12px; cursor: pointer; font-weight: 600; }
+  #customize > summary::marker { color: var(--acc); }
+  #customize > summary:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; border-radius: 8px; }
+  .customize-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 0 12px 12px; }
+  .customize-controls input, .customize-controls select { min-width: 0; }
+  .customize-controls .preset-row { grid-template-columns: repeat(auto-fit, minmax(min(100%, 110px), 1fr)); }
+  .customize-controls .three { grid-template-columns: repeat(auto-fit, minmax(min(100%, 64px), 1fr)); }
+  .customize-controls .font-row { flex-wrap: wrap; }
   h1 { font-size: 17px; margin: 0; letter-spacing: .3px; }
   h1 small { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -124,9 +133,9 @@
   @media (pointer: coarse) { input, select, textarea { font-size: 16px; } }
   input:focus, select:focus { outline: 2px solid var(--acc); outline-offset: -1px; }
   .font-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-  #font-preview { font-size: 20px; letter-spacing: 0.08em; color: var(--text); }
+  #font-preview { overflow-wrap: anywhere; font-size: 20px; letter-spacing: 0.08em; color: var(--text); }
   #font-notice:empty { display: none; }
-  .font-control { display: grid; gap: 4px; }
+  .font-control { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .font-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .font-row .check { white-space: nowrap; font-size: 12px; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -140,18 +149,22 @@
   .swatch { height: 36px; padding: 0; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; }
   .swatch:hover, .swatch:focus-visible { outline: 2px solid var(--acc); outline-offset: -1px; }
   .swatch[aria-expanded=true] { box-shadow: 0 0 0 2px var(--acc) inset; }
-  .color-panel { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #0f1218; }
-  .color-head { display: grid; grid-template-columns: 36px 1fr auto 26px; gap: 8px; align-items: center; }
+  .color-panel { display: grid; min-width: 0; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #0f1218; }
+  .color-head { display: grid; grid-template-columns: minmax(0, 1fr) 26px; gap: 8px; align-items: center; }
   .color-big { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); }
-  .color-hex { font: 600 14px ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; }
-  .color-close { position: static; transform: none; }
+  .color-hex { grid-column: 1 / -1; grid-row: 2; min-width: 0; font: 600 14px ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; }
+  .color-head .color-close { grid-column: 2; grid-row: 1; position: static; transform: none; }
+  .color-system { grid-column: 1 / -1; grid-row: 3; }
+  .color-mode { max-width: 100%; }
+  .color-mode button { min-width: 0; }
   .color-mode { display: inline-grid; grid-auto-flow: column; width: max-content; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-  .color-mode button { padding: 6px 16px; border: 0; background: transparent; color: var(--muted); font: 600 12px system-ui, sans-serif; cursor: pointer; }
+  .color-mode button { padding: 6px 8px; border: 0; background: transparent; color: var(--muted); font: 600 12px system-ui, sans-serif; cursor: pointer; }
   .color-mode button[aria-pressed=true] { background: var(--acc); color: var(--acc-ink); }
   .color-mode button:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; }
   .color-sliders { display: grid; gap: 6px; }
   .color-sliders[hidden] { display: none; }   /* the display rule above would beat the attribute */
-  .chan { grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; }
+  .chan { grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; }
+  .chan > span { overflow-wrap: anywhere; }
   .chan .chan-range { grid-column: 1 / -1; }
   .chan-range { -webkit-appearance: none; appearance: none; height: 16px; margin: 4px 0; padding: 0; border-radius: 8px; border: 1px solid rgba(0, 0, 0, .5);
     background: #333; accent-color: auto; cursor: pointer; }
@@ -212,41 +225,44 @@
 <main id="stage" aria-label="Dice tray: drag a die to toss it, double-click a die to roll it again or the table to roll them all, drag fast across the table to fling the dice, hold then drag to pan the view, pinch, scroll or right-drag to zoom"><div id="pan-ring" aria-hidden="true"></div><div id="dice-bar"><div class="row" id="adders" aria-label="Choose the dice"></div></div><div id="view"><p id="table-hint">Drag a die to toss it · double-click a die to roll it again, the table to roll them all</p><p id="dice-loading" role="status">Loading Dice Library...</p><p id="roll-line" aria-live="polite"></p></div><button id="reset-view" type="button" hidden>Reset view</button></main>
 <button id="drawer-grab" type="button" role="separator" aria-orientation="vertical" aria-label="Resize the options panel" aria-valuemin="24" title="Drag to resize; double tap to close or reopen; arrow keys also resize"></button>
 <aside id="panel">
-  <h1>Dice Simulator <small id="version">v0.98.0</small></h1>   <!-- stamped by dev/write-sw.js from src/version.js -->
-  <label>Force results, in order <span class="field"><input id="forced" placeholder="blank = honest roll, e.g. 20, 3" autocomplete="off"><button class="clear" id="clear-forced" type="button" aria-label="Clear the forced results" title="Clear">×</button></span></label>
-  <div class="preset-row">
-    <label>Preset <select id="preset"></select></label>
-    <button class="ghost" id="preset-delete" type="button" disabled title="Delete this saved preset">Delete</button>
-  </div>
-  <div class="preset-row">
-    <input id="preset-name" placeholder="Name this look" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Preset name">
-    <button class="ghost" id="preset-save" type="button">Save preset</button>
-  </div>
-  <div class="three">
-    <label>Body <input id="body-color" type="color" value="#8a49a2"></label>
-    <label>Numbers <input id="ink-color" type="color" value="#ffffff"></label>
-    <label>Finish <select id="finish"></select></label>
-  </div>
-  <div class="font-control">
-    <div class="font-row">
-      <label for="font">Numbers font</label>
-      <label class="check"><input id="classic-d6" type="checkbox"> Classic d6</label>
+  <h1>Dice Simulator <small id="version">v0.99.0</small></h1>   <!-- stamped by dev/write-sw.js from src/version.js -->
+  <label>Preset <select id="preset"></select></label>
+  <label>Table Top Material <select id="surface"></select></label>
+  <details id="customize">
+    <summary>Customize</summary>
+    <div class="customize-controls">
+      <div class="preset-row">
+        <input id="preset-name" placeholder="Name this look" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Preset name">
+        <button class="ghost" id="preset-save" type="button">Save preset</button>
+      </div>
+      <button class="ghost" id="preset-delete" type="button" disabled title="Delete this saved preset">Delete preset</button>
+      <div class="three">
+        <label>Body <input id="body-color" type="color" value="#8a49a2"></label>
+        <label>Numbers <input id="ink-color" type="color" value="#ffffff"></label>
+        <label>Finish <select id="finish"></select></label>
+      </div>
+      <div class="font-control">
+        <div class="font-row">
+          <label for="font">Numbers font</label>
+          <label class="check"><input id="classic-d6" type="checkbox"> Classic d6</label>
+        </div>
+        <select id="font" aria-describedby="font-notice"></select>
+        <div class="font-actions">
+          <button class="ghost" id="font-browse" type="button" hidden>Installed fonts…</button>
+          <button class="ghost" id="font-import" type="button">Import font…</button>
+        </div>
+        <input id="font-file" type="file" accept=".ttf,.otf" hidden>
+        <p class="hint" id="font-preview" aria-label="Number preview">0123456789</p>
+        <p class="hint" id="font-notice" role="status" aria-live="polite"></p>
+      </div>
+      <label>Exit animation <select id="exit"></select></label>
+      <label hidden>Seed <input id="seed" placeholder="random" inputmode="numeric" autocomplete="off"></label>
+      <label hidden>Speed <output id="speed-out">1.20×</output><input id="speed" type="range" min="-1" max="1" step="any" value="0"></label>
+      <label class="check"><input id="sound" type="checkbox" checked> Sound</label>
+      <button class="ghost" id="replay" type="button" hidden>Replay last</button>
+      <label>Force results, in order <span class="field"><input id="forced" placeholder="blank = honest roll, e.g. 20, 3" autocomplete="off"><button class="clear" id="clear-forced" type="button" aria-label="Clear the forced results" title="Clear">×</button></span></label>
     </div>
-    <select id="font" aria-describedby="font-notice"></select>
-    <div class="font-actions">
-      <button class="ghost" id="font-browse" type="button" hidden>Installed fonts…</button>
-      <button class="ghost" id="font-import" type="button">Import font…</button>
-    </div>
-    <input id="font-file" type="file" accept=".ttf,.otf" hidden>
-    <p class="hint" id="font-preview" aria-label="Number preview">0123456789</p>
-    <p class="hint" id="font-notice" role="status" aria-live="polite"></p>
-  </div>
-  <label>Exit animation <select id="exit"></select></label>
-  <label>Surface <select id="surface"></select></label>
-  <label hidden>Seed <input id="seed" placeholder="random" inputmode="numeric" autocomplete="off"></label>
-  <label hidden>Speed <output id="speed-out">1.20×</output><input id="speed" type="range" min="-1" max="1" step="any" value="0"></label>
-  <label class="check"><input id="sound" type="checkbox" checked> Sound</label>
-  <button class="ghost" id="replay" type="button" hidden>Replay last</button>
+  </details>
   <button id="roll" type="button">Roll</button>
   <div id="status" role="alert"></div>
   <div id="result">

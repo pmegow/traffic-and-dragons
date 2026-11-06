@@ -556,7 +556,7 @@ $('replay').addEventListener('click', () => {
   playWithSound(last.result);
 });
 document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' && !/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); rollFromPanel(undefined, { unlocking: unlockSound() }); }
+  if (e.code === 'Space' && !/INPUT|SELECT|TEXTAREA|BUTTON|SUMMARY/.test(document.activeElement.tagName)) { e.preventDefault(); rollFromPanel(undefined, { unlocking: unlockSound() }); }
   if (e.key === 'Enter' && document.activeElement.tagName === 'INPUT') rollFromPanel(undefined, { unlocking: unlockSound() });
 });
 

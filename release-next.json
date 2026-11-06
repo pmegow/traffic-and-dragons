@@ -1,6 +1,6 @@
 {
-  "version": "v1.1359",
+  "version": "v1.1360",
   "actions": [
-    "Dice Simulator 0.98.0 replaces tray walls with full-screen materials, removes tray sizing, fixes playback at 1.2x, and hides testing controls."
+    "Dice Simulator 0.99.0 groups settings in a collapsible Customize frame, keeping Preset and Table Top Material visible."
   ]
 }
