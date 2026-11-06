@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1355",
+      "actions": [
+        "Remove Melt from dice exit options and random selections, with safe fallbacks for previously saved choices."
+      ],
+      "sourceCommit": "5ef12e468bb02ffa58e3619a45931d917ff26f65",
+      "commit": "5ef12e468bb02ffa58e3619a45931d917ff26f65",
+      "releasedAt": "2026-11-06T05:25:34Z"
+    },
+    {
       "version": "v1.1339",
       "actions": [
         "Replace expanding holes with a smooth fade after melting dice flow into one puddle.",
