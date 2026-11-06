@@ -1,7 +1,6 @@
 {
-  "version": "v1.1357",
+  "version": "v1.1358",
   "actions": [
-    "Map library 0.13.0: roads and rivers now meet across the edges of open-country sheets, so those sheets are redrawn in mapped campaigns.",
-    "Tapping water on the realm map now says the point lies in the sea or a lake; coastal land can be stood on."
+    "Dice Simulator 0.97.0 adds installed-font browsing and personal font-file imports; unavailable number fonts use the system font."
   ]
 }

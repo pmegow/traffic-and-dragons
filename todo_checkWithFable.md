@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-11-06 — #699 — v1.1358 — Codex: publish committed Dice 0.97.0/2366061, adding personal number fonts with system fallback. Host edits are release copy, version/cache markers and records only; no host test relaxation or engine/state/prompt/parser changes.
+
 - 2026-11-05 · #691 · v1.1355 · Codex: vendor committed Dice 0.94.0/c99a447 to remove Melt at the owner’s request. Replace the now-obsolete Melt-playing browser assertion with a failing-first removal and saved-preference reload/dismissal regression; no test is skipped or timeout enlarged. Host product edits are release copy/markers/records only. No engine/state/prompt/parser changes.
 
 - 2026-11-05 · #690 · v1.1354 · Codex: vendor committed Dice 0.93.0/667a670. The owner requested removing the final Melt hold; upstream fades from actual piece completion with matching shadows. No camera change. Host changes are release copy, markers and records only, with no host test relaxation or engine/state/prompt/parser edits.

@@ -1,3 +1,5 @@
+import { fontLibrary } from './font-library.js';
+import { NUMERAL_FONTS } from './numeral-fonts.js';
 // render/die-mesh.js — the visual die: a rounded mesh built from the SAME core shape the physics
 // uses, and a numeral atlas painted on a canvas.
 //
@@ -164,33 +166,6 @@ export function setDim(geometry, keepFaces, factor) {
 }
 
 /**
- * Loads a vendored numeral font (an entry of NUMERAL_FONTS with a `file`) so a canvas can paint in
- * it; resolves at once for a system font stack. A font that fails to load is refused loudly.
- */
-const loaded = new Map();        // face → its load (a promise)
-const loadedFaces = new Set();   // the faces the document has: ready to paint in
-export function loadNumeralFont(font) {
-  if (!font.file) return Promise.resolve();
-  if (!loaded.has(font.face)) {
-    const url = new URL('../' + font.file, import.meta.url);
-    const face = new FontFace(font.face, 'url(' + url.href + ')', { weight: font.weights || 'normal' });
-    loaded.set(font.face, face.load().then((f) => { document.fonts.add(f); loadedFaces.add(font.face); }).catch((e) => {
-      loaded.delete(font.face);
-      throw new Error('loadNumeralFont: ' + font.face + ' (' + url.href + ') did not load: ' + e.message);
-    }));
-  }
-  return loaded.get(font.face);
-}
-
-/**
- * True when a canvas paints in the font now: a system stack always, a vendored face once loadNumeralFont has loaded
- * it. Painted sooner, a vendored font's mask comes out in its fallback (DiceView repaints it once the face arrives).
- */
-export function numeralFontLoaded(font) {
-  return !font.file || loadedFaces.has(font.face);
-}
-
-/**
  * The numeral MASK of a die: white numerals on black in the atlas layout. It carries no colour —
  * the material mixes the ink colour in through it, keeps the ink opaque on see-through finishes,
  * and engraves it through the bump map (render/finishes.js). font is a NUMERAL_FONTS entry (loaded
@@ -234,3 +209,14 @@ export function paintGlyphMask(die, layout, font, mode = 'numerals') {
 /** The faces that print a given feature's value (one face for most dice, three for a d4 corner). */
 export const facesShowing = (die, feature) =>
   die.glyphs.map((gs, fi) => (gs.some((g) => g.feature === feature) ? fi : -1)).filter((fi) => fi >= 0);
+
+// Compatibility for hosts using the original public loader with a NUMERAL_FONTS entry.
+const fontKeyOf = font => font.key || Object.keys(NUMERAL_FONTS).find(key => NUMERAL_FONTS[key].family === font.family && NUMERAL_FONTS[key].file === font.file);
+export function loadNumeralFont(font) {
+  const key = fontKeyOf(font);
+  if (!key) return Promise.reject(new Error('Unknown numeral font descriptor.'));
+  return fontLibrary.ready(key);
+}
+export function numeralFontLoaded(font) {
+  return !font.source && !font.file || !!fontLibrary.state(fontKeyOf(font))?.ready;
+}

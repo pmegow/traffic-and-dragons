@@ -5,6 +5,7 @@ export { SURFACE_LOOKS, RIM_LOOK } from './surface-looks.js';
 export { PATTERNS, PATTERN_SCALE } from './patterns.js';
 export { buildDieGeometry, paintGlyphMask, loadNumeralFont, setDim, facesShowing, atlasLayout } from './die-mesh.js';
 export { FINISHES, dieMaterial, recolour, setGlyph } from './finishes.js';
-export { NUMERAL_FONTS } from './numeral-fonts.js';
+export { NUMERAL_FONTS, localFontKey, numeralFont } from './numeral-fonts.js';
 export { DIE_PRESETS, presetProblem, presetStyle, sameLook } from './presets.js';
 export { SPECULAR } from './finish-table.js';
+export { fontLibrary } from './font-library.js';

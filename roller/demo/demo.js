@@ -1,5 +1,8 @@
 // demo/demo.js — the standalone dice toy: a thin shell over DiceView, DiceAudio and the core's roll().
-import { DiceView, VIEW_DEFAULTS, FINISHES, SURFACE_LOOKS, NUMERAL_FONTS } from '../render/index.js';
+import { bindFontPicker } from './font-picker.js';
+import { validFontKey } from '../render/numeral-fonts.js';
+import { hostFor } from './host.js';
+import { DiceView, VIEW_DEFAULTS, FINISHES, SURFACE_LOOKS } from '../render/index.js';
 import { DiceAudio } from '../audio/index.js';
 import { createPressGesture } from '../input/press-gesture.js';
 import { createPinch } from '../input/pinch.js';
@@ -193,18 +196,16 @@ for (const [key, f] of Object.entries(FINISHES)) {
   o.textContent = f.label;
   $('finish').appendChild(o);
 }
-for (const [key, f] of Object.entries(NUMERAL_FONTS)) {
-  const o = document.createElement('option');
-  o.value = key;
-  o.textContent = f.label;
-  $('font').appendChild(o);
-}
+const fontPicker = bindFontPicker({
+  select: $('font'), browse: $('font-browse'), importButton: $('font-import'), fileInput: $('font-file'),
+  notice: $('font-notice'), preview: $('font-preview'),
+});
 // The controls open on the view's own defaults (render/view-defaults.js), never a second copy in the HTML — but for
 // the surface, which is the roller's own (demo/toy-defaults.js: no tray, owner 2026-10-27).
 $('body-color').value = VIEW_DEFAULTS.dieStyle.body;
 $('ink-color').value = VIEW_DEFAULTS.dieStyle.ink;
 $('finish').value = VIEW_DEFAULTS.dieStyle.finish;
-$('font').value = VIEW_DEFAULTS.dieStyle.font;
+fontPicker.select(VIEW_DEFAULTS.dieStyle.font);
 $('classic-d6').checked = VIEW_DEFAULTS.dieStyle.classicD6;
 $('surface').value = TOY_DEFAULTS.surface;
 const speed = bindCenteredSlider($('speed'), $('speed-out'), SLIDER_RANGES.speed);
@@ -218,7 +219,7 @@ try {
   const saved = JSON.parse(localStorage.getItem(LOOK_KEY) || 'null');
   if (saved && FINISHES[saved.finish]) { $('body-color').value = saved.body; $('ink-color').value = saved.ink; $('finish').value = saved.finish; }
   if (saved && SURFACE_LOOKS[saved.surface]) $('surface').value = saved.surface;
-  if (saved && NUMERAL_FONTS[saved.font]) $('font').value = saved.font;
+  if (saved && validFontKey(saved.font)) fontPicker.select(saved.font);
   $('classic-d6').checked = saved?.classicD6 === true;
   mixed = !!(saved && saved.mixed);
 } catch { /* storage blocked: the defaults stand */ }
@@ -237,6 +238,7 @@ const presetStorage = (() => {
   }
 })();
 const presetStore = createPresetStore(presetStorage);
+for (const p of presetStore.list()) fontPicker.ensure(p.font);
 {
   const problems = [];
   if (presetStorage.blocked) problems.push('This browser blocks storage: saved presets will last only until the page closes.');
@@ -289,7 +291,7 @@ $('preset').addEventListener('change', () => {
   $('body-color').value = p.body;
   $('ink-color').value = p.ink;
   $('finish').value = p.finish;
-  $('font').value = p.font;
+  fontPicker.select(p.font);
   $('classic-d6').checked = p.classicD6 === true;
   // The name field follows the choice: a saved preset's own name (Save then overwrites it), nothing for a built-in
   // one (owner 2026-10-29: a name typed earlier stayed under the new choice — "clear the preset name when a new
@@ -877,7 +879,7 @@ paintDrawer();
 // ---------------------------------------------------------------- offline (the installed web app)
 // sw.js keeps the app for offline use and the Home Screen. Not on a development server, where a
 // cache-first worker would serve old files while they are being edited — unless ?sw asks for it.
-if ('serviceWorker' in navigator) {
+if (hostFor(globalThis).serviceWorker && 'serviceWorker' in navigator) {
   const devServer = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
   if (!devServer || new URLSearchParams(location.search).has('sw')) {
     navigator.serviceWorker.register('./sw.js', { scope: './' })

@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { roll, samplePose, rollDuration, buildDie, trayFor, dieTypes, createHold, cupSize, cupSlots, HOLD_DEFAULTS } from '../src/index.js';
 import { createRng } from '../src/rng.js';
-import { buildDieGeometry, setDim, paintGlyphMask, loadNumeralFont, numeralFontLoaded, facesShowing } from './die-mesh.js';
+import { buildDieGeometry, setDim, paintGlyphMask, facesShowing } from './die-mesh.js';
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { supersampleRatio, stepDown, SUPERSAMPLE } from './supersample.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
@@ -35,7 +35,8 @@ import { EXITS, exitWarmUp } from './exits.js';
 const EXIT_FRAME_MAX = 1 / 30;
 import { dieMaterial, recolour, setGlyph, setOnTray, FINISHES } from './finishes.js';
 import { DIE_MATERIALS } from '../src/materials.js';
-import { NUMERAL_FONTS } from './numeral-fonts.js';
+import { validFontKey } from './numeral-fonts.js';
+import { fontLibrary } from './font-library.js';
 import { faceMarking } from './face-markings.js';
 import { SURFACE_LOOKS, RIM_LOOK } from './surface-looks.js';
 import { SPECULAR } from './finish-table.js';
@@ -75,7 +76,7 @@ export class DiceView {
     this.animators = new Set();   // what moves each frame (a roll, a die leaving): one render per frame for all
     this.frameRequested = false;
     this.exiting = new Set();     // dice off the table, still drawn until their exit ends: { die, finish }
-    this.fonts = new Map();       // a numeral font's load and repaint under way (readyFont), by NUMERAL_FONTS key
+    this.fonts = new Map();       // a font reference's shared load promise and per-view repaint (readyFont)
     this.warmed = new Map();      // the dice's pipeline readied, by finish and font (warmTable)
     this.warm = new Map();        // the exits' shaders readied, by finish (warmExits)
     this.bag = [o.dieStyle];      // the look: the styles a die is dealt from (render/die-looks.js); one style, every die alike
@@ -416,26 +417,21 @@ export class DiceView {
     const a = this.atlases.get(type);
     const { key, mode } = faceMarking(type, { font, classicD6 });
     if (!a.glyphs.has(key)) {
-      a.glyphs.set(key, paintGlyphMask(a.die, a.geometry.userData.layout, NUMERAL_FONTS[font], mode));
+      a.glyphs.set(key, paintGlyphMask(a.die, a.geometry.userData.layout, fontLibrary.effective(font), mode));
       // A vendored face not yet loaded paints in its fallback for now: the mask is repainted, and every die wearing
       // it given the new one, the moment the face arrives (readyFont); one that never arrives is said.
-      if (!numeralFontLoaded(NUMERAL_FONTS[font])) this.readyFont(font).catch((e) => console.error('DiceView: the numeral font "' + font + '" did not load, so its numerals stay in the fallback:', e));
+      if (!fontLibrary.state(font)?.ready) this.readyFont(font).catch((e) => console.error('DiceView: the numeral font "' + font + '" did not load, so its numerals stay in the fallback:', e));
     }
     return { die: a.die, geometry: a.geometry, glyph: a.glyphs.get(key) };
   }
 
-  /**
-   * Readies a numeral font (NUMERAL_FONTS key) to paint in: a vendored face is loaded (render/die-mesh.js ▸
-   * loadNumeralFont) and, once it is, any mask already painted in its fallback is repainted and every die wearing it
-   * given the new one. Resolves when the font can be painted in (a system stack: at once); rejects, with the reason,
-   * when the face cannot be loaded. An unknown font is refused by name.
-   */
+  /** Readies a font or its system fallback; a changed import repaints cached and visible masks. */
   readyFont(font) {
-    const spec = NUMERAL_FONTS[font];
-    if (!spec) throw new Error('DiceView: no numeral font "' + font + '" (known: ' + Object.keys(NUMERAL_FONTS).join(', ') + ')');
-    if (numeralFontLoaded(spec)) return Promise.resolve();
-    if (!this.fonts.has(font)) this.fonts.set(font, loadNumeralFont(spec).then(() => this.repaintFont(font)));
-    return this.fonts.get(font);
+    const load = fontLibrary.ready(font);
+    if (this.fonts.get(font)?.load !== load) {
+      this.fonts.set(font, { load, ready: load.then(() => this.repaintFont(font)) });
+    }
+    return this.fonts.get(font).ready;
   }
 
   /**
@@ -448,7 +444,7 @@ export class DiceView {
     for (const a of this.atlases.values()) {
       const old = a.glyphs.get(font);
       if (!old) continue;
-      const mask = paintGlyphMask(a.die, a.geometry.userData.layout, NUMERAL_FONTS[font]);
+      const mask = paintGlyphMask(a.die, a.geometry.userData.layout, fontLibrary.effective(font));
       a.glyphs.set(font, mask);
       for (const d of wearing) if (d.mesh.material.userData.dice.uniforms.uGlyph.value === old) setGlyph(d.mesh.material, mask);
       old.dispose();
@@ -465,7 +461,7 @@ export class DiceView {
   async setDieStyle(style) {
     const next = { ...this.o.dieStyle, ...style };
     if (!FINISHES[next.finish]) throw new Error('DiceView: no finish "' + next.finish + '" (known: ' + Object.keys(FINISHES).join(', ') + ')');
-    if (!NUMERAL_FONTS[next.font]) throw new Error('DiceView: no numeral font "' + next.font + '" (known: ' + Object.keys(NUMERAL_FONTS).join(', ') + ')');
+    if (!validFontKey(next.font)) throw new Error('DiceView: invalid numeral font reference.');
     if (typeof next.classicD6 !== 'boolean') throw new Error('DiceView: Classic d6 must be true or false');
     await this.readyFont(next.font);
     this.o.dieStyle = next;

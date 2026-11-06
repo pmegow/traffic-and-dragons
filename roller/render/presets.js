@@ -3,7 +3,7 @@
 //
 // A preset is a named die style (owner 2026-10-24: "the preset should store body and number colors,
 // finish, font"): { name, body, ink, finish, font, classicD6 } — body and ink as #rrggbb, finish a FINISHES key,
-// font a NUMERAL_FONTS key; classicD6 selects dots on d6s (missing in old presets means false). view.setDieStyle(presetStyle(p)) puts one on the dice. The tray's surface
+// font a built-in key or stable installed/imported font reference; classicD6 selects dots on d6s (missing in old presets means false). view.setDieStyle(presetStyle(p)) puts one on the dice. The tray's surface
 // is not part of a preset.
 //
 // The built-ins: the view's own default first, then looks chosen in the toy on 2026-10-24; Jade and
@@ -12,7 +12,7 @@
 // this project"; Carrara and Bone were Classic).
 
 import { FINISHES } from './finish-table.js';
-import { NUMERAL_FONTS } from './numeral-fonts.js';
+import { NUMERAL_FONTS, validFontKey } from './numeral-fonts.js';
 import { VIEW_DEFAULTS } from './view-defaults.js';
 
 export const DIE_PRESETS = [
@@ -42,7 +42,7 @@ export function presetProblem(p) {
   if (!HEX.test(p.body)) return '"' + name + '": the body colour must be #rrggbb, got ' + p.body;
   if (!HEX.test(p.ink)) return '"' + name + '": the number colour must be #rrggbb, got ' + p.ink;
   if (!(p.finish in FINISHES)) return '"' + name + '": no finish "' + p.finish + '" (known: ' + Object.keys(FINISHES).join(', ') + ')';
-  if (!(p.font in NUMERAL_FONTS)) return '"' + name + '": no font "' + p.font + '" (known: ' + Object.keys(NUMERAL_FONTS).join(', ') + ')';
+  if (!validFontKey(p.font)) return '"' + name + '": no font "' + p.font + '" (known: ' + Object.keys(NUMERAL_FONTS).join(', ') + ')';
   if (p.classicD6 !== undefined && typeof p.classicD6 !== 'boolean') return '"' + name + '": Classic d6 must be true or false';
   return null;
 }
