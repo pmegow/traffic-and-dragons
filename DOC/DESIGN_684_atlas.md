@@ -143,6 +143,22 @@ An independent audit of the map library (`C:\Projects\TnD_Maps\Audits\Audit_Astr
 
 **The re-vendor rule.** A03, A06 and A07 change what a seed draws, and the game stores recipes, never documents: each such fix redraws the affected zones of every saved mapped campaign. Take them in ONE library release, read its notes for which generators redraw, and accept the fixture table in `dev/tests-684-atlas-engine.js` once, on purpose, in the re-vendor commit — with the owner's go, because saved campaigns' maps change. A05 must leave the fingerprints as they are (`atlasFingerprint` already ignores the caches). When A07 lands, add a game test that a land tap in a coastal zone is accepted and that a refusal's words are true of the tap: the game shows the library's reason to the player verbatim.
 
+## Library 0.13.0 vendored (v1.1357, 2026-11-06)
+
+The owner's go: "Yes, re-vendor" (2026-11-06), after the note that wild zones redraw. The file is `dist/tndmaps.js` of `C:\Projects\TnD_Maps` at commit db2936f (not pushed there), SHA-256 `5fce4b93…ee30e4`. It carries the audit's A03, A05, A06, A07, A11 and A14.
+
+**What redraws, by the game's own gate.** The fixture table's five lines for the region, the town, the building, the sewer and the cave are byte-identical; the wild zone's line changed and was accepted (`wild e02a63d6-efp` → `wild a9b5192a-e19`). In the fixture's wild zone the seven named things keep their ids and names and five of them move; the edges lose "by the trail" from their names. Sampled over two realms (16,500 zones), no zone 0.12.0 opened is refused by 0.13.0, so a saved wild zone always redraws; about 40 coastal zones per realm that 0.12.0 refused now open.
+
+**A defect of the game's own, found by the re-vendor.** A document carries the version of the library that drew it (`generator.version`), and the fingerprint hashed it: under any new library EVERY zone of every saved mapped campaign would have been said as redrawn, and the fixture gate would have failed on every re-vendor whatever was drawn. Fix: `atlasFingerprint(doc, asLib)` reads a drawing as a named library stamped it; `atlasSettle` compares a record as its own library stamped it and re-stamps silently when the drawing is the same; the gate's table is read under one fixed stamp. The test holds the six records library 0.12.0 really wrote for the fixture realm: five settle silently, the wild zone is said.
+
+**A tapped point is judged as the point it is.** The game used to hand the library a zone's id for a tap on open ground. Since 0.13.0 an id is judged by the land the zone holds, so a tap on the sea was refused as "zone z83_478 is open water" (a zone id in the player's toast) and a tap on water at the shore would have opened the zone. `ATLAS_BUILDERS["region>wild"].at` now asks the library about the point first ("that point lies in the sea; a zone is open country") and names the zone only then. Land at the coast, in a zone whose middle is water, can now be stood on (0.12.0 refused it).
+
+**Checked on a real save.** The live spot-check's atlas (`dev/corpus_spotcheck_684_v1353.json`, five zones recorded under 0.12.0 in the preview browser): in that same browser 0.13.0, read as 0.12.0 stamped it, reproduces all five fingerprints, and the MAP block is byte-identical to the one the GM was sent. That save has no wild zone.
+
+**Found on the way, not fixed (#698): the map is not the same on every engine.** Node 22 draws that save's village Hushwick with 172 houses and 760 souls; Chrome 152 draws 173 and 770, from the same recipe, under 0.12.0 and 0.13.0 alike. The second village differs too; the region, the building and the crypt do not. The cause is in the library's town generator and is not found (no locale-dependent sort; eighteen spot values of `Math` functions agree).
+
+**Not done by this release:** #693, #694, structured neighbour facts, names reshuffling on a pin, an all-water edge that is still a way on.
+
 ## Deliberately later (each its own TODO row once this lands)
 
 - **Placed starts**: a start preset carries where it sits on the map (a tavern, a cave mouth, wild coast) and the map
@@ -157,5 +173,6 @@ An independent audit of the map library (`C:\Projects\TnD_Maps\Audits\Audit_Astr
 
 - A region pin shifts every later place's name (names are dealt only to unpinned places) — so a region cannot be renamed
   mid-campaign. Wanted: names reserved before pins, and a region rename edit by id, as towns have.
-- `digest()` and `wild.fromRegion()` write `_biomeBytes` / `_heightBytes` onto the document they read.
+- ~~`digest()` and `wild.fromRegion()` write `_biomeBytes` / `_heightBytes` onto the document they read.~~ Fixed in 0.13.0 (A05).
+- **Cross-engine drawing (#698):** `town` from seed `qy49avnujq7o`, place `p11`, draws 173 houses in Chrome 152 and 172 in Node 22 (V8 12.4), under 0.12.0 and 0.13.0. The game redraws from recipes on every device, so this changes maps and what the GM is told.
 - The library-side half of the SHA-256 pin.

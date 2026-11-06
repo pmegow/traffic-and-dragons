@@ -1,6 +1,7 @@
 {
-  "version": "v1.1356",
+  "version": "v1.1357",
   "actions": [
-    "In a mapped campaign, the Game Master is now told where you placed the party with We are here."
+    "Map library 0.13.0: roads and rivers now meet across the edges of open-country sheets, so those sheets are redrawn in mapped campaigns.",
+    "Tapping water on the realm map now says the point lies in the sea or a lake; coastal land can be stood on."
   ]
 }

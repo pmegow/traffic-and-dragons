@@ -23,17 +23,32 @@ function src(f) { return fs.readFileSync(path.join(ROOT, f), "utf8"); }
 var passed = 0;
 function test(name, fn) { try { fn(); passed++; console.log("PASS #684 " + name); } catch (e) { process.exitCode = 1; console.error("FAIL #684 " + name + " — " + e.stack); } }
 
-/* THE FIXTURE GATE's table — what library 0.12.0 draws for the fixture realm (seed campaign-1). A re-vendor that changes
-   any line redraws maps under saved campaigns: accept it on purpose (re-run with ATLAS_FIXTURES=print and paste), and say
-   so in the commit and the release note. */
+/* THE FIXTURE GATE's table — what the vendored library draws for the fixture realm (seed campaign-1). A document carries
+   the version of the library that drew it, so every line is read under ONE fixed stamp (ATLAS_FIXTURES_STAMP, the
+   version that first pinned the table): a re-vendor that draws the same realm passes untouched, and one that changes a
+   line redraws maps under saved campaigns. Accept that on purpose (re-run with ATLAS_FIXTURES=print and paste), say so
+   in the commit and the release note, and name the redrawn zones in a table like ATLAS_REDRAWN_BY_0_13 below.
+   Accepted so far: 0.13.0 redrew the wild zone (every wild zone made from a region; nothing else). */
+var ATLAS_FIXTURES_STAMP = "0.12.0";
 var ATLAS_FIXTURES = {
   "campaign-1": "region 89d812b3-5vq5",
   "campaign-1/p0": "town ad9ad4eb-2y0f",
   "campaign-1/p0/inn-1": "interior dafa5fef-al3",
   "campaign-1/p0/sewer": "dungeon 244e0f70-tpf",
   "campaign-1/c0": "dungeon a7204fce-60w",
-  "campaign-1/z202_178": "wild e02a63d6-efp"
+  "campaign-1/z202_178": "wild a9b5192a-e19"
 };
+/* What library 0.12.0 itself recorded in a campaign that mapped those six zones (the table above as 0.12.0 printed it,
+   never to be regenerated), and the zones library 0.13.0 draws differently from those records. */
+var ATLAS_RECORDS_0_12 = {
+  "campaign-1": "89d812b3-5vq5",
+  "campaign-1/p0": "ad9ad4eb-2y0f",
+  "campaign-1/p0/inn-1": "dafa5fef-al3",
+  "campaign-1/p0/sewer": "244e0f70-tpf",
+  "campaign-1/c0": "a7204fce-60w",
+  "campaign-1/z202_178": "e02a63d6-efp"
+};
+var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
 
 (function () {
   var toasts = [], warns = [], infos = [], reports = [];
@@ -51,6 +66,26 @@ var ATLAS_FIXTURES = {
   function cast(A) {
     var reg = atlasDoc(A.seed), p0 = reg.places[0], townId = A.seed + "/" + p0.id, c = { reg: reg, p0: p0, p1: reg.places[1], townId: townId };
     return c;
+  }
+  /* a point of open water inside a zone that holds land: the library opens that zone by its id and refuses the point */
+  function shorePoint(reg) {
+    var x, y, id;
+    for (y = 5; y < 1000; y += 17) for (x = 5; x < 1000; x += 17) {
+      try { TnDMaps.wild.fromRegion(reg, [x, y]); continue; } catch (e) { }
+      id = TnDMaps.wild.zoneAt(reg, [x, y]).id;
+      try { TnDMaps.wild.fromRegion(reg, id); return [x, y]; } catch (e2) { }
+    }
+    return null;
+  }
+  /* a point of firm ground inside a zone whose middle is water */
+  function coastLand(reg) {
+    var x, y, z;
+    for (y = 3; y < 1000; y += 11) for (x = 3; x < 1000; x += 11) {
+      try { TnDMaps.wild.fromRegion(reg, [x, y]); } catch (e) { continue; }
+      z = TnDMaps.wild.zoneAt(reg, [x, y]);
+      try { TnDMaps.wild.fromRegion(reg, [z.cx, z.cy]); } catch (e2) { return [x, y]; }
+    }
+    return null;
   }
   function townCast(A, c) {
     var town = atlasDoc(c.townId);
@@ -77,12 +112,14 @@ var ATLAS_FIXTURES = {
     assert(/^[a-z0-9]{12}$/.test(atlasSeedMint()) && atlasSeedMint() !== atlasSeedMint(), "a minted seed");
   });
 
-  test("the fingerprint ignores the timings and the caches the library hangs on a document it has read", function () {
-    var A = fresh(), doc = atlasDoc(A.seed), fp = atlasFingerprint(doc);
+  test("the fingerprint ignores the timings and the caches a library hangs on a document — and since library 0.13.0 a read writes nothing onto one", function () {
+    var A = fresh(), doc = atlasDoc(A.seed), fp = atlasFingerprint(doc), raw = JSON.stringify(doc), timed, other;
     TnDMaps.digest(doc); TnDMaps.wild.fromRegion(doc, [doc.places[0].x, doc.places[0].y]);
-    assert(Object.keys(doc).some(function (k) { return k.charAt(0) === "_"; }), "the library wrote a cache onto the document (if it stopped, drop this guard's reason)");
+    assert.equal(JSON.stringify(doc), raw, "a read wrote onto the document: the fingerprint's underscore guard is load-bearing again — say so in this test's name");
     assert.equal(atlasFingerprint(doc), fp, "a read document must fingerprint like a fresh one");
-    var other = plain(doc); other.places[0].name = "Elsewhere"; assert.notEqual(atlasFingerprint(other), fp, "a changed name is a different drawing");
+    timed = Object.assign({}, doc); timed.stats = { ms: 1 }; timed._cache = [1, 2, 3];
+    assert.equal(atlasFingerprint(timed), fp, "timings and a cache key are not the drawing");
+    other = plain(doc); other.places[0].name = "Elsewhere"; assert.notEqual(atlasFingerprint(other), atlasFingerprint(plain(doc)), "a changed name is a different drawing");
   });
 
   test("entry by an exact world name: the town is drawn once, its recipe is {kind, parent, via}, the match is NOT kept as a tie, and following is idempotent", function () {
@@ -166,8 +203,17 @@ var ATLAS_FIXTURES = {
     assert.equal(A.at, A.seed + "/" + A.zones[A.at].via); assert.equal(A.spot, null);
     before = JSON.stringify(worldState.atlas); quiet();
     r = atlasPlace(A.seed, { x: sea.x, y: sea.y });
-    assert.equal(r.ok, false); assert(/sea/.test(r.reason) && !/\{/.test(r.reason), "the library's reason, without its data: " + r.reason);
+    assert.equal(r.ok, false); assert(/^that point lies in the sea/.test(r.reason) && !/\{|z\d+_\d+/.test(r.reason), "the library's reason for the POINT, without its data or a zone's id: " + r.reason);
     assert.equal(JSON.stringify(worldState.atlas), before, "a refused tap changes nothing"); assert.equal(reports.length, 0, "a library refusal is not a bug report");
+    /* the shore: open water inside a zone that holds land — the tap is judged as the point it is, never as its zone */
+    var shore = shorePoint(c.reg); assert(shore, "the fixture realm has open water inside a zone that holds land");
+    r = atlasPlace(A.seed, { x: shore[0], y: shore[1] });
+    assert.equal(r.ok, false); assert(/^that point lies in (the sea|a lake)/.test(r.reason), "water at the shore is refused as the point it is: " + r.reason);
+    assert.equal(JSON.stringify(worldState.atlas), before, "and the refused shore tap changes nothing"); assert.equal(reports.length, 0);
+    /* the coast: firm ground in a zone whose middle is water is stood on (library 0.12.0 judged a zone by its middle) */
+    var coast = coastLand(c.reg); assert(coast, "the fixture realm has land in a zone whose middle is water");
+    r = atlasPlace(A.seed, { x: coast[0], y: coast[1] });
+    assert.equal(r.ok, true, "land at the coast is stood on: " + r.reason); assert.equal(A.zones[A.at].kind, "wild"); assert.equal(A.zones[A.at].via, TnDMaps.wild.zoneAt(c.reg, coast).id);
   });
 
   test("portals: every way into the sewers is ONE zone; a cave hangs from the region; a way back up lands on the thing it came from", function () {
@@ -212,6 +258,30 @@ var ATLAS_FIXTURES = {
     assert.deepEqual(plain(rec.redrawn), { from: "0.11.0", to: TnDMaps.VERSION, was: "deadbeef-1", turn: 42 }); assert.equal(rec.fp, real); assert.equal(rec.lib, TnDMaps.VERSION);
     assert(toasts.some(function (t) { return /redrawn by a newer map library \(0\.11\.0 → /.test(t) && t.indexOf(c.p0.name) >= 0; }), "the redraw is toasted: " + toasts.join(" | "));
     quiet(); atlasFollow(); assert.equal(toasts.length, 0, "said once");
+  });
+
+  test("a newer library that draws the SAME sheet is not a redraw: a record is read as its own library stamped it — a campaign mapped under 0.12.0 settles silently, but for the wild zone 0.13.0 really redrew", function () {
+    var A = fresh(), c = cast(A), rec, doc, asOld, said;
+    point(c.p0.name); atlasFollow(); rec = A.zones[c.townId]; doc = atlasDoc(c.townId);
+    asOld = atlasFingerprint(doc, "0.11.0");
+    assert.notEqual(asOld, rec.fp, "a document carries the version of the library that drew it, so another version's stamp fingerprints differently");
+    assert.equal(atlasFingerprint(doc, TnDMaps.VERSION), rec.fp, "read as this library stamped it, the drawing is its own record");
+    rec.fp = asOld; rec.lib = "0.11.0"; atlasForget(); quiet(); atlasDoc(c.townId); worldState.turn = 43; atlasFollow();
+    assert.equal(rec.redrawn, undefined, "the same drawing under a newer library's stamp is NOT a redraw"); assert.equal(toasts.length, 0, "and nothing is said: " + toasts.join(" | "));
+    assert.equal(rec.lib, TnDMaps.VERSION); assert.equal(rec.fp, atlasFingerprint(atlasDoc(c.townId)), "the record is re-stamped by the library that draws it now");
+    /* the REAL records: what library 0.12.0 wrote into a campaign that mapped the fixture realm's six zones */
+    A = fresh(); c = cast(A); point(c.p0.name); atlasFollow(); townCast(A, c);
+    point(c.p0.name, c.inn.name); atlasFollow(); point(c.p0.name, c.grates[0].name); atlasFollow(); point(c.reg.caves[0].name); atlasFollow();
+    point("Open country"); atlasFollow(); atlasPlace(A.seed, { x: c.p0.x + 6, y: c.p0.y + 4 });
+    assert.deepEqual(Object.keys(A.zones).sort(), Object.keys(ATLAS_RECORDS_0_12).sort(), "the six fixture zones");
+    Object.keys(A.zones).forEach(function (id) { A.zones[id].fp = ATLAS_RECORDS_0_12[id]; A.zones[id].lib = "0.12.0"; });
+    atlasForget(); quiet(); worldState.turn = 44;
+    Object.keys(A.zones).forEach(function (id) { atlasDoc(id); atlasSettleChain(A, id); });
+    said = Object.keys(A.zones).filter(function (id) { return A.zones[id].redrawn; });
+    assert.deepEqual(said, ATLAS_REDRAWN_BY_0_13, "exactly the zones library 0.13.0 redrew are recorded as redrawn — every other sheet is the one the campaign was mapped on");
+    assert.equal(A.zones[said[0]].redrawn.from, "0.12.0"); assert.equal(A.zones[said[0]].redrawn.was, ATLAS_RECORDS_0_12[said[0]]);
+    assert.equal(toasts.length, 1, "one notice, for the one zone: " + toasts.join(" | ")); assert(/redrawn by a newer map library \(0\.12\.0 → /.test(toasts[0]), toasts[0]);
+    Object.keys(A.zones).forEach(function (id) { assert.equal(A.zones[id].lib, TnDMaps.VERSION, id + " is re-stamped"); assert.equal(A.zones[id].fp, atlasFingerprint(atlasDoc(id)), id); });
   });
 
   test("a failure inside the atlas never escapes a writer: the turn still commits, the reason is on record, a half-made zone is rolled back", function () {
@@ -302,7 +372,9 @@ var ATLAS_FIXTURES = {
     point("Far Away"); atlasFollow();
     assert.equal(atlasWhere().text, "\"Far Away\" is not on the map (no place on the map has that name). The party's last mapped place is " + c.p0.name + ".");
     var sea = c.reg.features.filter(function (f) { return f.kind === "sea"; })[0]; card = atlasCard(A.seed, { x: sea.x, y: sea.y });
-    assert(card && /sea/.test(card.refused) && !/\{/.test(card.refused) && card.place === null, "open water says why it cannot be stood on: " + JSON.stringify(card));
+    assert(card && /^that point lies in the sea/.test(card.refused) && !/\{|z\d+_\d+/.test(card.refused) && card.place === null, "open water says why it cannot be stood on, as the point it is: " + JSON.stringify(card));
+    var shore = shorePoint(c.reg); card = atlasCard(A.seed, { x: shore[0], y: shore[1] });
+    assert(card && /^that point lies in (the sea|a lake)/.test(card.refused) && card.opens === null && card.place === null, "water at the shore offers nothing, though its zone holds land: " + JSON.stringify(card));
     assert.equal(atlasCard(c.townId, { x: 5, y: 5 }), null, "only the region has open ground"); assert.equal(atlasCard(A.seed, { id: "nope" }), null);
     engine.makeTestWorld(); assert.equal(atlasWhere(), null); assert.equal(atlasPlacePreview(), null); assert.equal(atlasCard("x", { id: "y" }), null); assert.equal(atlasReveal("x"), null);
   });
@@ -609,7 +681,7 @@ var ATLAS_FIXTURES = {
     point(c.p0.name); atlasFollow(); townCast(A, c);
     point(c.p0.name, c.inn.name); atlasFollow(); point(c.p0.name, c.grates[0].name); atlasFollow(); point(c.reg.caves[0].name); atlasFollow();
     point("Open country"); atlasFollow(); atlasPlace(A.seed, { x: c.p0.x + 6, y: c.p0.y + 4 });
-    Object.keys(A.zones).forEach(function (id) { got[id] = A.zones[id].kind + " " + A.zones[id].fp; });
+    Object.keys(A.zones).forEach(function (id) { got[id] = A.zones[id].kind + " " + atlasFingerprint(atlasDoc(id), ATLAS_FIXTURES_STAMP); });
     if (process.env.ATLAS_FIXTURES === "print") console.log(JSON.stringify(got, null, 2));
     assert.deepEqual(got, ATLAS_FIXTURES, "the vendored library REDRAWS the fixture realm — every saved campaign's maps would change under it. Accept on purpose (ATLAS_FIXTURES=print), or fix the library.");
   });

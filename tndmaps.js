@@ -1,11 +1,11 @@
-/* TnD Maps 0.12.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.13.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.12.0";
+  NS.VERSION = "0.13.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -76,6 +76,24 @@
     return out;
   }
 
+  /* ── a document's byte fields, decoded once ── the decoded bytes are the library's own, never a property of the
+     caller's document: a read leaves a document as it was, and a frozen one is read all the same. The last few fields
+     decoded are kept and found again by the encoded string itself — the same field, in the same document or in a copy
+     of it, is the same string. The bytes are shared: read them, never write them. */
+  var FIELD_CACHE = [], FIELD_CACHE_MAX = 6;
+  function fieldBytes(str) {
+    var i, hit;
+    assert(typeof str === "string", "a byte field is a base64 string", { got: typeof str });
+    for (i = FIELD_CACHE.length - 1; i >= 0; i--) if (FIELD_CACHE[i].str === str) { hit = FIELD_CACHE.splice(i, 1)[0]; FIELD_CACHE.push(hit); return hit.bytes; }
+    hit = { str: str, bytes: base64ToBytes(str) }; FIELD_CACHE.push(hit);
+    if (FIELD_CACHE.length > FIELD_CACHE_MAX) FIELD_CACHE.shift();
+    return hit.bytes;
+  }
+  /* ── a table's own entry under a caller's name, or undefined ── a table is never answered out of Object.prototype:
+     "toString", "constructor" and "__proto__" are unknown names like any other. Every lookup a caller's string picks
+     — a generator kind, a document's generator name, a culture, a size, an edit's op or kind — goes through here. */
+  function own(table, key) { return (typeof key === "string" || typeof key === "number") && Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined; }
+
   /* ── small utilities ── */
   function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
   function lerp(a, b, t) { return a + (b - a) * t; }
@@ -98,7 +116,7 @@
   }
 
   NS.fail = fail; NS.assert = assert; NS.hash32 = hash32; NS.Rng = Rng;
-  NS.bytesToBase64 = bytesToBase64; NS.base64ToBytes = base64ToBytes;
+  NS.bytesToBase64 = bytesToBase64; NS.base64ToBytes = base64ToBytes; NS.fieldBytes = fieldBytes; NS.own = own;
   function titleCase(s) { return String(s).trim().replace(/\s+/g, " ").replace(/(^|\s)(\S)/g, function (m, sp, ch) { return sp + ch.toUpperCase(); }); }
   NS.util = { clamp: clamp, lerp: lerp, smoothstep: smoothstep, round: round, extend: extend, isNum: isNum, Heap: Heap, imul: imul, titleCase: titleCase };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
@@ -840,7 +858,7 @@
   /* Namer(rng, culture, used?) — `used` lets several namers (one random stream per establishment kind) share one
      uniqueness set, so a tavern and an inn never get the same sign */
   function Namer(rng, culture, used) {
-    var C = CULTURES[culture];
+    var C = NS.own(CULTURES, culture);
     NS.assert(C, "unknown culture", { culture: culture, known: Object.keys(CULTURES) });
     used = used || {};
     var innerOnsets = C.onsets.filter(function (o) { return o.length === 1 || (o.length === 2 && rng.chance(0.5)); });
@@ -1179,7 +1197,7 @@
     num("land", 0.05, 0.95); num("relief", 0, 1); num("moisture", 0, 1); num("lakes", 0, 12);
     num("settlements", 0, 60); num("caves", 0, 12); num("scaleKm", 10, 20000); num("travelKmPerDay", 5, 200);
     NS.assert(LANDMASSES.indexOf(P.landmass) >= 0, "landmass must be one of " + LANDMASSES.join("|"), { landmass: P.landmass });
-    NS.assert(NS.names.CULTURES[P.culture], "culture must be one of " + NS.names.cultures().join("|"), { culture: P.culture });
+    NS.assert(NS.own(NS.names.CULTURES, P.culture), "culture must be one of " + NS.names.cultures().join("|"), { culture: P.culture });
     NS.assert(Array.isArray(P.pins), "pins must be an array of {name, kind?}", { pins: P.pins });
     P.pins.forEach(function (pin, i) {
       NS.assert(pin && typeof pin.name === "string" && pin.name.length, "pin " + i + " needs a name", { pin: pin });
@@ -1588,6 +1606,9 @@
     city: { radius: 0.35, spacing: 0.05, walls: true, castle: true, temple: true, yard: 0.08, districts: 7, parks: 2 }
   };
   var M_PER_UNIT = 1.25;
+  /* the sheets a town is drawn on, in its own units (a side of 500 m to 7.5 km); what lies beneath takes the same
+     ground in ITS units (44's SHEET is derived from this one), so every sheet a town may have has its sewers */
+  var SHEET = { min: 400, max: 6000 };
   var WIDTH = { main: 6.4, street: 4, lane: 2.8, road: 5.6 };   /* units of 1.25 m: a main street 8 m, a street 5, a lane 3.5, the road out 7 */
   /* establishments: kind → count, overriding the catalogue's count for the size (43-establishments); edits: the
      author's changes, applied in order — add {id, kind, at|building, name?}, remove {id}, rename {id, name}, move {id, at} */
@@ -1606,9 +1627,9 @@
     for (k in input || {}) if (Object.prototype.hasOwnProperty.call(input, k) && !Object.prototype.hasOwnProperty.call(DEFAULTS, k)) NS.fail("unknown parameter", { param: k, known: Object.keys(DEFAULTS) });
     NS.assert(P.seed !== null && P.seed !== undefined && String(P.seed).length > 0, "seed is required (a string or number)", { seed: P.seed });
     function num(name, lo, hi) { NS.assert(U.isNum(P[name]) && P[name] >= lo && P[name] <= hi, name + " must be a number in [" + lo + ", " + hi + "]", { value: P[name] }); }
-    num("width", 400, 6000); num("height", 400, 6000); num("density", 0, 1);
-    NS.assert(SIZES[P.size], "size must be one of " + Object.keys(SIZES).join("|"), { size: P.size });
-    NS.assert(NS.names.CULTURES[P.culture], "culture must be one of " + NS.names.cultures().join("|"), { culture: P.culture });
+    num("width", SHEET.min, SHEET.max); num("height", SHEET.min, SHEET.max); num("density", 0, 1);
+    NS.assert(NS.own(SIZES, P.size), "size must be one of " + Object.keys(SIZES).join("|"), { size: P.size });
+    NS.assert(NS.own(NS.names.CULTURES, P.culture), "culture must be one of " + NS.names.cultures().join("|"), { culture: P.culture });
     NS.assert(P.title === null || typeof P.title === "string", "title must be a string or null", { title: P.title });
     NS.assert(P.walls === "auto" || P.walls === true || P.walls === false, "walls must be auto|true|false", { walls: P.walls });
     NS.assert(P.castle === "auto" || P.castle === true || P.castle === false, "castle must be auto|true|false", { castle: P.castle });
@@ -1619,7 +1640,7 @@
     S.coast = S.coast || null; S.lake = S.lake || null; S.river = S.river || null; S.roads = S.roads || [];
     NS.assert(S.coast === null || isBearing(S.coast), "site.coast must be a bearing (" + BEARINGS.join("|") + ") or null", { coast: S.coast });
     NS.assert(S.lake === null || isBearing(S.lake), "site.lake must be a bearing or null", { lake: S.lake });
-    if (typeof S.river === "string") { NS.assert(RIVER_OPTIONS[S.river], "site.river must be {from, to} or one of " + Object.keys(RIVER_OPTIONS).join("|"), { river: S.river }); S.river = { from: RIVER_OPTIONS[S.river][0], to: RIVER_OPTIONS[S.river][1] }; }
+    if (typeof S.river === "string") { NS.assert(NS.own(RIVER_OPTIONS, S.river), "site.river must be {from, to} or one of " + Object.keys(RIVER_OPTIONS).join("|"), { river: S.river }); S.river = { from: RIVER_OPTIONS[S.river][0], to: RIVER_OPTIONS[S.river][1] }; }
     NS.assert(S.river === null || (isBearing(S.river.from) && isBearing(S.river.to) && S.river.from !== S.river.to), "site.river must be null or {from, to} with two different bearings", { river: S.river });
     NS.assert(Array.isArray(S.roads), "site.roads must be an array of {bearing, to?, kind?}", { roads: S.roads });
     S.roads.forEach(function (r, i) { NS.assert(r && isBearing(r.bearing), "site.roads[" + i + "].bearing must be a bearing", { road: r }); });
@@ -2353,19 +2374,19 @@
     ["wards", "districts", "buildings", "streets", "roads", "landmarks", "establishments", "fields", "trees", "quays", "piers", "bridges"].forEach(function (k) { NS.assert(Array.isArray(doc[k]), "document." + k + " must be an array", { key: k }); });
     NS.assert(doc.water && Array.isArray(doc.water.polys), "document.water.polys must be an array", { water: doc.water });
     NS.assert(doc.walls === null || (doc.walls && Array.isArray(doc.walls.chains) && Array.isArray(doc.walls.towers)), "document.walls must be null or {chains, towers, gates}", { walls: doc.walls });
-    NS.assert(SIZES[doc.size], "document.size must be one of " + Object.keys(SIZES).join("|"), { size: doc.size });
+    NS.assert(NS.own(SIZES, doc.size), "document.size must be one of " + Object.keys(SIZES).join("|"), { size: doc.size });
     NS.assert(doc.frame.mPerUnit > 0, "document.frame.mPerUnit must be positive", { frame: doc.frame });
     doc.landmarks.forEach(function (l, i) { NS.assert(l.id && typeof l.name === "string" && isFinite(l.x) && isFinite(l.y) && l.kind, "landmark " + i + " is malformed", { landmark: l }); });
     var ids = {};
     doc.establishments.forEach(function (e, i) {
-      NS.assert(e.id && !ids[e.id] && (NS.establishments.CATALOGUE[e.kind] || e.kind === NS.establishments.CUSTOM) && typeof e.word === "string" && (e.icon === null || NS.icons.ICONS[e.icon]) && typeof e.name === "string" && isFinite(e.x) && isFinite(e.y) && (e.building === null || doc.buildings[e.building]), "establishment " + i + " is malformed or its id is not unique", { establishment: e });
+      NS.assert(e.id && !ids[e.id] && (NS.own(NS.establishments.CATALOGUE, e.kind) || e.kind === NS.establishments.CUSTOM) && typeof e.word === "string" && (e.icon === null || NS.own(NS.icons.ICONS, e.icon)) && typeof e.name === "string" && isFinite(e.x) && isFinite(e.y) && (e.building === null || doc.buildings[e.building]), "establishment " + i + " is malformed or its id is not unique", { establishment: e });
       ids[e.id] = true;
     });
     NS.validatePortals(doc);
     return doc;
   }
 
-  NS.town = { generate: generate, DEFAULTS: DEFAULTS, SIZES: Object.keys(SIZES), SIZE_TABLE: SIZES, BEARINGS: BEARINGS, RIVER_OPTIONS: Object.keys(RIVER_OPTIONS), WIDTH: WIDTH, resolveParams: resolveParams, fromRegion: fromRegion, validate: validate };
+  NS.town = { generate: generate, DEFAULTS: DEFAULTS, M_PER_UNIT: M_PER_UNIT, SHEET: SHEET, SIZES: Object.keys(SIZES), SIZE_TABLE: SIZES, BEARINGS: BEARINGS, RIVER_OPTIONS: Object.keys(RIVER_OPTIONS), WIDTH: WIDTH, resolveParams: resolveParams, fromRegion: fromRegion, validate: validate };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 43-establishments.js ───── */
@@ -2429,7 +2450,7 @@
     NS.assert(counts && typeof counts === "object" && !Array.isArray(counts), "establishments must be an object of kind → count", { establishments: counts });
     var k;
     for (k in counts) if (hasOwn(counts, k)) {
-      NS.assert(CATALOGUE[k], "establishments: unknown kind", { kind: k, known: Object.keys(CATALOGUE) });
+      NS.assert(NS.own(CATALOGUE, k), "establishments: unknown kind", { kind: k, known: Object.keys(CATALOGUE) });
       NS.assert(U.isNum(counts[k]) && counts[k] >= 0 && counts[k] <= MAX_COUNT && counts[k] === Math.floor(counts[k]), "establishments." + k + " must be an integer in [0, " + MAX_COUNT + "]", { value: counts[k] });
     }
     return counts;
@@ -2439,16 +2460,16 @@
     NS.assert(Array.isArray(edits), "edits must be an array", { edits: edits });
     var ids = {};
     edits.forEach(function (e, i) {
-      NS.assert(e && typeof e === "object" && OPS[e.op], "edits[" + i + "].op must be one of " + Object.keys(OPS).join("|"), { edit: e });
+      NS.assert(e && typeof e === "object" && NS.own(OPS, e.op), "edits[" + i + "].op must be one of " + Object.keys(OPS).join("|"), { edit: e });
       NS.assert(typeof e.id === "string" && e.id.length > 0, "edits[" + i + "] needs a string id", { edit: e });
       if (e.op === "add") {
-        NS.assert(CATALOGUE[e.kind] || e.kind === CUSTOM, "edits[" + i + "]: unknown establishment kind", { kind: e.kind, known: Object.keys(CATALOGUE).concat([CUSTOM]) });
+        NS.assert(NS.own(CATALOGUE, e.kind) || e.kind === CUSTOM, "edits[" + i + "]: unknown establishment kind", { kind: e.kind, known: Object.keys(CATALOGUE).concat([CUSTOM]) });
         NS.assert(!ids[e.id], "edits[" + i + "]: an establishment with id " + e.id + " is already added", { id: e.id }); ids[e.id] = true;
         NS.assert(!GENERATED_ID.test(e.id), "edits[" + i + "]: authored ids must not look like generated ones (kind-n)", { id: e.id });
         if (e.kind === CUSTOM) {
           NS.assert(typeof e.word === "string" && e.word.trim().length > 0 && e.word.length <= MAX_WORD, "edits[" + i + "]: a custom feature needs a word of 1–" + MAX_WORD + " characters (what it is)", { edit: e });
-          NS.assert(e.icon === undefined || e.icon === null || NS.icons.ICONS[e.icon], "edits[" + i + "]: unknown icon", { icon: e.icon, known: NS.icons.names() });
-          NS.assert(e.footprint === undefined || FOOTPRINTS[e.footprint], "edits[" + i + "]: footprint must be one of " + Object.keys(FOOTPRINTS).join("|") + " (or absent: the nearest house)", { footprint: e.footprint });
+          NS.assert(e.icon === undefined || e.icon === null || NS.own(NS.icons.ICONS, e.icon), "edits[" + i + "]: unknown icon", { icon: e.icon, known: NS.icons.names() });
+          NS.assert(e.footprint === undefined || NS.own(FOOTPRINTS, e.footprint), "edits[" + i + "]: footprint must be one of " + Object.keys(FOOTPRINTS).join("|") + " (or absent: the nearest house)", { footprint: e.footprint });
           NS.assert(isPoint(e.at), "edits[" + i + "]: a custom feature needs at: [x, y]", { edit: e });
         } else if (siteOf(e.kind) === "street") NS.assert(isPoint(e.at), "edits[" + i + "]: a " + CATALOGUE[e.kind].word + " stands in the street and needs at: [x, y]", { edit: e });
         else NS.assert(isPoint(e.at) || (U.isNum(e.building) && e.building >= 0), "edits[" + i + "]: add needs at: [x, y] or a building index", { edit: e });
@@ -2709,6 +2730,9 @@
      passage 2, the drain 2.5, a door 1 — and a sunken chapel (14 units) is 7 m square; the town's 1.25 m per unit made
      every room and hall twice life size */
   var M_PER_UNIT = 0.5;
+  /* the sheets a dungeon is drawn on: the town's (42's SHEET) in the dungeon's own units — the same ground in metres,
+     so the sewers of the widest town a caller may ask for still fit (a town of 6000 units is a sewer of 15000) */
+  var SHEET = { min: 400, max: NS.town.SHEET.max * NS.town.M_PER_UNIT / M_PER_UNIT };
   var SIZE_INDEX = { hamlet: 0, village: 1, town: 2, city: 3 };
   var WIDTH = { main: 6, side: 4, drain: 5, door: 2 };   /* units: 3 m, 2 m, 2.5 m, 1 m */
   var GAP = 2.4, ANCHOR_STEP = 22, ANCHOR_END = 12, ROOM_MARGIN = 3, FRAME_MARGIN = 10, EXTENT_PAD = 70, WALL = 1.5, ANNEX_REACH = 16;   /* WALL: the shared wall between a chamber and one built onto it; ANNEX_REACH: how far outside a chamber a point still means "build onto it" (8 m — the far side of a chamber is open rock, and a click there is for the chamber, not for a tunnel 20 m off) */
@@ -2935,28 +2959,29 @@
 
   /* ── the author's parameters ── */
   function isPoint(at) { return Array.isArray(at) && at.length === 2 && isFinite(at[0]) && isFinite(at[1]); }
+  function siteOf(siteKind) { var SITE = NS.own(SITES, siteKind || "sewer"); NS.assert(SITE, "site kind must be one of " + Object.keys(SITES).join("|"), { kind: siteKind }); return SITE; }
   function validateCounts(counts, siteKind) {
-    var SITE = SITES[siteKind || "sewer"], k;
+    var SITE = siteOf(siteKind), k;
     NS.assert(counts && typeof counts === "object" && !Array.isArray(counts), "rooms must be an object of kind → count", { rooms: counts });
     for (k in counts) if (Object.prototype.hasOwnProperty.call(counts, k)) {
-      NS.assert(SITE.rooms[k], "rooms: unknown chamber kind", { kind: k, known: Object.keys(SITE.rooms) });
+      NS.assert(NS.own(SITE.rooms, k), "rooms: unknown chamber kind", { kind: k, known: Object.keys(SITE.rooms) });
       NS.assert(U.isNum(counts[k]) && counts[k] >= 0 && counts[k] <= MAX_COUNT && counts[k] === Math.floor(counts[k]), "rooms." + k + " must be an integer in [0, " + MAX_COUNT + "]", { value: counts[k] });
     }
     return counts;
   }
   function validateShape(e, i) {
-    NS.assert(e.footprint === undefined || FOOTPRINTS[e.footprint], "edits[" + i + "]: footprint must be one of " + Object.keys(FOOTPRINTS).join("|"), { footprint: e.footprint });
+    NS.assert(e.footprint === undefined || NS.own(FOOTPRINTS, e.footprint), "edits[" + i + "]: footprint must be one of " + Object.keys(FOOTPRINTS).join("|"), { footprint: e.footprint });
     NS.assert(e.size === undefined || (Array.isArray(e.size) && (e.size.length === 1 || e.size.length === 2) && e.size.every(function (v) { return U.isNum(v) && v >= SIZE_M[0] && v <= SIZE_M[1]; })), "edits[" + i + "]: size must be metres — [along, across] for a rectangle or [across] for a round chamber, each in [" + SIZE_M[0] + ", " + SIZE_M[1] + "]", { size: e.size });
-    NS.assert(e.shape === undefined || SHAPES[e.shape], "edits[" + i + "]: shape must be one of " + Object.keys(SHAPES).join("|"), { shape: e.shape });
+    NS.assert(e.shape === undefined || NS.own(SHAPES, e.shape), "edits[" + i + "]: shape must be one of " + Object.keys(SHAPES).join("|"), { shape: e.shape });
   }
   function validateEdits(edits, frame, siteKind) {
-    var SITE = SITES[siteKind || "sewer"], ids = {};
+    var SITE = siteOf(siteKind), ids = {};
     NS.assert(Array.isArray(edits), "edits must be an array", { edits: edits });
     edits.forEach(function (e, i) {
-      NS.assert(e && typeof e === "object" && OPS[e.op], "edits[" + i + "].op must be one of " + Object.keys(OPS).join("|"), { edit: e });
+      NS.assert(e && typeof e === "object" && NS.own(OPS, e.op), "edits[" + i + "].op must be one of " + Object.keys(OPS).join("|"), { edit: e });
       NS.assert(typeof e.id === "string" && e.id.length > 0, "edits[" + i + "] needs a string id", { edit: e });
       if (e.op === "add") {
-        NS.assert(SITE.rooms[e.kind] || e.kind === CUSTOM, "edits[" + i + "]: unknown chamber kind", { kind: e.kind, known: Object.keys(SITE.rooms).concat([CUSTOM]) });
+        NS.assert(NS.own(SITE.rooms, e.kind) || e.kind === CUSTOM, "edits[" + i + "]: unknown chamber kind", { kind: e.kind, known: Object.keys(SITE.rooms).concat([CUSTOM]) });
         NS.assert(!ids[e.id], "edits[" + i + "]: a chamber with id " + e.id + " is already added", { id: e.id }); ids[e.id] = true;
         NS.assert(!GENERATED_ID.test(e.id), "edits[" + i + "]: authored ids must not look like generated ones (kind-n)", { id: e.id });
         if (e.kind === CUSTOM) NS.assert(typeof e.word === "string" && e.word.trim().length > 0 && e.word.length <= MAX_WORD, "edits[" + i + "]: a custom chamber needs a word of 1–" + MAX_WORD + " characters (what it is)", { edit: e });
@@ -2969,7 +2994,7 @@
       if (e.op === "rename") NS.assert(typeof e.name === "string" && e.name.trim().length > 0 && e.name.length <= MAX_NAME, "edits[" + i + "]: rename needs a name of 1–" + MAX_NAME + " characters", { edit: e });
       if (e.op === "note") NS.assert(typeof e.note === "string" && e.note.length <= MAX_NOTE, "edits[" + i + "]: note needs a string of at most " + MAX_NOTE + " characters (empty clears it)", { edit: e });
       if (e.op === "reshape") { validateShape(e, i); NS.assert(e.size !== undefined || e.footprint !== undefined || e.shape !== undefined, "edits[" + i + "]: reshape needs a size, a shape or both", { edit: e }); }
-      if (e.op === "door") NS.assert(DOOR_STATES[e.state], "edits[" + i + "]: door needs a state, one of " + Object.keys(DOOR_STATES).join("|"), { edit: e });
+      if (e.op === "door") NS.assert(NS.own(DOOR_STATES, e.state), "edits[" + i + "]: door needs a state, one of " + Object.keys(DOOR_STATES).join("|"), { edit: e });
       if (frame && isPoint(e.at)) NS.assert(e.at[0] >= 0 && e.at[1] >= 0 && e.at[0] <= frame.width && e.at[1] <= frame.height, "edits[" + i + "]: at lies outside the map frame", { at: e.at });
     });
     return edits;
@@ -2981,17 +3006,17 @@
     for (k in input || {}) if (Object.prototype.hasOwnProperty.call(input, k) && !Object.prototype.hasOwnProperty.call(DEFAULTS, k)) NS.fail("unknown parameter", { param: k, known: Object.keys(DEFAULTS) });
     NS.assert(P.seed !== null && P.seed !== undefined && String(P.seed).length > 0, "seed is required (a string or number)", { seed: P.seed });
     function num(name, lo, hi) { NS.assert(U.isNum(P[name]) && P[name] >= lo && P[name] <= hi, name + " must be a number in [" + lo + ", " + hi + "]", { value: P[name] }); }
-    num("width", 400, 6000); num("height", 400, 6000);
-    NS.assert(NS.names.CULTURES[P.culture], "culture must be one of " + NS.names.cultures().join("|"), { culture: P.culture });
+    num("width", SHEET.min, SHEET.max); num("height", SHEET.min, SHEET.max);
+    NS.assert(NS.own(NS.names.CULTURES, P.culture), "culture must be one of " + NS.names.cultures().join("|"), { culture: P.culture });
     NS.assert(P.title === null || typeof P.title === "string", "title must be a string or null", { title: P.title });
     NS.assert(P.site && typeof P.site === "object" && !Array.isArray(P.site), "site must be an object", { site: P.site });
     S = U.extend({}, P.site);
     for (k in S) if (Object.prototype.hasOwnProperty.call(S, k) && SITE_KEYS.indexOf(k) < 0) NS.fail("unknown site key", { key: k, known: SITE_KEYS });
     S.kind = S.kind || "sewer";
-    NS.assert(SITES[S.kind], "site.kind must be one of " + Object.keys(SITES).join("|"), { kind: S.kind });
+    NS.assert(NS.own(SITES, S.kind), "site.kind must be one of " + Object.keys(SITES).join("|"), { kind: S.kind });
     SITE = SITES[S.kind];
     S.town = U.extend({ name: null, size: "town" }, S.town || {});
-    NS.assert(SIZE_INDEX[S.town.size] !== undefined, "site.town.size must be one of " + Object.keys(SIZE_INDEX).join("|"), { size: S.town.size });
+    NS.assert(NS.own(SIZE_INDEX, S.town.size) !== undefined, "site.town.size must be one of " + Object.keys(SIZE_INDEX).join("|"), { size: S.town.size });
     NS.assert(S.town.name === null || typeof S.town.name === "string", "site.town.name must be a string or null", { name: S.town.name });
     NS.assert(Array.isArray(S.portals) && S.portals.length >= 1, "site.portals must list at least one way in ({id, kind: " + Object.keys(SITE.portalRooms).join("|") + ", name, x, y}) — TnDMaps.dungeon.fromTown or fromDungeon builds it from the parent document", { portals: S.portals });
     var ids = {};
@@ -3021,7 +3046,7 @@
     S.depth = S.depth === undefined || S.depth === null ? 1 : S.depth;
     NS.assert(U.isNum(S.depth) && S.depth >= 1 && S.depth === Math.floor(S.depth), "site.depth must be a whole number of levels below the surface, 1 or more", { depth: S.depth });
     NS.assert(S.above.generator === "town" || S.above.generator === "dungeon" || S.above.generator === "region" || S.above.generator === "interior", "site.above.generator must be town, dungeon, region or interior", { above: S.above });
-    NS.assert(S.above.site === null || SITES[S.above.site] || (S.above.generator === "interior" && typeof S.above.site === "string"), "site.above.site must be a dungeon site kind (or, above a building, its kind) or null", { above: S.above });
+    NS.assert(S.above.site === null || NS.own(SITES, S.above.site) || (S.above.generator === "interior" && typeof S.above.site === "string"), "site.above.site must be a dungeon site kind (or, above a building, its kind) or null", { above: S.above });
     validateCounts(P.rooms, S.kind); validateEdits(P.edits, { width: P.width, height: P.height }, S.kind);
     P.site = S; P.seed = String(P.seed);
     return P;
@@ -3965,7 +3990,7 @@
     var portals = w.portals.map(function (p) { var at = place([p.x, p.y]); return { id: p.id, kind: p.kind, name: p.name, x: at[0], y: at[1] }; });
     var outline = floor ? floor.outline.map(place) : [], town = interiorDoc.site.town || {};
     var site = {
-      kind: w.kind, town: { name: interiorDoc.title.name, size: SIZE_INDEX[town.size] !== undefined ? town.size : "town" }, portals: portals,
+      kind: w.kind, town: { name: interiorDoc.title.name, size: NS.own(SIZE_INDEX, town.size) !== undefined ? town.size : "town" }, portals: portals,
       streets: [], centre: [W / 2, H * 0.58], radius: Math.min(W, H) * 0.22, walls: outline.length ? [outline.concat([outline[0]])] : [], river: null, mPerUnit: M_PER_UNIT,
       above: { generator: "interior", site: interiorDoc.kind, name: interiorDoc.title.name }, depth: 1,
       where: "beneath " + interiorDoc.title.name + (town.name ? " in " + town.name : ""), water: false, sea: false
@@ -4031,13 +4056,13 @@
   /* ── validate ── the dungeon document shape */
   function validate(doc) {
     ["passages", "rooms", "portals"].forEach(function (k) { NS.assert(Array.isArray(doc[k]), "document." + k + " must be an array", { key: k }); });
-    NS.assert(SITES[doc.kind], "document.kind must be one of " + Object.keys(SITES).join("|"), { kind: doc.kind });
+    NS.assert(NS.own(SITES, doc.kind), "document.kind must be one of " + Object.keys(SITES).join("|"), { kind: doc.kind });
     NS.assert(doc.frame.mPerUnit > 0, "document.frame.mPerUnit must be positive", { frame: doc.frame });
     NS.assert(U.isNum(doc.depth) && doc.depth >= 1, "document.depth must be a positive number of levels", { depth: doc.depth });
     NS.assert(Array.isArray(doc.extent) && doc.extent.length === 4 && doc.extent[2] > doc.extent[0] && doc.extent[3] > doc.extent[1], "document.extent must be [x0, y0, x1, y1]", { extent: doc.extent });
     NS.assert(doc.water && Array.isArray(doc.water.channels), "document.water.channels must be an array", { water: doc.water });
     doc.rooms.forEach(function (r) { if (r.water) NS.assert(r.water.kind === "pool" && Array.isArray(r.water.poly) && r.water.poly.length >= 3 && POOL_FED[r.water.fed], "a chamber's water must be a pool with a polygon and what feeds it (" + Object.keys(POOL_FED).join("|") + ")", { id: r.id, water: r.water }); });
-    doc.passages.forEach(function (p, i) { NS.assert(p.id && WIDTH[p.kind] && Array.isArray(p.pts) && p.pts.length === 2 && p.width > 0 && (p.kind !== "door" || (typeof p.room === "string" && DOOR_STATES[p.state])), "passage " + i + " is malformed", { passage: p }); });
+    doc.passages.forEach(function (p, i) { NS.assert(p.id && NS.own(WIDTH, p.kind) && Array.isArray(p.pts) && p.pts.length === 2 && p.width > 0 && (p.kind !== "door" || (typeof p.room === "string" && NS.own(DOOR_STATES, p.state))), "passage " + i + " is malformed", { passage: p }); });
     var ids = {};
     doc.rooms.forEach(function (r, i) { NS.assert(r.id && !ids[r.id] && r.kind && typeof r.word === "string" && typeof r.name === "string" && Array.isArray(r.poly) && r.poly.length >= 3 && isFinite(r.x) && isFinite(r.y) && SHAPES[r.shape] && (r.door === null || DOOR_STATES[r.door]) && (r.note === undefined || typeof r.note === "string"), "room " + i + " is malformed or its id is not unique", { room: r }); ids[r.id] = true; });
     var pids = {};
@@ -4045,7 +4070,7 @@
     return doc;
   }
 
-  NS.dungeon = { generate: generate, DEFAULTS: DEFAULTS, M_PER_UNIT: M_PER_UNIT, SITES: SITES, sites: function () { return Object.keys(SITES); }, WIDTH: WIDTH, PORTAL_KINDS: PORTAL_KINDS, SIZE_INDEX: SIZE_INDEX, resolveParams: resolveParams, fromTown: fromTown, fromRegion: fromRegion, fromDungeon: fromDungeon, fromInterior: fromInterior, validate: validate, locate: locate, graph: graph, dimensions: dimensions, reference: reference, caption: caption, intro: intro, POOL_FED: POOL_FED, STREAM_REACH: STREAM_REACH,
+  NS.dungeon = { generate: generate, DEFAULTS: DEFAULTS, M_PER_UNIT: M_PER_UNIT, SHEET: SHEET, SITES: SITES, sites: function () { return Object.keys(SITES); }, WIDTH: WIDTH, PORTAL_KINDS: PORTAL_KINDS, SIZE_INDEX: SIZE_INDEX, resolveParams: resolveParams, fromTown: fromTown, fromRegion: fromRegion, fromDungeon: fromDungeon, fromInterior: fromInterior, validate: validate, locate: locate, graph: graph, dimensions: dimensions, reference: reference, caption: caption, intro: intro, POOL_FED: POOL_FED, STREAM_REACH: STREAM_REACH,
     OPS: Object.keys(OPS), MAX_COUNT: MAX_COUNT, MAX_NAME: MAX_NAME, MAX_WORD: MAX_WORD, MAX_NOTE: MAX_NOTE, SNAP: SNAP, CUSTOM: CUSTOM, FOOTPRINTS: FOOTPRINTS, SIZE_M: SIZE_M, SHAPES: Object.keys(SHAPES), DOOR_STATES: DOOR_STATES, DEFAULT_FOOTPRINT: DEFAULT_FOOTPRINT, validateCounts: validateCounts, validateEdits: validateEdits };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
@@ -4154,7 +4179,7 @@
   var COURT = R("court", "courtyard", 0, "any", { hub: true, windows: false, door: "arch", open: true }), WALKS = { ground: R("passage", "cloister", 0, "any", { hub: true }), upper: R("passage", "gallery", 0, "any", { hub: true }) };
   var NO_STAIR_PLAN = { stairCut: null, stairEnd: 1, corridor: true, side: false, two: false, yCut: 0, court: null };   /* a range of a courtyard: cut as a band beside a passage, no stair in it */
   var WING = R("wing", "wing", 0, "any"), CLOSET = R("closet", "closet", 0, "any", { door: "door", windows: false });
-  function programOf(kind) { return PROGRAMS[kind] ? kind : "house"; }
+  function programOf(kind) { return NS.own(PROGRAMS, kind) ? kind : "house"; }
   /* the room kinds of a building's program the author may count, remove or add — every list's, the fillers' and the
      side blocks' — but never the stair or a passage, which the plan places */
   function roomKinds(kind) {
@@ -4185,7 +4210,7 @@
     var ids = {};
     NS.assert(Array.isArray(edits), "edits must be an array", { edits: edits });
     edits.forEach(function (e, i) {
-      NS.assert(e && typeof e === "object" && OPS[e.op], "edits[" + i + "].op must be one of " + Object.keys(OPS).join("|"), { edit: e });
+      NS.assert(e && typeof e === "object" && NS.own(OPS, e.op), "edits[" + i + "].op must be one of " + Object.keys(OPS).join("|"), { edit: e });
       NS.assert(typeof e.id === "string" && e.id.length > 0, "edits[" + i + "] needs a string id", { edit: e });
       if (e.op === "add") {
         NS.assert(typeof e.kind === "string" && e.kind.length > 0, "edits[" + i + "]: add needs a kind (a room kind of the building, or custom)", { edit: e });
@@ -4198,7 +4223,7 @@
       }
       if (e.op === "rename") NS.assert(typeof e.name === "string" && e.name.trim().length > 0 && e.name.length <= MAX_NAME, "edits[" + i + "]: rename needs a name of 1–" + MAX_NAME + " characters", { edit: e });
       if (e.op === "note") NS.assert(typeof e.note === "string" && e.note.length <= MAX_NOTE, "edits[" + i + "]: note needs a string of at most " + MAX_NOTE + " characters (empty clears it)", { edit: e });
-      if (e.op === "door") NS.assert(DOOR_STATES[e.state], "edits[" + i + "]: door needs a state, one of " + Object.keys(DOOR_STATES).join("|"), { edit: e });
+      if (e.op === "door") NS.assert(NS.own(DOOR_STATES, e.state), "edits[" + i + "]: door needs a state, one of " + Object.keys(DOOR_STATES).join("|"), { edit: e });
     });
   }
 
@@ -4280,7 +4305,7 @@
     var P = U.extend({}, DEFAULTS, input || {}), k, S;
     for (k in input || {}) if (Object.prototype.hasOwnProperty.call(input, k) && !Object.prototype.hasOwnProperty.call(DEFAULTS, k)) NS.fail("unknown parameter", { param: k, known: Object.keys(DEFAULTS) });
     NS.assert(P.seed !== null && P.seed !== undefined && String(P.seed).length > 0, "seed is required (a string or number)", { seed: P.seed });
-    NS.assert(NS.names.CULTURES[P.culture], "culture must be one of " + NS.names.cultures().join("|"), { culture: P.culture });
+    NS.assert(NS.own(NS.names.CULTURES, P.culture), "culture must be one of " + NS.names.cultures().join("|"), { culture: P.culture });
     NS.assert(P.title === null || typeof P.title === "string", "title must be a string or null", { title: P.title });
     NS.assert(P.floors === null || (U.isNum(P.floors) && P.floors === Math.floor(P.floors) && P.floors >= 0 && P.floors <= 3), "floors must be null or an integer in [0, 3] (levels above the ground floor)", { floors: P.floors });
     NS.assert(P.cellar === null || typeof P.cellar === "boolean", "cellar must be null or a boolean", { cellar: P.cellar });
@@ -4294,7 +4319,7 @@
     S.name = typeof S.name === "string" && S.name ? S.name : null;
     S.word = typeof S.word === "string" && S.word ? S.word : PROGRAMS[programOf(S.kind)].word;
     S.town = U.extend({ name: null, size: "town" }, S.town || {});
-    NS.assert(SIZE_INDEX[S.town.size] !== undefined, "site.town.size must be hamlet|village|town|city", { size: S.town.size });
+    NS.assert(NS.own(SIZE_INDEX, S.town.size) !== undefined, "site.town.size must be hamlet|village|town|city", { size: S.town.size });
     P.rooms = P.rooms || {}; P.edits = P.edits || [];
     validateCounts(P.rooms, S.kind); validateEdits(P.edits);
     S.mPerUnit = M_PER_UNIT;
@@ -4990,7 +5015,7 @@
 
   function validate(doc) {
     ["floors", "rooms", "doors", "windows", "stairs", "portals", "levels"].forEach(function (k) { NS.assert(Array.isArray(doc[k]), "document." + k + " must be an array", { key: k }); });
-    NS.assert(PROGRAMS[doc.kind], "document.kind must be a program: " + Object.keys(PROGRAMS).join("|"), { kind: doc.kind });
+    NS.assert(NS.own(PROGRAMS, doc.kind), "document.kind must be a program: " + Object.keys(PROGRAMS).join("|"), { kind: doc.kind });
     NS.assert(doc.frame.mPerUnit > 0, "document.frame.mPerUnit must be positive", { frame: doc.frame });
     var ids = {}, levels = {};
     doc.floors.forEach(function (f, i) { NS.assert(U.isNum(f.level) && typeof f.name === "string" && Array.isArray(f.outline) && f.outline.length >= 3 && Array.isArray(f.rooms), "floor " + i + " is malformed", { floor: f }); levels[f.level] = true; });
@@ -5013,12 +5038,23 @@
    same ground comes back for any point in it). Like the caves it is grown, not built: noise fields on a grid are
    contoured by marching squares into organic polygons (the region's coast machinery), a river bends across, a stream
    finds its own way downhill, a track picks the cheapest way through, and the points of interest the GM needs are
-   dealt from the seed. Every per-terrain concern is a TERRAINS entry; every point of interest a CATALOGUE entry. */
+   dealt from the seed. Every per-terrain concern is a TERRAINS entry; every point of interest a CATALOGUE entry.
+   A zone of a region is the region's own ground: its shore is the region's coast and lakes, its rivers and roads the
+   region's, cut where they cross the zone's edges — by the same arithmetic from both sides of an edge, so what leaves
+   one sheet enters the next at the same point (site.shore, site.rivers, site.roads). Only the ground between is the
+   zone's own. A zone that stands alone draws its sea, river and track from the seed along the bearings it is given. */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps, U = NS.util, G = NS.geom, M = NS.mesh;
   var M_PER_UNIT = 1.25, ZONE_KM = { w: 800 * M_PER_UNIT / 1000, h: 550 * M_PER_UNIT / 1000 };   /* the sheet: 1 km × 0.6875 km */
   var BEARINGS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"], MAX_COUNT = 4, MAX_NAME = 40, MAX_NOTE = 400, SPACING = 56, MARGIN = 28;
+  var EDGES = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };   /* a sheet's four edges and the way out through each */
+  /* a zone of a region: the least share of it that must be land (a zone is open country), how far past its edges the
+     shore is read (sheet units), how far the shore is let wander from the region's line and at what grain; a region's
+     road is cut into steps of ROAD_SUB (region units), stands for a later road within ROAD_TOL of it, and touches it
+     within ROAD_TOUCH; two road ends within WAY_GAP (sheet units) on one edge are one way on; a river that ends short of the water or of the river it joins is led on to it within
+     MOUTH_REACH (region units) */
+  var MIN_LAND = 0.05, LATTICE = [24, 16], SHORE_REACH = 200, SHORE_WOBBLE = 44, SHORE_GRAIN = 300, ROAD_SUB = 0.5, ROAD_TOL = 1.25, ROAD_TOUCH = 0.001, MOUTH_REACH = 3, WAY_GAP = 12;
   function dirOf(b) { var a = BEARINGS.indexOf(b) * Math.PI / 4; return [Math.sin(a), -Math.cos(a)]; }
   function opposite(b) { return BEARINGS[(BEARINGS.indexOf(b) + 4) % 8]; }
   function jit(label, salt) { return (NS.hash32(label, salt) % 10000) / 10000; }
@@ -5128,18 +5164,18 @@
   var OPS = { add: 1, remove: 1, rename: 1, note: 1, move: 1 };
 
   var DEFAULTS = { seed: null, width: 800, height: 550, terrain: "forest", culture: "common", title: null, site: {}, features: {}, edits: [] };
-  var SITE_KEYS = ["elevation", "slope", "coast", "lake", "river", "road", "caves", "place", "regionName", "regionSeed", "zone", "near", "within", "water", "seaName", "biome"];
+  var SITE_KEYS = ["elevation", "slope", "coast", "lake", "river", "road", "caves", "place", "regionName", "regionSeed", "zone", "near", "within", "water", "seaName", "biome", "shore", "rivers", "roads"];
   function validateCounts(counts) {
     NS.assert(counts && typeof counts === "object" && !Array.isArray(counts), "features must be an object of kind → count", { features: counts });
-    Object.keys(counts).forEach(function (k) { NS.assert(CATALOGUE[k] && k !== "custom", "unknown feature kind", { kind: k, known: Object.keys(CATALOGUE) }); NS.assert(U.isNum(counts[k]) && counts[k] >= 0 && counts[k] <= MAX_COUNT && counts[k] === Math.round(counts[k]), "feature count must be an integer in [0, " + MAX_COUNT + "]", { kind: k, count: counts[k] }); });
+    Object.keys(counts).forEach(function (k) { NS.assert(NS.own(CATALOGUE, k) && k !== "custom", "unknown feature kind", { kind: k, known: Object.keys(CATALOGUE) }); NS.assert(U.isNum(counts[k]) && counts[k] >= 0 && counts[k] <= MAX_COUNT && counts[k] === Math.round(counts[k]), "feature count must be an integer in [0, " + MAX_COUNT + "]", { kind: k, count: counts[k] }); });
     return counts;
   }
   function validateEdits(edits) {
     NS.assert(Array.isArray(edits), "edits must be an array", { edits: edits });
     edits.forEach(function (e, i) {
-      NS.assert(e && OPS[e.op], "edit " + i + ": op must be " + Object.keys(OPS).join("|"), { edit: e });
+      NS.assert(e && NS.own(OPS, e.op), "edit " + i + ": op must be " + Object.keys(OPS).join("|"), { edit: e });
       NS.assert(typeof e.id === "string" && e.id.length && e.id.length <= 40, "edit " + i + ": id must be a short string", { edit: e });
-      if (e.op === "add") { NS.assert(CATALOGUE[e.kind], "edit " + i + ": unknown feature kind", { kind: e.kind, known: Object.keys(CATALOGUE) }); if (e.kind === "custom") NS.assert(typeof e.word === "string" && e.word.length && e.word.length <= MAX_NAME, "edit " + i + ": a custom feature needs a word", { edit: e }); }
+      if (e.op === "add") { NS.assert(NS.own(CATALOGUE, e.kind), "edit " + i + ": unknown feature kind", { kind: e.kind, known: Object.keys(CATALOGUE) }); NS.assert(e.icon === undefined || e.icon === null || NS.own(NS.icons.ICONS, e.icon), "edit " + i + ": unknown icon", { icon: e.icon, known: NS.icons.names() }); if (e.kind === "custom") NS.assert(typeof e.word === "string" && e.word.length && e.word.length <= MAX_NAME, "edit " + i + ": a custom feature needs a word", { edit: e }); }
       if (e.op === "add" || e.op === "move") NS.assert(Array.isArray(e.at) && e.at.length === 2 && U.isNum(e.at[0]) && U.isNum(e.at[1]), "edit " + i + ": at must be [x, y]", { edit: e });
       if (e.op === "rename" || (e.op === "add" && e.name !== undefined && e.name !== null)) NS.assert(typeof e.name === "string" && e.name.trim().length && e.name.length <= MAX_NAME, "edit " + i + ": name must be 1–" + MAX_NAME + " characters", { edit: e });
       if (e.op === "note") NS.assert(typeof e.note === "string" && e.note.length <= MAX_NOTE, "edit " + i + ": note must be a string of at most " + MAX_NOTE + " characters", { edit: e });
@@ -5150,9 +5186,9 @@
     var P = U.extend({}, DEFAULTS, input || {}), k;
     for (k in input || {}) if (Object.prototype.hasOwnProperty.call(input, k) && !Object.prototype.hasOwnProperty.call(DEFAULTS, k)) NS.fail("unknown parameter", { param: k, known: Object.keys(DEFAULTS) });
     NS.assert(P.seed !== null && P.seed !== undefined && String(P.seed).length > 0, "seed is required (a string or number)", { seed: P.seed });
-    NS.assert(TERRAINS[P.terrain], "terrain must be one of " + Object.keys(TERRAINS).join("|"), { terrain: P.terrain });
+    NS.assert(NS.own(TERRAINS, P.terrain), "terrain must be one of " + Object.keys(TERRAINS).join("|"), { terrain: P.terrain });
     NS.assert(U.isNum(P.width) && P.width >= 300 && P.width <= 3000 && U.isNum(P.height) && P.height >= 200 && P.height <= 3000, "width and height must be numbers in [300, 3000] × [200, 3000]", { width: P.width, height: P.height });
-    NS.assert(NS.names.CULTURES[P.culture], "culture must be one of " + NS.names.cultures().join("|"), { culture: P.culture });
+    NS.assert(NS.own(NS.names.CULTURES, P.culture), "culture must be one of " + NS.names.cultures().join("|"), { culture: P.culture });
     NS.assert(P.title === null || typeof P.title === "string", "title must be a string or null", { title: P.title });
     NS.assert(P.site && typeof P.site === "object", "site must be an object", { site: P.site });
     for (k in P.site) if (Object.prototype.hasOwnProperty.call(P.site, k)) NS.assert(SITE_KEYS.indexOf(k) >= 0, "unknown site key", { key: k, known: SITE_KEYS });
@@ -5165,7 +5201,14 @@
     if (S.river) { NS.assert(S.river.from && S.river.to && S.river.from !== S.river.to, "site river needs from and to bearings that differ", { river: S.river }); if (S.river.width === undefined || S.river.width === null) S.river.width = 8; NS.assert(U.isNum(S.river.width) && S.river.width >= 2 && S.river.width <= 60, "river width must be metres in [2, 60]", { width: S.river.width }); }
     if (S.road) { NS.assert(S.road.from && S.road.to && S.road.from !== S.road.to, "site road needs from and to bearings that differ", { road: S.road }); S.road.kind = S.road.kind || "track"; NS.assert(S.road.kind === "road" || S.road.kind === "track", "road kind must be road|track", { road: S.road }); }
     NS.assert(Array.isArray(S.caves), "site caves must be a list of {id, name, x, y}", { caves: S.caves });
-    S.water = !!(S.water || S.coast || S.lake || S.river || P.terrain === "marsh");
+    /* a zone of a region: its shore, rivers and roads as wild.fromRegion cut them (absent on a zone that stands alone) */
+    function isPt(p) { return Array.isArray(p) && p.length >= 2 && U.isNum(p[0]) && U.isNum(p[1]); }
+    function isEdge(e) { return e === null || e === undefined || Object.prototype.hasOwnProperty.call(EDGES, e); }
+    function isEnd(e) { return e && typeof e === "object" && U.isNum(e.x) && U.isNum(e.y) && isEdge(e.edge) && (e.towards === undefined || Array.isArray(e.towards)) && (e.roads === undefined || Array.isArray(e.roads)); }
+    if (S.shore !== undefined && S.shore !== null) NS.assert(typeof S.shore === "object" && isPt(S.shore.ref) && (S.shore.at === null || S.shore.at === "sea" || S.shore.at === "lake") && Array.isArray(S.shore.lines) && S.shore.lines.every(function (L) { return L && (L.kind === "sea" || L.kind === "lake") && Array.isArray(L.pts) && L.pts.length >= 2 && L.pts.every(isPt); }), "site shore must be {ref: [x, y], at: null|sea|lake, lines: [{kind: sea|lake, pts}]} (wild.fromRegion makes it)", { shore: S.shore });
+    if (S.rivers !== undefined) { NS.assert(Array.isArray(S.rivers) && S.rivers.every(function (v) { return v && Array.isArray(v.pts) && v.pts.length >= 2 && v.pts.every(function (p) { return isPt(p) && U.isNum(p[2]) && p[2] >= 1 && p[2] <= 80; }) && isEdge(v.from) && isEdge(v.to); }), "site rivers must be a list of {pts: [[x, y, metres wide], …], from, to: N|E|S|W|null} (wild.fromRegion makes it)", { rivers: S.rivers }); NS.assert(!S.river || !S.rivers.length, "give the river by its bearings (site.river) or by its course (site.rivers), not both", { river: S.river }); }
+    if (S.roads !== undefined) { NS.assert(Array.isArray(S.roads) && S.roads.every(function (w) { return w && (w.kind === "road" || w.kind === "track") && isEnd(w.from) && isEnd(w.to); }), "site roads must be a list of {kind: road|track, from: {x, y, edge}, to: {x, y, edge}} (wild.fromRegion makes it)", { roads: S.roads }); NS.assert(!S.road || !S.roads.length, "give the road by its bearings (site.road) or by its ends (site.roads), not both", { road: S.road }); }
+    S.water = !!(S.water || S.coast || S.lake || S.river || (S.rivers && S.rivers.length) || P.terrain === "marsh");
     validateCounts(P.features); validateEdits(P.edits);
     P.seed = String(P.seed);
     return P;
@@ -5187,16 +5230,43 @@
     for (k = 0; k < 12; k++) { a = (k + (jit(label + "/b" + k, 31) - 0.5) * 0.6) * Math.PI / 6; f = 0.72 + 0.4 * jit(label + "/c" + k, 37); pts.push([c[0] + Math.cos(a) * r * f, c[1] + Math.sin(a) * r * f * sq]); }
     return G.smooth(pts, 2, true);
   }
-  /* a curve across the frame from one edge to another through two bent control points */
-  function acrossLine(W, H, from, to, rng, bend) {
-    var a = edgePoint(W, H, from, (rng.float() - 0.5) * 1.2), b = edgePoint(W, H, to, (rng.float() - 0.5) * 1.2), dx = b[0] - a[0], dy = b[1] - a[1], l = Math.sqrt(dx * dx + dy * dy) || 1, nx = -dy / l, ny = dx / l;
+  /* a curve from a to b through two bent control points; across the frame from one edge to another */
+  function bendLine(a, b, rng, bend) {
+    var dx = b[0] - a[0], dy = b[1] - a[1], l = Math.sqrt(dx * dx + dy * dy) || 1, nx = -dy / l, ny = dx / l;
     var k1 = (rng.float() - 0.5) * 2 * bend * l, k2 = (rng.float() - 0.5) * 2 * bend * l, c1 = [a[0] + dx * 0.33 + nx * k1, a[1] + dy * 0.33 + ny * k1], c2 = [a[0] + dx * 0.66 + nx * k2, a[1] + dy * 0.66 + ny * k2];
     var pts = G.smooth([a, c1, c2, b], 3, false); pts[0] = a; pts[pts.length - 1] = b;
     return pts;
   }
+  function acrossLine(W, H, from, to, rng, bend) {
+    var a = edgePoint(W, H, from, (rng.float() - 0.5) * 1.2), b = edgePoint(W, H, to, (rng.float() - 0.5) * 1.2);
+    return bendLine(a, b, rng, bend);
+  }
   function clampPts(pts, W, H) { return pts.map(function (p) { return [U.clamp(p[0], 0, W), U.clamp(p[1], 0, H)].concat(p.slice(2)); }); }
   /* a point moved onto the nearest frame edge (a line's end after the wobble) */
   function snapEdge(p, W, H) { var d = [p[0], W - p[0], p[1], H - p[1]], m = Math.min.apply(null, d), q = p.slice(); if (m === d[0]) q[0] = 0; else if (m === d[1]) q[0] = W; else if (m === d[2]) q[1] = 0; else q[1] = H; return q; }
+
+  /* ── the shore from drawn lines ── a zone of a region takes its sea and its lakes from the region's own outlines,
+     handed over in the sheet's coordinates: `ref` is a point whose state is known (`at`), and a point's state is the
+     ref's turned over once for every line crossed on the straight way to it. A vertex on that way counts for the side
+     `sideOf` puts it on, the same for both segments that meet in it, so a corner is crossed once or not at all. */
+  function sideOf(ax, ay, bx, by, px, py) { return (bx - ax) * (py - ay) - (by - ay) * (px - ax) >= 0 ? 1 : -1; }
+  var shoreOut = { wet: null, d: 0 };   /* one answer object, written over by every call */
+  function shoreState(shore, x, y) {
+    var sea = shore.at === "sea", lake = shore.at === "lake", d = Infinity, rx = shore.ref[0], ry = shore.ref[1], pt = [x, y], i, j, L, p, q, dd;
+    for (i = 0; i < shore.lines.length; i++) {
+      L = shore.lines[i];
+      for (j = 1; j < L.pts.length; j++) {
+        p = L.pts[j - 1]; q = L.pts[j];
+        dd = G.pointSegDist(pt, p, q); if (dd < d) d = dd;
+        if (sideOf(rx, ry, x, y, p[0], p[1]) !== sideOf(rx, ry, x, y, q[0], q[1]) && sideOf(p[0], p[1], q[0], q[1], rx, ry) !== sideOf(p[0], p[1], q[0], q[1], x, y)) { if (L.kind === "lake") lake = !lake; else sea = !sea; }
+      }
+    }
+    shoreOut.wet = sea ? "sea" : lake ? "lake" : null; shoreOut.d = d;
+    return shoreOut;
+  }
+  /* the document's rivers: the main one and its branches (a confluence, a river that leaves the zone and comes back) */
+  function riversOf(doc) { return doc.water.river ? [doc.water.river].concat(doc.water.branches || []) : []; }
+  function say(names) { return names && names.length ? names.slice(0, 2).join(" and ") : null; }
 
   /* ── generate ── */
   function generate(input) {
@@ -5206,11 +5276,16 @@
     var NR = NS.Noise(seed + "/relief"), NC = NS.Noise(seed + "/cover"), NW = NS.Noise(seed + "/wet"), wob = NS.Noise(seed + "/wobble");
     function polish(pts, closed) { var p = G.simplify(pts, dx * 0.3); if (closed && p.length < 3) return null; if (!closed && p.length < 2) return null; p = G.smooth(p, 2, closed); return G.wobble(p, wob.noise2, dx * 0.35, 1 / (2.2 * dx), closed); }
 
-    /* the sea and the lake: one signed field, positive in the water (the town's way), contoured into polygons */
-    var coast = S.coast ? dirOf(S.coast.bearing) : null, lake = S.lake ? dirOf(S.lake.bearing) : null, R = H / 2;
-    var shoreAt = S.coast ? U.clamp(S.coast.dist || R * 0.62, R * 0.3, R * 0.95) : 0, lakeAt = S.lake ? U.clamp(S.lake.dist || R * 1.1, R * 0.7, R * 1.3) : 0;
+    /* the sea and the lake: one signed field, positive in the water, contoured into polygons. A zone of a region reads
+       it off the region's shore — the distance to the nearest outline, signed by the side — and lets it wander by a
+       noise of the REGION's seed over the region's ground, so the shore runs on unbroken into the zone beside it; a
+       zone that stands alone has a sea beyond a line on the bearing it was given, a lake as an ellipse (the town's way) */
+    var shore = S.shore || null, NSh = shore ? NS.Noise((S.regionSeed || seed) + "/shore") : null, ox = shore && S.zone ? S.zone.col * W : 0, oy = shore && S.zone ? S.zone.row * H : 0;
+    var coast = !shore && S.coast ? dirOf(S.coast.bearing) : null, lake = !shore && S.lake ? dirOf(S.lake.bearing) : null, R = H / 2;
+    var shoreAt = coast ? U.clamp(S.coast.dist || R * 0.62, R * 0.3, R * 0.95) : 0, lakeAt = lake ? U.clamp(S.lake.dist || R * 1.1, R * 0.7, R * 1.3) : 0;
     function seaF(x, y) {
-      var v = -1e9, proj, along, ex, ey, e, lx, ly;
+      var v = -1e9, proj, along, ex, ey, e, lx, ly, st;
+      if (shore) { st = shoreState(shore, x, y); return (st.wet ? 1 : -1) * Math.min(st.d, SHORE_REACH) + NSh.fbm((ox + x) / SHORE_GRAIN + 7.31, (oy + y) / SHORE_GRAIN + 1.7, 3) * SHORE_WOBBLE; }
       if (coast) { proj = (x - W / 2) * coast[0] + (y - H / 2) * coast[1]; along = -(x - W / 2) * coast[1] + (y - H / 2) * coast[0]; v = Math.max(v, proj - (shoreAt + NW.fbm(along / (1.3 * R) + 7.31, 0.5, 3) * 0.26 * R)); }
       if (lake) { lx = W / 2 + lake[0] * lakeAt; ly = H / 2 + lake[1] * lakeAt; ex = ((x - lx) * -lake[1] + (y - ly) * lake[0]) / (0.9 * R); ey = ((x - lx) * lake[0] + (y - ly) * lake[1]) / (0.65 * R); e = Math.sqrt(ex * ex + ey * ey); v = Math.max(v, (1 - e) * 0.6 * R + NW.fbm(x / (0.9 * R) + 3.1, y / (0.9 * R) + 1.7, 3) * 0.14 * R); }
       return v;
@@ -5224,19 +5299,63 @@
     }
     function inSea(x, y, margin) { return anySea && g.sample(sea, x, y) > -(margin || 0); }
 
-    /* the river: a bend from edge to edge; it ends at the shore when it reaches the sea */
-    var riverXY = null, rW = 0;
-    if (S.river) {
+    /* the rivers: each a course [x, y] with its width in units. A zone of a region is handed the region's rivers cut
+       to it (site.rivers: the points where they cross its edges, their widths there, the bends between): the course
+       follows them, smoothed and wobbled — not at an end on an edge, where the next zone's river begins —, and stops
+       at the water; one that ends here on dry land joins the river it runs into, or sinks into a pool. A zone that
+       stands alone bends one river from edge to edge along its bearings. `nearRiver` answers for all of them: the
+       river whose bank is nearest, its distance in riverD and its width in riverW. */
+    var rivers = [], riverXY = null, rW = 0, poolMade = [], siteRivers = S.rivers || [];
+    function wetAt(x, y) { return shore ? shoreState(shore, x, y).wet || "sea" : lake && !coast ? "lake" : "sea"; }
+    siteRivers.forEach(function (rv, ri) {
+      var sk = rv.pts.map(function (p) { return [p[0], p[1]]; });
+      if (G.length(sk, false) < 2) return;   /* a river that only touches the zone's corner */
+      var cl = G.resample(G.smooth(sk, 2, false), dx * 0.8, false), wb = G.wobble(cl, wob.noise2, dx * 0.5, 1 / (3 * dx), false), total = G.length(cl, false) || 1, acc = 0, pts = [], k, tap, w0 = rv.pts[0][2] / M_PER_UNIT, w1 = rv.pts[rv.pts.length - 1][2] / M_PER_UNIT;
+      for (k = 0; k < cl.length; k++) {
+        if (k) acc += G.dist(cl[k - 1], cl[k]);
+        tap = Math.min(1, rv.from ? acc / 60 : 1, rv.to ? (total - acc) / 60 : 1);
+        pts.push([cl[k][0] + (wb[k][0] - cl[k][0]) * tap, cl[k][1] + (wb[k][1] - cl[k][1]) * tap, (w0 + (w1 - w0) * acc / total) * (1 + tap * (0.3 * Math.abs(wob.noise2(k * 0.21, 3.3 + ri)) - 0.15))]);
+      }
+      pts[0] = [sk[0][0], sk[0][1], w0]; pts[pts.length - 1] = [sk[sk.length - 1][0], sk[sk.length - 1][1], w1];
+      /* only its run on dry land is a river: what lies in the sea or a lake at either end is the water's */
+      var lead = 0, cut = pts.length, from = rv.from || null, to = rv.to || null, endsIn = null;
+      if (inSea(pts[0][0], pts[0][1])) { while (lead < pts.length - 1 && inSea(pts[lead + 1][0], pts[lead + 1][1])) lead++; from = null; }
+      if (lead >= pts.length - 2) return;   /* all of it lies in the water */
+      for (k = lead + 2; k < pts.length; k++) if (inSea(pts[k][0], pts[k][1])) { cut = k + 1; to = null; endsIn = wetAt(pts[k][0], pts[k][1]); break; }
+      pts = pts.slice(lead, cut); if (pts.length < 3) return;
+      var wMax = 0; pts.forEach(function (p) { if (p[2] > wMax) wMax = p[2]; });
+      rivers.push({ xy: clampPts(pts, W, H), w: wMax, rec: { name: rv.name || null, from: from, to: to, id: rv.id, widthM: U.round((w0 + w1) / 2 * M_PER_UNIT, 1), endsIn: endsIn }, joins: !to && !endsIn && rv.ends === "river" });
+    });
+    /* an end on dry land: into the river it joins when that one runs within reach, else into a pool of its own */
+    rivers.forEach(function (rv, ri) {
+      if (rv.rec.to || rv.rec.endsIn) return;
+      var end = rv.xy[rv.xy.length - 1], near = rv.joins ? nearestOn(end, rivers.filter(function (o) { return o !== rv; }).map(function (o) { return { pts: o.xy }; }), false) : null;
+      if (near && near.d < 120) { rv.xy.push([near.at[0], near.at[1], end[2]]); rv.rec.endsIn = "river"; return; }
+      var pid = "pool-" + (poolMade.length + 1), pr = Math.max(9, end[2] * 1.3);
+      poolMade.push({ id: pid, kind: "pool", poly: roundPts(clampPts(blob([end[0], end[1]], pr, seed + "/" + pid, 0.8), W, H)), x: U.round(end[0], 1), y: U.round(end[1], 1), fed: "river-" + (ri + 1) });
+      rv.rec.endsIn = "pool"; rv.rec.pool = pid;
+    });
+    if (!siteRivers.length && S.river) {
       var rl = acrossLine(W, H, S.river.from, S.river.to, rng, 0.14); rl = G.wobble(G.resample(rl, dx * 0.8, false), wob.noise2, dx * 0.5, 1 / (3 * dx), false); rW = S.river.width / M_PER_UNIT;
       var cut = rl.length; for (i = 2; i < rl.length; i++) if (inSea(rl[i][0], rl[i][1])) { cut = i + 1; break; }
       riverXY = clampPts(rl.slice(0, cut), W, H); riverXY[0] = snapEdge(riverXY[0], W, H); if (cut === rl.length) riverXY[riverXY.length - 1] = snapEdge(riverXY[riverXY.length - 1], W, H);
       water.river = { pts: roundPts(riverXY.map(function (p, idx) { return [p[0], p[1], rW * (0.85 + 0.3 * Math.abs(wob.noise2(idx * 0.21, 3.3)))]; })), name: S.river.name || null, from: S.river.from, to: S.river.to };
+      rivers.push({ xy: riverXY, w: rW, rec: water.river });
+    } else if (rivers.length) {
+      rivers.forEach(function (rv, ri) { var rec = { pts: roundPts(rv.xy), name: rv.rec.name, from: rv.rec.from, to: rv.rec.to, id: rv.rec.id, widthM: rv.rec.widthM, endsIn: rv.rec.endsIn }; if (rv.rec.pool) rec.pool = rv.rec.pool; if (!ri) water.river = rec; else (water.branches = water.branches || []).push(rec); });
+      riverXY = rivers[0].xy;
     }
-    function dRiver(x, y) { return riverXY ? M.distToPolyline([x, y], riverXY) : Infinity; }
+    var riverD = Infinity, riverW = 0;
+    function nearRiver(x, y) { var k, d, gap = Infinity, pt = [x, y]; riverD = Infinity; riverW = 0; for (k = 0; k < rivers.length; k++) { d = M.distToPolyline(pt, rivers[k].xy); if (d - rivers[k].w / 2 < gap) { gap = d - rivers[k].w / 2; riverD = d; riverW = rivers[k].w; } } return riverD; }
+    function dRiver(x, y) { return nearRiver(x, y); }
 
+    /* the ways a zone of a region is handed: the region's roads cut to it, their ends on its edges fixed (the track
+       between them is the zone's own, found further down) */
+    var ways = [], siteRoads = S.roads || [];
+    siteRoads.forEach(function (rd) { ways.push({ kind: T.path || rd.kind, a: [rd.from.x, rd.from.y], b: [rd.to.x, rd.to.y], from: rd.from.edge || null, to: rd.to.edge || null, joinA: !!rd.from.join, joinB: !!rd.to.join, towards: { from: say(rd.from.towards), to: say(rd.to.towards) }, roadsA: rd.from.roads || null, roadsB: rd.to.roads || null, road: rd.id, fixed: true }); });
     /* the valley line: a pass follows the river, else the road, else a seeded way across */
     var RL = T.relief, valley = null;
-    if (RL.valley) { valley = riverXY ? riverXY : S.road ? acrossLine(W, H, S.road.from, S.road.to, rng, 0.12) : acrossLine(W, H, rng.pick(["W", "N", "SW", "NW"]), rng.pick(["E", "S", "SE", "NE"]), rng, 0.12); }
+    if (RL.valley) { valley = riverXY ? riverXY : S.road ? acrossLine(W, H, S.road.from, S.road.to, rng, 0.12) : ways.length && G.dist(ways[0].a, ways[0].b) > 60 ? bendLine(ways[0].a, ways[0].b, rng, 0.12) : acrossLine(W, H, rng.pick(["W", "N", "SW", "NW"]), rng.pick(["E", "S", "SE", "NE"]), rng, 0.12); }
     /* the relief: a fractal base, a ridged share for rock, a V valley carved whose floor is a saddle; the land falls to the shore */
     var relief = new Float32Array(n), x, y, h, d, t, floor, vl;
     if (valley) { vl = 0; for (i = 1; i < valley.length; i++) vl += G.dist(valley[i - 1], valley[i]); }
@@ -5249,7 +5368,7 @@
         floor = 0.14 + 0.2 * Math.sin(Math.PI * U.clamp(bt, 0, 1)) * (riverXY ? 0.35 : 1);   /* a saddle; a river's valley is low all along */
         h = Math.min(h, floor + Math.pow(bv / RL.valley.width, 1.6) * 0.9);
       }
-      if (riverXY) { d = dRiver(x, y); if (d < rW / 2 + 24) h -= 0.12 * RL.amp * (1 - (d - rW / 2) / 24) * (d > rW / 2 ? 1 : 1.2); }
+      if (riverXY) { d = nearRiver(x, y); if (d < riverW / 2 + 24) h -= 0.12 * RL.amp * (1 - (d - riverW / 2) / 24) * (d > riverW / 2 ? 1 : 1.2); }
       if (anySea) h -= 0.3 * RL.amp * U.clamp(1 - Math.max(0, -sea[i]) / 90, 0, 1);
       relief[i] = U.clamp(h, 0, 1);
     }
@@ -5263,7 +5382,7 @@
     function quant(v) { var lo = 0, hi = sortedH.length - 1, mid; while (lo < hi) { mid = (lo + hi) >> 1; if (sortedH[mid] < v) lo = mid + 1; else hi = mid; } return lo / (sortedH.length - 1); }
 
     /* the streams: a brook rises high and runs downhill node by node until the edge, the sea, the river, or a hollow it fills as a pool */
-    var streams = [], poolMade = [], heads = [];
+    var streams = [], heads = [];
     if (T.stream && (rng.chance(T.stream) || T.features.spring || T.features.fall)) {
       var cand = [];
       for (i = 0; i < n; i++) if (relief[i] >= sortedH[Math.floor(sortedH.length * 0.8)] && !g.onBorder(i) && sea[i] <= -20 && dRiver(g.px(i), g.py(i)) > 30 && g.px(i) > MARGIN && g.px(i) < W - MARGIN && g.py(i) > MARGIN && g.py(i) < H - MARGIN) cand.push(i);
@@ -5275,7 +5394,7 @@
           pts.push([g.px(cur) + (rng.float() - 0.5) * dx * 0.5, g.py(cur) + (rng.float() - 0.5) * dx * 0.5]); visited[cur] = true;
           if (g.onBorder(cur)) { endsIn = "edge"; break; }
           if (sea[cur] > -dx) { endsIn = "sea"; break; }
-          if (riverXY && dRiver(g.px(cur), g.py(cur)) < rW / 2 + dx * 0.6) { endsIn = "river"; break; }
+          if (riverXY && nearRiver(g.px(cur), g.py(cur)) < riverW / 2 + dx * 0.6) { endsIn = "river"; break; }
           var low = -1, lh = relief[cur]; g.neighbors8(cur, function (nb) { if (!visited[nb] && relief[nb] < lh) { lh = relief[nb]; low = nb; } });
           if (low < 0) { endsIn = "pool"; break; }
           cur = low;
@@ -5292,39 +5411,60 @@
     }
     function dStream(x, y) { var best = Infinity; streams.forEach(function (s) { var d2 = M.distToPolyline([x, y], s.pts); if (d2 < best) best = d2; }); return best; }
 
-    /* the track: the cheapest way over the nodes from the road's entry edge to its exit — up the valley floor, round
-       the pools and the crags, across the river once —, then smoothed, simplified and wobbled; a marsh raises it as a
-       causeway. Without a road the terrain may still have a trail from one side to another. */
-    var paths = [], pathXY = null, trailKind = null;
-    if (S.road) trailKind = T.path || S.road.kind; else if (rng.chance(0.55)) trailKind = "trail";
-    if (trailKind) {
-      var fromB = S.road ? S.road.from : rng.pick(BEARINGS), toB = S.road ? S.road.to : null, cand2 = BEARINGS.filter(function (b) { var i1 = BEARINGS.indexOf(b), i0 = BEARINGS.indexOf(fromB), dd = Math.abs(i1 - i0); return Math.min(dd, 8 - dd) >= 3; });
-      if (!toB) toB = rng.pick(cand2);
-      var a0 = edgePoint(W, H, fromB, (rng.float() - 0.5) * 1.2), b0 = edgePoint(W, H, toB, (rng.float() - 0.5) * 1.2), from = g.nearest(a0[0], a0[1]), to = g.nearest(b0[0], b0[1]);
+    /* the tracks: each way is the cheapest run over the nodes from one of its ends to the other — up the valley floor,
+       round the pools and the crags, across a river once —, then smoothed, simplified and wobbled; a marsh raises it
+       as a causeway. A zone of a region has the region's roads (their ends fixed, see above): a later one runs along
+       an earlier where that is cheap (×0.35, the region's own rule), and one that parts from another road is tied to
+       the track already drawn (`join`). A zone that stands alone has its one road from edge to edge along its
+       bearings, the ends dealt from the seed. Without a road there may be a trail: from edge to edge on a zone that
+       stands alone, between two spots INSIDE on a zone of a region — an edge it reached would lead to nothing on the
+       sheet beyond. */
+    var paths = [], pathsXY = [], pathXY = null, netNode = new Uint8Array(n), anyNet = false;
+    if (!siteRoads.length && (S.road || rng.chance(0.55))) {
+      if (S.zone && !S.road) {
+        var ta = null, tb = null, tries2 = 0, sp;
+        while (tries2++ < 24 && !tb) { sp = [MARGIN + rng.float() * (W - 2 * MARGIN), MARGIN + rng.float() * (H - 2 * MARGIN)]; if (inSea(sp[0], sp[1], 12) || nearRiver(sp[0], sp[1]) < riverW / 2 + 10) continue; if (!ta) ta = sp; else if (G.dist(ta, sp) >= 0.38 * W) tb = sp; }
+        if (tb) ways.push({ kind: "trail", a: ta, b: tb, from: null, to: null, towards: { from: null, to: null } });
+      } else {
+        var fromB = S.road ? S.road.from : rng.pick(BEARINGS), toB = S.road ? S.road.to : null, cand2 = BEARINGS.filter(function (b) { var i1 = BEARINGS.indexOf(b), i0 = BEARINGS.indexOf(fromB), dd = Math.abs(i1 - i0); return Math.min(dd, 8 - dd) >= 3; });
+        if (!toB) toB = rng.pick(cand2);
+        var a0 = edgePoint(W, H, fromB, (rng.float() - 0.5) * 1.2), b0 = edgePoint(W, H, toB, (rng.float() - 0.5) * 1.2);
+        ways.push({ kind: S.road ? T.path || S.road.kind : "trail", a: a0, b: b0, from: fromB, to: toB, towards: S.road ? { from: S.road.fromName || null, to: S.road.toName || null } : { from: null, to: null }, across: true });
+      }
+    }
+    var wetF = fieldOf(T.fields.wet, NW), coverF0 = fieldOf(T.fields.cover, NC);
+    ways.forEach(function (w) {
+      if (G.dist(w.a, w.b) < 1) return;   /* a road that only touches the zone's corner: its ends stand as the way on, nothing is drawn */
+      var rev = !!(w.joinA && !w.joinB && anyNet), src = rev ? w.b : w.a, dst = rev ? w.a : w.b, joining = anyNet && !!(rev ? w.joinA : w.joinB);
+      var from = g.nearest(src[0], src[1]), to = g.nearest(dst[0], dst[1]), end = -1;
       var dist = new Float32Array(n), came = new Int32Array(n), heap = U.Heap(function (p, q) { return p.d < q.d; }), done = new Uint8Array(n);
       for (i = 0; i < n; i++) { dist[i] = Infinity; came[i] = -1; }
       dist[from] = 0; heap.push({ i: from, d: 0 });
-      var wetF = fieldOf(T.fields.wet, NW), coverF0 = fieldOf(T.fields.cover, NC);
       while (heap.size()) {
-        var cu = heap.pop(); if (done[cu.i]) continue; done[cu.i] = 1; if (cu.i === to) break;
+        var cu = heap.pop(); if (done[cu.i]) continue; done[cu.i] = 1; if (cu.i === to || (joining && netNode[cu.i])) { end = cu.i; break; }
         g.neighbors8(cu.i, function (nb, len) {
           if (done[nb] || sea[nb] > -dx * 0.5) return;
           var px = g.px(nb), py = g.py(nb), cost = len * (1 + 7 * Math.pow(slope[nb], 1.5) + (wetF(px, py) > 0.45 ? 10 : 0) + (slope[nb] > 0.75 ? 6 : 0) + (coverF0(px, py) > 0.5 ? 1.2 : 0) + 0.35 * Math.abs(NC.fbm(px / 60 + 4.4, py / 60 + 8.8, 2)) + (g.onBorder(nb) && nb !== to ? 3 : 0));
-          if (riverXY) { var dr = dRiver(px, py); if (dr < rW / 2 + dx) cost += 5 * (1 + rW / 10); }
+          if (riverXY) { var dr = nearRiver(px, py); if (dr < riverW / 2 + dx) cost += 5 * (1 + riverW / 10); }
+          if (anyNet && netNode[nb]) cost *= 0.35;
           var nd = dist[cu.i] + cost; if (nd < dist[nb]) { dist[nb] = nd; came[nb] = cu.i; heap.push({ i: nb, d: nd }); }
         });
       }
-      if (dist[to] === Infinity) warnings.push("the " + trailKind + " found no way across (water in the way)");
-      else {
-        var chain = [], kk = to; while (kk !== -1) { chain.unshift([g.px(kk), g.py(kk)]); kk = came[kk]; }
-        var line = G.simplify(G.smooth(chain, 2, false), dx * 0.3); line = G.wobble(G.resample(line, dx, false), wob.noise2, dx * 0.22, 1 / (3 * dx), false); line[0] = a0; line[line.length - 1] = b0;
-        pathXY = clampPts(line, W, H);
-        var crossings = [];
-        if (riverXY) for (i = 1; i < pathXY.length; i++) { var hit = M.crossPolyline(pathXY[i - 1], pathXY[i], riverXY); if (hit) crossings.push({ x: U.round(hit.x, 1), y: U.round(hit.y, 1), kind: trailKind === "road" || trailKind === "causeway" ? "bridge" : rW > 10 ? "ford" : "plank" }); }
-        paths.push({ id: "path-1", kind: trailKind, pts: roundPts(pathXY), from: fromB, to: toB, towards: S.road ? { from: S.road.fromName || null, to: S.road.toName || null } : { from: null, to: null }, crossings: crossings });
-      }
-    }
-    function dPath(x, y) { return pathXY ? M.distToPolyline([x, y], pathXY) : Infinity; }
+      if (end < 0) { warnings.push("the " + w.kind + " found no way across (water in the way)"); return; }
+      var chain = [], kk = end; while (kk !== -1) { chain.unshift([g.px(kk), g.py(kk)]); netNode[kk] = 1; kk = came[kk]; }
+      var line = G.simplify(G.smooth(chain, 2, false), dx * 0.3); line = G.wobble(G.resample(line, dx, false), wob.noise2, dx * 0.22, 1 / (3 * dx), false);
+      var tail = joining && end !== to ? nearestOn(chain[chain.length - 1], pathsXY.map(function (p) { return { pts: p }; }), false).at : dst;
+      if (w.fixed && line.length < 2) line = [src, tail];   /* an end that stands on the track it joins */
+      line[0] = src; line[line.length - 1] = tail;
+      if (rev) line.reverse();
+      var xy = clampPts(line, W, H), crossings = [], k2;
+      for (i = 1; i < xy.length; i++) for (k2 = 0; k2 < rivers.length; k2++) { var hit = M.crossPolyline(xy[i - 1], xy[i], rivers[k2].xy); if (hit) crossings.push({ x: U.round(hit.x, 1), y: U.round(hit.y, 1), kind: w.kind === "road" || w.kind === "causeway" ? "bridge" : rivers[k2].w > 10 ? "ford" : "plank" }); }
+      w.path = { id: "path-" + (paths.length + 1), kind: w.kind, pts: roundPts(xy), from: w.from, to: w.to, towards: w.towards, crossings: crossings };
+      if (w.road) w.path.road = w.road;
+      paths.push(w.path); pathsXY.push(xy); anyNet = true;
+    });
+    pathXY = pathsXY[0] || null;   /* the main way: the pass is its high point */
+    function dPath(x, y) { var best = Infinity, k, d2, pt = [x, y]; for (k = 0; k < pathsXY.length; k++) { d2 = M.distToPolyline(pt, pathsXY[k]); if (d2 < best) best = d2; } return best; }
     function dWater(x, y) { return Math.min(dRiver(x, y), dStream(x, y), anySea ? Math.max(0, -g.sample(sea, x, y)) : Infinity); }
 
     /* the fields the cover layers contour: cover (the vegetation), wet (the standing water), opened round the track and the water */
@@ -5335,7 +5475,7 @@
       for (i = 0; i < n; i++) {
         x = g.px(i); y = g.py(i); h = f(x, y);
         if (name === "cover") { if (open.path && pathXY) h -= 0.7 * Math.exp(-Math.pow(dPath(x, y) / open.path, 2)); if (open.water) { d = dWater(x, y); h -= 0.6 * Math.exp(-Math.pow(d / open.water, 2)); } }
-        if (name === "wet" && riverXY) h -= 0.5 * Math.exp(-Math.pow(dRiver(x, y) / 22, 2));
+        if (name === "wet" && riverXY) h -= 0.5 * Math.exp(-Math.pow(nearRiver(x, y) / 22, 2));
         if (sea[i] > -dx) h = -2;
         if (name === "wet" && pathXY && dPath(x, y) < 7) h = Math.min(h, 0.4);
         arr[i] = h;
@@ -5412,11 +5552,11 @@
     });
     var counts = {}; kinds.forEach(function (k2) { counts[k2] = P.features[k2] === undefined ? T.features[k2] : P.features[k2]; });
     Object.keys(P.features).forEach(function (k2) { if (counts[k2] === undefined) { counts[k2] = P.features[k2]; reserved[k2] = []; kinds.push(k2); } });   /* a kind the terrain does not deal: placed dynamically */
-    var removed = {}, byId = {};
-    P.edits.forEach(function (e) { if (e.op === "remove") removed[e.id] = true; });
+    var removed = {}, gone = {}, byId = {};
+    P.edits.forEach(function (e) { if (e.op === "remove") removed[e.id] = true; });   /* a reserved feature an edit removes is never put down, so its spot is not held against another's */
     kinds.forEach(function (k2) {
       var want = counts[k2], got = 0, j;
-      for (j = 0; j < reserved[k2].length && got < want; j++) { var f = reserved[k2][j]; if (removed[f.id]) { got++; continue; } f.authored = false; features.push(f); byId[f.id] = f; got++; }
+      for (j = 0; j < reserved[k2].length && got < want; j++) { var f = reserved[k2][j]; if (removed[f.id]) { gone[f.id] = 1; got++; continue; } f.authored = false; features.push(f); byId[f.id] = f; got++; }
       for (; got < want; got++) { var c = best(k2); if (!c) { warnings.push("no spot for " + CATALOGUE[k2].word + " " + (got + 1) + " of " + want); continue; } c.used = true; taken.push({ x: c.x, y: c.y, clear: CATALOGUE[k2].clear || 0 }); var id = k2 + "-" + (reserved[k2].length + got + 1), ff = { id: id, kind: k2, word: CATALOGUE[k2].word, icon: CATALOGUE[k2].icon, name: namer.town("wild:" + k2, {}, CATALOGUE[k2].patterns), x: U.round(c.x, 1), y: U.round(c.y, 1), ctx: c, authored: false }; features.push(ff); byId[id] = ff; }
     });
     /* the author's say */
@@ -5430,8 +5570,10 @@
         if (e.kind === "custom") f.custom = true;
         features.push(f); byId[f.id] = f; taken.push({ x: f.x, y: f.y, clear: K.clear || 0 }); return;
       }
-      if (!f) { if (e.op === "remove" && removed[e.id]) return; warnings.push(e.op + " " + e.id + ": no feature with that id" + (removed[e.id] ? " (removed above)" : "")); return; }
-      if (e.op === "remove") { features.splice(features.indexOf(f), 1); delete byId[e.id]; return; }
+      /* what a removal took off is `gone` (1 until its own edit is passed, 2 after): the edit that did it is silent;
+         every other edit to that id — a second removal, a rename — and every edit to an id that never was says so */
+      if (!f) { if (e.op === "remove" && gone[e.id] === 1) { gone[e.id] = 2; return; } warnings.push(e.op + " " + e.id + ": no feature with that id" + (gone[e.id] === 2 ? " (removed above)" : gone[e.id] === 1 ? " (an edit further down removes it)" : "")); return; }
+      if (e.op === "remove") { features.splice(features.indexOf(f), 1); delete byId[e.id]; gone[e.id] = 2; return; }
       if (e.op === "rename") { f.name = e.name.trim(); f.renamed = true; return; }
       if (e.op === "note") { if (e.note) f.note = e.note; else delete f.note; return; }
       if (e.op === "move") { at = [U.clamp(e.at[0], 2, W - 2), U.clamp(e.at[1], 2, H - 2)]; if (inSea(at[0], at[1])) { warnings.push("move " + e.id + ": the point is in the water"); return; } f.x = U.round(at[0], 1); f.y = U.round(at[1], 1); f.ctx = contextAt(at[0], at[1]); f.authored = true; }
@@ -5459,7 +5601,7 @@
         jx = x + (gRng.float() - 0.5) * step * 0.85; jy = y + (gRng.float() - 0.5) * step * 0.85;
         var sz = L.size[0] + gRng.float() * (L.size[1] - L.size[0]);
         jx = U.round(jx, 1); jy = U.round(jy, 1);   /* tested at the coordinates the document carries */
-        if (jx < 4 || jy < 4 || jx > W - 4 || jy > H - 4 || !passes(L, jx, jy) || inSea(jx, jy, 9) || inPool(jx, jy) || dPath(jx, jy) < 4.5 || dRiver(jx, jy) < rW / 2 + 2.5 || dStream(jx, jy) < 3 || clearOf(jx, jy)) continue;
+        if (jx < 4 || jy < 4 || jx > W - 4 || jy > H - 4 || !passes(L, jx, jy) || inSea(jx, jy, 9) || inPool(jx, jy) || dPath(jx, jy) < 4.5 || nearRiver(jx, jy) < riverW / 2 + 2.5 || dStream(jx, jy) < 3 || clearOf(jx, jy)) continue;
         var gl = { k: L.glyph, x: U.round(jx, 1), y: U.round(jy, 1), s: U.round(sz, 2) }; if (L.wind) gl.a = U.round(wind + (gRng.float() - 0.5) * 0.5, 2);
         glyphs.push(gl);
       }
@@ -5467,7 +5609,7 @@
     features.forEach(function (f) {
       var K2 = CATALOGUE[f.kind] || CATALOGUE.custom, mk = K2.makes, j, a, rr;
       if (mk && mk.trees) for (j = 0; j < mk.trees; j++) { a = Math.PI * 2 * j / mk.trees + gRng.float() * 0.5; rr = (mk.pool || 10) + 4 + gRng.float() * 6; glyphs.push({ k: "palm", x: U.round(f.x + Math.cos(a) * rr, 1), y: U.round(f.y + Math.sin(a) * rr * 0.8, 1), s: U.round(0.9 + gRng.float() * 0.4, 2) }); }
-      if (mk && mk.wood) for (y = f.y - mk.wood; y < f.y + mk.wood; y += 9) for (x = f.x - mk.wood; x < f.x + mk.wood; x += 9) { var jx2 = x + (gRng.float() - 0.5) * 7, jy2 = y + (gRng.float() - 0.5) * 7; jx2 = U.round(jx2, 1); jy2 = U.round(jy2, 1); if (G.dist([jx2, jy2], [f.x, f.y]) < mk.wood * 0.82 && !inPool(jx2, jy2) && !inSea(jx2, jy2, 9) && dPath(jx2, jy2) > 4.5 && dRiver(jx2, jy2) > rW / 2 + 2.5 && dStream(jx2, jy2) > 3) glyphs.push({ k: "tree", x: U.round(jx2, 1), y: U.round(jy2, 1), s: U.round(0.7 + gRng.float() * 0.35, 2) }); }
+      if (mk && mk.wood) for (y = f.y - mk.wood; y < f.y + mk.wood; y += 9) for (x = f.x - mk.wood; x < f.x + mk.wood; x += 9) { var jx2 = x + (gRng.float() - 0.5) * 7, jy2 = y + (gRng.float() - 0.5) * 7; jx2 = U.round(jx2, 1); jy2 = U.round(jy2, 1); if (G.dist([jx2, jy2], [f.x, f.y]) < mk.wood * 0.82 && !inPool(jx2, jy2) && !inSea(jx2, jy2, 9) && dPath(jx2, jy2) > 4.5 && nearRiver(jx2, jy2) > riverW / 2 + 2.5 && dStream(jx2, jy2) > 3) glyphs.push({ k: "tree", x: U.round(jx2, 1), y: U.round(jy2, 1), s: U.round(0.7 + gRng.float() * 0.35, 2) }); }
     });
 
     /* the form lines: the relief contoured at even steps between its lowest and highest, every line polished */
@@ -5487,10 +5629,20 @@
        cave mouth that lies here into the caves behind it, a settlement that lies here into its town */
     var portals = [], zone = S.zone;
     function neighbour(dc, dr) { return zone && zone.cols !== undefined ? (zone.col + dc >= 0 && zone.row + dr >= 0 && zone.col + dc < zone.cols && zone.row + dr < zone.rows ? "z" + (zone.col + dc) + "_" + (zone.row + dr) : null) : null; }
+    /* a way's ends on the edges: a region's road has them fixed (whether or not the track found its way to them), a
+       zone's own road from edge to edge has them where its track came out */
+    ways.forEach(function (w) {
+      w.ends = [];
+      if (w.fixed) { if (w.from) w.ends.push({ edge: w.from, at: w.a, towards: w.towards.from, roads: w.roadsA }); if (w.to) w.ends.push({ edge: w.to, at: w.b, towards: w.towards.to, roads: w.roadsB }); }
+      else if (w.across && w.path) { var pa = w.path.pts[0], pb = w.path.pts[w.path.pts.length - 1]; w.ends.push({ edge: edgeOf(pa, W, H), at: pa, towards: w.towards.from, roads: null }); w.ends.push({ edge: edgeOf(pb, W, H), at: pb, towards: w.towards.to, roads: null }); }
+    });
     [["N", W / 2, 0, 0, -1], ["E", W, H / 2, 1, 0], ["S", W / 2, H, 0, 1], ["W", 0, H / 2, -1, 0]].forEach(function (E) {
-      var at = [E[1], E[2]], byPath = null, towards = null;
-      paths.forEach(function (p) { var a = p.pts[0], b = p.pts[p.pts.length - 1]; if (edgeOf(a, W, H) === E[0]) { at = [a[0], a[1]]; byPath = p; towards = p.towards.from; } else if (edgeOf(b, W, H) === E[0]) { at = [b[0], b[1]]; byPath = p; towards = p.towards.to; } });
-      portals.push({ id: "edge-" + E[0], kind: "edge", name: ({ N: "north", E: "east", S: "south", W: "west" })[E[0]] + (byPath ? " by the " + byPath.kind : ""), x: U.round(at[0], 1), y: U.round(at[1], 1), bearing: E[0], way: "on", via: byPath ? byPath.id : null, towards: towards, to: { generator: "wild", id: neighbour(E[3], E[4]) } });
+      var at = [E[1], E[2]], way = null, end = null, k, j;
+      for (k = 0; k < ways.length && !end; k++) for (j = 0; j < ways[k].ends.length && !end; j++) if (ways[k].ends[j].edge === E[0]) { way = ways[k]; end = ways[k].ends[j]; }
+      if (end) at = [end.at[0], end.at[1]];
+      var portal = { id: "edge-" + E[0], kind: "edge", name: ({ N: "north", E: "east", S: "south", W: "west" })[E[0]] + (end ? " by the " + way.kind : ""), x: U.round(at[0], 1), y: U.round(at[1], 1), bearing: E[0], way: "on", via: end && way.path ? way.path.id : null, towards: end ? end.towards : null, to: { generator: "wild", id: neighbour(E[3], E[4]) } };
+      if (end && end.roads) portal.roads = end.roads;
+      portals.push(portal);
     });
     S.caves.forEach(function (cv) { portals.push({ id: cv.id, kind: "cave", name: cv.name, x: cv.x, y: cv.y, way: "down", to: { generator: "dungeon", site: "cave", id: cv.id } }); });
     if (S.place) portals.push({ id: S.place.id, kind: "place", name: S.place.name, x: S.place.x, y: S.place.y, way: "in", to: { generator: "town", id: null } });
@@ -5510,10 +5662,11 @@
   }
 
   /* ── for the digest, the cards and the pins ── */
-  /* the point bearings and distances are reckoned from: the crossing of the track and the river, else the track's
-     middle, else the middle of the zone */
+  /* the point bearings and distances are reckoned from: the settlement that lies in the zone, else the crossing of the
+     track and the river, else the track's middle, else the middle of the zone */
   function reference(doc) {
-    var p = doc.paths[0];
+    var p = doc.paths[0], pl = doc.site.place;
+    if (pl) return { x: pl.x, y: pl.y, word: pl.name, at: "at " + pl.name };
     if (p && p.crossings.length) return { x: p.crossings[0].x, y: p.crossings[0].y, word: "the " + p.crossings[0].kind, at: "at the " + p.crossings[0].kind };
     if (p) { var m = p.pts[Math.floor(p.pts.length / 2)]; return { x: m[0], y: m[1], word: "the middle of the " + p.kind, at: "on the " + p.kind }; }
     return { x: doc.frame.width / 2, y: doc.frame.height / 2, word: "the middle of the zone", at: "in the middle" };
@@ -5553,46 +5706,242 @@
     }
     return best;
   }
+  /* the state of a point of the region by its drawn geometry: in the sea (outside the coast, even-odd), in a lake, or null on land */
+  function waterAt(regionDoc, p) {
+    var inside = 0, i;
+    if (regionDoc.sea.present) { for (i = 0; i < regionDoc.coast.length; i++) if (G.pointInPolygon(p, regionDoc.coast[i])) inside++; if (inside % 2 === 0) return "sea"; }
+    for (i = 0; i < regionDoc.lakes.length; i++) if (G.pointInPolygon(p, regionDoc.lakes[i])) return "lake";
+    return null;
+  }
+  /* the runs of a closed outline whose segments come within a box */
+  function ringRuns(ring, x0, y0, x1, y1) {
+    var runs = [], cur = null, n = ring.length, i, a, b;
+    for (i = 0; i < n; i++) {
+      a = ring[i]; b = ring[(i + 1) % n];
+      if (Math.max(a[0], b[0]) < x0 || Math.min(a[0], b[0]) > x1 || Math.max(a[1], b[1]) < y0 || Math.min(a[1], b[1]) > y1) { cur = null; continue; }
+      if (!cur) { cur = [a]; runs.push(cur); }
+      cur.push(b);
+    }
+    return runs;
+  }
+  /* the stretches of a polyline that lie in the zone (col, row) of a tiling of cw × ch. OWNERSHIP decides, never a
+     comparison of two computed crossings: a vertex belongs to the zone its coordinates floor to, and a segment changes
+     zone once for every grid line between the zones of its ends, at the point where it meets that line — worked out by
+     the same arithmetic whichever zone asks, so one zone's way out IS the next one's way in. Each piece: pts (the
+     polyline's own coordinates, every further value of a point interpolated — a river's width), from and to = the edge
+     it comes in and goes out by (null where it begins or ends inside). */
+  function zonePieces(pts, col, row, cw, ch) {
+    var pieces = [], cur = null, i, a, b, c, r, c1, r1, k, st, V, Hh, cuts, iv, ih, j, cut, q, bound;
+    function at(a, b, t) { var o = [], m; for (m = 0; m < a.length; m++) o.push(a[m] + (b[m] - a[m]) * t); return o; }
+    function take(q, entry) { if (!cur) { cur = { pts: [], from: entry, to: null }; pieces.push(cur); } cur.pts.push(q); }
+    if (!pts.length) return pieces;
+    c = Math.floor(pts[0][0] / cw); r = Math.floor(pts[0][1] / ch);
+    if (c === col && r === row) take(pts[0], null);
+    for (i = 1; i < pts.length; i++) {
+      a = pts[i - 1]; b = pts[i]; c1 = Math.floor(b[0] / cw); r1 = Math.floor(b[1] / ch); V = []; Hh = []; cuts = []; iv = 0; ih = 0;
+      st = c1 > c ? 1 : -1; for (k = c; k !== c1; k += st) { bound = (st > 0 ? k + 1 : k) * cw; V.push({ t: U.clamp((bound - a[0]) / (b[0] - a[0]), 0, 1), dc: st, dr: 0, v: bound }); }
+      st = r1 > r ? 1 : -1; for (k = r; k !== r1; k += st) { bound = (st > 0 ? k + 1 : k) * ch; Hh.push({ t: U.clamp((bound - a[1]) / (b[1] - a[1]), 0, 1), dc: 0, dr: st, v: bound }); }
+      while (iv < V.length || ih < Hh.length) cuts.push(ih >= Hh.length || (iv < V.length && V[iv].t <= Hh[ih].t) ? V[iv++] : Hh[ih++]);
+      for (j = 0; j < cuts.length; j++) {
+        cut = cuts[j]; q = at(a, b, cut.t); if (cut.dc) q[0] = cut.v; else q[1] = cut.v;
+        if (c === col && r === row) { take(q, null); cur.to = cut.dc > 0 ? "E" : cut.dc < 0 ? "W" : cut.dr > 0 ? "S" : "N"; cur = null; }
+        c += cut.dc; r += cut.dr;
+        if (c === col && r === row) take(q, cut.dc > 0 ? "W" : cut.dc < 0 ? "E" : cut.dr > 0 ? "N" : "S");
+      }
+      if (c === col && r === row) take(b, null);
+    }
+    return pieces;
+  }
+  /* the nearest point of an earlier road (one before index j) within cap of p: {d, at, road}, or null */
+  function nearEarlier(roads, j, p, cap) {
+    var best = null, bd = cap, e, pts, i, a, b, d, dx, dy, l2, t, ex, ey;
+    for (e = 0; e < j; e++) {
+      pts = roads[e].pts;
+      for (i = 1; i < pts.length; i++) {
+        a = pts[i - 1]; b = pts[i];
+        if (p[0] < Math.min(a[0], b[0]) - bd || p[0] > Math.max(a[0], b[0]) + bd || p[1] < Math.min(a[1], b[1]) - bd || p[1] > Math.max(a[1], b[1]) + bd) continue;
+        dx = b[0] - a[0]; dy = b[1] - a[1]; l2 = dx * dx + dy * dy; t = l2 ? U.clamp(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2, 0, 1) : 0;
+        ex = p[0] - a[0] - dx * t; ey = p[1] - a[1] - dy * t; d = Math.sqrt(ex * ex + ey * ey);
+        if (d < bd) { bd = d; best = { d: d, at: [a[0] + dx * t, a[1] + dy * t], road: e }; }
+      }
+    }
+    return best;
+  }
+  /* a region's road as a zone reads it. The region lays a later road along an earlier one where that is cheap, but
+     smooths each on its own: the two lines of one stretch lie up to a unit apart — hundreds of metres on a zone's
+     sheet, one road drawn twice. So where road j runs within ROAD_TOL of an earlier road, the earlier one STANDS FOR
+     both and j is not drawn; where j parts from it, it is drawn back to where the two lines lie closest and tied to
+     the earlier line there. Decided on the road's own sub-points (every segment cut into steps from its own start)
+     against the earlier roads' lines, never against a zone: every zone that asks gets the same answer.
+     → { subs, n, near(q): the distance to the nearest earlier road within ROAD_TOL (Infinity beyond), from(q): that
+     point {d, at, road}, drawn(q), span(p): the step of the road nearest p } */
+  function roadModel(roads, j) {
+    var pts = roads[j].pts, subs = [], i, a, b, k, s;
+    for (i = 1; i < pts.length; i++) { a = pts[i - 1]; b = pts[i]; k = Math.max(1, Math.ceil(G.dist(a, b) / ROAD_SUB)); for (s = 0; s < k; s++) subs.push([a[0] + (b[0] - a[0]) * s / k, a[1] + (b[1] - a[1]) * s / k]); }
+    subs.push([pts[pts.length - 1][0], pts[pts.length - 1][1]]);
+    var n = subs.length, dMemo = new Array(n), nMemo = new Array(n), sMemo = new Array(n);
+    function near(q) { if (dMemo[q] === undefined) { nMemo[q] = j ? nearEarlier(roads, j, subs[q], ROAD_TOL) : null; dMemo[q] = nMemo[q] ? nMemo[q].d : Infinity; } return dMemo[q]; }
+    /* does the road draw away from the earlier one from q on, that way: ever further, until it is clear of it? */
+    function parts(q, step) { var m = q, dm = near(q), dn; while (m + step >= 0 && m + step < n) { dn = near(m + step); if (!(dn > dm)) return false; if (dn === Infinity) return true; m += step; dm = dn; } return false; }
+    function drawn(q) { if (sMemo[q] === undefined) sMemo[q] = near(q) === Infinity || parts(q, 1) || parts(q, -1); return sMemo[q]; }
+    /* the step [q, q + 1] of the road nearest a point, and whether the point lies off the road's very end */
+    function span(p) {
+      var best = 0, bd = Infinity, bt = 0, q, dx, dy, l2, t, ex, ey, d;
+      for (q = 0; q + 1 < n; q++) { dx = subs[q + 1][0] - subs[q][0]; dy = subs[q + 1][1] - subs[q][1]; l2 = dx * dx + dy * dy; t = l2 ? U.clamp(((p[0] - subs[q][0]) * dx + (p[1] - subs[q][1]) * dy) / l2, 0, 1) : 0; ex = p[0] - subs[q][0] - dx * t; ey = p[1] - subs[q][1] - dy * t; d = ex * ex + ey * ey; if (d < bd) { bd = d; best = q; bt = t; } }
+      return { q: best, end: (best === 0 && bt <= 0) || (best === n - 2 && bt >= 1) };
+    }
+    return { subs: subs, n: n, near: near, from: function (q) { near(q); return nMemo[q]; }, drawn: drawn, span: span };
+  }
+  /* does a polyline come within a box? */
+  function passes(pts, x0, y0, x1, y1) { var i, a, b; for (i = 1; i < pts.length; i++) { a = pts[i - 1]; b = pts[i]; if (!(Math.max(a[0], b[0]) < x0 || Math.min(a[0], b[0]) > x1 || Math.max(a[1], b[1]) < y0 || Math.min(a[1], b[1]) > y1)) return true; } return false; }
+  /* the stretches of a road that are drawn near a box: each {pts, joinA, joinB} — a run that begins or ends where the
+     road meets the earlier one it parts from is tied to that road's line (the point on it comes first or last) */
+  function roadRuns(model, x0, y0, x1, y1) {
+    var subs = model.subs, n = model.n, runs = [], cur = null, q;
+    function inBox(p) { return p[0] >= x0 && p[0] <= x1 && p[1] >= y0 && p[1] <= y1; }
+    function tie(q) { var d = model.near(q); if (d > ROAD_TOUCH && d !== Infinity) cur.pts.push(model.from(q).at); }
+    for (q = 0; q < n; q++) {
+      if (!(inBox(subs[q]) || (q > 0 && inBox(subs[q - 1])) || (q + 1 < n && inBox(subs[q + 1]))) || !model.drawn(q)) { cur = null; continue; }
+      if (!cur) { cur = { pts: [], joinA: false, joinB: false }; runs.push(cur); if (q > 0 && !model.drawn(q - 1)) { cur.joinA = true; tie(q); } }
+      cur.pts.push(subs[q]);
+      if (q + 1 < n && !model.drawn(q + 1)) { cur.joinB = true; tie(q); cur = null; }
+    }
+    return runs;
+  }
   function fromRegion(regionDoc, at) {
-    var Z = zoneAt(regionDoc, at), c = [Z.cx, Z.cy], fr = regionDoc.frame, kpu = fr.kmPerUnit, toZone = kpu * 1000 / M_PER_UNIT, i;
+    var Z = zoneAt(regionDoc, at), fr = regionDoc.frame, kpu = fr.kmPerUnit, W = DEFAULTS.width, H = DEFAULTS.height, cw = ZONE_KM.w / kpu, ch = ZONE_KM.h / kpu, sx = W / (Z.x1 - Z.x0), sy = H / (Z.y1 - Z.y0), i, j;
     NS.assert(regionDoc.fields && regionDoc.fields.height && regionDoc.fields.biome, "the region carries no fields (params.fields is false): the wild needs the height and biome bytes", { fields: !!regionDoc.fields });
-    var hb = regionDoc._heightBytes || (regionDoc._heightBytes = NS.base64ToBytes(regionDoc.fields.height)), bb = regionDoc._biomeBytes || (regionDoc._biomeBytes = NS.base64ToBytes(regionDoc.fields.biome)), g = G.Grid(fr.cols, fr.rows, fr.width, fr.height);
+    function r1(v) { return U.round(v, 1); }
+    function toZ(p) { return [r1((p[0] - Z.x0) * sx), r1((p[1] - Z.y0) * sy)]; }
+    function toR(x, y) { return [Z.x0 + x / sx, Z.y0 + y / sy]; }
+    /* a point is judged as the point it is */
+    if (typeof at !== "string") { var ws = waterAt(regionDoc, at); NS.assert(ws !== "sea", "that point lies in the sea; a zone is open country", { at: at, zone: Z.id }); NS.assert(ws !== "lake", "that point lies in a lake; a zone is open country", { at: at, zone: Z.id }); }
+    /* the shore: every coast and lake outline that comes within reach of the zone, in the sheet's coordinates, and a point of known state to count the crossings from */
+    var lines = [], rx = SHORE_REACH / sx, ry = SHORE_REACH / sy;
+    function outline(ring, kind) { ringRuns(ring, Z.x0 - rx, Z.y0 - ry, Z.x1 + rx, Z.y1 + ry).forEach(function (run) { var pts = [], k, p; for (k = 0; k < run.length; k++) { p = toZ(run[k]); if (!pts.length || pts[pts.length - 1][0] !== p[0] || pts[pts.length - 1][1] !== p[1]) pts.push(p); } if (pts.length >= 2) lines.push({ kind: kind, pts: pts }); }); }
+    if (regionDoc.sea.present) regionDoc.coast.forEach(function (ring) { outline(ring, "sea"); });
+    regionDoc.lakes.forEach(function (ring) { outline(ring, "lake"); });
+    function clear(p) { var d = Infinity, k, m; for (k = 0; k < lines.length; k++) for (m = 1; m < lines[k].pts.length; m++) d = Math.min(d, G.pointSegDist(p, lines[k].pts[m - 1], lines[k].pts[m])); return d; }
+    var refs = [[0.5, 0.5], [0.25, 0.25], [0.75, 0.75], [0.75, 0.25], [0.25, 0.75], [0.5, 0.25], [0.5, 0.75], [0.25, 0.5], [0.75, 0.5]].map(function (q) { return [W * q[0], H * q[1]]; }), ref = null, rd = -1;
+    for (i = 0; i < refs.length && rd <= 6; i++) { var cd = clear(refs[i]); if (cd > rd) { rd = cd; ref = refs[i]; } }
+    var shore = { ref: ref, at: waterAt(regionDoc, toR(ref[0], ref[1])), lines: lines };
+    /* the zone is judged by the land it holds: a lattice of its own ground, the middle first */
+    var land = 0, lsum = [0, 0], wet = { sea: 0, lake: 0 }, wsum = { sea: [0, 0], lake: [0, 0] }, ground = null, gd = Infinity, lx, ly, st, d, p, total = LATTICE[0] * LATTICE[1];
+    function stateAt(x, y) { var pr = toR(x, y); return pr[0] > fr.width || pr[1] > fr.height ? "off" : shoreState(shore, x, y).wet; }
+    if (stateAt(W / 2, H / 2) === null) { ground = [W / 2, H / 2]; gd = 0; }
+    for (ly = 0; ly < LATTICE[1]; ly++) for (lx = 0; lx < LATTICE[0]; lx++) {
+      p = [(lx + 0.5) / LATTICE[0] * W, (ly + 0.5) / LATTICE[1] * H]; st = stateAt(p[0], p[1]);
+      if (st === null) { land++; lsum[0] += p[0]; lsum[1] += p[1]; d = G.dist(p, [W / 2, H / 2]); if (d < gd) { gd = d; ground = p; } }
+      else if (st !== "off") { wet[st]++; wsum[st][0] += p[0]; wsum[st][1] += p[1]; }
+    }
+    var share = land / total, pct = Math.round(share * 100);
+    NS.assert(share >= MIN_LAND, typeof at === "string" ? "zone " + Z.id + " is open water" + (land ? " (" + pct + "% of it is land)" : "") + "; a zone is open country" : "that point is on land, but its zone " + Z.id + " is all but open water (" + pct + "% of it is land); a zone is open country", { at: at, zone: Z.id, land: U.round(share, 3) });
+    /* the ground is read where the zone's land is: its middle, or the land nearest it */
+    var c = toR(ground[0], ground[1]), hb = NS.fieldBytes(regionDoc.fields.height), bb = NS.fieldBytes(regionDoc.fields.biome), g = G.Grid(fr.cols, fr.rows, fr.width, fr.height);
     var hf = new Float32Array(g.n); for (i = 0; i < g.n; i++) hf[i] = hb[i] > 128 ? (hb[i] - 129) / 126 : -(127 - hb[i]) / 127;
-    /* land or water: by the drawn geometry — inside the coast (even-odd) when there is a sea, never in a lake */
-    var inside = 0; if (regionDoc.sea.present) { regionDoc.coast.forEach(function (poly) { if (G.pointInPolygon(c, poly)) inside++; }); NS.assert(inside % 2 === 1, "that point lies in the sea; a zone is open country", { at: at, zone: Z.id }); }
-    regionDoc.lakes.forEach(function (lk) { NS.assert(!G.pointInPolygon(c, lk), "that point lies in a lake; a zone is open country", { at: at, zone: Z.id }); });
     var node = g.nearest(c[0], c[1]), biome = NS.terrain.BIOME_NAME[bb[node]], alt = null;
     if (!TERRAIN_OF_BIOME[biome]) { g.neighbors8(node, function (k) { var bn = NS.terrain.BIOME_NAME[bb[k]]; if (!alt && TERRAIN_OF_BIOME[bn]) alt = bn; }); biome = alt || "plain"; }
     var terrain = TERRAIN_OF_BIOME[biome], elevation = Math.max(0, g.sample(hf, c[0], c[1])), cc = g.col(node), cr = g.row(node);
     var hx = (hf[g.idx(Math.min(g.cols - 1, cc + 1), cr)] - hf[g.idx(Math.max(0, cc - 1), cr)]) / 2, hy = (hf[g.idx(cc, Math.min(g.rows - 1, cr + 1))] - hf[g.idx(cc, Math.max(0, cr - 1))]) / 2, slope = U.round(Math.sqrt(hx * hx + hy * hy), 4);
-    var cellDiag = Math.sqrt(Math.pow(Z.x1 - Z.x0, 2) + Math.pow(Z.y1 - Z.y0, 2)), site = { elevation: U.round(elevation, 3), slope: slope, biome: biome, coast: null, lake: null, river: null, road: null, caves: [], place: null, regionName: regionDoc.title.name, regionSeed: regionDoc.seed, zone: Z, near: null, within: null, water: false, seaName: null };
-    var nb;
-    if (regionDoc.sea.present) { nb = nearestOn(c, regionDoc.coast.map(function (p) { return { pts: p, closed: true }; }), true, fr.width, fr.height); if (nb && nb.d < cellDiag * 0.75) { site.coast = { bearing: G.bearing(c, nb.at).name, dist: U.round(nb.d * toZone, 1) }; var bs = null, bd = Infinity; regionDoc.features.forEach(function (f) { if (f.kind !== "sea") return; var d = G.dist(c, [f.x, f.y]); if (d < bd) { bd = d; bs = f; } }); if (bs) site.seaName = bs.name; } }
-    nb = nearestOn(c, regionDoc.lakes.map(function (p) { return { pts: p, closed: true }; }), false); if (nb && nb.d < cellDiag * 0.75) { var ln = null, ld = Infinity; regionDoc.features.forEach(function (f) { if (f.kind !== "lake") return; var d = G.dist(c, [f.x, f.y]); if (d < ld) { ld = d; ln = f; } }); site.lake = { bearing: G.bearing(c, nb.at).name, dist: U.round(nb.d * toZone, 1), name: ln && ln.name ? ln.name : null }; }
-    nb = nearestOn(c, regionDoc.rivers.map(function (r) { return { pts: r.pts, closed: false, river: r }; }), false); if (nb && nb.d < cellDiag * 0.45) { var tb = G.bearing([0, 0], nb.dir).name; site.river = { from: opposite(tb), to: tb, width: U.round(U.clamp(4 + 12 * ((nb.w || 1) - 0.5), 4, 40), 1), name: nb.line.river.name || null, id: nb.line.river.id }; }
-    nb = nearestOn(c, regionDoc.roads.map(function (r) { return { pts: r.pts, closed: false, road: r }; }), false); if (nb && nb.d < cellDiag * 0.45) { var rb = G.bearing([0, 0], nb.dir).name, rd = nb.line.road, pf = null, pt = null; regionDoc.places.forEach(function (p) { if (p.id === rd.from) pf = p; if (p.id === rd.to) pt = p; }); site.road = { from: opposite(rb), to: rb, kind: rd.kind, fromName: pf ? pf.name : null, toName: pt ? pt.name : null, id: rd.id }; }
-    function toZ(p) { return [U.round((p[0] - Z.x0) / (Z.x1 - Z.x0) * DEFAULTS.width, 1), U.round((p[1] - Z.y0) / (Z.y1 - Z.y0) * DEFAULTS.height, 1)]; }
-    (regionDoc.caves || []).forEach(function (cv) { if (cv.x >= Z.x0 && cv.x < Z.x1 && cv.y >= Z.y0 && cv.y < Z.y1) { var zp = toZ([cv.x, cv.y]); site.caves.push({ id: cv.id, name: cv.name, x: zp[0], y: zp[1], facing: cv.site.facing }); } });
+    var site = { elevation: U.round(elevation, 3), slope: slope, biome: biome, coast: null, lake: null, river: null, road: null, caves: [], place: null, regionName: regionDoc.title.name, regionSeed: regionDoc.seed, zone: Z, near: null, within: null, water: false, seaName: null, shore: lines.length ? shore : null, rivers: [], roads: [] };
+    /* which side the water lies on: from the middle of the zone's land to the middle of its water */
+    function nearestFeature(kind) { var best = null, bd = Infinity; regionDoc.features.forEach(function (f) { if (f.kind !== kind) return; var dd = G.dist(c, [f.x, f.y]); if (dd < bd) { bd = dd; best = f; } }); return best; }
+    function sideOfWater(kind) { return G.bearing([lsum[0] / land, lsum[1] / land], [wsum[kind][0] / wet[kind], wsum[kind][1] / wet[kind]]).name; }
+    if (wet.sea) { site.coast = { bearing: sideOfWater("sea") }; var sf = nearestFeature("sea"); if (sf) site.seaName = sf.name; }
+    if (wet.lake) { var lf = nearestFeature("lake"); site.lake = { bearing: sideOfWater("lake"), name: lf && lf.name ? lf.name : null }; }
+    /* the rivers: the region's, led on to the water or the river they run into where the drawn line stops short of it, cut to the zone */
+    var mx = (MOUTH_REACH + 1), pieces = [];
+    regionDoc.rivers.forEach(function (rv, ri) {
+      var pts = rv.pts, n = pts.length, last = pts[n - 1], hit = false, k, best = null, bd = MOUTH_REACH;
+      for (k = 1; k < n && !hit; k++) hit = !(Math.max(pts[k - 1][0], pts[k][0]) < Z.x0 - mx || Math.min(pts[k - 1][0], pts[k][0]) > Z.x1 + mx || Math.max(pts[k - 1][1], pts[k][1]) < Z.y0 - mx || Math.min(pts[k - 1][1], pts[k][1]) > Z.y1 + mx);
+      if (!hit) return;
+      function lead(lineSets) { lineSets.forEach(function (ring) { var m, a, b, dx, dy, l2, t, ex, ey, dd; for (m = 1; m < ring.length; m++) { a = ring[m - 1]; b = ring[m]; dx = b[0] - a[0]; dy = b[1] - a[1]; l2 = dx * dx + dy * dy; t = l2 ? U.clamp(((last[0] - a[0]) * dx + (last[1] - a[1]) * dy) / l2, 0, 1) : 0; ex = last[0] - a[0] - dx * t; ey = last[1] - a[1] - dy * t; dd = Math.sqrt(ex * ex + ey * ey); if (dd < bd) { bd = dd; best = [a[0] + dx * t, a[1] + dy * t, last[2]]; } } }); }
+      if (rv.endsIn === "river") lead(regionDoc.rivers.filter(function (o, oi) { return oi !== ri; }).map(function (o) { return o.pts; }));
+      else if ((rv.endsIn === "sea" || rv.endsIn === "lake") && waterAt(regionDoc, last) === null) lead((rv.endsIn === "sea" ? regionDoc.coast : regionDoc.lakes).map(function (ring) { return ring.concat([ring[0]]); }));
+      if (best && bd > 0.01) pts = pts.concat([best]);
+      zonePieces(pts, Z.col, Z.row, cw, ch).forEach(function (pc) {
+        var zp = pc.pts.map(function (q) { return [r1((q[0] - Z.x0) * sx), r1((q[1] - Z.y0) * sy), r1(U.clamp(4 + 12 * ((q[2] || 1) - 0.5), 4, 40))]; }), a = zp[0], b = zp[zp.length - 1], wMax = 0;
+        if (pc.from) { if (pc.from === "W") a[0] = 0; else if (pc.from === "E") a[0] = W; else if (pc.from === "N") a[1] = 0; else a[1] = H; }
+        if (pc.to) { if (pc.to === "W") b[0] = 0; else if (pc.to === "E") b[0] = W; else if (pc.to === "N") b[1] = 0; else b[1] = H; }
+        zp.forEach(function (q) { if (q[2] > wMax) wMax = q[2]; });
+        pieces.push({ id: rv.id, name: rv.name || null, from: pc.from, to: pc.to, pts: zp, ends: pc.pts[pc.pts.length - 1] === pts[pts.length - 1] ? rv.endsIn : null, w: wMax, order: pieces.length });
+      });
+    });
+    pieces.sort(function (p1, p2) { return p2.w - p1.w || p1.order - p2.order; });   /* the widest is the zone's river, the others its branches */
+    site.rivers = pieces.map(function (pc) { var o = { id: pc.id, name: pc.name, from: pc.from, to: pc.to, pts: pc.pts }; if (pc.ends) o.ends = pc.ends; return o; });
+    /* the roads: the stretches the region draws, cut to the zone; an end on an edge says which roads cross there and what lies beyond either way */
+    var roads = regionDoc.roads, margin = ROAD_TOL + 2 * ROAD_SUB, placeName = {}, models = {};
+    function model(k) { return models[k] || (models[k] = roadModel(roads, k)); }
+    /* the road that is drawn where road k passes p: k itself (both ends of its step there are drawn), or the earlier
+       road that stands for it there (and so on back); none (−1) where k only ENDS near p — it does not pass */
+    function owner(k, p) { var m = model(k), sp = m.span(p), q, h; if (sp.end) return -1; if (m.drawn(sp.q) && m.drawn(sp.q + 1)) return k; q = m.drawn(sp.q) ? sp.q + 1 : sp.q; h = m.from(q); return h ? owner(h.road, m.subs[q]) : k; }
+    regionDoc.places.forEach(function (pl) { placeName[pl.id] = pl.name; });
+    function dirAt(pts, pt) { var best = null, bd = Infinity, k, dd; for (k = 1; k < pts.length; k++) { dd = G.pointSegDist(pt, pts[k - 1], pts[k]); if (dd < bd) { bd = dd; best = [pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1], dd]; } } return best; }
+    function endOf(q, edge, j, leaving, join) {
+      var z = toZ(q), o = { x: z[0], y: z[1], edge: edge || null };
+      if (!edge) { if (join) o.join = true; return o; }
+      if (edge === "W") o.x = 0; else if (edge === "E") o.x = W; else if (edge === "N") o.y = 0; else o.y = H;
+      /* the roads that cross here: this one and every later road it stands for at this point; for each, the place beyond the edge and the place behind */
+      var dj = dirAt(roads[j].pts, q), ids = [], out = [], back = [], kind = "track", k, dk, same, on;
+      function add(list, name) { if (name && list.indexOf(name) < 0) list.push(name); }
+      for (k = j; k < roads.length; k++) {
+        dk = k === j ? dj : dirAt(roads[k].pts, q); if (k !== j && (dk[2] > ROAD_TOL || owner(k, q) !== j)) continue;
+        same = k === j || dk[0] * dj[0] + dk[1] * dj[1] >= 0; on = same ? leaving : !leaving;   /* does road k, read from its first place to its last, go out through this edge? */
+        ids.push(roads[k].id); if (roads[k].kind === "road") kind = "road";
+        add(out, placeName[on ? roads[k].to : roads[k].from]); add(back, placeName[on ? roads[k].from : roads[k].to]);
+      }
+      o.roads = ids; o.kind = kind; o.towards = out; o.back = back;
+      return o;
+    }
+    roads.forEach(function (rdx, j) {
+      if (!passes(rdx.pts, Z.x0 - margin, Z.y0 - margin, Z.x1 + margin, Z.y1 + margin)) return;
+      roadRuns(model(j), Z.x0 - margin, Z.y0 - margin, Z.x1 + margin, Z.y1 + margin).forEach(function (run) {
+        zonePieces(run.pts, Z.col, Z.row, cw, ch).forEach(function (pc) {
+          var a = pc.pts[0], b = pc.pts[pc.pts.length - 1], from = endOf(a, pc.from, j, false, run.joinA && a === run.pts[0]), to = endOf(b, pc.to, j, true, run.joinB && b === run.pts[run.pts.length - 1]);
+          site.roads.push({ id: rdx.id, kind: from.kind === "road" || to.kind === "road" ? "road" : rdx.kind, from: from, to: to });
+        });
+      });
+    });
+    /* two ends within WAY_GAP of each other on one edge are one way on (a road that meets another just beyond the
+       edge): they stand where the earlier road's does, with the roads and the places of both. The ends on an edge are
+       the same from both sides of it, so both zones gather them alike. */
+    Object.keys(EDGES).forEach(function (edge) {
+      var ends = [], along = edge === "N" || edge === "S" ? "x" : "y", group = [], k;
+      site.roads.forEach(function (rw, wi) { [rw.from, rw.to].forEach(function (e) { if (e.edge === edge) ends.push({ e: e, order: wi }); }); });
+      ends.sort(function (p, q) { return p.e[along] - q.e[along] || p.order - q.order; });
+      function gather() {
+        if (group.length > 1) {
+          var first = group.slice().sort(function (p, q) { return p.order - q.order || p.e[along] - q.e[along]; })[0].e, roads = [], out = [], back = [], kind = "track";
+          group.slice().sort(function (p, q) { return p.order - q.order; }).forEach(function (m) { m.e.roads.forEach(function (id) { if (roads.indexOf(id) < 0) roads.push(id); }); m.e.towards.forEach(function (nm) { if (out.indexOf(nm) < 0) out.push(nm); }); m.e.back.forEach(function (nm) { if (back.indexOf(nm) < 0) back.push(nm); }); if (m.e.kind === "road") kind = "road"; });
+          var px = first.x, py = first.y;
+          group.forEach(function (m) { m.e.x = px; m.e.y = py; m.e.roads = roads; m.e.towards = out; m.e.back = back; m.e.kind = kind; });
+        }
+        group = [];
+      }
+      for (k = 0; k < ends.length; k++) { if (group.length && ends[k].e[along] - group[group.length - 1].e[along] >= WAY_GAP) gather(); group.push(ends[k]); }
+      gather();
+    });
+    function inZone(q) { return Math.floor(q.x / cw) === Z.col && Math.floor(q.y / ch) === Z.row; }
+    (regionDoc.caves || []).forEach(function (cv) { if (inZone(cv)) { var zp = toZ([cv.x, cv.y]); site.caves.push({ id: cv.id, name: cv.name, x: zp[0], y: zp[1], facing: cv.site.facing }); } });
     var nd = Infinity, np = null;
-    regionDoc.places.forEach(function (p) { var d = G.dist(c, [p.x, p.y]); if (d < nd) { nd = d; np = p; } if (p.x >= Z.x0 && p.x < Z.x1 && p.y >= Z.y0 && p.y < Z.y1) { var zp = toZ([p.x, p.y]); site.place = { id: p.id, name: p.name, kind: p.kind, x: zp[0], y: zp[1] }; } });
+    regionDoc.places.forEach(function (pl) { var dd = G.dist(c, [pl.x, pl.y]); if (dd < nd) { nd = dd; np = pl; } if (inZone(pl)) { var zp = toZ([pl.x, pl.y]); site.place = { id: pl.id, name: pl.name, kind: pl.kind, x: zp[0], y: zp[1] }; } });
     if (np) site.near = { id: np.id, name: np.name, km: U.round(nd * kpu, 1), bearing: G.bearing([np.x, np.y], c).name };
     var wantKind = { forest: "forest", mountain: "range", marsh: "marsh" }[biome] || null, wd = Infinity;
-    if (wantKind) regionDoc.features.forEach(function (f) { if (f.kind !== wantKind || !f.name) return; var d = G.dist(c, [f.x, f.y]); if (d < wd && d < Math.sqrt(f.size) * g.dx * 0.95) { wd = d; site.within = f.name; } });
-    site.water = !!(site.coast || site.lake || site.river || biome === "marsh");
+    if (wantKind) regionDoc.features.forEach(function (f) { if (f.kind !== wantKind || !f.name) return; var dd = G.dist(c, [f.x, f.y]); if (dd < wd && dd < Math.sqrt(f.size) * g.dx * 0.95) { wd = dd; site.within = f.name; } });
+    site.water = !!(site.coast || site.lake || site.rivers.length || biome === "marsh");
     return { seed: regionDoc.seed + "/" + Z.id, terrain: terrain, culture: regionDoc.params.culture, title: null, site: site };
   }
-
   function validate(doc) {
     ["cover", "paths", "features", "glyphs"].forEach(function (k) { NS.assert(Array.isArray(doc[k]), "document." + k + " must be an array", { key: k }); });
-    NS.assert(doc.water && Array.isArray(doc.water.polys) && Array.isArray(doc.water.pools) && Array.isArray(doc.water.streams), "document.water is malformed", { water: doc.water });
-    NS.assert(TERRAINS[doc.kind], "document.kind must be a terrain", { kind: doc.kind, known: Object.keys(TERRAINS) });
-    doc.features.forEach(function (f, i) { NS.assert(f.id && typeof f.name === "string" && (CATALOGUE[f.kind]) && isFinite(f.x) && isFinite(f.y), "feature " + i + " is malformed", { feature: f }); });
+    NS.assert(doc.water && Array.isArray(doc.water.polys) && Array.isArray(doc.water.pools) && Array.isArray(doc.water.streams) && (doc.water.branches === undefined || Array.isArray(doc.water.branches)), "document.water is malformed", { water: doc.water });
+    NS.assert(NS.own(TERRAINS, doc.kind), "document.kind must be a terrain", { kind: doc.kind, known: Object.keys(TERRAINS) });
+    doc.features.forEach(function (f, i) { NS.assert(f.id && typeof f.name === "string" && NS.own(CATALOGUE, f.kind) && isFinite(f.x) && isFinite(f.y), "feature " + i + " is malformed", { feature: f }); });
     NS.validatePortals(doc);
     return doc;
   }
 
   NS.wild = { generate: generate, DEFAULTS: DEFAULTS, TERRAINS: TERRAINS, CATALOGUE: CATALOGUE, WHERE: WHERE, TERRAIN_OF_BIOME: TERRAIN_OF_BIOME, BEARINGS: BEARINGS, M_PER_UNIT: M_PER_UNIT, ZONE_KM: ZONE_KM, MAX_COUNT: MAX_COUNT, MAX_NAME: MAX_NAME, MAX_NOTE: MAX_NOTE, MAX_WORD: MAX_NAME, CUSTOM: "custom", OPS: OPS,
-    terrains: function () { return Object.keys(TERRAINS); }, kinds: kinds, resolveParams: resolveParams, validateCounts: validateCounts, validateEdits: validateEdits, fromRegion: fromRegion, zoneAt: zoneAt, reference: reference, caption: caption, intro: intro, locate: locate, validate: validate };
+    terrains: function () { return Object.keys(TERRAINS); }, kinds: kinds, resolveParams: resolveParams, validateCounts: validateCounts, validateEdits: validateEdits, fromRegion: fromRegion, zoneAt: zoneAt, rivers: riversOf, MIN_LAND: MIN_LAND, reference: reference, caption: caption, intro: intro, locate: locate, validate: validate };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 50-digest.js ───── */
@@ -5629,7 +5978,7 @@
   /* terrain between two points: sample the biome field along the straight line */
   function terrainBetween(doc, a, b) {
     if (!doc.fields || !doc.fields.biome) return null;
-    var bytes = doc.fields.biome, decoded = doc._biomeBytes || (doc._biomeBytes = NS.base64ToBytes(bytes)), cols = doc.frame.cols, rows = doc.frame.rows;
+    var bytes = doc.fields.biome, decoded = NS.fieldBytes(bytes), cols = doc.frame.cols, rows = doc.frame.rows;
     var dx = doc.frame.width / (cols - 1), dy = doc.frame.height / (rows - 1), n = 24, counts = {}, i, t, x, y, c, r, name;
     for (i = 1; i < n; i++) {
       t = i / n; x = a.x + (b.x - a.x) * t; y = a.y + (b.y - a.y) * t;
@@ -5705,7 +6054,7 @@
   var DIGESTS = { region: buildRegion };
   function build(doc) {
     NS.assert(doc && doc.format === NS.DOC_FORMAT, "digest needs a tndmap document", { format: doc && doc.format });
-    var name = doc.generator && doc.generator.name, writer = DIGESTS[name];
+    var name = doc.generator && doc.generator.name, writer = NS.own(DIGESTS, name);
     NS.assert(writer, "no digest for this document kind", { generator: doc.generator, known: Object.keys(DIGESTS) });
     return writer(doc);
   }
@@ -5887,7 +6236,7 @@
    the reference point (the ford, the track's middle, or the middle of the zone), the GM's notes, the ways on. */
 (function (root) {
   "use strict";
-  var NS = root.TnDMaps, G = NS.geom, U = NS.util;
+  var NS = root.TnDMaps, G = NS.geom, U = NS.util, M = NS.mesh;
   var WORD = { N: "north", NE: "northeast", E: "east", SE: "southeast", S: "south", SW: "southwest", W: "west", NW: "northwest" };
   function metres(doc, u) { var m = u * doc.frame.mPerUnit; return m < 100 ? Math.round(m / 5) * 5 : Math.round(m / 10) * 10; }
   function where(doc, ref, x, y) { var d = G.dist([ref.x, ref.y], [x, y]); if (d * doc.frame.mPerUnit < 25) return ref.at; return metres(doc, d) + " m " + G.bearing([ref.x, ref.y], [x, y]).name + " of " + ref.word; }
@@ -5903,16 +6252,32 @@
     var w = [];
     if (S.coast) w.push("the sea" + (S.seaName ? " (" + S.seaName + ")" : "") + " lies to the " + WORD[S.coast.bearing]);
     if (S.lake) w.push("a lake" + (S.lake.name ? " (" + S.lake.name + ")" : "") + " lies to the " + WORD[S.lake.bearing]);
-    if (WT.river) w.push((WT.river.name || "a river") + ", " + Math.round(S.river.width) + " m wide, runs through from the " + WORD[WT.river.from] + " to the " + WORD[WT.river.to]);
+    /* a river: where it comes from and where it goes — an edge, or what it ends in here (the sea, a lake, another river, a pool) */
+    var ENDS = { sea: "into the sea", lake: "into the lake", river: "into the river", pool: "into a pool, where it sinks" };
+    NS.wild.rivers(doc).forEach(function (v, vi) {
+      var wide = Math.round(v.widthM || S.river.width), name = v.name || (vi ? "another river" : "a river");
+      if (v.from && v.to) w.push(name + ", " + wide + " m wide, runs through from the " + WORD[v.from] + " to the " + WORD[v.to]);
+      else w.push(name + ", " + wide + " m wide, " + (v.from ? "comes in from the " + WORD[v.from] : "rises here") + " and runs " + (v.to ? "off to the " + WORD[v.to] : ENDS[v.endsIn] || "out"));
+    });
     WT.streams.forEach(function (s) { var head = doc.features.filter(function (f) { return f.kind === "spring" && G.dist([f.x, f.y], s.head) < 3; })[0], pool = s.to ? WT.pools.filter(function (p) { return p.id === s.to; })[0] : null, pf = pool ? doc.features.filter(function (f) { return f.pool === pool.id; })[0] : null; w.push("a brook rises " + (head ? "at " + head.name : where(doc, ref, s.head[0], s.head[1])) + " and runs " + (s.endsIn === "pool" ? "into " + (pf ? pf.name : "a pool " + where(doc, ref, pool.x, pool.y)) : s.endsIn === "river" ? "into the river" : s.endsIn === "sea" ? "down to the sea" : "off the " + WORD[G.bearing([doc.frame.width / 2, doc.frame.height / 2], s.pts[s.pts.length - 1]).name] + " edge")); });
     var plainPools = WT.pools.filter(function (p) { return !doc.features.some(function (f) { return f.pool === p.id; }); });
     if (plainPools.length) w.push(plainPools.length === 1 ? "a pool lies " + where(doc, ref, plainPools[0].x, plainPools[0].y) : plainPools.length + " pools of standing water lie about");
     if (w.length) lines.push(U.titleCase(w[0].charAt(0)) + w[0].slice(1) + (w.length > 1 ? "; " + w.slice(1).join("; ") : "") + ".");
     else lines.push("There is no water here.");
-    facts.push({ kind: "water", coast: S.coast ? S.coast.bearing : null, lake: S.lake ? S.lake.bearing : null, river: WT.river ? { name: WT.river.name, from: WT.river.from, to: WT.river.to, widthM: S.river.width } : null, streams: WT.streams.length, pools: WT.pools.length });
+    facts.push({ kind: "water", coast: S.coast ? S.coast.bearing : null, lake: S.lake ? S.lake.bearing : null, river: WT.river ? { name: WT.river.name, from: WT.river.from, to: WT.river.to, widthM: WT.river.widthM || S.river.width } : null, rivers: NS.wild.rivers(doc).length, streams: WT.streams.length, pools: WT.pools.length });
     /* the track */
     doc.paths.forEach(function (p) {
-      var word = p.kind === "causeway" ? "a causeway" : p.kind === "road" ? "a road" : p.kind === "track" ? "a track" : "a trail", txt = U.titleCase(word.charAt(0)) + word.slice(1) + " crosses from the " + WORD[p.from] + (p.towards.from ? " (from " + p.towards.from + ")" : "") + " to the " + WORD[p.to] + (p.towards.to ? " (to " + p.towards.to + ")" : "");
+      var word = p.kind === "causeway" ? "a causeway" : p.kind === "road" ? "a road" : p.kind === "track" ? "a track" : "a trail", txt = U.titleCase(word.charAt(0)) + word.slice(1);
+      /* a way from edge to edge crosses; one that begins or ends inside runs between what stands there: the settlement, another way, a spot of its own */
+      function endAt(q) {
+        var pl = S.place && G.dist(q, [S.place.x, S.place.y]) < 12 ? S.place.name : null, other = doc.paths.filter(function (o) { return o !== p && M.distToPolyline(q, o.pts) < 3; })[0], by = null, bd = 45, mid = [doc.frame.width / 2, doc.frame.height / 2];
+        doc.features.forEach(function (ft) { var dd = G.dist(q, [ft.x, ft.y]); if (dd < bd) { bd = dd; by = ft; } });
+        return pl || (other ? "the " + other.kind : by ? by.name : G.dist(q, mid) < 90 ? "the middle of the zone" : "the " + WORD[G.bearing(mid, q).name] + " of the zone");
+      }
+      var a = p.pts[0], b = p.pts[p.pts.length - 1], ea = p.from ? null : endAt(a), eb = p.to ? null : endAt(b);
+      if (p.from && p.to) txt += " crosses from the " + WORD[p.from] + (p.towards.from ? " (from " + p.towards.from + ")" : "") + " to the " + WORD[p.to] + (p.towards.to ? " (to " + p.towards.to + ")" : "");
+      else if (p.from || p.to) { var edge = p.from || p.to, far = p.from ? p.towards.from : p.towards.to, inner = p.from ? eb : ea; txt += " comes in from the " + WORD[edge] + (far ? " (from " + far + ")" : "") + " to " + inner; }
+      else txt += " runs from " + ea + " to " + eb;
       if (p.crossings.length) txt += ", crossing the river by " + (p.crossings[0].kind === "bridge" ? "a bridge" : p.crossings[0].kind === "plank" ? "a plank bridge" : "a ford") + (p.crossings.length > 1 ? " and again further on" : "");
       lines.push(txt + ".");
       facts.push({ kind: "path", id: p.id, pathKind: p.kind, from: p.from, to: p.to, towards: p.towards, crossings: p.crossings.map(function (c) { return c.kind; }) });
@@ -5938,7 +6303,7 @@
     doc.portals.forEach(function (p) {
       if (p.kind === "edge") { var via = p.via ? doc.paths.filter(function (q) { return q.id === p.via; })[0] : null; ways.push(WORD[p.bearing] + (via ? " by the " + via.kind : "") + (p.towards ? " toward " + p.towards : "") + (p.to.id ? "" : " (the edge of the map)")); }
       else if (p.kind === "cave") lines.push("A cave mouth, " + p.name + ", opens " + where(doc, ref, p.x, p.y) + "; the caves behind it are their own map.");
-      else if (p.kind === "place") lines.push(p.name + " stands " + where(doc, ref, p.x, p.y) + "; the town has its own plan.");
+      else if (p.kind === "place") lines.push(p.name + " stands " + (ref.word === p.name ? "here" : where(doc, ref, p.x, p.y)) + "; the town has its own plan.");
       facts.push({ kind: "portal", id: p.id, portalKind: p.kind, way: p.way, bearing: p.bearing || G.bearing([ref.x, ref.y], [p.x, p.y]).name, metres: metres(doc, G.dist([ref.x, ref.y], [p.x, p.y])), to: p.to });
     });
     lines.push("Ways on: " + ways.join("; ") + ".");
@@ -6129,7 +6494,7 @@
   var STYLES = { ink: inkStyle() };
 
   function get(name) {
-    var s = STYLES[name || "ink"];
+    var s = NS.own(STYLES, name || "ink");
     NS.assert(s, "unknown style", { style: name, known: Object.keys(STYLES) });
     return s;
   }
@@ -6207,7 +6572,7 @@
 
   /* draw(name, cx, cy, s, out) — appends the icon's commands, scaled to a box of height s centred on (cx, cy) */
   function draw(name, cx, cy, s, out) {
-    var icon = ICONS[name]; NS.assert(icon, "unknown icon", { icon: name, known: Object.keys(ICONS) });
+    var icon = NS.own(ICONS, name); NS.assert(icon, "unknown icon", { icon: name, known: Object.keys(ICONS) });
     var items = [], u = s / 10;
     icon.draw(items);
     items.forEach(function (c) {
@@ -6569,7 +6934,7 @@
   /* opts go to the builder: `reveal` (a dungeon's fog of war: the room and passage ids to draw; null = everything) */
   function build(doc, styleName, opts) {
     NS.assert(doc && doc.format === NS.DOC_FORMAT, "scene needs a tndmap document", { format: doc && doc.format });
-    var name = doc.generator && doc.generator.name, builder = BUILDERS[name];
+    var name = doc.generator && doc.generator.name, builder = NS.own(BUILDERS, name);
     NS.assert(builder, "no scene builder for this document kind", { generator: doc.generator, known: Object.keys(BUILDERS) });
     NS.assert(!opts || opts.reveal === undefined || opts.reveal === null || (Array.isArray(opts.reveal) && opts.reveal.every(function (id) { return typeof id === "string"; })), "reveal must be a list of ids, or null", { reveal: opts && opts.reveal });
     return builder(doc, NS.style.get(styleName), opts || {});
@@ -6578,7 +6943,7 @@
      caller supplies in `extra` (markers live beside the document, not in it) */
   var HIT_SOURCES = { place: "places", cave: "caves", landmark: "landmarks", establishment: "establishments", room: "rooms", portal: "portals", marker: "markers" };
   function hitTarget(doc, hit, extra) {
-    var src = hit && HIT_SOURCES[hit.kind], list = src && ((extra && extra[src]) || doc[src]), i;
+    var src = hit && NS.own(HIT_SOURCES, hit.kind), list = src && ((extra && extra[src]) || doc[src]), i;
     if (!list) return null;
     for (i = 0; i < list.length; i++) if (list[i].id === hit.id) return list[i];
     return null;
@@ -6835,14 +7200,14 @@
     for (i = 0; i < markers.length; i++) {
       m = markers[i];
       NS.assert(m && typeof m === "object", "marker " + i + " must be an object", { got: m });
-      NS.assert(KINDS[m.kind], "marker kind must be one of " + Object.keys(KINDS).join(", "), { kind: m.kind, index: i });
+      NS.assert(NS.own(KINDS, m.kind), "marker kind must be one of " + Object.keys(KINDS).join(", "), { kind: m.kind, index: i });
       NS.assert(typeof m.id === "string" && m.id.length > 0 && !seen[m.id], "marker needs a unique string id", { id: m.id, index: i });
       seen[m.id] = true;
       NS.assert(isFinite(m.x) && isFinite(m.y), "marker needs numeric x and y", { id: m.id, x: m.x, y: m.y });
       if (frame) NS.assert(m.x >= 0 && m.y >= 0 && m.x <= frame.width && m.y <= frame.height, "marker lies outside the map frame", { id: m.id, x: m.x, y: m.y, frame: [frame.width, frame.height] });
       NS.assert(m.label === undefined || m.label === null || (typeof m.label === "string" && m.label.length <= MAX_LABEL), "marker label must be a string of at most " + MAX_LABEL + " characters", { id: m.id, label: m.label });
       NS.assert(m.note === undefined || m.note === null || (typeof m.note === "string" && m.note.length <= MAX_NOTE), "marker note must be a string of at most " + MAX_NOTE + " characters", { id: m.id });
-      NS.assert(m.icon === undefined || m.icon === null || m.icon === "" || NS.icons.ICONS[m.icon], "marker icon must be one of " + NS.icons.names().join(", "), { id: m.id, icon: m.icon });
+      NS.assert(m.icon === undefined || m.icon === null || m.icon === "" || NS.own(NS.icons.ICONS, m.icon), "marker icon must be one of " + NS.icons.names().join(", "), { id: m.id, icon: m.icon });
       if (KINDS[m.kind].single) { NS.assert(!singles[m.kind], "only one marker of kind " + m.kind + " may be on a map", { ids: [singles[m.kind], m.id] }); singles[m.kind] = m.id; }
     }
     return markers;
@@ -6902,7 +7267,7 @@
     }
   };
   function describe(doc, markers) {
-    NS.assert(doc && doc.generator && REFERENCES[doc.generator.name], "describe needs a document of a known kind (" + Object.keys(REFERENCES).join(", ") + ")", { generator: doc && doc.generator });
+    NS.assert(doc && doc.generator && NS.own(REFERENCES, doc.generator.name), "describe needs a document of a known kind (" + Object.keys(REFERENCES).join(", ") + ")", { generator: doc && doc.generator });
     validate(markers, doc.frame);
     var ref = REFERENCES[doc.generator.name](doc), lines = [], facts = [];
     markers.forEach(function (m) {
@@ -7472,7 +7837,7 @@
     doc.relief.contours.forEach(function (c) { relief.push({ t: "path", pts: c.pts, closed: c.closed, s: "formLine" }); });
     /* the water: the river's band, the brooks, then the pools over them (a brook runs into its pool), the sea last */
     var water = layer("water"), WT = doc.water;
-    if (WT.river) water.push({ t: "path", pts: ribbon(WT.river.pts), closed: true, s: "riverBand", meta: { kind: "river" } });
+    NS.wild.rivers(doc).forEach(function (v) { water.push({ t: "path", pts: ribbon(v.pts), closed: true, s: "riverBand", meta: { kind: "river" } }); });
     WT.streams.forEach(function (s) { water.push({ t: "path", pts: ribbon(s.pts), closed: true, s: "streamBand", meta: { id: s.id } }); });
     WT.pools.forEach(function (p) { water.push(p.holes && p.holes.length ? { t: "path", subpaths: [p.poly].concat(p.holes), closed: true, s: "pool", meta: { id: p.id } } : { t: "path", pts: p.poly, closed: true, s: "pool", meta: { id: p.id } }); var bb = G.bbox(p.poly); if (bb[2] - bb[0] > 18) water.push({ t: "path", pts: [[p.x - 4, p.y + 1], [p.x - 1.5, p.y + 0.2], [p.x + 1.5, p.y + 1], [p.x + 4, p.y + 0.2]], closed: false, s: "ripple1" }); });
     WT.polys.forEach(function (poly) { water.push({ t: "path", pts: poly, closed: true, s: "water" }); });
@@ -7515,11 +7880,12 @@
       var cands = [{ x: f.x, y: f.y + off + fsz * 0.95 }, { x: f.x, y: f.y - off - fsz * 0.3 }, { x: f.x + off, y: f.y + fsz * 0.36, anchor: "start" }, { x: f.x - off, y: f.y + fsz * 0.36, anchor: "end" }, { x: f.x, y: f.y + off + fsz * 2.1 }, { x: f.x + off, y: f.y + off + fsz * 1.2, anchor: "start" }];
       var cmd = lay.place(f.name, "wildFeature", cands, { kind: "feature", id: f.id }, icon ? { icon: icon } : null); if (cmd) { labels.push(cmd); C.hitBox(hits, "feature", f.id, cmd.box); }
     });
-    if (WT.river && WT.river.name && WT.river.pts.length > 6) {
-      var pts = WT.river.pts, mid = Math.floor(pts.length * 0.3), a = pts[Math.max(0, mid - 3)], b = pts[Math.min(pts.length - 1, mid + 3)];
+    var named = NS.wild.rivers(doc).filter(function (v) { return v.name && v.pts.length > 6; })[0];
+    if (named) {
+      var pts = named.pts, mid = Math.floor(pts.length * 0.3), a = pts[Math.max(0, mid - 3)], b = pts[Math.min(pts.length - 1, mid + 3)];
       var rot = Math.atan2(b[1] - a[1], b[0] - a[0]); if (rot > Math.PI / 2) rot -= Math.PI; if (rot < -Math.PI / 2) rot += Math.PI;
       var nx = Math.sin(rot) * 12, ny = -Math.cos(rot) * 12, m = pts[mid];
-      var cmdR = lay.place(WT.river.name, "townRiver", [{ x: m[0] + nx, y: m[1] + ny, rot: rot }, { x: m[0] - nx, y: m[1] - ny, rot: rot }], { kind: "river" }); if (cmdR) featureLabels.push(cmdR);
+      var cmdR = lay.place(named.name, "townRiver", [{ x: m[0] + nx, y: m[1] + ny, rot: rot }, { x: m[0] - nx, y: m[1] - ny, rot: rot }], { kind: "river" }); if (cmdR) featureLabels.push(cmdR);
     }
     if (doc.site.coast && doc.site.seaName && WT.polys.length) {
       var dir = NS.wild.BEARINGS.indexOf(doc.site.coast.bearing) * Math.PI / 4, sx = W / 2 + Math.sin(dir) * Math.min(W, H) * 0.42, sy = H / 2 - Math.cos(dir) * Math.min(W, H) * 0.42;
@@ -7979,7 +8345,7 @@
     return doc;
   };
   NS.generate = function (kind, params) {
-    var gen = NS.GENERATORS[kind];
+    var gen = NS.own(NS.GENERATORS, kind);
     NS.assert(gen, "unknown generator kind", { kind: kind, known: Object.keys(NS.GENERATORS) });
     return gen.generate(params);
   };
@@ -7994,7 +8360,7 @@
     NS.assert(doc.ver === NS.DOC_VER, "document ver " + doc.ver + " is not " + NS.DOC_VER + " — run TnDMaps.migrate first", { ver: doc.ver });
     NS.assert(doc.frame && doc.frame.width > 0 && doc.frame.height > 0 && doc.frame.kmPerUnit > 0, "document frame is malformed", { frame: doc.frame });
     NS.assert(doc.title && typeof doc.title.name === "string", "document.title.name must be a string", { title: doc.title });
-    var gen = doc.generator && NS.GENERATORS[doc.generator.name];
+    var gen = doc.generator && NS.own(NS.GENERATORS, doc.generator.name);
     NS.assert(gen, "document.generator.name must be a known generator", { generator: doc.generator, known: Object.keys(NS.GENERATORS) });
     NS.assert(Array.isArray(doc.warnings), "document.warnings must be an array", { warnings: doc.warnings });
     return gen.validate(doc);
@@ -8065,7 +8431,7 @@
   function migrate(doc) {
     NS.assert(doc && doc.format === NS.DOC_FORMAT, "not a tndmap document", { format: doc && doc.format });
     var v = doc.ver | 0;
-    while (v < NS.DOC_VER) { NS.assert(MIGRATIONS[v], "no migration from document ver " + v, { ver: v }); doc = MIGRATIONS[v](doc); v = doc.ver; }
+    while (v < NS.DOC_VER) { NS.assert(NS.own(MIGRATIONS, v), "no migration from document ver " + v, { ver: v }); doc = MIGRATIONS[v](doc); v = doc.ver; }
     NS.assert(v === NS.DOC_VER, "document ver " + v + " is newer than this library (" + NS.DOC_VER + ")", { ver: v });
     return doc;
   }

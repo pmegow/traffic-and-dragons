@@ -31,11 +31,14 @@ var ATLAS_DOC_CAP=12;
 
 /* THE NESTING TABLE — "<parent generator>><child generator>": how the child's params come from the parent's document.
    via "id" = the portal's own id; "to" = the id the portal points at (a wild zone is named by its zone id). point = where
-   the child sits on the parent's sheet when no thing of the parent bears the via. A new scale is a new entry. */
+   the child sits on the parent's sheet when no thing of the parent bears the via. at = the via for a POINT the player
+   tapped on open ground, judged as the point it is: open water is refused in the library's own words even where the
+   zone around it holds land (a zone's id alone is judged by its land). A new scale is a new entry. */
 var ATLAS_BUILDERS={
   "region>town":{via:"id",make:function(doc,via){return TnDMaps.town.fromRegion(doc,via);}},
   "region>dungeon":{via:"id",make:function(doc,via){return TnDMaps.dungeon.fromRegion(doc,via);}},
-  "region>wild":{via:"to",make:function(doc,via){return TnDMaps.wild.fromRegion(doc,via);},point:function(doc,via){var z=TnDMaps.wild.zoneAt(doc,via);return [z.cx,z.cy];}},
+  "region>wild":{via:"to",make:function(doc,via){return TnDMaps.wild.fromRegion(doc,via);},point:function(doc,via){var z=TnDMaps.wild.zoneAt(doc,via);return [z.cx,z.cy];},
+    at:function(doc,xy){TnDMaps.wild.fromRegion(doc,xy);return TnDMaps.wild.zoneAt(doc,xy).id;}},
   "town>dungeon":{via:"id",make:function(doc,via){return TnDMaps.dungeon.fromTown(doc,via);}},
   "town>interior":{via:"id",make:function(doc,via){return TnDMaps.interior.fromTown(doc,via);}},
   "dungeon>dungeon":{via:"id",make:function(doc,via){return TnDMaps.dungeon.fromDungeon(doc,via);}},
@@ -87,10 +90,16 @@ function atlasSeedMint(){
   else for(i=0;i<12;i++)s+=a.charAt(Math.floor(Math.random()*36));
   return s;
 }
-/* what the library drew, as one short string: the document without its timings (stats) and without the caches the
-   library hangs on a document it has read (keys starting "_") — both differ between two draws of the same map */
-function atlasFingerprint(doc){
-  var s=JSON.stringify(doc,function(k,v){return (this===doc&&(k==="stats"||k.charAt(0)==="_"))?undefined:v;});
+/* what the library drew, as one short string: the document without its timings (stats) and without any cache a library
+   hangs on a document it has read (keys starting "_"; library 0.13.0 writes none). A document also carries the version
+   of the library that drew it (generator.version), which is not the drawing: asLib reads the document as THAT library
+   stamped it, so a record made under an older library can be compared with what this one draws */
+function atlasFingerprint(doc,asLib){
+  var gen=doc?doc.generator:null;
+  var s=JSON.stringify(doc,function(k,v){
+    if(this===doc&&(k==="stats"||k.charAt(0)==="_"))return undefined;
+    return (asLib!=null&&gen&&this===gen&&k==="version")?asLib:v;
+  });
   return (TnDMaps.hash32(s)>>>0).toString(16)+"-"+s.length.toString(36);
 }
 function atlasNameKey(s){
@@ -132,11 +141,13 @@ function atlasDoc(zoneId){
 function atlasForget(){_atlasDocs={};_atlasDocOrder=[];_atlasDrawn={};_atlasWarned={};}
 /* WRITE: record what the library drew for a zone; a drawing that differs from the one on record is said out loud */
 function atlasSettle(A,zoneId){
-  var rec=A.zones[zoneId],d=rec?_atlasDrawn[atlasChainKey(A,zoneId)]:null;
+  var rec=A.zones[zoneId],key=rec?atlasChainKey(A,zoneId):null,d=key?_atlasDrawn[key]:null;
   if(!d)return null;
   if(d.name&&rec.name!==d.name)rec.name=d.name;
   if(!rec.fp){rec.fp=d.fp;rec.lib=d.lib;return null;}
   if(rec.fp===d.fp){if(rec.lib!==d.lib)rec.lib=d.lib;return null;}
+  /* a newer library that draws the SAME sheet is not a redraw: read the drawing as the record's own library stamped it */
+  if(rec.lib&&rec.lib!==d.lib&&_atlasDocs[key]&&atlasFingerprint(_atlasDocs[key],rec.lib)===rec.fp){rec.fp=d.fp;rec.lib=d.lib;return null;}
   rec.redrawn={from:rec.lib,to:d.lib,was:rec.fp,turn:atlasTurn()};rec.fp=d.fp;rec.lib=d.lib;
   atlasSay("warn","the map of "+(rec.name||zoneId)+" was redrawn"+(rec.redrawn.from!==rec.redrawn.to?" by a newer map library ("+rec.redrawn.from+" → "+rec.redrawn.to+")":" differently from its record")+" — places the story already used there may have moved");
   return rec.redrawn;
@@ -320,7 +331,7 @@ function atlasCreate(seed){
    Returns {ok: true, at, spot, off, entered, bound, level} or {ok: false, reason, moved?}; a refusal changes nothing
    but zones the tap had to draw to look. */
 function atlasPlace(zoneId,target,expect){
-  var A=atlasLive(),p=A?atlasPointer():null,entered=[],rec,doc,tie,b,z,r,pv;
+  var A=atlasLive(),p=A?atlasPointer():null,entered=[],rec,doc,tie,b,r,pv;
   if(!A)return {ok:false,reason:"this campaign has no map"};
   if(!p)return {ok:false,reason:"the story has no current place"};
   if(!A.zones[zoneId])return {ok:false,reason:"that sheet is not in this campaign's atlas"};
@@ -335,8 +346,7 @@ function atlasPlace(zoneId,target,expect){
     }else if(target&&isFinite(target.x)&&isFinite(target.y)){
       b=ATLAS_BUILDERS[rec.kind+">wild"];
       if(!b)return {ok:false,reason:"only the region has open country to stand in \u2014 pick a place on this sheet"};
-      z=TnDMaps.wild.zoneAt(doc,[target.x,target.y]);
-      tie={zone:atlasOpen(A,zoneId,"wild",z.id,null,entered).zone,id:null};
+      tie={zone:atlasOpen(A,zoneId,"wild",b.at(doc,[target.x,target.y]),null,entered).zone,id:null};
     }else return {ok:false,reason:"pick a place or a point on the sheet"};
   }catch(e){
     if(!atlasIsRefusal(e))atlasProblem("placing the party",e);
@@ -483,7 +493,7 @@ function atlasReveal(zoneId){
    {id, x, y, title, word, opens, unvisited, partyHere, place}. opens = the entered zone it leads to (the pane may show
    it); unvisited = it leads to a zone the party has not entered (never shown: no peeking). null = nothing to say. */
 function atlasCard(zoneId,target){
-  var A=atlasLive(),rec=A?A.zones[zoneId]:null,doc,t,leads=null,z,trail,b,gone;
+  var A=atlasLive(),rec=A?A.zones[zoneId]:null,doc,t,leads=null,trail,b,gone;
   if(!rec||!target)return null;
   doc=atlasDoc(zoneId);trail=A.at?atlasTrail(A.at):[];
   gone=!!(A.off&&!A.off.within);/* the story has left the mapped places: nothing is "where the party is", and every card offers We are here */
@@ -495,7 +505,7 @@ function atlasCard(zoneId,target){
   }
   b=ATLAS_BUILDERS[rec.kind+">wild"];
   if(!b||!isFinite(target.x)||!isFinite(target.y))return null;
-  try{z=TnDMaps.wild.zoneAt(doc,[target.x,target.y]);leads=b.make(doc,z.id).seed;}
+  try{leads=b.make(doc,b.at(doc,[target.x,target.y])).seed;}
   catch(e2){return {id:null,x:target.x,y:target.y,title:"Open country",word:"",opens:null,unvisited:false,partyHere:false,place:null,refused:atlasReason(e2)};}
   return {id:null,x:target.x,y:target.y,title:"Open country",word:"",opens:A.zones[leads]?leads:null,unvisited:false,partyHere:!gone&&A.at===leads,place:atlasPlacePreview()};
 }
