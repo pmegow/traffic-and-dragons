@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-11-05 · #688 · v1.1348 · Codex: vendor committed Dice 0.91.0/dde169c, adding the requested Classic d6 checkbox and saved-style pip masks. Source tests extend the style contract for the new boolean; host code changes are only required markers and release records. No host engine/state/prompt changes or host test relaxation.
+
 - 2026-11-05 · #687 · v1.1347 · Codex: vendor committed Dice 0.90.0/7c91e00, applying the owner-requested smaller standalone camera default. Required marker/cache/release records only in host code; embedded camera, engine, state and prompts unchanged. Upstream screenshot, reset and 24-die checks pass; no host assertion relaxed.
 
 - 2026-11-05 · #686 · v1.1346 · Codex: vendor committed Dice 0.89.0/01d6f0c (short-sweep input retention and quarter-area refraction buffers), with required version/cache/release notes. Source fixes and failing-first evidence live upstream. No host engine, state, prompt, camera or parser changes; no host assertions relaxed.

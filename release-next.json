@@ -1,6 +1,7 @@
 {
-  "version": "v1.1347",
+  "version": "v1.1348",
   "actions": [
-    "Move the standalone dice roller camera back to match the smaller phone reference; Reset view returns to the same distance."
+    "Add Classic d6 beside Numbers font to display standard dots on six-sided dice.",
+    "Remember Classic d6 in saved looks and presets while other dice retain their selected numeral font."
   ]
 }

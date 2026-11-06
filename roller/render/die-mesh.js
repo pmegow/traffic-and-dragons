@@ -14,6 +14,7 @@
 // alignment — owner 2026-10-24. The printing choice in src/roll.js reads it best instead.)
 
 import * as THREE from 'three';
+import { createFacePainter } from './face-markings.js';
 
 const EDGE_SEGMENTS = 5;
 const CORNER_RINGS = 3;
@@ -162,9 +163,6 @@ export function setDim(geometry, keepFaces, factor) {
   col.needsUpdate = true;
 }
 
-/** Digit height as a fraction of a numeral's slot (the classic font's look before fonts were choosable). */
-const DIGIT_HEIGHT = 0.7;
-
 /**
  * Loads a vendored numeral font (an entry of NUMERAL_FONTS with a `file`) so a canvas can paint in
  * it; resolves at once for a system font stack. A font that fails to load is refused loudly.
@@ -199,7 +197,7 @@ export function numeralFontLoaded(font) {
  * first, if it has a file). Every font is sized so its digit 8 stands the same height, and each
  * numeral is centred on its measured ink, so fonts with different metrics sit alike on the face.
  */
-export function paintGlyphMask(die, layout, font) {
+export function paintGlyphMask(die, layout, font, mode = 'numerals') {
   const canvas = document.createElement('canvas');
   canvas.width = layout.width;
   canvas.height = layout.height;
@@ -207,10 +205,7 @@ export function paintGlyphMask(die, layout, font) {
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#ffffff';
-  ctx.font = font.weight + ' 100px ' + font.family;
-  const m8 = ctx.measureText('8');
-  const per100 = (m8.actualBoundingBoxAscent + m8.actualBoundingBoxDescent) / 100;   // digit height per px of font size
-  if (!(per100 > 0)) throw new Error('paintGlyphMask: the font ' + font.family + ' measured no digit height');
+  const paint = createFacePainter(ctx, font, mode);
   die.glyphs.forEach((glyphs, fi) => {
     const fr = layout.frames[fi];
     const col = fi % layout.cols, row = Math.floor(fi / layout.cols);
@@ -223,16 +218,10 @@ export function paintGlyphMask(die, layout, font) {
       const size = (g.size / (2 * fr.span)) * layout.cellPx;
       const text = die.text(die.features[g.feature].value);
       const ambiguous = die.sides >= 9 && (text === '6' || text === '9');
-      const h = size * DIGIT_HEIGHT * font.size;   // the digits' ink height on this face
       ctx.save();
       ctx.translate(px, py);
       ctx.rotate(angle);
-      ctx.font = font.weight + ' ' + (h / per100).toFixed(1) + 'px ' + font.family;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'alphabetic';
-      const ink = ctx.measureText(text);
-      ctx.fillText(text, 0, (ink.actualBoundingBoxAscent - ink.actualBoundingBoxDescent) / 2);
-      if (ambiguous) ctx.fillRect(-h * 0.31, h * 0.6, h * 0.62, h * 0.1);   // the bar under a 6 or a 9
+      paint({ value: die.features[g.feature].value, text, size, ambiguous });
       ctx.restore();
     }
   });

@@ -58,9 +58,12 @@ export function retire(wardrobe, types, i) {
   if (k < looks.length) looks.push(...looks.splice(k, 1));
 }
 
+/** A rendering variant's cache key; dot masks must be uploaded even when the font/finish already is. */
+export const lookKey = style => style.finish + '/' + style.font + (style.classicD6 ? '/pips' : '/numerals');
+
 /** Every finish and font pair a bag can put on a die — what the view readies ahead, so no die waits to be drawn. */
 export function pairsOf(bag) {
   const seen = new Map();
-  for (const s of bag) seen.set(s.finish + '/' + s.font, { finish: s.finish, font: s.font, style: s });
+  for (const s of bag) seen.set(lookKey(s), { key: lookKey(s), finish: s.finish, font: s.font, style: s });
   return [...seen.values()];
 }

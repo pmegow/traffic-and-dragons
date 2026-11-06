@@ -198,10 +198,11 @@ $('body-color').value = VIEW_DEFAULTS.dieStyle.body;
 $('ink-color').value = VIEW_DEFAULTS.dieStyle.ink;
 $('finish').value = VIEW_DEFAULTS.dieStyle.finish;
 $('font').value = VIEW_DEFAULTS.dieStyle.font;
+$('classic-d6').checked = VIEW_DEFAULTS.dieStyle.classicD6;
 $('surface').value = TOY_DEFAULTS.surface;
 const speed = bindCenteredSlider($('speed'), $('speed-out'), SLIDER_RANGES.speed);
 const trayScale = bindCenteredSlider($('tray'), $('tray-out'), SLIDER_RANGES.tray);
-const look = () => ({ body: $('body-color').value, ink: $('ink-color').value, finish: $('finish').value, font: $('font').value, surface: $('surface').value });
+const look = () => ({ body: $('body-color').value, ink: $('ink-color').value, finish: $('finish').value, font: $('font').value, classicD6: $('classic-d6').checked, surface: $('surface').value });
 // The mixed bag (owner 2026-10-30: "add a 'mixed bag' preset that will randomly assign a preset to each die"): every
 // preset, built in and saved, dealt one to a die at random, each die keeping its own (render/die-looks.js).
 let mixed = false;
@@ -211,6 +212,7 @@ try {
   if (saved && FINISHES[saved.finish]) { $('body-color').value = saved.body; $('ink-color').value = saved.ink; $('finish').value = saved.finish; }
   if (saved && SURFACE_LOOKS[saved.surface]) $('surface').value = saved.surface;
   if (saved && NUMERAL_FONTS[saved.font]) $('font').value = saved.font;
+  $('classic-d6').checked = saved?.classicD6 === true;
   mixed = !!(saved && saved.mixed);
 } catch { /* storage blocked: the defaults stand */ }
 // The colour pickers (demo/color-picker.js, owner 2026-10-29: HSV sliders as well as RGB): a swatch over each native
@@ -219,7 +221,7 @@ const colorPickers = ['body-color', 'ink-color'].map((id) => attachColorPicker($
 // ---------------------------------------------------------------- presets (owner 2026-10-24)
 // A preset is the dice's look — body and number colours, finish, font — under a name: the built-ins
 // (render/presets.js) and the ones saved on this browser (demo/preset-store.js).
-const currentStyle = () => { const { body, ink, finish, font } = look(); return { body, ink, finish, font }; };
+const currentStyle = () => { const { body, ink, finish, font, classicD6 } = look(); return { body, ink, finish, font, classicD6 }; };
 const presetStorage = (() => {
   try { const s = window.localStorage; s.getItem(PRESETS_PROBE); return s; } catch (e) {
     console.warn('presets: this browser\'s storage is blocked, so saved presets last only this page', e);
@@ -281,6 +283,7 @@ $('preset').addEventListener('change', () => {
   $('ink-color').value = p.ink;
   $('finish').value = p.finish;
   $('font').value = p.font;
+  $('classic-d6').checked = p.classicD6 === true;
   // The name field follows the choice: a saved preset's own name (Save then overwrites it), nothing for a built-in
   // one (owner 2026-10-29: a name typed earlier stayed under the new choice — "clear the preset name when a new
   // preset is selected").
@@ -325,7 +328,7 @@ async function dressIn(look, put, failure) {
 /** One look on every die: what the controls say (a preset chosen fills them first). */
 const applyLook = () => {
   mixed = false;
-  const { body, ink, finish, font } = look(), style = { body, ink, finish, font };
+  const style = currentStyle();
   dressIn(style, () => view.setDieStyle(style), 'Could not change the look: ');
   rememberLook();
   for (const p of colorPickers) p.sync();
@@ -346,6 +349,7 @@ $('surface').addEventListener('change', () => { applySurface(); if (mixed) apply
 for (const id of ['body-color', 'ink-color']) $(id).addEventListener('input', applyLook);
 $('finish').addEventListener('change', applyLook);
 $('font').addEventListener('change', applyLook);
+$('classic-d6').addEventListener('change', applyLook);
 $('clear-forced').addEventListener('click', () => { $('forced').value = ''; $('forced').focus(); });
 $('tray').addEventListener('input', () => {
   ++current;
