@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1360",
+      "actions": [
+        "Dice Simulator 0.99.0 groups settings in a collapsible Customize frame, keeping Preset and Table Top Material visible."
+      ],
+      "sourceCommit": "c73042832ec4dd4f2620d4aae546f20700ab229d",
+      "commit": "c73042832ec4dd4f2620d4aae546f20700ab229d",
+      "releasedAt": "2026-11-06T22:18:38Z"
+    },
+    {
       "version": "v1.1359",
       "actions": [
         "Dice Simulator 0.98.0 replaces tray walls with full-screen materials, removes tray sizing, fixes playback at 1.2x, and hides testing controls."
