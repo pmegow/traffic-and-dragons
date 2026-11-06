@@ -56,6 +56,7 @@ function consumeHomeQuickStart(){
   worldState=null;sessionLog=[];memory=blankMemory();
   var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");if(sn)sn.innerHTML="";if(st)st.innerHTML="";
   pendingBlueprint=bp;/* startGame applies it — skeleton, seeded NPCs and places, rules */
+  pendingAtlas=false;/* #684: the quick start has no Draw a world map switch — a switch left on by an abandoned Review step must not map this campaign */
   char._campName=bp.name||char.name;char._startLoc=bp.startingLocation||"The Crossroads of Ashenveil";
   if(bp.proseAuthor)startGame(char,tone.nm,tone.vc,bp.proseAuthor);else startGame(char,tone.nm,tone.vc);
   showToast("Quick start: "+char.name+" in "+(bp.name||"the story"));

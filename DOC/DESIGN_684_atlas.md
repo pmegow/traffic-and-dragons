@@ -78,6 +78,29 @@ is invented. Adopting the story's names onto the map (renaming a tavern, placing
 3. **Pane and door**: `ui-atlas.js`, the opt-in at Begin, We are here.
 4. **The MAP block** in the geo block — last, on proven ground.
 
+## Independent review (2026-11-05, before the push; owner's ruling)
+
+One read-only reviewer read the four commits and reproduced its findings against the real engine. All were fixed in a
+fifth commit, each with a test and a battery clause:
+
+- **The rule was broken (high).** A name match was recorded as a tie and kept for ever, and a sub-location was
+  looked for on every sheet entered beneath the town. So "Common Room" in a second inn put the party in the first
+  inn's, a room of an invented house became a room of an inn, and a tavern's name used in another town jumped the
+  party back — and the MAP block told the GM so. Now only the player's taps are ties; a name is looked up afresh, on
+  the sheet the party stands on and the sheets above it, never beside or beneath.
+- **A stale card** tied whatever the story named when the button was pressed, not what the button said. The tap now
+  carries what it showed and is refused when the story has moved on; a turn that lands repaints an open pane.
+- **A party off the map** was still drawn as standing in the place it left, and that place's card withheld We are
+  here. The marker is now "Last mapped place" and the card offers the tap.
+- **Two false exact positions**: a wild zone entered through its north edge arrived at the next zone's own north
+  edge; the sheet above marked the first way the party ever used. Both now use the way that points back, and say
+  "somewhere here" when several ways lead in.
+- **Smaller**: a store whose zones loop is set aside at load; the once-only notices are per campaign; a merged place
+  keeps its tie; the quick start clears a Begin switch an abandoned Review step left on.
+
+Known and left as they are: the HUD's location label follows the spotlight character while the atlas follows the
+hero's pointer (a split party); a world place whose name contains `|` shares a key with a sub-location.
+
 ## Deliberately later (each its own TODO row once this lands)
 
 - **Placed starts**: a start preset carries where it sits on the map (a tavern, a cave mouth, wild coast) and the map

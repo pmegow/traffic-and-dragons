@@ -54,8 +54,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, cases: [
     replace: "  if(why){delete worldState.atlas;atlasSay(\"warn\",\"this campaign's map could not be read",
     mustFail: "load: an unreadable store is set aside as evidence" },
   { label: "a tap places the sub-location in a town the map does not know (the world-first order dropped)",
-    find: "  if(level==null)level=(p.sub&&wTie&&A.zones[wTie.zone])?\"sub\":\"world\";",
-    replace: "  if(level==null)level=p.sub?\"sub\":\"world\";",
+    find: "  return (p.sub&&!worldOff)?{level:\"sub\",name:p.sub}:{level:\"world\",name:p.world};",
+    replace: "  return p.sub?{level:\"sub\",name:p.sub}:{level:\"world\",name:p.world};",
     mustFail: "We are here: a tap ties the story's own name to a map place" },
   { label: "the documents held in memory are never dropped",
     find: "  while(_atlasDocOrder.length>ATLAS_DOC_CAP){",
@@ -90,13 +90,65 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, cases: [
     replace: "  return text.slice(0,cap);",
     mustFail: "the MAP block is honest" },
   { label: "a failure inside the MAP block breaks the prompt",
-    find: "    if(!_atlasWarned.brief){_atlasWarned.brief=1;atlasProblem(\"telling the GM what the map says\",e);}",
-    replace: "    throw e;",
+    find: "    if(atlasOnce(A,\"brief\"))atlasProblem(\"telling the GM what the map says\",e);",
+    replace: "    if(atlasOnce(A,\"brief\"))throw e;",
     mustFail: "the MAP block never breaks a prompt" },
   { label: "a standing MAP block failure toasts and mails a report on every prompt",
-    find: "    if(!_atlasWarned.brief){_atlasWarned.brief=1;atlasProblem(\"telling the GM what the map says\",e);}",
-    replace: "    atlasProblem(\"telling the GM what the map says\",e);",
-    mustFail: "the MAP block never breaks a prompt" }
+    find: "    if(atlasOnce(A,\"brief\"))atlasProblem(\"telling the GM what the map says\",e);",
+    replace: "    if(true)atlasProblem(\"telling the GM what the map says\",e);",
+    mustFail: "the MAP block never breaks a prompt" },
+  { label: "a name the story used is kept as a tie: the first inn's Common Room is every Common Room from then on",
+    find: "    return {hit:{zone:sheets[i],id:m.thing?m.thing.id:null}};",
+    replace: "    A.names[key]={zone:sheets[i],id:m.thing?m.thing.id:null};return {hit:A.names[key]};",
+    mustFail: "THE RULE, where the party stands" },
+  { label: "a sub-location is looked for on every sheet entered beneath the town, not only where the party stands",
+    find: "        sheets=(prev&&prev!==home&&atlasChainUp(A,prev,null).indexOf(home)>=0)?atlasChainUp(A,prev,home):[home];",
+    replace: "        sheets=Object.keys(A.zones).filter(function(zz){return atlasChainUp(A,zz,null).indexOf(home)>=0;}).reverse();",
+    mustFail: "THE RULE, where the party stands" },
+  { label: "a card the story has moved past is spent on the new place (the expectation ignored)",
+    find: "  if(expect&&(expect.level!==pv.level||expect.name!==pv.name))return {ok:false,moved:true,",
+    replace: "  if(false)return {ok:false,moved:true,",
+    mustFail: "the player's ties" },
+  { label: "a merged place loses the player's tie (the tie is read by its raw key only)",
+    find: "  if(!t){ks=Object.keys(A.names);for(i=0;i<ks.length;i++)if(atlasLocKey(ks[i])===key){t=A.names[ks[i]];break;}}",
+    replace: "  ks=null;i=0;",
+    mustFail: "the player's ties" },
+  { label: "a tap in a mapped town ties the WORLD place again instead of the sub-location",
+    find: "  return (p.sub&&!worldOff)?{level:\"sub\",name:p.sub}:{level:\"world\",name:p.world};",
+    replace: "  return {level:\"world\",name:p.world};",
+    mustFail: "the player's ties" },
+  { label: "a party that left the mapped places is drawn as standing in the place it left",
+    find: "  last=!!(A.off&&!A.off.within);",
+    replace: "  last=false;",
+    mustFail: "a party that has left the mapped places is never drawn as being there" },
+  { label: "the place the party left says \"The party is here\" and withholds We are here",
+    find: "  gone=!!(A.off&&!A.off.within);",
+    replace: "  gone=false;",
+    mustFail: "a party that has left the mapped places is never drawn as being there" },
+  { label: "the sheet above marks the FIRST way the party ever used, as an exact position",
+    find: "    if(ways.length<=1){t=atlasThingById(doc,ways.length?ways[0]:rec.via);if(t)return mk(t.x,t.y,true,z);}",
+    replace: "    t=atlasThingById(doc,rec.via);if(t)return mk(t.x,t.y,true,z);",
+    mustFail: "the sheet above shows the way the party is AT" },
+  { label: "a party standing at a second grate is not shown at it on the town",
+    find: "    if(z===A.at&&A.spot!=null){ps=atlasDoc(z).portals||[];for(i=0;i<ps.length;i++)if(ps[i].id===A.spot&&ATLAS_WAYS_BACK[ps[i].way]&&ps[i].to){t=atlasThingById(doc,ps[i].to.id);if(t)return mk(t.x,t.y,true,z);}}",
+    replace: "    ps=null;",
+    mustFail: "the sheet above shows the way the party is AT" },
+  { label: "walking north through a wild zone's edge arrives at the next zone's own north edge",
+    find: "r.far?{to:atlasRecipe(A,zoneId).via}:{id:portal.id}",
+    replace: "{id:portal.id}",
+    mustFail: "the sheet above shows the way the party is AT" },
+  { label: "a store whose zones loop is accepted at load",
+    find: "  for(i=0;i<ids.length;i++){z=ids[i];n=0;while(z!==A.seed){",
+    replace: "  for(i=0;i<0;i++){z=ids[i];n=0;while(z!==A.seed){",
+    mustFail: "a store whose zones loop is set aside at load" },
+  { label: "a failed follow is retried, toasted and reported on every turn (the pointer is not stamped)",
+    find: "  A.ptr=sig;\n  return {changed:before!==JSON.stringify([A.at,A.spot,A.off]),at:A.at,spot:A.spot,off:A.off,entered:entered};",
+    replace: "  if(!A.off||!/could not follow/.test(A.off.why))A.ptr=sig;\n  return {changed:before!==JSON.stringify([A.at,A.spot,A.off]),at:A.at,spot:A.spot,off:A.off,entered:entered};",
+    mustFail: "a store whose zones loop is set aside at load" },
+  { label: "one campaign's once-latch silences the next campaign's failure",
+    find: "function atlasOnce(A,what){var k=String((A&&A.seed)||\"\")+\"\\n\"+what;",
+    replace: "function atlasOnce(A,what){var k=what;",
+    mustFail: "a store whose zones loop is set aside at load" }
 ] });
 
 rc |= sabotage.prove({ file: "api.js", command: ENGINE, cases: [
@@ -151,6 +203,46 @@ rc |= sabotage.prove({ file: "index.html", command: BROWSER, cases: [
   { label: "the Begin switch is on by default: every new campaign is mapped",
     find: "<input type=\"checkbox\" id=\"rv-atlas\"/>",
     replace: "<input type=\"checkbox\" id=\"rv-atlas\" checked/>",
+    mustFail: "⑩ the opt-in" }
+] });
+
+rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
+  { label: "We are here is spent on whatever the story names NOW, not on what the card showed",
+    find: "  r=atlasPlace(P.zone,P.target,P.place);",
+    replace: "  r=atlasPlace(P.zone,P.target);",
+    mustFail: "⑫ a card painted before the story moved" },
+  { label: "a turn that lands under an open pane leaves its status and marker stale",
+    find: "  atlasPaneRefresh();/* syncUI runs after every committed turn",
+    replace: "  /* syncUI runs after every committed turn",
+    mustFail: "⑫ a card painted before the story moved" }
+] });
+
+rc |= sabotage.prove({ file: "char-creation.js", command: BROWSER, cases: [
+  { label: "the Review step's switch never reaches startGame",
+    find: "var _atlasEl=document.getElementById(\"rv-atlas\");pendingAtlas=!!(_atlasEl&&_atlasEl.checked);",
+    replace: "var _atlasEl=null;",
+    mustFail: "⑩ the opt-in" }
+] });
+
+rc |= sabotage.prove({ file: "ui-browsers.js", command: BROWSER, cases: [
+  { label: "the setup modal's switch never reaches startGame",
+    find: "    pendingAtlas=!!document.getElementById(\"is-atlas\").checked;",
+    replace: "    ",
+    mustFail: "⑩ the opt-in" },
+  { label: "the quick start keeps a switch an abandoned Review step left on",
+    find: "  pendingAtlas=false;/* #684: the quick start has no",
+    replace: "  /* #684: the quick start has no",
+    mustFail: "⑩ the opt-in" }
+] });
+
+rc |= sabotage.prove({ file: "game.js", command: BROWSER, cases: [
+  { label: "a village is begun with a drawn map (the kind's flag ignored)",
+    find: "    if(!kindDef().atlas)showToast(",
+    replace: "    if(false)showToast(",
+    mustFail: "⑩ the opt-in" },
+  { label: "a realm that fails to draw is swallowed: no toast, a half atlas left behind",
+    find: "}catch(_ae){delete worldState.atlas;atlasProblem(\"drawing the realm\",_ae);}",
+    replace: "}catch(_ae){}",
     mustFail: "⑩ the opt-in" }
 ] });
 

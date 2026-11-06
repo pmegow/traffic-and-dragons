@@ -1,6 +1,7 @@
 {
-  "version": "v1.1352",
+  "version": "v1.1353",
   "actions": [
-    "In a mapped campaign, the Game Master is told each turn where the party is and what the map shows there."
+    "A place name is matched only where the party stands, so a second inn's Common Room is never mistaken for the first.",
+    "A map card refuses a tap the story has already moved past."
   ]
 }

@@ -18,6 +18,18 @@ function atlasDoorPaint(){
     if(on){el.classList.add("atlas-door");el.setAttribute("role","button");el.setAttribute("tabindex","0");el.setAttribute("aria-label","Open the map — "+el.textContent);}
     else{el.classList.remove("atlas-door");el.removeAttribute("role");el.removeAttribute("tabindex");el.removeAttribute("aria-label");}
   }
+  atlasPaneRefresh();/* syncUI runs after every committed turn: an open pane follows the story */
+}
+/* what the open pane last painted from: the party's place and the pointer the atlas followed */
+function atlasPaneSig(){var A=(typeof atlasLive==="function")?atlasLive():null;return A?JSON.stringify([A.at,A.spot,A.off,A.ptr]):"";}
+/* a turn landed (or a Sync edit) while the pane is open: its status, marker and card were painted for another place */
+function atlasPaneRefresh(){
+  var P=_atlasPane,A;
+  if(!P||P.sig===atlasPaneSig())return false;
+  A=atlasLive();
+  if(!A){atlasPaneClose();return true;}
+  atlasPaneShow(A.zones[P.zone]?P.zone:(A.at||A.seed));
+  return true;
 }
 function atlasDoorHit(e){
   var t=e&&e.target;
@@ -103,7 +115,9 @@ function atlasPaneShow(zoneId,toParty){
   zones=atlasZones();sel=document.getElementById("atlas-zones");sel.innerHTML="";
   sel.appendChild(new Option("Mapped places ("+zones.length+")",""));
   zones.forEach(function(z){var o=new Option(z.name+" — "+z.kind,z.id);if(z.id===zoneId)o.disabled=true;sel.appendChild(o);});
-  where=atlasWhere();atlasPaneStatus(where?where.text+((where.off||!where.placed)?" Tap the place where the party is, then We are here.":""):"",!!(where&&(where.off||!where.placed)));
+  try{where=atlasWhere();}catch(e2){where=null;atlasPaneStatus("The party's place could not be read: "+atlasProblem("reading the party's place",e2),true);}
+  if(where)atlasPaneStatus(where.text+((where.off||!where.placed)?" Tap the place where the party is, then We are here.":""),!!(where.off||!where.placed));
+  P.sig=atlasPaneSig();P.place=null;
   atlasPaneCard(null);
   if(toParty){p=atlasPartyIn(zoneId);if(p)P.view.center(p.x,p.y);}
   return true;
@@ -112,8 +126,9 @@ function atlasPaneShow(zoneId,toParty){
 function atlasPaneTap(target){
   var P=_atlasPane,card;
   if(!P)return null;
-  card=target?atlasCard(P.zone,target):null;
-  P.target=card?target:null;
+  try{card=target?atlasCard(P.zone,target):null;}
+  catch(e){atlasPaneStatus("That place could not be read: "+atlasProblem("reading a place",e),true);card=null;}
+  P.target=card?target:null;P.place=card?card.place:null;
   P.view.select(null);
   atlasPaneCard(card);
   return card;
@@ -139,8 +154,8 @@ function atlasPaneWeAreHere(){
   var P=_atlasPane,r;
   if(!P||!P.target)return null;
   if(typeof busy!=="undefined"&&busy){atlasPaneStatus("Finish the current turn first.",true);return {ok:false,reason:"a turn is in flight"};}
-  r=atlasPlace(P.zone,P.target);
-  if(!r.ok){atlasPaneStatus("Not placed: "+r.reason+".",true);return r;}
+  r=atlasPlace(P.zone,P.target,P.place);/* P.place is what the card's button NAMED — a turn that landed since must not spend the tap on another place */
+  if(!r.ok){if(r.moved)atlasPaneShow(P.zone);atlasPaneStatus("Not placed: "+r.reason+".",true);return r;}
   if(typeof saveAll==="function")saveAll();
   if(typeof syncUI==="function")syncUI();
   showToast("\""+r.bound+"\" is on the map.");
@@ -149,5 +164,5 @@ function atlasPaneWeAreHere(){
 }
 if(typeof window!=="undefined")window.__atlasTest={
   pane:function(){var P=_atlasPane;return P?{zone:P.zone,target:P.target,markers:P.view.markers(),reveal:P.view.reveal(),doc:P.view.doc().seed}:null;},
-  tap:atlasPaneTap,here:atlasPaneWeAreHere,show:atlasPaneShow,open:showAtlas,close:atlasPaneClose,doorPaint:atlasDoorPaint
+  tap:atlasPaneTap,here:atlasPaneWeAreHere,show:atlasPaneShow,open:showAtlas,close:atlasPaneClose,doorPaint:atlasDoorPaint,refresh:atlasPaneRefresh
 };

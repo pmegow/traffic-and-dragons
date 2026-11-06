@@ -3,7 +3,10 @@
 //   • the store is RECIPES: created once, a few KB, survives the save round trip, redraws every document identically
 //   • entry: an exact map name enters the zone behind it, once; a sub-location enters the building; idempotent
 //   • THE RULE: the engine never guesses — an unknown or twice-borne name is off the map, with the reason
-//   • We are here: the player's tap ties the story's own name to a map place; the world before a sub-location
+//   • We are here: the player's tap ties the story's own name to a map place; the world before a sub-location; the ONLY
+//     ties are the player's — a name is looked up afresh where the party stands (the other inn's Common Room is never
+//     found), a card the story moved past is refused, a merged place keeps its tie
+//   • a party that left the mapped places is never drawn as there; the sheet above shows the way the party is AT
 //   • version drift: a zone that draws differently from its record is said out loud; a read never writes
 //   • a failure never escapes a writer; an unreadable store is set aside at load; the party marker is derived
 //   • what the pane says (where the party is, what a tap would tie, a thing's card) — and no peeking; the fog of war
@@ -82,14 +85,14 @@ var ATLAS_FIXTURES = {
     var other = plain(doc); other.places[0].name = "Elsewhere"; assert.notEqual(atlasFingerprint(other), fp, "a changed name is a different drawing");
   });
 
-  test("entry by an exact world name: the town is drawn once, its recipe is {kind, parent, via}, the tie is recorded, and following is idempotent", function () {
+  test("entry by an exact world name: the town is drawn once, its recipe is {kind, parent, via}, the match is NOT kept as a tie, and following is idempotent", function () {
     var A = fresh(), c = cast(A), r, rec;
     point(c.p0.name); r = atlasFollow();
     assert.equal(r.changed, true); assert.deepEqual(r.entered, [c.townId]); assert.equal(A.at, c.townId); assert.equal(A.spot, null, "which road the party came in by is not on record"); assert.equal(A.off, null);
     rec = A.zones[c.townId];
     assert.deepEqual([rec.kind, rec.parent, rec.via, rec.params], ["town", A.seed, c.p0.id, null]);
     assert.equal(rec.name, c.p0.name); assert.equal(rec.lib, TnDMaps.VERSION); assert.equal(rec.fp, atlasFingerprint(atlasDoc(c.townId)));
-    assert.deepEqual(plain(A.names[c.p0.name]), { zone: A.seed, id: c.p0.id });
+    assert.deepEqual(Object.keys(A.names), [], "a name the story used is looked up afresh each time — only the player's taps are ties");
     assert.equal(atlasDoc(c.townId).seed, c.townId, "a zone id IS the seed the library derives");
     r = atlasFollow(); assert.equal(r.changed, false); assert.deepEqual(r.entered, []); assert.equal(zoneCount(), 2);
     /* a recipe that no longer derives its own zone is refused, never drawn as something else */
@@ -319,6 +322,108 @@ var ATLAS_FIXTURES = {
     assert.equal(A.at, sewer, "a chamber's name is found on the entered sheet beneath the town"); assert.equal(A.spot, deep.id);
     assert.deepEqual(atlasReveal(sewer).slice().sort(), ids.concat([deep.id]).sort(), "the chamber the party stands in is shown, and only it");
     TnDMaps.scene.build(doc, "ink", { reveal: atlasReveal(sewer) });
+  });
+
+  test("THE RULE, where the party stands: a name is looked up afresh on the sheets the party is on — the other inn's Common Room, another town's tavern and a room of a building the party is not in are never found, and no match is ever kept", function () {
+    var A = fresh(), c = cast(A), inns, shared, zoneOf = function (e) { return c.townId + "/" + e.id; };
+    point(c.p0.name); atlasFollow(); townCast(A, c);
+    inns = c.town.establishments.filter(function (e) { return e.kind === "inn"; });
+    assert(inns.length >= 2, "the fixture capital has two inns");
+    function roomsOnce(e) { var rs = TnDMaps.generate("interior", TnDMaps.interior.fromTown(c.town, e.id)).rooms; return rs.filter(function (r) { return rs.filter(function (q) { return atlasNameKey(q.name) === atlasNameKey(r.name); }).length === 1; }).map(function (r) { return r.name; }); }
+    shared = roomsOnce(inns[0]).filter(function (n) { return roomsOnce(inns[1]).indexOf(n) >= 0 && !atlasFind(c.town, n); })[0];
+    assert(shared, "the two inns share a room name each bears once (a Common Room)");
+    point(c.p0.name, inns[0].name); atlasFollow(); point(c.p0.name, shared); atlasFollow();
+    assert.equal(A.at, zoneOf(inns[0])); assert(A.spot, "in the first inn's " + shared);
+    point(c.p0.name, inns[1].name); atlasFollow(); assert.equal(A.at, zoneOf(inns[1]));
+    point(c.p0.name, shared); atlasFollow();
+    assert.equal(A.at, zoneOf(inns[1]), "the " + shared + " of the inn the party is IN — not the one it was found in first");
+    assert.equal(atlasWhere().text, "The party is in " + inns[1].name + ", at " + shared + ".");
+    /* an invented building, then one of its rooms: not a room of an inn the party once visited */
+    point(c.p0.name, "Widow Hale's House"); atlasFollow(); assert.equal(A.at, c.townId); assert.equal(A.off.name, "Widow Hale's House");
+    point(c.p0.name, shared); atlasFollow();
+    assert.equal(A.at, c.townId, "the party is in the town; a room of a house the map does not know is not a room of an inn"); assert.equal(A.off.name, shared); assert.equal(A.off.within, c.townId);
+    /* another town: a tavern that stands only in the capital is not found from there */
+    var t1 = A.seed + "/" + c.p1.id, only;
+    point(c.p1.name); atlasFollow(); assert.equal(A.at, t1);
+    only = c.town.establishments.filter(function (e) { return !atlasFind(atlasDoc(t1), e.name) && !atlasFind(c.reg, e.name); })[0];
+    assert(only, "the capital has a trade the second town has not");
+    point(only.name); atlasFollow();
+    assert.equal(A.at, t1, "the party stays where it is"); assert.equal(A.off.name, only.name); assert(/no place on the map has that name/.test(A.off.why));
+    point(c.p1.name, only.name); atlasFollow(); assert.equal(A.at, t1); assert.equal(A.off.within, t1);
+    assert.deepEqual(Object.keys(A.names), [], "a name the story used is never kept as a tie — only the player's taps are");
+  });
+
+  test("the player's ties: a tap on a mapped town's building ties the SUB-location; a card the story has moved past is refused; a merged place keeps its tie", function () {
+    var A = fresh(), c = cast(A), r, s;
+    point(c.p0.name, "The Rusty Flagon"); atlasFollow(); townCast(A, c);
+    assert.deepEqual(atlasPlacePreview(), { level: "sub", name: "The Rusty Flagon" }, "the world place is on the map by its own name: a tap places the sub-location");
+    r = atlasPlace(c.townId, { id: c.inn.id }, atlasPlacePreview());
+    assert.equal(r.ok, true); assert.equal(r.level, "sub"); assert.equal(A.at, c.townId + "/" + c.inn.id);
+    assert.deepEqual(Object.keys(A.names), [c.p0.name + "|The Rusty Flagon"], "one tie, the player's");
+    /* the story moves on under an open card */
+    point("The Drowned Chapel"); s = JSON.stringify(worldState.atlas);
+    r = atlasPlace(A.seed, { id: c.p1.id }, { level: "sub", name: "The Rusty Flagon" });
+    assert.equal(r.ok, false); assert.equal(r.moved, true); assert(/moved on/.test(r.reason) && /The Drowned Chapel/.test(r.reason), r.reason);
+    assert.equal(Object.keys(A.names).length, 1, "the stale tap tied nothing"); assert.equal(A.names["The Drowned Chapel"], undefined);
+    r = atlasPlace(A.seed, { id: c.p1.id }, atlasPlacePreview()); assert.equal(r.ok, true); assert.equal(r.bound, "The Drowned Chapel");
+    /* a merge in the identity layer: the place keeps its tie under its new name */
+    memory.map.nodes["The Sunken Chapel"] = newMapNode(1, null);
+    assert.equal(locAliasRegister("The Sunken Chapel", "The Drowned Chapel", null), true, "the fixture: the old name is now an alias");
+    point(c.p0.name); atlasFollow(); point("The Sunken Chapel"); atlasFollow();
+    assert.equal(A.at, A.seed + "/" + c.p1.id, "the merged place is still where the player put it"); assert.equal(A.off, null);
+  });
+
+  test("a party that has left the mapped places is never drawn as being there: the marker says last mapped place, and every card offers We are here", function () {
+    var A = fresh(), c = cast(A), m, card;
+    point(c.p0.name); atlasFollow(); townCast(A, c);
+    point("Sandpoint"); atlasFollow();
+    m = atlasPartyIn(A.seed); assert.equal(m.last, true); assert.equal(m.exact, false);
+    assert.equal(atlasMarkers(A.seed)[0].label, "Last mapped place"); assert.equal(atlasMarkers(c.townId)[0].label, "Last mapped place");
+    card = atlasCard(A.seed, { id: c.p0.id });
+    assert.equal(card.partyHere, false, "the town the party LEFT is not where the party is"); assert.deepEqual(card.place, { level: "world", name: "Sandpoint" }, "so the tap that fixes it is offered");
+    assert.equal(atlasPlace(A.seed, { id: c.p0.id }, card.place).ok, true); assert.equal(atlasMarkers(A.seed)[0].label, "The party");
+  });
+
+  test("the sheet above shows the way the party is AT, never the first way it used: down a second grate, then deep in the sewer, then through a wild zone's edge", function () {
+    var A = fresh(), c = cast(A), sewer, m, deep, doc;
+    point(c.p0.name); atlasFollow(); townCast(A, c); sewer = c.townId + "/sewer";
+    point(c.p0.name, c.grates[0].name); atlasFollow(); assert.equal(A.zones[sewer].via, c.grates[0].id, "the sewer was first entered by the first grate");
+    point(c.p0.name, c.grates[1].name); atlasFollow();
+    m = atlasPartyIn(c.townId); assert.deepEqual([m.x, m.y, m.exact], [c.grates[1].x, c.grates[1].y, true], "on the town: at the grate the party stands under, not the first one it used");
+    doc = atlasDoc(sewer); deep = doc.rooms.filter(function (r) { return atlasReveal(sewer).indexOf(r.id) < 0 && doc.rooms.filter(function (q) { return atlasNameKey(q.name) === atlasNameKey(r.name); }).length === 1 && !atlasFind(c.town, r.name); })[0];
+    point(c.p0.name, deep.name); atlasFollow(); assert.equal(A.spot, deep.id);
+    m = atlasPartyIn(c.townId); assert.equal(m.exact, false, "deep in a sewer with three ways in, the town sheet does not know under which street"); assert.deepEqual([m.x, m.y], atlasCentre(c.town));
+    assert.equal(atlasMarkers(c.townId)[0].label, "The party (somewhere here)");
+    assert.deepEqual([atlasPartyIn(A.seed).x, atlasPartyIn(A.seed).exact], [c.p0.x, true], "on the region the town is still the town");
+    /* a wild zone's edge: walking north comes in at the far zone's way BACK, never its own north edge */
+    point("Open country"); atlasFollow(); atlasPlace(A.seed, { x: c.p0.x + 6, y: c.p0.y + 4 });
+    var here = A.at, edge = atlasDoc(here).portals.filter(function (p) { return p.kind === "edge" && p.to && p.to.id; })[0];
+    assert(edge, "the fixture zone has an edge that leads on");
+    point(edge.name); atlasFollow();
+    assert.equal(A.at, A.seed + "/" + edge.to.id, "through the edge into the next zone"); assert.notEqual(A.spot, edge.id, "not at the new zone's own " + edge.id);
+    var back = atlasDoc(A.at).portals.filter(function (p) { return p.to && p.to.id === A.zones[here].via; });
+    assert.equal(A.spot, back.length === 1 ? back[0].id : null, "at the way that points back to the zone the party left");
+    if (A.spot) assert(/^The party is in .+, at its edge, /.test(atlasWhere().text), atlasWhere().text);
+  });
+
+  test("a store whose zones loop is set aside at load; a failed follow is not retried every turn; one campaign's silence is not the next one's", function () {
+    var A = fresh(), c = cast(A), real = TnDMaps.generate, realDigest = TnDMaps.digest;
+    point(c.p0.name); atlasFollow();
+    A.zones["campaign-1/x"] = { kind: "town", parent: "campaign-1/y", via: "p1", params: null }; A.zones["campaign-1/y"] = { kind: "town", parent: "campaign-1/x", via: "p2", params: null };
+    assert.equal(atlasHeal(), true); assert(/does not hang from the region/.test(worldState.atlasJunk.why), worldState.atlasJunk.why); assert.equal(worldState.atlas, undefined);
+    /* a failed follow stamps the pointer: the same failure is not toasted and reported again on the next turn */
+    A = fresh(); c = cast(A); point(c.p0.name); atlasFollow(); quiet();
+    TnDMaps.generate = function (kind) { if (kind === "town") throw new Error("boom"); return real.apply(TnDMaps, arguments); };
+    try { point(c.p1.name); atlasFollow(); assert.equal(reports.length, 1); atlasFollow(); atlasFollow(); assert.equal(reports.length, 1, "the same pointer is not followed, and not reported, again"); assert.equal(toasts.filter(function (t) { return /boom/.test(t); }).length, 1); }
+    finally { TnDMaps.generate = real; }
+    /* the MAP block's once-latch belongs to the campaign that tripped it */
+    TnDMaps.digest = function () { throw new Error("digest boom"); };
+    try {
+      A = fresh("campaign-1"); c = cast(A); point(c.p0.name); atlasFollow(); atlasForget(); quiet();
+      _atlasWarned = {}; atlasMapBlock(); atlasMapBlock(); assert.equal(toasts.filter(function (t) { return /digest boom/.test(t); }).length, 1);
+      engine.makeTestWorld(); atlasCreate("campaign-2"); point(atlasDoc("campaign-2").places[0].name); atlasFollow(); _atlasDocs = {}; _atlasDocOrder = []; _atlasDrawn = {};
+      atlasMapBlock(); assert.equal(toasts.filter(function (t) { return /digest boom/.test(t); }).length, 2, "the next campaign's failure is said too — the latch is per campaign");
+    } finally { TnDMaps.digest = realDigest; }
   });
 
   test("the MAP block: nothing without an atlas; unplaced, the realm in brief with every settlement by name and the naming rule", function () {
