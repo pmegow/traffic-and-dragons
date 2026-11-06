@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1358",
+      "actions": [
+        "Dice Simulator 0.97.0 adds installed-font browsing and personal font-file imports; unavailable number fonts use the system font."
+      ],
+      "sourceCommit": "83497f68e06c9d3c087ce0fc282909a3d65defb6",
+      "commit": "83497f68e06c9d3c087ce0fc282909a3d65defb6",
+      "releasedAt": "2026-11-06T18:08:55Z"
+    },
+    {
       "version": "v1.1356",
       "actions": [
         "In a mapped campaign, the Game Master is now told where you placed the party with We are here."
