@@ -1,7 +1,6 @@
 {
-  "version": "v1.1348",
+  "version": "v1.1349",
   "actions": [
-    "Add Classic d6 beside Numbers font to display standard dots on six-sided dice.",
-    "Remember Classic d6 in saved looks and presets while other dice retain their selected numeral font."
+    "Remove the large round pool from Melt; individual puddles and their shadows fade where they land."
   ]
 }

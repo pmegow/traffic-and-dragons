@@ -135,15 +135,14 @@ export const MELT = {
   slump: 1.0, flat: 0.24, spread: 0.8, top: 0.3, lump: 0.18, round: 0.8, bulge: 0.15, blob: 1, gloss: 0.12, inkFrom: 0.1, inkTo: 0.6,
   strands: 10, wideFace: 0.25, strandWidth: 0.35, strandRadius: [0.04, 0.11], flare: 0.6, sag: 0.6, sagIn: 0.3,
   snap: [1.1, 2.6], recoil: 0.18, strandSpread: 0.8, bow: [0.15, 0.35], rings: 12, sides: 8,
-  flowDelay: 0.45, flow: 1.0, hold: 0.25, fade: 0.65,
+  hold: 0.7, fade: 0.65,   // retain the 3.1 s exit and sound envelope
   // Dormant erosion experiment: its pure geometry helpers remain available, but Melt does not cut holes.
   eat: 0.65, holes: 16, holeOpen: 0.55, holeGrow: 1.4, holeVary: 0.3, holeDone: 0.9, holeEdge: 0.0004, holeShade: 0.85,
   maxEdge: 0.16, workBudget: 3,
 };
 
-/** Flow starts once the pieces are soft; fading waits until all liquid has joined and rested. */
-export const MELT_FLOWS = MELT.soften + MELT.slumpBy + MELT.flowDelay;
-export const MELT_FADES = Math.max(MELT.soften + MELT.slumpBy + MELT.slump, MELT_FLOWS + MELT.flow) + MELT.hold;
+/** Fading waits for even the latest piece to melt and rest where it landed. */
+export const MELT_FADES = MELT.soften + MELT.slumpBy + MELT.slump + MELT.hold;
 
 /** When Going down's hole starts to open: the die risen and its beat sat out. */
 export const PIT_OPENS = PIT.rise + PIT.beat;
@@ -159,7 +158,7 @@ export const EXIT_TABLE = {
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
-  melt: { label: 'Melt', seconds: MELT_FADES + MELT.fade },   // 3.1 s: soft pieces flow together, one puddle, whole-surface fade
+  melt: { label: 'Melt', seconds: MELT_FADES + MELT.fade },   // 3.1 s: soft pieces melt in place, then fade with their shadows
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
   mixed: { label: 'Mixed bag', random: true, each: true },   // owner 2026-10-30: "add a 'mixed bag' to exit animation as well. Random exit animation for each"
 };
@@ -330,7 +329,6 @@ export function meltTimeline(u) {
     crack: Math.pow(s, 0.7),
     broken: t >= MELT.soften,
     since: Math.max(0, t - MELT.soften),
-    flow: clamp01((t - MELT_FLOWS) / MELT.flow),
     opacity: 1 - smooth(clamp01((t - MELT_FADES) / MELT.fade)),
   };
 }
