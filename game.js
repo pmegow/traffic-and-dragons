@@ -21,6 +21,7 @@ function startGame(char,toneName,toneVoice,authorId){
   /* #354: the preset carries the opening hour — the clock is engine-owned, so the preset sets it (never the GM) */
   if(typeof char._startHour==="number"){worldState.clock={min:startClockMin(char._startHour),schedule:[]};worldState.world.time=clockHourLabel(char._startHour);}
   delete worldState.character._startLoc;delete worldState.character._campName;delete worldState.character._startHour;
+  var _wantAtlas=!!pendingAtlas;pendingAtlas=false;/* #684: consumed before anything below can fail — a switch left on must never map the NEXT campaign (the E86 class) */
   sheetAdmit(char,{door:"new game hero",mode:"cross",detach:false,rel:null,typed:true});/* #599 (b): the hero's own admission in place; typed — the wizard's prose is the player's, never clamped (review (b) 1) — an imported hero's item canon travels in (#81b), the last campaign's scene stays there (#481 C5); a refusal cannot happen here (the preview and the wizard gated the sheet) and would only skip the heals */
   if(arguments.length>=4){worldState.proseAuthor=authorId||"";proseAuthor=authorId||"";store.set(PROSE_K,authorId||"");}
   sessionLog=[];memory=blankMemory();lastAction=null;// don't let the previous campaign's last action leak into this one's Retry (audit E83)
@@ -43,6 +44,12 @@ function startGame(char,toneName,toneVoice,authorId){
   // travel, so first-visit [LOCATION_DESC/SIZE/ITEM] and NPC last-seen stamps at the opening
   // location were silently dropped (fileLocationDesc/etc. early-return with no node).
   startNodeStamp();/* #481 C11: visited from turn 0 even when a village or blueprint minted the node first */
+  /* #684: the opt-in at Begin — the realm is drawn now, from a fresh seed, once the start place is final. The party is put
+     on it by the story's own names or by the player's tap, never by a guess; a failure starts the campaign without a map, loudly. */
+  if(_wantAtlas){
+    if(!kindDef().atlas)showToast("A drawn map is for adventures \u2014 this campaign begins without one.",6000);
+    else{try{atlasCreate();atlasFollow();}catch(_ae){delete worldState.atlas;atlasProblem("drawing the realm",_ae);}}
+  }
   seatRecordPeopleFromLibrary();/* #623: the hero's own people, from their library sheets, before the opening is written */
   if(typeof guestbookSeedStart==="function")guestbookSeedStart();/* #173: the creation-time party stands at the opening node — turn-0 provenance (runs even when a blueprint pre-seeded the node: the party is there either way) */
   saveAll();showGame();syncUI();initAbilities();initSpells();

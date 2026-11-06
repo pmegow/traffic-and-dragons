@@ -5,6 +5,7 @@
 var sabotage = require("./sabotage.js");
 var ENGINE = ["node", ["dev/tests-684-atlas-engine.js"]];
 var PIN = ["node", ["dev/tests-684-atlas.js"]];
+var BROWSER = ["node", ["dev/tests-684-atlas-browser.js"]];
 var rc = 0;
 
 rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, cases: [
@@ -59,7 +60,56 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, cases: [
   { label: "the documents held in memory are never dropped",
     find: "  while(_atlasDocOrder.length>ATLAS_DOC_CAP){",
     replace: "  while(false){",
-    mustFail: "the documents held in memory are bounded" }
+    mustFail: "the documents held in memory are bounded" },
+  { label: "the pane peeks: a card offers the sheet of a zone the party has not entered",
+    find: "opens:(leads&&A.zones[leads]&&leads!==zoneId)?leads:null,unvisited:",
+    replace: "opens:(leads&&leads!==zoneId)?leads:null,unvisited:",
+    mustFail: "what the pane says" },
+  { label: "a card draws and files the zone it names (a read that writes)",
+    find: "    if(t.portal){try{leads=atlasPortalPeek(A,zoneId,t.portal);}catch(e){leads=null;}}",
+    replace: "    if(t.portal){try{leads=(atlasPortalTarget(A,zoneId,t.portal,[])||{}).zone||null;}catch(e){leads=null;}}",
+    mustFail: "what the pane says" },
+  { label: "the fog lifts: every chamber of a dungeon is shown to the player",
+    find: "if(up[r.id]||(r.portal&&up[r.portal])||r.id===spot)ids.push(r.id);",
+    replace: "ids.push(r.id);",
+    mustFail: "the fog of war" }
+] });
+
+rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
+  { label: "the location name is a door in a campaign that has no atlas",
+    find: "  var on=typeof atlasHas===\"function\"&&atlasHas(),i,el;",
+    replace: "  var on=true,i,el;",
+    mustFail: "① without an atlas the location name is plain text" },
+  { label: "We are here is not saved: the tie lives until the next turn's save",
+    find: "  if(typeof saveAll===\"function\")saveAll();",
+    replace: "  ",
+    mustFail: "④ We are here ties the story place" },
+  { label: "a click on the party's marker finds nothing: the town under the dagger cannot be tapped",
+    find: "  if(hit&&P){t=atlasThingAt(P.zone,hit.x,hit.y);return t?{id:t.id}:{x:hit.x,y:hit.y};}",
+    replace: "  if(hit&&P)return {id:hit.id};",
+    mustFail: "⑤ the trail leads back to the region" },
+  { label: "the fog is not handed to the view: a sewer is drawn whole",
+    find: "    reveal=atlasReveal(zoneId);if(reveal)P.view.setReveal(reveal);",
+    replace: "    reveal=null;",
+    mustFail: "⑥ a sewer is fogged" },
+  { label: "closing the pane leaves the view listening on the window",
+    find: "try{_atlasPane.view.destroy();}",
+    replace: "try{}",
+    mustFail: "⑧ Escape closes the pane" }
+] });
+
+rc |= sabotage.prove({ file: "game.js", command: BROWSER, cases: [
+  { label: "the Begin switch is not consumed: it maps the next campaign too",
+    find: "  var _wantAtlas=!!pendingAtlas;pendingAtlas=false;",
+    replace: "  var _wantAtlas=!!pendingAtlas;",
+    mustFail: "⑩ the opt-in" }
+] });
+
+rc |= sabotage.prove({ file: "index.html", command: BROWSER, cases: [
+  { label: "the Begin switch is on by default: every new campaign is mapped",
+    find: "<input type=\"checkbox\" id=\"rv-atlas\"/>",
+    replace: "<input type=\"checkbox\" id=\"rv-atlas\" checked/>",
+    mustFail: "⑩ the opt-in" }
 ] });
 
 rc |= sabotage.prove({ file: "game.js", command: ENGINE, cases: [

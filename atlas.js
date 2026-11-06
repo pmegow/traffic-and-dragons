@@ -19,7 +19,7 @@
    leading "the" and punctuation are folded, and only when one thing bears it), or when the player said so (atlasPlace —
    the pane's "We are here"). Anything else is off the map, said plainly; a guessed tie would be served to the GM as canon.
 
-   Reads (atlasDoc, atlasThings, atlasPartyIn, atlasMarkers, atlasZones) never write the campaign. The writers are
+   Reads (atlasDoc, atlasThings, atlasPartyIn, atlasMarkers, atlasZones, atlasWhere, atlasCard, atlasReveal) never write the campaign. The writers are
    atlasCreate, atlasFollow, atlasPlace and atlasHeal; a redraw a read notices is recorded by the next writer. */
 var ATLAS_VER=1;
 /* documents held in memory at once: the least recently used is dropped and redrawn on demand (a region is ~300 KB) */
@@ -60,9 +60,12 @@ function atlasSay(level,msg){
 function atlasProblem(where,e){
   var msg=(e&&e.message)?e.message:String(e);
   atlasSay("warn",where+" failed — "+msg);
-  if(typeof reportError==="function"&&!/^TnDMaps: /.test(msg))reportError("atlas "+where,msg,(e&&e.stack)?String(e.stack).slice(0,600):"");
+  if(typeof reportError==="function"&&!atlasIsRefusal(e))reportError("atlas "+where,msg,(e&&e.stack)?String(e.stack).slice(0,600):"");
   return msg;
 }
+/* the library refuses in words ("TnDMaps: that point lies in the sea — {data}"): a refusal is an answer, not a bug */
+function atlasIsRefusal(e){return /^TnDMaps: /.test((e&&e.message)?e.message:String(e));}
+function atlasReason(e){return String((e&&e.message)?e.message:e).replace(/^TnDMaps: /,"").replace(/ — \{[\s\S]*$/,"");}
 function atlasTurn(){return (typeof worldState!=="undefined"&&worldState&&typeof worldState.turn==="number")?worldState.turn:0;}
 /* the store, when this build can use it; a store from a newer build is left alone, said once */
 function atlasLive(){
@@ -188,19 +191,27 @@ function atlasOpen(A,parentZone,kind,via,from,entered){
   if(fresh){atlasSettle(A,id);if(entered)entered.push(id);atlasSay("info","drew "+(A.zones[id].name||id)+" ("+kind+")");}
   return {zone:id,spot:atlasWayIn(doc,from)};
 }
-/* the zone a portal leads to, opened if it is new; null when it leads nowhere (the edge of the realm) */
-function atlasPortalTarget(A,zoneId,portal,entered){
+/* where a portal leads, WITHOUT opening anything: {back: zoneId} for a way back up, {parent, kind, via} for a zone a
+   builder makes, null for a way that leads nowhere (the edge of the realm) */
+function atlasPortalRoute(A,zoneId,portal){
   var G=portal.to&&portal.to.generator,z,b,via;
   if(!G)return null;
-  if(ATLAS_WAYS_BACK[portal.way]){z=atlasRecipe(A,zoneId).parent;return z?{zone:z,spot:atlasWayIn(atlasDoc(z),portal.to.id)}:null;}
+  if(ATLAS_WAYS_BACK[portal.way]){z=atlasRecipe(A,zoneId).parent;return z?{back:z}:null;}
   /* the nearest zone, from here upward, that can build a G: a wild zone's ways lead to zones that hang from the region */
   for(z=zoneId;z;z=atlasRecipe(A,z).parent){
     b=ATLAS_BUILDERS[atlasRecipe(A,z).kind+">"+G];
-    if(b){via=(b.via==="to")?portal.to.id:portal.id;return via==null?null:atlasOpen(A,z,G,via,portal.id,entered);}
+    if(b){via=(b.via==="to")?portal.to.id:portal.id;return via==null?null:{parent:z,kind:G,via:via};}
   }
   /* nothing builds one: it is a way back up to the zone of that kind (a town's road onto the region) */
-  for(z=atlasRecipe(A,zoneId).parent;z;z=atlasRecipe(A,z).parent)if(atlasRecipe(A,z).kind===G)return {zone:z,spot:atlasWayIn(atlasDoc(z),portal.to.id)};
+  for(z=atlasRecipe(A,zoneId).parent;z;z=atlasRecipe(A,z).parent)if(atlasRecipe(A,z).kind===G)return {back:z};
   return null;
+}
+/* WRITE: the zone a portal leads to, opened if it is new; null when it leads nowhere */
+function atlasPortalTarget(A,zoneId,portal,entered){
+  var r=atlasPortalRoute(A,zoneId,portal);
+  if(!r)return null;
+  if(r.back)return {zone:r.back,spot:atlasWayIn(atlasDoc(r.back),portal.to.id)};
+  return atlasOpen(A,r.parent,r.kind,r.via,portal.id,entered);
 }
 /* standing at a thing: a way in is entered, anything else is a spot on its own sheet */
 function atlasArrive(A,zone,id,entered){
@@ -296,7 +307,7 @@ function atlasCreate(seed){
    Returns {ok: true, at, spot, off, entered, bound, level} or {ok: false, reason}; a refusal changes nothing but
    zones the tap had to draw to look. */
 function atlasPlace(zoneId,target,level){
-  var A=atlasLive(),p=A?atlasPointer():null,entered=[],rec,doc,tie,b,z,r,msg,wTie;
+  var A=atlasLive(),p=A?atlasPointer():null,entered=[],rec,doc,tie,b,z,r,wTie;
   if(!A)return {ok:false,reason:"this campaign has no map"};
   if(!p)return {ok:false,reason:"the story has no current place"};
   if(!A.zones[zoneId])return {ok:false,reason:"that sheet is not in this campaign's atlas"};
@@ -314,9 +325,8 @@ function atlasPlace(zoneId,target,level){
       tie={zone:atlasOpen(A,zoneId,"wild",z.id,null,entered).zone,id:null};
     }else return {ok:false,reason:"pick a place or a point on the sheet"};
   }catch(e){
-    msg=(e&&e.message)?e.message:String(e);
-    if(!/^TnDMaps: /.test(msg))atlasProblem("placing the party",e);
-    return {ok:false,reason:msg.replace(/^TnDMaps: /,"").replace(/ — \{[\s\S]*$/,"")};
+    if(!atlasIsRefusal(e))atlasProblem("placing the party",e);
+    return {ok:false,reason:atlasReason(e)};
   }
   wTie=A.names[atlasWorldKey(p)];
   if(level==null)level=(p.sub&&wTie&&A.zones[wTie.zone])?"sub":"world";
@@ -344,8 +354,16 @@ function atlasPartyIn(zoneId){
   }
   return null;
 }
+/* READ: the named thing standing at a point of a sheet (a marker is drawn exactly on the thing it stands on) */
+function atlasThingAt(zoneId,x,y){
+  var A=atlasLive(),t,i;
+  if(!A||!A.zones[zoneId]||!isFinite(x)||!isFinite(y))return null;
+  t=atlasThings(atlasDoc(zoneId));
+  for(i=0;i<t.length;i++)if(Math.abs(t[i].x-x)<=0.5&&Math.abs(t[i].y-y)<=0.5)return t[i];
+  return null;
+}
 /* the markers TnDMaps.markers / view.setMarkers take for a sheet — derived from the store, never stored */
-function atlasMarkers(zoneId){var p=atlasPartyIn(zoneId);return p?[{id:"party",kind:"party",x:p.x,y:p.y,label:"The party"}]:[];}
+function atlasMarkers(zoneId){var p=atlasPartyIn(zoneId);return p?[{id:"party",kind:"party",x:p.x,y:p.y,label:p.exact?"The party":"The party (somewhere here)"}]:[];}
 /* the entered zones, root first then in order of entry */
 function atlasZones(){
   var A=atlasLive();if(!A)return [];
@@ -353,6 +371,71 @@ function atlasZones(){
 }
 /* the chain of zones from the region down to one zone */
 function atlasTrail(zoneId){var A=atlasLive(),out=[],z=zoneId,guard=0;if(!A)return out;while(z&&A.zones[z]&&guard++<64){out.unshift(z);z=A.zones[z].parent;}return out;}
+
+/* ── what the pane and the prompt say ──────────────────────────────────────────────────────────────────────── */
+/* READ: the id of the zone a portal leads to, entered or not; null when it leads nowhere */
+function atlasPortalPeek(A,zoneId,portal){
+  var r=atlasPortalRoute(A,zoneId,portal),params;
+  if(!r)return null;
+  if(r.back)return r.back;
+  params=ATLAS_BUILDERS[atlasRecipe(A,r.parent).kind+">"+r.kind].make(atlasDoc(r.parent),r.via);
+  return (params&&typeof params.seed==="string")?params.seed:null;
+}
+/* READ: where the party is, in words and in parts — the pane's status line and the first line the GM is told */
+function atlasWhere(){
+  var A=atlasLive(),rec,t,out,why;
+  if(!A)return null;
+  out={placed:!!(A.at&&A.zones[A.at]),zone:null,zoneName:null,zoneKind:null,spot:null,spotName:null,off:A.off||null,text:""};
+  why=A.off?"\""+A.off.name+"\" is not on "+(A.off.within?"its map":"the map")+" ("+A.off.why+")":"";
+  if(!out.placed){out.text="The party is not on the map yet."+(why?" "+why+".":"");return out;}
+  rec=A.zones[A.at];out.zone=A.at;out.zoneName=rec.name||A.at;out.zoneKind=rec.kind;
+  if(A.spot!=null){t=atlasThingById(atlasDoc(A.at),A.spot);if(t){out.spot=t.id;out.spotName=t.name;}}
+  if(A.off&&!A.off.within)out.text=why+". The party's last mapped place is "+out.zoneName+".";
+  else out.text="The party is in "+out.zoneName+((out.spotName&&atlasNameKey(out.spotName)!==atlasNameKey(out.zoneName))?", at "+out.spotName:"")+"."+(why?" "+why+".":"");
+  return out;
+}
+/* READ: what a "We are here" tap would tie — the world place first, then the sub-location (atlasPlace's own order) */
+function atlasPlacePreview(){
+  var A=atlasLive(),p=A?atlasPointer():null,wTie;
+  if(!A||!p)return null;
+  wTie=A.names[atlasWorldKey(p)];
+  return (p.sub&&wTie&&A.zones[wTie.zone])?{level:"sub",name:p.sub}:{level:"world",name:p.world};
+}
+/* what the PLAYER may see of a sheet, per generator: the ids drawn (the library's fog of war), absent = everything.
+   A dungeon shows its ways up — they are known from the sheet above — and the chamber the party stands in; the rest
+   waits for the game to track rooms. */
+var ATLAS_REVEAL={
+  dungeon:function(doc,spot){
+    var up={},ids=[];
+    (doc.portals||[]).forEach(function(p){if(ATLAS_WAYS_BACK[p.way])up[p.id]=1;});
+    (doc.rooms||[]).forEach(function(r){if(up[r.id]||(r.portal&&up[r.portal])||r.id===spot)ids.push(r.id);});
+    return ids;
+  }
+};
+/* READ: the reveal list view.setReveal takes for a sheet; null = the whole sheet */
+function atlasReveal(zoneId){
+  var A=atlasLive(),rec=A?A.zones[zoneId]:null,f=rec?ATLAS_REVEAL[rec.kind]:null;
+  return f?f(atlasDoc(zoneId),A.at===zoneId?A.spot:null):null;
+}
+/* READ: the card for a tapped thing ({id}) or a tapped point of open ground ({x, y}; the region only):
+   {id, x, y, title, word, opens, unvisited, partyHere, place}. opens = the entered zone it leads to (the pane may show
+   it); unvisited = it leads to a zone the party has not entered (never shown: no peeking). null = nothing to say. */
+function atlasCard(zoneId,target){
+  var A=atlasLive(),rec=A?A.zones[zoneId]:null,doc,t,leads=null,z,trail,b;
+  if(!rec||!target)return null;
+  doc=atlasDoc(zoneId);trail=A.at?atlasTrail(A.at):[];
+  if(target.id!=null){
+    t=atlasThingById(doc,target.id);if(!t)return null;
+    if(t.portal){try{leads=atlasPortalPeek(A,zoneId,t.portal);}catch(e){leads=null;}}
+    return {id:t.id,x:t.x,y:t.y,title:t.name,word:t.word||t.kind||"",opens:(leads&&A.zones[leads]&&leads!==zoneId)?leads:null,unvisited:!!(leads&&!A.zones[leads]),
+      partyHere:(A.at===zoneId&&A.spot===t.id)||!!(leads&&leads!==zoneId&&trail.indexOf(leads)>=0&&trail.indexOf(leads)>trail.indexOf(zoneId)),place:atlasPlacePreview()};
+  }
+  b=ATLAS_BUILDERS[rec.kind+">wild"];
+  if(!b||!isFinite(target.x)||!isFinite(target.y))return null;
+  try{z=TnDMaps.wild.zoneAt(doc,[target.x,target.y]);leads=b.make(doc,z.id).seed;}
+  catch(e2){return {id:null,x:target.x,y:target.y,title:"Open country",word:"",opens:null,unvisited:false,partyHere:false,place:null,refused:atlasReason(e2)};}
+  return {id:null,x:target.x,y:target.y,title:"Open country",word:"",opens:A.zones[leads]?leads:null,unvisited:false,partyHere:A.at===leads,place:atlasPlacePreview()};
+}
 
 /* ── load ──────────────────────────────────────────────────────────────────────────────────────────────────── */
 function atlasShapeProblem(A){

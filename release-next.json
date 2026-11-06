@@ -1,6 +1,7 @@
 {
-  "version": "v1.1350",
+  "version": "v1.1351",
   "actions": [
-    "Add the map engine that follows the party between drawn zones. No campaign uses it until the map pane lands."
+    "New campaigns can switch on Draw a world map at Begin.",
+    "In a mapped campaign, tap the location name to open the map and place the party with We are here."
   ]
 }

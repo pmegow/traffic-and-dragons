@@ -187,6 +187,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   var _hudName=document.getElementById("hud-name");
   _hudName.addEventListener("click",function(){showCharSheet();});
   _hudName.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();showCharSheet();}});
+  if(typeof atlasDoorWire==="function")atlasDoorWire();/* #684 (owner 2026-11-04): the location name opens the map — in a campaign that has one */
   document.getElementById("sb-close").addEventListener("click",function(){document.getElementById("sidebar").classList.remove("open");});
   document.getElementById("sendbtn").addEventListener("click",function(){sendAction(null);});
   // #49 phase 1: on-screen keyboards fat-finger Enter mid-thought and each accidental send is a

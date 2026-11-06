@@ -6,6 +6,7 @@
 //   • We are here: the player's tap ties the story's own name to a map place; the world before a sub-location
 //   • version drift: a zone that draws differently from its record is said out loud; a read never writes
 //   • a failure never escapes a writer; an unreadable store is set aside at load; the party marker is derived
+//   • what the pane says (where the party is, what a tap would tie, a thing's card) — and no peeking; the fog of war
 //   • THE FIXTURE GATE: a re-vendored library that redraws the fixture realm fails here until accepted on purpose
 //   • the turn's commit and the load door call the atlas; the load order carries atlas.js
 //   node dev/tests-684-atlas-engine.js
@@ -244,9 +245,12 @@ var ATLAS_FIXTURES = {
     assert.deepEqual(atlasMarkers(A.seed), [], "not placed: no marker");
     point(c.p0.name); atlasFollow(); townCast(A, c); innZone = c.townId + "/" + c.inn.id;
     m = atlasPartyIn(c.townId); assert.equal(m.exact, false, "in the town, the map does not know where"); assert.deepEqual([m.x, m.y], atlasCentre(c.town));
+    assert.equal(atlasMarkers(c.townId)[0].label, "The party (somewhere here)", "a marker at a sheet's middle says it is not a known spot");
     point(c.p0.name, c.inn.name); atlasFollow();
     m = atlasMarkers(c.townId); assert.deepEqual(m, [{ id: "party", kind: "party", x: c.inn.x, y: c.inn.y, label: "The party" }], "on the town: at the inn's door");
     m = atlasMarkers(A.seed); assert.deepEqual([m[0].x, m[0].y], [c.p0.x, c.p0.y], "on the region: at the town");
+    assert.equal(atlasThingAt(A.seed, m[0].x, m[0].y).id, c.p0.id, "the thing under the marker is the town (a marker wins the click in the pane)");
+    assert.equal(atlasThingAt(c.townId, c.inn.x, c.inn.y).id, c.inn.id); assert.equal(atlasThingAt(A.seed, c.p0.x + 3, c.p0.y), null); assert.equal(atlasThingAt("nope", 1, 1), null);
     assert.equal(atlasMarkers(innZone).length, 1); assert.equal(atlasPartyIn(A.seed + "/nowhere"), null);
     [A.seed, c.townId, innZone].forEach(function (z) { TnDMaps.markers.validate(atlasMarkers(z), atlasDoc(z).frame); assert(/The party/.test(TnDMaps.markers.describe(atlasDoc(z), atlasMarkers(z)).text)); });
     assert.equal(JSON.stringify(worldState.atlas).indexOf("\"party\""), -1, "no marker in the store");
@@ -268,6 +272,52 @@ var ATLAS_FIXTURES = {
     assert.equal(atlasFingerprint(atlasDoc(A.seed)), fp);
   });
 
+
+  test("what the pane says: where the party is in words, what a tap would tie, the card of a tapped thing — and no peeking into a zone the party has not entered", function () {
+    var A = fresh(), c = cast(A), w, card, s;
+    point("The Salted Wound Tavern"); atlasFollow(); w = atlasWhere();
+    assert.equal(w.placed, false); assert.equal(w.text, "The party is not on the map yet. \"The Salted Wound Tavern\" is not on the map (no place on the map has that name).");
+    assert.deepEqual(atlasPlacePreview(), { level: "world", name: "The Salted Wound Tavern" });
+    s = JSON.stringify(worldState.atlas);
+    card = atlasCard(A.seed, { id: c.p0.id });
+    assert.deepEqual([card.title, card.opens, card.unvisited, card.partyHere], [c.p0.name, null, true, false], "an unvisited town is named, never opened");
+    assert.deepEqual(card.place, { level: "world", name: "The Salted Wound Tavern" });
+    card = atlasCard(A.seed, { id: c.reg.caves[0].id }); assert.deepEqual([card.opens, card.unvisited], [null, true], "an unvisited cave is not opened either");
+    card = atlasCard(A.seed, { x: c.p0.x + 6, y: c.p0.y + 4 }); assert.deepEqual([card.title, card.opens, card.id], ["Open country", null, null]);
+    assert.equal(JSON.stringify(worldState.atlas), s, "a card is a read: it draws and files nothing"); assert.equal(zoneCount(), 1);
+    point(c.p0.name); atlasFollow(); townCast(A, c);
+    assert.equal(atlasWhere().text, "The party is in " + c.p0.name + ".");
+    card = atlasCard(A.seed, { id: c.p0.id }); assert.deepEqual([card.opens, card.unvisited, card.partyHere], [c.townId, false, true], "the town the party is in: its sheet opens, the party is here");
+    point(c.p0.name, c.market.name); atlasFollow(); assert.equal(atlasWhere().text, "The party is in " + c.p0.name + ", at " + c.market.name + ".");
+    card = atlasCard(c.townId, { id: c.market.id }); assert.deepEqual([card.partyHere, card.opens], [true, null]);
+    card = atlasCard(c.townId, { id: c.road.id }); assert.equal(card.opens, A.seed, "a road leads back onto the region's sheet"); assert.equal(card.partyHere, false);
+    point(c.p0.name, "The Rusty Flagon"); atlasFollow();
+    assert.equal(atlasWhere().text, "The party is in " + c.p0.name + ". \"The Rusty Flagon\" is not on its map (no place on the map has that name).");
+    assert.deepEqual(atlasPlacePreview(), { level: "sub", name: "The Rusty Flagon" });
+    point("Far Away"); atlasFollow();
+    assert.equal(atlasWhere().text, "\"Far Away\" is not on the map (no place on the map has that name). The party's last mapped place is " + c.p0.name + ".");
+    var sea = c.reg.features.filter(function (f) { return f.kind === "sea"; })[0]; card = atlasCard(A.seed, { x: sea.x, y: sea.y });
+    assert(card && /sea/.test(card.refused) && !/\{/.test(card.refused) && card.place === null, "open water says why it cannot be stood on: " + JSON.stringify(card));
+    assert.equal(atlasCard(c.townId, { x: 5, y: 5 }), null, "only the region has open ground"); assert.equal(atlasCard(A.seed, { id: "nope" }), null);
+    engine.makeTestWorld(); assert.equal(atlasWhere(), null); assert.equal(atlasPlacePreview(), null); assert.equal(atlasCard("x", { id: "y" }), null); assert.equal(atlasReveal("x"), null);
+  });
+
+  test("the fog of war: a dungeon shows its ways up and the chamber the party stands in, nothing else; every other sheet is whole", function () {
+    var A = fresh(), c = cast(A), sewer, ids, doc, ups, deep;
+    point(c.p0.name); atlasFollow(); townCast(A, c); sewer = c.townId + "/sewer";
+    assert.equal(atlasReveal(A.seed), null); assert.equal(atlasReveal(c.townId), null);
+    point(c.p0.name, c.inn.name); atlasFollow(); assert.equal(atlasReveal(A.at), null, "a building is read whole, like a published plan");
+    point(c.p0.name, c.grates[0].name); atlasFollow(); doc = atlasDoc(sewer); ids = atlasReveal(sewer);
+    ups = doc.portals.filter(function (p) { return p.way === "up"; }).map(function (p) { return p.id; });
+    assert.deepEqual(ids.slice().sort(), ups.slice().sort(), "the ways up — the party stands at one of them");
+    assert(ids.length < doc.rooms.length, "the rest of the sewer is not shown");
+    deep = doc.rooms.filter(function (r) { return ids.indexOf(r.id) < 0 && doc.rooms.filter(function (q) { return atlasNameKey(q.name) === atlasNameKey(r.name); }).length === 1 && !atlasFind(c.town, r.name); })[0];
+    assert(deep, "the fixture sewer has a chamber with a name of its own");
+    point(c.p0.name, deep.name); atlasFollow();
+    assert.equal(A.at, sewer, "a chamber's name is found on the entered sheet beneath the town"); assert.equal(A.spot, deep.id);
+    assert.deepEqual(atlasReveal(sewer).slice().sort(), ids.concat([deep.id]).sort(), "the chamber the party stands in is shown, and only it");
+    TnDMaps.scene.build(doc, "ink", { reveal: atlasReveal(sewer) });
+  });
 
   test("THE FIXTURE GATE: this library draws the fixture realm exactly as the pinned table says (region, town, interior, sewer, cave, wild)", function () {
     var A = fresh(), c = cast(A), got = {};
