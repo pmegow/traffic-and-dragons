@@ -1,0 +1,820 @@
+{
+ "kind": "spotcheck-684",
+ "ver": "v1.1353",
+ "provider": "gemini",
+ "model": "gemini-3.8-flash",
+ "run": {
+  "campId": "camp_1793941431361_5759",
+  "campName": "PlaytestHarness_atlas684",
+  "startedAt": 1793941431611,
+  "ver": "v1.1353",
+  "route": "server",
+  "provider": "gemini",
+  "model": "gemini-3.8-flash"
+ },
+ "startedAt": 1793941431360,
+ "seed": "qy49avnujq7o",
+ "opening": {
+  "raw": "[TIME_CHECK:evening]\n[LOCATION_DESC:A bleak intersection of cracked stone roads choked by grey drifts of ash. Rotted gibbets creak in the wind. To the north lies the perimeter checkpoint, to the east a ruined wagon track toward Bleakford, and south stretches the road back to the lowlands.]\n[LOCATION_SIZE:medium|15]\n[TIME_ADVANCE:10m]\n[EXIT:North checkpoint|The fortified perimeter gate leading deeper into the valley.]\n[EXIT:East track|A rutted wagon road leading toward the ford.]\n[EXIT:South road|The wind-scoured highway running back toward the lowlands.]\n[SCENE_CAST:none]\n[NPC:Aldric Saltborn|tense, watching|employer]\n[NPC_PRONOUN:Aldric Saltborn|he/him]\n[QUEST:The Toll at Bleakford|active]\n[QUEST_STEP:The Toll at Bleakford|Escort the silent ward across Bleakford]\nCold ash coats the back of your throat like powdered bone. A hunched carter, a weathered human named Aldric Saltborn, thrusts an oversized wool mantle toward you, his hands shaking as he nods toward the wagon bed. Beneath the coarse cloth sits an adult mute, a pale human lad wrapped tight, whose wrist bares a faint, unnatural blue sigil that numbs the air around it. Aldric presses a heavy purse into your palm with frantic force. Iron rings strike timber in the brush nearby, and the distinct rasp of pitchfork tines against rusted mail signals that men are already closing the road behind you.\n[SUGGEST:Take the purse and draw your blade|Demand Aldric explain the sigil right now|Shove the ward into cover beneath the wagon]",
+  "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is not on the map yet. \"The Crossroads of Ashenveil\" is not on the map (no place on the map has that name).\nWralsol — a region about 600 km across (20 days of travel east to west). It has a coastline.\nThe capital is Great Crou.\nCities: Great Crou, Brandport.\nSeas: Cirn Ocean, Sea of Cramhorn.\nMountain ranges: The Wra Peaks, The Silver Teeth, The Sunken Spires, The Gasmand Mountains.\nForests: The Ashen Wood, The Bitter Wood, Lealdus Forest, Thaewond Wold, The Sunken Weald.\nLakes: Ensash Water, Glecaes Water, The Iron Mere.\nRivers: The Ash, River Ogern, The Holhuck, The Grey Water, The Nofarn.\nCaves: The Hound's Den (a cave in the hillside 30 km NE of Branourn, facing NW); Keack's Delve (a cave in the hillside 30 km S of Brandport, facing NE); Cave of Crarsos (a sea cave in the cliffs 30 km W of Aertalmouth, facing SE).\nSettlements: Great Crou (city), Brandport (city), Cridombank (town), Aertalmouth (town), Drashmouth (town), Amseawade (town), Shestanmouth (village), Branourn (village), Wrimbury (village), Peimouckbank (village), Gremgamouth (village), Hushwick (village).\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+  "snap": {
+   "turn": 0,
+   "busy": false,
+   "loc": "The Crossroads of Ashenveil",
+   "sub": null,
+   "atlas": {
+    "seed": "qy49avnujq7o",
+    "at": null,
+    "spot": null,
+    "off": {
+     "name": "The Crossroads of Ashenveil",
+     "why": "no place on the map has that name"
+    },
+    "zones": [
+     "qy49avnujq7o"
+    ],
+    "ties": []
+   },
+   "where": "The party is not on the map yet. \"The Crossroads of Ashenveil\" is not on the map (no place on the map has that name).",
+   "rawTurn": 0,
+   "rawTags": [
+    "[LOCATION_DESC:A bleak intersection of cracked stone roads choked by grey drifts of ash. Rotted gibbets creak in the wind. To the north lies the perimeter checkpoint, to the east a ruined wagon track toward Bleakford, and south stretches the road back to the lowlands.]",
+    "[LOCATION_SIZE:medium|15]",
+    "[TIME_ADVANCE:10m]"
+   ],
+   "pendingCheck": false,
+   "door": "The Crossroads of Ashenveil",
+   "doorRole": "button",
+   "toasts": 2,
+   "skeleton": true
+  },
+  "premise": "Hired for a pouch of silver to escort a mute child through the ruined border post of Ashenveil, Korrag discovers the crude parchment map he bought is marked with mass graves, not trade roads, and the child's skin bears sigils that burn cold to the touch. The sorcery he despises is the only thing keeping a creeping grey rot from consuming the boy's body, while the zealots hunting them want to butcher the child to keep the land's dead buried. To buy peace of mind and the silver he needs to leave, the Northlander must either deliver the tainted boy to the valley's ruthless garrison or find an outcast witch who knows how to break the seal. Every step forces Korrag to choose between burning out the sorcery he loathes or keeping his promise to a helpless stranger."
+ },
+ "placed": {
+  "snap": {
+   "turn": 0,
+   "busy": false,
+   "loc": "The Crossroads of Ashenveil",
+   "sub": null,
+   "atlas": {
+    "seed": "qy49avnujq7o",
+    "at": "qy49avnujq7o/p11",
+    "spot": null,
+    "off": null,
+    "zones": [
+     "qy49avnujq7o",
+     "qy49avnujq7o/p11"
+    ],
+    "ties": [
+     "The Crossroads of Ashenveil"
+    ]
+   },
+   "where": "The party is in Hushwick.",
+   "rawTurn": 0,
+   "rawTags": [
+    "[LOCATION_DESC:A bleak intersection of cracked stone roads choked by grey drifts of ash. Rotted gibbets creak in the wind. To the north lies the perimeter checkpoint, to the east a ruined wagon track toward Bleakford, and south stretches the road back to the lowlands.]",
+    "[LOCATION_SIZE:medium|15]",
+    "[TIME_ADVANCE:10m]"
+   ],
+   "pendingCheck": false,
+   "door": "The Crossroads of Ashenveil",
+   "doorRole": "button",
+   "toasts": 3,
+   "skeleton": true
+  },
+  "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n"
+ },
+ "turns": [
+  {
+   "n": 1,
+   "action": "I take the purse, pull the lad down behind the wagon and ask Aldric, low and quick: what is this place called, and which way is the nearest town?",
+   "before": 0,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in Hushwick.",
+   "t0": 1793941550313,
+   "done": 1793941559106,
+   "after": {
+    "turn": 1,
+    "busy": false,
+    "loc": "The Crossroads of Ashenveil",
+    "sub": null,
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11",
+     "spot": null,
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in Hushwick.",
+    "rawTurn": 1,
+    "rawTags": [
+     "[TIME_ADVANCE:2m]",
+     "[CHECK:Longsword attack|+5|DC 11|1d8+3]"
+    ],
+    "pendingCheck": true,
+    "door": "The Crossroads of Ashenveil",
+    "doorRole": "button",
+    "toasts": 3,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:2m]\n[WARES:none]\n[GOLD:+15]\n[SCENE_CAST:none]\n[EQUIPPED:Korrag|Longsword|on]\n[COMBAT_START:Warden Militia|16|11|+3|1d6+1|7]\n[COMBAT_STATS:STR:13|DEX:11|CON:12|INT:9|WIS:10|CHA:8|CR:0.5]\n[COMBAT_GROUP:3]\n\nThe purse hits your hand with the dull clink of silver. \n\nYou yank the mute lad into the dirt behind the rear axle. His skin radiates a dead, unnatural chill. It sours your stomach. Witchery always does. \n\n[SAY:Korrag]\"What do they call this ash-heap? Where is the nearest town?\"\n\nAldric cowers against the wheel, eyes wide with terror. \n\n[SAY:Aldric Saltborn|whispering]\"Ashenveil Crossroads. Hushwick lies east, past Bleakford. Don't let them burn him!\"\n\nThree figures break from the stunted briars, boots kicking up grey dust. Human men in boiled leather and patched wool. Their faces are gaunt, lined with fear and sweat. They level crude wood-axes and iron pitchforks directly at your chest. No bandits. Desperate townsfolk playing soldier. \n\nIf you hesitate, an iron fork takes you in the ribs.\n\n[CHECK:Longsword attack|+5|DC 11|1d8+3]",
+   "narration": "Turn 1 | Day 1, 6:12 pmLongsword attackd20+5 vs DC 11 · 1d8+3 on a hit · click to roll · or reconsiderThe purse hits your hand with the dull clink of silver. You yank the mute lad into the dirt behind the rear axle. His skin radiates a dead, unnatural chill. It sours your stomach. Witchery always does. \"What do they call this ash-heap? Where is the nearest town?\"Aldric cowers against the wheel, eyes wide with terror. \"Ashenveil Crossroads. Hushwick lies east, past Bleakford. Don't let them burn him!\"Three figures break from the stunted briars, boots kicking up grey dust. Human men in boiled leather and patched wool. Their faces are gaunt, lined with fear and sweat. They level crude wood-axes and iron pitchforks directly at your chest. No bandits. Desperate townsfolk playing soldier. If you hesitate, an iron fork takes you in the ribs.🔊Render"
+  },
+  {
+   "n": 2,
+   "action": "(roll the pending check)",
+   "before": 1,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in Hushwick.",
+   "t0": 1793941582661,
+   "done": 1793941582669,
+   "after": {
+    "turn": 2,
+    "busy": false,
+    "loc": "The Crossroads of Ashenveil",
+    "sub": null,
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11",
+     "spot": null,
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in Hushwick.",
+    "rawTurn": 2,
+    "rawTags": [
+     "[TIME_ADVANCE:1m]"
+    ],
+    "pendingCheck": false,
+    "door": "The Crossroads of Ashenveil",
+    "doorRole": "button",
+    "toasts": 3,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[DICE:Longsword attack|d20 = 5 + 5 = 10|failed]\n[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[COMBAT_ROUND:2]\n[HP:-4]\n\nYour boot slips in the slick ash. The longsword bites empty air. \n\nAn iron pitchfork jabs forward hard. The tines tear across your ribs, scraping over boiled leather and finding meat. Warm blood soaks your tunic. \n\nThe man holding it wheezes, eyes frantic. Human. Calloused hands. \n\n[SAY:Edric Moorcroft|terrified, shouting]\"Give us the carrier! The whole parish burns if he wakes!\"\n\nThe two with axes fan out to flank the wagon. \n\n[SUGGEST:Use Powerful Strike on the fork wielder|Adopt a Shield Wall stance to endure blows|Slam your shoulder into the nearest axeman]",
+   "narration": "Turn 2 | Day 1, 6:13 pmLongsword attackd20: 5 + 5 = 10 -- failedYour boot slips in the slick ash. The longsword bites empty air. An iron pitchfork jabs forward hard. The tines tear across your ribs, scraping over boiled leather and finding meat. Warm blood soaks your tunic. The man holding it wheezes, eyes frantic. Human. Calloused hands. \"Give us the carrier! The whole parish burns if he wakes!\"The two with axes fan out to flank the wagon.🔊RenderUse Powerful Strike on the fork wielder.Adopt a Shield Wall stance to endure blows.Slam your shoulder into the nearest axeman."
+  },
+  {
+   "n": 3,
+   "action": "I am not dying for a purse at a crossroads. I heave the lad into the wagon bed, vault up beside Aldric and roar at him to whip the horse; we break through them and drive hard down the east track, all the way to Hushwick.",
+   "before": 2,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in Hushwick.",
+   "t0": 1793941612164,
+   "done": 1793941614563,
+   "after": {
+    "turn": 3,
+    "busy": false,
+    "loc": "The Crossroads of Ashenveil",
+    "sub": null,
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11",
+     "spot": null,
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in Hushwick.",
+    "rawTurn": 3,
+    "rawTags": [
+     "[CHECK:Strength check|+3|DC 12]"
+    ],
+    "pendingCheck": true,
+    "door": "The Crossroads of Ashenveil",
+    "doorRole": "button",
+    "toasts": 3,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[TIME_CHECK:evening]\n[NPC:Davin Ostvane|panicked, pursuing|enemy]\n[NPC_PRONOUN:Davin Ostvane|he/him]\n[NPC_ALIAS:Edric Moorcroft|Davin Ostvane]\nFailure means a pitchfork through your boot, or an overturned cart.\n[CHECK:Strength check|+3|DC 12]",
+   "narration": "Turn 3 | Day 1, 6:13 pmStrength checkd20+3 vs DC 12 · click to roll · or reconsiderFailure means a pitchfork through your boot, or an overturned cart.🔊Render"
+  },
+  {
+   "n": 4,
+   "action": "(roll the pending check)",
+   "before": 3,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in Hushwick.",
+   "t0": 1793941634086,
+   "done": 1793941634096,
+   "after": {
+    "turn": 4,
+    "busy": false,
+    "loc": "The Crossroads of Ashenveil",
+    "sub": null,
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11",
+     "spot": null,
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in Hushwick.",
+    "rawTurn": 4,
+    "rawTags": [
+     "[TIME_ADVANCE:1m]"
+    ],
+    "pendingCheck": false,
+    "door": "The Crossroads of Ashenveil",
+    "doorRole": "button",
+    "toasts": 3,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[DICE:Strength check|d20 = 3 + 3 = 6|failed]\n[DICE:Strength check|d20 = 3 + 3 = 6|failed]\n[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[COMBAT_ROUND:3]\n[HP:-3]\n\nYou grab the boy by the collar. He weighs like wet lead. \n\nYour boot catches the wagon lip. You slip. The boy spills backward into the dirt, coughing up black bile.\n\nAldric panics. He snaps the reins anyway. The cart jerks forward without you, splintering brush as the old nag bolts down the east track. \n\nAn axe blade catches your shoulder guard. It shears iron rings. Cold steel bites the collarbone, jarring your spine.\n\n[SAY:Davin Ostvane|shouting, furious]\"Pelt him! Pin him to the ruts!\"\n\nThey have you encircled. The boy shivers in the ash at your feet.\n\n[SUGGEST:Sweep your longsword low at Davin's legs|Use Shield Wall and grab the boy|Shout to Aldric to haul the horse around]",
+   "narration": "Turn 4 | Day 1, 6:14 pmStrength checkd20: 3 + 3 = 6 -- failedStrength checkd20: 3 + 3 = 6 -- failedYou grab the boy by the collar. He weighs like wet lead. Your boot catches the wagon lip. You slip. The boy spills backward into the dirt, coughing up black bile.Aldric panics. He snaps the reins anyway. The cart jerks forward without you, splintering brush as the old nag bolts down the east track. An axe blade catches your shoulder guard. It shears iron rings. Cold steel bites the collarbone, jarring your spine.\"Pelt him! Pin him to the ruts!\"They have you encircled. The boy shivers in the ash at your feet.🔊RenderSweep your longsword low at Davin's legs.Use Shield Wall and grab the boy.Shout to Aldric to haul the horse around."
+  },
+  {
+   "n": 5,
+   "action": "I plant my sword point-down in the ash and bellow: Hold! Kill me and the boy wakes with nobody's hand on him. Davin, you fear what he carries, so do I. Walk us to Hushwick under your own forks and let the Red Abbey judge him. I go quietly with them.",
+   "before": 4,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in Hushwick.",
+   "t0": 1793941661880,
+   "done": 1793941666294,
+   "after": {
+    "turn": 5,
+    "busy": false,
+    "loc": "The Crossroads of Ashenveil",
+    "sub": null,
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11",
+     "spot": null,
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in Hushwick.",
+    "rawTurn": 5,
+    "rawTags": [
+     "[TIME_ADVANCE:10m]"
+    ],
+    "pendingCheck": false,
+    "door": "The Crossroads of Ashenveil",
+    "doorRole": "button",
+    "toasts": 3,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:10m]\n[COMBAT_END:truce]\n[NPC:Edric Moorcroft|wary, agreeing|neutral]\n\nThe steel point sinks into the dirt. You lean on the pommel. Blood drips down your ribs, warm and sour. \n\nDavin lowers his tines an inch. The men beside him trade frightened looks. Sweat cuts pale channels through the soot on their cheeks. They are farmers, not butchers.\n\n[SAY:Edric Moorcroft|mood:low and gravelly, speaking carefully]\"You walk in front. Hands where we see them. If the creature twitches, I put a fork through his throat.\"\n\nOne of them kicks the lad onto a tarp and grabs the rope. The blue mark on the boy's skin pulses once, cold as well-water. \n\nThey herd you east down the rutted track. Bleakford lies ahead, smelling of dead marsh and old lime.\n\n[SUGGEST:Ask Davin why the abbey fears the mark|Keep silent and watch the track for ambush|Bandage your ribs while you walk]",
+   "narration": "Turn 5 | Day 1, 6:24 pmThe steel point sinks into the dirt. You lean on the pommel. Blood drips down your ribs, warm and sour. Davin lowers his tines an inch. The men beside him trade frightened looks. Sweat cuts pale channels through the soot on their cheeks. They are farmers, not butchers.\"You walk in front. Hands where we see them. If the creature twitches, I put a fork through his throat.\"One of them kicks the lad onto a tarp and grabs the rope. The blue mark on the boy's skin pulses once, cold as well-water. They herd you east down the rutted track. Bleakford lies ahead, smelling of dead marsh and old lime.🔊RenderAsk Davin why the abbey fears the mark.Keep silent and watch the track for ambush.Bandage your ribs while you walk."
+  },
+  {
+   "n": 6,
+   "action": "I bind my ribs as I walk and keep my mouth shut. We march the east track without stopping, through Bleakford and on, until we stand in Hushwick itself.",
+   "before": 5,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in Hushwick.",
+   "t0": 1793941686075,
+   "done": 1793941693940,
+   "after": {
+    "turn": 6,
+    "busy": false,
+    "loc": "Hushwick",
+    "sub": null,
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11",
+     "spot": null,
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in Hushwick.",
+    "rawTurn": 6,
+    "rawTags": [
+     "[TIME_ADVANCE:2h]",
+     "[LOCATION_STATE:Ash churned by boots and spilled cart tracks; splattered blood on the eastern ruts.]",
+     "[LOCATION:Hushwick]",
+     "[LOCATION_DESC:A salt-scoured coastal village of low timber houses squatting beneath a grey sea wind. Narrow mud lanes wind past salt stores and drying racks toward the central green, where the squat stone bulk of the Red Abbey looms over the empty market square. To the east, the harbor smells of brine and rotting kelp; muddy roads lead out south and west.]",
+     "[LOCATION_SIZE:medium|20]"
+    ],
+    "pendingCheck": false,
+    "door": "Hushwick",
+    "doorRole": "button",
+    "toasts": 4,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:2h]\n[LOCATION_STATE:Ash churned by boots and spilled cart tracks; splattered blood on the eastern ruts.]\n[NO_CHANGE:relationship audit]\n[QUEST_STEP:The Toll at Bleakford|Escort the silent ward across Bleakford|true]\n[ARC_COMPLETE:The Toll at Bleakford]\n[LOCATION:Hushwick]\n[LOCATION_DESC:A salt-scoured coastal village of low timber houses squatting beneath a grey sea wind. Narrow mud lanes wind past salt stores and drying racks toward the central green, where the squat stone bulk of the Red Abbey looms over the empty market square. To the east, the harbor smells of brine and rotting kelp; muddy roads lead out south and west.]\n[LOCATION_SIZE:medium|20]\n[EXIT:The Green|The central square before the Red Abbey and market stalls.]\n[EXIT:The Harbour|Muddy docks stretching ninety paces east toward the open sea.]\n[EXIT:South road|The wind-swept cart track leading away along the coast.]\n[SCENE_CAST:Edric Moorcroft]\n[RELATIONSHIP_DYNAMIC:Edric Moorcroft|wary captive escort]\n\nYou rip strips from your cloak. You pull them tight around your ribs. The pain is sharp, but the bleeding slows. \n\nThe march is silent. Bleakford passes underfoot as nothing more than cracked pilings in dead black mud. \n\nBy nightfall, the salt air hits you. Hushwick stinks of gutted cod and wet wood. Low cottages sit dark behind shuttered planks. No lanterns burn along the lanes. \n\nEdric and his two men stop on the cobblestones outside the squat stone bulk of the Red Abbey. Iron grates cover the narrow windows. The lad lies limp on the wet canvas behind you, his skin cold as winter slush. \n\n[SAY:Edric Moorcroft|mood:low and gravelly]\"Here it is, Northlander. Knock on the iron door. Tell the brothers what we brought from the ash.\"\n\n[SUGGEST:Pound the iron door of the Red Abbey|Demand Edric do the talking with the brothers|Check the lad's pulse before knocking]",
+   "narration": "Turn 6 | Day 1, 8:24 pmYou rip strips from your cloak. You pull them tight around your ribs. The pain is sharp, but the bleeding slows. The march is silent. Bleakford passes underfoot as nothing more than cracked pilings in dead black mud. By nightfall, the salt air hits you. Hushwick stinks of gutted cod and wet wood. Low cottages sit dark behind shuttered planks. No lanterns burn along the lanes. Edric and his two men stop on the cobblestones outside the squat stone bulk of the Red Abbey. Iron grates cover the narrow windows. The lad lies limp on the wet canvas behind you, his skin cold as winter slush. \"Here it is, Northlander. Knock on the iron door. Tell the brothers what we brought from the ash.\"🔊RenderPound the iron door of the Red Abbey.Demand Edric do the talking with the brothers.Check the lad's pulse before knocking."
+  },
+  {
+   "n": 7,
+   "action": "I check the lad still breathes, then pound the iron door of the Red Abbey and step inside the moment it opens.",
+   "before": 6,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in Hushwick.",
+   "t0": 1793941714039,
+   "done": 1793941724891,
+   "after": {
+    "turn": 7,
+    "busy": false,
+    "loc": "Hushwick",
+    "sub": "The Red Abbey",
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11/L1",
+     "spot": "door-front",
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11",
+      "qy49avnujq7o/p11/L1"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in The Red Abbey, at the front door.",
+    "rawTurn": 7,
+    "rawTags": [
+     "[TIME_ADVANCE:10m]",
+     "[SUBLOCATION:The Red Abbey]"
+    ],
+    "pendingCheck": false,
+    "door": "Hushwick",
+    "doorRole": "button",
+    "toasts": 6,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[QUEST:The Toll at Bleakford|completed]\n[XP:10]\n[GOLD:+15 gp]\n[WHISPER:Edric muttered to his cousin that a sellsword sold out his master at the crossroads for twenty groats and a skin of tallow.]\n[WARES:Salted Herring Cask|3 sp|Drasdur's Fish]\n[WARES:Iron Hatchet|15 sp|Wrathaes's Smithy]\n[SUBLOCATION:The Red Abbey]\n[NPC:Torvan Pelrath|grim, inspecting|neutral]\n[NPC_PRONOUN:Torvan Pelrath|he/him]\n[SCENE_CAST:Edric Moorcroft, Torvan Pelrath]\n\nThe boy breathes. Shallow and rattling, but alive.\n\nYou hammer your gauntlet on the iron plate. The sound clangs like an anvil struck in an empty vault.\n\nA barred wicket slides back. Pale, hard eyes peer out through the slit. Heavy bolts throw back. The door groans open into sour lime dust and grease-lamp smoke.\n\nA tall human brother in a blood-colored cassock blocks the threshold. Torvan Pelrath looks down at the shivering boy on the canvas. He does not look at your sword.\n\n[SAY:Torvan Pelrath|mood:cold, slow and measured]\"A grey mark from the ash-pits. You brought a plague-vessel to our flagstones, mercenary.\"\n\nHe glances past you into the dark square. Behind you, Edric backs away into the fog, leaving you on the abbey stones with the tainted ward.\n\n[SUGGEST:Ask what the Red Abbey does with marked wards|Demand payment or shelter for bringing the boy alive|Tell Torvan the carter fled and the boy needs burning]",
+   "narration": "Turn 7 | Day 1, 8:34 pmThe boy breathes. Shallow and rattling, but alive.You hammer your gauntlet on the iron plate. The sound clangs like an anvil struck in an empty vault.A barred wicket slides back. Pale, hard eyes peer out through the slit. Heavy bolts throw back. The door groans open into sour lime dust and grease-lamp smoke.A tall human brother in a blood-colored cassock blocks the threshold. Torvan Pelrath looks down at the shivering boy on the canvas. He does not look at your sword.\"A grey mark from the ash-pits. You brought a plague-vessel to our flagstones, mercenary.\"He glances past you into the dark square. Behind you, Edric backs away into the fog, leaving you on the abbey stones with the tainted ward.🔊RenderAsk what the Red Abbey does with marked wards.Demand payment or shelter for bringing the boy alive.Tell Torvan the carter fled and the boy needs burning.Buy the Salted Herring Cask (3 sp)."
+  },
+  {
+   "n": 8,
+   "action": "I say he is alive and that is all I was paid for. I lift the boy, walk past Torvan down the nave and lay him before the altar in the chancel.",
+   "before": 7,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in The Red Abbey, at the front door.\nThe Red Abbey is a temple in Hushwick: a single storey, some 414 m² of floor, 6 rooms. The front door opens to the S; a back door leads out behind.\nGround floor: Nave (20 × 10 m; 14 pews) has the front door and opens onto chancel, vestry and transept 1; Vestry (7 × 4.5 m; two chests) opens onto nave; Crypt Stair (4.5 × 4 m, a stair down into the crypt) opens onto chancel (a locked door); Chancel (11 × 5 m; an altar) opens onto nave, transept 2 and crypt Stair (a locked door); Transept 1 (6 × 5 m; an altar) opens onto nave; Transept 2 (6 × 5 m; an altar) opens onto chancel.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in The Red Abbey, at the front door.",
+   "t0": 1793941748145,
+   "done": 1793941753621,
+   "after": {
+    "turn": 8,
+    "busy": false,
+    "loc": "Hushwick",
+    "sub": "Chancel",
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11/L1",
+     "spot": "chancel-1",
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11",
+      "qy49avnujq7o/p11/L1"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in The Red Abbey, at Chancel.",
+    "rawTurn": 8,
+    "rawTags": [
+     "[TIME_ADVANCE:10m]",
+     "[LOCATION_HOURS:none]",
+     "[SUBLOCATION:Chancel]"
+    ],
+    "pendingCheck": false,
+    "door": "Hushwick",
+    "doorRole": "button",
+    "toasts": 6,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[LOCATION_HOURS:none]\n[SUBLOCATION:Chancel]\n[EXIT:Nave|The pillared hall stretching back to the iron front door.]\n[EXIT:Transept 2|A side chapel with an altar, opening east.]\n[EXIT:Crypt Stair|A heavy iron-banded door leading down, currently locked.]\n[SCENE_CAST:Torvan Pelrath]\n\n[SAY:Korrag|mood:flat]\"He breathes. That is the silver's worth.\"\n\nYou shoulder past the cassock. Torvan steps aside, his jaw tight. The iron door clangs shut behind you. Heavy bolts slide home.\n\nBoots scrape on cold stone. The nave smells of stale incense, tallow, and damp rock. Fourteen empty pews flank the aisle like rotting ribs.\n\nYou lay the boy before the chancel altar. The flagstones leach the heat from your knees. The lad's chest rises, hitching on every pull of salt air. The blue sigil on his cheek burns dull and greasy in the candlelight.\n\nTorvan follows with measured steps. He stops three paces away. He folds his hands into his coarse red sleeves.\n\n[SAY:Torvan Pelrath|mood:cold, slow and measured]\"A paid shield. Always the same excuse. The merchant who gave you this carcass bought his route from a dying scribe in the salt-pits. The ink was drawn over dead men's graves, mercenary. Did you think your road was an honest trade path?\"\n\nTorvan looks toward the locked iron-banded door in the chancel wall. A key hangs from his hemp cord belt.\n\n[SUGGEST:Ask who the scribe was and where he went|Demand the silver owed for bringing the boy alive|Tell Torvan to unlock the crypt and burn the sigil]",
+   "narration": "Turn 8 | Day 1, 8:44 pm\"He breathes. That is the silver's worth.\"You shoulder past the cassock. Torvan steps aside, his jaw tight. The iron door clangs shut behind you. Heavy bolts slide home.Boots scrape on cold stone. The nave smells of stale incense, tallow, and damp rock. Fourteen empty pews flank the aisle like rotting ribs.You lay the boy before the chancel altar. The flagstones leach the heat from your knees. The lad's chest rises, hitching on every pull of salt air. The blue sigil on his cheek burns dull and greasy in the candlelight.Torvan follows with measured steps. He stops three paces away. He folds his hands into his coarse red sleeves.\"A paid shield. Always the same excuse. The merchant who gave you this carcass bought his route from a dying scribe in the salt-pits. The ink was drawn over dead men's graves, mercenary. Did you think your road was an honest trade path?\"Torvan looks toward the locked iron-banded door in the chancel wall. A key hangs from his hemp cord belt.🔊RenderAsk who the scribe was and where he went.Demand the silver owed for bringing the boy alive.Tell Torvan to unlock the crypt and burn the sigil."
+  },
+  {
+   "n": 9,
+   "action": "I tell Torvan to unlock it. When he does, I carry the boy through the door and down the Crypt Stair into the crypt below, with the brother lighting the way.",
+   "before": 8,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in The Red Abbey, at Chancel.\nThe Red Abbey is a temple in Hushwick: a single storey, some 414 m² of floor, 6 rooms. The front door opens to the S; a back door leads out behind.\nGround floor: Nave (20 × 10 m; 14 pews) has the front door and opens onto chancel, vestry and transept 1; Vestry (7 × 4.5 m; two chests) opens onto nave; Crypt Stair (4.5 × 4 m, a stair down into the crypt) opens onto chancel (a locked door); Chancel (11 × 5 m; an altar) opens onto nave, transept 2 and crypt Stair (a locked door); Transept 1 (6 × 5 m; an altar) opens onto nave; Transept 2 (6 × 5 m; an altar) opens onto chancel.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in The Red Abbey, at Chancel.",
+   "t0": 1793941773979,
+   "done": 1793941779133,
+   "after": {
+    "turn": 9,
+    "busy": false,
+    "loc": "Hushwick",
+    "sub": "Crypt Stair",
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11/L1/crypt",
+     "spot": "cryptstair-1",
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11",
+      "qy49avnujq7o/p11/L1",
+      "qy49avnujq7o/p11/L1/crypt"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in The Crypt, at Crypt Stair.",
+    "rawTurn": 9,
+    "rawTags": [
+     "[TIME_ADVANCE:10m]",
+     "[LOCATION_HOURS:none]",
+     "[SUBLOCATION:Crypt Stair]"
+    ],
+    "pendingCheck": false,
+    "door": "Hushwick",
+    "doorRole": "button",
+    "toasts": 7,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[LOCATION_HOURS:none]\n[SUBLOCATION:Crypt Stair]\n[QUEST:The Scribe's Ash-Pit|offered|Find the dying scribe in the salt-pits to uncover why the trade map tracks mass graves]\n[QUEST:The Scribe's Ash-Pit|active]\n[QUEST_STEP:The Scribe's Ash-Pit|Confront the scribe in the salt-pits about the suicide map]\n[SCENE_CAST:Torvan Pelrath]\n\n[SAY:Korrag|mood:flat]\"Turn the key, brother. Let us see the dark.\"\n\nTorvan does not blink. He pulls the heavy iron key from his belt. \n\nThe lock grinds. Rust flakes drop to the stone floor. He heaves the oak slab open. \n\nCold air rushes up the stairwell. It smells of dried marrow and wet salt. \n\nTorvan lifts an iron tallow lamp from an alcove. The yellow flame spits and wavers. \n\n[SAY:Torvan Pelrath|mood:cold, slow and measured]\"Down then. But know this. The scribe who inked your map rots in the salt-pits west of town. His fingers turned black before he finished it.\"\n\nYou haul the limp boy onto your good shoulder. His weight pulls hard at your torn ribs. \n\nYou follow the bobbing lamplight down the slick spiral steps.\n\n[SUGGEST:Ask what happened to the scribe's fingers|Demand to know what lies beneath the church|Set the boy down on the cellar floor]",
+   "narration": "Turn 9 | Day 1, 8:54 pm\"Turn the key, brother. Let us see the dark.\"Torvan does not blink. He pulls the heavy iron key from his belt. The lock grinds. Rust flakes drop to the stone floor. He heaves the oak slab open. Cold air rushes up the stairwell. It smells of dried marrow and wet salt. Torvan lifts an iron tallow lamp from an alcove. The yellow flame spits and wavers. \"Down then. But know this. The scribe who inked your map rots in the salt-pits west of town. His fingers turned black before he finished it.\"You haul the limp boy onto your good shoulder. His weight pulls hard at your torn ribs. You follow the bobbing lamplight down the slick spiral steps.🔊RenderAsk what happened to the scribe's fingers.Demand to know what lies beneath the church.Set the boy down on the cellar floor."
+  },
+  {
+   "n": 10,
+   "action": "At the foot of the stair I ask Torvan where the brothers lay their dead to rest, and follow him through the dark to the lower chapel, where I set the boy down.",
+   "before": 9,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in The Crypt, at Crypt Stair.\nThe Crypt lies beneath The Red Abbey in Hushwick (level −1): some 90 m of main tunnel, 1 side passage and 7 chambers, 109 m of passage in all.\nThe way in is Crypt Stair (stairs from above).\nChambers: 1. Hall of Geaspes (pillared hall, 22 × 10 m, 20 m S); 2. Tomb of Kolgae (tomb, 6 × 5 m, 30 m SW, a door); 3. Tomb of Mumpeilm (tomb, 6 × 5 m, 40 m SW, a barred door); 4. Tomb of Kulcard (tomb, 6 × 5 m, 40 m S); 5. Dorei's Cross (crossing, 5 × 5 m, 40 m S); 6. The Goose Ossuary (ossuary, 7 × 6 m, 40 m S, a door); 7. The Lower Chapel (lower chapel, 12 × 9 m, 50 m S, a door).\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in The Crypt, at Crypt Stair.",
+   "t0": 1793941813504,
+   "done": 1793941824421,
+   "after": {
+    "turn": 10,
+    "busy": false,
+    "loc": "Hushwick",
+    "sub": "The Lower Chapel",
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11/L1/crypt",
+     "spot": "chapel-1",
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11",
+      "qy49avnujq7o/p11/L1",
+      "qy49avnujq7o/p11/L1/crypt"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in The Crypt, at The Lower Chapel.",
+    "rawTurn": 10,
+    "rawTags": [
+     "[TIME_ADVANCE:10m]",
+     "[LOCATION_HOURS:none]",
+     "[SUBLOCATION:The Lower Chapel]"
+    ],
+    "pendingCheck": false,
+    "door": "Hushwick",
+    "doorRole": "button",
+    "toasts": 7,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[LOCATION_HOURS:none]\n[SUBLOCATION:The Lower Chapel]\n[SCENE_CAST:Torvan Pelrath]\n\n[SAY:Korrag|mood:flat]\"Where do you dump your dead?\"\n\nTorvan does not turn. His greasy lamp cuts through the black vault.\n\n[SAY:Torvan Pelrath|mood:cold, slow and measured]\"Beneath the salt. The earth here will not take them otherwise.\"\n\nYou track him past stone pillars into the damp chill. Rows of stacked bone watch from the dark. The air bites at your cracked ribs.\n\nAt the south end, an arched portal opens into a low vault. An unadorned stone bier sits under dripping rock. \n\nYou ease the boy down. The blue sigils on his skin pulse like bruised veins against the grey granite. His breathing is a dry rattle.\n\nTorvan sets the lamp beside the boy's head. The flame hisses in the damp.\n\n[SAY:Torvan Pelrath|mood:grim]\"He will not wake in this world. Your merchant knew that when he hired your sword. Go to the salt-pits, mercenary. Find the scribe who drew the graves, if the rot has left him eyes to see you.\"\n\n[SUGGEST:Ask why the scribe drew mass graves on the map|Demand to know how to purge the boy's rot|Leave the chapel and head west toward the salt-pits]",
+   "narration": "Turn 10 | Day 1, 9:04 pm\"Where do you dump your dead?\"Torvan does not turn. His greasy lamp cuts through the black vault.\"Beneath the salt. The earth here will not take them otherwise.\"You track him past stone pillars into the damp chill. Rows of stacked bone watch from the dark. The air bites at your cracked ribs.At the south end, an arched portal opens into a low vault. An unadorned stone bier sits under dripping rock. You ease the boy down. The blue sigils on his skin pulse like bruised veins against the grey granite. His breathing is a dry rattle.Torvan sets the lamp beside the boy's head. The flame hisses in the damp.\"He will not wake in this world. Your merchant knew that when he hired your sword. Go to the salt-pits, mercenary. Find the scribe who drew the graves, if the rot has left him eyes to see you.\"🔊RenderAsk why the scribe drew mass graves on the map.Demand to know how to purge the boy's rot.Leave the chapel and head west toward the salt-pits."
+  },
+  {
+   "n": 11,
+   "action": "I leave the boy to the brothers, climb back up through the abbey and walk west out of Hushwick to the salt-pits to find this scribe.",
+   "before": 10,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in The Crypt, at The Lower Chapel.\nThe Crypt lies beneath The Red Abbey in Hushwick (level −1): some 90 m of main tunnel, 1 side passage and 7 chambers, 109 m of passage in all.\nThe way in is Crypt Stair (stairs from above).\nChambers: 1. Hall of Geaspes (pillared hall, 22 × 10 m, 20 m S); 2. Tomb of Kolgae (tomb, 6 × 5 m, 30 m SW, a door); 3. Tomb of Mumpeilm (tomb, 6 × 5 m, 40 m SW, a barred door); 4. Tomb of Kulcard (tomb, 6 × 5 m, 40 m S); 5. Dorei's Cross (crossing, 5 × 5 m, 40 m S); 6. The Goose Ossuary (ossuary, 7 × 6 m, 40 m S, a door); 7. The Lower Chapel (lower chapel, 12 × 9 m, 50 m S, a door).\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "The party is in The Crypt, at The Lower Chapel.",
+   "t0": 1793941836689,
+   "done": 1793941842488,
+   "after": {
+    "turn": 11,
+    "busy": false,
+    "loc": "The Salt-Pits",
+    "sub": null,
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p11/L1/crypt",
+     "spot": "chapel-1",
+     "off": {
+      "name": "The Salt-Pits",
+      "why": "no place on the map has that name"
+     },
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11",
+      "qy49avnujq7o/p11/L1",
+      "qy49avnujq7o/p11/L1/crypt"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "\"The Salt-Pits\" is not on the map (no place on the map has that name). The party's last mapped place is The Crypt.",
+    "rawTurn": 11,
+    "rawTags": [
+     "[TIME_ADVANCE:1h 15m]",
+     "[LOCATION_HOURS:none]",
+     "[SUBLOCATION_LEAVE]",
+     "[LOCATION:The Salt-Pits]",
+     "[LOCATION_DESC:A bleak expanse of tiered brine trenches and crusted white flats west of Hushwick. Wind howls through rotting wooden sluices and sodden lean-tos. The ground is grey mud under a rind of bitter salt. Open paths lead east to Hushwick, north into the scrub hills, and west toward the deeper ash wastes.]",
+     "[LOCATION_SIZE:medium|30]"
+    ],
+    "pendingCheck": false,
+    "door": "The Salt-Pits",
+    "doorRole": "button",
+    "toasts": 7,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:1h 15m]\n[LOCATION_HOURS:none]\n[SUBLOCATION_LEAVE]\n[LOCATION:The Salt-Pits]\n[LOCATION_DESC:A bleak expanse of tiered brine trenches and crusted white flats west of Hushwick. Wind howls through rotting wooden sluices and sodden lean-tos. The ground is grey mud under a rind of bitter salt. Open paths lead east to Hushwick, north into the scrub hills, and west toward the deeper ash wastes.]\n[LOCATION_SIZE:medium|30]\n[SCENE_CAST:none]\n\nYou turn your back on the slab. Torvan watches you go. He does not offer a blessing. That suits you fine.\n\nThe spiral stairs grind against your bad ribs. The abbey above sits dark and silent. You unbar the heavy nave doors and step into the cold salt wind. \n\nHushwick is asleep behind locked shutters. You take the western cart track out of town. \n\nThe village falls away into dead grey scrub. Soon the ground turns pale and hard underfoot. \n\nTiered brine trenches carve into the mud like fresh graves. The stench of stagnant sulfur and bitter brine fills your nose. Wind rattles the skeletal timbers of abandoned pump-frames.\n\nAhead, a weak yellow slit of lantern light flickers inside a sagging cedar hovel. A dry, hacking cough cuts through the wind. \n\n[SUGGEST:Approach the cedar hovel and push the door open|Draw your longsword and circle the hut first|Call out to whoever coughs in the dark]",
+   "narration": "Turn 11 | Day 1, 10:19 pmYou turn your back on the slab. Torvan watches you go. He does not offer a blessing. That suits you fine.The spiral stairs grind against your bad ribs. The abbey above sits dark and silent. You unbar the heavy nave doors and step into the cold salt wind. Hushwick is asleep behind locked shutters. You take the western cart track out of town. The village falls away into dead grey scrub. Soon the ground turns pale and hard underfoot. Tiered brine trenches carve into the mud like fresh graves. The stench of stagnant sulfur and bitter brine fills your nose. Wind rattles the skeletal timbers of abandoned pump-frames.Ahead, a weak yellow slit of lantern light flickers inside a sagging cedar hovel. A dry, hacking cough cuts through the wind.🔊RenderApproach the cedar hovel and push the door open.Draw your longsword and circle the hut first.Call out to whoever coughs in the dark."
+  },
+  {
+   "n": 12,
+   "action": "The cough can keep its secrets tonight. I turn back through Hushwick, take the east road and walk it to Gremgamouth, however many days that takes.",
+   "before": 11,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\n\"The Salt-Pits\" is not on the map (no place on the map has that name). The party's last mapped place is The Crypt.\nWralsol — a region about 600 km across (20 days of travel east to west). It has a coastline.\nThe capital is Great Crou.\nCities: Great Crou, Brandport.\nSeas: Cirn Ocean, Sea of Cramhorn.\nMountain ranges: The Wra Peaks, The Silver Teeth, The Sunken Spires, The Gasmand Mountains.\nForests: The Ashen Wood, The Bitter Wood, Lealdus Forest, Thaewond Wold, The Sunken Weald.\nLakes: Ensash Water, Glecaes Water, The Iron Mere.\nRivers: The Ash, River Ogern, The Holhuck, The Grey Water, The Nofarn.\nCaves: The Hound's Den (a cave in the hillside 30 km NE of Branourn, facing NW); Keack's Delve (a cave in the hillside 30 km S of Brandport, facing NE); Cave of Crarsos (a sea cave in the cliffs 30 km W of Aertalmouth, facing SE).\nSettlements: Great Crou (city), Brandport (city), Cridombank (town), Aertalmouth (town), Drashmouth (town), Amseawade (town), Shestanmouth (village), Branourn (village), Wrimbury (village), Peimouckbank (village), Gremgamouth (village), Hushwick (village).\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "whereBefore": "\"The Salt-Pits\" is not on the map (no place on the map has that name). The party's last mapped place is The Crypt.",
+   "t0": 1793941865289,
+   "done": 1793941871647,
+   "after": {
+    "turn": 12,
+    "busy": false,
+    "loc": "Gremgamouth",
+    "sub": null,
+    "atlas": {
+     "seed": "qy49avnujq7o",
+     "at": "qy49avnujq7o/p10",
+     "spot": null,
+     "off": null,
+     "zones": [
+      "qy49avnujq7o",
+      "qy49avnujq7o/p11",
+      "qy49avnujq7o/p11/L1",
+      "qy49avnujq7o/p11/L1/crypt",
+      "qy49avnujq7o/p10"
+     ],
+     "ties": [
+      "The Crossroads of Ashenveil"
+     ]
+    },
+    "where": "The party is in Gremgamouth.",
+    "rawTurn": 12,
+    "rawTags": [
+     "[LOCATION:Gremgamouth]",
+     "[LOCATION_DESC:A salt-bleached fishing hamlet clinging to black cliff shelves above the pounding Cirn Ocean. Gutting tables line the slipways. The air stinks of rotting kelp, cod liver, and wet wood smoke. Narrow paths lead west toward Hushwick and down to the shingle beach.]",
+     "[LOCATION_SIZE:small|15]",
+     "[TIME_ADVANCE:2d]"
+    ],
+    "pendingCheck": false,
+    "door": "Gremgamouth",
+    "doorRole": "button",
+    "toasts": 7,
+    "skeleton": true
+   },
+   "landed": true,
+   "raw": "[TIME_CHECK:night]\n[WARES:none]\n[FUTURE_EVENT:The dying scribe in the salt-pits|left unresolved]\n[LOCATION:Gremgamouth]\n[LOCATION_DESC:A salt-bleached fishing hamlet clinging to black cliff shelves above the pounding Cirn Ocean. Gutting tables line the slipways. The air stinks of rotting kelp, cod liver, and wet wood smoke. Narrow paths lead west toward Hushwick and down to the shingle beach.]\n[LOCATION_SIZE:small|15]\n[TIME:dawn]\n[TIME_ADVANCE:2d]\n[SCENE_CAST:none]\n\nYou turn on your heel. The wind can have the scribe. \n\nHushwick is black and dead as you pass back through. No dog barks. You hit the rutted eastern track and keep your head down. \n\nTwo days of grey dirt and gnawing hunger. Your cracked ribs ache with every stride. The map in your boot stays cold against your heel.\n\nDawn breaks grey over Gremgamouth. The sea pounds against jagged slate below. Smoke leaks from turf roofs. \n\nGulls scream over the gutting benches. A few old men haul torn nets across the shingle. Nobody looks at a stranger twice.\n\n[SUGGEST:Look for an alehouse to buy food and rest|Speak to the fishermen mending nets on the slipway|Check your purse and inspect your bruised ribs]",
+   "narration": "Turn 12 | Day 3, 10:19 pmYou turn on your heel. The wind can have the scribe. Hushwick is black and dead as you pass back through. No dog barks. You hit the rutted eastern track and keep your head down. Two days of grey dirt and gnawing hunger. Your cracked ribs ache with every stride. The map in your boot stays cold against your heel.Dawn breaks grey over Gremgamouth. The sea pounds against jagged slate below. Smoke leaks from turf roofs. Gulls scream over the gutting benches. A few old men haul torn nets across the shingle. Nobody looks at a stranger twice.🔊RenderLook for an alehouse to buy food and rest.Speak to the fishermen mending nets on the slipway.Check your purse and inspect your bruised ribs."
+  }
+ ],
+ "final": {
+  "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Gremgamouth.\nGremgamouth is a village of about 165 houses (some 860 souls) in Wralsol. On the coast, the sea lying to the NW; a river runs through it from the SE to the NW; woods press close around it.\nThe Green lies at the heart of the village. Dogeand Minster stands beside the market. The Harbour lies on the N shore, 120 m from the market.\nIt has no wall. Roads leave to the NE (to Peimouckbank), S (to Branourn) and SE (to Wrimbury). 4 bridges cross the river.\nTrades and houses: outside the districts: The Bitter Heron (inn), The Hollow Raven (tavern), The Bitter Anvil (blacksmith), Shaeck the Baker (bakery), Gremgamouth Fish Market (fishmonger) and Shrine of Craetou (shrine).\nOn the region: Gremgamouth is a village. It lies on the coast (the sea lies to the NW), at the mouth of a river, among woods. Peimouckbank lies 110 km to the NE by road (4 days), through forest; Branourn lies 140 km to the S by road (5 days); Wrimbury lies 145 km to the SE by road (5 days), over the mountains.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+  "snap": {
+   "turn": 12,
+   "busy": false,
+   "loc": "Gremgamouth",
+   "sub": null,
+   "atlas": {
+    "seed": "qy49avnujq7o",
+    "at": "qy49avnujq7o/p10",
+    "spot": null,
+    "off": null,
+    "zones": [
+     "qy49avnujq7o",
+     "qy49avnujq7o/p11",
+     "qy49avnujq7o/p11/L1",
+     "qy49avnujq7o/p11/L1/crypt",
+     "qy49avnujq7o/p10"
+    ],
+    "ties": [
+     "The Crossroads of Ashenveil"
+    ]
+   },
+   "where": "The party is in Gremgamouth.",
+   "rawTurn": 12,
+   "rawTags": [
+    "[LOCATION:Gremgamouth]",
+    "[LOCATION_DESC:A salt-bleached fishing hamlet clinging to black cliff shelves above the pounding Cirn Ocean. Gutting tables line the slipways. The air stinks of rotting kelp, cod liver, and wet wood smoke. Narrow paths lead west toward Hushwick and down to the shingle beach.]",
+    "[LOCATION_SIZE:small|15]",
+    "[TIME_ADVANCE:2d]"
+   ],
+   "pendingCheck": false,
+   "door": "Gremgamouth",
+   "doorRole": "button",
+   "toasts": 7,
+   "skeleton": true
+  },
+  "zones": {
+   "qy49avnujq7o": {
+    "kind": "region",
+    "parent": null,
+    "via": null,
+    "params": {
+     "seed": "qy49avnujq7o",
+     "width": 1600,
+     "height": 1100,
+     "cells": 160,
+     "landmass": "continent",
+     "land": 0.5,
+     "relief": 0.5,
+     "moisture": 0.5,
+     "lakes": 3,
+     "settlements": 12,
+     "caves": 3,
+     "culture": "common",
+     "title": null,
+     "scaleKm": 600,
+     "travelKmPerDay": 30,
+     "pins": [],
+     "fields": true
+    },
+    "name": "Wralsol",
+    "lib": "0.12.0",
+    "fp": "7fb84eed-6ew8",
+    "turn": 0
+   },
+   "qy49avnujq7o/p11": {
+    "kind": "town",
+    "parent": "qy49avnujq7o",
+    "via": "p11",
+    "params": null,
+    "name": "Hushwick",
+    "lib": "0.12.0",
+    "fp": "b60f0a7-tq9",
+    "turn": 0
+   },
+   "qy49avnujq7o/p11/L1": {
+    "kind": "interior",
+    "parent": "qy49avnujq7o/p11",
+    "via": "L1",
+    "params": null,
+    "name": "The Red Abbey",
+    "lib": "0.12.0",
+    "fp": "86cdcb82-4wc",
+    "turn": 7
+   },
+   "qy49avnujq7o/p11/L1/crypt": {
+    "kind": "dungeon",
+    "parent": "qy49avnujq7o/p11/L1",
+    "via": "cryptstair-1",
+    "params": null,
+    "name": "The Crypt",
+    "lib": "0.12.0",
+    "fp": "5fb3d15c-3um",
+    "turn": 9
+   },
+   "qy49avnujq7o/p10": {
+    "kind": "town",
+    "parent": "qy49avnujq7o",
+    "via": "p10",
+    "params": null,
+    "name": "Gremgamouth",
+    "lib": "0.12.0",
+    "fp": "61e54e34-vqx",
+    "turn": 12
+   }
+  },
+  "mapNodes": [
+   "The Crossroads of Ashenveil",
+   "Hushwick",
+   "Hushwick|The Red Abbey",
+   "Hushwick|Chancel",
+   "Hushwick|Crypt Stair",
+   "Hushwick|The Lower Chapel",
+   "The Salt-Pits",
+   "Gremgamouth"
+  ],
+  "atlasJunk": null,
+  "usage": null
+ },
+ "toasts": [
+  {
+   "turn": 0,
+   "msg": "⛺ Camp saved — The Crossroads of Ashenveil (turn 0)"
+  },
+  {
+   "turn": 0,
+   "msg": "Campaign folder initialization failed: Failed to execute 'showDirectoryPicker' on 'Window': Must be handling a user gesture to show a file picker."
+  },
+  {
+   "turn": 0,
+   "msg": "\"The Crossroads of Ashenveil\" is on the map."
+  },
+  {
+   "turn": 6,
+   "msg": "✎ The story so far is up to date — see the Quest Journal"
+  },
+  {
+   "turn": 7,
+   "msg": "✦ +50 XP — quest completed: The Toll at Bleakford"
+  },
+  {
+   "turn": 7,
+   "msg": "✓ Quest completed: The Toll at Bleakford — +50 XP, +10 XP (GM), +15 gp"
+  },
+  {
+   "turn": 9,
+   "msg": "⚑ Quest opportunity: The Scribe's Ash-Pit"
+  }
+ ],
+ "errors": [],
+ "raw": [
+  {
+   "turn": 0,
+   "raw": "[TIME_CHECK:evening]\n[LOCATION_DESC:A bleak intersection of cracked stone roads choked by grey drifts of ash. Rotted gibbets creak in the wind. To the north lies the perimeter checkpoint, to the east a ruined wagon track toward Bleakford, and south stretches the road back to the lowlands.]\n[LOCATION_SIZE:medium|15]\n[TIME_ADVANCE:10m]\n[EXIT:North checkpoint|The fortified perimeter gate leading deeper into the valley.]\n[EXIT:East track|A rutted wagon road leading toward the ford.]\n[EXIT:South road|The wind-scoured highway running back toward the lowlands.]\n[SCENE_CAST:none]\n[NPC:Aldric Saltborn|tense, watching|employer]\n[NPC_PRONOUN:Aldric Saltborn|he/him]\n[QUEST:The Toll at Bleakford|active]\n[QUEST_STEP:The Toll at Bleakford|Escort the silent ward across Bleakford]\nCold ash coats the back of your throat like powdered bone. A hunched carter, a weathered human named Aldric Saltborn, thrusts an oversized wool mantle toward you, his hands shaking as he nods toward the wagon bed. Beneath the coarse cloth sits an adult mute, a pale human lad wrapped tight, whose wrist bares a faint, unnatural blue sigil that numbs the air around it. Aldric presses a heavy purse into your palm with frantic force. Iron rings strike timber in the brush nearby, and the distinct rasp of pitchfork tines against rusted mail signals that men are already closing the road behind you.\n[SUGGEST:Take the purse and draw your blade|Demand Aldric explain the sigil right now|Shove the ward into cover beneath the wagon]"
+  },
+  {
+   "turn": 1,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:2m]\n[WARES:none]\n[GOLD:+15]\n[SCENE_CAST:none]\n[EQUIPPED:Korrag|Longsword|on]\n[COMBAT_START:Warden Militia|16|11|+3|1d6+1|7]\n[COMBAT_STATS:STR:13|DEX:11|CON:12|INT:9|WIS:10|CHA:8|CR:0.5]\n[COMBAT_GROUP:3]\n\nThe purse hits your hand with the dull clink of silver. \n\nYou yank the mute lad into the dirt behind the rear axle. His skin radiates a dead, unnatural chill. It sours your stomach. Witchery always does. \n\n[SAY:Korrag]\"What do they call this ash-heap? Where is the nearest town?\"\n\nAldric cowers against the wheel, eyes wide with terror. \n\n[SAY:Aldric Saltborn|whispering]\"Ashenveil Crossroads. Hushwick lies east, past Bleakford. Don't let them burn him!\"\n\nThree figures break from the stunted briars, boots kicking up grey dust. Human men in boiled leather and patched wool. Their faces are gaunt, lined with fear and sweat. They level crude wood-axes and iron pitchforks directly at your chest. No bandits. Desperate townsfolk playing soldier. \n\nIf you hesitate, an iron fork takes you in the ribs.\n\n[CHECK:Longsword attack|+5|DC 11|1d8+3]"
+  },
+  {
+   "turn": 2,
+   "raw": "[DICE:Longsword attack|d20 = 5 + 5 = 10|failed]\n[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[COMBAT_ROUND:2]\n[HP:-4]\n\nYour boot slips in the slick ash. The longsword bites empty air. \n\nAn iron pitchfork jabs forward hard. The tines tear across your ribs, scraping over boiled leather and finding meat. Warm blood soaks your tunic. \n\nThe man holding it wheezes, eyes frantic. Human. Calloused hands. \n\n[SAY:Edric Moorcroft|terrified, shouting]\"Give us the carrier! The whole parish burns if he wakes!\"\n\nThe two with axes fan out to flank the wagon. \n\n[SUGGEST:Use Powerful Strike on the fork wielder|Adopt a Shield Wall stance to endure blows|Slam your shoulder into the nearest axeman]"
+  },
+  {
+   "turn": 3,
+   "raw": "[TIME_CHECK:evening]\n[NPC:Davin Ostvane|panicked, pursuing|enemy]\n[NPC_PRONOUN:Davin Ostvane|he/him]\n[NPC_ALIAS:Edric Moorcroft|Davin Ostvane]\nFailure means a pitchfork through your boot, or an overturned cart.\n[CHECK:Strength check|+3|DC 12]"
+  },
+  {
+   "turn": 4,
+   "raw": "[DICE:Strength check|d20 = 3 + 3 = 6|failed]\n[DICE:Strength check|d20 = 3 + 3 = 6|failed]\n[TIME_CHECK:evening]\n[TIME_ADVANCE:1m]\n[COMBAT_ROUND:3]\n[HP:-3]\n\nYou grab the boy by the collar. He weighs like wet lead. \n\nYour boot catches the wagon lip. You slip. The boy spills backward into the dirt, coughing up black bile.\n\nAldric panics. He snaps the reins anyway. The cart jerks forward without you, splintering brush as the old nag bolts down the east track. \n\nAn axe blade catches your shoulder guard. It shears iron rings. Cold steel bites the collarbone, jarring your spine.\n\n[SAY:Davin Ostvane|shouting, furious]\"Pelt him! Pin him to the ruts!\"\n\nThey have you encircled. The boy shivers in the ash at your feet.\n\n[SUGGEST:Sweep your longsword low at Davin's legs|Use Shield Wall and grab the boy|Shout to Aldric to haul the horse around]"
+  },
+  {
+   "turn": 5,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:10m]\n[COMBAT_END:truce]\n[NPC:Edric Moorcroft|wary, agreeing|neutral]\n\nThe steel point sinks into the dirt. You lean on the pommel. Blood drips down your ribs, warm and sour. \n\nDavin lowers his tines an inch. The men beside him trade frightened looks. Sweat cuts pale channels through the soot on their cheeks. They are farmers, not butchers.\n\n[SAY:Edric Moorcroft|mood:low and gravelly, speaking carefully]\"You walk in front. Hands where we see them. If the creature twitches, I put a fork through his throat.\"\n\nOne of them kicks the lad onto a tarp and grabs the rope. The blue mark on the boy's skin pulses once, cold as well-water. \n\nThey herd you east down the rutted track. Bleakford lies ahead, smelling of dead marsh and old lime.\n\n[SUGGEST:Ask Davin why the abbey fears the mark|Keep silent and watch the track for ambush|Bandage your ribs while you walk]"
+  },
+  {
+   "turn": 6,
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:2h]\n[LOCATION_STATE:Ash churned by boots and spilled cart tracks; splattered blood on the eastern ruts.]\n[NO_CHANGE:relationship audit]\n[QUEST_STEP:The Toll at Bleakford|Escort the silent ward across Bleakford|true]\n[ARC_COMPLETE:The Toll at Bleakford]\n[LOCATION:Hushwick]\n[LOCATION_DESC:A salt-scoured coastal village of low timber houses squatting beneath a grey sea wind. Narrow mud lanes wind past salt stores and drying racks toward the central green, where the squat stone bulk of the Red Abbey looms over the empty market square. To the east, the harbor smells of brine and rotting kelp; muddy roads lead out south and west.]\n[LOCATION_SIZE:medium|20]\n[EXIT:The Green|The central square before the Red Abbey and market stalls.]\n[EXIT:The Harbour|Muddy docks stretching ninety paces east toward the open sea.]\n[EXIT:South road|The wind-swept cart track leading away along the coast.]\n[SCENE_CAST:Edric Moorcroft]\n[RELATIONSHIP_DYNAMIC:Edric Moorcroft|wary captive escort]\n\nYou rip strips from your cloak. You pull them tight around your ribs. The pain is sharp, but the bleeding slows. \n\nThe march is silent. Bleakford passes underfoot as nothing more than cracked pilings in dead black mud. \n\nBy nightfall, the salt air hits you. Hushwick stinks of gutted cod and wet wood. Low cottages sit dark behind shuttered planks. No lanterns burn along the lanes. \n\nEdric and his two men stop on the cobblestones outside the squat stone bulk of the Red Abbey. Iron grates cover the narrow windows. The lad lies limp on the wet canvas behind you, his skin cold as winter slush. \n\n[SAY:Edric Moorcroft|mood:low and gravelly]\"Here it is, Northlander. Knock on the iron door. Tell the brothers what we brought from the ash.\"\n\n[SUGGEST:Pound the iron door of the Red Abbey|Demand Edric do the talking with the brothers|Check the lad's pulse before knocking]"
+  },
+  {
+   "turn": 7,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[QUEST:The Toll at Bleakford|completed]\n[XP:10]\n[GOLD:+15 gp]\n[WHISPER:Edric muttered to his cousin that a sellsword sold out his master at the crossroads for twenty groats and a skin of tallow.]\n[WARES:Salted Herring Cask|3 sp|Drasdur's Fish]\n[WARES:Iron Hatchet|15 sp|Wrathaes's Smithy]\n[SUBLOCATION:The Red Abbey]\n[NPC:Torvan Pelrath|grim, inspecting|neutral]\n[NPC_PRONOUN:Torvan Pelrath|he/him]\n[SCENE_CAST:Edric Moorcroft, Torvan Pelrath]\n\nThe boy breathes. Shallow and rattling, but alive.\n\nYou hammer your gauntlet on the iron plate. The sound clangs like an anvil struck in an empty vault.\n\nA barred wicket slides back. Pale, hard eyes peer out through the slit. Heavy bolts throw back. The door groans open into sour lime dust and grease-lamp smoke.\n\nA tall human brother in a blood-colored cassock blocks the threshold. Torvan Pelrath looks down at the shivering boy on the canvas. He does not look at your sword.\n\n[SAY:Torvan Pelrath|mood:cold, slow and measured]\"A grey mark from the ash-pits. You brought a plague-vessel to our flagstones, mercenary.\"\n\nHe glances past you into the dark square. Behind you, Edric backs away into the fog, leaving you on the abbey stones with the tainted ward.\n\n[SUGGEST:Ask what the Red Abbey does with marked wards|Demand payment or shelter for bringing the boy alive|Tell Torvan the carter fled and the boy needs burning]"
+  },
+  {
+   "turn": 8,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[LOCATION_HOURS:none]\n[SUBLOCATION:Chancel]\n[EXIT:Nave|The pillared hall stretching back to the iron front door.]\n[EXIT:Transept 2|A side chapel with an altar, opening east.]\n[EXIT:Crypt Stair|A heavy iron-banded door leading down, currently locked.]\n[SCENE_CAST:Torvan Pelrath]\n\n[SAY:Korrag|mood:flat]\"He breathes. That is the silver's worth.\"\n\nYou shoulder past the cassock. Torvan steps aside, his jaw tight. The iron door clangs shut behind you. Heavy bolts slide home.\n\nBoots scrape on cold stone. The nave smells of stale incense, tallow, and damp rock. Fourteen empty pews flank the aisle like rotting ribs.\n\nYou lay the boy before the chancel altar. The flagstones leach the heat from your knees. The lad's chest rises, hitching on every pull of salt air. The blue sigil on his cheek burns dull and greasy in the candlelight.\n\nTorvan follows with measured steps. He stops three paces away. He folds his hands into his coarse red sleeves.\n\n[SAY:Torvan Pelrath|mood:cold, slow and measured]\"A paid shield. Always the same excuse. The merchant who gave you this carcass bought his route from a dying scribe in the salt-pits. The ink was drawn over dead men's graves, mercenary. Did you think your road was an honest trade path?\"\n\nTorvan looks toward the locked iron-banded door in the chancel wall. A key hangs from his hemp cord belt.\n\n[SUGGEST:Ask who the scribe was and where he went|Demand the silver owed for bringing the boy alive|Tell Torvan to unlock the crypt and burn the sigil]"
+  },
+  {
+   "turn": 9,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[LOCATION_HOURS:none]\n[SUBLOCATION:Crypt Stair]\n[QUEST:The Scribe's Ash-Pit|offered|Find the dying scribe in the salt-pits to uncover why the trade map tracks mass graves]\n[QUEST:The Scribe's Ash-Pit|active]\n[QUEST_STEP:The Scribe's Ash-Pit|Confront the scribe in the salt-pits about the suicide map]\n[SCENE_CAST:Torvan Pelrath]\n\n[SAY:Korrag|mood:flat]\"Turn the key, brother. Let us see the dark.\"\n\nTorvan does not blink. He pulls the heavy iron key from his belt. \n\nThe lock grinds. Rust flakes drop to the stone floor. He heaves the oak slab open. \n\nCold air rushes up the stairwell. It smells of dried marrow and wet salt. \n\nTorvan lifts an iron tallow lamp from an alcove. The yellow flame spits and wavers. \n\n[SAY:Torvan Pelrath|mood:cold, slow and measured]\"Down then. But know this. The scribe who inked your map rots in the salt-pits west of town. His fingers turned black before he finished it.\"\n\nYou haul the limp boy onto your good shoulder. His weight pulls hard at your torn ribs. \n\nYou follow the bobbing lamplight down the slick spiral steps.\n\n[SUGGEST:Ask what happened to the scribe's fingers|Demand to know what lies beneath the church|Set the boy down on the cellar floor]"
+  },
+  {
+   "turn": 10,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:10m]\n[LOCATION_HOURS:none]\n[SUBLOCATION:The Lower Chapel]\n[SCENE_CAST:Torvan Pelrath]\n\n[SAY:Korrag|mood:flat]\"Where do you dump your dead?\"\n\nTorvan does not turn. His greasy lamp cuts through the black vault.\n\n[SAY:Torvan Pelrath|mood:cold, slow and measured]\"Beneath the salt. The earth here will not take them otherwise.\"\n\nYou track him past stone pillars into the damp chill. Rows of stacked bone watch from the dark. The air bites at your cracked ribs.\n\nAt the south end, an arched portal opens into a low vault. An unadorned stone bier sits under dripping rock. \n\nYou ease the boy down. The blue sigils on his skin pulse like bruised veins against the grey granite. His breathing is a dry rattle.\n\nTorvan sets the lamp beside the boy's head. The flame hisses in the damp.\n\n[SAY:Torvan Pelrath|mood:grim]\"He will not wake in this world. Your merchant knew that when he hired your sword. Go to the salt-pits, mercenary. Find the scribe who drew the graves, if the rot has left him eyes to see you.\"\n\n[SUGGEST:Ask why the scribe drew mass graves on the map|Demand to know how to purge the boy's rot|Leave the chapel and head west toward the salt-pits]"
+  },
+  {
+   "turn": 11,
+   "raw": "[TIME_CHECK:night]\n[TIME_ADVANCE:1h 15m]\n[LOCATION_HOURS:none]\n[SUBLOCATION_LEAVE]\n[LOCATION:The Salt-Pits]\n[LOCATION_DESC:A bleak expanse of tiered brine trenches and crusted white flats west of Hushwick. Wind howls through rotting wooden sluices and sodden lean-tos. The ground is grey mud under a rind of bitter salt. Open paths lead east to Hushwick, north into the scrub hills, and west toward the deeper ash wastes.]\n[LOCATION_SIZE:medium|30]\n[SCENE_CAST:none]\n\nYou turn your back on the slab. Torvan watches you go. He does not offer a blessing. That suits you fine.\n\nThe spiral stairs grind against your bad ribs. The abbey above sits dark and silent. You unbar the heavy nave doors and step into the cold salt wind. \n\nHushwick is asleep behind locked shutters. You take the western cart track out of town. \n\nThe village falls away into dead grey scrub. Soon the ground turns pale and hard underfoot. \n\nTiered brine trenches carve into the mud like fresh graves. The stench of stagnant sulfur and bitter brine fills your nose. Wind rattles the skeletal timbers of abandoned pump-frames.\n\nAhead, a weak yellow slit of lantern light flickers inside a sagging cedar hovel. A dry, hacking cough cuts through the wind. \n\n[SUGGEST:Approach the cedar hovel and push the door open|Draw your longsword and circle the hut first|Call out to whoever coughs in the dark]"
+  },
+  {
+   "turn": 12,
+   "raw": "[TIME_CHECK:night]\n[WARES:none]\n[FUTURE_EVENT:The dying scribe in the salt-pits|left unresolved]\n[LOCATION:Gremgamouth]\n[LOCATION_DESC:A salt-bleached fishing hamlet clinging to black cliff shelves above the pounding Cirn Ocean. Gutting tables line the slipways. The air stinks of rotting kelp, cod liver, and wet wood smoke. Narrow paths lead west toward Hushwick and down to the shingle beach.]\n[LOCATION_SIZE:small|15]\n[TIME:dawn]\n[TIME_ADVANCE:2d]\n[SCENE_CAST:none]\n\nYou turn on your heel. The wind can have the scribe. \n\nHushwick is black and dead as you pass back through. No dog barks. You hit the rutted eastern track and keep your head down. \n\nTwo days of grey dirt and gnawing hunger. Your cracked ribs ache with every stride. The map in your boot stays cold against your heel.\n\nDawn breaks grey over Gremgamouth. The sea pounds against jagged slate below. Smoke leaks from turf roofs. \n\nGulls scream over the gutting benches. A few old men haul torn nets across the shingle. Nobody looks at a stranger twice.\n\n[SUGGEST:Look for an alehouse to buy food and rest|Speak to the fishermen mending nets on the slipway|Check your purse and inspect your bruised ribs]"
+  }
+ ]
+}
