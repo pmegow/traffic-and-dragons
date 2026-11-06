@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1357",
+      "actions": [
+        "Map library 0.13.0: roads and rivers now meet across the edges of open-country sheets, so those sheets are redrawn in mapped campaigns.",
+        "Tapping water on the realm map now says the point lies in the sea or a lake; coastal land can be stood on."
+      ],
+      "sourceCommit": "b52e718cc7de3eb62714ea9f642f47927a69718b",
+      "commit": "b52e718cc7de3eb62714ea9f642f47927a69718b",
+      "releasedAt": "2026-11-06T17:59:44Z"
+    },
+    {
       "version": "v1.1358",
       "actions": [
         "Dice Simulator 0.97.0 adds installed-font browsing and personal font-file imports; unavailable number fonts use the system font."
