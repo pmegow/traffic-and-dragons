@@ -113,6 +113,12 @@ The first real GM turns in a mapped campaign ([audit](../audits/AUDIT_684_atlas_
 
 Two more findings from the same run are open rows: same-named rooms of different buildings share one `Town|Name` node in the game's own location graph (#693), and a settlement is described before its sheet exists (#694).
 
+## The library's audit and the re-vendor rule (2026-11-05)
+
+An independent audit of the map library (`C:\Projects\TnD_Maps\Audits\Audit_Astra_2026.11.05.html`, 16 findings) was read from the game's side. Six of its library reproductions were re-run against the vendored copy (the same SHA-256 as the library's `dist`) and all reproduce: the road seam between neighbouring wild zones (A03, 92 m), reads that write caches onto the caller's document (A05), a wide town whose sewer cannot be drawn (A06 — not reachable here: every town the game draws is 800×550), coast eligibility judged at a zone's centre (A07 — the game inherits it: a land tap in a zone whose centre is sea is refused as "that point lies in the sea"), a plain TypeError for an inherited generator name (A11), and a silent no-op removal (A14). The owner approved a plan: the library half is handed to a TnD Maps session; the game files #696 (a keyboard route to a sheet's places — the audit's A09 applies to the game's pane too) and #697 (own-property lookups in the atlas tables — A11's class).
+
+**The re-vendor rule.** A03, A06 and A07 change what a seed draws, and the game stores recipes, never documents: each such fix redraws the affected zones of every saved mapped campaign. Take them in ONE library release, read its notes for which generators redraw, and accept the fixture table in `dev/tests-684-atlas-engine.js` once, on purpose, in the re-vendor commit — with the owner's go, because saved campaigns' maps change. A05 must leave the fingerprints as they are (`atlasFingerprint` already ignores the caches). When A07 lands, add a game test that a land tap in a coastal zone is accepted and that a refusal's words are true of the tap: the game shows the library's reason to the player verbatim.
+
 ## Deliberately later (each its own TODO row once this lands)
 
 - **Placed starts**: a start preset carries where it sits on the map (a tavern, a cave mouth, wild coast) and the map
