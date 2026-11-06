@@ -74,7 +74,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    const town='campaign-1/'+p3.id;
    assert.equal(r.at,town);assert.deepEqual(r.tie,{zone:'campaign-1',id:p3.id});assert.equal(r.off,null);
    assert.equal(r.zone,town,'the pane moved to the town sheet');assert.equal(r.doc,town);assert.equal(r.markers.length,1);assert.equal(r.markers[0].kind,'party');
-   assert.equal(r.status,'The party is in '+p3.name+'.');assert.ok(r.trail.indexOf(p3.name)>=0&&r.trailBtn===1,'the trail: region button, then the town');
+   assert.equal(r.status,'The party is in '+p3.name+'. The story\'s "The Crossroads of Ashenveil" is at '+p3.name+' on this map: the player placed it there.','#692: the pane says the tie the tap made, in the words the GM is told');assert.ok(r.trail.indexOf(p3.name)>=0&&r.trailBtn===1,'the trail: region button, then the town');
    assert.ok(r.toasts.some(t=>t==='"The Crossroads of Ashenveil" is on the map.'),'toasted: '+JSON.stringify(r.toasts));
    assert.equal(r.savedAt,town,'the tie is saved at once');assert.equal(r.savedZones,2);
    await page.screenshot({path:path.join(SHOTS,'atlas-town.png')});

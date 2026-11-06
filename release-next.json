@@ -1,6 +1,6 @@
 {
-  "version": "v1.1355",
+  "version": "v1.1356",
   "actions": [
-    "Remove Melt from dice exit options and random selections, with safe fallbacks for previously saved choices."
+    "In a mapped campaign, the Game Master is now told where you placed the party with We are here."
   ]
 }

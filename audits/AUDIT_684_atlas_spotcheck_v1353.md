@@ -34,6 +34,19 @@
 - **Row #684** — the live evidence is recorded there; the row stays ◉ until the owner's own mapped campaign.
 - **Stays on the play checklist:** the opening and travel-time gaps (already on #684's open list); the "last mapped place" wording.
 
+## Re-test after the #692 fix (2026-11-05)
+
+Same realm (seed `qy49avnujq7o`), same tie (The Crossroads of Ashenveil → Hushwick), a fresh skeleton, the candidate atlas.js evaluated into the signed-in page before any version was committed. Campaign `camp_1793944511915_3637` (`PlaytestHarness_atlas692`), deleted and checked absent. Corpus: [dev/corpus_spotcheck_692_retest.json](../dev/corpus_spotcheck_692_retest.json).
+
+| Turn | Before the fix (this audit's run) | With the fix |
+|---|---|---|
+| The where-line the GM was sent | "The party is in Hushwick." | "The party is in Hushwick. The story's "The Crossroads of Ashenveil" is at Hushwick on this map: the player placed it there." |
+| "Which way is the nearest town?" | "Hushwick lies east, past Bleakford." | answered from the story's own places (Redford Crossing, Oakhaven); Hushwick not mentioned, and not put elsewhere |
+| "How far is Hushwick from this crossroads?" | (not asked; the march took `[TIME_ADVANCE:2h]`) | "Ashenveil is no lost valley. It is the dead scrub wrapping around Hushwick itself. The village lies barely a mile north-east toward the coast." |
+| Walking in | `[LOCATION:Hushwick]` after two hours | `[LOCATION:Hushwick]` after `[TIME_ADVANCE:25m]`; the description and exits are the sheet's (no wall, the sea to the north-east, The Green, The Grey Lion, Neirgear's Cellar, The Harbour on the eastern shore) |
+
+One sample each way; the GM is not deterministic. The opening still ignores the map (the known gap): with the tie said, the GM folds its own geography around the map place instead of contradicting it.
+
 ## Method notes
 
 - The spot-check steers; it does not sample. A scripted player who names map places is the easy case — the owner's own play is the test of an unsteered table.

@@ -1,0 +1,109 @@
+{
+ "kind": "spotcheck-692-retest",
+ "pageVer": "v1.1353",
+ "candidate": "atlas.js working tree (atlasTiesHere/atlasTieSay) evaluated into the page",
+ "provider": "gemini",
+ "model": "gemini-3.8-flash",
+ "run": {
+  "campId": "camp_1793944511915_3637",
+  "campName": "PlaytestHarness_atlas692",
+  "startedAt": 1793944512240,
+  "ver": "v1.1353",
+  "route": "server",
+  "provider": "gemini",
+  "model": "gemini-3.8-flash"
+ },
+ "seed": "qy49avnujq7o",
+ "placed": {
+  "status": "The party is in Hushwick. The story's \"The Crossroads of Ashenveil\" is at Hushwick on this map: the player placed it there.",
+  "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick. The story's \"The Crossroads of Ashenveil\" is at Hushwick on this map: the player placed it there.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+  "snap": {
+   "turn": 0,
+   "busy": false,
+   "loc": "The Crossroads of Ashenveil",
+   "sub": null,
+   "at": "qy49avnujq7o/p11",
+   "spot": null,
+   "off": null,
+   "ties": [
+    "The Crossroads of Ashenveil"
+   ],
+   "where": "The party is in Hushwick. The story's \"The Crossroads of Ashenveil\" is at Hushwick on this map: the player placed it there.",
+   "pendingCheck": false,
+   "skeleton": true
+  }
+ },
+ "turns": [
+  {
+   "n": 1,
+   "action": "I ask, low and quick: what is this place called, and which way is the nearest town?",
+   "before": 0,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick. The story's \"The Crossroads of Ashenveil\" is at Hushwick on this map: the player placed it there.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "after": {
+    "turn": 1,
+    "busy": false,
+    "loc": "The Crossroads of Ashenveil",
+    "sub": null,
+    "at": "qy49avnujq7o/p11",
+    "spot": null,
+    "off": null,
+    "ties": [
+     "The Crossroads of Ashenveil"
+    ],
+    "where": "The party is in Hushwick. The story's \"The Crossroads of Ashenveil\" is at Hushwick on this map: the player placed it there.",
+    "pendingCheck": false,
+    "skeleton": true
+   },
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:5m]\n[WARES:none]\n\n[SAY:Korrag]\"What is this place called?\" you mutter aloud to the wind. \"Which way to the nearest town?\"\n\nOnly the rattle of dry scrub answers. The copper-scented ink on your map labels this desolate crossing as Ashenveil. Due north lies the checkpoint at Redford Crossing, barred by soldiers and dogs. Beyond that iron blockade sits Oakhaven, the walled borough where your promised pouch of silver waits. To the south lies only the dead frontier you just crossed. The east track winds deep into the rotting scrub, bypassing the river gate entirely.\n\n[SUGGEST:Take the eastern bypass track|Scout the northern checkpoint|Inspect the bone-casket cargo]",
+   "ms": 53855
+  },
+  {
+   "n": 2,
+   "action": "My map marks a village called Hushwick. I study it against the land around me: how far is Hushwick from this crossroads, and which way?",
+   "before": 1,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick. The story's \"The Crossroads of Ashenveil\" is at Hushwick on this map: the player placed it there.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "after": {
+    "turn": 2,
+    "busy": false,
+    "loc": "The Crossroads of Ashenveil",
+    "sub": null,
+    "at": "qy49avnujq7o/p11",
+    "spot": null,
+    "off": null,
+    "ties": [
+     "The Crossroads of Ashenveil"
+    ],
+    "where": "The party is in Hushwick. The story's \"The Crossroads of Ashenveil\" is at Hushwick on this map: the player placed it there.",
+    "pendingCheck": false,
+    "skeleton": true
+   },
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:10m]\n[SOUNDSCAPE:The Crossroads of Ashenveil|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=wind,animals,bells;forbid=none]\n\nYou squint down at the map. The parchment is stiff with dried salt and witch-blood. The dark ink sits right where your boots stand. Ashenveil is no lost valley. It is the dead scrub wrapping around Hushwick itself. \n\nThe village lies barely a mile north-east toward the coast. Close enough to smell the salt over the rot. But the rutted road cuts through the checkpoint first. The soldiers hold the river bridge. Their iron bell clangs again, dull and heavy. \n\nDogs whine in the distance. The cart axle groans under the bone-casket.\n\n[SUGGEST:Haul cart down the north road|Scout east toward the coastline|Check the casket before moving]",
+   "ms": 13995
+  },
+  {
+   "n": 3,
+   "action": "I leave the cart hidden in the scrub and walk north-east, skirting the checkpoint, into Hushwick itself.",
+   "before": 2,
+   "block": "MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):\nThe party is in Hushwick. The story's \"The Crossroads of Ashenveil\" is at Hushwick on this map: the player placed it there.\nHushwick is a village of about 173 houses (some 770 souls) in Wralsol. On the coast, the sea lying to the NE.\nThe Green lies at the heart of the village. The Red Abbey stands beside the market. The Harbour lies on the E shore, 90 m from the market.\nIt has no wall. Roads leave to the E and S.\nTrades and houses: outside the districts: The Grey Lion (inn), Neirgear's Cellar (tavern), Wrathaes's Smithy (blacksmith), The Gilded Loaf (bakery), Drasdur's Fish (fishmonger) and Shrine of Parstest (shrine).\nOn the region: Hushwick is a village. It lies on the coast (the sea lies to the NE). Gremgamouth lies 145 km to the E as the crow flies (5 days), across ocean and forest; Branourn lies 165 km to the SE as the crow flies (5 days), across ocean and forest; Peimouckbank lies 220 km to the NE as the crow flies (7 days), across ocean and plain.\nNames on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.\n\n",
+   "after": {
+    "turn": 3,
+    "busy": false,
+    "loc": "Hushwick",
+    "sub": null,
+    "at": "qy49avnujq7o/p11",
+    "spot": null,
+    "off": null,
+    "ties": [
+     "The Crossroads of Ashenveil"
+    ],
+    "where": "The party is in Hushwick.",
+    "pendingCheck": false,
+    "skeleton": true
+   },
+   "raw": "[TIME_CHECK:evening]\n[TIME_ADVANCE:25m]\n[LOCATION:Hushwick]\n[LOCATION_DESC:A sprawling, wall-less coastal village of huddled timber and thatch cottages. Salt spray mingles with chimney smoke. The sea churns grey to the northeast.]\n[LOCATION_SIZE:medium|15]\n[EXIT:The Green|Open commons at the heart of the village]\n[EXIT:The Grey Lion|Weather-beaten wooden inn near the village edge]\n[EXIT:Neirgear's Cellar|Sunken stone tavern smelling of bitter ale]\n[EXIT:The Harbour|Rocky quayside and slipways on the eastern shore]\n[LOCATION_RESIDENT:Drasdur]\n[LOCATION_RESIDENT:Wrathaes]\n\nYou haul the wagon into the thickest thorns. The bone-casket stays lashed tight under the grease-cloth. \n\nThe scrub tears at your wool cloak. You circle wide around the river bridge. No dogs catch the scent. Soon your boots hit salt-grass. \n\nHushwick reeks of dried cod, peat fires, and brine. Cobbled paths wind between dark timber houses. Folk give your mail coat a wide berth. Across the square sits a weathered tavern, its door creaking in the gale.\n\n[SUGGEST:Enter The Grey Lion|Head to The Green|Walk to the harbour]",
+   "ms": 25978
+  }
+ ],
+ "opening": "[TIME_CHECK:evening]\n[TIME_ADVANCE:10m]\n[LOCATION_DESC:A desolate four-way junction choked in grey grit, surrounded by twisted, leafless scrub. To the north lies the militarized river road toward Redford Crossing, while the southern track leads back toward the border barrens. East and west stretch choked paths into the rotting brush.]\n[LOCATION_SIZE:medium|20]\n[EXIT:North road|Rutted trail leading toward Redford Crossing]\n[EXIT:East track|Overgrown path into the grey scrub]\n[EXIT:West trail|Stony incline toward the ridge]\n[QUEST:The Redford Crossing|active]\n[QUEST_STEP:The Redford Crossing|Navigate past the river checkpoint to reach Oakhaven|false]\n\nThe wind tastes of bitter chimney ash and sour damp. A heavy wooden cart sits mired in the grit, bearing a long bone-casket lashed tight under oilcloth. Your traveler's map shows a bypass off the main road, inked in dark, sticky pigment that smells faintly of copper. From the north road, the hollow clang of an iron checkpoint bell drifts through the gloom, accompanied by the muffled bark of guard hounds. \n\n[SUGGEST:Examine the map's route|Check the casket's lashings|Scout the northern road]",
+ "errors": []
+}

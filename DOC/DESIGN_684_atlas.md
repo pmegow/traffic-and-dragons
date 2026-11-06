@@ -101,6 +101,18 @@ fifth commit, each with a test and a battery clause:
 Known and left as they are: the HUD's location label follows the spotlight character while the atlas follows the
 hero's pointer (a split party); a world place whose name contains `|` shares a key with a sub-location.
 
+## The live spot-check and the tie that was never said (2026-11-05, #692)
+
+The first real GM turns in a mapped campaign ([audit](../audits/AUDIT_684_atlas_spotcheck_v1353.md)) confirmed the design — the GM wrote the exact map name on 6 of 6 moves and the atlas followed across four scales — and found what no gate could: **a tie was kept and never said.** The player placed the story's "The Crossroads of Ashenveil" on Hushwick; the MAP block said only "The party is in Hushwick."; the GM kept the crossroads as its own place and put Hushwick two hours east of it.
+
+**The fix (owner rulings by chips, 2026-11-05).** The where-line says the tie for the place the party stands in: `The story's "<story place>" is at <map place> on this map: the player placed it there.` Ruled "is at" over "is the same place" (which would have the GM re-describe a crossroads as a village and needs a rule about which name its tags keep) and over "lies within" (wrong when the story place IS the settlement under another name). Ruled the current place only over a list of every tie (the prompt would grow with every tap; a far-off tied place is still resolved by the engine when the story goes there).
+
+**The live re-test** (same realm, same tie): the GM answered that the crossroads is "the dead scrub wrapping around Hushwick itself", a mile from the village, and walked in in 25 minutes with the sheet's own layout.
+
+**The independent review before the push** found no high defect and two medium ones, both fixed: a tie to a wild sheet's edge was said as "is at north on this map" (an edge's name is a bearing; it is now said as the edge of its sheet, `ATLAS_TIE_AT`), and the commonest tie — a building the GM invented in a town the map names — had no test. It also showed that the battery's attribution could not fail (the suites print a test's name on PASS too): every clause now requires the named test's own FAIL line. One finding is its own row (#695): a sub-location can be tied to a sheet outside its world place, and the where-line then says two placements that contradict. "The current place only" is read as the place the story's pointer names.
+
+Two more findings from the same run are open rows: same-named rooms of different buildings share one `Town|Name` node in the game's own location graph (#693), and a settlement is described before its sheet exists (#694).
+
 ## Deliberately later (each its own TODO row once this lands)
 
 - **Placed starts**: a start preset carries where it sits on the map (a tavern, a cave mouth, wild coast) and the map

@@ -410,17 +410,48 @@ function atlasPortalPeek(A,zoneId,portal){
 }
 /* how a spot is said, by the thing's kind (default: "at <name>") */
 var ATLAS_SPOT_PHRASE={edge:function(t){return "at its edge, "+t.name;}};
+/* READ: the player's ties behind the place the party stands in NOW, in the story's words — [{level, name, at}], the world
+   place's first, then the sub-location's (#692: a tie that is kept and never said leaves the GM with two places — the
+   story's and the map's — and it puts one down the road from the other). Only what the player placed (atlasTie), only
+   for a pointer the atlas has followed, and only when the map name is not the story's own: a place on the map by its
+   name has nothing to say, and a tie whose thing the sheet no longer has is not claimed. A pure read. */
+var ATLAS_TIE_OPEN="open country";/* a tie to a stretch of country the library gave no name */
+/* how the tied thing is named in a tie, by its kind (default: its own name). An edge is named by a bearing ("north"),
+   which is no place: it is said as the edge of the sheet it belongs to (independent review 2026-11-05: "is at north on
+   this map" read as a compass claim). */
+var ATLAS_TIE_AT={edge:function(thing,sheet){return "the edge of "+sheet+", "+thing.name;}};
+function atlasTiesHere(A){
+  var p=A?atlasPointer():null,out=[];
+  function add(level,name,key){
+    var t=key?atlasTie(A,key):null,thing,at;
+    if(!t)return;
+    if(t.id!=null){thing=atlasThingById(atlasDoc(t.zone),t.id);if(!thing)return;at=ATLAS_TIE_AT[thing.kind]?ATLAS_TIE_AT[thing.kind](thing,A.zones[t.zone].name||t.zone):thing.name;}
+    else at=A.zones[t.zone].name||ATLAS_TIE_OPEN;
+    if(at&&atlasNameKey(at)!==atlasNameKey(name))out.push({level:level,name:name,at:at});
+  }
+  if(!A||!p||A.ptr!==JSON.stringify([p.world,p.sub]))return out;
+  add("world",p.world,atlasWorldKey(p));
+  if(p.sub)add("sub",p.sub,atlasSubKey(p));
+  return out;
+}
+/* how a tie is said — to the GM on the where-line and to the player in the pane (owner ruling 2026-11-05: "is at", the
+   engine claims no more than the tap said: not that the two are one place, not that one lies inside the other) */
+function atlasTieSay(t){return "The story's \""+t.name+"\" is at "+t.at+" on this map: the player placed it there.";}
 /* READ: where the party is, in words and in parts — the pane's status line and the first line the GM is told */
 function atlasWhere(){
-  var A=atlasLive(),rec,t,out,why,phrase="";
+  var A=atlasLive(),rec,t,out,why,phrase="",said="";
   if(!A)return null;
-  out={placed:!!(A.at&&A.zones[A.at]),zone:null,zoneName:null,zoneKind:null,spot:null,spotName:null,off:A.off||null,text:""};
+  out={placed:!!(A.at&&A.zones[A.at]),zone:null,zoneName:null,zoneKind:null,spot:null,spotName:null,off:A.off||null,ties:[],text:""};
   why=A.off?"\""+A.off.name+"\" is not on "+(A.off.within?"its map":"the map")+" ("+A.off.why+")":"";
   if(!out.placed){out.text="The party is not on the map yet."+(why?" "+why+".":"");return out;}
   rec=A.zones[A.at];out.zone=A.at;out.zoneName=rec.name||A.at;out.zoneKind=rec.kind;
   if(A.spot!=null){t=atlasThingById(atlasDoc(A.at),A.spot);if(t){out.spot=t.id;out.spotName=t.name;if(atlasNameKey(t.name)!==atlasNameKey(out.zoneName))phrase=", "+(ATLAS_SPOT_PHRASE[t.kind]?ATLAS_SPOT_PHRASE[t.kind](t):"at "+t.name);}}
   if(A.off&&!A.off.within)out.text=why+". The party's last mapped place is "+out.zoneName+".";
-  else out.text="The party is in "+out.zoneName+phrase+"."+(why?" "+why+".":"");
+  else{
+    /* the party stands on the map: say the ties that put it there (a party that has left the mapped places has none) */
+    out.ties=atlasTiesHere(A);out.ties.forEach(function(x){said+=" "+atlasTieSay(x);});
+    out.text="The party is in "+out.zoneName+phrase+"."+said+(why?" "+why+".":"");
+  }
   return out;
 }
 /* READ: what a "We are here" tap would tie. The world place first: while it is off the map (or the party is nowhere, or

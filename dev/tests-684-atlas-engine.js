@@ -373,6 +373,93 @@ var ATLAS_FIXTURES = {
     assert.equal(A.at, A.seed + "/" + c.p1.id, "the merged place is still where the player put it"); assert.equal(A.off, null);
   });
 
+  /* #692 (the live spot-check, 2026-11-05): the tie was kept and never SAID. The GM read "The party is in Hushwick." beside
+     a story place called The Crossroads of Ashenveil, kept the two apart and put Hushwick two hours down the road. */
+  test("a player's tie is SAID (#692): the where-line and the MAP block name the story place the player put there — for the place the party stands in only, never for a name match", function () {
+    var A = fresh(), c = cast(A), p3 = c.reg.places[3], z3 = A.seed + "/" + p3.id, w, b, s, est, land = null;
+    function say(story, at) { return "The story's \"" + story + "\" is at " + at + " on this map: the player placed it there."; }
+    /* on the map by its own name: there is no tie to say */
+    point(c.p0.name); atlasFollow(); w = atlasWhere();
+    assert.deepEqual(w.ties, []); assert.equal(w.text, "The party is in " + c.p0.name + ".");
+    /* the spot-check's case: the story's place, put on a settlement by the player */
+    point("The Crossroads of Ashenveil"); atlasFollow();
+    assert.equal(atlasPlace(A.seed, { id: p3.id }, atlasPlacePreview()).ok, true);
+    s = JSON.stringify(worldState.atlas); w = atlasWhere();
+    assert.deepEqual(plain(w.ties), [{ level: "world", name: "The Crossroads of Ashenveil", at: p3.name }]);
+    assert.equal(w.text, "The party is in " + p3.name + ". " + say("The Crossroads of Ashenveil", p3.name));
+    b = atlasMapBlock();
+    assert.equal(b.indexOf(ATLAS_BRIEF_HEAD + "\n" + w.text + "\n"), 0, "the GM is told the tie on the where-line: " + b.slice(0, 520));
+    assert.equal(JSON.stringify(worldState.atlas), s, "saying a tie writes nothing");
+    /* in the real prompt: the tie rides the volatile half, once, inside the MAP block; the cached stable half is the same with or without it */
+    var tied = buildSysPrompt(), kept = A.names["The Crossroads of Ashenveil"], untied;
+    delete A.names["The Crossroads of Ashenveil"]; untied = buildSysPrompt(); A.names["The Crossroads of Ashenveil"] = kept;/* the fixture: the same position, the tie unsaid */
+    assert.equal(tied.volatile.split(say("The Crossroads of Ashenveil", p3.name)).length, 2, "the prompt says the tie exactly once");
+    assert(tied.volatile.indexOf(say("The Crossroads of Ashenveil", p3.name)) > tied.volatile.indexOf("MAP (the drawn map of this world"), "inside the MAP block");
+    assert.equal(tied.volatile.replace(" " + say("The Crossroads of Ashenveil", p3.name), ""), untied.volatile, "the tie adds its one sentence to the volatile half and nothing else");
+    assert.equal(tied.stable, untied.stable, "the stable half does not carry the tie"); assert.equal(tied.stable.indexOf("the player placed it there"), -1);
+    /* the party walks into the settlement under its own name: the same zone, and no tie stands behind THAT name */
+    point(p3.name); atlasFollow(); w = atlasWhere();
+    assert.equal(A.at, z3); assert.deepEqual(w.ties, []); assert.equal(w.text, "The party is in " + p3.name + ".");
+    /* current place only: elsewhere the tie is not mentioned */
+    point(c.p0.name); atlasFollow(); b = atlasMapBlock();
+    assert.equal(b.indexOf("The Crossroads of Ashenveil"), -1, "a tie is said for the place the party stands in, never listed from afar"); assert.equal(b.indexOf("the player placed it there"), -1);
+    /* a pointer the atlas has not followed: nothing is claimed about it */
+    point("The Crossroads of Ashenveil"); assert.deepEqual(atlasWhere().ties, [], "the story moved and nothing followed: no tie is said for the new pointer");
+    atlasFollow(); assert.equal(atlasWhere().text, "The party is in " + p3.name + ". " + say("The Crossroads of Ashenveil", p3.name), "back at the tied place, it is said again");
+    /* a sub-location the map does not know, inside the tied place: the tie first, then the reason */
+    point("The Crossroads of Ashenveil", "The Gibbet Yard"); atlasFollow();
+    assert.equal(atlasWhere().text, "The party is in " + p3.name + ". " + say("The Crossroads of Ashenveil", p3.name) + " \"The Gibbet Yard\" is not on its map (no place on the map has that name).");
+    /* the sub-location tied too: both are said, the world place first */
+    est = atlasDoc(z3).establishments[0]; assert(est, "the fixture settlement has a building");
+    assert.equal(atlasPlace(z3, { id: est.id }, atlasPlacePreview()).ok, true); w = atlasWhere();
+    assert.deepEqual(plain(w.ties), [{ level: "world", name: "The Crossroads of Ashenveil", at: p3.name }, { level: "sub", name: "The Gibbet Yard", at: est.name }]);
+    assert.equal(w.text.indexOf("The party is in " + A.zones[A.at].name), 0, w.text);
+    assert.equal(w.text.slice(-(say("The Crossroads of Ashenveil", p3.name) + " " + say("The Gibbet Yard", est.name)).length), say("The Crossroads of Ashenveil", p3.name) + " " + say("The Gibbet Yard", est.name), w.text);
+    /* a merged place keeps its tie, and it is said under the name the story uses NOW */
+    memory.map.nodes["The Ashen Cross"] = newMapNode(1, null);
+    assert.equal(locAliasRegister("The Ashen Cross", "The Crossroads of Ashenveil", null), true, "the fixture: the old name is now an alias");
+    point("The Ashen Cross"); atlasFollow();
+    assert.equal(atlasWhere().text, "The party is in " + p3.name + ". " + say("The Ashen Cross", p3.name));
+    point("The Crossroads of Ashenveil"); atlasFollow();
+    assert.equal(atlasWhere().text, "The party is in " + p3.name + ". " + say("The Crossroads of Ashenveil", p3.name), "the name said is the pointer's own — the words the story uses — never the identity layer's key");
+    /* the commonest shape (independent review): the world place on the map by its own name, a building the GM invented
+       tied by the player — the sub-location's tie is said on its own */
+    A = fresh(); c = cast(A); point(c.p0.name, "The Gibbet Yard"); atlasFollow(); townCast(A, c);
+    assert.equal(atlasPlace(c.townId, { id: c.market.id }, atlasPlacePreview()).ok, true); w = atlasWhere();
+    assert.deepEqual(plain(w.ties), [{ level: "sub", name: "The Gibbet Yard", at: c.market.name }]);
+    assert.equal(w.text, "The party is in " + c.p0.name + ", at " + c.market.name + ". " + say("The Gibbet Yard", c.market.name));
+    /* a party that has left the mapped places: the last-mapped line carries no tie, even one filed under the pointer */
+    A.off = { name: c.p0.name, why: "the fixture" };/* the fixture: a world place the map can no longer find, its sub-location's tie still on file */
+    w = atlasWhere(); assert.deepEqual(w.ties, [], "nothing is placed for a party that is not on the map");
+    assert.equal(w.text, "\"" + c.p0.name + "\" is not on the map (the fixture). The party's last mapped place is " + c.p0.name + ".");
+    /* a tie to a thing that bears the story's own name says nothing new (the tap that settles two same-named things) —
+       the same once case and punctuation are folded, as a name match is */
+    A = fresh(); c = cast(A); var loud = c.p1.name.toUpperCase() + "!";
+    A.names[loud] = { zone: A.seed, id: c.p1.id };/* the fixture: as atlasPlace files it */
+    point(loud); atlasFollow(); w = atlasWhere();
+    assert.equal(A.at, A.seed + "/" + c.p1.id); assert.deepEqual(w.ties, []); assert.equal(w.text, "The party is in " + c.p1.name + ".");
+    /* open country: the tie is to the stretch of country the player tapped */
+    c.reg.features.forEach(function (f) { if (land || f.kind === "sea" || f.kind === "lake") return; try { TnDMaps.wild.fromRegion(c.reg, [f.x, f.y]); land = f; } catch (e) { } });
+    point("A forest clearing near ancient ruins"); atlasFollow();
+    assert.equal(atlasPlace(A.seed, { x: land.x, y: land.y }, atlasPlacePreview()).ok, true); w = atlasWhere();
+    assert.equal(A.zones[A.at].kind, "wild"); assert.equal(w.ties.length, 1); assert.equal(w.ties[0].at, A.zones[A.at].name || "open country");
+    assert.equal(w.text, "The party is in " + (A.zones[A.at].name || A.at) + ". " + say("A forest clearing near ancient ruins", w.ties[0].at));
+    /* a tie to a sheet's edge (independent review): an edge is named by a bearing, which is no place — it is said as
+       the edge of its sheet, never "is at north" */
+    var wild = A.at, wname = A.zones[wild].name, edge = atlasDoc(wild).portals.filter(function (p) { return p.kind === "edge" && p.to && p.to.id; })[0];
+    assert(edge && wname, "the fixture zone is named and has an edge that leads on");
+    point("The Standing Stone"); atlasFollow();
+    assert.equal(atlasPlace(wild, { id: edge.id }, atlasPlacePreview()).ok, true); w = atlasWhere();
+    assert.deepEqual(plain(w.ties), [{ level: "world", name: "The Standing Stone", at: "the edge of " + wname + ", " + edge.name }]);
+    assert(w.text.indexOf(" " + say("The Standing Stone", "the edge of " + wname + ", " + edge.name)) > 0, w.text);
+    /* a tie whose thing a redrawn sheet no longer has — the position stands from the save and the pointer has not moved, so
+       nothing follows again: the tie is not said (nothing loose is claimed) and the read does not break */
+    A = fresh(); c = cast(A); point("The Lost Mill"); atlasFollow();
+    assert.equal(atlasPlace(A.seed, { id: c.p1.id }, atlasPlacePreview()).ok, true); assert.equal(atlasWhere().ties.length, 1);
+    A.names["The Lost Mill"].id = "gone-after-a-redraw";/* the fixture: what a library that renumbers its places leaves behind */
+    w = atlasWhere(); assert.deepEqual(w.ties, [], "a thing the sheet no longer has is not named"); assert.equal(w.text, "The party is in " + c.p1.name + ".");
+  });
+
   test("a party that has left the mapped places is never drawn as being there: the marker says last mapped place, and every card offers We are here", function () {
     var A = fresh(), c = cast(A), m, card;
     point(c.p0.name); atlasFollow(); townCast(A, c);
