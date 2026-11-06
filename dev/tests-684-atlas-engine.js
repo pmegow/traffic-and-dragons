@@ -7,6 +7,8 @@
 //   • version drift: a zone that draws differently from its record is said out loud; a read never writes
 //   • a failure never escapes a writer; an unreadable store is set aside at load; the party marker is derived
 //   • what the pane says (where the party is, what a tap would tie, a thing's card) — and no peeking; the fog of war
+//   • THE MAP BLOCK the GM reads: "" without an atlas; the realm in brief, a town with its neighbours, a building, a
+//     dungeon; honest off the map and behind a pointer nothing followed; capped at a sentence; never in GEOGRAPHY
 //   • THE FIXTURE GATE: a re-vendored library that redraws the fixture realm fails here until accepted on purpose
 //   • the turn's commit and the load door call the atlas; the load order carries atlas.js
 //   node dev/tests-684-atlas-engine.js
@@ -317,6 +319,97 @@ var ATLAS_FIXTURES = {
     assert.equal(A.at, sewer, "a chamber's name is found on the entered sheet beneath the town"); assert.equal(A.spot, deep.id);
     assert.deepEqual(atlasReveal(sewer).slice().sort(), ids.concat([deep.id]).sort(), "the chamber the party stands in is shown, and only it");
     TnDMaps.scene.build(doc, "ink", { reveal: atlasReveal(sewer) });
+  });
+
+  test("the MAP block: nothing without an atlas; unplaced, the realm in brief with every settlement by name and the naming rule", function () {
+    engine.makeTestWorld(); atlasForget();
+    assert.equal(atlasMapBlock(), "", "a campaign without an atlas adds nothing to its prompt");
+    var A = fresh(), c = cast(A), b, s;
+    point("The Salted Wound Tavern"); atlasFollow(); s = JSON.stringify(worldState.atlas);
+    b = atlasMapBlock();
+    assert.equal(b.indexOf(ATLAS_BRIEF_HEAD + "\nThe party is not on the map yet. \"The Salted Wound Tavern\" is not on the map (no place on the map has that name).\n"), 0, b.slice(0, 500));
+    assert(b.indexOf(c.reg.title.name + " — a region about") > 0, "the realm's own opening line");
+    c.reg.places.forEach(function (p) { assert(b.indexOf(p.name + " (" + p.kind + ")") > 0, "every settlement is named: " + p.name); });
+    c.reg.caves.forEach(function (cv) { assert(b.indexOf(cv.name) > 0, "every cave is named: " + cv.name); });
+    assert.equal(b.slice(-(ATLAS_BRIEF_RULE.length + 2)), ATLAS_BRIEF_RULE + "\n\n", "the naming rule closes the block");
+    assert.equal(b.indexOf(" lies "), -1, "no settlement's own paragraph while the party is nowhere");
+    assert.equal(atlasMapBlock(), b, "the block is a pure function of the state"); assert.equal(JSON.stringify(worldState.atlas), s, "building the block writes nothing");
+    assert(b.length < 2200, "the realm in brief is brief: " + b.length);
+  });
+
+  test("the MAP block in a town: its digest with its trades, its neighbours with bearing, distance and days; in a building and under the ground, that sheet", function () {
+    var A = fresh(), c = cast(A), b, digest, line;
+    point(c.p0.name); atlasFollow(); townCast(A, c); b = atlasMapBlock(); digest = TnDMaps.digest(c.town).text;
+    assert(b.indexOf("\nThe party is in " + c.p0.name + ".\n" + digest.slice(0, 200)) > 0, "the where-line, then the town's digest: " + b.slice(0, 600));
+    assert(b.indexOf(c.inn.name + " (inn)") > 0, "the trades the sub-locations bind to");
+    line = b.split("\n").filter(function (l) { return l.indexOf("On the region: " + c.p0.name + " is ") === 0; })[0];
+    assert(line && /lies \d+ km to the [NSEW]+ (by road )?\(\d+ days?\)/.test(line), "the neighbours with bearing, distance and days: " + line);
+    assert(b.length <= ATLAS_BRIEF_HEAD.length + ATLAS_BRIEF_RULE.length + ATLAS_BRIEF_CAP + 200, "inside the cap: " + b.length);
+    assert.equal(b.indexOf(ATLAS_BRIEF_CUT), -1, "a city fits whole under the cap");
+    point(c.p0.name, c.inn.name); atlasFollow(); b = atlasMapBlock();
+    assert(b.indexOf(TnDMaps.digest(atlasDoc(A.at)).text.slice(0, 120)) > 0 && b.indexOf("On the region:") < 0, "inside the inn: the inn's sheet, not the town's");
+    point(c.p0.name, c.grates[0].name); atlasFollow(); b = atlasMapBlock();
+    var sewer = atlasDoc(A.at), deep = sewer.rooms.filter(function (r) { return atlasReveal(A.at).indexOf(r.id) < 0; })[0];
+    assert(b.indexOf("The party is in " + sewer.title.name + ", at " + c.grates[0].name + ".") > 0, b.slice(0, 500));
+    assert(b.indexOf(deep.name) > 0, "the GM is told the whole sewer — the chamber '" + deep.name + "' the player's sheet keeps fogged");
+    assert.equal(buildGeoBlock().indexOf("MAP ("), -1, "GEOGRAPHY — which Table Talk reuses — never carries the MAP block");
+    assert.equal(buildGeoBlock().indexOf(deep.name), -1, "the help desk is never handed a fogged chamber");
+  });
+
+  test("the MAP block is honest: a party off the map is not served the sheet it left; a pointer nothing followed is not described; the cap cuts at a sentence and says so", function () {
+    var A = fresh(), c = cast(A), b, cap = ATLAS_BRIEF_CAP;
+    point(c.p0.name); atlasFollow(); townCast(A, c);
+    point("Far Away"); atlasFollow(); b = atlasMapBlock();
+    assert(b.indexOf("\"Far Away\" is not on the map (no place on the map has that name). The party's last mapped place is " + c.p0.name + ".") > 0, b.slice(0, 500));
+    assert.equal(b.indexOf(c.inn.name), -1, "the town the party left is not served as where it is"); assert(b.indexOf("Settlements: ") > 0, "the realm in brief instead");
+    point(c.p0.name, "The Rusty Flagon"); atlasFollow(); b = atlasMapBlock();
+    assert(b.indexOf("\"The Rusty Flagon\" is not on its map") > 0 && b.indexOf(c.inn.name + " (inn)") > 0, "an unmapped room inside a mapped town: the town's sheet is still served");
+    /* the pointer moves outside a turn (a Sync edit) and nothing follows it */
+    point(c.p1.name); quiet(); b = atlasMapBlock();
+    assert.equal(b, ATLAS_BRIEF_HEAD + "\nThe map has not followed the story to its current place yet; it says nothing this turn.\n\n");
+    assert(warns.some(function (w) { return /MAP block is withheld/.test(w); }), "said in the console");
+    atlasFollow(); assert(atlasMapBlock().indexOf("The party is in " + c.p1.name + ".") > 0, "followed: described");
+    /* the cap */
+    point(c.p0.name); atlasFollow();
+    try {
+      ATLAS_BRIEF_CAP = 600; b = atlasMapBlock();
+      var sheet = b.slice(b.indexOf("\n", ATLAS_BRIEF_HEAD.length + 1) + 1, b.length - ATLAS_BRIEF_RULE.length - 3);
+      assert.equal(sheet.slice(-ATLAS_BRIEF_CUT.length), ATLAS_BRIEF_CUT, "a cut sheet says it is cut: " + sheet.slice(-80));
+      assert(sheet.length <= 600 + ATLAS_BRIEF_CUT.length, "cut to the cap: " + sheet.length);
+      assert(/[.;]$/.test(sheet.slice(0, -ATLAS_BRIEF_CUT.length)), "cut at the end of a sentence or a list item, never mid-word: " + sheet.slice(-90));
+      assert.equal(b.slice(-(ATLAS_BRIEF_RULE.length + 2)), ATLAS_BRIEF_RULE + "\n\n", "the naming rule is never cut");
+      assert(b.indexOf("The party is in " + c.p0.name + ".") > 0, "the where-line is never cut");
+    } finally { ATLAS_BRIEF_CAP = cap; }
+  });
+
+  test("the MAP block never breaks a prompt: a failure inside it is one honest line, said once; and the prompt carries the block right after GEOGRAPHY, in the volatile half", function () {
+    var A = fresh(), c = cast(A), real = TnDMaps.digest, b;
+    point(c.p0.name); atlasFollow(); atlasForget(); quiet();
+    TnDMaps.digest = function () { throw new Error("digest boom"); };
+    try {
+      assert.doesNotThrow(function () { b = atlasMapBlock(); });
+      assert.equal(b, ATLAS_BRIEF_HEAD + "\nThe map could not be read this turn; it says nothing.\n\n");
+      assert(toasts.some(function (t) { return /digest boom/.test(t); }), "the failure is toasted");
+      assert.equal(atlasMapBlock(), b, "the next prompt gets the same honest line");
+      assert.equal(toasts.filter(function (t) { return /digest boom/.test(t); }).length, 1, "said once: a standing failure must not toast on every prompt");
+      assert.equal(reports.length, 1, "and reported once");
+    } finally { TnDMaps.digest = real; }
+    /* the real builder: an atlas changes the volatile half by exactly the block, and the cached half not at all */
+    var name = TnDMaps.generate("region", { seed: "campaign-1" }).places[0].name, plain, mapped, block;
+    engine.makeTestWorld(); atlasForget(); worldState.world.location = name; plain = buildSysPrompt();
+    assert.equal(buildSysPrompt().volatile, plain.volatile, "the fixture prompt is stable call to call");
+    atlasCreate("campaign-1"); atlasFollow(); mapped = buildSysPrompt(); block = atlasMapBlock();
+    assert(block.indexOf("The party is in " + name + ".") > 0, "the mapped fixture stands in the town");
+    assert.equal(mapped.stable, plain.stable, "an atlas must not change one byte of the cached stable half");
+    assert.equal(mapped.volatile.replace(block, ""), plain.volatile, "the volatile half gains the MAP block and nothing else");
+    assert(mapped.volatile.indexOf(buildGeoBlock() + block) >= 0, "right after GEOGRAPHY");
+    var api = src("api.js");
+    assert(api.indexOf("    +buildGeoBlock()\n    +((typeof atlasMapBlock===\"function\")?atlasMapBlock():\"\")") > 0, "buildSysPrompt serves the MAP block right after GEOGRAPHY");
+    assert(api.indexOf("atlasMapBlock") > api.indexOf("var volatile_="), "in the volatile half — a per-turn block must never touch the cached stable half");
+    assert.equal(api.slice(api.indexOf("function buildGeoBlock("), api.indexOf("return\"GEOGRAPHY (strict continuity")).indexOf("atlas"), -1, "buildGeoBlock itself knows nothing of the atlas");
+    assert.equal(src("table-talk.js").indexOf("atlas"), -1, "Table Talk is never handed the map");
+    var game = src("game.js"), sa = game.indexOf("async function sendAction("), body = game.slice(sa, game.indexOf("\nasync function ", sa + 10) > 0 ? game.indexOf("\nasync function ", sa + 10) : sa + 20000);
+    assert(body.indexOf("atlasFollow()") > 0 && body.indexOf("atlasFollow()") < body.indexOf("callGM("), "sendAction follows the pointer before the prompt is built");
   });
 
   test("THE FIXTURE GATE: this library draws the fixture realm exactly as the pinned table says (region, town, interior, sewer, cave, wild)", function () {

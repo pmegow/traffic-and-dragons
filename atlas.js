@@ -19,7 +19,7 @@
    leading "the" and punctuation are folded, and only when one thing bears it), or when the player said so (atlasPlace —
    the pane's "We are here"). Anything else is off the map, said plainly; a guessed tie would be served to the GM as canon.
 
-   Reads (atlasDoc, atlasThings, atlasPartyIn, atlasMarkers, atlasZones, atlasWhere, atlasCard, atlasReveal) never write the campaign. The writers are
+   Reads (atlasDoc, atlasThings, atlasPartyIn, atlasMarkers, atlasZones, atlasWhere, atlasCard, atlasReveal, atlasMapBlock) never write the campaign. The writers are
    atlasCreate, atlasFollow, atlasPlace and atlasHeal; a redraw a read notices is recorded by the next writer. */
 var ATLAS_VER=1;
 /* documents held in memory at once: the least recently used is dropped and redrawn on demand (a region is ~300 KB) */
@@ -435,6 +435,70 @@ function atlasCard(zoneId,target){
   try{z=TnDMaps.wild.zoneAt(doc,[target.x,target.y]);leads=b.make(doc,z.id).seed;}
   catch(e2){return {id:null,x:target.x,y:target.y,title:"Open country",word:"",opens:null,unvisited:false,partyHere:false,place:null,refused:atlasReason(e2)};}
   return {id:null,x:target.x,y:target.y,title:"Open country",word:"",opens:A.zones[leads]?leads:null,unvisited:false,partyHere:A.at===leads,place:atlasPlacePreview()};
+}
+
+/* ── the MAP block: what the GM is told the map says ───────────────────────────────────────────────────────── */
+/* The block rides the VOLATILE half of the prompt, right after GEOGRAPHY (buildSysPrompt) — never inside buildGeoBlock,
+   which Table Talk reuses: a dungeon's digest names every chamber, and the help desk must not hand the player a sheet
+   the pane keeps fogged. "" without an atlas, so every other campaign's prompt is byte-identical. A pure read.
+   The sheet text is the library's own digest; the cap cuts it at a sentence end and SAYS so; the where-line and the
+   naming rule are never cut. */
+var ATLAS_BRIEF_CAP=3600;/* characters of sheet text: a city's digest is ~2,500 and its trades are what sub-locations bind to */
+var ATLAS_BRIEF_HEAD="MAP (the drawn map of this world — canon for where places are, how far apart they lie and what stands in them; where it and a description above disagree about layout, distance or direction, the map is right):";
+var ATLAS_BRIEF_RULE="Names on this map are exact. When the party goes to a place it names, use that exact name: [LOCATION:] for a settlement, a cave or a stretch of country, [SUBLOCATION:] for a building, a way down or a chamber. A place you invent is not on the map and stays off it until the player places it.";
+var ATLAS_BRIEF_CUT=" […the rest of this sheet is not shown here]";
+function atlasDigestText(zoneId){
+  var A=atlasLive(),doc=atlasDoc(zoneId),d=_atlasDrawn[atlasChainKey(A,zoneId)];
+  if(d&&typeof d.digest==="string")return d.digest;
+  var text=String(TnDMaps.digest(doc).text||"");
+  if(d)d.digest=text;
+  return text;
+}
+/* the realm in brief: the digest's opening paragraph (seas, ranges, forests, rivers, caves) and every settlement by name */
+function atlasRegionBrief(A){
+  var text=atlasDigestText(A.seed),cut=text.indexOf("\n\n"),doc=atlasDoc(A.seed);
+  return (cut<0?text:text.slice(0,cut))+"\nSettlements: "+(doc.places||[]).map(function(p){return p.name+" ("+p.kind+")";}).join(", ")+".";
+}
+/* a settlement's own paragraph of the region digest: its site and its neighbours with bearing, distance and days */
+function atlasRegionLine(A,placeId){
+  var doc=atlasDoc(A.seed),place=null,lines,i;
+  (doc.places||[]).forEach(function(p){if(p.id===placeId)place=p;});
+  if(!place)return "";
+  lines=atlasDigestText(A.seed).split("\n");
+  for(i=0;i<lines.length;i++)if(lines[i].indexOf(place.name+" is ")===0)return lines[i];
+  return "";
+}
+/* the sheet text for a zone, per generator: its digest, plus what only the sheet above knows */
+var ATLAS_BRIEF={
+  region:function(A){return atlasRegionBrief(A);},
+  town:function(A,zoneId){var near=atlasRegionLine(A,A.zones[zoneId].via);return atlasDigestText(zoneId)+(near?"\nOn the region: "+near:"");}
+};
+function atlasBriefCut(text,cap){
+  var at;
+  if(text.length<=cap)return text;
+  at=Math.max(text.lastIndexOf(". ",cap),text.lastIndexOf(".\n",cap),text.lastIndexOf("; ",cap));
+  return text.slice(0,at>0?at+1:cap).replace(/\s+$/,"")+ATLAS_BRIEF_CUT;
+}
+function atlasMapBlock(){
+  var A=atlasLive(),p=A?atlasPointer():null,where,zone,sheet;
+  if(!A)return "";
+  try{
+    if(!p||A.ptr!==JSON.stringify([p.world,p.sub])){
+      /* the pointer moved outside a turn and nothing followed it: say nothing rather than describe the old place */
+      if(typeof console!=="undefined")console.warn("[atlas] the MAP block is withheld this turn — the atlas has not followed the story's current place");
+      return ATLAS_BRIEF_HEAD+"\nThe map has not followed the story to its current place yet; it says nothing this turn.\n\n";
+    }
+    where=atlasWhere();
+    /* a party that has left the mapped places is not served the sheet it left */
+    zone=(where.placed&&!(A.off&&!A.off.within))?A.at:A.seed;
+    sheet=(ATLAS_BRIEF[A.zones[zone].kind]||function(B,z){return atlasDigestText(z);})(A,zone);
+    return ATLAS_BRIEF_HEAD+"\n"+where.text+"\n"+atlasBriefCut(sheet,ATLAS_BRIEF_CAP)+"\n"+ATLAS_BRIEF_RULE+"\n\n";
+  }catch(e){
+    /* said once per session: this runs for every prompt, and a standing failure must not toast and mail a report per turn */
+    if(!_atlasWarned.brief){_atlasWarned.brief=1;atlasProblem("telling the GM what the map says",e);}
+    else if(typeof console!=="undefined")console.warn("[atlas] the MAP block failed again \u2014 "+((e&&e.message)?e.message:e));
+    return ATLAS_BRIEF_HEAD+"\nThe map could not be read this turn; it says nothing.\n\n";
+  }
 }
 
 /* ── load ──────────────────────────────────────────────────────────────────────────────────────────────────── */

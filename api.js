@@ -2809,6 +2809,7 @@ function buildSysPrompt(){
     +buildNpcGraph()
     +buildSceneRefBlock()
     +buildGeoBlock()
+    +((typeof atlasMapBlock==="function")?atlasMapBlock():"")/* #684: what the drawn map says — volatile only, ""-clean without an atlas; beside GEOGRAPHY, never inside buildGeoBlock (Table Talk reuses that, and a dungeon's digest names chambers the player's sheet keeps fogged) */
     +buildClockBlock()/* #73: campaign clock + computed deadline countdowns — volatile only (a per-turn counter must never touch the cached stable half) */
     +cb+erasBlock+hist
     +buildCoreMemoryBlock()

@@ -1,6 +1,6 @@
 # The atlas — TnD Maps in the game (integration plan)
 
-**Status: APPROVED 2026-11-04 (TODO #684).** Owner rulings, by question chips: the door is **the location name**; the
+**Status: BUILT 2026-11-05 (TODO #684, ◉ ready to test).** Approved 2026-11-04. Owner rulings, by question chips: the door is **the location name**; the
 order is **pane before prompt**; the scope is **new campaigns, opt-in**; placement is **exact names + We are here**.
 
 TLDR: the game vendors `tndmaps.js`, keeps a small per-campaign **atlas** (the recipes of the zones the party has
@@ -59,10 +59,13 @@ is invented. Adopting the story's names onto the map (renaming a tavern, placing
   redraws any of them fails until the upgrader accepts it on purpose. At play time a rebuilt zone whose fingerprint
   differs is said out loud (toast, log, a `redrawn` record on the zone) — never silent.
 - **Party marker** is derived from `atlas.at` at paint time, never stored.
-- **Prompt**: `buildGeoBlock` gains one `MAP (canon)` block — where the party is on the map, the current zone's digest
-  and the current place's neighbours with bearings, distances and days — capped at about 2,400 characters with an
-  explicit cut. Volatile half only; a campaign without an atlas is byte-identical. This is drift-surface work: review
-  before, prompt diff on real saves after.
+- **Prompt**: one `MAP` block — where the party is on the map, the current zone's digest and the current place's
+  neighbours with bearings, distances and days — with an explicit cut. Volatile half only; a campaign without an atlas
+  is byte-identical. This is drift-surface work: review before, prompt diff on real saves after.
+  **As built, two changes from this plan.** The block sits right AFTER `buildGeoBlock()` in `buildSysPrompt`, not
+  inside it: Table Talk reuses `buildGeoBlock`, and a dungeon's digest would hand the help desk the chambers the
+  player's sheet keeps fogged. The cap is 3,600 characters, not 2,400: a city's digest alone is about 2,500 and its
+  list of trades is what sub-locations bind to, so 2,400 would have cut exactly the names the GM needs.
 - **Pane** (`ui-atlas.js`): `TnDMaps.view` on a canvas, ink style, a breadcrumb up and down the entered zones, a card on
   a tapped place, **We are here**. Only entered zones can be opened (no peeking into an unvisited dungeon); a dungeon
   shows its way in and nothing else until room tracking exists.

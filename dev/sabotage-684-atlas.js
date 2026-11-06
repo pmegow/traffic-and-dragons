@@ -72,7 +72,49 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, cases: [
   { label: "the fog lifts: every chamber of a dungeon is shown to the player",
     find: "if(up[r.id]||(r.portal&&up[r.portal])||r.id===spot)ids.push(r.id);",
     replace: "ids.push(r.id);",
-    mustFail: "the fog of war" }
+    mustFail: "the fog of war" },
+  { label: "a campaign without an atlas gets a MAP header in its prompt (its prompt is no longer byte-identical)",
+    find: "  var A=atlasLive(),p=A?atlasPointer():null,where,zone,sheet;\n  if(!A)return \"\";",
+    replace: "  var A=atlasLive(),p=A?atlasPointer():null,where,zone,sheet;\n  if(!A)return ATLAS_BRIEF_HEAD+\"\\n\\n\";",
+    mustFail: "the MAP block: nothing without an atlas" },
+  { label: "a pointer nothing followed is described: the GM is told the party is where it was",
+    find: "    if(!p||A.ptr!==JSON.stringify([p.world,p.sub])){",
+    replace: "    if(!p){",
+    mustFail: "the MAP block is honest" },
+  { label: "a party that left the mapped places is served the sheet it left as where it is",
+    find: "    zone=(where.placed&&!(A.off&&!A.off.within))?A.at:A.seed;",
+    replace: "    zone=where.placed?A.at:A.seed;",
+    mustFail: "the MAP block is honest" },
+  { label: "the cap cuts mid-word and does not say the sheet was cut",
+    find: "  return text.slice(0,at>0?at+1:cap).replace(/\\s+$/,\"\")+ATLAS_BRIEF_CUT;",
+    replace: "  return text.slice(0,cap);",
+    mustFail: "the MAP block is honest" },
+  { label: "a failure inside the MAP block breaks the prompt",
+    find: "    if(!_atlasWarned.brief){_atlasWarned.brief=1;atlasProblem(\"telling the GM what the map says\",e);}",
+    replace: "    throw e;",
+    mustFail: "the MAP block never breaks a prompt" },
+  { label: "a standing MAP block failure toasts and mails a report on every prompt",
+    find: "    if(!_atlasWarned.brief){_atlasWarned.brief=1;atlasProblem(\"telling the GM what the map says\",e);}",
+    replace: "    atlasProblem(\"telling the GM what the map says\",e);",
+    mustFail: "the MAP block never breaks a prompt" }
+] });
+
+rc |= sabotage.prove({ file: "api.js", command: ENGINE, cases: [
+  { label: "the MAP block rides inside GEOGRAPHY: Table Talk is handed a dungeon's fogged chambers",
+    find: "  return\"GEOGRAPHY (strict continuity \u2014 never contradict):\\n\"+lines.join(\"\\n\")+\"\\n\\n\";",
+    replace: "  return\"GEOGRAPHY (strict continuity \u2014 never contradict):\\n\"+lines.join(\"\\n\")+\"\\n\\n\"+atlasMapBlock();",
+    mustFail: "the MAP block in a town" },
+  { label: "the MAP block is not in the prompt: the GM is never told what the map says",
+    find: "    +((typeof atlasMapBlock===\"function\")?atlasMapBlock():\"\")",
+    replace: "    ",
+    mustFail: "the MAP block never breaks a prompt" }
+] });
+
+rc |= sabotage.prove({ file: "game.js", command: BROWSER, cases: [
+  { label: "a turn is sent on a pointer nothing followed: the prompt withholds the map for a place the party is in",
+    find: "  if(typeof atlasFollow===\"function\")atlasFollow();/* #684: a Sync edit or a restore",
+    replace: "  /* #684: a Sync edit or a restore",
+    mustFail: "⑪ a turn sent after the pointer moved" }
 ] });
 
 rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
@@ -114,8 +156,8 @@ rc |= sabotage.prove({ file: "index.html", command: BROWSER, cases: [
 
 rc |= sabotage.prove({ file: "game.js", command: ENGINE, cases: [
   { label: "the turn's commit no longer follows the location pointer",
-    find: "  if(typeof atlasFollow===\"function\")atlasFollow();",
-    replace: "  ",
+    find: "  if(typeof atlasFollow===\"function\")atlasFollow();/* #684: the atlas follows the committed location pointer",
+    replace: "  /* #684: the atlas follows the committed location pointer",
     mustFail: "the turn's commit follows the committed pointer" }
 ] });
 

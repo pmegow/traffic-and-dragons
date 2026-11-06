@@ -2825,6 +2825,7 @@ function restorePendingAction(){
 }
 async function sendAction(override,opts){
   if(busy||!worldState)return;var inp=document.getElementById("action-input");
+  if(typeof atlasFollow==="function")atlasFollow();/* #684: a Sync edit or a restore may have moved the location pointer since the last commit — the MAP block must describe the place this turn is played in; idempotent, a no-op without an atlas */
   if(typeof campaignEnded==="function"&&campaignEnded()&&!(opts&&opts.silent)){if(typeof showToast==="function")showToast("This campaign has ended — its story is complete (File ▸ Export Narrative keeps it)");return;}/* #300 */
   /* #301: at the choose stage the two buttons are the whole vocabulary — no model call. */
   if(worldState.deathScene&&worldState.deathScene.stage==="choose"&&!(opts&&opts.silent)){

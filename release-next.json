@@ -1,7 +1,6 @@
 {
-  "version": "v1.1351",
+  "version": "v1.1352",
   "actions": [
-    "New campaigns can switch on Draw a world map at Begin.",
-    "In a mapped campaign, tap the location name to open the map and place the party with We are here."
+    "In a mapped campaign, the Game Master is told each turn where the party is and what the map shows there."
   ]
 }

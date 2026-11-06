@@ -10,7 +10,9 @@
 //   ⑦ open water says why it cannot be stood on and offers nothing;
 //   ⑧ Escape closes the pane and the view lets go of the window;
 //   ⑨ a phone (375×667): the place label is the door, the pane fits, the card sits inside it;
-//   ⑩ the opt-in: both Begin doors carry the switch, off by default, and Begin with it on draws the realm.
+//   ⑩ the opt-in: both Begin doors carry the switch, off by default, and Begin with it on draws the realm;
+//   ⑪ a turn sent after the pointer moved outside a turn (a Sync edit) is played on the followed map: the prompt the
+//     model is sent carries the MAP block for the NEW place, right after GEOGRAPHY.
 // A browser suite (dev/cdp-browser.js): a CI step after the Chrome check, and the pre-push gate (#652).
 // TND_SHOT_DIR=<dir> keeps the screenshots (atlas-region.png, atlas-town.png, atlas-phone.png); the OS temp dir otherwise.
 const fs=require('fs'),os=require('os'),path=require('path'),assert=require('assert/strict');
@@ -126,6 +128,19 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.equal(r.on.pending,false,'the switch is consumed by the campaign it started');assert.equal(r.on.door,'button');
    assert.equal(r.off.atlas,null,'Begin without it draws nothing');assert.equal(r.off.door,null);
    const src=fs.readFileSync(path.join(root,'ui-browsers.js'),'utf8');assert.ok(/id='is-atlas'/.test(src)&&/pendingAtlas=/.test(src),'the library-hero setup modal carries the switch too');
+ });
+
+ await check('⑪ a turn sent after the pointer moved outside a turn is played on the followed map: the prompt carries the MAP block for the new place, after GEOGRAPHY',async()=>{
+   const r=await page.evaluate(async()=>{atlasForget();atlasCreate('campaign-1');const p1=atlasDoc('campaign-1').places[1];worldState.world.location=p1.name;worldState.world.sublocation=null;
+     const stale=atlasMapBlock();window.__sys=null;const real=callGM;callGM=async function(u,s){const o=s||buildSysPrompt();window.__sys=(typeof o==='string')?{stable:'',volatile:o}:{stable:o.stable,volatile:o.volatile};throw new Error('no model in this suite');};busy=false;
+     try{await sendAction('I look around.');}catch(e){}finally{callGM=real;busy=false;}
+     return {stale:stale,sys:window.__sys,at:worldState.atlas.at,name:p1.name,id:p1.id};});
+   assert.match(r.stale,/has not followed the story to its current place yet/,'before the turn the block refuses to describe the old place');
+   assert.ok(r.sys,'the turn built a prompt');assert.equal(r.at,'campaign-1/'+r.id,'sendAction followed the pointer before the prompt was built');
+   const v=r.sys.volatile,g=v.indexOf('GEOGRAPHY (strict continuity'),m=v.indexOf('MAP (the drawn map of this world');
+   assert.ok(g>=0&&m>g,'the MAP block follows GEOGRAPHY in the volatile half: '+g+' / '+m);assert.ok(v.indexOf('The party is in '+r.name+'.')>m,'the block names the place the turn is played in');
+   assert.ok(v.indexOf('Names on this map are exact.')>m,'the naming rule is in the prompt');
+   assert.equal(r.sys.stable.indexOf('MAP (the drawn map'),-1,'the cached stable half never carries the per-turn block');
  });
 
  assert.deepEqual(errors,[],'page errors: '+errors.join(' | '));
