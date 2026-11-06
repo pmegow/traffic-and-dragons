@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1356",
+      "actions": [
+        "In a mapped campaign, the Game Master is now told where you placed the party with We are here."
+      ],
+      "sourceCommit": "a9a6725cfea1309e1cc8bea8c154875bf89e4cd8",
+      "commit": "a9a6725cfea1309e1cc8bea8c154875bf89e4cd8",
+      "releasedAt": "2026-11-06T06:55:34Z"
+    },
+    {
       "version": "v1.1355",
       "actions": [
         "Remove Melt from dice exit options and random selections, with safe fallbacks for previously saved choices."
