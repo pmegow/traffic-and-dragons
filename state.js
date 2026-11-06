@@ -564,6 +564,7 @@ function migrateWorldState(){
   if(!worldState||!worldState.character)return false;
   var c=worldState.character,_mig=false;
   if(typeof identityAliasAudit==="function"&&identityAliasAudit())_mig=true;
+  if(typeof atlasHeal==="function"&&atlasHeal())_mig=true;/* #684: the atlas store's shape at every load door — an unreadable one is set aside, loudly */
   if(typeof stashJournalEnsure==="function"&&stashJournalEnsure(worldState,false))_mig=true;
   /* #100: class rename + spell-label re-sync — player and every NPC sheet (companions AND former
      companions keep working). Both are display-half heals; the injected canon was never wrong. */

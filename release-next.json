@@ -1,6 +1,6 @@
 {
-  "version": "v1.1349",
+  "version": "v1.1350",
   "actions": [
-    "Remove the large round pool from Melt; individual puddles and their shadows fade where they land."
+    "Add the map engine that follows the party between drawn zones. No campaign uses it until the map pane lands."
   ]
 }

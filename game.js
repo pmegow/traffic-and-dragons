@@ -2661,6 +2661,7 @@ function commitGmTurn(resp,opts){
   if(worldState.pendingLocState&&worldState.pendingLocState.fired)delete worldState.pendingLocState;
   }
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
+  if(typeof atlasFollow==="function")atlasFollow();/* #684: the atlas follows the committed location pointer — after the parser, never inside it; a no-op without an atlas, and it cannot throw */
   if(worldState.checkpointDue){var _cpr=worldState.checkpointDue;delete worldState.checkpointDue;if(typeof takeCheckpoint==="function")takeCheckpoint(_cpr);}/* #300: the camp queued by [REST:long] / an act close is taken here, after the response committed */
   if(worldState.deathPending&&typeof resolvePlayerDeath==="function")resolvePlayerDeath();/* #300: the death narration is in the book; now the consequence */
   if(worldState.deathScene&&typeof deathSceneAdvance==="function"){if(worldState.deathScene.stage==="arrive")deathSceneAdvance("arrive");else if(worldState.deathScene.stage==="answer")deathSceneAdvance("answer");}/* #301: the scene's turn boundary */
