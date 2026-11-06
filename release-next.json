@@ -1,6 +1,6 @@
 {
-  "version": "v1.1358",
+  "version": "v1.1359",
   "actions": [
-    "Dice Simulator 0.97.0 adds installed-font browsing and personal font-file imports; unavailable number fonts use the system font."
+    "Dice Simulator 0.98.0 replaces tray walls with full-screen materials, removes tray sizing, fixes playback at 1.2x, and hides testing controls."
   ]
 }

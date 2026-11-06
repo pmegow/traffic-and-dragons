@@ -10,7 +10,7 @@ export const SURFACE_LOOKS = {
   felt: { label: 'Felt', physics: 'felt', color: '#1d4a3a', roughness: 0.95, pattern: 'felt' },
   wood: { label: 'Wood', physics: 'wood', color: '#8a5a34', roughness: 0.55, pattern: 'wood' },
   stone: { label: 'Stone', physics: 'stone', color: '#6c6f74', roughness: 0.55, pattern: 'granite' },
-  none: { label: 'None (no tray)', physics: 'wood', pattern: null },
+  none: { label: 'Plain', physics: 'wood', pattern: null },
 };
 
 /** The rim of every drawn tray: dark wood. */

@@ -38,7 +38,7 @@ import { DIE_MATERIALS } from '../src/materials.js';
 import { validFontKey } from './numeral-fonts.js';
 import { fontLibrary } from './font-library.js';
 import { faceMarking } from './face-markings.js';
-import { SURFACE_LOOKS, RIM_LOOK } from './surface-looks.js';
+import { SURFACE_LOOKS } from './surface-looks.js';
 import { SPECULAR } from './finish-table.js';
 import { patternUniforms, injectPattern } from './patterns.js';
 import { LIGHTS } from './lights.js';
@@ -49,7 +49,6 @@ export { LIGHTS };   // render/lights.js
 
 export { VIEW_DEFAULTS };
 
-const RIM_HEIGHT = 0.014;   // m: the tray's rim, low enough that a die resting against the near wall stays in view
 const SCREEN_MARGIN = 0.002;   // m: the screen's edges, moved in a little, so a die never touches the frame
 const WARM_DIE = 'd6';   // the die type whose geometry stands in for the dice's pipeline (warmTable)
 /** Scripted lift duration and live-hand frame limit; pickup itself is immediate. Height is render/hand.js ▸ HAND_LIFT. */
@@ -142,10 +141,10 @@ export class DiceView {
     const cam = this.camera.position, t = this.cameraTarget;
     const toCam = new THREE.Vector3(cam.x - t.x, 0, cam.z - t.z).normalize();
     const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), toCam).normalize();   // screen right on the floor
-    // With no tray drawn the dice may roll anywhere on screen, so the shadows cover the visible floor
+    // Dice may roll anywhere on screen, so the shadows cover the visible floor
     // (within reason: a low orbit sees far, and one shadow map spread over metres goes soft).
     const trayReach = Math.hypot(this.tray.width, this.tray.depth) / 2 + 0.05;
-    const reach = this.trayDrawn === false ? Math.min(1.5, Math.max(trayReach, this.screenEdges().reach + 0.05)) : trayReach;
+    const reach = Math.min(1.5, Math.max(trayReach, this.screenEdges().reach + 0.05));
     for (const { spec, light } of this.lights) {
       const d = 0.8;
       light.position.copy(right).multiplyScalar(spec.side * d).addScaledVector(toCam, spec.toward * d).setY(spec.up * d);
@@ -155,8 +154,8 @@ export class DiceView {
   }
 
   /**
-   * Builds (or rebuilds) the tray for a tray record {width, depth, …} in the current look and
-   * reframes the camera. A look with no pattern ('none') — or a transparent view — draws no floor
+   * Builds the full-screen floor; the tray record {width, depth, …} is only a camera reference.
+   * A look with no pattern ('none') — or a transparent view — draws no floor
    * and no rim: a shadow catcher over whatever is behind the canvas.
    */
   setTray(tray) {
@@ -169,26 +168,15 @@ export class DiceView {
     const drawn = !this.o.transparent && look.pattern !== null;
     this.trayDrawn = drawn;   // a scattering finish bleeds more over a drawn tray (finish-table ▸ trayBleed)
     for (const d of this.dice || []) setOnTray(d.mesh.material, drawn);
-    this.scene.background = drawn ? new THREE.Color('#0f1115') : null;
-    const { width: W, depth: D } = this.tray;
+    this.scene.background = drawn ? new THREE.Color(look.color) : null;
     const group = new THREE.Group();
-    // No tray drawn: the shadow catcher spans well past any screen, as the dice roll to its edges.
-    const floorGeo = drawn ? new THREE.PlaneGeometry(W, D) : new THREE.PlaneGeometry(8, 8);
+    // frame() extends this floor past the visible frustum; patterns stay anchored in world space.
+    const floorGeo = new THREE.PlaneGeometry(1, 1);
     floorGeo.rotateX(-Math.PI / 2);
     const floor = new THREE.Mesh(floorGeo, drawn ? patternedMaterial(look) : new THREE.ShadowMaterial({ opacity: 0.38 }));
     floor.receiveShadow = true;
     this.floor = floor;
     group.add(floor);
-    if (drawn) {
-      const rimMat = patternedMaterial(RIM_LOOK);
-      const t = 0.01, h = RIM_HEIGHT;   // a thin, low rim: a die resting against the near wall stays in view
-      for (const [w, d, x, z] of [[W + 2 * t, t, 0, -(D / 2 + t / 2)], [W + 2 * t, t, 0, D / 2 + t / 2], [t, D, -(W / 2 + t / 2), 0], [t, D, W / 2 + t / 2, 0]]) {
-        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), rimMat);
-        m.position.set(x, h / 2, z);
-        m.castShadow = m.receiveShadow = true;
-        group.add(m);
-      }
-    }
     this.trayGroup = group;
     this.scene.add(group);
     if (this.camera.aspect) this.resize();
@@ -213,17 +201,22 @@ export class DiceView {
    */
   frame() {
     const cam = this.camera;
-    const rim = this.o.transparent || SURFACE_LOOKS[this.lookName].pattern === null ? 0 : 0.012;
     // The pose is made legal here, every frame, because what is legal follows the stage: a new size
     // or tray changes how close the camera may come before it sits among the dice.
     const { pose, position: p } = standCamera({ aspect: cam.aspect, fov: cam.fov,
-      halfW: this.tray.width / 2 + rim, halfD: this.tray.depth / 2 + rim, top: rim ? RIM_HEIGHT : 0 }, this.orbitPose, this.o.orbit);
+      halfW: this.tray.width / 2, halfD: this.tray.depth / 2, top: 0 }, this.orbitPose, this.o.orbit);
     this.orbitPose = pose;
     const hw = this.tray.width / 2, hd = this.tray.depth / 2;
     const t = this.cameraTarget = { x: Math.max(-hw, Math.min(hw, this.cameraTarget.x)), z: Math.max(-hd, Math.min(hd, this.cameraTarget.z)) };
     cam.position.set(p.x + t.x, p.y, p.z + t.z);
     cam.lookAt(t.x, 0, t.z);
     cam.updateProjectionMatrix();
+    // A square enclosing the entire frustum through its far plane: no floor edge can enter the view,
+    // even after orbit, zoom, pan or resize. World-space patterns do not slide with this geometry.
+    const tan = Math.tan(cam.fov * Math.PI / 360);
+    const span = 2 * cam.far * Math.hypot(1, tan, tan * cam.aspect);
+    this.floor.scale.set(span, 1, span);
+    this.floor.position.set(cam.position.x, 0, cam.position.z);
     this.placeLights();
   }
 
@@ -357,13 +350,9 @@ export class DiceView {
   floorPoint(clientX, clientY) {
     const p = this.floorHit(clientX, clientY);
     if (!p) return null;
-    if (this.trayDrawn === false) {
-      // No tray: any floor the screen shows (short of a low orbit's horizon) is a place to throw from.
-      const inside = this.screenEdges().planes.every((b) => b.normal.x * p.x + b.normal.y * p.y + b.normal.z * p.z >= b.offset - 1e-6);
-      return inside ? { x: p.x, z: p.z } : null;
-    }
-    if (Math.abs(p.x) > this.tray.width / 2 || Math.abs(p.z) > this.tray.depth / 2) return null;
-    return { x: p.x, z: p.z };
+    // Every surface uses the screen edges, short of a low orbit's horizon.
+    const inside = this.screenEdges().planes.every((b) => b.normal.x * p.x + b.normal.y * p.y + b.normal.z * p.z >= b.offset - 1e-6);
+    return inside ? { x: p.x, z: p.z } : null;
   }
 
   /** The floor direction that reads as "up" on screen: away from the camera. */
@@ -814,15 +803,12 @@ export class DiceView {
   /**
    * The hand's centre kept, by half the cup, inside the screen's edges at `level`, the height the dice are held at
    * (render/hand.js ▸ keepInFrame: the edges lean, so the floor's frame let a held die out at the top and shut off a
-   * band at the bottom, owner 2026-10-30), and inside the tray's walls when one is drawn — so a held die stays on screen
-   * and the dice let go start inside the walls the roll keeps them in (with no tray those walls are the screen's edges).
+   * band at the bottom, owner 2026-10-30), so a held die stays on screen and is released within the same boundaries.
    */
   handClamp(p, size, level = 0) {
     const r = size / 2;
     const { x, z } = keepInFrame(p, r, level, this.screenEdges().planes);
-    if (this.trayDrawn === false) return { x, y: p.y, z };
-    const clamp = (v, h) => (h > r ? Math.max(-h + r, Math.min(h - r, v)) : 0);
-    return { x: clamp(x, this.tray.width / 2), y: p.y, z: clamp(z, this.tray.depth / 2) };
+    return { x, y: p.y, z };
   }
 
   /**
@@ -952,9 +938,8 @@ export class DiceView {
     const table = this.liveTable();
     const dice = [...table.map((d) => d.type), ...types];
     if (!dice.length) throw new Error('DiceView.bakeDrop: nothing on the table and nothing to drop');
-    const grown = trayFor(dice.length, this.trayOptions);
-    // With no tray drawn the tray is only the camera's frame (bake): it keeps its size, never grown under the camera.
-    const size = this.trayDrawn === false ? { width: this.tray.width, depth: this.tray.depth } : { width: Math.max(this.tray.width, grown.width), depth: Math.max(this.tray.depth, grown.depth) };
+    // The tray dimensions are only the camera's reference frame, independent of the dice count.
+    const size = { width: this.tray.width, depth: this.tray.depth };
     const resting = table.map(({ position, orientation, velocity, angularVelocity }) => ({ position, orientation, ...(velocity ? { velocity, angularVelocity } : {}) }));
     return { ...request, dice, throw: { drop: { resting, ...(again.length ? { again } : {}) } }, tray: { ...size, ...(request.tray || {}) } };
   }
@@ -1013,12 +998,12 @@ export class DiceView {
 
   /** The full roll() request a bake makes of `request` on this view, and the look each die is dealt (render/die-looks.js). */
   prepareBake(request) {
-    const edges = this.trayDrawn === false ? this.screenEdges() : null;
-    const bounds = edges ? { bounds: edges.planes, area: { center: edges.center, width: edges.width, depth: edges.depth } } : {};
-    // With no tray drawn the tray is only what the camera frames: its size is pinned to what it frames now, so the
+    const edges = this.screenEdges();
+    const bounds = { bounds: edges.planes, area: { center: edges.center, width: edges.width, depth: edges.depth } };
+    // For every surface the tray is only what the camera frames: its size is pinned to what it frames now, so the
     // roll's tray is this one and the play never reframes the camera away from the edges the dice were kept inside
     // (grown with the dice count, 16 dice stood the camera back 1.6× and bounced off walls well inside the screen).
-    const fixed = edges ? { width: this.tray.width, depth: this.tray.depth } : {};
+    const fixed = { width: this.tray.width, depth: this.tray.depth };
     // Each die wears a look (render/die-looks.js): a die at a place the same die held keeps the one it wears, any other is
     // dealt one from the bag — the result carries them (result.looks) for play to dress the dice in. Each die is made
     // of what its own finish says (FINISHES ▸ material: a metal die is heavy and dead, a wooden one light), unless the
@@ -1104,7 +1089,7 @@ export class DiceView {
    * its centroid HAND_LIFT of the way (render/hand.js ▸ towardEye), every die moved by the same vector, so a row keeps its
    * spacing (each on its own ray to the eye, a row closed up by a quarter and dice already touching were lifted into one
    * another) and a lone die never moves on screen — over HAND.gather s, each kept inside the frame at its own level and
-   * inside a drawn tray's walls (handClamp). The overlay's presented dice rise so before they are thrown (embed/overlay.js
+   * inside the screen's edges (handClamp). The overlay's presented dice rise so before they are thrown (embed/overlay.js
    * ▸ roll after present): a throw from a hand, not a hop off the floor. Returns { states, done } — `states` the pose each
    * die holds when the lift ends ([{ position, orientation }], play order; what a throw from the hand starts from, known
    * at once so its bake need not wait for the lift) and `done`, a Promise that resolves when the dice are there, or sooner

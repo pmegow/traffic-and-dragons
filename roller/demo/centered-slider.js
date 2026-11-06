@@ -1,8 +1,9 @@
 // A native range's two halves meet at the default, preserving each control's real limits and stops.
 import { VIEW_DEFAULTS } from '../render/view-defaults.js';
+import { TOY_DEFAULTS } from './toy-defaults.js';
 
 export const SLIDER_RANGES = {
-  speed: { min: 0.25, home: VIEW_DEFAULTS.speed, max: 2, step: 0.05 },
+  speed: { min: 0.25, home: TOY_DEFAULTS.speed, max: 2, step: 0.05 },
   tray: { min: 0.7, home: VIEW_DEFAULTS.tray.scale, max: 3, step: 0.1 },
 };
 

@@ -209,7 +209,6 @@ fontPicker.select(VIEW_DEFAULTS.dieStyle.font);
 $('classic-d6').checked = VIEW_DEFAULTS.dieStyle.classicD6;
 $('surface').value = TOY_DEFAULTS.surface;
 const speed = bindCenteredSlider($('speed'), $('speed-out'), SLIDER_RANGES.speed);
-const trayScale = bindCenteredSlider($('tray'), $('tray-out'), SLIDER_RANGES.tray);
 const look = () => ({ body: $('body-color').value, ink: $('ink-color').value, finish: $('finish').value, font: $('font').value, classicD6: $('classic-d6').checked, surface: $('surface').value });
 // The mixed bag (owner 2026-10-30: "add a 'mixed bag' preset that will randomly assign a preset to each die"): every
 // preset, built in and saved, dealt one to a die at random, each die keeping its own (render/die-looks.js).
@@ -360,14 +359,6 @@ $('finish').addEventListener('change', applyLook);
 $('font').addEventListener('change', applyLook);
 $('classic-d6').addEventListener('change', applyLook);
 $('clear-forced').addEventListener('click', () => { $('forced').value = ''; $('forced').focus(); });
-$('tray').addEventListener('input', () => {
-  ++current;
-  last = null;
-  view.setTrayScale(trayScale());   // a new tray starts empty …
-  showTable('');
-});
-$('tray').addEventListener('change', syncTable);   // … and the dice drop into it when the slider is let go
-
 /** The roll request the panel describes (throws a readable error for a bad field). */
 function request(extra = {}, types = picker.list()) {
   if (!types.length) throw new Error('Add a die first: tap one of the die buttons.');
@@ -735,7 +726,7 @@ stage.addEventListener('pointerup', (e) => {
     lastTableClick = again ? null : { t: e.timeStamp, x: e.clientX, y: e.clientY };
     if (!again) return;
     const r = $('view').getBoundingClientRect(), cx = (r.left + r.right) / 2;
-    const t = tapThrow({ at: d.samples[d.samples.length - 1].p, edge: view.floorHit(cx, r.bottom - 1), ahead: view.floorHit(cx, (r.top + r.bottom) / 2), tray: view.trayDrawn === false ? null : view.tray });
+    const t = tapThrow({ at: d.samples[d.samples.length - 1].p, edge: view.floorHit(cx, r.bottom - 1), ahead: view.floorHit(cx, (r.top + r.bottom) / 2), tray: null });
     rollFromPanel(t ? { throw: { fling: t } } : undefined, { unlocking });
     return;
   }
