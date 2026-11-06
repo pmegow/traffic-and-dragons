@@ -2,6 +2,15 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1359",
+      "actions": [
+        "Dice Simulator 0.98.0 replaces tray walls with full-screen materials, removes tray sizing, fixes playback at 1.2x, and hides testing controls."
+      ],
+      "sourceCommit": "02d517af627a071e7ae1fc737cdf9133a6f144bc",
+      "commit": "02d517af627a071e7ae1fc737cdf9133a6f144bc",
+      "releasedAt": "2026-11-06T19:42:11Z"
+    },
+    {
       "version": "v1.1357",
       "actions": [
         "Map library 0.13.0: roads and rivers now meet across the edges of open-country sheets, so those sheets are redrawn in mapped campaigns.",
