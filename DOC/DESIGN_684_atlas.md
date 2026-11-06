@@ -113,6 +113,30 @@ The first real GM turns in a mapped campaign ([audit](../audits/AUDIT_684_atlas_
 
 Two more findings from the same run are open rows: same-named rooms of different buildings share one `Town|Name` node in the game's own location graph (#693), and a settlement is described before its sheet exists (#694).
 
+## A room is filed under its building (#693): the rulings, the parked first build, the redesign (2026-11-06)
+
+**The defect, reproduced.** The MAP rule teaches a chamber as a `[SUBLOCATION:]`, the game keys a sub-location `World|Name`, and inside a mapped building a name is an identity only on its own sheet — every inn has a Kitchen. Through real turn commits in the fixture capital, two inns' "Beer Cellar 1" shared the node `Great Brem|Beer Cellar 1`, and the second cellar was told to the GM with the first one's description and its smashed still.
+
+**Owner rulings (chips, 2026-11-06).** (1) A room is filed under its building, "The Old Ram — Kitchen" — over one entry per building. (2) A place the building's map does not have, named while the party is inside the building, is filed under the building too ("The Old Ram — Back Room"): it cannot merge with another building's room; the accepted risk is a place the GM invents elsewhere in town without leaving the inn first.
+
+**The first build, and why it is parked.** It made the map step 0 of the game's one place resolver (`resolvePlaceName`): a room on a sheet beneath the world place's own was named with the zones that hold it, and the atlas walked that name. It passed its test group, the full suite, the replay baselines, prompt byte-identity on three real saves and a live re-test. An independent reviewer then reproduced, through real commits: the fusion still reachable in four flows; a dungeon that ejects the party when the GM names the zone by its own title; a passed-through room filed bare while the timeline calls it qualified; and regressions in the world-twin guard, the party-split fold and the exits. Nothing was committed to master. The build, the reviewer's report and its scripts are on the local branch `wip/693-rooms-under-building` (`dev/review-693/REPORT.md`).
+
+**The mechanism of the failure.** The building a room belongs to was taken from where the MAP last stood. The map follows only the pointer a reply ends on, so any step it could not follow lost the building: an invented room, a re-stated `[LOCATION:]`, a building first entered and a room named in one reply. And a room's name is compared with sub-location leaves in more places than the resolver.
+
+**What the redesign must do.**
+1. **The building comes from the pointer.** The sub-location in force at a tag says where the party is: a thing with a way in on the world place's sheet (a building, a grate) or a qualified name puts the party in that zone — entered or not. The map only validates names.
+2. **Inside a building, a name is filed under the building** unless it is a thing on the world place's own sheet (another building, a landmark), the zone's own title, or the sub-location in force re-stated. This holds whether or not the building's sheet bears the name (ruling 2).
+3. **One name per map position.** Zone names from beneath the world place's sheet down, then the thing. A way in and the room beneath it are one node; a zone named by its own title keeps the party in it.
+4. **The follow enters along a qualified name.** It is the writer and may open the zones the name passes through; the resolver stays a pure read.
+5. **Every comparison of a name with a sub-location leaf goes through the resolver with the tag's position:** the world-twin guard (`locationWorldTwinConflict`), the party-split fold, the #415 exits, pass-through filing, and the item, state-note and soundscape operands.
+6. **A named place operand in a tag run that changes building** is never silently the new building: refuse it loudly or read it where the run began.
+7. **A building the player tied under a story name** keeps the story's name for its rooms (the #692 ruling: the engine claims no more than the tap said).
+8. **Load:** derive `home` by re-resolving the world place, not from the chain's shape.
+9. **The rule sentence the GM reads must be true in every flow.**
+10. **Tests:** one test per behaviour, an assertion for each of the reviewer's sixteen surviving mutants, each battery clause naming its own test.
+
+**Accepted limit.** A bare room name written from the street stays a town-wide node, as in every unmapped campaign.
+
 ## The library's audit and the re-vendor rule (2026-11-05)
 
 An independent audit of the map library (`C:\Projects\TnD_Maps\Audits\Audit_Astra_2026.11.05.html`, 16 findings) was read from the game's side. Six of its library reproductions were re-run against the vendored copy (the same SHA-256 as the library's `dist`) and all reproduce: the road seam between neighbouring wild zones (A03, 92 m), reads that write caches onto the caller's document (A05), a wide town whose sewer cannot be drawn (A06 — not reachable here: every town the game draws is 800×550), coast eligibility judged at a zone's centre (A07 — the game inherits it: a land tap in a zone whose centre is sea is refused as "that point lies in the sea"), a plain TypeError for an inherited generator name (A11), and a silent no-op removal (A14). The owner approved a plan: the library half is handed to a TnD Maps session; the game files #696 (a keyboard route to a sheet's places — the audit's A09 applies to the game's pane too) and #697 (own-property lookups in the atlas tables — A11's class).
