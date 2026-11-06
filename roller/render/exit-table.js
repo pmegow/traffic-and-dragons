@@ -8,8 +8,7 @@
 //
 //   label     what the menu shows
 //   seconds   how long the effect plays, in real time (not the roll's slowed pace)
-//   shelved   (optional) true: kept, tested and playable by name, but off the menu and out of Random — an exit
-//             being reworked (exitMenu and RANDOM_EXITS are the only readers)
+//   shelved   (optional) true: retired from menus and random choices; legacy requests resolve to Fade.
 //
 // A timeline maps the effect's progress u (0 … 1) to the numbers that drive it, so the shape of an
 // effect is tested here and only drawn in exits.js. Every number is plain data: art direction
@@ -158,7 +157,7 @@ export const EXIT_TABLE = {
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
-  melt: { label: 'Melt', seconds: MELT_FADES + MELT.fade },   // 2.4 s maximum: puddles fade as soon as all have finished spreading
+  melt: { label: 'Melt', seconds: MELT_FADES + MELT.fade, shelved: true },   // 2.4 s maximum: puddles fade as soon as all have finished spreading
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
   mixed: { label: 'Mixed bag', random: true, each: true },   // owner 2026-10-30: "add a 'mixed bag' to exit animation as well. Random exit animation for each"
 };
@@ -171,8 +170,12 @@ export function exitMenu() {
 /** The exits Random picks from: every one that plays — not None, not Random itself, not a shelved one. */
 export const RANDOM_EXITS = Object.keys(EXIT_TABLE).filter((k) => !EXIT_TABLE[k].random && !EXIT_TABLE[k].shelved && EXIT_TABLE[k].seconds > 0);
 
+/** Preserve old saved/API choices without replaying a retired animation. */
+export function resolveExit(name) { return EXIT_TABLE[name]?.shelved ? 'fade' : name; }
+
 /** The exit a die leaves by when `name` is asked for: Random picks one of RANDOM_EXITS; any other is itself. */
 export function chooseExit(name, random = Math.random) {
+  name = resolveExit(name);
   return EXIT_TABLE[name] && EXIT_TABLE[name].random ? RANDOM_EXITS[Math.floor(random() * RANDOM_EXITS.length)] : name;
 }
 

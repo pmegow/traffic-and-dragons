@@ -36,7 +36,7 @@
 // removeDie's onSound).
 
 import * as THREE from 'three';
-import { EXIT_TABLE, SCURRY, BURN, PIT, SHATTER, MELT, meltTimeline, meltOpacity, meltPiece, meltJiggle, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, shatterTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
+import { EXIT_TABLE, resolveExit, SCURRY, BURN, PIT, SHATTER, MELT, meltTimeline, meltOpacity, meltPiece, meltJiggle, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, shatterTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
 import { fractureSeeds, fracturePieces, pieceCount } from './fracture.js';
 import { burstShards, stepShards, rotate } from './shards.js';
 import { meltRel, fallApart, strandsBetween, strandTubes, writeTube, tubeIndices, TUBE_VERTICES } from './goo.js';
@@ -52,8 +52,9 @@ const STARTS = { none: startNone, burn: startBurn, smoke: startSmoke, pit: start
 // Random (round 12) plays nothing itself: the view asks chooseExit for one of the others as each die leaves.
 export const EXITS = Object.fromEntries(Object.entries(EXIT_TABLE).map(([key, entry]) => {
   if (entry.random) return [key, entry];
-  if (!STARTS[key]) throw new Error('render/exits.js: the exit "' + key + '" has no effect to play it');
-  return [key, { ...entry, start: STARTS[key] }];
+  const active = resolveExit(key);
+  if (!STARTS[active]) throw new Error('render/exits.js: the exit "' + key + '" has no effect to play it');
+  return [key, { ...EXIT_TABLE[active], start: STARTS[active] }];
 }));
 
 // ---------------------------------------------------------------- burn out

@@ -1,6 +1,6 @@
 {
-  "version": "v1.1354",
+  "version": "v1.1355",
   "actions": [
-    "Start Melt fading as soon as the puddles finish spreading, removing the pause before they disappear."
+    "Remove Melt from dice exit options and random selections, with safe fallbacks for previously saved choices."
   ]
 }

@@ -12,7 +12,7 @@ import { MIXED_BAG } from '../render/die-looks.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
 import { rollParts } from './roll-line.js';
-import { exitMenu, exitDelays, exitsFor } from '../render/exit-table.js';
+import { exitMenu, exitDelays, exitsFor, resolveExit } from '../render/exit-table.js';
 import { TOY_DEFAULTS } from './toy-defaults.js';
 import { attachColorPicker } from './color-picker.js';
 import { SLIDER_RANGES, bindCenteredSlider } from './centered-slider.js';
@@ -160,7 +160,14 @@ for (const e of EXIT_MENU) {
   $('exit').appendChild(o);
 }
 $('exit').value = TOY_DEFAULTS.exit;   // Random (owner 2026-10-27), unless this browser kept another still on the menu
-try { const saved = localStorage.getItem(EXIT_KEY); if (EXIT_MENU.some((e) => e.name === saved)) $('exit').value = saved; } catch { /* storage blocked: the default */ }
+try {
+  const saved = localStorage.getItem(EXIT_KEY);
+  const active = resolveExit(saved);
+  if (EXIT_MENU.some((e) => e.name === active)) {
+    $('exit').value = active;
+    if (active !== saved) localStorage.setItem(EXIT_KEY, active);
+  }
+} catch (e) { console.warn('dice-sim: exit preference could not be read or migrated:', e); }
 $('exit').addEventListener('change', () => { try { localStorage.setItem(EXIT_KEY, $('exit').value); } catch { /* storage blocked */ } });
 $('table-hint').textContent = 'Drag a die to toss it · ' + (window.matchMedia('(pointer: coarse)').matches ? 'double-tap' : 'double-click') + ' a die to roll it again, the table to roll them all';
 // The row floats over the tray: a press on it is not a press on the tray (no roll, throw, turn or pinch).

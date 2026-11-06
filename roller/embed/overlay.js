@@ -31,7 +31,7 @@
 import { DiceView, VIEW_DEFAULTS } from '../render/index.js';
 import { DiceAudio } from '../audio/index.js';
 import { samplePose } from '../src/index.js';
-import { EXIT_TABLE } from '../render/exit-table.js';
+import { EXIT_TABLE, resolveExit } from '../render/exit-table.js';
 import { edgeStrip, edgeFence, edgeToss, typesOf, sameDice, THROWN_FROM_REST } from './present.js';
 
 const NO_SPIN = { x: 0, y: 0, z: 0 };
@@ -67,7 +67,7 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
   let laid = null;   // the dice presented and lying there, by type in order (present); null when the table is not a presentation
   const checkExit = (name) => {
     if (!EXIT_TABLE[name]) throw new Error('createDiceOverlay: no exit "' + name + '" (known: ' + Object.keys(EXIT_TABLE).join(', ') + ')');
-    return name;
+    return resolveExit(name);
   };
   let leaveBy = checkExit(exit);
   // An exit compiles shaders the first time it plays (a burn's first frame stalled 6.9 s on glass, measured

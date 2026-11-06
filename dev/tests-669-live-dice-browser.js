@@ -130,7 +130,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         localStorage.removeItem('tnd_dice_exit_v1');
         return {options,selected,kept,worn,exiting,unknown};
       })()`);
-      assert.equal(r.options.join(', '),'none=None, burn=Burn out, smoke=Smoke puff, pit=Going down, fade=Fade, scurry=Scurry off, shatter=Shatter, melt=Melt, random=Random, mixed=Mixed bag');   // Melt reopened in dice-sim 0.81.0.
+      assert.equal(r.options.join(', '),'none=None, burn=Burn out, smoke=Smoke puff, pit=Going down, fade=Fade, scurry=Scurry off, shatter=Shatter, random=Random, mixed=Mixed bag');
       assert.equal(r.selected,'smoke');
       assert.equal(r.kept,'none');
       assert.equal(r.worn,'none','the overlay wears it at once');
@@ -138,29 +138,31 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       assert.equal(r.unknown,'smoke','an exit the dice no longer have is replaced by the default');
     });
 
-    // Functional coverage uses native-resolution pixels: desktop supersampling can leave software CI
-    // above 200 ms/frame, outside the quality governor's slow-frame window. The exit clock is frame-clamped.
-    await check('#679 Melt is selected, persisted and plays through the real game dismiss flow',async()=>{
+    await check('#691 retired Melt is absent and a saved selection dismisses through the default exit',async()=>{
+      await page.evaluate(()=>localStorage.setItem('tnd_dice_exit_v1','melt'));
+      await page.reload();
+      await page.waitForFunction(()=>typeof showDiceRoll==='function'&&typeof showGame==='function');
+      await page.evaluate(()=>{document.getElementById('api-screen').style.display='none';showGame();});
+      await page.waitForFunction(()=>!!window.DiceSim&&!!_diceLive.overlay,null,{timeout:20000});
       const r=await page.evaluate(until+`(async()=>{
         showDiceLookModal();
         await until(()=>document.querySelectorAll('#dice-exit option').length>0,5000);
         const sel=document.getElementById('dice-exit');
-        sel.value='melt';sel.dispatchEvent(new Event('change'));
-        const kept=localStorage.getItem('tnd_dice_exit_v1'),worn=_diceLive.overlay.exit;
+        const offered=[...sel.options].some(o=>o.value==='melt'),selected=sel.value;
         document.getElementById('dice-look-done').click();
         const view=_diceLive.overlay.view;view.o.supersample=false;view.resize();
-        window.__meltClosed=0;
-        showDiceRoll(19,{onClose:function(){window.__meltClosed++;}});
+        window.__retiredExitClosed=0;
+        showDiceRoll(19,{onClose:function(){window.__retiredExitClosed++;}});
         await until(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d20:19';});
+        const worn=_diceLive.overlay.exit;
         document.getElementById('dice-layer').click();
         const started=diceLiveState().exiting;
-        if(view.renderer.domElement.width<100||view.renderer.domElement.height<100)throw Error('Melt must render in the visible game layer');
-        const {EXIT_TABLE}=await import('./roller/render/exit-table.js');
-        const dismissMs=Math.ceil(${DISMISS_MS}*EXIT_TABLE.melt.seconds/EXIT_TABLE.smoke.seconds);
-        await until(()=>!diceLiveState().showing,dismissMs);
-        return {kept,worn,started,remaining:diceLiveState().exiting,closed:window.__meltClosed};
+        if(view.renderer.domElement.width<100||view.renderer.domElement.height<100)throw Error('The fallback must render in the visible game layer');
+        await until(()=>!diceLiveState().showing,${DISMISS_MS});
+        localStorage.removeItem('tnd_dice_exit_v1');
+        return {offered,selected,worn,started,remaining:diceLiveState().exiting,closed:window.__retiredExitClosed};
       })()`);
-      assert.deepEqual(r,{kept:'melt',worn:'melt',started:1,remaining:0,closed:1});
+      assert.deepEqual(r,{offered:false,selected:'smoke',worn:'smoke',started:1,remaining:0,closed:1});
     });
 
     await check('no page errors',async()=>{assert.deepEqual(errors,[]);});
