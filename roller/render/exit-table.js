@@ -135,14 +135,14 @@ export const MELT = {
   slump: 1.0, flat: 0.24, spread: 0.8, top: 0.3, lump: 0.18, round: 0.8, bulge: 0.15, blob: 1, gloss: 0.12, inkFrom: 0.1, inkTo: 0.6,
   strands: 10, wideFace: 0.25, strandWidth: 0.35, strandRadius: [0.04, 0.11], flare: 0.6, sag: 0.6, sagIn: 0.3,
   snap: [1.1, 2.6], recoil: 0.18, strandSpread: 0.8, bow: [0.15, 0.35], rings: 12, sides: 8,
-  hold: 0.7, fade: 0.65,   // retain the 3.1 s exit and sound envelope
+  fade: 0.65,
   // Dormant erosion experiment: its pure geometry helpers remain available, but Melt does not cut holes.
   eat: 0.65, holes: 16, holeOpen: 0.55, holeGrow: 1.4, holeVary: 0.3, holeDone: 0.9, holeEdge: 0.0004, holeShade: 0.85,
   maxEdge: 0.16, workBudget: 3,
 };
 
-/** Fading waits for even the latest piece to melt and rest where it landed. */
-export const MELT_FADES = MELT.soften + MELT.slumpBy + MELT.slump + MELT.hold;
+/** Latest possible fade start: every piece has reached its maximum spread. */
+export const MELT_FADES = MELT.soften + MELT.slumpBy + MELT.slump;
 
 /** When Going down's hole starts to open: the die risen and its beat sat out. */
 export const PIT_OPENS = PIT.rise + PIT.beat;
@@ -158,7 +158,7 @@ export const EXIT_TABLE = {
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
-  melt: { label: 'Melt', seconds: MELT_FADES + MELT.fade },   // 3.1 s: soft pieces melt in place, then fade with their shadows
+  melt: { label: 'Melt', seconds: MELT_FADES + MELT.fade },   // 2.4 s maximum: puddles fade as soon as all have finished spreading
   random: { label: 'Random', random: true },   // round 12: one of the others, picked for each die (chooseExit)
   mixed: { label: 'Mixed bag', random: true, each: true },   // owner 2026-10-30: "add a 'mixed bag' to exit animation as well. Random exit animation for each"
 };
@@ -320,7 +320,7 @@ export function shatterTimeline(u) {
 /**
  * Melt, the die's part: wobble (± a share of its height) as it goes soft, swelling and gone again by the break, so the
  * pieces take over from a die at rest; crack (0 … 1), how far the cracks have run, quickly at first; broken from the end
- * of the soften; since, the seconds since it came apart; opacity, the whole pool's remaining visibility. Each piece melts on its own clock (meltPiece, meltJiggle).
+ * of the soften; since, the seconds since it came apart; opacity, the latest fade schedule. Each piece melts on its own clock (meltPiece, meltJiggle).
  */
 export function meltTimeline(u) {
   const t = clamp01(u) * EXIT_TABLE.melt.seconds, s = clamp01(t / MELT.soften);
@@ -329,8 +329,14 @@ export function meltTimeline(u) {
     crack: Math.pow(s, 0.7),
     broken: t >= MELT.soften,
     since: Math.max(0, t - MELT.soften),
-    opacity: 1 - smooth(clamp01((t - MELT_FADES) / MELT.fade)),
+    opacity: meltOpacity(Math.max(0, t - MELT.soften)),
   };
+}
+
+/** Shared fade follows the last actual slump start; unfinished preparation cannot trigger it. */
+export function meltOpacity(since, starts = [MELT.slumpBy]) {
+  if (!starts.length || starts.some(start => start < 0)) return 1;
+  return 1 - smooth(clamp01((since - Math.max(...starts) - MELT.slump) / MELT.fade));
 }
 
 /** How far a piece has melted (0 … 1), `since` seconds after it began to: slow to start, quicker, then settling. */

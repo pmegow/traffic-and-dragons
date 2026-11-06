@@ -173,7 +173,7 @@ export const EXIT_SOUNDS = {
   // a die's own click, small and high, as each piece strikes the floor (strength by how hard).
   shatter: { bank: 'exits', take: 'crack', rate: 1.3, gain: 0.8, after: 0, spread: 0, vary: { rate: 0.06, gain: 0.1 } },
   // Melt (2026-10-28): burn out's sizzle played low and slow, so it bubbles — in as the die goes soft, fuller as its
-  // lumps melt, fullest before the joined puddle fades, gone with the last of it.
+  // lumps melt, fullest before the individual puddles fade, gone with the last of it.
   melt: {
     bank: 'exits', take: 'sizzle', rate: 0.55, gain: 1.0, after: 0, spread: 0, vary: { rate: 0.04, gain: 0.1 },
     envelope: [[0, -40], [MELT.soften, -14], [MELT.soften + MELT.slumpBy, -4], [MELT_FADES, -1], [EXIT_TABLE.melt.seconds - 0.25, -24], [EXIT_TABLE.melt.seconds, -50]],

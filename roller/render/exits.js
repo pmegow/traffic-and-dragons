@@ -36,7 +36,7 @@
 // removeDie's onSound).
 
 import * as THREE from 'three';
-import { EXIT_TABLE, SCURRY, BURN, PIT, SHATTER, MELT, meltTimeline, meltPiece, meltJiggle, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, shatterTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
+import { EXIT_TABLE, SCURRY, BURN, PIT, SHATTER, MELT, meltTimeline, meltOpacity, meltPiece, meltJiggle, burnTimeline, smokeTimeline, pitTimeline, fadeTimeline, shatterTimeline, scurryTimeline, sproutSchedule, legGrown, scurryWander } from './exit-table.js';
 import { fractureSeeds, fracturePieces, pieceCount } from './fracture.js';
 import { burstShards, stepShards, rotate } from './shards.js';
 import { meltRel, fallApart, strandsBetween, strandTubes, writeTube, tubeIndices, TUBE_VERTICES } from './goo.js';
@@ -776,7 +776,7 @@ function startMelt({ view, entry, sound = () => {} }) {
         if (l.melting < 0 && ((l.landed >= 0 && t.since >= l.landed + MELT.land) || t.since >= MELT.slumpBy)) {
           // It melts where it lies — once down, no more tumbling (it may slide on); split finer first, if the frames have
           // not done it yet.
-          l.melting = t.since;
+          l.melting = Math.min(t.since, MELT.slumpBy);
           l.w = Math.max(0.25 * R, topOf(s) / 2);
           l.foot = footOf(s);
           workFor(Infinity);
@@ -810,10 +810,11 @@ function startMelt({ view, entry, sound = () => {} }) {
       });
       P.needsUpdate = true;
       N.needsUpdate = true;
+      const opacity = meltOpacity(t.since, lumps.map(l => l.melting));
       for (const c of materials) {
-        c.opacity = t.opacity;
-        c.depthWrite = t.opacity >= 1;
-        c.userData.dice.uniforms.uExitFade.value = t.opacity;
+        c.opacity = opacity;
+        c.depthWrite = opacity >= 1;
+        c.userData.dice.uniforms.uExitFade.value = opacity;
       }
     },
     dispose() {

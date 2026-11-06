@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-11-05 · #690 · v1.1354 · Codex: vendor committed Dice 0.93.0/667a670. The owner requested removing the final Melt hold; upstream fades from actual piece completion with matching shadows. No camera change. Host changes are release copy, markers and records only, with no host test relaxation or engine/state/prompt/parser edits.
+
 - 2026-11-05 · #689 · v1.1349 · Codex: vendor committed Dice 0.92.0/5fb0199 for the owner-requested individual-puddle Melt ending. Upstream guards replace the old shared-pool expectation with retained piece meshes, matching opacity/shadow fades and cleanup; no host tests are changed. Host changes are release copy, markers and records only; no engine, state, prompt or parser edits.
 
 - 2026-11-05 · #688 · v1.1348 · Codex: vendor committed Dice 0.91.0/dde169c, adding the requested Classic d6 checkbox and saved-style pip masks. Source tests extend the style contract for the new boolean; host code changes are only required markers and release records. No host engine/state/prompt changes or host test relaxation.

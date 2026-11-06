@@ -1,7 +1,6 @@
 {
-  "version": "v1.1353",
+  "version": "v1.1354",
   "actions": [
-    "A place name is matched only where the party stands, so a second inn's Common Room is never mistaken for the first.",
-    "A map card refuses a tap the story has already moved past."
+    "Start Melt fading as soon as the puddles finish spreading, removing the pause before they disappear."
   ]
 }
