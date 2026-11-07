@@ -17,7 +17,9 @@
 //     cases: [
 //       { label: "remove the debounce cancel", find: "if (_saveT) { clearTimeout(_saveT); ... }", replace: "" },
 //       { label: "swap !== back to >",         find: /diskMtime !== loadedMtime/, replace: "diskMtime > loadedMtime" }
-//     ]
+//     ],
+//     only: "FAIL #684 "   // optional (2026-11-06): each clause runs ITS OWN test — the command gains `--only <the
+//                          // clause's mustFail past this prefix>`; a clause may also carry a `command` of its own
 //   }));
 //
 // SAFETY: the original bytes are held in memory AND written to a side file before the first
@@ -147,9 +149,11 @@ function proveScratch(opts) {
     copyWorking(opts.file);
     (opts.also || []).forEach(copyWorking); /* #197 `also:` — redundant since #475 (the mirror carries every co-changed file), still honoured */
     if (opts.command && opts.command[1] && opts.command[1][0]) copyWorking(opts.command[1][0]);
+    (opts.cases || []).forEach(function (c) { if (c.command && c.command[1] && c.command[1][0]) copyWorking(c.command[1][0]); });
     return prove({
       file: path.join(scratch, opts.file),
       command: opts.command,
+      only: opts.only,
       cases: opts.cases,
       cwd: scratch,
       inPlace: true
@@ -174,6 +178,18 @@ function writeRetry(file, data) {
   throw err;
 }
 
+/* 2026-11-06 (the #684 battery: 124 clauses, a 13 s suite each, 26 min): a clause may run ITS OWN test. A group's `only:`
+   names the prefix every mustFail in it carries ("FAIL #684 "); the rest of the mustFail is the test's name and rides the
+   group's command as `--only <name>`, which the suite answers by running that one group (its own filter) — a clause then
+   costs the engine load, not the file. A clause may also carry a `command` outright. A filter that names nothing is
+   UNOBSERVED (below), never caught. */
+function clauseCommand(opts, c) {
+  if (c.command) return c.command;
+  var cmd = opts.command || ["node", ["dev/run-tests.js"]];
+  if (opts.only && c.mustFail && c.mustFail.indexOf(opts.only) === 0 && c.mustFail.length > opts.only.length)
+    return [cmd[0], (cmd[1] || []).concat(["--only", c.mustFail.slice(opts.only.length)])];
+  return cmd;
+}
 function prove(opts) {
   if (opts.skip) return 0; /* #170: --focused runs section-scoped groups only */
   if (!opts.inPlace && !path.isAbsolute(opts.file)) return proveScratch(opts);
@@ -199,12 +215,11 @@ function prove(opts) {
   process.on("SIGINT", function () { restore("interrupt"); process.exit(130); });
   process.on("uncaughtException", function (e) { restore("a crash"); console.error(e); process.exit(1); });
 
-  var cmd = opts.command || ["node", ["dev/run-tests.js"]];
   var results = [];
 
   try {
     for (var i = 0; i < opts.cases.length; i++) {
-      var c = opts.cases[i];
+      var c = opts.cases[i], cmd = clauseCommand(opts, c);
       var before = fs.readFileSync(file, "utf8");
       var after;
 
@@ -241,9 +256,10 @@ function prove(opts) {
       /* 2026-10-30 (the #677 battery): a run-tests FILTER that names no section exits 1 having run NOTHING — every mutation then
          "fails" the command, and a mustFail naming the filter's own text is even attributed, since the filter's error line
          carries it. Eight clauses proved "caught" that way before the filter was corrected (a filter names SECTIONS, not
-         tests). A run that ran nothing gets no verdict. */
-      if (/matched 0 sections/.test(String(run.stdout || "") + String(run.stderr || ""))) {
-        results.push({ label: c.label, verdict: "UNOBSERVED", detail: "the guarded command ran NO section (its run-tests filter matched nothing — a filter names sections, not tests) — this clause is UNTESTED" });
+         tests). A run that ran nothing gets no verdict. A suite's own --only filter (tests-684-atlas-engine.js, 2026-11-06)
+         says "matched 0 tests" the same way. */
+      if (/matched 0 (sections|tests|checks)/.test(String(run.stdout || "") + String(run.stderr || ""))) {
+        results.push({ label: c.label, verdict: "UNOBSERVED", detail: "the guarded command ran NOTHING (its filter matched no section and no test — a run-tests filter names sections; a suite's --only names a test) — this clause is UNTESTED" });
         continue;
       }
 

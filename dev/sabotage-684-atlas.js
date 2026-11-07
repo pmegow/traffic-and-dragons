@@ -1,14 +1,16 @@
-// dev/sabotage-684-atlas.js — proves the #684 atlas guards guard. Each clause plants one regression in atlas.js, in a
+// dev/sabotage-684-atlas.js — proves the #684 atlas guards guard. THE CORE — the store, THE RULE, entry, the ties, drift, the MAP block, the load door, the library's pin. Each clause plants one regression in atlas.js, in a
 // seam (game.js, state.js, helpers.js) or in the vendored library; the named test must then FAIL. A mutation that changes
 // no bytes is a hard failure. Design record: DOC/DESIGN_684_atlas.md.
 //   node dev/sabotage-684-atlas.js
+// One of the five atlas batteries (dev/sabotage-684-atlas*.js — the core, -rooms, -adopt, -pane, -doors): each a subject, so a change
+// to any of their targets schedules them through run-sabotage-diff and battery-pool runs them side by side. Every ENGINE group carries
+// `only: "FAIL #684 "` — a clause runs its own named test through the suite's --only filter (sabotage.js), not the 13 s file.
 var sabotage = require("./sabotage.js");
 var ENGINE = ["node", ["dev/tests-684-atlas-engine.js"]];
 var PIN = ["node", ["dev/tests-684-atlas.js"]];
-var BROWSER = ["node", ["dev/tests-684-atlas-browser.js"]];
 var rc = 0;
 
-rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, cases: [
+rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
   { label: "THE RULE is broken: of two things bearing one name, the first is picked",
     find: "  if(hits.length>1)return {many:hits.length};",
     replace: "  if(hits.length>1)return {thing:hits[0]};",
@@ -216,7 +218,7 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, cases: [
     mustFail: "FAIL #684 a player's tie is SAID" }
 ] });
 
-rc |= sabotage.prove({ file: "api.js", command: ENGINE, cases: [
+rc |= sabotage.prove({ file: "api.js", command: ENGINE, only: "FAIL #684 ", cases: [
   { label: "the MAP block rides inside GEOGRAPHY: Table Talk is handed a dungeon's fogged chambers",
     find: "  return\"GEOGRAPHY (strict continuity \u2014 never contradict):\\n\"+lines.join(\"\\n\")+\"\\n\\n\";",
     replace: "  return\"GEOGRAPHY (strict continuity \u2014 never contradict):\\n\"+lines.join(\"\\n\")+\"\\n\\n\"+atlasMapBlock();",
@@ -227,123 +229,32 @@ rc |= sabotage.prove({ file: "api.js", command: ENGINE, cases: [
     mustFail: "FAIL #684 the MAP block never breaks a prompt" }
 ] });
 
-rc |= sabotage.prove({ file: "game.js", command: BROWSER, cases: [
-  { label: "a turn is sent on a pointer nothing followed: the prompt withholds the map for a place the party is in",
-    find: "  if(typeof atlasFollow===\"function\")atlasFollow();/* #684: a Sync edit or a restore",
-    replace: "  /* #684: a Sync edit or a restore",
-    mustFail: "FAIL ⑪ a turn sent after the pointer moved" }
-] });
-
-rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
-  { label: "the location name is a door in a campaign that has no atlas",
-    find: "  var on=typeof atlasHas===\"function\"&&atlasHas(),i,el;",
-    replace: "  var on=true,i,el;",
-    mustFail: "FAIL ① without an atlas the location name is plain text" },
-  { label: "We are here is not saved: the tie lives until the next turn's save",
-    find: "  if(typeof saveAll===\"function\")saveAll();",
-    replace: "  ",
-    mustFail: "FAIL ④ We are here ties the story place" },
-  { label: "a click on the party's marker finds nothing: the town under the dagger cannot be tapped",
-    find: "  if(hit&&P){t=atlasThingAt(P.zone,hit.x,hit.y);return t?{id:t.id}:{x:hit.x,y:hit.y};}",
-    replace: "  if(hit&&P)return {id:hit.id};",
-    mustFail: "FAIL ⑤ the trail leads back to the region" },
-  { label: "the fog is not handed to the view: a sewer is drawn whole",
-    find: "    reveal=atlasReveal(zoneId);if(reveal)P.view.setReveal(reveal);",
-    replace: "    reveal=null;",
-    mustFail: "FAIL ⑥ a sewer is fogged" },
-  { label: "closing the pane leaves the view listening on the window",
-    find: "try{_atlasPane.view.destroy();}",
-    replace: "try{}",
-    mustFail: "FAIL ⑧ Escape closes the pane" }
-] });
-
-rc |= sabotage.prove({ file: "game.js", command: BROWSER, cases: [
-  { label: "the Begin switch is not consumed: it maps the next campaign too",
-    find: "  var _wantAtlas=!!pendingAtlas;pendingAtlas=false;",
-    replace: "  var _wantAtlas=!!pendingAtlas;",
-    mustFail: "FAIL ⑩ the opt-in" }
-] });
-
-rc |= sabotage.prove({ file: "index.html", command: BROWSER, cases: [
-  { label: "the Begin switch is on by default: every new campaign is mapped",
-    find: "<input type=\"checkbox\" id=\"rv-atlas\"/>",
-    replace: "<input type=\"checkbox\" id=\"rv-atlas\" checked/>",
-    mustFail: "FAIL ⑩ the opt-in" }
-] });
-
-rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
-  { label: "We are here is spent on whatever the story names NOW, not on what the card showed",
-    find: "  r=atlasPlace(P.zone,P.target,P.place);",
-    replace: "  r=atlasPlace(P.zone,P.target);",
-    mustFail: "FAIL ⑫ a card painted before the story moved" },
-  { label: "a turn that lands under an open pane leaves its status and marker stale",
-    find: "  atlasPaneRefresh();/* syncUI runs after every committed turn",
-    replace: "  /* syncUI runs after every committed turn",
-    mustFail: "FAIL ⑫ a card painted before the story moved" }
-] });
-
-rc |= sabotage.prove({ file: "char-creation.js", command: BROWSER, cases: [
-  { label: "the Review step's switch never reaches startGame",
-    find: "var _atlasEl=document.getElementById(\"rv-atlas\");pendingAtlas=!!(_atlasEl&&_atlasEl.checked);",
-    replace: "var _atlasEl=null;",
-    mustFail: "FAIL ⑩ the opt-in" }
-] });
-
-rc |= sabotage.prove({ file: "ui-browsers.js", command: BROWSER, cases: [
-  { label: "the setup modal's switch never reaches startGame",
-    find: "    pendingAtlas=!!document.getElementById(\"is-atlas\").checked;",
-    replace: "    ",
-    mustFail: "FAIL ⑩ the opt-in" },
-  { label: "the quick start keeps a switch an abandoned Review step left on",
-    find: "  pendingAtlas=false;/* #684: the quick start has no",
-    replace: "  /* #684: the quick start has no",
-    mustFail: "FAIL ⑩ the opt-in" }
-] });
-
-rc |= sabotage.prove({ file: "game.js", command: BROWSER, cases: [
-  { label: "a village is begun with a drawn map (the kind's flag ignored)",
-    find: "    if(!kindDef().atlas)showToast(",
-    replace: "    if(false)showToast(",
-    mustFail: "FAIL ⑩ the opt-in" },
-  { label: "a realm that fails to draw is swallowed: no toast, a half atlas left behind",
-    find: "}catch(_ae){delete worldState.atlas;atlasProblem(\"drawing the realm\",_ae);}",
-    replace: "}catch(_ae){}",
-    mustFail: "FAIL ⑩ the opt-in" }
-] });
-
-rc |= sabotage.prove({ file: "game.js", command: ENGINE, cases: [
+rc |= sabotage.prove({ file: "game.js", command: ENGINE, only: "FAIL #684 ", cases: [
   { label: "the turn's commit no longer follows the location pointer",
     find: "  if(typeof atlasFollow===\"function\")atlasFollow();/* #684: the atlas follows the committed location pointer",
     replace: "  /* #684: the atlas follows the committed location pointer",
     mustFail: "FAIL #684 the turn's commit follows the committed pointer" }
 ] });
 
-rc |= sabotage.prove({ file: "state.js", command: ENGINE, cases: [
+rc |= sabotage.prove({ file: "state.js", command: ENGINE, only: "FAIL #684 ", cases: [
   { label: "the load door no longer heals the atlas",
     find: "  if(typeof atlasHeal===\"function\"&&atlasHeal())_mig=true;",
     replace: "  ",
     mustFail: "FAIL #684 the load door heals the atlas" }
 ] });
 
-rc |= sabotage.prove({ file: "helpers.js", command: ENGINE, cases: [
+rc |= sabotage.prove({ file: "helpers.js", command: ENGINE, only: "FAIL #684 ", cases: [
   { label: "the atlas's dictionaries are plain objects after a load (the keyed-store registration dropped)",
     find: "\"atlas.zones\",\"atlas.names\",",
     replace: "",
     mustFail: "FAIL #684 persistence: the store is recipes" }
 ] });
 
-rc |= sabotage.prove({ file: "tndmaps.js", command: ENGINE, cases: [
+rc |= sabotage.prove({ file: "tndmaps.js", command: ENGINE, only: "FAIL #684 ", cases: [
   { label: "the vendored library draws a different realm from the same seed (a changed default)",
     find: "settlements: 12, caves: 3,",
     replace: "settlements: 11, caves: 3,",
     mustFail: "FAIL #684 THE FIXTURE GATE" }
-] });
-
-rc |= sabotage.prove({ file: "atlas.js", command: BROWSER, cases: [
-  { label: "the pane does not say the tie the tap made: the player cannot see what the GM is told (#692)",
-    find: "    out.ties=atlasTiesHere(A);out.ties.forEach(function(x){said+=\" \"+atlasTieSay(x);});",
-    replace: "    out.ties=atlasTiesHere(A);",
-    mustFail: "FAIL ④ We are here ties the story place" }
 ] });
 
 rc |= sabotage.prove({ file: "tndmaps.js", command: PIN, cases: [
@@ -351,223 +262,6 @@ rc |= sabotage.prove({ file: "tndmaps.js", command: PIN, cases: [
     find: "settlements: 12, caves: 3,",
     replace: "settlements: 11, caves: 3,",
     mustFail: "FAIL #684 tndmaps.js is the map library's file byte-for-byte (SHA-256 pin" }
-] });
-
-/* #693 (owner rulings 2026-11-06): a room is filed under its building — the second build. The position is READ from the
-   pointer's names through the map; each clause names the one behaviour test that must catch it. */
-rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, cases: [
-  { label: "the building is taken from where the map last stood, not from the pointer in force at the tag (the first build's failure)",
-    find: "    pos=atlasPosition(A,parent,sub===undefined?null:sub);",
-    replace: "    pos=atlasPosition(A,parent,A.ptr?JSON.parse(A.ptr)[1]:null);",
-    mustFail: "FAIL #684 #693 the building comes from the pointer" },
-  { label: "rule (a) dropped: a thing on the town's own sheet named from inside a building is filed under the building",
-    find: "    if(atlasFind(pos.homeDoc,X))return null;/* (a) a thing on the world place's own sheet, or its title: bare, as before */",
-    replace: "    ",
-    mustFail: "FAIL #684 #693 a room is filed under its building" },
-  { label: "the map answers nothing: two inns' rooms of one name share one node again",
-    find: "  if(!A||!A.zones[A.seed])return null;\n  X=String(name==null?\"\":name).trim();if(!X)return null;",
-    replace: "  return null;",
-    mustFail: "FAIL #684 #693 a room is filed under its building" },
-  { label: "ruling 2 dropped: a place the building's sheet does not have is filed town-wide",
-    find: "  return atlasPathJoin(atlasChainPath(pos,pos.chain.length-1).concat([String(name).trim()]));\n}",
-    replace: "  return null;\n}",
-    mustFail: "FAIL #684 #693 the building comes from the pointer" },
-  { label: "a way back is a room of its own: the crypt stair named from the crypt is a second node",
-    find: "      if(f.thing.portal&&ATLAS_WAYS_BACK[f.thing.portal.way]){",
-    replace: "      if(false){",
-    mustFail: "FAIL #684 #693 a way in and the room beneath it are one node" },
-  { label: "a zone named by its own title is filed as a room of itself",
-    find: "    if(atlasNameKey(c.name)===key||atlasNameKey(title)===key)return atlasPathJoin(atlasChainPath(pos,i));}",
-    replace: "    if(false)return null;}",
-    mustFail: "FAIL #684 #693 a zone named by its own title" },
-  { label: "only the deepest sheet is asked: a room of the temple named from the crypt is filed under the crypt",
-    find: "  for(i=pos.chain.length-1;i>=0;i--){c=pos.chain[i];f=atlasFind(c.doc,name);",
-    replace: "  for(i=pos.chain.length-1;i>=pos.chain.length-1;i--){c=pos.chain[i];f=atlasFind(c.doc,name);",
-    mustFail: "FAIL #684 #693 a zone named by its own title" },
-  { label: "a tied building's rooms take the map's name (ruling 7 dropped)",
-    find: "  if(lead.kind!==\"interior\")return title;\n  ways=atlasWaysIntoDoc(parentDoc,doc);\n  if(ways.length!==1)return title;",
-    replace: "  return title;",
-    mustFail: "FAIL #684 #693 a building the player tied under a story name" },
-  { label: "a tie to one grate renames the whole sewer: its chambers are two nodes from two grates",
-    find: "  if(lead.kind!==\"interior\")return title;\n  ways=atlasWaysIntoDoc(parentDoc,doc);\n  if(ways.length!==1)return title;",
-    replace: "  ways=atlasWaysIntoDoc(parentDoc,doc);",
-    mustFail: "FAIL #684 #693 a building the player tied under a story name" },
-  { label: "the follow does not walk a path: the map loses the party in its own building",
-    find: "  if(parts.length>=2&&!atlasTie(A,atlasSubKey(p))){atlasWalk(A,p,parts,home,entered);return;}",
-    replace: "  if(false){atlasWalk(A,p,parts,home,entered);return;}",
-    mustFail: "FAIL #684 #693 a room is filed under its building" },
-  { label: "of two zones of one title beneath a sheet, the first is picked",
-    find: "  return hits.length===1?{zone:hits[0]}:(hits.length>1?{many:hits.length}:null);",
-    replace: "  return hits.length>=1?{zone:hits[0]}:null;",
-    mustFail: "FAIL #684 #693 a failure while asking the map is reported once" },
-  { label: "a READ writes the campaign: a sheet drawn for the look is recorded as entered",
-    find: "  if(!doc){doc=TnDMaps.generate(lead.kind,lead.params);_atlasPeeks[lead.zone]=doc;}",
-    replace: "  if(!doc){doc=TnDMaps.generate(lead.kind,lead.params);_atlasPeeks[lead.zone]=doc;A.zones[lead.zone]={kind:lead.kind,parent:lead.parent,via:lead.via,params:null,name:(doc.title&&doc.title.name)||null,lib:null,fp:null,turn:0};}",
-    mustFail: "FAIL #684 #693 a world move with a building and its room in one reply" },
-  { label: "a sheet the store has not recorded cannot be routed through: a building of an unentered town is no way in",
-    find: "  know=function(z){return seen[z]||atlasRecipe(A,z);};",
-    replace: "  know=function(z){return atlasRecipe(A,z);};",
-    mustFail: "FAIL #684 #693 a world move with a building and its room in one reply" },
-  { label: "a failure while asking the map breaks the turn",
-    find: "    if(atlasOnce(A,\"canon\"))atlasProblem(\"asking the map where a place is\",e);",
-    replace: "    if(true)throw e;",
-    mustFail: "FAIL #684 #693 a failure while asking the map is reported once" },
-  { label: "the GM is not told how a room is filed or how to name one from the street",
-    find: " Inside a building or under the ground, a room's own name is enough: the game files it under the building and shows it as \\\"<building> — <room>\\\". From the street, name the building first, or write the pair ([SUBLOCATION:<building> — <room>]).",
-    replace: "",
-    mustFail: "FAIL #684 #693 the rule the GM reads is true" },
-  { label: "the tie behind a room's building is no longer said on the where-line",
-    find: "    for(i=1;i<parts.length;i++)add(\"sub\",atlasPathJoin(parts.slice(0,i)),atlasLocKey(atlasWorldKey(p)+\"|\"+atlasPathJoin(parts.slice(0,i))));",
-    replace: "    ",
-    mustFail: "FAIL #684 #693 a building the player tied under a story name" },
-  { label: "a hyphen or an en dash does not read as the dash: the same room gets a twin node",
-    find: "function atlasPathParts(s){return String(s==null?\"\":s).split(/\\s+[—–-]\\s+/)",
-    replace: "function atlasPathParts(s){return String(s==null?\"\":s).split(\" — \")",
-    mustFail: "FAIL #684 #693 the qualified form is accepted as written" },
-  { label: "a zone's own title from the street is not followed into it",
-    find: "  child=atlasChildByTitle(A,home,atlasDoc(home),p.sub);\n  if(child&&child.zone)atlasStand(",
-    replace: "  child=null;\n  if(child&&child.zone)atlasStand(",
-    mustFail: "FAIL #684 #693 a zone named by its own title" },
-  /* the independent review of the second build (2026-11-06) */
-  { label: "a zone's title is never looked behind a way in: the one-reply descent leaves the party above ground",
-    find: "  if(c)return c.zone?{zone:c.zone,lead:null,thing:null}:c;",
-    replace: "  return c;",
-    mustFail: "FAIL #684 #693 a one-reply descent lands the party below" },
-  { label: "a way back onto the world's sheet is a bare door node again: the next room fuses across inns",
-    find: "        return i===0?atlasPathJoin(atlasChainPath(pos,0)):atlasPathJoin(atlasChainPath(pos,i-1).concat([above.name]));",
-    replace: "        return i===0?null:atlasPathJoin(atlasChainPath(pos,i-1).concat([above.name]));",
-    mustFail: "FAIL #684 #693 a door named as the sub-location is the building itself" },
-  { label: "a partial path is not read from where the party stands: the pointer lands on a key with no node",
-    find: "      if(pos.chain.length)return {key:atlasLocKey(wk+\"|\"+atlasFoldLeaf(wk,atlasKeyFromPosition(A,pos,parts)))};",
-    replace: "      ",
-    mustFail: "FAIL #684 #693 a partial path is read from where the party stands" },
-  { label: "the world place's own name is not stripped from a pair: the cave's chamber gets a twin",
-    find: "    while(parts.length>1&&(f=atlasFind(pos.homeDoc,parts[0]))&&f.title)parts.shift();",
-    replace: "    ",
-    mustFail: "FAIL #684 #693 the cave pair" },
-  /* the fingerprint scheme */
-  { label: "the fingerprint hashes the params echo again: a library's new default reads as a redraw of every realm",
-    find: "    if(this===doc&&(k===\"stats\"||k.charAt(0)===\"_\"||(sch>=2&&k===\"params\")))return undefined;",
-    replace: "    if(this===doc&&(k===\"stats\"||k.charAt(0)===\"_\"))return undefined;",
-    mustFail: "FAIL #684 a newer library that draws the SAME sheet is not a redraw" },
-  { label: "an old record is read under the new scheme, never its own",
-    find: "  sch=rec.fpv||1;",
-    replace: "  sch=ATLAS_FP_SCHEME;",
-    mustFail: "FAIL #684 a newer library that draws the SAME sheet is not a redraw" },
-  { label: "an old record's hash is reproduced with today's params echo, not the recipe's: the realm reads as redrawn",
-    find: "(sch===1&&rec.params)?rec.params:undefined",
-    replace: "undefined",
-    mustFail: "FAIL #684 a newer library that draws the SAME sheet is not a redraw" },
-  /* You are here */
-  { label: "a place the map lacks stays off it: nothing is ever added",
-    find: "    while(A.off&&A.off.absent&&A.adopt!==false&&guard++<3&&atlasAdopt(A,p,entered))atlasResolvePointer(A,p,prev,entered);",
-    replace: "    ",
-    mustFail: "FAIL #684 You are here: a world place" },
-  { label: "a twice-borne name is added as a new place (a sheet with two zones of one title gains a third place of that name)",
-    find: "absent:!!(s.absent&&!(child&&child.many)),zone:home,segment:p.sub};",
-    replace: "absent:true,zone:home,segment:p.sub};",
-    mustFail: "FAIL #684 #693 a failure while asking the map is reported once" },
-  { label: "the same story place is added again every time it is not found",
-    find: "  if(A.adds[storyKey]){A.off.why+=\" (it was added to the map once already and has not been found since)\";return false;}",
-    replace: "  ",
-    mustFail: "FAIL #684 You are here: a world place" },
-  { label: "the GM's declaration is ignored: every addition lands beside the party",
-    find: "    doc=atlasDoc(zone);decl=atlasDeclFor(A,name,told);",
-    replace: "    doc=atlasDoc(zone);decl=null;",
-    mustFail: "FAIL #684 You are here: the GM says where" },
-  { label: "the player's tie yields to the GM's 'at' (a declaration on a placed place is never answered)",
-    find: "    if(tie){thing=tie.id!=null?atlasThingById(atlasDoc(tie.zone),tie.id):null;atlasTell(A,\"The player placed \"",
-    replace: "    if(false){thing=tie.id!=null?atlasThingById(atlasDoc(tie.zone),tie.id):null;atlasTell(A,\"The player placed \"",
-    mustFail: "FAIL #684 You are here: the GM says where" },
-  { label: "an addition is not re-stamped: the game's own edit reads as a redraw",
-    find: "      rec.params.edits=before.concat([JSON.parse(JSON.stringify(e))]);rec.fp=null;",
-    replace: "      rec.params.edits=before.concat([JSON.parse(JSON.stringify(e))]);",
-    mustFail: "FAIL #684 You are here: a world place" },
-  { label: "the player's tap keeps the engine's addition on the map",
-    find: "  atlasAddRemove(A,pv.level===\"sub\"?atlasSubKey(p):atlasWorldKey(p));",
-    replace: "  ",
-    mustFail: "FAIL #684 You are here: a chamber the story names" },
-  { label: "the kind table is skipped: every town-level addition is a feature of the story's own",
-    find: "  if(hit&&Object.prototype.hasOwnProperty.call(cat,hit)&&hit!==\"sewer\")return {kind:hit};",
-    replace: "  ",
-    mustFail: "FAIL #684 You are here: a town-level place" }
-] });
-
-rc |= sabotage.prove({ file: "identity.js", command: ENGINE, cases: [
-  { label: "step 0 is gone: the story's bare node wins over the map and the second Kitchen lands on the first",
-    find: "if(_m&&_m.key)return {key:_m.key,via:\"atlas\"};",
-    replace: "",
-    mustFail: "FAIL #684 #693 a room is filed under its building" },
-  { label: "the place timeline does not say where a tag stands: no room is filed under its building",
-    find: "resolvePlaceName(raw,world,{sub:sub!=null?sub:carried})",
-    replace: "resolvePlaceName(raw,world)",
-    mustFail: "FAIL #684 #693 a room is filed under its building" },
-  { label: "a re-stated town carries nothing: the footer pair files the room on the street",
-    find: "carried=(nm===world)?(sub!=null?sub:carried):null;world=nm;sub=null;",
-    replace: "carried=null;world=nm;sub=null;",
-    mustFail: "FAIL #684 #693 the building comes from the pointer" },
-  { label: "a town re-stated twice loses the carry",
-    find: "carried=(nm===world)?(sub!=null?sub:carried):null;world=nm;sub=null;",
-    replace: "carried=(nm===world)?sub:null;world=nm;sub=null;",
-    mustFail: "FAIL #684 #693 a town re-stated twice" },
-  { label: "the carried building is not handed to the operands written after the footer",
-    find: "carried:(sub==null&&carried!=null)?carried:null});",
-    replace: "carried:null});",
-    mustFail: "FAIL #684 #693 a town re-stated twice" },
-  { label: "the world-twin guard compares bare leaves only: [LOCATION:Kitchen] inside a building mints a world",
-    find: "    if(rp&&rp.via===\"atlas\"&&nodes[rp.key]&&nodes[rp.key].parent)return {requested:raw,child:rp.key,parent:current,leaf:locDisplayLeaf(rp.key)};}",
-    replace: "    if(false)return null;}",
-    mustFail: "FAIL #684 #693 the neighbours compare through the resolver" },
-  { label: "the world-twin guard from the street ignores a room's last segment",
-    find: "    if(mapped){lp=locDisplayLeaf(k).split(\" — \");",
-    replace: "    if(false){lp=locDisplayLeaf(k).split(\" — \");",
-    mustFail: "FAIL #684 #693 the neighbours compare through the resolver" }
-] });
-
-rc |= sabotage.prove({ file: "memory.js", command: ENGINE, cases: [
-  { label: "an item placed by a room's own name is resolved without the tag's position",
-    find: "resolvePlaceName(String(place).trim(),_pw,(at&&at.sub!==undefined)?{sub:at.sub,carried:at.carried}:((at&&at.key)?undefined:{sub:(worldState.world&&worldState.world.sublocation)||null}))",
-    replace: "resolvePlaceName(String(place).trim(),_pw)",
-    mustFail: "FAIL #684 #693 a room is filed under its building" },
-  { label: "the soundscape target is resolved without the party's position",
-    find: "resolvePlaceName(v.target,undefined,{sub:(worldState.world&&worldState.world.sublocation)||null})",
-    replace: "resolvePlaceName(v.target)",
-    mustFail: "FAIL #684 #693 the soundscape target and an item filed outside the parser" },
-  { label: "a door to a room on record under the building is filed as a new way",
-    find: "  if(typeof placeResolvedByMap===\"function\"&&placeResolvedByMap(_xr)){",
-    replace: "  if(false){",
-    mustFail: "FAIL #684 #693 the neighbours compare through the resolver" },
-  { label: "a door is never resolved by a room filed under its building",
-    find: "    if(!hit&&typeof resolvePlaceName===\"function\"&&typeof placeResolvedByMap===\"function\"){var _xr=resolvePlaceName(ex.name,_xw,{sub:_xs});",
-    replace: "    if(false){var _xr=null;",
-    mustFail: "FAIL #684 #693 the neighbours compare through the resolver" }
-] });
-
-rc |= sabotage.prove({ file: "tag_table.js", command: ENGINE, cases: [
-  { label: "a passed-through room is filed by its raw name: a bare ghost beside the room the party stands in",
-    find: "var ptN=(typeof placeResolvedByMap===\"function\"&&placeResolvedByMap(e.rp))?e.name:e.raw;",
-    replace: "var ptN=e.raw;",
-    mustFail: "FAIL #684 #693 a passed-through room is filed by its qualified name" },
-  { label: "a split member's room is stored raw: the party's return never folds them back",
-    find: "if(placeResolvedByMap(psRp))psSub=placeKeyLeaf(psRp.key);",
-    replace: "if(false)psSub=placeKeyLeaf(psRp.key);",
-    mustFail: "FAIL #684 #693 the neighbours compare through the resolver" },
-  { label: "a named place operand in a block that changes building lands in the new building",
-    find: "      if(_liR0&&(placeResolvedByMap(_liR0)||placeResolvedByMap(_liR1))&&(!_liR1||_liR0.key!==_liR1.key)){_liAt=_liA0;",
-    replace: "      if(false){_liAt=_liA0;",
-    mustFail: "FAIL #684 #693 a named place operand in a tag block" },
-  { label: "the block rule runs where the map answered nothing: a campaign without a map changes by a receipt",
-    find: "(placeResolvedByMap(_liR0)||placeResolvedByMap(_liR1))&&",
-    replace: "(true)&&",
-    mustFail: "FAIL #684 #693 without a map, a named operand" },
-  { label: "the GM's declaration of where a place belongs is not recorded",
-    find: "worldState.placeDecls.push({name:mpm[1].trim(),where:mpm[2].trim(),turn:R.turn});",
-    replace: "",
-    mustFail: "FAIL #684 You are here: the GM says where" },
-  { label: "a state note's place is resolved without the tag's position",
-    find: "resolvePlaceName(lsPl,lsW,lsAt)",
-    replace: "resolvePlaceName(lsPl,lsW)",
-    mustFail: "FAIL #684 #693 a room is filed under its building" }
 ] });
 
 process.exit(rc);

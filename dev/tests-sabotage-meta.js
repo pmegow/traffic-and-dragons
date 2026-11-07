@@ -46,6 +46,35 @@ try {
     if (out(result).indexOf("UNOBSERVED") < 0 || /✓ caught/.test(out(result))) return "verdict wrong: " + out(result);
     return intact() ? "" : "target bytes changed";
   });
+  // 2026-11-06 (the #684 battery): a group's `only:` prefix turns each clause's mustFail into the suite's own --only filter,
+  // so a clause runs its one named test instead of the whole file; a clause may also carry a command of its own.
+  test("only: a clause runs ITS OWN test — the group's command gains --only <its mustFail past the prefix>; a clause's own command wins outright", function () {
+    reset();
+    var seen = path.join(tmp, "only-seen.txt"), suite = path.join(tmp, "only-suite.js");
+    // the guarded suite records the argv it was handed, then reds by the name it was asked for (or by the whole file)
+    fs.writeFileSync(suite, 'var fs=require("fs");fs.appendFileSync(' + JSON.stringify(seen) + ',JSON.stringify(process.argv.slice(2))+"\\n");' +
+      'var i=process.argv.indexOf("--only");if(i>0){console.error("FAIL X "+process.argv[i+1]);process.exit(1);}console.error("WHOLE SUITE RED");process.exit(1);', "utf8");
+    var result = runChild("only", prelude() +
+      'process.exit(sabotage.prove({file:target,command:[process.execPath,[' + JSON.stringify(suite) + ']],only:"FAIL X ",cases:[' +
+      '{label:"derived",find:"ORIGINAL",replace:"BROKEN",mustFail:"FAIL X the named test"},' +
+      '{label:"no prefix",find:"ORIGINAL",replace:"BROKEN",mustFail:"WHOLE SUITE RED"},' +
+      '{label:"own command",find:"ORIGINAL",replace:"BROKEN",mustFail:"OWN",command:[process.execPath,["-e","console.error(\\"OWN\\");process.exit(1)"]]}]}));');
+    var o = out(result), rows = fs.existsSync(seen) ? fs.readFileSync(seen, "utf8").trim().split(/\r?\n/).map(JSON.parse) : [];
+    if (result.status !== 0 || (o.match(/caught/g) || []).length !== 3) return "the three clauses were not all caught: " + o.slice(0, 600);
+    if (rows.length !== 2) return "the suite should have run twice (the third clause has its own command); it ran " + rows.length + " time(s)";
+    if (rows[0].join(" ") !== "--only the named test") return "the derived clause did not hand the suite --only with the mustFail's tail: " + JSON.stringify(rows[0]);
+    if (rows[1].length !== 0) return "a clause whose mustFail lacks the prefix must run the group's plain command: " + JSON.stringify(rows[1]);
+    return intact() ? "" : "target bytes changed";
+  });
+  test("a suite's --only that matched 0 tests is UNOBSERVED, like a run-tests filter that matched 0 sections", function () {
+    reset();
+    var cmdJs = 'console.error("--only \\"zzz\\" matched 0 tests - NOTHING ran");process.exit(1)';
+    var result = runChild("empty-only", prelude() +
+      'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e",' + JSON.stringify(cmdJs) + ']],cases:[{label:"a real mutation under a filter naming no test",mustFail:"zzz",find:"ORIGINAL",replace:"MUTATED"}]}));');
+    if (result.status === 0) return "a run that ran nothing must fail the battery";
+    if (out(result).indexOf("UNOBSERVED") < 0 || /✓ caught/.test(out(result))) return "verdict wrong: " + out(result);
+    return intact() ? "" : "target bytes changed";
+  });
   test("an LF-authored multi-line find matches a CRLF target (the 2026-08-22 newline rot)", function () {
     // The rot: source files are CRLF on disk, clauses are authored with LF escapes in their find
     // strings, and exact indexOf can never match. 39 clauses across 14 files were candidates and

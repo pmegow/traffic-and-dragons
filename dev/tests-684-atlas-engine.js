@@ -15,13 +15,24 @@
 //   • THE FIXTURE GATE: a re-vendored library that redraws the fixture realm fails here until accepted on purpose
 //   • the turn's commit and the load door call the atlas; the load order carries atlas.js
 //   node dev/tests-684-atlas-engine.js
+//   node dev/tests-684-atlas-engine.js --only "<part of a group's name>"   (one group alone; nothing matched = red)
 var assert = require("assert/strict"), fs = require("fs"), path = require("path");
 var engine = require("./load-engine.js");
 engine.loadEngine();
 var ROOT = path.join(__dirname, "..");
 function src(f) { return fs.readFileSync(path.join(ROOT, f), "utf8"); }
-var passed = 0;
-function test(name, fn) { try { fn(); passed++; console.log("PASS #684 " + name); } catch (e) { process.exitCode = 1; console.error("FAIL #684 " + name + " — " + e.stack); } }
+var passed = 0, matched = 0;
+/* --only <text> (2026-11-06): run only the groups whose name contains the text. Every group builds its own state from
+   fresh() / start() / makeTestWorld(), so one runs alone exactly as it runs in the file (dev/check-684-groups-alone.js
+   proves it for every group). The sabotage batteries run each clause's own named test this way (sabotage.js `only:`) —
+   the file took 13 s per clause, one group takes the engine load. A text that names NO group is said and exits red,
+   never a silent green (the #677 lesson: a filter that ran nothing proved eight clauses falsely). */
+var ONLY = (function () { var i = process.argv.indexOf("--only"); return i > 0 && typeof process.argv[i + 1] === "string" ? process.argv[i + 1] : null; })();
+function test(name, fn) {
+  if (ONLY !== null && name.indexOf(ONLY) < 0) return;
+  matched++;
+  try { fn(); passed++; console.log("PASS #684 " + name); } catch (e) { process.exitCode = 1; console.error("FAIL #684 " + name + " — " + e.stack); }
+}
 
 /* THE FIXTURE GATE's table — what the vendored library draws for the fixture realm (seed campaign-1). A document carries
    the version of the library that drew it, so every line is read under ONE fixed stamp (ATLAS_FIXTURES_STAMP, the
@@ -1231,5 +1242,6 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
   });
 
   console.warn = realWarn; console.info = realInfo;
-  console.log((process.exitCode ? "FAILED" : "ALL GREEN") + " — " + passed + " atlas engine groups (#684)");
+  if (ONLY !== null && !matched) { process.exitCode = 1; console.error("--only \"" + ONLY + "\" matched 0 tests — NOTHING ran (a group is named by a substring of its name)"); }
+  console.log((process.exitCode ? "FAILED" : "ALL GREEN") + " — " + passed + " atlas engine groups (#684)" + (ONLY !== null ? " (--only: " + matched + " of the file's groups ran)" : ""));
 })();
