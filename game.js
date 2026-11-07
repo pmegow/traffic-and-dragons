@@ -4530,6 +4530,7 @@ async function syncCharSheet(){
     var ci,_ivParty=livingPartyCompanions();/* user ruling 2026-07-16 (AUDIT_FABLE_07_16 #6): matches the living-only companions list above */
     for(ci=0;ci<_ivParty.length;ci++)invBefore[_ivParty[ci].name]=invSnapshot(_ivParty[ci].charSheet.inventory);
     applyMuts(resp);/* #40: deliberately NO detectCoreMoments here — a sheet-sync correction is bookkeeping, not a story moment */
+    delete worldState.placeDecls;/* #702 (review 4, finding 6): a bookkeeping parse declares no map place — only the turn's commit does; left here, the pre-send follow of the same turn would act on it */
     var who;for(who in invBefore){
       var nowInv=who==="player"?worldState.character.inventory:(function(){var i2;for(i2=0;i2<worldState.npcs.length;i2++){if(worldState.npcs[i2].name===who&&worldState.npcs[i2].charSheet)return worldState.npcs[i2].charSheet.inventory;}return [];})();
       var dl=invDiffLines(invBefore[who],nowInv),di;

@@ -234,8 +234,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "  return {custom:true,word:\"place\",footprint:\"small\"};/* review 3, finding 8",
     mustFail: "FAIL #684 #702 review 3: a custom place is drawn medium" },
   { label: "a room that finds no room never grows the house",
-    find: "    if(!hit&&!lostName&&rec.kind===\"interior\"&&(grown=atlasGrowHouse(A,zone))&&grown.grew){",
-    replace: "    if(false){",
+    find: "      grown=atlasGrowHouse(A,zone);}",
+    replace: "      grown=null;}",/* review 4 re-anchored */
     mustFail: "FAIL #684 #702 review 3: a custom place is drawn medium" },
   { label: "a growth the library refused is not undone: the footprint stays large on a house that was not redrawn",
     find: "  if(lost){undo();return {grew:false,why:lost};}",
@@ -245,6 +245,45 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     find: "if(pf!==null)out.push({floor:pf,m2:8},{floor:pf,m2:6});out.push({m2:8},{m2:6});",
     replace: "if(pf!==null)out.push({floor:pf,m2:8});out.push({m2:8});",
     mustFail: "FAIL #684 #702 review 3: the gaps the mutants showed" }
+] });
+
+/* the fourth review (2026-11-07): the growth's baseline, its reasons and undo; a tie outside the world place */
+rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
+  { label: "the growth is judged with the failed room still in the recipe: a room the large house cannot hold reads as a lost addition",
+    find: "      if(before.length)rec.params.edits=before;else delete rec.params.edits;rec.fp=null;/* review 4, finding 4:",
+    replace: "      /* review 4, finding 4:",
+    mustFail: "FAIL #684 #702 review 4: the growth is judged against the larger house without the room" },
+  { label: "a refused growth drops its reason",
+    find: "    else if(grown&&grown.grew===false)grownWhy=\"drawing \"+(rec.name||\"the house\")+\" larger was refused: \"+grown.why;",
+    replace: "    else if(grown&&grown.grew===false)grownWhy=null;",
+    mustFail: "FAIL #684 #702 review 4: the growth is judged against the larger house without the room" },
+  { label: "a growth the large house still cannot hold is not undone: the house stays large",
+    find: "else{grown.undo();grownWhy=\"even drawn larger it had no room for it\";}",
+    replace: "else{grownWhy=\"even drawn larger it had no room for it\";}",
+    mustFail: "FAIL #684 #702 review 4: the growth is judged against the larger house without the room" },
+  { label: "a fault during the growth is rethrown without the undo: the footprint stays large on a house that was not redrawn",
+    find: "  catch(err){if(!atlasIsRefusal(err)){undo();throw err;}lost=atlasReason(err);}",
+    replace: "  catch(err){if(!atlasIsRefusal(err)){throw err;}lost=atlasReason(err);}",
+    mustFail: "FAIL #684 #702 review 4: the growth is judged against the larger house without the room" },
+  { label: "the growth's note says nothing of the redrawn rooms",
+    find: " was drawn larger to hold it; its rooms were redrawn, so places the story used inside it may have moved\";",
+    replace: " was drawn larger to hold it\";",
+    mustFail: "FAIL #684 #702 review 4: the growth is judged against the larger house without the room" },
+  { label: "the town's fingerprint is not cleared on a growth: the settle reads the town as redrawn and warns on every growth",
+    find: "  ed.footprint=\"large\";prec.fp=null;",
+    replace: "  ed.footprint=\"large\";",
+    mustFail: "FAIL #684 #702 review 4: the growth is judged against the larger house without the room" },
+  { label: "a sub-location tie onto a sheet outside the world place is accepted: the rooms named afterwards become town-level places",
+    find: "  if(pv.level===\"sub\"){var wpos=atlasPosition(A,p.world,null),wup=wpos?atlasChainUp(A,tie.zone,wpos.home):[];if(wpos&&tie.zone!==wpos.home&&wup[wup.length-1]!==wpos.home)return {ok:false,reason:",
+    replace: "  if(false){var wpos=atlasPosition(A,p.world,null),wup=wpos?atlasChainUp(A,tie.zone,wpos.home):[];if(wpos&&tie.zone!==wpos.home&&wup[wup.length-1]!==wpos.home)return {ok:false,reason:",
+    mustFail: "FAIL #684 #702 review 4: a bookkeeping parse declares no map place" }
+] });
+
+rc |= sabotage.prove({ file: "game.js", command: ENGINE, only: "FAIL #684 ", cases: [
+  { label: "the sheet-sync's parse leaves its [MAP_PLACE:] declarations for the pre-send follow of the same turn",
+    find: "    delete worldState.placeDecls;/* #702 (review 4, finding 6): a bookkeeping parse declares no map place — only the turn's commit does; left here, the pre-send follow of the same turn would act on it */\n",
+    replace: "",
+    mustFail: "FAIL #684 #702 review 4: a bookkeeping parse declares no map place" }
 ] });
 
 rc |= sabotage.prove({ file: "helpers.js", command: ENGINE, only: "FAIL #684 ", cases: [

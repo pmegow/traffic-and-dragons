@@ -99,8 +99,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "      ",
     mustFail: "FAIL #684 #693 a partial path is read from where the party stands" },
   { label: "the world place's own name is not stripped from a pair: the cave's chamber gets a twin",
-    find: "    while(parts.length>1&&(f=atlasFind(pos.homeDoc,parts[0]))&&f.title)parts.shift();",
-    replace: "    ",
+    find: "    while(parts.length>1&&(f=atlasFind(pos.homeDoc,parts[0]))&&(f.title||(f.thing&&!atlasLeads(A,pos.home,f.thing,pos.know,pos.sheet))))parts.shift();",
+    replace: "    ",/* review 4 re-anchored */
     mustFail: "FAIL #684 #693 the cave pair" }
 ] });
 
@@ -228,8 +228,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "",
     mustFail: "FAIL #684 #702 review 3: a key never carries a room in the middle" },
   { label: "a partial path never looks behind a chain sheet's ways for a zone named by its title: the crypt from the nave is a room of the temple",
-    find: "    for(j=chain.length-1;j>=0&&!hit;j--){c=chain[j];child=atlasChildByTitle(A,c.zone,c.doc,parts[i]);\n",
-    replace: "    for(j=-1;j>=0&&!hit;j--){c=chain[j];child=atlasChildByTitle(A,c.zone,c.doc,parts[i]);\n",
+    find: "    for(j=chain.length-1;j>=0&&!hit;j--){c=chain[j];child=atlasChildByTitle(A,c.zone,c.doc,parts[i],pos.know,pos.sheet);\n",
+    replace: "    for(j=-1;j>=0&&!hit;j--){c=chain[j];child=atlasChildByTitle(A,c.zone,c.doc,parts[i],pos.know,pos.sheet);\n",/* review 4 re-anchored */
     mustFail: "FAIL #684 #693 a one-reply descent lands the party below" },
   { label: "a tie that lands beneath the home sheet leaves the chain empty: the rooms named afterwards file town-wide",
     find: "      if(tie.zone!==pos.zone){between=atlasChainBetween(A,home,tie.zone);if(between){pos.chain=between;pos.zone=tie.zone;pos.doc=atlasDoc(tie.zone);pos.spot=null;}}\n",
@@ -240,9 +240,33 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "    f=atlasFind(c.doc,name);if(!f||f.many)continue;\n    /* a way back onto",
     mustFail: "FAIL #684 #702 review 3: the gaps the mutants showed" },
   { label: "the re-statement guard dropped: an invented building re-stated in the same reply becomes a room of itself",
-    find: "&&atlasNameKey(pos.unknown[pos.unknown.length-1])!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);",
-    replace: ")leaf=atlasPathJoin([pos.unknown[0],X]);",
+    find: "&&atlasNameKey(pos.unknown[0])!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);",
+    replace: ")leaf=atlasPathJoin([pos.unknown[0],X]);",/* review 4 re-anchored */
     mustFail: "FAIL #684 #702 review 3: the gaps the mutants showed" }
+] });
+
+/* the fourth review (2026-11-07): the re-statement guard compares the container; a partial path on a peeked sheet; a spot-first pair */
+rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
+  { label: "the re-statement guard compares the LAST unknown segment again: the building re-stated after its room becomes a room of itself, the room re-stated a town-level name",
+    find: "&&atlasNameKey(pos.unknown[0])!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);",
+    replace: "&&atlasNameKey(pos.unknown[pos.unknown.length-1])!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);",
+    mustFail: "FAIL #684 #702 review 4: the fresh path's re-statement guard compares the container" },
+  { label: "a partial path's lead lookup asks the store for a sheet this reply only peeked: the stair's pair in a temple entered this reply throws, and the key is minted raw",
+    find: "      lead=atlasLeads(A,c.zone,f.thing,pos.know,pos.sheet);",
+    replace: "      lead=atlasLeads(A,c.zone,f.thing);",
+    mustFail: "FAIL #684 #702 review 4: a partial path on a sheet the SAME reply entered" },
+  { label: "a partial path's by-title lookup asks the store for a peeked sheet: the one-reply descent to the crypt throws, and the crypt is added as a town-level house",
+    find: "child=atlasChildByTitle(A,c.zone,c.doc,parts[i],pos.know,pos.sheet);",
+    replace: "child=atlasChildByTitle(A,c.zone,c.doc,parts[i]);",
+    mustFail: "FAIL #684 #702 review 4: a partial path on a sheet the SAME reply entered" },
+  { label: "the position reader ends at a spot with segments after it: the raw pointer through the square puts the party on the square, not in the inn",
+    find: "      pos.used=i+1;if(i<parts.length-1){pos.spot=null;continue;}/* review 4, finding 3:",
+    replace: "      pos.used=i+1;if(false){pos.spot=null;continue;}/* review 4, finding 3:",
+    mustFail: "FAIL #684 #702 review 4: a pair that opens with a spot of the home sheet" },
+  { label: "a pair opening with a spot of the home sheet is keyed as written: the inn off the square is a twin of the inn",
+    find: "&&(f.title||(f.thing&&!atlasLeads(A,pos.home,f.thing,pos.know,pos.sheet))))parts.shift();",
+    replace: "&&f.title)parts.shift();",
+    mustFail: "FAIL #684 #702 review 4: a pair that opens with a spot of the home sheet" }
 ] });
 
 process.exit(rc);

@@ -445,7 +445,7 @@ function atlasPosition(A,world,sub){
   if(!w.hit)return null;
   home=w.hit.zone;homeDoc=atlasDoc(home);
   if(w.hit.id!=null){thing=atlasThingById(homeDoc,w.hit.id);lead=thing?atlasLeads(A,home,thing,know,sheet):null;if(lead){homeDoc=enter(lead);home=lead.zone;}}
-  pos={home:home,homeDoc:homeDoc,chain:[],zone:home,doc:homeDoc,spot:null,used:0};
+  pos={home:home,homeDoc:homeDoc,chain:[],zone:home,doc:homeDoc,spot:null,used:0,know:know,sheet:sheet,enter:enter};/* review 4, finding 2: the adapters ride on the position for atlasKeyFromPosition — a chain sheet this reply entered is peeked, not recorded */
   if(!sub)return pos;
   parts=atlasPathParts(sub);
   for(i=0;i<parts.length;i++){
@@ -467,7 +467,8 @@ function atlasPosition(A,world,sub){
     if(f&&f.thing){
       lead=atlasLeads(A,pos.zone,f.thing,know,sheet);
       if(lead){doc=enter(lead);pos.chain.push({zone:lead.zone,name:atlasZoneSegment(A,pos.zone,pos.doc,lead,doc),doc:doc,parentZone:pos.zone,parentDoc:pos.doc});pos.zone=lead.zone;pos.doc=doc;pos.spot=null;pos.used=i+1;continue;}
-      pos.spot=f.thing;pos.used=i+1;break;
+      pos.used=i+1;if(i<parts.length-1){pos.spot=null;continue;}/* review 4, finding 3: a spot with segments after it is passed through, as the walk passes it (the square, then the inn off it) */
+      pos.spot=f.thing;break;
     }
     if(f&&f.title){pos.used=i+1;continue;}/* the sheet's own name */
     if(f&&f.many)break;/* the map does not pick: the party is in this zone, somewhere */
@@ -494,13 +495,13 @@ function atlasKeyFromPosition(A,pos,parts){
     if(hit)continue;
     for(j=chain.length-1;j>=0&&!hit;j--){c=chain[j];f=atlasFind(c.doc,parts[i]);
       if(!f||!f.thing)continue;
-      lead=atlasLeads(A,c.zone,f.thing);
-      if(lead){doc=atlasPeekDoc(A,lead);chain=chain.slice(0,j+1).concat([{zone:lead.zone,name:atlasZoneSegment(A,c.zone,c.doc,lead,doc),doc:doc,parentZone:c.zone,parentDoc:c.doc}]);}
+      lead=atlasLeads(A,c.zone,f.thing,pos.know,pos.sheet);
+      if(lead){doc=pos.enter?pos.enter(lead):atlasPeekDoc(A,lead);chain=chain.slice(0,j+1).concat([{zone:lead.zone,name:atlasZoneSegment(A,c.zone,c.doc,lead,doc),doc:doc,parentZone:c.zone,parentDoc:c.doc}]);}
       hit=true;/* a spot is passed through: the next segment is read from the same zone */
     }
     /* a zone beneath a chain sheet named by its TITLE (the crypt from the nave, never entered): the chain extends to it, as the walk opens it (review 3: the "rest as written" fallback had carried this case by accident) */
-    for(j=chain.length-1;j>=0&&!hit;j--){c=chain[j];child=atlasChildByTitle(A,c.zone,c.doc,parts[i]);
-      if(child&&child.zone){doc=child.lead?atlasPeekDoc(A,child.lead):atlasDoc(child.zone);chain=chain.slice(0,j+1).concat([{zone:child.zone,name:(A.zones[child.zone]&&A.zones[child.zone].name)||(doc.title&&doc.title.name)||child.zone,doc:doc,parentZone:c.zone,parentDoc:c.doc}]);hit=true;}}
+    for(j=chain.length-1;j>=0&&!hit;j--){c=chain[j];child=atlasChildByTitle(A,c.zone,c.doc,parts[i],pos.know,pos.sheet);
+      if(child&&child.zone){doc=child.lead?(pos.enter?pos.enter(child.lead):atlasPeekDoc(A,child.lead)):atlasDoc(child.zone);chain=chain.slice(0,j+1).concat([{zone:child.zone,name:(A.zones[child.zone]&&A.zones[child.zone].name)||(doc.title&&doc.title.name)||child.zone,doc:doc,parentZone:c.zone,parentDoc:c.doc}]);hit=true;}}
     if(hit)continue;
     return atlasPathJoin(names(chain).concat([parts[parts.length-1]]));/* review 3, finding 1: the last segment under the zone reached, never the rooms between */
   }
@@ -591,7 +592,7 @@ function atlasPlaceCanon(name,parent,sub,fresh){
     parts=atlasPathParts(X);
     /* a pair that opens with the world place's own name ("The Weeping Hollow — The Silver Cavern" in the cave that IS the
        world place) names the rest: the review's cave twin. What is left is the name — keyed here, never handed back raw */
-    while(parts.length>1&&(f=atlasFind(pos.homeDoc,parts[0]))&&f.title)parts.shift();
+    while(parts.length>1&&(f=atlasFind(pos.homeDoc,parts[0]))&&(f.title||(f.thing&&!atlasLeads(A,pos.home,f.thing,pos.know,pos.sheet))))parts.shift();/* review 4, finding 3: a leading SPOT of the home sheet (the square the inn is off) names the rest too — a key never opens with a thing that leads nowhere */
     if(atlasPathJoin(parts)!==X){X=atlasPathJoin(parts);
       if(parts.length===1&&(atlasFind(pos.homeDoc,X)||!pos.chain.length))return {key:atlasLocKey(wk+"|"+atlasFoldLeaf(wk,X))};}
     if(parts.length>=2){
@@ -618,7 +619,7 @@ function atlasPlaceCanon(name,parent,sub,fresh){
        pointer inside a building stays bare, as does a re-statement of the unknown place itself. The key is the unknown
        place and the name, never the rooms between: an unknown place at the town's level is a house, whose rooms do not
        nest (review 3, finding 1: "The Gilded Spur — Kitchen — Pantry" and "The Gilded Spur — Pantry" were two nodes). */
-    if(!leaf&&fresh&&!pos.chain.length&&pos.unknown&&pos.unknown.length&&atlasNameKey(pos.unknown[pos.unknown.length-1])!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);/* review 3, finding 1: the container only — a room the reply passed through is no zone, and a key with a room in the middle put the same room under two nodes */
+    if(!leaf&&fresh&&!pos.chain.length&&pos.unknown&&pos.unknown.length&&atlasNameKey(pos.unknown[0])!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);/* review 3, finding 1: the container only — a room the reply passed through is no zone, and a key with a room in the middle put the same room under two nodes. Review 4, finding 1: the guard compares the CONTAINER — the building re-stated is the building (bare), a room re-stated is that room, never a town-level name */
     return leaf?{key:atlasLocKey(wk+"|"+atlasFoldLeaf(wk,leaf))}:null;
   }catch(e){
     if(atlasOnce(A,"canon"))atlasProblem("asking the map where a place is",e);
@@ -729,7 +730,7 @@ function atlasDeclsLeft(A,p){
 /* WRITE: add the absent place the pointer names, as the zone's recipe edit. true when the map gained it (the caller
    follows again); false with the reason on A.off when it cannot. Never for a twice-borne name; once per story place. */
 function atlasAdopt(A,p,entered,from){
-  var off=A.off,isWorld=!off.within,name=off.segment!=null?off.segment:off.name,zone=isWorld?A.seed:(off.zone||off.within),rec=A.zones[zone],told=[],decl,doc,kind,e,i,pts,centre,party,thing,a,b,before,fpWas,paramsWas,where,drawn,hit,spotRoom,storyKey,refusal,lost,lostName,realm,lay,grown,grownNote="";
+  var off=A.off,isWorld=!off.within,name=off.segment!=null?off.segment:off.name,zone=isWorld?A.seed:(off.zone||off.within),rec=A.zones[zone],told=[],decl,doc,kind,e,i,pts,centre,party,thing,a,b,before,fpWas,paramsWas,where,drawn,hit,spotRoom,storyKey,refusal,lost,lostName,realm,lay,grown,grownNote="",grownWhy=null;
   /* the key of the THING being added: the world, or the path up to the absent segment — never the pointer's whole path
      (review 2, finding 5: the pair "The Rat-Catcher's Rest — Snug" indexed the inn under the room's key, so the room was
      refused as 'added once already' and a later tap on the pair took the inn away) */
@@ -794,13 +795,17 @@ function atlasAdopt(A,p,entered,from){
     /* review 3, finding 8 (owner 2026-11-07): a custom place of the engine's is drawn medium, and a medium house held a room at
        10 of 16 sites measured; when a room the story names finds no room in it, the place is drawn LARGE once (every measured
        site held one then) and the room is tried again. Undone when the room still finds none. */
-    if(!hit&&!lostName&&rec.kind==="interior"&&(grown=atlasGrowHouse(A,zone))&&grown.grew){
+    if(!hit&&!lostName&&rec.kind==="interior"){
+      if(before.length)rec.params.edits=before;else delete rec.params.edits;rec.fp=null;/* review 4, finding 4: the house is judged WITHOUT the failed room — as the growth's baseline and as the sheet the house's own additions must stand on */
+      grown=atlasGrowHouse(A,zone);}
+    if(grown&&grown.grew){
       doc=atlasDoc(zone);spotRoom=atlasStoodAt(A,zone,doc,from);pts=atlasRoomVariants(doc,spotRoom);refusal=null;lay();
-      if(hit)grownNote=" — "+(rec.name||"the house")+" was drawn larger to hold it";else grown.undo();
+      if(hit)grownNote=" — "+(rec.name||"the house")+" was drawn larger to hold it; its rooms were redrawn, so places the story used inside it may have moved";else{grown.undo();grownWhy="even drawn larger it had no room for it";}
     }
+    else if(grown&&grown.grew===false)grownWhy="drawing "+(rec.name||"the house")+" larger was refused: "+grown.why;/* review 4, finding 5: the growth's reason is said */
     if(!hit){
       if(before.length)rec.params.edits=before;else if(paramsWas)delete rec.params.edits;rec.params=paramsWas;rec.fp=fpWas;
-      return refuse(lostName?"adding it would have displaced "+lostName+" from the map of "+(rec.name||zone):"the map had no room for it "+(where||"")+(refusal?" — "+refusal:""));
+      return refuse(lostName?"adding it would have displaced "+lostName+" from the map of "+(rec.name||zone):"the map had no room for it "+(where||"")+(refusal?" — "+refusal:"")+(grownWhy?" ("+grownWhy+")":""));
     }
     A.adds[storyKey]={zone:zone,id:e.id,turn:atlasTurn()};
     flush();
@@ -943,6 +948,9 @@ function atlasPlace(zoneId,target,expect){
     if(!atlasIsRefusal(e))atlasProblem("placing the party",e);
     return {ok:false,reason:atlasReason(e)};
   }
+  /* review 4, finding 7: a sub-location of the story's world place cannot stand on a sheet that does not hang from it (open country
+     by a region tap, another town's inn) — the chain would be empty and every room named afterwards a town-level place */
+  if(pv.level==="sub"){var wpos=atlasPosition(A,p.world,null),wup=wpos?atlasChainUp(A,tie.zone,wpos.home):[];if(wpos&&tie.zone!==wpos.home&&wup[wup.length-1]!==wpos.home)return {ok:false,reason:"\""+pv.name+"\" is a place of the story's "+p.world+" and cannot stand there: that sheet is not in "+p.world};}
   storyKey=pv.level==="sub"?atlasSubKey(p):atlasWorldKey(p);add=A.adds?A.adds[storyKey]:null;
   /* the tap on the very thing the engine added for this name has nothing to place (review 2, finding 4: it removed the
      addition and tied the name to the vanished id, and the party fell off the map) */
