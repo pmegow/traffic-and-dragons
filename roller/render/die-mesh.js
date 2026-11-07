@@ -16,7 +16,7 @@ import { NUMERAL_FONTS } from './numeral-fonts.js';
 // alignment — owner 2026-10-24. The printing choice in src/roll.js reads it best instead.)
 
 import * as THREE from 'three';
-import { createFacePainter } from './face-markings.js';
+import { createFacePainter, NUMERAL_SCALE } from './face-markings.js';
 
 const EDGE_SEGMENTS = 5;
 const CORNER_RINGS = 3;
@@ -172,7 +172,7 @@ export function setDim(geometry, keepFaces, factor) {
  * first, if it has a file). Every font is sized so its digit 8 stands the same height, and each
  * numeral is centred on its measured ink, so fonts with different metrics sit alike on the face.
  */
-export function paintGlyphMask(die, layout, font, mode = 'numerals') {
+export function paintGlyphMask(die, layout, font, mode = 'numerals', scale = NUMERAL_SCALE) {
   const canvas = document.createElement('canvas');
   canvas.width = layout.width;
   canvas.height = layout.height;
@@ -180,7 +180,7 @@ export function paintGlyphMask(die, layout, font, mode = 'numerals') {
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#ffffff';
-  const paint = createFacePainter(ctx, font, mode);
+  const paint = createFacePainter(ctx, font, mode, scale);
   die.glyphs.forEach((glyphs, fi) => {
     const fr = layout.frames[fi];
     const col = fi % layout.cols, row = Math.floor(fi / layout.cols);

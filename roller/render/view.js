@@ -396,17 +396,19 @@ export class DiceView {
   // ---------------------------------------------------------------- dice
   /**
    * A die type's rounded geometry (built once) and its numeral mask in the current font (built once
-   * per font, or one shared classic-d6 dot mask). Colours and finish are the material's.
+   * per font and numeral size, or one shared classic-d6 dot mask). Colours and finish are the material's.
    */
-  atlasFor(type, font = this.o.dieStyle.font, classicD6 = this.o.dieStyle.classicD6) {
+  atlasFor(type, font = this.o.dieStyle.font, classicD6 = this.o.dieStyle.classicD6, largeNumbers = true) {
     if (!this.atlases.has(type)) {
       const die = buildDie(type);
-      this.atlases.set(type, { die, geometry: buildDieGeometry(die), glyphs: new Map() });
+      this.atlases.set(type, { die, geometry: buildDieGeometry(die), glyphs: new Map(), markings: new Map() });
     }
     const a = this.atlases.get(type);
-    const { key, mode } = faceMarking(type, { font, classicD6 });
+    const marking = faceMarking(type, { font, classicD6, largeNumbers });
+    const { key, mode, scale } = marking;
     if (!a.glyphs.has(key)) {
-      a.glyphs.set(key, paintGlyphMask(a.die, a.geometry.userData.layout, fontLibrary.effective(font), mode));
+      a.glyphs.set(key, paintGlyphMask(a.die, a.geometry.userData.layout, fontLibrary.effective(font), mode, scale));
+      a.markings.set(key, marking);
       // A vendored face not yet loaded paints in its fallback for now: the mask is repainted, and every die wearing
       // it given the new one, the moment the face arrives (readyFont); one that never arrives is said.
       if (!fontLibrary.state(font)?.ready) this.readyFont(font).catch((e) => console.error('DiceView: the numeral font "' + font + '" did not load, so its numerals stay in the fallback:', e));
@@ -431,12 +433,14 @@ export class DiceView {
   repaintFont(font) {
     const wearing = [...this.dice, ...[...this.exiting].map((r) => r.die)];
     for (const a of this.atlases.values()) {
-      const old = a.glyphs.get(font);
-      if (!old) continue;
-      const mask = paintGlyphMask(a.die, a.geometry.userData.layout, fontLibrary.effective(font));
-      a.glyphs.set(font, mask);
-      for (const d of wearing) if (d.mesh.material.userData.dice.uniforms.uGlyph.value === old) setGlyph(d.mesh.material, mask);
-      old.dispose();
+      for (const [key, marking] of a.markings) {
+        if (marking.font !== font) continue;
+        const old = a.glyphs.get(key);
+        const mask = paintGlyphMask(a.die, a.geometry.userData.layout, fontLibrary.effective(font), marking.mode, marking.scale);
+        a.glyphs.set(key, mask);
+        for (const d of wearing) if (d.mesh.material.userData.dice.uniforms.uGlyph.value === old) setGlyph(d.mesh.material, mask);
+        old.dispose();
+      }
     }
     this.render();
   }
@@ -452,6 +456,7 @@ export class DiceView {
     if (!FINISHES[next.finish]) throw new Error('DiceView: no finish "' + next.finish + '" (known: ' + Object.keys(FINISHES).join(', ') + ')');
     if (!validFontKey(next.font)) throw new Error('DiceView: invalid numeral font reference.');
     if (typeof next.classicD6 !== 'boolean') throw new Error('DiceView: Classic d6 must be true or false');
+    if (typeof next.largeNumbers !== 'boolean') throw new Error('DiceView: Large Numbers must be true or false');
     await this.readyFont(next.font);
     this.o.dieStyle = next;
     this.bag = [next];
@@ -486,7 +491,7 @@ export class DiceView {
 
   /** Dresses a die on the table in a style: colours and numerals in place, or a new material for a new finish. */
   dress(d, style) {
-    const { glyph } = this.atlasFor(d.die.type, style.font, !!style.classicD6);
+    const { glyph } = this.atlasFor(d.die.type, style.font, !!style.classicD6, style.largeNumbers);
     if (d.style && d.style.finish === style.finish) {
       recolour(d.mesh.material, style);
       setGlyph(d.mesh.material, glyph);
@@ -614,7 +619,7 @@ export class DiceView {
     if (had) return had.ready;
     let die = null, geometry = null, glyph = null;
     for (const type of dieTypes()) {
-      const a = this.atlasFor(type, font, !!style.classicD6);
+      const a = this.atlasFor(type, font, !!style.classicD6, style.largeNumbers);
       this.renderer.initTexture(a.glyph);   // uploaded now, not as its first die lands
       if (type === WARM_DIE) ({ die, geometry, glyph } = a);
     }
@@ -1046,7 +1051,7 @@ export class DiceView {
       }
       // The look its bake dealt it (render/die-looks.js): a die the table held keeps the one it wore.
       const style = (result.looks && result.looks[i]) || deal(this.bag);
-      const { die, geometry, glyph } = this.atlasFor(d.type, style.font, !!style.classicD6);
+      const { die, geometry, glyph } = this.atlasFor(d.type, style.font, !!style.classicD6, style.largeNumbers);
       const meshFeature = die.featureOfValue.get(d.value);
       const g = geometry.clone();
       g.userData = geometry.userData;

@@ -8,23 +8,29 @@ export const PIP_LAYOUTS = {
   5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]],
   6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]],
 };
-export const PIP_SPACING = 0.55, PIP_RADIUS = 0.15;
+export const PIP_SPACING = 0.55, PIP_RADIUS = 0.25;
+// Preserve each die's glyph size and each font's visual-height adjustment.
+export const NUMERAL_SCALE = 1.65;
+
+/** Missing flags retain the enlarged style used before the toggle existed. */
+export const numeralScale = style => style.largeNumbers === false ? 1 : NUMERAL_SCALE;
+export const numeralKey = style => style.font + (style.largeNumbers === false ? ':regular' : '');
 
 /** The only die-type boundary: every other die retains the selected numeral font. */
 export function faceMarking(type, style) {
   return style.classicD6 && type === 'd6'
     ? { key: 'classic-d6', mode: 'pips' }
-    : { key: style.font, mode: 'numerals' };
+    : { key: numeralKey(style), mode: 'numerals', font: style.font, scale: numeralScale(style) };
 }
 
 const PAINTERS = {
-  numerals(ctx, font) {
+  numerals(ctx, font, scale) {
     ctx.font = font.weight + ' 100px ' + font.family;
     const m8 = ctx.measureText('8');
     const per100 = (m8.actualBoundingBoxAscent + m8.actualBoundingBoxDescent) / 100;
     if (!(per100 > 0)) throw new Error('paintGlyphMask: the font ' + font.family + ' measured no digit height');
     return ({ text, size, ambiguous }) => {
-      const h = size * 0.7 * font.size;
+      const h = size * 0.7 * font.size * scale;
       ctx.font = font.weight + ' ' + (h / per100).toFixed(1) + 'px ' + font.family;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
@@ -47,8 +53,8 @@ const PAINTERS = {
 };
 
 /** A painter consumes the same value/text/size slot for numerals or dots; no geometry changes. */
-export function createFacePainter(ctx, font, mode = 'numerals') {
+export function createFacePainter(ctx, font, mode = 'numerals', scale = NUMERAL_SCALE) {
   const make = PAINTERS[mode];
   if (!make) throw new Error('No face marking painter "' + mode + '"');
-  return make(ctx, font);
+  return make(ctx, font, scale);
 }

@@ -8,7 +8,7 @@ export const VIEW_DEFAULTS = {
   // (15.6 × 10.2 cm). Explicit width and depth are metres, independent of scale.
   tray: { surface: 'stone', walls: 'stone', scale: 1 },
   // finish: a FINISHES key; font: a NUMERAL_FONTS key. Owner 2026-10-24: violet glass, white sans numerals.
-  dieStyle: { body: '#8a49a2', ink: '#ffffff', finish: 'glass', font: 'sans', classicD6: false },
+  dieStyle: { body: '#8a49a2', ink: '#ffffff', finish: 'glass', font: 'sans', classicD6: false, largeNumbers: true },
   dimOthers: 0.82,                           // by the end, the faces not showing the result have darkened to this (1 = off)
   speed: 1,                                  // playback speed, a multiplier of pace
   pace: 0.3,                                 // 1× plays at 0.3 of real time: 2 cm dice at full speed are too quick to follow

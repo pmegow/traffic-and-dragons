@@ -7,9 +7,10 @@
 // until the look changes.
 
 import { presetProblem } from './presets.js';
+import { numeralKey } from './face-markings.js';
 
 /** The name the mixed bag goes by, in the toy's preset menu and in DiceSim.presets(). */
-export const MIXED_BAG = 'Mixed bag';
+export const MIXED_BAG = 'Mixed Bag';
 
 /** The bag a look deals from: a style is a bag of one; `{ bag: [styles] }` is its own. Refused by name when empty or malformed. */
 export function bagOf(look) {
@@ -59,7 +60,7 @@ export function retire(wardrobe, types, i) {
 }
 
 /** A rendering variant's cache key; dot masks must be uploaded even when the font/finish already is. */
-export const lookKey = style => style.finish + '/' + style.font + (style.classicD6 ? '/pips' : '/numerals');
+export const lookKey = style => style.finish + '/' + numeralKey(style) + (style.classicD6 ? '/pips' : '/numerals');
 
 /** Every finish and font pair a bag can put on a die — what the view readies ahead, so no die waits to be drawn. */
 export function pairsOf(bag) {

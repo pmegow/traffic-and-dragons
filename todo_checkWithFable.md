@@ -707,3 +707,7 @@ Publish Dice 0.86.0: a shared standalone control mapping centers 1.00× while re
 ## 2026-11-05 — #685 instant pickup experiment
 
 Publish Dice 0.87.0's immediate interactive pickup. The held pose and live hand exist before the first frame, removing an inert 120 ms pickup phase. Core physics and the game's scripted Roll-button lift are unchanged. Upstream immediate/quick-release probes pass; no drift surface is touched. [Verification](DOC/dice-pickup_685.md).
+
+## 2026-11-07 — #703 Dice appearance release
+
+Publish Dice 0.99.4 through its publisher; release copy, host version/cache markers and release records only. No host logic, drift surface or test-policy changes. Upstream checks and normal host gates apply; [release record](DOC/dice-appearance_703.md).

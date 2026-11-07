@@ -1,4 +1,4 @@
-// The shared Numbers font control. Installed fonts are requested only by a user gesture;
+// The shared Numbers Font control. Installed fonts are requested only by a user gesture;
 // font-file import works without browser font enumeration. Both select the same preset key.
 import { NUMERAL_FONTS, numeralFont, localFontKey, validFontKey } from '../render/numeral-fonts.js';
 import { fontLibrary } from '../render/font-library.js';
@@ -40,7 +40,7 @@ export function bindFontPicker({ select, browse, importButton, fileInput, notice
       for (const font of fonts.sort((a, b) => a.fullName.localeCompare(b.fullName))) {
         add(localFontKey(font.postscriptName), font.fullName, 'Installed fonts');
       }
-      say(fonts.length ? 'Choose an installed font from Numbers font.' : 'No installed fonts were shared. You can import a font file.');
+      say(fonts.length ? 'Choose an installed font from Numbers Font.' : 'No installed fonts were shared. You can import a font file.');
       select.focus();
     } catch (error) {
       console.warn('Dice installed fonts:', error);
