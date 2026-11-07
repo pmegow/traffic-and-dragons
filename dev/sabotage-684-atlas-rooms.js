@@ -18,7 +18,7 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "    pos=atlasPosition(A,parent,A.ptr?JSON.parse(A.ptr)[1]:null);",
     mustFail: "FAIL #684 #693 the building comes from the pointer" },
   { label: "rule (a) dropped: a thing on the town's own sheet named from inside a building is filed under the building",
-    find: "    if(atlasFind(pos.homeDoc,X))return null;/* (a) a thing on the world place's own sheet, or its title: bare, as before */",
+    find: "    if(atlasFind(pos.homeDoc,X)&&!atlasChainBears(A,pos,X))return null;",
     replace: "    ",
     mustFail: "FAIL #684 #693 a room is filed under its building" },
   { label: "the map answers nothing: two inns' rooms of one name share one node again",
@@ -110,7 +110,7 @@ rc |= sabotage.prove({ file: "identity.js", command: ENGINE, only: "FAIL #684 ",
     replace: "",
     mustFail: "FAIL #684 #693 a room is filed under its building" },
   { label: "the place timeline does not say where a tag stands: no room is filed under its building",
-    find: "resolvePlaceName(raw,world,{sub:sub!=null?sub:carried})",
+    find: "resolvePlaceName(raw,world,{sub:sub!=null?sub:carried,fresh:sub!=null&&subFresh})",
     replace: "resolvePlaceName(raw,world)",
     mustFail: "FAIL #684 #693 a room is filed under its building" },
   { label: "a re-stated town carries nothing: the footer pair files the room on the street",
@@ -175,6 +175,38 @@ rc |= sabotage.prove({ file: "tag_table.js", command: ENGINE, only: "FAIL #684 "
     find: "resolvePlaceName(lsPl,lsW,lsAt)",
     replace: "resolvePlaceName(lsPl,lsW)",
     mustFail: "FAIL #684 #693 a room is filed under its building" }
+] });
+
+/* the second independent review of #702 (2026-11-06, audits/AUDIT_2026-11-06_702_review.md): the guards its findings added to the
+   path model — the deepest sheet before rule (a), the way back, the one-reply building, the carry, the fold */
+rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
+  { label: "rule (a) answers before the deepest sheet: a street thing bearing a room's name files every inn's room bare (the #693 fusion again)",
+    find: "    if(atlasFind(pos.homeDoc,X)&&!atlasChainBears(A,pos,X))return null;",
+    replace: "    if(atlasFind(pos.homeDoc,X))return null;",
+    mustFail: "FAIL #684 #702 review: an added town-level thing bearing a room's name" },
+  { label: "a way back onto the town's sheet is read as the deepest sheet's own thing: the grate and its landing are two nodes",
+    find: "    if(i===0&&f.thing&&f.thing.portal&&ATLAS_WAYS_BACK[f.thing.portal.way])continue;\n",
+    replace: "",
+    mustFail: "FAIL #684 #702 review: an added town-level thing bearing a room's name" },
+  { label: "a name inside a building this reply invented is filed town-wide: the room becomes a town-level place",
+    find: "    if(!leaf&&fresh&&!pos.chain.length&&pos.unknown&&pos.unknown.length&&atlasNameKey(pos.unknown[pos.unknown.length-1])!==atlasNameKey(X))leaf=atlasPathJoin(pos.unknown.concat([X]));\n",
+    replace: "",
+    mustFail: "FAIL #684 #702 review: a building and its room invented in ONE reply" },
+  { label: "the fold never folds: a name differing in case or article mints a twin node",
+    find: "  if(!nodes||typeof placeNameNorm!==\"function\")return leaf;",
+    replace: "  return leaf;",
+    mustFail: "FAIL #684 #702 review: the mutants the suite let live" }
+] });
+
+rc |= sabotage.prove({ file: "identity.js", command: ENGINE, only: "FAIL #684 ", cases: [
+  { label: "the timeline never says a sub-location was set by this reply: the invented building's room is filed town-wide",
+    find: ",!!(at&&at.fresh)):null;",
+    replace: ",false):null;",
+    mustFail: "FAIL #684 #702 review: a building and its room invented in ONE reply" },
+  { label: "a leave keeps the carried building",
+    find: "else{ev.kind=\"leave\";sub=null;carried=null;subFresh=false;}",
+    replace: "else{ev.kind=\"leave\";sub=null;subFresh=false;}",
+    mustFail: "FAIL #684 #702 review: the mutants the suite let live" }
 ] });
 
 process.exit(rc);

@@ -54,7 +54,7 @@ prove("identity.js", [
     find: "  if(world)world=locResolve(world);\n", replace: "  if(world)world=locResolve(world);if(typeof fileSubLocation===\"function\"&&/SUBLOCATION:/.test(String(text)))fileSubLocation(\"minted by the timeline\",0);\n",
     mustFail: "the timeline is pure" },
   { label: "a leave keeps the sub-location",
-    find: "    else{ev.kind=\"leave\";sub=null;carried=null;}", replace: "    else{ev.kind=\"leave\";carried=null;}",/* #693 re-anchored */
+    find: "    else{ev.kind=\"leave\";sub=null;carried=null;subFresh=false;}", replace: "    else{ev.kind=\"leave\";carried=null;subFresh=false;}",/* #693 re-anchored; #702 review 2: subFresh */
     mustFail: "pay-then-leave lands" }
 ]);
 process.exit(code);

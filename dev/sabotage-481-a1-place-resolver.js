@@ -23,7 +23,7 @@ prove("memory.js", [
 ]);
 prove("identity.js", [
   { label: "the arrival bypasses the resolver (#481 A4: it resolves in the place timeline)",
-    find: 'rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world,{sub:sub!=null?sub:carried}):null;', replace: 'rp=null;',/* #693 re-anchored */
+    find: 'rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world,{sub:sub!=null?sub:carried,fresh:sub!=null&&subFresh}):null;', replace: 'rp=null;',/* #693 re-anchored; #702 review 2: fresh */
     mustFail: "never mints a twin" },
   { label: "the resolver loses its case/article-insensitive step",
     find: '  var want=placeNameNorm(nm);if(!want)return null;\n', replace: '  return null;\n',

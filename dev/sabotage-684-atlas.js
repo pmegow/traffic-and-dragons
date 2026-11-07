@@ -181,8 +181,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "  if(!A||!p)return out;\n  add(\"world\",p.world,atlasWorldKey(p));",
     mustFail: "FAIL #684 a player's tie is SAID" },
   { label: "a tie to a thing that bears the story's own name is said (\"X is at X\")",
-    find: "    if(at&&atlasNameKey(at)!==atlasNameKey(name))out.push({level:level,name:name,at:at});",
-    replace: "    if(at)out.push({level:level,name:name,at:at});",
+    find: "    if(at&&atlasNameKey(at)!==atlasNameKey(name)){var row={level:level,name:name,at:at};if(t.by)row.by=t.by;out.push(row);}",
+    replace: "    if(at){var row={level:level,name:name,at:at};if(t.by)row.by=t.by;out.push(row);}",
     mustFail: "FAIL #684 a player's tie is SAID" },
   { label: "a tie whose thing a redrawn sheet no longer has is said as the whole sheet's name",
     find: "if(!thing)return;at=ATLAS_TIE_AT[thing.kind]?",
@@ -197,8 +197,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "    if(out.length)add(\"sub\",p.sub,atlasSubKey(p));\n  }\n  return out;",
     mustFail: "FAIL #684 a player's tie is SAID" },
   { label: "the same-name test compares the raw words: a tie differing only by case is said (\"GREAT X! is at Great X\")",
-    find: "    if(at&&atlasNameKey(at)!==atlasNameKey(name))out.push({level:level,name:name,at:at});",
-    replace: "    if(at&&at!==name)out.push({level:level,name:name,at:at});",
+    find: "    if(at&&atlasNameKey(at)!==atlasNameKey(name)){var row={level:level,name:name,at:at};if(t.by)row.by=t.by;out.push(row);}",
+    replace: "    if(at&&at!==name){var row={level:level,name:name,at:at};if(t.by)row.by=t.by;out.push(row);}",
     mustFail: "FAIL #684 a player's tie is SAID" },
   { label: "the tie is said under the identity layer's key, not the name the story uses",
     find: "  add(\"world\",p.world,atlasWorldKey(p));",
@@ -213,8 +213,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "  }\n  return out;",
     mustFail: "FAIL #684 a player's tie is SAID" },
   { label: "the tie claims identity: the GM is told the two are one place (the owner ruled \"is at\")",
-    find: "function atlasTieSay(t){return \"The story's \\\"\"+t.name+\"\\\" is at \"+t.at+\" on this map: the player placed it there.\";}",
-    replace: "function atlasTieSay(t){return \"The story's \\\"\"+t.name+\"\\\" is \"+t.at+\" on this map: the player placed it there.\";}",
+    find: "function atlasTieSay(t){return \"The story's \\\"\"+t.name+\"\\\" is at \"+t.at+\" on this map: \"+(t.by===\"gm\"?\"the GM placed it there.\":\"the player placed it there.\");}",
+    replace: "function atlasTieSay(t){return \"The story's \\\"\"+t.name+\"\\\" is \"+t.at+\" on this map: \"+(t.by===\"gm\"?\"the GM placed it there.\":\"the player placed it there.\");}",
     mustFail: "FAIL #684 a player's tie is SAID" }
 ] });
 

@@ -5,7 +5,7 @@ function keyedDict(source){var out=Object.create(null),keys=source&&typeof sourc
 function ownAssign(target){var i,j,keys,src;for(i=1;i<arguments.length;i++){src=arguments[i];if(src==null)continue;keys=Object.keys(Object(src));for(j=0;j<keys.length;j++)Object.defineProperty(target,keys[j],{value:src[keys[j]],writable:true,enumerable:true,configurable:true});}return target;}
 var KEYED_STORE_PATHS={
   memory:["npcs","locations","quests","map.nodes","map.identity.entries","map.nodes.*.guestbook","map.nodes.*.guestbook.*.by","npcGraph.factions","npcGraph.npcFactions","archive"],
-  world:["capabilityBible","itemBible","atlas.zones","atlas.names","arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","canonContraNudged","consumableKept","consumableNudged","deathEvidenceNudged","deityDriftNudged","hallLines","itemDefAsked","levelUpOwed","locDescNudged","mergeHintNudged","motifNudged","plotArmor","principalNudged","provisionalNudged","provisionalRefused","reciprocityNudged","recurringNameNudged","registerCensus","relAxisReviewFired","relBondReceipts","stashLegacyCounted"],
+  world:["capabilityBible","itemBible","atlas.zones","atlas.names","atlas.adds","arcDriftNudged","arcQuestNudged","arcStaged","arcWallWarned","canonContraNudged","consumableKept","consumableNudged","deathEvidenceNudged","deityDriftNudged","hallLines","itemDefAsked","levelUpOwed","locDescNudged","mergeHintNudged","motifNudged","plotArmor","principalNudged","provisionalNudged","provisionalRefused","reciprocityNudged","recurringNameNudged","registerCensus","relAxisReviewFired","relBondReceipts","stashLegacyCounted"],
   sheet:["itemDefs","stashMarks","skills","skillSeeds"]
 };
 function keyedStores(root,kind){

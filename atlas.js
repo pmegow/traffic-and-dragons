@@ -265,7 +265,8 @@ function atlasSubKey(p){return p.sub?atlasLocKey(atlasWorldKey(p)+"|"+p.sub):nul
 function atlasTie(A,key){
   var t=A.names[key],ks,i;
   if(!t){ks=Object.keys(A.names);for(i=0;i<ks.length;i++)if(atlasLocKey(ks[i])===key){t=A.names[ks[i]];break;}}
-  return (t&&A.zones[t.zone])?{zone:t.zone,id:t.id==null?null:t.id}:null;
+  if(!t||!A.zones[t.zone])return null;
+  var out={zone:t.zone,id:t.id==null?null:t.id};if(t.by)out.by=t.by;return out;/* by: "gm" when a [MAP_PLACE:|at] made it */
 }
 /* the sheets from one zone upward, nearest first, as far as stopAt (null = the region) */
 function atlasChainUp(A,zoneId,stopAt){
@@ -290,17 +291,17 @@ function atlasResolve(A,key,name,sheets){
 /* WRITE: follow the story's location pointer. Idempotent; never throws (it runs inside a turn's commit). Returns
    {changed, at, spot, off, entered} or null when the campaign has no atlas. */
 function atlasFollow(){
-  var A=atlasLive(),p=A?atlasPointer():null,sig,before,entered=[],prev,guard=0;
+  var A=atlasLive(),p=A?atlasPointer():null,sig,before,entered=[],prev,guard=0,from;
   if(!A||!p){if(typeof worldState!=="undefined"&&worldState)delete worldState.placeDecls;return null;}
   sig=JSON.stringify([p.world,p.sub]);
   if(A.ptr===sig){try{atlasSettleChain(A,A.at);}catch(e0){atlasProblem("settling",e0);}delete worldState.placeDecls;return {changed:false,at:A.at,spot:A.spot,off:A.off,entered:entered};}
   before=JSON.stringify([A.at,A.spot,A.off]);
   try{
-    prev=(A.at&&A.zones[A.at])?A.at:null;
+    prev=(A.at&&A.zones[A.at])?A.at:null;from={zone:prev,spot:A.spot};/* where the party stood: the walk clears the spot a segment at a time, and an addition goes beside it */
     atlasResolvePointer(A,p,prev,entered);
     /* You are here (owner rulings 2026-11-06): a place the story names that the map does not know is ADDED to the map,
        then followed to — up to three in one reply (a world, a building, a room), never a twice-borne name */
-    while(A.off&&A.off.absent&&A.adopt!==false&&guard++<3&&atlasAdopt(A,p,entered))atlasResolvePointer(A,p,prev,entered);
+    while(A.off&&A.off.absent&&A.adopt!==false&&guard++<3&&atlasAdopt(A,p,entered,from))atlasResolvePointer(A,p,prev,entered);
     atlasDeclsLeft(A,p);
     atlasSettleChain(A,A.at);
   }catch(e){A.off={name:p.sub||p.world,why:"the map could not follow the story there ("+atlasProblem("following the party",e)+")"};}
@@ -326,7 +327,7 @@ function atlasResolvePointer(A,p,prev,entered){
   if(s.hit){atlasStand(A,atlasArrive(A,s.hit.zone,s.hit.id,entered));return;}
   child=atlasChildByTitle(A,home,atlasDoc(home),p.sub);
   if(child&&child.zone)atlasStand(A,child.lead?{zone:atlasOpen(A,child.lead.parent,child.lead.kind,child.lead.via,null,entered).zone,spot:null}:{zone:child.zone,spot:null});
-  else A.off={name:p.sub,why:(child&&child.many)?child.many+" zones beneath "+(A.zones[home].name||home)+" are called that":s.why,within:home,absent:!!(s.absent&&!(child&&child.many)),zone:home,segment:p.sub};
+  else A.off={name:p.sub,why:(child&&child.many)?child.many+" zones beneath "+(A.zones[home].name||home)+" are called that":s.why,within:home,absent:!!(s.absent&&!(child&&child.many)),zone:home,segment:p.sub,path:[p.sub]};
 }
 function atlasStand(A,where){A.at=where.zone;A.spot=where.spot==null?null:where.spot;}
 /* WRITE: walk a path from the world place's sheet, segment by segment — the player's tie for the prefix, else the one
@@ -344,7 +345,7 @@ function atlasWalk(A,p,parts,home,entered){
     if(f&&f.many){atlasStand(A,{zone:z,spot:null});A.off={name:p.sub,why:f.many+" places on the map of "+name+" are called that",within:z};return;}
     child=atlasChildByTitle(A,z,atlasDoc(z),parts[i]);
     if(child&&child.zone){where=child.lead?atlasOpen(A,child.lead.parent,child.lead.kind,child.lead.via,null,entered):{zone:child.zone,spot:null};atlasStand(A,{zone:where.zone,spot:null});z=where.zone;continue;}
-    atlasStand(A,{zone:z,spot:null});A.off={name:p.sub,why:(child&&child.many)?child.many+" zones beneath "+name+" are called that":"no place on the map of "+name+" has that name",within:z,absent:!(child&&child.many),zone:z,segment:parts[i]};return;
+    atlasStand(A,{zone:z,spot:null});A.off={name:p.sub,why:(child&&child.many)?child.many+" zones beneath "+name+" are called that":"no place on the map of "+name+" has that name",within:z,absent:!(child&&child.many),zone:z,segment:parts[i],path:parts.slice(0,i+1)};return;
   }
 }
 
@@ -467,7 +468,7 @@ function atlasPosition(A,world,sub){
     if(f&&f.many)break;/* the map does not pick: the party is in this zone, somewhere */
     child=atlasChildByTitle(A,pos.zone,pos.doc,parts[i],know,sheet);
     if(child&&child.zone){doc=child.lead?enter(child.lead):atlasDoc(child.zone);pos.chain.push({zone:child.zone,name:(A.zones[child.zone]&&A.zones[child.zone].name)||(doc.title&&doc.title.name)||child.zone,doc:doc,parentZone:pos.zone,parentDoc:pos.doc});pos.zone=child.zone;pos.doc=doc;pos.spot=null;pos.used=i+1;continue;}
-    break;/* an unknown place inside this zone (ruling 2) */
+    pos.unknown=parts.slice(i);break;/* an unknown place inside this zone (ruling 2): the rest of the path, as written */
   }
   return pos;
 }
@@ -525,6 +526,17 @@ function atlasLeafAt(A,pos,name){
   }
   return atlasPathJoin(atlasChainPath(pos,pos.chain.length-1).concat([String(name).trim()]));
 }
+/* does a sheet the party is INSIDE (the chain, any depth) bear the name — as a thing, twice, or as its own title? */
+function atlasChainBears(A,pos,name){
+  var key=atlasNameKey(name),i,c,title,f;
+  for(i=0;i<pos.chain.length;i++){c=pos.chain[i];title=(A.zones[c.zone]&&A.zones[c.zone].name)||(c.doc.title&&c.doc.title.name)||"";
+    if(atlasNameKey(c.name)===key||atlasNameKey(title)===key)return true;
+    f=atlasFind(c.doc,name);if(!f)continue;
+    /* a way back onto the world place's own sheet IS that sheet's thing (the grate and the landing beneath it are one node): rule (a) keeps it */
+    if(i===0&&f.thing&&f.thing.portal&&ATLAS_WAYS_BACK[f.thing.portal.way])continue;
+    return true;}
+  return false;
+}
 /* the leaf folded against the story's existing children of the world: a last segment that differs in case or article
    only lands on the node that is there (identity.js placeNameNorm; the zone segments are canonical already) */
 function atlasFoldLeaf(wk,leaf){
@@ -539,11 +551,12 @@ function atlasFoldLeaf(wk,leaf){
 }
 /* READ: the game's place resolver asks the map which node a sub-location NAME means (identity.js resolvePlaceName, step
    0). name = what the GM wrote; parent = the world place; sub = the sub-location in force where the tag stands (undefined
-   = the caller does not say: only a qualified name is answered). {key}, or null when the map has nothing to say and the
+   = the caller does not say: only a qualified name is answered); fresh = that sub was set by an earlier tag of the SAME
+   reply (the timeline says so). {key}, or null when the map has nothing to say and the
    resolver goes on as before: no atlas, a world the map does not know, a name on the world place's own sheet (a building
    is bare, as named), a bare name from the street. A pure read — a failure is reported once and answers null; the parser
    is never broken. */
-function atlasPlaceCanon(name,parent,sub){
+function atlasPlaceCanon(name,parent,sub,fresh){
   var A=atlasLive(),X,wk,pos,parts,pre,leaf,f;
   if(!A||!A.zones[A.seed])return null;
   X=String(name==null?"":name).trim();if(!X)return null;
@@ -551,7 +564,11 @@ function atlasPlaceCanon(name,parent,sub){
     wk=atlasLocKey(String(parent));
     pos=atlasPosition(A,parent,sub===undefined?null:sub);
     if(!pos)return null;
-    if(atlasFind(pos.homeDoc,X))return null;/* (a) a thing on the world place's own sheet, or its title: bare, as before */
+    /* (a) a thing on the world place's own sheet, or its title: bare, as before — unless a sheet the party is INSIDE bears
+       the name too (review 2 of 2026-11-06, finding 1: a street mention had ADDED "Beer Cellar 1" to the town's sheet,
+       and (a) then filed every inn's cellar of that name bare — the #693 fusion again). Inside the Old Ram, "Beer Cellar
+       1" is the Old Ram's: the deepest sheet answers first; a name the chain does not bear falls to (a). */
+    if(atlasFind(pos.homeDoc,X)&&!atlasChainBears(A,pos,X))return null;
     parts=atlasPathParts(X);
     /* a pair that opens with the world place's own name ("The Weeping Hollow — The Silver Cavern" in the cave that IS the
        world place) names the rest: the review's cave twin. What is left is the name — keyed here, never handed back raw */
@@ -570,6 +587,13 @@ function atlasPlaceCanon(name,parent,sub){
       if(pos.chain.length)return {key:atlasLocKey(wk+"|"+atlasFoldLeaf(wk,atlasKeyFromPosition(A,pos,parts)))};
     }
     leaf=atlasLeafAt(A,pos,X);
+    /* from the street inside a place the map lacks ("[SUBLOCATION:The Gilded Spur][SUBLOCATION:Kitchen]" in one reply,
+       the taught building-first flow with an invented building): the name is filed under it — the owner's ruling 2 for a
+       building the sheet lacks — so the follow adds the building, then the room (review 2, finding 1, flow 2). Beneath a
+       zone the party is in, an unknown name is a room of that zone as before (its siblings are the zone's rooms). Only
+       for a sub set by THIS reply: across replies the addition has happened and the chain answers; a legacy save's bare
+       pointer inside a building stays bare, as does a re-statement of the unknown place itself. */
+    if(!leaf&&fresh&&!pos.chain.length&&pos.unknown&&pos.unknown.length&&atlasNameKey(pos.unknown[pos.unknown.length-1])!==atlasNameKey(X))leaf=atlasPathJoin(pos.unknown.concat([X]));
     return leaf?{key:atlasLocKey(wk+"|"+atlasFoldLeaf(wk,leaf))}:null;
   }catch(e){
     if(atlasOnce(A,"canon"))atlasProblem("asking the map where a place is",e);
@@ -641,7 +665,7 @@ function atlasDeclFor(A,name,told){
     if((m=/^at\s+(.+)$/i.exec(d.where)))return {kind:"at",a:m[1].trim()};
     if((m=/^near\s+(.+)$/i.exec(d.where)))return {kind:"near",a:m[1].trim()};
     if((m=/^between\s+(.+?)\s+and\s+(.+)$/i.exec(d.where)))return {kind:"between",a:m[1].trim(),b:m[2].trim()};
-    told.push("Your [MAP_PLACE:"+d.name+"|"+d.where+"] was not understood (say near <map name>, between <A> and <B>, or at <map name>); "+name+" was put beside the party.");return null;}
+    told.push("Your [MAP_PLACE:"+d.name+"|"+d.where+"] was not understood (say near <map name>, between <A> and <B>, or at <map name>); "+name+" was put {where}.");return null;}
   return null;
 }
 /* the one thing bearing a declared name on the sheet an addition goes on; said and null when none or two */
@@ -649,93 +673,157 @@ function atlasDeclThing(doc,name,told,storyName){
   var f=atlasFind(doc,name);
   if(f&&f.thing)return f.thing;
   if(f&&f.title)return {title:true,name:name};/* the sheet's own name: "in this town" — the default, said no further */
-  told.push("Your [MAP_PLACE:] for "+storyName+" named \""+name+"\", which is "+(f&&f.many?f.many+" places on this sheet":"no place on this sheet")+"; "+storyName+" was put beside the party.");
+  told.push("Your [MAP_PLACE:] for "+storyName+" named \""+name+"\", which is "+(f&&f.many?f.many+" places on this sheet":"no place on this sheet")+"; "+storyName+" was put {where}.");
   return null;
 }
 function atlasTell(A,text){if(!A.told)A.told=[];A.told.push({turn:atlasTurn(),text:text});while(A.told.length>4)A.told.shift();}
 /* a declaration nothing adopted is answered: for a place the player placed, the tie stands and the GM is told so; for a
    place the map knows by its own name, nothing was needed; for a name this reply did not move to, it is no place of the turn */
 function atlasDeclsLeft(A,p){
-  var decls=(typeof worldState!=="undefined"&&worldState&&worldState.placeDecls)||[],i,d,key,tie,thing,isWorld,isSub;
-  for(i=0;i<decls.length;i++){d=decls[i];
-    isWorld=atlasNameKey(d.name)===atlasNameKey(p.world);isSub=!!(p.sub&&atlasNameKey(d.name)===atlasNameKey(p.sub));
-    if(!isWorld&&!isSub){atlasTell(A,"Your [MAP_PLACE:"+d.name+"|"+d.where+"] names no place the party went to this turn; nothing was placed.");continue;}
-    key=isWorld?atlasWorldKey(p):atlasSubKey(p);tie=atlasTie(A,key);
-    if(tie){thing=tie.id!=null?atlasThingById(atlasDoc(tie.zone),tie.id):null;atlasTell(A,"The player placed "+d.name+" at "+(thing?thing.name:(A.zones[tie.zone].name||"a place"))+"; your [MAP_PLACE:"+d.name+"|"+d.where+"] was not applied.");}
+  var decls=(typeof worldState!=="undefined"&&worldState&&worldState.placeDecls)||[],i,j,d,key,tie,thing,parts,dk,at;
+  parts=p.sub?atlasPathParts(p.sub):[];
+  for(i=0;i<decls.length;i++){d=decls[i];dk=atlasNameKey(d.name);key=null;
+    /* the world, or any segment of the party's place (review 2, finding 7a: "Beer Cellar 1" IS where the party went, though the key reads "The Old Ram — Beer Cellar 1") */
+    if(dk===atlasNameKey(p.world))key=atlasWorldKey(p);
+    else for(j=0;j<parts.length&&!key;j++)if(dk===atlasNameKey(parts[j]))key=atlasLocKey(atlasWorldKey(p)+"|"+atlasPathJoin(parts.slice(0,j+1)));
+    if(!key){atlasTell(A,"Your [MAP_PLACE:"+d.name+"|"+d.where+"] does not name where the party stands at the end of this reply ("+(p.sub||p.world)+"); only that place is added, and nothing was placed.");continue;}
+    tie=atlasTie(A,key);
+    if(tie){thing=tie.id!=null?atlasThingById(atlasDoc(tie.zone),tie.id):null;at=thing?thing.name:(A.zones[tie.zone].name||"a place");
+      atlasTell(A,tie.by==="gm"?"You placed "+d.name+" at "+at+" earlier with [MAP_PLACE:]; that placing stands and your [MAP_PLACE:"+d.name+"|"+d.where+"] was not applied.":"The player placed "+d.name+" at "+at+"; your [MAP_PLACE:"+d.name+"|"+d.where+"] was not applied.");}
     else atlasTell(A,d.name+" is on the map under its own name; your [MAP_PLACE:"+d.name+"|"+d.where+"] was not needed.");}
 }
 /* WRITE: add the absent place the pointer names, as the zone's recipe edit. true when the map gained it (the caller
    follows again); false with the reason on A.off when it cannot. Never for a twice-borne name; once per story place. */
-function atlasAdopt(A,p,entered){
-  var off=A.off,isWorld=!off.within,storyKey=isWorld?atlasWorldKey(p):atlasSubKey(p),name=off.segment!=null?off.segment:off.name,zone=isWorld?A.seed:(off.zone||off.within),rec=A.zones[zone],told=[],decl,doc,kind,e,i,pts,centre,party,thing,a,b,before,fpWas,where,drawn,hit,spotRoom,ids;
+function atlasAdopt(A,p,entered,from){
+  var off=A.off,isWorld=!off.within,name=off.segment!=null?off.segment:off.name,zone=isWorld?A.seed:(off.zone||off.within),rec=A.zones[zone],told=[],decl,doc,kind,e,i,pts,centre,party,thing,a,b,before,fpWas,paramsWas,where,drawn,hit,spotRoom,storyKey,refusal,lost,lostName,realm;
+  /* the key of the THING being added: the world, or the path up to the absent segment — never the pointer's whole path
+     (review 2, finding 5: the pair "The Rat-Catcher's Rest — Snug" indexed the inn under the room's key, so the room was
+     refused as 'added once already' and a later tap on the pair took the inn away) */
+  storyKey=isWorld?atlasWorldKey(p):atlasLocKey(atlasWorldKey(p)+"|"+atlasPathJoin(off.path||[name]));
+  function flush(){var w=where||"on the map";told.forEach(function(t){atlasTell(A,String(t).replace("{where}",w));});told.length=0;}
+  function refuse(why){A.off.why+=" ("+why+")";flush();atlasSay("warn",name+" could not be added — "+why);return false;}/* review 2, finding 9: a refusal is said to the player too (the warning toasts), with the reason */
   if(!rec||!name)return false;
   if(!A.adds)A.adds=keyedDict();
   if(A.adds[storyKey]){A.off.why+=" (it was added to the map once already and has not been found since)";return false;}
   try{
-    doc=atlasDoc(zone);decl=atlasDeclFor(A,name,told);
+    doc=atlasDoc(zone);
+    /* a name the map already bears at another scale is not added again (review 2, finding 11): a settlement of the realm
+       named from inside a town (a sheet's own title is found before an adoption is ever tried) */
+    if(!isWorld){realm=atlasFind(atlasDoc(A.seed),name);if(realm&&(realm.thing||realm.many))return refuse("a settlement of "+(A.zones[A.seed].name||"the realm")+" bears that name; it is not added under it here");}
+    decl=atlasDeclFor(A,name,told);
     /* at A: the story's X IS the map's A — a tie (a place the player already placed never reaches here: its tie resolves,
        and atlasDeclsLeft answers the declaration). "at <this sheet's own name>" is the GM saying "in this town": the default. */
     if(decl&&decl.kind==="at"){
       thing=atlasDeclThing(doc,decl.a,told,name);
       if(thing&&thing.title)decl=null;
-      else if(!thing){told.forEach(function(t){atlasTell(A,t);});told.length=0;decl=null;}
-      else{A.names[storyKey]={zone:zone,id:thing.id};atlasTell(A,"The story's "+name+" is at "+thing.name+" on this map: you placed it.");atlasSay("info","the story's "+name+" is at "+thing.name+" (the GM placed it)");return true;}
+      else if(!thing)decl=null;/* said with the place it was put, below */
+      else{A.names[storyKey]={zone:zone,id:thing.id,by:"gm"};where="at "+thing.name;flush();atlasTell(A,"The story's "+name+" is at "+thing.name+" on this map: you placed it.");atlasSay("info","the story's "+name+" is at "+thing.name+" (the GM placed it)");return true;}
     }
-    /* the centre the addition goes beside: the declaration's thing(s), else the party's position on this sheet */
+    /* the centre the addition goes beside: the declaration's thing(s), else the party's position on this sheet — its LAST
+       mapped place while the pointer is off the map (review 2, finding 3: a world addition went beside the capital from
+       anywhere, because the party reads as 'last' during its own adoption), else (the opening) the capital */
     if(decl&&decl.kind==="near"){thing=atlasDeclThing(doc,decl.a,told,name);centre=(thing&&!thing.title)?[thing.x,thing.y]:null;where=(thing&&!thing.title)?"near "+thing.name:null;}
     else if(decl&&decl.kind==="between"){a=atlasDeclThing(doc,decl.a,told,name);b=(a&&!a.title)?atlasDeclThing(doc,decl.b,told,name):null;centre=(a&&b&&!a.title&&!b.title)?[(a.x+b.x)/2,(a.y+b.y)/2]:null;where=centre?"between "+a.name+" and "+b.name:null;}
     if(!centre){party=(A.at&&A.zones[A.at])?atlasPartyIn(zone):null;
-      if(party&&!party.last){centre=[party.x,party.y];where="beside the party";}
+      if(party){centre=[party.x,party.y];where=party.last?"beside the party's last mapped place":"beside the party";}
       else if(rec.kind==="region"){centre=doc.places.length?[doc.places[0].x,doc.places[0].y]:atlasCentre(doc);where=doc.places.length?"near "+doc.places[0].name:"on the map";}
       else{centre=atlasCentre(doc);where="in the middle";}}
     /* the edit, by the zone's kind */
     if(rec.kind==="region"){pts=atlasRegionPoints(doc,centre);e={op:"add",id:atlasAddId(rec,"a"),name:name,kind:"village"};}
-    else if(rec.kind==="town"){kind=atlasAddKind(name);e={op:"add",id:atlasAddId(rec,"s"),name:name,at:[Math.round((centre[0]+12)*10)/10,Math.round((centre[1]+8)*10)/10]};if(kind.kind)e.kind=kind.kind;else{e.kind="custom";e.word=kind.word;if(kind.footprint)e.footprint=kind.footprint;}pts=[e.at];}
-    else if(rec.kind==="interior"){spotRoom=(A.at===zone&&A.spot!=null)?atlasThingById(doc,A.spot):null;e={op:"add",id:atlasAddId(rec,"r"),kind:"custom",word:"room",name:name,m2:8};if(spotRoom){var rooms=doc.rooms||[];for(i=0;i<rooms.length;i++)if(rooms[i].id===spotRoom.id&&typeof rooms[i].floor==="number")e.floor=rooms[i].floor;}pts=[null];}
-    else if(rec.kind==="dungeon"){spotRoom=(A.at===zone&&A.spot!=null)?atlasThingById(doc,A.spot):null;centre=spotRoom?[spotRoom.x,spotRoom.y]:centre;pts=[[30,10],[-30,10],[0,40],[0,-40],[40,-30],[-40,-30],[60,0],[-60,0]].map(function(o){return [Math.round(centre[0]+o[0]),Math.round(centre[1]+o[1])];});e={op:"add",id:atlasAddId(rec,"c"),kind:"custom",word:"chamber",name:name};}
-    else{A.off.why+=" (a place cannot be added to a "+rec.kind+")";told.forEach(function(t){atlasTell(A,t);});return false;}
-    /* lay the edit, trying the points in turn; the library's refusals pick the next; a drawing that did not take the place is rolled back */
-    before=(rec.params&&rec.params.edits)?rec.params.edits.slice():[];fpWas=rec.fp;
+    else if(rec.kind==="town"){kind=atlasAddKind(name);e={op:"add",id:atlasAddId(rec,"s"),name:name,at:[Math.round((centre[0]+12)*10)/10,Math.round((centre[1]+8)*10)/10]};
+      if(kind.kind){e.kind=kind.kind;
+        /* a trade takes a HOUSE: the roomiest free one near the party, not the nearest (review 2: the library's nearest house
+           was a hovel, and the inn drawn inside it had no room for its own kitchen, let alone a room the story names) */
+        var house=atlasRoomyHouse(doc,centre,kind.kind);if(house>=0)e.building=house;}
+      else{e.kind="custom";e.word=kind.word;e.footprint=kind.footprint||(kind.word==="keep"?"large":"medium");}
+      pts=[e.at];}
+    else if(rec.kind==="interior"){
+      /* the party's floor first, at 8 m² then 6; then any floor; then each floor the building has — the library drops a room it
+         cannot fit and says nothing (14 of the 40 fixture buildings for one 8 m² room), so the variants are tried in turn */
+      spotRoom=atlasStoodAt(A,zone,doc,from);e={op:"add",id:atlasAddId(rec,"r"),kind:"custom",word:"room",name:name};
+      var rooms=doc.rooms||[],floors=[],pf=null;for(i=0;i<rooms.length;i++){if(spotRoom&&rooms[i].id===spotRoom.id&&typeof rooms[i].floor==="number")pf=rooms[i].floor;if(typeof rooms[i].floor==="number"&&floors.indexOf(rooms[i].floor)<0)floors.push(rooms[i].floor);}
+      pts=[];if(pf!==null)pts.push({floor:pf,m2:8},{floor:pf,m2:6});pts.push({m2:8},{m2:6});floors.forEach(function(fl){if(fl!==pf)pts.push({floor:fl,m2:6});});
+    }
+    else if(rec.kind==="dungeon"){spotRoom=atlasStoodAt(A,zone,doc,from);centre=spotRoom?[spotRoom.x,spotRoom.y]:centre;pts=[[30,10],[-30,10],[0,40],[0,-40],[40,-30],[-40,-30],[60,0],[-60,0]].map(function(o){return [Math.round(centre[0]+o[0]),Math.round(centre[1]+o[1])];});e={op:"add",id:atlasAddId(rec,"c"),kind:"custom",word:"chamber",name:name};}
+    else return refuse("a place cannot be added to a "+rec.kind);
+    /* lay the edit, trying the points in turn; the library's refusals pick the next; a drawing that did not take the
+       place, or that LOST a thing the sheet had (review 2, finding 2: an invented room displaced the temple's crypt stair,
+       and the crypt could not be drawn), is rolled back — an addition never removes what the map had */
+    before=(rec.params&&rec.params.edits)?rec.params.edits.slice():[];fpWas=rec.fp;paramsWas=rec.params;
     if(!rec.params)rec.params={};
     for(i=0;i<pts.length&&!hit;i++){
-      if(pts[i])e.at=pts[i];
+      if(pts[i]instanceof Array)e.at=pts[i];else if(pts[i]){delete e.floor;delete e.m2;Object.keys(pts[i]).forEach(function(k){e[k]=pts[i][k];});}
       rec.params.edits=before.concat([JSON.parse(JSON.stringify(e))]);rec.fp=null;
-      try{drawn=atlasDoc(zone);}catch(err){if(!atlasIsRefusal(err))throw err;drawn=null;}
+      try{drawn=atlasDoc(zone);}catch(err){if(!atlasIsRefusal(err))throw err;drawn=null;refusal=atlasReason(err);}
+      if(drawn){lost=atlasLost(doc,drawn);if(lost){lostName=lost;drawn=null;continue;}}
       if(drawn){var f=atlasFind(drawn,name);if(f&&f.thing&&f.thing.id===e.id)hit=f.thing;else if(f&&f.thing)hit=f.thing;else drawn=null;}
     }
-    if(!hit){rec.params.edits=before;if(!before.length)delete rec.params.edits;rec.fp=fpWas;A.off.why+=" (the map had no room for it "+(where||"")+")";told.forEach(function(t){atlasTell(A,t);});return false;}
+    if(!hit){
+      if(before.length)rec.params.edits=before;else if(paramsWas)delete rec.params.edits;rec.params=paramsWas;rec.fp=fpWas;
+      return refuse(lostName?"adding it would have displaced "+lostName+" from the map of "+(rec.name||zone):"the map had no room for it "+(where||"")+(refusal?" — "+refusal:""));
+    }
     A.adds[storyKey]={zone:zone,id:e.id,turn:atlasTurn()};
-    told.forEach(function(t){atlasTell(A,t);});
+    flush();
     atlasTell(A,"The story's "+name+" was added to the map of "+(rec.name||zone)+" "+where+(rec.kind==="region"?", as a village":"")+".");
     atlasSay("info","added "+name+" to the map of "+(rec.name||zone)+" "+where);
     if(typeof showToast==="function")showToast("Map: "+name+" added "+where+".",5000);
     return true;
   }catch(err){
-    if(rec&&before!==undefined){rec.params.edits=before;if(!before.length)delete rec.params.edits;rec.fp=fpWas;}
+    if(rec&&before!==undefined){if(before.length)rec.params.edits=before;else if(paramsWas)delete rec.params.edits;rec.params=paramsWas;rec.fp=fpWas;}
     A.off.why+=" (adding it to the map failed: "+atlasProblem("adding "+name+" to the map",err)+")";return false;
   }
+}
+/* the thing the party stands at on a sheet — now, or before the pointer moved (the walk clears the spot a segment at a
+   time, so a qualified path leaves none by the time an addition is made) */
+function atlasStoodAt(A,zone,doc,from){
+  if(A.at===zone&&A.spot!=null)return atlasThingById(doc,A.spot);
+  if(from&&from.zone===zone&&from.spot!=null)return atlasThingById(doc,from.spot);
+  return null;
+}
+/* the first thing of a sheet that a redrawing no longer bears under its id and name, or a way (portal) it no longer has —
+   an addition that displaced it */
+function atlasLost(was,now){
+  var t=atlasThings(was),i,j,n,ps=was.portals||[],qs=now.portals||[],found;
+  for(i=0;i<t.length;i++){n=atlasThingById(now,t[i].id);if(!n||atlasNameKey(n.name)!==atlasNameKey(t[i].name))return t[i].name;}
+  for(i=0;i<ps.length;i++){found=false;for(j=0;j<qs.length&&!found;j++)if(qs[j].id===ps[i].id&&qs[j].way===ps[i].way)found=true;if(!found)return ps[i].name;}
+  return null;
+}
+/* the index of the roomiest free house of a town within reach of a point (80 px, then 160), -1 when none; a trade whose
+   catalogue site is the street (a stall, a grate) takes no house */
+function atlasRoomyHouse(doc,centre,kind){
+  var cat=(TnDMaps.establishments&&TnDMaps.establishments.CATALOGUE)||{},bs=doc.buildings||[],radii=[80,160],r,i,b,d,best=-1,bestArea=0,area;
+  if(cat[kind]&&cat[kind].site==="street")return -1;
+  function areaOf(pts){var a=0,k;for(k=0;k<pts.length;k++)a+=pts[k][0]*pts[(k+1)%pts.length][1]-pts[(k+1)%pts.length][0]*pts[k][1];return Math.abs(a)/2;}
+  for(r=0;r<radii.length&&best<0;r++)for(i=0;i<bs.length;i++){b=bs[i];if(!b||b.est||!b.pts||!b.c)continue;d=Math.sqrt((b.c[0]-centre[0])*(b.c[0]-centre[0])+(b.c[1]-centre[1])*(b.c[1]-centre[1]));if(d>radii[r])continue;
+    area=areaOf(b.pts);if(area>bestArea){bestArea=area;best=i;}}
+  return best;
 }
 /* WRITE: a tap that places a story name the engine added puts the addition away when nothing hangs from it (no zone was
    entered through it); else it stays, said */
 function atlasAddRemove(A,storyKey){
-  var add=A.adds&&A.adds[storyKey],rec,ids,i,ed,under=[],tied=false,ks,k;
+  var add=A.adds&&A.adds[storyKey],rec,ids,i,ed,under=[],tied=false,ks,k,n;
   if(!add)return false;
-  rec=A.zones[add.zone];delete A.adds[storyKey];
-  if(!rec||!rec.params||!rec.params.edits)return false;
-  /* the zones the follow opened through the addition (the house's interior) go with it — unless the player tied a place inside one */
+  rec=A.zones[add.zone];
+  /* the zones the follow opened through the addition (the house's interior) go with it — unless the player tied a place
+     inside one, or a place to the addition itself (review 2, findings 4 and 15: a removal must leave no tie pointing at
+     a thing that is gone, and an addition that stays keeps its index) */
   ids=Object.keys(A.zones);
   for(i=0;i<ids.length;i++)if(A.zones[ids[i]].parent===add.zone&&A.zones[ids[i]].via===add.id)under.push(ids[i]);
   for(i=0;i<under.length;i++)for(k=0;k<ids.length;k++)if(A.zones[ids[k]].parent===under[i]&&under.indexOf(ids[k])<0)under.push(ids[k]);
-  ks=Object.keys(A.names);for(k=0;k<ks.length;k++)if(under.indexOf(A.names[ks[k]].zone)>=0)tied=true;
-  if(tied){atlasSay("info","the story's place stays on the map: the player placed something inside it");return false;}
+  ks=Object.keys(A.names);for(k=0;k<ks.length;k++){n=A.names[ks[k]];if(ks[k]!==storyKey&&n&&((n.zone===add.zone&&n.id===add.id)||under.indexOf(n.zone)>=0))tied=true;}
+  if(tied){atlasSay("info","the story's place stays on the map: the player placed something at it or inside it");return false;}
+  delete A.adds[storyKey];
+  if(!rec||!rec.params||!rec.params.edits)return false;
   for(i=0;i<under.length;i++)delete A.zones[under[i]];
+  /* the additions made inside the removed zones have no sheet any more (review 2, finding 6: a dangling index refused the next naming until a reload) */
+  ks=Object.keys(A.adds);for(k=0;k<ks.length;k++)if(A.adds[ks[k]]&&under.indexOf(A.adds[ks[k]].zone)>=0)delete A.adds[ks[k]];
   if(under.indexOf(A.at)>=0){A.at=add.zone;A.spot=null;}
   ed=rec.params.edits.filter(function(x){return x.id!==add.id;});
   if(ed.length)rec.params.edits=ed;else delete rec.params.edits;
   rec.fp=null;return true;
 }
 /* READ: what the follow told the GM this turn or the last (A.told), for the MAP block */
-function atlasToldLines(A){var t=atlasTurn(),out=[],i;for(i=0;i<(A.told||[]).length;i++)if(A.told[i].turn>=t-1)out.push(A.told[i].text);return out;}
+function atlasToldLines(A){var t=atlasTurn(),out=[],i;for(i=0;i<(A.told||[]).length;i++)if(A.told[i].turn===t)out.push(A.told[i].text);return out;}/* stamped after the turn's count: the next prompt, and no other */
 
 /* WRITE: start a campaign's atlas — the region is drawn now, the party is not on it yet. Throws on a second call. */
 function atlasCreate(seed){
@@ -760,7 +848,7 @@ function atlasCreate(seed){
    Returns {ok: true, at, spot, off, entered, bound, level} or {ok: false, reason, moved?}; a refusal changes nothing
    but zones the tap had to draw to look. */
 function atlasPlace(zoneId,target,expect){
-  var A=atlasLive(),p=A?atlasPointer():null,entered=[],rec,doc,tie,b,r,pv;
+  var A=atlasLive(),p=A?atlasPointer():null,entered=[],rec,doc,tie,b,r,pv,storyKey,add;
   if(!A)return {ok:false,reason:"this campaign has no map"};
   if(!p)return {ok:false,reason:"the story has no current place"};
   if(!A.zones[zoneId])return {ok:false,reason:"that sheet is not in this campaign's atlas"};
@@ -781,9 +869,14 @@ function atlasPlace(zoneId,target,expect){
     if(!atlasIsRefusal(e))atlasProblem("placing the party",e);
     return {ok:false,reason:atlasReason(e)};
   }
-  /* the player's tap is the correction: an addition the engine made for this story name is put away when nothing hangs from it */
-  atlasAddRemove(A,pv.level==="sub"?atlasSubKey(p):atlasWorldKey(p));
-  A.names[pv.level==="sub"?atlasSubKey(p):atlasWorldKey(p)]=tie;A.ptr=null;
+  storyKey=pv.level==="sub"?atlasSubKey(p):atlasWorldKey(p);add=A.adds?A.adds[storyKey]:null;
+  /* the tap on the very thing the engine added for this name has nothing to place (review 2, finding 4: it removed the
+     addition and tied the name to the vanished id, and the party fell off the map) */
+  if(add&&tie.id!=null&&add.zone===tie.zone&&add.id===tie.id)return {ok:false,reason:"\""+pv.name+"\" is already on the map there (the engine added it)"};
+  /* the player's tap is the correction: the tie first, then an addition the engine made for this story name is put away
+     when nothing hangs from it (a tap inside the addition keeps it) */
+  A.names[storyKey]=tie;A.ptr=null;
+  atlasAddRemove(A,storyKey);
   r=atlasFollow();
   return {ok:true,at:A.at,spot:A.spot,off:A.off,entered:entered.concat((r&&r.entered)||[]),bound:pv.name,level:pv.level};
 }
@@ -869,7 +962,7 @@ function atlasTiesHere(A){
     if(!t)return;
     if(t.id!=null){thing=atlasThingById(atlasDoc(t.zone),t.id);if(!thing)return;at=ATLAS_TIE_AT[thing.kind]?ATLAS_TIE_AT[thing.kind](thing,A.zones[t.zone].name||t.zone):thing.name;}
     else at=A.zones[t.zone].name||ATLAS_TIE_OPEN;
-    if(at&&atlasNameKey(at)!==atlasNameKey(name))out.push({level:level,name:name,at:at});
+    if(at&&atlasNameKey(at)!==atlasNameKey(name)){var row={level:level,name:name,at:at};if(t.by)row.by=t.by;out.push(row);}
   }
   if(!A||!p||A.ptr!==JSON.stringify([p.world,p.sub]))return out;
   add("world",p.world,atlasWorldKey(p));
@@ -883,7 +976,7 @@ function atlasTiesHere(A){
 }
 /* how a tie is said — to the GM on the where-line and to the player in the pane (owner ruling 2026-11-05: "is at", the
    engine claims no more than the tap said: not that the two are one place, not that one lies inside the other) */
-function atlasTieSay(t){return "The story's \""+t.name+"\" is at "+t.at+" on this map: the player placed it there.";}
+function atlasTieSay(t){return "The story's \""+t.name+"\" is at "+t.at+" on this map: "+(t.by==="gm"?"the GM placed it there.":"the player placed it there.");}/* review 2, finding 7b: a [MAP_PLACE:|at] tie is the GM's, and is said so */
 /* READ: where the party is, in words and in parts — the pane's status line and the first line the GM is told */
 function atlasWhere(){
   var A=atlasLive(),rec,t,out,why,phrase="",said="";
