@@ -86,7 +86,7 @@ Leading indicators over the anti-drift stack, computed at render time by ONE pur
 
 Two-tier location graph stored in `memory.map`: `{nodes:{}, edges:[], lastArrivalFrom:null}` — **plus, since #156 Phase B, the sparse identity overlay `identity.entries`** (`{<key>:{mergedInto?, aliases?, display?}}`): node KEYS are immutable name-born identifiers; repairs tombstone/alias in the overlay and reads resolve via `locResolve`/`locSame` (identity.js). A key's punctuation is HISTORY, never authority — world-vs-sub derives from `node.parent` (`locIsSub`), display leaves via `locDisplayLeaf`. Repaired nodes may carry optional `kind` (`route`/…) and unordered `endpoints[]` (§7.4 — written by the cleanup tool; full topology stays a non-goal).
 
-**Node keys:** world locations use the plain name (`"Ashfen"`); sub-locations use `"Location|SubLocation"` (e.g. `"Ashfen|The Rusty Flagon"`).
+**Node keys:** world locations use the plain name (`"Ashfen"`); sub-locations use `"Location|SubLocation"` (e.g. `"Ashfen|The Rusty Flagon"`). **In a mapped campaign (#693, v1.1361)** the sub-location part is a PATH — the zones beneath the world place's sheet, then the thing, joined by `" — "` (`"Ashfen|The Rusty Flagon — Kitchen"`): two inns' kitchens are two nodes. The place resolver writes it (identity.md ▸ the place resolver, step 0); readers see one leaf, `locDisplayLeaf` included.
 
 **Node structure:** `{firstVisit:turn, visits:0, description:null, parent:null, npcs:[], items:[], guestbook?:{}}`. `parent` is `null` for world nodes, or the world location name for sub-location nodes.
 

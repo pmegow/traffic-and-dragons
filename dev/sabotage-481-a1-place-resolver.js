@@ -12,18 +12,18 @@ prove("memory.js", [
     find: "locResolve(_composed)!==key)locAliasRegister(key,_composed,null);", replace: "locResolve(_composed)!==key)void 0;",
     mustFail: "#529 on a repaired map" },
   { label: "the item filer composes its key raw again (the t216 refusal)",
-    find: '    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw):null;\n', replace: '    var _rp=null;\n',
+    find: '    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw,(at&&at.sub!==undefined)?{sub:at.sub}:((at&&at.key)?undefined:{sub:(worldState.world&&worldState.world.sublocation)||null})):null;', replace: '    var _rp=null;',/* #693 re-anchored: the call gained the tag's position */
     mustFail: "the item filer accepts every naming the arrival accepts" },
   { label: "fileSubLocation mints twins again",
     find: '  var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(name,parent):null;\n', replace: '  var _rp=null;\n',
     mustFail: "never mints a twin" },
   { label: "the soundscape target composes raw again",
-    find: '    var _rpA=(typeof resolvePlaceName==="function")?resolvePlaceName(v.target):null;', replace: '    var _rpA=null;',
+    find: '    var _rpA=(typeof resolvePlaceName==="function")?resolvePlaceName(v.target,undefined,{sub:(worldState.world&&worldState.world.sublocation)||null}):null;', replace: '    var _rpA=null;',/* #693 re-anchored */
     mustFail: "the soundscape target resolves" }
 ]);
 prove("identity.js", [
   { label: "the arrival bypasses the resolver (#481 A4: it resolves in the place timeline)",
-    find: 'rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world):null;', replace: 'rp=null;',
+    find: 'rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world,{sub:sub!=null?sub:carried}):null;', replace: 'rp=null;',/* #693 re-anchored */
     mustFail: "never mints a twin" },
   { label: "the resolver loses its case/article-insensitive step",
     find: '  var want=placeNameNorm(nm);if(!want)return null;\n', replace: '  return null;\n',

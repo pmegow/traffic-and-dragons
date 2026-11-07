@@ -1,6 +1,6 @@
 {
-  "version": "v1.1360",
+  "version": "v1.1361",
   "actions": [
-    "Dice Simulator 0.99.0 groups settings in a collapsible Customize frame, keeping Preset and Table Top Material visible."
+    "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one."
   ]
 }

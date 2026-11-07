@@ -20,7 +20,7 @@ prove("tag_table.js", [
     find: "fileLocation(e.name,\"\",R.turn,e.fromWorld);", replace: "fileLocation(e.name,\"\",R.turn);",
     mustFail: "two moves in one reply end at the second" },
   { label: "a sub-location named before a world move files under the new world",
-    find: "fileSubLocation(e.raw,R.turn,e.world);", replace: "fileSubLocation(e.raw,R.turn,ev[lastWorld]?ev[lastWorld].name:e.world);",
+    find: "fileSubLocation(ptN,R.turn,e.world);", replace: "fileSubLocation(ptN,R.turn,ev[lastWorld]?ev[lastWorld].name:e.world);",/* #693 re-anchored */
     mustFail: "belongs to the OLD world" },
   { label: "the hours file where the reply ends (an answered ask lands outside)",
     find: "var key=rPlaceAt(R,lh.index).key;", replace: "var key=rPlaceAt(R,null).key;",
@@ -29,7 +29,7 @@ prove("tag_table.js", [
     find: "var key=rPlaceAt(R,lh.index).key;", replace: "var key=rPlaceAt(R,-1).key;",
     mustFail: "arrive-then-hours files on the shop" },
   { label: "the item files where the reply ends",
-    find: "fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom,rPlaceAtBlock(R,text,liOff[lii]));", replace: "fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom);",
+    find: "fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom,_liAt);", replace: "fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom);",/* #693 re-anchored */
     mustFail: "place-then-leave files the item" },
   { label: "the fight anchors where the reply ends",
     find: "node:rPlaceAt(R,csOff[csi]).key};", replace: "node:rPlaceAt(R,null).key};",
@@ -54,7 +54,7 @@ prove("identity.js", [
     find: "  if(world)world=locResolve(world);\n", replace: "  if(world)world=locResolve(world);if(typeof fileSubLocation===\"function\"&&/SUBLOCATION:/.test(String(text)))fileSubLocation(\"minted by the timeline\",0);\n",
     mustFail: "the timeline is pure" },
   { label: "a leave keeps the sub-location",
-    find: "    else{ev.kind=\"leave\";sub=null;}", replace: "    else{ev.kind=\"leave\";}",
+    find: "    else{ev.kind=\"leave\";sub=null;carried=null;}", replace: "    else{ev.kind=\"leave\";carried=null;}",/* #693 re-anchored */
     mustFail: "pay-then-leave lands" }
 ]);
 process.exit(code);

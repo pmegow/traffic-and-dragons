@@ -765,6 +765,11 @@ function fileExit(name,note,turn){
   var nk=exitNameKey(nm),sibs=exitSiblingPlaces(key),i;
   if(exitNameKey(_exitLeaf(key))===nk)return {ok:false,reason:"an exit cannot lead to the place itself",key:key};
   for(i=0;i<sibs.length;i++)if(exitNameKey(sibs[i])===nk)return {ok:false,reason:"'"+sibs[i]+"' is already a place on record here — it is a way already",key:key};
+  /* #693: in a mapped campaign a room's leaf carries its building, so the door's name is compared through the ONE resolver at the party's position */
+  var _xr=(typeof resolvePlaceName==="function")?resolvePlaceName(nm,worldState.world.location,{sub:worldState.world.sublocation||null}):null;
+  if(typeof placeResolvedByMap==="function"&&placeResolvedByMap(_xr)){
+    if(_exitR(_xr.key)===key)return {ok:false,reason:"an exit cannot lead to the place itself",key:key};
+    if(memory.map.nodes[_exitR(_xr.key)])return {ok:false,reason:"'"+_exitLeaf(_xr.key)+"' is already a place on record here — it is a way already",key:key};}
   var open=node.exits||[];
   for(i=0;i<open.length;i++)if(exitNameKey(open[i].name)===nk)return {ok:true,dup:true,key:key,name:open[i].name,open:open.length};
   if(open.length>=EXIT_CAP)return {ok:false,reason:"the cap of "+EXIT_CAP+" open ways here is reached; one must be taken before another is filed",key:key};
@@ -784,8 +789,11 @@ function resolveExitsAfterMove(R){
   var said=" "+String((typeof lastAction==="string")?lastAction:"").toLowerCase().replace(/[^a-z0-9' ]+/g," ").replace(/\s+/g," ")+" ",parent=node.parent?_exitR(node.parent):dk;/* the same substring evidence the #408 voice gate uses; the door's leading article is not required ("Follow the path…" takes "a path into the woods") */
   var sibs=exitSiblingPlaces(dk),keep=[],i,j;
   var road=function(a,b){var e,k;for(k=0;k<memory.map.edges.length;k++){e=memory.map.edges[k];var ef=_exitR(e.from),et=_exitR(e.to);if((ef===a&&et===b)||(ef===b&&et===a))return true;}return false;};
+  var _xw=node.parent?parent:dk,_xs=node.parent?_exitLeaf(dk):null;/* #693: the departed node's position, for the resolver */
   for(i=0;i<node.exits.length;i++){var ex=node.exits[i],nk=exitNameKey(ex.name),hit=null;
     for(j=0;j<sibs.length;j++)if(exitNameKey(sibs[j])===nk){hit=sibs[j];break;}
+    /* #693: a room filed under its building ("The Old Ram — Kitchen") matches no bare leaf — the door's name is read through the ONE resolver from the node the party left */
+    if(!hit&&typeof resolvePlaceName==="function"&&typeof placeResolvedByMap==="function"){var _xr=resolvePlaceName(ex.name,_xw,{sub:_xs});if(placeResolvedByMap(_xr)&&_exitR(_xr.key)!==dk&&memory.map.nodes[_exitR(_xr.key)])hit=_exitLeaf(_xr.key);}
     if(!hit&&created.length&&said.indexOf(" "+nk+" ")>=0){
       for(j=0;j<created.length;j++){var ck=_exitR(created[j]),cn=memory.map.nodes[ck];if(!cn||ck===dk)continue;
         if(cn.parent&&_exitR(cn.parent)===parent){hit=_exitLeaf(ck);break;}
@@ -1007,7 +1015,7 @@ function fileLocationItem(name,action,turn,place,room,at){
   var key=(at&&at.key)?at.key:currentNodeKey();/* UA9; #481 A4: `at` = the reply's place where the tag happened */
   if(place){/* #481 A1: the place operand goes through the SAME resolver as the arrival, so every name that walks in also files items; null keeps the loud refusal (#6 E3) */
     var _pw=(at&&at.world)?at.world:((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location);
-    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw):null;
+    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw,(at&&at.sub!==undefined)?{sub:at.sub}:((at&&at.key)?undefined:{sub:(worldState.world&&worldState.world.sublocation)||null})):null;/* #693: where the tag stands, so a room's own name means THIS building's room; a caller outside the parser reads the live pointer */
     key=_rp?_rp.key:_pw+"|"+String(place).trim();/* audit C10: compose under the CANONICAL world */
   }
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
@@ -3215,7 +3223,7 @@ function audioFileCandidates(candidates,scope){
   else if(!v.ok)why=v.reason;
   else if(!node)why="no current map node";
   else {
-    var _rpA=(typeof resolvePlaceName==="function")?resolvePlaceName(v.target):null;/* #481 A1/A5: "The Village Hall" is the Hall, as for every other place writer */
+    var _rpA=(typeof resolvePlaceName==="function")?resolvePlaceName(v.target,undefined,{sub:(worldState.world&&worldState.world.sublocation)||null}):null;/* #481 A1/A5: "The Village Hall" is the Hall, as for every other place writer; #693: read at the party's position */
     var target=locResolve(v.target),child=_rpA?_rpA.key:locResolve(locResolve(worldState.world.location)+"|"+v.target);/* audit C10: canonical world first */
     if(target!==key&&child!==key)why="classification target is not the accepted location";
   }

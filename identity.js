@@ -274,14 +274,22 @@ var PLACE_CANONICALISERS={
   commons:function(name,parent){var c=(typeof villageCommonFor==="function")?villageCommonFor(name):null;return c?{key:locResolve(parent+"|"+c)}:null;},
   hall:function(name,parent){var d=(typeof kindDef==="function")?kindDef():null;return (d&&d.hall&&d.hallWords&&d.hallWords.test(name)&&typeof villageHallKey==="function")?{key:locResolve(villageHallKey(parent))}:null;}
 };
+/* #693: did the map answer this resolution (a room keyed under its building)? The writers that must treat such an answer apart
+   from a bare name — the pass-through filing, the split operand, the exits — ask this, never the via string. */
+function placeResolvedByMap(rp){return !!(rp&&rp.via==="atlas");}
 function placeNameNorm(s){return String(s==null?"":s).replace(/[‘’]/g,"'").replace(/\s+/g," ").trim().toLowerCase().replace(/^(the|a|an)\s+/,"");}
 function placeKeyLeaf(key){var s=String(key==null?"":key),i=s.lastIndexOf("|");return i<0?s:s.slice(i+1);}
-function resolvePlaceName(name,parent){
+function resolvePlaceName(name,parent,at){
   var nm=String(name==null?"":name).trim();
   if(!nm||typeof memory==="undefined"||!memory||!memory.map||!memory.map.nodes)return null;
   var nodes=memory.map.nodes,i;
   if(parent==null){if(typeof worldState==="undefined"||!worldState||!worldState.world||!worldState.world.location)return null;parent=worldState.world.location;}
   parent=locResolve(parent);
+  /* (0) #693 (owner ruling 2026-11-06): in a campaign with a drawn map, a room is filed under its building — "Town|The Old Ram —
+     Kitchen". The map reads the party's position from the sub-location in force where the tag stands (`at` = {sub}; a caller
+     that does not say gets only a qualified name's answer, never a guess) and answers before the bare node is looked up, because
+     the bare key may already exist (another building's room, a place invented at the town's level). Without an atlas: null. */
+  var _m=(typeof atlasPlaceCanon==="function")?atlasPlaceCanon(nm,parent,at?at.sub:undefined):null;if(_m&&_m.key)return {key:_m.key,via:"atlas"};
   var direct=locResolve(parent+"|"+nm);if(nodes[direct])return {key:direct,via:"exact"};
   var def=(typeof kindDef==="function")?kindDef():null,canon=(def&&def.placeCanon)||[];
   for(i=0;i<canon.length;i++){var fn=ownValue(PLACE_CANONICALISERS,canon[i]);if(!fn)continue;var hit=fn(nm,parent);if(hit&&hit.key){hit.via=canon[i];return hit;}}
@@ -297,17 +305,22 @@ function resolvePlaceName(name,parent){
 // W5: a bare [LOCATION:leaf] must not mint a world twin of an already-known child under the
 // current world. Resolution/parent relations are authoritative; punctuation in the key is not.
 // A genuine live world node with the same display name wins and remains a legal destination.
-function locationWorldTwinConflict(name,fromWorld){
+function locationWorldTwinConflict(name,fromWorld,fromSub){
   var nodes=(typeof memory!=="undefined"&&memory&&memory.map&&memory.map.nodes)?memory.map.nodes:null;
   if(!nodes||!worldState||!worldState.world)return null;
   var raw=String(name||"").trim(),target=locResolve(raw),direct=nodes[target];
   if(direct&&!direct.parent)return null;
-  var current=locResolve(fromWorld!=null?fromWorld:worldState.world.location),/* #481 A4: a second move in one reply is judged from where the first one left the party */leaf=locDisplayLeaf(target).toLowerCase(),ks=Object.keys(nodes),i,k,n;
+  var current=locResolve(fromWorld!=null?fromWorld:worldState.world.location),/* #481 A4: a second move in one reply is judged from where the first one left the party */leaf=locDisplayLeaf(target).toLowerCase(),ks=Object.keys(nodes),i,k,n,mapped=(typeof atlasHas==="function")&&atlasHas(),lp;
   for(i=0;i<ks.length;i++){
     k=locResolve(ks[i]);n=nodes[k]||nodes[ks[i]];
     if(!n||!n.parent||!locSame(n.parent,current))continue;
     if(locSame(k,target)||locDisplayLeaf(k).toLowerCase()===leaf)return {requested:raw,child:k,parent:current,leaf:locDisplayLeaf(k)};
+    /* #693: in a mapped campaign a room's leaf carries its building ("The Old Ram — Kitchen"); a world named like any known room is a twin from the street too */
+    if(mapped){lp=locDisplayLeaf(k).split(" — ");if(lp.length>1&&lp[lp.length-1].toLowerCase()===leaf)return {requested:raw,child:k,parent:current,leaf:locDisplayLeaf(k)};}
   }
+  /* #693: inside a building, the room the name means from where the party stands (the resolver, with the tag's position) */
+  if(mapped&&typeof resolvePlaceName==="function"){var rp=resolvePlaceName(raw,current,{sub:fromSub===undefined?null:fromSub});
+    if(rp&&rp.via==="atlas"&&nodes[rp.key]&&nodes[rp.key].parent)return {requested:raw,child:rp.key,parent:current,leaf:locDisplayLeaf(rp.key)};}
   return null;
 }
 /* #481 A4 (audit 2026-09-29, Fable-approved): ONE place timeline per applyMutsTable call. The movement tags — [LOCATION:],
@@ -323,18 +336,21 @@ function placeTimeline(text,startWorld,startSub){
   var world=(startWorld!==undefined)?startWorld:(ws.location||null),sub=(startSub!==undefined)?startSub:(ws.sublocation||null);
   if(world)world=locResolve(world);
   function key(w,s){if(!w)return null;return locResolve(s?w+"|"+s:w);}
-  var t=String(text==null?"":text),re=/\[(LOCATION|SUBLOCATION):([^\]]+)\]|\[SUBLOCATION_LEAVE\]/g,m,states=[{off:-1,world:world,sub:sub,key:key(world,sub)}],events=[],subSeen=false;
+  var t=String(text==null?"":text),re=/\[(LOCATION|SUBLOCATION):([^\]]+)\]|\[SUBLOCATION_LEAVE\]/g,m,states=[{off:-1,world:world,sub:sub,key:key(world,sub)}],events=[],subSeen=false,carried=null;
   while((m=re.exec(t))!==null){
     var ev={off:m.index,fromWorld:world,fromSub:sub};
-    if(m[1]==="LOCATION"){var nm=locResolve(normalizeEndpointPair(m[2].trim())),tw=locationWorldTwinConflict(nm,world);ev.kind="world";ev.name=nm;
+    if(m[1]==="LOCATION"){var nm=locResolve(normalizeEndpointPair(m[2].trim())),tw=locationWorldTwinConflict(nm,world,sub!=null?sub:carried);ev.kind="world";ev.name=nm;
       /* #511 (Astra's fixture 2026-10-02): a footer that re-states the world the party is already in, AFTER an arrival in the same
          reply, is no move — it used to clear the sub-location just filed. A same-world tag with no arrival before it keeps its old
-         reading (leaving the venue to the streets), so a GM that skips [SUBLOCATION_LEAVE] is not newly wrong. */
-      if(tw)ev.twin=tw;else if(nm===world&&subSeen)ev.restate=true;else{world=nm;sub=null;}}
-    else if(m[1]==="SUBLOCATION"){var raw=m[2].trim(),nmS=raw,rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world):null;
+         reading (leaving the venue to the streets), so a GM that skips [SUBLOCATION_LEAVE] is not newly wrong. #693: that same-world
+         tag CARRIES the sub-location it cleared for the KEYING of a sub-location named later in the same reply — "[LOCATION:Town]
+         [SUBLOCATION:Kitchen]" written inside a building names the building's kitchen, not a kitchen on the street; the end state
+         is #511's. A move to another world carries nothing. */
+      if(tw)ev.twin=tw;else if(nm===world&&subSeen)ev.restate=true;else{carried=(nm===world)?sub:null;world=nm;sub=null;}}
+    else if(m[1]==="SUBLOCATION"){var raw=m[2].trim(),nmS=raw,rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world,{sub:sub!=null?sub:carried}):null;/* #693: the sub-location in force HERE in the reply — a room is read where the reply has taken the party */
       ev.kind="sub";ev.raw=raw;ev.world=world;if(rp&&world&&rp.key.indexOf(world+"|")===0){ev.rp=rp;nmS=placeKeyLeaf(rp.key);}
-      ev.name=nmS;sub=nmS;subSeen=true;}
-    else{ev.kind="leave";sub=null;}
+      ev.name=nmS;sub=nmS;subSeen=true;carried=null;}
+    else{ev.kind="leave";sub=null;carried=null;}
     events.push(ev);states.push({off:m.index,world:world,sub:sub,key:key(world,sub)});
   }
   return {states:states,events:events};

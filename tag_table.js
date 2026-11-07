@@ -685,7 +685,14 @@ var TAG_TABLE=[
     if(_lHits===0){R.muts.push("⚠ Nothing placed — '"+_lq.base+"': every unit this block's [ITEM_LOST:] took is already given, placed or back in the pack (#518)");if(typeof console!=="undefined")console.warn("[tags] LOCATION_ITEM placed withheld for '"+_lnm+"': the block's loss units are all paired (#518)");continue;}
     if(_lHits!==null&&_lHits<_lq.n){R.muts.push("⚠ Placement of "+_lq.base+" x"+_lq.n+" cut to "+(_lHits>1?"x"+_lHits:"one")+" — "+_lHits+" of this block's lost unit"+(_lHits>1?"s":"")+" left to place (#518)");_lnm=_lq.base+(_lHits>1?" x"+_lHits:"");}}
   if(_lact==="placed"&&invFragsHaveFields(itemPairList(R,"ilFrags",_lnm,_liB))){var _lfb=0,_lfx;while((_lfx=itemPairTake(R,"ilFrags",_lnm,_liB))){itemPairTake(R,"ilHits",_lnm,_liB);wantedLossVoid(R,_liB,_lfx.name);/* #591 (acceptance 2026-10-12, probe 30): the unit goes back — its loss sold nothing */if(addInventoryItem(worldState.character.inventory,_lfx.name,_lfx))_lfb++;}R.muts.push("⚠ '"+_lnm+"'"+(_lfb>1?" x"+_lfb:"")+" stays in the pack — it carries fields the chest cannot hold");if(typeof console!=="undefined")console.warn("[tags] LOCATION_ITEM placed refused for '"+_lnm+"': the row carries unknown fields the chest cannot hold — every unit back in the pack with them (#599 c2, I5)");continue;}/* #599 (c2), review 4c: the chest row is name and count — a fragment with fields never downgrades */
-  var _lst=fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom,rPlaceAtBlock(R,text,liOff[lii]));/* #481 A4: filed where the tag happened (place-then-leave files in the house) */
+  var _liAt=rPlaceAtBlock(R,text,liOff[lii]);/* #481 A4: filed where the tag happened (place-then-leave files in the house); #511 ②: at its block's arrival */
+  /* #693 (requirement 6): a NAMED place operand in a block that moves to another building is read where the block began, and said —
+     "[LOCATION_ITEM:Ladle|placed|Kitchen][SUBLOCATION_LEAVE][SUBLOCATION:The Ashen Hare]" written in The Old Ram's kitchen leaves the
+     ladle in the Old Ram's. The two readings agree in every campaign without a map and inside one building, so #511 ② is untouched there. */
+  if(_lplace&&typeof resolvePlaceName==="function"){var _liA0=rPlaceAt(R,liOff[lii]);
+    if(_liA0.key!==_liAt.key){var _liR0=resolvePlaceName(_lplace,_liA0.world,_liA0),_liR1=resolvePlaceName(_lplace,_liAt.world,_liAt);
+      if(_liR0&&(!_liR1||_liR0.key!==_liR1.key)){_liAt=_liA0;R.muts.push("'"+_lnm+"' — '"+_lplace+"' read where the block began ("+((typeof locDisplayLeaf==="function")?locDisplayLeaf(_liR0.key):_liR0.key)+"): the block moves to another building");}}}
+  var _lst=fileLocationItem(_lnm,_lact,R.turn,_lplace,_lroom,_liAt);
   if(!_lst||!_lst.ok){var _lwhy=(_lst&&_lst.reason)||"unknown";R.muts.push("⚠ Stash refused — "+_lnm+" ("+(_lplace||"here")+"): "+_lwhy);if(typeof console!=="undefined")console.warn("[tags] LOCATION_ITEM "+_lact+" refused for '"+_lnm+"' at "+(_lplace||"the current node")+": "+_lwhy+" — nothing mutated");
     /* #481 A2 (d): the stow pair's other half — a refused placement puts back the unit THIS reply's [ITEM_LOST:] removed (Village t216: the core left the pack and landed nowhere) */
     if(_lact==="placed"){var _lpb=null,_lpn=(typeof _qtyParse==="function")?_qtyParse(_lnm).n:1,_lpu=0,_lpi;for(_lpi=0;_lpi<_lpn;_lpi++){var _lpx=itemPairTake(R,"ilHits",_lnm,_liB);if(!_lpx)break;_lpb=_lpx;wantedLossVoid(R,_liB,_lpx);/* #591 (acceptance 2026-10-12, probe 30): the refused placement voids the loss — no sale */addInventoryItem(worldState.character.inventory,_lpx,itemPairTake(R,"ilFrags",_lnm,_liB));_lpu++;}/* #599 (c2): the unit returns with its fragment */if(_lpb){R.muts.push("⚠ '"+_lpb+"'"+(_lpu>1?" x"+_lpu:"")+" stays in the pack — the placement was refused");}}/* #481 D2: a counted placement puts back every unit */
@@ -709,7 +716,7 @@ var TAG_TABLE=[
   var lsAt=rPlaceAt(R,lsOff[lsi]),lsBar=lsm[1].split("|"),lsNote=lsBar[0].trim(),lsWhere="";
   if(lsBar.length>2||!lsNote||(lsBar.length===2&&!lsBar[1].trim())){R.muts.push("⚠ [LOCATION_STATE:] refused — write one note and at most one place: [LOCATION_STATE:note|place] (nothing stored)");if(typeof console!=="undefined")console.warn("[tags] LOCATION_STATE malformed: "+lsTags[lsi].slice(0,120));continue;}
   if(lsBar.length===2){var lsPl=lsBar[1].trim(),lsW=(lsAt&&lsAt.world)?lsAt.world:((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location);
-    var lsRp=(typeof resolvePlaceName==="function")?resolvePlaceName(lsPl,lsW):null,lsKey=lsRp?lsRp.key:((lsPl.toLowerCase()===String(lsW).toLowerCase()||(typeof locSame==="function"&&locSame(lsPl,lsW)))?lsW:null);
+    var lsRp=(typeof resolvePlaceName==="function")?resolvePlaceName(lsPl,lsW,lsAt):null,lsKey=lsRp?lsRp.key:((lsPl.toLowerCase()===String(lsW).toLowerCase()||(typeof locSame==="function"&&locSame(lsPl,lsW)))?lsW:null);/* #693: the place operand is read where the tag stands */
     if(!lsKey){R.muts.push("⚠ [LOCATION_STATE:] refused — '"+lsPl+"' names no place under "+lsW+"; the note was not stored");if(typeof console!=="undefined")console.warn("[tags] LOCATION_STATE place unresolvable: '"+lsPl+"' under "+lsW);continue;}
     if(lsRp&&lsRp.via==="house"&&!memory.map.nodes[lsKey]&&typeof villageHouseEnsure==="function")villageHouseEnsure(lsRp.owner,lsW);/* the arrival's house mint, same path */
     lsAt={key:lsKey,world:lsW};lsWhere=" — at "+((typeof locDisplayLeaf==="function")?locDisplayLeaf(lsKey):lsKey);}
@@ -1669,8 +1676,10 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
    Map bookkeeping is ADDITIVE only: destination node filed, edge from their previous
    effective location, lastSeenAt stamped — lastArrivalFrom and primary visits are camera
    instruments and stay untouched (F2). Dead/unknown/non-party names are loud no-ops. */
-{t:"PARTY_SPLIT",apply:function(text,R){var psTags=text.match(/\[PARTY_SPLIT:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var psi;for(psi=0;psi<psTags.length;psi++){var psm=psTags[psi].match(/\[PARTY_SPLIT:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!psm)continue;
+{t:"PARTY_SPLIT",apply:function(text,R){var psTags=text.match(/\[PARTY_SPLIT:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)||[];var psi,psOff=tagOffsets(text,/\[PARTY_SPLIT:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);for(psi=0;psi<psTags.length;psi++){var psm=psTags[psi].match(/\[PARTY_SPLIT:([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/);if(!psm)continue;
   var psName=resolveNpcName(psm[1].trim()),psArg=locResolve(normalizeEndpointPair(psm[2].trim())),psSub=psm[3]?psm[3].trim():null;/* #156: split destinations get the same route-name canonicalization as [LOCATION:]; #156B: and identity resolution */
+  /* #693: in a mapped campaign a room is filed under its building, so the split's room is stored as the ONE resolver names it from where the tag stands ("The Old Ram — Kitchen") — the #133b co-location fold compares effective nodes. Every other campaign stores the raw name, as before. */
+  if(psSub&&typeof resolvePlaceName==="function"&&typeof placeResolvedByMap==="function"){var psAt=rPlaceAt(R,psOff[psi]),psRp=resolvePlaceName(psSub,psArg,(psAt&&psAt.world&&locSame(psAt.world,psArg))?{sub:psAt.sub}:undefined);if(placeResolvedByMap(psRp))psSub=placeKeyLeaf(psRp.key);}
   /* #189ⓒ (t2095-2097, the camera-omission split): the GM writes interiors PARENTHETICALLY into
      the location field — "Magnimar (Wyla Ashvane's shop)" — which reads as a distinct name-born
      key, so buildSplitAudit's same-world waiver never saw the target IS the party's own city and
@@ -1983,7 +1992,7 @@ function applyPlaceTimeline(text,R){
       R.muts.push("-> "+e.name+(i<lastWorld?" (passed through)":""));
       placeCombatLeave(text,R,e.name,e.fromWorld);
     }else if(e.kind==="sub"){subTouched=true;
-      if(i<lastSub||i<lastWorld){if(e.raw){fileSubLocation(e.raw,R.turn,e.world);R.muts.push("Sub (passed through): "+e.raw);}continue;}/* audit A3: an earlier arrival is a passed-through place */
+      if(i<lastSub||i<lastWorld){if(e.raw){var ptN=(typeof placeResolvedByMap==="function"&&placeResolvedByMap(e.rp))?e.name:e.raw;fileSubLocation(ptN,R.turn,e.world);R.muts.push("Sub (passed through): "+ptN);}continue;}/* audit A3: an earlier arrival is a passed-through place; #693: a room the party walked through is filed under its building, as the timeline named it — one node with the room it stands in (every other campaign files the raw name, as before) */
       /* #481 A1: ONE place resolver (resolvePlaceName, run in the timeline): the kind's canonicalisers, then a case/article-
          insensitive match among the world's children. A case- or article-only canonicalisation prints no arrow. */
       if(e.rp&&e.rp.via==="house"&&typeof villageHouseEnsure==="function")villageHouseEnsure(e.rp.owner,e.world);

@@ -47,6 +47,21 @@ Same realm (seed `qy49avnujq7o`), same tie (The Crossroads of Ashenveil → Hush
 
 One sample each way; the GM is not deterministic. The opening still ignores the map (the known gap): with the tie said, the GM folds its own geography around the map place instead of contradicting it.
 
+## Re-test after the #693 fix — the second build (2026-11-06, v1.1361)
+
+Six real gemini-3.8-flash turns in the signed-in preview, the working tree evaluated before any commit (the service worker unregistered so the tree was served). A fresh realm (seed `0qnlih7yi9zk`), the crossroads tied to the town Gockbridge by We are here, campaign `camp_1794005033437_4445` (`PlaytestHarness_atlas693`), deleted on the device and in the cloud afterwards ("deleted, checked absent", one attempt). Corpus: [dev/corpus_spotcheck_693_v1361.json](../dev/corpus_spotcheck_693_v1361.json) (the nodes, the atlas, the tag log, the steering).
+
+| Turn | Steered | The GM wrote | Filed as | The map |
+|---|---|---|---|---|
+| 1 | into Gockbridge, through the door of The White Raven | `[LOCATION:Gockbridge][SUBLOCATION:The White Raven]` | `Gockbridge\|The White Raven` | in The White Raven |
+| 2 | through to the inn's kitchen | the pair form (receipt "Sub: The White Raven — Kitchen", no arrow) | `Gockbridge\|The White Raven — Kitchen` | at Kitchen |
+| 3 | out and across to The Swan and Raven | `[SUBLOCATION:The Swan and Raven]` | `Gockbridge\|The Swan and Raven` | in The Swan and Raven |
+| 4 | into this inn's kitchen | the pair form | `Gockbridge\|The Swan and Raven — Kitchen` — its own description (a scullery reeking of salt cod); GEOGRAPHY served it, never the White Raven's (coal grease) | at Kitchen |
+| 5 | back across to The White Raven and its kitchen, in one reply | the pair form | the first kitchen again: visits 2, no new node, GEOGRAPHY served the coal-grease description | at Kitchen |
+| 6 | out of the kitchen into the parlour | the pair form | `Gockbridge\|The White Raven — Parlour` | at Parlour (`parlour-1`) |
+
+**Verdict.** The #693 symptom is gone with the real GM: two inns' rooms of one name are two nodes with their own memories, and the GM reads the right one. `errors[]` empty; every where-line named the building and the room. **What this run did not exercise:** the GM wrote the qualified pair every time (the rule sentence offers it), so the bare-room-name flow inside a building and the footer pair are proven by the engine suite's real commits only; an unsteered table is still the owner's test.
+
 ## Method notes
 
 - The spot-check steers; it does not sample. A scripted player who names map places is the easy case — the owner's own play is the test of an unsteered table.
