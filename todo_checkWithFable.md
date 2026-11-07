@@ -711,3 +711,7 @@ Publish Dice 0.87.0's immediate interactive pickup. The held pose and live hand 
 ## 2026-11-07 — #703 Dice appearance release
 
 Publish Dice 0.99.4 through its publisher; release copy, host version/cache markers and release records only. No host logic, drift surface or test-policy changes. Upstream checks and normal host gates apply; [release record](DOC/dice-appearance_703.md).
+
+## 2026-11-07 - #704 Going Down anticipation
+
+Publish Dice 0.99.5 through its publisher; release copy, host version/cache markers and release records only. The final hover now includes a subtle lift and pause before suction. No host logic, drift surface or test-policy changes. [Release record](DOC/dice-anticipation_704.md).

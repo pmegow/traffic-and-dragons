@@ -63,10 +63,12 @@ export const SCURRY = {
  * Round 19 ("Add a gentle vertical bob to the dice after they lift. Hold just a hair longer before the portal opens
  * up"): once it has risen it bobs up and down, `bob` radii either way every `bobPeriod`, easing in over `bobEase`
  * after the rise and out over `bobEase` before the pull, so it starts and ends at rest, half its width up; the
+ * final anticipation (anticipationRise then anticipationPause) occupies the last part of the open-hole hover:
+ * bobbing settles first, then anticipationLift radii are added and held through the start of suction. The
  * beat before the portal is 0.35 s (round 18's 0.25 s and a tenth). (Round 16 sat the die spinning ever faster
  * for a beat and sucked it down in three frames; round 14 pulled it slowly, trembling.)
  */
-export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, spin: 0.35 / 2, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225, herald: 0.5, heraldRise: 3 };
+export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, anticipationRise: 0.12, anticipationPause: 0.06, anticipationLift: 0.2, spin: 0.35 / 2, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225, herald: 0.5, heraldRise: 3 };
 
 /**
  * Shatter (owner 2026-10-27: "Yes start the shatter ... Let's start with 10 pieces +-3. Take the idea all the way to a
@@ -148,6 +150,9 @@ export const PIT_OPENS = PIT.rise + PIT.beat;
 
 /** When Going down's pull starts: the hole open and the hover over it sat out. */
 export const PIT_PULL = PIT_OPENS + PIT.open + PIT.hover;
+
+/** A short final lift and still beat fit inside the end of the open-hole hover. */
+export const PIT_ANTICIPATES = PIT_PULL - PIT.anticipationRise - PIT.anticipationPause;
 
 export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
@@ -258,8 +263,9 @@ export function smokeTimeline(u) {
 
 /**
  * Going down: the die rises (lift: metres) turning slowly (twist: radians about the vertical, one way) and hovers,
- * bobbing gently (bob: metres up, or down below its hover height; 0 at the pull);
- * a hole opens under it from PIT_OPENS (hole: its radius as a share of the full); it hovers on, then is sucked
+ * bobbing gently (bob: metres up, or down below its hover height; 0 before the final lift);
+ * a hole opens under it from PIT_OPENS (hole: its radius as a share of the full); at PIT_ANTICIPATES
+ * it lifts slightly, holds that height for anticipationPause, then is sucked
  * down through it from PIT_PULL (drop: metres below where it floated, for a die of radius R whose centre lay `rise` above the
  * floor), stretched along the pull as it goes (stretch: how much taller, a share of its height); its highest
  * point is through the floor at `clear` (seconds). The hole closes behind it from `shut`, the opening run
@@ -273,7 +279,7 @@ export function smokeTimeline(u) {
  */
 export function pitTimeline(u, R, rise = R) {
   const t = u * EXIT_TABLE.pit.seconds;
-  const top = rise + R + PIT.lift * R;   // its highest point above the floor as it floats
+  const top = rise + R + (PIT.lift + PIT.anticipationLift) * R;   // its highest point above the floor as it floats
   const s = Math.max(0, (t - PIT_PULL) / PIT.suck);   // how far through the suck (past 1 it is far below)
   const clear = PIT_PULL + PIT.suck * Math.pow(top / (PIT.depth * R), 1 / PIT.power);   // drop = top: through the floor
   const shut = Math.max(PIT_PULL, clear - PIT.early);
@@ -283,11 +289,11 @@ export function pitTimeline(u, R, rise = R) {
   const turned = x < 1 ? PIT.rise * (x * x * x - x * x * x * x / 2) : PIT.rise / 2 + (t - PIT.rise);
   const hole = Math.min(opening, closing);
   const heralding = t < PIT_OPENS ? (Math.exp(PIT.heraldRise * t / PIT_OPENS) - 1) / (Math.exp(PIT.heraldRise) - 1) : 1;
-  const b = t - PIT.rise, bobbing = PIT_PULL - PIT.rise;   // the bob, from the top of the rise to the pull
+  const b = t - PIT.rise, bobbing = PIT_ANTICIPATES - PIT.rise;   // the bob settles before the final lift
   const bob = b <= 0 || b >= bobbing ? 0 : PIT.bob * R * Math.sin(2 * Math.PI * b / PIT.bobPeriod) * smooth(b / PIT.bobEase) * smooth((bobbing - b) / PIT.bobEase);
   return {
     hole,
-    lift: PIT.lift * R * smooth(x),
+    lift: R * (PIT.lift * smooth(x) + PIT.anticipationLift * smooth((t - PIT_ANTICIPATES) / PIT.anticipationRise)),
     bob,
     drop: PIT.depth * R * Math.pow(s, PIT.power),
     twist: 2 * Math.PI * PIT.spin * turned,
