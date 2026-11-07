@@ -715,3 +715,7 @@ Publish Dice 0.99.4 through its publisher; release copy, host version/cache mark
 ## 2026-11-07 - #704 Going Down anticipation
 
 Publish Dice 0.99.5 through its publisher; release copy, host version/cache markers and release records only. The final hover now includes a subtle lift and pause before suction. No host logic, drift surface or test-policy changes. [Release record](DOC/dice-anticipation_704.md).
+
+## 2026-11-07 - #704 higher anticipation lift
+
+Publish Dice 0.99.6: increase only the final upward lift by 50%. Publisher-owned assets, host version/cache markers and release records only; no host logic or drift-surface changes. [Release record](DOC/dice-anticipation_704.md).

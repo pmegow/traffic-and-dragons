@@ -68,7 +68,7 @@ export const SCURRY = {
  * beat before the portal is 0.35 s (round 18's 0.25 s and a tenth). (Round 16 sat the die spinning ever faster
  * for a beat and sucked it down in three frames; round 14 pulled it slowly, trembling.)
  */
-export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, anticipationRise: 0.12, anticipationPause: 0.06, anticipationLift: 0.2, spin: 0.35 / 2, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225, herald: 0.5, heraldRise: 3 };
+export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, anticipationRise: 0.12, anticipationPause: 0.06, anticipationLift: 0.3, spin: 0.35 / 2, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225, herald: 0.5, heraldRise: 3 };
 
 /**
  * Shatter (owner 2026-10-27: "Yes start the shatter ... Let's start with 10 pieces +-3. Take the idea all the way to a
