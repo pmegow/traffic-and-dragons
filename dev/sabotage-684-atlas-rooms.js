@@ -99,8 +99,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "      ",
     mustFail: "FAIL #684 #693 a partial path is read from where the party stands" },
   { label: "the world place's own name is not stripped from a pair: the cave's chamber gets a twin",
-    find: "    while(parts.length>1&&(f=atlasFind(pos.homeDoc,parts[0]))&&(f.title||(f.thing&&!atlasLeads(A,pos.home,f.thing,pos.know,pos.sheet))))parts.shift();",
-    replace: "    ",/* review 4 re-anchored */
+    find: "    while(parts.length>1&&(f=atlasFind(pos.homeDoc,parts[0]))&&(f.title||(f.thing&&!atlasLeads(A,pos.home,f.thing,pos.know,pos.sheet)))){if(f.thing)spotStripped=true;parts.shift();}",
+    replace: "    ",/* review 5 re-anchored */
     mustFail: "FAIL #684 #693 the cave pair" }
 ] });
 
@@ -189,8 +189,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "",
     mustFail: "FAIL #684 #702 review: an added town-level thing bearing a room's name" },
   { label: "a name inside a building this reply invented is filed town-wide: the room becomes a town-level place",
-    find: "!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);/* review 3",
-    replace: "!==atlasNameKey(X))leaf=null;/* review 3",/* review 3 re-anchored */
+    find: "leaf=atlasPathJoin([pos.unknown[0],xp[xp.length-1]]);}",
+    replace: "leaf=null;}",/* review 5 re-anchored */
     mustFail: "FAIL #684 #702 review: a building and its room invented in ONE reply" },
   { label: "the fold never folds: a name differing in case or article mints a twin node",
     find: "  if(!nodes||typeof placeNameNorm!==\"function\")return leaf;",
@@ -212,8 +212,8 @@ rc |= sabotage.prove({ file: "identity.js", command: ENGINE, only: "FAIL #684 ",
 /* the third review (2026-11-07): a key never carries a room in the middle; a tie beneath the home sheet builds the chain; the gaps the mutants showed */
 rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
   { label: "the fresh path keys the whole unknown rest of the pointer: a room in the middle, and the re-stated room lands on a twin node",
-    find: "leaf=atlasPathJoin([pos.unknown[0],X]);/* review 3",
-    replace: "leaf=atlasPathJoin(pos.unknown.concat([X]));/* review 3",
+    find: "leaf=atlasPathJoin([pos.unknown[0],xp[xp.length-1]]);}",
+    replace: "leaf=atlasPathJoin(pos.unknown.concat([xp[xp.length-1]]));}",/* review 5 re-anchored */
     mustFail: "FAIL #684 #702 review 3: a key never carries a room in the middle" },
   { label: "rule (b)'s unknown tail keeps the middle segments: the pair with an unknown middle mints a key with a room in it",
     find: ".concat([parts[parts.length-1]]));/* review 3, finding 1: the zones reached and the LAST segment",
@@ -240,16 +240,16 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "    f=atlasFind(c.doc,name);if(!f||f.many)continue;\n    /* a way back onto",
     mustFail: "FAIL #684 #702 review 3: the gaps the mutants showed" },
   { label: "the re-statement guard dropped: an invented building re-stated in the same reply becomes a room of itself",
-    find: "&&atlasNameKey(pos.unknown[0])!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);",
-    replace: ")leaf=atlasPathJoin([pos.unknown[0],X]);",/* review 4 re-anchored */
+    find: "if(xp.length>1||atlasNameKey(xp[0])!==atlasNameKey(pos.unknown[0]))leaf=",
+    replace: "if(true)leaf=",/* review 5 re-anchored */
     mustFail: "FAIL #684 #702 review 3: the gaps the mutants showed" }
 ] });
 
 /* the fourth review (2026-11-07): the re-statement guard compares the container; a partial path on a peeked sheet; a spot-first pair */
 rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
   { label: "the re-statement guard compares the LAST unknown segment again: the building re-stated after its room becomes a room of itself, the room re-stated a town-level name",
-    find: "&&atlasNameKey(pos.unknown[0])!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);",
-    replace: "&&atlasNameKey(pos.unknown[pos.unknown.length-1])!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);",
+    find: "if(xp.length>1||atlasNameKey(xp[0])!==atlasNameKey(pos.unknown[0]))leaf=",
+    replace: "if(xp.length>1||atlasNameKey(xp[0])!==atlasNameKey(pos.unknown[pos.unknown.length-1]))leaf=",/* review 5 re-anchored */
     mustFail: "FAIL #684 #702 review 4: the fresh path's re-statement guard compares the container" },
   { label: "a partial path's lead lookup asks the store for a sheet this reply only peeked: the stair's pair in a temple entered this reply throws, and the key is minted raw",
     find: "      lead=atlasLeads(A,c.zone,f.thing,pos.know,pos.sheet);",
@@ -264,9 +264,29 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "      pos.used=i+1;if(false){pos.spot=null;continue;}/* review 4, finding 3:",
     mustFail: "FAIL #684 #702 review 4: a pair that opens with a spot of the home sheet" },
   { label: "a pair opening with a spot of the home sheet is keyed as written: the inn off the square is a twin of the inn",
-    find: "&&(f.title||(f.thing&&!atlasLeads(A,pos.home,f.thing,pos.know,pos.sheet))))parts.shift();",
-    replace: "&&f.title)parts.shift();",
+    find: "&&(f.title||(f.thing&&!atlasLeads(A,pos.home,f.thing,pos.know,pos.sheet)))){if(f.thing)spotStripped=true;parts.shift();}",
+    replace: "&&f.title){parts.shift();}",/* review 5 re-anchored */
     mustFail: "FAIL #684 #702 review 4: a pair that opens with a spot of the home sheet" }
+] });
+
+/* the fifth review (2026-11-07): the fresh path reads X as a path; a stripped spot names the rest from anywhere; a spot-tied place keeps its rooms; the strip's adapters */
+rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
+  { label: "the fresh path reads X as ONE name again: the pair under its own container doubles the building",
+    find: "      if(xp.length>1||atlasNameKey(xp[0])!==atlasNameKey(pos.unknown[0]))leaf=atlasPathJoin([pos.unknown[0],xp[xp.length-1]]);}",
+    replace: "      if(atlasNameKey(X)!==atlasNameKey(pos.unknown[0]))leaf=atlasPathJoin([pos.unknown[0],X]);}",
+    mustFail: "FAIL #684 #702 review 5: a path written under a fresh container is read as a path" },
+  { label: "a stripped spot is forgotten: the square-pair written inside the inn files the stall as a room of the inn",
+    find: "{if(f.thing)spotStripped=true;parts.shift();}",
+    replace: "{parts.shift();}",
+    mustFail: "FAIL #684 #702 review 5: a path written under a fresh container is read as a path" },
+  { label: "the position reader forgets that a spot came from a tie: a room named inside the spot-tied forge becomes a town-level place",
+    find: "pos.spot=thing;pos.used=i+1;pos.spotTie=parts.slice(0,i+1);break;",
+    replace: "pos.spot=thing;pos.used=i+1;break;",
+    mustFail: "FAIL #684 #702 review 5: a path written under a fresh container is read as a path" },
+  { label: "the strip's lead lookup asks the store: a world move and the new town's pair in one reply report a missing zone",
+    find: "(f.thing&&!atlasLeads(A,pos.home,f.thing,pos.know,pos.sheet))))",
+    replace: "(f.thing&&!atlasLeads(A,pos.home,f.thing))))",
+    mustFail: "FAIL #684 #702 review 5: a path written under a fresh container is read as a path" }
 ] });
 
 process.exit(rc);

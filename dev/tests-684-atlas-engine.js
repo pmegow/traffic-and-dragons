@@ -1595,6 +1595,40 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     turn("[SUBLOCATION:Cellar][LOCATION_DESC:C.] Down a step."); assert.equal(sub(), "Widow Hale's House" + SEP + "Cellar"); assert.equal(node(T + "|Cellar"), undefined);
   });
 
+  /* ── the fifth independent review (2026-11-07, audits/AUDIT_2026-11-07_702_review5.md) ───────────────────────────────────────── */
+  test("#702 review 5: a path written under a fresh container is read as a path (finding 1), a square-pair from inside a building names a thing of the town (finding 2), a building the player placed on a spot keeps its rooms in the story and the map draws none (finding 3, owner 2026-11-07), a one-reply world move's pair reads the new town's sheet without the store, a region tap for a sub-location says why, and a bare invented place lands beside the party's spot", function () {
+    var S = start(), T = S.T, A = S.A, c = S.c, iz, r, t1doc, i1, sp;
+    function authored() { return atlasDoc(c.townId).establishments.filter(function (e) { return e.authored; }).map(function (e) { return e.name + ":" + e.kind; }); }
+    /* finding 1: "The Gilded Spur — Kitchen" written under the fresh Spur is its kitchen; "Kitchen — Pantry" its pantry; the description lands and is served */
+    turn("[SUBLOCATION:The Gilded Spur][SUBLOCATION:The Gilded Spur" + SEP + "Kitchen][LOCATION_DESC:KITCHEN FIRST.] In and through.");
+    assert.equal(sub(), "The Gilded Spur" + SEP + "Kitchen", "the pair under its own container is the room"); assert.equal(node(currentNodeKey()).description, "KITCHEN FIRST.", "the pointer and the node agree"); assert.deepEqual(nodesWith("Spur"), [T + "|The Gilded Spur", T + "|The Gilded Spur" + SEP + "Kitchen"]);
+    turn("[SUBLOCATION:Kitchen] Still here."); assert(buildGeoBlock().indexOf("KITCHEN FIRST") >= 0, "served on the re-statement");
+    S = start(); T = S.T; A = S.A; c = S.c; turn("[SUBLOCATION:The Gilded Spur][SUBLOCATION:Kitchen" + SEP + "Pantry][LOCATION_DESC:P.] Through to the back.");
+    assert.equal(sub(), "The Gilded Spur" + SEP + "Pantry", "a pair of rooms under the container: the last room"); assert.equal(adds(A).indexOf(T + "|The Gilded Spur" + SEP + "Kitchen" + SEP + "Pantry"), -1, "no key with a room in the middle: " + JSON.stringify(A.adds));
+    /* finding 2: off the square is off the square, written from inside the inn too */
+    S = start(); T = S.T; A = S.A; c = S.c; turn("[SUBLOCATION:" + c.inn.name + "] In."); iz = A.at; turn("[SUBLOCATION:" + c.market.name + SEP + "Fishmonger's Stall][LOCATION_DESC:S1.] Out to the stall.");
+    assert.equal(sub(), "Fishmonger's Stall", "a thing of the town"); assert.deepEqual(atlasDoc(iz).rooms.filter(function (x) { return x.authored; }), [], "never a room of the inn"); assert(A.adds[T + "|Fishmonger's Stall"], JSON.stringify(A.adds)); assert.notEqual(A.at, iz, "the party left the inn");
+    S = start(); T = S.T; A = S.A; c = S.c; turn("[SUBLOCATION:" + c.inn.name + "] In."); iz = A.at; turn("[SUBLOCATION:" + c.market.name + SEP + "The Gilded Cup][LOCATION_DESC:C.] Across the square and in.");
+    assert.equal(sub(), "The Gilded Cup"); assert(authored().indexOf("The Gilded Cup:tavern") >= 0, "the invented tavern is the town's: " + JSON.stringify(authored())); assert.deepEqual(atlasDoc(iz).rooms.filter(function (x) { return x.authored; }), [], "never drawn as a room of the inn"); assert.equal(A.zones[A.at].kind, "interior"); assert.notEqual(A.at, iz);
+    turn("[SUBLOCATION:Kitchen] Its kitchen."); assert.equal(sub(), "The Gilded Cup" + SEP + "Kitchen");
+    /* finding 3 (owner 2026-11-07): the story's forge tied to the market — its rooms stay the forge's in the story, the map draws none and says why */
+    S = start(); T = S.T; A = S.A; c = S.c; turn("[SUBLOCATION:Harl's Forge] A smithy."); r = atlasPlace(c.townId, { id: c.market.id }); assert.equal(r.ok, true, JSON.stringify(r)); assert.deepEqual(authored(), [], "the addition went: the player placed the forge on the square");
+    quiet(); turn("[SUBLOCATION:Harl's Forge" + SEP + "Anvil Room][LOCATION_DESC:ANVILS.] At the anvil.");
+    assert.equal(sub(), "Harl's Forge" + SEP + "Anvil Room", "the story's key stands"); assert.equal(node(currentNodeKey()).description, "ANVILS."); assert(A.off && !A.off.absent && A.off.why.indexOf("is at " + c.market.name + " on this map, which has no inside; Anvil Room cannot be drawn there") >= 0, JSON.stringify(A.off)); assert.deepEqual(authored(), [], "nothing added"); assert.deepEqual(adds(A), []);
+    assert(atlasWhere().text.indexOf("which has no inside") > 0, atlasWhere().text);
+    turn("[SUBLOCATION:Quenching Trough][LOCATION_DESC:T.] By the trough."); assert.equal(sub(), "Harl's Forge" + SEP + "Quenching Trough", "a bare room after it is the forge's too"); assert.deepEqual(authored(), []); assert.equal(node(T + "|Quenching Trough"), undefined);
+    turn("[SUBLOCATION:Harl's Forge] Back to the door."); assert.equal(sub(), "Harl's Forge", "the re-statement is the place itself"); turn("[SUBLOCATION:" + c.inn.name + "] Over to the inn."); assert.equal(sub(), c.inn.name); assert.equal(A.zones[A.at].kind, "interior", "a real building after it is entered as before");
+    S = start(); T = S.T; A = S.A; c = S.c; turn("[SUBLOCATION:Harl's Forge] A smithy."); atlasPlace(c.townId, { id: c.market.id }); turn("[SUBLOCATION:Anvil Room][LOCATION_DESC:A.] In."); assert.equal(sub(), "Harl's Forge" + SEP + "Anvil Room", "a bare room inside the tied place"); assert.deepEqual(authored(), []);
+    /* the strip's lead lookup takes the position's adapters: a world move and the new town's pair in ONE reply reach no unrecorded zone */
+    S = start(); T = S.T; A = S.A; c = S.c; t1doc = TnDMaps.generate("town", TnDMaps.town.fromRegion(c.reg, c.p1.id)); i1 = t1doc.establishments.filter(function (e) { return e.kind === "inn"; })[0];
+    quiet(); turn("On to the next town, straight into its inn's kitchen. [LOCATION:" + c.p1.name + "][SUBLOCATION:" + i1.name + SEP + "Kitchen][LOCATION_DESC:K.]"); assert.equal(sub(), i1.name + SEP + "Kitchen"); assert.equal(reports.length, 0, JSON.stringify(reports)); assert.equal(A.zones[A.at].kind, "interior");
+    /* the region tap for a sub-location names the right reason when the tapped thing is the party's own town */
+    S = start(); T = S.T; A = S.A; c = S.c; turn("[SUBLOCATION:Harl's Forge] A smithy."); r = atlasPlace(A.seed, { id: c.p0.id }); assert.equal(r.ok, false); assert(r.reason.indexOf("the realm's sheet shows " + T + " from outside") > 0, r.reason);
+    /* a bare invented place named from the square lands beside the square, not at the town's centre */
+    S = start(); T = S.T; A = S.A; c = S.c; turn("[SUBLOCATION:" + c.market.name + "] On the square."); turn("[SUBLOCATION:The Gilded Spur] A house off the square."); sp = atlasDoc(c.townId).establishments.filter(function (e) { return e.name === "The Gilded Spur"; })[0]; assert(sp, JSON.stringify(A.off));
+    assert(dist(sp, c.market) < 60, "beside the square: " + dist(sp, c.market)); assert(atlasToldLines(A).some(function (t) { return t.indexOf("beside " + c.market.name) > 0; }), JSON.stringify(A.told));
+  });
+
   test("THE FIXTURE GATE: this library draws the fixture realm exactly as the pinned table says (region, town, interior, sewer, cave, wild)", function () {
     var A = fresh(), c = cast(A), got = {};
     point(c.p0.name); atlasFollow(); townCast(A, c);

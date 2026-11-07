@@ -279,6 +279,22 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     mustFail: "FAIL #684 #702 review 4: a bookkeeping parse declares no map place" }
 ] });
 
+/* the fifth review (2026-11-07): a spot-tied place's rooms are refused, never added; the region-tap wording; a bare addition beside the party's spot */
+rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
+  { label: "the walk passes a tied spot with segments after it: the forge's room is ADDED as a smith on the street",
+    find: "      if(where.spot!=null&&i<parts.length-1){spotThing=atlasThingById(atlasDoc(where.zone),where.spot);A.off={name:p.sub,why:parts[i]+\" is at \"+(spotThing?spotThing.name:\"a spot\")+\" on this map, which has no inside; \"+parts[i+1]+\" cannot be drawn there\",within:where.zone,absent:false};return;}\n",
+    replace: "",
+    mustFail: "FAIL #684 #702 review 5: a path written under a fresh container is read as a path" },
+  { label: "a bare invented place lands at the town's centre, not beside the party's spot",
+    find: "    if(!centre&&rec.kind===\"town\"){spotRoom=atlasStoodAt(A,zone,doc,from);if(spotRoom){centre=[spotRoom.x,spotRoom.y];where=\"beside \"+spotRoom.name;}}",
+    replace: "    ",
+    mustFail: "FAIL #684 #702 review 5: a path written under a fresh container is read as a path" },
+  { label: "the region tap for a sub-location says 'that sheet is not in the town' of the town itself",
+    find: "(tie.zone===A.seed?\"the realm's sheet shows \"",
+    replace: "(false?\"the realm's sheet shows \"",
+    mustFail: "FAIL #684 #702 review 5: a path written under a fresh container is read as a path" }
+] });
+
 rc |= sabotage.prove({ file: "game.js", command: ENGINE, only: "FAIL #684 ", cases: [
   { label: "the sheet-sync's parse leaves its [MAP_PLACE:] declarations for the pre-send follow of the same turn",
     find: "    delete worldState.placeDecls;/* #702 (review 4, finding 6): a bookkeeping parse declares no map place — only the turn's commit does; left here, the pre-send follow of the same turn would act on it */\n",
