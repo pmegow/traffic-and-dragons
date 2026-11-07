@@ -1,11 +1,11 @@
-/* TnD Maps 0.13.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.14.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.13.0";
+  NS.VERSION = "0.14.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -1182,10 +1182,63 @@
     landmass: "continent", land: 0.5, relief: 0.5, moisture: 0.5, lakes: 3,
     settlements: 12, caves: 3, culture: "common", title: null,
     scaleKm: 600, travelKmPerDay: 30,
-    pins: [], fields: true
+    pins: [], fields: true, edits: []
   };
   var LANDMASSES = ["continent", "island", "coast", "archipelago", "inland"];
   var KINDS = ["city", "town", "village"];
+  /* the author's edits of the PLACES (v0.14.0): add — a settlement of the author's own at a point (its name and kind the
+     author's, its site read from the ground there, no road: its neighbours are reached as the crow flies); rename — a
+     place by id, no other name moving (the names are dealt before the edits are laid; a pin shifts them, an edit never);
+     note — the GM's note on a place. Laid over the FINISHED drawing, after the roads, the caves and the glyphs, so
+     nothing the seed drew shifts; an authored id must not look like a generated one (p<n>). */
+  var EDIT_OPS = { add: 1, rename: 1, note: 1 }, GENERATED_PLACE_ID = /^p\d+$/, MAX_NAME = 40, MAX_NOTE = 400;
+  function validateEdits(edits, P) {
+    NS.assert(Array.isArray(edits), "edits must be an array of {op, id, …}", { edits: edits });
+    var ids = {};
+    edits.forEach(function (e, i) {
+      NS.assert(e && typeof e === "object" && Object.prototype.hasOwnProperty.call(EDIT_OPS, e.op), "edits[" + i + "].op must be one of " + Object.keys(EDIT_OPS).join("|"), { edit: e });
+      NS.assert(typeof e.id === "string" && e.id.length > 0 && e.id.length <= 40, "edits[" + i + "] needs a string id", { edit: e });
+      if (e.op === "add") {
+        NS.assert(!GENERATED_PLACE_ID.test(e.id), "edits[" + i + "]: authored ids must not look like generated ones (p<n>)", { id: e.id });
+        NS.assert(!ids[e.id], "edits[" + i + "]: a place with id " + e.id + " is already added", { id: e.id }); ids[e.id] = true;
+        NS.assert(typeof e.name === "string" && e.name.trim().length > 0 && e.name.length <= MAX_NAME, "edits[" + i + "]: add needs a name of 1–" + MAX_NAME + " characters", { edit: e });
+        NS.assert(KINDS.indexOf(e.kind) >= 0, "edits[" + i + "]: kind must be one of " + KINDS.join("|"), { edit: e });
+        NS.assert(Array.isArray(e.at) && e.at.length === 2 && U.isNum(e.at[0]) && U.isNum(e.at[1]), "edits[" + i + "]: add needs at: [x, y]", { edit: e });
+        NS.assert(e.at[0] >= 0 && e.at[1] >= 0 && e.at[0] <= P.width && e.at[1] <= P.height, "edits[" + i + "]: at lies outside the map frame", { at: e.at });
+      }
+      if (e.op === "rename") NS.assert(typeof e.name === "string" && e.name.trim().length > 0 && e.name.length <= MAX_NAME, "edits[" + i + "]: rename needs a name of 1–" + MAX_NAME + " characters", { edit: e });
+      if (e.op === "note") NS.assert(typeof e.note === "string" && e.note.length <= MAX_NOTE, "edits[" + i + "]: note needs a string of at most " + MAX_NOTE + " characters (empty clears it)", { edit: e });
+    });
+    return edits;
+  }
+  /* lay the edits over the finished places: the added places are appended (an add in the water, in the mountains or on
+     another place is refused in words — the caller may try another point); a rename or a note of an unknown id warns */
+  function applyEdits(P, W, F, places, warnings) {
+    var g = W.g, byId = {}, i, p;
+    places.forEach(function (pl) { byId[pl.id] = pl; });
+    P.edits.forEach(function (e, idx) {
+      if (e.op === "add") {
+        var node = g.nearest(e.at[0], e.at[1]);
+        NS.assert(W.water[node] === 0, "edits[" + idx + "]: that point lies in the " + (W.water[node] === 1 ? "sea" : "lake") + " — a settlement stands on land", { at: e.at });
+        NS.assert(W.biome[node] !== B.MOUNTAIN, "edits[" + idx + "]: that point lies in the mountains — a settlement stands on lower ground", { at: e.at });
+        for (i = 0; i < places.length; i++) NS.assert(G.dist([places[i].x, places[i].y], e.at) >= g.dx, "edits[" + idx + "]: that point lies on " + places[i].name, { at: e.at, place: places[i].id });
+        var site = siteOf(W, node), lk = null;
+        if (site.lake) g.neighbors8(node, function (k) { if (lk === null && F.lakeIdAt[k] >= 0) lk = F.features[F.lakeIdAt[k]].id; });
+        site.lakeId = lk;
+        site.riverId = site.river !== null ? "w" + site.river : null; delete site.river;
+        site.roads = [];
+        p = { id: e.id, name: e.name, kind: e.kind, capital: false, x: U.round(e.at[0], 1), y: U.round(e.at[1], 1), score: 0, pinned: false, authored: true, site: site };
+        places.push(p); byId[p.id] = p;
+      } else if (e.op === "rename") {
+        if (!byId[e.id]) { warnings.push("rename " + e.id + ": no place with that id"); return; }
+        byId[e.id].name = e.name;
+      } else if (e.op === "note") {
+        if (!byId[e.id]) { warnings.push("note " + e.id + ": no place with that id"); return; }
+        if (e.note) byId[e.id].note = e.note; else delete byId[e.id].note;
+      }
+    });
+    return places;
+  }
 
   /* ── parameter validation: every refusal names the field and the rule ── */
   function resolveParams(input) {
@@ -1204,6 +1257,7 @@
       NS.assert(!pin.kind || KINDS.indexOf(pin.kind) >= 0, "pin " + i + " kind must be city|town|village", { pin: pin });
     });
     NS.assert(P.title === null || typeof P.title === "string", "title must be a string or null", { title: P.title });
+    validateEdits(P.edits, P);
     P.seed = String(P.seed); P.cells = Math.round(P.cells); P.settlements = Math.round(P.settlements); P.lakes = Math.round(P.lakes); P.caves = Math.round(P.caves);
     return P;
   }
@@ -1555,6 +1609,10 @@
     var CV = caves(P, W, S.places, R.roadAt, NS.Rng(seed + "/caves"), namer);
     var caveAt = new Uint8Array(g.n); CV.caves.forEach(function (cv) { caveAt[cv.site.node] = 1; });
     var gl = glyphs(P, W, placeAt, R.roadAt, NS.Rng(seed + "/glyphs")).filter(function (gy) { return !caveAt[g.nearest(gy.x, gy.y)]; });   /* a glyph never stands on a cave mouth */
+    /* the author's edits, over the finished drawing: an added place takes its ground from the glyphs and nothing else moves */
+    applyEdits(P, W, F, S.places, S.warnings);
+    var added = S.places.filter(function (p) { return p.authored; });
+    if (added.length) gl = gl.filter(function (gy) { var k; for (k = 0; k < added.length; k++) if (G.dist([gy.x, gy.y], [added[k].x, added[k].y]) < g.dx * 1.5) return false; return true; });
     var C = coastlines(W, seed); stats.geometry = U.round(TR.now() - t0, 1);
     var doc = {
       format: NS.DOC_FORMAT, ver: NS.DOC_VER, generator: { name: "region", version: NS.VERSION },

@@ -12,7 +12,7 @@ prove("memory.js", [
     find: "locResolve(_composed)!==key)locAliasRegister(key,_composed,null);", replace: "locResolve(_composed)!==key)void 0;",
     mustFail: "#529 on a repaired map" },
   { label: "the item filer composes its key raw again (the t216 refusal)",
-    find: '    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw,(at&&at.sub!==undefined)?{sub:at.sub}:((at&&at.key)?undefined:{sub:(worldState.world&&worldState.world.sublocation)||null})):null;', replace: '    var _rp=null;',/* #693 re-anchored: the call gained the tag's position */
+    find: '    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw,(at&&at.sub!==undefined)?{sub:at.sub,carried:at.carried}:((at&&at.key)?undefined:{sub:(worldState.world&&worldState.world.sublocation)||null})):null;', replace: '    var _rp=null;',/* #693 re-anchored: the call gained the tag's position */
     mustFail: "the item filer accepts every naming the arrival accepts" },
   { label: "fileSubLocation mints twins again",
     find: '  var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(name,parent):null;\n', replace: '  var _rp=null;\n',

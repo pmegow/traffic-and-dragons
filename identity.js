@@ -289,7 +289,7 @@ function resolvePlaceName(name,parent,at){
      Kitchen". The map reads the party's position from the sub-location in force where the tag stands (`at` = {sub}; a caller
      that does not say gets only a qualified name's answer, never a guess) and answers before the bare node is looked up, because
      the bare key may already exist (another building's room, a place invented at the town's level). Without an atlas: null. */
-  var _m=(typeof atlasPlaceCanon==="function")?atlasPlaceCanon(nm,parent,at?at.sub:undefined):null;if(_m&&_m.key)return {key:_m.key,via:"atlas"};
+  var _m=(typeof atlasPlaceCanon==="function")?atlasPlaceCanon(nm,parent,at?((at.sub==null&&at.carried!=null)?at.carried:at.sub):undefined):null;if(_m&&_m.key)return {key:_m.key,via:"atlas"};/* a same-world footer's carried building counts as the position (#693, requirement 8) */
   var direct=locResolve(parent+"|"+nm);if(nodes[direct])return {key:direct,via:"exact"};
   var def=(typeof kindDef==="function")?kindDef():null,canon=(def&&def.placeCanon)||[];
   for(i=0;i<canon.length;i++){var fn=ownValue(PLACE_CANONICALISERS,canon[i]);if(!fn)continue;var hit=fn(nm,parent);if(hit&&hit.key){hit.via=canon[i];return hit;}}
@@ -346,12 +346,12 @@ function placeTimeline(text,startWorld,startSub){
          tag CARRIES the sub-location it cleared for the KEYING of a sub-location named later in the same reply — "[LOCATION:Town]
          [SUBLOCATION:Kitchen]" written inside a building names the building's kitchen, not a kitchen on the street; the end state
          is #511's. A move to another world carries nothing. */
-      if(tw)ev.twin=tw;else if(nm===world&&subSeen)ev.restate=true;else{carried=(nm===world)?sub:null;world=nm;sub=null;}}
+      if(tw)ev.twin=tw;else if(nm===world&&subSeen)ev.restate=true;else{carried=(nm===world)?(sub!=null?sub:carried):null;world=nm;sub=null;}}
     else if(m[1]==="SUBLOCATION"){var raw=m[2].trim(),nmS=raw,rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world,{sub:sub!=null?sub:carried}):null;/* #693: the sub-location in force HERE in the reply — a room is read where the reply has taken the party */
       ev.kind="sub";ev.raw=raw;ev.world=world;if(rp&&world&&rp.key.indexOf(world+"|")===0){ev.rp=rp;nmS=placeKeyLeaf(rp.key);}
       ev.name=nmS;sub=nmS;subSeen=true;carried=null;}
     else{ev.kind="leave";sub=null;carried=null;}
-    events.push(ev);states.push({off:m.index,world:world,sub:sub,key:key(world,sub)});
+    events.push(ev);states.push({off:m.index,world:world,sub:sub,key:key(world,sub),carried:(sub==null&&carried!=null)?carried:null});/* #693: the building a same-world footer left in force, for the operands written after it */
   }
   return {states:states,events:events};
 }

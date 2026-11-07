@@ -62,6 +62,25 @@ Six real gemini-3.8-flash turns in the signed-in preview, the working tree evalu
 
 **Verdict.** The #693 symptom is gone with the real GM: two inns' rooms of one name are two nodes with their own memories, and the GM reads the right one. `errors[]` empty; every where-line named the building and the room. **What this run did not exercise:** the GM wrote the qualified pair every time (the rule sentence offers it), so the bare-room-name flow inside a building and the footer pair are proven by the engine suite's real commits only; an unsteered table is still the owner's test.
 
+## Live spot-check of You are here (#702) — 2026-11-06, v1.1362, gemini-3.8-flash
+
+Five real GM turns plus the opening in the signed-in preview (server route), the working tree evaluated before any commit. Campaign `camp_1794021484720_7074` (`PlaytestHarness_atlas702`), realm seed `6yww92sm6nzc` (The Steld Reaches, capital Ram), deleted afterwards and checked absent.
+
+| Turn | What happened | The map |
+|---|---|---|
+| 0 | The preset start `The Crossroads of Ashenveil` is nowhere on the realm | Added as a village 50 units north of the capital Ram (`a1` at 252,687); the party stands in its own village sheet; the MAP block told the GM: "The story's The Crossroads of Ashenveil was added to the map of The Steld Reaches near Ram, as a village." |
+| 1 | Steered east toward "Bleakford, the hamlet the scavenger spoke of" | No move yet (the GM narrated the road) |
+| 2 | "…until the roofs of Bleakford come into view" | The GM wrote `[LOCATION:Bleakford][MAP_PLACE:Bleakford\|between The Crossroads of Ashenveil and Hurdsea]` UNPROMPTED — the tag's between form, from the rule sentence alone. Bleakford added as a village at 363,601, midway; the party in it; told: "…between The Crossroads of Ashenveil and Hurdsea, as a village." |
+| 3 | Steered into "the Ford Inn, the only lit building" | The GM used the village sheet's own inn instead: `[SUBLOCATION:The Ifeack Arms]` — the map's name over the player's invention; the party inside its interior (`…/a2/inn-1`) |
+| 4 | "through to the inn's kitchen" | `Sub: The Ifeack Arms — Kitchen` (#693), the party at `kitchen-1`; GEOGRAPHY: "Sub-location: The Ifeack Arms — Kitchen" |
+| 5 | "cross to Harl's Forge, the smithy by the bridge" | The GM wrote `[SUBLOCATION:Harl's Forge][MAP_PLACE:Harl's Forge\|at Bleakford]` — a misuse (the town, not a thing on its sheet). The engine refused the declaration in words and added the forge beside the party as a SMITH (kind from "Forge") with an interior; the party inside it (`…/a2/s1`). Told: "Your [MAP_PLACE:] for Harl's Forge named "Bleakford", which is no place on this sheet; Harl's Forge was put beside the party." then "The story's Harl's Forge was added to the map of Bleakford beside the party." |
+
+`errors[]` empty; no "redrawn" toast; the region recipe carries two edits, Bleakford's one; `memory.map` nodes: `The Crossroads of Ashenveil`, `Bleakford`, `Bleakford|The Ifeack Arms`, `Bleakford|The Ifeack Arms — Kitchen`, `Bleakford|Harl's Forge`. The pane on the region drew both added villages by name with the party marker at Bleakford.
+
+**Found on the run, fixed before the commit:** the complaint about an unreadable declaration was told twice (the `at` branch told it and the common tail told it again); `at <the town's own name>` is the GM's natural way to say "in this town" and now reads as the default position without a complaint.
+
+**Not exercised:** a room the GM invents inside a building (ruling 7) and a chamber under the ground — the engine suite's real commits cover both; the owner's own play is the unsteered test.
+
 ## Method notes
 
 - The spot-check steers; it does not sample. A scripted player who names map places is the easy case — the owner's own play is the test of an unsteered table.

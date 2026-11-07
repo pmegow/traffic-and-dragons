@@ -44,7 +44,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
  });
 
  await check('② with an atlas the name is a button and opens the pane on the region: ink on the canvas, the realm named, the status says what to do',async()=>{
-   const d=await page.evaluate(()=>{atlasCreate('campaign-1');atlasFollow();syncUI();const el=document.getElementById('hud-loc');return {role:el.getAttribute('role'),tab:el.getAttribute('tabindex'),label:el.getAttribute('aria-label'),cursor:getComputedStyle(el).cursor};});
+   const d=await page.evaluate(()=>{atlasCreate('campaign-1');worldState.atlas.adopt=false;/* ②–⑨ probe the player's correction (We are here) and the off-map states: You are here (#702) is switched off for them; ⑬ switches it on */atlasFollow();syncUI();const el=document.getElementById('hud-loc');return {role:el.getAttribute('role'),tab:el.getAttribute('tabindex'),label:el.getAttribute('aria-label'),cursor:getComputedStyle(el).cursor};});
    assert.equal(d.role,'button');assert.equal(d.tab,'0');assert.match(d.label,/^Open the map — The Crossroads of Ashenveil$/);assert.equal(d.cursor,'pointer');
    await page.evaluate(()=>{const el=document.getElementById('hud-loc');el.focus();el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));});
    assert.equal(await page.evaluate(()=>!!document.getElementById('atlas-modal')),true,'Enter on the name opens the pane');
@@ -145,7 +145,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
      return out;});
    assert.deepEqual(r.rv,{type:'checkbox',checked:false},'the Review step carries the switch, off');assert.equal(r.pending0,false);assert.equal(r.isDefault,false,'the setup modal carries the switch, off');
    assert.deepEqual(r.seen,[true,false,true,false],'each door hands startGame the switch as the player left it: Review on, Review off, setup on, setup off');
-   assert.ok(r.on.atlas&&/^[a-z0-9]{12}$/.test(r.on.atlas.seed)&&r.on.atlas.zones===1,'Begin with the switch on mints a seed and draws the region: '+JSON.stringify(r.on));
+   assert.ok(r.on.atlas&&/^[a-z0-9]{12}$/.test(r.on.atlas.seed)&&r.on.atlas.zones>=1&&r.on.atlas.zones<=2,'Begin with the switch on mints a seed and draws the region (and, You are here being on, adds the start place as a village — a second zone): '+JSON.stringify(r.on));
    assert.equal(r.on.pending,false,'the switch is consumed by the campaign it started');assert.equal(r.on.door,'button');
    assert.equal(r.next.atlas,null,'the NEXT campaign, begun with no door touching the switch, is not mapped');assert.equal(r.next.door,null);
    assert.equal(r.village.atlas,null,'a kind without a drawn map begins without one');assert.ok(r.village.toasts.some(t=>/A drawn map is for adventures/.test(t)),'and says so: '+JSON.stringify(r.village.toasts));assert.equal(r.village.started,true);
@@ -170,7 +170,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
  });
 
  await check('⑫ a card painted before the story moved is refused, never spent on another place; a turn landing under an open pane repaints it; a party off the map is not drawn as there',async()=>{
-   const r=await page.evaluate(()=>{atlasPaneClose();atlasForget();delete worldState.atlas;atlasCreate('campaign-1');const reg=atlasDoc('campaign-1'),p0=reg.places[0],p2=reg.places[2];
+   const r=await page.evaluate(()=>{atlasPaneClose();atlasForget();delete worldState.atlas;atlasCreate('campaign-1');worldState.atlas.adopt=false;/* the correction's race, with You are here off */const reg=atlasDoc('campaign-1'),p0=reg.places[0],p2=reg.places[2];
      worldState.world.location='The Salted Wound';worldState.world.sublocation=null;atlasFollow();syncUI();showAtlas();
      __atlasTest.tap({id:p2.id});const label0=document.querySelector('#atlas-card button[data-act="here"]').textContent;
      /* the story moves on under the open card, with no repaint in between (the race itself) */
@@ -187,6 +187,16 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.equal(r.status2,'The party is in '+r.p0+'.','a turn that lands repaints the open pane');assert.equal(r.m2.length,1);assert.equal(r.m2[0].label,'The party');
    assert.equal(r.m3[0].label,'Last mapped place','off the map: the marker is where the party WAS');assert.match(r.status3,/^"Sandpoint" is not on the map/);
    assert.ok(r.btn3.indexOf('here')>=0,'the town the party left offers We are here: '+JSON.stringify(r.btn3));assert.doesNotMatch(r.text3,/The party is here/);
+ });
+
+ await check('⑬ You are here (#702): with adoption on, a start the map does not know is ADDED as a village beside the capital — the pane opens on the party inside it, and the realm shows the new place',async()=>{
+   const r=await page.evaluate(()=>{delete worldState.atlas;atlasForget();atlasCreate('campaign-1');worldState.world.location='The Crossroads of Ashenveil';worldState.world.sublocation=null;atlasFollow();syncUI();showAtlas();
+     const A=worldState.atlas,p=__atlasTest.pane(),reg=atlasDoc(A.seed),added=reg.places.filter(x=>x.authored);
+     return {status:document.getElementById('atlas-status').textContent,zoneKind:A.zones[A.at]&&A.zones[A.at].kind,paneZone:p.zone,at:A.at,added:added.map(x=>x.name),adds:Object.keys(A.adds),edits:(A.zones[A.seed].params.edits||[]).length,told:(A.told||[]).map(t=>t.text),redrawn:!!A.zones[A.seed].redrawn,trail:p.trail||null};});
+   assert.equal(r.status,'The party is in The Crossroads of Ashenveil.','the pane says the party is in the story\'s own place, now a place of the map');
+   assert.equal(r.zoneKind,'town');assert.equal(r.paneZone,r.at,'the pane opens on the added village\'s own sheet');
+   assert.deepEqual(r.added,['The Crossroads of Ashenveil']);assert.deepEqual(r.adds,['The Crossroads of Ashenveil']);assert.equal(r.edits,1,'one edit in the region\'s recipe');
+   assert.ok(r.told.some(t=>/was added to the map of .* as a village/.test(t)),'the GM is told: '+JSON.stringify(r.told));assert.equal(r.redrawn,false,'the game\'s own edit is not drift');
  });
 
  assert.deepEqual(errors,[],'page errors: '+errors.join(' | '));

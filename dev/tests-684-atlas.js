@@ -10,7 +10,7 @@ var passed = 0;
 function test(name, fn) { try { fn(); passed++; console.log("PASS #684 " + name); } catch (e) { process.exitCode = 1; console.error("FAIL #684 " + name + " — " + e.stack); } }
 
 /* A re-vendor changes all three on purpose, in one commit: the file, dev/tndmaps.sha256, and these. */
-var TNDMAPS_VERSION = "0.13.0", TNDMAPS_DOC_VER = 6;
+var TNDMAPS_VERSION = "0.14.0", TNDMAPS_DOC_VER = 6;
 var TNDMAPS_SHA256 = fs.existsSync(path.join(ROOT, "dev", "tndmaps.sha256")) ? fs.readFileSync(path.join(ROOT, "dev", "tndmaps.sha256"), "utf8").trim() : "";
 
 /* the library in a bare context: no self, no global, no module — the browser's plain-script case */

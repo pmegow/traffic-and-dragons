@@ -28,15 +28,17 @@ function test(name, fn) { try { fn(); passed++; console.log("PASS #684 " + name)
    version that first pinned the table): a re-vendor that draws the same realm passes untouched, and one that changes a
    line redraws maps under saved campaigns. Accept that on purpose (re-run with ATLAS_FIXTURES=print and paste), say so
    in the commit and the release note, and name the redrawn zones in a table like ATLAS_REDRAWN_BY_0_13 below.
-   Accepted so far: 0.13.0 redrew the wild zone (every wild zone made from a region; nothing else). */
+   Accepted so far: 0.13.0 redrew the wild zone (every wild zone made from a region; nothing else). 0.14.0 redrew NOTHING:
+   the table below was re-hashed under fingerprint scheme 2 (the drawing without its params echo, ATLAS_FP_SCHEME), because
+   0.14.0 gave the region a default `edits: []` — every drawing was compared byte for byte with 0.13.0's, the params aside. */
 var ATLAS_FIXTURES_STAMP = "0.12.0";
 var ATLAS_FIXTURES = {
-  "campaign-1": "region 89d812b3-5vq5",
-  "campaign-1/p0": "town ad9ad4eb-2y0f",
-  "campaign-1/p0/inn-1": "interior dafa5fef-al3",
-  "campaign-1/p0/sewer": "dungeon 244e0f70-tpf",
-  "campaign-1/c0": "dungeon a7204fce-60w",
-  "campaign-1/z202_178": "wild a9b5192a-e19"
+  "campaign-1": "region 2d58ee8-5viy",
+  "campaign-1/p0": "town cc991e45-2xhl",
+  "campaign-1/p0/inn-1": "interior 2d57c132-aar",
+  "campaign-1/p0/sewer": "dungeon 1719f900-im0",
+  "campaign-1/c0": "dungeon 24b52d0c-5ln",
+  "campaign-1/z202_178": "wild a1fc1666-dj5"
 };
 /* What library 0.12.0 itself recorded in a campaign that mapped those six zones (the table above as 0.12.0 printed it,
    never to be regenerated), and the zones library 0.13.0 draws differently from those records. */
@@ -58,7 +60,9 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
   console.warn = function () { warns.push([].slice.call(arguments).join(" ")); };
   console.info = function () { infos.push([].slice.call(arguments).join(" ")); };
   function quiet() { toasts.length = 0; warns.length = 0; infos.length = 0; reports.length = 0; }
-  function fresh(seed) { engine.makeTestWorld(); atlasForget(); quiet(); return atlasCreate(seed || "campaign-1"); }
+  /* the engine's own behaviour, with "You are here" OFF: these groups probe what the map does with a name it does not know
+     (off the map, with the reason); the adoption groups below set `adopt` back on, the campaign's default */
+  function fresh(seed) { engine.makeTestWorld(); atlasForget(); quiet(); var A = atlasCreate(seed || "campaign-1"); A.adopt = false; return A; }
   function point(world, sub) { worldState.world.location = world; worldState.world.sublocation = sub || null; }
   function zoneCount() { return Object.keys(worldState.atlas.zones).length; }
   function plain(o) { return JSON.parse(JSON.stringify(o)); }
@@ -157,7 +161,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert.equal(A.at, null); assert.equal(A.off.name, "The Salted Wound Tavern"); assert(/no place on the map has that name/.test(A.off.why)); assert.equal(zoneCount(), 1);
     point(c.p0.name); atlasFollow(); townCast(A, c);
     point(c.p0.name, "The Rusty Flagon"); atlasFollow();
-    assert.equal(A.at, c.townId); assert.deepEqual(plain(A.off), { name: "The Rusty Flagon", why: "no place on the map has that name", within: c.townId }); assert.equal(zoneCount(), 2);
+    assert.equal(A.at, c.townId); assert.deepEqual(plain(A.off), { name: "The Rusty Flagon", why: "no place on the map has that name", within: c.townId, absent: true, zone: c.townId, segment: "The Rusty Flagon" }); assert.equal(zoneCount(), 2);
     var part = c.inn.name.split(" ").pop();
     assert(!atlasFind(c.town, part), "the fixture: '" + part + "' alone names nothing in the town");
     point(c.p0.name, part); atlasFollow();
@@ -274,14 +278,21 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     point(c.p0.name, c.inn.name); atlasFollow(); point(c.p0.name, c.grates[0].name); atlasFollow(); point(c.reg.caves[0].name); atlasFollow();
     point("Open country"); atlasFollow(); atlasPlace(A.seed, { x: c.p0.x + 6, y: c.p0.y + 4 });
     assert.deepEqual(Object.keys(A.zones).sort(), Object.keys(ATLAS_RECORDS_0_12).sort(), "the six fixture zones");
-    Object.keys(A.zones).forEach(function (id) { A.zones[id].fp = ATLAS_RECORDS_0_12[id]; A.zones[id].lib = "0.12.0"; });
+    /* as a save of that day holds them: scheme-1 fingerprints (no fpv), and the root's params as 0.12.0 echoed them — without the `edits` key 0.14.0 added */
+    Object.keys(A.zones).forEach(function (id) { A.zones[id].fp = ATLAS_RECORDS_0_12[id]; A.zones[id].lib = "0.12.0"; delete A.zones[id].fpv; });
+    delete A.zones[A.seed].params.edits;
     atlasForget(); quiet(); worldState.turn = 44;
     Object.keys(A.zones).forEach(function (id) { atlasDoc(id); atlasSettleChain(A, id); });
     said = Object.keys(A.zones).filter(function (id) { return A.zones[id].redrawn; });
     assert.deepEqual(said, ATLAS_REDRAWN_BY_0_13, "exactly the zones library 0.13.0 redrew are recorded as redrawn — every other sheet is the one the campaign was mapped on");
     assert.equal(A.zones[said[0]].redrawn.from, "0.12.0"); assert.equal(A.zones[said[0]].redrawn.was, ATLAS_RECORDS_0_12[said[0]]);
     assert.equal(toasts.length, 1, "one notice, for the one zone: " + toasts.join(" | ")); assert(/redrawn by a newer map library \(0\.12\.0 → /.test(toasts[0]), toasts[0]);
-    Object.keys(A.zones).forEach(function (id) { assert.equal(A.zones[id].lib, TnDMaps.VERSION, id + " is re-stamped"); assert.equal(A.zones[id].fp, atlasFingerprint(atlasDoc(id)), id); });
+    Object.keys(A.zones).forEach(function (id) { assert.equal(A.zones[id].lib, TnDMaps.VERSION, id + " is re-stamped"); assert.equal(A.zones[id].fp, atlasFingerprint(atlasDoc(id)), id); assert.equal(A.zones[id].fpv, ATLAS_FP_SCHEME, id + " carries the scheme"); });
+    /* THE SCHEME: the drawing without its params echo — a library that adds a default parameter changes nothing a record sees */
+    doc = atlasDoc(A.seed);
+    assert.equal(atlasFingerprint(doc), atlasFingerprint(Object.assign({}, doc, { params: Object.assign({}, doc.params, { someDefaultOfTomorrow: 1 }) })), "scheme 2 ignores the params echo");
+    assert.notEqual(atlasFingerprint(doc, null, 1), atlasFingerprint(Object.assign({}, doc, { params: Object.assign({}, doc.params, { someDefaultOfTomorrow: 1 }) }), null, 1), "scheme 1 hashed it");
+    assert.equal(atlasFingerprint(doc, null, 1, { only: "these" }), atlasFingerprint(Object.assign({}, doc, { params: { only: "these" } }), null, 1), "scheme 1 can be reproduced with the params a recipe stored");
   });
 
   test("a failure inside the atlas never escapes a writer: the turn still commits, the reason is on record, a half-made zone is rolled back", function () {
@@ -709,7 +720,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert(room && r.a && r.b && r.third && r.other && twice, "the fixture capital has a room name three buildings bear once each, a second the first two share, and a building that repeats a name");
     return r;
   }
-  function start() { stubs(); var A = fresh(), c = cast(A); turn("At the gate. [LOCATION:" + c.p0.name + "]"); townCast(A, c); return { A: A, c: c, T: c.p0.name, r: roomCast(c) }; }
+  function start(adopt) { stubs(); var A = fresh(), c = cast(A); A.adopt = adopt !== false; turn("At the gate. [LOCATION:" + c.p0.name + "]"); townCast(A, c); return { A: A, c: c, T: c.p0.name, r: roomCast(c) }; }
 
   test("#693 a room is filed under its building: two inns' rooms of one name are two places with their own memory, and the GM is told the right one", function () {
     var S = start(), T = S.T, r = S.r, A = S.A, g;
@@ -746,7 +757,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     var S = start(), T = S.T, r = S.r, A = S.A;
     /* an invented room the sheet does not bear, then a mapped room — in two buildings */
     turn("[SUBLOCATION:" + r.a + "] In."); turn("[SUBLOCATION:Back Room] A private booth.");
-    assert.equal(sub(), r.a + SEP + "Back Room", "ruling 2: a place the sheet lacks is filed under the building"); assert.equal(A.at, bz(S, r.a)); assert(A.off && A.off.within === A.at, "the map says it does not know the room, inside the building: " + JSON.stringify(A.off));
+    assert.equal(sub(), r.a + SEP + "Back Room", "ruling 2: a place the sheet lacks is filed under the building"); assert.equal(A.at, bz(S, r.a)); assert.equal(A.off, null, "and drawn onto the building's sheet (You are here, ruling 7): " + JSON.stringify(A.off)); assert(atlasFind(atlasDoc(A.at), "Back Room").thing, "the room is on the sheet");
     turn("[SUBLOCATION:" + r.room + "][LOCATION_DESC:FIRST room: a copper still.] On."); assert.equal(sub(), r.a + SEP + r.room);
     turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:" + r.b + "] In."); turn("[SUBLOCATION:Back Room] A snug."); assert.equal(sub(), r.b + SEP + "Back Room");
     turn("[SUBLOCATION:" + r.room + "] On."); assert.equal(sub(), r.b + SEP + r.room);
@@ -769,7 +780,8 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
   test("#693 from the street a bare room name stays a town-wide node (the accepted limit), and [SUBLOCATION_LEAVE] is a departure", function () {
     var S = start(), T = S.T, r = S.r, A = S.A;
     turn("[SUBLOCATION:" + r.a + "] In."); turn("[SUBLOCATION_LEAVE] Out.");
-    turn("Round the back, into the kitchen. [SUBLOCATION:" + r.room + "]"); assert.equal(sub(), r.room); assert(node(T + "|" + r.room), "bare, as in every unmapped campaign"); assert.equal(A.at, S.c.townId); assert(A.off && A.off.within === S.c.townId);
+    turn("Round the back, into the kitchen. [SUBLOCATION:" + r.room + "]"); assert.equal(sub(), r.room); assert(node(T + "|" + r.room), "bare, as in every unmapped campaign");
+    assert(atlasFind(atlasDoc(S.c.townId), r.room).thing, "You are here makes the limit visible: a town-level place of that name is added to the town's sheet, since the GM named it from the street"); assert.equal(A.zones[A.at].parent, S.c.townId, "and the party is in it");
     turn("[SUBLOCATION:" + r.a + "] In."); turn("[SUBLOCATION_LEAVE][SUBLOCATION:" + r.room + "] Out and round the back."); assert.equal(sub(), r.room, "an explicit leave puts the party on the street before the room is named");
     assert.equal(node(T + "|" + r.room).visits, 2);
   });
@@ -841,8 +853,9 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
 
   test("#693 a building the player tied under a story name keeps the story's name for its rooms, and the where-line still says the tie", function () {
     var S = start(), T = S.T, A = S.A, c = S.c, res, w, innDoc, innRoom, sewer, title, deep;
-    turn("[SUBLOCATION:Widow Hale's House] A narrow house."); assert.equal(sub(), "Widow Hale's House"); assert(A.off && A.off.within === c.townId);
+    turn("[SUBLOCATION:Widow Hale's House] A narrow house."); assert.equal(sub(), "Widow Hale's House"); assert(A.adds[T + "|Widow Hale's House"], "You are here added the house to the town"); assert(atlasFind(atlasDoc(c.townId), "Widow Hale's House").thing);
     res = atlasPlace(c.townId, { id: c.inn.id }); assert.equal(res.ok, true); assert.equal(res.level, "sub"); assert.equal(A.at, c.townId + "/" + c.inn.id);
+    assert.equal(A.adds[T + "|Widow Hale's House"], undefined, "the player's tap is the correction: the engine's addition is put away"); assert.equal(atlasFind(atlasDoc(c.townId), "Widow Hale's House"), null, "and gone from the sheet");
     innDoc = atlasDoc(A.at); innRoom = innDoc.rooms.filter(function (rm) { return atlasFind(innDoc, rm.name) && atlasFind(innDoc, rm.name).thing; })[0];
     turn("[SUBLOCATION:" + innRoom.name + "] Into the widow's room.");
     assert.equal(sub(), "Widow Hale's House" + SEP + innRoom.name, "the story's name stands for the building the tap put it at"); assert.equal(A.at, c.townId + "/" + c.inn.id); assert.equal(A.spot, innRoom.id);
@@ -914,7 +927,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert.deepEqual(resolvePlaceName("Kitchen", "Oakhaven", { sub: "The Old Ram" }), { key: "Oakhaven|Kitchen", via: "exact" });
     assert.equal(resolvePlaceName("Scullery", "Oakhaven", { sub: "The Old Ram" }), null, "no atlas: an unknown room is not qualified");
     turn("[SUBLOCATION:The Old Ram - Kitchen]"); assert.equal(sub(), "The Old Ram - Kitchen", "a dash is just a dash without a map");
-    S = start();
+    S = start(false);/* adoption off: a world the map does not know stays off it */
     assert.equal(resolvePlaceName("Kitchen", "Nowhere Town", { sub: "The Old Ram" }), null, "a world the map has not followed: nothing");
     turn("[LOCATION:The Salt-Pits] Out of the realm."); turn("[SUBLOCATION:Camp Kitchen] A fire."); assert.equal(sub(), "Camp Kitchen"); turn("[SUBLOCATION:Mess Tent] Another."); assert.equal(sub(), "Mess Tent"); assert(node("The Salt-Pits|Mess Tent"));
     assert.equal(S.A.at, S.c.townId, "the last mapped place stands"); assert(S.A.off && !S.A.off.within);
@@ -965,6 +978,216 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert(/[Ii]nside a building/.test(ATLAS_BRIEF_RULE) && /room's own name/.test(ATLAS_BRIEF_RULE) && /[Ff]rom the street/.test(ATLAS_BRIEF_RULE) && ATLAS_BRIEF_RULE.indexOf("<building> — <room>") > 0, ATLAS_BRIEF_RULE);
     assert(/\[SUBLOCATION:[^\]]+ — [^\]]+\]/.test(ATLAS_BRIEF_RULE), "the pair form is shown");
     assert(atlasMapBlock().indexOf(ATLAS_BRIEF_RULE) > 0, "the MAP block carries it");
+  });
+
+  /* ── the independent review of the second build (2026-11-06): one test per finding ───────────────────────────── */
+  test("#693 a one-reply descent lands the party below: a zone named by its title is opened through its way in, and the chambers after it file in that zone", function () {
+    var S = start(), T = S.T, A = S.A, c = S.c, g = c.grates[0], sd, title, deep, deep2, sewer, temple, td, stair, cz, cd, ch1, ch2;
+    sd = TnDMaps.generate("dungeon", TnDMaps.dungeon.fromTown(c.town, g.id)); title = sd.title.name; deep = deepRoom(sd); deep2 = sd.rooms.filter(function (rm) { return rm.id !== deep.id && !sd.portals.some(function (p) { return p.id === rm.id; }); })[0];
+    turn("You lift the grate and drop down. [SUBLOCATION:" + g.name + "][SUBLOCATION:" + deep.name + "][LOCATION_DESC:JUNCTION: four tunnels meet.]");
+    assert.equal(sub(), title + SEP + deep.name, "the chamber is keyed under the sewer the grate opens"); sewer = A.at;
+    assert.equal(A.zones[sewer] && A.zones[sewer].kind, "dungeon", "the follow opened the sewer through its title: " + JSON.stringify(A.off)); assert.equal(A.spot, deep.id); assert.equal(A.off, null);
+    turn("[SUBLOCATION:" + deep2.name + "][LOCATION_DESC:CISTERN: a round brick well.] On."); assert.equal(sub(), title + SEP + deep2.name); assert.equal(A.at, sewer);
+    turn("[SUBLOCATION_LEAVE] Up and out."); turn("[SUBLOCATION:" + g.name + "] Down again."); turn("[SUBLOCATION:" + deep2.name + "] Back to the cistern.");
+    assert.equal(node(T + "|" + title + SEP + deep2.name).visits, 2, "one chamber, one node"); assert.equal(nodesWith(deep2.name).length, 1); assert(buildGeoBlock().indexOf("round brick well") > 0, "its description is served");
+    /* a crypt reached in one breath: temple, stair, chamber */
+    temple = c.town.landmarks.filter(function (l) { return l.kind === "temple"; })[0]; td = TnDMaps.generate("interior", TnDMaps.interior.fromTown(c.town, temple.id)); stair = td.portals.filter(function (p) { return p.way === "down"; })[0];
+    cd = TnDMaps.generate("dungeon", TnDMaps.dungeon.fromInterior(td, stair.id)); ch1 = deepRoom(cd); ch2 = cd.rooms.filter(function (rm) { return rm.id !== ch1.id && !cd.portals.some(function (p) { return p.id === rm.id; }); })[0];
+    turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:" + temple.name + "][SUBLOCATION:" + stair.name + "][SUBLOCATION:" + ch1.name + "][LOCATION_DESC:HALL: bones underfoot.] Down and in.");
+    assert.equal(sub(), temple.name + SEP + cd.title.name + SEP + ch1.name); cz = A.at; assert.equal(A.zones[cz] && A.zones[cz].kind, "dungeon", "the crypt is open: " + JSON.stringify(A.off)); assert.equal(A.spot, ch1.id);
+    turn("[SUBLOCATION:" + ch2.name + "] On."); assert.equal(sub(), temple.name + SEP + cd.title.name + SEP + ch2.name); assert.equal(A.at, cz);
+    assert.equal(nodesWith(ch1.name).length, 1); assert(buildGeoBlock().indexOf("bones underfoot") < 0 || sub().indexOf(ch1.name) > 0);
+    /* the crypt by its title from the nave, never entered in this campaign */
+    S = start(); T = S.T; A = S.A; c = S.c;
+    turn("[SUBLOCATION:" + temple.name + "] In."); turn("[SUBLOCATION:" + cd.title.name + SEP + ch1.name + "][LOCATION_DESC:HALL from the nave.] Straight down.");
+    assert.equal(sub(), temple.name + SEP + cd.title.name + SEP + ch1.name, "the pair names the crypt by its title"); assert.equal(A.zones[A.at].kind, "dungeon", "and the follow opened it through the stair: " + JSON.stringify(A.off)); assert.equal(A.spot, ch1.id);
+    assert.equal(node(T + "|" + temple.name + SEP + cd.title.name + SEP + ch1.name).description, "HALL from the nave.", "the description lands on the pointer's node");
+  });
+
+  test("#693 a door named as the sub-location is the building itself: the next room files under the building, never town-wide", function () {
+    var S = start(), T = S.T, r = S.r, A = S.A, innDoc, door;
+    turn("[SUBLOCATION:" + r.a + "] In."); innDoc = atlasDoc(A.at); door = innDoc.portals.filter(function (p) { return p.way === "out"; })[0]; assert(door, "the fixture inn has a door out");
+    turn("[SUBLOCATION:" + door.name + "] You slip out by the back."); assert.equal(sub(), r.a, "a way back onto the town's sheet is the building's own node"); assert.equal(A.at, bz(S, r.a)); assert.equal(node(T + "|" + door.name), undefined, "no town-wide door node");
+    turn("[SUBLOCATION:" + r.room + "][LOCATION_DESC:FIRST room after the door.] Back in through the kitchen."); assert.equal(sub(), r.a + SEP + r.room);
+    turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:" + r.b + "] In b."); turn("[SUBLOCATION:" + door.name + "] Out by its door."); assert.equal(sub(), r.b);
+    turn("[SUBLOCATION:" + r.room + "] Its kitchen."); assert.equal(sub(), r.b + SEP + r.room); assert.equal(node(T + "|" + r.room), undefined, "the review's fusion through a door is closed");
+    assert(buildGeoBlock().indexOf("FIRST room after the door") < 0, "no carry-over");
+  });
+
+  test("#693 a partial path is read from where the party stands, and every key the resolver writes re-resolves to itself without a position", function () {
+    var S = start(), T = S.T, r = S.r, A = S.A, c = S.c, temple, td, stair, cd, ch, keys;
+    turn("[SUBLOCATION:" + r.a + "] In."); turn("[SUBLOCATION:" + r.room + "] The room.");
+    turn("[SUBLOCATION:" + r.room + SEP + r.other + "][LOCATION_DESC:THE OTHER ROOM: shelves of jars.] Through to the next."); assert.equal(sub(), r.a + SEP + r.other, "the path's first segment is the room the party stood in; the rest is the thing");
+    assert.equal(node(currentNodeKey()).description, "THE OTHER ROOM: shelves of jars.", "the pointer and the node agree, so the description lands");
+    turn("[LOCATION_ITEM:Jar of honey|placed] Left on a shelf."); assert((node(currentNodeKey()).items || []).some(function (it) { return it.name === "Jar of honey"; }), "a placement at the pointer is not refused");
+    turn("[SUBLOCATION:" + r.room + SEP + "Smoke Hole][LOCATION_DESC:A hole in the ceiling.] Up a ladder."); assert.equal(sub(), r.a + SEP + "Smoke Hole", "an unknown place after a known room is filed under the building (the known room is passed through), as [SUBLOCATION:Smoke Hole] alone would file it");
+    assert.equal(node(currentNodeKey()).description, "A hole in the ceiling.");
+    temple = c.town.landmarks.filter(function (l) { return l.kind === "temple"; })[0]; turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:" + temple.name + "] In."); td = atlasDoc(A.at); stair = td.portals.filter(function (p) { return p.way === "down"; })[0];
+    turn("[SUBLOCATION:" + stair.name + "] Down."); cd = atlasDoc(A.at); ch = deepRoom(cd);
+    turn("[SUBLOCATION:" + cd.title.name + SEP + ch.name + "][LOCATION_DESC:HALL: bones.] In."); assert.equal(sub(), temple.name + SEP + cd.title.name + SEP + ch.name, "the crypt's title from inside the crypt is the crypt, not a room of it"); assert.equal(node(currentNodeKey()).description, "HALL: bones.");
+    keys = Object.keys(memory.map.nodes).filter(function (k) { return k.indexOf(T + "|") === 0; });
+    assert(keys.length >= 6, keys.join(" ; "));
+    keys.forEach(function (k) { var rp = resolvePlaceName(placeKeyLeaf(k), T); assert(rp && rp.key === k, "re-resolves to itself: " + k + " → " + JSON.stringify(rp)); });
+  });
+
+  test("#693 the cave pair: a name that opens with the world place's own name names the rest, so the cave's chamber is one node", function () {
+    var S = start(), A = S.A, c = S.c, cave = c.reg.caves[0], cd, ch;
+    turn("[LOCATION:" + cave.name + "] Into the hills."); cd = atlasDoc(A.at); assert.equal(A.zones[A.at].kind, "dungeon"); ch = deepRoom(cd);
+    turn("[SUBLOCATION:" + ch.name + "][LOCATION_DESC:THE CAVERN: dripping.] In."); assert.equal(sub(), ch.name, "a chamber of the cave that IS the world place is bare");
+    turn("[SUBLOCATION:" + cave.name + SEP + ch.name + "] Deeper in the same cavern."); assert.equal(sub(), ch.name, "the pair that opens with the world's own name is the chamber"); assert.equal(node(cave.name + "|" + ch.name).visits, 2); assert.equal(nodesWith(ch.name).length, 1, "no twin");
+    assert.equal(node(cave.name + "|" + cave.name + SEP + ch.name), undefined);
+  });
+
+  test("#693 a town re-stated twice still carries the building, and the footer pair's item and state operands land in the building's room", function () {
+    var S = start(), T = S.T, r = S.r, k = T + "|" + r.a + SEP + r.room, R;
+    turn("[SUBLOCATION:" + r.a + "] In.");
+    turn("Into the room. [LOCATION:" + T + "][LOCATION:" + T + "][SUBLOCATION:" + r.room + "]"); assert.equal(sub(), r.a + SEP + r.room, "two same-world footers carry the building as one does");
+    console.log = function () { }; try { R = applyMuts("You leave the fork and step out. [LOCATION:" + T + "][LOCATION_ITEM:Fork|placed|" + r.room + "][LOCATION_STATE:Dusty.|" + r.room + "]"); } finally { console.log = realLog; } atlasFollow();
+    assert((node(k).items || []).some(function (it) { return it.name === "Fork"; }), "the item operand after a same-world footer means the building's room: " + R.muts.join(" | "));
+    assert((node(k).stateNotes || []).some(function (x) { return x.n === "Dusty."; }), "and so does the state note's");
+    assert.equal(sub(), null, "the footer alone still leaves the party on the street (#511)");
+  });
+
+  test("#693 without a map, a named operand in a block that changes world keeps #511's reading to the byte", function () {
+    var R;
+    stubs(); engine.makeTestWorld(); atlasForget();
+    turn("[LOCATION:Marrowgate]"); turn("[SUBLOCATION:Kitchen]"); turn("[LOCATION:Oakhaven]"); turn("[SUBLOCATION:Kitchen]");
+    console.log = function () { }; try { R = applyMuts("[LOCATION_ITEM:Letter|placed|Kitchen][LOCATION:Marrowgate]"); } finally { console.log = realLog; }
+    assert.deepEqual(R.muts, ["-> Marrowgate", "Left: Letter — at Kitchen"], "the receipts of a campaign without a map are the ones the baseline engine wrote");
+    assert((node("Marrowgate|Kitchen").items || []).some(function (it) { return it.name === "Letter"; }), "#511 ②: the block's arrival decides, as before"); assert(!(node("Oakhaven|Kitchen").items || []).length);
+  });
+
+  test("#693 the design's claims under mutation: a legit world move from inside a room is not refused, the map's answer comes before a bare ghost, an invented room folds its case, the peek cache is bounded", function () {
+    var S = start(), T = S.T, r = S.r, A = S.A, c = S.c, i, inns;
+    turn("[SUBLOCATION:" + r.a + "] In."); turn("[SUBLOCATION:" + r.room + "] The room.");
+    turn("[LOCATION:" + c.p1.name + "] A day's ride."); assert.equal(worldState.world.location, c.p1.name, "a world move to a map name from inside a room is a move"); assert.equal(sub(), null);
+    turn("[LOCATION:" + T + "]"); ensureMapNode(T + "|" + r.room, worldState.turn, T); memory.map.nodes[T + "|" + r.room].description = "GHOST: a town-wide room from before";
+    turn("[SUBLOCATION:" + r.a + "] In."); turn("[SUBLOCATION:" + r.room + "] The room."); assert.equal(sub(), r.a + SEP + r.room, "inside the building the map's answer wins over the bare ghost"); assert(buildGeoBlock().indexOf("GHOST") < 0);
+    turn("[SUBLOCATION:Back Room] A booth."); turn("[SUBLOCATION:back room] The same booth, in lower case."); assert.equal(sub(), r.a + SEP + "Back Room"); assert.equal(nodesWith("Back Room").length + nodesWith("back room").length, 1, "one node for one invented room, whatever the case");
+    inns = [];
+    for (i = 1; i < c.reg.places.length && inns.length < ATLAS_PEEK_CAP + 2; i++) { var tn = TnDMaps.generate("town", TnDMaps.town.fromRegion(c.reg, c.reg.places[i].id)), p = tn.portals.filter(function (q) { return q.to && q.to.generator === "interior"; })[0]; if (p) inns.push({ place: c.reg.places[i].name, inn: p.name }); }
+    assert(inns.length > ATLAS_PEEK_CAP, "the fixture realm has enough towns to overflow the cache");
+    var zonesBefore = Object.keys(A.zones).sort();
+    inns.forEach(function (x) { resolvePlaceName("Kitchen", x.place, { sub: x.inn }); });
+    assert(Object.keys(_atlasPeeks).length <= ATLAS_PEEK_CAP && _atlasPeekOrder.length <= ATLAS_PEEK_CAP, "the look's cache is bounded: " + Object.keys(_atlasPeeks).length);
+    assert.deepEqual(Object.keys(A.zones).sort(), zonesBefore, "and none of the looks recorded a zone");
+  });
+
+  /* ── You are here (owner rulings 2026-11-06): a place the GM names that the map does not know is ADDED to the map ──── */
+  function adds(A) { return Object.keys(A.adds || {}); }
+  function edits(A, zone) { return (A.zones[zone].params && A.zones[zone].params.edits) || []; }
+
+  test("You are here: a world place the story names and the map lacks is added as a village — at the opening beside the capital, later beside the party — and the party stands in it", function () {
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+    var A = atlasCreate("campaign-1"), reg = atlasDoc(A.seed), cap = reg.places[0], nBefore = reg.places.length, zones0, added, dist, t1, t2;
+    point("The Crossroads of Ashenveil"); atlasFollow();
+    assert.equal(adds(A).length, 1, "one addition: " + JSON.stringify(A.adds)); assert.equal(edits(A, A.seed).length, 1); assert.equal(edits(A, A.seed)[0].kind, "village"); assert.equal(edits(A, A.seed)[0].name, "The Crossroads of Ashenveil");
+    reg = atlasDoc(A.seed); added = reg.places.filter(function (p) { return p.authored; })[0]; assert(added && added.name === "The Crossroads of Ashenveil", "the region sheet bears it");
+    dist = Math.sqrt((added.x - cap.x) * (added.x - cap.x) + (added.y - cap.y) * (added.y - cap.y)); assert(dist >= 40 && dist <= 200, "beside the capital, on land: " + dist);
+    assert.equal(reg.places.length, nBefore + 1); assert.equal(A.off, null, "the party is on the map"); assert.equal(A.zones[A.at] && A.zones[A.at].kind, "town", "and stands in the added place's own sheet: " + A.at);
+    assert(atlasWhere().text.indexOf("The party is in The Crossroads of Ashenveil") === 0, atlasWhere().text);
+    assert(atlasToldLines(A).some(function (t) { return /added to the map of .* near " + cap.name|was added to the map/.test(t) && t.indexOf("The Crossroads of Ashenveil") >= 0; }), "the GM is told: " + JSON.stringify(A.told));
+    assert(atlasMapBlock().indexOf("was added to the map") > 0, "on the MAP block"); assert(toasts.some(function (t) { return /added/.test(t); }), "and the player sees a toast");
+    assert.equal(reg.places.filter(function (p) { return !p.authored; }).length, nBefore, "no generated place moved or was renamed"); assert.equal(reg.places[0].name, cap.name);
+    /* the drawing is the campaign's own on purpose: no 'redrawn' notice, the fingerprint re-stamped */
+    assert(!A.zones[A.seed].redrawn, "an edit of the game's own is not drift"); assert.equal(A.zones[A.seed].fp, atlasFingerprint(reg)); assert(!toasts.some(function (t) { return /redrawn/.test(t); }), toasts.join(" | "));
+    /* later, from inside a town: beside that town */
+    zones0 = Object.keys(A.zones).length; quiet();
+    point(cap.name); atlasFollow(); point("Bleakford"); atlasFollow();
+    assert.equal(adds(A).length, 2); reg = atlasDoc(A.seed); added = reg.places.filter(function (p) { return p.name === "Bleakford"; })[0]; assert(added, "Bleakford is on the region");
+    dist = Math.sqrt((added.x - cap.x) * (added.x - cap.x) + (added.y - cap.y) * (added.y - cap.y)); assert(dist >= 40 && dist <= 200, "beside the town the party was in: " + dist);
+    assert(A.zones[A.at] && A.zones[A.at].via === added.id, "the party is in Bleakford");
+    /* the same name again adds nothing more — even when the map no longer shows the addition (a lost edit): once per story place */
+    t1 = edits(A, A.seed).length; point(cap.name); atlasFollow(); point("Bleakford"); atlasFollow(); assert.equal(edits(A, A.seed).length, t1, "one addition per story place");
+    assert.equal(adds(A).length, 2);
+    A.zones[A.seed].params.edits.forEach(function (e) { if (e.name === "Bleakford") e.name = "Bleakford-that-was"; }); A.zones[A.seed].fp = null; atlasForget(); point(cap.name); atlasFollow(); quiet(); point("Bleakford"); atlasFollow();
+    assert.equal(edits(A, A.seed).length, t1, "a story place added once is never added again, even when its name is no longer found"); assert(A.off && /added to the map once already/.test(A.off.why), JSON.stringify(A.off)); assert.equal(adds(A).length, 2);
+  });
+
+  test("You are here: the GM says where — near A, between A and B, at A (a tie, refused when the player placed it) — and an unreadable declaration is said and falls back", function () {
+    var S = start(), A = S.A, c = S.c, reg = c.reg, p2 = reg.places[2], p3 = reg.places[3], added, mid, dist, R;
+    /* near */
+    console.log = function () { }; try { R = applyMuts("You ride out to Bleakford. [LOCATION:Bleakford][MAP_PLACE:Bleakford|near " + p2.name + "]"); } finally { console.log = realLog; } atlasFollow();
+    assert(R.muts.some(function (m) { return /^Map place: Bleakford/.test(m); }), "the tag is received: " + R.muts.join(" | "));
+    reg = atlasDoc(A.seed); added = reg.places.filter(function (p) { return p.name === "Bleakford"; })[0]; assert(added, "added");
+    dist = Math.sqrt((added.x - p2.x) * (added.x - p2.x) + (added.y - p2.y) * (added.y - p2.y)); assert(dist >= 40 && dist <= 200, "near " + p2.name + ": " + dist);
+    assert(atlasToldLines(A).some(function (t) { return t.indexOf("near " + p2.name) > 0; }), JSON.stringify(A.told)); assert.equal(worldState.placeDecls, undefined, "the declaration was consumed");
+    /* between */
+    turn("[LOCATION:" + c.p0.name + "]"); quiet();
+    turn("A hamlet on the road. [LOCATION:Ashford][MAP_PLACE:Ashford|between " + p2.name + " and " + p3.name + "]");
+    reg = atlasDoc(A.seed); added = reg.places.filter(function (p) { return p.name === "Ashford"; })[0]; assert(added, "added");
+    mid = [(p2.x + p3.x) / 2, (p2.y + p3.y) / 2]; dist = Math.sqrt((added.x - mid[0]) * (added.x - mid[0]) + (added.y - mid[1]) * (added.y - mid[1])); assert(dist <= 200, "about midway: " + dist);
+    /* at: a tie, said */
+    turn("[LOCATION:" + c.p0.name + "]"); quiet();
+    turn("You reach the old crossing. [LOCATION:The Old Crossing][MAP_PLACE:The Old Crossing|at " + p3.name + "]");
+    assert.deepEqual(plain(A.names["The Old Crossing"]), { zone: A.seed, id: p3.id }, "a tie, as the player's tap would make"); assert.equal(A.at, A.seed + "/" + p3.id, "the party is in " + p3.name);
+    assert.equal(atlasDoc(A.seed).places.filter(function (p) { return p.name === "The Old Crossing"; }).length, 0, "nothing added"); assert(atlasWhere().text.indexOf("The story's \"The Old Crossing\" is at " + p3.name) > 0, atlasWhere().text);
+    /* the player's tap wins over a later declaration */
+    turn("[LOCATION:" + c.p0.name + "]"); quiet();
+    turn("[LOCATION:The Old Crossing][MAP_PLACE:The Old Crossing|at " + p2.name + "]");
+    assert.deepEqual(plain(A.names["The Old Crossing"]), { zone: A.seed, id: p3.id }, "the tie stands"); assert.equal(A.at, A.seed + "/" + p3.id);
+    assert(atlasToldLines(A).some(function (t) { return /The player placed The Old Crossing at .*was not applied/.test(t); }), "the GM is told: " + JSON.stringify(A.told));
+    /* unreadable, and a name the map lacks: said, the default stands */
+    turn("[LOCATION:" + c.p0.name + "]"); quiet();
+    turn("[LOCATION:Thornwick][MAP_PLACE:Thornwick|over the hills]"); assert(atlasDoc(A.seed).places.some(function (p) { return p.name === "Thornwick"; }), "added at the default"); assert(atlasToldLines(A).some(function (t) { return /was not understood/.test(t); }), JSON.stringify(A.told));
+    turn("[LOCATION:" + c.p0.name + "]"); quiet();
+    turn("[LOCATION:Mirefen][MAP_PLACE:Mirefen|near Nowhere-upon-Nothing]"); assert(atlasDoc(A.seed).places.some(function (p) { return p.name === "Mirefen"; }), "added at the default"); assert.equal(atlasToldLines(A).filter(function (t) { return /named "Nowhere-upon-Nothing", which is no place on this sheet/.test(t); }).length, 1, "said once: " + JSON.stringify(A.told));
+    /* "at <the town's own name>" is the GM saying "in this town" (the live run): the default, with no complaint */
+    turn("[LOCATION:" + c.p0.name + "]"); turn("[SUBLOCATION:" + c.inn.name + "]"); quiet();
+    turn("[SUBLOCATION_LEAVE][SUBLOCATION:Harl's Forge][MAP_PLACE:Harl's Forge|at " + c.p0.name + "] A smithy by the bridge.");
+    assert(atlasDoc(c.townId).establishments.some(function (e) { return e.name === "Harl's Forge" && e.kind === "smith"; }), "added beside the party as a smith"); assert(!atlasToldLines(A).some(function (t) { return /was not understood|which is no place/.test(t); }), "no complaint: " + JSON.stringify(A.told)); assert(A.names[S.T + "|Harl's Forge"] === undefined, "and no tie to the town");
+  });
+
+  test("You are here: a town-level place takes its kind from its name — a tavern with an interior, a house, a feature of the story's own — and its rooms file under it", function () {
+    var S = start(), T = S.T, A = S.A, c = S.c, town, e;
+    turn("[SUBLOCATION:The Rat-Catcher's Rest] A low door off the square."); town = atlasDoc(c.townId);
+    e = town.establishments.filter(function (x) { return x.name === "The Rat-Catcher's Rest"; })[0]; assert(e && e.kind === "inn" && e.authored, "an inn, from 'Rest': " + JSON.stringify(e && { kind: e.kind }));
+    assert.equal(A.zones[A.at].kind, "interior", "the party is inside it"); assert.equal(A.zones[A.at].via, e.id);
+    assert.equal(sub(), "The Rat-Catcher's Rest"); assert(atlasWhere().text.indexOf("The party is in The Rat-Catcher's Rest") === 0, atlasWhere().text);
+    turn("[SUBLOCATION:Kitchen][LOCATION_DESC:The Rest's kitchen.] Through."); assert.equal(sub(), "The Rat-Catcher's Rest" + SEP + "Kitchen", "its rooms file under it as under any building"); assert.equal(A.zones[A.at].via, e.id);
+    turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:Widow Hale's Cottage] A narrow house."); town = atlasDoc(c.townId);
+    e = town.establishments.filter(function (x) { return x.name === "Widow Hale's Cottage"; })[0]; assert(e && e.kind === "custom" && e.word === "house", "a house, from 'Cottage': " + JSON.stringify(e && { kind: e.kind, word: e.word }));
+    turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:The Weeping Stone] A standing stone in the yard."); town = atlasDoc(c.townId);
+    e = town.establishments.filter(function (x) { return x.name === "The Weeping Stone"; })[0]; assert(e && e.kind === "custom" && e.word === "place", "a feature of the story's own: " + JSON.stringify(e && { kind: e.kind, word: e.word }));
+    assert.equal(adds(A).length, 3); assert.equal(edits(A, c.townId).length, 3);
+    assert.equal(town.establishments.filter(function (x) { return !x.authored; }).length, c.town.establishments.length, "nothing the seed drew moved"); assert.deepEqual(town.establishments.filter(function (x) { return !x.authored; }).map(function (x) { return x.name + "@" + x.x + "," + x.y; }), c.town.establishments.map(function (x) { return x.name + "@" + x.x + "," + x.y; }));
+    /* an invented room inside a mapped building is drawn on its sheet; two buildings' invented rooms are two rooms */
+    turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:" + c.inn.name + "] In."); turn("[SUBLOCATION:Still Room][LOCATION_DESC:Copper and steam.] Behind the kitchen.");
+    assert.equal(sub(), c.inn.name + SEP + "Still Room"); assert.equal(A.at, c.townId + "/" + c.inn.id, "the party is in the inn"); assert(atlasFind(atlasDoc(A.at), "Still Room").thing, "the room is on the inn's sheet"); assert.equal(A.spot, atlasFind(atlasDoc(A.at), "Still Room").thing.id, "and the party stands in it");
+    assert.equal(edits(A, c.townId + "/" + c.inn.id).length, 1); assert.equal(edits(A, c.townId + "/" + c.inn.id)[0].kind, "custom");
+  });
+
+  test("You are here: a chamber the story names under the ground is dug beside the party; the delta survives the save round trip and redraws identically; the tap puts an addition away", function () {
+    var S = start(), T = S.T, A = S.A, c = S.c, sewer, sd, deep, before, blob, back, r;
+    turn("[SUBLOCATION:" + c.grates[0].name + "] Down."); sewer = A.at; sd = atlasDoc(sewer); deep = deepRoom(sd);
+    turn("[SUBLOCATION:" + deep.name + "] Along."); turn("[SUBLOCATION:The Bone Niche][LOCATION_DESC:Skulls in a row.] A side cut.");
+    assert.equal(sub(), sd.title.name + SEP + "The Bone Niche"); assert(atlasFind(atlasDoc(sewer), "The Bone Niche").thing, "dug"); assert.equal(A.at, sewer); assert.equal(A.spot, atlasFind(atlasDoc(sewer), "The Bone Niche").thing.id);
+    assert.equal(edits(A, sewer).length, 1); assert.equal(edits(A, sewer)[0].word, "chamber");
+    /* persistence */
+    before = JSON.stringify(worldState.atlas); blob = serializeWorldState(worldState); back = parseWorldState(blob); worldState = back; migrateWorldState(); atlasForget(); A = worldState.atlas;
+    assert.equal(JSON.stringify(worldState.atlas), before, "the store, the delta and the adds survive the save as they were");
+    assert(atlasFind(atlasDoc(sewer), "The Bone Niche").thing, "redrawn from the recipe, the chamber is there"); assert.equal(atlasFingerprint(atlasDoc(sewer)), A.zones[sewer].fp, "and it is the drawing the record stamped");
+    /* the tap: a story place the engine added, placed by the player somewhere else, is put away */
+    turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:The Gilded Spur] A tavern the story knows."); assert(adds(A).some(function (k) { return k === T + "|The Gilded Spur"; }), JSON.stringify(A.adds));
+    assert.equal(A.zones[A.at].via, edits(A, c.townId)[0].id, "the party is inside the added tavern");
+    r = atlasPlace(c.townId, { id: c.inn.id }); assert.equal(r.ok, true);
+    assert.equal(A.adds[T + "|The Gilded Spur"], undefined, "the addition is gone"); assert.equal(edits(A, c.townId).length, 0); assert.equal(atlasFind(atlasDoc(c.townId), "The Gilded Spur"), null, "and off the sheet"); assert(!Object.keys(A.zones).some(function (z) { return A.zones[z].via && /^s\d+$/.test(A.zones[z].via); }), "the interior opened through it is gone too");
+    assert.equal(A.at, c.townId + "/" + c.inn.id, "the party is in the inn the player named"); assert.deepEqual(plain(A.names[T + "|The Gilded Spur"]), { zone: c.townId, id: c.inn.id });
+  });
+
+  test("You are here: the switch and the contract — a campaign with adoption off keeps every name off the map with its reason; a twice-borne name is never added; the tag is parsed, stripped and taught only by the MAP block; no atlas drops it", function () {
+    var S = start(false), A = S.A, c = S.c, n, twice, R;
+    turn("[LOCATION:Nowhere Town]"); assert.equal(adds(A).length, 0); assert(A.off && A.off.absent === true && !A.off.within, JSON.stringify(A.off));
+    S = start(); A = S.A; c = S.c; turn("[SUBLOCATION:" + c.inn.name + "] In."); n = atlasDoc(A.at).rooms;
+    twice = n.filter(function (rm) { return n.filter(function (q) { return atlasNameKey(q.name) === atlasNameKey(rm.name); }).length > 1; })[0]; assert(twice, "the fixture inn has a twice-borne room name");
+    turn("[SUBLOCATION:" + twice.name + "] Along."); assert.equal(adds(A).length, 0, "a name two things bear is a refusal, never an addition"); assert(A.off && /are called that/.test(A.off.why) && !A.off.absent, JSON.stringify(A.off));
+    turn("[LOCATION:" + c.inn.name + "]"); turn("[SUBLOCATION:" + twice.name + "] Along, with the inn as the world place."); assert.equal(adds(A).length, 0, "a bare twice-borne name on the world place's own sheet is a refusal too"); assert(A.off && /are called that/.test(A.off.why) && !A.off.absent, JSON.stringify(A.off));
+    assert.equal(cleanTxt("A [MAP_PLACE:Bleakford|near Great Brem] B"), "A  B", "stripped from prose"); assert.equal(buildStateTagsDoc().indexOf("[MAP_PLACE:"), -1, "not in the standing doc"); assert(TAG_DOC_ENGINE_ONLY.indexOf("MAP_PLACE") >= 0);
+    assert(ATLAS_BRIEF_RULE.indexOf("[MAP_PLACE:<its name>|near <map name>]") > 0 && ATLAS_BRIEF_RULE.indexOf("is ADDED to the map beside the party") > 0, "taught by the MAP block: " + ATLAS_BRIEF_RULE);
+    assert.equal(src("tag_table.js").indexOf("atlas"), -1, "the parser never names the atlas");
+    stubs(); engine.makeTestWorld(); atlasForget();
+    console.log = function () { }; try { R = applyMuts("[LOCATION:Oakhaven][MAP_PLACE:Oakhaven|near Marrowgate]"); } finally { console.log = realLog; } atlasFollow();
+    assert(R.muts.some(function (m) { return /^Map place: Oakhaven/.test(m); })); assert.equal(worldState.placeDecls, undefined, "without an atlas the declaration is dropped by the follow"); assert.equal(worldState.atlas, undefined);
   });
 
   test("THE FIXTURE GATE: this library draws the fixture realm exactly as the pinned table says (region, town, interior, sewer, cave, wild)", function () {

@@ -1015,7 +1015,7 @@ function fileLocationItem(name,action,turn,place,room,at){
   var key=(at&&at.key)?at.key:currentNodeKey();/* UA9; #481 A4: `at` = the reply's place where the tag happened */
   if(place){/* #481 A1: the place operand goes through the SAME resolver as the arrival, so every name that walks in also files items; null keeps the loud refusal (#6 E3) */
     var _pw=(at&&at.world)?at.world:((typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location);
-    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw,(at&&at.sub!==undefined)?{sub:at.sub}:((at&&at.key)?undefined:{sub:(worldState.world&&worldState.world.sublocation)||null})):null;/* #693: where the tag stands, so a room's own name means THIS building's room; a caller outside the parser reads the live pointer */
+    var _rp=(typeof resolvePlaceName==="function")?resolvePlaceName(String(place).trim(),_pw,(at&&at.sub!==undefined)?{sub:at.sub,carried:at.carried}:((at&&at.key)?undefined:{sub:(worldState.world&&worldState.world.sublocation)||null})):null;/* #693: where the tag stands (a same-world footer's carried building included), so a room's own name means THIS building's room; a caller outside the parser reads the live pointer */
     key=_rp?_rp.key:_pw+"|"+String(place).trim();/* audit C10: compose under the CANONICAL world */
   }
   if(typeof locResolve==="function")key=locResolve(key);/* #156B */
