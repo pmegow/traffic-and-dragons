@@ -661,7 +661,7 @@ var ATLAS_ADD_WORDS=[/* a word of the story's name → a catalogue kind of the t
   ["keep","keep"],["castle","keep"],["fort","keep"],["tower","keep"],["citadel","keep"]
 ];
 /* the kind a town-level name asks for: {kind} (a catalogue trade), {custom, word} (a house or a keep: an interior program the
-   library draws), or {custom, word:"place", footprint} — a named feature of the story's own (the library still gives it a
+   library draws), or {custom, word:"place", footprint: "medium"} — a named feature of the story's own (the library still gives it a
    door and a house inside, should the party go in) */
 function atlasAddKind(name){
   var words=String(name==null?"":name).toLowerCase().replace(/[^a-z]+/g," ").split(" ").filter(function(w){return w;}),i,j,hit=null,cat,programs;
@@ -669,7 +669,7 @@ function atlasAddKind(name){
   for(i=0;i<ATLAS_ADD_WORDS.length&&!hit;i++)for(j=words.length-1;j>=0;j--)if(words[j]===ATLAS_ADD_WORDS[i][0]){hit=ATLAS_ADD_WORDS[i][1];break;}
   if(hit&&Object.prototype.hasOwnProperty.call(cat,hit)&&hit!=="sewer")return {kind:hit};
   if(hit&&Object.prototype.hasOwnProperty.call(programs,hit))return {custom:true,word:hit};
-  return {custom:true,word:"place",footprint:"small"};
+  return {custom:true,word:"place",footprint:"medium"};/* review 3, finding 8 (owner 2026-11-07): medium — a small house of three rooms held no invented room; drawn LARGE once when a room finds no room (atlasGrowHouse) */
 }
 function atlasAddId(rec,prefix){var n=1,ids={},i,ed=(rec.params&&rec.params.edits)||[];for(i=0;i<ed.length;i++)ids[ed[i].id]=1;while(ids[prefix+n])n++;return prefix+n;}
 /* a point of open ground on the region for a settlement: around a centre, nearer first, in eight bearings; the library's
@@ -729,7 +729,7 @@ function atlasDeclsLeft(A,p){
 /* WRITE: add the absent place the pointer names, as the zone's recipe edit. true when the map gained it (the caller
    follows again); false with the reason on A.off when it cannot. Never for a twice-borne name; once per story place. */
 function atlasAdopt(A,p,entered,from){
-  var off=A.off,isWorld=!off.within,name=off.segment!=null?off.segment:off.name,zone=isWorld?A.seed:(off.zone||off.within),rec=A.zones[zone],told=[],decl,doc,kind,e,i,pts,centre,party,thing,a,b,before,fpWas,paramsWas,where,drawn,hit,spotRoom,storyKey,refusal,lost,lostName,realm;
+  var off=A.off,isWorld=!off.within,name=off.segment!=null?off.segment:off.name,zone=isWorld?A.seed:(off.zone||off.within),rec=A.zones[zone],told=[],decl,doc,kind,e,i,pts,centre,party,thing,a,b,before,fpWas,paramsWas,where,drawn,hit,spotRoom,storyKey,refusal,lost,lostName,realm,lay,grown,grownNote="";
   /* the key of the THING being added: the world, or the path up to the absent segment — never the pointer's whole path
      (review 2, finding 5: the pair "The Rat-Catcher's Rest — Snug" indexed the inn under the room's key, so the room was
      refused as 'added once already' and a later tap on the pair took the inn away) */
@@ -783,12 +783,20 @@ function atlasAdopt(A,p,entered,from){
        and the crypt could not be drawn), is rolled back — an addition never removes what the map had */
     before=(rec.params&&rec.params.edits)?rec.params.edits.slice():[];fpWas=rec.fp;paramsWas=rec.params;
     if(!rec.params)rec.params={};
-    for(i=0;i<pts.length&&!hit;i++){
+    lay=function(){for(i=0;i<pts.length&&!hit;i++){
       if(pts[i]instanceof Array)e.at=pts[i];else if(pts[i]){delete e.floor;delete e.m2;Object.keys(pts[i]).forEach(function(k){e[k]=pts[i][k];});}
       rec.params.edits=before.concat([JSON.parse(JSON.stringify(e))]);rec.fp=null;
       try{drawn=atlasDoc(zone);}catch(err){if(!atlasIsRefusal(err))throw err;drawn=null;refusal=atlasReason(err);}
       if(drawn){lost=atlasLost(doc,drawn);if(lost){lostName=lost;drawn=null;continue;}}
       if(drawn){var f=atlasFind(drawn,name);if(f&&f.thing&&f.thing.id===e.id)hit=f.thing;else if(f&&f.thing)hit=f.thing;else drawn=null;}
+    }};
+    lay();
+    /* review 3, finding 8 (owner 2026-11-07): a custom place of the engine's is drawn medium, and a medium house held a room at
+       10 of 16 sites measured; when a room the story names finds no room in it, the place is drawn LARGE once (every measured
+       site held one then) and the room is tried again. Undone when the room still finds none. */
+    if(!hit&&!lostName&&rec.kind==="interior"&&(grown=atlasGrowHouse(A,zone))&&grown.grew){
+      doc=atlasDoc(zone);spotRoom=atlasStoodAt(A,zone,doc,from);pts=atlasRoomVariants(doc,spotRoom);refusal=null;lay();
+      if(hit)grownNote=" — "+(rec.name||"the house")+" was drawn larger to hold it";else grown.undo();
     }
     if(!hit){
       if(before.length)rec.params.edits=before;else if(paramsWas)delete rec.params.edits;rec.params=paramsWas;rec.fp=fpWas;
@@ -796,14 +804,32 @@ function atlasAdopt(A,p,entered,from){
     }
     A.adds[storyKey]={zone:zone,id:e.id,turn:atlasTurn()};
     flush();
-    atlasTell(A,"The story's "+name+" was added to the map of "+(rec.name||zone)+" "+where+(rec.kind==="region"?", as a village":"")+".");
-    atlasSay("info","added "+name+" to the map of "+(rec.name||zone)+" "+where);
-    if(typeof showToast==="function")showToast("Map: "+name+" added "+where+".",5000);
+    atlasTell(A,"The story's "+name+" was added to the map of "+(rec.name||zone)+" "+where+(rec.kind==="region"?", as a village":"")+grownNote+".");
+    atlasSay("info","added "+name+" to the map of "+(rec.name||zone)+" "+where+grownNote);
+    if(typeof showToast==="function")showToast("Map: "+name+" added "+where+grownNote+".",5000);
     return true;
   }catch(err){
     if(rec&&before!==undefined){if(before.length)rec.params.edits=before;else if(paramsWas)delete rec.params.edits;rec.params=paramsWas;rec.fp=fpWas;}
     A.off.why+=" (adding it to the map failed: "+atlasProblem("adding "+name+" to the map",err)+")";return false;
   }
+}
+/* WRITE: a custom place the engine added to a town, drawn one footprint larger (large) so a room the story names fits
+   (review 3, finding 8; owner 2026-11-07). The town's redraw must keep every thing and way it had, and the house's own
+   additions must still stand; else the change is undone and the reason returned. {grew: true, undo} when the house grew;
+   {grew: false, why} when it could not; null when the building is no custom place of the engine's, or is large already. */
+function atlasGrowHouse(A,zone){
+  var rec=A.zones[zone],prec=rec?A.zones[rec.parent]:null,eds,ed=null,i,was,pFp,pBefore,pAfter,lost=null,iDoc,mine,k;
+  if(!rec||!prec||prec.kind!=="town"||!prec.params||!prec.params.edits)return null;
+  eds=prec.params.edits;for(i=0;i<eds.length;i++)if(eds[i].id===rec.via&&eds[i].kind==="custom")ed=eds[i];
+  if(!ed||ed.footprint==="large")return null;
+  pBefore=atlasDoc(rec.parent);was=ed.footprint;pFp=prec.fp;
+  function undo(){ed.footprint=was;prec.fp=pFp;}
+  ed.footprint="large";prec.fp=null;
+  try{pAfter=atlasDoc(rec.parent);lost=atlasLost(pBefore,pAfter);
+    if(!lost){iDoc=atlasDoc(zone);mine=(rec.params&&rec.params.edits)||[];for(k=0;k<mine.length&&!lost;k++)if(!atlasThingById(iDoc,mine[k].id))lost=mine[k].name;}}
+  catch(err){if(!atlasIsRefusal(err)){undo();throw err;}lost=atlasReason(err);}
+  if(lost){undo();return {grew:false,why:lost};}
+  return {grew:true,was:was,undo:undo};
 }
 /* READ (pure): the ways an invented room is tried in a building, in order — the party's floor at 8 then 6 m², any floor at 8
    then 6, then each other floor the building has at 6 (the library drops a room it cannot fit and says nothing) */

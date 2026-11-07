@@ -1497,6 +1497,24 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert.deepEqual(atlasRoomVariants(inn, spot), expect); assert.deepEqual(atlasRoomVariants(inn, null), [{ m2: 8 }, { m2: 6 }].concat(floors.map(function (f) { return { floor: f, m2: 6 }; })), "no spot: any floor first, then each floor");
   });
 
+  test("#702 review 3: a custom place is drawn medium and grows large once for a room it cannot hold (finding 8, owner 2026-11-07); a failed growth is undone; a trade's house and a large place never grow", function () {
+    var S = start(), T = S.T, A = S.A, c = S.c, sz, ed, i, townBefore, rooms0, grewAt = 0, real, r, fp0;
+    turn("[SUBLOCATION:" + c.market.name + "] On the square."); townBefore = plain(atlasDoc(c.townId));
+    turn("[SUBLOCATION:The Gilded Spur][LOCATION_DESC:A nameless house.] In."); sz = A.at; ed = edits(A, c.townId).filter(function (e) { return e.name === "The Gilded Spur"; })[0];
+    assert(ed && ed.kind === "custom" && ed.footprint === "medium", "drawn medium by default: " + JSON.stringify(ed)); rooms0 = atlasDoc(sz).rooms.length; assert(rooms0 >= 4 && rooms0 <= 6, "a medium house: " + rooms0);
+    for (i = 1; i <= 8 && !grewAt; i++) { quiet(); turn("[SUBLOCATION:Store Room " + i + "] A store."); assert(atlasFind(atlasDoc(sz), "Store Room " + i).thing, "room " + i + " is on the sheet: " + JSON.stringify(A.off)); assert.equal(A.at, sz, "the same zone, grown or not"); if (ed.footprint === "large") grewAt = i; }
+    assert(grewAt, "the medium house ran out of room within eight and was drawn large"); assert(atlasDoc(sz).rooms.length > rooms0 + grewAt, "a large house now: " + atlasDoc(sz).rooms.length);
+    assert(atlasToldLines(A).some(function (t) { return t.indexOf("Store Room " + grewAt + " was added") >= 0 && /drawn larger to hold it/.test(t); }), "the GM is told: " + JSON.stringify(A.told)); assert(toasts.some(function (t) { return /drawn larger to hold it/.test(t); }), "and the player: " + JSON.stringify(toasts));
+    assert.equal(atlasLost(townBefore, atlasDoc(c.townId)), null, "the town kept every thing and way"); for (i = 1; i <= grewAt; i++) assert(atlasFind(atlasDoc(sz), "Store Room " + i).thing, "the earlier rooms still stand after the growth");
+    turn("[SUBLOCATION:Store Room 9] One more."); assert(atlasFind(atlasDoc(sz), "Store Room 9").thing, JSON.stringify(A.off)); assert.equal(ed.footprint, "large", "grows once"); assert.equal(atlasGrowHouse(A, sz), null, "a large place never grows again");
+    turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:The Copper Cup] A tavern."); assert.equal(atlasGrowHouse(A, A.at), null, "a trade's house is the library's, never grown");
+    /* a growth the library refuses, or that would lose a thing, is undone: the footprint and the town's fingerprint as they were */
+    S = start(); A = S.A; c = S.c; turn("[SUBLOCATION:The Gilded Spur] In."); sz = A.at; ed = edits(A, c.townId).filter(function (e) { return e.name === "The Gilded Spur"; })[0]; fp0 = A.zones[c.townId].fp; assert(fp0, "settled");
+    real = TnDMaps.generate; TnDMaps.generate = function (kind, params) { if (params && params.edits && params.edits.some(function (e) { return e.footprint === "large"; })) throw new Error("TnDMaps: edits[0]: at lies on another place"); return real.apply(this, arguments); };
+    try { r = atlasGrowHouse(A, sz); } finally { TnDMaps.generate = real; }
+    assert(r && r.grew === false && /another place/.test(r.why), JSON.stringify(r)); assert.equal(ed.footprint, "medium", "undone"); assert.equal(A.zones[c.townId].fp, fp0, "the town's fingerprint as it was");
+  });
+
   test("THE FIXTURE GATE: this library draws the fixture realm exactly as the pinned table says (region, town, interior, sewer, cave, wild)", function () {
     var A = fresh(), c = cast(A), got = {};
     point(c.p0.name); atlasFollow(); townCast(A, c);
