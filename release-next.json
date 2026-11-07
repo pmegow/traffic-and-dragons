@@ -1,8 +1,9 @@
 {
-  "version": "v1.1363",
+  "version": "v1.1364",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
-    "The map's additions are safer: an invented room never displaces a drawn one, and each refusal says why."
+    "The map's additions are safer: an invented room never displaces a drawn one, and each refusal says why.",
+    "A room named through an invented building gets one place on the map, and a tap inside an added building no longer removes it."
   ]
 }

@@ -34,8 +34,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "absent:true,zone:home,segment:p.sub,path:[p.sub]};",
     mustFail: "FAIL #684 #693 a failure while asking the map is reported once" },
   { label: "the same story place is added again every time it is not found",
-    find: "  if(A.adds[storyKey]){A.off.why+=\" (it was added to the map once already and has not been found since)\";return false;}",
-    replace: "  ",
+    find: "  if(A.adds[storyKey])return refuse(\"it was added to the map once already and has not been found since\");",
+    replace: "  ",/* review 3 re-anchored */
     mustFail: "FAIL #684 You are here: a world place" },
   { label: "the GM's declaration is ignored: every addition lands beside the party",
     find: "    decl=atlasDeclFor(A,name,told);",
@@ -94,8 +94,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "  if(false)return {ok:false,reason:",
     mustFail: "FAIL #684 #702 review: the tap on the very thing" },
   { label: "a tie onto the addition itself does not keep it: the tie dangles",
-    find: "if(ks[k]!==storyKey&&n&&((n.zone===add.zone&&n.id===add.id)||under.indexOf(n.zone)>=0))tied=true;",
-    replace: "if(ks[k]!==storyKey&&n&&under.indexOf(n.zone)>=0)tied=true;",
+    find: "if(!n)continue;if(under.indexOf(n.zone)>=0||(ks[k]!==storyKey&&n.zone===add.zone&&n.id===add.id))tied=true;}",
+    replace: "if(!n)continue;if(under.indexOf(n.zone)>=0)tied=true;}",/* review 3 re-anchored */
     mustFail: "FAIL #684 #702 review: the tap on the very thing" },
   { label: "the index is deleted before the tie check: an addition that stays loses its index",
     find: "  if(tied){atlasSay(\"info\",\"the story's place stays on the map: the player placed something at it or inside it\");return false;}\n  delete A.adds[storyKey];",
@@ -189,6 +189,50 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     find: "||things[i].portal.to.generator!==\"dungeon\")continue;",
     replace: ")continue;",
     mustFail: "FAIL #684 #702 review: the mutants the suite let live" }
+] });
+
+/* the third review (2026-11-07): the tap inside an addition, the margin filter, a stale declaration, the silent refusal, the gaps */
+rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
+  { label: "the tap on a room inside the place the engine added for this name is not refused: it ties and removes the addition with its rooms",
+    find: "  if(add&&atlasAddHolds(A,add,tie.zone))return {ok:false,reason:",
+    replace: "  if(false)return {ok:false,reason:",
+    mustFail: "FAIL #684 #702 review 3: a tap on a room inside the place the engine added" },
+  { label: "a tie under the story's own key that points INTO the addition removes it",
+    find: "if(!n)continue;if(under.indexOf(n.zone)>=0||(ks[k]!==storyKey&&n.zone===add.zone&&n.id===add.id))tied=true;}",
+    replace: "if(!n)continue;if((ks[k]!==storyKey&&under.indexOf(n.zone)>=0)||(ks[k]!==storyKey&&n.zone===add.zone&&n.id===add.id))tied=true;}",
+    mustFail: "FAIL #684 #702 review 3: a tap on a room inside the place the engine added" },
+  { label: "the door's card does not say the engine added it",
+    find: "    if(add&&add.zone===zoneId&&add.id===t.id)added=",
+    replace: "    if(false)added=",
+    mustFail: "FAIL #684 #702 review 3: a tap on a room inside the place the engine added" },
+  { label: "a room's card inside the addition does not say so: the pane offers We are here for it",
+    find: "    else if(add&&atlasAddHolds(A,add,zoneId))added=",
+    replace: "    else if(false)added=",
+    mustFail: "FAIL #684 #702 review 3: a tap on a room inside the place the engine added" },
+  { label: "the region's points may lie in the frame's margin (the library accepts margin land; review 3, finding 3)",
+    find: "    if(x<40||y<40||x>doc.frame.width-40||y>doc.frame.height-40)continue;\n",
+    replace: "",
+    mustFail: "FAIL #684 #702 review 3: the region's margin filter is load-bearing" },
+  { label: "a declaration another turn's parse left behind is acted on by the next commit",
+    find: "  atlasDeclsOfTurn();\n  sig=JSON.stringify([p.world,p.sub]);",
+    replace: "  sig=JSON.stringify([p.world,p.sub]);",
+    mustFail: "FAIL #684 #702 review 3: a [MAP_PLACE:] parsed outside the turn's commit is set aside" },
+  { label: "the 'added once already' refusal is silent again",
+    find: "  if(A.adds[storyKey])return refuse(\"it was added to the map once already and has not been found since\");",
+    replace: "  if(A.adds[storyKey]){A.off.why+=\" (it was added to the map once already and has not been found since)\";return false;}",
+    mustFail: "FAIL #684 #702 review 3: the one refusal that was silent" },
+  { label: "the second house radius dropped: a trade with no free house within 80 px takes none",
+    find: "radii=[80,160],r,i,b,d,best=-1,bestArea=0,area;",
+    replace: "radii=[80],r,i,b,d,best=-1,bestArea=0,area;",
+    mustFail: "FAIL #684 #702 review 3: the gaps the mutants showed" },
+  { label: "a street-sited trade takes a house too",
+    find: "  if(cat[kind]&&cat[kind].site===\"street\")return -1;\n",
+    replace: "",
+    mustFail: "FAIL #684 #702 review 3: the gaps the mutants showed" },
+  { label: "a room is never tried at 6 m²",
+    find: "if(pf!==null)out.push({floor:pf,m2:8},{floor:pf,m2:6});out.push({m2:8},{m2:6});",
+    replace: "if(pf!==null)out.push({floor:pf,m2:8});out.push({m2:8});",
+    mustFail: "FAIL #684 #702 review 3: the gaps the mutants showed" }
 ] });
 
 rc |= sabotage.prove({ file: "helpers.js", command: ENGINE, only: "FAIL #684 ", cases: [

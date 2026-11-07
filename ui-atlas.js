@@ -142,10 +142,11 @@ function atlasPaneCard(card){
     +(card.word?"<div style='font-size:12px;color:var(--t2);margin-top:2px;'>"+escHtml(card.word)+"</div>":"");
   if(card.refused)h+="<div style='font-size:12px;color:var(--warn);margin-top:8px;'>"+escHtml(card.refused)+"</div>";
   else if(card.partyHere)h+="<div style='font-size:12px;color:var(--acc);margin-top:8px;'>The party is here.</div>";
+  else if(card.added)h+="<div style='font-size:12px;color:var(--t2);margin-top:8px;'>"+escHtml(card.added)+"</div>";/* review 3, finding 2a: the thing the engine added for the story's name, or a room inside it — We are here would place nothing */
   else if(card.unvisited)h+="<div style='font-size:12px;color:var(--t2);margin-top:8px;'>Not yet visited &mdash; its sheet is drawn when the party goes in.</div>";
   h+="<div style='display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;'>";
   if(card.opens)h+="<button type='button' class='qa' data-act='open' data-zone='"+escHtml(card.opens)+"'>Open its sheet</button>";
-  if(card.place&&!card.partyHere&&!card.refused)h+="<button type='button' class='qa' data-act='here' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>We are here &mdash; "+escHtml(card.place.name)+"</button>";
+  if(card.place&&!card.partyHere&&!card.refused&&!card.added)h+="<button type='button' class='qa' data-act='here' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>We are here &mdash; "+escHtml(card.place.name)+"</button>";
   h+="</div>";
   el.innerHTML=h;el.style.display="block";
 }

@@ -189,8 +189,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "",
     mustFail: "FAIL #684 #702 review: an added town-level thing bearing a room's name" },
   { label: "a name inside a building this reply invented is filed town-wide: the room becomes a town-level place",
-    find: "    if(!leaf&&fresh&&!pos.chain.length&&pos.unknown&&pos.unknown.length&&atlasNameKey(pos.unknown[pos.unknown.length-1])!==atlasNameKey(X))leaf=atlasPathJoin(pos.unknown.concat([X]));\n",
-    replace: "",
+    find: "!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);/* review 3",
+    replace: "!==atlasNameKey(X))leaf=null;/* review 3",/* review 3 re-anchored */
     mustFail: "FAIL #684 #702 review: a building and its room invented in ONE reply" },
   { label: "the fold never folds: a name differing in case or article mints a twin node",
     find: "  if(!nodes||typeof placeNameNorm!==\"function\")return leaf;",
@@ -207,6 +207,42 @@ rc |= sabotage.prove({ file: "identity.js", command: ENGINE, only: "FAIL #684 ",
     find: "else{ev.kind=\"leave\";sub=null;carried=null;subFresh=false;}",
     replace: "else{ev.kind=\"leave\";sub=null;subFresh=false;}",
     mustFail: "FAIL #684 #702 review: the mutants the suite let live" }
+] });
+
+/* the third review (2026-11-07): a key never carries a room in the middle; a tie beneath the home sheet builds the chain; the gaps the mutants showed */
+rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
+  { label: "the fresh path keys the whole unknown rest of the pointer: a room in the middle, and the re-stated room lands on a twin node",
+    find: "leaf=atlasPathJoin([pos.unknown[0],X]);/* review 3",
+    replace: "leaf=atlasPathJoin(pos.unknown.concat([X]));/* review 3",
+    mustFail: "FAIL #684 #702 review 3: a key never carries a room in the middle" },
+  { label: "rule (b)'s unknown tail keeps the middle segments: the pair with an unknown middle mints a key with a room in it",
+    find: ".concat([parts[parts.length-1]]));/* review 3, finding 1: the zones reached and the LAST segment",
+    replace: ".concat(parts.slice(pre.used)));/* review 3, finding 1: the zones reached and the LAST segment",
+    mustFail: "FAIL #684 #702 review 3: a key never carries a room in the middle" },
+  { label: "a partial path's unknown tail is kept as written: the room passed through rides into the key",
+    find: "    return atlasPathJoin(names(chain).concat([parts[parts.length-1]]));/* review 3, finding 1: the last segment",
+    replace: "    return atlasPathJoin(names(chain).concat(parts.slice(i)));/* review 3, finding 1: the last segment",
+    mustFail: "FAIL #684 #702 review 3: a key never carries a room in the middle" },
+  { label: "a three-pair from the street with an invented building is minted as written",
+    find: "      if(parts.length>2&&pre&&!pre.chain.length&&!pre.used&&pre.unknown&&pre.unknown.length&&!atlasFind(pos.homeDoc,parts[0]))return {key:atlasLocKey(wk+\"|\"+atlasFoldLeaf(wk,atlasPathJoin([parts[0],parts[parts.length-1]])))};\n",
+    replace: "",
+    mustFail: "FAIL #684 #702 review 3: a key never carries a room in the middle" },
+  { label: "a partial path never looks behind a chain sheet's ways for a zone named by its title: the crypt from the nave is a room of the temple",
+    find: "    for(j=chain.length-1;j>=0&&!hit;j--){c=chain[j];child=atlasChildByTitle(A,c.zone,c.doc,parts[i]);\n",
+    replace: "    for(j=-1;j>=0&&!hit;j--){c=chain[j];child=atlasChildByTitle(A,c.zone,c.doc,parts[i]);\n",
+    mustFail: "FAIL #684 #693 a one-reply descent lands the party below" },
+  { label: "a tie that lands beneath the home sheet leaves the chain empty: the rooms named afterwards file town-wide",
+    find: "      if(tie.zone!==pos.zone){between=atlasChainBetween(A,home,tie.zone);if(between){pos.chain=between;pos.zone=tie.zone;pos.doc=atlasDoc(tie.zone);pos.spot=null;}}\n",
+    replace: "",
+    mustFail: "FAIL #684 #702 review 3: a tap on a room inside the place the engine added" },
+  { label: "a name a chain sheet bears twice does not count as borne: rule (a) files it under the street's thing of that name",
+    find: "    f=atlasFind(c.doc,name);if(!f)continue;\n    /* a way back onto",
+    replace: "    f=atlasFind(c.doc,name);if(!f||f.many)continue;\n    /* a way back onto",
+    mustFail: "FAIL #684 #702 review 3: the gaps the mutants showed" },
+  { label: "the re-statement guard dropped: an invented building re-stated in the same reply becomes a room of itself",
+    find: "&&atlasNameKey(pos.unknown[pos.unknown.length-1])!==atlasNameKey(X))leaf=atlasPathJoin([pos.unknown[0],X]);",
+    replace: ")leaf=atlasPathJoin([pos.unknown[0],X]);",
+    mustFail: "FAIL #684 #702 review 3: the gaps the mutants showed" }
 ] });
 
 process.exit(rc);

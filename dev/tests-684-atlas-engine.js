@@ -1314,7 +1314,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert(atlasToldLines(A).some(function (t) { return /You placed The Old Crossing at .* earlier with \[MAP_PLACE:\]/.test(t); }), JSON.stringify(A.told)); assert.equal(A.at, A.seed + "/" + p3.id, "the first placing stands");
     /* (c) at the opening an unreadable declaration says where the place went: near the capital, never "beside the party" */
     stubs(); engine.makeTestWorld(); atlasForget(); quiet(); B = atlasCreate("campaign-1"); cap = atlasDoc(B.seed).places[0];
-    point("The Crossroads of Ashenveil"); worldState.placeDecls = [{ name: "The Crossroads of Ashenveil", where: "over the hills", turn: 0 }]; atlasFollow();
+    point("The Crossroads of Ashenveil"); worldState.placeDecls = [{ name: "The Crossroads of Ashenveil", where: "over the hills", turn: worldState.turn }]; atlasFollow();/* stamped as the handler stamps it: another turn's declaration is set aside (review 3, finding 4) */
     assert(atlasToldLines(B).some(function (t) { return /was not understood/.test(t) && t.indexOf("was put near " + cap.name) > 0; }), JSON.stringify(B.told)); assert(!atlasToldLines(B).some(function (t) { return /beside the party/.test(t); }), JSON.stringify(B.told));
     /* (d) a declaration for a place the reply passed through is said for what it is */
     S = start(); A = S.A; c = S.c; turn("[LOCATION:Bleakford][MAP_PLACE:Bleakford|near " + c.reg.places[2].name + "][LOCATION:" + c.reg.places[1].name + "] On through Bleakford.");
@@ -1339,9 +1339,10 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
 
   test("#702 review: the mutants the suite let live (finding 10) — the cap of three, between, a consumed declaration, a mapped declaration, the removal re-stamp, the region's points, the rollback, the catch, the floor, the chamber, the told ring, the title peek, the fold, the carry, no accumulation", function () {
     var S = start(), T = S.T, A = S.A, c = S.c, r = S.r, p2, p3, added, mid, dm, rd, sea, pts, real, ed0, fp0, rooms, up, lin, sewer, sd, deep, ch, i, drew, realI, n, tl;
-    /* #1 the cap: a path of four unknown segments adds three and stops, with the reason */
+    /* #1 the cap: a path of four unknown segments keys as the building and its last room (review 3, finding 1: a key never carries a room in the middle), two additions and the party on the map; the guard of three is proven on an adoption that never stands the party */
     turn("[SUBLOCATION:The Gilded Spur Inn" + SEP + "Back Hall" + SEP + "Cellar Stair" + SEP + "Wine Vault] Down and down.");
-    assert(adds(A).length <= 3, "three in one reply, no more: " + JSON.stringify(A.adds)); assert(A.off && A.off.segment === "Wine Vault", JSON.stringify(A.off)); assert(A.off.why.indexOf("(") < 0 && !toasts.some(function (t) { return /Wine Vault/.test(t); }), "the fourth is not even attempted: " + A.off.why + " | " + JSON.stringify(toasts));
+    assert.equal(sub(), "The Gilded Spur Inn" + SEP + "Wine Vault", "the inn and the room the party is in"); assert.equal(adds(A).length, 2, JSON.stringify(A.adds)); assert.equal(A.off, null, JSON.stringify(A.off));
+    (function () { var real = atlasAdopt, calls = 0; atlasAdopt = function () { calls++; return true; }; try { turn("[SUBLOCATION_LEAVE][SUBLOCATION:Nowhere Lane] A lane."); } finally { atlasAdopt = real; } assert.equal(calls, 3, "three attempts and the follow stops: " + calls); assert(A.off && A.off.absent && A.off.segment === "Nowhere Lane", JSON.stringify(A.off)); })();
     /* #3 between is read: the point lies about midway */
     S = start(); A = S.A; c = S.c; (function () { var ps = c.reg.places.slice(1), best = 0, i, j, m; for (i = 0; i < ps.length; i++) for (j = i + 1; j < ps.length; j++) { m = [(ps[i].x + ps[j].x) / 2, (ps[i].y + ps[j].y) / 2]; if (dist(ps[i], ps[j]) >= 200 && dist(m, c.p0) > best) { best = dist(m, c.p0); p2 = ps[i]; p3 = ps[j]; } } })();
     mid = [(p2.x + p3.x) / 2, (p2.y + p3.y) / 2]; assert(dist(mid, c.p0) >= 250, "fixture: a pair whose midpoint is away from the capital: " + dist(mid, c.p0));
@@ -1398,6 +1399,102 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     /* finding 13: the adds are a keyed store — a world named like an Object property is added, and survives a load */
     S = start(); A = S.A; assert(KEYED_STORE_PATHS.world.indexOf("atlas.adds") >= 0); turn("[LOCATION:constructor] A strange name."); assert(A.adds["constructor"] && A.adds["constructor"].zone === A.seed, JSON.stringify(A.adds));
     worldState = parseWorldState(serializeWorldState(worldState)); migrateWorldState(); assert.equal(Object.getPrototypeOf(worldState.atlas.adds), null, "a keyed dictionary after the load"); assert(worldState.atlas.adds["constructor"]);
+  });
+
+  /* ── the third independent review (2026-11-07, audits/AUDIT_2026-11-07_702_review3.md): one group per finding ───────────────── */
+  test("#702 review 3: a key never carries a room in the middle (finding 1): three subs through an invented building, the pair with an unknown middle, the three-pair from the street, a partial pair inside — one node each, re-stated to itself", function () {
+    var S = start(), T = S.T, A = S.A, c = S.c, inn = c.inn.name, keys;
+    turn("[SUBLOCATION:The Gilded Spur][SUBLOCATION:Kitchen][SUBLOCATION:Pantry][LOCATION_DESC:THE PANTRY, FIRST.] In, through the kitchen, and into the pantry.");
+    assert.equal(sub(), "The Gilded Spur" + SEP + "Pantry", "the building and the room the party is in: the kitchen passed through is no zone");
+    assert.equal(node(T + "|The Gilded Spur" + SEP + "Kitchen" + SEP + "Pantry"), undefined, "no key with a room in the middle"); assert(node(T + "|The Gilded Spur" + SEP + "Kitchen"), "the kitchen passed through has its own node under the building");
+    turn("[SUBLOCATION:Pantry][LOCATION_DESC:THE PANTRY, AGAIN.] You look around.");
+    assert.equal(sub(), "The Gilded Spur" + SEP + "Pantry", "re-stated by its own name: the same node"); assert.equal(nodesWith("Pantry").length, 1, nodesWith("Pantry").join(" ; ")); assert(buildGeoBlock().indexOf("THE PANTRY, FIRST") >= 0, "the first description survives the re-statement");
+    /* the pair of three from the street with an invented tavern: the building and the LAST room, each added under its own key */
+    turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:The Copper Cup" + SEP + "Kitchen" + SEP + "Pantry][LOCATION_DESC:C1.] Straight through to the back.");
+    assert.equal(sub(), "The Copper Cup" + SEP + "Pantry"); assert(adds(A).indexOf(T + "|The Copper Cup") >= 0 && adds(A).indexOf(T + "|The Copper Cup" + SEP + "Pantry") >= 0, JSON.stringify(A.adds)); assert.equal(A.off, null, JSON.stringify(A.off));
+    turn("[SUBLOCATION:Pantry][LOCATION_DESC:C2.] Still here."); assert.equal(sub(), "The Copper Cup" + SEP + "Pantry"); assert.equal(nodesWith("Copper").length, 1, nodesWith("Copper").join(" ; ")); assert(buildGeoBlock().indexOf("C1.") >= 0, "one node: its first description is served");
+    /* the pair with an unknown middle in a KNOWN inn: the inn and the last room; the room's addition under the key the pointer carries */
+    turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:" + inn + SEP + "Scullery" + SEP + "Pantry][LOCATION_DESC:F1.] Through the scullery to the pantry.");
+    assert.equal(sub(), inn + SEP + "Pantry"); assert(adds(A).indexOf(T + "|" + inn + SEP + "Pantry") >= 0, "the room's add under the key the pointer carries: " + JSON.stringify(A.adds)); assert.equal(adds(A).indexOf(T + "|" + inn + SEP + "Scullery" + SEP + "Pantry"), -1);
+    turn("[SUBLOCATION:Pantry][LOCATION_DESC:F2.] The pantry again."); assert.equal(sub(), inn + SEP + "Pantry"); assert(buildGeoBlock().indexOf("F1.") >= 0, "one node: the first description is served");
+    /* a partial pair inside the inn whose first segment nothing bears: the last segment under the inn (the first is a room passed through) */
+    turn("[SUBLOCATION:Scullery" + SEP + "Larder][LOCATION_DESC:L1.] On through."); assert.equal(sub(), inn + SEP + "Larder");
+    /* every key the resolver wrote re-resolves to itself without a position */
+    keys = Object.keys(memory.map.nodes).filter(function (k) { return k.indexOf(T + "|") === 0; }); assert.equal(keys.length, 6, "the six places the flows named, one node each: " + keys.join(" ; "));
+    keys.forEach(function (k) { var rp = resolvePlaceName(placeKeyLeaf(k), T); assert(rp && rp.key === k, "re-resolves to itself: " + k + " → " + JSON.stringify(rp)); });
+  });
+
+  test("#702 review 3: a tap on a room inside the place the engine added for the story's name places nothing (finding 2a), and a tie that lands beneath the home sheet files the rooms after it under that building (finding 2b)", function () {
+    var S = start(), T = S.T, A = S.A, c = S.c, tz, room, door, card, r, iz, back, pos;
+    turn("[SUBLOCATION:" + c.market.name + "] On the square."); turn("[SUBLOCATION:The Pot and Kettle][LOCATION_DESC:A tavern.] In."); tz = A.at; door = A.zones[tz].via; assert(A.adds[T + "|The Pot and Kettle"], JSON.stringify(A.adds));
+    turn("[SUBLOCATION:The Snug][LOCATION_DESC:A SNUG WITH A FIRE.] A snug off the taproom."); assert(atlasFind(atlasDoc(tz), "The Snug").thing, "the snug is drawn inside: " + JSON.stringify(A.off)); assert(A.adds[T + "|The Pot and Kettle" + SEP + "The Snug"], JSON.stringify(A.adds));
+    turn("[SUBLOCATION:The Pot and Kettle] Back to the door."); quiet();
+    room = atlasDoc(tz).rooms.filter(function (x) { return x.name !== "The Snug" && atlasFind(atlasDoc(tz), x.name) && atlasFind(atlasDoc(tz), x.name).thing; })[0]; assert(room, "fixture: a room of the tavern with a name of its own");
+    card = atlasCard(tz, { id: room.id }); assert(card.added && /this is inside it/.test(card.added), "the room's card says so: " + JSON.stringify(card)); assert(/added "The Pot and Kettle" to the map here/.test(atlasCard(c.townId, { id: door }).added), "and so does the door's: " + JSON.stringify(atlasCard(c.townId, { id: door })));
+    r = atlasPlace(tz, { id: room.id }); assert.equal(r.ok, false, JSON.stringify(r)); assert(/this is inside it/.test(r.reason), r.reason);
+    assert(atlasFind(atlasDoc(tz), "The Snug").thing, "the snug stays"); assert(A.adds[T + "|The Pot and Kettle"] && A.adds[T + "|The Pot and Kettle" + SEP + "The Snug"], "both additions stay: " + JSON.stringify(A.adds)); assert.equal(Object.keys(A.names).length, 0, "no tie"); assert.equal(atlasToldLines(A).length, 0, "nothing re-added: " + JSON.stringify(A.told));
+    /* the removal itself: a tie under the story's own key that points INTO the addition is no correction — the addition stays */
+    A.names[T + "|The Pot and Kettle"] = { zone: tz, id: room.id }; assert.equal(atlasAddRemove(A, T + "|The Pot and Kettle"), false); assert(A.adds[T + "|The Pot and Kettle"] && atlasFind(atlasDoc(tz), "The Snug").thing, "kept, rooms and all"); delete A.names[T + "|The Pot and Kettle"];
+    turn("[SUBLOCATION:The Snug] Back to the snug."); assert.equal(sub(), "The Pot and Kettle" + SEP + "The Snug"); assert(buildGeoBlock().indexOf("A SNUG WITH A FIRE") >= 0, "its description is served"); assert.equal(atlasFind(atlasDoc(c.townId), "The Snug"), null, "no town-level Snug");
+    /* (b) the story's forge tied to a back room of the real inn: the forge's rooms are that inn's rooms afterwards, never the town's */
+    S = start(); T = S.T; A = S.A; c = S.c; turn("[SUBLOCATION:" + c.inn.name + "] In."); iz = A.at; back = deepRoom(atlasDoc(iz)); turn("[SUBLOCATION_LEAVE]");
+    turn("[SUBLOCATION:Harl's Forge] A smithy."); assert(A.adds[T + "|Harl's Forge"], JSON.stringify(A.adds)); quiet();
+    r = atlasPlace(iz, { id: back.id }); assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(A.adds[T + "|Harl's Forge"], undefined, "the addition goes: the player's tie points elsewhere");
+    pos = atlasPosition(A, T, "Harl's Forge"); assert.deepEqual(pos.chain.map(function (x) { return x.name; }), [c.inn.name], "the chain reaches the inn the tie landed in"); assert.equal(pos.spot && pos.spot.id, back.id);
+    turn("[SUBLOCATION:Anvil Room][LOCATION_DESC:ANVILS.] At the anvil."); assert.equal(sub(), c.inn.name + SEP + "Anvil Room", "filed under the building the tie landed in"); assert.equal(node(T + "|Anvil Room"), undefined, "never town-wide");
+    assert(atlasFind(atlasDoc(iz), "Anvil Room").thing, "added inside the inn: " + JSON.stringify(A.off)); assert.equal(atlasDoc(c.townId).establishments.filter(function (e) { return e.authored; }).length, 0, "nothing added to the town's sheet");
+  });
+
+  test("#702 review 3: the region's margin filter is load-bearing (finding 3): where the ring of points crosses the frame's margin on land, every offered point stays inside it", function () {
+    var A = fresh(), rd = atlasDoc(A.seed), x, landX = null, pts, raw;
+    for (x = 60; x < rd.frame.width - 60 && landX === null; x += 5) { try { TnDMaps.wild.fromRegion(rd, [x, 20]); landX = x; } catch (e) { } }
+    assert(landX !== null, "fixture: a point of land 20 px below the frame's top edge (the library accepts margin land; the filter is the game's own)");
+    raw = [landX, 20]; pts = atlasRegionPoints(rd, [landX, 70]); assert(pts.length, "points beside the centre");
+    pts.forEach(function (q) { assert(q[0] >= 40 && q[1] >= 40 && q[0] <= rd.frame.width - 40 && q[1] <= rd.frame.height - 40, "inside the margin: " + q); });
+    assert(!pts.some(function (q) { return q[0] === raw[0] && q[1] === raw[1]; }), "the ring's first bearing lands on the margin point, and it is not offered");
+    assert.doesNotThrow(function () { TnDMaps.generate("region", Object.assign({}, rd.params, { edits: [{ op: "add", id: "a1", name: "Edgeford", kind: "village", at: raw }] })); }, "the library would take a village there: the filter is what keeps settlements off the frame's edge");
+  });
+
+  test("#702 review 3: a [MAP_PLACE:] parsed outside the turn's commit is set aside (finding 4): the next commit does not act on it, and says so on the console", function () {
+    var S = start(), A = S.A, c = S.c, p1 = c.p1, R, t;
+    console.log = function () { }; try { R = applyMuts("[MAP_PLACE:Thornwick|near " + p1.name + "] A correction's reply, parsed outside a commit."); } finally { console.log = realLog; }
+    assert(R.muts.some(function (m) { return /^Map place: Thornwick/.test(m); }), R.muts.join(" | ")); assert(worldState.placeDecls && worldState.placeDecls.length === 1, "recorded for a follow");
+    quiet(); turn("[LOCATION:Thornwick] On to Thornwick."); t = atlasDoc(A.seed).places.filter(function (p) { return p.name === "Thornwick"; })[0]; assert(t, "added");
+    assert(dist(t, p1) > 300 && dist(t, c.p0) < 120, "beside the party's last place, not near " + p1.name + ": " + dist(t, p1) + " / " + dist(t, c.p0));
+    assert(!atlasToldLines(A).some(function (l) { return l.indexOf("near " + p1.name) >= 0; }), JSON.stringify(A.told)); assert(infos.some(function (i) { return /from another turn's parse set aside/.test(i); }), "said on the console: " + JSON.stringify(infos));
+    assert.equal(worldState.placeDecls, undefined, "cleared");
+  });
+
+  test("#702 review 3: the one refusal that was silent — a place added once already and not found since — is said like the others (finding 5)", function () {
+    var S = start(), T = S.T, A = S.A, c = S.c;
+    A.adds = A.adds || keyedDict(); A.adds[T + "|Harl's Forge"] = { zone: c.townId, id: "s99", turn: 1 };/* an index whose thing the sheet no longer has (an edited recipe) */
+    quiet(); turn("[SUBLOCATION:Harl's Forge] Back to the smithy.");
+    assert(A.off && /added to the map once already/.test(A.off.why), JSON.stringify(A.off)); assert(toasts.some(function (t) { return /Harl's Forge could not be added — it was added to the map once already/.test(t); }), "toasted: " + JSON.stringify(toasts));
+    assert.equal(atlasFind(atlasDoc(c.townId), "Harl's Forge"), null, "not added again");
+  });
+
+  test("#702 review 3: the gaps the mutants showed (finding 6) — a twice-borne name over an added street thing, the same-reply re-statement of an invented building, the second house radius, a street-sited trade, the room variants", function () {
+    var S = start(), T = S.T, A = S.A, c = S.c, r = S.r, tw = r.twice, town, bs, x, y, best = null, m, i, d, cat, street, inn, spot, pf, floors, expect;
+    /* #5: a name added from the street; inside an inn that bears the name TWICE it is the inn's, as written, never the street's thing */
+    turn("[SUBLOCATION:" + tw.room + "][LOCATION_DESC:A STREET THING.] A covered way off the square."); assert.equal(sub(), tw.room); assert(atlasFind(atlasDoc(c.townId), tw.room).thing, "added at the town's level");
+    turn("[SUBLOCATION_LEAVE]"); turn("[SUBLOCATION:" + tw.in + "] In."); turn("[SUBLOCATION:" + tw.room + "][LOCATION_DESC:THE INN'S.] Along it.");
+    assert.equal(sub(), tw.in + SEP + tw.room, "the inn's, as written (the sheet bears it twice)"); assert(buildGeoBlock().indexOf("A STREET THING") < 0, "the street thing's description is not served inside");
+    /* #8: the invented building re-stated inside the SAME reply is the building, not a room of itself */
+    S = start(); T = S.T; A = S.A; turn("[SUBLOCATION:The Gilded Spur][SUBLOCATION:The Gilded Spur] In, and in again."); assert.equal(sub(), "The Gilded Spur"); assert.equal(node(T + "|The Gilded Spur" + SEP + "The Gilded Spur"), undefined);
+    /* #23: the second radius — a point whose nearest free house lies beyond 80 px but within 160 still takes a house */
+    town = atlasDoc(S.c.townId); bs = town.buildings.filter(function (b) { return b && !b.est && b.pts && b.c; });
+    function nearest(cx, cy) { var mn = Infinity, k, dd; for (k = 0; k < bs.length; k++) { dd = Math.sqrt((bs[k].c[0] - cx) * (bs[k].c[0] - cx) + (bs[k].c[1] - cy) * (bs[k].c[1] - cy)); if (dd < mn) mn = dd; } return mn; }
+    for (y = 20; y < town.frame.height - 20 && !best; y += 10) for (x = 20; x < town.frame.width - 20 && !best; x += 10) { m = nearest(x, y); if (m > 85 && m < 150) best = [x, y, m]; }
+    assert(best, "fixture: a point of the town whose nearest free house lies between 85 and 150 px away");
+    i = atlasRoomyHouse(town, [best[0], best[1]], "inn"); assert(i >= 0, "a house within 160 px is taken"); d = Math.sqrt((town.buildings[i].c[0] - best[0]) * (town.buildings[i].c[0] - best[0]) + (town.buildings[i].c[1] - best[1]) * (town.buildings[i].c[1] - best[1])); assert(d > 80 && d <= 160, "beyond the first radius, within the second: " + d);
+    /* #26: a trade whose catalogue site is the street takes no house, even with a free house at hand */
+    cat = TnDMaps.establishments.CATALOGUE; street = Object.keys(cat).filter(function (k) { return cat[k].site === "street"; })[0]; assert(street, "fixture: the catalogue has a street-sited kind");
+    assert.equal(atlasRoomyHouse(town, [bs[0].c[0], bs[0].c[1]], street), -1); assert(atlasRoomyHouse(town, [bs[0].c[0], bs[0].c[1]], "inn") >= 0, "a house-sited kind at the same point takes one");
+    /* #31: the room variants, in order — the party's floor at 8 then 6 m², any floor at 8 then 6, each other floor at 6; without a spot, from "any floor" */
+    inn = TnDMaps.generate("interior", TnDMaps.interior.fromTown(town, S.c.inn.id)); spot = inn.rooms.filter(function (rm) { return typeof rm.floor === "number"; })[0]; assert(spot, "fixture: the inn's rooms have floors"); pf = spot.floor;
+    floors = []; inn.rooms.forEach(function (rm) { if (typeof rm.floor === "number" && floors.indexOf(rm.floor) < 0) floors.push(rm.floor); }); assert(floors.length >= 2, "fixture: the inn has two floors or more");
+    expect = [{ floor: pf, m2: 8 }, { floor: pf, m2: 6 }, { m2: 8 }, { m2: 6 }].concat(floors.filter(function (f) { return f !== pf; }).map(function (f) { return { floor: f, m2: 6 }; }));
+    assert.deepEqual(atlasRoomVariants(inn, spot), expect); assert.deepEqual(atlasRoomVariants(inn, null), [{ m2: 8 }, { m2: 6 }].concat(floors.map(function (f) { return { floor: f, m2: 6 }; })), "no spot: any floor first, then each floor");
   });
 
   test("THE FIXTURE GATE: this library draws the fixture realm exactly as the pinned table says (region, town, interior, sewer, cave, wild)", function () {

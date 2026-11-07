@@ -1,0 +1,527 @@
+[
+ {
+  "i": 0,
+  "l": "EQ-CLAIM A: placeTimeline — a SUBLOCATION does not clear the carry",
+  "f": "identity.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 1,
+  "l": "EQ-CLAIM B: atlasRegionPoints — the frame margin check dropped",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 2,
+  "l": "chainBears: the way-back exception at i===0 dropped (the grate and its landing become two nodes)",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#693 a way in and the room beneath it are one node: a grate re-stated from below, the crypt stair named from the crypt",
+   "#702 review: an added town-level thing bearing a room's name leaves every inn's room of that name under its inn (finding"
+  ]
+ },
+ {
+  "i": 3,
+  "l": "chainBears: the way-back exception applies at ANY depth (i===0 dropped)",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 4,
+  "l": "chainBears: a zone's own name/title never counts as bearing",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 5,
+  "l": "chainBears: a name a chain sheet bears TWICE does not count (rule (a) files it bare)",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 6,
+  "l": "rule (a) answers before the chain (the #693 fusion through an added street thing)",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: an added town-level thing bearing a room's name leaves every inn's room of that name under its inn (finding"
+  ]
+ },
+ {
+  "i": 7,
+  "l": "fresh path: the !pos.chain.length guard dropped",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 8,
+  "l": "fresh path: the re-statement guard dropped (the invented building becomes a room of itself)",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 9,
+  "l": "fresh path: `fresh` not required (a legacy bare pointer inside an unknown place files the next name under it)",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#693 a legacy mapped save keeps following: a bare pointer inside a building is found on the sheet the party stands on, a",
+   "#702 review: a refusal is said to the player with the real reason (finding 9); a name the map bears at another scale is ",
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 10,
+  "l": "atlasPosition: only the FIRST unknown segment is kept as the container (not the rest of the path)",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 11,
+  "l": "placeTimeline: fresh ignores subFresh (the sub in force at the reply's start counts as fresh)",
+  "f": "identity.js",
+  "verdict": "caught",
+  "by": [
+   "#693 a legacy mapped save keeps following: a bare pointer inside a building is found on the sheet the party stands on, a",
+   "#702 review: a refusal is said to the player with the real reason (finding 9); a name the map bears at another scale is ",
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 12,
+  "l": "placeTimeline: subFresh never set",
+  "f": "identity.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: a building and its room invented in ONE reply land as a building and its room (finding 1, flow 2; finding 5"
+  ]
+ },
+ {
+  "i": 13,
+  "l": "placeTimeline: subFresh not reset on a world move",
+  "f": "identity.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 14,
+  "l": "placeTimeline: subFresh not reset on a leave",
+  "f": "identity.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 15,
+  "l": "resolvePlaceName: fresh never handed to the map",
+  "f": "identity.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: a building and its room invented in ONE reply land as a building and its room (finding 1, flow 2; finding 5"
+  ]
+ },
+ {
+  "i": 16,
+  "l": "atlasResolvePointer: the bare pointer's off record carries no path",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "THE RULE"
+  ]
+ },
+ {
+  "i": 17,
+  "l": "atlasWalk: the off record carries the WHOLE path, not the path to the absent segment",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: a building and its room invented in ONE reply land as a building and its room (finding 1, flow 2; finding 5",
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 18,
+  "l": "atlasAdopt: the add is indexed under the pointer's whole sub key",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: a building and its room invented in ONE reply land as a building and its room (finding 1, flow 2; finding 5",
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 19,
+  "l": "atlasLost: a renamed thing is no loss (name comparison dropped)",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: an addition never displaces what the map had (finding 2): a drawing that loses a thing is rolled back and r"
+  ]
+ },
+ {
+  "i": 20,
+  "l": "atlasLost: a way that is gone is no loss while its room stands",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: an addition never displaces what the map had (finding 2): a drawing that loses a thing is rolled back and r"
+  ]
+ },
+ {
+  "i": 21,
+  "l": "atlasLost: a portal's way is not compared",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 22,
+  "l": "atlasAdopt: a drawing that lost a thing is kept",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: an addition never displaces what the map had (finding 2): a drawing that loses a thing is rolled back and r"
+  ]
+ },
+ {
+  "i": 23,
+  "l": "roomyHouse: the second radius (160) dropped",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 24,
+  "l": "roomyHouse: the SMALLEST house near the party is taken",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: a building and its room invented in ONE reply land as a building and its room (finding 1, flow 2; finding 5",
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 25,
+  "l": "roomyHouse: a house already an establishment may be taken",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "You are here: a town-level place takes its kind from its name"
+  ]
+ },
+ {
+  "i": 26,
+  "l": "roomyHouse: a street trade takes a house too",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 27,
+  "l": "atlasAdopt: a trade takes no house (the library's nearest)",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: a building and its room invented in ONE reply land as a building and its room (finding 1, flow 2; finding 5",
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 28,
+  "l": "atlasStoodAt: the `from` fallback dropped (the walk cleared the spot)",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 29,
+  "l": "atlasAdopt interior: the party's floor is not tried first",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 30,
+  "l": "atlasAdopt interior: the other floors are never tried",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: a building and its room invented in ONE reply land as a building and its room (finding 1, flow 2; finding 5",
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 31,
+  "l": "atlasAdopt interior: 6 m2 is never tried",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 32,
+  "l": "atlasAdopt: the variant's keys are laid over the edit without clearing the last (floor sticks)",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 33,
+  "l": "addRemove: the tie just written counts as 'something placed at it' (a tap never removes an addition)",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 34,
+  "l": "addRemove: a tie onto the addition itself does not keep it",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the tap on the very thing the engine added for a name places nothing (finding 4); a tie onto an addition ke"
+  ]
+ },
+ {
+  "i": 35,
+  "l": "addRemove: the party's position is not moved off a removed zone",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 36,
+  "l": "addRemove: the index of additions inside removed zones is kept",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: a tap that moves an added village takes the additions inside it along, so the next naming is not refused (f"
+  ]
+ },
+ {
+  "i": 37,
+  "l": "addRemove: the index is deleted before the tie check",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the tap on the very thing the engine added for a name places nothing (finding 4); a tie onto an addition ke"
+  ]
+ },
+ {
+  "i": 38,
+  "l": "atlasPlace: the tap on the engine's own addition is not refused",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the tap on the very thing the engine added for a name places nothing (finding 4); a tie onto an addition ke"
+  ]
+ },
+ {
+  "i": 39,
+  "l": "atlasPlace: the tie.id!=null guard dropped",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 40,
+  "l": "atlasPlace: the removal runs BEFORE the tie is written",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 41,
+  "l": "atlasToldLines: a line rides two prompts",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the told lines are true (finding 7) and ride ONE prompt (finding 8)"
+  ]
+ },
+ {
+  "i": 42,
+  "l": "atlasDeclsLeft: only the whole sub is compared, never a segment",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the told lines are true (finding 7) and ride ONE prompt (finding 8)"
+  ]
+ },
+ {
+  "i": 43,
+  "l": "atlasDeclsLeft: a GM tie declared again is said as the player's",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "You are here: the GM says where",
+   "#702 review: the told lines are true (finding 7) and ride ONE prompt (finding 8)"
+  ]
+ },
+ {
+  "i": 44,
+  "l": "atlasTie: `by` is dropped on the way out",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "You are here: the GM says where",
+   "#702 review: the told lines are true (finding 7) and ride ONE prompt (finding 8)"
+  ]
+ },
+ {
+  "i": 45,
+  "l": "atlasAdopt 'at': the tie is not marked as the GM's",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "You are here: the GM says where",
+   "#702 review: the told lines are true (finding 7) and ride ONE prompt (finding 8)"
+  ]
+ },
+ {
+  "i": 46,
+  "l": "atlasTieSay: a GM tie is said as the player's",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the told lines are true (finding 7) and ride ONE prompt (finding 8)"
+  ]
+ },
+ {
+  "i": 47,
+  "l": "atlasAdopt: the told lines gathered before the add are never flushed on success",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "You are here: the GM says where",
+   "#702 review: the told lines are true (finding 7) and ride ONE prompt (finding 8)"
+  ]
+ },
+ {
+  "i": 48,
+  "l": "atlasAdopt: {where} is left in a told line",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the told lines are true (finding 7) and ride ONE prompt (finding 8)"
+  ]
+ },
+ {
+  "i": 49,
+  "l": "atlasAdopt: the where says 'beside the party' though it is the last mapped place",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: an undeclared world addition lands beside the party's LAST mapped place, never the capital from afar (findi"
+  ]
+ },
+ {
+  "i": 50,
+  "l": "atlasAdopt: a 'last' party is not the centre (the capital is)",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: an undeclared world addition lands beside the party's LAST mapped place, never the capital from afar (findi"
+  ]
+ },
+ {
+  "i": 51,
+  "l": "atlasAdopt: a refusal is logged, never toasted",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: an addition never displaces what the map had (finding 2): a drawing that loses a thing is rolled back and r",
+   "#702 review: a refusal is said to the player with the real reason (finding 9); a name the map bears at another scale is "
+  ]
+ },
+ {
+  "i": 52,
+  "l": "atlasAdopt: the library's refusal text is not kept",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: a refusal is said to the player with the real reason (finding 9); a name the map bears at another scale is ",
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 53,
+  "l": "atlasAdopt: the displacement is not named in the refusal",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: an addition never displaces what the map had (finding 2): a drawing that loses a thing is rolled back and r"
+  ]
+ },
+ {
+  "i": 54,
+  "l": "atlasAdopt: a settlement's name is added at the town's level too",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: a refusal is said to the player with the real reason (finding 9); a name the map bears at another scale is "
+  ]
+ },
+ {
+  "i": 55,
+  "l": "atlasAdopt: the realm check ignores a twice-borne settlement name",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 56,
+  "l": "atlasAdopt: a refused add leaves params={} where it was null",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: an addition never displaces what the map had (finding 2): a drawing that loses a thing is rolled back and r",
+   "#702 review: a refusal is said to the player with the real reason (finding 9); a name the map bears at another scale is ",
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 57,
+  "l": "atlasAdopt: the catch does not restore params",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 58,
+  "l": "atlasAdopt: the 'added once already' early return also toasts (louder, not a defect — a control)",
+  "f": "atlas.js",
+  "verdict": "SURVIVED",
+  "by": []
+ },
+ {
+  "i": 59,
+  "l": "atlasFollow: `from` is not handed to the adoption",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ },
+ {
+  "i": 60,
+  "l": "atlasFollow: `from` is read AFTER the pointer was resolved (the spot already cleared)",
+  "f": "atlas.js",
+  "verdict": "caught",
+  "by": [
+   "#702 review: the mutants the suite let live (finding 10)"
+  ]
+ }
+]
