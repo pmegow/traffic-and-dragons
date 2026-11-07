@@ -66,7 +66,9 @@ try {
     if (rows[1].length !== 0) return "a clause whose mustFail lacks the prefix must run the group's plain command: " + JSON.stringify(rows[1]);
     return intact() ? "" : "target bytes changed";
   });
-  test("a suite's --only that matched 0 tests is UNOBSERVED, like a run-tests filter that matched 0 sections", function () {
+  /* the name must not carry the guard phrase itself: a battery whose command is THIS suite reads every line of its output, and
+     "matched 0 tests" in a PASS line read as a filter that ran nothing (three harness batteries went UNOBSERVED, 2026-11-06) */
+  test("a suite's --only that names no test is UNOBSERVED, like a run-tests filter that names no section", function () {
     reset();
     var cmdJs = 'console.error("--only \\"zzz\\" matched 0 tests - NOTHING ran");process.exit(1)';
     var result = runChild("empty-only", prelude() +
