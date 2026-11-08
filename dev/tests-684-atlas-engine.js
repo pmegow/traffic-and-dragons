@@ -33,6 +33,12 @@ function test(name, fn) {
   matched++;
   try { fn(); passed++; console.log("PASS #684 " + name); } catch (e) { process.exitCode = 1; console.error("FAIL #684 " + name + " — " + e.stack); }
 }
+/* #708: a group that awaits (the start's classification is a model call) — the same filter, count and verdict; the file's IIFE is async and awaits it in place */
+async function atest(name, fn) {
+  if (ONLY !== null && name.indexOf(ONLY) < 0) return;
+  matched++;
+  try { await fn(); passed++; console.log("PASS #684 " + name); } catch (e) { process.exitCode = 1; console.error("FAIL #684 " + name + " — " + e.stack); }
+}
 
 /* THE FIXTURE GATE's table — what the vendored library draws for the fixture realm (seed campaign-1). A document carries
    the version of the library that drew it, so every line is read under ONE fixed stamp (ATLAS_FIXTURES_STAMP, the
@@ -63,7 +69,7 @@ var ATLAS_RECORDS_0_12 = {
 };
 var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
 
-(function () {
+(async function () {/* async since #708: one group awaits the start's classification; the groups still run in file order */
   var toasts = [], warns = [], infos = [], reports = [];
   global.showToast = function (m) { toasts.push(String(m)); };
   global.reportError = function (ctx, msg) { reports.push(ctx + ": " + msg); };
@@ -1667,6 +1673,176 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert(shell.indexOf("\"/atlas.js\"") >= 0, "atlas.js missing from APP_SHELL");
     assert(man.indexOf("atlas.js") > man.indexOf("identity.js") && man.indexOf("atlas.js") > man.indexOf("tndmaps.js"), "engine manifest order");
     assert(KEYED_STORE_PATHS.world.indexOf("atlas.zones") >= 0 && KEYED_STORE_PATHS.world.indexOf("atlas.names") >= 0, "the atlas's dictionaries are registered keyed stores");
+  });
+
+  /* ── #708 (owner 2026-11-07, design 3 of three): the START'S KIND is asked of the story. The Boundary Clearing — a split seam
+     between wood and marsh in its blueprint — was adopted as a VILLAGE with an inn, a baker and a temple, because every world
+     place added at the region level was drawn as a settlement. Now Begin marks the start's kind PENDING (A.kinds), the opening
+     asks the model ONE line of JSON over the blueprint's description and the premise, and the adoption draws what the story
+     says: a settlement at its size, OPEN country (a wild zone tied to the story's name, no edit), or a place INSIDE a named
+     settlement (the settlement added, the place added within it, the name tied to that building). Nothing known = refused with
+     the reason, never a guessed village. Design record: DOC/DESIGN_684_atlas.md ▸ "The start's kind is asked of the story". */
+  function kindsOf(A) { return A.kinds || {}; }
+  function wildPointsOf(reg, cap) { return atlasRegionPoints(reg, [cap.x, cap.y]).map(function (xy) { return TnDMaps.wild.zoneAt(reg, xy).id; }); }
+
+  test("#708 the start's kind is asked of the story: the ask carries the name, the region, the blueprint's description and the premise and names the three kinds and the three sizes; the answer is one JSON line of kind, size and settlement — anything else is unreadable, never a guess", function () {
+    var ask = atlasStartAsk({ name: "The Boundary Clearing", region: "The Tanglewood Borderlands", description: "A split seam where deep wood meets stagnant water.", premise: "Prince Auden is missing." }), p, long = "", i;
+    assert(ask && typeof ask.system === "string" && typeof ask.user === "string", "an ask is {system, user}");
+    ["settlement", "open", "inside", "city", "town", "village", "JSON"].forEach(function (w) { assert(ask.system.indexOf(w) >= 0, "the system names " + w); });
+    ["The Boundary Clearing", "The Tanglewood Borderlands", "A split seam where deep wood meets stagnant water.", "Prince Auden is missing."].forEach(function (w) { assert(ask.user.indexOf(w) >= 0, "the user text carries " + w); });
+    assert(/never invent/i.test(ask.system), "the model is told never to invent a settlement name");
+    p = atlasStartAsk({ name: "Harrowmere", region: "", description: "", premise: "" }); assert(/no description/i.test(p.user), "no description is said, not left blank: " + p.user);
+    for (i = 0; i < 300; i++) long += "words of a long description "; p = atlasStartAsk({ name: "X", region: "", description: long, premise: long });
+    assert(p.user.length < 2400, "a long description and premise are cut for the ask: " + p.user.length);
+    assert.deepEqual(atlasStartParse('{"kind":"open","size":null,"settlement":null}'), { kind: "open", size: null, settlement: null });
+    assert.deepEqual(atlasStartParse('Sure! {"kind":"settlement","size":"town"} — done'), { kind: "settlement", size: "town", settlement: null }, "the JSON is read out of chatter");
+    assert.deepEqual(atlasStartParse('{"kind":"settlement"}'), { kind: "settlement", size: "village", settlement: null }, "a settlement without a size is a village");
+    assert.deepEqual(atlasStartParse('{"kind":"settlement","size":"metropolis"}'), { kind: "settlement", size: "village", settlement: null }, "a size the map cannot draw falls to village");
+    assert.deepEqual(atlasStartParse('{"kind":"inside","size":"city","settlement":"  Sigil "}'), { kind: "inside", size: "city", settlement: "Sigil" });
+    assert.deepEqual(atlasStartParse('{"kind":"inside","settlement":"Sigil"}'), { kind: "inside", size: "town", settlement: "Sigil" }, "a place inside a settlement of no stated size: a town");
+    assert.deepEqual(atlasStartParse('{"kind":"inside","settlement":null}'), { kind: "inside", size: "town", settlement: null }, "inside with no name is kept as such — the adoption refuses it, the parse does not invent");
+    assert.deepEqual(atlasStartParse('{"kind":"open","size":"town","settlement":"Sigil"}'), { kind: "open", size: null, settlement: null }, "open country has no size and no settlement");
+    assert.equal(atlasStartParse('{"kind":"inside","settlement":12}').settlement, null, "a settlement that is not a string is none");
+    assert.equal(atlasStartParse('{"kind":"inside","settlement":"' + long + '"}').settlement.length, 80, "a settlement name is cut at 80");
+    [null, undefined, "", "I think it is a village", '{"kind":"castle"}', '{"size":"town"}', "[1,2]", "{kind:open}"].forEach(function (bad) { assert.equal(atlasStartParse(bad), null, "unreadable: " + JSON.stringify(bad)); });
+  });
+
+  test("#708 open country: a start the story calls open country is tied to open ground beside the capital — no village is drawn, the region's recipe gains no edit, the party stands in the wild zone, the GM is told the land is not a settlement, and the player's tap still wins", function () {
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+    var A = atlasCreate("campaign-1"), reg = atlasDoc(A.seed), cap = reg.places[0], n = reg.places.length, key, tie, r, told, sig;
+    point("The Boundary Clearing"); key = atlasWorldKey(atlasPointer());
+    atlasKindSet(A, key, { kind: "open", size: null, settlement: null, by: "model" });
+    r = atlasFollow();
+    assert.equal(edits(A, A.seed).length, 0, "no edit on the region: " + JSON.stringify(edits(A, A.seed))); assert.equal(atlasDoc(A.seed).places.length, n, "no settlement drawn"); assert.deepEqual(adds(A), [], "nothing is an addition");
+    tie = A.names[key]; assert(tie && tie.id === null && tie.by === "story", "the story's name is tied to a zone, by the story: " + JSON.stringify(tie));
+    assert.equal(A.zones[tie.zone].kind, "wild", "the zone is open country"); assert(wildPointsOf(reg, cap).indexOf(A.zones[tie.zone].via) >= 0, "beside the capital — one of the open-ground candidates around it");
+    assert.equal(A.at, tie.zone, "the party stands in it"); assert.equal(A.off, null); assert(r && r.changed);
+    assert(atlasWhere().text.indexOf("The party is in ") === 0 && /The story's "The Boundary Clearing" is at .* on this map: the story's own description placed it there\./.test(atlasWhere().text), atlasWhere().text);
+    told = atlasToldLines(A); assert(told.some(function (t) { return /The story's The Boundary Clearing is open country on this map/.test(t) && /not a settlement/.test(t); }), "the GM is told: " + JSON.stringify(told));
+    assert(atlasMapBlock().indexOf("is open country on this map") > 0, "on the MAP block"); assert(toasts.some(function (t) { return /open country/.test(t); }), "and the player sees it: " + toasts.join(" | "));
+    assert(!toasts.some(function (t) { return /could not be added|village/.test(t); }), toasts.join(" | "));
+    assert.equal(kindsOf(A)[key].kind, "open", "the answer is kept"); assert.equal(JSON.parse(JSON.stringify(A)).kinds[key].kind, "open", "and survives the save round trip");
+    sig = JSON.stringify([A.at, A.spot, A.off, A.names]); quiet(); atlasFollow(); assert.equal(JSON.stringify([A.at, A.spot, A.off, A.names]), sig, "idempotent"); assert.deepEqual(toasts, []);
+    /* the pane's marker: somewhere in the zone, never an exact point */
+    var m = atlasMarkers(tie.zone); assert(m.length === 1 && /somewhere here/.test(m[0].label), "the party is somewhere in the open country: " + JSON.stringify(m));
+    /* the player's tap is still the correction */
+    r = atlasPlace(A.seed, { id: cap.id }, { level: "world", name: "The Boundary Clearing" }); assert(r.ok, JSON.stringify(r));
+    assert(A.names[key].id === cap.id && !A.names[key].by, "the tap's tie replaces the story's"); assert.equal(A.zones[A.at].via, cap.id, "the party is in the capital's own sheet");
+  });
+
+  test("#708 a settlement at the story's size: a start the story calls a town or a city is drawn as one, not always a village; a settlement of no size is a village; a world place the GM names later, with no kind asked, is a village as before", function () {
+    var A, reg, cap, key;
+    ["town", "city", "village"].forEach(function (size) {
+      stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+      A = atlasCreate("campaign-1"); reg = atlasDoc(A.seed); cap = reg.places[0];
+      point("Harrowmere"); key = atlasWorldKey(atlasPointer()); atlasKindSet(A, key, { kind: "settlement", size: size, settlement: null, by: "model" }); atlasFollow();
+      assert.equal(edits(A, A.seed).length, 1, size); assert.equal(edits(A, A.seed)[0].kind, size, "drawn at the story's size"); assert.equal(edits(A, A.seed)[0].name, "Harrowmere");
+      assert.equal(A.off, null); assert.equal(A.zones[A.at].kind, "town", "the party stands in it");
+      assert(atlasToldLines(A).some(function (t) { return t.indexOf("Harrowmere was added to the map of") >= 0 && t.indexOf(", as a " + size) > 0; }), "the GM is told the size: " + JSON.stringify(atlasToldLines(A)));
+      assert.equal(atlasDoc(A.seed).places.filter(function (p) { return p.authored; })[0].kind, size, "the region draws it at that size");
+    });
+    /* later, a place the GM names: no kind was asked — a village, as #702 built it */
+    quiet(); point(cap.name); atlasFollow(); point("Bleakford"); atlasFollow();
+    assert.equal(edits(A, A.seed).length, 2); assert.equal(edits(A, A.seed)[1].kind, "village"); assert.equal(edits(A, A.seed)[1].name, "Bleakford"); assert(!kindsOf(A)[atlasWorldKey(atlasPointer())], "no hint was written for it");
+  });
+
+  test("#708 inside a named settlement: the settlement is added to the region at its size, the start place is added inside it, the story's name is tied to that building, the party stands in it and a room the GM names after files under it", function () {
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+    var A = atlasCreate("campaign-1"), reg = atlasDoc(A.seed), n = reg.places.length, key, tie, town, townDoc, f, told, chain;
+    point("The Mortuary"); key = atlasWorldKey(atlasPointer());
+    atlasKindSet(A, key, { kind: "inside", size: "city", settlement: "Sigil", by: "model" });
+    atlasFollow();
+    assert.equal(edits(A, A.seed).length, 1, "one edit on the region: " + JSON.stringify(edits(A, A.seed))); assert.equal(edits(A, A.seed)[0].name, "Sigil"); assert.equal(edits(A, A.seed)[0].kind, "city");
+    assert.equal(atlasDoc(A.seed).places.length, n + 1, "Sigil is on the region"); assert(!atlasFind(atlasDoc(A.seed), "The Mortuary"), "The Mortuary is NOT a settlement of the realm");
+    tie = A.names[key]; assert(tie && tie.id != null && tie.by === "story", "the story's name is tied to a thing, by the story: " + JSON.stringify(tie));
+    town = A.zones[tie.zone]; assert(town && town.kind === "town" && town.via === edits(A, A.seed)[0].id, "…a thing on Sigil's own sheet: " + JSON.stringify(town));
+    townDoc = atlasDoc(tie.zone); f = atlasFind(townDoc, "The Mortuary"); assert(f && f.thing && f.thing.id === tie.id, "Sigil's sheet bears The Mortuary once, the tied thing");
+    assert(edits(A, tie.zone).some(function (e) { return e.name === "The Mortuary"; }), "added to Sigil's recipe");
+    assert.equal(A.off, null, "the party is on the map"); chain = atlasChainUp(A, A.at, null); assert(chain.indexOf(tie.zone) >= 0, "the party stands in Sigil, at or inside The Mortuary: " + chain.join(" < "));
+    assert(atlasWhere().text.indexOf("The party is in The Mortuary") === 0, "the party is in the building drawn for the start: " + atlasWhere().text);
+    told = atlasToldLines(A);
+    assert(told.some(function (t) { return /Sigil was added to the map of .*, as a city/.test(t); }), "the GM is told of Sigil: " + JSON.stringify(told));
+    assert(told.some(function (t) { return /The Mortuary was added to the map of Sigil/.test(t); }), "and of The Mortuary inside it: " + JSON.stringify(told));
+    assert(adds(A).indexOf(key) >= 0 && A.adds[key].zone === tie.zone && A.adds[key].id === tie.id, "the building is indexed as the engine's addition for the start");
+    /* a room named after is the Mortuary's room, not a thing of Sigil's streets and not a settlement */
+    quiet(); turn("[SUBLOCATION:Embalming Room] Cold slabs.");
+    assert.equal(edits(A, A.seed).length, 1, "no new settlement"); assert(!edits(A, tie.zone).some(function (e) { return e.name === "Embalming Room"; }), "not added on Sigil's streets");
+    assert(A.off === null || !A.off.absent, "the room is on the map or honestly refused, never pending: " + JSON.stringify(A.off)); chain = atlasChainUp(A, A.at, null); assert(chain.indexOf(tie.zone) >= 0, "the party is still inside Sigil: " + chain.join(" < "));
+    /* the tap on the building the engine added has nothing to place */
+    var r = atlasPlace(tie.zone, { id: tie.id }, { level: "sub", name: "Embalming Room" }); assert(!r.ok, JSON.stringify(r));
+  });
+
+  test("#708 honest when the kind is not known: a pending start is left off the map quietly, an unreadable answer or a failed ask is refused with the reason and no village is drawn, a start inside a settlement the story does not name is refused, and a load turns a pending mark into that refusal", function () {
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+    var A = atlasCreate("campaign-1"), key, r;
+    point("The Boundary Clearing"); key = atlasWorldKey(atlasPointer());
+    assert.equal(atlasStartMark(), key, "Begin marks the pointer's world place"); assert.equal(kindsOf(A)[key].kind, "pending");
+    r = atlasFollow();
+    assert.equal(edits(A, A.seed).length, 0, "nothing drawn while pending"); assert(A.off && A.off.absent && /asking the story/.test(A.off.why), JSON.stringify(A.off)); assert.deepEqual(adds(A), []);
+    assert.deepEqual(toasts, [], "pending is quiet: " + toasts.join(" | ")); assert.deepEqual(warns, []);
+    assert(/not on the map yet/.test(atlasWhere().text) && /asking the story/.test(atlasWhere().text), atlasWhere().text);
+    /* the switch off: no mark */
+    A.adopt = false; delete A.kinds[key]; assert.equal(atlasStartMark(), null, "the player's switch off asks nothing"); assert(!kindsOf(A)[key]); A.adopt = true;
+    /* unknown: refused, said once */
+    atlasKindSet(A, key, { kind: "unknown", why: "the model's answer could not be read (I think it is a village)", by: "model" }); A.ptr = null; quiet(); atlasFollow();
+    assert.equal(edits(A, A.seed).length, 0, "no guessed village"); assert(A.off && /could not be learned/.test(A.off.why) && /could not be read/.test(A.off.why) && /tap/.test(A.off.why), JSON.stringify(A.off));
+    assert(toasts.some(function (t) { return /could not be added/.test(t) && /could not be read/.test(t); }), "said to the player: " + toasts.join(" | "));
+    quiet(); atlasFollow(); assert.deepEqual(toasts, [], "said once"); assert(atlasMapBlock().indexOf("could not be learned") > 0, "the GM reads the reason");
+    /* inside, unnamed: refused */
+    atlasKindSet(A, key, { kind: "inside", size: "town", settlement: null, by: "model" }); A.ptr = null; quiet(); atlasFollow();
+    assert.equal(edits(A, A.seed).length, 0); assert(A.off && /does not name/.test(A.off.why), JSON.stringify(A.off)); assert(toasts.some(function (t) { return /does not name/.test(t); }), toasts.join(" | "));
+    /* a load: pending becomes a refusal with the reason, a store without kinds gains the dictionary, a kinds that is not an object is replaced */
+    atlasKindSet(A, key, { kind: "pending", by: "model" }); assert.equal(atlasHeal(), true); assert.equal(kindsOf(A)[key].kind, "unknown"); assert(/closed before/.test(kindsOf(A)[key].why), kindsOf(A)[key].why);
+    delete A.kinds; assert.equal(atlasHeal(), true); assert(A.kinds && typeof A.kinds === "object" && Object.keys(A.kinds).length === 0);
+    A.kinds = "junk"; assert.equal(atlasHeal(), true); assert.equal(typeof A.kinds, "object");
+    assert.equal(atlasHeal(), false, "a settled store is left alone");
+    assert(KEYED_STORE_PATHS.world.indexOf("atlas.kinds") >= 0, "the kinds are a registered keyed store");
+    /* the player's tap places a pending or refused start as ever */
+    atlasKindSet(A, key, { kind: "pending" }); A.ptr = null; atlasFollow(); r = atlasPlace(A.seed, { id: atlasDoc(A.seed).places[1].id }, { level: "world", name: "The Boundary Clearing" }); assert(r.ok, JSON.stringify(r)); assert.equal(A.off, null);
+  });
+
+  await atest("#708 the door: Begin marks the start pending and the opening asks the story before it is written — the answer is written to the atlas and the follow runs, so the opening's MAP block already shows the start; a start on the map by its own name asks nothing; a failed or unreadable ask is said and refused, never a guessed village", async function () {
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+    var A = atlasCreate("campaign-1"), reg = atlasDoc(A.seed), cap = reg.places[0], key, calls = [], real = global.callGM, r, src, i, j, body;
+    point("The Boundary Clearing"); key = atlasWorldKey(atlasPointer());
+    memory.map.nodes[key] = newMapNode(null, null, { description: "A split seam where deep wood meets stagnant water; boundary stones since the First Pact." });
+    worldState.skeleton = { premise: "Prince Auden is missing and the birds have begun to fall silent.", acts: [] };
+    try {
+      global.callGM = function (msg, sys, max, model, opts) { calls.push({ msg: msg, sys: sys, max: max, model: model, opts: opts }); return Promise.resolve('{"kind":"open","size":null,"settlement":null}'); };
+      assert.equal(await atlasClassifyStart(), null, "nothing pending: nothing asked"); assert.equal(calls.length, 0);
+      atlasStartMark(); atlasFollow(); assert(A.off && A.off.absent, "off the map, pending");
+      r = await atlasClassifyStart();
+      assert.equal(calls.length, 1, "one call"); assert(calls[0].opts && calls[0].opts.noHistory === true && calls[0].opts.kind === "atlas", JSON.stringify(calls[0].opts)); assert(calls[0].max <= 200, "a short answer: " + calls[0].max); assert.equal(calls[0].model, null, "the session's model");
+      assert(calls[0].sys.indexOf("settlement") >= 0 && calls[0].msg.indexOf("The Boundary Clearing") >= 0 && calls[0].msg.indexOf("boundary stones since the First Pact") >= 0 && calls[0].msg.indexOf("Prince Auden is missing") >= 0, "asked over the blueprint's description and the premise: " + calls[0].msg);
+      assert(r && r.kind === "open" && r.by === "model", JSON.stringify(r)); assert.equal(kindsOf(A)[key].kind, "open");
+      assert.equal(A.off, null, "followed"); assert.equal(A.zones[A.at].kind, "wild", "the party stands in open country"); assert(atlasMapBlock().indexOf("is open country on this map") > 0, "the opening's MAP block shows it");
+      assert.equal(await atlasClassifyStart(), null, "settled: asked once"); assert.equal(calls.length, 1);
+      /* on the map by its own name: nothing to ask, the mark is dropped */
+      stubs(); engine.makeTestWorld(); atlasForget(); quiet(); A = atlasCreate("campaign-1"); point(cap.name); key = atlasWorldKey(atlasPointer());
+      atlasStartMark(); atlasFollow(); assert.equal(A.off, null); assert.equal(await atlasClassifyStart(), null); assert.equal(calls.length, 1, "no call"); assert(!kindsOf(A)[key], "the pending mark is dropped");
+      /* a failed ask */
+      stubs(); engine.makeTestWorld(); atlasForget(); quiet(); A = atlasCreate("campaign-1"); point("The Boundary Clearing"); key = atlasWorldKey(atlasPointer());
+      global.callGM = function () { return Promise.reject(new Error("Network: Load failed")); };
+      atlasStartMark(); atlasFollow(); r = await atlasClassifyStart();
+      assert(r && r.kind === "unknown" && /Load failed/.test(r.why), JSON.stringify(r)); assert.equal(edits(A, A.seed).length, 0, "no guessed village"); assert(A.off && /could not be learned/.test(A.off.why) && /Load failed/.test(A.off.why), JSON.stringify(A.off));
+      assert(toasts.some(function (t) { return /Load failed/.test(t); }), "said: " + toasts.join(" | "));
+      /* an unreadable answer */
+      stubs(); engine.makeTestWorld(); atlasForget(); quiet(); A = atlasCreate("campaign-1"); point("The Boundary Clearing"); key = atlasWorldKey(atlasPointer());
+      global.callGM = function () { return Promise.resolve("It is probably a village, I think."); };
+      atlasStartMark(); atlasFollow(); r = await atlasClassifyStart();
+      assert(r && r.kind === "unknown" && /could not be read/.test(r.why) && /probably a village/.test(r.why), JSON.stringify(r)); assert.equal(edits(A, A.seed).length, 0);
+      /* a thrower inside never escapes the opening */
+      stubs(); engine.makeTestWorld(); atlasForget(); quiet(); A = atlasCreate("campaign-1"); point("The Boundary Clearing"); key = atlasWorldKey(atlasPointer());
+      global.callGM = function () { throw new Error("sync boom"); }; atlasStartMark(); atlasFollow(); r = await atlasClassifyStart(); assert(r && r.kind === "unknown" && /sync boom/.test(r.why), JSON.stringify(r));
+      /* without an atlas */
+      delete worldState.atlas; assert.equal(await atlasClassifyStart(), null);
+    } finally { global.callGM = real; }
+    /* the wiring, derived from game.js: Begin marks right after the realm is drawn and before the first follow; the opening awaits the ask before the GM is called */
+    src = fs.readFileSync(path.join(ROOT, "game.js"), "utf8");
+    assert(src.indexOf("atlasCreate();atlasStartMark();atlasFollow();") >= 0, "startGame: create, mark, follow");
+    i = src.indexOf("async function beginAdventure("); body = src.slice(i, src.indexOf("\n}\n", i));
+    j = body.indexOf("await atlasClassifyStart("); assert(j > 0 && j < body.indexOf("await callGM(intro)"), "beginAdventure asks the story before the opening is written");
+    assert(body.indexOf("await atlasClassifyStart(function(tx){setThinking(th,") === j, "the wait is said on the thinking marker through the status callback");
   });
 
   console.warn = realWarn; console.info = realInfo;

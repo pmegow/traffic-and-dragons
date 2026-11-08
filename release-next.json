@@ -1,5 +1,5 @@
 {
-  "version": "v1.1373",
+  "version": "v1.1374",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -11,6 +11,7 @@
     "Dice gain larger classic dots, optional Large Numbers, and a Teal Glass preset with consistent preset names.",
     "Going Down pauses longer at the top, and metal dice regain gentle recessed numbers and dots.",
     "During character creation the progress bar also jumps ahead to any step already reached, after a change made on an earlier one.",
-    "In character creation, a subrace or lineage card's granted spells and abilities open their reference cards on a click."
+    "In character creation, a subrace or lineage card's granted spells and abilities open their reference cards on a click.",
+    "The map draws a campaign's starting place as the story describes it: open country, a sized settlement, or a place inside a named town."
   ]
 }

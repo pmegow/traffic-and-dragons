@@ -737,8 +737,106 @@ function atlasDeclsLeft(A,p){
 }
 /* WRITE: add the absent place the pointer names, as the zone's recipe edit. true when the map gained it (the caller
    follows again); false with the reason on A.off when it cannot. Never for a twice-borne name; once per story place. */
+/* ── #708 (owner 2026-11-07): THE START'S KIND IS ASKED OF THE STORY ──────────────────────────────────────────────
+   Every world place added at the region level was drawn as a VILLAGE: The Boundary Clearing — a split seam between wood
+   and marsh in its blueprint — got an inn, a baker and a temple, and the GM, served that digest, wrote the clearing anyway.
+   Of thirteen sample starts seven are settlements, two open country, four a district or a building inside a city; a word
+   table gets the last four wrong either way. So the START asks the story: Begin marks the start's kind PENDING (A.kinds,
+   keyed like the ties), the opening asks the model ONE line of JSON over the blueprint's description and the premise
+   (atlasClassifyStart, game.js), and the adoption draws what the story says — a settlement at its size, OPEN country (a
+   wild zone tied to the story's name; nothing drawn), or a place INSIDE a named settlement (the settlement added at its
+   size, the place added within it, the name tied to that building). Nothing known = refused with the reason and the tap
+   offered, never a guessed village (THE RULE). A place the GM names LATER has no kind asked and is a village as #702
+   built it (deliberately later: the GM says the kind). A.kinds[key] = {kind, size, settlement, why, by, turn}:
+   kind settlement|open|inside|pending|unknown; size city|town|village (the library's KINDS) or null; settlement the
+   named settlement an inside place is within, else null; why for unknown. */
+var ATLAS_START_KINDS={settlement:1,open:1,inside:1};
+var ATLAS_START_SIZES=["city","town","village"];/* the region library's settlement KINDS, largest first */
+var ATLAS_START_MAX_TOKENS=120;
+var ATLAS_START_CUT=900;
+var ATLAS_START_SYSTEM="You classify ONE place for a drawn fantasy map. Answer with one line of JSON and nothing else: {\"kind\":K,\"size\":S,\"settlement\":N}.\n"
+  +"K is one of: \"settlement\" (the place is itself a city, town or village), \"open\" (open country or a landmark outside any settlement: a clearing, a crossroads, a ford, a bridge, a ruin, a camp, a tower, a cave, a shrine, a battlefield, a shore), \"inside\" (a district, street, square, building or room within a settlement).\n"
+  +"S is the settlement's size, one of \"city\", \"town\" or \"village\": the place's own size for a settlement, the size of the settlement an inside place is within; null for open country.\n"
+  +"N is the name of the settlement an inside place is within, exactly as the text gives it; null when the text does not name it, and null for the other kinds. Never invent a settlement name.\n"
+  +"Judge by the description when there is one, by the name alone when there is not.";
+/* the ask, pure: {system, user} over {name, region, description, premise} — the description is the blueprint's (the start's
+   map node), the premise the skeleton's; both cut so the ask stays a few hundred tokens */
+function atlasStartAsk(ctx){
+  var c=ctx||{};
+  function cut(s,n){s=String(s==null?"":s).replace(/\s+/g," ").trim();return s.length>n?s.slice(0,n-1).replace(/\s+\S*$/,"")+"\u2026":s;}
+  return {system:ATLAS_START_SYSTEM,user:"Place: "+cut(c.name,120)+"\nRegion: "+(cut(c.region,200)||"(not named)")+"\nDescription: "+(cut(c.description,ATLAS_START_CUT)||"No description was written; judge by the name.")+"\nThe campaign's premise: "+(cut(c.premise,700)||"(none)")+"\nAnswer with the one JSON line."};
+}
+/* the answer, pure: {kind, size, settlement} or null when it cannot be read (never a guess): the first {…} in the text is
+   the JSON; kind must be one of the three; a size the map cannot draw falls to village (town for a place inside); open
+   country has neither; a settlement name is a string, one line, at most 80 characters */
+function atlasStartParse(text){
+  var s=String(text==null?"":text),i=s.indexOf("{"),j=s.lastIndexOf("}"),o,kind,size,name;
+  if(i<0||j<i)return null;
+  try{o=JSON.parse(s.slice(i,j+1));}catch(e){return null;}
+  if(!o||typeof o!=="object"||o instanceof Array)return null;
+  kind=typeof o.kind==="string"?o.kind.trim().toLowerCase():"";if(!ATLAS_START_KINDS[kind])return null;
+  if(kind==="open")return {kind:"open",size:null,settlement:null};
+  size=typeof o.size==="string"?o.size.trim().toLowerCase():"";if(ATLAS_START_SIZES.indexOf(size)<0)size=kind==="inside"?"town":"village";
+  name=typeof o.settlement==="string"?o.settlement.replace(/[\u0000-\u001f]/g," ").replace(/\s+/g," ").trim().slice(0,80):"";
+  return {kind:kind,size:size,settlement:(kind==="inside"&&name)?name:null};
+}
+/* what the campaign knows of the start place, read-only: the pointer's world place, the region, the blueprint's description
+   (the map node's — applyBlueprint's single home for it), the skeleton's premise */
+function atlasStartContext(){
+  var w=(typeof worldState!=="undefined"&&worldState&&worldState.world)||{},name=String(w.location||""),nodes=(typeof memory!=="undefined"&&memory&&memory.map&&memory.map.nodes)||null,node=nodes?(nodes[atlasLocKey(name)]||nodes[name]):null,sk=(typeof worldState!=="undefined"&&worldState)?worldState.skeleton:null;
+  return {name:name,region:String(w.region||""),description:(node&&node.description)?String(node.description):"",premise:(sk&&sk.premise)?String(sk.premise):""};
+}
+/* the kind hint for a story key — read through the identity layer, like a tie */
+function atlasKindHint(A,key){
+  var h=(A&&A.kinds)?A.kinds[key]:null,ks,i;
+  if(!h&&A&&A.kinds){ks=Object.keys(A.kinds);for(i=0;i<ks.length;i++)if(atlasLocKey(ks[i])===key){h=A.kinds[ks[i]];break;}}
+  return h||null;
+}
+function atlasKindSet(A,key,hint){if(!A.kinds||typeof A.kinds!=="object")A.kinds=keyedDict();A.kinds[key]=Object.assign({turn:atlasTurn()},hint);}
+function atlasKindDrop(A,key){if(A&&A.kinds)delete A.kinds[key];}
+/* WRITE, at Begin (startGame, right after the realm is drawn and before the first follow): the start's kind is PENDING — the
+   follow leaves it off the map quietly until the opening has asked. Returns the key marked, or null (no atlas, no pointer,
+   the player's adoption switch off). A pending mark a load finds becomes a refusal (atlasHeal): the game closed before the ask. */
+function atlasStartMark(){
+  var A=atlasLive(),p=A?atlasPointer():null,key;
+  if(!A||!p||A.adopt===false)return null;
+  key=atlasWorldKey(p);atlasKindSet(A,key,{kind:"pending",by:"begin"});return key;
+}
+/* WRITE: the start is OPEN country — a wild zone at a point of open ground beside the centre (the candidates around it, the
+   centre last), tied to the story's name (by: "story"; the player's tap replaces it as any tie). Nothing is drawn: no edit,
+   no addition — the land is the library's own. */
+function atlasAdoptOpen(A,storyKey,name,doc,centre,where,flush,refuse,entered){
+  var b=ATLAS_BUILDERS["region>wild"],pts=atlasRegionPoints(doc,centre).concat([centre]),i,z=null,why=null,land;
+  for(i=0;i<pts.length&&!z;i++){try{z=atlasOpen(A,A.seed,"wild",b.at(doc,pts[i]),null,entered);}catch(e){if(!atlasIsRefusal(e))throw e;why=atlasReason(e);z=null;}}
+  if(!z)return refuse("no open ground was found for it "+(where||"")+(why?" \u2014 "+why:""));
+  land=A.zones[z.zone].name||ATLAS_TIE_OPEN;
+  A.names[storyKey]={zone:z.zone,id:null,by:"story"};
+  flush();
+  atlasTell(A,"The story's "+name+" is open country on this map, "+where+" (the land there: "+land+"); it is not a settlement, and nothing was drawn for it.");
+  atlasSay("info","the story's "+name+" is open country "+where+" ("+land+")");
+  if(typeof showToast==="function")showToast("Map: "+name+" is open country "+where+".",5000);
+  return true;
+}
+/* WRITE: the start is INSIDE a settlement the story names — the settlement is on the region already (the caller laid it);
+   its sheet is opened, the start place is added on it through the town branch (an off record for the inner adoption), the
+   story's name is tied to that building (by: "story") and indexed as the engine's addition for the start. When the place
+   finds no room inside, the settlement is taken off the region again and the start is refused with the inner reason. */
+function atlasAdoptInside(A,p,storyKey,name,settlement,entered,undoSettlement){
+  var t,off=A.off,inner,subKey=atlasLocKey(atlasWorldKey(p)+"|"+name),ok=false,add,why="";
+  try{
+    t=atlasOpen(A,A.seed,"town",settlement.id,null,entered);
+    inner={name:name,why:"",within:t.zone,absent:true,zone:t.zone,segment:name,path:[name]};A.off=inner;
+    ok=atlasAdopt(A,p,entered,null);why=inner.why||"";
+  }finally{A.off=off;}
+  add=ok?A.adds[subKey]:null;
+  if(!add){undoSettlement();if(t&&A.zones[t.zone]&&!Object.keys(A.zones).some(function(z){return A.zones[z].parent===t.zone;}))delete A.zones[t.zone];A.off.why+=" (inside "+settlement.name+why+")";return false;}
+  A.names[storyKey]={zone:t.zone,id:add.id,by:"story"};
+  A.adds[storyKey]={zone:t.zone,id:add.id,turn:atlasTurn()};delete A.adds[subKey];
+  return true;
+}
+
 function atlasAdopt(A,p,entered,from){
-  var off=A.off,isWorld=!off.within,name=off.segment!=null?off.segment:off.name,zone=isWorld?A.seed:(off.zone||off.within),rec=A.zones[zone],told=[],decl,doc,kind,e,i,pts,centre,party,thing,a,b,before,fpWas,paramsWas,where,drawn,hit,spotRoom,storyKey,refusal,lost,lostName,realm,lay,grown,grownNote="",grownWhy=null;
+  var off=A.off,isWorld=!off.within,name=off.segment!=null?off.segment:off.name,zone=isWorld?A.seed:(off.zone||off.within),rec=A.zones[zone],told=[],decl,doc,kind,e,i,pts,centre,party,thing,a,b,before,fpWas,paramsWas,where,drawn,hit,spotRoom,storyKey,refusal,lost,lostName,realm,lay,grown,grownNote="",grownWhy=null,hint,inside=false,undoSettlement;/* #708: hint/inside — the kind the story gave the start */
   /* the key of the THING being added: the world, or the path up to the absent segment — never the pointer's whole path
      (review 2, finding 5: the pair "The Rat-Catcher's Rest — Snug" indexed the inn under the room's key, so the room was
      refused as 'added once already' and a later tap on the pair took the inn away) */
@@ -773,7 +871,15 @@ function atlasAdopt(A,p,entered,from){
       else if(rec.kind==="region"){centre=doc.places.length?[doc.places[0].x,doc.places[0].y]:atlasCentre(doc);where=doc.places.length?"near "+doc.places[0].name:"on the map";}
       else{centre=atlasCentre(doc);where="in the middle";}}
     /* the edit, by the zone's kind */
-    if(rec.kind==="region"){pts=atlasRegionPoints(doc,centre);e={op:"add",id:atlasAddId(rec,"a"),name:name,kind:"village"};}
+    if(rec.kind==="region"){
+      /* #708: the kind the story gave the START (asked at Begin, atlasClassifyStart); a place named later, with no kind asked, is a village as before */
+      hint=atlasKindHint(A,storyKey);
+      if(hint&&hint.kind==="pending"){A.off.why+=" (the map is asking the story what kind of place it is)";return false;}/* quiet: the ask is in flight, the opening waits for it */
+      if(hint&&hint.kind==="unknown")return refuse("what kind of place it is could not be learned: "+hint.why+"; tap where the party stands to place it");
+      if(hint&&hint.kind==="inside"&&!hint.settlement)return refuse("the story puts it inside a settlement it does not name; tap where the party stands to place it");
+      if(hint&&hint.kind==="open")return atlasAdoptOpen(A,storyKey,name,doc,centre,where,flush,refuse,entered);
+      inside=!!(hint&&hint.kind==="inside");
+      pts=atlasRegionPoints(doc,centre);e={op:"add",id:atlasAddId(rec,"a"),name:inside?hint.settlement:name,kind:(hint&&hint.size)||"village"};}
     else if(rec.kind==="town"){kind=atlasAddKind(name);e={op:"add",id:atlasAddId(rec,"s"),name:name,at:[Math.round((centre[0]+12)*10)/10,Math.round((centre[1]+8)*10)/10]};
       if(kind.kind){e.kind=kind.kind;
         /* a trade takes a HOUSE: the roomiest free one near the party, not the nearest (review 2: the library's nearest house
@@ -798,7 +904,7 @@ function atlasAdopt(A,p,entered,from){
       rec.params.edits=before.concat([JSON.parse(JSON.stringify(e))]);rec.fp=null;
       try{drawn=atlasDoc(zone);}catch(err){if(!atlasIsRefusal(err))throw err;drawn=null;refusal=atlasReason(err);}
       if(drawn){lost=atlasLost(doc,drawn);if(lost){lostName=lost;drawn=null;continue;}}
-      if(drawn){var f=atlasFind(drawn,name);if(f&&f.thing&&f.thing.id===e.id)hit=f.thing;else if(f&&f.thing)hit=f.thing;else drawn=null;}
+      if(drawn){var f=atlasFind(drawn,e.name);if(f&&f.thing&&f.thing.id===e.id)hit=f.thing;/* #708: the edit's own name — a settlement laid for a place inside it */else if(f&&f.thing)hit=f.thing;else drawn=null;}
     }};
     lay();
     /* review 3, finding 8 (owner 2026-11-07): a custom place of the engine's is drawn medium, and a medium house held a room at
@@ -816,9 +922,18 @@ function atlasAdopt(A,p,entered,from){
       if(before.length)rec.params.edits=before;else if(paramsWas)delete rec.params.edits;rec.params=paramsWas;rec.fp=fpWas;
       return refuse(lostName?"adding it would have displaced "+lostName+" from the map of "+(rec.name||zone):"the map had no room for it "+(where||"")+(refusal?" — "+refusal:"")+(grownWhy?" ("+grownWhy+")":""));
     }
+    if(inside){
+      /* #708: the settlement is on the region; the story's place goes INSIDE it, tied to the building drawn for it */
+      flush();atlasTell(A,hint.settlement+" was added to the map of "+(rec.name||zone)+" "+where+", as a "+e.kind+" (the story's "+name+" is inside it).");
+      atlasSay("info","added "+hint.settlement+" to the map of "+(rec.name||zone)+" "+where+", as a "+e.kind+" — the story's "+name+" is inside it");
+      undoSettlement=function(){if(before.length)rec.params.edits=before;else if(paramsWas)delete rec.params.edits;rec.params=paramsWas;rec.fp=fpWas;};
+      if(!atlasAdoptInside(A,p,storyKey,name,hit,entered,undoSettlement))return refuse("the map had no room for it inside "+hint.settlement);
+      if(typeof showToast==="function")showToast("Map: "+hint.settlement+" added "+where+", with "+name+" inside it.",5000);
+      return true;
+    }
     A.adds[storyKey]={zone:zone,id:e.id,turn:atlasTurn()};
     flush();
-    atlasTell(A,"The story's "+name+" was added to the map of "+(rec.name||zone)+" "+where+(rec.kind==="region"?", as a village":"")+grownNote+".");
+    atlasTell(A,"The story's "+name+" was added to the map of "+(rec.name||zone)+" "+where+(rec.kind==="region"?", as a "+e.kind:"")+grownNote+".");
     atlasSay("info","added "+name+" to the map of "+(rec.name||zone)+" "+where+grownNote);
     if(typeof showToast==="function")showToast("Map: "+name+" added "+where+grownNote+".",5000);
     return true;
@@ -920,7 +1035,7 @@ function atlasCreate(seed){
   if(seed==null)seed=atlasSeedMint();
   if(typeof seed!=="string"||!/^[A-Za-z0-9-]{4,40}$/.test(seed))throw new Error("atlas: a map seed is 4–40 letters, digits or hyphens");
   doc=TnDMaps.generate("region",{seed:seed});
-  A={v:ATLAS_VER,seed:seed,at:null,spot:null,off:null,ptr:null,zones:keyedDict(),names:keyedDict(),adds:keyedDict(),told:[],adopt:true};
+  A={v:ATLAS_VER,seed:seed,at:null,spot:null,off:null,ptr:null,zones:keyedDict(),names:keyedDict(),adds:keyedDict(),kinds:keyedDict(),told:[],adopt:true};/* #708: kinds — what the story said a place IS, per story key */
   A.zones[seed]={kind:"region",parent:null,via:null,params:JSON.parse(JSON.stringify(doc.params)),name:(doc.title&&doc.title.name)||null,lib:TnDMaps.VERSION,fp:atlasFingerprint(doc),fpv:ATLAS_FP_SCHEME,turn:atlasTurn()};
   worldState.atlas=A;
   atlasSay("info","drew "+A.zones[seed].name+" (region) from the seed "+seed);
@@ -1071,7 +1186,7 @@ function atlasTiesHere(A){
 }
 /* how a tie is said — to the GM on the where-line and to the player in the pane (owner ruling 2026-11-05: "is at", the
    engine claims no more than the tap said: not that the two are one place, not that one lies inside the other) */
-function atlasTieSay(t){return "The story's \""+t.name+"\" is at "+t.at+" on this map: "+(t.by==="gm"?"the GM placed it there.":"the player placed it there.");}/* review 2, finding 7b: a [MAP_PLACE:|at] tie is the GM's, and is said so */
+function atlasTieSay(t){return "The story's \""+t.name+"\" is at "+t.at+" on this map: "+(t.by==="gm"?"the GM placed it there.":t.by==="story"?"the story's own description placed it there.":"the player placed it there.");}/* #708: by "story" — the start's kind, asked of the blueprint *//* review 2, finding 7b: a [MAP_PLACE:|at] tie is the GM's, and is said so */
 /* READ: where the party is, in words and in parts — the pane's status line and the first line the GM is told */
 function atlasWhere(){
   var A=atlasLive(),rec,t,out,why,phrase="",said="";
@@ -1240,6 +1355,9 @@ function atlasHeal(){
   if(!A.names||typeof A.names!=="object"){A.names=keyedDict();changed=true;}
   if(!A.adds||typeof A.adds!=="object"){A.adds=keyedDict();changed=true;}
   if(!(A.told instanceof Array)){A.told=[];changed=true;}
+  if(!A.kinds||typeof A.kinds!=="object"){A.kinds=keyedDict();changed=true;}/* #708 */
+  keys=Object.keys(A.kinds);
+  for(i=0;i<keys.length;i++)if(A.kinds[keys[i]]&&A.kinds[keys[i]].kind==="pending"){A.kinds[keys[i]]={kind:"unknown",why:"the game closed before the map learned what kind of place it is",by:"load",turn:atlasTurn()};changed=true;}/* #708: an ask that never came back is a refusal with its reason, never a village */
   keys=Object.keys(A.adds);
   for(i=0;i<keys.length;i++)if(!A.adds[keys[i]]||!A.zones[A.adds[keys[i]].zone]){delete A.adds[keys[i]];changed=true;}
   keys=Object.keys(A.names);

@@ -213,8 +213,8 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "  }\n  return out;",
     mustFail: "FAIL #684 a player's tie is SAID" },
   { label: "the tie claims identity: the GM is told the two are one place (the owner ruled \"is at\")",
-    find: "function atlasTieSay(t){return \"The story's \\\"\"+t.name+\"\\\" is at \"+t.at+\" on this map: \"+(t.by===\"gm\"?\"the GM placed it there.\":\"the player placed it there.\");}",
-    replace: "function atlasTieSay(t){return \"The story's \\\"\"+t.name+\"\\\" is \"+t.at+\" on this map: \"+(t.by===\"gm\"?\"the GM placed it there.\":\"the player placed it there.\");}",
+    find: "function atlasTieSay(t){return \"The story's \\\"\"+t.name+\"\\\" is at \"+t.at+\" on this map: \"",
+    replace: "function atlasTieSay(t){return \"The story's \\\"\"+t.name+\"\\\" is \"+t.at+\" on this map: \"",
     mustFail: "FAIL #684 a player's tie is SAID" }
 ] });
 

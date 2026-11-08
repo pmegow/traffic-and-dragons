@@ -48,7 +48,7 @@ function startGame(char,toneName,toneVoice,authorId){
      on it by the story's own names or by the player's tap, never by a guess; a failure starts the campaign without a map, loudly. */
   if(_wantAtlas){
     if(!kindDef().atlas)showToast("A drawn map is for adventures \u2014 this campaign begins without one.",6000);
-    else{try{atlasCreate();atlasFollow();}catch(_ae){delete worldState.atlas;atlasProblem("drawing the realm",_ae);}}
+    else{try{atlasCreate();atlasStartMark();atlasFollow();}catch(_ae){delete worldState.atlas;atlasProblem("drawing the realm",_ae);}}/* #708: the start's kind is pending until the opening has asked the story (atlasClassifyStart) */
   }
   seatRecordPeopleFromLibrary();/* #623: the hero's own people, from their library sheets, before the opening is written */
   if(typeof guestbookSeedStart==="function")guestbookSeedStart();/* #173: the creation-time party stands at the opening node — turn-0 provenance (runs even when a blueprint pre-seeded the node: the party is there either way) */
@@ -79,6 +79,33 @@ function startGame(char,toneName,toneVoice,authorId){
     };
     if(typeof showStakeModal==="function"&&stakeAskWanted(worldState.character))showStakeModal(_forge);else _forge();
   }
+}
+/* #708 (owner 2026-11-07): THE START'S KIND IS ASKED OF THE STORY. Begin marked the start's kind pending (atlasStartMark);
+   here, before the opening is written, ONE short call over the blueprint's description and the premise answers whether the
+   start is a settlement (and its size), open country, or a place inside a named settlement — and the follow draws it so
+   (atlas.js ▸ #708). Nothing to ask when the start is on the map by its own name (the mark is dropped) or nothing is
+   pending. A failed or unreadable answer is written as unknown WITH its reason: the follow refuses the start with it and
+   offers the tap — never a guessed village. Never throws; statusFn(text) says the wait, statusFn(null) ends it. */
+async function atlasClassifyStart(statusFn){
+  var A=(typeof atlasLive==="function")?atlasLive():null,p,key,hint,ask,text,parsed,why=null;
+  if(!A)return null;
+  p=atlasPointer();if(!p)return null;
+  key=atlasWorldKey(p);hint=atlasKindHint(A,key);
+  if(!hint||hint.kind!=="pending")return null;
+  atlasFollow();
+  if(!(A.off&&!A.off.within&&A.off.absent)){atlasKindDrop(A,key);return null;}/* on the map by its own name (or twice-borne): nothing to ask */
+  try{
+    if(statusFn)statusFn("The map asks the story what kind of place "+p.world+" is...");
+    ask=atlasStartAsk(atlasStartContext());
+    text=await callGM(ask.user,ask.system,ATLAS_START_MAX_TOKENS,null,{noHistory:true,kind:"atlas"});
+    parsed=atlasStartParse(text);
+    if(parsed){parsed.by="model";atlasKindSet(A,key,parsed);}
+    else why="the model's answer could not be read ("+String(text==null?"":text).replace(/\s+/g," ").trim().slice(0,80)+")";
+  }catch(e){why="asking the story failed ("+((e&&e.message)?e.message:String(e))+")";}
+  finally{if(statusFn)statusFn(null);}
+  if(why){atlasKindSet(A,key,{kind:"unknown",why:why,by:"model"});atlasSay("info","the start's kind: "+why);}
+  A.ptr=null;atlasFollow();/* the follow now draws what the story said, or refuses with the reason */
+  return atlasKindHint(A,key);
 }
 // Model escalation for engine utility calls (skeleton since v1.2xx, suggestions since v1.249):
 // the "Allow model upgrade for complex tasks" toggle gates it; every provider declares its own
@@ -3681,6 +3708,7 @@ async function beginAdventure(){
     var compStr="";if(compNpcs.length){var cds=compNpcs.map(function(n){var s=n.charSheet;return n.name+(s?" ("+pronounsForGender(s.gender)+", "+s.cls+(s.archetypeNm?" ["+s.archetypeNm+"]":"")+", Lv"+s.level+")":"");});compStr=" They travel with companions: "+cds.join(", ")+". Use each companion's stated pronouns; never reassign a companion's gender. Introduce the full party together in the opening scene.";}
     var intro=buildOpeningIntro(c,w,compStr);/* #6 C4: the opening ask is the kind's — the adventure literal, byte-identical, or the village's homecoming */
     var _openingAudioScope=audioRequestScope();
+    if(typeof atlasClassifyStart==="function")await atlasClassifyStart(function(tx){setThinking(th,tx||"The world stirs...");});/* #708: the start's kind is asked of the story BEFORE the opening is written, so its MAP block shows the start as the story has it */
     var resp=await callGM(intro);th.remove();
     // Unified commit (audit 07-16 #5): inherits sendAction's canonical UA6 order — transcript/
     // sessionLog/state now persist BEFORE the opening scene renders, so a display throw can no
