@@ -723,3 +723,7 @@ Publish Dice 0.99.6: increase only the final upward lift by 50%. Publisher-owned
 ## 2026-11-07 - #704/#707 Dice pause and engraving publication
 
 Publish the already tested Dice 0.99.7 after wizard #706 was separately released. Publisher-owned assets, host version/cache markers and release records only. No host logic, drift-surface or testing-policy changes. [Release record](DOC/dice-pause-engraving_707.md).
+
+## 2026-11-07 - #709 simultaneous dice exits
+
+Publish Dice 0.99.8 through its publisher; host version/cache markers and release records only. No host logic or drift-surface changes. [Record](DOC/dice-together_709.md).

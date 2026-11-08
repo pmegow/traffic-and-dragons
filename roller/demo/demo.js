@@ -457,9 +457,9 @@ function takeAway() {
   const { remove } = tableChanges(picker.list(), onTable());
   if (!remove.length) return;
   const gone = remove.map((i) => onTable()[i]);
-  // Each leaves through the Exit animation, several one after another (Clear): 0.2 s apart, give or take.
-  const delays = exitDelays(remove.length);
+  // Resolve each exit before scheduling: None and Fade start together.
   const exits = exitsFor($('exit').value, remove.length);   // Random picks once for them all (round 13); Mixed bag, for each die
+  const delays = exitDelays(exits);
   const onSound = (s) => { if (soundOn()) audio.playExitSound(s.kind, { ...s, pan: 0.7 * s.pan }); };
   const leavingNow = remove.map((i, k) => view.removeDie(i, { exit: exits[k], delay: delays[k], onSound }));
   leaving = Promise.all([leaving, ...leavingNow]);

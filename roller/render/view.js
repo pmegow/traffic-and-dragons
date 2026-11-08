@@ -529,7 +529,7 @@ export class DiceView {
   }
 
   /**
-   * Empties the table: at once, or with an exit (EXITS) each die leaving a moment after the last.
+   * Empties the table: at once, or with an exit (EXITS) using its group timing.
    * Resolves when every die has gone.
    */
   clear({ exit = null, onSound = null } = {}) {
@@ -542,8 +542,8 @@ export class DiceView {
       this.render();
       return Promise.resolve();
     }
-    const delays = exitDelays(gone.length);
     const names = exitsFor(exit, gone.length);   // Random picks once for them all (round 13); Mixed bag, for each die
+    const delays = exitDelays(names);
     return Promise.all(gone.map((d, k) => this.runExit(d, names[k], delays[k], onSound)));
   }
 

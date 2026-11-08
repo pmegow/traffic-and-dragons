@@ -155,11 +155,11 @@ export const PIT_ANTICIPATES = PIT_OPENS + PIT.open + PIT.hover;
 export const PIT_PULL = PIT_ANTICIPATES + PIT.anticipationRise + PIT.anticipationPause;
 
 export const EXIT_TABLE = {
-  none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
+  none: { label: 'None', seconds: 0, simultaneous: true },          // at once (round 4: "put none at the top of the list")
   burn: { label: 'Burn out', seconds: BURN.heat + BURN.hold - BURN.early + BURN.fade + 0.3 + BURN.stainFade },   // 2.6 s
   smoke: { label: 'Smoke puff', seconds: 1.8 },
   pit: { label: 'Going down', seconds: PIT_PULL + PIT.suck + PIT.close + PIT.linger },   // 3.065 s: until the pit's last cinder and smoke have gone (round 20)
-  fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
+  fade: { label: 'Fade', seconds: 0.6, simultaneous: true },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
   melt: { label: 'Melt', seconds: MELT_FADES + MELT.fade, shelved: true },   // 2.4 s maximum: puddles fade as soon as all have finished spreading
@@ -202,12 +202,13 @@ export function exitsFor(name, count, random = Math.random) {
  */
 export const EXIT_STAGGER = { gap: 0.2, jitter: 0.1 };
 
-/** When each of `count` dice leaving together sets off (seconds from now): the first at once. */
-export function exitDelays(count, random = Math.random) {
+/** Start times for resolved exits; a numeric count retains the generic stagger API. */
+export function exitDelays(exits, random = Math.random) {
+  const names = Array.isArray(exits) ? exits : [], count = Array.isArray(exits) ? exits.length : exits;
   const delays = [];
   for (let k = 0, at = 0; k < count; k++) {
     if (k) at += EXIT_STAGGER.gap + EXIT_STAGGER.jitter * (2 * random() - 1);
-    delays.push(at);
+    delays.push(EXIT_TABLE[resolveExit(names[k])]?.simultaneous ? 0 : at);
   }
   return delays;
 }
