@@ -63,12 +63,12 @@ export const SCURRY = {
  * Round 19 ("Add a gentle vertical bob to the dice after they lift. Hold just a hair longer before the portal opens
  * up"): once it has risen it bobs up and down, `bob` radii either way every `bobPeriod`, easing in over `bobEase`
  * after the rise and out over `bobEase` before the pull, so it starts and ends at rest, half its width up; the
- * final anticipation (anticipationRise then anticipationPause) occupies the last part of the open-hole hover:
+ * final anticipation (anticipationRise then anticipationPause) follows the open-hole hover:
  * bobbing settles first, then anticipationLift radii are added and held through the start of suction. The
  * beat before the portal is 0.35 s (round 18's 0.25 s and a tenth). (Round 16 sat the die spinning ever faster
  * for a beat and sucked it down in three frames; round 14 pulled it slowly, trembling.)
  */
-export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.5, anticipationRise: 0.12, anticipationPause: 0.06, anticipationLift: 0.3, spin: 0.35 / 2, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225, herald: 0.5, heraldRise: 3 };
+export const PIT = { rise: 0.3, lift: 1, bob: 0.1, bobPeriod: 0.6, bobEase: 0.2, beat: 0.35, open: 0.18, hover: 0.32, anticipationRise: 0.12, anticipationPause: 0.14, anticipationLift: 0.3, spin: 0.35 / 2, suck: 6 / 24, depth: 6, power: 2, stretch: 0.25, close: 0.18 / 0.8 / 1.25, early: 2 / 24, linger: 1.225, herald: 0.5, heraldRise: 3 };
 
 /**
  * Shatter (owner 2026-10-27: "Yes start the shatter ... Let's start with 10 pieces +-3. Take the idea all the way to a
@@ -148,17 +148,17 @@ export const MELT_FADES = MELT.soften + MELT.slumpBy + MELT.slump;
 /** When Going down's hole starts to open: the die risen and its beat sat out. */
 export const PIT_OPENS = PIT.rise + PIT.beat;
 
-/** When Going down's pull starts: the hole open and the hover over it sat out. */
-export const PIT_PULL = PIT_OPENS + PIT.open + PIT.hover;
+/** The open-hole hover settles before a short final lift. */
+export const PIT_ANTICIPATES = PIT_OPENS + PIT.open + PIT.hover;
 
-/** A short final lift and still beat fit inside the end of the open-hole hover. */
-export const PIT_ANTICIPATES = PIT_PULL - PIT.anticipationRise - PIT.anticipationPause;
+/** Suction follows the final lift and its still beat at the apex. */
+export const PIT_PULL = PIT_ANTICIPATES + PIT.anticipationRise + PIT.anticipationPause;
 
 export const EXIT_TABLE = {
   none: { label: 'None', seconds: 0 },          // at once (round 4: "put none at the top of the list")
   burn: { label: 'Burn out', seconds: BURN.heat + BURN.hold - BURN.early + BURN.fade + 0.3 + BURN.stainFade },   // 2.6 s
   smoke: { label: 'Smoke puff', seconds: 1.8 },
-  pit: { label: 'Going down', seconds: PIT_PULL + PIT.suck + PIT.close + PIT.linger },   // 2.985 s: until the pit's last cinder and smoke have gone (round 20)
+  pit: { label: 'Going down', seconds: PIT_PULL + PIT.suck + PIT.close + PIT.linger },   // 3.065 s: until the pit's last cinder and smoke have gone (round 20)
   fade: { label: 'Fade', seconds: 0.6 },          // round 14: "twice as quick" (round 5 had slowed it to 1.2)
   scurry: { label: 'Scurry off', seconds: SCURRY.grow + SCURRY.lift + SCURRY.wonder + SCURRY.run },   // 2.3 s
   shatter: { label: 'Shatter', seconds: SHATTER.crack + SHATTER.fly + SHATTER.fade },   // 1.9 s (owner 2026-10-27)
