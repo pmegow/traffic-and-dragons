@@ -2,6 +2,25 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1373",
+      "actions": [
+        "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
+        "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
+        "The map's additions are safer: an invented room never displaces a drawn one, and each refusal says why.",
+        "A room named through an invented building gets one place on the map, and a tap inside an added building no longer removes it.",
+        "An invented building without a trade word is drawn larger when a room the story names will not fit.",
+        "A room re-stated inside an invented building keeps its one place; a room named through a square finds its inn.",
+        "A pair the GM writes under a building it just invented is that building's room; a place put on a landmark draws no rooms.",
+        "Dice gain larger classic dots, optional Large Numbers, and a Teal Glass preset with consistent preset names.",
+        "Going Down pauses longer at the top, and metal dice regain gentle recessed numbers and dots.",
+        "During character creation the progress bar also jumps ahead to any step already reached, after a change made on an earlier one.",
+        "In character creation, a subrace or lineage card's granted spells and abilities open their reference cards on a click."
+      ],
+      "sourceCommit": "964755f002948b3aea11c5e4d6ab5e717e1ed71c",
+      "commit": "964755f002948b3aea11c5e4d6ab5e717e1ed71c",
+      "releasedAt": "2026-11-08T06:32:11Z"
+    },
+    {
       "version": "v1.1372",
       "actions": [
         "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
