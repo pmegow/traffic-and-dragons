@@ -1888,6 +1888,14 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     stubs(); engine.makeTestWorld(); atlasForget(); quiet(); A = atlasCreate("campaign-1"); point("A shipwreck on the Blighted Coast"); key = atlasWorldKey(atlasPointer());
     atlasKindSet(A, key, { kind: "open", size: null, settlement: null, ground: null, by: "model" }); atlasFollow();
     assert.equal(A.off, null); site = siteOf(A, A.names[key].zone); assert(!site.coast, "the generic landing is not on the shore here: " + JSON.stringify(site.coast));
+    /* the fit is the library's own reading of the sheet, not the candidate list's promise: a list that opens with that inland ground is passed over until a sheet reads the sea */
+    var realPts = ATLAS_OPEN_GROUNDS.coast.points, inland = TnDMaps.wild.zoneAt(reg, A.zones[A.names[key].zone].via);
+    ATLAS_OPEN_GROUNDS.coast.points = function (doc, c) { return [[inland.cx, inland.cy]].concat(realPts(doc, c)); };
+    try {
+      stubs(); engine.makeTestWorld(); atlasForget(); quiet(); A = atlasCreate("campaign-1"); point("A shipwreck on the Blighted Coast"); key = atlasWorldKey(atlasPointer());
+      atlasKindSet(A, key, { kind: "open", size: null, settlement: null, ground: "coast", by: "model" }); atlasFollow();
+      assert.equal(A.off, null, JSON.stringify(A.off)); site = siteOf(A, A.names[key].zone); assert(site.coast && site.coast.bearing, "the inland candidate was passed over for a sheet that reads the sea: " + JSON.stringify(site.coast));
+    } finally { ATLAS_OPEN_GROUNDS.coast.points = realPts; }
   });
 
   test("#710 a forest, a riverbank, the hills, the mountains and the plain: a start on a named ground lands on a sheet of that ground — the library's own reading of its site — the nearest to the capital", function () {
