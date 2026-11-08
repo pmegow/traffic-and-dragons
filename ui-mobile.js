@@ -1,6 +1,6 @@
 // Responsive layout over the existing renderers: the shared side drawer and the phone chrome. No saved game writes.
 var mobileUI={ready:false,width:0,selected:"party",phone:false};
-var MOBILE_PANELS=[{key:"party",label:"Pty",name:"Party"},{key:"quest",label:"Qst",name:"Quests"},{key:"inv",label:"Inv",name:"Inventory"},{key:"ab",label:"Ab",name:"Abilities"},{key:"sp",label:"Sp",name:"Spells"}];
+var MOBILE_PANELS=[{key:"party",label:"Pty",name:"Party"},{key:"quest",label:"Qst",name:"Quests"},{key:"inv",label:"Inv",name:"Inventory"},{key:"ab",label:"Ab",name:"Abilities"},{key:"sp",label:"Sp",name:"Spells"},{key:"map",label:"Map",name:"Map"}];/* #711: the Map tab shows only in a campaign with an atlas (mobile.css on body.atlas-on); its panel is the atlas dock (ui-atlas.js) */
 function mobilePhone(){return window.matchMedia("(max-width:600px)").matches;}
 function mobileEl(id){return document.getElementById(id);}
 function mobileDrawerWidth(width){
@@ -16,7 +16,10 @@ function mobileToggleDrawer(){mobileDrawerWidth(mobileUI.width>0?0:Math.min(360,
 function mobileSelectPanel(key){
   mobileUI.selected=key;
   MOBILE_PANELS.forEach(function(x){var selected=key===x.key,b=mobileEl("mobile-tab-"+x.key);mobileEl("pss-"+x.key).classList.toggle("mobile-selected",selected);b.setAttribute("aria-selected",selected?"true":"false");b.tabIndex=selected?0:-1;});
+  if(key==="map"&&typeof atlasDockMount==="function")atlasDockMount();/* #711: the Map tab holds the atlas pane; a closed drawer sizes it when it opens */
 }
+/* the tabs the keyboard walks: the ones shown (the Map tab is hidden without an atlas) */
+function mobileVisibleTabs(){return MOBILE_PANELS.filter(function(x){var b=mobileEl("mobile-tab-"+x.key);return !!b&&b.offsetParent!==null;});}
 function mobileLayout(){
   if(!mobileUI.ready)return;
   var phone=mobilePhone(),tts=mobileEl("tts-btn");
@@ -62,7 +65,7 @@ function mobileInit(){
   grip.innerHTML="<button id='mobile-grab' type='button' role='separator' aria-label='Resize side panel' aria-orientation='vertical' aria-valuemin='0' aria-valuenow='0' title='Drag to resize; double tap to open or close; arrow keys also resize'></button>";
   mobileEl("story-area").insertBefore(grip,mobileEl("rpanel"));
   var tabs=document.createElement("div");tabs.id="mobile-panel-tabs";tabs.setAttribute("role","tablist");tabs.setAttribute("aria-orientation","vertical");tabs.setAttribute("aria-label","Side panel");
-  MOBILE_PANELS.forEach(function(x,i){var b=document.createElement("button");b.id="mobile-tab-"+x.key;b.textContent=x.label;b.title=x.name;b.setAttribute("aria-label",x.name);b.setAttribute("role","tab");b.setAttribute("aria-controls","pss-"+x.key);b.addEventListener("click",function(){mobileSelectPanel(x.key);if(!mobileUI.width)mobileToggleDrawer();});b.addEventListener("keydown",function(e){var step={ArrowDown:1,ArrowUp:-1},at=i;if(step[e.key])at=(i+step[e.key]+MOBILE_PANELS.length)%MOBILE_PANELS.length;else if(e.key==="Home")at=0;else if(e.key==="End")at=MOBILE_PANELS.length-1;else return;e.preventDefault();var key=MOBILE_PANELS[at].key;mobileSelectPanel(key);mobileEl("mobile-tab-"+key).focus();});tabs.appendChild(b);});mobileEl("rpanel").appendChild(tabs);
+  MOBILE_PANELS.forEach(function(x,i){var b=document.createElement("button");b.id="mobile-tab-"+x.key;b.textContent=x.label;b.title=x.name;b.setAttribute("aria-label",x.name);b.setAttribute("role","tab");b.setAttribute("aria-controls","pss-"+x.key);b.addEventListener("click",function(){mobileSelectPanel(x.key);if(!mobileUI.width)mobileToggleDrawer();});b.addEventListener("keydown",function(e){var step={ArrowDown:1,ArrowUp:-1},vis=mobileVisibleTabs(),i=Math.max(0,vis.indexOf(x)),at=i;if(step[e.key])at=(i+step[e.key]+vis.length)%vis.length;else if(e.key==="Home")at=0;else if(e.key==="End")at=vis.length-1;else return;e.preventDefault();var key=vis[at].key;mobileSelectPanel(key);mobileEl("mobile-tab-"+key).focus();});tabs.appendChild(b);});mobileEl("rpanel").appendChild(tabs);
   var grab=mobileEl("mobile-grab"),drag=null,lastTap=null;
   // Measure travel over the whole gesture, so dragging out and back is never a double tap.
   function move(e){if(!drag||drag.id!==e.pointerId)return;var dx=drag.x-e.clientX,dy=drag.y-e.clientY;

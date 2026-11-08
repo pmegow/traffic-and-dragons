@@ -27,6 +27,11 @@
 #mobile-panel-tabs button[aria-selected=true]{color:var(--acc);background:var(--bg2)}
 #mobile-panel-tabs #tts-btn{font-size:13px;margin-top:2px}
 #mobile-panel-tabs button:focus-visible{outline:1px solid var(--acc);outline-offset:-2px}
+/* #711: the Map tab and its panel — the atlas pane's dock. The tab shows only in a campaign that has an atlas (body.atlas-on,
+   painted by atlasDoorPaint); the panel is a flex column the dock fills, never a scroller (the canvas pans itself) */
+#mobile-tab-map{display:none}body.atlas-on #mobile-tab-map{display:block}
+#rpanel #pss-map{overflow:hidden;padding:0}#rpanel #pss-map.mobile-selected{display:flex!important;flex-direction:column}
+#atlas-dock{display:flex;flex-direction:column;flex:1;min-height:0;width:100%}#atlas-dock #atlas-stage{flex:1;min-height:120px}
 @media(max-width:600px){
  #game-screen{height:100dvh!important;overflow:hidden}
  #topbar{position:relative;padding:7px 11px 6px;padding-top:max(7px,var(--top-inset));gap:5px}

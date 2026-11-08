@@ -1,11 +1,11 @@
-/* TnD Maps 0.14.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.15.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.14.0";
+  NS.VERSION = "0.15.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -6408,6 +6408,8 @@
         scaleBoxEmpty: { fill: land, stroke: ink, width: 0.8 },
         compass: { fill: land, stroke: ink, width: 0.9 },
         compassDark: { fill: ink, stroke: ink, width: 0.9 },
+        /* the view's HUD (v0.15.0): the paper under the screen-fixed title and scale bar */
+        hudPlaque: { fill: paper, stroke: ink, width: 0.7, alpha: 0.92, join: "round" },
         /* town scale */
         water: { fill: pond, stroke: ink, width: 1.3, join: "round" },
         riverBand: { fill: pond, stroke: ink, width: 0.9, join: "round" },
@@ -6532,7 +6534,11 @@
         wildFeature: { font: SERIF, size: 7.5, style: "italic", letterSpacing: 0.3, fill: ink, halo: paper, haloWidth: 2, back: { shape: "plaque", s: "slip" } },
         labelMarker: { font: SERIF, size: 11, weight: "bold", letterSpacing: 0.4, fill: red, halo: paper, haloWidth: 2.6, back: { shape: "plaque", s: "slip" } },
         labelMarkerNote: { font: SERIF, size: 9.5, style: "italic", fill: ink, halo: paper, haloWidth: 2.4, back: { shape: "plain", s: "slip" } },
-        compass: { font: SERIF, size: 11, weight: "bold", fill: ink, halo: land, haloWidth: 2.5 }
+        compass: { font: SERIF, size: 11, weight: "bold", fill: ink, halo: land, haloWidth: 2.5 },
+        /* the view's HUD (v0.15.0), sized in CSS pixels: the sheet's title and subtitle, the scale bar's figures */
+        hudTitle: { font: SERIF, size: 15, weight: "bold", letterSpacing: 2.5, transform: "uppercase", fill: ink, halo: paper, haloWidth: 3 },
+        hudSubtitle: { font: SERIF, size: 10, style: "italic", letterSpacing: 1, fill: soft, halo: paper, haloWidth: 2.5 },
+        hudSmall: { font: SERIF, size: 10, letterSpacing: 0.4, fill: ink, halo: paper, haloWidth: 2.5 }
       }
     };
   }
@@ -6880,31 +6886,71 @@
     }
     out.push(plainText("N", "compass", cx, cy - r - 4, style));
   }
-  /* a scale bar about a fifth of the frame wide, in km or metres; the third line is travel days (region) or minutes
-     on foot at 5 km/h (town) */
-  function scaleBar(frame, x, y, out, lay, style) {
-    var kmPerUnit = frame.kmPerUnit, targetUnits = frame.width * 0.18, candidates = [0.002, 0.005, 0.01, 0.025, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000], best = candidates[0], i;
-    for (i = 0; i < candidates.length; i++) if (Math.abs(candidates[i] / kmPerUnit - targetUnits) < Math.abs(best / kmPerUnit - targetUnits)) best = candidates[i];
-    var w = best / kmPerUnit, seg = w / 4, k, label = best < 1 ? Math.round(best * 1000) + " m" : best + " km";
+  /* the scale bar's length: the round distance whose bar comes nearest the target — shared by the sheet's own bar (a fifth
+     of the frame, in map units) and the view's HUD (a fifth of the view, in CSS pixels at the current zoom). The third
+     line is travel days (a region), minutes on foot, or paces (a building) */
+  var SCALE_STEPS = [0.002, 0.005, 0.01, 0.025, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000];
+  function scaleChoice(kmPerUnit, targetUnits, travelKmPerDay) {
+    var best = SCALE_STEPS[0], i;
+    for (i = 0; i < SCALE_STEPS.length; i++) if (Math.abs(SCALE_STEPS[i] / kmPerUnit - targetUnits) < Math.abs(best / kmPerUnit - targetUnits)) best = SCALE_STEPS[i];
+    return { km: best, w: best / kmPerUnit, label: best < 1 ? Math.round(best * 1000) + " m" : best + " km",
+      third: travelKmPerDay ? Math.round(best / travelKmPerDay * 10) / 10 + " days on foot" : best < 0.05 ? Math.round(best * 1000 / 0.75) + " paces" : Math.max(1, Math.round(best / 5 * 60)) + " min on foot" };
+  }
+  /* a scale bar about a fifth of the frame wide, in km or metres; o.targetUnits and o.textKey are the HUD's (a fifth of
+     the view, its own text size) */
+  function scaleBar(frame, x, y, out, lay, style, o) {
+    o = o || {};
+    var c = scaleChoice(frame.kmPerUnit, o.targetUnits || frame.width * 0.18, frame.travelKmPerDay), w = c.w, seg = w / 4, k, key = o.textKey || "small";
     for (k = 0; k < 4; k++) out.push({ t: "path", pts: [[x + seg * k, y], [x + seg * (k + 1), y], [x + seg * (k + 1), y + 5], [x + seg * k, y + 5]], closed: true, s: k % 2 ? "scaleBoxEmpty" : "scaleBox" });
-    out.push(plainText("0", "small", x, y - 4, style));
-    out.push(plainText(label, "small", x + w, y - 4, style));
-    var third = frame.travelKmPerDay ? Math.round(best / frame.travelKmPerDay * 10) / 10 + " days on foot" : best < 0.05 ? Math.round(best * 1000 / 0.75) + " paces" : Math.max(1, Math.round(best / 5 * 60)) + " min on foot";   /* a building: paces, not minutes */
-    out.push(plainText(third, "small", x + w / 2, y + 16, style));
+    out.push(plainText("0", key, x, y - 4, style));
+    out.push(plainText(c.label, key, x + w, y - 4, style));
+    out.push(plainText(c.third, key, x + w / 2, y + 16, style));
     lay.block(x + w / 2, y + 4, w + 40, 34);
+    return c;
   }
   /* frame, title with its rule and subtitle, compass, scale bar — in the box the scene draws (frame.x0/y0 when it is
      a window of the document, as a dungeon's is) */
-  function furniture(frame, title, subtitle, style, out, lay) {
-    var W = frame.width, H = frame.height, X = frame.x0 || 0, Y = frame.y0 || 0, tw = NS.style.textWidth(title, style.text.title);
-    out.push({ t: "path", pts: [[X, Y], [X + W, Y], [X + W, Y + H], [X, Y + H]], closed: true, s: "frame" });
-    out.push({ t: "path", pts: [[X + 7, Y + 7], [X + W - 7, Y + 7], [X + W - 7, Y + H - 7], [X + 7, Y + H - 7]], closed: true, s: "frameInner" });
+  /* frameOut (v0.15.0): the layer the two frame rectangles go to — their own `frame` layer, so a view that lifts the furniture
+     off the paper (the HUD) keeps the sheet's edge drawn */
+  function furniture(frame, title, subtitle, style, out, lay, frameOut) {
+    var W = frame.width, H = frame.height, X = frame.x0 || 0, Y = frame.y0 || 0, tw = NS.style.textWidth(title, style.text.title), fo = frameOut || out;
+    fo.push({ t: "path", pts: [[X, Y], [X + W, Y], [X + W, Y + H], [X, Y + H]], closed: true, s: "frame" });
+    fo.push({ t: "path", pts: [[X + 7, Y + 7], [X + W - 7, Y + 7], [X + W - 7, Y + H - 7], [X + 7, Y + H - 7]], closed: true, s: "frameInner" });
     out.push(plainText(title, "title", X + W / 2, Y + 46, style));
     out.push({ t: "path", pts: [[X + W / 2 - tw / 2 - 16, Y + 56], [X + W / 2 + tw / 2 + 16, Y + 56]], closed: false, s: "rule" });
     out.push(plainText(subtitle, "subtitle", X + W / 2, Y + 72, style));
     lay.block(X + W / 2, Y + 48, tw + 60, 70);
     compassRose(X + W - 62, Y + 68, 34, out, style); lay.block(X + W - 62, Y + 66, 90, 100);
     scaleBar(frame, X + 34, Y + H - 42, out, lay, style);
+  }
+
+  /* the view's HUD (v0.15.0): the sheet's title and subtitle, a compass and a scale bar drawn SCREEN-FIXED in CSS pixels —
+     the furniture the sheet carries, lifted off the paper so a pan or a zoom leaves it where it is, the bar re-measured at
+     the zoom (the round distance whose bar comes nearest a fifth of the view; the label changes, the bar stays about as
+     wide). Pure: scene + document + transform + the view's size → commands; the view hides the scene's `furniture` layer
+     while it draws these. A long title is squeezed to its plaque (the renderer scales text to `width`); the compass drops
+     below the title where the plaque would reach it. */
+  function hudScene(scene, doc, T, w, h, style) {
+    var out = [], furn = null, title = null, sub = null, i, tw, pw, ph, tcmd, scmd, bw, cy, c;
+    function plaque(x, y, pw, ph) { var r = 4; return { t: "path", pts: [[x + r, y], [x + pw - r, y], [x + pw, y + r], [x + pw, y + ph - r], [x + pw - r, y + ph], [x + r, y + ph], [x, y + ph - r], [x, y + r]], closed: true, s: "hudPlaque" }; }
+    for (i = 0; i < scene.layers.length; i++) if (scene.layers[i].name === "furniture") furn = scene.layers[i].items;
+    (furn || []).forEach(function (cmd) { if (cmd.t !== "text") return; if (cmd.s === "title") title = cmd.text; else if (cmd.s === "subtitle") sub = cmd.text; });
+    if (title === null) title = (doc.title && doc.title.name) || "";
+    /* the title plaque, top centre */
+    tw = Math.max(NS.style.textWidth(title, style.text.hudTitle), sub ? NS.style.textWidth(sub, style.text.hudSubtitle) : 0);
+    pw = Math.max(40, Math.min(w - 16, tw + 28)); ph = sub ? 42 : 28;
+    out.push(plaque(w / 2 - pw / 2, 8, pw, ph));
+    tcmd = plainText(title, "hudTitle", w / 2, 8 + 19, style); tcmd.width = Math.min(tcmd.width, pw - 20); out.push(tcmd);
+    if (sub) { scmd = plainText(sub, "hudSubtitle", w / 2, 8 + 34, style); scmd.width = Math.min(scmd.width, pw - 20); out.push(scmd); }
+    /* the compass, top right — below the title's plaque when that would reach it */
+    cy = (w / 2 + pw / 2 > w - 56) ? 8 + ph + 28 : 32;
+    compassRose(w - 30, cy, 17, out, style);
+    /* the scale bar, bottom left: a fifth of the view wide, re-measured at this zoom */
+    bw = Math.max(48, Math.min(220, w * 0.2));
+    c = scaleChoice(doc.frame.kmPerUnit / T.k, bw, doc.frame.travelKmPerDay);
+    out.push(plaque(8, h - 50, c.w + 36, 44));
+    scaleBar({ kmPerUnit: doc.frame.kmPerUnit / T.k, width: 0, travelKmPerDay: doc.frame.travelKmPerDay }, 20, h - 26, out, { block: function () {} }, style, { targetUnits: bw, textKey: "hudSmall" });
+    return out;
   }
 
   /* ── the region scene ── */
@@ -6945,8 +6991,8 @@
 
     /* labels: title and furniture first (fixed), then places by importance, then seas, features, lakes, rivers.
        Two layers so a viewer can switch feature names off and keep the place names (or the other way round). */
-    var furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
-    furniture(doc.frame, doc.title.name, "a map of the region", style, furn, lay);
+    var frameL = layer("frame"), furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
+    furniture(doc.frame, doc.title.name, "a map of the region", style, furn, lay, frameL);
 
     var order = { city: 0, town: 1, village: 2 };
     doc.places.slice().sort(function (a, b) { return order[a.kind] - order[b.kind] || b.score - a.score; }).forEach(function (pl) {
@@ -7008,7 +7054,7 @@
   }
 
   NS.scene = { build: build, BUILDERS: BUILDERS, HIT_SOURCES: HIT_SOURCES, hitTarget: hitTarget, GLYPHS: GLYPHS, ribbon: ribbon,
-    common: { jitter: jitter, Layout: Layout, textCommand: textCommand, hitBox: hitBox, labelGeometry: labelGeometry, SLIP: SLIP, SLIPS: SLIPS, compassRose: compassRose, scaleBar: scaleBar, furniture: furniture, plainText: plainText } };
+    common: { jitter: jitter, Layout: Layout, textCommand: textCommand, hitBox: hitBox, labelGeometry: labelGeometry, SLIP: SLIP, SLIPS: SLIPS, compassRose: compassRose, scaleBar: scaleBar, scaleChoice: scaleChoice, furniture: furniture, hudScene: hudScene, plainText: plainText } };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 71-scene-town.js ───── */
@@ -7143,9 +7189,9 @@
     trees.forEach(function (t) { (t[3] === 1 ? GLYPHS.reed : GLYPHS.tree)({ x: t[0], y: t[1], s: t[2] }, TREE_UNIT, gly); });
 
     /* furniture and labels */
-    var furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
+    var frameL = layer("frame"), furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
     var sizeWord = doc.size === "city" ? "city" : doc.size, subtitle = "a plan of the " + sizeWord + (doc.site && doc.site.regionName ? " · " + doc.site.regionName : "");
-    C.furniture(doc.frame, doc.title.name, subtitle, style, furn, lay);
+    C.furniture(doc.frame, doc.title.name, subtitle, style, furn, lay, frameL);
     doc.landmarks.forEach(function (l) { if (l.kind === "temple" || l.kind === "keep") lay.block(l.x, l.y, 16, 16); else if (l.kind === "outfall") lay.block(l.x, l.y, 12, 12); });
     doc.establishments.forEach(function (e) { if (e.building === null) lay.block(e.x, e.y, 13, 13); });   /* a grate in the street must stay visible under the labels */
     var order = { market: 0, green: 0, keep: 1, temple: 2, harbour: 3, gate: 4, outfall: 5 }, downIds = {};
@@ -7627,8 +7673,8 @@
     });
 
     /* furniture and labels: the ways in and out first, then the rooms by size */
-    var furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
-    C.furniture({ x0: X, y0: Y, width: W, height: H, kmPerUnit: doc.frame.kmPerUnit }, doc.title.name, NS.dungeon.caption(doc), style, furn, lay);
+    var frameL = layer("frame"), furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
+    C.furniture({ x0: X, y0: Y, width: W, height: H, kmPerUnit: doc.frame.kmPerUnit }, doc.title.name, NS.dungeon.caption(doc), style, furn, lay, frameL);
     ups.forEach(function (p) {
       var sz = style.text.labelLandmark.size, off = p.kind === "cave" ? 10 : 8, text = p.name || (p.kind === "outfall" ? "the outfall" : "a way up");
       var cands = [{ x: p.x, y: p.y + off + sz * 0.8 }, { x: p.x, y: p.y - off - sz * 0.4 }, { x: p.x + off, y: p.y + sz * 0.36, anchor: "start" }, { x: p.x - off, y: p.y + sz * 0.36, anchor: "end" }, { x: p.x, y: p.y + off + sz * 2 }, { x: p.x, y: p.y - off - sz * 1.6 }];
@@ -7778,8 +7824,8 @@
     rooms.forEach(function (r) { var bb = G.bbox(r.floorPoly); hits.push({ t: "hit", kind: "room", id: r.id, x: r.x, y: r.y, r: Math.max(0.6 * K, Math.min(bb[2] - bb[0], bb[3] - bb[1]) * 0.45) }); });
 
     /* furniture of the sheet, the floor captions, the labels */
-    var furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
-    C.furniture({ x0: X, y0: Y, width: W, height: H, kmPerUnit: doc.frame.kmPerUnit }, doc.title.name, I.caption(doc), style, furn, lay);
+    var frameL = layer("frame"), furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
+    C.furniture({ x0: X, y0: Y, width: W, height: H, kmPerUnit: doc.frame.kmPerUnit }, doc.title.name, I.caption(doc), style, furn, lay, frameL);
     doc.floors.forEach(function (f) {
       var bb = G.bbox(f.outline), cx = (bb[0] + bb[2]) / 2, y = bb[3] + 18, cmd = C.plainText(f.name, "labelFloor", cx, y, style);
       furn.push(cmd); lay.block(cx, y - 4, cmd.width + 12, 14);
@@ -7924,8 +7970,8 @@
       hits.push({ t: "hit", kind: "feature", id: f.id, x: f.x, y: f.y, r: 11 });
     });
     /* furniture and labels */
-    var furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
-    C.furniture(doc.frame, doc.title.name, NS.wild.caption(doc), style, furn, lay);
+    var frameL = layer("frame"), furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
+    C.furniture(doc.frame, doc.title.name, NS.wild.caption(doc), style, furn, lay, frameL);
     doc.portals.forEach(function (p) {
       if (p.kind === "edge") return;
       var sz = style.text.labelCave.size, r = 9, icon = p.kind === "cave" ? ["cave", "arrowDown"] : null, key = p.kind === "cave" ? "labelCave" : "labelVillage";
@@ -8162,6 +8208,7 @@
     NS.assert(canvas && canvas.getContext, "view needs a <canvas> element", { canvas: String(canvas) });
     opts = opts || {};
     var styleName = opts.style || "ink", scene = null, baseScene = null, markers = [], layers = {}, listeners = {}, hits = [];
+    var hud = !!opts.hud;   /* v0.15.0: the title, compass and scale bar drawn screen-fixed over the map (scene.common.hudScene) instead of on the paper — the scene's furniture layer is hidden while it is on; exports keep the sheet's own */
     var T = { x: 0, y: 0, k: 1 };                 /* map → CSS px: screen = map * k + (x, y) */
     var base = document.createElement("canvas"), baseT = null, baseDirty = true, raf = 0, idleTimer = 0;
     var hover = null, selected = null, dpr = 1, destroyed = false, pointer = null, pinch = null, suppressClick = false, userMoved = false;
@@ -8193,7 +8240,7 @@
       bctx.setTransform(1, 0, 0, 1, 0, 0);
       bctx.fillStyle = opts.background || "#d9d0bd"; bctx.fillRect(0, 0, base.width, base.height);
       bctx.setTransform(T.k * dpr, 0, 0, T.k * dpr, T.x * dpr, T.y * dpr);
-      NS.renderCanvas(bctx, scene, { layers: layers });
+      NS.renderCanvas(bctx, scene, { layers: hud ? U.extend({}, layers, { furniture: false }) : layers });
       baseT = { x: T.x, y: T.y, k: T.k }; baseDirty = false;
     }
     /* present: the base bitmap, re-projected if the transform moved since it was drawn, then the hover overlay */
@@ -8211,8 +8258,15 @@
       if (sel) ring(sel, true);
       if (hover && !(sel && hover.kind === sel.kind && hover.id === sel.id)) ring(hover, false);
       if (overlay) drawOverlay();
+      if (hud) drawHud();
       var th = pressed || hover, tc = th ? tipOf[th.kind + "/" + th.id] : null;
       if (tc) drawTip(tc);
+    }
+    /* the HUD: the sheet's furniture in CSS pixels at the identity transform, screen-fixed (the tip still reads over it) */
+    function hudItems() { var s = cssSize(); if (!scene) rebuildScene(); return NS.scene.common.hudScene(scene, doc, T, s.w, s.h, NS.style.get(styleName)); }
+    function drawHud() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      NS.renderCanvas(ctx, { style: scene.style, x0: 0, y0: 0, width: 0, height: 0, layers: [{ name: "hud", items: hudItems() }] }, { paper: false });
     }
     /* the tip: one of the scene's plaques, drawn through the renderer above everything */
     function drawTip(cmd) {
@@ -8337,6 +8391,10 @@
       markers: function () { return markers; },
       setStyle: function (name) { NS.style.get(name); styleName = name; rebuildScene(); schedule(); return api; },
       setLayerVisible: function (name, visible) { layers[name] = visible !== false; baseDirty = true; schedule(); return api; },
+      /* setHud(on) — the title, compass and scale bar screen-fixed over the map (re-measured at every zoom) instead of drawn on the paper; hudScene() the commands it draws now, for a test */
+      setHud: function (on) { hud = !!on; baseDirty = true; schedule(); return api; },
+      hud: function () { return hud; },
+      hudScene: function () { return hud ? hudItems() : null; },
       /* fog of war: draw only these room and passage ids (a dungeon); null lifts it. Markers stay; setDoc clears it */
       setReveal: function (list) { reveal = Array.isArray(list) ? list.slice() : null; rebuildScene(); schedule(); return api; },
       reveal: function () { return reveal ? reveal.slice() : null; },
