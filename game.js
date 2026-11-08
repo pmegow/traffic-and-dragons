@@ -4577,10 +4577,9 @@ async function syncCharSheet(){
 }
 function newGame(){
   if(busy){if(typeof showToast==="function")showToast("Finish the current turn first.");return;}// audit E23
-  var modal=document.createElement("div");modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;";
-  modal.innerHTML='<div style="background:#181818;border:1px solid #6a2020;border-radius:10px;padding:28px 24px;max-width:340px;width:90%;text-align:center;"><p style="font-size:16px;color:var(--t0);margin-bottom:8px;">Start a new campaign?</p><p style="font-size:13px;color:var(--t2);margin-bottom:24px;">Your current playthrough will be saved and can be resumed from Campaigns.</p><div style="display:flex;gap:10px;"><button id="ng-cancel" style="flex:1;padding:10px;font-family:var(--font);background:#222;border:1px solid #444;border-radius:6px;color:var(--t1);cursor:pointer;">Cancel</button><button id="ng-go" style="flex:1;padding:10px;font-family:var(--font);background:#6a2020;border:1px solid #8b2a2a;border-radius:6px;color:var(--t0);cursor:pointer;font-weight:bold;">New game</button></div></div>';
-  document.body.appendChild(modal);
-  document.getElementById("ng-cancel").addEventListener("click",function(){modal.remove();});
+  /* #710: on modalShell (focus contained, Escape cancels) and on the palette's tokens — the hand-written dark box read as a hole in the light scheme */
+  var modal=modalShell("newgame-modal",'<p style="font-size:16px;color:var(--t0);margin-bottom:8px;">Start a new campaign?</p><p style="font-size:13px;color:var(--t2);margin-bottom:24px;">Your current playthrough will be saved and can be resumed from Campaigns.</p><div style="display:flex;gap:10px;"><button id="ng-cancel" style="flex:1;padding:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);border-radius:var(--r);color:var(--t1);cursor:pointer;">Cancel</button><button id="ng-go" style="flex:1;padding:10px;font-family:var(--font);background:var(--dng);border:1px solid var(--dng);border-radius:var(--r);color:var(--on-dng);cursor:pointer;font-weight:bold;">New game</button></div>',
+    {z:200,bg:.75,closeId:"ng-cancel",boxCss:"background:var(--modal-bg);border:1px solid var(--dng);border-radius:var(--rl);padding:28px 24px;max-width:340px;width:100%;text-align:center;"});
   document.getElementById("ng-go").addEventListener("click",function(){
     modal.remove();
     if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */

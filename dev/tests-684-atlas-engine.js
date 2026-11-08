@@ -1694,14 +1694,14 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     p = atlasStartAsk({ name: "Harrowmere", region: "", description: "", premise: "" }); assert(/no description/i.test(p.user), "no description is said, not left blank: " + p.user);
     for (i = 0; i < 300; i++) long += "words of a long description "; p = atlasStartAsk({ name: "X", region: "", description: long, premise: long });
     assert(p.user.length < 2400, "a long description and premise are cut for the ask: " + p.user.length);
-    assert.deepEqual(atlasStartParse('{"kind":"open","size":null,"settlement":null}'), { kind: "open", size: null, settlement: null });
-    assert.deepEqual(atlasStartParse('Sure! {"kind":"settlement","size":"town"} — done'), { kind: "settlement", size: "town", settlement: null }, "the JSON is read out of chatter");
-    assert.deepEqual(atlasStartParse('{"kind":"settlement"}'), { kind: "settlement", size: "village", settlement: null }, "a settlement without a size is a village");
-    assert.deepEqual(atlasStartParse('{"kind":"settlement","size":"metropolis"}'), { kind: "settlement", size: "village", settlement: null }, "a size the map cannot draw falls to village");
-    assert.deepEqual(atlasStartParse('{"kind":"inside","size":"city","settlement":"  Sigil "}'), { kind: "inside", size: "city", settlement: "Sigil" });
-    assert.deepEqual(atlasStartParse('{"kind":"inside","settlement":"Sigil"}'), { kind: "inside", size: "town", settlement: "Sigil" }, "a place inside a settlement of no stated size: a town");
-    assert.deepEqual(atlasStartParse('{"kind":"inside","settlement":null}'), { kind: "inside", size: "town", settlement: null }, "inside with no name is kept as such — the adoption refuses it, the parse does not invent");
-    assert.deepEqual(atlasStartParse('{"kind":"open","size":"town","settlement":"Sigil"}'), { kind: "open", size: null, settlement: null }, "open country has no size and no settlement");
+    assert.deepEqual(atlasStartParse('{"kind":"open","size":null,"settlement":null}'), { kind: "open", size: null, settlement: null , ground: null });
+    assert.deepEqual(atlasStartParse('Sure! {"kind":"settlement","size":"town"} — done'), { kind: "settlement", size: "town", settlement: null , ground: null }, "the JSON is read out of chatter");
+    assert.deepEqual(atlasStartParse('{"kind":"settlement"}'), { kind: "settlement", size: "village", settlement: null , ground: null }, "a settlement without a size is a village");
+    assert.deepEqual(atlasStartParse('{"kind":"settlement","size":"metropolis"}'), { kind: "settlement", size: "village", settlement: null , ground: null }, "a size the map cannot draw falls to village");
+    assert.deepEqual(atlasStartParse('{"kind":"inside","size":"city","settlement":"  Sigil "}'), { kind: "inside", size: "city", settlement: "Sigil" , ground: null });
+    assert.deepEqual(atlasStartParse('{"kind":"inside","settlement":"Sigil"}'), { kind: "inside", size: "town", settlement: "Sigil" , ground: null }, "a place inside a settlement of no stated size: a town");
+    assert.deepEqual(atlasStartParse('{"kind":"inside","settlement":null}'), { kind: "inside", size: "town", settlement: null , ground: null }, "inside with no name is kept as such — the adoption refuses it, the parse does not invent");
+    assert.deepEqual(atlasStartParse('{"kind":"open","size":"town","settlement":"Sigil"}'), { kind: "open", size: null, settlement: null , ground: null }, "open country has no size and no settlement");
     assert.equal(atlasStartParse('{"kind":"inside","settlement":12}').settlement, null, "a settlement that is not a string is none");
     assert.equal(atlasStartParse('{"kind":"inside","settlement":"' + long + '"}').settlement.length, 80, "a settlement name is cut at 80");
     [null, undefined, "", "I think it is a village", '{"kind":"castle"}', '{"size":"town"}', "[1,2]", "{kind:open}"].forEach(function (bad) { assert.equal(atlasStartParse(bad), null, "unreadable: " + JSON.stringify(bad)); });
@@ -1843,6 +1843,116 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     i = src.indexOf("async function beginAdventure("); body = src.slice(i, src.indexOf("\n}\n", i));
     j = body.indexOf("await atlasClassifyStart("); assert(j > 0 && j < body.indexOf("await callGM(intro)"), "beginAdventure asks the story before the opening is written");
     assert(body.indexOf("await atlasClassifyStart(function(tx){setThinking(th,") === j, "the wait is said on the thinking marker through the status callback");
+  });
+
+  /* ── #710 (owner 2026-11-07, "go through all the starting points; make sure they're supported by our mapping system"): the ten
+     wizard starts. A shipwreck is a shore, a clearing is a forest, a dungeon's mouth is a cave of the realm, a tavern or a guild
+     hall is INSIDE a settlement the text does not name — so the classifier answers the GROUND of an open start and chooses the
+     settlement from the map's own list, and the adoption lands the start on that ground (the library's own reading of the wild
+     sheet's site), ties a cave start to the realm's nearest cave, refuses water and a ground the realm lacks with the reason, and
+     puts an inside start into a settlement the realm already has without laying another. */
+  function siteOf(A, zoneId) { return TnDMaps.wild.fromRegion(atlasDoc(A.seed), A.zones[zoneId].via).site; }
+  function distOf(A, zoneId, p) { var z = TnDMaps.wild.zoneAt(atlasDoc(A.seed), A.zones[zoneId].via); return Math.sqrt(Math.pow(z.cx - p.x, 2) + Math.pow(z.cy - p.y, 2)); }
+
+  test("#710 the ground is asked and read: the ask names every ground and lists the map's own settlements; the parse reads a ground for open country only, and a ground the map cannot stand on is none", function () {
+    var ask = atlasStartAsk({ name: "A shipwreck on the Blighted Coast", region: "", description: "", premise: "", settlements: ["Great Brem (city)", "Wrei (town)"] });
+    Object.keys(ATLAS_OPEN_GROUNDS).forEach(function (k) { var row = ATLAS_OPEN_GROUNDS[k]; assert(row.word && (row.points || row.biome || row.thing || row.refuse), "row " + k + " is whole"); assert(ask.system.indexOf('"' + k + '"') >= 0, "the system names the ground " + k); });
+    assert(ask.system.indexOf('"ground"') >= 0 && /choose the settlement from the map's own list/.test(ask.system), "the answer carries the ground; an inside place the text leaves unnamed is put in one of the map's settlements");
+    assert(ask.user.indexOf("Great Brem (city), Wrei (town)") >= 0, "the user text lists the settlements: " + ask.user);
+    assert(/none drawn/.test(atlasStartAsk({ name: "X" }).user), "no settlements is said, not left blank");
+    assert.deepEqual(atlasStartParse('{"kind":"open","size":null,"settlement":null,"ground":"coast"}'), { kind: "open", size: null, settlement: null, ground: "coast" });
+    assert.deepEqual(atlasStartParse('{"kind":"open","ground":" Forest "}'), { kind: "open", size: null, settlement: null, ground: "forest" });
+    assert.deepEqual(atlasStartParse('{"kind":"open","ground":"volcano"}'), { kind: "open", size: null, settlement: null, ground: null }, "a ground the table lacks is none, never a guess");
+    assert.deepEqual(atlasStartParse('{"kind":"open","ground":12}'), { kind: "open", size: null, settlement: null, ground: null });
+    assert.deepEqual(atlasStartParse('{"kind":"settlement","size":"town","ground":"coast"}'), { kind: "settlement", size: "town", settlement: null, ground: null }, "a settlement has no ground");
+    assert.deepEqual(atlasStartParse('{"kind":"inside","settlement":"Wrei","ground":"forest"}'), { kind: "inside", size: "town", settlement: "Wrei", ground: null });
+    /* the context carries the realm's settlements */
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet(); var A = atlasCreate("campaign-1"), reg = atlasDoc(A.seed), ctx = atlasStartContext();
+    assert.deepEqual(ctx.settlements, reg.places.map(function (p) { return p.name + " (" + p.kind + ")"; }), JSON.stringify(ctx.settlements));
+    delete worldState.atlas; assert.deepEqual(atlasStartContext().settlements, [], "no atlas: none");
+  });
+
+  test("#710 a shore: a shipwreck start lands on the coast — the wild sheet the party stands in reads the sea beside it, the GM is told the shore and the sea's side, no village is drawn; without a ground the start lands on the nearest open ground as before", function () {
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+    var A = atlasCreate("campaign-1"), reg = atlasDoc(A.seed), n = reg.places.length, key, tie, site, told;
+    point("A shipwreck on the Blighted Coast"); key = atlasWorldKey(atlasPointer());
+    atlasKindSet(A, key, { kind: "open", size: null, settlement: null, ground: "coast", by: "model" });
+    atlasFollow();
+    assert.equal(A.off, null, "on the map: " + JSON.stringify(A.off)); assert.equal(edits(A, A.seed).length, 0, "nothing drawn"); assert.equal(atlasDoc(A.seed).places.length, n);
+    tie = A.names[key]; assert(tie && tie.id === null && tie.by === "story" && A.zones[tie.zone].kind === "wild", JSON.stringify(tie)); assert.equal(A.at, tie.zone, "the party stands in it");
+    site = siteOf(A, tie.zone); assert(site.coast && site.coast.bearing, "the sheet reads the sea beside it: " + JSON.stringify(site.coast));
+    told = atlasToldLines(A); assert(told.some(function (t) { return /is open country on this map, on a shore \d+ km from /.test(t) && /the sea to the [NESW]+/.test(t) && /not a settlement/.test(t); }), JSON.stringify(told));
+    assert(toasts.some(function (t) { return /open country on a shore/.test(t); }), toasts.join(" | ")); assert(!warns.length, warns.join(" | "));
+    assert(/the story's own description placed it there/.test(atlasWhere().text), atlasWhere().text);
+    /* no ground: the nearest open ground, which on this realm is inland plain */
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet(); A = atlasCreate("campaign-1"); point("A shipwreck on the Blighted Coast"); key = atlasWorldKey(atlasPointer());
+    atlasKindSet(A, key, { kind: "open", size: null, settlement: null, ground: null, by: "model" }); atlasFollow();
+    assert.equal(A.off, null); site = siteOf(A, A.names[key].zone); assert(!site.coast, "the generic landing is not on the shore here: " + JSON.stringify(site.coast));
+  });
+
+  test("#710 a forest, a riverbank, the hills, the mountains and the plain: a start on a named ground lands on a sheet of that ground — the library's own reading of its site — the nearest to the capital", function () {
+    ["forest", "river", "hills", "mountain", "plain"].forEach(function (g) {
+      stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+      var A = atlasCreate("campaign-1"), cap = atlasDoc(A.seed).places[0], key, tie, site, row = ATLAS_OPEN_GROUNDS[g];
+      point("A forest clearing near ancient ruins"); key = atlasWorldKey(atlasPointer());
+      atlasKindSet(A, key, { kind: "open", size: null, settlement: null, ground: g, by: "model" }); atlasFollow();
+      assert.equal(A.off, null, g + ": " + JSON.stringify(A.off)); tie = A.names[key]; site = siteOf(A, tie.zone);
+      assert(row.fits ? row.fits(site) : site.biome === row.biome, g + ": the sheet's site is that ground: " + JSON.stringify({ biome: site.biome, river: site.river, rivers: site.rivers && site.rivers.length }));
+      assert(distOf(A, tie.zone, cap) < 320, g + ": near the capital, not across the realm: " + Math.round(distOf(A, tie.zone, cap)) + " px");
+      assert(atlasToldLines(A).some(function (t) { return t.indexOf("on " + row.word) > 0; }), g + ": told " + JSON.stringify(atlasToldLines(A)));
+      assert.equal(edits(A, A.seed).length, 0, g + ": nothing drawn"); assert(!warns.length, g + ": " + warns.join(" | "));
+    });
+  });
+
+  test("#710 a cave: a dungeon's mouth is the realm's nearest cave no name holds — the story's name is tied to it by the story, the party stands at its mouth, and a second cave start takes the next cave", function () {
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+    var A = atlasCreate("campaign-1"), reg = atlasDoc(A.seed), cap = reg.places[0], caves = reg.caves.slice().sort(function (a, b) { return Math.pow(a.x - cap.x, 2) + Math.pow(a.y - cap.y, 2) - Math.pow(b.x - cap.x, 2) - Math.pow(b.y - cap.y, 2); }), key, tie, told;
+    assert(caves.length >= 2, "the fixture realm has caves");
+    point("The mouth of an ancient dungeon"); key = atlasWorldKey(atlasPointer());
+    atlasKindSet(A, key, { kind: "open", size: null, settlement: null, ground: "cave", by: "model" }); atlasFollow();
+    tie = A.names[key]; assert(tie && tie.zone === A.seed && tie.id === caves[0].id && tie.by === "story", "tied to the nearest cave: " + JSON.stringify(tie) + " vs " + caves[0].id);
+    assert.equal(A.off, null, JSON.stringify(A.off)); assert.equal(edits(A, A.seed).length, 0, "nothing drawn");
+    told = atlasToldLines(A); assert(told.some(function (t) { return t.indexOf("is " + caves[0].name + " on this map") > 0 && /a cave \d+ km from /.test(t); }), JSON.stringify(told));
+    assert(/is at .* on this map: the story's own description placed it there\./.test(atlasWhere().text), atlasWhere().text);
+    assert(A.at === A.seed ? A.spot === caves[0].id : A.zones[A.at].kind === "dungeon" && A.zones[A.at].via === caves[0].id, "the party stands at the cave, or at its mouth inside: " + JSON.stringify([A.at, A.spot, A.zones[A.at]]));
+    assert(toasts.some(function (t) { return t.indexOf("is " + caves[0].name) > 0; }), toasts.join(" | "));
+    /* the next cave start takes the next cave */
+    quiet(); point("The Barrow of Kings"); key = atlasWorldKey(atlasPointer()); atlasKindSet(A, key, { kind: "open", size: null, settlement: null, ground: "cave", by: "model" }); atlasFollow();
+    assert.equal(A.names[key] && A.names[key].id, caves[1].id, "the next cave: " + JSON.stringify(A.names[key]));
+  });
+
+  test("#710 refused with the reason: a start on the water, and a ground this realm lacks — never the nearest heath; the tap is offered and places it", function () {
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+    var A = atlasCreate("campaign-1"), key, was, r;
+    point("Aboard the Sea Hag"); key = atlasWorldKey(atlasPointer());
+    atlasKindSet(A, key, { kind: "open", size: null, settlement: null, ground: "water", by: "model" }); atlasFollow();
+    assert(A.off && A.off.absent && /on the water/.test(A.off.why) && /tap the shore/.test(A.off.why), JSON.stringify(A.off)); assert.equal(edits(A, A.seed).length, 0); assert(!A.names[key], "no tie");
+    assert(toasts.some(function (t) { return /on the water/.test(t); }), toasts.join(" | ")); assert(atlasMapBlock().indexOf("on the water") > 0, "the GM reads it");
+    quiet(); atlasFollow(); assert.deepEqual(toasts, [], "said once");
+    /* a ground no cell of this realm holds */
+    was = ATLAS_OPEN_GROUNDS.marsh.biome; ATLAS_OPEN_GROUNDS.marsh.biome = "glass";
+    try { atlasKindSet(A, key, { kind: "open", size: null, settlement: null, ground: "marsh", by: "model" }); A.ptr = null; quiet(); atlasFollow(); } finally { ATLAS_OPEN_GROUNDS.marsh.biome = was; }
+    assert(A.off && A.off.absent && /no marsh was found on this map/.test(A.off.why) && /tap/.test(A.off.why), JSON.stringify(A.off)); assert.equal(edits(A, A.seed).length, 0, "no guessed landing"); assert(!A.names[key], "no tie");
+    assert(toasts.some(function (t) { return /no marsh was found/.test(t); }), toasts.join(" | "));
+    /* the tap places it */
+    r = atlasPlace(A.seed, { id: atlasDoc(A.seed).places[1].id }, { level: "world", name: "Aboard the Sea Hag" }); assert(r.ok, JSON.stringify(r)); assert.equal(A.off, null);
+  });
+
+  test("#710 inside a settlement the realm already has: the story put the tavern in a town of the map's own list — no settlement is laid, the town's sheet is opened, the tavern is added on it and the story's name tied to that building; a settlement name a cave bears is refused", function () {
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet();
+    var A = atlasCreate("campaign-1"), reg = atlasDoc(A.seed), town = reg.places.filter(function (p) { return p.kind === "town"; })[0], cave = reg.caves[0], key, tie, told;
+    point("The Salted Wound Tavern"); key = atlasWorldKey(atlasPointer());
+    atlasKindSet(A, key, { kind: "inside", size: "town", settlement: town.name, ground: null, by: "model" }); atlasFollow();
+    assert.equal(edits(A, A.seed).length, 0, "no settlement laid: " + JSON.stringify(edits(A, A.seed))); assert.equal(atlasDoc(A.seed).places.length, reg.places.length);
+    tie = A.names[key]; assert(tie && tie.id != null && tie.by === "story", JSON.stringify(tie)); assert(A.zones[tie.zone] && A.zones[tie.zone].kind === "town" && A.zones[tie.zone].via === town.id, "a thing on " + town.name + "'s own sheet: " + JSON.stringify(A.zones[tie.zone]));
+    assert(atlasFind(atlasDoc(tie.zone), "The Salted Wound Tavern").thing.id === tie.id, "the tavern is on the sheet, once, the tied thing");
+    assert.equal(A.off, null, JSON.stringify(A.off)); assert(atlasWhere().text.indexOf("The party is in The Salted Wound Tavern") === 0, atlasWhere().text);
+    told = atlasToldLines(A); assert(told.some(function (t) { return t.indexOf("is in " + town.name + " on this map") > 0; }), JSON.stringify(told)); assert(told.some(function (t) { return /The Salted Wound Tavern was added to the map of/.test(t); }), JSON.stringify(told));
+    assert(toasts.some(function (t) { return t.indexOf("is in " + town.name) > 0; }), toasts.join(" | ")); assert(adds(A).indexOf(key) >= 0 && A.adds[key].zone === tie.zone, "indexed as the engine's addition");
+    /* a settlement name that is a cave's: not a settlement */
+    stubs(); engine.makeTestWorld(); atlasForget(); quiet(); A = atlasCreate("campaign-1"); point("The Guild Hall of your order"); key = atlasWorldKey(atlasPointer());
+    atlasKindSet(A, key, { kind: "inside", size: "city", settlement: cave.name, ground: null, by: "model" }); atlasFollow();
+    assert(A.off && A.off.absent && /not a settlement/.test(A.off.why), JSON.stringify(A.off)); assert.equal(edits(A, A.seed).length, 0); assert(!A.names[key]);
   });
 
   console.warn = realWarn; console.info = realInfo;

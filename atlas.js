@@ -754,37 +754,41 @@ var ATLAS_START_KINDS={settlement:1,open:1,inside:1};
 var ATLAS_START_SIZES=["city","town","village"];/* the region library's settlement KINDS, largest first */
 var ATLAS_START_MAX_TOKENS=120;
 var ATLAS_START_CUT=900;
-var ATLAS_START_SYSTEM="You classify ONE place for a drawn fantasy map. Answer with one line of JSON and nothing else: {\"kind\":K,\"size\":S,\"settlement\":N}.\n"
-  +"K is one of: \"settlement\" (the place is itself a city, town or village), \"open\" (open country or a landmark outside any settlement: a clearing, a crossroads, a ford, a bridge, a ruin, a camp, a tower, a cave, a shrine, a battlefield, a shore), \"inside\" (a district, street, square, building or room within a settlement).\n"
+var ATLAS_START_SYSTEM="You classify ONE place for a drawn fantasy map. Answer with one line of JSON and nothing else: {\"kind\":K,\"size\":S,\"settlement\":N,\"ground\":G}.\n"
+  +"K is one of: \"settlement\" (the place is itself a city, town or village), \"open\" (open country or a landmark outside any settlement: a clearing, a crossroads, a ford, a bridge, a ruin, a camp, a tower, a fortress, a cave mouth, a shrine, a battlefield, a shore, a wreck, a ship at sea), \"inside\" (a district, street, square, building or room within a settlement).\n"
   +"S is the settlement's size, one of \"city\", \"town\" or \"village\": the place's own size for a settlement, the size of the settlement an inside place is within; null for open country.\n"
-  +"N is the name of the settlement an inside place is within, exactly as the text gives it; null when the text does not name it, and null for the other kinds. Never invent a settlement name.\n"
+  +"N is the settlement an inside place is within: its name exactly as the text gives it; when the text names none, choose the settlement from the map's own list that fits the place best and give its name exactly as listed; null for the other kinds. Never invent a settlement name.\n"
+  +"G is the ground an open place stands on, one of \"coast\" (a shore, a beach, a wreck washed up), \"river\" (a ford, a bridge, a bank), \"forest\", \"marsh\", \"hills\", \"mountain\", \"plain\", \"cave\" (a cave mouth, the way down into a dungeon or a barrow) or \"water\" (afloat or under the waves: a ship at sea, a raft); null when the text does not say, and null for the other kinds.\n"
   +"Judge by the description when there is one, by the name alone when there is not.";
 /* the ask, pure: {system, user} over {name, region, description, premise} — the description is the blueprint's (the start's
    map node), the premise the skeleton's; both cut so the ask stays a few hundred tokens */
 function atlasStartAsk(ctx){
   var c=ctx||{};
   function cut(s,n){s=String(s==null?"":s).replace(/\s+/g," ").trim();return s.length>n?s.slice(0,n-1).replace(/\s+\S*$/,"")+"\u2026":s;}
-  return {system:ATLAS_START_SYSTEM,user:"Place: "+cut(c.name,120)+"\nRegion: "+(cut(c.region,200)||"(not named)")+"\nDescription: "+(cut(c.description,ATLAS_START_CUT)||"No description was written; judge by the name.")+"\nThe campaign's premise: "+(cut(c.premise,700)||"(none)")+"\nAnswer with the one JSON line."};
+  return {system:ATLAS_START_SYSTEM,user:"Place: "+cut(c.name,120)+"\nRegion: "+(cut(c.region,200)||"(not named)")+"\nDescription: "+(cut(c.description,ATLAS_START_CUT)||"No description was written; judge by the name.")+"\nThe map's own settlements: "+(cut((c.settlements||[]).join(", "),600)||"(none drawn)")+"\nThe campaign's premise: "+(cut(c.premise,700)||"(none)")+"\nAnswer with the one JSON line."};
 }
 /* the answer, pure: {kind, size, settlement} or null when it cannot be read (never a guess): the first {…} in the text is
    the JSON; kind must be one of the three; a size the map cannot draw falls to village (town for a place inside); open
    country has neither; a settlement name is a string, one line, at most 80 characters */
 function atlasStartParse(text){
-  var s=String(text==null?"":text),i=s.indexOf("{"),j=s.lastIndexOf("}"),o,kind,size,name;
+  var s=String(text==null?"":text),i=s.indexOf("{"),j=s.lastIndexOf("}"),o,kind,size,name,ground;
   if(i<0||j<i)return null;
   try{o=JSON.parse(s.slice(i,j+1));}catch(e){return null;}
   if(!o||typeof o!=="object"||o instanceof Array)return null;
   kind=typeof o.kind==="string"?o.kind.trim().toLowerCase():"";if(!ATLAS_START_KINDS[kind])return null;
-  if(kind==="open")return {kind:"open",size:null,settlement:null};
+  if(kind==="open"){ground=typeof o.ground==="string"?o.ground.trim().toLowerCase():"";return {kind:"open",size:null,settlement:null,ground:ATLAS_OPEN_GROUNDS[ground]?ground:null};}/* #710: the ground, one of the table's rows or none */
   size=typeof o.size==="string"?o.size.trim().toLowerCase():"";if(ATLAS_START_SIZES.indexOf(size)<0)size=kind==="inside"?"town":"village";
   name=typeof o.settlement==="string"?o.settlement.replace(/[\u0000-\u001f]/g," ").replace(/\s+/g," ").trim().slice(0,80):"";
-  return {kind:kind,size:size,settlement:(kind==="inside"&&name)?name:null};
+  return {kind:kind,size:size,settlement:(kind==="inside"&&name)?name:null,ground:null};
 }
 /* what the campaign knows of the start place, read-only: the pointer's world place, the region, the blueprint's description
    (the map node's — applyBlueprint's single home for it), the skeleton's premise */
 function atlasStartContext(){
   var w=(typeof worldState!=="undefined"&&worldState&&worldState.world)||{},name=String(w.location||""),nodes=(typeof memory!=="undefined"&&memory&&memory.map&&memory.map.nodes)||null,node=nodes?(nodes[atlasLocKey(name)]||nodes[name]):null,sk=(typeof worldState!=="undefined"&&worldState)?worldState.skeleton:null;
-  return {name:name,region:String(w.region||""),description:(node&&node.description)?String(node.description):"",premise:(sk&&sk.premise)?String(sk.premise):""};
+  /* #710: the map's own settlements, so a place inside a settlement the text does not name can be put in one of them */
+  var A=atlasLive(),places=[];
+  if(A&&A.zones&&A.zones[A.seed]){try{places=(atlasDoc(A.seed).places||[]).map(function(q){return q.name+" ("+q.kind+")";});}catch(e){atlasSay("warn","the start's ask lists no settlements: "+((e&&e.message)||e));}}
+  return {name:name,region:String(w.region||""),description:(node&&node.description)?String(node.description):"",premise:(sk&&sk.premise)?String(sk.premise):"",settlements:places};
 }
 /* the kind hint for a story key — read through the identity layer, like a tie */
 function atlasKindHint(A,key){
@@ -802,16 +806,97 @@ function atlasStartMark(){
   if(!A||!p||A.adopt===false)return null;
   key=atlasWorldKey(p);atlasKindSet(A,key,{kind:"pending",by:"begin"});return key;
 }
+/* #710 (owner 2026-11-07, "make sure every starting point is supported"): the GROUND an open-country start stands on, as the
+   story says it. ONE table, a row per ground the classifier may answer: its word (said to the GM), where its candidate points
+   come from (the coast's own outline, the rivers' own courses, the realm's biome cells for a terrain) and the test a wild sheet
+   drawn at a point must pass (its site, the library's own reading of the ground). Two rows are not sheets: a cave is a THING of
+   the realm the story's name is tied to (the way down is that cave's own dungeon), and water has no place on a map of land —
+   refused with the reason. A ground the realm lacks is refused too, never the nearest heath (THE RULE). */
+var ATLAS_OPEN_GROUNDS={
+  coast:{word:"a shore",points:function(doc,c){return doc.sea&&doc.sea.present?atlasLinePoints(doc.coast,c,[0,1,2,3,5]):[];},fits:function(s){return !!s.coast;},absent:"this realm has no sea"},
+  river:{word:"a riverbank",points:function(doc,c){return atlasLinePoints((doc.rivers||[]).map(function(r){return r.pts;}),c,[0,2,4]);},fits:function(s){return !!(s.river||(s.rivers&&s.rivers.length));},absent:"this realm has no river"},
+  forest:{word:"a forest",biome:"forest"},
+  marsh:{word:"a marsh",biome:"marsh"},
+  hills:{word:"hill country",biome:"hills"},
+  mountain:{word:"the mountains",biome:"mountain"},
+  plain:{word:"open plain",biome:"plain"},
+  cave:{word:"a cave",thing:"cave"},
+  water:{word:"the open water",refuse:"the story puts it on the water, and the map holds land only; tap the shore where the party comes to land"}
+};
+var ATLAS_OPEN_TRIES=240;/* wild sheets drawn to find the ground (a quarter second for all of them) */
+var ATLAS_OPEN_CLEAR=30;/* px: a point this close to a settlement is that settlement's ground, not open country */
+/* the candidate points for a ground row, nearest the centre first: the row's own (a shore, a river), else the cells of its biome;
+   inside the frame and clear of the settlements */
+function atlasGroundFits(row,site){return row.fits?row.fits(site):site.biome===row.biome;}
+function atlasGroundPoints(doc,c,row){
+  var pts=row.points?row.points(doc,c):row.biome?atlasBiomePoints(doc,c,row.biome):[];
+  return pts.filter(function(p){return atlasOpenGround(doc,p);});
+}
+function atlasOpenGround(doc,p){
+  var i,q;
+  if(p[0]<40||p[1]<40||p[0]>doc.frame.width-40||p[1]>doc.frame.height-40)return false;
+  for(i=0;i<doc.places.length;i++){q=doc.places[i];if(Math.abs(q.x-p[0])<ATLAS_OPEN_CLEAR&&Math.abs(q.y-p[1])<ATLAS_OPEN_CLEAR)return false;}
+  return true;
+}
+function atlasByDistance(c){return function(a,b){return (Math.pow(a[0]-c[0],2)+Math.pow(a[1]-c[1],2))-(Math.pow(b[0]-c[0],2)+Math.pow(b[1]-c[1],2));};}
+/* every third vertex of each line, nearest first, each nudged toward the centre by the steps given (a shore vertex is the
+   water's edge itself: a step inland is land; a river's course is land already) */
+function atlasLinePoints(lines,c,nudges){
+  var verts=[],out=[];
+  (lines||[]).forEach(function(line){var i;for(i=0;i<line.length;i+=3)verts.push([line[i][0],line[i][1]]);});
+  verts.sort(atlasByDistance(c));
+  verts.forEach(function(v){var dx=c[0]-v[0],dy=c[1]-v[1],L=Math.sqrt(dx*dx+dy*dy)||1;nudges.forEach(function(n){out.push([Math.round(v[0]+dx/L*n),Math.round(v[1]+dy/L*n)]);});});
+  return out;
+}
+/* the centres of the realm's cells of a biome (the region's own biome bytes), nearest first */
+function atlasBiomePoints(doc,c,biome){
+  var out=[],bb,names,cols,rows,cw,ch,i;
+  if(!doc.fields||!doc.fields.biome)return out;
+  bb=TnDMaps.fieldBytes(doc.fields.biome);names=TnDMaps.terrain.BIOME_NAME;cols=doc.frame.cols;rows=doc.frame.rows;cw=doc.frame.width/cols;ch=doc.frame.height/rows;
+  for(i=0;i<bb.length&&i<cols*rows;i++)if(names[bb[i]]===biome)out.push([Math.round((i%cols+0.5)*cw),Math.round((Math.floor(i/cols)+0.5)*ch)]);
+  return out.sort(atlasByDistance(c));
+}
+/* the nearest thing of a kind on the realm's sheet that no story name is tied to yet */
+function atlasNearestThing(A,doc,kind,c){
+  var tied={},best=null,bd=Infinity;
+  Object.keys(A.names||{}).forEach(function(k){var t=A.names[k];if(t&&t.zone===A.seed&&t.id!=null)tied[t.id]=true;});
+  atlasThings(doc).forEach(function(t){var d;if(t.kind!==kind||tied[t.id])return;d=Math.pow(t.x-c[0],2)+Math.pow(t.y-c[1],2);if(d<bd){bd=d;best=t;}});
+  return best;
+}
+/* "N km from <the nearest settlement>" for a point of the realm */
+function atlasNearPlace(doc,p){
+  var best=null,bd=Infinity,kpu=(doc.frame&&doc.frame.kmPerUnit)||1;
+  (doc.places||[]).forEach(function(q){var d=Math.sqrt(Math.pow(q.x-p[0],2)+Math.pow(q.y-p[1],2));if(d<bd){bd=d;best=q;}});
+  return best?Math.round(bd*kpu)+" km from "+best.name:"";
+}
 /* WRITE: the start is OPEN country — a wild zone at a point of open ground beside the centre (the candidates around it, the
    centre last), tied to the story's name (by: "story"; the player's tap replaces it as any tie). Nothing is drawn: no edit,
    no addition — the land is the library's own. */
 function atlasAdoptOpen(A,storyKey,name,doc,centre,where,flush,refuse,entered){
-  var b=ATLAS_BUILDERS["region>wild"],pts=atlasRegionPoints(doc,centre).concat([centre]),i,z=null,why=null,land;
-  for(i=0;i<pts.length&&!z;i++){try{z=atlasOpen(A,A.seed,"wild",b.at(doc,pts[i]),null,entered);}catch(e){if(!atlasIsRefusal(e))throw e;why=atlasReason(e);z=null;}}
-  if(!z)return refuse("no open ground was found for it "+(where||"")+(why?" \u2014 "+why:""));
+  var hint=atlasKindHint(A,storyKey),ground=(hint&&hint.ground)||null,row=ground?ATLAS_OPEN_GROUNDS[ground]:null,b=ATLAS_BUILDERS["region>wild"],pts,i,z=null,why=null,land,tries=0,sheet,site=null,thing,detail;/* #710: the ground the story gave */
+  if(row&&row.refuse)return refuse(row.refuse);
+  if(row&&row.thing){
+    /* a THING of the realm (a cave): the story's name is tied to the nearest one no name holds yet — its way down is real */
+    thing=atlasNearestThing(A,doc,row.thing,centre);
+    if(!thing)return refuse("this realm has no "+row.word+" left that the story's place could be; tap where the party stands to place it");
+    A.names[storyKey]={zone:A.seed,id:thing.id,by:"story"};flush();
+    detail=row.word+" "+atlasNearPlace(doc,[thing.x,thing.y]);
+    atlasTell(A,"The story's "+name+" is "+thing.name+" on this map ("+detail+"); the way down is that cave's own. Nothing was drawn for it.");
+    atlasSay("info","the story's "+name+" is "+thing.name+" ("+detail+")");
+    if(typeof showToast==="function")showToast("Map: "+name+" is "+thing.name+", "+detail+".",5000);
+    return true;
+  }
+  pts=row?atlasGroundPoints(doc,centre,row):atlasRegionPoints(doc,centre).concat(atlasOpenGround(doc,centre)?[centre]:[]);
+  for(i=0;i<pts.length&&!z&&tries<ATLAS_OPEN_TRIES;i++){
+    if(row){tries++;try{sheet=TnDMaps.wild.fromRegion(doc,pts[i]);}catch(e){if(!atlasIsRefusal(e))atlasSay("warn","no wild sheet at "+pts[i].join(",")+": "+((e&&e.message)||e));continue;}
+      if(!atlasGroundFits(row,sheet.site))continue;site=sheet.site;}
+    try{z=atlasOpen(A,A.seed,"wild",b.at(doc,pts[i]),null,entered);}catch(e){if(!atlasIsRefusal(e))throw e;why=atlasReason(e);z=null;}
+  }
+  if(!z)return refuse(row?((row.absent&&!pts.length)?row.absent:"no "+row.word.replace(/^(?:a|an|the) /,"")+" was found on this map"+(tries>=ATLAS_OPEN_TRIES?" within reach":""))+"; tap where the party stands to place it":"no open ground was found for it "+(where||"")+(why?" \u2014 "+why:""));
   land=A.zones[z.zone].name||ATLAS_TIE_OPEN;
   A.names[storyKey]={zone:z.zone,id:null,by:"story"};
   flush();
+  if(row)where="on "+row.word+((site&&site.near)?" "+Math.round(site.near.km)+" km from "+site.near.name:" "+(where||"on the map"))+((ground==="coast"&&site&&site.coast&&site.coast.bearing)?", the sea to the "+site.coast.bearing:"");
   atlasTell(A,"The story's "+name+" is open country on this map, "+where+" (the land there: "+land+"); it is not a settlement, and nothing was drawn for it.");
   atlasSay("info","the story's "+name+" is open country "+where+" ("+land+")");
   if(typeof showToast==="function")showToast("Map: "+name+" is open country "+where+".",5000);
@@ -836,7 +921,7 @@ function atlasAdoptInside(A,p,storyKey,name,settlement,entered,undoSettlement){
 }
 
 function atlasAdopt(A,p,entered,from){
-  var off=A.off,isWorld=!off.within,name=off.segment!=null?off.segment:off.name,zone=isWorld?A.seed:(off.zone||off.within),rec=A.zones[zone],told=[],decl,doc,kind,e,i,pts,centre,party,thing,a,b,before,fpWas,paramsWas,where,drawn,hit,spotRoom,storyKey,refusal,lost,lostName,realm,lay,grown,grownNote="",grownWhy=null,hint,inside=false,undoSettlement;/* #708: hint/inside — the kind the story gave the start */
+  var off=A.off,isWorld=!off.within,name=off.segment!=null?off.segment:off.name,zone=isWorld?A.seed:(off.zone||off.within),rec=A.zones[zone],told=[],decl,doc,kind,e,i,pts,centre,party,thing,a,b,before,fpWas,paramsWas,where,drawn,hit,spotRoom,storyKey,refusal,lost,lostName,realm,lay,grown,grownNote="",grownWhy=null,hint,inside=false,undoSettlement,settled;/* #708: hint/inside — the kind the story gave the start */
   /* the key of the THING being added: the world, or the path up to the absent segment — never the pointer's whole path
      (review 2, finding 5: the pair "The Rat-Catcher's Rest — Snug" indexed the inn under the room's key, so the room was
      refused as 'added once already' and a later tap on the pair took the inn away) */
@@ -879,6 +964,13 @@ function atlasAdopt(A,p,entered,from){
       if(hint&&hint.kind==="inside"&&!hint.settlement)return refuse("the story puts it inside a settlement it does not name; tap where the party stands to place it");
       if(hint&&hint.kind==="open")return atlasAdoptOpen(A,storyKey,name,doc,centre,where,flush,refuse,entered);
       inside=!!(hint&&hint.kind==="inside");
+      if(inside){realm=atlasFind(doc,hint.settlement);/* #710: the settlement the story names is on the realm already (the model chose it from the map's own list, or a blueprint's town shares a name): nothing is laid, the place goes inside it */
+        if(realm&&realm.many)return refuse("more than one thing on the map of "+(rec.name||zone)+" bears the name "+hint.settlement+"; tap where the party stands to place it");
+        if(realm&&realm.thing){settled=doc.places.filter(function(q){return q.id===realm.thing.id;})[0];/* a thing's kind is its portal's ("place"); a settlement is one of the realm's places */
+          if(!settled)return refuse(hint.settlement+" on this map is "+(realm.thing.word||realm.thing.kind||"no settlement")+", not a settlement; tap where the party stands to place it");
+          flush();if(!atlasAdoptInside(A,p,storyKey,name,settled,entered,function(){}))return refuse("the map had no room for it inside "+hint.settlement);
+          atlasTell(A,"The story's "+name+" is in "+realm.thing.name+" on this map: the story put it there.");atlasSay("info","the story's "+name+" is in "+realm.thing.name);
+          if(typeof showToast==="function")showToast("Map: "+name+" is in "+realm.thing.name+".",5000);return true;}}
       pts=atlasRegionPoints(doc,centre);e={op:"add",id:atlasAddId(rec,"a"),name:inside?hint.settlement:name,kind:(hint&&hint.size)||"village"};}
     else if(rec.kind==="town"){kind=atlasAddKind(name);e={op:"add",id:atlasAddId(rec,"s"),name:name,at:[Math.round((centre[0]+12)*10)/10,Math.round((centre[1]+8)*10)/10]};
       if(kind.kind){e.kind=kind.kind;

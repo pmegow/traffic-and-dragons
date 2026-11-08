@@ -392,4 +392,45 @@ rc |= sabotage.prove({ file: "helpers.js", command: ENGINE, only: "FAIL #684 ", 
     mustFail: "FAIL #684 #708 honest when the kind is not known" }
 ] });
 
+/* #710 (owner 2026-11-07): EVERY STARTING POINT IS SUPPORTED — the ground of an open start (a shore, a river, a biome, a cave,
+   water), and a start inside a settlement the realm already has. Each clause runs its own #710 group. */
+rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", cases: [
+  { label: "a start on the water is landed on dry ground: the refusal is gone",
+    find: "  if(row&&row.refuse)return refuse(row.refuse);\n",
+    replace: "",
+    mustFail: "FAIL #684 #710 refused with the reason" },
+  { label: "the ground's own test is skipped: a shipwreck lands on the first open ground, sea or no sea",
+    find: "      if(!atlasGroundFits(row,sheet.site))continue;site=sheet.site;}",
+    replace: "      site=sheet.site;}",
+    mustFail: "FAIL #684 #710 a shore" },
+  { label: "a ground the realm lacks is not refused: the adoption goes on with no zone and fails for another reason",
+    find: "  if(!z)return refuse(row?",
+    replace: "  if(!z&&!row)return refuse(row?",
+    mustFail: "FAIL #684 #710 refused with the reason" },
+  { label: "the cave tie is written as the player's, not the story's",
+    find: "    A.names[storyKey]={zone:A.seed,id:thing.id,by:\"story\"};flush();",
+    replace: "    A.names[storyKey]={zone:A.seed,id:thing.id};flush();",
+    mustFail: "FAIL #684 #710 a cave" },
+  { label: "a cave a story name already holds is given to the next cave start too",
+    find: "if(t.kind!==kind||tied[t.id])return;",
+    replace: "if(t.kind!==kind)return;",
+    mustFail: "FAIL #684 #710 a cave" },
+  { label: "the parse drops the ground: every open start lands on the nearest open ground",
+    find: "ground:ATLAS_OPEN_GROUNDS[ground]?ground:null}",
+    replace: "ground:null}",
+    mustFail: "FAIL #684 #710 the ground is asked and read" },
+  { label: "the ask withholds the map's settlements: an unnamed inside start has nothing to be put in",
+    find: "+\"\\nThe map's own settlements: \"+(cut((c.settlements||[]).join(\", \"),600)||\"(none drawn)\")",
+    replace: "",
+    mustFail: "FAIL #684 #710 the ground is asked and read" },
+  { label: "a settlement the realm already has is laid again under its name",
+    find: "        if(realm&&realm.thing){settled=doc.places.filter(",
+    replace: "        if(false){settled=doc.places.filter(",
+    mustFail: "FAIL #684 #710 inside a settlement the realm already has" },
+  { label: "a cave's name is taken for the settlement an inside start is within",
+    find: "          if(!settled)return refuse(hint.settlement+\" on this map is \"",
+    replace: "          if(false)return refuse(hint.settlement+\" on this map is \"",
+    mustFail: "FAIL #684 #710 inside a settlement the realm already has" }
+] });
+
 process.exit(rc);
