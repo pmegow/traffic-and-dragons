@@ -176,9 +176,10 @@ t("returns the UNION shape — the once-divergent fields exist with their defaul
 });
 t("full field parity with the pre-#16 showChar literal (the superset copy)", function () {
   var w = blankWizardState();
-  // The exact literal showChar() assigned before the factory (ui.js pre-#16) — with ONE deliberate change since: #641
+  // The exact literal showChar() assigned before the factory (ui.js pre-#16) — with TWO deliberate changes since: #641
   // (owner 2026-10-16) leaves `author` UNSET (null) so the wizard's first render seeds it from the device's prose default.
-  var want = { tone: null, author: null, name: "", gender: "M", age: "early twenties", appear: "", mark: "", backstory: "", ancestry: null, fp: [], subrace: null, heritageVariant: null, cls: null, statMode: "roll", bs: { STR: 8, DEX: 8, CON: 8, INT: 8, WIS: 8, CHA: 8 }, rolled: false, deityEdited: false, portrait: null, portraitOffset: null, step: 1 };
+  // #705 (owner 2026-11-07) adds `reached`, the furthest step the player has been on, so the progress bar can link ahead.
+  var want = { tone: null, author: null, name: "", gender: "M", age: "early twenties", appear: "", mark: "", backstory: "", ancestry: null, fp: [], subrace: null, heritageVariant: null, cls: null, statMode: "roll", bs: { STR: 8, DEX: 8, CON: 8, INT: 8, WIS: 8, CHA: 8 }, rolled: false, deityEdited: false, portrait: null, portraitOffset: null, step: 1, reached: 1 };
   var r = eq(JSON.stringify(w), JSON.stringify(want), "shape");
   if (r !== true) return r;
   return eq(Object.keys(w).length, Object.keys(want).length, "key count");

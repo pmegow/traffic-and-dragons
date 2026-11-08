@@ -1658,12 +1658,54 @@ function runEngineTests(R){
     var ra=cc.slice(cc.indexOf("async function aiRandomiseAll("),cc.indexOf("// Inject sparkle buttons"));if(ra.indexOf("_csContext({fresh:true})")<0)return "the full roll does not ask for a fresh context";
     var sf=cc.slice(cc.indexOf("async function aiSuggestField("),cc.indexOf("async function aiRandomHero("));if(sf.indexOf('_csContext(fresh&&fieldId==="char-name"?{omit:"name"}:undefined)')<0)return "the per-field sparkle lost its context (a non-fresh field keeps the full context; the name ✦ omits only the name — #628)";
     /* the dots: lift buildDots and render for step 6 */
-    var bd=cc.slice(cc.indexOf("function buildDots("),cc.indexOf("}",cc.indexOf("el.innerHTML=h;"))+1);var made={};
-    var f=new Function("cs","document",bd+" return buildDots();");var el={innerHTML:""};f({step:6},{getElementById:function(id){return id==="stepdots"?el:null;}});
+    var bd=cc.slice(cc.indexOf("function buildDots("),cc.indexOf("function buildDnaStep("));var made={};/* #705: the lift carries wizardStepName; a document without the headings names a step "step N" */
+    var f=new Function("cs","document",bd+" return buildDots();");var el={innerHTML:""};f({step:6,reached:6},{getElementById:function(id){return id==="stepdots"?el:null;},querySelector:function(){return null;}});
     var dots=el.innerHTML.match(/<div class="dot[^>]*>/g)||[];if(dots.length!==6)return "six dots expected: "+el.innerHTML;
     if((el.innerHTML.match(/data-step="/g)||[]).length!==5||!/class="dot done" data-step="1" title="Back to step 1"/.test(el.innerHTML)||/class="dot active"[^>]*data-step/.test(el.innerHTML))return "finished steps are not back-links, or the active one is: "+el.innerHTML;
-    if(!/getElementById\("stepdots"\)\.addEventListener\("click"/.test(ub)||!/closest\(".dot.done"\)/.test(ub)||!/goStep\(parseInt\(d\.getAttribute\("data-step"\),10\)\)/.test(ub))return "stepdots click is not wired to goStep";
-    return /\.dot\.done\{background:var\(--blue\);cursor:pointer\}/.test(ih)?true:"a finished dot does not read as clickable";
+    if(!/getElementById\("stepdots"\)\.addEventListener\("click"/.test(ub)||!/closest\(".dot\[data-step\]"\)/.test(ub)||!/wizardJump\(parseInt\(d\.getAttribute\("data-step"\),10\)\)/.test(ub))return "stepdots click is not wired to wizardJump (#705)";
+    return /\.dot\.done,\.dot\.ahead\{background:var\(--blue\);cursor:pointer\}/.test(ih)?true:"a finished dot does not read as clickable";
+  });
+  t("#705 the progress bar links AHEAD to every step the player has reached: a dot past the active one up to cs.reached is an .ahead link named after its step, goStep records the furthest step, a jump ahead runs each step's WIZARD_STEP_COMMIT entry in order and stops at the first refusal (landing there), back is free, and every Next button goes through the same table",function(){
+    var cc=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8"),ub=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8"),ih=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8"),gl=__fsForTests.readFileSync(__rootForTests+"/globals.js","utf8");
+    if(!/step:1,reached:1\}/.test(gl))return "blankWizardState does not start reached at 1";
+    if(!/cs\.step=n;if\(n>\(cs\.reached\|\|0\)\)cs\.reached=n;/.test(cc))return "goStep does not record the furthest step";
+    /* the bar on step 4 of a wizard that has been to 5 */
+    var bd=cc.slice(cc.indexOf("function buildDots("),cc.indexOf("function buildDnaStep("));
+    var names={1:"Campaign DNA",2:"Identity",3:"Class",4:"Attributes",5:"Finishing Touches",6:"Review"};
+    var el={innerHTML:""},doc={getElementById:function(id){return id==="stepdots"?el:null;},querySelector:function(q){var m=/#step(\d) h2/.exec(q);return m&&names[m[1]]?{textContent:names[m[1]]}:null;}};
+    var paint=new Function("cs","document",bd+" return buildDots();");
+    paint({step:4,reached:5},doc);var dots=el.innerHTML.match(/<div class="dot[^>]*>/g)||[];
+    if(dots.length!==6)return "six dots expected: "+el.innerHTML;
+    if(dots[0]!=='<div class="dot done" data-step="1" title="Back to Campaign DNA">'||dots[2]!=='<div class="dot done" data-step="3" title="Back to Class">')return "a finished step is not a named back-link: "+el.innerHTML;
+    if(dots[3]!=='<div class="dot active">')return "the active dot is a link: "+dots[3];
+    if(dots[4]!=='<div class="dot ahead" data-step="5" title="Ahead to Finishing Touches">')return "the reached step ahead is not a link: "+dots[4];
+    if(dots[5]!=='<div class="dot ">')return "a step never reached is a link: "+dots[5];
+    paint({step:6,reached:6},doc);if(/ahead/.test(el.innerHTML)||(el.innerHTML.match(/data-step=/g)||[]).length!==5)return "on the last step every other dot is a back-link and none is ahead: "+el.innerHTML;
+    paint({step:1,reached:1},doc);if(/data-step=/.test(el.innerHTML))return "a fresh wizard has no links: "+el.innerHTML;
+    paint({step:3},doc);if((el.innerHTML.match(/data-step=/g)||[]).length!==2||/ahead/.test(el.innerHTML))return "a state without reached falls back to back-links only: "+el.innerHTML;
+    /* the jump: lift wizardCommit + wizardJump over a fake table */
+    var jp=cc.slice(cc.indexOf("function wizardCommit("),cc.indexOf("function goStep("));
+    var run=function(step,target,fails){var went=[],calls=[],st={step:step,reached:6},table={};[1,2,3,4,5].forEach(function(n){table[n]=function(){calls.push(n);return fails.indexOf(n)<0;};});
+      new Function("cs","WIZARD_STEP_COMMIT","goStep",jp+" wizardJump("+target+");")(st,table,function(n){went.push(n);st.step=n;});return {went:went,calls:calls};};
+    var r=run(2,5,[]);if(r.went.join()!=="5"||r.calls.join()!=="2,3,4")return "a clean jump ahead runs the steps between in order and lands once: "+JSON.stringify(r);
+    r=run(2,5,[3]);if(r.went.join()!=="3"||r.calls.join()!=="2,3")return "a refusal between lands on the refusing step and stops: "+JSON.stringify(r);
+    r=run(2,5,[2]);if(r.went.length||r.calls.join()!=="2")return "the current step's refusal stays put: "+JSON.stringify(r);
+    r=run(5,2,[2,3,4,5]);if(r.went.join()!=="2"||r.calls.length)return "back is free of checks: "+JSON.stringify(r);
+    r=run(3,3,[]);if(r.went.length||r.calls.length)return "the active dot is not a jump: "+JSON.stringify(r);
+    /* the table's entries refuse what the buttons used to refuse, in the same words */
+    var tb=cc.slice(cc.indexOf("function wizardRefuse("),cc.indexOf("function wizardCommit("));
+    var warns={},fd={getElementById:function(id){if(/^s\d-warn$/.test(id)){warns[id]=warns[id]||{textContent:"-"};return warns[id];}if(id==="tone-ct")return {value:"  "};return null;}};
+    var T=new Function("cs","document","ANCS",tb+" return WIZARD_STEP_COMMIT;");
+    if(T({tone:"custom"},fd,[])[1]()!==false||warns["s1-warn"].textContent!=="Describe your custom tone.")return "step 1 does not refuse an empty custom tone";
+    if(T({tone:"grim"},fd,[])[1]()!==true||warns["s1-warn"].textContent!=="")return "step 1 does not accept a preset tone and clear its warning";
+    if(T({cls:null},fd,[])[3]()!==false||warns["s3-warn"].textContent!=="Choose a class.")return "step 3 does not refuse a missing class";
+    if(T({rolled:false,statMode:"roll"},fd,[])[4]()!==false||warns["s4-warn"].textContent!=="Roll your stats first.")return "step 4 does not refuse unrolled stats";
+    if(T({rolled:false,statMode:"pb"},fd,[])[4]()!==true)return "step 4 refuses point-buy";
+    /* every Next button goes through the table and none keeps a check of its own */
+    var ids={"tone-next":1,"anc-next":2,"cls-next":3,"sts-next":4,"ft-next":5},id;
+    for(id in ids){if(ub.indexOf('getElementById("'+id+'").addEventListener("click",function(){if(wizardCommit('+ids[id]+'))goStep('+(ids[id]+1)+');})')<0)return id+" does not go through wizardCommit";}
+    if(/s[1-5]-warn/.test(ub.slice(ub.indexOf('getElementById("tone-next")'),ub.indexOf('getElementById("ft-next")')+200)))return "a Next handler still writes a warning of its own";
+    return /\.dot\.done,\.dot\.ahead\{background:var\(--blue\);cursor:pointer\}\.dot\.done:hover,\.dot\.ahead:hover\{background:var\(--acc\)\}/.test(ih)?true:"an ahead dot does not read as clickable like a finished one";
   });
   t("#379 no hero is a teenager: WIZARD_AGES carries no teen option, the youngest is in their twenties, the select mirrors the list, and rollRandomHero can only pick from it",function(){
     if(WIZARD_AGES.some(function(a){return /teen|child|kid|youth|adolesc/i.test(a);}))return "a teen age survives: "+JSON.stringify(WIZARD_AGES);
@@ -2156,7 +2198,7 @@ function runEngineTests(R){
       if(cc.indexOf('{id:"char-'+f+'"')===-1)return "no sparkle button for "+f;}
     if(s5.indexOf("(optional)")===-1)return "the persona fields must read as optional — blank stays null";
     if(cc.indexOf("trait:cs.trait||null,flaw:cs.flaw||null,motivation:cs.motivation||null")===-1)return "confirmChar must carry the wizard's persona fields (was hard-coded null)";
-    if(ub.indexOf('cs[k]=el?el.value.trim():""')===-1)return "the Next button must capture the three fields into cs";
+    if(cc.indexOf('cs[k]=el?el.value.trim():""')===-1||cc.indexOf("5:function(){cs.appear=")===-1)return "step 5's WIZARD_STEP_COMMIT entry must capture the three fields into cs (#705: the Next button runs it)";
     if(cc.indexOf('"trait":"one line","flaw":"one line","motivation":"one line"')===-1)return "Randomise must fill the persona fields too";
     if(cc.indexOf("Enter a name above")!==-1||cc.split("Enter a name below").length!==3)return "the review placeholder must say BELOW on both paths";
     if(cc.indexOf('dispNm=(_nmEl&&_nmEl.value.trim())||cs.name')===-1)return "the review name must read the live field first";

@@ -3,9 +3,12 @@ function buildDots(){
   var lvlEl=document.getElementById("rv-start-level");
   var needPerks=lvlEl&&parseInt(lvlEl.value)>=3;
   var total=needPerks?7:6;
-  var h="",i;for(i=1;i<=total;i++){h+='<div class="dot '+(i<cs.step?"done":i===cs.step?"active":"")+'"'+(i<cs.step?' data-step="'+i+'" title="Back to step '+i+'"':"")+'></div>';}/* #378: a finished step is a link back to it (roll another character from step 1) */
+  var reached=cs.reached||cs.step;
+  var h="",i,link;for(i=1;i<=total;i++){link=i!==cs.step&&i<=reached;h+='<div class="dot '+(i<cs.step?"done":i===cs.step?"active":i<=reached?"ahead":"")+'"'+(link?' data-step="'+i+'" title="'+(i<cs.step?"Back to ":"Ahead to ")+wizardStepName(i)+'"':"")+'></div>';}/* #378: a finished step is a link back to it (roll another character from step 1); #705: a step the player has reached is a link ahead to it too — back to Attributes to rethink an alignment, then ahead to Finishing Touches by the same bar (wizardJump runs the checks between) */
   el.innerHTML=h;
 }
+/* #705: a step's name for the bar's tooltip, read from its heading — "Back to Campaign DNA", "Ahead to Finishing Touches" */
+function wizardStepName(i){var h=document.querySelector?document.querySelector("#step"+i+" h2"):null;return h&&h.textContent?h.textContent:"step "+i;}
 function buildDnaStep(){
   var ts=document.getElementById("tone-sel"),as=document.getElementById("author-sel");
   if(!ts||!as)return;
@@ -256,8 +259,31 @@ function buildStep6Deity(){
   }
   if(inp&&!cs.deityEdited){inp.value=getDefaultDeity();}
 }
+/* #705: THE ONE table of what each wizard step requires before the next. An entry reads the step's fields into cs, writes
+   the step's warning line and answers whether the step is complete. The Next buttons (ui-boot.js) and the progress bar's
+   jump ahead (wizardJump) both go through it, so a jump can never skip a check a button would make. A step = an entry;
+   Review (6) has no next. */
+function wizardRefuse(n,msg){var w=document.getElementById("s"+n+"-warn");if(w)w.textContent=msg;return false;}
+function wizardAccept(n){var w=document.getElementById("s"+n+"-warn");if(w)w.textContent="";return true;}
+var WIZARD_STEP_COMMIT={
+  1:function(){if(cs.tone==="custom"){var t=document.getElementById("tone-ct");if(!t||!t.value.trim())return wizardRefuse(1,"Describe your custom tone.");}return wizardAccept(1);},
+  2:function(){cs.gender=document.getElementById("char-gender").value;cs.age=document.getElementById("char-age").value;if(!cs.ancestry)return wizardRefuse(2,"Choose an ancestry.");if(!cs.subrace)return wizardRefuse(2,"Choose a subrace.");var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(cs.ancestry==="halfblood"&&cs.subrace&&a&&a.subraces){var selH=null,hk2;for(hk2=0;hk2<a.subraces.length;hk2++){if(a.subraces[hk2].id===cs.subrace){selH=a.subraces[hk2];break;}}if(selH&&selH.lineages&&selH.lineages.length&&!cs.heritageVariant)return wizardRefuse(2,"Choose a "+selH.nm+" lineage.");}if(a&&a.fc>0&&cs.fp.length<a.fc)return wizardRefuse(2,"Choose "+a.fc+" stat bonuses.");return wizardAccept(2);},
+  3:function(){if(!cs.cls)return wizardRefuse(3,"Choose a class.");return wizardAccept(3);},
+  4:function(){if(!cs.rolled&&cs.statMode==="roll")return wizardRefuse(4,"Roll your stats first.");return wizardAccept(4);},
+  5:function(){cs.appear=document.getElementById("char-appear").value.trim();cs.backstory=document.getElementById("char-backstory").value.trim();["trait","flaw","motivation"].forEach(function(k){var el=document.getElementById("char-"+k);cs[k]=el?el.value.trim():"";});/* #353 */return wizardAccept(5);}
+};
+function wizardCommit(n){var f=WIZARD_STEP_COMMIT[n];return f?f():true;}
+/* #705: the progress bar's jump. Back is free, as the Back buttons are. Ahead runs every step from the current one up to
+   the target through the table in order — exactly what pressing Next through them would check — and stops at the first
+   step that is not complete, landing there with its warning shown. */
+function wizardJump(n){
+  var s;if(!(n>=1)||n===cs.step)return;
+  if(n<cs.step){goStep(n);return;}
+  for(s=cs.step;s<n;s++){if(!wizardCommit(s)){if(s!==cs.step)goStep(s);return;}}
+  goStep(n);
+}
 function goStep(n){
-  document.getElementById("step"+cs.step).classList.remove("active");cs.step=n;document.getElementById("step"+n).classList.add("active");buildDots();
+  document.getElementById("step"+cs.step).classList.remove("active");cs.step=n;if(n>(cs.reached||0))cs.reached=n;/* #705 */document.getElementById("step"+n).classList.add("active");buildDots();
   if(n===1)buildDnaStep();
   if(n===2){if(cs.ancestry){showAncDetail(cs.ancestry);}else{var gw=document.getElementById("anc-grid-wrap"),det=document.getElementById("anc-detail");if(gw)gw.style.display="block";if(det)det.style.display="none";buildAncGrid();}}
   if(n===3)buildClsGrid();if(n===4){buildStatGrid();if(cs.statMode==="pb")buildPBCtrls();buildStep6Deity();}if(n===5)buildFinishingTouches();if(n===6)buildReview();window.scrollTo(0,0);

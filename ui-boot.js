@@ -155,19 +155,19 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   var _gh=document.getElementById("api-signin-github");if(_gh)_gh.addEventListener("click",function(){signInFromApiScreen("github");});
   var _gg=document.getElementById("api-signin-google");if(_gg)_gg.addEventListener("click",function(){signInFromApiScreen("google");});
   var _bt=document.getElementById("api-byok-toggle");if(_bt)_bt.addEventListener("click",function(){var s=document.getElementById("api-byok-sec");var open=s.style.display==="none";s.style.display=open?"block":"none";_bt.innerHTML="I have my own API keys "+(open?"&#9652;":"&#9662;");});
-  document.getElementById("tone-next").addEventListener("click",function(){if(cs.tone==="custom"){var t=document.getElementById("tone-ct");if(!t||!t.value.trim()){document.getElementById("s1-warn").textContent="Describe your custom tone.";return;}}document.getElementById("s1-warn").textContent="";goStep(2);});
+  document.getElementById("tone-next").addEventListener("click",function(){if(wizardCommit(1))goStep(2);});/* #705: every Next runs its step's WIZARD_STEP_COMMIT entry (char-creation.js) */
   document.getElementById("id-back").addEventListener("click",function(){goStep(1);});
   document.getElementById("anc-back-detail").addEventListener("click",hideAncDetail);
-  document.getElementById("anc-next").addEventListener("click",function(){cs.gender=document.getElementById("char-gender").value;cs.age=document.getElementById("char-age").value;if(!cs.ancestry){document.getElementById("s2-warn").textContent="Choose an ancestry.";return;}if(!cs.subrace){document.getElementById("s2-warn").textContent="Choose a subrace.";return;}var i,a=null;for(i=0;i<ANCS.length;i++){if(ANCS[i].id===cs.ancestry){a=ANCS[i];break;}}if(cs.ancestry==="halfblood"&&cs.subrace&&a&&a.subraces){var selH=null,hk2;for(hk2=0;hk2<a.subraces.length;hk2++){if(a.subraces[hk2].id===cs.subrace){selH=a.subraces[hk2];break;}}if(selH&&selH.lineages&&selH.lineages.length&&!cs.heritageVariant){document.getElementById("s2-warn").textContent="Choose a "+selH.nm+" lineage.";return;}}if(a&&a.fc>0&&cs.fp.length<a.fc){document.getElementById("s2-warn").textContent="Choose "+a.fc+" stat bonuses.";return;}document.getElementById("s2-warn").textContent="";goStep(3);});
+  document.getElementById("anc-next").addEventListener("click",function(){if(wizardCommit(2))goStep(3);});
   document.getElementById("cls-back").addEventListener("click",function(){goStep(2);});
-  document.getElementById("cls-next").addEventListener("click",function(){if(!cs.cls){document.getElementById("s3-warn").textContent="Choose a class.";return;}document.getElementById("s3-warn").textContent="";goStep(4);});
+  document.getElementById("cls-next").addEventListener("click",function(){if(wizardCommit(3))goStep(4);});
   document.getElementById("sts-back").addEventListener("click",function(){goStep(3);});
-  document.getElementById("sts-next").addEventListener("click",function(){if(!cs.rolled&&cs.statMode==="roll"){document.getElementById("s4-warn").textContent="Roll your stats first.";return;}document.getElementById("s4-warn").textContent="";goStep(5);});
+  document.getElementById("sts-next").addEventListener("click",function(){if(wizardCommit(4))goStep(5);});
   document.getElementById("roll-btn").addEventListener("click",rollAllStats);
   document.getElementById("char-alignment").addEventListener("change",function(){if(!cs.deityEdited)buildStep6Deity();});
   document.getElementById("char-deity").addEventListener("input",function(){cs.deityEdited=this.value!==getDefaultDeity();});
   document.getElementById("ft-back").addEventListener("click",function(){goStep(4);});
-  document.getElementById("ft-next").addEventListener("click",function(){cs.appear=document.getElementById("char-appear").value.trim();cs.backstory=document.getElementById("char-backstory").value.trim();["trait","flaw","motivation"].forEach(function(k){var el=document.getElementById("char-"+k);cs[k]=el?el.value.trim():"";});/* #353 */goStep(6);});
+  document.getElementById("ft-next").addEventListener("click",function(){if(wizardCommit(5))goStep(6);});
   document.getElementById("ft-upload").addEventListener("click",function(){document.getElementById("ft-portrait-file").click();});
   document.getElementById("ft-portrait-file").addEventListener("change",function(){var file=this.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){compressPortrait(e.target.result,function(compressed){cs.portrait=compressed;refreshFtPortrait();});};reader.readAsDataURL(file);this.value="";});
   document.getElementById("ft-render").addEventListener("click",function(){ftRenderPortrait();});
@@ -278,7 +278,7 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   /* #23① sweep: the tone-step "↩ Import existing save" input was removed — redundant with File ▸ Import Character / Load Game (its importSave wiring went with it) */
   document.getElementById("open-blueprint-browser").addEventListener("click",showBlueprintBrowser);
   document.getElementById("random-hero").addEventListener("click",function(){aiRandomHero(this);});/* #354 */
-  document.getElementById("stepdots").addEventListener("click",function(e){var d=e.target&&e.target.closest?e.target.closest(".dot.done"):null;if(d&&typeof goStep==="function")goStep(parseInt(d.getAttribute("data-step"),10));});/* #378 */
+  document.getElementById("stepdots").addEventListener("click",function(e){var d=e.target&&e.target.closest?e.target.closest(".dot[data-step]"):null;if(d&&typeof wizardJump==="function")wizardJump(parseInt(d.getAttribute("data-step"),10));});/* #378 back, #705 ahead — the bar's jump runs the steps' checks */
   document.getElementById("blueprint-clear").addEventListener("click",clearBlueprint);
   document.getElementById("fm-sync-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";showSyncModal();});
   document.getElementById("fm-state-mob").addEventListener("click",function(){document.getElementById("file-menu").style.display="none";document.getElementById("sidebar").classList.toggle("open");});
