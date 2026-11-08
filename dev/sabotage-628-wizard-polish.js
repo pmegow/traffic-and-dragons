@@ -21,7 +21,7 @@ rc|=sabotage.prove({file:"char-creation.js",command:ENGINE,cases:[
    replace:'      var _nm=_it.cap+((_it.use&&_it.use!=="passive"&&_it.use!=="at-will")?" ("+_it.use+")":"");'},
   {label:"the subrace card stops listing its grants (the Cambion cards go blank again)",
    mustFail:"#628 ONE naming rule for a racial grant",
-   find:"var srGrants=racialCapsLabel(sr.racial_caps);",
+   find:"var srGrants=racialCapsHtml(sr.racial_caps);",
    replace:'var srGrants="";'},
   {label:"the name field is no longer fresh (the model improves the surname again)",
    mustFail:"#628 the name ✦ rolls a NEW name",

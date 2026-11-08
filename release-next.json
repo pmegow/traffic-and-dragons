@@ -1,5 +1,5 @@
 {
-  "version": "v1.1371",
+  "version": "v1.1372",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -10,6 +10,7 @@
     "A pair the GM writes under a building it just invented is that building's room; a place put on a landmark draws no rooms.",
     "Dice gain larger classic dots, optional Large Numbers, and a Teal Glass preset with consistent preset names.",
     "Going Down lifts the die higher before its brief pause and plunge into the portal.",
-    "During character creation the progress bar also jumps ahead to any step already reached, after a change made on an earlier one."
+    "During character creation the progress bar also jumps ahead to any step already reached, after a change made on an earlier one.",
+    "In character creation, a subrace or lineage card's granted spells and abilities open their reference cards on a click."
   ]
 }

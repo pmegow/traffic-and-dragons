@@ -35181,7 +35181,26 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(racialCapsLabel(["Abyssal Fury",{cap:"Intimidate",use:"1/day"}])!=="Abyssal Fury, Intimidate (1/day)"||racialCapsLabel([])!==""||racialCapsLabel(undefined)!=="")return "the label: "+racialCapsLabel(["Abyssal Fury",{cap:"Intimidate",use:"1/day"}]);
     var cc=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8");
     if(cc.indexOf("var _nm=racialCapName(_it);")<0)return "confirmChar no longer names a grant through racialCapName";
-    if(!/racialCapsLabel\(sr\.racial_caps\)/.test(cc)||!/racialCapsLabel\(lg\.racial_caps\)/.test(cc)||cc.split('class="sr-grants"').length-1!==2)return "the subrace and lineage cards do not list their grants (derived, one line each)";
+    if(!/racialCapsHtml\(sr\.racial_caps\)/.test(cc)||!/racialCapsHtml\(lg\.racial_caps\)/.test(cc)||cc.split('class="sr-grants"').length-1!==2)return "the subrace and lineage cards do not list their grants (derived, one line each; #706: through racialCapsHtml)";
+    return true;
+  });
+  t("#706 a grant on a wizard card opens its capability card: racialCapsHtml renders one span per grant — data-cap the bible key (the base name, never the recharge), the text racialCapsLabel's, the click stopped before the card beneath and sent to showCapabilityCard — escaped, empty for no grants; every racial grant's key resolves in the bible; both wizard cards render it unescaped; the lineage popup sits under the click-card",function(){
+    var html=racialCapsHtml(["Abyssal Fury",{cap:"Intimidate",use:"1/day"}]);
+    var spans=html.match(/<span[^>]*>[^<]*<\/span>/g)||[];
+    if(spans.length!==2||html.indexOf("</span>, <span")<0)return "two spans joined by a comma expected: "+html;
+    if(spans[0]!=='<span class="cap-link" data-cap="Abyssal Fury" title="Open the card" onclick="event.stopPropagation();showCapabilityCard(this.dataset.cap)" style="cursor:pointer;text-decoration:underline dotted;">Abyssal Fury</span>')return "the passive grant's span: "+spans[0];
+    if(!/data-cap="Intimidate"/.test(spans[1])||!/>Intimidate \(1\/day\)<\/span>$/.test(spans[1]))return "the once-a-day grant keys the base name and shows the recharge: "+spans[1];
+    if(html.replace(/<[^>]+>/g,"")!==racialCapsLabel(["Abyssal Fury",{cap:"Intimidate",use:"1/day"}]))return "the clickable line reads differently from the plain label";
+    if(racialCapsHtml([])!==""||racialCapsHtml(undefined)!=="")return "no grants is not an empty line";
+    var odd=racialCapsHtml([{cap:'Fire "<b>" & Ice',use:"1/day"}]);if(odd.indexOf("<b>")>=0||!/data-cap="Fire &quot;&lt;b&gt;&quot; &amp; Ice"/.test(odd))return "a grant's name is not escaped: "+odd;
+    /* every key the wizard would open resolves — the same base racialCapsHtml writes into data-cap */
+    var missing=[];ANCS.forEach(function(a){var pools=[a.racial_caps||[]];(a.subraces||[]).forEach(function(s){pools.push(s.racial_caps||[]);(s.lineages||[]).forEach(function(l){pools.push(l.racial_caps||[]);});});pools.forEach(function(p){p.forEach(function(it){var base=typeof it==="string"?it:String((it||{}).cap||"");if(base&&!capabilityLookup(base))missing.push(base);});});});
+    if(missing.length)return "racial grants without a card: "+missing.join(", ");
+    var cc=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8"),ih=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8"),us=__fsForTests.readFileSync(__rootForTests+"/ui-sheets.js","utf8");
+    if(/escHtml\(srGrants\)|escHtml\(lgGrants\)/.test(cc)||cc.indexOf("'+srGrants+'</div>")<0||cc.indexOf("'+lgGrants+'</div>")<0)return "a wizard card escapes the clickable line away or does not render it";
+    var pop=/id="lineage-popup" style="[^"]*z-index:(\d+)/.exec(ih),tip=/\.lp-tip\{[^}]*z-index:(\d+)/.exec(ih),card=/modalShell\("cap-card-modal",[\s\S]*?\{z:(\d+)/.exec(us);
+    if(!pop||!tip||!card)return "the lineage popup, its tip or the click-card's z could not be read";
+    if(!(+pop[1]<+card[1]&&+tip[1]<+card[1]&&+tip[1]>+pop[1]&&+pop[1]>300))return "the click-card must open above the lineage popup and its tip, both above the base modal: popup "+pop[1]+" tip "+tip[1]+" card "+card[1];
     return true;
   });
   t("#628 the grants the owner asked for: the half-blood Drow lineage carries Darkness 1/day and names its magic; Hollow-born Shade-touched is Shadow Step 1/day and Haunted grants Speak with Dead 1/day; every grant resolves in the bible, and Intimidate is a once-a-day racial ability",function(){

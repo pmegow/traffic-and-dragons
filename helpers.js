@@ -2446,6 +2446,11 @@ function accountDoorsHtml(a){
 // Cambion cards named none; the owner read that as "no abilities"). A bare string is a passive/at-will grant.
 function racialCapName(it){var o=typeof it==="string"?{cap:it}:(it||{});var use=o.use;return String(o.cap||"")+((use&&use!=="passive"&&use!=="at-will")?" ("+use+")":"");}
 function racialCapsLabel(caps){var out=[],i;for(i=0;i<(caps||[]).length;i++){var n=racialCapName(caps[i]);if(n)out.push(n);}return out.join(", ");}
+/* #706 (owner 2026-11-07): the wizard's grant line is CLICKABLE — each grant opens its capability card as a modal through
+   showCapabilityCard (ui-sheets.js), the sheet's own click-card, so the wizard and the sheet read ONE card. One span per
+   grant: data-cap is the bible key (the base name, never the recharge), the text is racialCapName's label; the click
+   stays in the span so the subrace or lineage card beneath is not picked by it. Same text as racialCapsLabel. */
+function racialCapsHtml(caps){var out=[],i;for(i=0;i<(caps||[]).length;i++){var it=caps[i],base=typeof it==="string"?it:String((it||{}).cap||""),n=racialCapName(it);if(n)out.push('<span class="cap-link" data-cap="'+escHtml(base)+'" title="Open the card" onclick="event.stopPropagation();showCapabilityCard(this.dataset.cap)" style="cursor:pointer;text-decoration:underline dotted;">'+escHtml(n)+'</span>');}return out.join(", ");}
 /* #656 (owner 2026-10-22): the Table Talk pane's welcome line while it is empty — on the phone a blank Table Talk read
    as a blank STORY. Pure; syncUI paints it into data-welcome and index.html's #story-tabletalk:empty::before shows it
    until the first exchange lands (the first .msg ends :empty — no bookkeeping). Markup is stripped: one text, one renderer. */
