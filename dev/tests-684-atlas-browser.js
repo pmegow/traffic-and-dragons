@@ -4,8 +4,9 @@
 // lifts it to full screen; the view draws the library's HUD (title, compass, a scale bar re-measured at the zoom) screen-fixed.
 //   ① without an atlas the location name is plain text and opens nothing, and the Map tab is hidden (every existing campaign);
 //   ② with one it is a button (role, keyboard) and opens the DOCK on the region — the drawer opens on the Map tab, the HUD is
-//     on, the title names the realm; the enlarge button opens the FULL pane: ink on the canvas, the trail, the select, the
-//     status says the story's place is not on the map and what to do;
+//     on, the dock is the map alone (no head, no status; the enlarge button and the party's dagger float over the sheet in
+//     circles; a card there offers no Current location); the enlarge button opens the FULL pane: ink on the canvas, the
+//     trail, the select, the status says the story's place is not on the map and what to do;
 //   ③ a real click on a town on the canvas shows its card: named, NOT openable (never visited), "Current location — <story place>";
 //   ④ Current location ties the story's place, moves the pane to the town's sheet with the party on it, saves the campaign;
 //   ⑤ the trail leads back to the region: the party stands at the town, whose card now opens its sheet;
@@ -19,8 +20,9 @@
 //     model is sent carries the MAP block for the NEW place, right after GEOGRAPHY;
 //   ⑫ a card painted before the story moved is refused; a turn landing under an open pane repaints it; a party off the
 //     map is drawn as its last mapped place, and that place's card offers Current location;
-//   ⑭ the HUD and the drawer: the scale bar's label follows a wheel zoom while the bar keeps its width, a wider drawer re-fits
-//     the dock's view, and a campaign that loses its atlas loses the Map tab and is moved off it.
+//   ⑭ the dock's view (zoom and pan) is remembered across full screen; the HUD and the drawer: the scale bar's label follows a
+//     wheel zoom while the bar keeps its width, a wider drawer re-fits the dock's view, and a campaign that loses its atlas
+//     loses the Map tab and is moved off it.
 // A browser suite (dev/cdp-browser.js): a CI step after the Chrome check, and the pre-push gate (#652).
 // TND_SHOT_DIR=<dir> keeps the screenshots (atlas-region.png, atlas-town.png, atlas-phone.png); the OS temp dir otherwise.
 const fs=require('fs'),os=require('os'),path=require('path'),assert=require('assert/strict');
@@ -53,9 +55,12 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    const d=await page.evaluate(()=>{atlasCreate('campaign-1');worldState.atlas.adopt=false;/* ②–⑨ probe the player's correction (We are here) and the off-map states: You are here (#702) is switched off for them; ⑬ switches it on */atlasFollow();syncUI();const el=document.getElementById('hud-loc');return {role:el.getAttribute('role'),tab:el.getAttribute('tabindex'),label:el.getAttribute('aria-label'),cursor:getComputedStyle(el).cursor};});
    assert.equal(d.role,'button');assert.equal(d.tab,'0');assert.match(d.label,/^Open the map — The Crossroads of Ashenveil$/);assert.equal(d.cursor,'pointer');
    await page.evaluate(()=>{const el=document.getElementById('hud-loc');el.focus();el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));});await settle();
-   const k=await page.evaluate(()=>{const p=__atlasTest.pane(),dock=document.getElementById('atlas-dock'),c=dock.querySelector('#atlas-canvas'),st=document.getElementById('atlas-stage');return {modal:!!document.getElementById('atlas-modal'),host:p&&p.host,hud:p&&p.hud,open:document.getElementById('rpanel').classList.contains('mobile-open'),width:mobileUI.width,tab:document.getElementById('mobile-tab-map').getAttribute('aria-selected'),mapTab:getComputedStyle(document.getElementById('mobile-tab-map')).display,title:document.getElementById('atlas-title').textContent,cw:c?c.width:0,ch:c?c.height:0,stage:[st.clientWidth,st.clientHeight],trail:!!document.getElementById('atlas-trail'),full:!!document.getElementById('atlas-full'),name:worldState.atlas.zones['campaign-1'].name};});
+   const k=await page.evaluate(()=>{const p=__atlasTest.pane(),dock=document.getElementById('atlas-dock'),c=dock.querySelector('#atlas-canvas'),st=document.getElementById('atlas-stage');return {modal:!!document.getElementById('atlas-modal'),host:p&&p.host,hud:p&&p.hud,open:document.getElementById('rpanel').classList.contains('mobile-open'),width:mobileUI.width,tab:document.getElementById('mobile-tab-map').getAttribute('aria-selected'),mapTab:getComputedStyle(document.getElementById('mobile-tab-map')).display,head:!!document.getElementById('atlas-head'),status:!!document.getElementById('atlas-status'),cw:c?c.width:0,ch:c?c.height:0,stage:[st.clientWidth,st.clientHeight],trail:!!document.getElementById('atlas-trail'),fabs:['atlas-full','atlas-party'].map(id=>{const b=document.getElementById(id);if(!b)return null;const s=getComputedStyle(b),r=b.getBoundingClientRect(),sr=st.getBoundingClientRect();return {pos:s.position,radius:s.borderRadius,w:Math.round(r.width),inside:r.left>=sr.left&&r.top>=sr.top&&r.right<=sr.right&&r.bottom<=sr.bottom,label:b.getAttribute('aria-label')};}),name:worldState.atlas.zones['campaign-1'].name};});
    assert.equal(k.modal,false,'Enter on the name opens the dock, not the modal');assert.equal(k.host,'dock');assert.equal(k.hud,true,'the HUD is on in the dock');assert.equal(k.open,true,'the drawer opened');assert.ok(k.width>=300&&k.width<=460,'the drawer opened at the map width: '+k.width);assert.equal(k.tab,'true','the Map tab is selected');assert.equal(k.mapTab,'block');
-   assert.equal(k.title,k.name,'the dock names the sheet');assert.ok(k.cw>200&&k.ch>200&&Math.abs(k.cw-k.stage[0]*devicePixelRatioOf(1))<4,'the dock canvas fills the stage: '+JSON.stringify(k));assert.equal(k.trail,false,'no trail in the dock');assert.equal(k.full,true,'the enlarge button is there');
+   assert.equal(k.head,false,'the dock has no head: the HUD names the sheet');assert.equal(k.status,false,'the dock has no status line');assert.ok(k.cw>200&&k.ch>200&&Math.abs(k.cw-k.stage[0]*devicePixelRatioOf(1))<4,'the dock canvas fills the stage: '+JSON.stringify(k));assert.equal(k.trail,false,'no trail in the dock');
+   assert.ok(k.fabs.every(f=>f&&f.pos==='absolute'&&f.radius==='50%'&&f.w>=28&&f.w<=34&&f.inside),'the enlarge button and the party\'s dagger float over the sheet in small circles: '+JSON.stringify(k.fabs));assert.deepEqual(k.fabs.map(f=>f.label),['Open the map full screen','Go to where the party is']);
+   const dc=await page.evaluate(()=>{const p=atlasDoc('campaign-1').places[3];__atlasTest.tap({id:p.id});const el=document.getElementById('atlas-card'),r={shown:el.style.display,text:el.textContent,buttons:[].map.call(el.querySelectorAll('button[data-act]'),b=>b.getAttribute('data-act')),name:p.name};__atlasTest.tap(null);return r;});
+   assert.equal(dc.shown,'block');assert.ok(dc.text.indexOf(dc.name)>=0,'a dock card names the town');assert.deepEqual(dc.buttons,['dismiss'],'a dock card offers no Current location: the party moves through the narrative');assert.doesNotMatch(dc.text,/Current location/);
    await page.screenshot({path:path.join(SHOTS,'atlas-dock.png')});
    await page.evaluate(()=>{document.getElementById('atlas-full').click();});await settle();
    assert.deepEqual(await page.evaluate(()=>({modal:!!document.getElementById('atlas-modal'),host:__atlasTest.pane().host,dock:document.getElementById('atlas-dock').children.length})),{modal:true,host:'full',dock:0},'the enlarge button lifts the one pane to full screen; the dock is emptied');
@@ -189,7 +194,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
 
  await check('⑫ a card painted before the story moved is refused, never spent on another place; a turn landing under an open pane repaints it; a party off the map is not drawn as there',async()=>{
    const r=await page.evaluate(()=>{atlasPaneClose();mobileDrawerWidth(0);atlasForget();delete worldState.atlas;atlasCreate('campaign-1');worldState.atlas.adopt=false;/* the correction's race, with You are here off */const reg=atlasDoc('campaign-1'),p0=reg.places[0],p2=reg.places[2];
-     worldState.world.location='The Salted Wound';worldState.world.sublocation=null;atlasFollow();syncUI();showAtlas();
+     worldState.world.location='The Salted Wound';worldState.world.sublocation=null;atlasFollow();syncUI();showAtlasFull();
      __atlasTest.tap({id:p2.id});const label0=document.querySelector('#atlas-card button[data-act="here"]').textContent;
      /* the story moves on under the open card, with no repaint in between (the race itself) */
      worldState.world.location='The Drowned Chapel';const res=__atlasTest.here(),ties=Object.keys(worldState.atlas.names),status1=document.getElementById('atlas-status').textContent,card1=document.getElementById('atlas-card').style.display;
@@ -208,7 +213,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
  });
 
  await check('⑬ You are here (#702): with adoption on, a start the map does not know is ADDED as a village beside the capital — the pane opens on the party inside it, and the realm shows the new place',async()=>{
-   const r=await page.evaluate(()=>{delete worldState.atlas;atlasForget();atlasCreate('campaign-1');worldState.world.location='The Crossroads of Ashenveil';worldState.world.sublocation=null;atlasFollow();syncUI();showAtlas();
+   const r=await page.evaluate(()=>{delete worldState.atlas;atlasForget();atlasCreate('campaign-1');worldState.world.location='The Crossroads of Ashenveil';worldState.world.sublocation=null;atlasFollow();syncUI();showAtlasFull();
      const A=worldState.atlas,p=__atlasTest.pane(),reg=atlasDoc(A.seed),added=reg.places.filter(x=>x.authored);
      return {status:document.getElementById('atlas-status').textContent,zoneKind:A.zones[A.at]&&A.zones[A.at].kind,paneZone:p.zone,at:A.at,added:added.map(x=>x.name),adds:Object.keys(A.adds),edits:(A.zones[A.seed].params.edits||[]).length,told:(A.told||[]).map(t=>t.text),redrawn:!!A.zones[A.seed].redrawn,trail:p.trail||null};});
    assert.equal(r.status,'The party is in The Crossroads of Ashenveil.','the pane says the party is in the story\'s own place, now a place of the map');
@@ -217,7 +222,14 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.ok(r.told.some(t=>/was added to the map of .* as a village/.test(t)),'the GM is told: '+JSON.stringify(r.told));assert.equal(r.redrawn,false,'the game\'s own edit is not drift');
  });
 
- await check('⑭ the HUD and the drawer: the scale bar follows a wheel zoom (its label changes, its width holds), a wider drawer re-fits the dock\'s view, and a campaign that loses its atlas loses the Map tab and is moved off it',async()=>{
+ await check('⑭ the dock\'s view is remembered across full screen; the HUD and the drawer: the scale bar follows a wheel zoom (its label changes, its width holds), a wider drawer re-fits the dock\'s view, and a campaign that loses its atlas loses the Map tab and is moved off it',async()=>{
+   await page.evaluate(()=>{atlasPaneClose();mobileDrawerWidth(0);showAtlas();});await settle();await page.waitForTimeout(150);
+   const m0=await page.evaluate(()=>{const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),r=c.getBoundingClientRect();c.dispatchEvent(new WheelEvent('wheel',{deltaY:-500,clientX:r.left+r.width*0.3,clientY:r.top+r.height*0.4,bubbles:true,cancelable:true}));const o={bubbles:true,cancelable:true,button:0};c.dispatchEvent(new MouseEvent('mousedown',Object.assign({clientX:r.left+200,clientY:r.top+200},o)));window.dispatchEvent(new MouseEvent('mousemove',Object.assign({clientX:r.left+140,clientY:r.top+230},o)));window.dispatchEvent(new MouseEvent('mouseup',Object.assign({clientX:r.left+140,clientY:r.top+230},o)));return {host:_atlasPane.host,zone:_atlasPane.zone,T:v.transform()};});
+   await page.evaluate(()=>{document.getElementById('atlas-full').click();});await settle();
+   const m1=await page.evaluate(()=>({host:_atlasPane.host,T:_atlasPane.view.transform()}));assert.equal(m1.host,'full');assert.ok(Math.abs(m1.T.k-m0.T.k)>0.01,'the full pane fits afresh: '+m0.T.k+' vs '+m1.T.k);
+   await page.evaluate(()=>{document.getElementById('atlas-modal').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));});await settle();await page.waitForTimeout(150);
+   const m2=await page.evaluate(()=>({host:_atlasPane.host,zone:_atlasPane.zone,T:_atlasPane.view.transform()}));
+   assert.equal(m2.host,'dock');assert.equal(m2.zone,m0.zone);assert.ok(Math.abs(m2.T.k-m0.T.k)<1e-6&&Math.abs(m2.T.x-m0.T.x)<1.5&&Math.abs(m2.T.y-m0.T.y)<1.5,'back from full screen the dock shows what the player left (zoom and pan): '+JSON.stringify([m0.T,m2.T]));
    const r=await page.evaluate(()=>new Promise(done=>{const v=_atlasPane.view,st=document.getElementById('atlas-stage'),c=document.getElementById('atlas-canvas'),bar=s=>{const z=s.find(x=>x.t==='text'&&x.text==='0'),l=s.find(x=>x.t==='text'&&/^\d+ (km|m)$/.test(x.text));return z&&l?{w:Math.round(l.x-z.x),label:l.text}:null;};
      const out={host:_atlasPane.host,hud:v.hud(),title:v.hudScene().some(x=>x.t==='text'&&x.text===atlasDoc(_atlasPane.zone).title.name),a:bar(v.hudScene()),k0:v.transform().k,w0:st.clientWidth};
      const rct=c.getBoundingClientRect();c.dispatchEvent(new WheelEvent('wheel',{deltaY:-600,clientX:rct.left+rct.width/2,clientY:rct.top+rct.height/2,bubbles:true,cancelable:true}));

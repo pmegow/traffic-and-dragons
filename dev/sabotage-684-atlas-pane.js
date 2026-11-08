@@ -58,13 +58,21 @@ rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
     replace: "  ",
     mustFail: "FAIL ⑧ Escape closes the full pane" },
   { label: "a drawer dragged wider keeps the view at its old fit",
-    find: "  P.size=[w,h];P.view.fit();",
-    replace: "  P.size=[w,h];",
-    mustFail: "FAIL ⑭ the HUD and the drawer" },
+    find: "  P.size=[w,h];if(P.restore)atlasDockRestore();else P.view.fit();",
+    replace: "  P.size=[w,h];if(P.restore)atlasDockRestore();",
+    mustFail: "FAIL ⑭ the dock's view is remembered" },
+  { label: "back from full screen the dock fits afresh: the player's zoom and pan are lost",
+    find: "  P.restore=null;P.centerOn=null;P.view.center(r.cx,r.cy,r.k);",
+    replace: "  P.restore=null;P.centerOn=null;",
+    mustFail: "FAIL ⑭ the dock's view is remembered" },
+  { label: "the dock's card offers Current location: the party is moved by a tap beside the story",
+    find: "&&_atlasPane&&_atlasPane.host===\"full\")h+=\"<button type='button' class='qa' data-act='here'",
+    replace: ")h+=\"<button type='button' class='qa' data-act='here'",
+    mustFail: "FAIL ② with an atlas the name is a button and opens the DOCK" },
   { label: "a campaign that loses its atlas keeps the drawer on a Map tab that is gone",
     find: "  if(!on&&typeof mobileUI!==\"undefined\"&&mobileUI.selected===\"map\"){",
     replace: "  if(false){",
-    mustFail: "FAIL ⑭ the HUD and the drawer" }
+    mustFail: "FAIL ⑭ the dock's view is remembered" }
 ] });
 
 rc |= sabotage.prove({ file: "ui-mobile.js", command: BROWSER, cases: [

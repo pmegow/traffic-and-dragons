@@ -1,5 +1,5 @@
 {
-  "version": "v1.1377",
+  "version": "v1.1378",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -18,6 +18,7 @@
     "The New game confirmation follows the light scheme.",
     "The map lives in the side drawer's Map tab with wheel zoom and drag pan; an enlarge button opens it full screen.",
     "The map's title, compass and scale bar stay put while you pan and zoom, and the scale follows the zoom.",
-    "On a map card, \"We are here\" is now \"Current location\"."
+    "On a map card, \"We are here\" is now \"Current location\".",
+    "The drawer map is the map alone: round buttons to enlarge and to find the party, and it remembers your zoom after full screen."
   ]
 }

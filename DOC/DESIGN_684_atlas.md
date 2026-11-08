@@ -237,7 +237,9 @@ The owner's go: "Yes, re-vendor" (2026-11-06), after the note that wild zones re
 
 **Proof.** `dev/tests-684-atlas-browser.js` ①–⑭ (the door opens the dock on the Map tab with the HUD on; the enlarge button lifts the one pane to full screen and empties the dock; Escape hands it back; the phone's dock fits beside the tab column; a real wheel event changes the scale bar's label while its width holds; a wider drawer re-fits the dock's view; without an atlas the tab is gone and the drawer is moved off it); the library's section 4j (the frame layer in all five scenes, the HUD's parts and positions, the bar within the steps' spacing at two zooms, `scaleChoice` across six orders of magnitude) and its browser check (`ui-<seed>-hud.png`).
 
-**Deliberately later.** The dock's title line truncates on a 187 px phone drawer (the full title is its tooltip and the HUD's plaque); a narrower head for the phone is a layout row of its own. The web UI in the library repo does not switch the HUD on (its sheet keeps the on-paper furniture).
+**Round 2 (owner notes 2026-11-08, v1.1378): optimise the space for the map.** The dock is the map alone: no head (the HUD names the sheet), no status line (the map shows where the party is; a failure is toasted), two round buttons floating over the sheet (`.atlas-fab`: enlarge bottom right — the top is the HUD's title and compass, which a phone-wide plaque fills —, the party's dagger above the HUD's scale bar), and no Current location on a dock card (the owner: party movement is handled through the narrative; the full pane keeps the button as the one correction of a wrong tie). The dock's view is remembered across full screen: `showAtlasFull` notes the map point under the stage's centre and the zoom (`atlasDockMemo`), and the dock mounted when the full pane closes on the same zone restores it once its stage is sized (`restore`, applied by the ResizeObserver's first sizing in place of the fit).
+
+**Deliberately later.** The web UI in the library repo does not switch the HUD on (its sheet keeps the on-paper furniture).
 
 ## Deliberately later (each its own TODO row once this lands)
 

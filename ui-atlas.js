@@ -3,11 +3,15 @@
    what a card says) is a pure atlas.js read; the one write is the player's "Current location" (atlasPlace), saved at once.
    Only ENTERED zones can be opened — the pane never draws a place the party has not been (no peeking into a dungeon).
    #711 (owner 2026-11-08): the pane lives in the side drawer's Map tab (the DOCK) — the location name opens it there —
-   and an enlarge button lifts the same pane to FULL SCREEN (the modal), where the trail and the mapped-places select
-   join it. ONE pane at a time, in one host or the other; the view draws the library's HUD (title, compass, a scale bar
-   re-measured at every zoom) screen-fixed, so a pan or a wheel zoom leaves the legend where it is.
+   and an enlarge button lifts the same pane to FULL SCREEN (the modal), where the trail, the mapped-places select, the
+   status line and Current location join it. The DOCK is the map alone (owner notes 2026-11-08: optimise the space for the
+   map): no head, no status, no Current location (party movement is the narrative's), two round buttons floating over the
+   sheet — enlarge, and the party's dagger that recentres —, and its view (zoom and pan) is remembered across full screen.
+   ONE pane at a time, in one host or the other; the view draws the library's HUD (title, compass, a scale bar re-measured
+   at every zoom) screen-fixed, so a pan or a wheel zoom leaves the legend where it is.
    Design: DOC/DESIGN_684_atlas.md. Seam: window.__atlasTest. */
-var _atlasPane=null;/* while a pane is open: {view, zone, target, host:"dock"|"full", size, centerOn} — target is the tapped thing or point the card shows */
+var _atlasPane=null;/* while a pane is open: {view, zone, target, host:"dock"|"full", size, centerOn, restore} — target is the tapped thing or point the card shows */
+var _atlasDockMemo=null;/* the dock's view when the enlarge button lifted it — {zone, cx, cy, k}, the map point at the stage's centre and the zoom — restored when the full pane closes on the same zone */
 var ATLAS_DOCK_WIDTH=460;/* the drawer's width when the door opens it closed: this many px or half the story's width, whichever is less */
 
 /* THE DOOR: the location name opens the pane — only in a campaign that has an atlas; elsewhere the name is plain text
@@ -89,9 +93,25 @@ function atlasDockMount(zoneId){
   }
   if(!atlasPaneBuild(dock,"dock"))return false;
   stage=document.getElementById("atlas-stage");
+  if(_atlasDockMemo&&_atlasDockMemo.zone===z)_atlasPane.restore=_atlasDockMemo;/* back from full screen: where the player left the dock's view */
+  _atlasDockMemo=null;
   /* the drawer is resized by a drag (no window resize): the stage's own size drives the view — a size it has not had re-fits */
   if(typeof ResizeObserver==="function"&&stage){_atlasPane.ro=new ResizeObserver(function(){atlasDockResized();});_atlasPane.ro.observe(stage);}
-  atlasPaneShow(z,true);
+  atlasPaneShow(z,!_atlasPane.restore);
+  if(!_atlasPane.ro)atlasDockResized();/* no observer: size the view now */
+  return true;
+}
+/* what the dock's view shows now: the map point under the stage's centre and the zoom (null when no dock is sized) */
+function atlasDockMemo(){
+  var P=_atlasPane,st=document.getElementById("atlas-stage"),T;
+  if(!P||P.host!=="dock"||!st||!st.clientWidth||!st.clientHeight)return null;
+  T=P.view.transform();
+  return {zone:P.zone,cx:(st.clientWidth/2-T.x)/T.k,cy:(st.clientHeight/2-T.y)/T.k,k:T.k};
+}
+function atlasDockRestore(){
+  var P=_atlasPane,r=P&&P.restore;
+  if(!r)return false;
+  P.restore=null;P.centerOn=null;P.view.center(r.cx,r.cy,r.k);
   return true;
 }
 function atlasDockResized(){
@@ -100,7 +120,7 @@ function atlasDockResized(){
   w=st.clientWidth;h=st.clientHeight;
   if(!w||!h){P.size=null;return;}/* hidden (another tab): nothing to draw; the next showing re-fits */
   if(P.size&&P.size[0]===w&&P.size[1]===h)return;
-  P.size=[w,h];P.view.fit();
+  P.size=[w,h];if(P.restore)atlasDockRestore();else P.view.fit();
   if(P.centerOn){p=P.centerOn;P.centerOn=null;P.view.center(p.x,p.y);}
 }
 /* FULL SCREEN: the same pane as a modal, with the trail and the mapped-places select; the dock's pane goes while it is up */
@@ -109,6 +129,7 @@ function showAtlasFull(zoneId){
   if(!A){showToast("This campaign has no drawn map.");return false;}
   atlasFollow();
   z=(zoneId&&A.zones[zoneId])?zoneId:(A.at||A.seed);
+  _atlasDockMemo=atlasDockMemo();/* the dock's view, to come back to */
   if(_atlasPane)atlasPaneClose();
   modal=modalShell("atlas-modal",atlasPaneHtml("full"),
     {closeId:"atlas-close",onClose:atlasPaneClose,overlayCss:"position:fixed;inset:0;background:var(--modal-bg);z-index:300;display:flex;",boxCss:"display:flex;flex-direction:column;width:100%;height:100%;background:var(--modal-bg);"});
@@ -116,20 +137,24 @@ function showAtlasFull(zoneId){
   atlasPaneShow(z,true);
   return true;
 }
-/* the pane's markup: one shape, two hosts — the full pane adds the trail and the select and closes; the dock enlarges */
+/* the pane's markup: one shape, two hosts — the full pane has a head (the trail, the select, Party, close) and the status
+   line; the dock is the stage alone, with the enlarge button and the party's dagger floating over the sheet (.atlas-fab),
+   the enlarge bottom right (the top is the HUD's title and compass, which a phone-wide plaque fills), the dagger above the HUD's scale bar */
+var ATLAS_DAGGER_SVG="<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M12 2v13M7.5 8h9M10 15h4l-2 7z'/></svg>";
+var ATLAS_ENLARGE_SVG="<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'/></svg>";
 function atlasPaneHtml(host){
   var full=host==="full";
-  return "<div id='atlas-head' style='display:flex;align-items:center;gap:6px;padding:"+(full?"max(8px,var(--top-inset)) 12px 8px":"6px 8px")+";border-bottom:1px solid var(--brd);'>"
-    +(full?"<div id='atlas-trail' style='flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:13px;'></div>"
+  return (full?"<div id='atlas-head' style='display:flex;align-items:center;gap:6px;padding:max(8px,var(--top-inset)) 12px 8px;border-bottom:1px solid var(--brd);'>"
+      +"<div id='atlas-trail' style='flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:13px;'></div>"
       +"<select id='atlas-zones' aria-label='Mapped places' style='max-width:40%;background:var(--bg2);color:var(--t0);border:1px solid var(--brd2);border-radius:var(--r);padding:4px 6px;font-family:var(--font);font-size:12px;'></select>"
-      :"<div id='atlas-title' style='flex:1;min-width:0;font-size:13px;font-weight:bold;color:var(--t0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'></div>")
-    +"<button type='button' class='ib' id='atlas-party' title='Go to where the party is'>Party</button>"
-    +(full?"<button type='button' class='ib' id='atlas-close' aria-label='Close the map'>&#10005;</button>"
-      :"<button type='button' class='ib' id='atlas-full' title='Open the map full screen' aria-label='Open the map full screen' style='padding:4px 7px;line-height:0;'><svg viewBox='0 0 24 24' width='14' height='14' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'/></svg></button>")
-    +"</div>"
-    +"<div id='atlas-status' style='padding:"+(full?"6px 12px":"4px 8px")+";font-size:12px;line-height:1.45;color:var(--t1);min-height:18px;'></div>"
+      +"<button type='button' class='ib' id='atlas-party' title='Go to where the party is'>Party</button>"
+      +"<button type='button' class='ib' id='atlas-close' aria-label='Close the map'>&#10005;</button>"
+      +"</div>"
+      +"<div id='atlas-status' style='padding:6px 12px;font-size:12px;line-height:1.45;color:var(--t1);min-height:18px;'></div>":"")
     +"<div id='atlas-stage' style='position:relative;flex:1;min-height:0;'>"
     +"<canvas id='atlas-canvas' style='position:absolute;inset:0;width:100%;height:100%;display:block;'></canvas>"
+    +(full?"":"<button type='button' class='atlas-fab' id='atlas-full' title='Open the map full screen' aria-label='Open the map full screen' style='bottom:8px;right:8px;'>"+ATLAS_ENLARGE_SVG+"</button>"
+      +"<button type='button' class='atlas-fab' id='atlas-party' title='Go to where the party is' aria-label='Go to where the party is' style='bottom:58px;left:8px;'>"+ATLAS_DAGGER_SVG+"</button>")
     +"<div id='atlas-card' style='display:none;position:absolute;left:12px;bottom:12px;width:calc(100% - 24px);max-width:380px;box-sizing:border-box;background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:12px;'></div>"
     +"</div>";
 }
@@ -167,7 +192,8 @@ function atlasPaneTargetOf(pt,hit){
   return {x:pt.x,y:pt.y};
 }
 function atlasPaneStatus(text,warn){
-  var el=document.getElementById("atlas-status");if(!el)return;
+  var el=document.getElementById("atlas-status");
+  if(!el){if(warn&&typeof showToast==="function")showToast(text);return;}/* the dock has no status line: a warning is said, the rest the map shows */
   el.textContent=text;el.style.color=warn?"var(--warn)":"var(--t1)";
 }
 /* show one entered zone's sheet: the document, the party marker, the fog, the trail (full) or the title (dock), the status */
@@ -190,17 +216,16 @@ function atlasPaneShow(zoneId,toParty){
     }
     el.innerHTML=h;
   }
-  if((el=document.getElementById("atlas-title"))){el.textContent=A.zones[zoneId].name||zoneId;el.title=trail.map(function(z){return A.zones[z].name||z;}).join(" › ");}
   if((sel=document.getElementById("atlas-zones"))){
     zones=atlasZones();sel.innerHTML="";
     sel.appendChild(new Option("Mapped places ("+zones.length+")",""));
     zones.forEach(function(z){var o=new Option(z.name+" — "+z.kind,z.id);if(z.id===zoneId)o.disabled=true;sel.appendChild(o);});
   }
   try{where=atlasWhere();}catch(e2){where=null;atlasPaneStatus("The party's place could not be read: "+atlasProblem("reading the party's place",e2),true);}
-  if(where)atlasPaneStatus(where.text+((where.off||!where.placed)?" Tap the place where the party is, then Current location.":""),!!(where.off||!where.placed));
+  if(where&&document.getElementById("atlas-status"))atlasPaneStatus(where.text+((where.off||!where.placed)?" Tap the place where the party is, then Current location.":""),!!(where.off||!where.placed));/* the full pane says where the party is; the dock shows it (owner 2026-11-08: lose the line) — only a failure is toasted there */
   P.sig=atlasPaneSig();P.place=null;
   atlasPaneCard(null);
-  if(toParty){p=atlasPartyIn(zoneId);if(p){stage=document.getElementById("atlas-stage");if(stage&&(!stage.clientWidth||!stage.clientHeight))P.centerOn=p;/* a dock not yet sized (the drawer opening): centred once it is */else P.view.center(p.x,p.y);}}
+  if(toParty){p=atlasPartyIn(zoneId);if(p){if(P.host==="dock"&&!P.size)P.centerOn=p;/* a dock the observer has not sized yet (its first fit would undo the centring): centred once it is */else P.view.center(p.x,p.y);}}
   return true;
 }
 /* a tap on the sheet: a named thing, or a point (open ground on the region); null puts the card away */
@@ -227,12 +252,12 @@ function atlasPaneCard(card){
   else if(card.unvisited)h+="<div style='font-size:12px;color:var(--t2);margin-top:8px;'>Not yet visited &mdash; its sheet is drawn when the party goes in.</div>";
   h+="<div style='display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;'>";
   if(card.opens)h+="<button type='button' class='qa' data-act='open' data-zone='"+escHtml(card.opens)+"'>Open its sheet</button>";
-  if(card.place&&!card.partyHere&&!card.refused&&!card.added)h+="<button type='button' class='qa' data-act='here' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Current location &mdash; "+escHtml(card.place.name)+"</button>";
+  if(card.place&&!card.partyHere&&!card.refused&&!card.added&&_atlasPane&&_atlasPane.host==="full")h+="<button type='button' class='qa' data-act='here' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Current location &mdash; "+escHtml(card.place.name)+"</button>";
   h+="</div>";
   el.innerHTML=h;el.style.display="block";
 }
-/* "Current location" (owner 2026-11-08, was "We are here"): tie the story's current place to the tapped thing or point,
-   save, and show where that put the party */
+/* "Current location" (owner 2026-11-08, was "We are here"; offered in the full pane only — in the dock the party moves
+   through the narrative): tie the story's current place to the tapped thing or point, save, and show where that put the party */
 function atlasPaneWeAreHere(){
   var P=_atlasPane,r;
   if(!P||!P.target)return null;
