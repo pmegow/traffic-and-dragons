@@ -27,8 +27,14 @@ let view;
 try {
   view = new DiceView({ container: $('view'), zoom: TOY_DEFAULTS.zoom });
 } catch (e) {
-  status('Could not start the 3D view: ' + e.message);
-  throw e;
+  $('dice-loading').hidden = true;
+  status('The 3D graphics engine could not start. Close and reopen the app or browser, then try again. Your saved looks have been kept.');
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.textContent = 'Try Again';
+  retry.addEventListener('click', () => location.reload());
+  $('status').append(document.createElement('br'), retry);
+  throw e; // preserve the original graphics failure in the console
 }
 
 // ---------------------------------------------------------------- sound

@@ -2,6 +2,7 @@
 // Only the Sketch finish installs this hook; lighting guides pencil density instead of glossy shading.
 const PARS = /* glsl */ `
 uniform float uSketchInkStyle;
+varying vec3 vSketchPosition;
 varying float vSketchEdge;
 varying vec3 vSketchNormal;
 varying vec3 vSketchLightNormal;
@@ -11,12 +12,17 @@ varying vec3 vSketchHatch;
 float sketchStrokes(vec2 p, float width, float salt) {
   p *= 0.56;
   vec2 dx = dFdx(p), dy = dFdy(p);
-  // Include every line whose small tilt could bring it across this pixel. Computing this
-  // range from the along-line distance prevents strokes dropping out on large faces.
+  float minified = smoothstep(0.45, 1.2, abs(dx.x) + abs(dy.x));
+  if (minified >= 1.0) return 2.0 * width;
+  // Include every tilted line crossing this pixel, with a fixed work budget even for
+  // auxiliary geometry. Beyond that budget use the same average graphite coverage.
   float reach = abs(p.y) * 0.06 + 0.8;
   float first = floor(p.x - reach), last = ceil(p.x + reach);
+  if (last - first >= 16.0) return 2.0 * width;
   float coverage = 0.0;
-  for (float id = first; id <= last; id += 1.0) {
+  for (int sampleIndex = 0; sampleIndex < 16; sampleIndex++) {
+    float id = first + float(sampleIndex);
+    if (id > last) break;
     vec3 h = pHash3(vec3(id, salt, uSeed.x + uSeed.y));
     float center = id + 0.5 + (h.x - 0.5) * 0.3;
     float slope = (h.z - 0.5) * 0.12;
@@ -27,7 +33,7 @@ float sketchStrokes(vec2 p, float width, float salt) {
     coverage = max(coverage, stroke);
   }
   // At small display sizes, converge to average graphite coverage rather than shimmer.
-  return mix(coverage, 2.0 * width, smoothstep(0.45, 1.2, abs(dx.x) + abs(dy.x)));
+  return mix(coverage, 2.0 * width, minified);
 }
 float sketchHatch(vec2 p, float dark, float region) {
   float a = sketchStrokes(vec2(p.x + p.y * 0.63, p.y - p.x * 0.63), 0.11, 3.7 + region * 17.0);
@@ -37,16 +43,17 @@ float sketchHatch(vec2 p, float dark, float region) {
 `;
 const DRAW = /* glsl */ `
 {
-  vec3 q = vPatternPos * 1900.0 + uSeed;
+  vec3 q = vSketchPosition * 1900.0 + uSeed;
   vec3 weights = pow(abs(normalize(vSketchNormal)), vec3(8.0));
   weights /= max(dot(weights, vec3(1.0)), 0.001);
   // A flat face has one shading value, unaffected by local grain or scene shadows.
   float dark = clamp(0.62 - 0.6 * dot(normalize(vSketchLightNormal), normalize(vec3(-0.6, 0.8, 0.5))), 0.06, 0.95);
-  vec3 hatchPos = vPatternPos * 1900.0;
-  float hatch = dot(weights, vec3(sketchHatch(hatchPos.yz, dark, 0.0), sketchHatch(hatchPos.zx, dark, 0.0), sketchHatch(hatchPos.xy, dark, 0.0)));
-  // A bevel has its own planar coordinates and stroke seed, independent of both adjoining faces.
+  vec3 hatchPos = vSketchPosition * 1900.0;
+  float hatch;
+  // Planar regions need only their own projection, not the three discarded body projections.
   if (vSketchHatch.z > 0.5) hatch = sketchHatch(vSketchHatch.xy * 1900.0, dark, vSketchHatch.z);
-  if (uSketchInkStyle > 0.5 && vSketchHatch.z < -0.5) hatch = sketchHatch(vSketchHatch.xy * 1900.0, dark, -vSketchHatch.z + 71.0);
+  else if (uSketchInkStyle > 0.5 && vSketchHatch.z < -0.5) hatch = sketchHatch(vSketchHatch.xy * 1900.0, dark, -vSketchHatch.z + 71.0);
+  else hatch = dot(weights, vec3(sketchHatch(hatchPos.yz, dark, 0.0), sketchHatch(hatchPos.zx, dark, 0.0), sketchHatch(hatchPos.xy, dark, 0.0)));
   float grain = pNoise(q * 2.1);
   float edge = vSketchEdge + (pNoise(q * 0.45) - 0.5) * 0.00013;
   float aa = max(fwidth(vSketchEdge), 0.000025);
@@ -75,13 +82,15 @@ const DRAW = /* glsl */ `
 export function injectSketch(shader, { inkStyle = 0 } = {}) {
   shader.uniforms = shader.uniforms || {};
   shader.uniforms.uSketchInkStyle = { value: inkStyle };
-  const vertex = 'vSketchEdge = faceDistance; vSketchNormal = dot(surfaceNormal, surfaceNormal) > 0.5 ? surfaceNormal : normal; vSketchLightNormal = normalMatrix * vSketchNormal; vSketchHatch = surfaceHatch;';
+  // Scurry props are unit cylinders/spheres scaled to meters by the mesh. Keep their
+  // hatch/grain coordinates in physical units, as the die's baked geometry already is.
+  const vertex = 'vSketchPosition = position * vec3(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz), length(modelMatrix[2].xyz)); vSketchEdge = faceDistance; vSketchNormal = dot(surfaceNormal, surfaceNormal) > 0.5 ? surfaceNormal : normal; vSketchLightNormal = normalMatrix * vSketchNormal; vSketchHatch = surfaceHatch;';
   const outgoing = 'vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;';
   if (!shader.vertexShader.includes('#include <begin_vertex>') || !shader.fragmentShader.includes(outgoing)) {
     throw new Error('Sketch finish: shader hook missing after a three.js change');
   }
   shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', '#include <common>\nattribute float faceDistance; attribute vec3 surfaceNormal; attribute vec3 surfaceHatch; varying float vSketchEdge; varying vec3 vSketchNormal; varying vec3 vSketchLightNormal; varying vec3 vSketchHatch;')
+    .replace('#include <common>', '#include <common>\nattribute float faceDistance; attribute vec3 surfaceNormal; attribute vec3 surfaceHatch; varying vec3 vSketchPosition; varying float vSketchEdge; varying vec3 vSketchNormal; varying vec3 vSketchLightNormal; varying vec3 vSketchHatch;')
     .replace('#include <begin_vertex>', '#include <begin_vertex>\n' + vertex);
   shader.fragmentShader = shader.fragmentShader
     .replace('void main() {', PARS + '\nvoid main() {')
