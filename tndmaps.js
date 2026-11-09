@@ -1,11 +1,11 @@
-/* TnD Maps 0.15.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.16.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.15.0";
+  NS.VERSION = "0.16.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -8208,6 +8208,7 @@
     NS.assert(canvas && canvas.getContext, "view needs a <canvas> element", { canvas: String(canvas) });
     opts = opts || {};
     var styleName = opts.style || "ink", scene = null, baseScene = null, markers = [], layers = {}, listeners = {}, hits = [];
+    var bounds = !!opts.bounds;   /* v0.16.0: the sheet fills the view — on an axis where the sheet is larger than the view no paper edge comes inside it, on one where it is smaller the sheet sits centred; every move (a pan, a zoom, a pinch, center, pan(), a resize) is clamped (clampT) */
     var hud = !!opts.hud;   /* v0.15.0: the title, compass and scale bar drawn screen-fixed over the map (scene.common.hudScene) instead of on the paper — the scene's furniture layer is hidden while it is on; exports keep the sheet's own */
     var T = { x: 0, y: 0, k: 1 };                 /* map → CSS px: screen = map * k + (x, y) */
     var base = document.createElement("canvas"), baseT = null, baseDirty = true, raf = 0, idleTimer = 0;
@@ -8222,7 +8223,14 @@
     function resize() {
       dpr = Math.min(3, (root.devicePixelRatio || 1));
       var s = cssSize(), w = Math.max(1, Math.round(s.w * dpr)), h = Math.max(1, Math.round(s.h * dpr));
-      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; base.width = w; base.height = h; baseDirty = true; }
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; base.width = w; base.height = h; baseDirty = true; clampT(); }
+    }
+    /* the bounds: the box the scene draws (a dungeon draws a window of its town's coordinates), in CSS px at T */
+    function clampT() {
+      if (!bounds || !scene) return;
+      var s = cssSize(), W = scene.width * T.k, H = scene.height * T.k, X = (scene.x0 || 0) * T.k, Y = (scene.y0 || 0) * T.k;
+      T.x = W <= s.w ? (s.w - W) / 2 - X : U.clamp(T.x, s.w - W - X, -X);
+      T.y = H <= s.h ? (s.h - H) / 2 - Y : U.clamp(T.y, s.h - H - Y, -Y);
     }
     var reveal = null;   /* a dungeon's fog of war: the ids drawn, or null for all (setReveal) */
     function rebuildScene() { baseScene = NS.scene.build(doc, styleName, { reveal: reveal }); compose(); }
@@ -8297,7 +8305,7 @@
     function findHit(kind, id) { var i; for (i = 0; i < hits.length; i++) if (hits[i].kind === kind && hits[i].id === id) return hits[i]; return null; }
     function schedule() { if (!raf) raf = (root.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(present); }
     /* a gesture re-projects the bitmap; the crisp render follows once the gesture has been quiet for a moment */
-    function moved() { userMoved = true; schedule(); clearTimeout(idleTimer); idleTimer = setTimeout(function () { baseDirty = true; schedule(); }, 140); emit("view", { x: T.x, y: T.y, k: T.k }); }
+    function moved() { clampT(); userMoved = true; schedule(); clearTimeout(idleTimer); idleTimer = setTimeout(function () { baseDirty = true; schedule(); }, 140); emit("view", { x: T.x, y: T.y, k: T.k }); }
 
     /* fit the box the scene draws (a dungeon draws a window of its town's coordinates) */
     function fit(pad) {
@@ -8400,7 +8408,12 @@
       reveal: function () { return reveal ? reveal.slice() : null; },
       fit: function () { fit(); return api; },
       zoom: function (factor) { var s = cssSize(); zoomAt(factor, s.w / 2, s.h / 2); return api; },
-      center: function (x, y, k) { var s = cssSize(); if (k) T.k = U.clamp(k, 0.1, 12); T.x = s.w / 2 - x * T.k; T.y = s.h / 2 - y * T.k; baseDirty = true; schedule(); return api; },
+      center: function (x, y, k) { var s = cssSize(); if (k) T.k = U.clamp(k, 0.1, 12); T.x = s.w / 2 - x * T.k; T.y = s.h / 2 - y * T.k; clampT(); userMoved = true; baseDirty = true; schedule(); return api; },   /* a view a host placed is kept through a window resize, like one the user moved */
+      /* pan(dx, dy) — the map moved by that many CSS px (a host whose canvas grew at one edge keeps the map where it was on screen); clamped like a drag */
+      pan: function (dx, dy) { T.x += dx || 0; T.y += dy || 0; clampT(); userMoved = true; baseDirty = true; schedule(); emit("view", { x: T.x, y: T.y, k: T.k }); return api; },
+      /* setBounds(on) — the sheet fills the view (v0.16.0): no paper edge inside the view on an axis the sheet exceeds, the sheet centred on one it does not; applied to every move */
+      setBounds: function (on) { bounds = !!on; clampT(); baseDirty = true; schedule(); return api; },
+      bounds: function () { return bounds; },
       redraw: function () { baseDirty = true; schedule(); return api; },
       transform: function () { return { x: T.x, y: T.y, k: T.k }; },
       /* setOverlay([{pts, closed, dash}]) — outlines drawn above the map (a drag's ghost); null clears them */

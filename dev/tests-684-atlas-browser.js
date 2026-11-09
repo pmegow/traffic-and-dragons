@@ -4,12 +4,12 @@
 // lifts it to full screen; the view draws the library's HUD (title, compass, a scale bar re-measured at the zoom) screen-fixed.
 //   ① without an atlas the location name is plain text and opens nothing, and the Map tab is hidden (every existing campaign);
 //   ② with one it is a button (role, keyboard) and opens the DOCK on the region — the drawer opens on the Map tab, the HUD is
-//     on, the dock is the map alone (no head, no status; the enlarge button and the party's dagger float over the sheet in
-//     circles; a card there offers no Current location); the enlarge button opens the FULL pane: ink on the canvas, the
-//     trail, the select, the status says the story's place is not on the map and what to do;
+//     on, the dock is the map alone (no head, no status; the party's dagger and the enlarge button float over the sheet in
+//     circles bottom right, the dagger left of the enlarge, the card above both; a card there offers no Current location);
+//     the enlarge button opens the FULL pane: ink on the canvas, a head of the select and close alone, no status line;
 //   ③ a real click on a town on the canvas shows its card: named, NOT openable (never visited), "Current location — <story place>";
 //   ④ Current location ties the story's place, moves the pane to the town's sheet with the party on it, saves the campaign;
-//   ⑤ the trail leads back to the region: the party stands at the town, whose card now opens its sheet;
+//   ⑤ the select leads back to the region: the party stands at the town, whose card now opens its sheet;
 //   ⑥ a sewer is fogged: only its ways up are drawn, and the pane hands the library the engine's reveal list;
 //   ⑦ open water says why it cannot be stood on and offers nothing;
 //   ⑧ Escape closes the full pane, the view lets go of the window, and the dock takes the map back;
@@ -20,9 +20,10 @@
 //     model is sent carries the MAP block for the NEW place, right after GEOGRAPHY;
 //   ⑫ a card painted before the story moved is refused; a turn landing under an open pane repaints it; a party off the
 //     map is drawn as its last mapped place, and that place's card offers Current location;
-//   ⑭ the dock's view (zoom and pan) is remembered across full screen; the HUD and the drawer: the scale bar's label follows a
-//     wheel zoom while the bar keeps its width, a wider drawer re-fits the dock's view, and a campaign that loses its atlas
-//     loses the Map tab and is moved off it.
+//   ⑭ the framing (owner 2026-11-08, round 3): a sheet opens on the party at ATLAS_HOME_ZOOM times its fit with the sheet
+//     FILLING the stage (TnD Maps 0.16.0 bounds); the scale bar's label follows a wheel zoom while the bar keeps its width; a
+//     drag past the edge is clamped; a wider drawer reveals the map (no zoom, no move); full screen carries the dock's point
+//     and zoom and the dock takes its view back; a campaign that loses its atlas loses the Map tab and is moved off it.
 // A browser suite (dev/cdp-browser.js): a CI step after the Chrome check, and the pre-push gate (#652).
 // TND_SHOT_DIR=<dir> keeps the screenshots (atlas-region.png, atlas-town.png, atlas-phone.png); the OS temp dir otherwise.
 const fs=require('fs'),os=require('os'),path=require('path'),assert=require('assert/strict');
@@ -51,24 +52,23 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.equal(r.opened,false);assert.ok(r.toasts.some(t=>/no drawn map/.test(t)),'showAtlas says why: '+JSON.stringify(r.toasts));
  });
 
- await check('② with an atlas the name is a button and opens the DOCK on the region (the drawer on its Map tab, the HUD on); the enlarge button opens the full pane: ink on the canvas, the realm named, the status says what to do',async()=>{
+ await check('② with an atlas the name is a button and opens the DOCK on the region (the drawer on its Map tab, the HUD on); the enlarge button opens the full pane: ink on the canvas, a head of the select and close, no status line',async()=>{
    const d=await page.evaluate(()=>{atlasCreate('campaign-1');worldState.atlas.adopt=false;/* ②–⑨ probe the player's correction (We are here) and the off-map states: You are here (#702) is switched off for them; ⑬ switches it on */atlasFollow();syncUI();const el=document.getElementById('hud-loc');return {role:el.getAttribute('role'),tab:el.getAttribute('tabindex'),label:el.getAttribute('aria-label'),cursor:getComputedStyle(el).cursor};});
    assert.equal(d.role,'button');assert.equal(d.tab,'0');assert.match(d.label,/^Open the map — The Crossroads of Ashenveil$/);assert.equal(d.cursor,'pointer');
    await page.evaluate(()=>{const el=document.getElementById('hud-loc');el.focus();el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));});await settle();
-   const k=await page.evaluate(()=>{const p=__atlasTest.pane(),dock=document.getElementById('atlas-dock'),c=dock.querySelector('#atlas-canvas'),st=document.getElementById('atlas-stage');return {modal:!!document.getElementById('atlas-modal'),host:p&&p.host,hud:p&&p.hud,open:document.getElementById('rpanel').classList.contains('mobile-open'),width:mobileUI.width,tab:document.getElementById('mobile-tab-map').getAttribute('aria-selected'),mapTab:getComputedStyle(document.getElementById('mobile-tab-map')).display,head:!!document.getElementById('atlas-head'),status:!!document.getElementById('atlas-status'),cw:c?c.width:0,ch:c?c.height:0,stage:[st.clientWidth,st.clientHeight],trail:!!document.getElementById('atlas-trail'),fabs:['atlas-full','atlas-party'].map(id=>{const b=document.getElementById(id);if(!b)return null;const s=getComputedStyle(b),r=b.getBoundingClientRect(),sr=st.getBoundingClientRect();return {pos:s.position,radius:s.borderRadius,w:Math.round(r.width),inside:r.left>=sr.left&&r.top>=sr.top&&r.right<=sr.right&&r.bottom<=sr.bottom,label:b.getAttribute('aria-label')};}),name:worldState.atlas.zones['campaign-1'].name};});
+   const k=await page.evaluate(()=>{const p=__atlasTest.pane(),dock=document.getElementById('atlas-dock'),c=dock.querySelector('#atlas-canvas'),st=document.getElementById('atlas-stage');return {modal:!!document.getElementById('atlas-modal'),host:p&&p.host,hud:p&&p.hud,open:document.getElementById('rpanel').classList.contains('mobile-open'),width:mobileUI.width,tab:document.getElementById('mobile-tab-map').getAttribute('aria-selected'),mapTab:getComputedStyle(document.getElementById('mobile-tab-map')).display,head:!!document.getElementById('atlas-head'),status:!!document.getElementById('atlas-status'),cw:c?c.width:0,ch:c?c.height:0,stage:[st.clientWidth,st.clientHeight],trail:!!document.getElementById('atlas-trail'),fabs:['atlas-full','atlas-party'].map(id=>{const b=document.getElementById(id);if(!b)return null;const s=getComputedStyle(b),r=b.getBoundingClientRect(),sr=st.getBoundingClientRect();return {pos:s.position,radius:s.borderRadius,w:Math.round(r.width),inside:r.left>=sr.left&&r.top>=sr.top&&r.right<=sr.right&&r.bottom<=sr.bottom,label:b.getAttribute('aria-label'),box:[r.left,r.right,r.bottom],z:parseInt(s.zIndex,10)||0};}),cardZ:parseInt(getComputedStyle(document.getElementById('atlas-card')).zIndex,10)||0,name:worldState.atlas.zones['campaign-1'].name};});
    assert.equal(k.modal,false,'Enter on the name opens the dock, not the modal');assert.equal(k.host,'dock');assert.equal(k.hud,true,'the HUD is on in the dock');assert.equal(k.open,true,'the drawer opened');assert.ok(k.width>=300&&k.width<=460,'the drawer opened at the map width: '+k.width);assert.equal(k.tab,'true','the Map tab is selected');assert.equal(k.mapTab,'block');
    assert.equal(k.head,false,'the dock has no head: the HUD names the sheet');assert.equal(k.status,false,'the dock has no status line');assert.ok(k.cw>200&&k.ch>200&&Math.abs(k.cw-k.stage[0]*devicePixelRatioOf(1))<4,'the dock canvas fills the stage: '+JSON.stringify(k));assert.equal(k.trail,false,'no trail in the dock');
-   assert.ok(k.fabs.every(f=>f&&f.pos==='absolute'&&f.radius==='50%'&&f.w>=28&&f.w<=34&&f.inside),'the enlarge button and the party\'s dagger float over the sheet in small circles: '+JSON.stringify(k.fabs));assert.deepEqual(k.fabs.map(f=>f.label),['Open the map full screen','Go to where the party is']);
+   assert.ok(k.fabs.every(f=>f&&f.pos==='absolute'&&f.radius==='50%'&&f.w>=28&&f.w<=34&&f.inside),'the enlarge button and the party\'s dagger float over the sheet in small circles: '+JSON.stringify(k.fabs));assert.deepEqual(k.fabs.map(f=>f.label),['Open the map full screen','Go to where the party is']);assert.ok(k.fabs[1].box[1]<=k.fabs[0].box[0]&&Math.abs(k.fabs[1].box[2]-k.fabs[0].box[2])<1,'the dagger sits just left of the enlarge button, on the same line: '+JSON.stringify(k.fabs.map(f=>f.box)));assert.ok(k.cardZ>k.fabs[0].z&&k.cardZ>k.fabs[1].z,'the card is above the buttons: '+JSON.stringify([k.cardZ,k.fabs.map(f=>f.z)]));
    const dc=await page.evaluate(()=>{const p=atlasDoc('campaign-1').places[3];__atlasTest.tap({id:p.id});const el=document.getElementById('atlas-card'),r={shown:el.style.display,text:el.textContent,buttons:[].map.call(el.querySelectorAll('button[data-act]'),b=>b.getAttribute('data-act')),name:p.name};__atlasTest.tap(null);return r;});
    assert.equal(dc.shown,'block');assert.ok(dc.text.indexOf(dc.name)>=0,'a dock card names the town');assert.deepEqual(dc.buttons,['dismiss'],'a dock card offers no Current location: the party moves through the narrative');assert.doesNotMatch(dc.text,/Current location/);
    await page.screenshot({path:path.join(SHOTS,'atlas-dock.png')});
    await page.evaluate(()=>{document.getElementById('atlas-full').click();});await settle();
    assert.deepEqual(await page.evaluate(()=>({modal:!!document.getElementById('atlas-modal'),host:__atlasTest.pane().host,dock:document.getElementById('atlas-dock').children.length})),{modal:true,host:'full',dock:0},'the enlarge button lifts the one pane to full screen; the dock is emptied');
    const r=await page.evaluate(()=>{const c=document.getElementById('atlas-canvas'),g=c.getContext('2d'),d=g.getImageData(0,0,c.width,c.height).data;let dark=0,i;for(i=0;i<d.length;i+=16)if(d[i]+d[i+1]+d[i+2]<300)dark++;const p=__atlasTest.pane();
-     return {modal:!!document.getElementById('atlas-modal'),w:c.width,h:c.height,dark:dark,trail:document.getElementById('atlas-trail').textContent,status:document.getElementById('atlas-status').textContent,zone:p.zone,doc:p.doc,hud:p.hud,markers:p.markers.length,reveal:p.reveal,card:document.getElementById('atlas-card').style.display,zones:document.getElementById('atlas-zones').options.length,name:worldState.atlas.zones['campaign-1'].name,focusInside:document.getElementById('atlas-modal').contains(document.activeElement)};});
-   assert.equal(r.modal,true);assert.ok(r.w>600&&r.h>400,'the canvas fills the pane: '+r.w+'×'+r.h);assert.ok(r.dark>500,'ink was drawn ('+r.dark+' dark samples)');
-   assert.equal(r.trail,r.name);assert.equal(r.zone,'campaign-1');assert.equal(r.doc,'campaign-1');assert.equal(r.hud,true,'the HUD is on in the full pane');assert.equal(r.markers,0,'the party is not on the map yet');assert.equal(r.reveal,null);
-   assert.match(r.status,/^The party is not on the map yet\. "The Crossroads of Ashenveil" is not on the map \(no place on the map has that name\)\. Tap the place where the party is, then Current location\.$/);
+     return {modal:!!document.getElementById('atlas-modal'),w:c.width,h:c.height,dark:dark,head:[].map.call(document.querySelectorAll('#atlas-head > *'),e=>e.id),status:!!document.getElementById('atlas-status'),party:!!document.getElementById('atlas-party'),full:!!document.getElementById('atlas-full'),zone:p.zone,doc:p.doc,hud:p.hud,markers:p.markers.length,reveal:p.reveal,card:document.getElementById('atlas-card').style.display,zones:document.getElementById('atlas-zones').options.length,name:worldState.atlas.zones['campaign-1'].name,focusInside:document.getElementById('atlas-modal').contains(document.activeElement)};});
+   assert.equal(r.modal,true);assert.ok(r.w>600&&r.h>400,'the canvas fills the pane: '+r.w+'×'+r.h);assert.ok(r.dark>300,'ink was drawn ('+r.dark+' dark samples; the realm carried from the dock at its relative zoom)');
+   assert.deepEqual(r.head,['atlas-zones','atlas-close'],'the full pane\'s head is the select and close: no trail, no title, no Party button');assert.equal(r.status,false,'no status line anywhere');assert.equal(r.party,true,'the dagger floats over the full pane too');assert.equal(r.full,false,'no enlarge button in the full pane');assert.equal(r.zone,'campaign-1');assert.equal(r.doc,'campaign-1');assert.equal(r.hud,true,'the HUD is on in the full pane');assert.equal(r.markers,0,'the party is not on the map yet');assert.equal(r.reveal,null);
    assert.equal(r.card,'none');assert.equal(r.zones,2,'the select lists the one mapped place under its heading');assert.equal(r.focusInside,true,'the keyboard is inside the pane');
    await page.screenshot({path:path.join(SHOTS,'atlas-region.png')});
  });
@@ -85,18 +85,17 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
 
  await check('④ Current location ties the story place, shows the town sheet with the party on it, and saves the campaign',async()=>{
    await page.evaluate(()=>{document.querySelector('#atlas-card button[data-act="here"]').click();});await settle();
-   const r=await page.evaluate(()=>{const A=worldState.atlas,p=__atlasTest.pane(),saved=parseWorldState(store.get(WSK));return {at:A.at,tie:A.names['The Crossroads of Ashenveil'],off:A.off,zone:p.zone,doc:p.doc,markers:p.markers,status:document.getElementById('atlas-status').textContent,trail:document.getElementById('atlas-trail').textContent,toasts:__toasts.slice(),savedAt:saved&&saved.atlas?saved.atlas.at:null,savedZones:saved&&saved.atlas?Object.keys(saved.atlas.zones).length:0,trailBtn:document.querySelectorAll('#atlas-trail button[data-zone]').length};});
+   const r=await page.evaluate(()=>{const A=worldState.atlas,p=__atlasTest.pane(),saved=parseWorldState(store.get(WSK));return {at:A.at,tie:A.names['The Crossroads of Ashenveil'],off:A.off,zone:p.zone,doc:p.doc,markers:p.markers,toasts:__toasts.slice(),savedAt:saved&&saved.atlas?saved.atlas.at:null,savedZones:saved&&saved.atlas?Object.keys(saved.atlas.zones).length:0};});
    const town='campaign-1/'+p3.id;
    assert.equal(r.at,town);assert.deepEqual(r.tie,{zone:'campaign-1',id:p3.id});assert.equal(r.off,null);
    assert.equal(r.zone,town,'the pane moved to the town sheet');assert.equal(r.doc,town);assert.equal(r.markers.length,1);assert.equal(r.markers[0].kind,'party');
-   assert.equal(r.status,'The party is in '+p3.name+'. The story\'s "The Crossroads of Ashenveil" is at '+p3.name+' on this map: the player placed it there.','#692: the pane says the tie the tap made, in the words the GM is told');assert.ok(r.trail.indexOf(p3.name)>=0&&r.trailBtn===1,'the trail: region button, then the town');
-   assert.ok(r.toasts.some(t=>t==='"The Crossroads of Ashenveil" is on the map.'),'toasted: '+JSON.stringify(r.toasts));
+   assert.ok(r.toasts.some(t=>t==='The party is in '+p3.name+'. The story\'s "The Crossroads of Ashenveil" is at '+p3.name+' on this map: the player placed it there.'),'#692: the pane says the tie the tap made, in the words the GM is told — a toast, the pane has no status line: '+JSON.stringify(r.toasts));
    assert.equal(r.savedAt,town,'the tie is saved at once');assert.equal(r.savedZones,2);
    await page.screenshot({path:path.join(SHOTS,'atlas-town.png')});
  });
 
- await check('⑤ the trail leads back to the region: the party stands at the town, whose card now opens its sheet',async()=>{
-   await page.evaluate(()=>{document.querySelector('#atlas-trail button[data-zone]').click();});await settle();
+ await check('⑤ the select leads back to the region: the party stands at the town, whose card now opens its sheet',async()=>{
+   await page.evaluate(()=>{const s=document.getElementById('atlas-zones');s.value='campaign-1';s.dispatchEvent(new Event('change'));});await settle();
    const a=await page.evaluate(()=>{const p=__atlasTest.pane();return {zone:p.zone,m:p.markers};});
    assert.equal(a.zone,'campaign-1');assert.equal(a.m.length,1);assert.deepEqual([a.m[0].x,a.m[0].y],[p3.x,p3.y],'the party marker sits on the town');
    await clickMap(p3.x,p3.y);await settle();
@@ -108,9 +107,9 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
 
  await check('⑥ a sewer is fogged: only its ways up are drawn, and the pane hands the library the engine\'s reveal list',async()=>{
    const r=await page.evaluate(()=>{const reg=atlasDoc('campaign-1'),p0=reg.places[0];worldState.world.location=p0.name;atlasFollow();const town=atlasDoc(worldState.atlas.at),g=town.portals.filter(p=>p.kind==='grate')[0];worldState.world.sublocation=g.name;atlasFollow();syncUI();
-     const z=worldState.atlas.at;showAtlas();const p=__atlasTest.pane(),doc=atlasDoc(z);return {z:z,kind:worldState.atlas.zones[z].kind,zone:p.zone,reveal:p.reveal,expect:atlasReveal(z),rooms:doc.rooms.length,ups:doc.portals.filter(q=>q.way==='up').length,status:document.getElementById('atlas-status').textContent,markers:p.markers.length};});
+     const z=worldState.atlas.at;showAtlas();const p=__atlasTest.pane(),doc=atlasDoc(z);return {z:z,kind:worldState.atlas.zones[z].kind,zone:p.zone,reveal:p.reveal,expect:atlasReveal(z),rooms:doc.rooms.length,ups:doc.portals.filter(q=>q.way==='up').length,markers:p.markers.length};});
    assert.equal(r.kind,'dungeon');assert.equal(r.zone,r.z,'the pane opens where the party is');assert.deepEqual(r.reveal,r.expect);assert.equal(r.reveal.length,r.ups,'the ways up only');assert.ok(r.reveal.length<r.rooms,'the rest of the sewer is hidden');
-   assert.equal(r.markers,1);assert.match(r.status,/^The party is in The Sewers of /);
+   assert.equal(r.markers,1,'the party is drawn in the sewer');
  });
 
  await check('⑦ open water says why it cannot be stood on and offers no Current location',async()=>{
@@ -197,51 +196,71 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
      worldState.world.location='The Salted Wound';worldState.world.sublocation=null;atlasFollow();syncUI();showAtlasFull();
      __atlasTest.tap({id:p2.id});const label0=document.querySelector('#atlas-card button[data-act="here"]').textContent;
      /* the story moves on under the open card, with no repaint in between (the race itself) */
-     worldState.world.location='The Drowned Chapel';const res=__atlasTest.here(),ties=Object.keys(worldState.atlas.names),status1=document.getElementById('atlas-status').textContent,card1=document.getElementById('atlas-card').style.display;
+     worldState.world.location='The Drowned Chapel';const res=__atlasTest.here(),ties=Object.keys(worldState.atlas.names),status1=__toasts[__toasts.length-1],card1=document.getElementById('atlas-card').style.display;
      /* a committed turn repaints the open pane through syncUI */
-     worldState.world.location=p0.name;atlasFollow();syncUI();const status2=document.getElementById('atlas-status').textContent,m2=__atlasTest.pane().markers;
+     worldState.world.location=p0.name;atlasFollow();syncUI();const m2=__atlasTest.pane().markers;
      /* the story leaves the mapped places */
-     worldState.world.location='Sandpoint';atlasFollow();syncUI();const m3=__atlasTest.pane().markers,status3=document.getElementById('atlas-status').textContent;__atlasTest.tap({id:p0.id});
+     worldState.world.location='Sandpoint';atlasFollow();syncUI();const m3=__atlasTest.pane().markers;__atlasTest.tap({id:p0.id});
      const btn3=[].map.call(document.querySelectorAll('#atlas-card button[data-act]'),b=>b.getAttribute('data-act')),text3=document.getElementById('atlas-card').textContent;atlasPaneClose();
-     return {label0,res,ties,status1,card1,status2,m2,m3,status3,btn3,text3,p0:p0.name};});
+     return {label0,res,ties,status1,card1,m2,m3,btn3,text3,p0:p0.name};});
    assert.match(r.label0,/Current location — The Salted Wound/);
    assert.equal(r.res.ok,false);assert.equal(r.res.moved,true);assert.deepEqual(r.ties,[],'the stale tap tied nothing');
-   assert.equal(r.status1,'Not placed: the story has moved on — the place to put on the map is now The Drowned Chapel.');assert.equal(r.card1,'none','the stale card is put away');
-   assert.equal(r.status2,'The party is in '+r.p0+'.','a turn that lands repaints the open pane');assert.equal(r.m2.length,1);assert.equal(r.m2[0].label,'The party');
-   assert.equal(r.m3[0].label,'Last mapped place','off the map: the marker is where the party WAS');assert.match(r.status3,/^"Sandpoint" is not on the map/);
+   assert.equal(r.status1,'Not placed: the story has moved on — the place to put on the map is now The Drowned Chapel.','the refusal is toasted');assert.equal(r.card1,'none','the stale card is put away');
+   assert.equal(r.m2.length,1,'a turn that lands repaints the open pane');assert.equal(r.m2[0].label,'The party');
+   assert.equal(r.m3[0].label,'Last mapped place','off the map: the marker is where the party WAS');
    assert.ok(r.btn3.indexOf('here')>=0,'the town the party left offers Current location: '+JSON.stringify(r.btn3));assert.doesNotMatch(r.text3,/The party is here/);
  });
 
  await check('⑬ You are here (#702): with adoption on, a start the map does not know is ADDED as a village beside the capital — the pane opens on the party inside it, and the realm shows the new place',async()=>{
    const r=await page.evaluate(()=>{delete worldState.atlas;atlasForget();atlasCreate('campaign-1');worldState.world.location='The Crossroads of Ashenveil';worldState.world.sublocation=null;atlasFollow();syncUI();showAtlasFull();
      const A=worldState.atlas,p=__atlasTest.pane(),reg=atlasDoc(A.seed),added=reg.places.filter(x=>x.authored);
-     return {status:document.getElementById('atlas-status').textContent,zoneKind:A.zones[A.at]&&A.zones[A.at].kind,paneZone:p.zone,at:A.at,added:added.map(x=>x.name),adds:Object.keys(A.adds),edits:(A.zones[A.seed].params.edits||[]).length,told:(A.told||[]).map(t=>t.text),redrawn:!!A.zones[A.seed].redrawn,trail:p.trail||null};});
-   assert.equal(r.status,'The party is in The Crossroads of Ashenveil.','the pane says the party is in the story\'s own place, now a place of the map');
+     return {markers:p.markers.map(m=>m.label),zoneKind:A.zones[A.at]&&A.zones[A.at].kind,paneZone:p.zone,at:A.at,added:added.map(x=>x.name),adds:Object.keys(A.adds),edits:(A.zones[A.seed].params.edits||[]).length,told:(A.told||[]).map(t=>t.text),redrawn:!!A.zones[A.seed].redrawn,trail:p.trail||null};});
+   assert.ok(r.markers.length===1&&/^The party/.test(r.markers[0]),'the pane opens with the party on the added village\'s own sheet ("somewhere here": the town is known, not the spot): '+JSON.stringify(r.markers));
    assert.equal(r.zoneKind,'town');assert.equal(r.paneZone,r.at,'the pane opens on the added village\'s own sheet');
    assert.deepEqual(r.added,['The Crossroads of Ashenveil']);assert.deepEqual(r.adds,['The Crossroads of Ashenveil']);assert.equal(r.edits,1,'one edit in the region\'s recipe');
    assert.ok(r.told.some(t=>/was added to the map of .* as a village/.test(t)),'the GM is told: '+JSON.stringify(r.told));assert.equal(r.redrawn,false,'the game\'s own edit is not drift');
  });
 
- await check('⑭ the dock\'s view is remembered across full screen; the HUD and the drawer: the scale bar follows a wheel zoom (its label changes, its width holds), a wider drawer re-fits the dock\'s view, and a campaign that loses its atlas loses the Map tab and is moved off it',async()=>{
+ await check('⑭ the framing (owner 2026-11-08): a sheet opens on the party at four times its fit with the sheet FILLING the stage; the HUD\'s scale bar follows a wheel zoom (its label changes, its width holds); a drag past the edge is clamped; a wider drawer reveals the map without moving or zooming it; full screen carries the dock\'s point and zoom; back from it the dock shows what the player left; a campaign that loses its atlas loses the Map tab and is moved off it',async()=>{
    await page.evaluate(()=>{atlasPaneClose();mobileDrawerWidth(0);showAtlas();});await settle();await page.waitForTimeout(150);
-   const m0=await page.evaluate(()=>{const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),r=c.getBoundingClientRect();c.dispatchEvent(new WheelEvent('wheel',{deltaY:-500,clientX:r.left+r.width*0.3,clientY:r.top+r.height*0.4,bubbles:true,cancelable:true}));const o={bubbles:true,cancelable:true,button:0};c.dispatchEvent(new MouseEvent('mousedown',Object.assign({clientX:r.left+200,clientY:r.top+200},o)));window.dispatchEvent(new MouseEvent('mousemove',Object.assign({clientX:r.left+140,clientY:r.top+230},o)));window.dispatchEvent(new MouseEvent('mouseup',Object.assign({clientX:r.left+140,clientY:r.top+230},o)));return {host:_atlasPane.host,zone:_atlasPane.zone,T:v.transform()};});
-   await page.evaluate(()=>{document.getElementById('atlas-full').click();});await settle();
-   const m1=await page.evaluate(()=>({host:_atlasPane.host,T:_atlasPane.view.transform()}));assert.equal(m1.host,'full');assert.ok(Math.abs(m1.T.k-m0.T.k)>0.01,'the full pane fits afresh: '+m0.T.k+' vs '+m1.T.k);
-   await page.evaluate(()=>{document.getElementById('atlas-modal').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));});await settle();await page.waitForTimeout(150);
-   const m2=await page.evaluate(()=>({host:_atlasPane.host,zone:_atlasPane.zone,T:_atlasPane.view.transform()}));
-   assert.equal(m2.host,'dock');assert.equal(m2.zone,m0.zone);assert.ok(Math.abs(m2.T.k-m0.T.k)<1e-6&&Math.abs(m2.T.x-m0.T.x)<1.5&&Math.abs(m2.T.y-m0.T.y)<1.5,'back from full screen the dock shows what the player left (zoom and pan): '+JSON.stringify([m0.T,m2.T]));
-   const r=await page.evaluate(()=>new Promise(done=>{const v=_atlasPane.view,st=document.getElementById('atlas-stage'),c=document.getElementById('atlas-canvas'),bar=s=>{const z=s.find(x=>x.t==='text'&&x.text==='0'),l=s.find(x=>x.t==='text'&&/^\d+ (km|m)$/.test(x.text));return z&&l?{w:Math.round(l.x-z.x),label:l.text}:null;};
-     const out={host:_atlasPane.host,hud:v.hud(),title:v.hudScene().some(x=>x.t==='text'&&x.text===atlasDoc(_atlasPane.zone).title.name),a:bar(v.hudScene()),k0:v.transform().k,w0:st.clientWidth};
+   const edges=()=>page.evaluate(()=>{const v=_atlasPane.view,sc=v.scene(),st=document.getElementById('atlas-stage'),T=v.transform(),X=sc.x0||0,Y=sc.y0||0,w=st.clientWidth,h=st.clientHeight,fitK=Math.min((w-32)/sc.width,(h-32)/sc.height),p=atlasPartyIn(_atlasPane.zone);return {host:_atlasPane.host,zone:_atlasPane.zone,bounds:v.bounds(),k:T.k,fitK,w,h,left:T.x+X*T.k,top:T.y+Y*T.k,right:T.x+(X+sc.width)*T.k,bottom:T.y+(Y+sc.height)*T.k,party:p?{sx:T.x+p.x*T.k,sy:T.y+p.y*T.k}:null,cx:(w/2-T.x)/T.k,cy:(h/2-T.y)/T.k};});
+   const e0=await edges();
+   assert.equal(e0.host,'dock');assert.equal(e0.bounds,true,'the view keeps the sheet filling the stage');assert.ok(Math.abs(e0.k/e0.fitK-4)<0.05,'the sheet opens at four times its fit: '+e0.k+' vs fit '+e0.fitK);
+   assert.ok(e0.left<=0.5&&e0.top<=0.5&&e0.right>=e0.w-0.5&&e0.bottom>=e0.h-0.5,'no paper edge inside the stage: '+JSON.stringify(e0));
+   assert.ok(e0.party&&e0.party.sx>0&&e0.party.sx<e0.w&&e0.party.sy>0&&e0.party.sy<e0.h,'the party is on screen: '+JSON.stringify(e0.party));
+   const fill=await page.evaluate(()=>{const c=document.getElementById('atlas-canvas'),g=c.getContext('2d'),d=g.getImageData(0,0,c.width,c.height).data;let bg=0,n=0;for(let i=0;i<d.length;i+=64){n++;if(d[i]===0xd9&&d[i+1]===0xd0&&d[i+2]===0xbd)bg++;}return bg/n;});
+   assert.ok(fill<0.02,'the stage is sheet, not the background colour: '+(fill*100).toFixed(1)+'% background');
+   /* the wheel: the scale bar follows the zoom */
+   const r=await page.evaluate(()=>{const v=_atlasPane.view,st=document.getElementById('atlas-stage'),c=document.getElementById('atlas-canvas'),bar=s=>{const z=s.find(x=>x.t==='text'&&x.text==='0'),l=s.find(x=>x.t==='text'&&/^\d+ (km|m)$/.test(x.text));return z&&l?{w:Math.round(l.x-z.x),label:l.text}:null;};
+     const out={hud:v.hud(),title:v.hudScene().some(x=>x.t==='text'&&x.text===atlasDoc(_atlasPane.zone).title.name),a:bar(v.hudScene()),k0:v.transform().k,w0:st.clientWidth};
      const rct=c.getBoundingClientRect();c.dispatchEvent(new WheelEvent('wheel',{deltaY:-600,clientX:rct.left+rct.width/2,clientY:rct.top+rct.height/2,bubbles:true,cancelable:true}));
-     out.k1=v.transform().k;out.b=bar(v.hudScene());
-     mobileDrawerWidth(mobileUI.width+160);
-     setTimeout(()=>{out.w1=st.clientWidth;out.k2=v.transform().k;out.cw=c.width;
-       delete worldState.atlas;atlasForget();syncUI();out.after={tab:getComputedStyle(document.getElementById('mobile-tab-map')).display,selected:mobileUI.selected,pane:__atlasTest.pane(),dock:document.getElementById('atlas-dock').children.length,body:document.body.classList.contains('atlas-on')};done(out);},120);}));
-   assert.equal(r.host,'dock');assert.equal(r.hud,true);assert.equal(r.title,true,'the HUD carries the sheet\'s title');assert.ok(r.a&&r.b,'a scale bar at both zooms: '+JSON.stringify([r.a,r.b]));
+     out.k1=v.transform().k;out.b=bar(v.hudScene());return out;});
+   assert.equal(r.hud,true);assert.equal(r.title,true,'the HUD carries the sheet\'s title');assert.ok(r.a&&r.b,'a scale bar at both zooms: '+JSON.stringify([r.a,r.b]));
    assert.ok(r.k1>r.k0*1.5,'the wheel zoomed in: '+r.k0+' → '+r.k1);assert.ok(r.a.w>=r.w0*0.12&&r.a.w<=r.w0*0.32&&r.b.w>=r.w0*0.12&&r.b.w<=r.w0*0.32,'the bar keeps about a fifth of the view at both zooms: '+JSON.stringify([r.w0,r.a,r.b]));
    assert.ok(r.a.label!==r.b.label||Math.abs(r.a.w*r.k1/r.k0-r.b.w)<=2,'the label followed the zoom (or a kept label\'s bar grew with it): '+JSON.stringify([r.a,r.b]));
-   assert.ok(r.w1>r.w0+100,'the drawer grew: '+r.w0+' → '+r.w1);assert.ok(Math.abs(r.cw-r.w1)<4,'the canvas follows the stage: '+r.cw+' vs '+r.w1);assert.ok(r.k2!==r.k1,'a size the dock has not had re-fits the view: '+r.k1+' → '+r.k2);
-   assert.deepEqual(r.after,{tab:'none',selected:'party',pane:null,dock:0,body:false},'without an atlas the Map tab goes and the drawer is moved off it');
+   /* a drag far past the edge is clamped: the sheet's top-left corner never comes inside the stage */
+   await page.evaluate(()=>{const c=document.getElementById('atlas-canvas'),r=c.getBoundingClientRect(),o={bubbles:true,cancelable:true,button:0};c.dispatchEvent(new MouseEvent('mousedown',Object.assign({clientX:r.left+20,clientY:r.top+20},o)));window.dispatchEvent(new MouseEvent('mousemove',Object.assign({clientX:r.left+6000,clientY:r.top+4000},o)));window.dispatchEvent(new MouseEvent('mouseup',Object.assign({clientX:r.left+6000,clientY:r.top+4000},o)));});/* a drag of thousands of px: past the sheet's corner at any zoom */
+   const e1=await edges();assert.ok(Math.abs(e1.left)<0.5&&Math.abs(e1.top)<0.5,'the drag stopped at the sheet\'s corner: '+JSON.stringify(e1));
+   /* the drawer pulled wider: the zoom holds and the map point under the stage's right edge (the screen's) is the same — from a
+      view away from the sheet's edges (the dagger button: the party at four times the fit); at an edge the bounds win and the
+      sheet's edge keeps to the stage's */
+   await page.evaluate(()=>{document.getElementById('atlas-party').click();});await page.waitForTimeout(100);
+   const eP=await edges();assert.ok(Math.abs(eP.k/eP.fitK-4)<0.05&&eP.left<-100&&eP.right>eP.w+100,'the dagger button frames the party at four times the fit, away from the edges: '+JSON.stringify(eP));
+   const d0=await page.evaluate(()=>{const v=_atlasPane.view,st=document.getElementById('atlas-stage'),T=v.transform();return {w:st.clientWidth,k:T.k,rightX:(st.clientWidth-T.x)/T.k};});
+   await page.evaluate(()=>{mobileDrawerWidth(mobileUI.width+160);});await page.waitForTimeout(150);
+   const d1=await page.evaluate(()=>{const v=_atlasPane.view,st=document.getElementById('atlas-stage'),T=v.transform(),c=document.getElementById('atlas-canvas');return {w:st.clientWidth,k:T.k,rightX:(st.clientWidth-T.x)/T.k,cw:c.width};});
+   assert.ok(d1.w>d0.w+100,'the drawer grew: '+d0.w+' → '+d1.w);assert.ok(Math.abs(d1.cw-d1.w)<4,'the canvas follows the stage: '+d1.cw+' vs '+d1.w);
+   assert.ok(Math.abs(d1.k-d0.k)<1e-9,'the pull did not zoom: '+d0.k+' → '+d1.k);assert.ok(Math.abs(d1.rightX-d0.rightX)*d0.k<1.5,'the map stayed where it was on screen (revealed, not moved): '+JSON.stringify([d0,d1]));
+   /* full screen carries the dock's point and zoom; back, the dock shows what the player left */
+   const m0=await edges();
+   await page.evaluate(()=>{document.getElementById('atlas-full').click();});await settle();
+   const m1=await edges(),sc=Math.min(m1.w/m0.w,m1.h/m0.h);assert.equal(m1.host,'full');assert.ok(Math.abs(m1.k-m0.k*sc)<1e-6,'full screen keeps the dock\'s RELATIVE zoom (scaled by the room gained, '+sc.toFixed(3)+'): '+m0.k+' → '+m1.k);
+   assert.ok(Math.abs(m1.cx-m0.cx)*m1.k<=Math.max(1.5,(m1.w-m0.w*sc)/2+1.5)&&Math.abs(m1.cy-m0.cy)*m1.k<=Math.max(1.5,(m1.h-m0.h*sc)/2+1.5),'full screen looks at the dock\'s point (the bounds may shift it by no more than the room gained): '+JSON.stringify([m0,m1]));
+   await page.evaluate(()=>{document.getElementById('atlas-modal').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));});await settle();await page.waitForTimeout(150);
+   const m2=await edges();
+   assert.equal(m2.host,'dock');assert.equal(m2.zone,m0.zone);assert.ok(Math.abs(m2.k-m0.k)<1e-6&&Math.abs(m2.cx-m0.cx)*m0.k<1.5&&Math.abs(m2.cy-m0.cy)*m0.k<1.5,'back from full screen the dock shows what the player left (zoom and pan): '+JSON.stringify([m0,m2]));
+   const after=await page.evaluate(()=>{delete worldState.atlas;atlasForget();syncUI();return {tab:getComputedStyle(document.getElementById('mobile-tab-map')).display,selected:mobileUI.selected,pane:__atlasTest.pane(),dock:document.getElementById('atlas-dock').children.length,body:document.body.classList.contains('atlas-on')};});
+   assert.deepEqual(after,{tab:'none',selected:'party',pane:null,dock:0,body:false},'without an atlas the Map tab goes and the drawer is moved off it');
  });
 
  assert.deepEqual(errors,[],'page errors: '+errors.join(' | '));
