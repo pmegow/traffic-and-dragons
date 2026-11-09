@@ -1,6 +1,6 @@
 /* ui-atlas.js — #684 THE ATLAS PANE: the campaign's drawn maps on a canvas (TnDMaps.view), opened by the location name.
-   A thin DOM shell over atlas.js: every decision (where the party is, what a tap would tie, what a sheet may show,
-   what a card says) is a pure atlas.js read; the one write is the player's "Current location" (atlasPlace), saved at once.
+   A thin DOM shell over atlas.js: every decision (where the party is, what a sheet may show, what a card says) is a pure
+   atlas.js read; the one write is the player's NOTE on a thing (atlasNoteSet), saved at once.
    Only ENTERED zones can be opened — the pane never draws a place the party has not been (no peeking into a dungeon).
    #711 (owner 2026-11-08): the pane lives in the side drawer's Map tab (the DOCK) — the location name opens it there —
    and an enlarge button lifts the same pane to FULL SCREEN (the modal), where the mapped-places select and Current
@@ -11,7 +11,11 @@
    the sheet's edge at the stage's edge; the player's own drag and zoom keep the rule too — TnD Maps 0.16.0); a drawer
    pull reveals or covers the map without moving it; full screen carries the dock's point and zoom, and the dock takes
    its own view back when the full pane closes; the full pane's head is the select and the close button, no status line
-   anywhere (a failure or a refusal is toasted; the tie a tap made is toasted in the words the GM is told, #692).
+   anywhere (a failure or a refusal is toasted). ROUND 4 (owner 2026-11-08): NO Current location at all — party movement
+   is the narrative's, the hand tie is retired from the pane (atlasPlace stays the engine's); a card offers "Add note"
+   instead — the player's own words on a map thing (atlasNoteSet, worldState.atlas.notes), in a modal prefilled with the
+   note or the thing's word; and the plaque's subtitle is the party's LOCATION TRAIL (the library's HUD tiers, built on
+   character location: a click on a tier shows that sheet, browsing up leaves the trail as it is), in both hosts.
    ONE pane at a time, in one host or the other; the view draws the library's HUD (title, compass, a scale bar re-measured
    at every zoom) screen-fixed, so a pan or a wheel zoom leaves the legend where it is.
    Design: DOC/DESIGN_684_atlas.md. Seam: window.__atlasTest. */
@@ -185,12 +189,13 @@ function atlasPaneWire(host){
     _atlasPane={view:TnDMaps.view(canvas,atlasDoc(A.at||A.seed),{style:"ink",hud:true,bounds:true}),zone:null,target:null,host:host,size:null,frame:null};
   }catch(e){_atlasPane=null;atlasProblem("opening the map",e);return false;}
   _atlasPane.view.on("mapclick",function(pt,hit){atlasPaneTap(atlasPaneTargetOf(pt,hit));});
+  _atlasPane.view.on("hudclick",function(m){var B=atlasLive();if(m&&m.key!=null&&B&&B.zones[m.key])atlasPaneShow(m.key,m.key===B.at);});/* a tier of the plaque's trail: that sheet, framed on the party when it is the party's */
   document.getElementById("atlas-party").addEventListener("click",function(){var B=atlasLive();if(B&&B.at)atlasPaneShow(B.at,true);else atlasPaneSay("The party is not on the map yet.");});
   if((el=document.getElementById("atlas-full")))el.addEventListener("click",function(){var P=_atlasPane;showAtlasFull(P?P.zone:undefined);});
   if((el=document.getElementById("atlas-zones")))el.addEventListener("change",function(){if(this.value)atlasPaneShow(this.value);});
   document.getElementById("atlas-card").addEventListener("click",function(e){
     var act=e.target&&e.target.getAttribute&&e.target.getAttribute("data-act");
-    if(act==="here")atlasPaneWeAreHere();
+    if(act==="note")atlasPaneNoteOpen();
     else if(act==="open"&&e.target.getAttribute("data-zone"))atlasPaneShow(e.target.getAttribute("data-zone"));
     else if(act==="dismiss")atlasPaneTap(null);
   });
@@ -233,6 +238,7 @@ function atlasPaneShow(zoneId,toParty,carry){
     P.view.setMarkers(atlasMarkers(zoneId));
   }catch(e){atlasPaneSay("That sheet could not be drawn: "+atlasProblem("drawing a sheet",e));return false;}
   P.zone=zoneId;P.target=null;P.view.select(null);
+  try{P.view.setHudTrail(atlasTrailItems(zoneId));}catch(e4){atlasProblem("drawing the trail",e4);}/* the plaque's subtitle: the party's location trail, this sheet current */
   if((sel=document.getElementById("atlas-zones"))){
     zones=atlasZones();sel.innerHTML="";
     sel.appendChild(new Option("Mapped places ("+zones.length+")",""));
@@ -265,31 +271,44 @@ function atlasPaneCard(card){
     +(card.word?"<div style='font-size:12px;color:var(--t2);margin-top:2px;'>"+escHtml(card.word)+"</div>":"");
   if(card.refused)h+="<div style='font-size:12px;color:var(--warn);margin-top:8px;'>"+escHtml(card.refused)+"</div>";
   else if(card.partyHere)h+="<div style='font-size:12px;color:var(--acc);margin-top:8px;'>The party is here.</div>";
-  else if(card.added)h+="<div style='font-size:12px;color:var(--t2);margin-top:8px;'>"+escHtml(card.added)+"</div>";/* review 3, finding 2a: the thing the engine added for the story's name, or a room inside it — Current location would place nothing */
+  else if(card.added)h+="<div style='font-size:12px;color:var(--t2);margin-top:8px;'>"+escHtml(card.added)+"</div>";/* review 3, finding 2a: the thing the engine added for the story's name, or a room inside it */
   else if(card.unvisited)h+="<div style='font-size:12px;color:var(--t2);margin-top:8px;'>Not yet visited &mdash; its sheet is drawn when the party goes in.</div>";
+  if(card.note)h+="<div class='atlas-note' style='font-size:12px;color:var(--t0);margin-top:8px;white-space:pre-wrap;'>"+escHtml(card.note)+"</div>";/* round 4: the player's own words */
   h+="<div style='display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;'>";
   if(card.opens)h+="<button type='button' class='qa' data-act='open' data-zone='"+escHtml(card.opens)+"'>Open its sheet</button>";
-  if(card.place&&!card.partyHere&&!card.refused&&!card.added&&_atlasPane&&_atlasPane.host==="full")h+="<button type='button' class='qa' data-act='here' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Current location &mdash; "+escHtml(card.place.name)+"</button>";
+  if(card.id!=null)h+="<button type='button' class='qa' data-act='note'>"+(card.note?"Edit note":"Add note")+"</button>";/* round 4 (owner 2026-11-08): in place of Current location */
   h+="</div>";
   el.innerHTML=h;el.style.display="block";
 }
-/* "Current location" (owner 2026-11-08, was "We are here"; offered in the full pane only — in the dock the party moves
-   through the narrative): tie the story's current place to the tapped thing or point, save, show where that put the
-   party, and SAY the tie in the words the GM is told (#692) — the pane has no status line, so the toast carries it */
-function atlasPaneWeAreHere(){
-  var P=_atlasPane,r,where;
-  if(!P||!P.target)return null;
-  if(typeof busy!=="undefined"&&busy){atlasPaneSay("Finish the current turn first.");return {ok:false,reason:"a turn is in flight"};}
-  r=atlasPlace(P.zone,P.target,P.place);/* P.place is what the card's button NAMED — a turn that landed since must not spend the tap on another place */
-  if(!r.ok){if(r.moved)atlasPaneShow(P.zone);atlasPaneSay("Not placed: "+r.reason+".");return r;}
+/* "Add note" (owner 2026-11-08, in place of Current location — the hand tie is retired; party movement is the
+   narrative's): the player's own words on a map thing, kept on the campaign. The modal opens with the current note, or
+   the thing's word when there is none ("a hut" for Henthein's Bothy), and saves at once; an emptied note is removed */
+function atlasPaneNoteOpen(){
+  var P=_atlasPane,card,box;
+  if(!P||!P.target||P.target.id==null)return false;
+  try{card=atlasCard(P.zone,P.target);}catch(e){atlasPaneSay("That place could not be read: "+atlasProblem("reading a place",e));return false;}
+  if(!card)return false;
+  modalShell("atlas-note-modal",
+    "<div style='font-size:15px;font-weight:bold;color:var(--t0);margin-bottom:8px;'>"+escHtml(card.title)+"</div>"
+    +"<textarea id='atlas-note-text' aria-label='Your note on "+escHtml(card.title)+"' maxlength='"+ATLAS_NOTE_MAX+"' style='width:100%;min-height:110px;box-sizing:border-box;background:var(--bg2);color:var(--t0);border:1px solid var(--brd2);border-radius:var(--r);padding:8px;font-family:var(--font);font-size:13px;line-height:1.4;resize:vertical;'></textarea>"
+    +"<div style='display:flex;gap:8px;justify-content:flex-end;margin-top:10px;'><button type='button' class='qa' id='atlas-note-cancel'>Cancel</button><button type='button' class='qa' id='atlas-note-save' style='background:var(--acc);color:var(--on-acc);border:none;font-weight:bold;'>Save note</button></div>",
+    {closeId:"atlas-note-cancel",overlayCss:"position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:320;display:flex;align-items:center;justify-content:center;",boxCss:"width:min(420px,calc(100% - 32px));background:var(--modal-bg);border:1px solid var(--brd2);border-radius:12px;padding:16px;"});
+  box=document.getElementById("atlas-note-text");
+  box.value=card.note||card.word||"";
+  box.focus();box.setSelectionRange(box.value.length,box.value.length);
+  document.getElementById("atlas-note-save").addEventListener("click",function(){atlasPaneNoteSave(P.zone,P.target.id,box.value);});
+  return true;
+}
+function atlasPaneNoteSave(zoneId,id,text){
+  var r=atlasNoteSet(zoneId,id,text),m=document.getElementById("atlas-note-modal"),P=_atlasPane;
+  if(!r.ok){atlasPaneSay("Not saved: "+r.reason+".");return r;}
   if(typeof saveAll==="function")saveAll();
-  if(typeof syncUI==="function")syncUI();
-  try{where=atlasWhere();}catch(e){where=null;atlasProblem("reading the party's place",e);}
-  atlasPaneSay(where&&where.text?where.text:"\""+r.bound+"\" is on the map.");
-  atlasPaneShow(r.at||P.zone,true);
+  if(m)m.remove();
+  showToast(r.removed?"Note removed.":"Note saved.");
+  if(P&&P.zone===zoneId&&P.target&&P.target.id===id)atlasPaneTap(P.target);/* the card shows the note */
   return r;
 }
 if(typeof window!=="undefined")window.__atlasTest={
-  pane:function(){var P=_atlasPane;return P?{zone:P.zone,target:P.target,host:P.host,hud:P.view.hud(),bounds:P.view.bounds(),markers:P.view.markers(),reveal:P.view.reveal(),doc:P.view.doc().seed}:null;},
-  tap:atlasPaneTap,here:atlasPaneWeAreHere,show:atlasPaneShow,open:showAtlas,openFull:showAtlasFull,dock:atlasDockMount,close:atlasPaneClose,doorPaint:atlasDoorPaint,refresh:atlasPaneRefresh
+  pane:function(){var P=_atlasPane;return P?{zone:P.zone,target:P.target,host:P.host,hud:P.view.hud(),bounds:P.view.bounds(),trail:P.view.hudTrail(),markers:P.view.markers(),reveal:P.view.reveal(),doc:P.view.doc().seed}:null;},
+  tap:atlasPaneTap,note:atlasPaneNoteOpen,noteSave:atlasPaneNoteSave,show:atlasPaneShow,open:showAtlas,openFull:showAtlasFull,dock:atlasDockMount,close:atlasPaneClose,doorPaint:atlasDoorPaint,refresh:atlasPaneRefresh
 };

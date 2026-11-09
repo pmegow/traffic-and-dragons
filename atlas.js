@@ -1127,7 +1127,7 @@ function atlasCreate(seed){
   if(seed==null)seed=atlasSeedMint();
   if(typeof seed!=="string"||!/^[A-Za-z0-9-]{4,40}$/.test(seed))throw new Error("atlas: a map seed is 4–40 letters, digits or hyphens");
   doc=TnDMaps.generate("region",{seed:seed});
-  A={v:ATLAS_VER,seed:seed,at:null,spot:null,off:null,ptr:null,zones:keyedDict(),names:keyedDict(),adds:keyedDict(),kinds:keyedDict(),told:[],adopt:true};/* #708: kinds — what the story said a place IS, per story key */
+  A={v:ATLAS_VER,seed:seed,at:null,spot:null,off:null,ptr:null,zones:keyedDict(),names:keyedDict(),adds:keyedDict(),kinds:keyedDict(),notes:keyedDict(),told:[],adopt:true};/* #708: kinds — what the story said a place IS, per story key */
   A.zones[seed]={kind:"region",parent:null,via:null,params:JSON.parse(JSON.stringify(doc.params)),name:(doc.title&&doc.title.name)||null,lib:TnDMaps.VERSION,fp:atlasFingerprint(doc),fpv:ATLAS_FP_SCHEME,turn:atlasTurn()};
   worldState.atlas=A;
   atlasSay("info","drew "+A.zones[seed].name+" (region) from the seed "+seed);
@@ -1234,6 +1234,28 @@ function atlasZones(){
 }
 /* the chain of zones from the region down to one zone */
 function atlasTrail(zoneId){var A=atlasLive(),out=[],z=zoneId,guard=0;if(!A)return out;while(z&&A.zones[z]&&guard++<64){out.unshift(z);z=A.zones[z].parent;}return out;}
+/* #711 round 4 (owner 2026-11-08): the party's LOCATION TRAIL for the HUD plaque — the chain of zones the party stands in
+   (the last mapped place once the story has left the map; the region alone before the party is placed), as the library's
+   tiers {key, text, current}: the sheet shown now is current. Built on character location: browsing up leaves it as it is. */
+function atlasTrailItems(shownZone){var A=atlasLive(),chain,i,out=[];if(!A)return out;chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}
+/* #711 round 4: the player's NOTE on a map thing (in place of the retired hand tie) — kept on the campaign
+   (worldState.atlas.notes, keyed zone|thing id), the player's own words, never read by the engine's rules; capped at
+   ATLAS_NOTE_MAX; an empty note is removed. The card carries it (atlasCard's `note`). */
+var ATLAS_NOTE_MAX=600;
+function atlasNoteKey(zoneId,id){return zoneId+"|"+id;}
+function atlasNote(zoneId,id){var A=atlasLive(),n;if(!A||!A.notes||id==null)return "";n=A.notes[atlasNoteKey(zoneId,id)];return typeof n==="string"?n:"";}
+function atlasNoteSet(zoneId,id,text){
+  var A=atlasLive(),k;
+  if(!A)return {ok:false,reason:"this campaign has no drawn map"};
+  if(!A.zones[zoneId])return {ok:false,reason:"that sheet is not in the atlas"};
+  if(id==null||!atlasThingById(atlasDoc(zoneId),id))return {ok:false,reason:"that thing is not on the sheet"};
+  if(!A.notes||typeof A.notes!=="object")A.notes=keyedDict();
+  text=String(text==null?"":text).replace(/\r\n?/g,"\n").trim();
+  if(text.length>ATLAS_NOTE_MAX)return {ok:false,reason:"a note is at most "+ATLAS_NOTE_MAX+" characters ("+text.length+" given)"};
+  k=atlasNoteKey(zoneId,id);
+  if(!text){delete A.notes[k];return {ok:true,text:"",removed:true};}
+  A.notes[k]=text;return {ok:true,text:text};
+}
 
 /* ── what the pane and the prompt say ──────────────────────────────────────────────────────────────────────── */
 /* READ: the id of the zone a portal leads to, entered or not; null when it leads nowhere */
@@ -1336,10 +1358,10 @@ function atlasCard(zoneId,target){
     if(t.portal){try{leads=atlasPortalPeek(A,zoneId,t.portal);}catch(e){leads=null;}}
     pv=atlasPlacePreview();p=atlasPointer();add=(pv&&p&&A.adds)?A.adds[pv.level==="sub"?atlasSubKey(p):atlasWorldKey(p)]:null;
     /* the thing the engine added for the story's current name, or a thing inside it: nothing to place (review 3, finding 2a) */
-    if(add&&add.zone===zoneId&&add.id===t.id)added="The engine added \""+pv.name+"\" to the map here for the story's name; there is nothing to place.";
-    else if(add&&atlasAddHolds(A,add,zoneId))added="The engine added \""+pv.name+"\" to the map, and this is inside it; there is nothing to place.";
+    if(add&&add.zone===zoneId&&add.id===t.id)added="The engine added \""+pv.name+"\" to the map here for the story's name.";/* round 4: the tie is gone, so no "nothing to place" */
+    else if(add&&atlasAddHolds(A,add,zoneId))added="The engine added \""+pv.name+"\" to the map, and this is inside it.";
     return {id:t.id,x:t.x,y:t.y,title:t.name,word:t.word||t.kind||"",opens:(leads&&A.zones[leads]&&leads!==zoneId)?leads:null,unvisited:!!(leads&&!A.zones[leads]),
-      partyHere:!gone&&((A.at===zoneId&&A.spot===t.id)||!!(leads&&leads!==zoneId&&trail.indexOf(leads)>=0&&trail.indexOf(leads)>trail.indexOf(zoneId))),place:pv,added:added||null};
+      partyHere:!gone&&((A.at===zoneId&&A.spot===t.id)||!!(leads&&leads!==zoneId&&trail.indexOf(leads)>=0&&trail.indexOf(leads)>trail.indexOf(zoneId))),place:pv,added:added||null,note:atlasNote(zoneId,t.id)};
   }
   b=ATLAS_BUILDERS[rec.kind+">wild"];
   if(!b||!isFinite(target.x)||!isFinite(target.y))return null;
@@ -1448,6 +1470,7 @@ function atlasHeal(){
   if(!A.adds||typeof A.adds!=="object"){A.adds=keyedDict();changed=true;}
   if(!(A.told instanceof Array)){A.told=[];changed=true;}
   if(!A.kinds||typeof A.kinds!=="object"){A.kinds=keyedDict();changed=true;}/* #708 */
+  if(!A.notes||typeof A.notes!=="object"){A.notes=keyedDict();changed=true;}/* #711 round 4: the player's notes on map things */
   keys=Object.keys(A.kinds);
   for(i=0;i<keys.length;i++)if(A.kinds[keys[i]]&&A.kinds[keys[i]].kind==="pending"){A.kinds[keys[i]]={kind:"unknown",why:"the game closed before the map learned what kind of place it is",by:"load",turn:atlasTurn()};changed=true;}/* #708: an ask that never came back is a refusal with its reason, never a village */
   keys=Object.keys(A.adds);

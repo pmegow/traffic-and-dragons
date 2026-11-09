@@ -1,11 +1,11 @@
-/* TnD Maps 0.16.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.17.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.16.0";
+  NS.VERSION = "0.17.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -6538,7 +6538,11 @@
         /* the view's HUD (v0.15.0), sized in CSS pixels: the sheet's title and subtitle, the scale bar's figures */
         hudTitle: { font: SERIF, size: 15, weight: "bold", letterSpacing: 2.5, transform: "uppercase", fill: ink, halo: paper, haloWidth: 3 },
         hudSubtitle: { font: SERIF, size: 10, style: "italic", letterSpacing: 1, fill: soft, halo: paper, haloWidth: 2.5 },
-        hudSmall: { font: SERIF, size: 10, letterSpacing: 0.4, fill: ink, halo: paper, haloWidth: 2.5 }
+        hudSmall: { font: SERIF, size: 10, letterSpacing: 0.4, fill: ink, halo: paper, haloWidth: 2.5 },
+        /* the HUD plaque's trail (v0.17.0): a tier that can be clicked, the tier shown now, the separators */
+        hudCrumb: { font: SERIF, size: 10, letterSpacing: 0.6, fill: red, halo: paper, haloWidth: 2.5 },
+        hudCrumbHere: { font: SERIF, size: 10, weight: "bold", letterSpacing: 0.6, fill: ink, halo: paper, haloWidth: 2.5 },
+        hudCrumbSep: { font: SERIF, size: 10, letterSpacing: 0.6, fill: soft, halo: paper, haloWidth: 2.5 }
       }
     };
   }
@@ -6930,18 +6934,55 @@
      wide). Pure: scene + document + transform + the view's size → commands; the view hides the scene's `furniture` layer
      while it draws these. A long title is squeezed to its plaque (the renderer scales text to `width`); the compass drops
      below the title where the plaque would reach it. */
-  function hudScene(scene, doc, T, w, h, style) {
-    var out = [], furn = null, title = null, sub = null, i, tw, pw, ph, tcmd, scmd, bw, cy, c;
+  /* the plaque's trail (v0.17.0): tiers [{key, text, current}] laid left to right under the title in place of the subtitle —
+     a tier is a text command carrying meta {hud: "trail", key, current} and its box in view px (the view hit-tests the
+     boxes and emits hudclick); the tier shown now is bold ink, the others link red, " : " between. Wider than maxW, the
+     leading tiers are dropped behind an ellipsis that leads to the nearest dropped tier; still wider, the row is squeezed. */
+  function crumbRow(trail, style, maxW) {
+    var tiers = trail.map(function (t) { return { key: t.key, text: String(t.text), current: !!t.current }; }), segs, total, f, i, x;
+    function keyOf(t) { return t.current ? "hudCrumbHere" : "hudCrumb"; }
+    function measure() {
+      segs = []; total = 0;
+      tiers.forEach(function (t, k) {
+        var sw;
+        if (k) { sw = NS.style.textWidth(" : ", style.text.hudCrumbSep); segs.push({ text: " : ", s: "hudCrumbSep", w: sw, tier: null }); total += sw; }
+        sw = NS.style.textWidth(t.text, style.text[keyOf(t)]); segs.push({ text: t.text, s: keyOf(t), w: sw, tier: t }); total += sw;
+      });
+    }
+    measure();
+    while (total > maxW && tiers.length > 1) {
+      if (tiers[0].text === "\u2026" && tiers.length > 2) { tiers[0].key = tiers[1].key; tiers.splice(1, 1); }   /* the ellipsis swallows the next tier and leads to it */
+      else if (tiers[0].text === "\u2026") break;
+      else tiers[0] = { key: tiers[0].key, text: "\u2026", current: false };
+      measure();
+    }
+    f = total > maxW ? maxW / total : 1;
+    x = 0;
+    for (i = 0; i < segs.length; i++) { segs[i].dx = x * f; segs[i].width = segs[i].w * f; x += segs[i].w; }
+    return { w: total * f, segs: segs };
+  }
+  function hudScene(scene, doc, T, w, h, style, o) {
+    var out = [], furn = null, title = null, sub = null, i, tw, pw, ph, tcmd, scmd, bw, cy, c, row = null, x0, y0;
+    o = o || {};
+    if (o.trail && o.trail.length) row = crumbRow(o.trail, style, w - 16 - 20);
     function plaque(x, y, pw, ph) { var r = 4; return { t: "path", pts: [[x + r, y], [x + pw - r, y], [x + pw, y + r], [x + pw, y + ph - r], [x + pw - r, y + ph], [x + r, y + ph], [x, y + ph - r], [x, y + r]], closed: true, s: "hudPlaque" }; }
     for (i = 0; i < scene.layers.length; i++) if (scene.layers[i].name === "furniture") furn = scene.layers[i].items;
     (furn || []).forEach(function (cmd) { if (cmd.t !== "text") return; if (cmd.s === "title") title = cmd.text; else if (cmd.s === "subtitle") sub = cmd.text; });
     if (title === null) title = (doc.title && doc.title.name) || "";
     /* the title plaque, top centre */
-    tw = Math.max(NS.style.textWidth(title, style.text.hudTitle), sub ? NS.style.textWidth(sub, style.text.hudSubtitle) : 0);
-    pw = Math.max(40, Math.min(w - 16, tw + 28)); ph = sub ? 42 : 28;
+    tw = Math.max(NS.style.textWidth(title, style.text.hudTitle), row ? row.w : sub ? NS.style.textWidth(sub, style.text.hudSubtitle) : 0);
+    pw = Math.max(40, Math.min(w - 16, tw + 28)); ph = (sub || row) ? 42 : 28;
     out.push(plaque(w / 2 - pw / 2, 8, pw, ph));
     tcmd = plainText(title, "hudTitle", w / 2, 8 + 19, style); tcmd.width = Math.min(tcmd.width, pw - 20); out.push(tcmd);
-    if (sub) { scmd = plainText(sub, "hudSubtitle", w / 2, 8 + 34, style); scmd.width = Math.min(scmd.width, pw - 20); out.push(scmd); }
+    if (row) {
+      x0 = w / 2 - row.w / 2; y0 = 8 + 34;
+      row.segs.forEach(function (sg) {
+        var cmd = { t: "text", x: x0 + sg.dx, y: y0, text: sg.text, s: sg.s, rot: 0, anchor: "start", width: sg.width, meta: null };
+        if (sg.tier) { cmd.meta = { hud: "trail", key: sg.tier.key, current: sg.tier.current }; cmd.box = [x0 + sg.dx - 2, y0 - 10, x0 + sg.dx + sg.width + 2, y0 + 4]; }
+        out.push(cmd);
+      });
+    }
+    else if (sub) { scmd = plainText(sub, "hudSubtitle", w / 2, 8 + 34, style); scmd.width = Math.min(scmd.width, pw - 20); out.push(scmd); }
     /* the compass, top right — below the title's plaque when that would reach it */
     cy = (w / 2 + pw / 2 > w - 56) ? 8 + ph + 28 : 32;
     compassRose(w - 30, cy, 17, out, style);
@@ -8209,9 +8250,11 @@
     opts = opts || {};
     var styleName = opts.style || "ink", scene = null, baseScene = null, markers = [], layers = {}, listeners = {}, hits = [];
     var bounds = !!opts.bounds;   /* v0.16.0: the sheet fills the view — on an axis where the sheet is larger than the view no paper edge comes inside it, on one where it is smaller the sheet sits centred; every move (a pan, a zoom, a pinch, center, pan(), a resize) is clamped (clampT) */
+    var hudTrail = null, hudHits = [], hudPress = null;   /* v0.17.0: the plaque's trail (setHudTrail) — its tiers' boxes in CSS px as last drawn, and the tier a pointer went down on */
+    var MARGIN = 0.5, MAX_BASE_PX = 12e6, lastMidRender = 0;   /* v0.17.0: the base bitmap is drawn with a margin of half the view each side (bounded by MAX_BASE_PX), so a pan or a zoom out shows map, not background, until the crisp redraw; a gesture that runs past the margin redraws at once, at most every 120 ms */
     var hud = !!opts.hud;   /* v0.15.0: the title, compass and scale bar drawn screen-fixed over the map (scene.common.hudScene) instead of on the paper — the scene's furniture layer is hidden while it is on; exports keep the sheet's own */
     var T = { x: 0, y: 0, k: 1 };                 /* map → CSS px: screen = map * k + (x, y) */
-    var base = document.createElement("canvas"), baseT = null, baseDirty = true, raf = 0, idleTimer = 0;
+    var base = document.createElement("canvas"), baseT = null, baseDirty = true, raf = 0, idleTimer = 0, baseM = { x: 0, y: 0 };
     var hover = null, selected = null, dpr = 1, destroyed = false, pointer = null, pinch = null, suppressClick = false, userMoved = false;
     var DBL_MS = 700, pairAt = 0, pairHit = null;   /* the hit of the FIRST click of a double-click: a click listener may move the map under the pointer (a card that centres on its place), so the second click lands on paper */
     var grab = null, drag = null, overlay = null, tipOf = {}, pressed = null, pressTimer = 0, PRESS_MS = 450;   /* tipOf: the scene's `tips` layer by kind/id — a plaque drawn only over the hovered thing, or the one a pointer is held still on (a touch has no hover) */   /* grab: the hit under a pressed pointer, offered to "dragstart" once the pointer moves; drag: the one a listener claimed (the gesture moves IT, not the map); overlay: outlines drawn above everything — a drag's ghost */
@@ -8222,8 +8265,10 @@
     function cssSize() { return { w: canvas.clientWidth || canvas.width, h: canvas.clientHeight || canvas.height }; }
     function resize() {
       dpr = Math.min(3, (root.devicePixelRatio || 1));
-      var s = cssSize(), w = Math.max(1, Math.round(s.w * dpr)), h = Math.max(1, Math.round(s.h * dpr));
-      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; base.width = w; base.height = h; baseDirty = true; clampT(); }
+      var s = cssSize(), w = Math.max(1, Math.round(s.w * dpr)), h = Math.max(1, Math.round(s.h * dpr)), m, bw, bh;
+      m = Math.min(MARGIN, Math.max(0, (Math.sqrt(MAX_BASE_PX / (w * h)) - 1) / 2));   /* the margin the pixel budget allows */
+      bw = Math.round(w * (1 + 2 * m)); bh = Math.round(h * (1 + 2 * m));
+      if (canvas.width !== w || canvas.height !== h || base.width !== bw || base.height !== bh) { canvas.width = w; canvas.height = h; base.width = bw; base.height = bh; baseM = { x: m * s.w, y: m * s.h }; baseDirty = true; clampT(); }
     }
     /* the bounds: the box the scene draws (a dungeon draws a window of its town's coordinates), in CSS px at T */
     function clampT() {
@@ -8247,18 +8292,19 @@
       var bctx = base.getContext("2d");
       bctx.setTransform(1, 0, 0, 1, 0, 0);
       bctx.fillStyle = opts.background || "#d9d0bd"; bctx.fillRect(0, 0, base.width, base.height);
-      bctx.setTransform(T.k * dpr, 0, 0, T.k * dpr, T.x * dpr, T.y * dpr);
+      bctx.setTransform(T.k * dpr, 0, 0, T.k * dpr, (T.x + baseM.x) * dpr, (T.y + baseM.y) * dpr);
       NS.renderCanvas(bctx, scene, { layers: hud ? U.extend({}, layers, { furniture: false }) : layers });
-      baseT = { x: T.x, y: T.y, k: T.k }; baseDirty = false;
+      baseT = { x: T.x, y: T.y, k: T.k, mx: baseM.x, my: baseM.y }; baseDirty = false;
     }
     /* present: the base bitmap, re-projected if the transform moved since it was drawn, then the hover overlay */
     function present() {
       raf = 0; if (destroyed) return;
       if (!scene) rebuildScene();
+      if (!baseDirty && !covered()) { var now = Date.now(); if (now - lastMidRender > 120) { baseDirty = true; lastMidRender = now; } }   /* the gesture ran past the margin: redraw now rather than show background */
       if (baseDirty) renderBase();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = opts.background || "#d9d0bd"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      var s = T.k / baseT.k, ox = (T.x - baseT.x * s) * dpr, oy = (T.y - baseT.y * s) * dpr;
+      var s = T.k / baseT.k, ox = (T.x - (baseT.x + baseT.mx) * s) * dpr, oy = (T.y - (baseT.y + baseT.my) * s) * dpr;
       ctx.setTransform(s, 0, 0, s, ox, oy);
       ctx.drawImage(base, 0, 0);
       /* the rings: the selected thing (while its card is open) and the hovered one — its dot and, if it has a label, its slip */
@@ -8270,11 +8316,26 @@
       var th = pressed || hover, tc = th ? tipOf[th.kind + "/" + th.id] : null;
       if (tc) drawTip(tc);
     }
+    /* does the base bitmap (drawn at baseT with its margin) cover the whole view at T? */
+    function covered() {
+      if (!baseT) return false;
+      var sz = cssSize(), s = T.k / baseT.k, x0 = (0 - T.x) / s + baseT.x, x1 = (sz.w - T.x) / s + baseT.x, y0 = (0 - T.y) / s + baseT.y, y1 = (sz.h - T.y) / s + baseT.y;
+      return x0 >= -baseT.mx - 0.5 && x1 <= sz.w + baseT.mx + 0.5 && y0 >= -baseT.my - 0.5 && y1 <= sz.h + baseT.my + 0.5;
+    }
     /* the HUD: the sheet's furniture in CSS pixels at the identity transform, screen-fixed (the tip still reads over it) */
-    function hudItems() { var s = cssSize(); if (!scene) rebuildScene(); return NS.scene.common.hudScene(scene, doc, T, s.w, s.h, NS.style.get(styleName)); }
+    function hudItems() { var s = cssSize(); if (!scene) rebuildScene(); return NS.scene.common.hudScene(scene, doc, T, s.w, s.h, NS.style.get(styleName), { trail: hudTrail }); }
     function drawHud() {
+      var items = hudItems();
+      hudHits = items.filter(function (c) { return c.meta && c.meta.hud && c.box; });
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      NS.renderCanvas(ctx, { style: scene.style, x0: 0, y0: 0, width: 0, height: 0, layers: [{ name: "hud", items: hudItems() }] }, { paper: false });
+      NS.renderCanvas(ctx, { style: scene.style, x0: 0, y0: 0, width: 0, height: 0, layers: [{ name: "hud", items: items }] }, { paper: false });
+    }
+    /* the HUD tier under a view point (a tier that can be clicked: not the one shown now), or null */
+    function hudHitAt(sx, sy) {
+      var i, c, b;
+      if (!hud) return null;
+      for (i = 0; i < hudHits.length; i++) { c = hudHits[i]; b = c.box; if (!c.meta.current && sx >= b[0] && sx <= b[2] && sy >= b[1] && sy <= b[3]) return c; }
+      return null;
     }
     /* the tip: one of the scene's plaques, drawn through the renderer above everything */
     function drawTip(cmd) {
@@ -8337,7 +8398,9 @@
     /* ── input ── */
     function onDown(e) {
       if (e.button !== undefined && e.button !== 0) return;
-      var p = localXY(e); pointer = { x: p[0], y: p[1], sx: p[0], sy: p[1] }; suppressClick = false; grab = hitTest(p[0], p[1]); clearPress();
+      var p = localXY(e);
+      hudPress = hudHitAt(p[0], p[1]); if (hudPress) { pointer = null; return; }   /* a press on a trail tier: no pan, no map click; the click lands on release over the same tier */
+      pointer = { x: p[0], y: p[1], sx: p[0], sy: p[1] }; suppressClick = false; grab = hitTest(p[0], p[1]); clearPress();
       pressTimer = setTimeout(function () { pressTimer = 0; if (!pointer) return; var h = hitTest(pointer.sx, pointer.sy); if (h) { pressed = h; suppressClick = true; schedule(); emit("press", placeOf(h), h); } }, PRESS_MS);
     }
     function onMove(e) {
@@ -8352,10 +8415,13 @@
         if (Math.abs(p[0] - pointer.sx) + Math.abs(p[1] - pointer.sy) > 4) { suppressClick = true; clearPress(); }
         moved(); return;
       }
+      if (hudHitAt(p[0], p[1])) { if (hover) { hover = null; schedule(); emit("hover", null, null); } canvas.style.cursor = "pointer"; return; }
       var h = hitTest(p[0], p[1]);
       if ((h && h.id) !== (hover && hover.id)) { hover = h; canvas.style.cursor = h ? "pointer" : "grab"; schedule(); emit("hover", placeOf(h), h); }
+      else if (!h && canvas.style.cursor === "pointer") canvas.style.cursor = "grab";
     }
     function onUp(e) {
+      if (hudPress) { var hp = hudPress, hq = localXY(e), over = hudHitAt(hq[0], hq[1]); hudPress = null; if (over && over.meta.key === hp.meta.key) emit("hudclick", hp.meta, hp); return; }
       grab = null; clearPress();
       if (drag) { var q = localXY(e), mm = toMap(q[0], q[1]), dr = drag; drag = null; emit("dragend", { x: mm[0], y: mm[1] }, dr.hit); return; }
       if (!pointer) return; pointer = null;
@@ -8375,7 +8441,7 @@
       } else if (e.touches.length === 1 && (pointer || drag)) onMove(e.touches[0]);
       if (e.cancelable) e.preventDefault();
     }
-    function onTouchEnd(e) { if (e.touches.length === 0) { if (pointer || drag) onUp(e.changedTouches[0]); pinch = null; } }
+    function onTouchEnd(e) { if (e.touches.length === 0) { if (pointer || drag || hudPress) onUp(e.changedTouches[0]); pinch = null; } }
     /* a resize keeps a view the user has moved, and re-fits one they have not touched */
     function onResize() { resize(); if (!userMoved) fit(); else { baseDirty = true; schedule(); } }
 
@@ -8403,6 +8469,12 @@
       setHud: function (on) { hud = !!on; baseDirty = true; schedule(); return api; },
       hud: function () { return hud; },
       hudScene: function () { return hud ? hudItems() : null; },
+      /* setHudTrail(tiers) — [{key, text, current}] drawn on the plaque in place of the subtitle (v0.17.0); a click on a tier that is not current emits hudclick(meta, cmd); null restores the subtitle */
+      setHudTrail: function (tiers) {
+        if (tiers != null) { NS.assert(Array.isArray(tiers) && tiers.every(function (t) { return t && typeof t.text === "string" && t.key !== undefined; }), "setHudTrail wants [{key, text, current}]", { tiers: tiers }); }
+        hudTrail = tiers && tiers.length ? tiers.map(function (t) { return { key: t.key, text: t.text, current: !!t.current }; }) : null; hudHits = []; schedule(); return api;
+      },
+      hudTrail: function () { return hudTrail ? hudTrail.map(function (t) { return { key: t.key, text: t.text, current: t.current }; }) : null; },
       /* fog of war: draw only these room and passage ids (a dungeon); null lifts it. Markers stay; setDoc clears it */
       setReveal: function (list) { reveal = Array.isArray(list) ? list.slice() : null; rebuildScene(); schedule(); return api; },
       reveal: function () { return reveal ? reveal.slice() : null; },

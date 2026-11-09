@@ -1,15 +1,18 @@
 // dev/tests-684-atlas-browser.js — #684: the atlas PANE in the real page (ui-atlas.js over atlas.js and TnDMaps.view).
-// Owner rulings 2026-11-04: the door is the location name; new campaigns opt in; exact names plus Current location ("We are
-// here" until #711, owner 2026-11-08). #711: the pane lives in the side drawer's Map tab (the DOCK) and an enlarge button
+// Owner rulings 2026-11-04: the door is the location name; new campaigns opt in; exact names. The player's hand tie (We are
+// here, then Current location) was RETIRED 2026-11-08 (#711 round 4): party movement is the narrative's; a card offers Add note
+// instead, and the plaque's subtitle is the party's location trail (a click on a tier shows that sheet). #711: the pane lives in the side drawer's Map tab (the DOCK) and an enlarge button
 // lifts it to full screen; the view draws the library's HUD (title, compass, a scale bar re-measured at the zoom) screen-fixed.
 //   ① without an atlas the location name is plain text and opens nothing, and the Map tab is hidden (every existing campaign);
 //   ② with one it is a button (role, keyboard) and opens the DOCK on the region — the drawer opens on the Map tab, the HUD is
 //     on, the dock is the map alone (no head, no status; the party's dagger and the enlarge button float over the sheet in
-//     circles bottom right, the dagger left of the enlarge, the card above both; a card there offers no Current location);
+//     circles bottom right, the dagger left of the enlarge, the card above both; a card there offers a note, never a tie);
 //     the enlarge button opens the FULL pane: ink on the canvas, a head of the select and close alone, no status line;
-//   ③ a real click on a town on the canvas shows its card: named, NOT openable (never visited), "Current location — <story place>";
-//   ④ Current location ties the story's place, moves the pane to the town's sheet with the party on it, saves the campaign;
-//   ⑤ the select leads back to the region: the party stands at the town, whose card now opens its sheet;
+//   ③ a real click on a town on the canvas shows its card: named, NOT openable (never visited); Add note opens a modal
+//     prefilled with the thing's word, the note shows on the card and in the save, an emptied note is removed;
+//   ④ the GM's [MAP_PLACE:|at] ties the story's place: the open pane repaints with the party on the town, the trail names
+//     realm and town, a click on the town's tier shows its sheet;
+//   ⑤ the realm's tier leads back up; the trail stays the party's; the town's card opens its sheet and offers a note;
 //   ⑥ a sewer is fogged: only its ways up are drawn, and the pane hands the library the engine's reveal list;
 //   ⑦ open water says why it cannot be stood on and offers nothing;
 //   ⑧ Escape closes the full pane, the view lets go of the window, and the dock takes the map back;
@@ -18,8 +21,8 @@
 //     next campaign is not mapped; a village and a failed realm begin without a map, loudly;
 //   ⑪ a turn sent after the pointer moved outside a turn (a Sync edit) is played on the followed map: the prompt the
 //     model is sent carries the MAP block for the NEW place, right after GEOGRAPHY;
-//   ⑫ a card painted before the story moved is refused; a turn landing under an open pane repaints it; a party off the
-//     map is drawn as its last mapped place, and that place's card offers Current location;
+//   ⑫ a turn landing under an open pane repaints it; a party off the map is drawn as its last mapped place, and that
+//     place's card offers a note, never a tie;
 //   ⑭ the framing (owner 2026-11-08, round 3): a sheet opens on the party at ATLAS_HOME_ZOOM times its fit with the sheet
 //     FILLING the stage (TnD Maps 0.16.0 bounds); the scale bar's label follows a wheel zoom while the bar keeps its width; a
 //     drag past the edge is clamped; a wider drawer reveals the map (no zoom, no move); full screen carries the dock's point
@@ -61,7 +64,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.equal(k.head,false,'the dock has no head: the HUD names the sheet');assert.equal(k.status,false,'the dock has no status line');assert.ok(k.cw>200&&k.ch>200&&Math.abs(k.cw-k.stage[0]*devicePixelRatioOf(1))<4,'the dock canvas fills the stage: '+JSON.stringify(k));assert.equal(k.trail,false,'no trail in the dock');
    assert.ok(k.fabs.every(f=>f&&f.pos==='absolute'&&f.radius==='50%'&&f.w>=28&&f.w<=34&&f.inside),'the enlarge button and the party\'s dagger float over the sheet in small circles: '+JSON.stringify(k.fabs));assert.deepEqual(k.fabs.map(f=>f.label),['Open the map full screen','Go to where the party is']);assert.ok(k.fabs[1].box[1]<=k.fabs[0].box[0]&&Math.abs(k.fabs[1].box[2]-k.fabs[0].box[2])<1,'the dagger sits just left of the enlarge button, on the same line: '+JSON.stringify(k.fabs.map(f=>f.box)));assert.ok(k.cardZ>k.fabs[0].z&&k.cardZ>k.fabs[1].z,'the card is above the buttons: '+JSON.stringify([k.cardZ,k.fabs.map(f=>f.z)]));
    const dc=await page.evaluate(()=>{const p=atlasDoc('campaign-1').places[3];__atlasTest.tap({id:p.id});const el=document.getElementById('atlas-card'),r={shown:el.style.display,text:el.textContent,buttons:[].map.call(el.querySelectorAll('button[data-act]'),b=>b.getAttribute('data-act')),name:p.name};__atlasTest.tap(null);return r;});
-   assert.equal(dc.shown,'block');assert.ok(dc.text.indexOf(dc.name)>=0,'a dock card names the town');assert.deepEqual(dc.buttons,['dismiss'],'a dock card offers no Current location: the party moves through the narrative');assert.doesNotMatch(dc.text,/Current location/);
+   assert.equal(dc.shown,'block');assert.ok(dc.text.indexOf(dc.name)>=0,'a dock card names the town');assert.deepEqual(dc.buttons,['dismiss','note'],'a dock card offers a note and no Current location: the party moves through the narrative');assert.doesNotMatch(dc.text,/Current location/);
    await page.screenshot({path:path.join(SHOTS,'atlas-dock.png')});
    await page.evaluate(()=>{document.getElementById('atlas-full').click();});await settle();
    assert.deepEqual(await page.evaluate(()=>({modal:!!document.getElementById('atlas-modal'),host:__atlasTest.pane().host,dock:document.getElementById('atlas-dock').children.length})),{modal:true,host:'full',dock:0},'the enlarge button lifts the one pane to full screen; the dock is emptied');
@@ -74,33 +77,43 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
  });
 
  let p3=null;
- await check('③ a real click on a town shows its card: named, not openable (never visited), "Current location" naming the story place',async()=>{
-   p3=await page.evaluate(()=>{window.__atlasView=function(){return _atlasPane.view;};const p=atlasDoc('campaign-1').places[3];return {id:p.id,name:p.name,x:p.x,y:p.y};});
-   const c=await clickMap(p3.x,p3.y);assert.equal(c.inside,true,'the town is inside the canvas at fit');await settle();
+ await check('③ a real click on a town shows its card: named, not openable (never visited), no Current location; Add note opens a modal prefilled with the thing\'s word, the saved note shows on the card and in the save, reopens prefilled, and an emptied note is removed',async()=>{
+   p3=await page.evaluate(()=>{window.__atlasView=function(){return _atlasPane.view;};const p=atlasDoc('campaign-1').places[3];return {id:p.id,name:p.name,x:p.x,y:p.y,word:atlasCard('campaign-1',{id:p.id}).word};});/* the word the card shows is what the note opens with */
+   const c=await clickMap(p3.x,p3.y);assert.equal(c.inside,true,'the town is inside the canvas');await settle();
    const r=await page.evaluate(()=>{const el=document.getElementById('atlas-card');return {shown:el.style.display,text:el.textContent,buttons:[].map.call(el.querySelectorAll('button[data-act]'),b=>b.getAttribute('data-act')),target:__atlasTest.pane().target,zones:Object.keys(worldState.atlas.zones).length};});
    assert.equal(r.shown,'block');assert.ok(r.text.indexOf(p3.name)>=0,'the card names the town: '+r.text);assert.deepEqual(r.target,{id:p3.id});
-   assert.deepEqual(r.buttons,['dismiss','here'],'no "Open its sheet" for a town the party has not entered');
-   assert.match(r.text,/Not yet visited/);assert.match(r.text,/Current location — The Crossroads of Ashenveil/);assert.doesNotMatch(r.text,/We are here/,'#711: the button is Current location');assert.equal(r.zones,1,'a card draws nothing');
+   assert.deepEqual(r.buttons,['dismiss','note'],'no "Open its sheet" for a town the party has not entered; Add note in place of Current location');
+   assert.match(r.text,/Not yet visited/);assert.doesNotMatch(r.text,/Current location|We are here/,'round 4: the hand tie is gone');assert.equal(r.zones,1,'a card draws nothing');
+   const n1=await page.evaluate(()=>{document.querySelector('#atlas-card button[data-act="note"]').click();const m=document.getElementById('atlas-note-modal'),t=document.getElementById('atlas-note-text');return {modal:!!m,value:t&&t.value,focused:document.activeElement===t,z:m&&parseInt(getComputedStyle(m).zIndex,10)};});
+   assert.equal(n1.modal,true,'Add note opens its modal');assert.equal(n1.value,p3.word,'the modal opens with the thing\'s word');assert.equal(n1.focused,true,'the note box has the keyboard');assert.ok(n1.z>300,'the note modal is above the full pane: '+n1.z);
+   const n2=await page.evaluate(()=>{const t=document.getElementById('atlas-note-text');t.value='I owe Henthein 5gp';document.getElementById('atlas-note-save').click();const el=document.getElementById('atlas-card'),saved=parseWorldState(store.get(WSK));return {modal:!!document.getElementById('atlas-note-modal'),notes:Object.assign({},worldState.atlas.notes),text:el.textContent,buttons:[].map.call(el.querySelectorAll('button[data-act]'),b=>b.textContent),savedNotes:saved&&saved.atlas?Object.assign({},saved.atlas.notes):null,toast:__toasts[__toasts.length-1]};});
+   assert.equal(n2.modal,false,'Save closes the modal');assert.deepEqual(n2.notes,{['campaign-1|'+p3.id]:'I owe Henthein 5gp'},'the note is on the campaign, keyed zone|thing');assert.ok(n2.text.indexOf('I owe Henthein 5gp')>=0,'the card shows the note');assert.ok(n2.buttons.indexOf('Edit note')>=0,'the button is now Edit note: '+JSON.stringify(n2.buttons));
+   assert.deepEqual(n2.savedNotes,n2.notes,'the note is saved at once');assert.equal(n2.toast,'Note saved.');
+   const n3=await page.evaluate(()=>{document.querySelector('#atlas-card button[data-act="note"]').click();const t=document.getElementById('atlas-note-text'),v=t.value;document.getElementById('atlas-note-cancel').click();const cancelled={modal:!!document.getElementById('atlas-note-modal'),note:atlasNote('campaign-1',__atlasTest.pane().target.id)};document.querySelector('#atlas-card button[data-act="note"]').click();document.getElementById('atlas-note-text').value='   ';document.getElementById('atlas-note-save').click();return {reopened:v,cancelled,notes:Object.keys(worldState.atlas.notes),toast:__toasts[__toasts.length-1],buttons:[].map.call(document.querySelectorAll('#atlas-card button[data-act]'),b=>b.textContent)};});
+   assert.equal(n3.reopened,'I owe Henthein 5gp','the modal reopens with the note in place');assert.deepEqual(n3.cancelled,{modal:false,note:'I owe Henthein 5gp'},'Cancel keeps the note');
+   assert.deepEqual(n3.notes,[],'an emptied note is removed');assert.equal(n3.toast,'Note removed.');assert.ok(n3.buttons.indexOf('Add note')>=0,'the button is Add note again');
  });
 
- await check('④ Current location ties the story place, shows the town sheet with the party on it, and saves the campaign',async()=>{
-   await page.evaluate(()=>{document.querySelector('#atlas-card button[data-act="here"]').click();});await settle();
-   const r=await page.evaluate(()=>{const A=worldState.atlas,p=__atlasTest.pane(),saved=parseWorldState(store.get(WSK));return {at:A.at,tie:A.names['The Crossroads of Ashenveil'],off:A.off,zone:p.zone,doc:p.doc,markers:p.markers,toasts:__toasts.slice(),savedAt:saved&&saved.atlas?saved.atlas.at:null,savedZones:saved&&saved.atlas?Object.keys(saved.atlas.zones).length:0};});
+ await check('④ the GM\'s [MAP_PLACE:|at] ties the story place (the only hand on the map besides the engine): the open pane repaints with the party on the town, the tie is saved, the plaque\'s trail names realm and town, and a click on the town\'s tier shows its sheet with the party',async()=>{
+   const r=await page.evaluate(()=>{const A=worldState.atlas;A.adopt=true;A.ptr=null;/* the follow runs again for the same pointer */worldState.placeDecls=[{name:'The Crossroads of Ashenveil',where:'at '+atlasDoc('campaign-1').places[3].name,turn:atlasTurn()}];atlasFollow();saveAll();syncUI();
+     const p=__atlasTest.pane(),saved=parseWorldState(store.get(WSK));return {at:A.at,tie:A.names['The Crossroads of Ashenveil'],off:A.off,zone:p.zone,markers:p.markers,trail:p.trail,savedAt:saved&&saved.atlas?saved.atlas.at:null,savedZones:saved&&saved.atlas?Object.keys(saved.atlas.zones).length:0};});
    const town='campaign-1/'+p3.id;
-   assert.equal(r.at,town);assert.deepEqual(r.tie,{zone:'campaign-1',id:p3.id});assert.equal(r.off,null);
-   assert.equal(r.zone,town,'the pane moved to the town sheet');assert.equal(r.doc,town);assert.equal(r.markers.length,1);assert.equal(r.markers[0].kind,'party');
-   assert.ok(r.toasts.some(t=>t==='The party is in '+p3.name+'. The story\'s "The Crossroads of Ashenveil" is at '+p3.name+' on this map: the player placed it there.'),'#692: the pane says the tie the tap made, in the words the GM is told — a toast, the pane has no status line: '+JSON.stringify(r.toasts));
-   assert.equal(r.savedAt,town,'the tie is saved at once');assert.equal(r.savedZones,2);
+   assert.equal(r.at,town);assert.deepEqual(r.tie,{zone:'campaign-1',id:p3.id,by:'gm'},'the tie is the GM\'s');assert.equal(r.off,null);
+   assert.equal(r.zone,'campaign-1','the open pane stays on its sheet');assert.equal(r.markers.length,1);assert.equal(r.markers[0].kind,'party');assert.deepEqual([r.markers[0].x,r.markers[0].y],[p3.x,p3.y],'the party marker sits on the town');
+   assert.deepEqual(r.trail.map(t=>[t.text,t.current]),[[r.trail[0].text,true],[p3.name,false]],'the trail: the realm (current), then the town');assert.equal(r.savedAt,town,'the tie is saved');assert.equal(r.savedZones,2);
+   /* a real click on the town's tier of the plaque */
+   const k=await page.evaluate(()=>{const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),r=c.getBoundingClientRect(),tier=v.hudScene().find(x=>x.meta&&x.meta.hud==='trail'&&!x.meta.current),at={clientX:r.left+(tier.box[0]+tier.box[2])/2,clientY:r.top+(tier.box[1]+tier.box[3])/2,bubbles:true,button:0};c.dispatchEvent(new MouseEvent('mousedown',at));window.dispatchEvent(new MouseEvent('mouseup',at));const p=__atlasTest.pane();return {text:tier.text,zone:p.zone,markers:p.markers.length,trail:p.trail.map(t=>[t.text,t.current]),card:document.getElementById('atlas-card').style.display};});
+   assert.equal(k.text,p3.name);assert.equal(k.zone,town,'the tier opens the town sheet');assert.equal(k.markers,1,'the party is drawn on it');assert.deepEqual(k.trail.map(t=>t[1]),[false,true],'the town is now the current tier');assert.equal(k.card,'none','the tier click opened no card');
    await page.screenshot({path:path.join(SHOTS,'atlas-town.png')});
  });
 
- await check('⑤ the select leads back to the region: the party stands at the town, whose card now opens its sheet',async()=>{
-   await page.evaluate(()=>{const s=document.getElementById('atlas-zones');s.value='campaign-1';s.dispatchEvent(new Event('change'));});await settle();
-   const a=await page.evaluate(()=>{const p=__atlasTest.pane();return {zone:p.zone,m:p.markers};});
-   assert.equal(a.zone,'campaign-1');assert.equal(a.m.length,1);assert.deepEqual([a.m[0].x,a.m[0].y],[p3.x,p3.y],'the party marker sits on the town');
+ await check('⑤ the realm\'s tier leads back up: the trail stays the party\'s (realm, then town — the town no longer current), the party stands at the town, whose card now opens its sheet and offers a note',async()=>{
+   const a=await page.evaluate(()=>{const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),r=c.getBoundingClientRect(),tier=v.hudScene().find(x=>x.meta&&x.meta.hud==='trail'&&!x.meta.current),at={clientX:r.left+(tier.box[0]+tier.box[2])/2,clientY:r.top+(tier.box[1]+tier.box[3])/2,bubbles:true,button:0};c.dispatchEvent(new MouseEvent('mousedown',at));window.dispatchEvent(new MouseEvent('mouseup',at));const p=__atlasTest.pane();return {tier:tier.text,zone:p.zone,m:p.markers,trail:p.trail.map(t=>[t.text,t.current])};});await settle();
+   assert.equal(a.zone,'campaign-1','the realm\'s tier shows the region');assert.equal(a.m.length,1);assert.deepEqual([a.m[0].x,a.m[0].y],[p3.x,p3.y],'the party marker sits on the town');
+   assert.deepEqual(a.trail,[[a.tier,true],[p3.name,false]],'going up leaves the trail as the party\'s: realm (shown), town');
    await clickMap(p3.x,p3.y);await settle();
    const r=await page.evaluate(()=>{const el=document.getElementById('atlas-card');return {text:el.textContent,buttons:[].map.call(el.querySelectorAll('button[data-act]'),b=>b.getAttribute('data-act'))};});
-   assert.match(r.text,/The party is here\./);assert.deepEqual(r.buttons,['dismiss','open'],'the town opens; Current location is not offered where the party already is');
+   assert.match(r.text,/The party is here\./);assert.deepEqual(r.buttons,['dismiss','open','note'],'the town opens and can be noted');
    await page.evaluate(()=>{document.querySelector('#atlas-card button[data-act="open"]').click();});await settle();
    assert.equal(await page.evaluate(()=>__atlasTest.pane().zone),'campaign-1/'+p3.id);
  });
@@ -112,7 +125,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.equal(r.markers,1,'the party is drawn in the sewer');
  });
 
- await check('⑦ open water says why it cannot be stood on and offers no Current location',async()=>{
+ await check('⑦ open water says why it cannot be stood on and offers nothing (a point has no note)',async()=>{
    const r=await page.evaluate(()=>{__atlasTest.show('campaign-1');const sea=atlasDoc('campaign-1').features.filter(f=>f.kind==='sea')[0];const before=JSON.stringify(worldState.atlas);__atlasTest.tap({x:sea.x,y:sea.y});const el=document.getElementById('atlas-card');return {text:el.textContent,buttons:[].map.call(el.querySelectorAll('button[data-act]'),b=>b.getAttribute('data-act')),same:JSON.stringify(worldState.atlas)===before};});
    assert.match(r.text,/Open country/);assert.match(r.text,/sea/);assert.deepEqual(r.buttons,['dismiss']);assert.equal(r.same,true);
  });
@@ -191,24 +204,19 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.equal(r.sys.stable.indexOf('MAP (the drawn map'),-1,'the cached stable half never carries the per-turn block');
  });
 
- await check('⑫ a card painted before the story moved is refused, never spent on another place; a turn landing under an open pane repaints it; a party off the map is not drawn as there',async()=>{
-   const r=await page.evaluate(()=>{atlasPaneClose();mobileDrawerWidth(0);atlasForget();delete worldState.atlas;atlasCreate('campaign-1');worldState.atlas.adopt=false;/* the correction's race, with You are here off */const reg=atlasDoc('campaign-1'),p0=reg.places[0],p2=reg.places[2];
-     worldState.world.location='The Salted Wound';worldState.world.sublocation=null;atlasFollow();syncUI();showAtlasFull();
-     __atlasTest.tap({id:p2.id});const label0=document.querySelector('#atlas-card button[data-act="here"]').textContent;
-     /* the story moves on under the open card, with no repaint in between (the race itself) */
-     worldState.world.location='The Drowned Chapel';const res=__atlasTest.here(),ties=Object.keys(worldState.atlas.names),status1=__toasts[__toasts.length-1],card1=document.getElementById('atlas-card').style.display;
+ await check('⑫ a turn landing under an open pane repaints it (the party marker moves); a party off the map is drawn as its last mapped place, and that place\'s card offers no Current location',async()=>{
+   const r=await page.evaluate(()=>{atlasPaneClose();mobileDrawerWidth(0);atlasForget();delete worldState.atlas;atlasCreate('campaign-1');worldState.atlas.adopt=false;const reg=atlasDoc('campaign-1'),p0=reg.places[0],p2=reg.places[2];
+     worldState.world.location=p0.name;worldState.world.sublocation=null;atlasFollow();syncUI();showAtlasFull('campaign-1');const m1=__atlasTest.pane().markers;
      /* a committed turn repaints the open pane through syncUI */
-     worldState.world.location=p0.name;atlasFollow();syncUI();const m2=__atlasTest.pane().markers;
+     worldState.world.location=p2.name;atlasFollow();syncUI();const m2=__atlasTest.pane().markers;
      /* the story leaves the mapped places */
-     worldState.world.location='Sandpoint';atlasFollow();syncUI();const m3=__atlasTest.pane().markers;__atlasTest.tap({id:p0.id});
+     worldState.world.location='Sandpoint';atlasFollow();syncUI();const m3=__atlasTest.pane().markers;__atlasTest.tap({id:p2.id});
      const btn3=[].map.call(document.querySelectorAll('#atlas-card button[data-act]'),b=>b.getAttribute('data-act')),text3=document.getElementById('atlas-card').textContent;atlasPaneClose();
-     return {label0,res,ties,status1,card1,m2,m3,btn3,text3,p0:p0.name};});
-   assert.match(r.label0,/Current location — The Salted Wound/);
-   assert.equal(r.res.ok,false);assert.equal(r.res.moved,true);assert.deepEqual(r.ties,[],'the stale tap tied nothing');
-   assert.equal(r.status1,'Not placed: the story has moved on — the place to put on the map is now The Drowned Chapel.','the refusal is toasted');assert.equal(r.card1,'none','the stale card is put away');
-   assert.equal(r.m2.length,1,'a turn that lands repaints the open pane');assert.equal(r.m2[0].label,'The party');
+     return {m1,m2,m3,btn3,text3,p0:[p0.x,p0.y],p2:[p2.x,p2.y]};});
+   assert.equal(r.m1.length,1);assert.deepEqual([r.m1[0].x,r.m1[0].y],r.p0,'the party is drawn at the first town');
+   assert.equal(r.m2.length,1,'a turn that lands repaints the open pane');assert.equal(r.m2[0].label,'The party');assert.deepEqual([r.m2[0].x,r.m2[0].y],r.p2,'the marker moved to the second town');
    assert.equal(r.m3[0].label,'Last mapped place','off the map: the marker is where the party WAS');
-   assert.ok(r.btn3.indexOf('here')>=0,'the town the party left offers Current location: '+JSON.stringify(r.btn3));assert.doesNotMatch(r.text3,/The party is here/);
+   assert.deepEqual(r.btn3,['dismiss','open','note'],'the town the party left opens and can be noted, nothing more: '+JSON.stringify(r.btn3));assert.doesNotMatch(r.text3,/The party is here|Current location/);
  });
 
  await check('⑬ You are here (#702): with adoption on, a start the map does not know is ADDED as a village beside the capital — the pane opens on the party inside it, and the realm shows the new place',async()=>{

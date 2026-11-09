@@ -1,5 +1,5 @@
 {
-  "version": "v1.1381",
+  "version": "v1.1382",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -23,6 +23,9 @@
     "The map opens close on the party and always fills its panel; dragging it off the edge is no longer possible.",
     "Pulling the drawer wider reveals more map without moving it, and full screen keeps the drawer's view.",
     "The map buttons sit together bottom right, the party's dagger looks like the one on the map, and cards sit above them.",
+    "Panning and zooming the map no longer shows a blank strip before it draws in.",
+    "The map's title plaque shows the party's location trail; tap a tier to go up a level.",
+    "Map cards offer Add note: your own words on a place, kept with the campaign. Current location is gone.",
     "The dice table opens empty, with Bone for new users and saved appearance choices retained.",
     "Sketch and Ink Sketch dice add continuous pencil hatching, ink-colored profile edges and hatched moving shadows.",
     "Sketch dice use bounded hatching on Scurry legs; failed graphics startup offers recovery and keeps saved looks."

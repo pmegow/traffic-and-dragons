@@ -1,5 +1,5 @@
 // dev/sabotage-684-atlas-pane.js — proves the atlas PANE's guards guard, in a real browser (dev/tests-684-atlas-browser.js): the door is
-// the location name, the cards, Current location ("We are here" until #711) saved at once and refused once the story moved, the fog
+// the location name, the cards, the player's note saved at once (round 4: in place of the retired hand tie), the trail on the plaque, the fog
 // handed to the view, the tie said, the pane repainted under a landing turn, a turn played on the followed map; #711: the door opens the
 // drawer's Map tab (the dock), the enlarge button lifts the ONE pane to full screen, Escape hands it back, the HUD is on, a drawer drag
 // reveals the map without moving it, the tab goes without an atlas; round 3: the sheet opens on the party at four times its fit with
@@ -25,14 +25,26 @@ rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
     find: "  var on=typeof atlasHas===\"function\"&&atlasHas(),i,el;",
     replace: "  var on=true,i,el;",
     mustFail: "FAIL ① without an atlas the location name is plain text" },
-  { label: "Current location is not saved: the tie lives until the next turn's save",
-    find: "  if(typeof saveAll===\"function\")saveAll();",
+  { label: "the note is not saved: it lives until the next turn's save",
+    find: "  if(typeof saveAll===\"function\")saveAll();\n  if(m)m.remove();",
+    replace: "  if(m)m.remove();",
+    mustFail: "FAIL ③ a real click on a town shows its card" },
+  { label: "the note modal opens empty instead of with the note or the thing's word",
+    find: "  box.value=card.note||card.word||\"\";",
+    replace: "  box.value=\"\";",
+    mustFail: "FAIL ③ a real click on a town shows its card" },
+  { label: "the trail is not put on the plaque",
+    find: "  try{P.view.setHudTrail(atlasTrailItems(zoneId));}catch(e4){atlasProblem(\"drawing the trail\",e4);}",
     replace: "  ",
-    mustFail: "FAIL ④ Current location ties the story place" },
+    mustFail: "FAIL ④ the GM's [MAP_PLACE:|at] ties the story place" },
+  { label: "a tier of the trail is clicked and nothing happens",
+    find: "  _atlasPane.view.on(\"hudclick\",function(m){var B=atlasLive();if(m&&m.key!=null&&B&&B.zones[m.key])atlasPaneShow(m.key,m.key===B.at);});",
+    replace: "  ",
+    mustFail: "FAIL ④ the GM's [MAP_PLACE:|at] ties the story place" },
   { label: "a click on the party's marker finds nothing: the town under the dagger cannot be tapped",
     find: "  if(hit&&P){t=atlasThingAt(P.zone,hit.x,hit.y);return t?{id:t.id}:{x:hit.x,y:hit.y};}",
     replace: "  if(hit&&P)return {id:hit.id};",
-    mustFail: "FAIL ⑤ the select leads back to the region" },
+    mustFail: "FAIL ⑤ the realm's tier leads back up" },
   { label: "the fog is not handed to the view: a sewer is drawn whole",
     find: "    reveal=atlasReveal(zoneId);if(reveal)P.view.setReveal(reveal);",
     replace: "    reveal=null;",
@@ -86,13 +98,9 @@ rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
     find: "style='bottom:8px;right:\"+(full?8:46)+\"px;'",
     replace: "style='bottom:58px;right:8px;'",
     mustFail: "FAIL ② with an atlas the name is a button and opens the DOCK" },
-  { label: "the tie a tap made is not said to the player (#692) — the pane has no status line, so the toast must carry it",
-    find: "  atlasPaneSay(where&&where.text?where.text:\"\\\"\"+r.bound+\"\\\" is on the map.\");",
-    replace: "  atlasPaneSay(\"\\\"\"+r.bound+\"\\\" is on the map.\");",
-    mustFail: "FAIL ④ Current location ties the story place" },
-  { label: "the dock's card offers Current location: the party is moved by a tap beside the story",
-    find: "&&_atlasPane&&_atlasPane.host===\"full\")h+=\"<button type='button' class='qa' data-act='here'",
-    replace: ")h+=\"<button type='button' class='qa' data-act='here'",
+  { label: "a card offers no note button: the player's words have no door",
+    find: "  if(card.id!=null)h+=\"<button type='button' class='qa' data-act='note'>\"+(card.note?\"Edit note\":\"Add note\")+\"</button>\";",
+    replace: "  ",
     mustFail: "FAIL ② with an atlas the name is a button and opens the DOCK" },
   { label: "a campaign that loses its atlas keeps the drawer on a Map tab that is gone",
     find: "  if(!on&&typeof mobileUI!==\"undefined\"&&mobileUI.selected===\"map\"){",
@@ -115,21 +123,21 @@ rc |= sabotage.prove({ file: "mobile.css", command: BROWSER, cases: [
 ] });
 
 rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
-  { label: "Current location is spent on whatever the story names NOW, not on what the card showed",
-    find: "  r=atlasPlace(P.zone,P.target,P.place);",
-    replace: "  r=atlasPlace(P.zone,P.target);",
-    mustFail: "FAIL ⑫ a card painted before the story moved" },
-  { label: "a turn that lands under an open pane leaves its status and marker stale",
+  { label: "a turn that lands under an open pane leaves its marker stale",
     find: "  atlasPaneRefresh();/* syncUI runs after every committed turn",
     replace: "  /* syncUI runs after every committed turn",
-    mustFail: "FAIL ⑫ a card painted before the story moved" }
+    mustFail: "FAIL ⑫ a turn landing under an open pane repaints it" }
 ] });
 
 rc |= sabotage.prove({ file: "atlas.js", command: BROWSER, cases: [
-  { label: "the pane does not say the tie the tap made: the player cannot see what the GM is told (#692)",
-    find: "    out.ties=atlasTiesHere(A);out.ties.forEach(function(x){said+=\" \"+atlasTieSay(x);});",
-    replace: "    out.ties=atlasTiesHere(A);",
-    mustFail: "FAIL ④ Current location ties the story place" }
+  { label: "an emptied note is kept as an empty string instead of removed",
+    find: "  if(!text){delete A.notes[k];return {ok:true,text:\"\",removed:true};}",
+    replace: "  if(!text){A.notes[k]=\"\";return {ok:true,text:\"\",removed:true};}",
+    mustFail: "FAIL ③ a real click on a town shows its card" },
+  { label: "the trail is the SHOWN sheet's chain, not the party's: going up loses the town",
+    find: "chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}",
+    replace: "chain=atlasTrail(shownZone||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}",
+    mustFail: "FAIL ⑤ the realm's tier leads back up" }
 ] });
 
 process.exit(rc);

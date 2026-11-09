@@ -49,7 +49,8 @@ async function atest(name, fn) {
    the table below was re-hashed under fingerprint scheme 2 (the drawing without its params echo, ATLAS_FP_SCHEME), because
    0.14.0 gave the region a default `edits: []` — every drawing was compared byte for byte with 0.13.0's, the params aside.
    0.15.0 (#711: the view's HUD, the scene's `frame` layer) touched no document: nothing redrawn.
-   0.16.0 (#711 round 3: the view's bounds and pan) touched no document: nothing redrawn. */
+   0.16.0 (#711 round 3: the view's bounds and pan) touched no document: nothing redrawn.
+   0.17.0 (#711 round 4: the view's margin and the plaque's trail) touched no document: nothing redrawn. */
 var ATLAS_FIXTURES_STAMP = "0.12.0";
 var ATLAS_FIXTURES = {
   "campaign-1": "region 2d58ee8-5viy",
