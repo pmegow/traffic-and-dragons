@@ -35535,9 +35535,9 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(/var DICE_CACHE/.test(w))return "the clip cache is retired";
     return true;
   });
-  t("#669 Dice appearance: Bone by default, kept per device, a row in File ▸ Settings; the sound shares Sound's context and follows the mutes",function(){
+  t("#669 Dice appearance: Sketch by default (owner 2026-11-09; Bone before), kept per device, a row in File ▸ Settings; the sound shares Sound's context and follows the mutes",function(){
     var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8"),b=__fsForTests.readFileSync(__rootForTests+"/ui-boot.js","utf8");
-    if(u.indexOf('var DICE_LOOK_DEFAULT="Bone";')<0)return "the dice start as Bone";
+    if(u.indexOf('var DICE_LOOK_DEFAULT="Sketch";')<0)return "the dice start as Sketch";
     if(u.indexOf('var DICE_LOOK_KEY="tnd_dice_look_v1";')<0)return "the look is kept per device";
     if(b.indexOf('btn(p+"dice-look","&#127922; Dice appearance&hellip;",0)')<0||b.indexOf('eachMenuEl("dice-look"')<0)return "the Settings row must open the Dice appearance modal";
     if(u.indexOf("ctx=Sound.context();")<0)return "the clicks share Sound's context";
@@ -35559,9 +35559,9 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return true;
   });
   section("#670 — the dice leave by an exit (owner 2026-10-26: 'Bring the exit animations and footsteps into TnD's game'; rulings: Smoke puff until the player picks one, the damage dice roll as the d20 leaves): the overlay is told the player's exit, a dismiss plays it and its sounds (dice-sim's dismiss), the story stays clickable while the dice go, the choice sits in Dice appearance — the behaviour itself is dev/tests-669-live-dice-browser.js");
-  t("#670 the exit: Smoke puff until the player picks, kept per device, an unknown saved one said and replaced",function(){
+  t("#670 the exit: Fade until the player picks (owner 2026-11-09; Smoke puff before), kept per device, an unknown saved one said and replaced",function(){
     var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");
-    if(u.indexOf('var DICE_EXIT_DEFAULT="smoke";')<0)return "Smoke puff until the player picks";
+    if(u.indexOf('var DICE_EXIT_DEFAULT="fade";')<0)return "Fade until the player picks";
     if(u.indexOf('var DICE_EXIT_KEY="tnd_dice_exit_v1";')<0)return "the exit is kept per device";
     if(u.indexOf('look:diceLookStyle(),context:ctx||null,exit:diceExitName()});')<0)return "the overlay is told the player's exit when it is made";
     if(u.indexOf('console.warn("live dice: the saved exit \\""+saved+"\\" is not one the dice have; using "+DICE_EXIT_DEFAULT);return DICE_EXIT_DEFAULT;')<0)return "an unknown saved exit is said and replaced";

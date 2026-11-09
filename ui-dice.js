@@ -1,5 +1,5 @@
 /* ui-dice.js — THE LIVE DICE (#669, owner 2026-10-25: "roll it into TnD"; rulings: the Blender roll clips are retired,
-   the dice start as the Bone preset with a Dice appearance setting under File ▸ Settings, the damage dice still roll after
+   the dice start as a preset — Sketch since 2026-11-09, Bone before — with a Dice appearance setting under File ▸ Settings, the damage dice still roll after
    the settled d20 is dismissed (#654), and the sound is dice-sim's recorded impact clicks).
    When the player clicks a pending check, rollPendingCheck (game.js) decides the d20 — and, on a hit, the damage faces —
    sends the turn, and THEN calls showDiceRoll(face,{onClose}) (#650's door, unchanged): the dice are thrown live over the
@@ -17,15 +17,15 @@
    motion preference, a face outside its die. A module that fails to load, or a device that cannot start the dice (no
    WebGL), says so on the console and through reportError once per session (the phone's console is invisible) — the card
    already holds the number. Sound: the clicks share Sound's AudioContext and fall silent with the master mute (#657) or
-   the UI-sounds switch. #670 (owner 2026-10-26): a dismissed roll leaves by the player's exit (Smoke puff until they pick
+   the UI-sounds switch. #670 (owner 2026-10-26): a dismissed roll leaves by the player's exit (Fade until they pick — Smoke puff before 2026-11-09 —
    one under Dice appearance), with dice-sim's sounds; the damage dice roll as the d20 leaves. */
 var DICE_LIVE_SRC="roller/embed/global.js";
 var DICE_LOOK_KEY="tnd_dice_look_v1";   /* {name, style}: the player's dice look on this device */
 var DICE_LIVE_SIZE=2;                 /* camera distance divisor; the frame fit includes a fixed margin, so halving tray dimensions is insufficient */
-var DICE_LOOK_DEFAULT="Bone";           /* owner 2026-10-25 */
+var DICE_LOOK_DEFAULT="Sketch";         /* owner 2026-11-09 (Bone from 2026-10-25): a device that never chose a look */
 var DICE_ROLL_FADE_MS=250;              /* matches #dice-layer.out in index.html */
 var DICE_EXIT_KEY="tnd_dice_exit_v1";   /* #670: how dismissed dice leave on this device — a dice-sim exit name */
-var DICE_EXIT_DEFAULT="smoke";          /* #670, owner 2026-10-26: Smoke puff until the player picks one */
+var DICE_EXIT_DEFAULT="fade";           /* owner 2026-11-09 (Smoke puff from #670, 2026-10-26): Fade until the player picks one */
 var _diceLive={state:"idle",overlay:null,layer:null,waiting:[],reported:false,muteHooked:false,token:0,last:null,lastAimed:false,presentToken:0};
 
 /* Says why the live dice did not show, on the console every time and through reportError once per session. */
@@ -75,7 +75,7 @@ function diceRollEnv(){
   return true;
 }
 
-/* The player's dice look: the saved one, else the Bone preset. */
+/* The player's dice look: the saved one, else the default preset (DICE_LOOK_DEFAULT). */
 function diceLookSaved(){try{var v=JSON.parse(localStorage.getItem(DICE_LOOK_KEY)||"null");return v&&v.name&&v.style?v:null;}catch(e){return null;}}
 function diceLookPreset(name){var list=window.DiceSim?window.DiceSim.presets():[],i;for(i=0;i<list.length;i++)if(list[i].name===name)return list[i];return null;}
 function diceLookStyle(){
@@ -90,7 +90,7 @@ function diceLookChoose(p){
   if(_diceLive.overlay)_diceLive.overlay.setLook(style).catch(function(e){diceLiveFail("the dice look did not change ("+(e&&e.message||e)+")",{look:p.name});});
 }
 
-/* #670: how dismissed dice leave — the saved exit, else Smoke puff. One the dice no longer have (a later dice release
+/* #670: how dismissed dice leave — the saved exit, else the default (DICE_EXIT_DEFAULT). One the dice no longer have (a later dice release
    dropped it) is said on the console and replaced by the default. */
 function diceExitName(){
   var saved=null,list,i;
@@ -239,7 +239,7 @@ function showDamageRoll(sides,faces,opts){
 
 /* File ▸ Settings ▸ 🎲 Dice appearance: the presets (the built-ins, and any saved in the dice roller on this site); a
    choice is kept on this device and the next roll wears it. "Roll a test d20" shows it over the story. #670: and how the
-   dice leave when dismissed — dice-sim's exits, Smoke puff until the player picks. */
+   dice leave when dismissed — dice-sim's exits, Fade until the player picks. */
 function showDiceLookModal(){
   var modal=modalShell("dice-look-modal",
     "<div style='font-family:var(--font);font-size:16px;font-weight:700;color:var(--acc);margin-bottom:4px;'>&#127922; Dice appearance</div>"

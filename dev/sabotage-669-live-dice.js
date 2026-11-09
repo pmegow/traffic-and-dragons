@@ -1,6 +1,6 @@
 // dev/sabotage-669-live-dice.js — proves the #669 guards (the live dice): the doors hand the engine's faces to dice-sim,
 // Car Mode skips, one overlay for the session, a failure reported once, the import map, the worker keeping /roller/, the
-// Bone default and the Settings row, the mutes — each must turn the #669 section red.
+// Sketch default and the Settings row, the mutes — each must turn the #669 section red.
 //   node dev/sabotage-669-live-dice.js
 var sabotage = require("./sabotage.js");
 var CMD = ["node", ["dev/run-tests.js", "#669"]];
@@ -12,7 +12,7 @@ prove("ui-dice.js", [
   { label: "Car Mode shows the dice", find: 'if(typeof carMode!=="undefined"&&carMode)return false;', replace: "", mustFail: "Car Mode must skip" },
   { label: "an overlay per roll", find: "if(_diceLive.overlay)return _diceLive.overlay;", replace: "", mustFail: "one overlay" },
   { label: "every failure reported", find: 'if(!_diceLive.reported&&typeof reportError==="function"){_diceLive.reported=true;', replace: 'if(typeof reportError==="function"){', mustFail: "reportError once" },
-  { label: "the dice start as another look", find: 'var DICE_LOOK_DEFAULT="Bone";', replace: 'var DICE_LOOK_DEFAULT="Violet glass";', mustFail: "start as Bone" },
+  { label: "the dice start as another look (the retired Bone default)", find: 'var DICE_LOOK_DEFAULT="Sketch";', replace: 'var DICE_LOOK_DEFAULT="Bone";', mustFail: "start as Sketch" },
   { label: "the dice ignore the UI-sounds switch", find: '||(typeof Sound!=="undefined"&&typeof Sound.enabled==="function"&&!Sound.enabled());', replace: ";", mustFail: "the UI-sounds switch" }
 ]);
 prove("index.html", [

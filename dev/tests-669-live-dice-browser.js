@@ -1,12 +1,14 @@
 // #669: the live dice in the real game page (dice-sim from roller/, through ui-dice.js) — a check's d20 lands on its face,
 // the click dismisses it and runs onClose, the damage dice land on theirs, Car Mode skips, the master mute silences them,
-// and File ▸ Settings ▸ Dice appearance changes the look (Bone by default).
+// and File ▸ Settings ▸ Dice appearance changes the look (Sketch by default since 2026-11-09; Bone before) and the exit
+// (Fade by default since 2026-11-09; Smoke puff before).
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
 const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..');let failed=0;
 const TYPES={'.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.mp3':'audio/mpeg','.ttf':'font/ttf','.png':'image/png','.webmanifest':'application/manifest+json'};
 // A dismiss plays the exit (#670), and an exit advances at most 1/30 s a frame (dice-sim's EXIT_FRAME_MAX): on CI's
-// GPU-less runner the dice draw at about 5 frames a second, so the 1.8 s Smoke puff takes 11-13 s there. The old 5 s
+// GPU-less runner the dice draw at about 5 frames a second, so the 1.8 s Smoke puff took 11-13 s there (the default exit
+// until 2026-11-09; Fade is 0.6 s, but a saved exit can be any of them). The old 5 s
 // budget was the fade's (250 ms) and turned CI red on dacc10b2; a dismiss that never ends still fails.
 const DISMISS_MS=30000;
 async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+' — '+e.message);}}
@@ -56,14 +58,14 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       assert.deepEqual(m,[true,false]);
     });
 
-    await check('File ▸ Settings ▸ Dice appearance: Bone by default, a choice kept and worn',async()=>{
+    await check('File ▸ Settings ▸ Dice appearance: Sketch by default (owner 2026-11-09), a choice kept and worn',async()=>{
       const r=await page.evaluate(async()=>{
         const before=diceLiveState().look;
         showDiceLookModal();
         await new Promise(res=>setTimeout(res,200));
         const radios=[...document.querySelectorAll("#dice-look-list input[name='dice-look']")];
         const labels=radios.map(x=>x.parentNode.textContent);
-        const checked=labels[radios.findIndex(x=>x.checked)];
+        const checked=labels[radios.findIndex(x=>x.checked)].replace(/\s+/g,'');
         const carrara=radios[labels.findIndex(t=>/^6?Carrara/.test(t.replace(/\s+/g,'')))];
         carrara.checked=true;carrara.dispatchEvent(new Event('change'));
         await new Promise(res=>setTimeout(res,300));
@@ -71,16 +73,16 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         document.getElementById('dice-look-done').click();
         return {before,checked,kept,menu:!!document.querySelector('[id$="dice-look"]')};
       });
-      assert.equal(r.before,'Bone');
-      assert.match(r.checked,/Bone/);
+      assert.equal(r.before,'Sketch','a new device starts as Sketch');
+      assert.match(r.checked,/^6?Sketch/,'Sketch is the checked look, not Ink Sketch: '+r.checked);
       assert.equal(r.kept.name,'Carrara');
       assert.equal(r.kept.style.finish,'marble');
       assert.equal(r.menu,true,'the Settings row is there');
     });
 
-    // #670 (owner 2026-10-26): the dice leave by an exit — Smoke puff until the player picks; the damage dice roll as the d20 leaves.
+    // #670 (owner 2026-10-26): the dice leave by an exit — Fade until the player picks (owner 2026-11-09; Smoke puff before); the damage dice roll as the d20 leaves.
     const until=`var until=async(f,ms)=>{const t=Date.now();while(!f()){if(Date.now()-t>(ms||30000))throw new Error('timed out: '+f);await new Promise(r=>setTimeout(r,40));}};`;
-    await check('#670 a dismiss plays the exit (Smoke puff until the player picks): the story stays clickable while the dice go, the layer hides once they have gone',async()=>{
+    await check('#670 a dismiss plays the exit (Fade until the player picks): the story stays clickable while the dice go, the layer hides once they have gone',async()=>{
       const r=await page.evaluate(until+`(async()=>{
         const exit=diceLiveState().exit;
         showDiceRoll(9);
@@ -91,7 +93,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         await until(()=>!diceLiveState().showing,${DISMISS_MS});
         return {exit,going,after:diceLiveState().exiting};
       })()`);
-      assert.equal(r.exit,'smoke','Smoke puff until the player picks');
+      assert.equal(r.exit,'fade','Fade until the player picks');
       assert.deepEqual(r.going,{leaving:true,pointer:'none',showing:true,exiting:1},'the die leaves on the layer, which lets the story be clicked');
       assert.equal(r.after,0,'gone, and the layer hidden');
     });
@@ -131,11 +133,11 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         return {options,selected,kept,worn,exiting,unknown};
       })()`);
       assert.equal(r.options.join(', '),'none=None, burn=Burn out, smoke=Smoke puff, pit=Going down, fade=Fade, scurry=Scurry off, shatter=Shatter, random=Random, mixed=Mixed bag');
-      assert.equal(r.selected,'smoke');
+      assert.equal(r.selected,'fade','the menu shows the default, Fade');
       assert.equal(r.kept,'none');
       assert.equal(r.worn,'none','the overlay wears it at once');
       assert.equal(r.exiting,0,'None: the dice go with the fade, no exit');
-      assert.equal(r.unknown,'smoke','an exit the dice no longer have is replaced by the default');
+      assert.equal(r.unknown,'fade','an exit the dice no longer have is replaced by the default');
     });
 
     await check('#691 retired Melt is absent and a saved selection dismisses through the default exit',async()=>{
@@ -162,7 +164,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         localStorage.removeItem('tnd_dice_exit_v1');
         return {offered,selected,worn,started,remaining:diceLiveState().exiting,closed:window.__retiredExitClosed};
       })()`);
-      assert.deepEqual(r,{offered:false,selected:'smoke',worn:'smoke',started:1,remaining:0,closed:1});
+      assert.deepEqual(r,{offered:false,selected:'fade',worn:'fade',started:1,remaining:0,closed:1});
     });
 
     await check('no page errors',async()=>{assert.deepEqual(errors,[]);});

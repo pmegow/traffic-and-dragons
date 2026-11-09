@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-11-09 — #715 — v1.1384 — Opus 5.5: owner-requested default change in ui-dice.js (thin DOM shell) — the dice look defaults to Sketch and the exit to Fade for a device that never chose. The pins that encoded the old owner ruling (engine-tests #669/#670 source checks, the #669 browser suite, the 669/670 sabotage clauses) are re-pointed at the new defaults, not loosened: each failed first on the old value, and each battery clause now plants the retired default back. No engine, prompt or parser change.
+
 - 2026-11-09 — #714 — v1.1383 — Opus 5.5: thin-DOM-shell fix in ui-atlas.js — a trail-tier click frames the shown sheet on the party (toParty true for every tier) instead of only the party's own zone. No atlas.js, engine, prompt or parser change; one browser assertion added (⑤, failing first), none loosened.
 
 - 2026-11-06 — #701 — v1.1360 — Codex: publish committed Dice 0.99.0/fca3baf, grouping standalone settings under Customize and renaming Surface. Host changes are release copy, version/cache markers and records only; no host logic or tests change.
