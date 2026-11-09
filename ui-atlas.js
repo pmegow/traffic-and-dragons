@@ -189,7 +189,7 @@ function atlasPaneWire(host){
     _atlasPane={view:TnDMaps.view(canvas,atlasDoc(A.at||A.seed),{style:"ink",hud:true,bounds:true}),zone:null,target:null,host:host,size:null,frame:null};
   }catch(e){_atlasPane=null;atlasProblem("opening the map",e);return false;}
   _atlasPane.view.on("mapclick",function(pt,hit){atlasPaneTap(atlasPaneTargetOf(pt,hit));});
-  _atlasPane.view.on("hudclick",function(m){var B=atlasLive();if(m&&m.key!=null&&B&&B.zones[m.key])atlasPaneShow(m.key,m.key===B.at);});/* a tier of the plaque's trail: that sheet, framed on the party when it is the party's */
+  _atlasPane.view.on("hudclick",function(m){var B=atlasLive();if(m&&m.key!=null&&B&&B.zones[m.key])atlasPaneShow(m.key,true);});/* a tier of the plaque's trail: that sheet framed on the party at ATLAS_HOME_ZOOM — every tier is the party's chain, so the party is on each (a sheet above shows it at the way down); going UP once fell to the whole-sheet fit (owner 2026-11-09) */
   document.getElementById("atlas-party").addEventListener("click",function(){var B=atlasLive();if(B&&B.at)atlasPaneShow(B.at,true);else atlasPaneSay("The party is not on the map yet.");});
   if((el=document.getElementById("atlas-full")))el.addEventListener("click",function(){var P=_atlasPane;showAtlasFull(P?P.zone:undefined);});
   if((el=document.getElementById("atlas-zones")))el.addEventListener("change",function(){if(this.value)atlasPaneShow(this.value);});

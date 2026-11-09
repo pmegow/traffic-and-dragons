@@ -28,7 +28,7 @@
 //     drag past the edge is clamped; a wider drawer reveals the map (no zoom, no move); full screen carries the dock's point
 //     and zoom and the dock takes its view back; a campaign that loses its atlas loses the Map tab and is moved off it.
 // A browser suite (dev/cdp-browser.js): a CI step after the Chrome check, and the pre-push gate (#652).
-// TND_SHOT_DIR=<dir> keeps the screenshots (atlas-region.png, atlas-town.png, atlas-phone.png); the OS temp dir otherwise.
+// TND_SHOT_DIR=<dir> keeps the screenshots (atlas-region.png, atlas-town.png, atlas-up.png, atlas-phone.png); the OS temp dir otherwise.
 const fs=require('fs'),os=require('os'),path=require('path'),assert=require('assert/strict');
 const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..');
@@ -111,6 +111,11 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    const a=await page.evaluate(()=>{const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),r=c.getBoundingClientRect(),tier=v.hudScene().find(x=>x.meta&&x.meta.hud==='trail'&&!x.meta.current),at={clientX:r.left+(tier.box[0]+tier.box[2])/2,clientY:r.top+(tier.box[1]+tier.box[3])/2,bubbles:true,button:0};c.dispatchEvent(new MouseEvent('mousedown',at));window.dispatchEvent(new MouseEvent('mouseup',at));const p=__atlasTest.pane();return {tier:tier.text,zone:p.zone,m:p.markers,trail:p.trail.map(t=>[t.text,t.current])};});await settle();
    assert.equal(a.zone,'campaign-1','the realm\'s tier shows the region');assert.equal(a.m.length,1);assert.deepEqual([a.m[0].x,a.m[0].y],[p3.x,p3.y],'the party marker sits on the town');
    assert.deepEqual(a.trail,[[a.tier,true],[p3.name,false]],'going up leaves the trail as the party\'s: realm (shown), town');
+   /* going up obeys the home zoom (owner 2026-11-09): the realm opens on the party at ATLAS_HOME_ZOOM times its fit, never the whole sheet */
+   const zm=await page.evaluate(()=>{const v=_atlasPane.view,sc=v.scene(),st=document.getElementById('atlas-stage'),T=v.transform(),w=st.clientWidth,h=st.clientHeight,fitK=Math.min((w-32)/sc.width,(h-32)/sc.height),p=atlasPartyIn(_atlasPane.zone);return {k:T.k,fitK,w,h,home:ATLAS_HOME_ZOOM,party:p?{sx:T.x+p.x*T.k,sy:T.y+p.y*T.k}:null};});
+   assert.ok(Math.abs(zm.k/zm.fitK-zm.home)<0.05,'the realm\'s tier opens at '+zm.home+' times its fit, not the whole sheet: '+zm.k+' vs fit '+zm.fitK);
+   assert.ok(zm.party&&zm.party.sx>0&&zm.party.sx<zm.w&&zm.party.sy>0&&zm.party.sy<zm.h,'the party is on screen after going up: '+JSON.stringify(zm));
+   await page.screenshot({path:path.join(SHOTS,'atlas-up.png')});
    await clickMap(p3.x,p3.y);await settle();
    const r=await page.evaluate(()=>{const el=document.getElementById('atlas-card');return {text:el.textContent,buttons:[].map.call(el.querySelectorAll('button[data-act]'),b=>b.getAttribute('data-act'))};});
    assert.match(r.text,/The party is here\./);assert.deepEqual(r.buttons,['dismiss','open','note'],'the town opens and can be noted');
@@ -238,6 +243,13 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.ok(e0.party&&e0.party.sx>0&&e0.party.sx<e0.w&&e0.party.sy>0&&e0.party.sy<e0.h,'the party is on screen: '+JSON.stringify(e0.party));
    const fill=await page.evaluate(()=>{const c=document.getElementById('atlas-canvas'),g=c.getContext('2d'),d=g.getImageData(0,0,c.width,c.height).data;let bg=0,n=0;for(let i=0;i<d.length;i+=64){n++;if(d[i]===0xd9&&d[i+1]===0xd0&&d[i+2]===0xbd)bg++;}return bg/n;});
    assert.ok(fill<0.02,'the stage is sheet, not the background colour: '+(fill*100).toFixed(1)+'% background');
+   /* the DOCK's trail (owner 2026-11-09, the drawer map): a real click on the realm's tier goes up a level at four times the fit on the party, and the party's own tier comes back the same */
+   const tierClick=up=>page.evaluate(u=>{const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),r=c.getBoundingClientRect(),tiers=v.hudScene().filter(x=>x.meta&&x.meta.hud==='trail'&&!x.meta.current),tier=u?tiers[0]:tiers[tiers.length-1],at={clientX:r.left+(tier.box[0]+tier.box[2])/2,clientY:r.top+(tier.box[1]+tier.box[3])/2,bubbles:true,button:0};c.dispatchEvent(new MouseEvent('mousedown',at));window.dispatchEvent(new MouseEvent('mouseup',at));return tier.meta.key;},up);
+   const upKey=await tierClick(true),eU=await edges();
+   assert.equal(eU.host,'dock');assert.equal(eU.zone,upKey,'the realm\'s tier showed its sheet in the dock');assert.notEqual(eU.zone,e0.zone,'the dock went up a level');
+   assert.ok(Math.abs(eU.k/eU.fitK-4)<0.05,'going up in the dock keeps four times the fit, not the whole sheet: '+eU.k+' vs fit '+eU.fitK);
+   assert.ok(eU.party&&eU.party.sx>0&&eU.party.sx<eU.w&&eU.party.sy>0&&eU.party.sy<eU.h,'the party is on screen after going up in the dock: '+JSON.stringify(eU.party));
+   await tierClick(false);const eB=await edges();assert.equal(eB.zone,e0.zone,'the party\'s tier came back down');assert.ok(Math.abs(eB.k/eB.fitK-4)<0.05,'and at four times its fit: '+eB.k+' vs '+eB.fitK);
    /* the wheel: the scale bar follows the zoom */
    const r=await page.evaluate(()=>{const v=_atlasPane.view,st=document.getElementById('atlas-stage'),c=document.getElementById('atlas-canvas'),bar=s=>{const z=s.find(x=>x.t==='text'&&x.text==='0'),l=s.find(x=>x.t==='text'&&/^\d+ (km|m)$/.test(x.text));return z&&l?{w:Math.round(l.x-z.x),label:l.text}:null;};
      const out={hud:v.hud(),title:v.hudScene().some(x=>x.t==='text'&&x.text===atlasDoc(_atlasPane.zone).title.name),a:bar(v.hudScene()),k0:v.transform().k,w0:st.clientWidth};

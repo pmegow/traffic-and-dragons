@@ -331,6 +331,8 @@ Owner 2026-09-29 (CLAUDE.md ▸ Opus probation): Opus 5.5 or newer is Fable-tier
 
 ## Off-Fable log
 
+- 2026-11-09 — #714 — v1.1383 — Opus 5.5: thin-DOM-shell fix in ui-atlas.js — a trail-tier click frames the shown sheet on the party (toParty true for every tier) instead of only the party's own zone. No atlas.js, engine, prompt or parser change; one browser assertion added (⑤, failing first), none loosened.
+
 - 2026-11-06 — #701 — v1.1360 — Codex: publish committed Dice 0.99.0/fca3baf, grouping standalone settings under Customize and renaming Surface. Host changes are release copy, version/cache markers and records only; no host logic or tests change.
 
 - 2026-11-06 — #700 — v1.1359 — Codex: publish committed Dice 0.98.0/fb459b2, replacing finite tray geometry and boundaries with full-screen material floors and simplifying standalone controls. Host edits are release copy, version/cache markers and records only; no test relaxation or engine/state/prompt/parser changes.
