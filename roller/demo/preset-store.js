@@ -14,11 +14,11 @@
 //   store.remove('Night')        // a saved preset; a built-in cannot be removed
 //   store.match(style)           // the first preset showing exactly this look, or null
 
-import { DIE_PRESETS, presetProblem, presetStyle, sameLook } from '../render/presets.js';
+import { DIE_PRESETS, presetProblem as diceProblem, presetStyle as diceStyle, sameLook as sameDiceLook } from '../render/presets.js';
 
 export const PRESETS_KEY = 'dice-sim:presets';
 
-export function createPresetStore(storage, { key = PRESETS_KEY, builtIn = DIE_PRESETS } = {}) {
+export function createPresetStore(storage, { key = PRESETS_KEY, builtIn = DIE_PRESETS, problem: presetProblem = diceProblem, style: presetStyle = diceStyle, sameLook = sameDiceLook } = {}) {
   const same = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
   let saved = [];
   const dropped = [];
@@ -71,7 +71,7 @@ export function createPresetStore(storage, { key = PRESETS_KEY, builtIn = DIE_PR
     find(name) { return this.list().find((p) => same(p.name, name)) || null; },
     match(style) { return this.list().find((p) => sameLook(p, style)) || null; },
     save(name, style) {
-      const p = { name: typeof name === 'string' ? name.trim() : name, ...style };
+      const p = { ...style, name: typeof name === 'string' ? name.trim() : name };
       const problem = presetProblem(p);
       if (problem) throw new Error(problem.charAt(0).toUpperCase() + problem.slice(1) + '.');
       if (builtIn.some((b) => same(b.name, p.name))) throw new Error('"' + p.name + '" is a built-in preset: pick another name.');

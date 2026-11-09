@@ -29,6 +29,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
   if (!f) throw new Error('dieMaterial: unknown finish "' + finishName + '" (known: ' + Object.keys(FINISHES).join(', ') + ')');
   const uniforms = {
     ...patternUniforms(THREE, { pattern: f.pattern, base: style.body, seed, micaShare: f.mica ? f.mica.share : 0 }),
+    uSketchPost: { value: 0 },
     uMicaBoost: { value: f.mica ? f.mica.boost : 0 },
     uInk: { value: new THREE.Color(style.ink) },
     uGlyph: { value: glyph },

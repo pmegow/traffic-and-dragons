@@ -3,6 +3,7 @@
 
 export const VIEW_DEFAULTS = {
   transparent: false,
+  sketchPostprocess: false, // opt-in prototype: screen-space drawing for owned dice/effects
   // A partial TRAY_DEFAULTS (src/roll.js), merged over by a host's own tray option. The view opens on
   // stone at scale 1 (13 × 8.5 cm); the core's own roll() default stays felt at 1.2
   // (15.6 × 10.2 cm). Explicit width and depth are metres, independent of scale.

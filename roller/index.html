@@ -66,14 +66,15 @@
   /* Rows keep their size and the panel scrolls: in a panel of fixed height (the phone drawer) a
      shrinking row drew its text over the next one (the roll summary over the die buttons). */
   #panel > * { flex-shrink: 0; }
-  #customize { border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
-  #customize > summary { padding: 12px; cursor: pointer; font-weight: 600; }
-  #customize > summary::marker { color: var(--acc); }
-  #customize > summary:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; border-radius: 8px; }
+  .customize { border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+  .customize > summary { padding: 12px; cursor: pointer; font-weight: 600; }
+  .customize > summary::marker { color: var(--acc); }
+  .customize > summary:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; border-radius: 8px; }
   .customize-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 0 12px 12px; }
   .customize-controls input, .customize-controls select { min-width: 0; }
   .customize-controls .preset-row { grid-template-columns: repeat(auto-fit, minmax(min(100%, 110px), 1fr)); }
   .customize-controls .three { grid-template-columns: repeat(auto-fit, minmax(min(100%, 64px), 1fr)); }
+  .table-colors { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 14px; }
   .customize-controls .font-row { flex-wrap: wrap; }
   h1 { font-size: 17px; margin: 0; letter-spacing: .3px; }
   h1 small { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
@@ -225,11 +226,11 @@
 <main id="stage" aria-label="Dice tray: drag a die to toss it, double-click a die to roll it again or the table to roll them all, drag fast across the table to fling the dice, hold then drag to pan the view, pinch, scroll or right-drag to zoom"><div id="pan-ring" aria-hidden="true"></div><div id="dice-bar"><div class="row" id="adders" aria-label="Choose the dice"></div></div><div id="view"><p id="table-hint">Drag a die to toss it · double-click a die to roll it again, the table to roll them all</p><p id="dice-loading" role="status">Loading Dice Library...</p><p id="roll-line" aria-live="polite"></p></div><button id="reset-view" type="button" hidden>Reset view</button></main>
 <button id="drawer-grab" type="button" role="separator" aria-orientation="vertical" aria-label="Resize the options panel" aria-valuemin="24" title="Drag to resize; double tap to close or reopen; arrow keys also resize"></button>
 <aside id="panel">
-  <h1>Dice Simulator <small id="version">v0.99.17</small></h1>   <!-- stamped by dev/write-sw.js from src/version.js -->
+  <h1>Dice Simulator <small id="version">v0.99.20</small></h1>   <!-- stamped by dev/write-sw.js from src/version.js -->
   <label>Preset <select id="preset"></select></label>
   <label>Table Top Material <select id="surface"></select></label>
-  <details id="customize">
-    <summary>Customize</summary>
+  <details id="customize" class="customize">
+    <summary>Customize Dice</summary>
     <div class="customize-controls">
       <div class="preset-row">
         <input id="preset-name" placeholder="Name this look" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Preset name">
@@ -262,6 +263,22 @@
       <label class="check"><input id="sound" type="checkbox" checked> Sound</label>
       <button class="ghost" id="replay" type="button" hidden>Replay last</button>
       <label>Force results, in order <span class="field"><input id="forced" placeholder="blank = honest roll, e.g. 20, 3" autocomplete="off"><button class="clear" id="clear-forced" type="button" aria-label="Clear the forced results" title="Clear">×</button></span></label>
+    </div>
+  </details>
+  <details id="customize-tabletop" class="customize">
+    <summary>Customize Tabletop</summary>
+    <div class="customize-controls">
+      <label>Tabletop Preset <select id="table-preset"></select></label>
+      <div class="preset-row">
+        <input id="table-preset-name" placeholder="Name this tabletop" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Tabletop preset name">
+        <button class="ghost" id="table-preset-save" type="button">Save preset</button>
+      </div>
+      <button class="ghost" id="table-preset-delete" type="button" disabled>Delete preset</button>
+      <div class="table-colors">
+        <label>Base color <input id="table-color" type="color" value="#303744"></label>
+        <label>Finish <select id="table-finish"></select></label>
+      </div>
+      <p class="hint" id="table-notice" role="status" aria-live="polite"></p>
     </div>
   </details>
   <button id="roll" type="button">Roll</button>

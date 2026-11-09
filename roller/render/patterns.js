@@ -17,7 +17,7 @@
 //   wood     long wavy grain lines along x and fine fibres, within ±7 %
 //   felt     soft mottling and fine fibre noise, within ±6 %
 
-export const PATTERNS = { plain: 0, marble: 1, granite: 2, wood: 3, felt: 4 };
+export const PATTERNS = { plain: 0, marble: 1, granite: 2, wood: 3, felt: 4, brushed: 5 };
 
 /** Metres to pattern space. */
 export const PATTERN_SCALE = 140;
@@ -152,6 +152,14 @@ vec3 patternColor(vec3 p) {
     float line = pow(abs(fract(g) - 0.5) * 2.0, 3.0);
     float k = 0.07 * (line - 0.35) + 0.025 * (2.0 * pNoise(vec3(p.x * 0.12, p.z * 9.0, 2.0)) - 1.0);
     return pShade(uBase, clamp(k, -0.07, 0.07));
+  }
+  if (uPattern > 4.5) {
+    // Fine, straight brushing along x. Fade unresolved fibres instead of shimmering at distance.
+    float z = p.z * 12.0;
+    float resolved = 1.0 - smoothstep(0.5, 2.0, fwidth(z));
+    float fibre = 2.0 * pNoise(vec3(p.x * 0.035, z, 7.0)) - 1.0;
+    float broad = 2.0 * pNoise(vec3(p.x * 0.02, p.z * 3.0, 19.0)) - 1.0;
+    return pShade(uBase, 0.055 * fibre * resolved + 0.006 * broad);
   }
   // Felt: soft mottling across centimetres and fine fibre noise.
   float k = 0.03 * (2.0 * pFbm(p * 0.12) - 1.0) + 0.04 * (2.0 * pNoise(p * 9.0) - 1.0) + 0.02 * (2.0 * pNoise(p * 23.0 + 4.0) - 1.0);

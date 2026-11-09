@@ -14,7 +14,8 @@
 // canvas (a game's story text, say).
 
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { TableEnvironment } from './table-environment.js';
+import { tableMaterial } from './table-material.js';
 import { roll, samplePose, rollDuration, buildDie, trayFor, dieTypes, createHold, cupSize, cupSlots, HOLD_DEFAULTS } from '../src/index.js';
 import { createRng } from '../src/rng.js';
 import { buildDieGeometry, setDim, paintGlyphMask, facesShowing } from './die-mesh.js';
@@ -39,11 +40,12 @@ import { validFontKey } from './numeral-fonts.js';
 import { fontLibrary } from './font-library.js';
 import { faceMarking } from './face-markings.js';
 import { SURFACE_LOOKS } from './surface-looks.js';
-import { SPECULAR } from './finish-table.js';
-import { patternUniforms, injectPattern } from './patterns.js';
+import { tableStyle, tableLook } from './tabletop-style.js';
 import { LIGHTS } from './lights.js';
 import { installHatchShadows } from './hatch-shadows.js';
 import { updateInkProfile, disposeInkProfile } from './ink-profile.js';
+import { SketchPostprocess } from './sketch-post.js';
+import { exitScope } from './exit-scope.js';
 
 export { SURFACE_LOOKS };
 
@@ -100,6 +102,7 @@ export class DiceView {
     r.shadowMap.type = THREE.PCFShadowMap;   // r186 removed PCFSoftShadowMap; shadow.radius softens PCF
     r.setClearColor(0x000000, 0);
     this.renderer = r;
+    this.sketchPostprocess = o.sketchPostprocess ? new SketchPostprocess(r) : null;
     this.container.appendChild(r.domElement);
     // Sized by percentages, never pixels: a pixel width would hold the container open, so a
     // narrower window would never shrink it (seen on a phone-width layout, 2026-10-24).
@@ -107,10 +110,7 @@ export class DiceView {
 
     const scene = new THREE.Scene();
     this.scene = scene;
-    const pmrem = new THREE.PMREMGenerator(r);
-    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    scene.environmentIntensity = o.environment;
-    pmrem.dispose();
+    this.tableEnvironment = new TableEnvironment(r,o.environment);
 
     this.camera = new THREE.PerspectiveCamera(30, 1, 0.01, 10);
     this.buildLights();
@@ -166,8 +166,11 @@ export class DiceView {
       this.trayGroup.traverse((m) => { if (m.geometry) m.geometry.dispose(); if (m.material) m.material.dispose(); });
     }
     this.tray = { ...tray };
-    const look = SURFACE_LOOKS[this.lookName];
+    const look = tableLook(this.tableStyle ?? { surface: this.lookName });
     const drawn = !this.o.transparent && look.pattern !== null;
+    const environment = this.tableEnvironment.update(drawn ? look : null);
+    this.scene.environment = environment.texture;
+    this.scene.environmentIntensity = environment.intensity;
     this.trayDrawn = drawn;   // a scattering finish bleeds more over a drawn tray (finish-table ▸ trayBleed)
     for (const d of this.dice || []) setOnTray(d.mesh.material, drawn);
     this.scene.background = drawn ? new THREE.Color(look.color) : null;
@@ -175,7 +178,7 @@ export class DiceView {
     // frame() extends this floor past the visible frustum; patterns stay anchored in world space.
     const floorGeo = new THREE.PlaneGeometry(1, 1);
     floorGeo.rotateX(-Math.PI / 2);
-    const floor = new THREE.Mesh(floorGeo, drawn ? patternedMaterial(look) : new THREE.ShadowMaterial({ opacity: 0.38 }));
+    const floor = new THREE.Mesh(floorGeo, drawn ? tableMaterial(look,this.tableEnvironment.base) : new THREE.ShadowMaterial({ opacity: 0.38 }));
     this.hatchShadow = installHatchShadows(floor.material);
     floor.receiveShadow = true;
     this.floor = floor;
@@ -324,9 +327,11 @@ export class DiceView {
    * Changes the tray's look (SURFACE_LOOKS). The dice roll on the look's physics surface from the
    * next roll on; the tray is redrawn now.
    */
-  setSurface(name) {
+  setSurface(name, appearance = {}) {
     const look = SURFACE_LOOKS[name];
     if (!look) throw new Error('DiceView: no look for surface "' + name + '" (known: ' + Object.keys(SURFACE_LOOKS).join(', ') + ')');
+    const style = tableStyle({ ...appearance, surface: name });
+    this.tableStyle = style;
     this.lookName = name;
     this.tray.surface = this.tray.walls = look.physics;
     this.trayOptions.surface = this.trayOptions.walls = look.physics;   // the next roll is on it too
@@ -371,8 +376,9 @@ export class DiceView {
     for (const r of this.exiting) updateInkProfile(r.die.mesh, this.renderer);
     // One shared floor receiver: a drawing-style caster puts the scene's cast shadows in ink.
     const hatched = (d) => !!FINISHES[d.style?.finish]?.hatchedShadows;
-    if (this.hatchShadow) this.hatchShadow.value = this.dice.some(hatched) || [...this.exiting].some((r) => hatched(r.die)) ? 1 : 0;
-    this.renderer.render(this.scene, this.camera);
+    if (this.hatchShadow) this.hatchShadow.value = !this.sketchPostprocess && (this.dice.some(hatched) || [...this.exiting].some((r) => hatched(r.die))) ? 1 : 0;
+    if (this.sketchPostprocess) this.sketchPostprocess.render(this);
+    else this.renderer.render(this.scene, this.camera);
   }
 
   /**
@@ -692,13 +698,15 @@ export class DiceView {
     };
     return new Promise((resolve) => {
       let effect = null, start = null, last = 0, elapsed = 0, done = false;
+      const scope = exitScope(this, d);
       const record = {
-        die: d,
+        die: d, effects: scope.group,
         finish: () => {
           if (done) return;
           done = true;
           this.exiting.delete(record);
           if (effect) { try { effect.dispose(); } catch (e) { console.error('DiceView: the "' + name + '" exit could not clean up:', e); } }
+          scope.dispose();
           disposeDie(this.scene, d);
           resolve();
         },
@@ -712,7 +720,7 @@ export class DiceView {
         elapsed += dt;
         let u = spec.seconds > 0 ? Math.min(1, elapsed / spec.seconds) : 1;
         try {
-          if (!effect) effect = spec.start({ view: this, entry: d, sound });
+          if (!effect) effect = spec.start({ view: scope.view, entry: d, sound });
           effect.step(u, dt);
         } catch (e) {
           console.error('DiceView: the "' + name + '" exit failed, so the die goes at once:', e);
@@ -1215,6 +1223,9 @@ export class DiceView {
     this.clear();
     this.resizeObserver.disconnect();
     for (const a of this.atlases.values()) { a.geometry.dispose(); for (const g of a.glyphs.values()) g.dispose(); }
+    this.sketchPostprocess?.dispose();
+    this.trayGroup.traverse(m => { m.geometry?.dispose(); m.material?.dispose(); });
+    this.tableEnvironment.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
@@ -1226,16 +1237,4 @@ function disposeDie(scene, d) {
   scene.remove(d.mesh);
   d.mesh.geometry.dispose();
   d.mesh.material.dispose();
-}
-
-/**
- * A tray surface material: the look's base colour through the shared pattern library in WORLD
- * space (felt fibres, wood grain, granite), with the specular cut like the dice's.
- */
-function patternedMaterial(look) {
-  const uniforms = patternUniforms(THREE, { pattern: look.pattern, base: look.color });
-  const m = new THREE.MeshPhysicalMaterial({ color: look.color, roughness: look.roughness, metalness: 0, specularIntensity: SPECULAR });
-  m.onBeforeCompile = (shader) => injectPattern(shader, uniforms, 'world');
-  m.customProgramCacheKey = () => 'tray-pattern';
-  return m;
 }

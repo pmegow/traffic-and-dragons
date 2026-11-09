@@ -6,6 +6,7 @@ import { DiceView, FINISHES, SURFACE_LOOKS } from '../render/index.js';
 import { DiceAudio } from '../audio/index.js';
 import { createPressGesture } from '../input/press-gesture.js';
 import { createPinch } from '../input/pinch.js';
+import { bindTabletop } from './tabletop-controls.js';
 import { createPresetStore } from './preset-store.js';
 import { tapThrow } from './tap-throw.js';
 import { samplePointer, tossOf } from './toss.js';
@@ -25,7 +26,7 @@ const status = (msg) => { $('status').textContent = msg || ''; };
 
 let view;
 try {
-  view = new DiceView({ container: $('view'), zoom: TOY_DEFAULTS.zoom });
+  view = new DiceView({ container: $('view'), zoom: TOY_DEFAULTS.zoom, sketchPostprocess: new URLSearchParams(location.search).has('sketchPost') });
 } catch (e) {
   $('dice-loading').hidden = true;
   status('The 3D graphics engine could not start. Close and reopen the app or browser, then try again. Your saved looks have been kept.');
@@ -184,10 +185,6 @@ for (const [key, look] of Object.entries(SURFACE_LOOKS)) {
   o.textContent = look.label;
   $('surface').appendChild(o);
 }
-const applySurface = () => {
-  view.setSurface($('surface').value);
-  $('stage').dataset.surface = $('surface').value;
-};
 
 // ---------------------------------------------------------------- the dice's look (all dice at once)
 const LOOK_KEY = 'dice-sim:look';
@@ -357,8 +354,7 @@ const applyBag = ({ keep = false } = {}) => {
 };
 fillPresets();
 if (mixed) applyBag(); else applyLook();
-applySurface();
-$('surface').addEventListener('change', () => { applySurface(); if (mixed) applyBag({ keep: true }); else applyLook(); });
+bindTabletop({ view, storage: presetStorage, onChange: rememberLook });
 for (const id of ['body-color', 'ink-color']) $(id).addEventListener('input', applyLook);
 $('finish').addEventListener('change', applyLook);
 $('font').addEventListener('change', applyLook);

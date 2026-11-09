@@ -2,6 +2,9 @@
 // Only the Sketch finish installs this hook; lighting guides pencil density instead of glossy shading.
 const PARS = /* glsl */ `
 uniform float uSketchInkStyle;
+uniform float uSketchPost;
+float diceSketchShade = 0.0;
+float diceSketchMask = 0.0;
 varying vec3 vSketchPosition;
 varying float vSketchEdge;
 varying vec3 vSketchNormal;
@@ -49,11 +52,15 @@ const DRAW = /* glsl */ `
   // A flat face has one shading value, unaffected by local grain or scene shadows.
   float dark = clamp(0.62 - 0.6 * dot(normalize(vSketchLightNormal), normalize(vec3(-0.6, 0.8, 0.5))), 0.06, 0.95);
   vec3 hatchPos = vSketchPosition * 1900.0;
-  float hatch;
+  float hatch = 0.0;
+  if (uSketchPost < 0.5) {
   // Planar regions need only their own projection, not the three discarded body projections.
   if (vSketchHatch.z > 0.5) hatch = sketchHatch(vSketchHatch.xy * 1900.0, dark, vSketchHatch.z);
   else if (uSketchInkStyle > 0.5 && vSketchHatch.z < -0.5) hatch = sketchHatch(vSketchHatch.xy * 1900.0, dark, -vSketchHatch.z + 71.0);
   else hatch = dot(weights, vec3(sketchHatch(hatchPos.yz, dark, 0.0), sketchHatch(hatchPos.zx, dark, 0.0), sketchHatch(hatchPos.xy, dark, 0.0)));
+  }
+  diceSketchShade = dark;
+  diceSketchMask = 1.0 - diceGlyph;
   float grain = pNoise(q * 2.1);
   float edge = vSketchEdge + (pNoise(q * 0.45) - 0.5) * 0.00013;
   float aa = max(fwidth(vSketchEdge), 0.000025);
@@ -62,9 +69,13 @@ const DRAW = /* glsl */ `
   float pencil = clamp(hatch * mix(0.8, 1.45, uSketchInkStyle) + outline * 0.72 + echo * 0.3 + dark * mix(0.15, 0.0, uSketchInkStyle), 0.0, mix(0.76, 0.98, uSketchInkStyle));
   float tooth = mix(0.13, 0.035, uSketchInkStyle);
   vec3 paper = uBase * (1.0 - tooth + tooth * grain);
+  if (uSketchPost > 0.5) {
+    pencil = clamp(outline * 0.72 + echo * 0.3 + dark * 0.08, 0.0, 0.85);
+    diceSketchMask *= 1.0 - clamp(outline + echo * 0.4, 0.0, 1.0);
+  }
   vec3 drawn = mix(paper, uInk, pencil);
   // The ink variant outlines the whole bevel/corner in the chosen numeral ink.
-  if (vSketchHatch.z > 0.5) drawn = mix(drawn, uInk, 0.98 * uSketchInkStyle);
+  if (vSketchHatch.z > 0.5) { drawn = mix(drawn, uInk, 0.98 * uSketchInkStyle); diceSketchMask *= 1.0 - uSketchInkStyle; }
   // A narrow paper halo separates black numerals from black hatching, like the ink reference.
   if (uSketchInkStyle > 0.5) {
     vec2 px = fwidth(vUv) * 1.15;
@@ -73,6 +84,7 @@ const DRAW = /* glsl */ `
     halo = max(halo, max(max(texture2D(uGlyph, vUv + px).r, texture2D(uGlyph, vUv - px).r),
                          max(texture2D(uGlyph, vUv + vec2(px.x, -px.y)).r, texture2D(uGlyph, vUv + vec2(-px.x, px.y)).r)));
     drawn = mix(drawn, paper, halo * uExitInk * (1.0 - diceGlyph));
+    diceSketchMask *= 1.0 - halo * uExitInk;
   }
   // The actual face markings remain readable, with just a little paper showing through graphite.
   drawn = mix(drawn, mix(uInk, paper, mix(0.09, 0.02, uSketchInkStyle) * grain), diceGlyph);

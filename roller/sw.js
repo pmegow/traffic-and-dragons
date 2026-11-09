@@ -11,7 +11,7 @@
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.99.17';
+const VERSION = '0.99.20';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
@@ -30,6 +30,9 @@ const FILES = [
   'demo/host.js',
   'demo/preset-store.js',
   'demo/roll-line.js',
+  'demo/sketch-lab.html',
+  'demo/sketch-lab.js',
+  'demo/tabletop-controls.js',
   'demo/tap-throw.js',
   'demo/toss.js',
   'demo/toy-defaults.js',
@@ -52,6 +55,7 @@ const FILES = [
   'render/baker.js',
   'render/die-looks.js',
   'render/die-mesh.js',
+  'render/exit-scope.js',
   'render/exit-shader.js',
   'render/exit-table.js',
   'render/exits.js',
@@ -75,10 +79,15 @@ const FILES = [
   'render/presets.js',
   'render/puddle.js',
   'render/shards.js',
+  'render/sketch-post-shader.js',
+  'render/sketch-post.js',
   'render/sketch.js',
   'render/subdivide.js',
   'render/supersample.js',
   'render/surface-looks.js',
+  'render/table-environment.js',
+  'render/table-material.js',
+  'render/tabletop-style.js',
   'render/view-defaults.js',
   'render/view.js',
   'src/body.js',

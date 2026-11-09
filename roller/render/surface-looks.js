@@ -10,6 +10,7 @@ export const SURFACE_LOOKS = {
   felt: { label: 'Felt', physics: 'felt', color: '#1d4a3a', roughness: 0.95, pattern: 'felt' },
   wood: { label: 'Wood', physics: 'wood', color: '#8a5a34', roughness: 0.55, pattern: 'wood' },
   stone: { label: 'Stone', physics: 'stone', color: '#6c6f74', roughness: 0.55, pattern: 'granite' },
+  brushedMetal: { label: 'Brushed Metal', physics: 'stone', color: '#a9afb8', roughness: 0.42, metalness: 0.9, anisotropy: 0.65, pattern: 'brushed' },
   none: { label: 'Plain', physics: 'wood', pattern: null },
 };
 
