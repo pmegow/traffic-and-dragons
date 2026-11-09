@@ -2,6 +2,33 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "v1.1378",
+      "actions": [
+        "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
+        "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
+        "The map's additions are safer: an invented room never displaces a drawn one, and each refusal says why.",
+        "A room named through an invented building gets one place on the map, and a tap inside an added building no longer removes it.",
+        "An invented building without a trade word is drawn larger when a room the story names will not fit.",
+        "A room re-stated inside an invented building keeps its one place; a room named through a square finds its inn.",
+        "A pair the GM writes under a building it just invented is that building's room; a place put on a landmark draws no rooms.",
+        "Dice gain larger classic dots, optional Large Numbers, and a Teal Glass preset with consistent preset names.",
+        "Going Down pauses longer at the top, and metal dice regain gentle recessed numbers and dots.",
+        "During character creation the progress bar also jumps ahead to any step already reached, after a change made on an earlier one.",
+        "In character creation, a subrace or lineage card's granted spells and abilities open their reference cards on a click.",
+        "The map draws a campaign's starting place as the story describes it: open country, a sized settlement, or a place inside a named town.",
+        "None and Fade dismiss all dice together; other exit animations retain their stagger.",
+        "Starting places land on the map as the story tells it: a wreck ashore, a dungeon at a real cave, a tavern in town.",
+        "The New game confirmation follows the light scheme.",
+        "The map lives in the side drawer's Map tab with wheel zoom and drag pan; an enlarge button opens it full screen.",
+        "The map's title, compass and scale bar stay put while you pan and zoom, and the scale follows the zoom.",
+        "On a map card, \"We are here\" is now \"Current location\".",
+        "The drawer map is the map alone: round buttons to enlarge and to find the party, and it remembers your zoom after full screen."
+      ],
+      "sourceCommit": "1057321d3bcd421c76cdca693d77f4a19076fe33",
+      "commit": "1057321d3bcd421c76cdca693d77f4a19076fe33",
+      "releasedAt": "2026-11-08T23:48:22Z"
+    },
+    {
       "version": "v1.1377",
       "actions": [
         "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
