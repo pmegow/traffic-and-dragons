@@ -42,6 +42,8 @@ import { SURFACE_LOOKS } from './surface-looks.js';
 import { SPECULAR } from './finish-table.js';
 import { patternUniforms, injectPattern } from './patterns.js';
 import { LIGHTS } from './lights.js';
+import { installHatchShadows } from './hatch-shadows.js';
+import { updateInkProfile, disposeInkProfile } from './ink-profile.js';
 
 export { SURFACE_LOOKS };
 
@@ -174,6 +176,7 @@ export class DiceView {
     const floorGeo = new THREE.PlaneGeometry(1, 1);
     floorGeo.rotateX(-Math.PI / 2);
     const floor = new THREE.Mesh(floorGeo, drawn ? patternedMaterial(look) : new THREE.ShadowMaterial({ opacity: 0.38 }));
+    this.hatchShadow = installHatchShadows(floor.material);
     floor.receiveShadow = true;
     this.floor = floor;
     group.add(floor);
@@ -363,7 +366,14 @@ export class DiceView {
     return { x: d.x, y: 0, z: d.z };
   }
 
-  render() { this.renderer.render(this.scene, this.camera); }
+  render() {
+    for (const d of this.dice) updateInkProfile(d.mesh, this.renderer);
+    for (const r of this.exiting) updateInkProfile(r.die.mesh, this.renderer);
+    // One shared floor receiver: a drawing-style caster puts the scene's cast shadows in ink.
+    const hatched = (d) => !!FINISHES[d.style?.finish]?.hatchedShadows;
+    if (this.hatchShadow) this.hatchShadow.value = this.dice.some(hatched) || [...this.exiting].some((r) => hatched(r.die)) ? 1 : 0;
+    this.renderer.render(this.scene, this.camera);
+  }
 
   /**
    * The supersample's pixel-ratio multiplier for a view of this size (render/supersample.js): on a desktop the best
@@ -628,6 +638,7 @@ export class DiceView {
     mesh.castShadow = mesh.receiveShadow = true;
     mesh.frustumCulled = false;   // drawn, though it has no size
     mesh.scale.setScalar(0);
+    updateInkProfile(mesh, this.renderer);
     const standIn = new THREE.Scene();
     standIn.add(mesh);
     const ready = this.renderer.compileAsync(standIn, this.camera, this.scene)
@@ -638,7 +649,7 @@ export class DiceView {
         this.scene.remove(mesh);
       })
       .catch((e) => console.error('DiceView: the dice pipeline could not be readied ahead, so the first die may wait while it is built:', e));
-    const entry = { ready, dispose: () => material.dispose() };
+    const entry = { ready, dispose: () => { disposeInkProfile(mesh); material.dispose(); } };
     this.warmed.set(key, entry);
     return ready;
   }
@@ -1211,6 +1222,7 @@ export class DiceView {
 
 /** Takes a die's mesh out of the scene and frees its geometry and material. */
 function disposeDie(scene, d) {
+  disposeInkProfile(d.mesh);
   scene.remove(d.mesh);
   d.mesh.geometry.dispose();
   d.mesh.material.dispose();

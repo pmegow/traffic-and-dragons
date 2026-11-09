@@ -81,17 +81,23 @@ export function buildDieGeometry(die, cellPx = 256) {
   const { vertices: V, faces: F, edges: E, vertexFaces: VF } = die.core;
   const r = die.margin;
   const layout = atlasLayout(die, cellPx);
-  const pos = [], nrm = [], uv = [], faceRanges = [];
+  const pos = [], nrm = [], uv = [], faceDistance = [], surfaceNormal = [], surfaceHatch = [], faceRanges = [];
   const blank = blankUV(layout);
 
   /** One triangle, wound counter-clockwise seen from outside (flipped if needed). */
-  function tri(p, n, t) {
+  function tri(p, n, t, distances = [0, 0, 0], plane = null) {
     const g = cross(sub(p[1], p[0]), sub(p[2], p[0]));
     const order = dot(g, add(add(n[0], n[1]), n[2])) < 0 ? [0, 2, 1] : [0, 1, 2];
     for (const k of order) {
       pos.push(p[k].x, p[k].y, p[k].z);
       nrm.push(n[k].x, n[k].y, n[k].z);
       uv.push(t[k][0], t[k][1]);
+      faceDistance.push(distances[k]);
+      // Sketch treats a whole bevel/corner as one plane; physical normals stay rounded.
+      const sn = plane ? plane.normal : n[k];
+      surfaceNormal.push(sn.x, sn.y, sn.z);
+      const local = plane ? sub(p[k], plane.origin) : null;
+      surfaceHatch.push(plane ? dot(local, plane.u) : 0, plane ? dot(local, plane.v) : 0, plane ? plane.id : 0);
     }
   }
 
@@ -100,24 +106,33 @@ export function buildDieGeometry(die, cellPx = 256) {
     const start = pos.length / 3;
     const off = mul(f.normal, r);
     const c = add(f.centroid, off);
+    const frame = layout.frames[fi];
+    const facePlane = { normal: f.normal, origin: c, u: frame.u, v: frame.v, id: -(fi + 1) };
     const ring = f.verts.map((vi) => add(V[vi], off));
     ring.forEach((p, k) => {
       const q = ring[(k + 1) % ring.length];
       const pts = [c, p, q];
-      tri(pts, [f.normal, f.normal, f.normal], pts.map((x) => faceUV(layout, fi, x)));
+      // Distance to this polygon edge interpolates across its fan triangle. Rounded parts are zero.
+      const edge = norm(sub(q, p)), across = cross(edge, f.normal);
+      const distance = Math.abs(dot(sub(c, p), across));
+      tri(pts, [f.normal, f.normal, f.normal], pts.map((x) => faceUV(layout, fi, x)), [distance, 0, 0], facePlane);
     });
     faceRanges[fi] = [start, pos.length / 3 - start];
   });
 
+  // One planar pencil frame per bevel, shared by all its rounded geometry segments.
+  const pencilPlane = (normal, origin, u, id) => ({ normal, origin, u, v: cross(normal, u), id });
+  let surfaceId = 0;
   // Edge strips.
   for (const e of E) {
     const n1 = F[e.faces[0]].normal, n2 = F[e.faces[1]].normal;
+    const plane = pencilPlane(norm(add(n1, n2)), mul(add(V[e.a], V[e.b]), 0.5), norm(sub(V[e.b], V[e.a])), ++surfaceId);
     for (let j = 0; j < EDGE_SEGMENTS; j++) {
       const d0 = arc(n1, n2, j / EDGE_SEGMENTS), d1 = arc(n1, n2, (j + 1) / EDGE_SEGMENTS);
       const a0 = add(V[e.a], mul(d0, r)), a1 = add(V[e.a], mul(d1, r));
       const b0 = add(V[e.b], mul(d0, r)), b1 = add(V[e.b], mul(d1, r));
-      tri([a0, b0, b1], [d0, d0, d1], [blank, blank, blank]);
-      tri([a0, b1, a1], [d0, d1, d1], [blank, blank, blank]);
+      tri([a0, b0, b1], [d0, d0, d1], [blank, blank, blank], undefined, plane);
+      tri([a0, b1, a1], [d0, d1, d1], [blank, blank, blank], undefined, plane);
     }
   }
 
@@ -126,6 +141,7 @@ export function buildDieGeometry(die, cellPx = 256) {
     const N = ring.map((fi) => F[fi].normal);
     const C = norm(N.reduce((s, n) => add(s, n), { x: 0, y: 0, z: 0 }));
     const at = (d) => add(V[vi], mul(d, r));
+    const plane = pencilPlane(C, V[vi], norm(cross(C, N[0])), ++surfaceId);
     N.forEach((ni, i) => {
       const nj = N[(i + 1) % N.length];
       for (let j = 0; j < EDGE_SEGMENTS; j++) {
@@ -133,10 +149,10 @@ export function buildDieGeometry(die, cellPx = 256) {
         for (let s = 0; s < CORNER_RINGS; s++) {
           const p00 = arc(C, b0, s / CORNER_RINGS), p01 = arc(C, b1, s / CORNER_RINGS);
           const p10 = arc(C, b0, (s + 1) / CORNER_RINGS), p11 = arc(C, b1, (s + 1) / CORNER_RINGS);
-          if (s === 0) tri([at(C), at(p10), at(p11)], [C, p10, p11], [blank, blank, blank]);
+          if (s === 0) tri([at(C), at(p10), at(p11)], [C, p10, p11], [blank, blank, blank], undefined, plane);
           else {
-            tri([at(p00), at(p10), at(p11)], [p00, p10, p11], [blank, blank, blank]);
-            tri([at(p00), at(p11), at(p01)], [p00, p11, p01], [blank, blank, blank]);
+            tri([at(p00), at(p10), at(p11)], [p00, p10, p11], [blank, blank, blank], undefined, plane);
+            tri([at(p00), at(p11), at(p01)], [p00, p11, p01], [blank, blank, blank], undefined, plane);
           }
         }
       }
@@ -147,6 +163,9 @@ export function buildDieGeometry(die, cellPx = 256) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute('faceDistance', new THREE.Float32BufferAttribute(faceDistance, 1));
+  g.setAttribute('surfaceNormal', new THREE.Float32BufferAttribute(surfaceNormal, 3));
+  g.setAttribute('surfaceHatch', new THREE.Float32BufferAttribute(surfaceHatch, 3));
   g.setAttribute('color', new THREE.Float32BufferAttribute(new Array(pos.length).fill(1), 3));
   g.userData = { faceRanges, layout };
   g.computeBoundingSphere();

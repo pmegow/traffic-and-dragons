@@ -7,6 +7,7 @@
 // wins over these.
 
 export const TOY_DEFAULTS = {
+  preset: 'Bone',     // first visit only; the saved look takes precedence
   speed: 1.2,         // fixed player speed; the hidden control remains available for diagnostics
   zoom: 1.1,          // opening/reset distance: smaller dice in the phone reference (2026-11-05)
   surface: 'none',    // a SURFACE_LOOKS key: no tray, the dice kept inside the screen's edges

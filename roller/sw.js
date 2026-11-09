@@ -11,7 +11,7 @@
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.99.8';
+const VERSION = '0.99.16';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
@@ -64,8 +64,10 @@ const FILES = [
   'render/framing.js',
   'render/goo.js',
   'render/hand.js',
+  'render/hatch-shadows.js',
   'render/holes.js',
   'render/index.js',
+  'render/ink-profile.js',
   'render/lights.js',
   'render/numeral-fonts.js',
   'render/particles.js',
@@ -73,6 +75,7 @@ const FILES = [
   'render/presets.js',
   'render/puddle.js',
   'render/shards.js',
+  'render/sketch.js',
   'render/subdivide.js',
   'render/supersample.js',
   'render/surface-looks.js',

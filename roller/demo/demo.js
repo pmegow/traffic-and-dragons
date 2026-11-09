@@ -2,7 +2,7 @@
 import { bindFontPicker } from './font-picker.js';
 import { validFontKey } from '../render/numeral-fonts.js';
 import { hostFor } from './host.js';
-import { DiceView, VIEW_DEFAULTS, FINISHES, SURFACE_LOOKS } from '../render/index.js';
+import { DiceView, FINISHES, SURFACE_LOOKS } from '../render/index.js';
 import { DiceAudio } from '../audio/index.js';
 import { createPressGesture } from '../input/press-gesture.js';
 import { createPinch } from '../input/pinch.js';
@@ -10,7 +10,7 @@ import { createPresetStore } from './preset-store.js';
 import { tapThrow } from './tap-throw.js';
 import { samplePointer, tossOf } from './toss.js';
 import { createDrawer, DRAWER } from './drawer.js';
-import { sameLook, presetStyle } from '../render/presets.js';
+import { DIE_PRESETS, sameLook, presetStyle } from '../render/presets.js';
 import { MIXED_BAG } from '../render/die-looks.js';
 import { VERSION, dieTypes, samplePose, MAX_DICE } from '../src/index.js';
 import { createDicePicker, tableChanges, groupDice } from './dice-picker.js';
@@ -92,12 +92,9 @@ $('sound').addEventListener('change', () => { audio.setMuted(!$('sound').checked
 window.__dice = { view, audio };   // the test seam: drive the page from a script
 
 // ---------------------------------------------------------------- panel
-// The dice: chosen only with these buttons (demo/dice-picker.js), kept on this browser; one of each to start.
-const DICE_KEY = 'dice-sim:dice';
+// Each visit starts with an empty table; appearance preferences are kept separately.
 const HOLD_TO_REMOVE_MS = 1000;   // a press held this long on a die button takes one off (touch screens)
-let savedDice = null;
-try { savedDice = JSON.parse(localStorage.getItem(DICE_KEY) || 'null'); } catch { /* storage blocked: one of each */ }
-const picker = createDicePicker({ types: dieTypes(), max: MAX_DICE, counts: savedDice || Object.fromEntries(dieTypes().map((t) => [t, 1])) });
+const picker = createDicePicker({ types: dieTypes(), max: MAX_DICE });
 const adders = {};
 const paintDice = () => {
   for (const t of dieTypes()) {
@@ -113,7 +110,6 @@ const paintDice = () => {
   }
   $('clear-all').disabled = picker.total === 0;
   $('roll').disabled = picker.total === 0;
-  try { localStorage.setItem(DICE_KEY, JSON.stringify(picker.counts())); } catch { /* storage blocked */ }
 };
 for (const t of dieTypes()) {
   const add = document.createElement('button');
@@ -200,14 +196,14 @@ const fontPicker = bindFontPicker({
   select: $('font'), browse: $('font-browse'), importButton: $('font-import'), fileInput: $('font-file'),
   notice: $('font-notice'), preview: $('font-preview'),
 });
-// The controls open on the view's own defaults (render/view-defaults.js), never a second copy in the HTML — but for
-// the surface, which is the roller's own (demo/toy-defaults.js: no tray, owner 2026-10-27).
-$('body-color').value = VIEW_DEFAULTS.dieStyle.body;
-$('ink-color').value = VIEW_DEFAULTS.dieStyle.ink;
-$('finish').value = VIEW_DEFAULTS.dieStyle.finish;
-fontPicker.select(VIEW_DEFAULTS.dieStyle.font);
-$('classic-d6').checked = VIEW_DEFAULTS.dieStyle.classicD6;
-$('large-numbers').checked = VIEW_DEFAULTS.dieStyle.largeNumbers;
+// Start with the app's preset from the shared registry; saved preferences override it below.
+const initialStyle = presetStyle(DIE_PRESETS.find((p) => p.name === TOY_DEFAULTS.preset));
+$('body-color').value = initialStyle.body;
+$('ink-color').value = initialStyle.ink;
+$('finish').value = initialStyle.finish;
+fontPicker.select(initialStyle.font);
+$('classic-d6').checked = initialStyle.classicD6;
+$('large-numbers').checked = initialStyle.largeNumbers;
 $('surface').value = TOY_DEFAULTS.surface;
 const speed = bindCenteredSlider($('speed'), $('speed-out'), SLIDER_RANGES.speed);
 const look = () => ({ body: $('body-color').value, ink: $('ink-color').value, finish: $('finish').value, font: $('font').value, classicD6: $('classic-d6').checked, largeNumbers: $('large-numbers').checked, surface: $('surface').value });
@@ -883,5 +879,5 @@ if (hostFor(globalThis).serviceWorker && 'serviceWorker' in navigator) {
 }
 
 paintDice();
-if (picker.total) rollFromPanel(); else hideLoading();   // nothing to draw: nothing to wait for
+hideLoading();   // start empty; dice arrive only when the user adds them
 document.documentElement.setAttribute('data-dice-started', '');   // the start check (index.html) is silent from here

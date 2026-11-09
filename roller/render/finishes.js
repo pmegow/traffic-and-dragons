@@ -10,6 +10,7 @@
 // (render/exit-shader.js): heat, burning away and a pit's cut, all off until it leaves the table.
 
 import * as THREE from 'three';
+import { injectSketch } from './sketch.js';
 import { FINISHES, SPECULAR, ENGRAVING, SEE_THROUGH_DEPTH_OFFSET } from './finish-table.js';
 import { patternUniforms, injectPattern } from './patterns.js';
 import { EXIT_CLIP_OFF, EXIT_VERTEX_PARS, EXIT_VERTEX, EXIT_NORMAL, EXIT_FRAGMENT_PARS, EXIT_SURFACE, EXIT_EMISSIVE, EXIT_OUTGOING } from './exit-shader.js';
@@ -78,6 +79,8 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
     m.polygonOffsetFactor = SEE_THROUGH_DEPTH_OFFSET.factor;
     m.polygonOffsetUnits = SEE_THROUGH_DEPTH_OFFSET.units;
   }
+  // Exit props without polygon faces use paper/hatching without a false edge outline.
+  m.defaultAttributeValues = { faceDistance: [0.003], surfaceNormal: [0, 0, 0], surfaceHatch: [0, 0, 0] };
   m.defines = { ...(m.defines || {}), USE_UV: '' };
   m.userData.dice = { finish: finishName, uniforms, seed };
   m.onBeforeCompile = (shader) => {
@@ -121,6 +124,7 @@ export function dieMaterial(finishName, style, glyph, seed = 0, { radius = 0.012
       console.error('dieMaterial: the exit hook did not apply (a three.js chunk changed?)');
     }
     if (f.scatter) injectScatter(shader);
+    if (f.sketch) injectSketch(shader, f.sketch);
   };
   m.customProgramCacheKey = () => 'dice-' + finishName;
   return m;

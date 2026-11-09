@@ -41,7 +41,12 @@ export const ENGRAVING = 1.2;
  */
 export const SEE_THROUGH_DEPTH_OFFSET = { factor: 0, units: -8 };
 
+// Both drawing styles share a matte body and hatched cast shadows.
+const PENCIL = { pattern: 'plain', roughness: 1, clearcoat: 0, clearcoatRoughness: 1, transmission: 0, engraving: 0, envMapIntensity: 0.15, material: 'resin', hatchedShadows: true };
+
 export const FINISHES = {
+  sketch: { label: 'Sketch', ...PENCIL, sketch: { inkStyle: 0 } },
+  inkSketch: { label: 'Ink Sketch', ...PENCIL, sketch: { inkStyle: 1 }, profileWidth: 1.75 },
   none: { label: 'None', pattern: 'plain', roughness: 0.34, clearcoat: 0.55, clearcoatRoughness: 0.22, transmission: 0, material: 'resin' },
   marble: { label: 'Marble', pattern: 'marble', roughness: 0.16, clearcoat: 0.85, clearcoatRoughness: 0.08, transmission: 0, material: 'resin' },
   // Mica flakes (owner 2026-10-24: "the look I'm going for is mica flakes in the granite"). First a
