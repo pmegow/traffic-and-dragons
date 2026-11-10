@@ -524,6 +524,12 @@ function fileNpcSecret(n,text,revealAct){
   n.secrets.push({source:"blueprint",text:text,revealAct:revealAct});return true;
 }
 // Act numbers are one-based and status-owned, like plot armor. Missing/corrupt gates stay closed.
+function creatureAvailable(c){
+  if(!c||c.revealAct===undefined)return true;
+  var acts=(worldState&&worldState.skeleton&&worldState.skeleton.acts)||[];
+  if(!validRevealAct(c.revealAct,acts)){console.warn("[bestiary] "+c.name+": withheld — revealAct does not name a valid skeleton act");return false;}
+  var act=acts[c.revealAct-1];return !!act&&(act.status==="active"||act.status==="completed");
+}
 function npcSecretText(n){
   var acts=(worldState&&worldState.skeleton&&worldState.skeleton.acts)||[],out=[],secrets=(n&&Array.isArray(n.secrets))?n.secrets:[];
   for(var i=0;i<secrets.length;i++){

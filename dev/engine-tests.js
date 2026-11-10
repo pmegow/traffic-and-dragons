@@ -4923,6 +4923,106 @@ function runEngineTests(R){
     if(!worldState.bestiary||worldState.bestiary[0].name!=="Chasm Spawn")return "bestiary not seeded";
     return true;
   });
+
+  section("#719 creature reveal boundaries");
+  function creature719(extra){
+    makeWorld();worldState.turn=0;
+    var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"Veiled court",premise:"A border clash.",acts:[
+      {title:"Border",goal:"Help",arcs:[{title:"Clash",objective:"Survive"}]},
+      {title:"Truth",goal:"Investigate",arcs:[{title:"Trail",objective:"Follow"}]}],
+      creatures:[Object.assign({name:"SECRET-RAIDER",kind:"SECRET-KIND",threat:"SECRET-THREAT",notes:"SECRET-ORIGIN",desc:"A rider in reed silk.",displayName:"Reed Rider",revealAct:2},extra||{})]});
+    applyBlueprint(bp);return bp;
+  }
+  t("#719 pending creature is wholly withheld until its exact act opens",function(){
+    creature719();var p=buildSysPrompt();
+    if(/SECRET-RAIDER|SECRET-ORIGIN|Reed Rider|BESTIARY/.test(p.stable+p.volatile))return "closed creature leaked before Act II";
+    worldState.skeleton.acts[1].status="active";p=buildSysPrompt();
+    if(p.stable.indexOf("SECRET-RAIDER")<0||p.stable.indexOf("SECRET-ORIGIN")<0)return "open creature missing";
+    if(p.volatile.indexOf("SECRET-RAIDER")>=0)return "bestiary moved into volatile";
+    worldState.skeleton.acts[1].status="completed";
+    return buildSysPrompt().stable===p.stable?true:"completion rewrote the stable creature block";
+  });
+  t("#719 ordinary turns cannot open a creature or invalidate its cached block",function(){
+    creature719();var before=buildSysPrompt().stable;
+    worldState.turn=999;worldState.character.hp=3;worldState.transcript=[{r:"gm",x:"SECRET-RAIDER appeared.",t:1}];
+    memory.lore.push("SECRET-RAIDER appeared.");worldState.skeleton.acts[0].arcs[0].status="completed";
+    if(buildSysPrompt().stable!==before)return "ordinary state rewrote the closed bestiary";
+    worldState.skeleton.acts[1].status="active";before=buildSysPrompt().stable;
+    worldState.turn++;worldState.character.hp=4;worldState.transcript=[];memory.lore=[];
+    return before===buildSysPrompt().stable?true:"ordinary state rewrote the open bestiary";
+  });
+  t("#719 invalid supplied gates fail closed and validation explains why",function(){
+    var bad=[null,0,-1,1.5,3,"two",false];
+    for(var i=0;i<bad.length;i++){
+      var bp=creature719({revealAct:bad[i]});
+      if(!/reveal act/i.test(validateBlueprint(bp)||""))return "validation admitted gate "+JSON.stringify(bad[i]);
+      if(buildSysPrompt().stable.indexOf("SECRET-RAIDER")>=0)return "invalid gate leaked "+JSON.stringify(bad[i]);
+    }
+    creature719();delete worldState.skeleton;
+    return buildSysPrompt().stable.indexOf("SECRET-RAIDER")<0?true:"missing skeleton opened the creature";
+  });
+  t("#719 legacy creatures keep the exact bestiary bytes",function(){
+    makeWorld();worldState.bestiary=[{name:"Wolf",kind:"beast",threat:"low",notes:"Hunts in packs."}];
+    var p=buildSysPrompt().stable,a=p.indexOf("BESTIARY"),b=p.indexOf("\n\n",a);
+    var want="BESTIARY — the creatures of this campaign. Reach for these before inventing new monsters, and keep their nature, threat, and behaviour canonical. Combat stats still go through [COMBAT_START:]/[COMBAT_STATS:] as usual:\n• Wolf (beast, threat: low) — Hunts in packs.";
+    return p.slice(a,b)===want?true:"legacy bestiary bytes changed";
+  });
+  t("#719 public appearance and GM truth travel separately through the prompt and save export",function(){
+    var bp=creature719({revealAct:"2"});if(bp.creatures[0].revealAct!==2)return "numeric gate not normalized";
+    worldState.skeleton.acts[1].status="active";var p=buildSysPrompt().stable;
+    for(var i=0,parts=["Appearance: A rider in reed silk.","Public name: Reed Rider","GM-only: SECRET-ORIGIN"];i<parts.length;i++)if(p.indexOf(parts[i])<0)return "missing "+parts[i];
+    var saved=JSON.parse(serializeWorldState(worldState)),out=buildBlueprintFromGame();
+    for(i=0;i<2;i++){var c=(i?out.creatures:saved.bestiary)[0];if(c.desc!==bp.creatures[0].desc||c.displayName!=="Reed Rider"||c.revealAct!==2||c.notes!=="SECRET-ORIGIN")return "fields lost at save/export";}
+    return true;
+  });
+  t("#719 public labels never replace canonical combat identity",function(){
+    creature719();worldState.skeleton.acts[1].status="active";
+    var muts=applyMuts("[COMBAT_START:SECRET-RAIDER|12|13|3|1d6|wary][COMBAT_GROUP:SECRET-RAIDER|2]");
+    var foe=worldState.combat.foes[0];if(foe.name!=="SECRET-RAIDER")return "parser identity renamed";
+    if(foeLabel(foe)!=="Reed Rider (2)"||creaturePublicName(foe.name)!=="Reed Rider")return "public label leaked identity";
+    if(JSON.stringify(muts).indexOf("SECRET-RAIDER")>=0)return "combat mutation prose leaked identity";
+    var prompt=buildSysPrompt().volatile;if(prompt.indexOf("Enemy: SECRET-RAIDER (2)")<0||prompt.indexOf("Public name: Reed Rider")<0)return "GM combat routing lost canonical/public split";
+    applyMuts("[ENEMY_HP:SECRET-RAIDER|-3]");if(foe.hp!==9)return "canonical damage missed";
+    muts=applyMuts("[ENEMY_SURRENDERS:SECRET-RAIDER]");if(foe.down!=="surrendered"||JSON.stringify(muts).indexOf("SECRET-RAIDER")>=0)return "surrender identity leaked or missed";
+    return true;
+  });
+  t("#719 slain and core-moment prose use public names",function(){
+    creature719();applyMuts("[COMBAT_START:SECRET-RAIDER|12|13|3|1d6|wary]");
+    var pre={hp:worldState.character.maxHp,maxHp:worldState.character.maxHp,party:{},rels:{}};worldState.character.hp=1;
+    detectCoreMoments(pre);if(JSON.stringify(worldState.character.coreMemories).indexOf("SECRET-RAIDER")>=0)return "core memory leaked identity";
+    var muts=applyMuts("[ENEMY_SLAIN:SECRET-RAIDER]");
+    if(JSON.stringify(muts).indexOf("SECRET-RAIDER")>=0)return "slain prose leaked identity";
+    return true;
+  });
+  t("#719 armored refusal and missing-target errors use public names",function(){
+    creature719();worldState.npcs=[{name:"SECRET-RAIDER",armor:2}];
+    applyMuts("[COMBAT_START:SECRET-RAIDER|12|13|3|1d6|wary]");__toasts=[];
+    var r=applyMuts("[ENEMY_SLAIN:SECRET-RAIDER]");
+    if(r.muts.join(" ").indexOf("SECRET-RAIDER")>=0||__toasts.join(" ").indexOf("SECRET-RAIDER")>=0)return "armor refusal leaked identity";
+    if(!worldState.plotArmorPing||worldState.plotArmorPing.name!=="SECRET-RAIDER")return "canonical armor identity lost";
+    applyMuts("[COMBAT_START:Other|12|13|3|1d6|wary]");r=applyMuts("[COMBAT_GROUP:SECRET-RAIDER|2]");
+    return r.muts.join(" ").indexOf("SECRET-RAIDER")<0&&r.muts.join(" ").indexOf("Reed Rider")>=0?true:"missing group target leaked identity";
+  });
+  t("#719 explicit combat outcomes never print concealed identities",function(){
+    var outcomes=["victory","mystery"],i;
+    for(i=0;i<outcomes.length;i++){
+      creature719();applyMuts("[COMBAT_START:SECRET-RAIDER|12|13|3|1d6|wary]");
+      var r=applyMuts("[COMBAT_END:"+outcomes[i]+"]");
+      if(r.muts.join(" ").indexOf("SECRET-RAIDER")>=0)return "explicit "+outcomes[i]+" leaked canonical name";
+      if(r.muts.join(" ").indexOf("Reed Rider")<0)return "outcome lost its public foe";
+    }return true;
+  });
+  t("#719 exact lookup refuses ambiguous public names and validation rejects collisions",function(){
+    var bp=creature719();worldState.bestiary.push({name:"Other",displayName:"Reed Rider"});
+    if(bestiaryRecord("Reed Rider")!==null)return "ambiguous public name chose a creature";
+    if(bestiaryRecord("SECRET-RAIDER")!==worldState.bestiary[0])return "canonical lookup lost precedence";
+    if(bestiaryRecord("Reed Rider's scout")!==null)return "derivative borrowed the disguise";
+    bp.creatures=worldState.bestiary;if(!/name/i.test(validateBlueprint(bp)||""))return "collision admitted";
+    bp.creatures[1]={name:"Reed Rider"};if(!/name/i.test(validateBlueprint(bp)||""))return "canonical/alias collision admitted";
+    return true;
+  });
+
+  section("blueprint normalizer");
   // ── #192 — blueprint class roster: custom classes + curated availability ─────
   function validCustomClass(){
     return {name:"Tinkerer",desc:"Gadgeteer and saboteur",hd:8,prime:"INT",

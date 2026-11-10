@@ -275,13 +275,13 @@ function propagateSlainFoes(R){
     if(!w||npcIsDead(w))continue;
     if(worldState.sceneRefs&&typeof w2DeathAuthorized==="function"&&!w2DeathAuthorized(cn,null)){
       if(typeof _w2Conflict==="function")_w2Conflict(cn,"-","registered combat foe lacks a prior positive scene binding");
-      R.muts.push("⚠ "+w.name+": combat death quarantined (identity unproven)");
+      R.muts.push("⚠ "+creaturePublicName(w.name)+": combat death quarantined (identity unproven)");
       continue;
     }
     w.dead=R.turn;w.status="slain";
     if(memory.npcs[cn]&&!memory.npcs[cn].dead)memory.npcs[cn].dead=R.turn;
     if(typeof _w2ResolveConflicts==="function")_w2ResolveConflicts(cn,null);/* #175bR: same heal as the direct [NPC:|dead] write */
-    R.muts.push(w.name+": dead (combat, t"+R.turn+")");
+    R.muts.push(creaturePublicName(w.name)+": dead (combat, t"+R.turn+")");
     if(typeof console!=="undefined")console.warn("[combat] slain foe "+w.name+" is a registered NPC — DECEASED stamped (B3)");
   }
 }
@@ -1148,12 +1148,12 @@ var TAG_TABLE=[
       R.muts.push("⚠ "+foe.name+" — a party member — has entered the ENEMY tracker");
       if(typeof showToast==="function")showToast("⚠ "+foe.name+" (party member) entered the enemy tracker");
     }
-    if(!worldState.combat){worldState.combat={round:1,engaged:null,foes:[foe],node:rPlaceAt(R,csOff[csi]).key};/* #481 A4: the place where the tag happened, not where the reply ends; #149: where the fight STARTED — the aftermath nudge anchors here, so a close+move response can never file battlefield damage onto the destination (the mis-anchor hazard); #156B: anchored canonical */R.muts.push("Combat: "+foe.name);continue;}
+    if(!worldState.combat){worldState.combat={round:1,engaged:null,foes:[foe],node:rPlaceAt(R,csOff[csi]).key};/* #481 A4: the place where the tag happened, not where the reply ends; #149: where the fight STARTED — the aftermath nudge anchors here, so a close+move response can never file battlefield damage onto the destination (the mis-anchor hazard); #156B: anchored canonical */R.muts.push("Combat: "+creaturePublicName(foe.name));continue;}
     var dup=null,di,fl=worldState.combat.foes;
     for(di=0;di<fl.length;di++){if(fl[di].name.toLowerCase()===foe.name.toLowerCase()&&!fl[di].down&&fl[di].hp>0){dup=fl[di];break;}}
     if(dup){console.warn("[combat] duplicate COMBAT_START for living foe '"+foe.name+"' ignored (re-emission)");continue;}
     if(fl.length>=8){console.warn("[combat] foe cap (8) reached — COMBAT_START '"+foe.name+"' ignored (runaway-model guard)");continue;}
-    fl.push(foe);R.muts.push("Combat +foe: "+foe.name);
+    fl.push(foe);R.muts.push("Combat +foe: "+creaturePublicName(foe.name));
   }}},
 // COMBAT_STATS / IMMUNE / RESIST / VULN bind by POSITIONAL ADJACENCY — each occurrence goes to
 // the foe whose COMBAT_START precedes it in the text (P3-F1 fix, v1.272; see combatAttrFoe for
@@ -1182,8 +1182,8 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     var body=m[1],bar=body.lastIndexOf("|"),nm=bar>=0?body.slice(0,bar).trim():null,ns=(bar>=0?body.slice(bar+1):body).trim();
     if(!/^\d{1,3}$/.test(ns)||parseInt(ns,10)<1){R.muts.push("\u26a0 COMBAT_GROUP refused \u2014 the headcount must be a whole number from 1 to 999, got \""+ns+"\"");continue;}
     var foe=nm?combatFoeByName(nm):combatAttrFoe(starts,m.index);
-    if(!foe){R.muts.push("\u26a0 COMBAT_GROUP refused \u2014 no foe named \""+nm+"\" in this fight");continue;}
-    foe.count=parseInt(ns,10);R.muts.push("Group: "+foe.name+" \u00d7"+foe.count);}}},
+    if(!foe){R.muts.push("\u26a0 COMBAT_GROUP refused \u2014 no foe named \""+creaturePublicName(nm)+"\" in this fight");continue;}
+    foe.count=parseInt(ns,10);R.muts.push("Group: "+creaturePublicName(foe.name)+" \u00d7"+foe.count);}}},
 // UA26: g-loop + named addressing (legacy matched only the first bare tag; the 12 named
 // [ENEMY_HP:Kresh|-6] forms in the Haiku window were silently DROPPED). Bare form routes to the
 // single living foe, else the ENGAGED foe, else first-living + warn — the mutation always lands
@@ -1206,7 +1206,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     else continue;
     foe.hp=Math.max(0,foe.hp+dv);
     worldState.combat.engaged=foe.name;
-    if(foe.hp<=0){if(typeof plotArmor==="function"&&plotArmor(foe.name)){foe.hp=1;foe.down="fled";plotArmorRefuse(foe.name,R,"combat");R.muts.push(foe.name+" breaks and flees");}else foeSlain(foe,R);/* #345 */worldState.combat.engaged=null;}/* #319 */
+    if(foe.hp<=0){if(typeof plotArmor==="function"&&plotArmor(foe.name)){foe.hp=1;foe.down="fled";plotArmorRefuse(foe.name,R,"combat");R.muts.push(creaturePublicName(foe.name)+" breaks and flees");}else foeSlain(foe,R);/* #345 */worldState.combat.engaged=null;}/* #319 */
   }}},
 // v1.463 (t1188 trafficker ambush): the GM's only way to kill a foe was a damage NUMBER, so a
 // narrated stealth execution emitted honest dice damage (-8 vs 18 hp) and the foe stayed up —
@@ -1222,8 +1222,8 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     var kfoe=combatFoeByName(km[1]);
     if(!kfoe){console.warn("[combat] ENEMY_SLAIN target not found: "+km[1].trim()+" — no mutation");continue;}
     if(kfoe.down||kfoe.hp<=0)continue;/* already down — re-emission, quiet no-op */
-    if(typeof plotArmor==="function"&&plotArmor(kfoe.name)){kfoe.hp=Math.max(1,kfoe.hp);kfoe.down="fled";plotArmorRefuse(kfoe.name,R,"combat");R.muts.push(kfoe.name+" breaks and flees");}/* #319: a load-bearing foe leaves the fight alive */
-    else{kfoe.hp=0;foeSlain(kfoe,R);/* #345: the ring at kill time */R.muts.push(kfoe.name+" slain");}
+    if(typeof plotArmor==="function"&&plotArmor(kfoe.name)){kfoe.hp=Math.max(1,kfoe.hp);kfoe.down="fled";plotArmorRefuse(kfoe.name,R,"combat");R.muts.push(creaturePublicName(kfoe.name)+" breaks and flees");}/* #319: a load-bearing foe leaves the fight alive */
+    else{kfoe.hp=0;foeSlain(kfoe,R);/* #345: the ring at kill time */R.muts.push(creaturePublicName(kfoe.name)+" slain");}
     if(worldState.combat.engaged===kfoe.name)worldState.combat.engaged=null;}
   if(/\[ENEMY_SLAIN\]/.test(text))console.warn("[combat] bare ENEMY_SLAIN unsupported — name the foe ([ENEMY_SLAIN:Name]); no mutation");}},
 // UA2 resolved as IMPLEMENT (user call 2026-07-10): the former phantom becomes a real beat.
@@ -1235,10 +1235,10 @@ combatAttrEntry("COMBAT_VULN","vuln"),
   for(si=0;si<nT.length;si++){var sm=nT[si].match(/\[ENEMY_SURRENDERS:([^\]]+)\]/);if(!sm)continue;
     var sfoe=combatFoeByName(sm[1]);
     if(!sfoe){console.warn("[combat] ENEMY_SURRENDERS target not found: "+sm[1].trim());continue;}
-    if(!sfoe.down&&sfoe.hp>0){sfoe.down="surrendered";R.muts.push(sfoe.name+" surrenders");
+    if(!sfoe.down&&sfoe.hp>0){sfoe.down="surrendered";R.muts.push(creaturePublicName(sfoe.name)+" surrenders");
       if(worldState.combat.engaged===sfoe.name)worldState.combat.engaged=null;}}
   if(/\[ENEMY_SURRENDERS\]/.test(text)){var lv=combatLivingFoes(),li;
-    for(li=0;li<lv.length;li++){lv[li].down="surrendered";R.muts.push(lv[li].name+" surrenders");}
+    for(li=0;li<lv.length;li++){lv[li].down="surrendered";R.muts.push(creaturePublicName(lv[li].name)+" surrenders");}
     worldState.combat.engaged=null;}}},
 {t:"COMBAT_ROUND",nc:1,apply:function(text,R){var cr=text.match(/\[COMBAT_ROUND:(\d+)\]/);if(cr&&worldState.combat)worldState.combat.round=parseInt(cr[1]);}},
 // Explicit COMBAT_END closes the WHOLE encounter regardless of foe states. Without the tag, the
@@ -1308,7 +1308,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     if(worldState.combat&&!_ceVictory&&!_ceDefeatLed&&_ceRest.length){
       /* the unrecognized-outcome fork: foes are DISCARDED (pre-#214 semantics, never falsely
          killed) but no longer silently — both channels hear it, the recovery vocabulary taught. */
-      var _ceUn=[],_cu;for(_cu=0;_cu<_ceRest.length;_cu++)_ceUn.push(_ceRest[_cu].name);
+      var _ceUn=[],_cu;for(_cu=0;_cu<_ceRest.length;_cu++)_ceUn.push(creaturePublicName(_ceRest[_cu].name));
       if(typeof console!=="undefined")console.warn("[combat] COMBAT_END outcome '"+_ceOut+"' not recognized as victory or defeat — "+_ceUn.join(", ")+" discarded UNresolved (if they died, re-assert with [ENEMY_SLAIN:name] before the close) (#268)");
       R.muts.push("⚠ outcome '"+_ceOut+"' not recognized — "+_ceUn.join(", ")+" left the fight unresolved (not slain)");
       if(typeof showToast==="function")showToast("⚠ Combat closed on an unrecognized outcome ('"+_ceOut+"') with "+_ceUn.length+" foe(s) unresolved");
@@ -1316,20 +1316,20 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     if(worldState.combat&&_ceVictory){
       var _ceLive=_ceRest,_cl;
       for(_cl=0;_cl<_ceLive.length;_cl++){_ceLive[_cl].hp=0;foeSlain(_ceLive[_cl],R);/* #345 */
-        R.muts.push(_ceLive[_cl].name+" slain (still standing at victory — resolved to the narration)");}
+        R.muts.push(creaturePublicName(_ceLive[_cl].name)+" slain (still standing at victory — resolved to the narration)");}
       if(_ceLive.length){
         if(typeof console!=="undefined")console.warn("[combat] COMBAT_END:"+ce[1].trim()+" closed with "+_ceLive.length+" foe(s) still standing \u2014 resolved as slain; the narration outranks an untagged hp bar (#214)");
-        if(typeof showToast==="function")showToast("\u2694 "+(_ceLive.length===1?_ceLive[0].name+" was":_ceLive.length+" foes were")+" still standing at victory \u2014 resolved as slain");
+        if(typeof showToast==="function")showToast("\u2694 "+(_ceLive.length===1?creaturePublicName(_ceLive[0].name)+" was":_ceLive.length+" foes were")+" still standing at victory \u2014 resolved as slain");
       }
     }
-    if(worldState.combat&&_ceVictory&&!_ceGhost){var _bf=combatBossFoes();if(_bf.length)awardMilestoneXp("boss",_bf.map(function(f){return f.name;}).join(", "),R);}/* #302: one boss payday per victory close, however many bosses fell */
+    if(worldState.combat&&_ceVictory&&!_ceGhost){var _bf=combatBossFoes();if(_bf.length)awardMilestoneXp("boss",_bf.map(function(f){return creaturePublicName(f.name);}).join(", "),R);}/* #302: one boss payday per victory close, however many bosses fell */
     if(!_ceGhost){propagateSlainFoes(R);/* B3: stamp registered-NPC kills BEFORE the tracker vanishes */if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: arm the aftermath nudge at the fight's OWN node; a response that already filed a [LOCATION_STATE:] used the channel itself */
     R.muts.push("Combat: "+ce[1].trim());}
     if(_ceKeep.length){
       /* #254: the closed fight is over and its corpses go with it; the post-close arrivals become
          a NEW encounter at the node the party stands on now. The #149 aftermath anchor above
          still points at the OLD fight's node — that is deliberate, the damage happened there. */
-      var _ceNm=[],_cn;for(_cn=0;_cn<_ceKeep.length;_cn++)_ceNm.push(_ceKeep[_cn].name);
+      var _ceNm=[],_cn;for(_cn=0;_cn<_ceKeep.length;_cn++)_ceNm.push(creaturePublicName(_ceKeep[_cn].name));
       worldState.combat={round:1,engaged:null,foes:_ceKeep,node:(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null)};
       R.muts.push("Combat continues: "+_ceNm.join(", ")+" (entered after the close — not part of it)");
       if(typeof console!=="undefined")console.warn("[combat] COMBAT_END:"+ce[1].trim()+" closed the old fight, but "+_ceNm.join(", ")+" entered AFTER the close tag — exempt from its resolution and carried into a new encounter (#254)");
@@ -1338,7 +1338,7 @@ combatAttrEntry("COMBAT_VULN","vuln"),
   if(!worldState.combat)return;
   var f=worldState.combat.foes,i,anyUp=false,surr=false,names=[];
   for(i=0;i<f.length;i++){if(!f[i].down&&f[i].hp>0){anyUp=true;break;}
-    if(f[i].down==="surrendered")surr=true;names.push(f[i].name);}
+    if(f[i].down==="surrendered")surr=true;names.push(creaturePublicName(f[i].name));}
   if(anyUp||!f.length)return;
   propagateSlainFoes(R);/* B3: auto-close path — same stamp */
   if(!/\[LOCATION_STATE:/i.test(text))worldState.pendingLocState={node:(worldState.combat&&worldState.combat.node)||(typeof currentNodeKey==="function"?locResolve(currentNodeKey()):null),turn:worldState.turn};/* #149: auto-close arms the same aftermath nudge; #156B: canonical anchor */

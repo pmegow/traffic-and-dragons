@@ -2182,7 +2182,7 @@ function detectCoreMoments(pre){
   var c=worldState.character,w=worldState.world||{},i;
   var here=w.location?(" at "+(w.sublocation?w.sublocation+", "+w.location:w.location)):"";
   var foe="";/* UA26: foes[] shape — name the engaged foe, else the first tracked one */
-  if(worldState.combat&&worldState.combat.foes&&worldState.combat.foes.length)foe=" fighting "+(worldState.combat.engaged||worldState.combat.foes[0].name);
+  if(worldState.combat&&worldState.combat.foes&&worldState.combat.foes.length)foe=" fighting "+creaturePublicName(worldState.combat.engaged||worldState.combat.foes[0].name);
   function cross(preHp,preMax,postHp,postMax,who){
     if(typeof preHp!=="number"||typeof postHp!=="number")return;
     var mx=(typeof postMax==="number"&&postMax>0)?postMax:preMax;
@@ -3178,7 +3178,15 @@ function validateBlueprint(bp){
       for(j=0;j<a.arcs.length;j++){if(!a.arcs[j].title||!a.arcs[j].objective)return"Act "+(i+1)+", arc "+(j+1)+" is missing a title or objective.";}
     }
   }
-  if(bp.creatures){var ci;for(ci=0;ci<bp.creatures.length;ci++){if(!bp.creatures[ci].name)return"Creature "+(ci+1)+" is missing a name.";}}
+  if(bp.creatures){var ci;for(ci=0;ci<bp.creatures.length;ci++){
+    var cr=bp.creatures[ci];if(!cr||!cr.name)return "Creature "+(ci+1)+" is missing a name.";
+    if(cr.revealAct!==undefined&&!validRevealAct(cr.revealAct,bp.acts))return "Creature \""+cr.name+"\" needs a reveal act number from 1 to "+(bp.acts||[]).length+". It stays withheld until a valid act opens.";
+    for(var cfi=0,cfields=["desc","displayName"];cfi<cfields.length;cfi++)if(cr[cfields[cfi]]!==undefined&&typeof cr[cfields[cfi]]!=="string")return "Creature \""+cr.name+"\" "+cfields[cfi]+" must be text.";
+    if(cr.displayName&&cr.displayName.trim())for(var cj=0;cj<bp.creatures.length;cj++){
+      var other=bp.creatures[cj],alias=cr.displayName.trim().toLowerCase();if(ci===cj||!other)continue;
+      if(alias===String(other.name||"").trim().toLowerCase()||alias===String(other.displayName||"").trim().toLowerCase())return "Creature public name \""+cr.displayName+"\" is ambiguous; choose a name unique to this creature.";
+    }
+  }}
   for(var ni=0;ni<(bp.npcs||[]).length;ni++){
     var ns=bp.npcs[ni];if(!ns||!ns.secret)continue;
     if(typeof ns.secret!=="string"||!validRevealAct(ns.revealAct,bp.acts))return "NPC \""+(ns.name||ni+1)+"\" secret needs a reveal act number from 1 to "+(bp.acts||[]).length+". It stays withheld until a valid act opens.";
@@ -3268,6 +3276,7 @@ function normalizeBlueprint(bp,opts){
   if(!Array.isArray(bp.locations))bp.locations=[];
   if(!Array.isArray(bp.rules))bp.rules=[];
   if(!Array.isArray(bp.creatures))bp.creatures=[]; // v1.176 — campaign bestiary
+  bp.creatures.forEach(function(c){if(!c)return;if(typeof c.revealAct==="string"){if(!c.revealAct.trim())delete c.revealAct;else if(/^\d+$/.test(c.revealAct.trim()))c.revealAct=Number(c.revealAct);}});
   // #227 the deep-time age ladder. ABSENT STAYS ABSENT — same reasoning as availableClasses
   // below: a blueprint that never declared world ages must not grow an empty field on every
   // designer save, and absence is exactly what keeps every legacy blueprint's prompt
@@ -3304,6 +3313,7 @@ function blueprintTextFields(bp){
   add(bp,["premise"],"",caps.premise);add(bp,["startingLocation","startingRegion","startingTime","author","name"],"",caps.field);
   (bp.acts||[]).forEach(function(a,i){if(!a)return;add(a,["title","goal","dnaHint","desc"],"acts."+i+".",caps.field);(a.arcs||[]).forEach(function(r,j){add(r,["title","objective","dnaHint","desc"],"acts."+i+".arcs."+j+".",caps.field);});});
   ["npcs","locations","creatures"].forEach(function(section){(bp[section]||[]).forEach(function(o,i){add(o,["name","notes","secret","desc","role","status","relation","sizeNote"],section+"."+i+".",caps.field);});});
+  (bp.creatures||[]).forEach(function(c,i){if(c&&c.displayName!==undefined)add(c,["displayName"],"creatures."+i+".",caps.field);});
   (bp.rules||[]).forEach(function(rule,i){add(bp.rules,[i],"rules.",caps.rule);});return out;
 }
 // ── #192 — blueprint class roster: custom classes + curated availability ───────

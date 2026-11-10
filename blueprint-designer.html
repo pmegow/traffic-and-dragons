@@ -163,7 +163,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.62";
+var BP_DESIGNER_VERSION="v0.63";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -417,7 +417,10 @@ function render(){
     if(!C._c){
       h+="<div class='grid2'>"+fld("Name *",txt("creature",i,0,"name",C.name,""))+fld("Kind",txt("creature",i,0,"kind",C.kind||"","beast / undead / aberration / construct / …"))+"</div>"
       +fld("Threat",txt("creature",i,0,"threat",C.threat||"","low / moderate / deadly / apex — or a CR"))
-      +fldB("Notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"));
+      +fld("Public name (optional disguise)",txt("creature",i,0,"displayName",C.displayName||"","Name used on screen; canonical Name stays the combat identity"))
+      +fld("Available from act (optional)",txt("creature",i,0,"revealAct",C.revealAct===undefined?"":C.revealAct,"1-based act number; blank means available from the start"))
+      +fldB("Public appearance","creature",i,0,"desc","Creature appearance: "+(C.name||"creature"),ta("creature",i,0,"desc",C.desc||"","Only what the hero can perceive; no concealed truth"))
+      +fldB("GM-only notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"));
       h+=designerPortraitActions("creature",C,i);
     }
     if(sidePortrait)h+="</div>"+designerPortraitAside("creature",C,i)+"</div>";
@@ -609,7 +612,7 @@ function bpFieldSet(sec,i,j,k,v){
   if(sec==="rule"){if(i<bp.rules.length)bp.rules[i]=v;return;}
   var f=FIELD_ROOTS[sec],o=f&&f(i,j);
   if(!o)return;
-  if(sec==="npc"&&k==="revealAct"){o[k]=/^\d+$/.test(String(v).trim())?Number(v):v;return;}
+  if((sec==="npc"||sec==="creature")&&k==="revealAct"){if(sec==="creature"&&!String(v).trim())delete o[k];else o[k]=/^\d+$/.test(String(v).trim())?Number(v):v;return;}
   if(sec==="cclass"&&k==="name"){var _oldNm=o.name;o.name=v;availRename(_oldNm,v);return;}
   if(sec==="cclass"&&(k==="statPriority"||k==="skillSeeds")){o[k]=csvToList(v,k==="statPriority");return;}
   if(sec==="cclass"&&k==="hd"){o[k]=parseInt(v,10);return;}
@@ -972,7 +975,7 @@ function storyContext(){
 var creatureGeneration=null,creaturePortraitJobs=[];
 // Each card type supplies only its public visual identity; persistence and UI share one path.
 var DESIGNER_PORTRAITS={
-  creature:{section:"creatures",label:"creature",identity:function(c){return JSON.stringify([c.name,c.kind,c.threat,c.notes]);},prompt:function(c){return "Bestiary illustration of "+c.name+". Kind: "+(c.kind||"creature")+". Threat: "+(c.threat||"unspecified")+". "+c.notes+" Show the creature clearly in a fitting habitat; no lettering or stat blocks.";}},
+  creature:{section:"creatures",label:"creature",identity:function(c){return JSON.stringify([c.name,c.kind,c.threat,c.notes,c.desc,c.displayName]);},prompt:DesignerCreatures.portraitPrompt},
   npc:{section:"npcs",label:"NPC",identity:function(c){return JSON.stringify([c.name,c.role,c.pronouns,c.notes]);},prompt:function(c){return "Character portrait of "+c.name+". Role: "+(c.role||"unspecified")+". Pronouns: "+(c.pronouns||"unspecified")+". Public description: "+c.notes+" Depict their described appearance and clothing in a fitting setting. Do not invent hidden identities or transformations. No lettering or stat blocks.";}}
 };
 function designerPortraitAttrs(type,action,i){return " data-op='"+type+"portrait"+({generate:"",view:"view",remove:"remove"}[action])+"' data-portrait-type='"+type+"' data-portrait-action='"+action+"' data-i='"+i+"'";}
@@ -995,7 +998,7 @@ async function genCreatureBatch(input,progress){
       var response=await callGM(msg,"You design campaign bestiary entries. Return only valid JSON, without code fences.",1200,designerModel(),{noHistory:true,kind:"other"});
       if(job.cancelled)throw new Error("Generation cancelled; no creatures were added.");
       if(bp!==target||JSON.stringify(target.creatures)!==original)throw new Error("The bestiary changed during generation; no creatures were added.");
-      entries.push(DesignerCreatures.entry(JSON.parse(repairModelJson(response)),plans[i],target.creatures.concat(entries)));
+      entries.push(DesignerCreatures.entry(JSON.parse(repairModelJson(response)),plans[i],target.creatures.concat(entries),target.acts));
     }
     Array.prototype.push.apply(target.creatures,entries);
     markDirty();render();return entries;
@@ -1148,7 +1151,7 @@ var ENGINE_CONTRACT="ENGINE CONTRACT — the game runtime ALREADY handles all of
   +"- Arc/act rewards: the engine instructs the GM to grant them in the same response as the completion emission; reward mechanics never need explaining in the blueprint.\n"
   +"- Arc types: the engine supplies generic type guidance (combat/investigation/exploration/social) when no dnaHint exists.\n"
   +"- Location descriptions: injected permanently and verbatim whenever the party is there; they need no delivery mechanism.\n"
-  +"- Creatures: injected into every prompt as a canonical bestiary; NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
+  +"- Creatures: revealAct (optional 1-based act) withholds the whole entry until that act opens; desc is public appearance, notes are GM-only, displayName is an optional public combat label. Preserve these fields when revising a creature. NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
   +"- Stats, dice, HP, XP, leveling, combat mechanics: entirely engine-side; blueprints carry CHARACTER, never numbers.\n"
   +"THE SCHEMA IS FIXED. Never invent fields or structures. NPC notes hold immediately available guidance and early-act behavior. A gated hidden truth belongs ONLY in the supported singular secret field with revealAct (an integer, 1-based act number); the engine withholds it until that act opens. Keep its discovery conditions in secret too. Never duplicate the hidden truth in notes, premise, other NPC notes, or future-act titles/goals (those are visible early). Future-act arc objectives are delivered only when their act opens. For legacy files, propose moving a timed secret from notes into secret + revealAct, not duplicating it.";
 // ── Chunked review (v0.22) ──────────────────────────────────────────────────────

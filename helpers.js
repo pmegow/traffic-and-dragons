@@ -3500,7 +3500,19 @@ function bondRelWord(bond){var s=String(bond||"").split(/\s+[—–-]\s+|[,:;(]/
 /* #612: a foe's label — the name, and the recorded group headcount in parentheses ("Blight Husk Pack (8)", owner 2026-10-12).
    ONE renderer for the tracker row (ui-panels.js), the prompt's combat line (api.js) and the enemy card (ui-mobile.js); a foe
    with no recorded count (every pre-#612 save) is its bare name. Pure. */
-function foeLabel(foe){return String(foe&&foe.name||"")+(foe&&typeof foe.count==="number"?" ("+foe.count+")":"");}
+// Canonical identity wins; an ambiguous public alias never borrows another creature's facts.
+function bestiaryRecord(name){
+  var key=String(name||"").toLowerCase(),list=(worldState&&worldState.bestiary)||[],match=null,i;
+  if(!key)return null;
+  for(i=0;i<list.length;i++)if(list[i]&&String(list[i].name||"").toLowerCase()===key)return list[i];
+  for(i=0;i<list.length;i++)if(list[i]&&typeof list[i].displayName==="string"&&list[i].displayName.trim().toLowerCase()===key){
+    if(match){console.warn("[bestiary] ambiguous public name: "+name);return null;}match=list[i];
+  }
+  return match;
+}
+function creaturePublicName(name){var c=bestiaryRecord(name);return c&&typeof c.displayName==="string"&&c.displayName.trim()?c.displayName.trim():String(name||"");}
+// The public label is not a reveal state. Opening an act permits encounters, never unmasks them.
+function foeLabel(foe,canonical){return (canonical?String(foe&&foe.name||""):creaturePublicName(foe&&foe.name))+(foe&&typeof foe.count==="number"?" ("+foe.count+")":"");}
 /* #612: is this foe a pooled group whose headcount nobody has recorded? A pack word in the name, no count authored in the name
    ("Raider Gang (5)"), no foe.count. ONE predicate: the prompt's combat line ASKS the GM for the number while this holds (a fight
    declared before the tag existed, or a GM that skipped it), and the enemy card says "Not recorded". Pure. */

@@ -2648,7 +2648,7 @@ function buildSysPrompt(){
       if(cf.down||cf.hp<=0){cbDown.push(cf.name+" ("+(cf.down||"slain")+")");continue;}
       var cbStats="";if(cf.stats)cbStats=" | STR:"+cf.stats.STR+" DEX:"+cf.stats.DEX+" CON:"+cf.stats.CON+" INT:"+cf.stats.INT+" WIS:"+cf.stats.WIS+" CHA:"+cf.stats.CHA+" CR:"+cf.stats.CR;
       var cbDmgMod="";if(cf.immune&&cf.immune.length)cbDmgMod+=" | Immune:"+cf.immune.join(",");if(cf.resist&&cf.resist.length)cbDmgMod+=" | Resist:"+cf.resist.join(",");if(cf.vuln&&cf.vuln.length)cbDmgMod+=" | Vuln:"+cf.vuln.join(",");
-      cbLines.push("Enemy: "+foeLabel(cf)+(cm.engaged===cf.name?" [ENGAGED with the player]":"")+" HP:"+cf.hp+"/"+cf.maxHp+" AC:"+cf.ac+" Atk:+"+cf.atk+" Dmg:"+cf.dmg+" Morale:"+cf.morale+cbStats+cbDmgMod+(foeGroupUnrecorded(cf)?" | Headcount: unrecorded \u2014 emit [COMBAT_GROUP:"+cf.name+"|N] with how many are up":""));}/* #612: an unrecorded pack is asked, every turn, until it files */
+      cbLines.push("Enemy: "+foeLabel(cf,true)+(creaturePublicName(cf.name)!==cf.name?" | Public name: "+creaturePublicName(cf.name):"")+(cm.engaged===cf.name?" [ENGAGED with the player]":"")+" HP:"+cf.hp+"/"+cf.maxHp+" AC:"+cf.ac+" Atk:+"+cf.atk+" Dmg:"+cf.dmg+" Morale:"+cf.morale+cbStats+cbDmgMod+(foeGroupUnrecorded(cf)?" | Headcount: unrecorded \u2014 emit [COMBAT_GROUP:"+cf.name+"|N] with how many are up":""));}/* #612: an unrecorded pack is asked, every turn, until it files */
     cb="COMBAT ACTIVE (Round "+cm.round+(cfs.length>1?"; "+cfs.length+" foes — use [ENEMY_HP:Name|-X] to address each":"")+"):\n"+cbLines.join("\n")+(cbDown.length?"\nOut of the fight: "+cbDown.join(", "):"")+"\n\n";}
   var hist=worldState.eventHistory.length?"STORY SO FAR:\n"+worldState.eventHistory.join("\n")+"\n\n":"";
   var erasBlock=buildErasBlock();/* #148 Phase 2 — the always-on spine ABOVE the recent-chapter window; "" until the first era compiles */
@@ -2710,20 +2710,26 @@ function buildSysPrompt(){
     if(pa){if(pa.vc){_paVc=pa.vc;_paProfane=!!pa.profane;}if(pa.contentDNA)_paDNA=pa.contentDNA;}
   }
   var narrativeDesignBlock=_paDNA?"NARRATIVE DESIGN — these structural principles govern this campaign; they shape what happens and why, not how it is written:\n"+_paDNA+"\n\n":"";
-  // BESTIARY (blueprint creatures, v1.176) — campaign-constant, so it lives in the STABLE half:
-  // worldState.bestiary is set once at blueprint apply and never mutated per turn (a mid-campaign
-  // edit would cost one cache re-write, then warm again). Keeps signature monsters canonical
-  // instead of re-improvised from their names.
+  // Authored creatures stay stable within an act. Availability reads only the reveal act's
+  // status: opening an act deliberately rewrites this cached block; turns and encounters cannot.
   var bestiaryBlock="";
   if(worldState.bestiary&&worldState.bestiary.length){
     var _bls=["BESTIARY — the creatures of this campaign. Reach for these before inventing new monsters, and keep their nature, threat, and behaviour canonical. Combat stats still go through [COMBAT_START:]/[COMBAT_STATS:] as usual:"];
     var _bi;for(_bi=0;_bi<worldState.bestiary.length;_bi++){
       var _bc=worldState.bestiary[_bi],_bm=[];
+      if(!creatureAvailable(_bc))continue;
       if(_bc.kind)_bm.push(_bc.kind);
       if(_bc.threat)_bm.push("threat: "+_bc.threat);
-      _bls.push("• "+_bc.name+(_bm.length?" ("+_bm.join(", ")+")":"")+(_bc.notes?" — "+_bc.notes:""));
+      var _public=!!(_bc.desc||_bc.displayName||_bc.revealAct!==undefined),_detail="";
+      if(_public){
+        if(_bc.displayName)_detail+=" | Public name: "+_bc.displayName+". Use this name on screen; keep "+_bc.name+" as the identity in combat tags. Keep the public label throughout the encounter, even if its nature is exposed.";
+        if(_bc.desc)_detail+=" | Appearance: "+_bc.desc;
+        if(_bc.notes)_detail+=" | GM-only: "+_bc.notes;
+        _detail+=" | Narrate only what the hero perceives; concealed identity and nature require discovery in the fiction.";
+      }else _detail=_bc.notes?" — "+_bc.notes:"";
+      _bls.push("• "+_bc.name+(_bm.length?" ("+_bm.join(", ")+")":"")+_detail);
     }
-    bestiaryBlock=_bls.join("\n")+"\n\n";
+    if(_bls.length>1)bestiaryBlock=_bls.join("\n")+"\n\n";
   }
   // Transient control-switch reinforcement — overrides the sessionLog momentum where the
   // OLD protagonist was "you". Set on swap, auto-cleared in sendAction after ~2 turns.

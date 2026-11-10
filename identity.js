@@ -1256,7 +1256,7 @@ function derivePresenceFromResponse(text,R){
     var canon=resolveNpcName(key);
     if(recorded[canon])return;
     if(ch==="say"&&castCanon&&!castCanon[canon]){var _wn=(typeof wsNpcByName==="function")?wsNpcByName(canon):null;if(!(_wn&&_wn.partyMember)){if(withheld.indexOf(canon)<0)withheld.push(canon);return;}if(labels.indexOf(canon+" (spoke, not in cast)")<0)labels.push(canon+" (spoke, not in cast)");return;/* #481 B2: a companion the cast leaves out — the stay-behind ask covers them */}
-    if(presenceObserve(key,ch,atKey)){recorded[canon]=ch;labels.push(canon+" ("+ch+")");}
+    if(presenceObserve(key,ch,atKey)){recorded[canon]=ch;labels.push(creaturePublicName(canon)+" ("+ch+")");}
   }
   function fightAt(off){return (typeof rPlaceAt==="function"&&R)?rPlaceAt(R,off).key:null;}
   var re=/\[SAY:([^\]|]+)(?:\|[^\]]*)?\]/g;
@@ -2181,10 +2181,10 @@ function plotArmorRefuse(name,R,how){
   var canon=resolveNpcName(name),a=plotArmor(canon);if(!a)return false;
   if(!worldState.plotArmor)worldState.plotArmor=keyedDict();var rec=worldState.plotArmor[canon]||{escapes:0};rec.escapes++;rec.turn=worldState.turn;worldState.plotArmor[canon]=rec;
   worldState.plotArmorPing={name:canon,turn:worldState.turn,act:a.act,arc:a.arc,escapes:rec.escapes,max:a.max,how:how||""};
-  var line=canon+": death refused \u2014 plot armor until Act "+a.act+(a.arc?" \u201c"+a.arc+"\u201d":"")+" (escape "+rec.escapes+" of "+a.max+")";
+  var line=creaturePublicName(canon)+": death refused \u2014 plot armor until Act "+a.act+(a.arc?" \u201c"+a.arc+"\u201d":"")+" (escape "+rec.escapes+" of "+a.max+")";
   if(R&&R.muts)R.muts.push("⚠ "+line);
   if(typeof console!=="undefined")console.warn("[identity] #319 "+line+(how?" ["+how+"]":""));
-  if(typeof showToast==="function")showToast("\u26e8 "+canon+" got away \u2014 load-bearing until Act "+a.act+" (escape "+rec.escapes+" of "+a.max+")");
+  if(typeof showToast==="function")showToast("\u26e8 "+creaturePublicName(canon)+" got away \u2014 load-bearing until Act "+a.act+" (escape "+rec.escapes+" of "+a.max+")");
   return true;
 }
 // #345: the heal at the ring write. A conflict minted because a summary cited this death BEFORE the ring

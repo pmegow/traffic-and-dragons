@@ -109,7 +109,7 @@ function mobileInit(){
 // headcounts guessed from aggregate HP. Counts explicitly authored in a name stay intact.
 function wireEnemyDetails(ordered){
   var rows=mobileEl("en-rows");if(!rows)return;
-  Array.prototype.forEach.call(rows.querySelectorAll(".cname.en"),function(el,i){var foe=ordered[i];el.setAttribute("role","button");el.tabIndex=0;el.setAttribute("aria-label","Details for "+foe.name);el.onclick=function(){showEnemyDetails(foe);};el.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();showEnemyDetails(foe);}};});
+  Array.prototype.forEach.call(rows.querySelectorAll(".cname.en"),function(el,i){var foe=ordered[i];el.setAttribute("role","button");el.tabIndex=0;el.setAttribute("aria-label","Details for "+creaturePublicName(foe.name));el.onclick=function(){showEnemyDetails(foe);};el.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();showEnemyDetails(foe);}};});
 }
 function showEnemyDetails(foe){
   var h="<h2 style='font-size:18px;color:var(--acc)'>"+escHtml(foeLabel(foe))+"</h2><dl class='enemy-facts'>";
@@ -117,8 +117,11 @@ function showEnemyDetails(foe){
   row("HP",foe.hp+" / "+foe.maxHp);
   [{key:"ac",label:"Armor class"},{key:"atk",label:"Attack"},{key:"dmg",label:"Damage"},{key:"morale",label:"Morale"},{key:"down",label:"State"},{key:"immune",label:"Immune"},{key:"resist",label:"Resistant"},{key:"vuln",label:"Vulnerable"}].forEach(function(x){row(x.label,foe[x.key]);});
   if(foe.stats)Object.keys(foe.stats).forEach(function(k){row(k,foe.stats[k]);});
-  var record=null;(worldState.bestiary||[]).some(function(b){if(String(b.name).toLowerCase()===String(foe.name).toLowerCase()){record=b;return true;}return false;});
-  if(record)[{key:"kind",label:"Type"},{key:"threat",label:"Threat"},{key:"desc",label:"Description"}].forEach(function(x){row(x.label,record[x.key]);});
+  var record=bestiaryRecord(foe.name);
+  if(record){
+    if(!record.displayName)[{key:"kind",label:"Type"},{key:"threat",label:"Threat"}].forEach(function(x){row(x.label,record[x.key]);});
+    row("Description",record.desc);
+  }
   if(typeof foe.count==="number")row("Group size",foe.count);/* #612: the authored headcount */
   else if(foeGroupUnrecorded(foe))row("Group size","Not recorded");/* #612: the one predicate the prompt's ask reads */
   h+="</dl><button class='ib' id='enemy-close'>Close</button>";modalShell("enemy-modal",h,{closeId:"enemy-close",outside:true,maxWidth:420});

@@ -14,12 +14,15 @@
     for(i=0;i<n;i++){p={};for(k in fields){v=fields[k].values;p[k]=input[k]==="random"?v[Math.floor(random()*v.length)]:input[k];}out.push(p);}
     return out;
   }
-  function entry(raw,choice,existing){
+  function entry(raw,choice,existing,acts){
     if(raw&&typeof raw.error==="string"&&raw.error.trim())throw new Error(raw.error.trim());
     if(!raw||Array.isArray(raw)||typeof raw.name!=="string"||!raw.name.trim()||typeof raw.notes!=="string"||!raw.notes.trim())throw new Error("The model returned a creature without a name or notes.");
     var name=raw.name.trim();
     if(existing.some(function(c){return String(c.name||"").trim().toLowerCase()===name.toLowerCase();}))throw new Error("A creature named “"+name+"” already exists. Try again.");
-    return {name:name,kind:choice.kind,threat:choice.threat,notes:"Frequency: "+choice.frequency+". Treasure: "+(choice.treasure||"None")+". "+raw.notes.trim()};
+    var result={name:name,kind:choice.kind,threat:choice.threat,notes:"Frequency: "+choice.frequency+". Treasure: "+(choice.treasure||"None")+". "+raw.notes.trim()};
+    ["desc","displayName"].forEach(function(k){if(raw[k]===undefined)return;if(typeof raw[k]!=="string")throw new Error("Creature "+k+" must be text.");if(raw[k].trim())result[k]=raw[k].trim();});
+    if(raw.revealAct!==undefined){if(typeof raw.revealAct!=="number"||raw.revealAct<1||raw.revealAct%1!==0||(Array.isArray(acts)&&raw.revealAct>acts.length))throw new Error("Creature revealAct must name an existing positive whole act number.");result.revealAct=raw.revealAct;}
+    return result;
   }
   function prompt(context,choice,names){
     return context+"\n\nTASK: Invent exactly ONE new creature in service to this campaign's regions, factions, tone, and conflicts."
@@ -30,10 +33,18 @@
       +"\nTreasure is a category, not a guaranteed drop or a new economy. None means no associated treasure. Otherwise describe plausible possessions, a lair cache, or useful remains, fitting the creature and campaign. Do not assign gold values or mechanical rewards."
       +"\nDo not duplicate any existing creature or these names already generated in this batch: "+names.join(", ")
       +"\nNotes: 2–4 concise sentences about nature, appearance, behaviour, tactics and weaknesses. Fit the selected threat and frequency. No numeric combat stats; do not repeat the frequency label."
-      +"\nOutput ONLY this JSON object: {\"name\":\"\",\"notes\":\"\"}";
+      +"\nKeep notes GM-only. Add desc for public appearance, with no hidden identity, origin or motives. For a disguise add displayName, the name used on screen. If the story reserves this creature for a later act, add revealAct as that existing act's 1-based integer; otherwise omit it."
+      +"\nOutput ONLY a JSON object with name, notes, desc and, only when needed, displayName and revealAct.";
+  }
+  function portraitPrompt(c){
+    if(c.desc||c.displayName){
+      if(!c.desc||!c.desc.trim())throw new Error("Write the creature's public appearance before illustrating its disguise.");
+      return "Bestiary illustration of "+(c.displayName||c.name)+". Visible appearance: "+c.desc+" Show only this appearance in a fitting habitat; no lettering or stat blocks.";
+    }
+    return "Bestiary illustration of "+c.name+". Kind: "+(c.kind||"creature")+". Threat: "+(c.threat||"unspecified")+". "+c.notes+" Show the creature clearly in a fitting habitat; no lettering or stat blocks.";
   }
   function textBlueprint(bp){return JSON.parse(JSON.stringify(bp,function(k,v){return k==="portrait"||(k&&k.charAt(0)==="_")?undefined:v;}));}
   function preservePortrait(previous,next){delete next.portrait;if(previous&&previous.portrait)next.portrait=previous.portrait;return next;}
-  var api={preservePortrait:preservePortrait,fields:fields,maxCount:maxCount,plan:plan,entry:entry,prompt:prompt,textBlueprint:textBlueprint};
+  var api={portraitPrompt:portraitPrompt,preservePortrait:preservePortrait,fields:fields,maxCount:maxCount,plan:plan,entry:entry,prompt:prompt,textBlueprint:textBlueprint};
   if(typeof module!=="undefined"&&module.exports)module.exports=api;else root.DesignerCreatures=api;
 })(this);

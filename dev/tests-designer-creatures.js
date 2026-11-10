@@ -15,7 +15,24 @@ await test('treasure selection persists in notes and default None avoids uninten
 await test('invalid and duplicate model results cannot enter the bestiary',()=>{const p={kind:'Beast',threat:'Safe',frequency:'common'};for(const r of [null,[],{name:'',notes:'x'},{name:'Moth',notes:''}])assert.throws(()=>C.entry(r,p,[]));assert.throws(()=>C.entry({name:' moth ',notes:'x'},p,[{name:'MOTH'}]),/already exists/);});
 await test('portraits persist in files but never enter text review payloads',()=>{const b={name:'Test',creatures:[{name:'Moth',portrait:'data:image/png;base64,HUGE',notes:'Light.'}],_view:1};const out=C.textBlueprint(b);assert.equal(out.creatures[0].portrait,undefined);assert.equal(out._view,undefined);assert.equal(b.creatures[0].portrait,'data:image/png;base64,HUGE');});
 await test('text fixes retain existing portraits and cannot invent image attachments',()=>{assert.equal(C.preservePortrait({portrait:'saved'},{name:'Moth',portrait:'model URL'}).portrait,'saved');assert.equal(C.preservePortrait(null,{name:'Moth',portrait:'model URL'}).portrait,undefined);});
+await test('#719 generated public fields survive without copying private notes',()=>{
+ const choice={kind:'Beast',threat:'Minor',frequency:'rare'};
+ const entry=C.entry({name:'Secret',notes:'PRIVATE',desc:'A reed cloak.',displayName:'Rider',revealAct:2},choice,[]);
+ assert.equal(entry.desc,'A reed cloak.');assert.equal(entry.displayName,'Rider');assert.equal(entry.revealAct,2);
+ const prompt=C.prompt('Border',choice,[]);for(const field of ['desc','displayName','revealAct'])assert(prompt.includes(field),field);
+ assert(C.portraitPrompt(entry).includes('Rider'));assert(C.portraitPrompt(entry).includes('A reed cloak.'));
+ assert(!/Secret|PRIVATE|Beast/.test(C.portraitPrompt(entry)));
+ assert.throws(()=>C.portraitPrompt({name:'Secret',displayName:'Rider',notes:'PRIVATE'}),/appearance/i);
+});
 const html=fs.readFileSync(path.join(root,'blueprint-designer.html'),'utf8');
+await test('#719 designer exposes typed reveal gates and public appearance',()=>{
+ for(const field of ['desc','displayName','revealAct'])assert(html.includes('"creature",i,0,"'+field+'"'),field+' editor');
+ const engine=require('./load-engine.js');engine.loadEngine('game.js');
+ const c={bp:{creatures:[{}]},FIELD_ROOTS:{creature:()=>c.bp.creatures[0]}};vm.createContext(c);
+ const a=html.indexOf('function bpFieldSet('),b=html.indexOf('function ',a+10);vm.runInContext(html.slice(a,b),c);
+ c.bpFieldSet('creature',0,0,'revealAct','2');assert.equal(c.bp.creatures[0].revealAct,2);
+ c.bpFieldSet('creature',0,0,'revealAct','');assert(!Object.hasOwn(c.bp.creatures[0],'revealAct'));
+});
 function fixture(){const c={DesignerCreatures:C,bp:{creatures:[]},console,repairModelJson:x=>x,storyContext:()=> 'Village',designerModel:()=> 'gpt-6-astra',markDirty:()=>{},render:()=>{},fitDesignerText:async()=>true,document:{getElementById:()=>null},llmReady:()=>true};vm.createContext(c);const a=html.indexOf('var creatureGeneration='),b=html.indexOf('// ── Generate campaign from scratch',a);assert(a>=0&&b>a,'batch seam missing');vm.runInContext(html.slice(a,b),c);return c;}
 await test('creature context includes hard rules and established setting details without images',()=>{const c=fixture();c.bp={name:'Fen',acts:[],rules:['Undead cannot exist.'],locations:[{name:'Pool',description:'Salt water.'}],npcs:[{name:'Keeper',notes:'Protects the moths.'}],creatures:[{name:'Moth',notes:'Feeds on light.',portrait:'IMAGE_BYTES'}]};const a=html.indexOf('function storyContext(){'),b=html.indexOf('var creatureGeneration=',a);vm.runInContext(html.slice(a,b),c);const msg=c.storyContext();for(const text of ['Undead cannot exist.','Salt water.','Protects the moths.','Feeds on light.'])assert(msg.includes(text),text);assert(!msg.includes('IMAGE_BYTES'));});
 await test('portrait text edits during generation preserve the prior image',async()=>{const c=fixture(),creature={name:'Moth',kind:'Beast',threat:'Safe',notes:'Light.',portrait:'previous'};c.bp.creatures=[creature];c.falAvailable=()=>true;c.elapsedTicker=()=>({stop(){}});let status='';c.setStatus=text=>status=text;c.generatePortraitImage=async()=>{creature.notes='Changed during drawing.';return 'image';};c.creaturePortraitData=async()=> 'replacement';await c.generateCreaturePortrait(creature,{});assert.equal(creature.portrait,'previous');assert(status.includes('changed'));assert.equal(c.creaturePortraitJobs.length,0);});
@@ -24,6 +41,10 @@ await test('NPC portrait rejects late edits removal replacement and provider fai
 await test('draft storage failure reports its reason and a file-save recovery',()=>{let pending,message='';const c={localStorage:{setItem(){throw Error('Quota exceeded');}},setTimeout:fn=>{pending=fn;return 1;},clearTimeout(){},console,bp:{},dirty:true,editionBaseline:null,setStatus:text=>message=text};vm.createContext(c);const a=html.indexOf('var DRAFT_K='),b=html.indexOf('function clearDraft()',a);vm.runInContext(html.slice(a,b),c);c.saveDraft();pending();assert(message.includes('Quota exceeded'));assert(message.includes('.blueprint'));});
 await test('a batch makes the requested number of utility calls and appends once',async()=>{const c=fixture();let calls=0,dirty=0;c.markDirty=()=>dirty++;c.callGM=async(msg,sys,tokens,model,opts)=>{assert(msg.includes('Frequency: rare'));assert.equal(model,'gpt-6-astra');assert.equal(opts.noHistory,true);assert.equal(opts.kind,'other');return JSON.stringify({name:'Moth '+(++calls),notes:'Feeds on candlelight.'});};await c.genCreatureBatch({count:3,kind:'Beast',threat:'Minor',frequency:'rare'},()=>{});assert.equal(calls,3);assert.equal(c.bp.creatures.length,3);assert.equal(dirty,1);});
 await test('a failed batch preserves the original bestiary',async()=>{const c=fixture();let calls=0;c.bp.creatures=[{name:'Existing'}];c.callGM=async()=>{if(++calls===2)throw Error('provider refused');return '{"name":"Moth","notes":"Light."}';};await assert.rejects(c.genCreatureBatch({count:2,kind:'Beast',threat:'Minor',frequency:'rare'},()=>{}),/provider refused/);assert.equal(c.bp.creatures.length,1);assert.equal(c.creatureGeneration,null);});
+await test('#719 generated gate outside the actual acts refuses the whole batch',async()=>{
+ const c=fixture();c.bp.acts=[{},{}];c.callGM=async()=>JSON.stringify({name:'Rider',notes:'Private.',revealAct:999});
+ await assert.rejects(c.genCreatureBatch({count:1,kind:'Beast',threat:'Minor',frequency:'rare'},()=>{}),/revealAct/);assert.equal(c.bp.creatures.length,0);
+});
 await test('cancelled or replaced drafts never receive late creatures',async()=>{for(const mode of ['cancel','replace']){const c=fixture();c.callGM=async()=>{if(mode==='cancel')c.creatureGeneration.cancelled=true;else c.bp={creatures:[]};return '{"name":"Moth","notes":"Light."}';};await assert.rejects(c.genCreatureBatch({count:1,kind:'Beast',threat:'Minor',frequency:'rare'},()=>{}),/cancelled|changed/);assert.equal(c.bp.creatures.length,0);}});
 }
 console.log('CREATURES: '+passed+' passed, '+failed+' failed');process.exitCode=failed?1:0;

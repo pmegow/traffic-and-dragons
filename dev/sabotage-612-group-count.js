@@ -21,7 +21,7 @@ code |= sabotage.prove({ file: "tag_table.js", command: CMD, cases: [
     find: "    if(!/^\\d{1,3}$/.test(ns)||parseInt(ns,10)<1){", replace: "    if(false){",
     mustFail: T },
   { label: "the update is no longer logged",
-    find: "    foe.count=parseInt(ns,10);R.muts.push(\"Group: \"+foe.name+\" \\u00d7\"+foe.count);}}},", replace: "    foe.count=parseInt(ns,10);}}},",
+    find: "    foe.count=parseInt(ns,10);R.muts.push(\"Group: \"+creaturePublicName(foe.name)+\" \\u00d7\"+foe.count);}}},", replace: "    foe.count=parseInt(ns,10);}}},",
     mustFail: T },
   { label: "the tag leaves the strip vocabulary: the count leaks into the story",
     find: "\"COMBAT_VULN\",\"COMBAT_GROUP\",\"LOCATION_DESC\"", replace: "\"COMBAT_VULN\",\"LOCATION_DESC\"",
@@ -38,8 +38,8 @@ code |= sabotage.prove({ file: "helpers.js", command: CMD, cases: [
     find: "&&!(foe&&typeof foe.count===\"number\");}", replace: ";}",
     mustFail: T },
   { label: "the label drops the count (the name alone, as before #612)",
-    find: "function foeLabel(foe){return String(foe&&foe.name||\"\")+(foe&&typeof foe.count===\"number\"?\" (\"+foe.count+\")\":\"\");}",
-    replace: "function foeLabel(foe){return String(foe&&foe.name||\"\");}",
+    find: "function foeLabel(foe,canonical){return (canonical?String(foe&&foe.name||\"\"):creaturePublicName(foe&&foe.name))+(foe&&typeof foe.count===\"number\"?\" (\"+foe.count+\")\":\"\");}",
+    replace: "function foeLabel(foe,canonical){return canonical?String(foe&&foe.name||\"\"):creaturePublicName(foe&&foe.name);}",
     mustFail: T }
 ] });
 code |= sabotage.prove({ file: "api.js", command: CMD, cases: [
@@ -47,7 +47,7 @@ code |= sabotage.prove({ file: "api.js", command: CMD, cases: [
     find: "+(foeGroupUnrecorded(cf)?\" | Headcount: unrecorded", replace: "+(false?\" | Headcount: unrecorded",
     mustFail: T },
   { label: "the prompt's combat line names the foe without its count",
-    find: "cbLines.push(\"Enemy: \"+foeLabel(cf)+", replace: "cbLines.push(\"Enemy: \"+cf.name+",
+    find: "cbLines.push(\"Enemy: \"+foeLabel(cf,true)+", replace: "cbLines.push(\"Enemy: \"+cf.name+",
     mustFail: T }
 ] });
 code |= sabotage.prove({ file: "ui-panels.js", command: CMD, cases: [

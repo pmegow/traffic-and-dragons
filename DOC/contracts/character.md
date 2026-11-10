@@ -114,3 +114,9 @@ After step 6, if level ≥ 3: archetype picker → stat bump(s) → spell picker
 ## Blueprint edition metadata
 
 See [Blueprint editions](../blueprint-editions.md) for the mandatory version/status contract, legacy adoption, designer save semantics, and immutable campaign starting edition. The engine snapshots metadata at applyBlueprint; it never consults a newer catalog edition during play.
+
+### Creature disclosure
+
+Optional creature fields are `desc` (public appearance), `displayName` (public combat label), and `revealAct` (1-based act availability). `notes` remains GM-only and never appears on an enemy card. A supplied invalid gate is rejected at validation and withheld with a warning at prompt construction. No gate means the prior behavior. The gate opens only when its exact act is active or completed; encounter events and turn counters never open it.
+
+`name` remains combat identity. Public labels must be unique against other creatures’ canonical and public names. Display labels do not track revelation: they remain the encounter label even when the fiction exposes the creature’s nature. The engine never infers unmasking from an act opening. Public cards for a disguised entry omit its private kind and threat, retaining authored appearance and recorded combat mechanics. Save/export retains all fields. The designer edits these fields and uses public appearance for a disguised portrait; missing appearance refuses that portrait with a reason.
