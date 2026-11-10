@@ -4924,6 +4924,23 @@ function runEngineTests(R){
     return true;
   });
 
+
+  section("#720 perception before revelation");
+  t("#720 narration rules require perceived appearance until exposed",function(){
+    var canon=DEFAULT_RULES.filter(function(r){return r.indexOf("CANON IS NOT CONVERSATION")===0;})[0]||"";
+    if(canon.indexOf("hero can perceive")<0||canon.indexOf("disguised or glamoured")<0||canon.indexOf("until the story exposes it")<0)return "Rule 26 permits true-nature narration";
+    if(canon.indexOf("a creature's nature when the party meets it")>=0)return "old leak exception survived";
+    var many=DEFAULT_RULES.filter(function(r){return r.indexOf("A WORLD OF MANY PEOPLES")===0;})[0]||"";
+    if(many.indexOf("apparent kind")<0)return "first-sight kind instruction still contradicts the disguise boundary";
+    makeWorld();var p=buildSysPrompt();worldState.turn++;
+    return p.stable.indexOf(canon)>=0&&buildSysPrompt().stable===p.stable?true:"perception rule missing from stable or varied by turn";
+  });
+  t("#720 skeleton fence covers narration and preserves the hero stake exception",function(){
+    makeWorld();worldState.skeleton={premise:"The hidden plot",acts:[]};
+    var p=buildSkeletonBlock();
+    if(p.indexOf("dialogue, narration, rumor, or suggestion")<0)return "narration omitted from the secret fence";
+    return p.indexOf("THE HERO'S OWN STAKE IS NEVER A SECRET FROM THE PLAYER")>=0?true:"hero's own life was hidden too";
+  });
   section("#719 creature reveal boundaries");
   function creature719(extra){
     makeWorld();worldState.turn=0;

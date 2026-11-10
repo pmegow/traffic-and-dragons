@@ -1,0 +1,5 @@
+var sabotage=require('./sabotage.js'),rc=0;
+var command=['node',['dev/run-tests.js','#720 perception before revelation']];
+rc|=sabotage.prove({file:'data.js',command:command,cases:[{label:'true nature is narrated on first sight again',find:"In narration, describe only what the hero can perceive. A disguised or glamoured creature is described as it appears; its true nature or identity remains private until the story exposes it.",replace:"When you DO use this canon in narration mechanics (a creature's nature when the party meets it, a place when the party arrives), that is correct; the leak is characters volunteering unlearned or unprompted knowledge.",mustFail:'#720 narration rules require perceived appearance until exposed'}]});
+rc|=sabotage.prove({file:'api.js',command:command,cases:[{label:'narration bypasses the skeleton fence',find:'reach dialogue, narration, rumor, or suggestion before',replace:'reach dialogue, rumor, or suggestion before',mustFail:'#720 skeleton fence covers narration'}]});
+process.exit(rc?1:0);

@@ -2857,7 +2857,7 @@ function buildSkeletonBlock(){
   // instruction separating GM planning knowledge from CHARACTER knowledge. A prompt fence alone
   // is known-imperfect for this class, but it names the rule everything else (staging notes,
   // suggestion gate) enforces mechanically.
-  lines.push("GM-EYES ONLY: this skeleton is your private planning document. NO character in the world knows it. Companions and NPCs may reference only what the story has surfaced on-screen — never let future arcs, act goals, villain names, or premise secrets reach dialogue, rumor, or suggestion before the fiction reveals them. To bring an upcoming beat into play, STAGE it in the world first (a rumor, a messenger, a discovery), then let characters react to what they actually witnessed.");
+  lines.push("GM-EYES ONLY: this skeleton is your private planning document. NO character in the world knows it. Companions and NPCs may reference only what the story has surfaced on-screen — never let future arcs, act goals, villain names, or premise secrets reach dialogue, narration, rumor, or suggestion before the fiction reveals them. To bring an upcoming beat into play, STAGE it in the world first (a rumor, a messenger, a discovery), then let characters react to what they actually witnessed.");
   /* #425 (the_fae_crysalis t33, 2026-09-20): the fence above guards the PLOT; it must not swallow the hero's own life.
      A freeform premise can hand the hero a stake the player never wrote (a twin, a guardianship, a loss), and the GM
      narrated one from turn 7 as a thing the player already knew. The hero's stake is player-facing canon: surface it
