@@ -33,3 +33,28 @@ Comparison captures also exist for Runelords t2477, Iron Meridian t207, Princess
 - #720 / v1.1390: failure-first assertions cover Rule 26, the conflicting first-sight kind instruction, the skeleton narration fence and the retained hero-stake exception. Two deliberate reversions fail their named guards. Intentional prompt changes: two stable rules (apparent-kind qualifier and perception boundary), and one volatile skeleton sentence (narration added). No hashes or existing assertions changed.
 
 - #721 / v1.1391: only newly created blueprint world nodes carry `blueprintSeeded`; no load migration. Seven failure-first guards and eight deliberate regressions cover turn 0, visible GM narration, hidden tags/player guesses, retcons/dead branches/rewinds, exact aliases and merge/split provenance. Existing saves remain byte-identical to #720. The P9 fixture now explicitly narrates Omu before expecting it under KNOWN OF; its assertions are retained. The #464 sabotage anchor was retargeted to the new branch with the same intended failure and assertion. No frozen hash changed. This commit also restores UTF-8 metadata in this audit and release-next.json after the preceding edit used the Windows default encoding.
+
+## Final capture hunk accounting
+
+Captured with stock `dev/capture-prompt.js`, using the untouched supplied t7 save:
+
+| Half | Before | After v1.1392 | Every changed hunk |
+|---|---|---|---|
+| Stable | 58,894 chars / `9cbd041167fa` | 58,963 / `4eaa1d72b0ae` | Line 5: first-sight kind becomes apparent kind, with the disguise qualifier. Line 27: Rule 26 requires perceptible appearance until a story reveal. Both #720. |
+| Volatile | 26,648 / `0dec5be9a74a` | 26,659 / `4a3212fda7c2` | Line 38: narration joins the skeleton secrecy fence (#720). |
+
+No other t7 hunk changed. #718 is UI only. #719 preserves the saved legacy creature format. #721 deliberately does not migrate existing nodes. #722 changes the blueprint used for future campaign creation, not the blueprint already copied into the save.
+
+The reconstructed fresh opening has six hunks: stable lines 5 and 27 are the same rules; stable line 42 is the bestiary, adding the two genuine patrols, splitting the Stalker's appearance/GM truth and omitting the gated Raider/Sentry. Volatile line 33 adds the fence; line 52 names the genuine patrol combatants in the opening directive while retaining both routes and noncombat choices; line 65 removes the never-named KNOWN OF list. No other hunk changed. Its final hashes are stable `e354973ffe78`, volatile `ca2a7fac74a7`. The live-schema integration test separately includes all nineteen blueprint rules; the stock capture omits device-local rules.
+
+Four other real saves have exactly the same two stable rule changes, verified by comparing every removed/added line against the t7 diff. Runelords t2477, Iron Meridian t207 and Princess t89 also have exactly the narration-fence change. Village t291 has no skeleton fence and its volatile half is byte-identical (`7d9d2f4b9dae`). Their existing KNOWN OF lists are unchanged. All local full diffs and digest records are under `testRuns/silence-opening/`.
+
+## Blueprint edition and restart behavior
+
+The sample and live catalog baseline were content-identical at v1.0, revision 3. Edition v1.01 remains Release Candidate, with the same catalog ID, blank byline, blurb and ordering. Two genuine patrol records support either opening route. Raider availability starts in Act II with public label `Reed-cloaked Raider`; the royal-cell Sentry starts in Act III. The Stalker remains available in Act I, retaining its visible iron clue and private origin. No authored shortcuts, player choices, or other story rules were removed.
+
+Nine actual-blueprint checks cover all nineteen rules, the turn-0/Act-II/Act-III boundaries, stable bytes across ordinary turns and completion, both honest patrols, Stalker privacy, actual enemy cards, new-campaign KNOWN OF, authoring text limits and edition/catalog identity. Six failed first on the old blueprint. Five deliberate blueprint regressions each fail their named test and restore byte-identically. Phone-width card screenshot inspected: only public name/appearance and live combat facts, no goblin classification or notes.
+
+Existing campaigns receive the card and narration corrections after reloading the published app. Optional creature fields work wherever already present, but saved bestiaries are not replaced by later catalog editions. By owner request, location provenance is not retrofitted. A new campaign from v1.01 is required to receive this blueprint's patrols/gates and the new KNOWN OF behavior; the existing t7 transcript's disclosed plot cannot be undone by these fixes. No paid model playtest was run, so actual future model compliance has not been measured.
+
+Independent final Astra review: no semantic blockers, independently executed the nine blueprint checks successfully. The public catalog update is prepared in local `catalog-publication.json`; its revision must be freshly checked at publication. App code publication and live catalog publication are separate operations.

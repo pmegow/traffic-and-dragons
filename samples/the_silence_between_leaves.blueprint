@@ -18,7 +18,7 @@
           "title": "The Wild Skirmish",
           "objective": "Survive the border clash and reach the Forest Court.",
           "type": "combat",
-          "dnaHint": "Open with the mortal waking beside the boundary stones as forest and marsh fae clash. Antlered scouts, otter riders, and dragonfly banners make the conflict beautiful and bewildering. Offer an achievable rescue or defensive action that earns the forest patrol's trust; flight, mediation, and helping the wounded also work. The patrol notices the outsider and offers an escort to its king. Ebonfeather watches from a branch and departs without explaining himself. If the player follows the marsh patrol instead, allow that route and arrange the forest audience later; never knock them out to restore the outline.",
+          "dnaHint": "Open with the mortal waking beside the boundary stones as forest and marsh fae clash. Glimmerveil Scouts and Fen Otter-Riders are genuine court fae caught in the feud. Use the Glimmerveil Scout and Fen Otter-Rider bestiary entries for these patrols. Antlers, otter mounts, and dragonfly banners make the conflict beautiful and bewildering. Offer an achievable rescue or defensive action that earns the forest patrol's trust; flight, mediation, and helping the wounded also work. The patrol notices the outsider and offers an escort to its king. Ebonfeather watches from a branch and departs without explaining himself. If the player follows the marsh patrol instead, allow that route and arrange the forest audience later; never knock them out to restore the outline.",
           "reward": "Forest safe-conduct and an escort or directions to the Ironwood Heart."
         },
         {
@@ -321,10 +321,25 @@
   "narratorVoice": "en_US-libritts_r-medium",
   "creatures": [
     {
+      "name": "Glimmerveil Scout",
+      "kind": "forest fae",
+      "threat": "moderate",
+      "desc": "An antlered fae in leaf-green armor carries a spear and a living-wood shield. A green pennant streams from the spear as the scout shields wounded companions beside the boundary stones.",
+      "notes": "A genuine Glimmerveil border-patrol member, caught in the feud rather than staging it. Defends companions and tries to drive the marsh patrol back. A rescue, mediation, tending the wounded, or a chance to disengage can end the clash. Offers safe-conduct or directions to the Forest Court if helped; is not a source of knowledge about Grist's conspiracy."
+    },
+    {
+      "name": "Fen Otter-Rider",
+      "kind": "marsh fae",
+      "threat": "moderate",
+      "desc": "A marsh fae in reed-woven armor rides a broad-backed otter, carrying a short spear beneath a dragonfly pennant. Water beads on the rider's green-brown cloak as the mount bounds between pools.",
+      "notes": "A genuine Stillwaters border-patrol member defending the marsh approaches. The rider and otter form one encounter combatant; size the encounter to the hero. Fights to protect the patrol, accepts a truce or help for the wounded, and retreats rather than pursuing a fleeing outsider. Can guide a helpful stranger toward the Fen Court; knows local grievances, not Grist's conspiracy."
+    },
+    {
       "name": "Mire-Gilded Stalker",
       "kind": "fey monstrosity",
       "threat": "moderate",
-      "notes": "Bred by Grist's goblins using stolen Fen alchemy, these lantern-eyed quadrupeds wear marsh pitch and jagged iron to frame Stillwater for raids. Submerged lures try to separate travelers before a dragging attack. Bright woodland light hardens the pitch until brittle; a lantern flower or exposed sunbeam can reveal this weakness. Iron fittings bear workshop marks. Bait, careful footing, and a detour can avoid combat. The creatures indicate manufactured raids, not marsh-wide guilt."
+      "notes": "Bred by Grist's goblins using stolen Fen alchemy to frame Stillwater for raids. Submerged lures try to separate travelers before a dragging attack. Bright woodland light hardens the pitch until brittle; a lantern flower or exposed sunbeam can reveal this weakness. Iron fittings bear workshop marks. Bait, careful footing, and a detour can avoid combat. The creatures indicate manufactured raids, not marsh-wide guilt.",
+      "desc": "A lantern-eyed quadruped prowls low over the water, its hide caked in marsh pitch and jagged iron fittings. Submerged lights ripple beside its dragging limbs."
     },
     {
       "name": "Marsh Snapper",
@@ -342,19 +357,23 @@
       "name": "Borrowed-Banner Raider",
       "kind": "goblin fae",
       "threat": "moderate",
-      "notes": "One of Grist's raiders wearing a glamour and stolen court insignia. Uses ambushes and false shouted orders to blame another faction. The Fae Loop exposes the disguise; mismatched tracks, slipping masks, and captured supplies provide mundane clues. May flee or surrender when exposed. Their gear and trail survive if the raider dissolves on defeat."
+      "notes": "One of Grist's raiders wearing a glamour and stolen court insignia. Uses ambushes and false shouted orders to blame another faction. The Fae Loop exposes the disguise; mismatched tracks, slipping masks, and captured supplies provide mundane clues. May flee or surrender when exposed. Their gear and trail survive if the raider dissolves on defeat.",
+      "revealAct": 2,
+      "displayName": "Reed-cloaked Raider",
+      "desc": "A slight fae fighter in a reed cloak and court silk, carrying a short blade beneath a dragonfly banner. A hood shadows the face as the fighter calls orders across the marsh."
     },
     {
       "name": "Iron-Ward Sentry",
       "kind": "goblin fae",
       "threat": "moderate",
-      "notes": "A mine guard with a hooked spear, keys, and an alarm bell, stationed near the royal cells. Knows the ward anchors are worked metal, not invulnerable magic. Can be distracted, bribed, talked into abandoning Grist, or fought. Alarm brings an established nearby patrol, not limitless reinforcements; keys can also be obtained from the guard station."
+      "notes": "A mine guard with a hooked spear, keys, and an alarm bell, stationed near the royal cells. Knows the ward anchors are worked metal, not invulnerable magic. Can be distracted, bribed, talked into abandoning Grist, or fought. Alarm brings an established nearby patrol, not limitless reinforcements; keys can also be obtained from the guard station.",
+      "revealAct": 3
     }
   ],
   "customClasses": [],
   "startingTime": "",
   "kind": "adventure",
-  "version": "1.0",
+  "version": "1.01",
   "releaseStatus": "release-candidate",
   "catalogId": "the_silence_between_leaves"
 }

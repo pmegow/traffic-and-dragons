@@ -6,6 +6,7 @@ var path = require("path");
 
 var ROOT = path.join(__dirname, "..");
 var SUITES = [
+  "dev/tests-722-silence-opening.js",
   "dev/tests-718-enemy-card.js",
   "dev/tests-684-atlas-engine.js",/* #684: the atlas engine — recipes, entry by exact name, the never-guess rule, We are here, drift, the fixture gate */
   "dev/tests-684-atlas.js",/* #684: the atlas — the TnD Maps pin, the one global, one seed one document, the load order */
