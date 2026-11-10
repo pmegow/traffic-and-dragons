@@ -3483,7 +3483,7 @@ function applyBlueprint(bp){
       var loc=bp.locations[li];
       if(!memory.locations[loc.name])memory.locations[loc.name]={visited:[],notes:[]};// was {visits:0} — wrong shape crashed fileLocation on first travel (audit #8)
       if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
-      if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]=newMapNode(null,null,{description:loc.description||null});
+      if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]=newMapNode(null,null,{description:loc.description||null,blueprintSeeded:true});
     }
   }
   if(worldState._seedCommons){var _sc=worldState._seedCommons;delete worldState._seedCommons;if(typeof villageCommonsSeed==="function")villageCommonsSeed(typeof _sc==="string"?_sc:null);}/* #6 E11: the commons are pre-minted at creation, signed in or not */

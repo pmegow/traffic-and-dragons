@@ -24,7 +24,7 @@ code |= sabotage.prove({ file: "memory.js", command: CMD, cases: [
     find: "      if(_locSeen[_lkR])continue;_locSeen[_lkR]=1;", replace: "      _locSeen[_lkR]=1;" },
   { label: "the P9 legacy rule is broken: a key with no map node (a pre-map save) leaves VISITED for KNOWN OF (#464 keeps P9)",
     mustFail: "legacy no-node location dropped from VISITED",
-    find: "      if(_vn&&!(_vn.visits>0))_known.push(_lkD);else _vis.push(_lkD);", replace: "      if(!(_vn&&_vn.visits>0))_known.push(_lkD);else _vis.push(_lkD);" },
+    find: "      if(_vn&&!(_vn.visits>0)){if(!_vn.blueprintSeeded||_bpKnown[_lkR])_known.push(_lkD);}else _vis.push(_lkD);", replace: "      if(!(_vn&&_vn.visits>0))_known.push(_lkD);else _vis.push(_lkD);" },
   { label: "the sub-location cap is removed: every visited sub-location rides every GM turn again (#464 cap)",
     mustFail: "#464 the sub cap did not fold to 30 on the GM turn",
     find: "    if(_subs.length>_subCap){", replace: "    if(false){" },

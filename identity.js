@@ -544,12 +544,12 @@ function locSplit(fusedKey,spec,R){
     if(node.soundscape)fresh.soundscape={};
     if(s.kind)fresh.kind=s.kind;
     if(s.endpoints)fresh.endpoints=s.endpoints.slice();
-    /* #408/#415 and audit C2: everything the node carries beyond the base (the NODE_CARRY_FIELDS registry, plus owner and
-       exits) stays with the PRIMARY successor — the split used to carry the floor plan and drop the house's owner. A
+    /* #408/#415 and audit C2: registered fields follow their split policy (primary by default, all successors for provenance); owner and
+       exits stay with the PRIMARY successor — the split used to carry the floor plan and drop the house's owner. A
        successor spec's own kind/endpoints win over the fused node's. */
-    if(s.key===spec.primary){var _cf=(typeof NODE_CARRY_FIELDS!=="undefined")?NODE_CARRY_FIELDS:[],_ci;
-      for(_ci=0;_ci<_cf.length;_ci++){var _k=_cf[_ci].k;if(node[_k]===undefined||node[_k]===null||fresh[_k]!==undefined)continue;fresh[_k]=JSON.parse(JSON.stringify(node[_k]));}
-      if(node.owner)fresh.owner=node.owner;
+    var _cf=(typeof NODE_CARRY_FIELDS!=="undefined")?NODE_CARRY_FIELDS:[],_ci;
+    for(_ci=0;_ci<_cf.length;_ci++){var _k=_cf[_ci].k;if((s.key!==spec.primary&&_cf[_ci].split!=="all")||node[_k]===undefined||node[_k]===null||fresh[_k]!==undefined)continue;fresh[_k]=JSON.parse(JSON.stringify(node[_k]));}
+    if(s.key===spec.primary){if(node.owner)fresh.owner=node.owner;
       if(node.exits)fresh.exits=JSON.parse(JSON.stringify(node.exits));}
     for(j=0;j<(take.stateNotes||[]).length;j++){var ni=take.stateNotes[j];if(notes[ni]){fresh.stateNotes=fresh.stateNotes||[];fresh.stateNotes.push(notes[ni]);claimedN[ni]=1;}}
     for(j=0;j<(take.items||[]).length;j++){var ii=take.items[j];if(items[ii]){fresh.items.push(items[ii]);claimedI[ii]=1;}}

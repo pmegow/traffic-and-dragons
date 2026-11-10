@@ -1,4 +1,4 @@
-# Silence opening disclosure boundaries â€” #718â€“722
+# Silence opening disclosure boundaries — #718–722
 
 Owner request, 2026-11-10. Baseline engine b8123445 / v1.1387; diagnosis anchors verified against that checkout. No paid model calls. TnD_Maps was not touched. The pre-existing untracked website illustration is outside this work.
 
@@ -31,3 +31,5 @@ The original opening was reconstructed separately from the same hero and authore
 Comparison captures also exist for Runelords t2477, Iron Meridian t207, Princess t89 and Village t291. All changed prompt hunks will be accounted for below when the remaining prompt changes are applied.
 
 - #720 / v1.1390: failure-first assertions cover Rule 26, the conflicting first-sight kind instruction, the skeleton narration fence and the retained hero-stake exception. Two deliberate reversions fail their named guards. Intentional prompt changes: two stable rules (apparent-kind qualifier and perception boundary), and one volatile skeleton sentence (narration added). No hashes or existing assertions changed.
+
+- #721 / v1.1391: only newly created blueprint world nodes carry `blueprintSeeded`; no load migration. Seven failure-first guards and eight deliberate regressions cover turn 0, visible GM narration, hidden tags/player guesses, retcons/dead branches/rewinds, exact aliases and merge/split provenance. Existing saves remain byte-identical to #720. The P9 fixture now explicitly narrates Omu before expecting it under KNOWN OF; its assertions are retained. The #464 sabotage anchor was retargeted to the new branch with the same intended failure and assertion. No frozen hash changed. This commit also restores UTF-8 metadata in this audit and release-next.json after the preceding edit used the Windows default encoding.

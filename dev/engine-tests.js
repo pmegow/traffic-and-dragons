@@ -4925,6 +4925,71 @@ function runEngineTests(R){
   });
 
 
+
+  section("#721 blueprint places need on-screen names");
+  function places721(){
+    makeWorld();worldState.turn=0;worldState.transcript=[];
+    applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"Hidden places",premise:"Private plans for The Iron Cells.",startingLocation:"Clearing",acts:[],locations:[{name:"Clearing",description:"The opening."},{name:"The Iron Cells",description:"GM-only future prison."},{name:"The Down Below",description:"Future mine."}]}));startNodeStamp();
+  }
+  function known721(){return memoryTOC().split("\n").filter(function(l){return l.indexOf("KNOWN OF (not yet visited):")===0;}).join("\n");}
+  t("#721 turn zero lists no never-named blueprint place",function(){
+    places721();if(known721())return "turn-zero blueprint places claimed known: "+known721();
+    return /VISITED: Clearing/.test(memoryTOC())?true:"start place no longer visited";
+  });
+  t("#721 only visible GM words establish a named place",function(){
+    places721();var entries=[{r:"player",x:"The Iron Cells"},{r:"gm",x:"[LOCATION:The Iron Cells]"},{r:"gm",x:"The Iron Cellsar"},
+      {r:"gm",x:"The Iron Cells",bk:true},{r:"gm",x:"The Iron Cells",rf:true},{r:"gm",x:"The Iron Cells",rc:true},{r:"gm",x:"The Iron Cells",db:true},
+      {r:"gm",x:"The Iron"},{r:"gm",x:"Cells"}];
+    worldState.transcript=entries;if(known721())return "hidden, rejected, player or partial text established knowledge";
+    worldState.transcript.push({r:"gm",x:"The guide names THE IRON CELLS.",t:0});
+    if(known721().indexOf("The Iron Cells")<0||known721().indexOf("The Down Below")>=0)return "one named place did not unlock independently";
+    return true;
+  });
+  t("#721 transcript edits and discarded branches revoke unvisited knowledge",function(){
+    places721();worldState.transcript=[{r:"gm",x:"A beginning."},{r:"gm",x:"The Iron Cells"},{r:"gm",x:"An ending."}];
+    if(known721().indexOf("The Iron Cells")<0)return "fixture mention absent";
+    worldState.transcript[1].rc=true;if(known721())return "retconned middle entry still counted";
+    delete worldState.transcript[1].rc;worldState.transcript[1].db=true;if(known721())return "dead branch still counted";
+    worldState.transcript[1]={r:"gm",x:"The Pine Hills"};if(known721())return "equal-length replacement kept stale knowledge";
+    worldState.transcript=[{r:"gm",x:"The Iron Cells"}];if(!known721())return "restored branch failed";
+    worldState.transcript=[];return known721()?"rewind kept knowledge":true;
+  });
+  t("#721 legacy and runtime nodes keep their existing prompt behavior",function(){
+    places721();var stable=buildSysPrompt().stable;
+    delete memory.map.nodes["The Iron Cells"].blueprintSeeded;
+    memory.map.nodes["Runtime Harbor"]=newMapNode(null,null);
+    memory.locations["Legacy Town"]={visited:[1],notes:[]};
+    var k=known721();if(k.indexOf("The Iron Cells")<0||k.indexOf("Runtime Harbor")<0)return "legacy/runtime nodes lost knowledge";
+    if(!/VISITED:[^\n]*Legacy Town/.test(memoryTOC()))return "legacy visited place dropped";
+    memory.map.nodes["The Down Below"].visits=1;if(!/VISITED:[^\n]*The Down Below/.test(memoryTOC()))return "visited marked place dropped";
+    worldState.transcript=[{r:"gm",x:"The Iron Cells"}];return buildSysPrompt().stable===stable?true:"place knowledge changed stable bytes";
+  });
+  t("#721 provenance is stamped only on a new blueprint node",function(){
+    makeWorld();memory.map.nodes.Existing=newMapNode(null,null);
+    applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],locations:[{name:"Existing"},{name:"New"}]}));
+    return !memory.map.nodes.Existing.blueprintSeeded&&memory.map.nodes.New.blueprintSeeded===true?true:"old node stamped or new seed unmarked";
+  });
+  t("#721 aliases and merged names resolve to the right marked place",function(){
+    places721();memory.map.identity={entries:{"The Iron Cells":{aliases:["The Cage"]}}};
+    worldState.transcript=[{r:"gm",x:"They call it The Cage."}];if(known721().indexOf("The Iron Cells")<0)return "recorded alias not recognized";
+    memory.map.nodes["Old Cells"]=newMapNode(null,null,{blueprintSeeded:true});
+    locMerge("The Iron Cells","Old Cells",{muts:[],turn:0});worldState.transcript=[{r:"gm",x:"Old Cells"}];
+    return known721().indexOf("The Iron Cells")>=0?true:"merged historical name lost";
+  });
+  t("#721 merges preserve provenance and splits keep every secret successor gated",function(){
+    places721();memory.map.nodes["New Cells"]=newMapNode(null,null);
+    locMerge("New Cells","The Iron Cells",{muts:[],turn:0});
+    if(!memory.map.nodes["New Cells"].blueprintSeeded||known721())return "marked duplicate lost its boundary";
+    memory.map.nodes["Other Cells"]=newMapNode(null,null);locMerge("New Cells","Other Cells",{muts:[],turn:0});
+    if(!memory.map.nodes["New Cells"].blueprintSeeded)return "marked canonical lost provenance";
+    memory.map.nodes["New Cells"].layout={kind:"hall"};
+    locSplit("New Cells",{primary:"East Cells",successors:[{key:"East Cells",take:{}},{key:"West Cells",take:{}}]},{muts:[],turn:0});
+    var east=memory.map.nodes["East Cells"],west=memory.map.nodes["West Cells"];
+    if(!east.blueprintSeeded||!west.blueprintSeeded||known721())return "split successor exposed by lost provenance";
+    if(!east.layout||west.layout)return "ordinary split fields no longer primary-only";
+    worldState.transcript=[{r:"gm",x:"East Cells"}];if(known721().indexOf("East Cells")<0||known721().indexOf("West Cells")>=0)return "successors not independently known";
+    worldState.transcript.push({r:"gm",x:"West Cells"});return known721().indexOf("West Cells")>=0?true:"second successor never became known";
+  });
   section("#720 perception before revelation");
   t("#720 narration rules require perceived appearance until exposed",function(){
     var canon=DEFAULT_RULES.filter(function(r){return r.indexOf("CANON IS NOT CONVERSATION")===0;})[0]||"";
@@ -6177,6 +6242,7 @@ function runEngineTests(R){
     applyBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"T",premise:"p",acts:[],
       locations:[{name:"Port Nyanzaru",description:"harbour city"},{name:"Omu",description:"ruined city"}]}));
     applyMuts("[LOCATION:Port Nyanzaru]"); // actually travel there → node.visits 1
+    worldState.transcript=[{r:"gm",x:"A guide tells you of Omu.",t:0}]; // #721: a known unvisited seed must have been named on screen
     memory.locations["Legacy Town"]={visited:[3],notes:[]}; // pre-map save shape: no map node
     var toc=memoryTOC(),tl=toc.split("\n"),visLine="",knownLine="",i;
     for(i=0;i<tl.length;i++){if(tl[i].indexOf("VISITED: ")===0)visLine=tl[i];if(tl[i].indexOf("KNOWN OF (not yet visited): ")===0)knownLine=tl[i];}

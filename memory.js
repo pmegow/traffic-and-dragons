@@ -594,10 +594,11 @@ function newMapNode(firstVisit,parent,extra){
 /* The optional fields a node may carry beyond the factory base, with how a MERGE folds the duplicate's value into the
    canonical: "canon-wins" keeps the canonical's value and takes the duplicate's only when the canonical has none;
    "union-by-item" concatenates array rows deduped by lowercase .item (cap optional); "concat" appends (cap optional);
-   "newer" keeps whichever has the larger .t; "or" is a boolean OR. A SPLIT deep-copies every one of these to the primary
-   successor. Adding a node field = one row here. (owner, exits, stateNotes, guestbook, npcs, items and soundscape keep
+   "newer" keeps whichever has the larger .t; "or" is a boolean OR. A SPLIT deep-copies these to the primary successor, or
+   to every successor when a field declares split:"all". Adding a node field = one row here. (owner, exits, stateNotes, guestbook, npcs, items and soundscape keep
    their older, more specific fold logic in locFoldNodeRecords.) */
 var NODE_CARRY_FIELDS=[
+  {k:"blueprintSeeded",fold:"or",split:"all"},
   {k:"layout",fold:"canon-wins"},{k:"kind",fold:"canon-wins"},{k:"endpoints",fold:"canon-wins"},{k:"hours",fold:"canon-wins"},{k:"resident",fold:"canon-wins"},{k:"design",fold:"canon-wins"},
   {k:"keeper",fold:"canon-wins"},/* #481 B4: a shop's keeper of record ([SHOP_KEEPER:]) */
   {k:"wares",fold:"union-by-item"},{k:"wanted",fold:"union-by-item",cap:(typeof WANTED_CAP!=="undefined")?WANTED_CAP:4},
@@ -2217,6 +2218,31 @@ function _ragCarriedScore(inputText,pool,fp){
    sub-locations: the most recently visited (node.lastVisit, else firstVisit), kept in their listed order; the rest are
    counted, and GEOGRAPHY names a sub-location in place whenever the party is there. No opts (Table Talk) = every place. */
 var TOC_SUB_CAP=30;
+// Only new blueprint seeds need this evidence. Reads are pure so retcons, branch changes and
+// checkpoint restores cannot retain knowledge from discarded narration. No per-turn cache.
+function blueprintKnownPlaces(){
+  var nodes=memory.map&&memory.map.nodes||{},entries=typeof _locEntries==="function"?_locEntries():null;
+  var names=keyedDict(),known=keyedDict(),keys=Object.keys(nodes),pending=[],i,j,k,r;
+  function add(key,name){if(typeof name!=="string"||!name.trim())return;var low=name.trim().toLowerCase();if(names[key].indexOf(low)<0)names[key].push(low);}
+  for(i=0;i<keys.length;i++){
+    k=keys[i];r=typeof locResolve==="function"?locResolve(k):k;var n=nodes[r];
+    if(!n||!n.blueprintSeeded||n.visits>0||n.parent||names[r])continue;
+    names[r]=[];pending.push(r);add(r,r);add(r,typeof locDisplayLeaf==="function"?locDisplayLeaf(r):r);
+  }
+  if(!pending.length)return known;
+  if(entries)Object.keys(entries).forEach(function(key){
+    var resolved=locResolve(key);if(!names[resolved])return;
+    if(key.indexOf("|")<0)add(resolved,key);
+    (entries[key].aliases||[]).forEach(function(alias){if(typeof alias==="string"&&alias.indexOf("|")<0&&locResolve(alias)===resolved)add(resolved,alias);});
+  });
+  var tr=worldState&&worldState.transcript||[];
+  for(i=0;i<tr.length&&pending.length;i++){
+    var e=tr[i];if(!e||e.r!=="gm"||typeof e.x!=="string"||e.bk||e.rf||e.rc||e.db)continue;
+    var text=cleanTxt(e.x).toLowerCase();
+    for(j=pending.length-1;j>=0;j--){r=pending[j];for(k=0;k<names[r].length;k++)if(ragHasWord(text,names[r][k])){known[r]=true;pending.splice(j,1);break;}}
+  }
+  return known;
+}
 /* #464 (2026-10-13, the acceptance deep dive): WHERE a place is listed derives from its PARENT pointer, never its key. A merge or
    a repair moves the pointer and freezes the key (locReparent: "children by key — only the parent pointer moves"), so a key's
    prefix can be a dead world, an alias, or the road the place was first named from. Runelords t2477_REPAIRED served
@@ -2264,14 +2290,14 @@ function memoryTOC(opts){
   var lk=Object.keys(memory.locations);
   if(memory.map&&memory.map.nodes)lk=lk.concat(Object.keys(memory.map.nodes));
   if(lk.length){
-    var _vis=[],_known=[],_locSeen=keyedDict(),_vk,_subs=[],_subCap=opts?TOC_SUB_CAP:Infinity,_subFold=0;
+    var _vis=[],_known=[],_bpKnown=blueprintKnownPlaces(),_locSeen=keyedDict(),_vk,_subs=[],_subCap=opts?TOC_SUB_CAP:Infinity,_subFold=0;
     for(_vk=0;_vk<lk.length;_vk++){
       var _lkR=(typeof locResolve==="function")?locResolve(lk[_vk]):lk[_vk];
       if(_locSeen[_lkR])continue;_locSeen[_lkR]=1;
       var _vn=memory.map&&memory.map.nodes?memory.map.nodes[_lkR]:null;
       if(_vn&&!(_vn.visits>0)&&_vn.parent)continue;
       var _lkD=tocPlacePath(_lkR);/* #464 (2026-10-13): the parent chain names the place, never the key's prefix */
-      if(_vn&&!(_vn.visits>0))_known.push(_lkD);else _vis.push(_lkD);
+      if(_vn&&!(_vn.visits>0)){if(!_vn.blueprintSeeded||_bpKnown[_lkR])_known.push(_lkD);}else _vis.push(_lkD);
       if(_vn&&_vn.visits>0&&_vn.parent)_subs.push({i:_vis.length-1,r:_vn.lastVisit||_vn.firstVisit||0});
     }
     if(_subs.length>_subCap){/* selection decides membership, not order: the folded entries drop out of the listed order */
