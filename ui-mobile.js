@@ -118,7 +118,7 @@ function showEnemyDetails(foe){
   [{key:"ac",label:"Armor class"},{key:"atk",label:"Attack"},{key:"dmg",label:"Damage"},{key:"morale",label:"Morale"},{key:"down",label:"State"},{key:"immune",label:"Immune"},{key:"resist",label:"Resistant"},{key:"vuln",label:"Vulnerable"}].forEach(function(x){row(x.label,foe[x.key]);});
   if(foe.stats)Object.keys(foe.stats).forEach(function(k){row(k,foe.stats[k]);});
   var record=null;(worldState.bestiary||[]).some(function(b){if(String(b.name).toLowerCase()===String(foe.name).toLowerCase()){record=b;return true;}return false;});
-  if(record)[{key:"kind",label:"Type"},{key:"threat",label:"Threat"},{key:"desc",label:"Description"},{key:"notes",label:"Creature notes"}].forEach(function(x){row(x.label,record[x.key]);});
+  if(record)[{key:"kind",label:"Type"},{key:"threat",label:"Threat"},{key:"desc",label:"Description"}].forEach(function(x){row(x.label,record[x.key]);});
   if(typeof foe.count==="number")row("Group size",foe.count);/* #612: the authored headcount */
   else if(foeGroupUnrecorded(foe))row("Group size","Not recorded");/* #612: the one predicate the prompt's ask reads */
   h+="</dl><button class='ib' id='enemy-close'>Close</button>";modalShell("enemy-modal",h,{closeId:"enemy-close",outside:true,maxWidth:420});

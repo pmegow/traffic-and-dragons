@@ -1,5 +1,5 @@
 {
-  "version": "v1.1387",
+  "version": "v1.1388",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -36,6 +36,7 @@
     "Blood Red Felt replaces Burgundy Felt, and TnD light matches the light-mode background base color.",
     "The map now has fog of war: only ground the party has travelled is drawn, with the road or streets between places it visited.",
     "Inside buildings and dungeons the map shows only rooms the party has been through, and ways up it has seen from above.",
-    "A place that carries your note stays visible on the map through the fog."
+    "A place that carries your note stays visible on the map through the fog.",
+    "Enemy detail cards keep the game master’s private creature notes hidden."
   ]
 }
