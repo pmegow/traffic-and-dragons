@@ -1,5 +1,5 @@
 {
-  "version": "v1.1385",
+  "version": "v1.1386",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -33,6 +33,8 @@
     "New players' dice start as Sketch and leave with Fade; a look or exit you already chose stays yours.",
     "Customize Tabletop adds independent colors, finishes, saved presets, wood tones and Brushed Metal.",
     "Dice pick up physically based tabletop color through single-bounce environment lighting.",
-    "Blood Red Felt replaces Burgundy Felt, and TnD light matches the light-mode background base color."
+    "Blood Red Felt replaces Burgundy Felt, and TnD light matches the light-mode background base color.",
+    "The map now has fog of war: only ground the party has travelled is drawn, with the road or streets between places it visited.",
+    "Inside buildings and dungeons the map shows only the rooms the party has stood in or walked through."
   ]
 }

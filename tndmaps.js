@@ -1,11 +1,11 @@
-/* TnD Maps 0.17.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.18.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.17.0";
+  NS.VERSION = "0.18.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -6370,6 +6370,215 @@
   NS.digest.DIGESTS.wild = buildWild;
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
+/* ───── 56-route.js ───── */
+/* 56-route.js — TnDMaps.route(doc, from, to): the way between two places on ONE sheet, along the sheet's own network,
+   as a polyline in the sheet's coordinates — what the party walked when the game says it went from one named place to
+   the next (the game's movement is narrative: no track, only arrivals), so the fog of war (76) can reveal the way too.
+
+   from / to: a thing's id (a place, a cave, a trade, a landmark, a feature, a room, a portal, a piece of furniture) or a
+   point [x, y] | {x, y} inside the frame. The answer:
+     { points: [[x, y], …],   the whole way, from `from` to `to`
+       paths: [[[x, y], …]],  the same way in pieces: ONE piece, except in a building where a stair leaves one floor's
+                              slot on the sheet for another's (reveal these, not `points`, or the jump between the slots
+                              would reveal the floors in between)
+       via: "road" | "street" | "track" | "passage" | "doors" | "straight",
+       metres,                the length walked (a stair counts as nothing)
+       why?                   when it is "straight": the reason, in words }
+
+   The NETWORK is a table entry per generator (`ROUTES`): which polylines it is made of, which things are its hubs (a
+   region's places, a dungeon's or a building's rooms: a node of their own joined to the line ends that reach them), what
+   it is called, and when the straight line wins. A thing that is not a hub joins the network at the nearest point of
+   the nearest line (or at a node it stands on, or at the hub of the room it is in). The line ends are snapped together
+   and an end that stops ON another line is tied to it (a side passage, a door stub, a track that joins a road). Then
+   Dijkstra. The straight line is the answer, and `why` says so, when the sheet has no network, when nothing joins the
+   two, when the network is farther off than the other end (`offNetwork`), or when it winds more than `detour` times the
+   straight way. Underground and indoors there is no cutting across: only a network that does not join gives a straight
+   line there. Pure: the document is read, never written. */
+(function (root) {
+  "use strict";
+  var NS = root.TnDMaps, U = NS.util, G = NS.geom;
+
+  /* ── the network: nodes and edges ── */
+  function Net(snap) {
+    var nodes = [], adj = [], segs = [], hash = {}, C = Math.max(snap, 0.05) * 4;
+    function ck(x, y) { return Math.floor(x / C) + "," + Math.floor(y / C); }
+    function add(p) { var i = nodes.length, k = ck(p[0], p[1]); nodes.push([p[0], p[1]]); adj.push([]); (hash[k] = hash[k] || []).push(i); return i; }
+    /* the nearest node within tol of p (tol ≤ C), or −1 */
+    function find(p, tol) {
+      var cx = Math.floor(p[0] / C), cy = Math.floor(p[1] / C), best = -1, bd = tol, i, j, l, d, list;
+      for (i = -1; i <= 1; i++) for (j = -1; j <= 1; j++) { list = hash[(cx + i) + "," + (cy + j)]; if (!list) continue; for (l = 0; l < list.length; l++) { d = G.dist(nodes[list[l]], p); if (d <= bd && (best < 0 || d < bd || list[l] < best)) { bd = d; best = list[l]; } } }
+      return best;
+    }
+    function node(p) { var f = snap > 0 ? find(p, snap) : -1; return f >= 0 ? f : add(p); }
+    function edge(a, b, w, jump) { if (a === b) return; adj[a].push({ to: b, w: w, jump: !!jump }); adj[b].push({ to: a, w: w, jump: !!jump }); if (!jump) segs.push([a, b]); }
+    function link(a, b) { edge(a, b, G.dist(nodes[a], nodes[b]), false); }
+    function line(pts) { var prev = -1, i, n; for (i = 0; i < pts.length; i++) { n = node(pts[i]); if (prev >= 0 && n !== prev) link(prev, n); prev = n; } }
+    function unlink(a, b) { adj[a] = adj[a].filter(function (e) { return e.jump || e.to !== b; }); adj[b] = adj[b].filter(function (e) { return e.jump || e.to !== a; }); }
+    function degree(i) { return adj[i].filter(function (e) { return !e.jump; }).length; }
+    /* a line end that stops on another line (within tol, not at its ends) is tied to it: the segment is split there */
+    function tie(tol) {
+      var n0 = nodes.length, i, k, s, p, a, b, d, best, bd, t, dx, dy, l2, q;
+      for (i = 0; i < n0; i++) {
+        if (degree(i) !== 1) continue;
+        p = nodes[i]; best = -1; bd = tol;
+        for (k = 0; k < segs.length; k++) {
+          s = segs[k]; if (!s || s[0] === i || s[1] === i) continue;
+          d = G.pointSegDist(p, nodes[s[0]], nodes[s[1]]); if (d < bd) { bd = d; best = k; }
+        }
+        if (best < 0) continue;
+        s = segs[best]; a = nodes[s[0]]; b = nodes[s[1]]; dx = b[0] - a[0]; dy = b[1] - a[1]; l2 = dx * dx + dy * dy;
+        t = l2 ? U.clamp(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2, 0, 1) : 0;
+        if (t <= 1e-6) { link(i, s[0]); continue; }
+        if (t >= 1 - 1e-6) { link(i, s[1]); continue; }
+        q = add([a[0] + dx * t, a[1] + dy * t]); segs[best] = null; unlink(s[0], s[1]); link(s[0], q); link(q, s[1]); link(i, q);
+      }
+    }
+    return { nodes: nodes, adj: adj, segs: segs, snap: snap, add: add, find: find, node: node, edge: edge, link: link, line: line, tie: tie, degree: degree };
+  }
+  /* a hub joined to every node that lies inside its polygon (or within reach of its edge) */
+  function hubInto(net, hub, poly, reach) {
+    var i, n = net.nodes.length;
+    for (i = 0; i < n; i++) if (i !== hub && (G.pointInPolygon(net.nodes[i], poly) || polyDist(net.nodes[i], poly) <= reach)) net.link(hub, i);
+  }
+  function polyDist(p, poly) { var d = Infinity, i; for (i = 0; i < poly.length; i++) d = Math.min(d, G.pointSegDist(p, poly[i], poly[(i + 1) % poly.length])); return d; }
+  function listOf(name) { return function (doc) { return doc[name] || []; }; }
+
+  /* ── the networks, one entry per generator ── */
+  var ROUTES = {
+    /* the region: its roads between its places (a road begins and ends on a place, the place is the hub) */
+    region: { via: "road", none: "the region has no roads", things: { places: listOf("places"), caves: listOf("caves"), portals: listOf("portals") }, hubs: "places", offNetwork: true, detour: Infinity,
+      net: function (doc) {
+        var net = Net(0.6), hubs = {};
+        doc.places.forEach(function (p) { hubs[p.id] = net.add([p.x, p.y]); });
+        doc.roads.forEach(function (r) { net.line(r.pts); });
+        net.tie(1);
+        return { net: net, hubs: hubs, rooms: [] };
+      } },
+    /* a town: its streets, lanes and main streets (the cells' edges, which share their ends) and the roads out from the gates */
+    town: { via: "street", none: "the town has no streets", things: { establishments: listOf("establishments"), landmarks: listOf("landmarks"), portals: listOf("portals") }, hubs: null, offNetwork: true, detour: Infinity,
+      net: function (doc) {
+        var net = Net(0.3);
+        doc.streets.forEach(function (s) { net.line(s.pts); });
+        doc.roads.forEach(function (r) { net.line(r.pts); });
+        net.tie(1);
+        return { net: net, hubs: {}, rooms: [] };
+      } },
+    /* the wild: its roads, tracks, trails and causeways; a feature off the track may be nearer across country */
+    wild: { via: "track", none: "the zone has no track", things: { features: listOf("features"), portals: listOf("portals") }, hubs: null, offNetwork: true, detour: 2.5,
+      net: function (doc) {
+        var net = Net(1);
+        doc.paths.forEach(function (p) { net.line(p.pts); });
+        net.tie(2);
+        return { net: net, hubs: {}, rooms: [] };
+      } },
+    /* a dungeon: its passages and door stubs; every room a hub joined to the passage ends inside it */
+    dungeon: { via: "passage", none: "the level has no passages", things: { rooms: listOf("rooms"), portals: listOf("portals") }, hubs: "rooms", offNetwork: false, detour: Infinity,
+      net: function (doc) {
+        var net = Net(0.5), hubs = {}, rooms = [];
+        doc.passages.forEach(function (p) { net.line(p.pts); });
+        net.tie(1.5);
+        doc.rooms.forEach(function (r) { var h = net.add([r.x, r.y]); hubs[r.id] = h; rooms.push({ node: h, poly: r.poly }); hubInto(net, h, r.poly, 1); });
+        return { net: net, hubs: hubs, rooms: rooms };
+      } },
+    /* a building: its rooms joined through their doorways (a door out has one room); a stair joins the floors — a JUMP
+       on the sheet, from one floor's slot to the next (it costs a storey's climb, 3 m) */
+    interior: { via: "doors", none: "the building has no doors", things: { rooms: listOf("rooms"), portals: listOf("portals"),
+        furniture: function (doc) { var out = []; doc.rooms.forEach(function (r) { (r.furniture || []).forEach(function (f) { out.push(f); }); }); return out; } }, hubs: "rooms", offNetwork: false, detour: Infinity,
+      net: function (doc) {
+        var net = Net(0), hubs = {}, rooms = [], climb = 3 / (doc.frame.kmPerUnit * 1000);
+        doc.rooms.forEach(function (r) { hubs[r.id] = net.add([r.x, r.y]); rooms.push({ node: hubs[r.id], poly: r.floorPoly || r.poly }); });
+        doc.doors.forEach(function (d) { var n = net.add([d.x, d.y]); d.rooms.forEach(function (id) { if (id && hubs[id] !== undefined) net.link(hubs[id], n); }); });
+        doc.stairs.forEach(function (s) { var a = hubs[s.rooms[0]], b = hubs[s.rooms[1]]; if (a !== undefined && b !== undefined) net.edge(a, b, climb, true); });
+        return { net: net, hubs: hubs, rooms: rooms };
+      } }
+  };
+
+  /* an end: a thing by its id, or a point inside the frame */
+  function endOf(doc, R, e, what) {
+    var x, y, name, list, i;
+    if (typeof e === "string") {
+      for (name in R.things) if (Object.prototype.hasOwnProperty.call(R.things, name)) {
+        list = R.things[name](doc);
+        for (i = 0; i < list.length; i++) if (list[i].id === e) return { p: [list[i].x, list[i].y], id: e, hub: name === R.hubs ? e : null };
+      }
+      NS.fail("route: this " + doc.generator.name + " has no " + Object.keys(R.things).join(", ") + " entry of id " + e, { id: e, generator: doc.generator.name });
+    }
+    x = Array.isArray(e) ? e[0] : e && e.x; y = Array.isArray(e) ? e[1] : e && e.y;
+    NS.assert(U.isNum(x) && U.isNum(y), "route: " + what + " must be a thing's id or a point [x, y] | {x, y}", { got: e });
+    NS.assert(x >= -1 && y >= -1 && x <= doc.frame.width + 1 && y <= doc.frame.height + 1, "route: " + what + " lies outside the sheet", { point: [x, y], frame: [doc.frame.width, doc.frame.height] });
+    return { p: [x, y], id: null, hub: null };
+  }
+  /* where an end joins the network: starts [{node, cost}] (the walk from the end to that node), the lead-in points, and
+     how far off the network it stands */
+  function attach(N, end) {
+    var net = N.net, p = end.p, h = end.hub !== null ? N.hubs[end.hub] : undefined, f, i, k, s, a, b, d, bd = Infinity, best = -1, t, dx, dy, l2, q;
+    if (h !== undefined && net.adj[h].length) return { starts: [{ node: h, cost: 0 }], lead: [p], off: 0, seg: -1, q: null };
+    f = net.snap > 0 ? net.find(p, net.snap) : -1;
+    if (f >= 0 && net.adj[f].length) return { starts: [{ node: f, cost: G.dist(p, net.nodes[f]) }], lead: [p], off: G.dist(p, net.nodes[f]), seg: -1, q: null };
+    for (i = 0; i < N.rooms.length; i++) if (net.adj[N.rooms[i].node].length && G.pointInPolygon(p, N.rooms[i].poly)) { k = N.rooms[i].node; return { starts: [{ node: k, cost: G.dist(p, net.nodes[k]) }], lead: [p], off: 0, seg: -1, q: null, room: k }; }
+    for (i = 0; i < net.segs.length; i++) { s = net.segs[i]; if (!s) continue; d = G.pointSegDist(p, net.nodes[s[0]], net.nodes[s[1]]); if (d < bd) { bd = d; best = i; } }
+    if (best < 0) return null;
+    s = net.segs[best]; a = net.nodes[s[0]]; b = net.nodes[s[1]]; dx = b[0] - a[0]; dy = b[1] - a[1]; l2 = dx * dx + dy * dy;
+    t = l2 ? U.clamp(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2, 0, 1) : 0; q = [a[0] + dx * t, a[1] + dy * t];
+    return { starts: [{ node: s[0], cost: G.dist(q, a) }, { node: s[1], cost: G.dist(q, b) }], lead: [p, q], off: bd, seg: best, q: q };
+  }
+  function roundPts(pts) {
+    var out = [], i, p;
+    for (i = 0; i < pts.length; i++) { p = [U.round(pts[i][0], 1), U.round(pts[i][1], 1)]; if (!out.length || out[out.length - 1][0] !== p[0] || out[out.length - 1][1] !== p[1]) out.push(p); }
+    if (out.length === 1) out.push(out[0].slice());
+    return out;
+  }
+  function metresOf(paths, doc) { var L = 0; paths.forEach(function (p) { L += G.length(p, false); }); return Math.round(L * doc.frame.kmPerUnit * 1000); }
+  function straight(doc, a, b, why) { var pts = roundPts([a.p, b.p]); return { points: pts, paths: [pts], via: "straight", metres: metresOf([pts], doc), why: why }; }
+
+  function route(doc, from, to) {
+    NS.assert(doc && doc.format === NS.DOC_FORMAT && doc.generator, "route needs a tndmap document", { format: doc && doc.format });
+    var R = NS.own(ROUTES, doc.generator.name);
+    NS.assert(R, "route: no network for this kind of sheet", { generator: doc.generator.name, known: Object.keys(ROUTES) });
+    var A = endOf(doc, R, from, "from"), B = endOf(doc, R, to, "to"), N = R.net(doc), net = N.net, sa, sb, crow = G.dist(A.p, B.p);
+    if (crow === 0) return straight(doc, A, B, "from and to are the same spot");
+    if (!net.segs.some(function (s) { return !!s; })) return straight(doc, A, B, R.none);
+    sa = attach(N, A); sb = attach(N, B);
+    if (!sa || !sb) return straight(doc, A, B, R.none);
+    if (R.offNetwork && sa.off + sb.off >= crow) return straight(doc, A, B, "the " + R.via + " lies farther off than the way itself");
+    /* the same line, or the same room: the way runs along it, or across the room */
+    var direct = Infinity, directPts = null;
+    if (sa.seg >= 0 && sa.seg === sb.seg) { direct = G.dist(sa.q, sb.q); directPts = [A.p, sa.q, sb.q, B.p]; }
+    if (sa.room !== undefined && sa.room === sb.room) { direct = 0; directPts = [A.p, B.p]; }
+    /* Dijkstra from every start of A to the first of B's nodes it settles */
+    var n = net.nodes.length, D = new Array(n), prev = new Array(n), via = new Array(n), done = new Array(n), goal = {}, i, heap = U.Heap(function (x, y) { return x.d < y.d || (x.d === y.d && x.n < y.n); }), top, e, nd, best = -1, bestD = Infinity;
+    for (i = 0; i < n; i++) { D[i] = Infinity; prev[i] = -1; }
+    sb.starts.forEach(function (s) { goal[s.node] = goal[s.node] === undefined ? s.cost : Math.min(goal[s.node], s.cost); });
+    sa.starts.forEach(function (s) { if (s.cost < D[s.node]) { D[s.node] = s.cost; heap.push({ d: s.cost, n: s.node }); } });
+    while (heap.size()) {
+      top = heap.pop(); if (done[top.n] || top.d > D[top.n]) continue; done[top.n] = true;
+      if (top.d >= bestD) break;
+      if (goal[top.n] !== undefined && top.d + goal[top.n] < bestD) { bestD = top.d + goal[top.n]; best = top.n; }
+      for (i = 0; i < net.adj[top.n].length; i++) { e = net.adj[top.n][i]; nd = top.d + e.w; if (nd < D[e.to]) { D[e.to] = nd; prev[e.to] = top.n; via[e.to] = e.jump; heap.push({ d: nd, n: e.to }); } }
+    }
+    if (best < 0 && !directPts) return straight(doc, A, B, "no " + R.via + " joins them");
+    var paths, cur = [], chain = [], k;
+    if (directPts && direct <= bestD) paths = [directPts];
+    else {
+      for (k = best; k >= 0; k = prev[k]) chain.push(k);
+      chain.reverse();
+      cur = sa.lead.slice(); paths = [];
+      for (i = 0; i < chain.length; i++) {
+        if (i > 0 && via[chain[i]]) { paths.push(cur); cur = []; }   /* a stair: the way goes on in another floor's slot */
+        cur.push(net.nodes[chain[i]]);
+      }
+      cur = cur.concat(sb.lead.slice().reverse()); paths.push(cur);
+    }
+    paths = paths.map(roundPts);
+    var points = [], L = 0;
+    paths.forEach(function (p) { points = points.concat(points.length && points[points.length - 1][0] === p[0][0] && points[points.length - 1][1] === p[0][1] ? p.slice(1) : p); L += G.length(p, false); });
+    if (R.detour < Infinity && crow > 0 && L > R.detour * crow) return straight(doc, A, B, "the " + R.via + " winds " + Math.round(L / crow * 10) / 10 + " times the straight way");
+    return { points: points, paths: paths, via: R.via, metres: metresOf(paths, doc) };
+  }
+
+  NS.route = route; NS.route.ROUTES = ROUTES;
+})(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
+
 /* ───── 60-style.js ───── */
 /* 60-style.js — the STYLE TABLE. A style is one entry: paper and ink, a path style per drawing key, a text style per
    label key. Renderers never hold a colour or a width; they look keys up here. Adding a palette is adding an entry. */
@@ -6410,6 +6619,11 @@
         compassDark: { fill: ink, stroke: ink, width: 0.9 },
         /* the view's HUD (v0.15.0): the paper under the screen-fixed title and scale bar */
         hudPlaque: { fill: paper, stroke: ink, width: 0.7, alpha: 0.92, join: "round" },
+        /* the area fog (v0.18.0, 76): blank paper over what the party has not seen, two washes of paper inside the edge, a faint dotted line along it */
+        fog: { fill: paper, fillRule: "evenodd" },
+        fogWash: { fill: paper, fillRule: "evenodd", alpha: 0.5 },
+        fogWash2: { fill: paper, fillRule: "evenodd", alpha: 0.28 },
+        fogEdge: { stroke: soft, width: 0.7, alpha: 0.55, dash: [1.2, 2.4], cap: "round", join: "round" },
         /* town scale */
         water: { fill: pond, stroke: ink, width: 1.3, join: "round" },
         riverBand: { fill: pond, stroke: ink, width: 0.9, join: "round" },
@@ -7076,13 +7290,16 @@
 
   /* ── build: dispatch on the generator ── */
   var BUILDERS = { region: buildRegion };
-  /* opts go to the builder: `reveal` (a dungeon's fog of war: the room and passage ids to draw; null = everything) */
+  /* opts go to the builder: `reveal` — the fog of war (76-fog.js): a list of ids (a dungeon's or a building's rooms and
+     passages, which those builders filter), or a spec {ids} | {points, paths, radiusM} — the AREA fog, laid over any
+     builder's scene in one place, here; null = everything */
   function build(doc, styleName, opts) {
     NS.assert(doc && doc.format === NS.DOC_FORMAT, "scene needs a tndmap document", { format: doc && doc.format });
-    var name = doc.generator && doc.generator.name, builder = NS.own(BUILDERS, name);
+    var name = doc.generator && doc.generator.name, builder = NS.own(BUILDERS, name), rv, style, sc;
     NS.assert(builder, "no scene builder for this document kind", { generator: doc.generator, known: Object.keys(BUILDERS) });
-    NS.assert(!opts || opts.reveal === undefined || opts.reveal === null || (Array.isArray(opts.reveal) && opts.reveal.every(function (id) { return typeof id === "string"; })), "reveal must be a list of ids, or null", { reveal: opts && opts.reveal });
-    return builder(doc, NS.style.get(styleName), opts || {});
+    rv = NS.scene.fog.spec(opts ? opts.reveal : null); style = NS.style.get(styleName);
+    sc = builder(doc, style, U.extend({}, opts || {}, { reveal: rv ? rv.ids : (opts ? opts.reveal : undefined) }));
+    return rv && rv.area ? NS.scene.fog.apply(sc, doc, rv.area) : sc;
   }
   /* the element a hit refers to: HIT_SOURCES maps a hit kind to the list that holds it — a document list, or one the
      caller supplies in `extra` (markers live beside the document, not in it) */
@@ -8055,6 +8272,154 @@
   NS.scene.BUILDERS.wild = buildWild; NS.scene.WILD_MARKS = MARKS; NS.scene.HIT_SOURCES.feature = "features";
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
+/* ───── 76-fog.js ───── */
+/* 76-fog.js — the AREA fog of war (v0.18.0): on any sheet, only the ground within a radius of the places the party has
+   stood and of the paths it walked between them is drawn; the rest is blank paper. The sheet's frame and its furniture
+   (title, compass, scale bar) stay, and so do the markers (composed over the scene later, 72).
+
+   The reveal a caller hands to scene.build (opts.reveal) or view.setReveal is one of:
+     null / undefined                      no fog
+     ["id", …]                             the rooms and passages drawn (a dungeon's, a building's) — the fog since 0.7;
+                                           a sheet without rooms (region, town, wild) draws everything, as it always has
+     { ids: ["id", …] }                    the same
+     { points: [[x, y] | {x, y}, …],       the AREA fog: the ground within radiusM METRES of any point or of any path,
+       paths: [[[x, y], …], …],            in the sheet's own coordinates; the radius goes to map units by the sheet's own
+       radiusM: 100 }                      scale (frame.kmPerUnit), so a town's 100 m and a realm's 3 km mean what they say
+   An area with nothing in it (no points, no paths) is all fog. ids and an area in one spec are refused: two fogs, two
+   granularities — whole rooms by id, or ground by distance.
+
+   How it is drawn, the same for every generator (one path through scene.build, nothing per kind): a distance field over
+   the scene's box (radius − distance to the nearest point or path, a cell a fifth of the radius, at most MAX_NODES
+   nodes) contoured by marching squares at 0 — the boundary of the union of every disc and band, holes and all — and
+   polished like the wild's cover; the FOG layer (before the frame) is the box minus those shapes in paper, even-odd,
+   over two thinner washes inside the edge (FEATHER) and a faint dotted ink line along it (`fogEdge`). The labels of
+   what is not revealed are dropped (a label stands for its thing: the thing's hit, else the slip's middle), and so are
+   their hits and tips, so a click on the paper finds nothing; the labels of what IS revealed are drawn whole over the
+   fog. The fog is part of the scene, so the view bakes it into the base bitmap: a pan or a zoom costs nothing more. */
+(function (root) {
+  "use strict";
+  var NS = root.TnDMaps, U = NS.util, G = NS.geom;
+  var SPEC_KEYS = { ids: true, points: true, paths: true, radiusM: true };
+  var CELLS_PER_RADIUS = 5, MAX_NODES = 360000;
+  /* the edge: washes of paper inside the line, each at a level (a share of the radius in from the edge) with its style key */
+  var FEATHER = [{ level: 0.32, s: "fogWash2" }, { level: 0.15, s: "fogWash" }];
+  var LABEL_LAYERS = { labels: true, featureLabels: true };
+
+  function pointOf(p, what) {
+    var x = Array.isArray(p) ? p[0] : p && p.x, y = Array.isArray(p) ? p[1] : p && p.y;
+    NS.assert(U.isNum(x) && U.isNum(y), what + " must be [x, y] or {x, y} with finite numbers", { point: p });
+    return [x, y];
+  }
+  function isIds(list) { return Array.isArray(list) && list.every(function (id) { return typeof id === "string"; }); }
+
+  /* spec(reveal) → null | { ids: [...] | null, area: { points: [[x, y]], paths: [[[x, y]]], radiusM } | null } — every
+     malformed reveal refused here, by name */
+  function spec(reveal) {
+    var ids = null, area = null, k;
+    if (reveal === undefined || reveal === null) return null;
+    if (Array.isArray(reveal)) { NS.assert(isIds(reveal), "reveal must be a list of ids, or null", { reveal: reveal }); return { ids: reveal.slice(), area: null }; }
+    NS.assert(typeof reveal === "object", "reveal must be a list of ids, a spec {ids} or {points, paths, radiusM}, or null", { reveal: reveal });
+    for (k in reveal) if (Object.prototype.hasOwnProperty.call(reveal, k)) NS.assert(NS.own(SPEC_KEYS, k), "reveal spec has no key " + k, { key: k, known: Object.keys(SPEC_KEYS) });
+    if (reveal.ids !== undefined) { NS.assert(isIds(reveal.ids), "reveal.ids must be a list of ids", { ids: reveal.ids }); ids = reveal.ids.slice(); }
+    if (reveal.points !== undefined || reveal.paths !== undefined || reveal.radiusM !== undefined) {
+      NS.assert(U.isNum(reveal.radiusM) && reveal.radiusM > 0, "reveal.radiusM must be a positive number of metres (the area fog's radius)", { radiusM: reveal.radiusM });
+      NS.assert(reveal.points === undefined || Array.isArray(reveal.points), "reveal.points must be a list of points", { points: reveal.points });
+      NS.assert(reveal.paths === undefined || (Array.isArray(reveal.paths) && reveal.paths.every(function (p) { return Array.isArray(p) && p.length >= 1; })), "reveal.paths must be a list of paths, each a list of at least one point", { paths: reveal.paths });
+      area = { points: (reveal.points || []).map(function (p) { return pointOf(p, "a reveal point"); }),
+        paths: (reveal.paths || []).map(function (path) { return path.map(function (p) { return pointOf(p, "a point of a reveal path"); }); }), radiusM: reveal.radiusM };
+    }
+    NS.assert(ids || area, "a reveal spec names nothing: give ids, or points and paths with radiusM", { reveal: reveal });
+    NS.assert(!(ids && area), "a reveal takes ids (whole rooms and passages) or an area (points and paths within radiusM), not both", { keys: Object.keys(reveal) });
+    return { ids: ids, area: area };
+  }
+
+  /* the distance field over the box: radius − distance to the nearest point or path, capped at −radius */
+  function field(area, X, Y, W, H, r) {
+    var cell = Math.max(r / CELLS_PER_RADIUS, Math.sqrt(W * H / MAX_NODES)), cols = Math.max(8, Math.ceil(W / cell) + 1), rows = Math.max(8, Math.ceil(H / cell) + 1);
+    var g = G.Grid(cols, rows, W, H), f = new Float32Array(g.n), i, segs = [];
+    for (i = 0; i < g.n; i++) f[i] = -r;
+    area.points.forEach(function (p) { segs.push([p, p]); });
+    area.paths.forEach(function (path) { if (path.length === 1) segs.push([path[0], path[0]]); for (i = 1; i < path.length; i++) segs.push([path[i - 1], path[i]]); });
+    segs.forEach(function (s) {
+      var ax = s[0][0] - X, ay = s[0][1] - Y, bx = s[1][0] - X, by = s[1][1] - Y, c, rr, c0, c1, r0, r1, v, j;
+      c0 = Math.max(0, Math.floor((Math.min(ax, bx) - r) / g.dx)); c1 = Math.min(cols - 1, Math.ceil((Math.max(ax, bx) + r) / g.dx));
+      r0 = Math.max(0, Math.floor((Math.min(ay, by) - r) / g.dy)); r1 = Math.min(rows - 1, Math.ceil((Math.max(ay, by) + r) / g.dy));
+      for (rr = r0; rr <= r1; rr++) for (c = c0; c <= c1; c++) {
+        j = rr * cols + c; v = r - G.pointSegDist([c * g.dx, rr * g.dy], [ax, ay], [bx, by]);
+        if (v > f[j]) f[j] = v;
+      }
+    });
+    return { g: g, f: f };
+  }
+
+  /* apply(scene, doc, area, style) → the scene with the fog laid over the ground and only the revealed labels and hits */
+  function apply(scene, doc, area) {
+    var kpu = doc.frame && doc.frame.kmPerUnit;
+    NS.assert(U.isNum(kpu) && kpu > 0, "the area fog needs the sheet's scale (frame.kmPerUnit)", { frame: doc.frame });
+    var X = scene.x0 || 0, Y = scene.y0 || 0, W = scene.width, H = scene.height, r = area.radiusM / (kpu * 1000);
+    var F = field(area, X, Y, W, H, r), g = F.g, wob = NS.Noise(String(doc.seed) + "/fog"), dx = g.dx;
+    function polish(pts, closed) {
+      var p = G.simplify(pts, dx * 0.25); if (closed && p.length < 3) return null; if (!closed && p.length < 2) return null;
+      p = G.smooth(p, 2, closed); return G.wobble(p, wob.noise2, Math.min(dx * 0.3, r * 0.06), 1 / (2.5 * dx), closed);
+    }
+    function shapes(level) {
+      var out = [];
+      G.polygonsFromField(F.f, g, level).forEach(function (poly) {
+        var p = G.polishFramePolygon(poly, W, H, polish, 2);
+        if (p) out.push(p);
+      });
+      return out;
+    }
+    function toScene(polys) { return polys.map(function (p) { return p.map(function (q) { return [q[0] + X, q[1] + Y]; }); }); }
+    /* the ink line: the shapes' outlines, off the frame (where the sheet's own frame is the edge) */
+    function edgeRuns(polys) {
+      var runs = [];
+      function onFrame(q) { return q[0] <= 1e-6 || q[1] <= 1e-6 || q[0] >= W - 1e-6 || q[1] >= H - 1e-6; }
+      polys.forEach(function (poly) {
+        var n = poly.length, start = -1, i, run = null, a, b;
+        for (i = 0; i < n; i++) if (onFrame(poly[i])) { start = i; break; }
+        if (start < 0) { runs.push(poly.concat([poly[0]])); return; }
+        for (i = 0; i < n; i++) {
+          a = poly[(start + i) % n]; b = poly[(start + i + 1) % n];
+          if (onFrame(a) && onFrame(b)) { if (run && run.length > 1) runs.push(run); run = null; continue; }
+          if (!run) run = [a];
+          run.push(b);
+        }
+        if (run && run.length > 1) runs.push(run);
+      });
+      return runs;
+    }
+    function shown(x, y) { var lx = x - X, ly = y - Y; return lx >= 0 && ly >= 0 && lx <= W && ly <= H && g.sample(F.f, lx, ly) > 0; }
+    var box = [[X, Y], [X + W, Y], [X + W, Y + H], [X, Y + H]], fog = [], edge = shapes(0), runs = toScene(edgeRuns(edge));
+    FEATHER.forEach(function (w) { fog.push({ t: "path", subpaths: [box].concat(toScene(shapes(w.level * r))), closed: true, s: w.s }); });
+    fog.push({ t: "path", subpaths: [box].concat(toScene(edge)), closed: true, s: "fog" });
+    if (runs.length) fog.push({ t: "path", subpaths: runs, closed: false, s: "fogEdge" });
+
+    /* what is revealed: a hit by its point; a label by its thing's hit, else the middle of its slip; a tip by its thing */
+    var hitAt = {}, kept = {}, layers = [], placed = false;
+    scene.layers.forEach(function (L) { if (L.name === "hits") L.items.forEach(function (h) { hitAt[h.kind + "/" + h.id] = h; }); });
+    function labelShown(c) {
+      var h = c.meta && hitAt[c.meta.kind + "/" + c.meta.id];
+      if (h) return shown(h.x, h.y);
+      if (c.box) return shown((c.box[0] + c.box[2]) / 2, (c.box[1] + c.box[3]) / 2);
+      return shown(c.x, c.y);
+    }
+    scene.layers.forEach(function (L) { if (L.name === "hits") L.items.forEach(function (h) { if (shown(h.x, h.y)) kept[h.kind + "/" + h.id] = true; }); });
+    scene.layers.forEach(function (L) {
+      var items = L.items;
+      if (L.name === "frame") { layers.push({ name: "fog", items: fog }); placed = true; }
+      if (L.name === "hits") items = items.filter(function (h) { return kept[h.kind + "/" + h.id]; });
+      else if (L.name === "tips") items = items.filter(function (c) { return c.meta && kept[c.meta.kind + "/" + c.meta.id]; });
+      else if (NS.own(LABEL_LAYERS, L.name)) items = items.filter(labelShown);
+      layers.push({ name: L.name, items: items });
+    });
+    NS.assert(placed, "the area fog goes under the sheet's frame, and this scene has no frame layer", { layers: scene.layers.map(function (L) { return L.name; }) });
+    return U.extend({}, scene, { layers: layers, reveal: { radiusUnits: U.round(r, 3), cell: U.round(dx, 3) } });
+  }
+
+  NS.scene.fog = { spec: spec, apply: apply, FEATHER: FEATHER };
+})(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
+
 /* ───── 80-render-svg.js ───── */
 /* 80-render-svg.js — scene → SVG string. One <g> per layer; every colour and width comes from the style table. A text
    command is drawn at the width the layout gave it (textLength), so the letters always sit inside their slip even
@@ -8277,7 +8642,7 @@
       T.x = W <= s.w ? (s.w - W) / 2 - X : U.clamp(T.x, s.w - W - X, -X);
       T.y = H <= s.h ? (s.h - H) / 2 - Y : U.clamp(T.y, s.h - H - Y, -Y);
     }
-    var reveal = null;   /* a dungeon's fog of war: the ids drawn, or null for all (setReveal) */
+    var reveal = null;   /* the fog of war (setReveal): a list of ids (a dungeon's, a building's rooms), a spec {ids} | {points, paths, radiusM} (the area fog on any sheet, v0.18.0), or null for all */
     function rebuildScene() { baseScene = NS.scene.build(doc, styleName, { reveal: reveal }); compose(); }
     /* the drawn scene is the document scene plus the markers; changing the markers never rebuilds the document scene */
     function compose() {
@@ -8475,9 +8840,17 @@
         hudTrail = tiers && tiers.length ? tiers.map(function (t) { return { key: t.key, text: t.text, current: !!t.current }; }) : null; hudHits = []; schedule(); return api;
       },
       hudTrail: function () { return hudTrail ? hudTrail.map(function (t) { return { key: t.key, text: t.text, current: t.current }; }) : null; },
-      /* fog of war: draw only these room and passage ids (a dungeon); null lifts it. Markers stay; setDoc clears it */
-      setReveal: function (list) { reveal = Array.isArray(list) ? list.slice() : null; rebuildScene(); schedule(); return api; },
-      reveal: function () { return reveal ? reveal.slice() : null; },
+      /* fog of war: a list of room and passage ids (a dungeon, a building: only those are drawn), or the AREA fog on any
+         sheet — {points: [[x, y] | {x, y}], paths: [[[x, y], …]], radiusM} (the ground within radiusM metres of where the
+         party stood and walked; TnDMaps.route gives the paths) —, or {ids}; null lifts it. A bad reveal is refused here,
+         loudly, and the fog in force stays. Markers stay over the fog; setDoc clears it. The fog is part of the scene, so it
+         is baked into the base bitmap: a pan or a zoom costs nothing more */
+      setReveal: function (r) {
+        NS.scene.fog.spec(r);
+        reveal = r === undefined || r === null ? null : Array.isArray(r) ? r.slice() : JSON.parse(JSON.stringify(r));
+        rebuildScene(); schedule(); return api;
+      },
+      reveal: function () { return reveal === null ? null : Array.isArray(reveal) ? reveal.slice() : JSON.parse(JSON.stringify(reveal)); },
       fit: function () { fit(); return api; },
       zoom: function (factor) { var s = cssSize(); zoomAt(factor, s.w / 2, s.h / 2); return api; },
       center: function (x, y, k) { var s = cssSize(); if (k) T.k = U.clamp(k, 0.1, 12); T.x = s.w / 2 - x * T.k; T.y = s.h / 2 - y * T.k; clampT(); userMoved = true; baseDirty = true; schedule(); return api; },   /* a view a host placed is kept through a window resize, like one the user moved */

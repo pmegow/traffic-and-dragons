@@ -56,7 +56,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
  });
 
  await check('② with an atlas the name is a button and opens the DOCK on the region (the drawer on its Map tab, the HUD on); the enlarge button opens the full pane: ink on the canvas, a head of the select and close, no status line',async()=>{
-   const d=await page.evaluate(()=>{atlasCreate('campaign-1');worldState.atlas.adopt=false;/* ②–⑨ probe the player's correction (We are here) and the off-map states: You are here (#702) is switched off for them; ⑬ switches it on */atlasFollow();syncUI();const el=document.getElementById('hud-loc');return {role:el.getAttribute('role'),tab:el.getAttribute('tabindex'),label:el.getAttribute('aria-label'),cursor:getComputedStyle(el).cursor};});
+   const d=await page.evaluate(()=>{atlasCreate('campaign-1');worldState.atlas.fog=false;/* #717: ②–⑤ read cards and clicks on a WHOLE sheet (an unvisited town, a far click); the fog is switched on from ⑥ and is ⑮'s subject */worldState.atlas.adopt=false;/* ②–⑨ probe the player's correction (We are here) and the off-map states: You are here (#702) is switched off for them; ⑬ switches it on */atlasFollow();syncUI();const el=document.getElementById('hud-loc');return {role:el.getAttribute('role'),tab:el.getAttribute('tabindex'),label:el.getAttribute('aria-label'),cursor:getComputedStyle(el).cursor};});
    assert.equal(d.role,'button');assert.equal(d.tab,'0');assert.match(d.label,/^Open the map — The Crossroads of Ashenveil$/);assert.equal(d.cursor,'pointer');
    await page.evaluate(()=>{const el=document.getElementById('hud-loc');el.focus();el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));});await settle();
    const k=await page.evaluate(()=>{const p=__atlasTest.pane(),dock=document.getElementById('atlas-dock'),c=dock.querySelector('#atlas-canvas'),st=document.getElementById('atlas-stage');return {modal:!!document.getElementById('atlas-modal'),host:p&&p.host,hud:p&&p.hud,open:document.getElementById('rpanel').classList.contains('mobile-open'),width:mobileUI.width,tab:document.getElementById('mobile-tab-map').getAttribute('aria-selected'),mapTab:getComputedStyle(document.getElementById('mobile-tab-map')).display,head:!!document.getElementById('atlas-head'),status:!!document.getElementById('atlas-status'),cw:c?c.width:0,ch:c?c.height:0,stage:[st.clientWidth,st.clientHeight],trail:!!document.getElementById('atlas-trail'),fabs:['atlas-full','atlas-party'].map(id=>{const b=document.getElementById(id);if(!b)return null;const s=getComputedStyle(b),r=b.getBoundingClientRect(),sr=st.getBoundingClientRect();return {pos:s.position,radius:s.borderRadius,w:Math.round(r.width),inside:r.left>=sr.left&&r.top>=sr.top&&r.right<=sr.right&&r.bottom<=sr.bottom,label:b.getAttribute('aria-label'),box:[r.left,r.right,r.bottom],z:parseInt(s.zIndex,10)||0};}),cardZ:parseInt(getComputedStyle(document.getElementById('atlas-card')).zIndex,10)||0,name:worldState.atlas.zones['campaign-1'].name};});
@@ -101,13 +101,15 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.equal(r.at,town);assert.deepEqual(r.tie,{zone:'campaign-1',id:p3.id,by:'gm'},'the tie is the GM\'s');assert.equal(r.off,null);
    assert.equal(r.zone,'campaign-1','the open pane stays on its sheet');assert.equal(r.markers.length,1);assert.equal(r.markers[0].kind,'party');assert.deepEqual([r.markers[0].x,r.markers[0].y],[p3.x,p3.y],'the party marker sits on the town');
    assert.deepEqual(r.trail.map(t=>[t.text,t.current]),[[r.trail[0].text,true],[p3.name,false]],'the trail: the realm (current), then the town');assert.equal(r.savedAt,town,'the tie is saved');assert.equal(r.savedZones,2);
-   /* a real click on the town's tier of the plaque */
+   /* a real click on the town's tier of the plaque — after a frame: the view hit-tests the tiers' boxes AS LAST DRAWN, and setHudTrail (the repaint above) clears them until the next draw. The click used to be sent in the same breath and landed only when a frame happened to fall between the two calls (found red 2026-11-09, #717: 6 runs of 6) */
+   await settle();
    const k=await page.evaluate(()=>{const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),r=c.getBoundingClientRect(),tier=v.hudScene().find(x=>x.meta&&x.meta.hud==='trail'&&!x.meta.current),at={clientX:r.left+(tier.box[0]+tier.box[2])/2,clientY:r.top+(tier.box[1]+tier.box[3])/2,bubbles:true,button:0};c.dispatchEvent(new MouseEvent('mousedown',at));window.dispatchEvent(new MouseEvent('mouseup',at));const p=__atlasTest.pane();return {text:tier.text,zone:p.zone,markers:p.markers.length,trail:p.trail.map(t=>[t.text,t.current]),card:document.getElementById('atlas-card').style.display};});
    assert.equal(k.text,p3.name);assert.equal(k.zone,town,'the tier opens the town sheet');assert.equal(k.markers,1,'the party is drawn on it');assert.deepEqual(k.trail.map(t=>t[1]),[false,true],'the town is now the current tier');assert.equal(k.card,'none','the tier click opened no card');
    await page.screenshot({path:path.join(SHOTS,'atlas-town.png')});
  });
 
  await check('⑤ the realm\'s tier leads back up: the trail stays the party\'s (realm, then town — the town no longer current), the party stands at the town, whose card now opens its sheet and offers a note',async()=>{
+   await settle();/* the tiers are clickable once drawn (see ④) */
    const a=await page.evaluate(()=>{const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),r=c.getBoundingClientRect(),tier=v.hudScene().find(x=>x.meta&&x.meta.hud==='trail'&&!x.meta.current),at={clientX:r.left+(tier.box[0]+tier.box[2])/2,clientY:r.top+(tier.box[1]+tier.box[3])/2,bubbles:true,button:0};c.dispatchEvent(new MouseEvent('mousedown',at));window.dispatchEvent(new MouseEvent('mouseup',at));const p=__atlasTest.pane();return {tier:tier.text,zone:p.zone,m:p.markers,trail:p.trail.map(t=>[t.text,t.current])};});await settle();
    assert.equal(a.zone,'campaign-1','the realm\'s tier shows the region');assert.equal(a.m.length,1);assert.deepEqual([a.m[0].x,a.m[0].y],[p3.x,p3.y],'the party marker sits on the town');
    assert.deepEqual(a.trail,[[a.tier,true],[p3.name,false]],'going up leaves the trail as the party\'s: realm (shown), town');
@@ -124,15 +126,18 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
  });
 
  await check('⑥ a sewer is fogged: only its ways up are drawn, and the pane hands the library the engine\'s reveal list',async()=>{
-   const r=await page.evaluate(()=>{const reg=atlasDoc('campaign-1'),p0=reg.places[0];worldState.world.location=p0.name;atlasFollow();const town=atlasDoc(worldState.atlas.at),g=town.portals.filter(p=>p.kind==='grate')[0];worldState.world.sublocation=g.name;atlasFollow();syncUI();
+   const r=await page.evaluate(()=>{delete worldState.atlas.fog;/* #717: the campaign's default from here on — the fog is on */const reg=atlasDoc('campaign-1'),p0=reg.places[0];worldState.world.location=p0.name;atlasFollow();const town=atlasDoc(worldState.atlas.at),g=town.portals.filter(p=>p.kind==='grate')[0];worldState.world.sublocation=g.name;atlasFollow();syncUI();
      const z=worldState.atlas.at;showAtlas();const p=__atlasTest.pane(),doc=atlasDoc(z);return {z:z,kind:worldState.atlas.zones[z].kind,zone:p.zone,reveal:p.reveal,expect:atlasReveal(z),rooms:doc.rooms.length,ups:doc.portals.filter(q=>q.way==='up').length,markers:p.markers.length};});
    assert.equal(r.kind,'dungeon');assert.equal(r.zone,r.z,'the pane opens where the party is');assert.deepEqual(r.reveal,r.expect);assert.equal(r.reveal.length,r.ups,'the ways up only');assert.ok(r.reveal.length<r.rooms,'the rest of the sewer is hidden');
    assert.equal(r.markers,1,'the party is drawn in the sewer');
  });
 
- await check('⑦ open water says why it cannot be stood on and offers nothing (a point has no note)',async()=>{
+ await check('⑦ open water says why it cannot be stood on and offers nothing (a point has no note) — and through the fog a tap on it says nothing at all (#717)',async()=>{
+   const fogged=await page.evaluate(()=>{__atlasTest.show('campaign-1');const sea=atlasDoc('campaign-1').features.filter(f=>f.kind==='sea')[0];const card=__atlasTest.tap({x:sea.x,y:sea.y});const shown=document.getElementById('atlas-card').style.display;worldState.atlas.fog=false;return {card:card,shown:shown,far:!atlasFogShows('campaign-1',sea.x,sea.y)};});
+   assert.equal(fogged.card,null,'unexplored water has no card');assert.equal(fogged.shown,'none');
    const r=await page.evaluate(()=>{__atlasTest.show('campaign-1');const sea=atlasDoc('campaign-1').features.filter(f=>f.kind==='sea')[0];const before=JSON.stringify(worldState.atlas);__atlasTest.tap({x:sea.x,y:sea.y});const el=document.getElementById('atlas-card');return {text:el.textContent,buttons:[].map.call(el.querySelectorAll('button[data-act]'),b=>b.getAttribute('data-act')),same:JSON.stringify(worldState.atlas)===before};});
    assert.match(r.text,/Open country/);assert.match(r.text,/sea/);assert.deepEqual(r.buttons,['dismiss']);assert.equal(r.same,true);
+   await page.evaluate(()=>{delete worldState.atlas.fog;__atlasTest.tap(null);__atlasTest.show('campaign-1');});/* the fog back on for what follows */
  });
 
  await check('⑧ Escape closes the full pane; its view is destroyed, and the dock (the Map tab still showing) takes the map back on the same zone; the Map tab, clicked, mounts the pane',async()=>{
@@ -283,8 +288,66 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.deepEqual(after,{tab:'none',selected:'party',pane:null,dock:0,body:false},'without an atlas the Map tab goes and the drawer is moved off it');
  });
 
+ await check('⑮ the fog of war (#717, owner 2026-11-09): the pane hands the view the engine\'s reveal; on the canvas the ground the party walked is drawn and a far quarter is blank paper, which a click cannot read; a move under the open pane widens it; the realm shows the town and nothing else; full screen carries it; with the campaign\'s fog off the sheet is whole again',async()=>{
+   await page.setViewportSize({width:1280,height:800});
+   const s=await page.evaluate(()=>{window.dispatchEvent(new Event('resize'));if(typeof mobileInit==='function')mobileInit();
+     atlasPaneClose();mobileDrawerWidth(0);atlasForget();delete worldState.atlas;atlasCreate('campaign-1');worldState.atlas.adopt=false;
+     const reg=atlasDoc('campaign-1'),p0=reg.places[0];worldState.world.location=p0.name;worldState.world.sublocation=null;atlasFollow();
+     const zone=worldState.atlas.at,town=atlasDoc(zone),inn=town.establishments.filter(e=>e.kind==='inn')[0],market=town.landmarks.filter(l=>l.kind==='market')[0];
+     worldState.world.sublocation=inn.name;atlasFollow();worldState.world.sublocation=market.name;atlasFollow();syncUI();showAtlas();
+     /* the ink under a map point: dark pixels in a box of `half` CSS px round where the view draws it */
+     window.__inkAt=function(x,y,half){const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),T=v.transform(),dpr=c.width/c.clientWidth,g=c.getContext('2d'),w=Math.round(half*2*dpr),d=g.getImageData(Math.round((T.x+x*T.k-half)*dpr),Math.round((T.y+y*T.k-half)*dpr),w,w).data;let dark=0;for(let i=0;i<d.length;i+=4)if(d[i]+d[i+1]+d[i+2]<300)dark++;return dark;};
+     const spec=atlasReveal(zone),near=(q)=>{let m=1e9;spec.points.forEach(p=>{m=Math.min(m,Math.hypot(p[0]-q.x,p[1]-q.y));});spec.paths.forEach(pa=>pa.forEach(p=>{m=Math.min(m,Math.hypot(p[0]-q.x,p[1]-q.y));}));return m;};
+     const far=town.establishments.filter(e=>e.id!==inn.id).map(e=>({id:e.id,name:e.name,x:e.x,y:e.y,d:near(e)})).sort((a,b)=>b.d-a.d)[0];
+     /* a third place to walk to, on the other side of the town from the far quarter (so the far quarter stays unexplored) and not yet shown */
+     const third=town.establishments.filter(e=>e.id!==inn.id&&e.id!==far.id&&near(e)*town.frame.kmPerUnit*1000>100&&town.establishments.filter(q=>q.name===e.name).length===1).map(e=>({id:e.id,name:e.name,x:e.x,y:e.y,d:Math.hypot(e.x-far.x,e.y-far.y)})).sort((a,b)=>b.d-a.d)[0];
+     return {zone,p0:{id:p0.id,name:p0.name,x:p0.x,y:p0.y},inn:{x:inn.x,y:inn.y,name:inn.name},market:{x:market.x,y:market.y},far,third,unit:town.frame.kmPerUnit*1000,farTown:reg.places.map(p=>({id:p.id,x:p.x,y:p.y,d:Math.hypot(p.x-p0.x,p.y-p0.y)})).sort((a,b)=>b.d-a.d)[0]};});
+   await settle();await page.waitForTimeout(200);
+   const r1=await page.evaluate(()=>{const p=__atlasTest.pane();return {host:p.host,zone:p.zone,reveal:p.reveal,expect:atlasReveal(p.zone)};});
+   assert.equal(r1.host,'dock');assert.equal(r1.zone,s.zone,'the dock opens on the town the party is in');assert.deepEqual(r1.reveal,r1.expect,'the view wears the engine\'s reveal');
+   assert.equal(r1.reveal.radiusM,100);assert.equal(r1.reveal.points.length,2,'the inn and the market');assert.ok(r1.reveal.paths.length>=1,'and the way between them');
+   assert.ok(s.far.d*s.unit>180,'the fixture town has a house well beyond the 100 m radius from the walk: '+Math.round(s.far.d*s.unit)+' m');
+   await page.evaluate(()=>{[].forEach.call(document.querySelectorAll('.tnd-toast'),t=>t.remove());});/* the suite's toasts would cover the map in the pictures */
+   await page.screenshot({path:path.join(SHOTS,'atlas-fog-dock.png')});
+   /* the render is ground truth: ink where the party walked, blank paper far from it */
+   const look=async(q)=>{await page.evaluate(q=>{const v=_atlasPane.view;v.center(q.x,q.y,v.transform().k);},q);await settle();await page.waitForTimeout(120);return page.evaluate(q=>__inkAt(q.x,q.y,36),q);};
+   const inkWalked=await look(s.market),inkFar=await look(s.far);
+   assert.ok(inkWalked>60,'the market the party stands at is drawn: '+inkWalked+' dark pixels');assert.equal(inkFar,0,'a quarter the party never walked is blank paper: '+inkFar+' dark pixels round '+s.far.name);
+   const c1=await clickMap(s.far.x,s.far.y);assert.equal(c1.inside,true);await settle();
+   assert.equal(await page.evaluate(()=>document.getElementById('atlas-card').style.display),'none','a click on unexplored ground reads nothing');
+   /* a move under the open pane widens the fog */
+   const r2=await page.evaluate(q=>{worldState.world.sublocation=q.name;atlasFollow();syncUI();const p=__atlasTest.pane();return {reveal:p.reveal,expect:atlasReveal(p.zone),zone:p.zone,at:worldState.atlas.at,farShown:atlasFogShows(p.zone,q.far.x,q.far.y)};},{name:s.third.name,far:s.far});
+   assert.equal(r2.farShown,false,'the walk to '+s.third.name+' leaves the far quarter unexplored (the fixture)');
+   assert.equal(r2.zone,s.zone,'the pane stays on the town\'s sheet');assert.deepEqual(r2.reveal,r2.expect,'the repaint wears the new reveal');
+   assert.equal(r2.reveal.points.length,3,'a third stand');assert.ok(r2.reveal.paths.length>r1.reveal.paths.length,'and the way to it');
+   await settle();await page.waitForTimeout(120);assert.ok(await look(s.third)>20,'the place the party just reached is drawn');
+   /* the campaign's switch: the same far quarter, whole */
+   await page.evaluate(()=>{worldState.atlas.fog=false;__atlasTest.show(_atlasPane.zone);});await settle();
+   assert.equal(await page.evaluate(()=>__atlasTest.pane().reveal),null,'fog off: the view is handed null, and the fog it wore is lifted');
+   const inkFarOff=await look(s.far);assert.ok(inkFarOff>60,'with the fog off the far quarter is drawn: '+inkFarOff);
+   await clickMap(s.far.x,s.far.y);await settle();
+   assert.match(await page.evaluate(()=>document.getElementById('atlas-card').textContent),new RegExp(s.far.name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),'and its card can be read');
+   await page.evaluate(()=>{delete worldState.atlas.fog;__atlasTest.tap(null);__atlasTest.show(_atlasPane.zone,true);});await settle();await page.waitForTimeout(120);
+   assert.equal(await page.evaluate(q=>{const v=_atlasPane.view;v.center(q.x,q.y,v.transform().k);return true;},s.far),true);await settle();await page.waitForTimeout(120);
+   assert.equal(await page.evaluate(q=>__inkAt(q.x,q.y,36),s.far),0,'the fog is back with the switch');
+   /* full screen carries the fog; the realm shows the town the party is in, and a far town is paper */
+   await page.evaluate(()=>{__atlasTest.show(_atlasPane.zone,true);document.getElementById('atlas-full').click();});await settle();await page.waitForTimeout(200);
+   const f=await page.evaluate(()=>{const p=__atlasTest.pane();return {host:p.host,reveal:p.reveal,expect:atlasReveal(p.zone)};});
+   assert.equal(f.host,'full');assert.deepEqual(f.reveal,f.expect,'the full pane wears the same reveal');
+   await page.evaluate(()=>{[].forEach.call(document.querySelectorAll('.tnd-toast'),t=>t.remove());});
+   await page.screenshot({path:path.join(SHOTS,'atlas-fog-town.png')});
+   const g=await page.evaluate(()=>{__atlasTest.show('campaign-1',true);const p=__atlasTest.pane();return {zone:p.zone,reveal:p.reveal,expect:atlasReveal('campaign-1'),radius:ATLAS_FOG.region.radiusM};});await settle();await page.waitForTimeout(200);
+   assert.equal(g.zone,'campaign-1');assert.deepEqual(g.reveal,g.expect);assert.deepEqual(g.reveal,{points:[[s.p0.x,s.p0.y]],paths:[],radiusM:g.radius},'the realm: the town the party is in, and nothing else');
+   await page.evaluate(()=>{[].forEach.call(document.querySelectorAll('.tnd-toast'),t=>t.remove());});
+   await page.screenshot({path:path.join(SHOTS,'atlas-fog-realm.png')});
+   assert.ok(await look(s.p0)>20,'the party\'s town is drawn on the realm');assert.equal(await look(s.farTown),0,'a town the party never reached is blank paper');
+   await clickMap(s.farTown.x,s.farTown.y);await settle();
+   assert.equal(await page.evaluate(()=>document.getElementById('atlas-card').style.display),'none','and cannot be read by a click');
+   await page.evaluate(()=>atlasPaneClose());
+ });
+
  assert.deepEqual(errors,[],'page errors: '+errors.join(' | '));
- console.log('screenshots: '+SHOTS+' (atlas-dock.png, atlas-region.png, atlas-town.png, atlas-phone-dock.png, atlas-phone.png)');
+ console.log('screenshots: '+SHOTS+' (atlas-dock.png, atlas-region.png, atlas-town.png, atlas-phone-dock.png, atlas-phone.png, atlas-fog-dock.png, atlas-fog-town.png, atlas-fog-realm.png)');
 }finally{await browser.close();}
 console.log(failed?'FAILED — '+failed:'ALL GREEN — the atlas pane (#684)');process.exit(failed?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});

@@ -234,7 +234,9 @@ function atlasPaneShow(zoneId,toParty,carry){
   try{
     doc=atlasDoc(zoneId);
     if(P.zone!==zoneId)P.view.setDoc(doc);
-    reveal=atlasReveal(zoneId);if(reveal)P.view.setReveal(reveal);
+    /* #717 the fog of war: what this sheet may show — an area, a list of rooms, or null (the fog off). Always handed over (a
+       null lifts the fog a same-sheet repaint would otherwise keep), and only when it differs: a reveal rebuilds the scene */
+    reveal=atlasReveal(zoneId);if(JSON.stringify(P.view.reveal())!==JSON.stringify(reveal))P.view.setReveal(reveal);
     P.view.setMarkers(atlasMarkers(zoneId));
   }catch(e){atlasPaneSay("That sheet could not be drawn: "+atlasProblem("drawing a sheet",e));return false;}
   P.zone=zoneId;P.target=null;P.view.select(null);
