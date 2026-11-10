@@ -111,6 +111,8 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 .creature-act-options label,#creature-gen-modal .creature-act-options label{display:flex;flex-direction:row;align-items:center;gap:8px;min-height:44px;font:inherit;text-transform:none;letter-spacing:normal;}
 .creature-act-options input[type=checkbox],#creature-gen-modal .creature-act-options input[type=checkbox]{width:18px;height:18px;min-height:18px;flex:0 0 18px;accent-color:var(--acc);}
 @media(max-width:540px){.creature-act-options{grid-template-columns:1fr;}}
+
+.assistant-head,.assistant-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.assistant-head h2{flex:1;margin:0}.assistant-actions{margin:12px 0}#ask-inp{width:100%;box-sizing:border-box;resize:vertical;min-height:100px}.assistant-result{margin-top:16px;overflow-wrap:anywhere}#ask-reply,.assistant-change{white-space:pre-wrap}.assistant-result details{margin-top:12px;border-top:1px solid var(--brd);padding-top:8px}.assistant-result summary{min-height:44px;cursor:pointer;display:flex;align-items:center}.assistant-result h3{font-size:12px;color:var(--acc);margin:10px 0 4px}.assistant-change{font-size:13px;color:var(--t1)}#ask-status.err{color:var(--dng)}#ask-status.ok{color:var(--grn)}#ask-apply[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -120,7 +122,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
   <button class="tbtn" id="btn-load">Load&hellip;</button>
   <select id="llm-sel" title="LLM used by Review, Apply fix, Ask, and Generate"></select>
   <button class="tbtn" id="btn-generate">&#10024; Generate&hellip;</button>
-  <button class="tbtn" id="btn-ask">&#128172; Ask&hellip;</button>
+  <button class="tbtn" id="btn-ask">&#128172; AI assistant</button>
   <button class="tbtn" id="btn-review">&#128269; Review</button>
   <button class="tbtn" id="btn-library">&#9729; Library&hellip;</button>
   <button class="tbtn" id="btn-publish">&#9729; Save to My Library</button>
@@ -167,12 +169,13 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="ui-portrait.js"></script>
 <script src="designer-acts.js"></script>
 <script src="designer-creatures.js"></script>
+<script src="designer-assistant.js"></script>
 <script src="designer-prose.js"></script>
 <script>
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.64";
+var BP_DESIGNER_VERSION="v0.65";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -881,7 +884,7 @@ function llmReady(){
 }
 // ── LLM picker (v0.32) ─────────────────────────────────────────────────────────
 // Topbar dropdown showing WHICH model the designer's LLM features (Review / Apply fix /
-// Ask / Generate) use. Choices = one authoring model per provider that has a key on this
+// AI assistant / Generate) use. Choices = one authoring model per provider that has a key on this
 // device (keys ride in via loadProviderSettings, same as llmReady). The pick is persisted
 // DESIGNER-SIDE (bpd_llm_v1) and only flips the in-memory activeProvider for this page's
 // calls — the GAME's stored provider settings are never written (hard rule: this page
@@ -1300,7 +1303,7 @@ var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all 
 // acts/arcs, substring for the string rules). Arrays never shrink here — items are replaced in place
 // or appended — so the old shrink guards are obsolete; validateBlueprint is still the backstop.
 var _PATCH_PRESERVE={creatures:DesignerCreatures.preserveCreature,npcs:DesignerCreatures.preservePortrait};
-var _PATCH_BYNAME={npcs:1,locations:1,creatures:1}; // arrays of objects keyed by .name
+var _PATCH_BYNAME={npcs:1,locations:1,creatures:1,customClasses:1}; // arrays of objects keyed by .name
 var _PATCH_TOP={name:1,author:1,tone:1,proseAuthor:1,narratorVoice:1,premise:1,startingLocation:1,startingRegion:1,startingTime:1}; // top-level strings
 function _findByName(arr,nm){var i;nm=String(nm||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].name||"").toLowerCase()===nm)return i;}return -1;}
 function _findByTitle(arr,t){var i;t=String(t||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].title||"").toLowerCase()===t)return i;}return -1;}
@@ -1312,13 +1315,15 @@ var _batchDeleted={};
 function _delKey(sec,nm){return sec+"|"+String(nm||"").toLowerCase();}
 // Returns {labels, deleted:[keys]}. Deletions are single-item and targeted — they can never wipe a
 // section, which is why they're safe to automate (the old whole-section-shrink hazard is gone).
-function applyPatches(bp,patches){
+function applyPatches(bp,patches,deletedContext){
+  var deletedBefore=deletedContext||_batchDeleted;
   var labels=[],deleted=[],i,p,sec,isDel;
   for(i=0;i<patches.length;i++){
     p=patches[i];if(!p||!p.section)throw new Error("a patch is missing its section");
     sec=String(p.section);isDel=!!(p.delete||p.remove);
     if(_PATCH_BYNAME[sec]){
       var nm=String(p.name||(p.item&&p.item.name)||"");if(!nm)throw new Error(sec+" patch missing a name");
+      if(!Array.isArray(bp[sec]))bp[sec]=[];
       var ai=_findByName(bp[sec],nm);
       if(isDel){
         if(ai>=0){bp[sec].splice(ai,1);deleted.push(_delKey(sec,nm));labels.push(sec+": removed "+nm);}
@@ -1327,7 +1332,7 @@ function applyPatches(bp,patches){
         if(!p.item||typeof p.item!=="object")throw new Error(sec+" patch missing an item object");
         if(_PATCH_PRESERVE[sec])p.item=_PATCH_PRESERVE[sec](ai>=0?bp[sec][ai]:null,p.item);
         if(ai>=0){bp[sec][ai]=p.item;labels.push(sec+": "+nm);}
-        else if(_batchDeleted[_delKey(sec,nm)])labels.push(sec+": skipped "+nm+" (removed earlier this run)");
+        else if(deletedBefore[_delKey(sec,nm)])labels.push(sec+": skipped "+nm+" (removed earlier this run)");
         else{bp[sec].push(p.item);labels.push(sec+": "+nm+" (new)");}
       }
     }else if(sec==="arcs"){
@@ -1342,7 +1347,7 @@ function applyPatches(bp,patches){
       }else{
         if(!p.item||typeof p.item!=="object")throw new Error("arc patch missing an item object");
         if(rx>=0){bp.acts[ax].arcs[rx]=p.item;labels.push("arc: "+arcNm);}
-        else if(_batchDeleted[aKey])labels.push("arc: skipped "+arcNm+" (removed earlier this run)");
+        else if(deletedBefore[aKey])labels.push("arc: skipped "+arcNm+" (removed earlier this run)");
         else{bp.acts[ax].arcs.push(p.item);labels.push("arc: "+arcNm+" (new)");}
       }
     }else if(sec==="acts"){
@@ -1510,57 +1515,7 @@ async function applyAllFindings(){
 // one modal session, TRANSIENT — consultations never touch bp or the file. Each ask sends
 // the blueprint + the running exchange, so follow-ups have context. Entry points: toolbar
 // 💬 Ask… (general) and 💬 on a finding (seeded with it).
-var _askLog=[]; // [{q,a}] for the current modal session
-function closeAsk(){var m=document.getElementById("ask-modal");if(m)m.remove();_askLog=[];}
-function renderAskLog(){
-  var el=document.getElementById("ask-log");if(!el)return;
-  var h="",i;
-  for(i=0;i<_askLog.length;i++){
-    h+="<div style='margin-bottom:10px;'><div style='color:var(--acc);font-size:12px;margin-bottom:3px;'>You</div><div style='white-space:pre-wrap;'>"+esc(_askLog[i].q)+"</div></div>";
-    h+="<div style='margin-bottom:14px;'><div style='color:var(--grn);font-size:12px;margin-bottom:3px;'>Consultant</div><div style='white-space:pre-wrap;'>"+(_askLog[i].a==null?"<em style='color:var(--t2);'>thinking…</em>":esc(_askLog[i].a))+"</div></div>";
-  }
-  el.innerHTML=h||"<em style='color:var(--t2);'>Ask anything about this blueprint — canon vs invention, design tradeoffs, what the source module actually says.</em>";
-  el.scrollTop=el.scrollHeight;
-}
-function openAsk(seedFinding){
-  if(!llmReady())return;
-  closeAsk();
-  var wrap=document.createElement("div");
-  wrap.id="ask-modal";
-  wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;";
-  wrap.innerHTML="<div style='background:var(--bg1);border:1px solid var(--acc);border-radius:10px;width:min(760px,94vw);height:min(640px,88vh);padding:14px;display:flex;flex-direction:column;gap:10px;'>"
-    +"<div style='display:flex;align-items:center;'><span style='font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);flex:1;'>&#128172; Consult — "+esc(bp.name||"untitled")+"</span><button class='mini' id='ask-x'>Close</button></div>"
-    +(seedFinding?"<div style='font-size:12px;color:var(--t2);border-left:3px solid var(--brd2);padding:6px 10px;'>Re: ["+esc(seedFinding.sev)+"] "+esc(seedFinding.section)+" — "+esc(seedFinding.issue)+"</div>":"")
-    +"<div id='ask-log' style='flex:1;overflow-y:auto;font-size:13.5px;line-height:1.6;color:var(--t1);padding:4px 2px;'></div>"
-    +"<div style='display:flex;gap:8px;'><textarea id='ask-inp' style='flex:1;min-height:44px;height:44px;' placeholder='"+(seedFinding?"e.g. Is this fix canon or improv?":"Ask about the blueprint…")+"'></textarea><button class='tbtn primary' id='ask-send'>Ask</button></div></div>";
-  document.body.appendChild(wrap);
-  wrap.addEventListener("click",function(ev){if(ev.target===wrap)closeAsk();});
-  document.getElementById("ask-x").addEventListener("click",closeAsk);
-  var inp=document.getElementById("ask-inp");
-  async function send(){
-    var q=inp.value.trim();if(!q)return;
-    inp.value="";
-    _askLog.push({q:q,a:null});renderAskLog();
-    var btn=document.getElementById("ask-send");if(btn)btn.disabled=true;
-    try{
-      var payload=DesignerCreatures.textBlueprint(bp);delete payload.review;
-      var msg="BLUEPRINT UNDER DISCUSSION:\n"+JSON.stringify(payload,null,1)
-        +(seedFinding?"\n\nREVIEW FINDING UNDER DISCUSSION:\n["+seedFinding.sev+"] "+seedFinding.section+"\nIssue: "+seedFinding.issue+"\nFix option(s): "+(seedFinding.fixes||[seedFinding.fix||""]).join(" | "):"");
-      var x;for(x=0;x<_askLog.length-1;x++){msg+="\n\nUSER ASKED: "+_askLog[x].q+"\nYOU ANSWERED: "+_askLog[x].a;}
-      msg+="\n\nUSER ASKS: "+q;
-      var resp=await callGM(msg,"You are a consultant on this TTRPG campaign blueprint. Answer directly and concisely; you are advising the human author and cannot edit the blueprint. Plain text only.\nWHAT 'CANON' MEANS depends on the blueprint: IF it adapts a published work (the name/author credit will say so), canon = that published source — state explicitly what comes from the source versus what is invented, and flag uncertainty about the source. IF it is ORIGINAL/homebrew, the blueprint itself is the ONLY canon — never invent or imply an outside source; instead classify claims three ways: STATED (literally in the document), CONSISTENT EXTENSION (not stated but fits everything written — flag that accepting it makes it canon), or PURE INVENTION (no anchor in the document; imported genre defaults — call these out loudly).",1200,designerModel(),{noHistory:true,kind:"other"});
-      _askLog[_askLog.length-1].a=resp;
-    }catch(e){_askLog[_askLog.length-1].a="(failed: "+e.message+")";}
-    if(btn)btn.disabled=false;
-    renderAskLog();
-    inp.focus();
-  }
-  document.getElementById("ask-send").addEventListener("click",send);
-  inp.addEventListener("keydown",function(ev){if(ev.key==="Enter"&&!ev.shiftKey){ev.preventDefault();send();}});
-  renderAskLog();
-  inp.focus();
-}
-document.getElementById("btn-ask").addEventListener("click",function(){openAsk(null);});
+// The AI assistant owns its modal and request lifetime in designer-assistant-ui.js.
 
 // ── Cloud library (#15) ────────────────────────────────────────────────────────
 // Personal saves upsert by name. Catalog publication is an explicit, separately authorized action.
@@ -1768,5 +1723,6 @@ if(_draft&&_draft.bp&&_draft.bp.format){
 }
 updateCatalogAccess();
 </script>
+<script src="designer-assistant-ui.js"></script>
 </body>
 </html>

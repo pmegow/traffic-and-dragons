@@ -20,6 +20,7 @@ jobs:
     # #647: every browser suite writes its screenshots under one folder (/tmp: the runner context is not allowed in a job env), kept as an artifact when a step fails —
     # a flake that lands on the runner alone (the #615 signup and #501 chest clicks of 2026-10-19) then comes with a picture.
     env:
+      ASSISTANT_SHOTS: /tmp/tnd-shots/724-assistant
       SHOP_SHOTS: /tmp/tnd-shots/501-shop-button
       SIGNUP_SHOTS: /tmp/tnd-shots/615-signup
       MOBILE_SHOTS: /tmp/tnd-shots/611-mobile
@@ -152,6 +153,8 @@ jobs:
         run: node dev/tests-675-invitations-browser.js
       - name: Operator activity and beta mail controls (#674)
         run: node dev/tests-674-admin-updates-browser.js
+      - name: Blueprint author AI assistant (#724)
+        run: node dev/tests-724-designer-assistant-browser.js
       # #312 ①: a battery whose target file changed in this push runs in this push (the weekly
       # job proves every battery; this keeps a guard's own edit honest the day it lands). #481 G2: the
       # WHOLE push's range, once — not just its last commit.
