@@ -36032,4 +36032,54 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return api.indexOf("worldState.synopsis")<0?true:"nothing in the prompt reads the record — the recap is the player's, never the GM's";
   });
 
+  section("#723 creature environments and selected acts");
+  function acts723(){return ["First","Second","Third"].map(function(title,i){return {title:title,goal:"Explore",status:i===0?"active":"pending",arcs:[{title:title+" road",objective:"Travel",status:i===0?"active":"pending"}]};});}
+  function world723(c){makeWorld();worldState.turn=0;worldState.skeleton={premise:"A border story.",acts:acts723()};worldState.bestiary=[c];}
+  function phase723(n){worldState.skeleton.acts.forEach(function(a,i){a.status=i<n-1?"completed":i===n-1?"active":"pending";});}
+  t("#723 a noncontiguous whitelist admits only its selected acts and retains the final coda",function(){
+    world723({name:"Forest sentinel",notes:"Keeps the trees.",availableActs:[1,3]});
+    if(buildSysPrompt().stable.indexOf("Forest sentinel")<0)return "Act I selection missing";
+    phase723(2);if(buildSysPrompt().stable.indexOf("Forest sentinel")>=0)return "unselected Act II offered the creature";
+    phase723(3);var last=buildSysPrompt().stable;if(last.indexOf("Forest sentinel")<0)return "Act III selection missing";
+    worldState.skeleton.acts[2].status="completed";return buildSysPrompt().stable===last?true:"final completion changed the bestiary";
+  });
+  t("#723 all active acts count and actual completion removes only the ended selection",function(){
+    var c={name:"First patrol",availableActs:[1]};world723(c);worldState.skeleton.acts[1].status="active";
+    if(!creatureAvailable(c)||!creatureAvailable({availableActs:[2]})||creatureAvailable({availableActs:[3]}))return "active-act intersection is wrong";
+    applyMuts("[ARC_COMPLETE:First road][ACT_COMPLETE:First]");
+    if(worldState.skeleton.acts[1].status!=="active")return "fixture did not retain the already-active second act";
+    return !creatureAvailable(c)&&creatureAvailable({availableActs:[2]})?true:"completed Act I still offered its patrol";
+  });
+  t("#723 empty closed and invalid selections never become unrestricted",function(){
+    world723({name:"Never",availableActs:[]});if(creatureAvailable(worldState.bestiary[0]))return "empty selection opened";
+    worldState.skeleton.acts.forEach(function(a){a.status="pending";});if(creatureAvailable({availableActs:[1]}))return "no opened act admitted a restricted creature";
+    phase723(1);
+    var bad=[null,"1",[0],[4],[1,1],[1.5],["1"]];
+    for(var i=0;i<bad.length;i++){
+      var c={name:"Invalid",availableActs:bad[i]},bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"Test",premise:"A story",acts:acts723(),creatures:[c]});
+      if(!validateBlueprint(bp)||creatureAvailable(c))return "invalid selection admitted: "+JSON.stringify(bad[i]);
+    }
+    var both={name:"Ambiguous",revealAct:2,availableActs:[1]};
+    return validateBlueprint(normalizeBlueprint({format:"tnd-blueprint-v1",name:"Test",premise:"P",acts:acts723(),creatures:[both]}))&&!creatureAvailable(both)?true:"conflicting gates admitted";
+  });
+  t("#723 environment and selections survive import without changing legacy gates",function(){
+    world723({name:"Legacy",kind:"beast",threat:"low",notes:"Old notes."});var before=buildSysPrompt().stable;
+    if(before.indexOf("• Legacy (beast, threat: low) — Old notes.")<0)return "legacy row changed";
+    var gate={name:"Later",revealAct:2};if(creatureAvailable(gate))return "legacy gate opened early";phase723(2);if(!creatureAvailable(gate))return "legacy active gate hidden";phase723(3);if(!creatureAvailable(gate))return "legacy completed gate hidden";
+    var bp=normalizeBlueprint({format:"tnd-blueprint-v1",name:"Test",premise:"P",acts:acts723(),creatures:[{name:"Fen scout",environment:"Swamp",availableActs:[1,3],notes:"Keeps the causeway."}]});
+    if(validateBlueprint(bp))return validateBlueprint(bp);applyBlueprint(bp);
+    var p=buildSysPrompt().stable;if(p.indexOf("Environment: Swamp")<0)return "environment missing from bestiary";
+    var saved=JSON.parse(JSON.stringify(worldState));return saved.bestiary[0].environment==="Swamp"&&saved.bestiary[0].availableActs.join(",")==="1,3"?true:"new fields lost in saved world";
+  });
+  t("#723 whitelist-only private notes stay explicitly private",function(){
+    world723({name:"Guard",availableActs:[1],notes:"PRIVATE_SENTINEL"});
+    return buildSysPrompt().stable.indexOf("GM-only: PRIVATE_SENTINEL")>=0?true:"selected creature lost the GM-only boundary";
+  });
+  t("#723 ordinary turns location and combat do not change the stable bestiary",function(){
+    world723({name:"Forest sentinel",environment:"Forest",availableActs:[1,3],notes:"Keeps the trees."});worldState.bestiary.push({name:"Later sentinel",availableActs:[2],notes:"Waits in the fen."});var first=buildSysPrompt().stable;
+    worldState.turn=777;worldState.world.location="A new path";worldState.transcript=[{r:"gm",x:"The trees stir."}];
+    worldState.combat={active:true,foes:[{name:"Forest sentinel",hp:8,maxHp:8,ac:12}],round:1};
+    return buildSysPrompt().stable===first?true:"ordinary play rewrote the stable prompt";
+  });
+
 }

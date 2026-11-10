@@ -103,6 +103,14 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 #creature-gen-modal input,#creature-gen-modal select,#creature-gen-modal button{min-height:44px;font-size:14px;}
 #creature-gen-status{color:var(--acc);min-height:20px;line-height:1.5;}
 @media(max-width:540px){#creature-gen-modal .grid2{grid-template-columns:1fr;}}
+
+.creature-acts{margin:10px 0;border:1px solid var(--brd2);border-radius:var(--r);padding:0 10px;}
+.creature-acts summary{cursor:pointer;min-height:44px;padding:11px 0;line-height:1.4;}
+.creature-act-options{border:0;margin:0;padding:0 0 8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px;}
+.creature-act-options legend{font-size:12px;color:var(--t2);padding:0 0 6px;}
+.creature-act-options label,#creature-gen-modal .creature-act-options label{display:flex;flex-direction:row;align-items:center;gap:8px;min-height:44px;font:inherit;text-transform:none;letter-spacing:normal;}
+.creature-act-options input[type=checkbox],#creature-gen-modal .creature-act-options input[type=checkbox]{width:18px;height:18px;min-height:18px;flex:0 0 18px;accent-color:var(--acc);}
+@media(max-width:540px){.creature-act-options{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -157,13 +165,14 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="tts.js"></script>
 <script src="ui-shell.js"></script>
 <script src="ui-portrait.js"></script>
+<script src="designer-acts.js"></script>
 <script src="designer-creatures.js"></script>
 <script src="designer-prose.js"></script>
 <script>
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.63";
+var BP_DESIGNER_VERSION="v0.64";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // ── Draft persistence (v0.31) ─────────────────────────────────────────────────
@@ -418,7 +427,8 @@ function render(){
       h+="<div class='grid2'>"+fld("Name *",txt("creature",i,0,"name",C.name,""))+fld("Kind",txt("creature",i,0,"kind",C.kind||"","beast / undead / aberration / construct / …"))+"</div>"
       +fld("Threat",txt("creature",i,0,"threat",C.threat||"","low / moderate / deadly / apex — or a CR"))
       +fld("Public name (optional disguise)",txt("creature",i,0,"displayName",C.displayName||"","Name used on screen; canonical Name stays the combat identity"))
-      +fld("Available from act (optional)",txt("creature",i,0,"revealAct",C.revealAct===undefined?"":C.revealAct,"1-based act number; blank means available from the start"))
+      +fld("Environment",creatureEnvironmentField(i,C))
+      +creatureActsMenu(C,bp.acts,i)
       +fldB("Public appearance","creature",i,0,"desc","Creature appearance: "+(C.name||"creature"),ta("creature",i,0,"desc",C.desc||"","Only what the hero can perceive; no concealed truth"))
       +fldB("GM-only notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"));
       h+=designerPortraitActions("creature",C,i);
@@ -612,6 +622,7 @@ function bpFieldSet(sec,i,j,k,v){
   if(sec==="rule"){if(i<bp.rules.length)bp.rules[i]=v;return;}
   var f=FIELD_ROOTS[sec],o=f&&f(i,j);
   if(!o)return;
+  if(sec==="creature"&&k==="environment"&&v==="Any environment"){delete o.environment;return;}
   if((sec==="npc"||sec==="creature")&&k==="revealAct"){if(sec==="creature"&&!String(v).trim())delete o[k];else o[k]=/^\d+$/.test(String(v).trim())?Number(v):v;return;}
   if(sec==="cclass"&&k==="name"){var _oldNm=o.name;o.name=v;availRename(_oldNm,v);return;}
   if(sec==="cclass"&&(k==="statPriority"||k==="skillSeeds")){o[k]=csvToList(v,k==="statPriority");return;}
@@ -664,10 +675,10 @@ document.addEventListener("click",function(e){
     if(co){co._c=co._c?0:1;render();}
     return;
   }
-  if(op==="addact")bp.acts.push(blankAct());
-  else if(op==="delact"){if(!confirm("Remove Act "+(i+1)+" and its arcs?"))return;bp.acts.splice(i,1);}
-  else if(op==="upact")move(bp.acts,i,-1);
-  else if(op==="downact")move(bp.acts,i,1);
+  if(op==="addact"||op==="delact"||op==="upact"||op==="downact"){
+    if(op==="delact"&&!confirm("Remove Act "+(i+1)+" and its arcs?"))return;
+    if(!restructureDesignerActs(op,i))return;
+  }
   else if(op==="addarc")bp.acts[i].arcs.push(blankArc());
   else if(op==="delarc"){if(bp.acts[i].arcs.length<=1&&!confirm("Every act needs at least one arc — remove anyway?"))return;bp.acts[i].arcs.splice(j,1);}
   else if(op==="uparc")move(bp.acts[i].arcs,j,-1);
@@ -961,6 +972,32 @@ function wireLlmSelect(){
 }
 // Compact story context — what the model needs to invent IN SERVICE to this campaign,
 // nothing else. Existing creatures included so it complements instead of duplicating.
+function creatureActSummary(selected,acts){return !selected.length&&acts.length?"No acts selected":selected.length===acts.length?"All acts":"Acts "+selected.join(", ");}
+function creatureActsMenu(c,acts,index){
+  var selected=[],issue="";try{selected=DesignerActs.selection(c,acts);}catch(e){issue=e.message;}
+  var h="<details class='creature-acts'><summary>Available acts: <span data-act-summary>"+esc(creatureActSummary(selected,acts))+"</span></summary><fieldset class='creature-act-options'><legend>Creatures may appear in</legend>";
+  acts.forEach(function(a,i){h+="<label><input type='checkbox' data-creature-act='"+(i+1)+"'"+(index===undefined?"":" data-creature-index='"+index+"'")+(selected.indexOf(i+1)>=0?" checked":"")+">Act "+(i+1)+": "+esc(a.title||"Untitled act")+"</label>";});
+  if(!acts.length)h+="<p class='creature-help'>Add campaign acts to choose availability.</p>";
+  h+="</fieldset><p class='creature-help' data-act-empty"+(selected.length||!acts.length?" hidden":"")+">Not offered in any act.</p>";
+  if(issue)h+="<p class='creature-help'>"+esc(issue)+" Choose a valid selection.</p>";
+  return h+"</details>";
+}
+function creatureCheckedActs(host){return Array.prototype.filter.call(host.querySelectorAll('[data-creature-act]'),function(el){return el.checked;}).map(function(el){return Number(el.getAttribute('data-creature-act'));});}
+function creatureEnvironmentField(i,c){
+  var f=DesignerCreatures.fields.environment,value=c.environment||f.default,values=f.values.slice();if(values.indexOf(value)<0)values.push(value);
+  return "<select data-sec='creature' data-i='"+i+"' data-j='0' data-k='environment'>"+values.map(function(v){return "<option value='"+esc(v)+"'"+(v===value?" selected":"")+">"+esc(v)+"</option>";}).join("")+"</select>";
+}
+document.addEventListener("change",function(e){
+  var t=e.target;if(!t.getAttribute||t.getAttribute("data-creature-act")===null)return;
+  var menu=t.closest('.creature-acts'),selected=creatureCheckedActs(menu),idx=t.getAttribute("data-creature-index");
+  if(idx!==null){try{DesignerActs.choose(bp.creatures[Number(idx)],selected,bp.acts);markDirty();}catch(err){console.warn('[designer acts] '+err.message);setStatus(err.message,'err');return;}}
+  menu.querySelector('[data-act-summary]').textContent=creatureActSummary(selected,bp.acts);menu.querySelector('[data-act-empty]').hidden=selected.length>0||!bp.acts.length;
+});
+function restructureDesignerActs(op,index){
+  var next=bp.acts.slice();
+  if(op==="addact")next.push(blankAct());else if(op==="delact")next.splice(index,1);else move(next,index,op==="upact"?-1:1);
+  try{DesignerActs.restructure(bp,next);return true;}catch(err){console.warn('[designer acts] '+err.message);setStatus(err.message,'err');return false;}
+}
 function storyContext(){
   var L=["CAMPAIGN BLUEPRINT:","Name: "+(bp.name||"(unnamed)"),"Tone: "+(bp.tone||"unset"),"Premise: "+(bp.premise||"(none)")],i,j;
   for(i=0;i<bp.acts.length;i++){var a=bp.acts[i],arcs=[];
@@ -975,7 +1012,7 @@ function storyContext(){
 var creatureGeneration=null,creaturePortraitJobs=[];
 // Each card type supplies only its public visual identity; persistence and UI share one path.
 var DESIGNER_PORTRAITS={
-  creature:{section:"creatures",label:"creature",identity:function(c){return JSON.stringify([c.name,c.kind,c.threat,c.notes,c.desc,c.displayName]);},prompt:DesignerCreatures.portraitPrompt},
+  creature:{section:"creatures",label:"creature",identity:function(c){return JSON.stringify([c.name,c.kind,c.threat,c.notes,c.desc,c.displayName,c.environment]);},prompt:DesignerCreatures.portraitPrompt},
   npc:{section:"npcs",label:"NPC",identity:function(c){return JSON.stringify([c.name,c.role,c.pronouns,c.notes]);},prompt:function(c){return "Character portrait of "+c.name+". Role: "+(c.role||"unspecified")+". Pronouns: "+(c.pronouns||"unspecified")+". Public description: "+c.notes+" Depict their described appearance and clothing in a fitting setting. Do not invent hidden identities or transformations. No lettering or stat blocks.";}}
 };
 function designerPortraitAttrs(type,action,i){return " data-op='"+type+"portrait"+({generate:"",view:"view",remove:"remove"}[action])+"' data-portrait-type='"+type+"' data-portrait-action='"+action+"' data-i='"+i+"'";}
@@ -989,7 +1026,7 @@ function designerPortraitAside(type,c,i){
 }
 async function genCreatureBatch(input,progress){
   if(creatureGeneration)throw new Error("A creature batch is still running.");
-  var plans=DesignerCreatures.plan(input),target=bp,original=JSON.stringify(bp.creatures),entries=[],job={cancelled:false};
+  var plans=DesignerCreatures.plan(input,null,bp.acts),target=bp,original=JSON.stringify(DesignerCreatures.textBlueprint(bp)),entries=[],job={cancelled:false};
   creatureGeneration=job;
   try{
     for(var i=0;i<plans.length;i++){
@@ -997,7 +1034,7 @@ async function genCreatureBatch(input,progress){
       var msg=DesignerCreatures.prompt(storyContext(),plans[i],entries.map(function(c){return c.name;}));
       var response=await callGM(msg,"You design campaign bestiary entries. Return only valid JSON, without code fences.",1200,designerModel(),{noHistory:true,kind:"other"});
       if(job.cancelled)throw new Error("Generation cancelled; no creatures were added.");
-      if(bp!==target||JSON.stringify(target.creatures)!==original)throw new Error("The bestiary changed during generation; no creatures were added.");
+      if(bp!==target||JSON.stringify(DesignerCreatures.textBlueprint(target))!==original)throw new Error("The blueprint changed during generation; no creatures were added.");
       entries.push(DesignerCreatures.entry(JSON.parse(repairModelJson(response)),plans[i],target.creatures.concat(entries),target.acts));
     }
     Array.prototype.push.apply(target.creatures,entries);
@@ -1015,7 +1052,7 @@ function openCreatureGenerator(){
     h+="<label"+(key==="treasure"?" style='grid-column:1/-1;'":"")+">"+f.label+"<select id='creature-"+key+"'><option value='random'>Random</option>";
     f.values.forEach(function(v){h+="<option value='"+esc(v)+"'"+(f.default===v?" selected":"")+">"+esc(v)+"</option>";});h+="</select>"+(f.help?"<small"+(key==="kind"?" id='creature-kind-help' hidden":"")+">"+esc(f.help)+"</small>":"")+"</label>";
   });
-  h+="</div><p class='creature-help'>Optional portraits use your image provider separately, from each creature’s card.</p>"
+  h+="</div>"+creatureActsMenu({},bp.acts)+"<p class='creature-help'>Optional portraits use your image provider separately, from each creature’s card.</p>"
     +"<div id='creature-gen-status' role='status' aria-live='polite'></div>"
     +"<div class='creature-actions'><button type='button' class='tbtn' id='creature-gen-cancel'>Cancel</button><button type='submit' class='tbtn primary' id='creature-gen-go'>Generate</button></div></form>";
   var timer=null;
@@ -1025,9 +1062,9 @@ function openCreatureGenerator(){
   var form=document.getElementById("creature-gen-form"),status=document.getElementById("creature-gen-status"),go=document.getElementById("creature-gen-go");
   form.addEventListener("submit",async function(e){
     e.preventDefault();if(!llmReady()){status.textContent=document.getElementById("statusline").textContent;return;}
-    var input={count:document.getElementById("creature-count").value};
+    var input={count:document.getElementById("creature-count").value,availableActs:bp.acts.length?creatureCheckedActs(form):undefined};
     Object.keys(DesignerCreatures.fields).forEach(function(k){input[k]=document.getElementById("creature-"+k).value;});
-    try{DesignerCreatures.plan(input);}catch(err){status.textContent=err.message;return;}
+    try{DesignerCreatures.plan(input,null,bp.acts);}catch(err){status.textContent=err.message;return;}
     go.disabled=true;var controls=form.querySelectorAll("input,select");Array.prototype.forEach.call(controls,function(el){el.disabled=true;});document.getElementById("creature-gen-cancel").textContent="Cancel batch";timer=elapsedTicker(status,"Generating creatures…",{text:true});
     try{
       var entries=await genCreatureBatch(input,function(n,total){timer.set("Generating creature "+n+" of "+total+"…");});
@@ -1151,7 +1188,7 @@ var ENGINE_CONTRACT="ENGINE CONTRACT — the game runtime ALREADY handles all of
   +"- Arc/act rewards: the engine instructs the GM to grant them in the same response as the completion emission; reward mechanics never need explaining in the blueprint.\n"
   +"- Arc types: the engine supplies generic type guidance (combat/investigation/exploration/social) when no dnaHint exists.\n"
   +"- Location descriptions: injected permanently and verbatim whenever the party is there; they need no delivery mechanism.\n"
-  +"- Creatures: revealAct (optional 1-based act) withholds the whole entry until that act opens; desc is public appearance, notes are GM-only, displayName is an optional public combat label. Preserve these fields when revising a creature. NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
+  +"- Creatures: revealAct (optional 1-based act) withholds the whole entry until that act opens; desc is public appearance, notes are GM-only, displayName is an optional public combat label. Optional environment describes habitat. availableActs is an exact list of existing 1-based acts, absent for all, [] for none; do not combine it with legacy revealAct. Preserve these fields when revising a creature. NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
   +"- Stats, dice, HP, XP, leveling, combat mechanics: entirely engine-side; blueprints carry CHARACTER, never numbers.\n"
   +"THE SCHEMA IS FIXED. Never invent fields or structures. NPC notes hold immediately available guidance and early-act behavior. A gated hidden truth belongs ONLY in the supported singular secret field with revealAct (an integer, 1-based act number); the engine withholds it until that act opens. Keep its discovery conditions in secret too. Never duplicate the hidden truth in notes, premise, other NPC notes, or future-act titles/goals (those are visible early). Future-act arc objectives are delivered only when their act opens. For legacy files, propose moving a timed secret from notes into secret + revealAct, not duplicating it.";
 // ── Chunked review (v0.22) ──────────────────────────────────────────────────────
@@ -1262,7 +1299,7 @@ var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all 
 // items it changed, matched into place by identity (name for npcs/locations/creatures, title for
 // acts/arcs, substring for the string rules). Arrays never shrink here — items are replaced in place
 // or appended — so the old shrink guards are obsolete; validateBlueprint is still the backstop.
-var _PATCH_PRESERVE={creatures:DesignerCreatures.preservePortrait,npcs:DesignerCreatures.preservePortrait};
+var _PATCH_PRESERVE={creatures:DesignerCreatures.preserveCreature,npcs:DesignerCreatures.preservePortrait};
 var _PATCH_BYNAME={npcs:1,locations:1,creatures:1}; // arrays of objects keyed by .name
 var _PATCH_TOP={name:1,author:1,tone:1,proseAuthor:1,narratorVoice:1,premise:1,startingLocation:1,startingRegion:1,startingTime:1}; // top-level strings
 function _findByName(arr,nm){var i;nm=String(nm||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].name||"").toLowerCase()===nm)return i;}return -1;}
@@ -1312,7 +1349,7 @@ function applyPatches(bp,patches){
       var atNm=String(p.name||(p.item&&p.item.title)||"");if(!atNm)throw new Error("act patch missing a name");
       var tx=_findByTitle(bp.acts,atNm);
       if(isDel){
-        if(tx>=0){bp.acts.splice(tx,1);deleted.push(_delKey("act",atNm));labels.push("act: removed "+atNm);}
+        if(tx>=0){var nextActs=bp.acts.slice();nextActs.splice(tx,1);DesignerActs.restructure(bp,nextActs);deleted.push(_delKey("act",atNm));labels.push("act: removed "+atNm);}
         else labels.push("act: "+atNm+" already absent");
       }else{
         if(!p.item||typeof p.item!=="object")throw new Error("act patch missing an item object");
@@ -1362,7 +1399,7 @@ async function applyFinding(idx){
       +"\n- a top-level string (premise/tone/startingLocation/…): {\"section\":\"premise\",\"item\":\"<new value>\"}"
       +"\n- to REMOVE an item (e.g. a duplicate): {\"section\":\"npcs\"|\"locations\"|\"creatures\"|\"acts\"|\"arcs\"|\"rules\",\"name\":\"<its name/title>\",\"delete\":true} (add \"act\":\"<act title>\" for an arc; \"name\" = a unique phrase for a rule) — no \"item\" needed."
       +"\nMatch \"name\" to an EXISTING item to edit it, or give a new name to add one. Include ONLY the items the fix actually touches — do NOT echo unchanged items."
-      +"\nTHE SCHEMA IS FIXED: use supported fields only. NPC secret (singular) and revealAct (1-based integer) are supported even if absent from a legacy input. Gated truths and discovery conditions go ONLY in secret, never duplicated in notes, premise, other NPC notes, or future-act titles/goals. Notes hold immediately available guidance and behavior."
+      +"\nTHE SCHEMA IS FIXED: use supported fields only. Creatures support environment (habitat), availableActs (exact act-number list, [] means none, omit for all), desc (visible appearance), displayName (disguised combat label), and legacy revealAct (available from that act); never combine availableActs and revealAct. NPC secret (singular) and revealAct (1-based integer) are supported even if absent from a legacy input. Gated truths and discovery conditions go ONLY in secret, never duplicated in notes, premise, other NPC notes, or future-act titles/goals. Notes hold immediately available guidance and behavior."
       // No-new-holes clause (v0.32): an applied fix that name-drops an undefined entity or
       // contradicts an unedited section just becomes the NEXT review's finding — churn.
       +"\nNO NEW HOLES: this blueprint is a CLOSED WORLD. Every person, place, faction, god, item, or event your patched text mentions must either already be defined in the blueprint or be fully defined by another patch in THIS same response — never name-drop something you leave undefined. Do not contradict sections you are not editing. The result must survive a fresh review of this issue with zero new findings.";

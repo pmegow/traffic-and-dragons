@@ -1,5 +1,5 @@
 {
-  "version": "v1.1392",
+  "version": "v1.1393",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -41,6 +41,7 @@
     "Authored creatures can wait for a later act and use a public appearance and disguise name while their hidden details stay private.",
     "Narration describes disguised creatures as they appear, preserving hidden identities until the story reveals them.",
     "In new campaigns, unvisited blueprint places enter known locations only after the story names them. Existing campaigns retain their lists.",
-    "The Silence Between Leaves v1.01 opens with real court patrols and keeps later conspirators out of the opening bestiary."
+    "The Silence Between Leaves v1.01 opens with real court patrols and keeps later conspirators out of the opening bestiary.",
+    "The Blueprint Designer adds creature habitats and act checkboxes, with all acts selected by default."
   ]
 }

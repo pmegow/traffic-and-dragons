@@ -3180,8 +3180,9 @@ function validateBlueprint(bp){
   }
   if(bp.creatures){var ci;for(ci=0;ci<bp.creatures.length;ci++){
     var cr=bp.creatures[ci];if(!cr||!cr.name)return "Creature "+(ci+1)+" is missing a name.";
+    if(cr.availableActs!==undefined&&(cr.revealAct!==undefined||!validCreatureActs(cr.availableActs,bp.acts)))return "Creature \""+cr.name+"\" needs unique available act numbers, with no legacy revealAct field.";
     if(cr.revealAct!==undefined&&!validRevealAct(cr.revealAct,bp.acts))return "Creature \""+cr.name+"\" needs a reveal act number from 1 to "+(bp.acts||[]).length+". It stays withheld until a valid act opens.";
-    for(var cfi=0,cfields=["desc","displayName"];cfi<cfields.length;cfi++)if(cr[cfields[cfi]]!==undefined&&typeof cr[cfields[cfi]]!=="string")return "Creature \""+cr.name+"\" "+cfields[cfi]+" must be text.";
+    for(var cfi=0,cfields=["desc","displayName","environment"];cfi<cfields.length;cfi++)if(cr[cfields[cfi]]!==undefined&&typeof cr[cfields[cfi]]!=="string")return "Creature \""+cr.name+"\" "+cfields[cfi]+" must be text.";
     if(cr.displayName&&cr.displayName.trim())for(var cj=0;cj<bp.creatures.length;cj++){
       var other=bp.creatures[cj],alias=cr.displayName.trim().toLowerCase();if(ci===cj||!other)continue;
       if(alias===String(other.name||"").trim().toLowerCase()||alias===String(other.displayName||"").trim().toLowerCase())return "Creature public name \""+cr.displayName+"\" is ambiguous; choose a name unique to this creature.";
@@ -3314,6 +3315,7 @@ function blueprintTextFields(bp){
   (bp.acts||[]).forEach(function(a,i){if(!a)return;add(a,["title","goal","dnaHint","desc"],"acts."+i+".",caps.field);(a.arcs||[]).forEach(function(r,j){add(r,["title","objective","dnaHint","desc"],"acts."+i+".arcs."+j+".",caps.field);});});
   ["npcs","locations","creatures"].forEach(function(section){(bp[section]||[]).forEach(function(o,i){add(o,["name","notes","secret","desc","role","status","relation","sizeNote"],section+"."+i+".",caps.field);});});
   (bp.creatures||[]).forEach(function(c,i){if(c&&c.displayName!==undefined)add(c,["displayName"],"creatures."+i+".",caps.field);});
+  (bp.creatures||[]).forEach(function(c,i){if(c&&c.environment!==undefined)add(c,["environment"],"creatures."+i+".",80);});
   (bp.rules||[]).forEach(function(rule,i){add(bp.rules,[i],"rules.",caps.rule);});return out;
 }
 // ── #192 — blueprint class roster: custom classes + curated availability ───────

@@ -524,7 +524,20 @@ function fileNpcSecret(n,text,revealAct){
   n.secrets.push({source:"blueprint",text:text,revealAct:revealAct});return true;
 }
 // Act numbers are one-based and status-owned, like plot armor. Missing/corrupt gates stay closed.
+function validCreatureActs(values,acts){
+  if(!Array.isArray(values))return false;
+  var seen={},i,n;for(i=0;i<values.length;i++){n=values[i];if(!validRevealAct(n,acts)||seen[n])return false;seen[n]=1;}return true;
+}
 function creatureAvailable(c){
+  if(c&&c.availableActs!==undefined){
+    var phases=(worldState&&worldState.skeleton&&worldState.skeleton.acts)||[];
+    if(c.revealAct!==undefined||!validCreatureActs(c.availableActs,phases)){console.warn("[bestiary] "+c.name+": withheld — availableActs is invalid or conflicts with revealAct");return false;}
+    var active=false,last=0,i;for(i=0;i<phases.length;i++){
+      if(phases[i].status==="active"){active=true;if(c.availableActs.indexOf(i+1)>=0)return true;}
+      if(phases[i].status==="completed")last=i+1;
+    }
+    return !active&&last>0&&c.availableActs.indexOf(last)>=0;
+  }
   if(!c||c.revealAct===undefined)return true;
   var acts=(worldState&&worldState.skeleton&&worldState.skeleton.acts)||[];
   if(!validRevealAct(c.revealAct,acts)){console.warn("[bestiary] "+c.name+": withheld — revealAct does not name a valid skeleton act");return false;}

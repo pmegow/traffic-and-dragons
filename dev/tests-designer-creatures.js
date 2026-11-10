@@ -9,6 +9,27 @@ await test('creature controls expose the requested choices',()=>{
  for(const [key,values] of Object.entries({kind:['Beast','Humanoid','Corrupted','Giant','Undead','Magical','Pack'],threat:['Safe','Minor','Dangerous','Lethal','Catastrophic'],frequency:['common','uncommon','scarce','rare','unique'],treasure:['None','Coins & valuables','Equipment','Crafting materials','Magic items','Relics','Mixed hoard']})) for(const v of values)assert(C.fields[key].values.includes(v),key+': '+v);
 });
 if(C){
+await test('#723 environment dropdown choices drive prompt and stored entries',()=>{
+ assert(C.fields.environment,'Environment control missing');for(const v of ['Forest','Swamp','Desert','Urban area'])assert(C.fields.environment.values.includes(v));
+ const acts=[{}, {}, {}];const plans=C.plan({count:2,kind:'Humanoid',threat:'Minor',frequency:'common',environment:'Forest',availableActs:[1,3]},()=>0,acts);
+ assert.deepEqual(plans[0].availableActs,[1,3]);assert(C.prompt('A border story',plans[0],[]).includes('Environment: Forest'));
+ assert(C.prompt('A border story',plans[0],[]).includes('1, 3'));
+ const c=C.entry({name:'Forest soldier',notes:'A genuine forest patrol.',desc:'An antlered guard.',environment:'Desert',revealAct:2},plans[0],[],acts);
+ assert.equal(c.environment,'Forest');assert.deepEqual(c.availableActs,[1,3]);assert.equal(c.revealAct,undefined);
+});
+await test('#723 all-acts default is unrestricted and no-acts selection stays empty',()=>{
+ const acts=[{}, {}, {}],input={count:1,kind:'Beast',threat:'Minor',frequency:'common'};
+ let p=C.plan(input,()=>0,acts)[0];assert.deepEqual(p.availableActs,[1,2,3]);assert.equal(p.environment,'Any environment');
+ let c=C.entry({name:'Hare',notes:'A hare.'},p,[],acts);assert.equal(c.availableActs,undefined);assert.equal(c.environment,undefined);
+ p=C.plan({...input,availableActs:[]},()=>0,acts)[0];c=C.entry({name:'Hare',notes:'A hare.'},p,[],acts);assert.deepEqual(c.availableActs,[]);
+ for(const availableActs of [null,[0],[4],[1,1],['1']])assert.throws(()=>C.plan({...input,availableActs},()=>0,acts),/act/i);
+});
+
+await test('#723 a draft without acts defaults to unrestricted rather than promising exclusion',()=>{
+ const p=C.plan({count:1,kind:'Beast',threat:'Minor',frequency:'common'},()=>0,[])[0];assert.equal(p.availableActs,undefined);
+ const c=C.entry({name:'Hare',notes:'A hare.'},p,[],[]);assert.equal(c.availableActs,undefined);
+ const explicit=C.plan({count:1,kind:'Beast',threat:'Minor',frequency:'common',availableActs:[]},()=>0,[])[0];assert.deepEqual(C.entry({name:'Hare',notes:'A hare.'},explicit,[],[]).availableActs,[]);
+});
 await test('counts reject empty fractional zero negative and excessive batches',()=>{for(const count of ['',0,-1,1.5,21,'2cats',Infinity])assert.throws(()=>C.plan({count,kind:'Beast',threat:'Safe',frequency:'common'}),/whole number/);assert.equal(C.plan({count:'20',kind:'Beast',threat:'Safe',frequency:'common'}).length,20);assert.throws(()=>C.plan({count:1,kind:'wrong',threat:'Safe',frequency:'common'}),/Kind/);});
 await test('random resolves independently per creature and fixed picks are authoritative',()=>{let n=0;const plans=C.plan({count:3,kind:'random',threat:'Dangerous',frequency:'random'},()=>((n++)%3)/3);assert.notEqual(plans[0].kind,plans[1].kind);assert(plans.every(p=>p.threat==='Dangerous'&&p.frequency!=='random'));const e=C.entry({name:'Moth',kind:'wrong',threat:'wrong',notes:'Feeds on candlelight.'},plans[0],[]);assert.equal(e.kind,plans[0].kind);assert.equal(e.threat,'Dangerous');assert(e.notes.startsWith('Frequency: '+plans[0].frequency+'. '));});
 await test('treasure selection persists in notes and default None avoids unintended loot',()=>{const defaults=C.plan({count:1,kind:'Beast',threat:'Safe',frequency:'common'});assert.equal(defaults[0].treasure,'None');const p=C.plan({count:1,kind:'Construct',threat:'Minor',frequency:'rare',treasure:'Salvage'})[0];assert(C.prompt('Workshop',p,[]).includes('Treasure type: Salvage'));assert(C.entry({name:'Clockwork bat',notes:'Lives in the rafters.'},p,[]).notes.includes('Treasure: Salvage.'));});
@@ -26,7 +47,8 @@ await test('#719 generated public fields survive without copying private notes',
 });
 const html=fs.readFileSync(path.join(root,'blueprint-designer.html'),'utf8');
 await test('#719 designer exposes typed reveal gates and public appearance',()=>{
- for(const field of ['desc','displayName','revealAct'])assert(html.includes('"creature",i,0,"'+field+'"'),field+' editor');
+ for(const field of ['desc','displayName'])assert(html.includes('"creature",i,0,"'+field+'"'),field+' editor');
+ assert(html.includes("creatureActsMenu(C,bp.acts,i)"),"act selection editor replaces the numeric reveal field");
  const engine=require('./load-engine.js');engine.loadEngine('game.js');
  const c={bp:{creatures:[{}]},FIELD_ROOTS:{creature:()=>c.bp.creatures[0]}};vm.createContext(c);
  const a=html.indexOf('function bpFieldSet('),b=html.indexOf('function ',a+10);vm.runInContext(html.slice(a,b),c);
@@ -45,6 +67,8 @@ await test('#719 generated gate outside the actual acts refuses the whole batch'
  const c=fixture();c.bp.acts=[{},{}];c.callGM=async()=>JSON.stringify({name:'Rider',notes:'Private.',revealAct:999});
  await assert.rejects(c.genCreatureBatch({count:1,kind:'Beast',threat:'Minor',frequency:'rare'},()=>{}),/revealAct/);assert.equal(c.bp.creatures.length,0);
 });
+await test('#723 act and context changes discard pending generations',async()=>{for(const field of ['acts','rules','premise']){const c=fixture();c.bp.acts=[{title:'First'}];c.callGM=async()=>{c.bp[field]=field==='acts'?[{title:'Other'}]:field==='rules'?['New rule']:'New premise';return '{"name":"Moth","notes":"Light."}';};await assert.rejects(c.genCreatureBatch({count:1,kind:'Beast',threat:'Minor',frequency:'rare'},()=>{}),/changed/);assert.equal(c.bp.creatures.length,0);}});
+await test('#723 text patches preserve habitat act choices and public details',()=>{const old={portrait:'saved',environment:'Forest',availableActs:[1,3],desc:'A cloak',displayName:'Rider'};const c=C.preserveCreature(old,{name:'Guard',notes:'Revised'});for(const k of Object.keys(old))assert.deepEqual(c[k],old[k],k);assert.notEqual(c.availableActs,old.availableActs);assert.equal(C.preserveCreature(old,{name:'Guard',revealAct:2}).availableActs,undefined);assert.equal(C.preserveCreature({revealAct:2},{name:'Guard',availableActs:[1]}).revealAct,undefined);});
 await test('cancelled or replaced drafts never receive late creatures',async()=>{for(const mode of ['cancel','replace']){const c=fixture();c.callGM=async()=>{if(mode==='cancel')c.creatureGeneration.cancelled=true;else c.bp={creatures:[]};return '{"name":"Moth","notes":"Light."}';};await assert.rejects(c.genCreatureBatch({count:1,kind:'Beast',threat:'Minor',frequency:'rare'},()=>{}),/cancelled|changed/);assert.equal(c.bp.creatures.length,0);}});
 }
 console.log('CREATURES: '+passed+' passed, '+failed+' failed');process.exitCode=failed?1:0;

@@ -15,7 +15,7 @@ failed+=sabotage.prove({file:'blueprint-designer.html',command:command,cases:[
  {label:'canonical rules omitted',find:'if(bp.rules&&bp.rules.length)L.push("HARD CAMPAIGN RULES:\\n"+bp.rules.join("\\n"));',replace:'',mustFail:'creature context includes hard rules and established setting details without images'},
  {label:'stale portrait attaches after text edits',find:'||identity!==cfg.identity(c)',replace:'',mustFail:'portrait text edits during generation preserve the prior image'},
  {label:'cancelled request applies late',find:'if(job.cancelled)throw new Error("Generation cancelled; no creatures were added.");',replace:'',mustFail:'cancelled or replaced drafts never receive late creatures'},
- {label:'replacement draft receives stale creatures',find:'if(bp!==target||JSON.stringify(target.creatures)!==original)',replace:'if(false)',mustFail:'cancelled or replaced drafts never receive late creatures'},
+ {label:'replacement draft receives stale creatures',find:'if(bp!==target||JSON.stringify(DesignerCreatures.textBlueprint(target))!==original)',replace:'if(false)',mustFail:'cancelled or replaced drafts never receive late creatures'},
  {label:'partial batch leaks before a failure',find:'entries.push(DesignerCreatures.entry(JSON.parse(repairModelJson(response)),plans[i],target.creatures.concat(entries),target.acts));',replace:'target.creatures.push(DesignerCreatures.entry(JSON.parse(repairModelJson(response)),plans[i],target.creatures.concat(entries),target.acts));',mustFail:'a failed batch preserves the original bestiary'}
 ]});
 failed+=sabotage.prove({file:'blueprint-designer.html',skip:!chrome.path,command:['node',['dev/tests-designer-creatures-browser.js']],cases:[

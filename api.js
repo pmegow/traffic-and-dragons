@@ -2720,7 +2720,8 @@ function buildSysPrompt(){
       if(!creatureAvailable(_bc))continue;
       if(_bc.kind)_bm.push(_bc.kind);
       if(_bc.threat)_bm.push("threat: "+_bc.threat);
-      var _public=!!(_bc.desc||_bc.displayName||_bc.revealAct!==undefined),_detail="";
+      if(_bc.environment)_bm.push("Environment: "+_bc.environment);
+      var _public=!!(_bc.desc||_bc.displayName||_bc.revealAct!==undefined||_bc.availableActs!==undefined),_detail="";
       if(_public){
         if(_bc.displayName)_detail+=" | Public name: "+_bc.displayName+". Use this name on screen; keep "+_bc.name+" as the identity in combat tags. Keep the public label throughout the encounter, even if its nature is exposed.";
         if(_bc.desc)_detail+=" | Appearance: "+_bc.desc;
