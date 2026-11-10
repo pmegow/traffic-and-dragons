@@ -15,8 +15,9 @@
      ptr      the location pointer last followed (following is idempotent)
      names    {<location key>: {zone, id}} — the PLAYER's ties only (atlasPlace): a story place the player put on the map.
               A name the story uses is never kept: it is looked up afresh each time, where the party stands.
-     seen     #717 the VISIT RECORD the fog of war is drawn from: {<zoneId>: {at: [key…], legs: [[key, key]…]}} — ids
-              only, a set, one writer (atlasTread, from the follow); fog === false switches the fog off for the campaign
+     seen     #717 the VISIT RECORD the fog of war is drawn from: {<zoneId>: {at: [key…], legs: [[key, key]…], last?: key}}
+              — ids only, a set, one writer (atlasTread, from the follow; its rules stand above it); fog === false
+              switches the fog off for the campaign
 
    THE RULE: the engine never guesses a tie. A story place is on the map when its name IS a map name (exact once case, a
    leading "the" and punctuation are folded, and only when one thing bears it) ON A SHEET THE PARTY STANDS ON — its own
@@ -315,15 +316,26 @@ function atlasFollow(){
   return {changed:before!==JSON.stringify([A.at,A.spot,A.off]),at:A.at,spot:A.spot,off:A.off,entered:entered};
 }
 /* ── the visit record (#717 fog of war, owner rulings 2026-11-09) ──────────────────────────────────────────── */
-/* A.seen = {<zoneId>: {at: [<key>, …], legs: [[<key>, <key>], …]}} — what the party has stood on, per SHEET, and the
-   walks between two stands of one sheet. IDS ONLY, never a coordinate (the keys atlasPartyIn answers: "t:<thing id>",
-   "p:<child kind>:<via>"): a sheet is a pure function of its recipe, another engine or a newer library may move its
-   things (#698) and never their ids, and a point is derived at every read like the party marker itself. A SET, so the
-   record is bounded by what the sheet holds (stands ≤ its things, legs ≤ their pairs), not by how long the campaign
-   runs: the same street walked a hundred times is one leg. Only a stand the map KNOWS is recorded (exact); the middle
-   of a sheet ("somewhere here") and a "last mapped place" are shown while the marker stands there (atlasReveal) and
-   never kept, and no leg bridges a stretch off the map — the ground between is not known. One writer: atlasTread, from
-   the follow. Pruned where a thing or a zone is removed (atlasAddRemove) and at the load door (atlasHeal). */
+/* A.seen = {<zoneId>: {at: [<key>, …], legs: [[<key>, <key>], …], last?: <key>}} — what the party has stood on, per
+   SHEET, and the walks between two stands of one sheet. IDS ONLY, never a coordinate (the keys atlasPartyIn answers:
+   "t:<thing id>", "p:<child kind>:<via>"): a sheet is a pure function of its recipe, another engine or a newer library
+   may move its things (#698) and never their ids, and a point is derived at every read like the party marker itself. A
+   SET, so the record is bounded by what the sheet holds (stands ≤ its things, legs ≤ their pairs), not by how long the
+   campaign runs: the same street walked a hundred times is one leg. One writer: atlasTread, from the follow. Pruned
+   where a thing or a zone is removed (atlasAddRemove), where a house is redrawn (atlasGrowHouse) and at the load door.
+   THE RULES (the second half from the independent review of 2026-11-09, audits/AUDIT_2026-11-09_717_review.md):
+   • A stand is kept on a sheet when the party ARRIVES at it there and the map KNOWS the spot (exact). The middle of a
+     sheet ("somewhere here") and a last mapped place are shown while the marker stands there (atlasReveal), never kept.
+   • A move made wholly INSIDE one zone beneath a sheet is no move on that sheet (finding 1): the sheet's marker follows
+     the party from one way of that zone to another — the foot of one sewer grate to the foot of the next — and nothing
+     is recorded there; the walk is the zone's own. (It used to be a leg on the town, drawn along streets the party
+     never walked.)
+   • `last` is where the party last showed on the sheet, exactly, while it has not left it: the walk to the next stand
+     runs from there across a stretch the map knows only as "somewhere here" — out of the inn by [SUBLOCATION_LEAVE],
+     then the market (finding 3: ruling 2's path was missing after every LEAVE). The thread is CUT when the party leaves
+     the sheet's zone, when the story's place has no place on the map, and when the party is somewhere inside a zone
+     with several ways out (where it comes up is not known): no leg ever bridges ground the map does not know. */
+var _atlasRegrown={};/* zones a follow redrew in place (atlasGrowHouse): their stand from before the follow names rooms that are gone */
 /* where the party shows on each sheet of its chain, the realm first: {<zoneId>: atlasPartyIn's answer} */
 function atlasStands(A){
   var out={},chain=(A.at&&A.zones[A.at])?atlasTrail(A.at):[],i,m;
@@ -332,36 +344,52 @@ function atlasStands(A){
 }
 /* the stands before a move; never throws (it runs inside a turn's commit): a failure is said and the move records no leg */
 function atlasTreadFrom(A){
+  _atlasRegrown={};
   try{return atlasStands(A);}
   catch(e){atlasProblem("reading where the party stood",e);return {};}
 }
+/* a sheet's record, when it is readable; make = create it */
+function atlasSeenRec(A,z,make){
+  var rec;
+  if(!A.seen||typeof A.seen!=="object"){if(!make)return null;A.seen=keyedDict();}
+  rec=A.seen[z];
+  if(rec&&(rec.at instanceof Array)&&(rec.legs instanceof Array))return rec;
+  return make?(A.seen[z]={at:[],legs:[]}):null;
+}
+function atlasSeenStand(rec,key){if(rec.at.indexOf(key)<0)rec.at.push(key);}
 /* WRITE: record the move from `was` to where the party stands now, on every sheet either end shows on. Never throws. */
 function atlasTread(A,was){
-  var now,zs,i,z,a,b,rec,pair;
+  var now,zs,i,z,a,b,rec,from,pair;
   try{
     now=atlasStands(A);
     zs=Object.keys(was).concat(Object.keys(now).filter(function(k){return !was[k];}));
     for(i=0;i<zs.length;i++){
-      z=zs[i];a=was[z];b=now[z];
-      a=(a&&a.exact&&a.key)?a.key:null;b=(b&&b.exact&&b.key)?b.key:null;/* exact is false for the sheet's middle and for a last mapped place */
-      if(!a&&!b)continue;
-      if(!A.seen||typeof A.seen!=="object")A.seen=keyedDict();
-      rec=A.seen[z];
-      if(!rec||!(rec.at instanceof Array)||!(rec.legs instanceof Array))rec=A.seen[z]={at:[],legs:[]};
-      if(a&&rec.at.indexOf(a)<0)rec.at.push(a);
-      if(b&&rec.at.indexOf(b)<0)rec.at.push(b);
-      if(a&&b&&a!==b){pair=a<b?[a,b]:[b,a];if(!atlasSeenHasLeg(rec,pair))rec.legs.push(pair);}
+      z=zs[i];a=_atlasRegrown[z]?null:(was[z]||null);b=now[z]||null;rec=atlasSeenRec(A,z,false);
+      /* the thread is cut: the party left this sheet's zone, the story left the map, or its place has no place on it */
+      if(!b||b.last||(!b.exact&&A.off)){if(rec)delete rec.last;continue;}
+      /* somewhere here. On the sheet itself the thread holds (a LEAVE); somewhere inside a zone with several ways out, it does not */
+      if(!b.exact){if(b.within&&rec)delete rec.last;continue;}
+      /* a move wholly inside ONE zone beneath this sheet is no move on it: only the pointer follows the party to the way it stands at.
+         Standing where it stood (the same way, the same building) keeps that stand — it is how the party got in */
+      if(a&&a.within&&a.within===b.within){rec=atlasSeenRec(A,z,true);if(a.exact&&a.key===b.key)atlasSeenStand(rec,b.key);rec.last=b.key;continue;}
+      /* an arrival: from the stand the party left, or — across a stretch of "somewhere here" — from where it last stood on this sheet */
+      from=(a&&a.exact)?a.key:((a&&!a.last&&!a.within&&rec&&typeof rec.last==="string")?rec.last:null);
+      rec=atlasSeenRec(A,z,true);
+      if(from&&from!==b.key){atlasSeenStand(rec,from);atlasSeenStand(rec,b.key);pair=from<b.key?[from,b.key]:[b.key,from];if(!atlasSeenHasLeg(rec,pair))rec.legs.push(pair);}
+      else atlasSeenStand(rec,b.key);
+      rec.last=b.key;
     }
   }catch(e){atlasProblem("recording where the party has been",e);}
 }
 function atlasSeenHasLeg(rec,pair){var i;for(i=0;i<rec.legs.length;i++)if(rec.legs[i][0]===pair[0]&&rec.legs[i][1]===pair[1])return true;return false;}
-/* WRITE: a thing has left a sheet (an addition put away): no stand and no leg may name it */
+/* WRITE: a thing has left a sheet (an addition put away): no stand, no leg and no pointer may name it */
 function atlasSeenForget(A,zoneId,key){
-  var rec=A.seen?A.seen[zoneId]:null;
-  if(!rec||!(rec.at instanceof Array)||!(rec.legs instanceof Array))return;
+  var rec=atlasSeenRec(A,zoneId,false);
+  if(!rec)return;
   rec.at=rec.at.filter(function(k){return k!==key;});
   rec.legs=rec.legs.filter(function(l){return l[0]!==key&&l[1]!==key;});
-  if(!rec.at.length&&!rec.legs.length)delete A.seen[zoneId];
+  if(rec.last===key)delete rec.last;
+  if(!rec.at.length&&!rec.legs.length&&rec.last===undefined)delete A.seen[zoneId];
 }
 /* WRITE: stand the party where the pointer's names put it (the body of the follow; may open zones) */
 function atlasResolvePointer(A,p,prev,entered){
@@ -1097,12 +1125,16 @@ function atlasGrowHouse(A,zone){
   eds=prec.params.edits;for(i=0;i<eds.length;i++)if(eds[i].id===rec.via&&eds[i].kind==="custom")ed=eds[i];
   if(!ed||ed.footprint==="large")return null;
   pBefore=atlasDoc(rec.parent);was=ed.footprint;pFp=prec.fp;
-  function undo(){ed.footprint=was;prec.fp=pFp;}
+  var seenWas=(A.seen&&A.seen[zone])||null;/* #717: the house's own visit record, as it was */
+  function undo(){ed.footprint=was;prec.fp=pFp;if(seenWas&&A.seen)A.seen[zone]=seenWas;delete _atlasRegrown[zone];}
   ed.footprint="large";prec.fp=null;
   try{pAfter=atlasDoc(rec.parent);lost=atlasLost(pBefore,pAfter);
     if(!lost){iDoc=atlasDoc(zone);mine=(rec.params&&rec.params.edits)||[];for(k=0;k<mine.length&&!lost;k++)if(!atlasThingById(iDoc,mine[k].id))lost=mine[k].name;}}
   catch(err){if(!atlasIsRefusal(err)){undo();throw err;}lost=atlasReason(err);}
   if(lost){undo();return {grew:false,why:lost};}
+  /* #717 review, finding 11: the larger house is drawn anew and its rooms are renumbered — a key made before the growth would
+     name another room, so the house's own record starts again from where the party stands (the town keeps the house: its id holds) */
+  if(A.seen)delete A.seen[zone];_atlasRegrown[zone]=1;
   return {grew:true,was:was,undo:undo};
 }
 /* READ (pure): the ways an invented room is tried in a building, in order — the party's floor at 8 then 6 m², any floor at 8
@@ -1400,7 +1432,13 @@ var ATLAS_FOG={
   town:{radiusM:100},
   wild:{radiusM:100},
   dungeon:{locate:function(doc,p){return TnDMaps.dungeon.locate(doc,p);},step:1},
-  interior:{locate:function(doc,p){return TnDMaps.interior.locate(doc,p);},step:4}
+  /* a door's own point lies ON the wall, under no room: the room the door opens INTO is where a party at that door stands (review, finding 7) */
+  interior:{locate:function(doc,p){
+    var id=TnDMaps.interior.locate(doc,p),ds=doc.doors||[],i;
+    if(id!=null)return id;
+    for(i=0;i<ds.length;i++)if(ds[i].into!=null&&Math.abs(ds[i].x-p[0])<=0.5&&Math.abs(ds[i].y-p[1])<=0.5)return ds[i].into;
+    return null;
+  },step:4}
 };
 /* a recorded key → its point on the sheet as the sheet is drawn NOW; null when the sheet no longer has it (an addition
    put away, a redraw): a record is a loose reference by design and a miss is skipped, never a throw */
@@ -1415,42 +1453,79 @@ function atlasSeenXY(A,zoneId,doc,key){
   }
   return null;
 }
-/* the way between two stands, as paths on the sheet (a stair splits it, one path a floor). A way the library cannot give
-   is drawn straight and said once per campaign per session — this runs at every paint */
-function atlasSeenWay(A,doc,a,b){
-  try{return TnDMaps.route(doc,a,b).paths;}
-  catch(e){
-    if(atlasOnce(A,"way"))atlasProblem("finding the way between two places the party stood",e);
-    return [[a,b]];
+/* the way between two stands, as paths on the sheet (a stair splits it, one path a floor). Found ONCE per drawn sheet (review,
+   finding 6: the library builds the sheet's whole network at every call, and a read ran one call a leg at every paint and every
+   tap) — kept on the drawn sheet's own session record, so it goes when the sheet is redrawn or dropped, and handed out as a copy.
+   A way the library cannot give is drawn straight, said once per campaign per session, and asked for again at the next read */
+function atlasSeenWay(A,drawn,doc,a,b){
+  var k=a[0]+","+a[1]+">"+b[0]+","+b[1],paths=(drawn&&drawn.ways)?drawn.ways[k]:null;
+  if(!paths){
+    try{paths=TnDMaps.route(doc,a,b).paths;}
+    catch(e){
+      if(atlasOnce(A,"way"))atlasProblem("finding the way between two places the party stood",e);
+      return [[a,b]];
+    }
+    if(drawn){if(!drawn.ways)drawn.ways={};drawn.ways[k]=paths;}
   }
+  return paths.map(function(p){return p.map(function(q){return [q[0],q[1]];});});
 }
 /* READ: what view.setReveal takes for a sheet — {points, paths, radiusM} (the area fog), a list of ids (room by room),
    or null = the whole sheet (no row for its kind, or the campaign's fog is off). Derived at every read from the visit
    record and the party marker; writes nothing. */
 function atlasReveal(zoneId){
-  var A=atlasLive(),rec=A?A.zones[zoneId]:null,row=rec?ATLAS_FOG[rec.kind]:null,doc,seen,m,at,legs,i,xy,stands=[],ways=[],a,b;
+  var A=atlasLive(),rec=A?A.zones[zoneId]:null,row=rec?ATLAS_FOG[rec.kind]:null,doc,seen,m,at,legs,i,xy,stands=[],ways=[],a,b,drawn,ks,pre;
   if(!row||A.fog===false)return null;
-  doc=atlasDoc(zoneId);seen=A.seen?A.seen[zoneId]:null;
+  doc=atlasDoc(zoneId);drawn=_atlasDrawn[atlasChainKey(A,zoneId)]||null;seen=A.seen?A.seen[zoneId]:null;
   at=(seen&&seen.at instanceof Array)?seen.at:[];legs=(seen&&seen.legs instanceof Array)?seen.legs:[];
   for(i=0;i<at.length;i++){xy=atlasSeenXY(A,zoneId,doc,at[i]);if(xy)stands.push({key:at[i],xy:xy});}
-  /* the marker as it stands now — a sheet's middle and a last mapped place included: a marker never sits on blank paper */
+  /* a thing that bears the player's NOTE is always shown (review, finding 4: a note is read only through its thing's card — under the
+     fog it was out of reach, on every note of a campaign mapped before the fog). The player wrote on it: it is known */
+  ks=A.notes?Object.keys(A.notes):[];pre=zoneId+"|";
+  for(i=0;i<ks.length;i++)if(ks[i].indexOf(pre)===0){xy=atlasSeenXY(A,zoneId,doc,"t:"+ks[i].slice(pre.length));if(xy)stands.push({key:"t:"+ks[i].slice(pre.length),xy:xy,note:true});}
+  /* the marker as it stands now — a sheet's middle and a last mapped place included: on a drawn sheet a marker never sits on blank paper */
   m=atlasPartyIn(zoneId);
   if(m&&!stands.some(function(s){return s.xy[0]===m.x&&s.xy[1]===m.y;}))stands.push({key:m.key,xy:[m.x,m.y],live:true});
   for(i=0;i<legs.length;i++){
+    if(!(legs[i] instanceof Array))continue;/* a leg that is no pair is the load door's to say (atlasSeenHeal); the read never dies on it */
     a=atlasSeenXY(A,zoneId,doc,legs[i][0]);b=atlasSeenXY(A,zoneId,doc,legs[i][1]);
-    if(a&&b)ways=ways.concat(atlasSeenWay(A,doc,a,b));
+    if(a&&b)ways=ways.concat(atlasSeenWay(A,drawn,doc,a,b));
   }
   if(row.radiusM)return {points:stands.map(function(s){return s.xy;}),paths:ways,radiusM:row.radiusM};
-  return atlasRevealRooms(doc,row,stands,ways);
+  return atlasRevealRooms(A,zoneId,doc,row,stands,ways);
 }
-/* room by room: the ways back up (known from the sheet above), the room of every stand, and every room or passage a
-   walked way crosses — ids the sheet has, each once */
-function atlasRevealRooms(doc,row,stands,ways){
-  var known={},up={},ids=[],i,k,p,q,n;
+/* READ: the reveal that shows NOTHING of a sheet — what the pane wears when the real one could not be handed over (review,
+   finding 5: it used to fail OPEN, the sheet drawn whole). null when the sheet is not fogged at all */
+function atlasRevealNone(zoneId){
+  var A=atlasLive(),rec=A?A.zones[zoneId]:null,row=rec?ATLAS_FOG[rec.kind]:null;
+  if(!row||A.fog===false)return null;
+  return row.radiusM?{points:[],paths:[],radiusM:row.radiusM}:[];
+}
+/* READ: does a sheet show the player this thing of its own? (a way down the town's sheet shows is a way up the sewer's sheet may draw) */
+function atlasThingShown(zoneId,t){
+  var A=atlasLive(),rec=A?A.zones[zoneId]:null,spec,row;
+  if(!rec||!t)return false;
+  spec=atlasReveal(zoneId);
+  if(!spec)return true;
+  if(!(spec instanceof Array))return atlasFogShows(zoneId,t.x,t.y);
+  row=ATLAS_FOG[rec.kind];
+  return spec.indexOf(t.id)>=0||spec.indexOf(row.locate(atlasDoc(zoneId),[t.x,t.y]))>=0;
+}
+/* room by room: the ways back up THE SHEET ABOVE SHOWS (review, finding 2: "known from the sheet above" stopped being true of
+   every way the day the town was fogged — a party down one grate read the names and places of all the others), the room of
+   every stand, and every room or passage a walked way crosses — ids the sheet has, each once */
+function atlasRevealRooms(A,zoneId,doc,row,stands,ways){
+  var known={},up={},ids=[],i,k,p,q,n,parent=A.zones[zoneId].parent,pdoc=null;
+  function above(portal){
+    var t;
+    if(!parent||!A.zones[parent]||!portal.to||portal.to.id==null)return false;
+    if(!pdoc)pdoc=atlasDoc(parent);
+    t=atlasThingById(pdoc,portal.to.id);
+    return !!t&&atlasThingShown(parent,t);
+  }
   function add(id){if(id!=null&&known[id]&&ids.indexOf(id)<0)ids.push(id);}
   (doc.rooms||[]).forEach(function(r){known[r.id]=1;});(doc.passages||[]).forEach(function(r){known[r.id]=1;});
-  (doc.portals||[]).forEach(function(r){if(ATLAS_WAYS_BACK[r.way])up[r.id]=1;});
-  (doc.rooms||[]).forEach(function(r){if(up[r.id]||(r.portal&&up[r.portal]))add(r.id);});
+  (doc.portals||[]).forEach(function(r){if(ATLAS_WAYS_BACK[r.way])up[r.id]=r;});
+  (doc.rooms||[]).forEach(function(r){var way=up[r.id]||(r.portal&&up[r.portal])||null;if(way&&above(way))add(r.id);});
   for(i=0;i<stands.length;i++){
     if(stands[i].key==="c")continue;/* somewhere here: no room is known */
     if(typeof stands[i].key==="string"&&stands[i].key.charAt(0)==="t")add(stands[i].key.slice(2));
@@ -1488,12 +1563,13 @@ function atlasSegDist(x,y,a,b){
 function atlasSeenHeal(A){
   var changed=false,keys,i,s,ok;
   function isKey(k){return typeof k==="string"&&k.length>0;}
-  if(!A.seen||typeof A.seen!=="object"||A.seen instanceof Array){A.seen=keyedDict();return true;}
+  if(A.seen===undefined||A.seen===null){A.seen=keyedDict();return true;}/* a campaign mapped before the fog: nothing to say */
+  if(typeof A.seen!=="object"||A.seen instanceof Array){A.seen=keyedDict();atlasSay("warn","the record of where the party has been could not be read — the map's fog starts again from where the party stands");return true;}
   keys=Object.keys(A.seen);
   for(i=0;i<keys.length;i++){
     s=A.seen[keys[i]];
     if(!A.zones[keys[i]]){delete A.seen[keys[i]];changed=true;continue;}
-    ok=!!s&&typeof s==="object"&&(s.at instanceof Array)&&(s.legs instanceof Array)&&s.at.every(isKey)&&s.legs.every(function(l){return (l instanceof Array)&&l.length===2&&isKey(l[0])&&isKey(l[1]);});
+    ok=!!s&&typeof s==="object"&&(s.at instanceof Array)&&(s.legs instanceof Array)&&s.at.every(isKey)&&s.legs.every(function(l){return (l instanceof Array)&&l.length===2&&isKey(l[0])&&isKey(l[1]);})&&(s.last===undefined||isKey(s.last));
     if(!ok){delete A.seen[keys[i]];changed=true;atlasSay("warn","the record of where the party has been in "+(A.zones[keys[i]].name||keys[i])+" could not be read — that sheet's fog starts again from where the party stands");}
   }
   return changed;

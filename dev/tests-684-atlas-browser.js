@@ -101,7 +101,7 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.equal(r.at,town);assert.deepEqual(r.tie,{zone:'campaign-1',id:p3.id,by:'gm'},'the tie is the GM\'s');assert.equal(r.off,null);
    assert.equal(r.zone,'campaign-1','the open pane stays on its sheet');assert.equal(r.markers.length,1);assert.equal(r.markers[0].kind,'party');assert.deepEqual([r.markers[0].x,r.markers[0].y],[p3.x,p3.y],'the party marker sits on the town');
    assert.deepEqual(r.trail.map(t=>[t.text,t.current]),[[r.trail[0].text,true],[p3.name,false]],'the trail: the realm (current), then the town');assert.equal(r.savedAt,town,'the tie is saved');assert.equal(r.savedZones,2);
-   /* a real click on the town's tier of the plaque — after a frame: the view hit-tests the tiers' boxes AS LAST DRAWN, and setHudTrail (the repaint above) clears them until the next draw. The click used to be sent in the same breath and landed only when a frame happened to fall between the two calls (found red 2026-11-09, #717: 6 runs of 6) */
+   /* a real click on the town's tier of the plaque — after a frame: the view hit-tests the tiers' boxes AS LAST DRAWN, and setHudTrail (the repaint above) clears them until the next draw. The click used to be sent in the same breath as the repaint. It was red 6 runs of 6 at an intermediate state of the #717 work (2026-11-09); the independent review could not reproduce that at the committed state (6 of 6 green without this wait), so WHY it flipped is unproven — the wait follows from the library's contract and costs a frame */
    await settle();
    const k=await page.evaluate(()=>{const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),r=c.getBoundingClientRect(),tier=v.hudScene().find(x=>x.meta&&x.meta.hud==='trail'&&!x.meta.current),at={clientX:r.left+(tier.box[0]+tier.box[2])/2,clientY:r.top+(tier.box[1]+tier.box[3])/2,bubbles:true,button:0};c.dispatchEvent(new MouseEvent('mousedown',at));window.dispatchEvent(new MouseEvent('mouseup',at));const p=__atlasTest.pane();return {text:tier.text,zone:p.zone,markers:p.markers.length,trail:p.trail.map(t=>[t.text,t.current]),card:document.getElementById('atlas-card').style.display};});
    assert.equal(k.text,p3.name);assert.equal(k.zone,town,'the tier opens the town sheet');assert.equal(k.markers,1,'the party is drawn on it');assert.deepEqual(k.trail.map(t=>t[1]),[false,true],'the town is now the current tier');assert.equal(k.card,'none','the tier click opened no card');
@@ -125,10 +125,10 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    assert.equal(await page.evaluate(()=>__atlasTest.pane().zone),'campaign-1/'+p3.id);
  });
 
- await check('⑥ a sewer is fogged: only its ways up are drawn, and the pane hands the library the engine\'s reveal list',async()=>{
+ await check('⑥ a sewer is fogged: only the ways up the town\'s sheet shows are drawn (#717 review, finding 2: never one the town\'s fog hides), and the pane hands the library the engine\'s reveal list',async()=>{
    const r=await page.evaluate(()=>{delete worldState.atlas.fog;/* #717: the campaign's default from here on — the fog is on */const reg=atlasDoc('campaign-1'),p0=reg.places[0];worldState.world.location=p0.name;atlasFollow();const town=atlasDoc(worldState.atlas.at),g=town.portals.filter(p=>p.kind==='grate')[0];worldState.world.sublocation=g.name;atlasFollow();syncUI();
-     const z=worldState.atlas.at;showAtlas();const p=__atlasTest.pane(),doc=atlasDoc(z);return {z:z,kind:worldState.atlas.zones[z].kind,zone:p.zone,reveal:p.reveal,expect:atlasReveal(z),rooms:doc.rooms.length,ups:doc.portals.filter(q=>q.way==='up').length,markers:p.markers.length};});
-   assert.equal(r.kind,'dungeon');assert.equal(r.zone,r.z,'the pane opens where the party is');assert.deepEqual(r.reveal,r.expect);assert.equal(r.reveal.length,r.ups,'the ways up only');assert.ok(r.reveal.length<r.rooms,'the rest of the sewer is hidden');
+     const z=worldState.atlas.at;showAtlas();const p=__atlasTest.pane(),doc=atlasDoc(z),tz=worldState.atlas.zones[z].parent,ups=doc.portals.filter(q=>q.way==='up'),shows=q=>{const t=atlasThingById(town,q.to.id);return !!t&&atlasFogShows(tz,t.x,t.y);};return {z:z,kind:worldState.atlas.zones[z].kind,zone:p.zone,reveal:p.reveal,expect:atlasReveal(z),rooms:doc.rooms.length,ups:ups.length,shown:ups.filter(shows).map(q=>q.id),hidden:ups.filter(q=>!shows(q)).map(q=>q.id),spot:worldState.atlas.spot,markers:p.markers.length};});
+   assert.equal(r.kind,'dungeon');assert.equal(r.zone,r.z,'the pane opens where the party is');assert.deepEqual(r.reveal,r.expect);assert.deepEqual(r.reveal.slice().sort(),r.shown.slice().sort(),'the ways up the town\'s sheet shows, and nothing else');assert.ok(r.shown.indexOf(r.spot)>=0,'the way the party came down is one of them');assert.ok(r.hidden.length>=1&&r.hidden.every(id=>r.reveal.indexOf(id)<0),'fixture: a way up the town\'s fog hides ('+r.hidden.join(',')+') is not drawn below');assert.ok(r.reveal.length<r.rooms,'the rest of the sewer is hidden');
    assert.equal(r.markers,1,'the party is drawn in the sewer');
  });
 
@@ -346,8 +346,60 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    await page.evaluate(()=>atlasPaneClose());
  });
 
+ await check('⑯ the independent review of the fog (#717, 2026-11-09): a place a turn adds to the sheet the pane shows is drawn there; a noted place far from the party can be opened through the fog; a failure reading a sheet leaves the one that was shown, and a reveal the view refuses leaves the new sheet ALL fog — never whole; a fogged sewer does not draw the town\'s walls above it',async()=>{
+   const s=await page.evaluate(()=>{atlasPaneClose();mobileDrawerWidth(0);atlasForget();delete worldState.atlas;atlasCreate('campaign-1');/* adoption on: the campaign's default */
+     const reg=atlasDoc('campaign-1'),p0=reg.places[0];worldState.world.location=p0.name;worldState.world.sublocation=null;atlasFollow();
+     const zone=worldState.atlas.at,town=atlasDoc(zone),market=town.landmarks.filter(l=>l.kind==='market')[0],grate=town.portals.filter(p=>p.kind==='grate')[0];
+     worldState.world.sublocation=market.name;atlasFollow();syncUI();showAtlasFull(zone);
+     const far=town.establishments.map(e=>({id:e.id,name:e.name,x:e.x,y:e.y,d:Math.hypot(e.x-market.x,e.y-market.y)})).sort((a,b)=>b.d-a.d)[0];
+     /* everything that is not paper in a box round a map point: pixels away from the box's commonest colour */
+     window.__notPaper=function(x,y,half){const v=_atlasPane.view,c=document.getElementById('atlas-canvas'),T=v.transform(),dpr=c.width/c.clientWidth,g=c.getContext('2d'),w=Math.round(half*2*dpr),d=g.getImageData(Math.round((T.x+x*T.k-half)*dpr),Math.round((T.y+y*T.k-half)*dpr),w,w).data,seen={};let best=null,n=0;
+       for(let i=0;i<d.length;i+=4){const k=(d[i]>>3)+','+(d[i+1]>>3)+','+(d[i+2]>>3);seen[k]=(seen[k]||0)+1;if(!best||seen[k]>seen[best])best=k;}const m=best.split(',').map(q=>(+q<<3)+4);
+       for(let i=0;i<d.length;i+=4)if(Math.abs(d[i]-m[0])>8||Math.abs(d[i+1]-m[1])>8||Math.abs(d[i+2]-m[2])>8)n++;return n;};
+     return {zone,p0:p0.name,market:{id:market.id,name:market.name},grate:grate.name,far};});
+   await settle();await page.waitForTimeout(150);
+   /* a turn adds a place to the very sheet the pane shows (outside the fog commit, since #702: the view kept its old drawing) */
+   const a=await page.evaluate(()=>{const before=_atlasPane.view.doc();worldState.world.sublocation='The Gilded Spur';atlasFollow();syncUI();const p=__atlasTest.pane(),v=_atlasPane.view,has=d=>(d.establishments||[]).some(e=>e.name==='The Gilded Spur');
+     return {zone:p.zone,engineHas:has(atlasDoc(p.zone)),viewHas:has(v.doc()),sameObject:v.doc()===atlasDoc(p.zone),redrawn:v.doc()!==before,reveal:p.reveal,expect:atlasReveal(p.zone),markers:p.markers.length};});
+   assert.equal(a.zone,s.zone,'the pane stays on the town');assert.equal(a.engineHas,true,'fixture: the tavern was added to the town');assert.equal(a.viewHas,true,'the view draws the sheet the engine has: the added tavern is on it');assert.equal(a.sameObject,true);assert.equal(a.redrawn,true);
+   assert.deepEqual(a.reveal,a.expect,'and wears its fog');assert.equal(a.markers,1);
+   /* a noted place far from the party: shown, and its card opens */
+   assert.equal(await page.evaluate(q=>atlasFogShows(q.zone,q.far.x,q.far.y),s),false,'fixture: a house far from the party is under the fog');
+   await page.evaluate(q=>{atlasNoteSet(q.zone,q.far.id,'Ask here about the ledger.');__atlasTest.show(q.zone);const v=_atlasPane.view;v.center(q.far.x,q.far.y,v.transform().k);},s);await settle();await page.waitForTimeout(150);
+   await clickMap(s.far.x,s.far.y);await settle();
+   const n=await page.evaluate(()=>{const el=document.getElementById('atlas-card');return {shown:el.style.display,text:el.textContent};});
+   assert.equal(n.shown,'block','a noted place can be clicked through the fog');assert.ok(n.text.indexOf('Ask here about the ledger.')>=0,'and its note read: '+n.text);
+   await page.evaluate(q=>{__atlasTest.tap(null);atlasNoteSet(q.zone,q.far.id,'');__atlasTest.show(q.zone,true);},s);await settle();
+   /* a failure READING the next sheet: the pane keeps the sheet it showed, fog and all */
+   const f1=await page.evaluate(()=>{const real=atlasPartyIn,v=_atlasPane.view,was={doc:v.doc().seed,reveal:JSON.stringify(v.reveal()),zone:_atlasPane.zone};__toasts.length=0;
+     atlasPartyIn=function(z){if(z==='campaign-1')throw new Error('injected: the party could not be read');return real.apply(this,arguments);};let ok;try{ok=__atlasTest.show('campaign-1',true);}finally{atlasPartyIn=real;}
+     return {ok,was,doc:v.doc().seed,zone:_atlasPane.zone,same:JSON.stringify(v.reveal())===was.reveal,fogged:v.reveal()!==null,toast:__toasts.join(' | ')};});
+   assert.equal(f1.ok,false);assert.equal(f1.doc,f1.was.doc,'the view still holds the sheet that was shown');assert.equal(f1.zone,f1.was.zone,'and the pane names it');assert.equal(f1.same,true,'with the fog it wore');assert.equal(f1.fogged,true);assert.match(f1.toast,/could not be drawn/,'said: '+f1.toast);
+   /* a reveal the VIEW refuses: the new sheet is all fog, never whole, and the pane names the sheet the view holds */
+   const f2=await page.evaluate(()=>{const v=_atlasPane.view,sr=v.setReveal;let thrown=0;__toasts.length=0;
+     v.setReveal=function(r){if(r&&!Array.isArray(r)&&r.points&&r.points.length&&!thrown){thrown++;throw new Error('TnDMaps: a refused reveal (injected)');}return sr.apply(v,arguments);};let ok;try{ok=__atlasTest.show('campaign-1',true);}finally{v.setReveal=sr;}
+     return {ok,thrown,doc:v.doc().seed,zone:_atlasPane.zone,reveal:v.reveal(),none:atlasRevealNone('campaign-1'),toast:__toasts.join(' | ')};});
+   assert.equal(f2.thrown,1,'fixture: the view refused the realm\'s reveal');assert.equal(f2.ok,false);assert.equal(f2.doc,'campaign-1','the view holds the realm');assert.equal(f2.zone,'campaign-1','and the pane says so (it used to name the sheet before)');
+   assert.deepEqual(f2.reveal,f2.none,'all fog, never the whole realm');assert.deepEqual(f2.reveal.points,[]);assert.match(f2.toast,/could not be drawn/);
+   await settle();await page.waitForTimeout(150);
+   assert.equal(await page.evaluate(()=>{const c=document.getElementById('atlas-canvas'),v=_atlasPane.view,sc=v.scene(),T=v.transform(),g=c.getContext('2d'),d=g.getImageData(Math.round(c.width*0.25),Math.round(c.height*0.25),Math.round(c.width*0.5),Math.round(c.height*0.5)).data;let dark=0;for(let i=0;i<d.length;i+=16)if(d[i]+d[i+1]+d[i+2]<300)dark++;return dark;}),0,'the refused sheet is blank paper: no ink in the middle half of the canvas (the frame and the HUD at its edges stay)');
+   const f3=await page.evaluate(()=>{const ok=__atlasTest.show('campaign-1',true);return {ok,reveal:__atlasTest.pane().reveal,expect:atlasReveal('campaign-1')};});assert.equal(f3.ok,true);assert.deepEqual(f3.reveal,f3.expect,'the next show mends it');
+   /* under the ground: the town's walls and river are not drawn above a fogged sewer */
+   const u=await page.evaluate(q=>{worldState.world.sublocation=q.market.name;atlasFollow();worldState.world.sublocation=q.grate;atlasFollow();syncUI();const z=worldState.atlas.at;__atlasTest.show(z,true);const v=_atlasPane.view,doc=atlasDoc(z),ab=v.scene().layers.filter(l=>l.name==='above')[0],wall=ab&&ab.items.filter(i=>i.s==='above'&&i.pts)[0],land=doc.rooms.filter(r=>r.id===worldState.atlas.spot)[0];
+     if(!wall||!land)return {kind:worldState.atlas.zones[z].kind,wall:!!wall,land:!!land};const sc=v.scene(),bx=sc.x0||0,by=sc.y0||0,pt=wall.pts.filter(p=>p[0]>bx+sc.width*0.1&&p[0]<bx+sc.width*0.9&&p[1]>by+sc.height*0.15&&p[1]<by+sc.height*0.85).map(p=>({x:p[0],y:p[1],d:Math.hypot(p[0]-land.x,p[1]-land.y)})).sort((a,b)=>b.d-a.d)[0];/* a point of the wall well inside the SHEET (the scene's own box: the wall runs off its edge, and the document's frame is far larger), the farthest from the party */return {kind:worldState.atlas.zones[z].kind,zone:z,wall:true,land:true,pt,rooms:Array.isArray(v.reveal())};},s);
+   assert.equal(u.kind,'dungeon');assert.ok(u.wall&&u.land,'fixture: the sewer\'s scene has the town\'s wall in its above layer');assert.equal(u.rooms,true,'the sewer is fogged room by room');
+   const lookAt=async(q)=>{await page.evaluate(q=>{const v=_atlasPane.view;v.center(q.x,q.y,v.transform().k);},q);await settle();await page.waitForTimeout(150);return page.evaluate(q=>__notPaper(q.x,q.y,70),q);};
+   const hiddenInk=await lookAt(u.pt);
+   await page.evaluate(()=>{_atlasPane.view.setLayerVisible('above',true);});const shownInk=await lookAt(u.pt);await page.evaluate(()=>{_atlasPane.view.setLayerVisible('above',false);});
+   assert.ok(shownInk>20,'fixture: with the layer forced on, the town\'s wall is drawn at that point ('+shownInk+' pixels off the paper)');assert.equal(hiddenInk,0,'as the pane shows it, the wall is not drawn: '+hiddenInk+' pixels off the paper');
+   await page.evaluate(()=>{[].forEach.call(document.querySelectorAll('.tnd-toast'),t=>t.remove());__atlasTest.show(_atlasPane.zone,true);});await settle();await page.waitForTimeout(150);await page.screenshot({path:path.join(SHOTS,'atlas-fog-sewer.png')});
+   /* with the campaign's fog off the layer is back */
+   await page.evaluate(()=>{worldState.atlas.fog=false;__atlasTest.show(_atlasPane.zone);});assert.ok(await lookAt(u.pt)>20,'fog off: the town\'s outline is drawn above the sewer again');
+   await page.evaluate(()=>{delete worldState.atlas.fog;atlasPaneClose();});
+ });
+
  assert.deepEqual(errors,[],'page errors: '+errors.join(' | '));
- console.log('screenshots: '+SHOTS+' (atlas-dock.png, atlas-region.png, atlas-town.png, atlas-phone-dock.png, atlas-phone.png, atlas-fog-dock.png, atlas-fog-town.png, atlas-fog-realm.png)');
+ console.log('screenshots: '+SHOTS+' (atlas-dock.png, atlas-region.png, atlas-town.png, atlas-phone-dock.png, atlas-phone.png, atlas-fog-dock.png, atlas-fog-town.png, atlas-fog-realm.png, atlas-fog-sewer.png)');
 }finally{await browser.close();}
 console.log(failed?'FAILED — '+failed:'ALL GREEN — the atlas pane (#684)');process.exit(failed?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});

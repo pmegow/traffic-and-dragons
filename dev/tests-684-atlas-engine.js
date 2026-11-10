@@ -421,8 +421,8 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     A.fog = false; assert.equal(atlasReveal(A.seed), null); assert.equal(atlasReveal(c.townId), null, "the campaign's switch: every sheet whole"); delete A.fog;
     point(c.p0.name, c.inn.name); atlasFollow(); assert.deepEqual(atlasReveal(A.at), [], "#717: a building is fogged room by room (until then it was read whole, like a published plan) — entered by its name, no room is known yet");
     point(c.p0.name, c.grates[0].name); atlasFollow(); doc = atlasDoc(sewer); ids = atlasReveal(sewer);
-    ups = doc.portals.filter(function (p) { return p.way === "up"; }).map(function (p) { return p.id; });
-    assert.deepEqual(ids.slice().sort(), ups.slice().sort(), "the ways up — the party stands at one of them");
+    ups = waysShown(c.townId, c.town, doc); assert(ups.indexOf(A.spot) >= 0, "the party stands at a way up");
+    assert.deepEqual(ids.slice().sort(), ups.slice().sort(), "the ways up the sheet above shows — the party stands at one of them (#717 review, finding 2: a way the town's fog hides is not drawn below)");
     assert(ids.length < doc.rooms.length, "the rest of the sewer is not shown");
     deep = doc.rooms.filter(function (r) { return ids.indexOf(r.id) < 0 && doc.rooms.filter(function (q) { return atlasNameKey(q.name) === atlasNameKey(r.name); }).length === 1 && !atlasFind(c.town, r.name); })[0];
     assert(deep, "the fixture sewer has a chamber with a name of its own");
@@ -1649,6 +1649,11 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
 
   /* ── #717 FOG OF WAR (owner rulings 2026-11-09): the visit record and what a sheet may show ──────────────────────── */
   function leg(a, b) { return a < b ? [a, b] : [b, a]; }
+  /* a sheet's record as the stands and the legs (the `last` pointer — where the party last showed on the sheet — is read on its own) */
+  function recOf(A, z) { var r = A.seen && A.seen[z]; return r ? { at: plain(r.at), legs: plain(r.legs) } : undefined; }
+  function walked(A) { var o = {}; Object.keys(A.seen || {}).forEach(function (z) { o[z] = recOf(A, z); }); return JSON.stringify(o); }
+  /* the ways up of a dungeon that the sheet above shows the player (review finding 2: the others are not known) */
+  function waysShown(parentZone, parentDoc, doc) { return doc.portals.filter(function (p) { var t = p.way === "up" && p.to ? atlasThingById(parentDoc, p.to.id) : null; return !!t && atlasFogShows(parentZone, t.x, t.y); }).map(function (p) { return p.id; }); }
   function legRoute(doc, l) { return TnDMaps.route(doc, l[0].slice(2), l[1].slice(2)); }
   function numbersIn(o) { var n = 0; JSON.stringify(o, function (k, v) { if (typeof v === "number") n++; return v; }); return n; }
   /* every room or passage a route crosses, sampled far finer than the engine samples it */
@@ -1669,25 +1674,31 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     var A = fresh(), c = cast(A), innZone, was;
     assert.deepEqual(plain(A.seen), {}, "a new atlas has an empty record");
     point(c.p0.name); atlasFollow(); townCast(A, c);
-    assert.deepEqual(plain(A.seen[A.seed]), { at: ["t:" + c.p0.id], legs: [] }, "on the region: the town the party entered");
+    assert.deepEqual(recOf(A, A.seed), { at: ["t:" + c.p0.id], legs: [] }, "on the region: the town the party entered");
     assert.equal(A.seen[c.townId], undefined, "in the town the map does not know where: nothing is recorded there");
     point(c.p0.name, c.inn.name); atlasFollow(); innZone = c.townId + "/" + c.inn.id; assert.equal(A.at, innZone);
-    assert.deepEqual(plain(A.seen[c.townId]), { at: ["t:" + c.inn.id], legs: [] }, "on the town: the inn's door — and no leg from a spot the map did not know");
+    assert.deepEqual(recOf(A, c.townId), { at: ["t:" + c.inn.id], legs: [] }, "on the town: the inn's door — and no leg from a spot the map did not know");
     assert.equal(A.seen[innZone], undefined, "inside by the building's name: no room is known yet");
     point(c.p0.name, c.market.name); atlasFollow(); assert.equal(A.at, c.townId); assert.equal(A.spot, c.market.id);
-    assert.deepEqual(plain(A.seen[c.townId]), { at: ["t:" + c.inn.id, "t:" + c.market.id], legs: [leg("t:" + c.inn.id, "t:" + c.market.id)] }, "the walk from the inn to the market is a leg on the town's sheet");
-    assert.deepEqual(plain(A.seen[A.seed]), { at: ["t:" + c.p0.id], legs: [] }, "the realm's sheet saw no move: the party is still in that town");
+    assert.deepEqual(recOf(A, c.townId), { at: ["t:" + c.inn.id, "t:" + c.market.id], legs: [leg("t:" + c.inn.id, "t:" + c.market.id)] }, "the walk from the inn to the market is a leg on the town's sheet");
+    assert.deepEqual(recOf(A, A.seed), { at: ["t:" + c.p0.id], legs: [] }, "the realm's sheet saw no move: the party is still in that town");
     was = JSON.stringify(A.seen); atlasFollow(); atlasFollow(); assert.equal(JSON.stringify(A.seen), was, "following again records nothing");
     point(c.p1.name); atlasFollow();
-    assert.deepEqual(plain(A.seen[A.seed]), { at: ["t:" + c.p0.id, "t:" + c.p1.id], legs: [leg("t:" + c.p0.id, "t:" + c.p1.id)] }, "town to town is a leg on the realm");
+    assert.deepEqual(recOf(A, A.seed), { at: ["t:" + c.p0.id, "t:" + c.p1.id], legs: [leg("t:" + c.p0.id, "t:" + c.p1.id)] }, "town to town is a leg on the realm");
     assert.equal(numbersIn(A.seen), 0, "the record holds ids, never a coordinate (a sheet redrawn by another engine or library moves its things, not their ids)");
     Object.keys(A.seen).forEach(function (z) { A.seen[z].at.forEach(function (k) { assert(/^(t|p):/.test(k), k); }); });
     /* off the map and back: the unknown ground between is no leg */
-    was = JSON.stringify(A.seen); point("Nowhere the map knows"); atlasFollow(); assert(A.off && !A.off.within); assert.equal(JSON.stringify(A.seen), was, "a place off the map records nothing");
-    point(c.p0.name); atlasFollow(); assert.equal(A.at, c.townId); assert.equal(JSON.stringify(A.seen), was, "back from off the map: both towns are on record already, and no new leg bridges the gap");
+    was = walked(A); point("Nowhere the map knows"); atlasFollow(); assert(A.off && !A.off.within); assert.equal(walked(A), was, "a place off the map records nothing");
+    point(c.p0.name); atlasFollow(); assert.equal(A.at, c.townId); assert.equal(walked(A), was, "back from off the map: both towns are on record already, and no new leg bridges the gap");
+    /* …and on to a town the party has NOT been to (review, MU1: the walk back to p0 above cannot fail — its leg to p1 is on record already) */
+    var p2 = c.reg.places[2], p3 = c.reg.places[3];
+    point(p2.name); atlasFollow(); assert(recOf(A, A.seed).legs.some(function (l) { return l.join() === leg("t:" + c.p0.id, "t:" + p2.id).join(); }), "a walk on the map: p0 to p2 is a leg");
+    point("Nowhere the map knows"); atlasFollow(); point(p3.name); atlasFollow(); assert.equal(A.at, A.seed + "/" + p3.id);
+    assert(recOf(A, A.seed).at.indexOf("t:" + p3.id) >= 0, "the town reached is a stand");
+    assert(!recOf(A, A.seed).legs.some(function (l) { return l.indexOf("t:" + p3.id) >= 0; }), "no leg reaches it across the stretch off the map: " + JSON.stringify(recOf(A, A.seed).legs));
     /* the record is a set: the same walk a hundred times is the same record */
     for (var i = 0; i < 100; i++) { point(c.p0.name, i % 2 ? c.inn.name : c.market.name); atlasFollow(); }
-    assert.deepEqual(plain(A.seen[c.townId]).legs, [leg("t:" + c.inn.id, "t:" + c.market.id)], "a hundred walks of one street: one leg (bounded by the sheet's things, not by play time)");
+    assert.deepEqual(recOf(A, c.townId).legs, [leg("t:" + c.inn.id, "t:" + c.market.id)], "a hundred walks of one street: one leg (bounded by the sheet's things, not by play time)");
     assert.equal(A.seen[c.townId].at.length, 2);
   });
 
@@ -1717,7 +1728,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
   });
 
   test("#717 room by room under a roof and under the ground: a building shows the rooms the party stood in and those it walked through between them, a dungeon its ways up besides — whole rooms by id, nothing by distance", function () {
-    var A = fresh(), c = cast(A), innZone, idoc, once, a, b, ids, innIds, way, on, sewer, sdoc, ups, deep, sway, son;
+    var A = fresh(), c = cast(A), innZone, idoc, once, a, b, ids, innIds, way, on, sewer, sdoc, ups, all, deep, sway, son;
     point(c.p0.name); atlasFollow(); townCast(A, c);
     point(c.p0.name, c.inn.name); atlasFollow(); innZone = A.at; idoc = atlasDoc(innZone);
     assert.deepEqual(atlasReveal(innZone), [], "inside by the building's name, no room known: the outline alone");
@@ -1727,7 +1738,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     point(c.p0.name, a.name); atlasFollow(); assert.equal(A.spot, a.id);
     assert.deepEqual(atlasReveal(innZone), [a.id], "the room the party stands in");
     point(c.p0.name, b.name); atlasFollow(); assert.equal(A.spot, b.id);
-    assert.deepEqual(plain(A.seen[innZone]), { at: ["t:" + a.id, "t:" + b.id], legs: [leg("t:" + a.id, "t:" + b.id)] });
+    assert.deepEqual(recOf(A, innZone), { at: ["t:" + a.id, "t:" + b.id], legs: [leg("t:" + a.id, "t:" + b.id)] });
     ids = atlasReveal(innZone); way = legRoute(idoc, A.seen[innZone].legs[0]); on = crossed(idoc, "interior", way.paths);
     assert.equal(way.via, "doors"); assert(way.paths.length >= 2, "another floor: the way crosses a stair, one path a floor");
     assert(ids.indexOf(a.id) >= 0 && ids.indexOf(b.id) >= 0, "both rooms");
@@ -1738,9 +1749,10 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     TnDMaps.scene.build(idoc, "ink", { reveal: ids }); innIds = ids;
     /* under the ground: the ways up are known from the sheet above */
     point(c.p0.name, c.grates[0].name); atlasFollow(); sewer = A.at; sdoc = atlasDoc(sewer);
-    ups = sdoc.portals.filter(function (p) { return p.way === "up"; }).map(function (p) { return p.id; });
-    assert.deepEqual(atlasReveal(sewer).slice().sort(), ups.slice().sort(), "the ways up — the party stands at one of them");
-    deep = sdoc.rooms.filter(function (r) { return ups.indexOf(r.id) < 0 && sdoc.rooms.filter(function (q) { return atlasNameKey(q.name) === atlasNameKey(r.name); }).length === 1 && !atlasFind(c.town, r.name); })[0];
+    all = sdoc.portals.filter(function (p) { return p.way === "up"; }).map(function (p) { return p.id; }); ups = waysShown(c.townId, c.town, sdoc);
+    assert(ups.indexOf(A.spot) >= 0 && ups.length < all.length, "fixture: the town's sheet shows the grate the party went down and hides another");
+    assert.deepEqual(atlasReveal(sewer).slice().sort(), ups.slice().sort(), "the ways up the sheet above shows — the party stands at one of them — and no way the town's fog hides (review finding 2)");
+    deep = sdoc.rooms.filter(function (r) { return all.indexOf(r.id) < 0 && sdoc.rooms.filter(function (q) { return atlasNameKey(q.name) === atlasNameKey(r.name); }).length === 1 && !atlasFind(c.town, r.name); })[0];
     point(c.p0.name, deep.name); atlasFollow(); assert.equal(A.spot, deep.id);
     ids = atlasReveal(sewer); sway = legRoute(sdoc, A.seen[sewer].legs[0]); son = crossed(sdoc, "dungeon", sway.paths);
     assert.equal(sway.via, "passage"); ups.concat([deep.id]).forEach(function (id) { assert(ids.indexOf(id) >= 0, id); });
@@ -1762,14 +1774,23 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert.deepEqual(atlasReveal(c.townId), { points: [[c.market.x, c.market.y]], paths: [], radiusM: 100 }, "from now: where the party stands");
     assert.deepEqual(atlasReveal(A.seed), { points: [[c.p0.x, c.p0.y]], paths: [], radiusM: ATLAS_FOG.region.radiusM });
     point(c.p0.name, c.inn.name); atlasFollow();
-    assert.deepEqual(plain(A.seen[c.townId]), { at: ["t:" + c.market.id, "t:" + c.inn.id], legs: [leg("t:" + c.inn.id, "t:" + c.market.id)] }, "the first move keeps the stand the party left, the one it reached and the way between");
-    assert.deepEqual(plain(A.seen[A.seed]), { at: ["t:" + c.p0.id], legs: [] });
+    assert.deepEqual(recOf(A, c.townId), { at: ["t:" + c.market.id, "t:" + c.inn.id], legs: [leg("t:" + c.inn.id, "t:" + c.market.id)] }, "the first move keeps the stand the party left, the one it reached and the way between");
+    assert.deepEqual(recOf(A, A.seed), { at: ["t:" + c.p0.id], legs: [] });
     /* the load door: a record for a zone that is gone is dropped, an unreadable one is dropped and SAID; the rest is kept */
     A.seen["campaign-1/gone"] = { at: ["t:x"], legs: [] }; A.seen[A.seed] = "junk"; quiet();
     assert.equal(atlasHeal(), true); assert.equal(A.seen["campaign-1/gone"], undefined); assert.equal(A.seen[A.seed], undefined);
     assert(toasts.some(function (t) { return /where the party has been/.test(t) && /could not be read/.test(t); }), toasts.join(" | "));
-    assert.deepEqual(plain(A.seen[c.townId]).legs, [leg("t:" + c.inn.id, "t:" + c.market.id)], "a readable record is untouched");
+    assert.deepEqual(recOf(A, c.townId).legs, [leg("t:" + c.inn.id, "t:" + c.market.id)], "a readable record is untouched");
     assert.deepEqual(atlasReveal(A.seed).points, [[c.p0.x, c.p0.y]], "the realm starts from now again");
+    /* review, MU7/MU8: the door reads every element — a leg that is no pair, a stand that is no key, a pointer that is no key */
+    [{ at: ["t:a"], legs: [null] }, { at: [3], legs: [] }, { at: ["t:a"], legs: [["t:a"]] }, { at: [""], legs: [] }, { at: [], legs: [], last: 7 }, { at: "t:a", legs: [] }, null].forEach(function (junk) {
+      A.seen[c.townId] = junk; quiet(); assert.equal(atlasHeal(), true, JSON.stringify(junk)); assert.equal(A.seen[c.townId], undefined, "dropped: " + JSON.stringify(junk));
+      assert.equal(toasts.filter(function (t) { return /could not be read/.test(t); }).length, 1, "and said: " + JSON.stringify(junk)); TnDMaps.scene.fog.spec(atlasReveal(c.townId));
+    });
+    A.seen[c.townId] = { at: ["t:" + c.inn.id], legs: [], last: "t:" + c.inn.id }; quiet(); assert.equal(atlasHeal(), false, "a record with its pointer is readable"); assert.equal(toasts.length, 0);
+    /* review finding 9: a WHOLE record that is junk is replaced and said; a store that never had one is replaced quietly (ruling 4) */
+    ["junk", 7, [1, 2]].forEach(function (junk) { A.seen = junk; quiet(); assert.equal(atlasHeal(), true); assert.deepEqual(plain(A.seen), {}); assert.equal(toasts.filter(function (t) { return /where the party has been/.test(t) && /could not be read/.test(t); }).length, 1, "said: " + JSON.stringify(junk)); });
+    delete A.seen; quiet(); assert.equal(atlasHeal(), true); assert.equal(toasts.length, 0, "a campaign mapped before the fog: nothing to say");
   });
 
   test("#717 the record is saved with the campaign: it survives the save round trip as a keyed store, and every sheet shows the same ground after a load", function () {
@@ -1802,6 +1823,8 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     /* a stand whose thing has left the sheet is skipped, never a throw */
     A.seen[c.townId].at.push("t:no-such-thing"); A.seen[c.townId].legs.push(leg("t:no-such-thing", "t:" + c.inn.id));
     r = atlasReveal(c.townId); assert.equal(r.points.length, 2); assert.equal(r.paths.length, 1); TnDMaps.scene.fog.spec(r);
+    /* a leg that is no pair, in memory with no load door between (the reviewer's H4: the read threw): skipped, the sheet still drawn */
+    A.seen[c.townId].legs.push(null); A.seen[c.townId].legs.push("t:x"); r = atlasReveal(c.townId); assert.equal(r.paths.length, 1); TnDMaps.scene.fog.spec(r); assert.equal(atlasFogShows(c.townId, c.inn.x, c.inn.y), true);
   });
 
   test("#717 the switch and the prompt: a campaign with the fog off shows every sheet whole and still keeps its record; the MAP block the GM reads is the same to the byte with the fog on, off, and with no record at all", function () {
@@ -1838,15 +1861,173 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
   });
 
   test("#717 an addition the player's tap puts away takes its record with it: no stand points at a thing that is gone, and the sheet behind it is forgotten", function () {
-    var S = start(), T = S.T, A = S.A, c = S.c, spur, id, r;
+    var S = start(), T = S.T, A = S.A, c = S.c, spur, id, r, rooms;
     turn("[SUBLOCATION:" + c.market.name + "] The square."); turn("[SUBLOCATION:The Gilded Spur] A tavern the story knows."); spur = A.at; id = A.zones[spur].via;
     assert.equal(A.zones[spur].kind, "interior"); assert(A.seen[c.townId].at.indexOf("t:" + id) >= 0, "the added tavern is a stand on the town");
     assert(A.seen[c.townId].legs.some(function (l) { return l.indexOf("t:" + id) >= 0; }), "and the walk to it from the market is a leg");
+    rooms = atlasDoc(spur).rooms.filter(function (q) { return atlasDoc(spur).rooms.filter(function (x) { return atlasNameKey(x.name) === atlasNameKey(q.name); }).length === 1 && !/^(passage|stair)/.test(q.id); }).slice(0, 2);
+    rooms.forEach(function (q) { turn("[SUBLOCATION:" + q.name + "] Through."); }); assert(rooms.length === 2 && recOf(A, spur) && recOf(A, spur).at.length === 2, "the tavern has a record of its own: two rooms stood in — " + JSON.stringify(recOf(A, spur)));
+    turn("[SUBLOCATION:The Gilded Spur] Back to the taproom door."); assert.equal(sub(), "The Gilded Spur");
     r = atlasPlace(c.townId, { id: c.inn.id }); assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(A.zones[spur], undefined, "the addition and its sheet are gone");
     assert.equal(A.seen[spur], undefined, "the sheet's record went with it");
     assert.equal(JSON.stringify(A.seen).indexOf("t:" + id + "\""), -1, "no stand or leg names the thing that is gone: " + JSON.stringify(A.seen[c.townId]));
     assert(A.seen[c.townId].at.indexOf("t:" + c.market.id) >= 0 && A.seen[c.townId].at.indexOf("t:" + c.inn.id) >= 0, "the market and the inn the player named are kept");
     TnDMaps.scene.fog.spec(atlasReveal(c.townId));
+  });
+
+  /* ── #717, the independent review of ab55473b (audits/AUDIT_2026-11-09_717_review.md) ──────────────────────────── */
+  test("#717 review: a walk made wholly inside a zone is no walk on the sheet above (finding 1): down one grate and along the sewer to another, the town gains no stand and no leg, with or without a chamber between; the marker's ground is still shown; coming up, the walk runs from the way the party came up", function () {
+    var A = fresh(), c = cast(A), g0, g1, sewer, sdoc, deep, before, r;
+    point(c.p0.name); atlasFollow(); townCast(A, c); g0 = c.grates[0]; g1 = c.grates[1];
+    point(c.p0.name, c.market.name); atlasFollow(); point(c.p0.name, g0.name); atlasFollow(); sewer = A.at; sdoc = atlasDoc(sewer);
+    assert.equal(A.zones[sewer].kind, "dungeon"); before = JSON.stringify(recOf(A, c.townId));
+    assert.deepEqual(recOf(A, c.townId), { at: ["t:" + c.market.id, "t:" + g0.id], legs: [leg("t:" + c.market.id, "t:" + g0.id)] }, "from the market to the grate, on the street: a leg");
+    point(c.p0.name, g1.name); atlasFollow(); assert.equal(A.at, sewer, "still below"); assert.equal(A.spot, g1.id, "at the foot of the second grate");
+    assert.equal(atlasPartyIn(c.townId).key, "t:" + g1.id, "the town's sheet shows the party at the grate it stands under");
+    assert.equal(JSON.stringify(recOf(A, c.townId)), before, "the town's record is as it was: the story never put the party on a street between the two grates");
+    assert.deepEqual(recOf(A, sewer).legs, [leg("t:" + g0.id, "t:" + g1.id)], "the walk is the sewer's own");
+    r = atlasReveal(c.townId); assert.equal(r.paths.length, 1, "one way on the town: market to the first grate");
+    assert(r.points.some(function (p) { return p[0] === g1.x && p[1] === g1.y; }), "the marker never sits on blank paper: the ground under it is shown while it stands there");
+    /* with a chamber between (the reviewer's weaker sibling: the far grate was recorded as a stand of the town from below) */
+    deep = sdoc.rooms.filter(function (q) { return !sdoc.portals.some(function (p) { return p.id === q.id; }) && sdoc.rooms.filter(function (x) { return atlasNameKey(x.name) === atlasNameKey(q.name); }).length === 1 && !atlasFind(c.town, q.name); })[0];
+    point(c.p0.name, deep.name); atlasFollow(); assert.equal(A.spot, deep.id); point(c.p0.name, g0.name); atlasFollow(); assert.equal(A.at, sewer); point(c.p0.name, deep.name); atlasFollow(); point(c.p0.name, g1.name); atlasFollow();
+    assert.equal(JSON.stringify(recOf(A, c.townId)), before, "through a chamber and back to either grate: still nothing on the town");
+    /* surfacing: the party climbs out (the pointer leaves the sewer) and walks to the inn — from the grate it came up, never the one it went down */
+    point(c.p0.name); atlasFollow(); assert.equal(A.at, c.townId); assert.equal(A.spot, null);
+    assert.equal(JSON.stringify(recOf(A, c.townId)), before, "somewhere in the town: nothing recorded");
+    point(c.p0.name, c.inn.name); atlasFollow();
+    assert(recOf(A, c.townId).legs.some(function (l) { return l.join() === leg("t:" + g1.id, "t:" + c.inn.id).join(); }), "the walk to the inn starts at the second grate: " + JSON.stringify(recOf(A, c.townId).legs));
+    assert(!recOf(A, c.townId).legs.some(function (l) { return l.join() === leg("t:" + g0.id, "t:" + g1.id).join(); }), "and no leg ever joined the two grates on the street");
+    assert(!recOf(A, c.townId).legs.some(function (l) { return l.join() === leg("t:" + g0.id, "t:" + c.inn.id).join(); }));
+  });
+
+  test("#717 review: the path of ruling 2 holds across a [SUBLOCATION_LEAVE] (finding 3): on a sheet the party has not left, a walk runs from the LAST place it was known to stand; it never bridges a place off the map, a sheet left and re-entered, or a first arrival by name", function () {
+    var S = start(false), A = S.A, c = S.c, other;
+    turn("[SUBLOCATION:" + c.inn.name + "] In."); turn("[SUBLOCATION_LEAVE] Out to the street."); assert.equal(sub(), null); assert.equal(A.at, c.townId); assert.equal(A.spot, null, "somewhere in the town");
+    assert.deepEqual(recOf(A, c.townId), { at: ["t:" + c.inn.id], legs: [] }); assert.equal(A.seen[c.townId].last, "t:" + c.inn.id, "the sheet remembers where the party last stood");
+    turn("[SUBLOCATION:" + c.market.name + "] To the market.");
+    assert.deepEqual(recOf(A, c.townId), { at: ["t:" + c.inn.id, "t:" + c.market.id], legs: [leg("t:" + c.inn.id, "t:" + c.market.id)] }, "inn, out, market: the streets between are the path to it from the previous location");
+    /* a place off the map in between: the ground between is not known */
+    turn("[SUBLOCATION:The Rusty Flagon] A tavern the map does not have."); assert(A.off && A.off.within === c.townId, "off the map, in the town: " + JSON.stringify(A.off)); assert.equal(A.seen[c.townId].last, undefined, "the thread is cut");
+    other = c.town.establishments.filter(function (e) { return e.id !== c.inn.id && c.town.establishments.filter(function (q) { return atlasNameKey(q.name) === atlasNameKey(e.name); }).length === 1; })[0];
+    turn("[SUBLOCATION:" + other.name + "] On."); assert(recOf(A, c.townId).at.indexOf("t:" + other.id) >= 0);
+    assert(!recOf(A, c.townId).legs.some(function (l) { return l.indexOf("t:" + other.id) >= 0; }), "no leg bridges the place the map does not know: " + JSON.stringify(recOf(A, c.townId).legs));
+    /* the sheet left and re-entered by name: the walk does not run from the stand before the journey */
+    turn("[LOCATION:" + c.p1.name + "] Away."); assert.equal(A.seen[c.townId].last, undefined, "leaving the town cuts its thread");
+    turn("[LOCATION:" + c.p0.name + "] Back."); turn("[SUBLOCATION:" + c.market.name + "] The market again.");
+    assert.equal(recOf(A, c.townId).legs.length, 1, "back by name, then the market: no leg from the place the party stood at before it left — " + JSON.stringify(recOf(A, c.townId).legs));
+    assert.equal(A.seen[c.townId].last, "t:" + c.market.id);
+    /* a first arrival by name: nothing to walk from */
+    assert.deepEqual(recOf(A, A.seed + "/" + c.p1.id), undefined, "the other town was entered by name and left: nothing recorded");
+  });
+
+  test("#717 review: a door the map knows shows the room it opens into (finding 7), and 'somewhere here' shows no room at all — not the one under the sheet's middle (MU3)", function () {
+    var A = fresh(), c = cast(A), houses, one, mid, d, into, z, ids, cx;
+    point(c.p0.name); atlasFollow(); townCast(A, c);
+    houses = c.town.portals.filter(function (p) { return p.to && p.to.generator === "interior"; }).map(function (p) { var doc = TnDMaps.generate("interior", TnDMaps.interior.fromTown(c.town, p.id)), outs = doc.portals.filter(function (q) { return q.way === "out"; }); return { p: p, doc: doc, outs: outs }; });
+    /* a house with ONE door, where the door's own point lies on the wall (no room under it) */
+    one = houses.filter(function (h) { return h.outs.length === 1 && TnDMaps.interior.locate(h.doc, [h.outs[0].x, h.outs[0].y]) == null; })[0];
+    assert(one, "fixture: the capital has a one-door house whose door lies on the wall");
+    d = one.doc.doors.filter(function (q) { return q.x === one.outs[0].x && q.y === one.outs[0].y; })[0]; into = d && d.into; assert(into, "the library says which room that door opens into");
+    point(c.p0.name, one.p.name); atlasFollow(); z = A.at; assert.equal(A.zones[z].kind, "interior"); assert.equal(A.spot, one.outs[0].id, "through its one door: the party stands at it, exactly");
+    assert.deepEqual(atlasReveal(z), [into], "the room the door opens into is shown: a marker never sits on a blank sheet");
+    /* a sheet whose middle lies in a room, entered where the map does not know the spot */
+    mid = houses.filter(function (h) { cx = atlasCentre(h.doc); return h.outs.length > 1 && TnDMaps.interior.locate(h.doc, cx) != null; })[0];
+    assert(mid, "fixture: the capital has a two-door house whose middle lies in a room");
+    point(c.p0.name, mid.p.name); atlasFollow(); z = A.at; assert.equal(A.spot, null, "two doors: somewhere inside"); ids = atlasReveal(z);
+    assert.deepEqual(ids, [], "somewhere here: the outline alone — the room under the marker is not known to be where the party is (" + TnDMaps.interior.locate(mid.doc, atlasCentre(mid.doc)) + ")");
+  });
+
+  test("#717 review: a thing that bears the player's note is always shown (finding 4) — on a drawn sheet, in a building, and a noted way down shows its foot below (finding 2: a way up is drawn when the sheet above shows it)", function () {
+    var A = fresh(), c = cast(A), far, g1, sewer, sdoc, innZone, idoc, room;
+    point(c.p0.name); atlasFollow(); townCast(A, c);
+    far = c.town.establishments.map(function (e) { return { e: e, d: Math.sqrt(Math.pow(e.x - atlasCentre(c.town)[0], 2) + Math.pow(e.y - atlasCentre(c.town)[1], 2)) }; }).sort(function (a, b) { return b.d - a.d; })[0].e;
+    assert.equal(atlasFogShows(c.townId, far.x, far.y), false, "fixture: a house far from the party is under the fog");
+    assert.equal(atlasNoteSet(c.townId, far.id, "Ask here about the missing ledger.").ok, true);
+    assert.equal(atlasFogShows(c.townId, far.x, far.y), true, "a noted place is shown: the player's own words stay within reach");
+    assert(atlasReveal(c.townId).points.some(function (p) { return p[0] === far.x && p[1] === far.y; }));
+    assert.equal(recOf(A, c.townId), undefined, "a note is no stand: nothing is written to the record");
+    atlasNoteSet(c.townId, far.id, ""); assert.equal(atlasFogShows(c.townId, far.x, far.y), false, "the note removed, the fog closes again");
+    /* the realm, for a campaign mapped before the fog (ruling 4): a note on a town the party is not in */
+    atlasNoteSet(A.seed, c.p1.id, "Owed a favour here."); assert.equal(atlasFogShows(A.seed, c.p1.x, c.p1.y), true); TnDMaps.scene.fog.spec(atlasReveal(A.seed));
+    /* a way down the town's sheet shows is a way up the sewer's sheet shows — and only then */
+    point(c.p0.name, c.grates[0].name); atlasFollow(); sewer = A.at; sdoc = atlasDoc(sewer);
+    /* the way up the town's sheet HIDES (in the fixture capital the two grates lie 36 m apart; the outfall is beyond the wall) */
+    g1 = sdoc.portals.filter(function (p) { var t = p.way === "up" && p.to ? atlasThingById(c.town, p.to.id) : null; return !!t && !atlasFogShows(c.townId, t.x, t.y); }).map(function (p) { return atlasThingById(c.town, p.to.id); })[0];
+    assert(g1, "fixture: one way up of the sewer lies under the town's fog"); assert.equal(atlasReveal(sewer).indexOf(g1.id), -1, "so its foot is not drawn below");
+    atlasNoteSet(c.townId, g1.id, "A way down."); assert.equal(atlasFogShows(c.townId, g1.x, g1.y), true); assert(atlasReveal(sewer).indexOf(g1.id) >= 0, "noted on the town, it is shown there — and so is its foot below");
+    atlasNoteSet(c.townId, g1.id, ""); assert.equal(atlasReveal(sewer).indexOf(g1.id), -1);
+    /* a building: a noted room is in the list */
+    point(c.p0.name, c.inn.name); atlasFollow(); innZone = A.at; idoc = atlasDoc(innZone); room = idoc.rooms.filter(function (q) { return !/^(passage|stair)/.test(q.id); })[0];
+    assert.deepEqual(atlasReveal(innZone), []); atlasNoteSet(innZone, room.id, "The loose board."); assert.deepEqual(atlasReveal(innZone), [room.id], "a noted room is drawn");
+    TnDMaps.scene.build(idoc, "ink", { reveal: atlasReveal(innZone) });
+    var s = JSON.stringify(A.seen); atlasReveal(innZone); atlasReveal(c.townId); assert.equal(JSON.stringify(A.seen), s);
+  });
+
+  test("#717 review: open country is a stand of the realm by its zone, read back after the party leaves, with the walk to a town; the wild sheet itself is fogged, and a walk between two of its things follows its track (MU4, MU5, MU13)", function () {
+    var A = fresh(), c = cast(A), z, wz, wdoc, things, r, key, w;
+    point("Open country"); atlasFollow(); assert.equal(atlasPlace(A.seed, { x: c.p0.x + 6, y: c.p0.y + 4 }).ok, true); wz = A.at; assert.equal(A.zones[wz].kind, "wild");
+    z = TnDMaps.wild.zoneAt(c.reg, [c.p0.x + 6, c.p0.y + 4]); key = "p:wild:" + z.id;
+    assert.deepEqual(recOf(A, A.seed), { at: [key], legs: [] }, "the realm records the stretch of country by its zone — a key no thing of the sheet bears");
+    wdoc = atlasDoc(wz); r = atlasReveal(wz);
+    assert.deepEqual(r, { points: [atlasCentre(wdoc)], paths: [], radiusM: ATLAS_FOG.wild.radiusM }, "the wild sheet is fogged like any drawn sheet: the ground under the marker");
+    things = (wdoc.features || []).filter(function (t) { return wdoc.features.filter(function (q) { return atlasNameKey(q.name) === atlasNameKey(t.name); }).length === 1 && !atlasFind(c.reg, t.name); }).slice(0, 2);
+    assert.equal(things.length, 2, "fixture: the wild zone has two once-named things");
+    point("Open country", things[0].name); atlasFollow(); assert.equal(A.spot, things[0].id); point("Open country", things[1].name); atlasFollow(); assert.equal(A.spot, things[1].id);
+    r = atlasReveal(wz); w = TnDMaps.route(wdoc, [things[0].x, things[0].y], [things[1].x, things[1].y]);
+    assert.deepEqual(recOf(A, wz).legs, [leg("t:" + things[0].id, "t:" + things[1].id)]); assert.equal(r.radiusM, 100); assert.equal(r.paths.length, w.paths.length); TnDMaps.scene.fog.spec(r); TnDMaps.scene.build(wdoc, "ink", { reveal: r });
+    /* on to the town: the realm keeps the open country, and the walk from it */
+    point(c.p0.name); atlasFollow(); assert.equal(A.at, c.townId);
+    assert.deepEqual(recOf(A, A.seed), { at: [key, "t:" + c.p0.id], legs: [leg(key, "t:" + c.p0.id)] });
+    r = atlasReveal(A.seed); assert.deepEqual(r.points, [[z.cx, z.cy], [c.p0.x, c.p0.y]], "read back from the key after the party has left: the zone's own middle"); assert.equal(r.paths.length >= 1, true);
+    assert.equal(atlasFogShows(A.seed, z.cx, z.cy), true); TnDMaps.scene.fog.spec(r); TnDMaps.scene.build(c.reg, "ink", { reveal: r });
+  });
+
+  test("#717 review: a tap on the road the party walked has a card far from both towns, and a tap off it has none (MU6, MU16: the judgment reads the ways, and only the shown ground)", function () {
+    var A = fresh(), c = cast(A), road, mid, off = null, u, i, k, best = null, d, cand;
+    function seg(p, a, b) { var dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy, t = l ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l)) : 0; return Math.sqrt(Math.pow(p[0] - a[0] - t * dx, 2) + Math.pow(p[1] - a[1] - t * dy, 2)); }
+    function toRoad(p) { var m = Infinity, j; for (j = 1; j < road.points.length; j++) m = Math.min(m, seg(p, road.points[j - 1], road.points[j])); return m; }
+    point(c.p0.name); atlasFollow(); point(c.p1.name); atlasFollow();
+    road = legRoute(c.reg, A.seen[A.seed].legs[0]); assert.equal(road.via, "road"); u = ATLAS_FOG.region.radiusM / (c.reg.frame.kmPerUnit * 1000);
+    for (i = 0; i < road.points.length; i++) { d = Math.min(dist(road.points[i], [c.p0.x, c.p0.y]), dist(road.points[i], [c.p1.x, c.p1.y])); if (!best || d > best.d) best = { p: road.points[i], d: d }; }
+    mid = best.p; assert(best.d > 3 * u, "fixture: a point of the road lies well beyond the radius from both towns (" + Math.round(best.d / u) + " radii)");
+    assert.equal(atlasFogShows(A.seed, mid[0], mid[1]), true, "the road walked is shown ground");
+    for (k = 0; k < 16 && !off; k++) { cand = [mid[0] + 3 * u * Math.cos(k * Math.PI / 8), mid[1] + 3 * u * Math.sin(k * Math.PI / 8)]; if (toRoad(cand) > 2 * u && cand[0] > 0 && cand[1] > 0 && cand[0] < c.reg.frame.width && cand[1] < c.reg.frame.height) off = cand; }
+    assert(off, "fixture: a point two radii clear of every stretch of the road");
+    assert.equal(atlasFogShows(A.seed, off[0], off[1]), false, "beside the road, beyond the radius: not shown, though two stands and a way are on record");
+    assert.equal(atlasCard(A.seed, { x: off[0], y: off[1] }), null);
+  });
+
+  test("#717 review: a house the engine redraws larger drops its own record (finding 11): the rooms are renumbered, so a key made before the growth would name another room", function () {
+    var S = start(), A = S.A, c = S.c, spur, ed, gens, i, grew = 0, before;
+    turn("[SUBLOCATION:" + c.market.name + "] The square."); turn("[SUBLOCATION:The Gilded Spur] In."); spur = A.at;
+    ed = edits(A, c.townId).filter(function (e) { return e.name === "The Gilded Spur"; })[0]; assert(ed && ed.footprint !== "large", "the added house starts below large");
+    gens = atlasDoc(spur).rooms.filter(function (q) { return atlasDoc(spur).rooms.filter(function (x) { return atlasNameKey(x.name) === atlasNameKey(q.name); }).length === 1 && !/^(passage|stair)/.test(q.id); }).slice(0, 2);
+    gens.forEach(function (g) { turn("[SUBLOCATION:" + g.name + "] A room of the house."); }); before = recOf(A, spur); assert(before && before.at.length === 2, "two rooms on record before the growth");
+    for (i = 1; i <= 12 && !grew; i++) { turn("[SUBLOCATION:Store Room " + i + "][LOCATION_DESC:Shelves.] A store."); if (ed.footprint === "large") grew = i; }
+    assert(grew, "fixture: an invented room the medium house could not hold made it grow");
+    before.at.forEach(function (k) { assert.equal((recOf(A, spur) || { at: [] }).at.indexOf(k) >= 0 && k !== "t:" + A.spot, false, k + " was recorded before the growth and must not be read against the redrawn rooms"); });
+    assert(atlasReveal(spur).indexOf(A.spot) >= 0, "the room the party stands in is shown"); TnDMaps.scene.build(atlasDoc(spur), "ink", { reveal: atlasReveal(spur) });
+    assert(A.seen[c.townId].at.indexOf("t:" + ed.id) >= 0, "the town's record of the house itself is kept: its id did not change");
+  });
+
+  test("#717 review: a sheet's ways are found once (finding 6): a second read asks the library for no route, a new leg asks for one, and a way that could not be found is asked for again", function () {
+    var A = fresh(), c = cast(A), real = TnDMaps.route, calls = 0, r1, r2, other;
+    point(c.p0.name); atlasFollow(); townCast(A, c); point(c.p0.name, c.inn.name); atlasFollow(); point(c.p0.name, c.market.name); atlasFollow();
+    TnDMaps.route = function () { calls++; return real.apply(TnDMaps, arguments); };
+    try {
+      r1 = atlasReveal(c.townId); assert.equal(calls, 1, "one leg, one route"); r2 = atlasReveal(c.townId); assert.equal(calls, 1, "the second read routes nothing"); assert.deepEqual(r2, r1);
+      atlasFogShows(c.townId, 1, 1); atlasFogShows(c.townId, 2, 2); assert.equal(calls, 1, "nor does a tap");
+      var kept = JSON.stringify(r1); r2.paths[0][0][0] = -999; assert.equal(JSON.stringify(atlasReveal(c.townId)), kept, "a caller cannot write into the kept way (read as text: the two reads would share a written array)");
+      other = c.town.establishments.filter(function (e) { return e.id !== c.inn.id && c.town.establishments.filter(function (q) { return atlasNameKey(q.name) === atlasNameKey(e.name); }).length === 1; })[0];
+      point(c.p0.name, other.name); atlasFollow(); assert.equal(A.seen[c.townId].legs.length, 2); atlasReveal(c.townId); assert.equal(calls, 2, "a new leg is one more route");
+      atlasForget(); atlasReveal(c.townId); assert.equal(calls, 4, "a redrawn sheet finds its ways again");
+    } finally { TnDMaps.route = real; }
+    /* a failure is not kept: the next read asks again */
+    atlasForget(); calls = 0; quiet();
+    TnDMaps.route = function () { calls++; throw new Error("TnDMaps: no network today"); };
+    try { atlasReveal(c.townId); atlasReveal(c.townId); assert.equal(calls, 4, "two legs asked for at each read while the library refuses"); } finally { TnDMaps.route = real; }
+    assert.equal(atlasReveal(c.townId).paths.length >= 2, true);
   });
 
   test("THE FIXTURE GATE: this library draws the fixture realm exactly as the pinned table says (region, town, interior, sewer, cave, wild)", function () {

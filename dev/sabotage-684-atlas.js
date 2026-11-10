@@ -92,7 +92,7 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "    if(t.portal){try{leads=(atlasPortalTarget(A,zoneId,t.portal,[])||{}).zone||null;}catch(e){leads=null;}}",
     mustFail: "FAIL #684 what the pane says" },
   { label: "the fog lifts: every chamber of a dungeon is shown to the player",
-    find: "  (doc.rooms||[]).forEach(function(r){if(up[r.id]||(r.portal&&up[r.portal]))add(r.id);});",
+    find: "  (doc.rooms||[]).forEach(function(r){var way=up[r.id]||(r.portal&&up[r.portal])||null;if(way&&above(way))add(r.id);});",
     replace: "  (doc.rooms||[]).forEach(function(r){add(r.id);});",
     mustFail: "FAIL #684 the fog of war" },
   { label: "a campaign without an atlas gets a MAP header in its prompt (its prompt is no longer byte-identical)",

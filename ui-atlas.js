@@ -229,15 +229,24 @@ function atlasPaneFrame(how){
 /* show one entered zone's sheet: the document, the party marker, the fog, the select (full); framed on the party when
    asked (toParty) or on a carried view; a dock not yet sized owes the framing to its first sizing */
 function atlasPaneShow(zoneId,toParty,carry){
-  var A=atlasLive(),P=_atlasPane,doc,reveal,zones,sel,how;
+  var A=atlasLive(),P=_atlasPane,doc,reveal,markers,rooms,zones,sel,how;
   if(!A||!P||!A.zones[zoneId])return false;
   try{
-    doc=atlasDoc(zoneId);
-    if(P.zone!==zoneId)P.view.setDoc(doc);
-    /* #717 the fog of war: what this sheet may show — an area, a list of rooms, or null (the fog off). Always handed over (a
-       null lifts the fog a same-sheet repaint would otherwise keep), and only when it differs: a reveal rebuilds the scene */
-    reveal=atlasReveal(zoneId);if(JSON.stringify(P.view.reveal())!==JSON.stringify(reveal))P.view.setReveal(reveal);
-    P.view.setMarkers(atlasMarkers(zoneId));
+    /* #717 the fog of war: what this sheet may show — an area, a list of rooms, or null (the fog off) — is read BEFORE the view
+       is touched (the review of 2026-11-09, finding 5: setDoc clears the fog in force, so a failure after it drew the new
+       sheet WHOLE): a failure here leaves the sheet that was shown, fog and all */
+    doc=atlasDoc(zoneId);reveal=atlasReveal(zoneId);markers=atlasMarkers(zoneId);
+    /* the same zone under a document the engine redrew (a turn added a place to this very sheet) is drawn again, the player's view kept */
+    if(P.zone!==zoneId||P.view.doc()!==doc){P.view.setDoc(doc,P.zone===zoneId);P.zone=zoneId;}
+    /* always handed over (a null lifts the fog a same-sheet repaint would otherwise keep), and only when it differs: a reveal
+       rebuilds the scene. A reveal the view refuses leaves the sheet ALL fog, never whole */
+    if(JSON.stringify(P.view.reveal())!==JSON.stringify(reveal)){
+      try{P.view.setReveal(reveal);}
+      catch(e2){P.view.setReveal(atlasRevealNone(zoneId));throw e2;}
+    }
+    /* a sheet fogged room by room hides the library's "above" layer too — the town's walls and river drawn whole under a sewer (finding 2) */
+    rooms=reveal instanceof Array;if(P.above!==!rooms){P.view.setLayerVisible("above",!rooms);P.above=!rooms;}
+    P.view.setMarkers(markers);
   }catch(e){atlasPaneSay("That sheet could not be drawn: "+atlasProblem("drawing a sheet",e));return false;}
   P.zone=zoneId;P.target=null;P.view.select(null);
   try{P.view.setHudTrail(atlasTrailItems(zoneId));}catch(e4){atlasProblem("drawing the trail",e4);}/* the plaque's subtitle: the party's location trail, this sheet current */
