@@ -43,6 +43,7 @@
     "In new campaigns, unvisited blueprint places enter known locations only after the story names them. Existing campaigns retain their lists.",
     "The Silence Between Leaves v1.01 opens with real court patrols and keeps later conspirators out of the opening bestiary.",
     "The Blueprint Designer adds creature habitats and act checkboxes, with all acts selected by default.",
-    "The Blueprint Designer adds an AI assistant for ideas and reviewed creature, act, and custom-class edits."
+    "The Blueprint Designer adds an AI assistant for ideas and reviewed creature, act, and custom-class edits.",
+    "The Blueprint Designer autosaves large blueprints and portraits, preserves older drafts during migration, and offers recovery copies when storage fails."
   ]
 }

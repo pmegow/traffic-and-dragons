@@ -35,14 +35,13 @@ test("Home writes the incoming slot (BPD_INCOMING_K from globals.js) and never t
   if (!/var BPD_INCOMING_K\s*=\s*"bpd_incoming_v1"/.test(globalsSrc)) return "BPD_INCOMING_K missing from globals.js";
   return true;
 });
-test("the designer consumes the incoming slot once, BEFORE the draft restore, and clears the old draft only on adopt/replace", function () {
-  var boot = page.slice(page.indexOf("var _incoming=null"), page.indexOf("}else{", page.indexOf("var _incoming=null")));
-  if (boot.indexOf("localStorage.removeItem(BPD_INCOMING_K)") < 0) return "the incoming slot is not cleared";
-  if (boot.indexOf('_dec.action==="adopt"||_dec.action==="replace"') < 0 || boot.indexOf("clearDraft();") < 0) return "adopt/replace must clear the prior draft slot";
-  var keepAt = boot.indexOf('_dec.action==="keep"'), clearAt = boot.indexOf("clearDraft();");
-  if (keepAt < 0 || clearAt > keepAt) return "keep must not clear the draft";
-  if (page.indexOf("var _incoming=null") > page.indexOf("if(_draft&&_draft.bp&&_draft.bp.format){")) return "the incoming decision must run before the draft restore";
-  if (page.indexOf("if(_draft&&_draft.bp&&_draft.bp.format){") < page.indexOf("bpdIncomingDecision(_draft,_incoming")) return "the decision must see the stored draft";
+test("the designer consumes incoming only after persistence and never pre-deletes the working draft", function () {
+  var ui=fs.readFileSync(path.join(ROOT,"blueprint-designer-autosave.js"),"utf8");
+  if(page.indexOf('clearDraft(')>=0||page.indexOf('removeItem(DRAFT_K)')>=0)return "working drafts must be replaced atomically, never pre-deleted";
+  if(ui.indexOf('flush().then(consumeDesignerIncoming)')<0)return "incoming must wait for a durable working copy";
+  var restore=page.slice(page.indexOf('function restoreDesignerDraft('),page.indexOf('function consumeDesignerIncoming('));
+  if(restore.indexOf('_dec.action===\"adopt\"||_dec.action===\"replace\"')<0)return "adopt/replace must select incoming";
+  if(restore.indexOf('bpdIncomingDecision(_draft,_incoming')>restore.indexOf('if(_draft&&_draft.bp&&_draft.bp.format){'))return "decision must see the stored draft before restore";
   return true;
 });
 console.log("#439 DESIGNER INCOMING: " + failed + " failed, " + passed + " passed");

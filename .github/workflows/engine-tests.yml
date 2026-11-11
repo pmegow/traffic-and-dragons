@@ -153,6 +153,10 @@ jobs:
         run: node dev/tests-675-invitations-browser.js
       - name: Operator activity and beta mail controls (#674)
         run: node dev/tests-674-admin-updates-browser.js
+      - name: Large Designer drafts and recovery (#725)
+        run: node dev/tests-725-designer-drafts-browser.js
+        env:
+          DRAFT_SCREENSHOTS: /tmp/tnd-shots/designer-drafts
       - name: Blueprint author AI assistant (#724)
         run: node dev/tests-724-designer-assistant-browser.js
       # #312 ①: a battery whose target file changed in this push runs in this push (the weekly

@@ -116,3 +116,11 @@ The designer Library window defaults to My Library. A fresh server account check
 ### Operator activity and beta mail (#674)
 
 The console groups accounts under Player Activity and per-player native disclosures. New counts use a server-persisted per-operator visit cursor; 30-day usage remains separately labelled. Release Notes renders verified deployment history as inert text. Beta email uses the shared authenticated adapter, previews server-selected recipients, confirms before sending, and reads durable receipts after interruptions. See [implementation and rollout](../admin_console_674.md).
+
+### Designer drafts
+
+The Blueprint Designer stores its raw working envelope (`bp`, `dirty`, `editionBaseline`, `at`) in IndexedDB `bpd_drafts_v1`, store `drafts`. This includes portraits, private view flags, review state and full prose originals. The editor and test seam become available only after restoration. An existing `bpd_draft_v1` localStorage draft migrates atomically and remains untouched as a backup. A changed legacy value requires an explicit recovery choice; no quota-limited localStorage fallback writes occur.
+
+One writer coalesces edits and serializes transactions. The current revision is compared and replaced inside the same readwrite transaction; success means transaction completion. Pending changes, failures and other-tab conflicts warn before navigation even after file export. New and imported blueprints replace the working copy atomically; failures keep the previous durable copy. A separate sticky autosave line cannot be erased by ordinary authoring messages. Home shelf handoffs are consumed only after the selected working copy is durable; malformed handoffs remain stored and do not block a healthy draft.
+
+Storage holds one current envelope, one legacy marker/backup, and at most one retained recovery envelope. Choosing a legacy copy or explicitly starting fresh from damaged data preserves the displaced current envelope in the same transaction. An occupied recovery slot is never overwritten: its removal requires an explicit confirmed action. Recovery copies remain downloadable during normal editing, and recovery envelopes reopen through Load. An unavailable database still permits downloading a readable localStorage backup. No automatic storage purge or campaign-state migration occurs.

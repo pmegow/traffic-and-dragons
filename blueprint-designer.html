@@ -117,6 +117,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 </head>
 <body>
 <div id="topbar">
+<div id="designer-controls" style="display:contents;" inert>
   <h1>&#129513; Blueprint Designer<span class="ver" id="ver"></span></h1>
   <button class="tbtn" id="btn-new">New</button>
   <button class="tbtn" id="btn-load">Load&hellip;</button>
@@ -133,8 +134,10 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
   <div id="text-limit-status" style="width:100%;font-size:12px;color:var(--wrn);" hidden></div>
   <div id="statusline"></div>
 </div>
-<main id="app"></main>
-<input type="file" id="file-inp" accept=".blueprint,.campaign" style="display:none;">
+<div id="draft-state" role="status" aria-live="polite" style="width:100%;font-size:13px;overflow-wrap:anywhere;"><span id="draft-message">Opening your saved draft…</span><span id="draft-actions"></span><button class="tbtn" id="draft-backups" hidden style="margin-left:8px;">Recovery copies…</button><div id="draft-recovery" hidden></div></div>
+</div>
+<main id="app" inert></main>
+<input type="file" id="file-inp" accept=".blueprint,.campaign,.json" style="display:none;">
 
 <!-- Engine chain in canonical order (v1.180; repaired v0.37) — state.js supplies store/keys/
      loadProviderSettings, storage-adapter the cloud library, api.js callGM/repairModelJson for
@@ -171,23 +174,17 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="designer-creatures.js"></script>
 <script src="designer-assistant.js"></script>
 <script src="designer-prose.js"></script>
+<script src="blueprint-designer-drafts.js"></script>
 <script>
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.65";
+var BP_DESIGNER_VERSION="v0.66";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
-// ── Draft persistence (v0.31) ─────────────────────────────────────────────────
-// Reload NEVER clears the editor — that's what New is for (user rule, 07-06). Every mutation
-// autosaves the RAW working state (not stripView: review selections, FAILED stamps, and collapse
-// flags all survive) to localStorage, debounced; boot restores it silently. New clears it.
-var DRAFT_K="bpd_draft_v1",_draftT=null;
-function saveDraft(){
-  if(_draftT)clearTimeout(_draftT);
-  _draftT=setTimeout(function(){_draftT=null;try{localStorage.setItem(DRAFT_K,JSON.stringify({bp:bp,dirty:dirty,editionBaseline:editionBaseline,at:Date.now()}));}catch(e){console.warn("[designer draft] "+e.message);setStatus("Draft could not be saved on this device: "+e.message+". Save a .blueprint file to keep your changes.","err");}},400);
-}
-function clearDraft(){if(_draftT){clearTimeout(_draftT);_draftT=null;}try{localStorage.removeItem(DRAFT_K);}catch(e){}}
+// The raw authoring state includes review selections, full prose originals, portraits and edition identity.
+var designerDrafts=null,designerDraftStore=null,designerDraftReady=false;
+function saveDraft(){if(designerDraftReady&&designerDrafts)designerDrafts.schedule();}
 // Collapse state (2026-07-05, "I really hate scrolling"): sections in secOpen (undefined = open),
 // cards carry a `_c` flag ON the data object so collapse travels with moves/reorders. `_c` is
 // VIEW state only — stripped from Save and Publish output by stripView(). Loading an existing
@@ -781,7 +778,7 @@ function loadBlueprintObject(obj){
 }
 document.getElementById("btn-new").addEventListener("click",function(){
   if(dirty&&!confirm("Discard unsaved changes?"))return;
-  bp=blankBp();editionBaseline=null;dirty=false;clearDraft();render();setStatus("New blueprint","");
+  bp=blankBp();editionBaseline=null;dirty=false;render();setStatus("New blueprint","");
 });
 document.getElementById("btn-load").addEventListener("click",function(){
   if(dirty&&!confirm("Discard unsaved changes?"))return;
@@ -804,7 +801,7 @@ function designerValidate(){
   return validateBlueprint(fileOut()); // engine validation: act/arc titles, goals, objectives
 }
 // Save NEVER blocks (v0.39, owner call 2026-09-01): a blueprint is authored over several
-// sittings, and the one-slot localStorage draft is per-browser. Completeness is a PUBLISH
+// sittings, and the working draft is per-browser. Completeness is a PUBLISH
 // gate — the cloud library feeds startGame without re-validating (game.js E19), so only
 // Publish may admit a blueprint there; a saved FILE is re-validated by every consumer that
 // opens it (the wizard import refuses, the designer Load reopens with issues named). The
@@ -820,7 +817,7 @@ document.getElementById("btn-save").addEventListener("click",function(){
   var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
   editionSaved(snapshot,bp,bp.releaseStatus);setStatus(err?("Saved "+fname+" — not publish-ready: "+err):("Saved "+fname+" — publish-ready"),err?"warn":"ok");
 });
-window.addEventListener("beforeunload",function(e){if(dirty){e.preventDefault();e.returnValue="";}});
+window.addEventListener("beforeunload",function(e){if(dirty||(designerDrafts&&designerDrafts.unsettled())){e.preventDefault();e.returnValue="";}});
 
 // Full originals live in the local draft; the downloadable backup holds only the last revision's fields.
 var proseFitJob=null;
@@ -1675,6 +1672,7 @@ document.getElementById("btn-library").addEventListener("click",function(){
 // Drives the real page logic headlessly / in the preview pane: no picker, no gesture. The pure
 // halves (normalize/validate/roster assembly) live in game.js and are engine-tested; this seam
 // reaches the page's own working state and its field-routing boundary.
+function exposeDesignerTestSeam(){
 window.__bpdTest={
   getBp:function(){return bp;},
   editionSaved:editionSaved,
@@ -1688,6 +1686,7 @@ window.__bpdTest={
   availRename:availRename,
   rerender:function(){render();}
 };
+}
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 if(typeof loadProviderSettings==="function")loadProviderSettings(); // API key/provider for the LLM features
@@ -1695,9 +1694,9 @@ falKey=store.get(FAL_KEY_K)||"";renderModel=resolveRenderModel(store.get(RENDER_
 wireLlmSelect(); // after loadProviderSettings — the choices come from the loaded keys/overrides
 document.getElementById("ver").textContent=BP_DESIGNER_VERSION+(typeof APP_VERSION!=="undefined"?" · engine "+APP_VERSION:"");
 // Boot: restore the working draft if one exists — reload continues where you were (New = blank).
-var _draft=null;try{_draft=JSON.parse(localStorage.getItem(DRAFT_K)||"null");}catch(e){}
+
 /* #439 (Astra review R2): a blueprint sent from the Home shelf rides ITS OWN slot (BPD_INCOMING_K, globals.js) and is
-   consumed here, once. The pure decision: no draft or a clean one → adopt it; a DIRTY draft → the author is asked, and
+   consumed after the chosen working copy is durable. The pure decision: no draft or a clean one → adopt it; a DIRTY draft → the author is asked, and
    the draft survives byte-for-byte unless they choose Replace. The incoming slot is cleared either way. */
 function bpdIncomingDecision(draft,incoming,ask){
   if(!incoming||!incoming.bp||typeof incoming.bp!=="object"||!incoming.bp.format)return {action:"ignore"};
@@ -1706,23 +1705,31 @@ function bpdIncomingDecision(draft,incoming,ask){
   var replace=!!ask("You have an unsaved draft — \""+draftName+"\".\n\nReplace it with \""+incomingName+"\" from the Home shelf? Your unsaved draft would be lost.\n\nOK = replace it.   Cancel = keep your draft ("+incomingName+" stays on the shelf).");
   return {action:replace?"replace":"keep",incomingName:incomingName,draftName:draftName};
 }
-var _incoming=null,_fromHome=false,_keptMsg="";
-try{_incoming=JSON.parse(localStorage.getItem(BPD_INCOMING_K)||"null");}catch(e){}
-if(_incoming){
-  try{localStorage.removeItem(BPD_INCOMING_K);}catch(e){}
-  var _dec=bpdIncomingDecision(_draft,_incoming,function(q){return window.confirm(q);});
-  if(_dec.action==="adopt"||_dec.action==="replace"){clearDraft();_draft={bp:_incoming.bp,dirty:false,at:_incoming.at};_fromHome=true;}
-  else if(_dec.action==="keep")_keptMsg="Kept your unsaved draft \""+_dec.draftName+"\" — "+_dec.incomingName+" stays on the Home shelf; open it again when you are ready.";
+var _incoming=null,_fromHome=false,_keptMsg="",_incomingRaw=null,_incomingProblem="";
+function restoreDesignerDraft(_draft,ignoreIncoming){
+  _incomingProblem="";_incomingRaw=ignoreIncoming?null:localStorage.getItem(BPD_INCOMING_K);
+  try{_incoming=JSON.parse(_incomingRaw||"null");}catch(e){console.warn("[designer incoming] "+e.message);_incoming=null;_incomingRaw=null;_incomingProblem="Home shelf handoff could not be read: "+e.message+". Your working draft is open; the unreadable handoff has been kept.";}
+  _fromHome=false;_keptMsg="";
+  if(_incoming){
+    var _dec=bpdIncomingDecision(_draft,_incoming,function(q){return window.confirm(q);});
+    if(_dec.action==="adopt"||_dec.action==="replace"){_draft={bp:_incoming.bp,dirty:false,at:_incoming.at};_fromHome=true;}
+    else if(_dec.action==="keep")_keptMsg="Kept your unsaved draft \""+_dec.draftName+"\" — "+_dec.incomingName+" stays on the Home shelf; open it again when you are ready.";
+  }
+  if(_draft&&_draft.bp&&_draft.bp.format){
+    bp=normalizeBlueprint(_draft.bp,{preserveProse:true});editionBaseline=Object.prototype.hasOwnProperty.call(_draft,"editionBaseline")?_draft.editionBaseline:BlueprintEdition.baseline(bp);dirty=!!_draft.dirty;render();
+    setStatus(_keptMsg||((bp.name||"Untitled blueprint")+(_fromHome?" — opened from the Home shelf":" — restored from draft"+(dirty?" (unsaved changes)":""))),_keptMsg?"warn":"");
+  }else{
+    bp=blankBp();editionBaseline=null;dirty=false;render();setStatus("New blueprint — or Load an existing .blueprint file.","");
+  }
+  if(_incomingProblem)setStatus(_incomingProblem,"err");
 }
-if(_draft&&_draft.bp&&_draft.bp.format){
-  bp=normalizeBlueprint(_draft.bp,{preserveProse:true});editionBaseline=Object.prototype.hasOwnProperty.call(_draft,"editionBaseline")?_draft.editionBaseline:BlueprintEdition.baseline(bp);dirty=!!_draft.dirty;render();
-  if(_fromHome){saveDraft();setStatus((bp.name||"Untitled blueprint")+" — opened from the Home shelf","");}
-  else setStatus(_keptMsg||((bp.name||"Untitled blueprint")+" — restored from draft"+(dirty?" (unsaved changes)":"")),_keptMsg?"warn":"");
-}else{
-  bp=blankBp();render();setStatus("New blueprint — or Load an existing .blueprint file.","");
+function consumeDesignerIncoming(){
+  if(_incomingRaw&&localStorage.getItem(BPD_INCOMING_K)===_incomingRaw)localStorage.removeItem(BPD_INCOMING_K);
+  _incomingRaw=null;
 }
 updateCatalogAccess();
 </script>
 <script src="designer-assistant-ui.js"></script>
+<script src="blueprint-designer-autosave.js"></script>
 </body>
 </html>

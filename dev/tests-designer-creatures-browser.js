@@ -98,7 +98,7 @@ assert(await page.evaluate(()=>bp.npcs[0].notes===proseOriginal),'failed revisio
 await page.evaluate(()=>{callGM=()=>new Promise(r=>window.releaseProse=r);});await page.locator('#btn-fit-text').click();await page.waitForFunction(()=>!!window.releaseProse);
 await page.evaluate(()=>{bp.npcs[0].notes='An intentional manual edit.';markDirty();releaseProse(JSON.stringify({text:proseRevision}));});await page.waitForFunction(()=>!proseFitJob);
 assert.equal(await page.evaluate(()=>bp.npcs[0].notes),'An intentional manual edit.','late revision never replaces a newer manual edit');
-await page.evaluate(()=>{bp.npcs[0].notes=proseOriginal;markDirty();});await page.waitForFunction(()=>JSON.parse(localStorage.getItem('bpd_draft_v1')).bp.npcs[0].notes===proseOriginal);
+await page.evaluate(()=>{bp.npcs[0].notes=proseOriginal;markDirty();});await page.evaluate(()=>designerDrafts.flush());assert(await page.evaluate(async()=>(await designerDraftStore.recovery()).saved.payload.bp.npcs[0].notes===proseOriginal),'durable draft retains full original prose');
 await page.goto('http://creature.test/blueprint-designer.html');await page.waitForFunction(()=>window.__bpdTest);
 assert(await page.evaluate(()=>bp.npcs[0].notes.endsWith('safe-passage promise.')&&bp.npcs[0].notes.length===836),'reopening the auto-saved draft never clips it');
 
