@@ -36,12 +36,17 @@ await test('treasure selection persists in notes and default None avoids uninten
 await test('invalid and duplicate model results cannot enter the bestiary',()=>{const p={kind:'Beast',threat:'Safe',frequency:'common'};for(const r of [null,[],{name:'',notes:'x'},{name:'Moth',notes:''}])assert.throws(()=>C.entry(r,p,[]));assert.throws(()=>C.entry({name:' moth ',notes:'x'},p,[{name:'MOTH'}]),/already exists/);});
 await test('portraits persist in files but never enter text review payloads',()=>{const b={name:'Test',creatures:[{name:'Moth',portrait:'data:image/png;base64,HUGE',notes:'Light.'}],_view:1};const out=C.textBlueprint(b);assert.equal(out.creatures[0].portrait,undefined);assert.equal(out._view,undefined);assert.equal(b.creatures[0].portrait,'data:image/png;base64,HUGE');});
 await test('text fixes retain existing portraits and cannot invent image attachments',()=>{assert.equal(C.preservePortrait({portrait:'saved'},{name:'Moth',portrait:'model URL'}).portrait,'saved');assert.equal(C.preservePortrait(null,{name:'Moth',portrait:'model URL'}).portrait,undefined);});
+await test('#726 creature portrait prompts omit both name fields and preserve authored appearance',()=>{
+ const appearance='A compact humanoid fey with a youthful humanlike face, a small human nose; no frog head or amphibian muzzle.';
+ const entries=[{name:'Frog-Eyed Reedjumper',displayName:'Bog Herald',desc:appearance,notes:'PRIVATE_SENTINEL'}, {name:'Squirrel-Tailed Branchrunner',desc:appearance,notes:'PRIVATE_SENTINEL'}, {name:'Legacy creature name',kind:'Fey',threat:'low',notes:'A humanoid scout with human facial anatomy.'}];
+ for(const c of entries){const before=JSON.stringify(c),prompt=C.portraitPrompt(c);assert(!prompt.includes(c.name),'canonical name omitted');assert(!c.displayName||!prompt.includes(c.displayName),'public name omitted');assert(prompt.includes(c.desc||c.notes),'authored description retained exactly');if(c.desc)assert(!prompt.includes('PRIVATE_SENTINEL'));assert.equal(JSON.stringify(c),before,'blueprint names remain intact');assert.equal(C.portraitPrompt({...c,name:'Different canonical name',...(c.desc?{displayName:'Different public name'}:{})}),prompt,'name changes cannot influence the image request');}
+});
 await test('#719 generated public fields survive without copying private notes',()=>{
  const choice={kind:'Beast',threat:'Minor',frequency:'rare'};
  const entry=C.entry({name:'Secret',notes:'PRIVATE',desc:'A reed cloak.',displayName:'Rider',revealAct:2},choice,[]);
  assert.equal(entry.desc,'A reed cloak.');assert.equal(entry.displayName,'Rider');assert.equal(entry.revealAct,2);
  const prompt=C.prompt('Border',choice,[]);for(const field of ['desc','displayName','revealAct'])assert(prompt.includes(field),field);
- assert(C.portraitPrompt(entry).includes('Rider'));assert(C.portraitPrompt(entry).includes('A reed cloak.'));
+ assert(!C.portraitPrompt(entry).includes('Rider'));assert(C.portraitPrompt(entry).includes('A reed cloak.'));
  assert(!/Secret|PRIVATE|Beast/.test(C.portraitPrompt(entry)));
  assert.throws(()=>C.portraitPrompt({name:'Secret',displayName:'Rider',notes:'PRIVATE'}),/appearance/i);
 });

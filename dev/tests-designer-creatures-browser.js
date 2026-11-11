@@ -6,7 +6,7 @@ const before=process.env.CREATURE_BEFORE==='1';
 (async()=>{const browser=await chromium.launch({headless:true});try{
 const context=await browser.newContext({viewport:{width:1050,height:900},serviceWorkers:'block'});
 await context.addInitScript(()=>{localStorage.setItem('tnd_server_url_v1','http://creature.test');localStorage.setItem('tnd_server_tok_v1','fixture');});
-let calls=[],images=0,fail=false,hold=false,release,png='';const errors=[];
+let calls=[],portraitBodies=[],images=0,fail=false,hold=false,release,png='';const errors=[];
 await context.route('**/*',async route=>{
  const req=route.request(),url=new URL(req.url());if(url.hostname!=='creature.test')return route.abort();
  const json=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
@@ -19,7 +19,7 @@ await context.route('**/*',async route=>{
   if(url.pathname.startsWith('/api/llm/gemini/'))return json({candidates:[{content:{parts:[{text:reply}]},finishReason:'STOP'}],usageMetadata:{promptTokenCount:1,candidatesTokenCount:1}});
   return json({content:[{type:'text',text:reply}],usage:{input_tokens:1,output_tokens:1}});
  }
- if(url.pathname.startsWith('/api/render/')){images++;assert(/Lantern moth|Fen Keeper/.test(req.postDataJSON().prompt));assert(!req.postDataJSON().prompt.includes('SECRET_SENTINEL'));return json({images:[{url:'https://creature.test/portrait.png'}]});}
+ if(url.pathname.startsWith('/api/render/')){images++;portraitBodies.push(req.postDataJSON());assert(typeof req.postDataJSON().prompt==='string'&&req.postDataJSON().prompt.length>0);assert(!req.postDataJSON().prompt.includes('SECRET_SENTINEL'));return json({images:[{url:'https://creature.test/portrait.png'}]});}
  if(url.pathname==='/portrait.png')return route.fulfill({status:200,contentType:'image/png',body:Buffer.from(png.split(',')[1],'base64')});
  let file=path.resolve(root,'.'+url.pathname);if(!file.startsWith(root+path.sep))return route.abort();
  try{const data=(before&&url.pathname==='/blueprint-designer.html'||process.env.CREATURE_FIELDS_BEFORE==='1'&&['/blueprint-designer.html','/designer-creatures.js'].includes(url.pathname))?cp.execFileSync('git',['show','HEAD:'+url.pathname.slice(1)],{cwd:root}):fs.readFileSync(file);return route.fulfill({status:200,contentType:file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'application/javascript',body:data});}catch{return route.fulfill({status:404,body:'Missing fixture'});}
@@ -114,5 +114,16 @@ await page.waitForSelector('#catalog-publish-dialog');await page.locator('#catal
 await page.evaluate(()=>{bp.npcs[0].notes=fullApplyText;});await page.locator('#catalog-confirm').click();
 assert(await page.evaluate(()=>catalogWrites===0&&document.querySelector('#catalog-publish-error').textContent.includes('text limits')),'catalog rechecks text limits at confirmation after a draft changes');
 await page.locator('#catalog-cancel').click();
+// The reported fresh portraits: actual outbound bodies, intercepted before any paid endpoint.
+const portraitCases=[
+ {name:'Frog-Eyed Reedjumper',displayName:'Bog Herald',desc:'A compact humanoid fey with a youthful humanlike face, a small human nose; no frog head or amphibian muzzle.'},
+ {name:'Squirrel-Tailed Branchrunner',desc:'A small humanoid fey with a lively humanlike face, round cheeks, a tiny human nose; no rodent muzzle or projecting incisors.'}
+];
+for(const c of portraitCases){
+ await page.evaluate(async entry=>{entry.notes='PRIVATE_PORTRAIT_SENTINEL';bp.creatures.push(entry);await generateDesignerPortrait('creature',entry,document.createElement('button'));},c);
+ const body=portraitBodies.at(-1);assert(body.prompt.includes(c.desc)&&!body.prompt.includes(c.name)&&(!c.displayName||!body.prompt.includes(c.displayName))&&!body.prompt.includes('PRIVATE_PORTRAIT_SENTINEL'),'#726 outgoing creature request preserves appearance and omits names');assert(!body.image_url&&!body.image_urls,'#726 a fresh portrait has no previous-image reference');
+ assert(await page.evaluate(name=>bp.creatures.some(c=>c.name===name&&c.portrait),c.name),'#726 portrait attaches without changing creature identity');
+}
+assert(portraitBodies.some(b=>b.prompt.includes('Character portrait of Fen Keeper.')),'#726 NPC character portrait requests retain their names');
 assert.deepEqual(errors,[]);console.log('PASS CREATURE BROWSER: controls, mobile, count rejection, batch, portrait layout and enlargement, focus, reload, Apply preservation, failure, cancel, and NPC generation/view/reload/removal. Screenshots: '+out);
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
