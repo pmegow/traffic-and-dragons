@@ -33,9 +33,23 @@ body{margin:0;background:var(--bg0);color:var(--t1);font-family:var(--font);font
 .tbtn:hover{border-color:var(--acc);color:var(--acc);}
 .tbtn.primary{background:var(--acc);border-color:var(--acc);color:var(--on-acc);font-weight:bold;}
 .tbtn.primary:hover{color:var(--on-acc);}
-/* Topbar LLM picker (v0.32) — which model Review/Apply/Ask/Generate use. Overrides the global
-   select{width:100%} so it sits inline with the buttons. */
-#llm-sel{width:auto;max-width:230px;padding:7px 8px;font-size:12px;}
+#designer-file{position:relative;}
+#designer-file summary{list-style:none;white-space:nowrap;min-height:40px;display:flex;align-items:center;}
+#designer-file summary::-webkit-details-marker{display:none;}
+#designer-file-panel{position:absolute;top:calc(100% + 6px);left:0;width:280px;max-width:calc(100vw - 36px);background:var(--bg1);border:1px solid var(--brd2);border-radius:var(--r);box-shadow:0 12px 32px rgba(0,0,0,.45);padding:8px;max-height:calc(100dvh - 130px);overflow-y:auto;}
+.designer-file-group+.designer-file-group,.designer-file-model{border-top:1px solid var(--brd2);margin-top:5px;padding-top:5px;}
+#designer-file-panel button{display:block;width:100%;text-align:left;padding:10px 12px;min-height:40px;background:none;border:0;border-radius:4px;color:var(--t1);font:inherit;font-size:13px;cursor:pointer;}
+#designer-file-panel button[hidden]{display:none;}
+#designer-file-panel button:hover,#designer-file-panel button:focus-visible{background:var(--bg3);color:var(--acc);}
+#designer-file-panel button:disabled{color:var(--t2);cursor:wait;}
+.designer-file-model{padding:10px 12px 4px;}
+#llm-sel{width:100%;max-width:none;padding:7px 8px;font-size:12px;}
+.designer-render-heading{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.designer-render-heading h2{flex:1;font-size:18px;margin:0;color:var(--t0);}
+#designer-render-modal p{font-size:13px;line-height:1.5;color:var(--t2);}
+#designer-render-modal select{min-height:44px;}
+#designer-render-status.err{color:var(--dng);}
+@media(max-width:700px){#topbar{padding:10px 14px;gap:6px;}#topbar h1{flex-basis:100%;}#topbar h1 .ver{display:block;margin:4px 0 2px;}#topbar>.tbtn,#designer-controls>.tbtn,#designer-file summary{padding:9px 8px;min-height:44px;}#designer-file-panel button{min-height:44px;}#designer-file-panel{max-height:calc(100dvh - 120px);}}
 #statusline{width:100%;font-size:11px;min-height:15px;color:var(--t2);}
 #statusline.err{color:var(--dng);}
 #statusline.ok{color:var(--grn);}
@@ -119,18 +133,13 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <div id="topbar">
 <div id="designer-controls" style="display:contents;" inert>
   <h1>&#129513; Blueprint Designer<span class="ver" id="ver"></span></h1>
-  <button class="tbtn" id="btn-new">New</button>
-  <button class="tbtn" id="btn-load">Load&hellip;</button>
-  <select id="llm-sel" title="LLM used by Review, Apply fix, Ask, and Generate"></select>
+  <details id="designer-file">
+    <summary class="tbtn" id="designer-file-toggle">File &#9662;</summary>
+    <div id="designer-file-panel"></div>
+  </details>
   <button class="tbtn" id="btn-generate">&#10024; Generate&hellip;</button>
   <button class="tbtn" id="btn-ask">&#128172; AI assistant</button>
   <button class="tbtn" id="btn-review">&#128269; Review</button>
-  <button class="tbtn" id="btn-library">&#9729; Library&hellip;</button>
-  <button class="tbtn" id="btn-publish">&#9729; Save to My Library</button>
-  <button class="tbtn" id="btn-publish-catalog" hidden>Publish to Catalog</button>
-  <button class="tbtn primary" id="btn-save">&#8595; Save .blueprint</button>
-  <button class="tbtn" id="btn-fit-text" hidden>Shorten long text</button>
-  <button class="tbtn" id="btn-original-text" hidden>Download original text</button>
   <div id="text-limit-status" style="width:100%;font-size:12px;color:var(--wrn);" hidden></div>
   <div id="statusline"></div>
 </div>
@@ -170,6 +179,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="tts.js"></script>
 <script src="ui-shell.js"></script>
 <script src="ui-portrait.js"></script>
+<script src="designer-menu.js?v=0.68"></script>
 <script src="designer-acts.js"></script>
 <script src="designer-creatures.js?v=0.67"></script>
 <script src="designer-assistant.js"></script>
@@ -179,7 +189,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.67";
+var BP_DESIGNER_VERSION="v0.68";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // The raw authoring state includes review selections, full prose originals, portraits and edition identity.
@@ -1573,7 +1583,7 @@ function openCatalogPublish(){
     function publishSnapshot(){var snapshot=fileOut(),entry=selected(),edition=BlueprintEdition.publication(snapshot,entry&&entry.blueprint);snapshot.version=edition.version;snapshot.releaseStatus=edition.releaseStatus;return snapshot;}
     function describe(){var entry=selected();blurb.value=entry?entry.blurb:"";dialog.querySelector("#catalog-destination").textContent=entry?"Replace “"+entry.name+"” with the current “"+bp.name+"” blueprint.":"Add “"+bp.name+"” as a new catalog campaign.";dialog.querySelector("#catalog-credit").textContent=BlueprintEdition.label(publishSnapshot())+". "+(bp.author?"Author byline: "+bp.author:"No author byline will be shown.");}
     target.addEventListener("change",describe);describe();
-    cancel.addEventListener("click",function(){dialog.close();});dialog.addEventListener("close",function(){dialog.remove();opener.focus();});
+    cancel.addEventListener("click",function(){dialog.close();});dialog.addEventListener("close",function(){dialog.remove();focusDesignerFile();});
     dialog.addEventListener("cancel",function(ev){if(publishing)ev.preventDefault();});
     publish.addEventListener("click",function(){
       if(editionSaveBusy())return;
@@ -1594,7 +1604,7 @@ function openCatalogPublish(){
   });
 }
 document.getElementById("btn-publish-catalog").addEventListener("click",openCatalogPublish);
-function closeLibModal(){var m=document.getElementById("lib-modal");if(m)m.remove();document.getElementById("btn-library").focus();}
+function closeLibModal(){var m=document.getElementById("lib-modal");if(m)m.remove();focusDesignerFile();}
 document.getElementById("btn-library").addEventListener("click",function(){
   if(!cloudReady())return;
   closeLibModal();

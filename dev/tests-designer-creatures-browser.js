@@ -1,3 +1,4 @@
+const {designerFileClick}=require('./designer-browser-actions.js');
 // Actual Designer page, synthetic model and image responses; no credentials or live writes.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict'),cp=require('child_process');
 const {chromium}=require('./cdp-browser.js');
@@ -90,12 +91,12 @@ await page.locator('[data-op="breakout"][data-bsec="npc"][data-bk="notes"]').cli
 assert(await page.evaluate(()=>document.querySelector('#bo-ta').value.endsWith('safe-passage promise.')),'breakout retains the complete final sentence');
 await page.screenshot({path:path.join(out,'full-npc-before-shortening.png')});await page.locator('#bo-done').click();
 await page.evaluate(()=>{window.proseCalls=0;callGM=async(msg,sys,tokens,model,opts)=>{proseCalls++;if(!msg.includes(proseOriginal)||!opts.noHistory)throw Error('Missing full original or utility isolation');return JSON.stringify({text:proseRevision});};});
-await page.locator('#btn-fit-text').click();await page.waitForFunction(()=>!proseFitJob&&bp.npcs[0].notes===proseRevision);
+await designerFileClick(page,'btn-fit-text');await page.waitForFunction(()=>!proseFitJob&&bp.npcs[0].notes===proseRevision);
 assert.equal(await page.evaluate(()=>proseCalls),1);assert(await page.evaluate(()=>bp._textOriginal[0].text===proseOriginal&&!JSON.stringify(__bpdTest.out()).includes('_textOriginal')),'full originals retained locally and excluded from playable files');
 await page.locator('[data-op="breakout"][data-bsec="npc"][data-bk="notes"]').click();await page.screenshot({path:path.join(out,'complete-npc-after-shortening.png')});await page.locator('#bo-done').click();
-await page.evaluate(()=>{bp.npcs[0].notes=proseOriginal;callGM=async()=>JSON.stringify({text:'This revision ends in p'});markDirty();});await page.locator('#btn-fit-text').click();await page.waitForFunction(()=>!proseFitJob&&document.querySelector('#statusline').textContent.includes('kept in full'));
+await page.evaluate(()=>{bp.npcs[0].notes=proseOriginal;callGM=async()=>JSON.stringify({text:'This revision ends in p'});markDirty();});await designerFileClick(page,'btn-fit-text');await page.waitForFunction(()=>!proseFitJob&&document.querySelector('#statusline').textContent.includes('kept in full'));
 assert(await page.evaluate(()=>bp.npcs[0].notes===proseOriginal),'failed revision never clips the draft');
-await page.evaluate(()=>{callGM=()=>new Promise(r=>window.releaseProse=r);});await page.locator('#btn-fit-text').click();await page.waitForFunction(()=>!!window.releaseProse);
+await page.evaluate(()=>{callGM=()=>new Promise(r=>window.releaseProse=r);});await designerFileClick(page,'btn-fit-text');await page.waitForFunction(()=>!!window.releaseProse);
 await page.evaluate(()=>{bp.npcs[0].notes='An intentional manual edit.';markDirty();releaseProse(JSON.stringify({text:proseRevision}));});await page.waitForFunction(()=>!proseFitJob);
 assert.equal(await page.evaluate(()=>bp.npcs[0].notes),'An intentional manual edit.','late revision never replaces a newer manual edit');
 await page.evaluate(()=>{bp.npcs[0].notes=proseOriginal;markDirty();});await page.evaluate(()=>designerDrafts.flush());assert(await page.evaluate(async()=>(await designerDraftStore.recovery()).saved.payload.bp.npcs[0].notes===proseOriginal),'durable draft retains full original prose');

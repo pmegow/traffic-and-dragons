@@ -1,3 +1,4 @@
+const {designerFileClick}=require('./designer-browser-actions.js');
 // Real browser persistence: no accounts, model calls, or production storage.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
 const {chromium}=require('./cdp-browser.js');
@@ -65,7 +66,7 @@ fs.mkdirSync(shots,{recursive:true});
  });
  await test('New and import replace atomically without deleting an existing draft first',async()=>{
   const p=await fresh('replacement');await p.waitForFunction(()=>window.__bpdTest);await p.evaluate(()=>{bp.name='Keep me';markDirty();});await p.evaluate(()=>designerDrafts.flush());
-  await p.evaluate(()=>{dirty=false;IDBObjectStore.prototype.put=function(){throw Error('Fixture disk full');};});await p.locator('#btn-new').click();await p.waitForFunction(()=>document.querySelector('#draft-message').textContent.includes('Fixture disk full'));assert.equal(await p.evaluate(async()=>(await designerDraftStore.recovery()).saved.payload.bp.name),'Keep me');
+  await p.evaluate(()=>{dirty=false;IDBObjectStore.prototype.put=function(){throw Error('Fixture disk full');};});await designerFileClick(p,'btn-new');await p.waitForFunction(()=>document.querySelector('#draft-message').textContent.includes('Fixture disk full'));assert.equal(await p.evaluate(async()=>(await designerDraftStore.recovery()).saved.payload.bp.name),'Keep me');
   await p.evaluate(()=>__bpdTest.load({format:bp.format,name:'Imported',acts:[]}));assert.equal(await p.evaluate(async()=>(await designerDraftStore.recovery()).saved.payload.bp.name),'Keep me');
   await p.setViewportSize({width:390,height:844});await p.screenshot({path:path.join(shots,'failed-autosave-mobile.png')});assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'failure recovery fits mobile width');
  });

@@ -153,6 +153,10 @@ jobs:
         run: node dev/tests-675-invitations-browser.js
       - name: Operator activity and beta mail controls (#674)
         run: node dev/tests-674-admin-updates-browser.js
+      - name: Designer File menu and image-model choices (#728)
+        run: node dev/tests-728-designer-menu-browser.js
+        env:
+          MENU_SCREENSHOTS: /tmp/tnd-shots/728-menu
       - name: Large Designer drafts and recovery (#725)
         run: node dev/tests-725-designer-drafts-browser.js
         env:
