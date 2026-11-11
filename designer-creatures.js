@@ -48,11 +48,12 @@
       +"\nOutput ONLY a JSON object with name, notes, desc and, only when needed, displayName"+(choice.availableActs===undefined?" and revealAct":"")+".";
   }
   function portraitPrompt(c){
+    var focus=" Use a 55mm lens at f/1.8 with shallow depth of field. Keep the creature's eyes and face in sharp focus where present, with its silhouette and defining features clearly readable. Place the habitat well behind the creature: the background is softly blurred into gentle bokeh. Apply sharp focus and fine detail to the creature only; background scenery stays out of focus.";
     if(c.desc||c.displayName){
       if(!c.desc||!c.desc.trim())throw new Error("Write the creature's public appearance before illustrating its disguise.");
-      return "Bestiary illustration. Visible appearance: "+c.desc+" Show only this appearance in a fitting habitat; no lettering or stat blocks.";
+      return "Bestiary illustration. Visible appearance: "+c.desc+" Show only this appearance in a fitting habitat; no lettering or stat blocks."+focus;
     }
-    return "Bestiary illustration. Kind: "+(c.kind||"creature")+". Threat: "+(c.threat||"unspecified")+". "+c.notes+" Show the creature clearly in a fitting habitat; no lettering or stat blocks.";
+    return "Bestiary illustration. Kind: "+(c.kind||"creature")+". Threat: "+(c.threat||"unspecified")+". "+c.notes+" Show the creature clearly in a fitting habitat; no lettering or stat blocks."+focus;
   }
   function preserveCreature(previous,next){
     preservePortrait(previous,next);

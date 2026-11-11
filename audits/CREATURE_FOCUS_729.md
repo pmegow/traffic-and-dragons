@@ -1,0 +1,9 @@
+# Creature portrait focus (#729)
+
+The creature prompt requested a fitting habitat but no focal separation. The shared image style adds sharp focus and fine detail without distinguishing subject from scenery. A single creature-only composition suffix now requests a 55mm lens at f/1.8, shallow depth of field, crisp eyes/face where present, and a background softly blurred into bokeh. It explicitly confines fine detail to the creature. Both public-appearance and legacy creature prompts use it. NPC/character prompt composition and name behavior are unchanged.
+
+Proof: the new lens/aperture/blur assertion failed before implementation. All 25 creature test groups pass; actual outgoing browser bodies prove the instruction survives both creature branches and the shared image-style suffix, while NPC prompts retain their composition. Four attributed mutations catch dropped instructions, deep-focus aperture, and crisp-background regressions. Existing assertions and frozen hashes are unchanged.
+
+Two authorized paid checks used the application's real prompt/body builders, the owner's full Fox-Eared Trailblade public appearance, and the existing art style on Flare and Sunburst. Both returned a sharp human face and clothing against visibly blurred scenery; both images were inspected. The previous baseline is `testRuns/portrait-727/shipped-*.png`; the new results and request receipts are `testRuns/portrait-729/dof-*.png` and `queued-models*.log` (local, ignored artifacts). These are prompt instructions, not physical camera settings or a guarantee of every generated image.
+
+Designer v0.69; helper URL also changes to v0.69. Engine version/cache remain unchanged under the Designer carve-out. Applies to newly generated or regenerated creature portraits; existing images and drafts are preserved. Full pre-commit and pre-push gates remain required for publishing.

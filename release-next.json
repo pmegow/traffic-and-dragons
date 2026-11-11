@@ -47,6 +47,7 @@
     "The Blueprint Designer autosaves large blueprints and portraits, preserves older drafts during migration, and offers recovery copies when storage fails.",
     "Creature portrait prompts use their authored appearance without creature-name cues; character and NPC portrait prompts retain names.",
     "GPT Image 2.6 Sunburst and 2.5 Flare join Render Options; slow portraits use the queue to finish beyond the gateway timeout.",
-    "The Blueprint Designer groups file actions and model settings under File, with Render Options for choosing portrait models."
+    "The Blueprint Designer groups file actions and model settings under File, with Render Options for choosing portrait models.",
+    "Designer creature portraits request a 55mm lens at f/1.8, keeping creature details crisp against a softly blurred habitat."
   ]
 }

@@ -52,7 +52,7 @@ assert.equal(calls.length,3,'three creatures cost three calls — the imported n
 assert(await page.evaluate(()=>__bpdTest.getBp().creatures.every(c=>c.kind==='Beast'&&c.threat==='Safe'&&c.notes.indexOf('Frequency: rare.')===0)));
 await page.setViewportSize({width:1050,height:900});
 png=await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=768;canvas.height=1024;const ctx=canvas.getContext('2d');ctx.fillStyle='#133942';ctx.fillRect(0,0,768,1024);ctx.fillStyle='#eadf9d';ctx.beginPath();ctx.ellipse(384,512,260,115,0,0,Math.PI*2);ctx.fill();return canvas.toDataURL('image/png');});
-await page.locator('[data-op="creatureportrait"]').nth(0).click();await page.waitForFunction(()=>!!__bpdTest.getBp().creatures[0].portrait);assert.equal(images,1);
+await page.locator('[data-op="creatureportrait"]').nth(0).click();await page.waitForFunction(()=>!!__bpdTest.getBp().creatures[0].portrait);assert.equal(images,1);assert(/55mm lens at f\/1\.8/.test(portraitBodies[0].prompt)&&/background.*softly blurred.*bokeh/.test(portraitBodies[0].prompt),'#729 legacy creature request carries shallow focus through the image boundary');
 const portrait=await page.evaluate(()=>__bpdTest.out().creatures[0].portrait);assert(portrait.startsWith('data:image/jpeg;base64,'),'portrait is embedded and compressed');
 assert(await page.evaluate(()=>{const old=bp.creatures[0].portrait;applyPatches(bp,[{section:'creatures',name:bp.creatures[0].name,item:{name:bp.creatures[0].name,kind:'Beast',threat:'Safe',notes:'Frequency: rare. Revised.'}}]);return bp.creatures[0].environment==='Forest'&&JSON.stringify(bp.creatures[0].availableActs)==='[1,3]'&&bp.creatures[0].portrait===old&&!JSON.stringify(DesignerCreatures.textBlueprint(bp)).includes(old);}),'Apply preserves portrait while text payload excludes it');
 await page.evaluate(()=>{const out=__bpdTest.out();__bpdTest.load(out);secOpen.creatures=true;__bpdTest.rerender();});assert.equal(await page.evaluate(()=>__bpdTest.out().creatures[0].portrait),portrait,'file reload retains image');
@@ -122,9 +122,10 @@ const portraitCases=[
 ];
 for(const c of portraitCases){
  await page.evaluate(async entry=>{entry.notes='PRIVATE_PORTRAIT_SENTINEL';bp.creatures.push(entry);await generateDesignerPortrait('creature',entry,document.createElement('button'));},c);
- const body=portraitBodies.at(-1);assert(body.prompt.includes(c.desc)&&!body.prompt.includes(c.name)&&(!c.displayName||!body.prompt.includes(c.displayName))&&!body.prompt.includes('PRIVATE_PORTRAIT_SENTINEL'),'#726 outgoing creature request preserves appearance and omits names');assert(!body.image_url&&!body.image_urls,'#726 a fresh portrait has no previous-image reference');
+ const body=portraitBodies.at(-1);assert(/55mm lens at f\/1\.8/.test(body.prompt)&&/background.*softly blurred.*bokeh/.test(body.prompt),'#729 public creature request carries shallow focus through the image boundary');assert(body.prompt.includes(c.desc)&&!body.prompt.includes(c.name)&&(!c.displayName||!body.prompt.includes(c.displayName))&&!body.prompt.includes('PRIVATE_PORTRAIT_SENTINEL'),'#726 outgoing creature request preserves appearance and omits names');assert(!body.image_url&&!body.image_urls,'#726 a fresh portrait has no previous-image reference');
  assert(await page.evaluate(name=>bp.creatures.some(c=>c.name===name&&c.portrait),c.name),'#726 portrait attaches without changing creature identity');
 }
+assert(portraitBodies.filter(b=>b.prompt.includes('Character portrait of Fen Keeper.')).every(b=>!b.prompt.includes('55mm lens at f/1.8')),'#729 creature optics do not rewrite NPC portrait composition');
 assert(portraitBodies.some(b=>b.prompt.includes('Character portrait of Fen Keeper.')),'#726 NPC character portrait requests retain their names');
 assert.deepEqual(errors,[]);console.log('PASS CREATURE BROWSER: controls, mobile, count rejection, batch, portrait layout and enlargement, focus, reload, Apply preservation, failure, cancel, and NPC generation/view/reload/removal. Screenshots: '+out);
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
