@@ -6,6 +6,7 @@ var path = require("path");
 
 var ROOT = path.join(__dirname, "..");
 var SUITES = [
+  "dev/tests-727-sunburst-portraits.js",
   "dev/tests-725-designer-drafts.js",
   "dev/tests-723-designer-acts.js",
   "dev/tests-724-designer-assistant.js",

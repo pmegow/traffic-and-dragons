@@ -9686,10 +9686,24 @@ function runEngineTests(R){
     return /pollutes the story|never say so in prose|instead of saying so/i.test(ENGINE_NOTES_PROTOCOL)?true:"the prose-leak prohibition is not tied to the channel";
   });
 
+  section("#727 Sunburst render model");
+  t("#727 Sunburst keeps the verified endpoint, defaults and queue requirement",function(){
+    var m=__rm("openai/gpt-image-2.6/sunburst/text-to-image");
+    if(!m)return "Sunburst is missing";
+    if(m.label!=="GPT Image 2.6 Sunburst"||m.slow!==true||m.img2img)return "wrong label, queue flag or invented edit endpoint";
+    return JSON.stringify(m.body("appearance"))===JSON.stringify({prompt:"appearance",image_size:"landscape_4_3",num_images:1})?true:"provider defaults or prompt changed";
+  });
+
+  t("#727 Flare keeps the exact requested endpoint and provider defaults",function(){
+    var m=__rm("openai/gpt-image-2.5/flare/text-to-image");
+    if(!m||m.label!=="GPT Image 2.5 Flare"||!m.slow||m.img2img)return "Flare missing or wrong transport";
+    return JSON.stringify(m.body("appearance"))===JSON.stringify({prompt:"appearance",image_size:"landscape_4_3",num_images:1})?true:"Flare body changed";
+  });
+
   section("#210 render menu refresh — latest GPT / Grok / Nano / Seedream");
-  t("#210: the menu roster is exactly the five verified entries, Nano first (default family order)",function(){
+  t("#210: the menu roster is exactly the seven verified entries, Nano first (default family order)",function(){
     var ids=RENDER_MODELS.map(function(m){return m.id;}).join("|");
-    return ids==="fal-ai/nano-banana-2|openai/gpt-image-2|xai/grok-imagine-image|bytedance/seedream/v5/pro/text-to-image|fal-ai/qwen-image-2512"?true:"roster drifted: "+ids;
+    return ids==="fal-ai/nano-banana-2|openai/gpt-image-2|openai/gpt-image-2.5/flare/text-to-image|openai/gpt-image-2.6/sunburst/text-to-image|xai/grok-imagine-image|bytedance/seedream/v5/pro/text-to-image|fal-ai/qwen-image-2512"?true:"roster drifted: "+ids;
   });
   t("#210: GPT Image 2 t2i body — landscape_4_3 + quality medium (the arena-#1 config, ~4x cheaper than high)",function(){
     var m=__rm("openai/gpt-image-2");

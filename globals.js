@@ -443,7 +443,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1393";
+var APP_VERSION="v1.1394";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
@@ -502,6 +502,12 @@ var RENDER_MODELS=[
    body:function(p){return {prompt:p,image_size:"landscape_4_3",quality:"medium",num_images:1};},
    img2img:{endpoint:"openai/gpt-image-2/edit",multiSeed:true,
             body:function(p,imgUrl){return {prompt:p,image_urls:(Array.isArray(imgUrl)?imgUrl:[imgUrl]),quality:"medium",num_images:1};}}},
+  // Sunburst's documented defaults match the owner's successful appearance-only render.
+  // It can exceed the gateway's synchronous window, so every t2i caller must use the queue.
+  {id:"openai/gpt-image-2.5/flare/text-to-image",label:"GPT Image 2.5 Flare",slow:true,
+   body:function(p){return {prompt:p,image_size:"landscape_4_3",num_images:1};}},
+  {id:"openai/gpt-image-2.6/sunburst/text-to-image",label:"GPT Image 2.6 Sunburst",slow:true,
+   body:function(p){return {prompt:p,image_size:"landscape_4_3",num_images:1};}},
   {id:"xai/grok-imagine-image",label:"Grok Imagine",
    // fal schema (verified 2026-08-10): lowercase "1k", aspect_ratio enum includes 4:3 AND the
    // portrait override's 3:4. Response is the standard fal images[].url shape.

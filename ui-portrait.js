@@ -96,16 +96,19 @@ function compressPortrait(dataUrl,cb){
 // ftRenderPortrait only RUNS on user action (wizard step 5) long after all scripts have
 // loaded — call-time resolution makes the cross-file call safe.
 async function generatePortraitImage(prompt,refSrc){
-  var falRes,mdlCfg=RENDER_MODELS[0],mi,stPrompt=withImgStyle(prompt);
+  var falRes,falData,mdlCfg=RENDER_MODELS[0],mi,stPrompt=withImgStyle(prompt);
   if(refSrc){
     falRes=await falFetch("fal-ai/flux/dev/image-to-image",{image_url:refSrc,prompt:stPrompt,strength:0.75,num_inference_steps:28,num_images:1});
   }else{
     for(mi=0;mi<RENDER_MODELS.length;mi++){if(RENDER_MODELS[mi].id===renderModel){mdlCfg=RENDER_MODELS[mi];break;}}
-    falRes=await falFetch(mdlCfg.id,portraitRenderBody(mdlCfg,stPrompt));
+    if(mdlCfg.slow)falData=await falQueueRender(mdlCfg.id,portraitRenderBody(mdlCfg,stPrompt));
+    else falRes=await falFetch(mdlCfg.id,portraitRenderBody(mdlCfg,stPrompt));
   }
-  if(!falRes.ok)throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));/* #163b: surface fal's own complaint */
-  var falData=await falRes.json();
-  if(!falData.images||!falData.images[0]||!falData.images[0].url)throw new Error("No image returned.");
+  if(falRes){
+    if(!falRes.ok)throw new Error(falErrorMsg(falRes.status,await falRes.text().catch(function(){return "";})));/* #163b: surface fal's own complaint */
+    falData=await falRes.json();
+  }
+  if(!falData||!falData.images||!falData.images[0]||!falData.images[0].url)throw new Error("No image returned.");
   return falData.images[0].url;
 }
 // ── #160: THE shared portrait prompt-writer builder ──────────────────────────
