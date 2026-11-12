@@ -153,6 +153,10 @@ jobs:
         run: node dev/tests-675-invitations-browser.js
       - name: Operator activity and beta mail controls (#674)
         run: node dev/tests-674-admin-updates-browser.js
+      - name: Designer creature and NPC abilities (#730)
+        run: node dev/tests-730-designer-abilities-browser.js
+        env:
+          ABILITY_SCREENSHOTS: /tmp/tnd-shots/730-abilities
       - name: Designer File menu and image-model choices (#728)
         run: node dev/tests-728-designer-menu-browser.js
         env:

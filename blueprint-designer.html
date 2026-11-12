@@ -181,7 +181,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="ui-portrait.js"></script>
 <script src="designer-menu.js?v=0.68"></script>
 <script src="designer-acts.js"></script>
-<script src="designer-creatures.js?v=0.69"></script>
+<script src="designer-creatures.js?v=0.70"></script>
 <script src="designer-assistant.js"></script>
 <script src="designer-prose.js"></script>
 <script src="blueprint-designer-drafts.js"></script>
@@ -189,7 +189,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.69";
+var BP_DESIGNER_VERSION="v0.70";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // The raw authoring state includes review selections, full prose originals, portraits and edition identity.
@@ -416,6 +416,7 @@ function render(){
       +fld("Agenda (a companion's own want)",txt("npc",i,0,"agenda",n.agenda,"e.g. Catch the 'ol Redbelly, the biggest fish in Finlake"))
       +fld("Agenda kind",txt("npc",i,0,"agendaKind",n.agendaKind,"violent \u00b7 peaceful"))+"</div>"
       +fldB("Notes (available immediately; no gated secrets)","npc",i,0,"notes","NPC: "+(n.name||"notes"),ta("npc",i,0,"notes",n.notes,"Public identity, motives, and early-act behavior"))
+      +entityAbilitiesField("npc",i,n)
       +fldB("Secret (withheld until its reveal act opens)","npc",i,0,"secret","Secret: "+(n.name||"NPC"),ta("npc",i,0,"secret",n.secret||"","The hidden truth and how it surfaces — keep it out of early-visible fields"))
       +fld("Reveal act (1-based act number; required for a secret)",txt("npc",i,0,"revealAct",String(n.revealAct==null?"":n.revealAct),"e.g. 3"))+designerPortraitActions("npc",n,i);
     }
@@ -440,7 +441,8 @@ function render(){
       +fld("Environment",creatureEnvironmentField(i,C))
       +creatureActsMenu(C,bp.acts,i)
       +fldB("Public appearance","creature",i,0,"desc","Creature appearance: "+(C.name||"creature"),ta("creature",i,0,"desc",C.desc||"","Only what the hero can perceive; no concealed truth"))
-      +fldB("GM-only notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"));
+      +fldB("GM-only notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"))
+      +entityAbilitiesField("creature",i,C);
       h+=designerPortraitActions("creature",C,i);
     }
     if(sidePortrait)h+="</div>"+designerPortraitAside("creature",C,i)+"</div>";
@@ -604,6 +606,7 @@ function updateCounts(){
 // breakout had its own private sec routing that knew meta/act/arc only, so opening a
 // creature's notes read "" and Done synced the emptiness back — duplicated routing, split
 // brains. Rules are an array of strings, not objects, so they stay a special case in get/set.)
+function entityAbilitiesField(sec,i,entry){return fldB("Abilities",sec,i,0,"abilities","Abilities: "+(entry.name||sec),ta(sec,i,0,"abilities",entry.abilities||"","Spells, special attacks, resistances, and their limits"))+"<small>GM guidance; reveal through play. Keep story secrets in the gated fields.</small>";}
 var FIELD_ROOTS={
   meta:function(i,j){return bp;},
   act:function(i,j){return bp.acts[i];},
@@ -1014,9 +1017,9 @@ function storyContext(){
     for(j=0;j<(a.arcs||[]).length;j++)arcs.push(a.arcs[j].title+(a.arcs[j].objective?" ("+a.arcs[j].objective+")":""));
     L.push("Act "+(i+1)+": "+a.title+" — "+a.goal+(arcs.length?" | Arcs: "+arcs.join("; "):""));}
   if(bp.rules&&bp.rules.length)L.push("HARD CAMPAIGN RULES:\n"+bp.rules.join("\n"));
-  if(bp.npcs&&bp.npcs.length)L.push("Established NPCs: "+bp.npcs.map(function(n){return n.name+": "+(n.role||"")+" — "+(n.notes||"");}).join("; "));
+  if(bp.npcs&&bp.npcs.length)L.push("Established NPCs: "+bp.npcs.map(function(n){return n.name+": "+(n.role||"")+" — "+(n.notes||"")+(n.abilities?" | Abilities: "+n.abilities:"");}).join("; "));
   if(bp.locations.length)L.push("Locations: "+bp.locations.map(function(x){return x.name+": "+(x.description||"");}).join("; "));
-  if(bp.creatures.length)L.push("Existing bestiary (do NOT duplicate): "+bp.creatures.map(function(c){return c.name+(c.kind?" ("+c.kind+(c.threat?", "+c.threat:"")+")":"")+(c.notes?" — "+c.notes:"");}).join("; "));
+  if(bp.creatures.length)L.push("Existing bestiary (do NOT duplicate): "+bp.creatures.map(function(c){return c.name+(c.kind?" ("+c.kind+(c.threat?", "+c.threat:"")+")":"")+(c.notes?" — "+c.notes:"")+(c.abilities?" | Abilities: "+c.abilities:"");}).join("; "));
   return L.join("\n");
 }
 var creatureGeneration=null,creaturePortraitJobs=[];
@@ -1198,8 +1201,8 @@ var ENGINE_CONTRACT="ENGINE CONTRACT — the game runtime ALREADY handles all of
   +"- Arc/act rewards: the engine instructs the GM to grant them in the same response as the completion emission; reward mechanics never need explaining in the blueprint.\n"
   +"- Arc types: the engine supplies generic type guidance (combat/investigation/exploration/social) when no dnaHint exists.\n"
   +"- Location descriptions: injected permanently and verbatim whenever the party is there; they need no delivery mechanism.\n"
-  +"- Creatures: revealAct (optional 1-based act) withholds the whole entry until that act opens; desc is public appearance, notes are GM-only, displayName is an optional public combat label. Optional environment describes habitat. availableActs is an exact list of existing 1-based acts, absent for all, [] for none; do not combine it with legacy revealAct. Preserve these fields when revising a creature. NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
-  +"- Stats, dice, HP, XP, leveling, combat mechanics: entirely engine-side; blueprints carry CHARACTER, never numbers.\n"
+  +"- Creatures: revealAct (optional 1-based act) withholds the whole entry until that act opens; desc is public appearance, notes are GM-only, displayName is an optional public combat label. Optional environment describes habitat. availableActs is an exact list of existing 1-based acts, absent for all, [] for none; do not combine it with legacy revealAct. Preserve these fields when revising a creature. NPC and creature abilities are optional prose describing spells, special attacks, resistances and limits; they are GM guidance, not public appearance or learned knowledge. Keep abilities separate from notes and preserve them in edits. NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
+  +"- Baseline stats, HP, XP and leveling are engine-side. NPC and creature ability effects and numeric limits are authored canon: retain ranges, durations, uses, damage and resistance amounts in abilities; do not remove them as redundant mechanics.\n"
   +"THE SCHEMA IS FIXED. Never invent fields or structures. NPC notes hold immediately available guidance and early-act behavior. A gated hidden truth belongs ONLY in the supported singular secret field with revealAct (an integer, 1-based act number); the engine withholds it until that act opens. Keep its discovery conditions in secret too. Never duplicate the hidden truth in notes, premise, other NPC notes, or future-act titles/goals (those are visible early). Future-act arc objectives are delivered only when their act opens. For legacy files, propose moving a timed secret from notes into secret + revealAct, not duplicating it.";
 // ── Chunked review (v0.22) ──────────────────────────────────────────────────────
 // One LLM pass per blueprint area instead of a single "MAX 10 findings" pass. The old
@@ -1309,7 +1312,7 @@ var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all 
 // items it changed, matched into place by identity (name for npcs/locations/creatures, title for
 // acts/arcs, substring for the string rules). Arrays never shrink here — items are replaced in place
 // or appended — so the old shrink guards are obsolete; validateBlueprint is still the backstop.
-var _PATCH_PRESERVE={creatures:DesignerCreatures.preserveCreature,npcs:DesignerCreatures.preservePortrait};
+var _PATCH_PRESERVE={creatures:DesignerCreatures.preserveCreature,npcs:DesignerCreatures.preserveEntity};
 var _PATCH_BYNAME={npcs:1,locations:1,creatures:1,customClasses:1}; // arrays of objects keyed by .name
 var _PATCH_TOP={name:1,author:1,tone:1,proseAuthor:1,narratorVoice:1,premise:1,startingLocation:1,startingRegion:1,startingTime:1}; // top-level strings
 function _findByName(arr,nm){var i;nm=String(nm||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].name||"").toLowerCase()===nm)return i;}return -1;}
@@ -1411,7 +1414,7 @@ async function applyFinding(idx){
       +"\n- a top-level string (premise/tone/startingLocation/…): {\"section\":\"premise\",\"item\":\"<new value>\"}"
       +"\n- to REMOVE an item (e.g. a duplicate): {\"section\":\"npcs\"|\"locations\"|\"creatures\"|\"acts\"|\"arcs\"|\"rules\",\"name\":\"<its name/title>\",\"delete\":true} (add \"act\":\"<act title>\" for an arc; \"name\" = a unique phrase for a rule) — no \"item\" needed."
       +"\nMatch \"name\" to an EXISTING item to edit it, or give a new name to add one. Include ONLY the items the fix actually touches — do NOT echo unchanged items."
-      +"\nTHE SCHEMA IS FIXED: use supported fields only. Creatures support environment (habitat), availableActs (exact act-number list, [] means none, omit for all), desc (visible appearance), displayName (disguised combat label), and legacy revealAct (available from that act); never combine availableActs and revealAct. NPC secret (singular) and revealAct (1-based integer) are supported even if absent from a legacy input. Gated truths and discovery conditions go ONLY in secret, never duplicated in notes, premise, other NPC notes, or future-act titles/goals. Notes hold immediately available guidance and behavior."
+      +"\nTHE SCHEMA IS FIXED: use supported fields only. NPCs and creatures support abilities (optional text describing spells, special attacks, resistances and limits); preserve it separately from appearance and notes. Creatures support environment (habitat), availableActs (exact act-number list, [] means none, omit for all), desc (visible appearance), displayName (disguised combat label), and legacy revealAct (available from that act); never combine availableActs and revealAct. NPC secret (singular) and revealAct (1-based integer) are supported even if absent from a legacy input. Gated truths and discovery conditions go ONLY in secret, never duplicated in notes, premise, other NPC notes, or future-act titles/goals. Notes hold immediately available guidance and behavior."
       // No-new-holes clause (v0.32): an applied fix that name-drops an undefined entity or
       // contradicts an unedited section just becomes the NEXT review's finding — churn.
       +"\nNO NEW HOLES: this blueprint is a CLOSED WORLD. Every person, place, faction, god, item, or event your patched text mentions must either already be defined in the blueprint or be fully defined by another patch in THIS same response — never name-drop something you leave undefined. Do not contradict sections you are not editing. The result must survive a fresh review of this issue with zero new findings.";

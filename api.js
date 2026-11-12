@@ -2693,7 +2693,7 @@ function buildSysPrompt(){
   var hotNpcs="";var npcNames=Object.keys(memory.npcs);
   // Match aliases too — an NPC mentioned only by alias/short form in recent prose otherwise
   // got no detail block, and the GM improvised from momentum instead of memory (audit #13).
-  if(npcNames.length&&sessionLog.length){var recent=sessionLog.filter(function(m){return m&&!m.bk;}).slice(-6).map(function(m){return m.role==="user"?stripEngineNotes(m.content):m.content;}).join(" ");/* #145: engine notes ride the user half — without the strip, a split/presence audit NAMING an absent companion activated their full detail block (stale posture claims included), the protection machinery feeding the exact contradiction it guards against (live t1549: Frizwick/Daeris note-only mentions). The summarize path already strips (memory.js:1059); the hot scan now matches it. A player action naming a split member is story text and still activates — the SPLIT THREADS design needs that. */for(i=0;i<npcNames.length;i++){var hnN=npcNames[i],hnHit=recent.indexOf(hnN)>=0;if(!hnHit&&memory.npcs[hnN].aliases){var haj;for(haj=0;haj<memory.npcs[hnN].aliases.length;haj++){if(recent.indexOf(memory.npcs[hnN].aliases[haj])>=0){hnHit=true;break;}}}if(hnHit)hotNpcs+=memoryNpcDetail(hnN)+"\n";}}
+  if(npcNames.length&&sessionLog.length){var recent=sessionLog.filter(function(m){return m&&!m.bk;}).slice(-6).map(function(m){return m.role==="user"?stripEngineNotes(m.content):m.content;}).join(" ");/* #145: engine notes ride the user half — without the strip, a split/presence audit NAMING an absent companion activated their full detail block (stale posture claims included), the protection machinery feeding the exact contradiction it guards against (live t1549: Frizwick/Daeris note-only mentions). The summarize path already strips (memory.js:1059); the hot scan now matches it. A player action naming a split member is story text and still activates — the SPLIT THREADS design needs that. */for(i=0;i<npcNames.length;i++){var hnN=npcNames[i],hnHit=recent.indexOf(hnN)>=0;if(!hnHit&&memory.npcs[hnN].aliases){var haj;for(haj=0;haj<memory.npcs[hnN].aliases.length;haj++){if(recent.indexOf(memory.npcs[hnN].aliases[haj])>=0){hnHit=true;break;}}}if(hnHit)hotNpcs+=memoryNpcDetail(hnN,{omitAbilities:true})+"\n";}}
   /* #140 ②: the stated-vs-actual tension line — "who they claimed to be vs who play has made
      them" was tracked but never surfaced. Fires only on genuine divergence (byte-clean when
      stated===actual); descriptive, the GM decides whether characters notice. */
@@ -2728,6 +2728,7 @@ function buildSysPrompt(){
         if(_bc.notes)_detail+=" | GM-only: "+_bc.notes;
         _detail+=" | Narrate only what the hero perceives; concealed identity and nature require discovery in the fiction.";
       }else _detail=_bc.notes?" — "+_bc.notes:"";
+      if(typeof _bc.abilities==="string"&&_bc.abilities.trim())_detail+=" | Abilities (GM-only; reveal through play): "+_bc.abilities;
       _bls.push("• "+_bc.name+(_bm.length?" ("+_bm.join(", ")+")":"")+_detail);
     }
     if(_bls.length>1)bestiaryBlock=_bls.join("\n")+"\n\n";
@@ -2807,6 +2808,7 @@ function buildSysPrompt(){
     +(memToc?"MEMORY DIRECTORY:\n"+memToc+"\n\n":"")
     +buildChangedLocationsBlock()/* #105: remote changed-locations roll-up — volatile only, ""-clean when nothing changed */
   +(function(){var s=getNameSuggestions(10,true);return s.length?"AVAILABLE NAMES (use these for new NPCs): "+s.join(", ")+"\n\n":""}())
+    +buildNpcAbilitiesBlock()
     +(hotNpcs?"ACTIVE NPC DETAILS:\n"+hotNpcs+"\n":"")
     +carriedRagBlock/* #433: the named people's own records from BEFORE this campaign, ahead of this campaign's past; "" unless the action names a carrier */
     +chapRagBlock/* #148 Phase 1: PAST CHAPTERS before the finer-grained excerpts; "" when nothing retrieves */

@@ -150,7 +150,7 @@ function talkContext(partner) {
   try { ctx.lastScene = (typeof carSceneBrief === "function") ? carSceneBrief(ws) : ""; } catch (e) { ctx.lastScene = ""; }
   try { ctx.bonds = (typeof relationshipRows === "function") ? (relationshipRows(partner.sheet, null) || []).map(function(r) { return { entity: r.entity, bond: r.bond || "", dynamic: r.dynamic || "" }; }) : []; } catch (e2) { ctx.bonds = []; }
   ctx.coreMemories = (partner.sheet.coreMemories || []).map(function(m) { return (typeof m === "string") ? { text: m, camp: "", who: "" } : { text: m.text || "", camp: m.camp || "", who: m.who || "" }; });
-  if (!partner.isHero && typeof memoryNpcDetail === "function") { try { ctx.npcDetail = memoryNpcDetail(partner.name) || ""; } catch (e3) { ctx.npcDetail = ""; } }
+  if (!partner.isHero && typeof memoryNpcDetail === "function") { try { ctx.npcDetail = memoryNpcDetail(partner.name,{omitAbilities:true}) || ""; } catch (e3) { ctx.npcDetail = ""; } }
   return ctx;
 }
 

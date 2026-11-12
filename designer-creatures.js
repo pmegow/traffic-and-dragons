@@ -27,7 +27,7 @@
     var name=raw.name.trim();
     if(existing.some(function(c){return String(c.name||"").trim().toLowerCase()===name.toLowerCase();}))throw new Error("A creature named “"+name+"” already exists. Try again.");
     var result={name:name,kind:choice.kind,threat:choice.threat,notes:"Frequency: "+choice.frequency+". Treasure: "+(choice.treasure||"None")+". "+raw.notes.trim()};
-    ["desc","displayName"].forEach(function(k){if(raw[k]===undefined)return;if(typeof raw[k]!=="string")throw new Error("Creature "+k+" must be text.");if(raw[k].trim())result[k]=raw[k].trim();});
+    ["desc","displayName","abilities"].forEach(function(k){if(raw[k]===undefined)return;if(typeof raw[k]!=="string")throw new Error("Creature "+k+" must be text.");if(raw[k].trim())result[k]=raw[k].trim();});
     if(raw.revealAct!==undefined){if(typeof raw.revealAct!=="number"||raw.revealAct<1||raw.revealAct%1!==0||(Array.isArray(acts)&&raw.revealAct>acts.length))throw new Error("Creature revealAct must name an existing positive whole act number.");result.revealAct=raw.revealAct;}
     if(choice.environment&&choice.environment!=="Any environment")result.environment=choice.environment;
     if(choice.availableActs!==undefined)Acts.choose(result,choice.availableActs,acts);
@@ -45,7 +45,7 @@
       +"\nNotes: 2–4 concise sentences about nature, appearance, behaviour, tactics and weaknesses. Fit the selected threat and frequency. No numeric combat stats; do not repeat the frequency label."
       +"\nKeep notes GM-only. Add desc for public appearance, with no hidden identity, origin or motives. For a disguise add displayName, the name used on screen. "
       +(choice.availableActs===undefined?"If the story reserves this creature for a later act, add revealAct as that existing act's 1-based integer; otherwise omit it.":"The author has already chosen the acts; omit availability fields.")
-      +"\nOutput ONLY a JSON object with name, notes, desc and, only when needed, displayName"+(choice.availableActs===undefined?" and revealAct":"")+".";
+      +"\nOutput ONLY a JSON object with name, notes, desc, abilities (optional text for spells, special attacks, resistances and their limits; empty if none) and, only when needed, displayName"+(choice.availableActs===undefined?" and revealAct":"")+".";
   }
   function portraitPrompt(c){
     var focus=" Use a 55mm lens at f/1.8 with shallow depth of field. Keep the creature's eyes and face in sharp focus where present, with its silhouette and defining features clearly readable. Place the habitat well behind the creature: the background is softly blurred into gentle bokeh. Apply sharp focus and fine detail to the creature only; background scenery stays out of focus.";
@@ -56,7 +56,7 @@
     return "Bestiary illustration. Kind: "+(c.kind||"creature")+". Threat: "+(c.threat||"unspecified")+". "+c.notes+" Show the creature clearly in a fitting habitat; no lettering or stat blocks."+focus;
   }
   function preserveCreature(previous,next){
-    preservePortrait(previous,next);
+    preserveEntity(previous,next);
     if(previous){["environment","availableActs","revealAct","desc","displayName"].forEach(function(k){
       if(k==="revealAct"&&next.availableActs!==undefined||k==="availableActs"&&next.revealAct!==undefined)return;
       if(next[k]===undefined&&previous[k]!==undefined)next[k]=Array.isArray(previous[k])?previous[k].slice():previous[k];
@@ -64,7 +64,8 @@
     return next;
   }
   function textBlueprint(bp){return JSON.parse(JSON.stringify(bp,function(k,v){return k==="portrait"||(k&&k.charAt(0)==="_")?undefined:v;}));}
+  function preserveEntity(previous,next){preservePortrait(previous,next);if(previous&&next.abilities===undefined&&previous.abilities!==undefined)next.abilities=previous.abilities;return next;}
   function preservePortrait(previous,next){delete next.portrait;if(previous&&previous.portrait)next.portrait=previous.portrait;return next;}
-  var api={preserveCreature:preserveCreature,portraitPrompt:portraitPrompt,preservePortrait:preservePortrait,fields:fields,maxCount:maxCount,plan:plan,entry:entry,prompt:prompt,textBlueprint:textBlueprint};
+  var api={preserveEntity:preserveEntity,preserveCreature:preserveCreature,portraitPrompt:portraitPrompt,preservePortrait:preservePortrait,fields:fields,maxCount:maxCount,plan:plan,entry:entry,prompt:prompt,textBlueprint:textBlueprint};
   if(typeof module!=="undefined"&&module.exports)module.exports=api;else root.DesignerCreatures=api;
 })(this);

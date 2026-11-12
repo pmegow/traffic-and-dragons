@@ -1481,6 +1481,7 @@ function buildCompanionSheetPrompt(npcName){
   if(mem.firstEncounter)known+="First met: "+((typeof snippetAtSentence==="function")?snippetAtSentence(mem.firstEncounter):mem.firstEncounter)+"\n";/* #481 C11 */
   var kn=npcKnowledgeContext(mem);if(kn.length>3000)kn=kn.slice(0,3000)+"…";
   if(kn)known+="Known facts: "+kn+"\n";
+  if(npcAuthoredText(mem,"abilities"))known+="Preserve the authored ability effects and limits when composing this sheet. They may be non-class abilities and take precedence over generic class suggestions; do not invent stronger effects.\n";
   var ev=(mem.events||[]).slice(-8).join("; ");if(ev.length>1500)ev=ev.slice(0,1500)+"…";
   if(ev)known+="Recent events: "+ev+"\n";
   var clsIds=classDefs().map(function(cd){return cd.id;});/* #72 C6 ① */
@@ -3178,6 +3179,9 @@ function validateBlueprint(bp){
       for(j=0;j<a.arcs.length;j++){if(!a.arcs[j].title||!a.arcs[j].objective)return"Act "+(i+1)+", arc "+(j+1)+" is missing a title or objective.";}
     }
   }
+  for(var ai=0,abilitySections=["npcs","creatures"];ai<abilitySections.length;ai++){
+    var entries=bp[abilitySections[ai]]||[];for(var aj=0;aj<entries.length;aj++){var ae=entries[aj];if(ae&&ae.abilities!==undefined&&typeof ae.abilities!=="string")return abilitySections[ai]+" \""+(ae.name||aj+1)+"\" abilities must be text.";}
+  }
   if(bp.creatures){var ci;for(ci=0;ci<bp.creatures.length;ci++){
     var cr=bp.creatures[ci];if(!cr||!cr.name)return "Creature "+(ci+1)+" is missing a name.";
     if(cr.availableActs!==undefined&&(cr.revealAct!==undefined||!validCreatureActs(cr.availableActs,bp.acts)))return "Creature \""+cr.name+"\" needs unique available act numbers, with no legacy revealAct field.";
@@ -3314,6 +3318,7 @@ function blueprintTextFields(bp){
   add(bp,["premise"],"",caps.premise);add(bp,["startingLocation","startingRegion","startingTime","author","name"],"",caps.field);
   (bp.acts||[]).forEach(function(a,i){if(!a)return;add(a,["title","goal","dnaHint","desc"],"acts."+i+".",caps.field);(a.arcs||[]).forEach(function(r,j){add(r,["title","objective","dnaHint","desc"],"acts."+i+".arcs."+j+".",caps.field);});});
   ["npcs","locations","creatures"].forEach(function(section){(bp[section]||[]).forEach(function(o,i){add(o,["name","notes","secret","desc","role","status","relation","sizeNote"],section+"."+i+".",caps.field);});});
+  ["npcs","creatures"].forEach(function(section){(bp[section]||[]).forEach(function(o,i){if(o&&o.abilities!==undefined)add(o,["abilities"],section+"."+i+".",caps.field);});});
   (bp.creatures||[]).forEach(function(c,i){if(c&&c.displayName!==undefined)add(c,["displayName"],"creatures."+i+".",caps.field);});
   (bp.creatures||[]).forEach(function(c,i){if(c&&c.environment!==undefined)add(c,["environment"],"creatures."+i+".",80);});
   (bp.rules||[]).forEach(function(rule,i){add(bp.rules,[i],"rules.",caps.rule);});return out;
@@ -3384,10 +3389,11 @@ function buildBlueprintFromGame(){
   var npcs=[];
   (worldState.npcs||[]).forEach(function(n){
     var mem=memory.npcs&&memory.npcs[n.name];
-    var notes=mem?(npcAuthoredText(mem)||npcKnowledgeContext(mem).slice(0,400)):"";
+    var notes=mem?(npcAuthoredText(mem)||npcKnowledgeContext(mem,{omitAbilities:true}).slice(0,400)):"";
     /* v1.439 (F2, brief B): role is RELATION-shaped by both authoring specs (designer + generator) —
        export the relation, never the mood the old line leaked (the same category error v1.379 fixed) */
     npcs.push({name:n.name,role:(n.rel&&n.rel!=="unknown")?n.rel:"neutral",notes:notes,pronouns:n.pronouns||mem&&mem.pronouns||"they/them"});
+    var abilities=npcAuthoredText(mem,"abilities");if(abilities)npcs[npcs.length-1].abilities=abilities;
     var secret=npcSecretExport(mem);if(secret){npcs[npcs.length-1].secret=secret.secret;npcs[npcs.length-1].revealAct=secret.revealAct;}
   });
   var locations=[];
@@ -3513,7 +3519,7 @@ function applyBlueprint(bp){
   for(var _an=0;_an<admittedNpcs.length;_an++){
     var _am=memory.npcs[admittedNpcs[_an].name];
     if(_am&&_am.knowledge&&_am.knowledge.length)fileNpcAuthored(_am,_am.knowledge[0]);
-    var _seed=admittedNpcs[_an];if(_seed.secret){fileNpcSecret(_am,_seed.secret,_seed.revealAct);if(!validRevealAct(_seed.revealAct,(worldState.skeleton||{}).acts))console.warn("[blueprint] "+_seed.name+": secret withheld — invalid revealAct");}
+    var _seed=admittedNpcs[_an];if(_seed.abilities)fileNpcAuthored(_am,_seed.abilities,"abilities");if(_seed.secret){fileNpcSecret(_am,_seed.secret,_seed.revealAct);if(!validRevealAct(_seed.revealAct,(worldState.skeleton||{}).acts))console.warn("[blueprint] "+_seed.name+": secret withheld — invalid revealAct");}
   }
   // Custom rules from the blueprint — WRAPPED as quoted data (TODO #22, v1.350): a raw push gave a
   // semi-trusted campaign file the same prompt authority as the player's own rules (an embedded

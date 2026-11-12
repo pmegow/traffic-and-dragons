@@ -6,9 +6,9 @@ rc|=sabotage.prove({file:"game.js",command:["node",["dev/run-tests.js","#332 —
 rc|=sabotage.prove({file:"memory.js",command:["node",["dev/run-tests.js","#332 — authored NPC dossiers"]],cases:[
   {label:"summary loses the new play fact when preserving dossier",mustFail:"summary supersession retains authored original and adds the play fact",find:'fileNpcKnowledge(sfName,String(sf["new"]),worldState.turn,true);',replace:'void 0;'},
   {label:"authored detail projection disappears",mustFail:"authored guidance is prompt-visible",find:'var _auth=npcAuthoredText(n);',replace:'var _auth="";'},
-  {label:"repair duplicates an already filed original",mustFail:"repair requires matching blueprint evidence",find:'if(n.authored[i].source==="blueprint"&&n.authored[i].text===text)return false;',replace:'if(false)return false;'}
+  {label:"repair duplicates an already filed original",mustFail:"repair requires matching blueprint evidence",find:'if(n.authored[i].source==="blueprint"&&(n.authored[i].field||"notes")===(field||"notes")&&n.authored[i].text===text)return false;',replace:'if(false)return false;'}
 ]});
 rc|=sabotage.prove({file:"tag_table.js",command:["node",["dev/run-tests.js","#332 — authored NPC dossiers"]],cases:[
-  {label:"merge drops duplicate authored source",mustFail:"merge preserves both authored sources",find:'fileNpcAuthored(memory.npcs[mgCanon],_mgAuth[_mgAi].text);',replace:'void 0;'}
+  {label:"merge drops duplicate authored source",mustFail:"merge preserves both authored sources",find:'fileNpcAuthored(memory.npcs[mgCanon],_mgAuth[_mgAi].text,_mgAuth[_mgAi].field);',replace:'void 0;'}
 ]});
 process.exit(rc?1:0);

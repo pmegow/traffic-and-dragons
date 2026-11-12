@@ -19,7 +19,7 @@ failed+=sabotage.prove({file:'blueprint-designer.html',command:command,cases:[
  {label:'partial batch leaks before a failure',find:'entries.push(DesignerCreatures.entry(JSON.parse(repairModelJson(response)),plans[i],target.creatures.concat(entries),target.acts));',replace:'target.creatures.push(DesignerCreatures.entry(JSON.parse(repairModelJson(response)),plans[i],target.creatures.concat(entries),target.acts));',mustFail:'a failed batch preserves the original bestiary'}
 ]});
 failed+=sabotage.prove({file:'blueprint-designer.html',skip:!chrome.path,command:['node',['dev/tests-designer-creatures-browser.js']],cases:[
- {label:'NPC text fix drops saved image',find:',npcs:DesignerCreatures.preservePortrait',replace:'',mustFail:'NPC text fixes preserve portraits and exclude image bytes'},
+ {label:'NPC text fix drops saved image',find:',npcs:DesignerCreatures.preserveEntity',replace:'',mustFail:'NPC text fixes preserve portraits and exclude image bytes'},
  {label:'portrait moves below desktop fields',find:'.creature-card-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(140px,25%);',replace:'.creature-card-grid{display:grid;grid-template-columns:minmax(0,1fr);',mustFail:'portrait sits beside the full editor on desktop'},
  {label:'enlargement remains a thumbnail',find:'#creature-image-modal img{display:block;width:auto;',replace:'#creature-image-modal img{display:block;width:160px;',mustFail:'enlargement uses actual saved pixels'},
  {label:'phone keeps two columns',find:'@media(max-width:640px){.creature-card-grid{grid-template-columns:minmax(0,1fr);}',replace:'@media(max-width:640px){.creature-card-grid{grid-template-columns:minmax(0,1fr) minmax(140px,25%);}',mustFail:'portrait stacks below the editor on phones'}

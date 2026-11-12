@@ -5006,6 +5006,80 @@ function runEngineTests(R){
     if(p.indexOf("dialogue, narration, rumor, or suggestion")<0)return "narration omitted from the secret fence";
     return p.indexOf("THE HERO'S OWN STAKE IS NEVER A SECRET FROM THE PLAYER")>=0?true:"hero's own life was hidden too";
   });
+  section("#730 authored creature and NPC abilities");
+  function abilities730(){
+    makeWorld();worldState.turn=0;
+    return normalizeBlueprint({format:"tnd-blueprint-v1",name:"Ability test",premise:"A marsh patrol.",acts:[1,2].map(function(i){return {title:"Act "+i,goal:"Explore",arcs:[{title:"Road "+i,objective:"Travel"}]};}),npcs:[{name:"Mara",notes:"A silver-haired guide.",abilities:"NPC_POWER: Frost ward resists cold; twice daily."}],creatures:[{name:"Marsh guard",notes:"Patrols the reeds.",desc:"A reed-cloaked rider.",revealAct:2,abilities:"FOE_POWER: Reed snare binds one nearby target; fire breaks it."}]});
+  }
+  t("#730 optional abilities validate as text without altering class arrays",function(){
+    var bp=abilities730();if(validateBlueprint(bp))return validateBlueprint(bp);
+    for(var i=0,values=[null,7,{},["ward"]];i<values.length;i++)for(var j=0,sections=["npcs","creatures"];j<sections.length;j++){
+      bp=abilities730();bp[sections[j]][0].abilities=values[i];if(!/abilities.*text/i.test(validateBlueprint(bp)||""))return "accepted non-text "+sections[j]+" ability "+JSON.stringify(values[i]);
+    }
+    bp=abilities730();delete bp.npcs[0].abilities;delete bp.creatures[0].abilities;normalizeBlueprint(bp);
+    return !Object.prototype.hasOwnProperty.call(bp.npcs[0],"abilities")&&!Object.prototype.hasOwnProperty.call(bp.creatures[0],"abilities")?true:"absence gained fields";
+  });
+  t("#730 ability prose shares runtime caps while author drafts retain the tail",function(){
+    var bp=abilities730(),long=new Array(851).join("x")+"TAIL";
+    bp.npcs[0].abilities=long;bp.creatures[0].abilities=long;
+    var fields=blueprintTextFields(bp).filter(function(f){return f.key==="abilities";});if(fields.length!==2)return "ability fields missing from revision contract";
+    normalizeBlueprint(bp,{preserveProse:true});if(bp.npcs[0].abilities!==long||bp.creatures[0].abilities!==long)return "author draft clipped";
+    normalizeBlueprint(bp);return bp.npcs[0].abilities.length===IMPORT_CAPS.field&&bp.creatures[0].abilities.length===IMPORT_CAPS.field?true:"runtime ability cap missing";
+  });
+  t("#730 creature mechanics follow the whole-entry act gate and remain cached",function(){
+    applyBlueprint(abilities730());var before=buildSysPrompt();if((before.stable+before.volatile).indexOf("FOE_POWER")>=0)return "pending mechanics leaked";
+    worldState.skeleton.acts[1].status="active";var open=buildSysPrompt();
+    if(!/Abilities \(GM-only[^\n]*FOE_POWER/.test(open.stable)||open.volatile.indexOf("FOE_POWER")>=0)return "open mechanics missing or in wrong half";
+    worldState.turn=20;worldState.character.hp=3;worldState.world.location="Elsewhere";sessionLog=[{role:"user",content:"I inspect the Marsh guard."}];
+    return buildSysPrompt().stable===open.stable?true:"turn or encounter rewrote stable mechanics";
+  });
+  t("#730 NPC mechanics are protected authored data with a separate GM projection",function(){
+    applyBlueprint(abilities730());var n=memory.npcs.Mara;
+    if(!n.authored.some(function(a){return a.source==="blueprint"&&a.field==="abilities"&&a.text.indexOf("NPC_POWER")>=0;}))return "ability did not seed as typed authored text";
+    if(npcAuthoredText(n).indexOf("NPC_POWER")>=0||n.knowledge.join(" ").indexOf("NPC_POWER")>=0)return "mechanics mixed with notes or learned knowledge";
+    sessionLog=[{role:"user",content:"Mara, prepare the ward."}];var p=buildSysPrompt();
+    if(p.volatile.indexOf("NPC_POWER")<0||p.stable.indexOf("NPC_POWER")>=0)return "NPC ability missing from active detail or destabilizing stable";
+    if(npcKnowledgeContext(n).indexOf("NPC_POWER")<0||buildRecordedFactsBlock("Mara").indexOf("NPC_POWER")>=0)return "context missing ability or extractor invited to rewrite it";
+    if(memoryNpcDetail("Mara",{omitAbilities:true}).indexOf("NPC_POWER")>=0)return "player conversation projection leaks ability";
+    for(var i=0;i<20;i++)fileNpcKnowledge("Mara","topic"+i+" changed"+i,20+i);
+    memory=JSON.parse(JSON.stringify(memory));healMemory();
+    return memoryNpcDetail("Mara").indexOf("NPC_POWER")>=0?true:"knowledge churn or reload lost ability";
+  });
+  t("#730 NPC abilities reach opening and unnamed combat without implying presence",function(){
+    applyBlueprint(abilities730());var p=buildSysPrompt();
+    if(p.volatile.indexOf("NPC_POWER")<0||p.stable.indexOf("NPC_POWER")>=0)return "opening has no authored NPC mechanics";
+    if(p.volatile.indexOf("not evidence of presence")<0)return "ability list implies an encounter";
+    worldState.combat={active:true,foes:[{name:"Mara",hp:10,maxHp:10,ac:12}]};sessionLog=[{role:"user",content:"I attack the guide with fire."}];
+    if(buildSysPrompt().volatile.indexOf("NPC_POWER")<0)return "unnamed combat has no authored NPC mechanics";
+    sessionLog=[{role:"user",content:"Mara, prepare the ward."}];
+    if(buildSysPrompt().volatile.split("NPC_POWER").length!==2)return "hot detail duplicates the mechanics block";
+    worldState.character.name="Mara";
+    return buildSysPrompt().volatile.indexOf("NPC_POWER")<0?true:"player identity received NPC-only canon";
+  });
+  t("#730 abilities-only NPC exports no mechanics into notes and round-trips",function(){
+    var bp=abilities730();bp.npcs[0].notes="";applyBlueprint(bp);
+    var out=buildBlueprintFromGame(),n=out.npcs[0];
+    if(n.abilities!==bp.npcs[0].abilities||n.notes!=="")return "abilities missing or copied into empty notes";
+    if(out.creatures[0].abilities!==bp.creatures[0].abilities)return "creature export lost mechanics";
+    var saved=JSON.parse(serializeWorldState(worldState));if(saved.bestiary[0].abilities!==bp.creatures[0].abilities)return "creature save lost mechanics";
+    makeWorld();applyBlueprint(normalizeBlueprint(JSON.parse(JSON.stringify(out))));
+    return npcAuthoredText(memory.npcs.Mara,"abilities")===bp.npcs[0].abilities?true:"export-import lost NPC mechanics";
+  });
+  t("#730 identity merge preserves same text under distinct authored fields",function(){
+    var bp=abilities730();bp.npcs=[{name:"Mara",notes:"Same words."},{name:"Guide",abilities:"Same words."}];applyBlueprint(bp);
+    applyMuts("[NPC_MERGE:Mara|Guide]");var n=memory.npcs.Mara,out=buildBlueprintFromGame().npcs.filter(function(a){return a.name==="Mara";})[0];
+    return n.authored.length===2&&npcAuthoredText(n)==="Same words."&&npcAuthoredText(n,"abilities")==="Same words."&&out.notes==="Same words."&&out.abilities==="Same words."?true:"merge lost the typed field or conflated notes with abilities";
+  });
+  t("#730 long NPC dossiers cannot crowd abilities out of a generated sheet",function(){
+    var bp=abilities730();bp.npcs[0].notes=new Array(3301).join("x");applyBlueprint(bp);
+    var p=buildCompanionSheetPrompt("Mara").msg;
+    return p.indexOf("NPC_POWER")>=0&&p.indexOf("Preserve the authored ability effects and limits")>=0&&memoryNpcDetail("Mara").indexOf("NPC_POWER")>=0?true:"long dossier swallowed mechanics";
+  });
+  t("#730 absent and empty abilities preserve every legacy prompt byte",function(){
+    var bp=abilities730();delete bp.npcs[0].abilities;delete bp.creatures[0].abilities;applyBlueprint(bp);sessionLog=[{role:"user",content:"Mara waits."}];var old=buildSysPrompt();
+    makeWorld();bp.npcs[0].abilities="";bp.creatures[0].abilities="";applyBlueprint(bp);sessionLog=[{role:"user",content:"Mara waits."}];var blank=buildSysPrompt();
+    return old.stable===blank.stable&&old.volatile===blank.volatile?true:"blank optional field changed prompt";
+  });
   section("#719 creature reveal boundaries");
   function creature719(extra){
     makeWorld();worldState.turn=0;

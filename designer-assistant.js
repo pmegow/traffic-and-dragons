@@ -1,6 +1,6 @@
 // Authoring proposals are detached from the draft until the author applies a validated result.
 (function(root){
-  var named={npcs:'name role pronouns notes secret revealAct armor status relation agenda agendaKind',locations:'name description desc notes region status sizeNote',creatures:'name kind threat notes desc displayName revealAct availableActs environment',customClasses:'name desc hd prime statPriority abilities features skillSeeds gear'};
+  var named={npcs:'name role pronouns notes abilities secret revealAct armor status relation agenda agendaKind',locations:'name description desc notes region status sizeNote',creatures:'name kind threat notes abilities desc displayName revealAct availableActs environment',customClasses:'name desc hd prime statPriority abilities features skillSeeds gear'};
   var top='name author tone proseAuthor narratorVoice premise startingLocation startingRegion startingTime'.split(' ');
   var shapes={acts:'title goal turningPoint reward parallel dnaHint desc',arcs:'title objective type dnaHint reward desc'};
   var names={npcs:'NPC',locations:'Location',creatures:'Creature',customClasses:'Custom class',acts:'Act',arcs:'Arc',rules:'Rule'};
@@ -20,11 +20,12 @@
     armor:function(v){return typeof v==='string'||typeof v==='number'&&isFinite(v);}
   };
   var fieldTypes={revealAct:'integer',hd:'integer',lvl:'integer',parallel:'boolean',armor:'armor'};
-  var listTypes={availableActs:'integer',statPriority:'text',skillSeeds:'text',abilities:'ability',features:'feature'};
+  var listTypes={availableActs:'integer',statPriority:'text',skillSeeds:'text',features:'feature'};
+  var sectionLists={customClasses:{abilities:'ability'}};
   var nested={ability:'nm ds',feature:'lvl nm ds'};
-  function writeFields(item,old,host,actCount){
+  function writeFields(item,old,host,actCount,section){
     Object.keys(item).forEach(function(k){
-      var value=item[k],before=old&&old[k],type=listTypes[k];
+      var value=item[k],before=old&&old[k],type=listTypes[k]||(sectionLists[section]&&sectionLists[section][k]);
       if(type){
         if(!Array.isArray(value))throw new Error(k+' must be a list.');
         value.forEach(function(v,i){
@@ -78,7 +79,7 @@
           else{
             fields(p.item,owns(named,sec)?named[sec]:shapes[sec]);
             if(sec==='creatures'&&owns(p.item,'availableActs')&&owns(p.item,'revealAct'))throw new Error('A creature cannot have both availableActs and revealAct.');
-            writeFields(p.item,old,host,candidate.acts.length);
+            writeFields(p.item,old,host,candidate.acts.length,sec);
             p.item=Object.assign({},old||{},p.item);
             if(sec==='creatures'){
               if(owns(raw.item,'availableActs'))delete p.item.revealAct;
@@ -117,7 +118,7 @@
     return {candidate:candidate,changes:changes};
   }
   function current(source,stamp,host){if(host.current()!==source||host.key(source)!==stamp)throw new Error('The blueprint changed or this assistant was closed. Ask again using the current draft.');}
-  var system='You are the AI assistant for a TTRPG blueprint author. Answer questions and design requested content that respects the supplied campaign canon. Advice-only questions return patches: []. When asked to add or change content, propose only those edits; the author reviews and applies them. Never claim edits are already applied. Do not invent external canon; distinguish existing facts from proposed ideas. Return ONLY JSON {"reply":"clear concise answer","patches":[]}. At most 40 item patches. Each patch has action (add/update/delete), section, name (exact existing target for update/delete), item (object, or string for rules/top fields). An add uses a new name in item. Supported named sections and fields: '+JSON.stringify(named)+'. Custom classes: hd is 6/8/10/12; prime is STR/DEX/CON/INT/WIS/CHA; statPriority lists all six once; abilities is [{nm,ds}], at least one; features is [{lvl,nm,ds}] levels 2..20; skillSeeds is [] unless a known engine skill is certain; gear and desc are text. New custom classes are added to an existing restricted playable-class roster. Never duplicate a base class. Creatures: environment is habitat text; availableActs is exact unique existing 1-based act numbers (omit for unrestricted, [] for none), never combine with legacy revealAct; notes are GM-only, desc is visible appearance, displayName is the public disguise name. Fields for acts: '+shapes.acts+'; update only, never add/delete/reorder acts or embed arcs. Arcs: '+shapes.arcs+'; include act: exact parent title. Rules: item is text, name is the EXACT full old rule to edit/delete. Top-level string sections (update only): '+top.join(', ')+'. No images, metadata, new fields or whole-section replacements. Preserve existing detail; omitted update fields stay unchanged. Keep new narrative text fields within 800 characters, environment within 80, premise within 2500, rules within 1200. Describe ideas as suggestions; only requested changes become patches.';
+  var system='You are the AI assistant for a TTRPG blueprint author. Answer questions and design requested content that respects the supplied campaign canon. Advice-only questions return patches: []. When asked to add or change content, propose only those edits; the author reviews and applies them. Never claim edits are already applied. Do not invent external canon; distinguish existing facts from proposed ideas. Return ONLY JSON {"reply":"clear concise answer","patches":[]}. At most 40 item patches. Each patch has action (add/update/delete), section, name (exact existing target for update/delete), item (object, or string for rules/top fields). An add uses a new name in item. Supported named sections and fields: '+JSON.stringify(named)+'. Custom classes: hd is 6/8/10/12; prime is STR/DEX/CON/INT/WIS/CHA; statPriority lists all six once; abilities is [{nm,ds}], at least one; features is [{lvl,nm,ds}] levels 2..20; skillSeeds is [] unless a known engine skill is certain; gear and desc are text. New custom classes are added to an existing restricted playable-class roster. Never duplicate a base class. NPC and creature abilities are optional text for spells, special attacks, resistances and their limits, separate from notes and appearance; they are GM guidance, never a list of class ability objects. Creatures: environment is habitat text; availableActs is exact unique existing 1-based act numbers (omit for unrestricted, [] for none), never combine with legacy revealAct; notes are GM-only, desc is visible appearance, displayName is the public disguise name. Fields for acts: '+shapes.acts+'; update only, never add/delete/reorder acts or embed arcs. Arcs: '+shapes.arcs+'; include act: exact parent title. Rules: item is text, name is the EXACT full old rule to edit/delete. Top-level string sections (update only): '+top.join(', ')+'. No images, metadata, new fields or whole-section replacements. Preserve existing detail; omitted update fields stay unchanged. Keep new narrative text fields within 800 characters, environment within 80, premise within 2500, rules within 1200. Describe ideas as suggestions; only requested changes become patches.';
   async function request(bp,question,host,finding){
     if(typeof question!=='string'||!question.trim()||question.length>4000)throw new Error('Enter a request of 1 to 4,000 characters.');
     var stamp=host.key(bp),opts={noHistory:true,kind:'other',finish:{}},payload=text(bp);
