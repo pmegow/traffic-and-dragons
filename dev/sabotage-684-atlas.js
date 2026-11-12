@@ -188,6 +188,10 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     find: "!atlasRow(ATLAS_BUILDERS,A.zones[r.parent].kind+\">\"+r.kind))return",
     replace: "!atlasRow(ATLAS_BUILDERS,\"region>\"+r.kind))return",
     mustFail: "FAIL #684 #697 a zone of a kind no builder makes" },
+  { label: "a builder row is added and the store version stays (older builds would set such a store aside)",
+    find: "var ATLAS_BUILDERS={\n",
+    replace: "var ATLAS_BUILDERS={\n  \"town>ship\":{via:\"id\",make:function(doc,via){return null;}},\n",
+    mustFail: "FAIL #684 #697 a new builder row needs a new ATLAS_VER" },
   /* #692 (the live spot-check): the tie is SAID */
   { label: "a tie is kept and never said: the GM reads only the map place and keeps the story place apart (the spot-check's defect)",
     find: "    out.ties=atlasTiesHere(A);out.ties.forEach(function(x){said+=\" \"+atlasTieSay(x);});",

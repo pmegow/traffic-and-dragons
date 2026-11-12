@@ -170,7 +170,7 @@ function atlasPaneHtml(host){
       +"<button type='button' class='ib' id='atlas-close' aria-label='Close the map'>&#10005;</button>"
       +"</div>":"")
     +"<div id='atlas-stage' style='position:relative;flex:1;min-height:0;'>"
-    +"<canvas id='atlas-canvas' tabindex='0' aria-label='The map. Arrow keys step through the places shown, Escape puts a place away.' style='position:absolute;inset:0;width:100%;height:100%;display:block;'></canvas>"
+    +"<canvas id='atlas-canvas' tabindex='0' role='application' aria-label='The map. Arrow keys step through the places shown, Escape puts a place away.' style='position:absolute;inset:0;width:100%;height:100%;display:block;'></canvas>"
     +(full?"":"<button type='button' class='atlas-fab' id='atlas-full' title='Open the map full screen' aria-label='Open the map full screen' style='bottom:8px;right:8px;'>"+ATLAS_ENLARGE_SVG+"</button>")
     +"<button type='button' class='atlas-fab' id='atlas-party' title='Go to where the party is' aria-label='Go to where the party is' style='bottom:8px;right:"+(full?8:46)+"px;'>"+ATLAS_DAGGER_SVG+"</button>"
     +"<div id='atlas-card' aria-live='polite' style='display:none;position:absolute;z-index:3;left:12px;bottom:12px;width:calc(100% - 24px);max-width:380px;box-sizing:border-box;background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:12px;'></div>"
@@ -216,10 +216,15 @@ function atlasPaneTargetOf(pt,hit){
    step the very tap a click makes (one command, two inputs) with the view moved to the place at the player's zoom;
    Escape puts the card away before it reaches the full pane's dialog. No list is drawn: the pane stays the map alone. */
 function atlasPaneKeyList(zoneId){
-  var A=atlasLive(),out=[];
+  var A=atlasLive(),P=_atlasPane,out=[],sig;
   if(!A||!A.zones[zoneId])return out;
+  /* the fog is derived afresh for every thing asked (0.7 s for a walked town): the list is kept for the sheet as it stands — the
+     party's place, the fog switch, the notes (a noted place shows through the fog) — and read again when any of them changes */
+  sig=JSON.stringify([zoneId,atlasPaneSig(),A.fog,A.notes||null,A.seen&&A.seen[zoneId]||null]);
+  if(P&&P.keys&&P.keys.sig===sig)return P.keys.list.slice();
   atlasThings(atlasDoc(zoneId)).forEach(function(t){if(t.id!=null&&t.name&&isFinite(t.x)&&isFinite(t.y)&&atlasThingShown(zoneId,t))out.push({id:t.id,name:t.name,x:t.x,y:t.y});});
   out.sort(function(a,b){return (a.y-b.y)||(a.x-b.x)||(String(a.id)<String(b.id)?-1:1);});
+  if(P)P.keys={sig:sig,list:out.slice()};
   return out;
 }
 function atlasPaneKeyStep(dir){

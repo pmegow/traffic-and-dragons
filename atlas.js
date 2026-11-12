@@ -41,6 +41,9 @@ var ATLAS_DOC_CAP=12;
    the child sits on the parent's sheet when no thing of the parent bears the via. at = the via for a POINT the player
    tapped on open ground, judged as the point it is: open water is refused in the library's own words even where the
    zone around it holds land (a zone's id alone is judged by its land). A new scale is a new entry. */
+/* A NEW ROW NEEDS A NEW ATLAS_VER (independent review 2026-11-12, finding 1): the load check (#697) sets aside a store
+   holding a zone no row builds, and a build without the row would do that to a store a newer build made — the version is
+   what tells it to leave that store alone. The engine suite pins this row list to ATLAS_VER. */
 var ATLAS_BUILDERS={
   "region>town":{via:"id",make:function(doc,via){return TnDMaps.town.fromRegion(doc,via);}},
   "region>dungeon":{via:"id",make:function(doc,via){return TnDMaps.dungeon.fromRegion(doc,via);}},

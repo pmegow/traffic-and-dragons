@@ -555,10 +555,18 @@ function buildQuestObjectiveNudge(){
    Moot-aware: if combat is open again at delivery time, the GM already fixed it — clear silently. */
 /* #672 tooth (b) (Frizwick t136): a note that asks for combat tags was written for the GM-rolls contract, and an engine note
    beside the action outranks the roll floor in the stable half — the GM "tagged the blows" and the hero's strike landed for
-   an invented 48 with no die. ONE clause, from here, on every such note; "" while the GM rolls, so those notes are unchanged. */
+   an invented 48 with no die. ONE note, from here, delivered ONCE by buildEngineNotes after any note whose NOTE_SHAPES row
+   carries rollsBound ("combat": only while a fight is open); "" while the GM rolls, so the OFF prompt is unchanged. It is
+   appended after the budget's decisions, so it never defers another note (independent review 2026-11-12, finding 3), and it
+   bounds only an attack that NEEDS a roll: a blow already rolled keeps its number and an automatic strike stays the GM's to
+   resolve — the CHECK ANSWERED note can ride the same turn (finding 2). */
 function playerRollsBound(){
   if(typeof playerRollsDice==="undefined"||!playerRollsDice)return"";
-  return " THE PLAYER ROLLS in this campaign: the hero's own blow still stops at [CHECK:] and its damage arrives with the player's next message — never invent a number for it; a companion's or a foe's blow you tag now.";
+  return "[ENGINE NOTE — THE PLAYER ROLLS (not a player action): the combat tags asked for above do not lift the roll floor. A hero's attack that needs a roll still stops at [CHECK:] and its damage arrives with the player's next message — never invent a number for it. A blow the player has already rolled keeps its rolled number, a strike an ability makes automatic is yours to resolve, and a companion's or a foe's blow you tag now.]";
+}
+function noteWantsRollsBound(name){
+  var row=NOTE_SHAPES[name],want=row?row.rollsBound:null;
+  return want===true||(want==="combat"&&!!(worldState&&worldState.combat));
 }
 function buildOrphanCombatNudge(){
   if(!worldState)return"";
@@ -566,7 +574,7 @@ function buildOrphanCombatNudge(){
   if(!q||q.delivered)return"";
   if(worldState.combat){delete worldState.orphanCombat;return"";}
   q.delivered=true;
-  return "[ENGINE NOTE — COMBAT TAGS WITHOUT AN ENCOUNTER (not a player action): your recent combat tags ("+q.tags.join(", ")+") arrived after the encounter was CLOSED and applied NOTHING — no damage, no kill, no round was recorded. If the fight resumed after the close, RE-OPEN it now with [COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] using the foe's remaining hp as its pool, then re-assert the outcome ([ENEMY_HP:]/[ENEMY_SLAIN:]) so the record catches up. If the fight is genuinely over, narrate freely and emit no combat tags."+playerRollsBound()+"]";
+  return "[ENGINE NOTE — COMBAT TAGS WITHOUT AN ENCOUNTER (not a player action): your recent combat tags ("+q.tags.join(", ")+") arrived after the encounter was CLOSED and applied NOTHING — no damage, no kill, no round was recorded. If the fight resumed after the close, RE-OPEN it now with [COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] using the foe's remaining hp as its pool, then re-assert the outcome ([ENEMY_HP:]/[ENEMY_SLAIN:]) so the record catches up. If the fight is genuinely over, narrate freely and emit no combat tags.]";
 }
 function buildCombatStaleNudge(){
   if(!worldState||!worldState.combat)return"";
@@ -581,7 +589,7 @@ function buildCombatStaleNudge(){
   var names=[],i;
   for(i=0;i<live.length;i++)names.push(live[i].name+" at "+live[i].hp+"/"+(live[i].maxHp!=null?live[i].maxHp:live[i].hp)+" hp");
   var first=live[0].name;
-  return"[ENGINE NOTE - COMBAT BOOKKEEPING (not a player action): this encounter is still OPEN and no combat tag has been emitted for "+quiet+" turn(s), but the tracker still shows "+names.join(", ")+" standing. If your narration has already put "+(live.length===1?"this foe":"these foes")+" down, say so now with [ENEMY_SLAIN:"+first+"] (one per foe) \u2014 the engine does the arithmetic, so never invent a damage number to cover a narrated kill. If the fight ended some other way, close it with [COMBAT_END:fled] / [COMBAT_END:truce] / [COMBAT_END:disengaged]. If it is genuinely still underway, tag the blows with [ENEMY_HP:"+first+"|-X]."+playerRollsBound()+"]";
+  return"[ENGINE NOTE - COMBAT BOOKKEEPING (not a player action): this encounter is still OPEN and no combat tag has been emitted for "+quiet+" turn(s), but the tracker still shows "+names.join(", ")+" standing. If your narration has already put "+(live.length===1?"this foe":"these foes")+" down, say so now with [ENEMY_SLAIN:"+first+"] (one per foe) \u2014 the engine does the arithmetic, so never invent a damage number to cover a narrated kill. If the fight ended some other way, close it with [COMBAT_END:fled] / [COMBAT_END:truce] / [COMBAT_END:disengaged]. If it is genuinely still underway, tag the blows with [ENEMY_HP:"+first+"|-X].]";
 }
 function buildQuestStaleNudge(){
   if(!worldState||!worldState.questLog||worldState.combat)return"";
@@ -970,7 +978,7 @@ function buildMontageNote(){
 // #308 ②: the WRAP-UP contract — Car Mode's "wrap up": land the scene at a hook within two responses.
 function buildWrapUpNote(){
   var r=worldState&&worldState.wrapUpPing;if(!r)return"";delete worldState.wrapUpPing;
-  return "[ENGINE NOTE — WRAP UP (not a player action): the player is about to stop for now. Within two responses, bring the scene to a natural stopping point — finish the fight if one is open, close the conversation, and END on a hook: a clear choice for next time, stated plainly in the last sentence. Do not start anything new that cannot be left."+playerRollsBound()+"]";
+  return "[ENGINE NOTE — WRAP UP (not a player action): the player is about to stop for now. Within two responses, bring the scene to a natural stopping point — finish the fight if one is open, close the conversation, and END on a hook: a clear choice for next time, stated plainly in the last sentence. Do not start anything new that cannot be left.]";
 }
 // #305: the wildcard's reward — one shot, armed when the player sends the reckless button's text.
 function buildRecklessNote(){
@@ -2345,11 +2353,11 @@ var NOTE_SHAPES={
   buildMontageNote:{shape:"one-shot-ask",latch:["montagePing"],combat:"fires",village:"silent",ack:["TIME_ADVANCE"]},
   buildWhispersNote:{shape:"cooldown-reminder",latch:["whisperAsk"],combat:"silent",village:"fires",ack:["WHISPER"]},
   buildCompanionImpulseNote:{shape:"cooldown-reminder",latch:["impulseAsk"],combat:"silent",village:"fires",ack:["COMPANION_INITIATIVE","COMPANION_GROWTH"]},/* #386/#370 ask channel */
-  buildWrapUpNote:{shape:"one-shot-ask",latch:["wrapUpPing"],combat:"fires",village:"fires",ack:["none"]},
+  buildWrapUpNote:{shape:"one-shot-ask",latch:["wrapUpPing"],combat:"fires",village:"fires",ack:["none"],rollsBound:"combat"},/* #672: "finish the fight" — bound only while one is open */
   buildRespawnNote:{neverYield:true,shape:"one-shot-ask",latch:["respawnNote"],combat:"fires",village:"fires",ack:["none"]},
   buildArcWallNudge:{shape:"cooldown-reminder",latch:["arcWallWarned"],combat:"silent",village:"silent",ack:["QUEST"]},
-  buildOrphanCombatNudge:{shape:"one-shot-ask",latch:["orphanCombat"],combat:"fires",village:"fires",ack:["COMBAT_START"]},
-  buildCombatStaleNudge:{shape:"cooldown-reminder",latch:["combatStalePing"],combat:"fires",village:"fires",ack:["ENEMY_SLAIN","ENEMY_HP","COMBAT_END"]},
+  buildOrphanCombatNudge:{shape:"one-shot-ask",latch:["orphanCombat"],combat:"fires",village:"fires",ack:["COMBAT_START"],rollsBound:true},
+  buildCombatStaleNudge:{shape:"cooldown-reminder",latch:["combatStalePing"],combat:"fires",village:"fires",ack:["ENEMY_SLAIN","ENEMY_HP","COMBAT_END"],rollsBound:true},
   buildUndefinedItemNudge:{shape:"one-shot-ask",latch:["itemDefCandidate","itemDefQueue","itemDefAsked"],combat:"silent",village:"fires",ack:["ITEM_DEF"]},
   buildQuestEscalation:{shape:"cooldown-reminder",latch:["questLog[].escalateNudged"],combat:"silent",village:"silent",ack:["QUEST","QUEST_STEP"]},/* audit B1: latched — was an every-turn note above every audit */
   buildQuestObjectiveNudge:{shape:"cooldown-reminder",latch:["questLog[].objectiveNudged"],combat:"silent",village:"silent",ack:["QUEST_STEP"]},
@@ -2460,6 +2468,7 @@ function buildEngineNotes(){
   }
   _notesBuilt=null;
   if(!out.length)return"";
+  var bound=names.some(noteWantsRollsBound)?playerRollsBound():"";if(bound)out.push(bound);/* #672: once, after the budget's decisions */
   var txt=out.join("\n\n")+"\n\n"+ENGINE_NOTES_PROTOCOL;
   _notesBuilt={t:worldState.turn,n:names,c:txt.length,d:dropped};
   if(txt.length>NOTE_CHAR_BUDGET||names.length>NOTE_DELIVERY_CAP)_notesBuilt.overBudget=true;

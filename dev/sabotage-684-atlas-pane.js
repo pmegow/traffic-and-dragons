@@ -194,9 +194,17 @@ rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
     find: "{e.preventDefault();e.stopPropagation();atlasPaneTap(null);}",
     replace: "{e.preventDefault();atlasPaneTap(null);}",
     mustFail: "FAIL ⑰ the keyboard picks a place (#696)" },
+  { label: "the arrow keys all step forward (Left and Up do not go back)",
+    find: "var ATLAS_KEY_STEPS={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1};",
+    replace: "var ATLAS_KEY_STEPS={ArrowRight:1,ArrowDown:1,ArrowLeft:1,ArrowUp:1};",
+    mustFail: "FAIL ⑰ the keyboard picks a place (#696)" },
+  { label: "the list is kept across a change of the fog (a stale list steps through hidden places)",
+    find: "sig=JSON.stringify([zoneId,atlasPaneSig(),A.fog,A.notes||null,A.seen&&A.seen[zoneId]||null]);",
+    replace: "sig=JSON.stringify([zoneId]);",
+    mustFail: "FAIL ⑰ the keyboard picks a place (#696)" },
   { label: "the sheet cannot take focus",
-    find: "<canvas id='atlas-canvas' tabindex='0' ",
-    replace: "<canvas id='atlas-canvas' ",
+    find: "<canvas id='atlas-canvas' tabindex='0' role='application' ",
+    replace: "<canvas id='atlas-canvas' role='application' ",
     mustFail: "FAIL ⑰ the keyboard picks a place (#696)" }
 ] });
 

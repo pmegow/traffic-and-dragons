@@ -1,33 +1,46 @@
-// dev/sabotage-672-player-rolls-bound.js — proves #672 tooth (b): every note that asks for combat tags carries the
-// player-rolls bound (the hero's own blow stops at [CHECK:]), from ONE helper, and says nothing while the GM rolls. Each
-// clause plants one regression in api.js; the #672 section must turn red.
+// dev/sabotage-672-player-rolls-bound.js — proves #672 tooth (b): a note that asks for combat tags is followed, under
+// player rolls, by ONE bound note (a hero's attack that needs a roll stops at [CHECK:]), delivered once by
+// buildEngineNotes for the rows flagged rollsBound, never while the GM rolls. Each clause plants one regression in
+// api.js; the #672 section must turn red.
 //   node dev/sabotage-672-player-rolls-bound.js
 var sabotage = require("./sabotage.js");
 var CMD = ["node", ["dev/run-tests.js", "#672"]];
 var code = sabotage.prove({ file: "api.js", command: CMD, cases: [
-  { label: "the bound speaks while the GM rolls (the OFF notes change)",
-    find: "  if(typeof playerRollsDice===\"undefined\"||!playerRollsDice)return\"\";\n  return \" THE PLAYER ROLLS in this campaign",
-    replace: "  return \" THE PLAYER ROLLS in this campaign",
+  { label: "the bound speaks while the GM rolls (the OFF prompt changes)",
+    find: "  if(typeof playerRollsDice===\"undefined\"||!playerRollsDice)return\"\";\n  return \"[ENGINE NOTE — THE PLAYER ROLLS",
+    replace: "  return \"[ENGINE NOTE — THE PLAYER ROLLS",
     mustFail: "OFF must be empty" },
-  { label: "the bound no longer stops the hero's blow at [CHECK:]",
-    find: "the hero's own blow still stops at [CHECK:] and its damage",
-    replace: "the hero's own blow is yours to tag and its damage",
-    mustFail: "the hero's blow must stop at [CHECK:]" },
+  { label: "the bound no longer stops the hero's attack at [CHECK:]",
+    find: "A hero's attack that needs a roll still stops at [CHECK:] and its damage",
+    replace: "A hero's attack that needs a roll is yours to tag and its damage",
+    mustFail: "an attack that needs a roll must stop at [CHECK:]" },
   { label: "the bound no longer forbids an invented number (the 48 of t136)",
-    find: " — never invent a number for it; a companion's",
-    replace: "; a companion's",
+    find: " — never invent a number for it. A blow the player",
+    replace: ". A blow the player",
     mustFail: "the invented number (48 at t136) must be named" },
-  { label: "the combat bookkeeping note (the t136 note) loses the bound",
-    find: "tag the blows with [ENEMY_HP:\"+first+\"|-X].\"+playerRollsBound()+\"]\";",
-    replace: "tag the blows with [ENEMY_HP:\"+first+\"|-X].]\";",
-    mustFail: "COMBAT BOOKKEEPING under player rolls must be the same note with the bound" },
-  { label: "the orphan-tags note loses the bound",
-    find: "narrate freely and emit no combat tags.\"+playerRollsBound()+\"]\";",
-    replace: "narrate freely and emit no combat tags.]\";",
-    mustFail: "COMBAT TAGS WITHOUT AN ENCOUNTER under player rolls must be the same note with the bound" },
-  { label: "the wrap-up note (\"finish the fight\") loses the bound",
-    find: "Do not start anything new that cannot be left.\"+playerRollsBound()+\"]\";",
-    replace: "Do not start anything new that cannot be left.]\";",
-    mustFail: "WRAP UP under player rolls must be the same note with the bound" }
+  { label: "the bound takes back the automatic strike (it contradicts CHECK ANSWERED on the same turn)",
+    find: ", a strike an ability makes automatic is yours to resolve,",
+    replace: ",",
+    mustFail: "an automatic strike stays the GM's" },
+  { label: "the combat bookkeeping note (the t136 note) loses its flag",
+    find: "ack:[\"ENEMY_SLAIN\",\"ENEMY_HP\",\"COMBAT_END\"],rollsBound:true},",
+    replace: "ack:[\"ENEMY_SLAIN\",\"ENEMY_HP\",\"COMBAT_END\"]},",
+    mustFail: "buildCombatStaleNudge asks for combat tags and its row carries no rollsBound" },
+  { label: "the orphan-tags note loses its flag",
+    find: "ack:[\"COMBAT_START\"],rollsBound:true},",
+    replace: "ack:[\"COMBAT_START\"]},",
+    mustFail: "buildOrphanCombatNudge asks for combat tags and its row carries no rollsBound" },
+  { label: "a peaceful WRAP UP carries the bound (the flag ignores whether a fight is open)",
+    find: "ack:[\"none\"],rollsBound:\"combat\"},",
+    replace: "ack:[\"none\"],rollsBound:true},",
+    mustFail: "WRAP UP is bound only while a fight is open" },
+  { label: "buildEngineNotes never delivers the bound",
+    find: "  var bound=names.some(noteWantsRollsBound)?playerRollsBound():\"\";if(bound)out.push(bound);",
+    replace: "  var bound=\"\";",
+    mustFail: "the bound must be delivered once" },
+  { label: "the bound is delivered after every turn's notes, flagged or not",
+    find: "  var bound=names.some(noteWantsRollsBound)?playerRollsBound():\"\";if(bound)out.push(bound);",
+    replace: "  var bound=playerRollsBound();if(bound)out.push(bound);",
+    mustFail: "a peaceful WRAP UP carries the bound" }
 ] });
 process.exit(code);

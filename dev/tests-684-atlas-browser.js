@@ -399,10 +399,11 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
  });
 
  await check('⑰ the keyboard picks a place (#696): the sheet takes focus and says how; the arrow keys step through the places the sheet SHOWS (the fog applies), each with the card a tap opens and the view moved to it; Escape puts the card away before it closes the pane',async()=>{
-   const s=await page.evaluate(()=>{__atlasTest.open('campaign-1');const c=document.getElementById('atlas-canvas'),all=atlasThings(atlasDoc('campaign-1')).filter(t=>t.id!=null&&t.name),list=__atlasTest.keyList('campaign-1');
-     return {host:__atlasTest.pane().host,tab:c.getAttribute('tabindex'),label:c.getAttribute('aria-label'),live:document.getElementById('atlas-card').getAttribute('aria-live'),all:all.length,list:list,shown:list.every(t=>atlasThingShown('campaign-1',atlasThingById(atlasDoc('campaign-1'),t.id))),fogged:atlasReveal('campaign-1')!==null};});
+   /* its own start: an earlier check that failed may have left the full pane up or the fog off — this check must not fail for that (a sabotage clause aimed at ⑯ was read as caught by ⑰) */
+   const s=await page.evaluate(()=>{atlasPaneClose();delete worldState.atlas.fog;__atlasTest.open('campaign-1');const c=document.getElementById('atlas-canvas'),all=atlasThings(atlasDoc('campaign-1')).filter(t=>t.id!=null&&t.name),list=__atlasTest.keyList('campaign-1');
+     return {host:__atlasTest.pane().host,tab:c.getAttribute('tabindex'),label:c.getAttribute('aria-label'),live:document.getElementById('atlas-card').getAttribute('aria-live'),all:all.length,list:list,hidden:all.filter(t=>!atlasThingShown('campaign-1',t)).map(t=>t.id),fogged:atlasReveal('campaign-1')!==null};});
    assert.equal(s.host,'dock');assert.equal(s.tab,'0','the sheet takes the keyboard');assert.match(s.label,/arrow keys/i,'and says how: '+s.label);assert.equal(s.live,'polite','a card that appears is announced');
-   assert.equal(s.fogged,true,'fixture: the realm is fogged');assert.ok(s.list.length>=1&&s.list.length<s.all,'the list is what the fog shows ('+s.list.length+' of '+s.all+')');assert.equal(s.shown,true,'every listed place is one the sheet shows');
+   assert.equal(s.fogged,true,'fixture: the realm is fogged');assert.ok(s.list.length>=1&&s.list.length<s.all,'the list is what the fog shows ('+s.list.length+' of '+s.all+')');assert.ok(s.hidden.length>0&&s.hidden.every(id=>!s.list.some(t=>t.id===id)),'no place the fog hides is listed ('+s.hidden.length+' hidden)');
    /* real keys through the browser's own input pipeline (CDP), on the focused sheet */
    const VK={ArrowRight:39,ArrowDown:40,ArrowLeft:37,ArrowUp:38,Escape:27},press=async key=>{for(const type of ['rawKeyDown','keyUp'])await page._send('Input.dispatchKeyEvent',{type,key,code:key,windowsVirtualKeyCode:VK[key],nativeVirtualKeyCode:VK[key]});},focusMap=()=>page.evaluate(()=>{document.getElementById('atlas-canvas').focus();});
    const step=async key=>{await press(key);await settle();return page.evaluate(()=>{const p=__atlasTest.pane(),el=document.getElementById('atlas-card'),st=document.getElementById('atlas-stage'),T=_atlasPane.view.transform(),t=p.target&&p.target.id!=null?atlasThingById(atlasDoc(p.zone),p.target.id):null;
@@ -413,8 +414,13 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    const before=await page.evaluate(first=>{const T=_atlasPane.view.transform(),st=document.getElementById('atlas-stage'),px=first.x*T.k+T.x,py=first.y*T.k+T.y;return px>=0&&px<=st.clientWidth&&py>=0&&py<=st.clientHeight;},s.list[0]);assert.equal(before,false,'fixture: the first place starts off screen');
    const a=await step('ArrowRight');assert.equal(a.id,s.list[0].id,'the first key picks the first place');assert.equal(a.card,'block');assert.ok(a.text.indexOf(s.list[0].name)>=0,'its card names it: '+a.text);assert.equal(a.focus,'atlas-canvas','the keyboard stays on the sheet');await page.screenshot({path:path.join(SHOTS,'atlas-keyboard.png')});
    assert.ok(a.off[0]<=a.w/2+1&&a.off[1]<=a.h/2+1,'the place is brought on screen: '+JSON.stringify(a.off));assert.ok(Math.abs(a.k-k0)<1e-9,'the zoom is the player\'s');
-   if(s.list.length>1){const b=await step('ArrowDown');assert.equal(b.id,s.list[1].id,'the next key picks the next');const c=await step('ArrowLeft');assert.equal(c.id,s.list[0].id,'and back');}
-   const z=await step('ArrowUp');assert.equal(z.id,s.list[s.list.length-1].id,'before the first is the last');
+   /* the order, both directions and the wrap, on the whole sheet (the fogged realm lists one place: independent review 2026-11-12, finding 7) */
+   const w=await page.evaluate(()=>{worldState.atlas.fog=false;__atlasTest.show('campaign-1');const l=__atlasTest.keyList('campaign-1');return {ids:l.map(t=>t.id),sorted:l.every((t,i)=>!i||l[i-1].y<t.y||(l[i-1].y===t.y&&l[i-1].x<=t.x))};});
+   assert.ok(w.ids.length>=3,'fixture: the whole realm lists at least three places: '+w.ids.length);assert.equal(w.sorted,true,'the list reads top to bottom, then left to right');
+   await focusMap();const seq=[];for(const key of ['ArrowRight','ArrowDown','ArrowRight','ArrowLeft','ArrowUp','ArrowUp','ArrowLeft','ArrowRight'])seq.push((await step(key)).id);
+   const n=w.ids.length;assert.deepEqual(seq,[w.ids[0],w.ids[1],w.ids[2],w.ids[1],w.ids[0],w.ids[n-1],w.ids[n-2],w.ids[n-1]],'Right and Down go on, Left and Up go back, and the ends wrap');
+   await page.evaluate(()=>{delete worldState.atlas.fog;__atlasTest.show('campaign-1');});
+   assert.deepEqual(await page.evaluate(()=>__atlasTest.keyList('campaign-1').map(t=>t.id)),s.list.map(t=>t.id),'the fog back on, the list is the fogged one again (it is read afresh when the sheet\'s state changes)');
    /* the whole sheet, the fog off */
    assert.equal(await page.evaluate(()=>{worldState.atlas.fog=false;const n=__atlasTest.keyList('campaign-1').length;delete worldState.atlas.fog;return n;}),s.all,'with the fog off every named place is listed');
    /* Escape: the card first, the pane after (the full pane is a dialog) */

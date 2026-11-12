@@ -8540,33 +8540,64 @@ function runEngineTests(R){
   // followed it past the roll floor: the hero's strike landed for an invented 48 with no die. Every note that asks for combat
   // tags now carries the player-rolls bound, ONE clause from ONE helper, "" while the switch is off (the OFF notes unchanged).
   section("#672 — the player-rolls bound on the notes that ask for combat tags");
-  t("#672 playerRollsBound: empty while the GM rolls; under player rolls it stops the hero's own blow at [CHECK:] and leaves a companion's or a foe's blow to be tagged now",function(){
+  t("#672 playerRollsBound: empty while the GM rolls; under player rolls ONE note — a hero's attack that needs a roll stops at [CHECK:], never an invented number; a blow already rolled keeps its number, an automatic strike is the GM's, a companion's or a foe's blow is tagged now",function(){
     var was=playerRollsDice;try{
       playerRollsDice=false;if(playerRollsBound()!=="")return "OFF must be empty (the OFF prompt stays byte-identical): "+playerRollsBound();
       playerRollsDice=true;var b=playerRollsBound();
-      if(b.charAt(0)!==" ")return "the clause joins a note's last sentence with a leading space: "+JSON.stringify(b.slice(0,20));
-      if(b.indexOf("[CHECK:]")<0||!/hero's own (blow|attack)/.test(b))return "the hero's blow must stop at [CHECK:]: "+b;
-      if(!/companion's or a foe's blow/.test(b)||!/tag/.test(b))return "a companion's or a foe's blow is still tagged now: "+b;
-      if(!/never invent/i.test(b))return "the invented number (48 at t136) must be named: "+b;
+      if(b.indexOf("[ENGINE NOTE")!==0||b.charAt(b.length-1)!=="]")return "the bound is a note of its own: "+b;
+      if(b.indexOf("[CHECK:]")<0||!/attack that needs a roll still stops at \[CHECK:\]/.test(b))return "an attack that needs a roll must stop at [CHECK:]: "+b;
+      if(!/never invent a number/i.test(b))return "the invented number (48 at t136) must be named: "+b;
+      if(!/already rolled keeps its rolled number/.test(b))return "a blow the player rolled keeps its number (review finding 5): "+b;
+      if(!/a strike an ability makes automatic is yours to resolve/.test(b))return "an automatic strike stays the GM's — CHECK ANSWERED may ride the same turn (review finding 2): "+b;
+      if(!/a companion's or a foe's blow you tag now/.test(b))return "a companion's or a foe's blow is still tagged now: "+b;
       return true;
     }finally{playerRollsDice=was;}
   });
-  t("#672 the three notes that ask for combat tags carry the bound under player rolls and are untouched while the GM rolls — COMBAT BOOKKEEPING (the t136 note), COMBAT TAGS WITHOUT AN ENCOUNTER, WRAP UP",function(){
-    var was=playerRollsDice,_w=console.warn,_t=(typeof showToast==="function")?showToast:null,arms,i,off,on,bound;
+  t("#672 the registry: the builders whose text asks for [ENEMY_HP:] / [ENEMY_SLAIN:] or to finish the fight are exactly the rows that carry rollsBound, and the notes themselves read the same on both contracts",function(){
+    var was=playerRollsDice,_w=console.warn,_t=(typeof showToast==="function")?showToast:null,i,name,src,asks,flagged=[],off,on,arms;
+    for(i=0;i<NOTE_BUILDERS.length;i++){name=noteBuilderName(NOTE_BUILDERS[i]);src=String(NOTE_BUILDERS[i]);asks=/\[ENEMY_HP:|\[ENEMY_SLAIN:|finish the fight/.test(src);
+      if(asks&&!(NOTE_SHAPES[name]&&NOTE_SHAPES[name].rollsBound))return name+" asks for combat tags and its row carries no rollsBound";
+      if(NOTE_SHAPES[name]&&NOTE_SHAPES[name].rollsBound){if(!asks)return name+" carries rollsBound and asks for no combat tag";flagged.push(name);}}
+    if(flagged.sort().join(",")!=="buildCombatStaleNudge,buildOrphanCombatNudge,buildWrapUpNote")return "the flagged rows: "+flagged.join(",");
+    if(NOTE_SHAPES.buildWrapUpNote.rollsBound!=="combat")return "WRAP UP is bound only while a fight is open (review finding 4)";
     function stale(){makeWorld();applyMuts("[COMBAT_START:Kresh|12|13|+3|d8|high]");applyMuts("[ENEMY_HP:Kresh|-2]");worldState.turn=(worldState.turn||1)+COMBAT_STALE_TURNS+1;return buildCombatStaleNudge();}
     function orphan(){makeWorld();worldState.combat=null;delete worldState.orphanCombat;applyMuts("[ENEMY_HP:Bronze Bell Warden|-9]");return buildOrphanCombatNudge();}
     function wrap(){makeWorld();worldState.wrapUpPing={turn:worldState.turn};return buildWrapUpNote();}
-    arms=[["COMBAT BOOKKEEPING",stale],["COMBAT TAGS WITHOUT AN ENCOUNTER",orphan],["WRAP UP",wrap]];
+    arms=[stale,orphan,wrap];console.warn=function(){};if(_t)showToast=function(){};
+    try{for(i=0;i<arms.length;i++){playerRollsDice=false;off=arms[i]();playerRollsDice=true;on=arms[i]();if(!off)return "fixture: note "+i+" did not fire";if(on!==off)return "a note changed with the contract — the bound is delivered beside it, once: "+on;if(off.indexOf("THE PLAYER ROLLS")>=0)return "a note carries the bound inline: "+off;}return true;}
+    finally{playerRollsDice=was;console.warn=_w;if(_t)showToast=_t;}
+  });
+  t("#672 delivery: buildEngineNotes adds the bound ONCE after a flagged note under player rolls, defers nothing for it, says nothing while the GM rolls, and leaves a peaceful WRAP UP alone",function(){
+    var was=playerRollsDice,_w=console.warn,_t=(typeof showToast==="function")?showToast:null,off,on,bound,offNames,onNames;
+    function count(hay,needle){return hay.split(needle).length-1;}
+    function staleWorld(wrap){makeWorld();applyMuts("[COMBAT_START:Kresh|12|13|+3|d8|high]");applyMuts("[ENEMY_HP:Kresh|-2]");worldState.turn=(worldState.turn||1)+COMBAT_STALE_TURNS+1;if(wrap)worldState.wrapUpPing={turn:worldState.turn};}
     console.warn=function(){};if(_t)showToast=function(){};
     try{
-      playerRollsDice=true;bound=playerRollsBound();if(!bound)return "fixture: no bound under player rolls";
-      for(i=0;i<arms.length;i++){
-        playerRollsDice=false;off=arms[i][1]();
-        playerRollsDice=true;on=arms[i][1]();
-        if(!off||off.indexOf(arms[i][0])<0)return "fixture: "+arms[i][0]+" did not fire with the GM rolling: "+off;
-        if(off.indexOf("[CHECK:]")>=0||off.indexOf(bound)>=0)return arms[i][0]+" changed while the GM rolls: "+off;
-        if(on!==off.slice(0,off.length-1)+bound+"]")return arms[i][0]+" under player rolls must be the same note with the bound before its closing bracket: "+on;
-      }
+      playerRollsDice=true;bound=playerRollsBound();
+      /* the t136 case: the bookkeeping note alone */
+      playerRollsDice=false;staleWorld(false);off=buildEngineNotes();offNames=_notesBuilt.n.join(",");
+      playerRollsDice=true;staleWorld(false);on=buildEngineNotes();onNames=_notesBuilt.n.join(",");
+      if(off.indexOf("COMBAT BOOKKEEPING")<0)return "fixture: the bookkeeping note did not fire: "+off.slice(0,200);
+      if(off.indexOf("THE PLAYER ROLLS")>=0)return "the bound spoke while the GM rolls";
+      if(count(on,bound)!==1)return "the bound must be delivered once: "+count(on,bound);
+      if(on!==off.replace("\n\n"+ENGINE_NOTES_PROTOCOL,"\n\n"+bound+"\n\n"+ENGINE_NOTES_PROTOCOL))return "under player rolls the notes are the same notes with the bound after them, before the protocol";
+      if(onNames!==offNames)return "the bound changed which notes were delivered: "+offNames+" vs "+onNames;
+      /* two flagged notes in one turn: still once, and the same builders delivered as with the GM rolling (it never defers a note) */
+      playerRollsDice=false;staleWorld(true);off=buildEngineNotes();offNames=_notesBuilt.n.join(",");
+      playerRollsDice=true;staleWorld(true);on=buildEngineNotes();onNames=_notesBuilt.n.join(",");
+      if(offNames.indexOf("buildWrapUpNote")<0||offNames.indexOf("buildCombatStaleNudge")<0)return "fixture: both notes must ride: "+offNames;
+      if(onNames!==offNames)return "the bound deferred a note (review finding 3): "+offNames+" vs "+onNames;
+      if(count(on,bound)!==1)return "two flagged notes carry the bound once, not twice: "+count(on,bound);
+      /* CHECK ANSWERED beside the bookkeeping note: both ride, and the bound does not take back the automatic strike */
+      staleWorld(false);worldState.checkAnsweredPing={turn:worldState.turn,label:"Longbow attack",mod:5,dc:14};on=buildEngineNotes();
+      if(on.indexOf("CHECK ANSWERED")<0||count(on,bound)!==1)return "CHECK ANSWERED and the bound must ride together: "+_notesBuilt.n.join(",");
+      /* WRAP UP with no fight open: nothing to bound */
+      makeWorld();worldState.combat=null;worldState.wrapUpPing={turn:worldState.turn};on=buildEngineNotes();
+      if(on.indexOf("WRAP UP")<0)return "fixture: wrap-up did not fire";
+      if(on.indexOf("THE PLAYER ROLLS")>=0)return "a peaceful WRAP UP carries the bound (review finding 4)";
+      /* WRAP UP with a fight open (fresh, not stale): bound */
+      makeWorld();applyMuts("[COMBAT_START:Kresh|12|13|+3|d8|high]");worldState.wrapUpPing={turn:worldState.turn};on=buildEngineNotes();
+      if(on.indexOf("WRAP UP")<0||count(on,bound)!==1)return "WRAP UP during a fight must carry the bound once";
       return true;
     }finally{playerRollsDice=was;console.warn=_w;if(_t)showToast=_t;}
   });

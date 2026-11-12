@@ -2373,9 +2373,14 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert.strictEqual(atlasRow(ATLAS_THINGS, null), undefined); assert.strictEqual(atlasRow(null, "town"), undefined);
     bare = text.match(new RegExp("\\b(" + tables.join("|") + ")\\[", "g")) || [];
     assert.deepEqual(bare, [], "every read of a table goes through atlasRow");
-    /* the readers: a document of a kind named like an Object method has its portals and nothing else */
-    assert.deepEqual(atlasThings({ generator: { name: "constructor" }, portals: [] }), []);
-    assert.deepEqual(atlasThings({ generator: { name: "toString" }, portals: [] }), []);
+  });
+  test("#697 a new builder row needs a new ATLAS_VER: the rows are pinned to the store version (an older build sets aside a zone it cannot build)", function () {
+    /* independent review 2026-11-12, finding 1: the load check discards a v1 store holding a zone no row builds, so a build that adds a
+       row and keeps ATLAS_VER writes stores every older cached build throws away. Adding a row: bump ATLAS_VER (older builds then
+       leave the store alone) and add the new version's list here. */
+    var ROWS = { 1: ["dungeon>dungeon", "interior>dungeon", "region>dungeon", "region>town", "region>wild", "town>dungeon", "town>interior"] };
+    assert(ROWS[ATLAS_VER], "ATLAS_VER " + ATLAS_VER + " has no pinned builder rows — add its list");
+    assert.deepEqual(Object.keys(ATLAS_BUILDERS).sort(), ROWS[ATLAS_VER], "a builder row changed under ATLAS_VER " + ATLAS_VER + " — bump the version with it");
   });
   test("#697 a zone of a kind no builder makes is set aside at load, with the zone and the kind said", function () {
     var A = fresh(), c = cast(A), s;

@@ -1,5 +1,5 @@
 {
-  "version": "v1.1399",
+  "version": "v1.1400",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -54,6 +54,7 @@
     "The Blueprint Designer can render all missing creature and NPC portraits, preserving existing images and saving each completed portrait.",
     "A damaged map save holding a zone of an unknown kind is set aside at load instead of half-read.",
     "When you roll your own dice, the GM's combat reminders no longer invite it to resolve your hero's strike without your roll.",
-    "The map takes the keyboard: arrow keys step through the places a sheet shows and open each one's card."
+    "The map takes the keyboard: arrow keys step through the places a sheet shows and open each one's card.",
+    "The player-rolls reminder to the GM is one short note, said once, and no longer conflicts with automatic strikes."
   ]
 }
