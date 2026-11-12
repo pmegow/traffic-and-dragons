@@ -179,11 +179,35 @@ function runEngineTests(R){
     var p=MapKnowledge.project(r.state,ctx.container,"player"),retry=MapKnowledge.prepare(r.state,[spring733(),tree],ctx);
     return p.features[0].id==="f1"&&p.features[0].source.commit==="renewed"&&p.features[0].source.turn===10&&r.state.receipts["renewed"].events[0].quote===spring733().quote&&r.state.features.f2.label===tree.label&&Object.keys(r.state.receipts).length===2&&retry.ok&&retry.duplicate&&JSON.stringify(retry.state)===JSON.stringify(r.state)&&MapKnowledge.problem(r.state)==="";
   });
+  t("K18 a repeated new label advances reported knowledge through the same handle rules",function(){
+    var e={op:"disclose",id:"new",label:"King Stillwater's Bower",proposalKind:"",bearing:"SW",mode:"reported",quote:"You hear of King Stillwater's Bower to the southwest."},ctx={channel:"gm",commit:"t39",turn:39,container:"The Whispering Sough|The Weeping Gatehouse",text:e.quote},r=MapKnowledge.prepare(MapKnowledge.create(),[e],ctx),s=r.state;
+    if(!r.ok)return r.reason;var before=JSON.stringify(s);e.mode="observed";e.quote="You see King Stillwater's Bower to the southwest.";ctx.commit="t40";ctx.turn=40;ctx.text=e.quote;
+    r=MapKnowledge.prepare(s,[e],ctx);if(!r.ok)return r.reason;
+    return JSON.stringify(s)===before&&r.state.next===2&&Object.keys(r.state.features).length===1&&r.state.features.f1.mode==="observed"&&r.state.features.f1.bearing==="SW"&&r.state.features.f1.receipt==="t40"&&r.state.receipts.t39.events[0].mode==="reported"&&MapKnowledge.problem(r.state)==="";
+  });
+  t("K18 repeated labels may establish unknown bearings without moving existing points",function(){
+    var e=spring733();e.bearing="unknown";e.mode="reported";var s=geo733([e]).state,before=JSON.stringify(s);e.bearing="SW";e.mode="observed";var ctx={channel:"gm",commit:"survey",turn:10,container:"The Boundary Clearing",text:e.quote},r=MapKnowledge.prepare(s,[e],ctx);
+    if(!r.ok)return r.reason;var good=JSON.stringify(r.state);e.bearing="N";ctx.commit="conflict";var bad=MapKnowledge.prepare(r.state,[e],ctx);
+    return JSON.stringify(s)===before&&r.state.next===2&&r.state.features.f1.bearing==="SW"&&r.state.features.f1.mode==="observed"&&!bad.ok&&JSON.stringify(r.state)===good;
+  });
+  t("K18 a promoted repeat retains atomicity provenance and retry bounds",function(){
+    var e=spring733();e.mode="reported";var s=geo733([e]).state,before=JSON.stringify(s),tree={op:"disclose",id:"new",label:"The Boar Tree",proposalKind:"",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."},ctx={channel:"gm",commit:"observe",turn:10,container:"The Boundary Clearing",text:e.quote+" "+tree.quote};e.mode="observed";
+    var r=MapKnowledge.prepare(s,[e,tree],ctx);if(!r.ok)return r.reason;
+    var retry=MapKnowledge.prepare(r.state,[e,tree],ctx);if(!retry.ok||!retry.duplicate||JSON.stringify(retry.state)!==JSON.stringify(r.state))return "retry grew or changed the receipt";
+    if(JSON.stringify(s)!==before||r.state.next!==3||r.state.features.f1.mode!=="observed"||r.state.features.f2.label!==tree.label||r.state.receipts.observe.events[0].id!=="new")return "promotion changed identity, input, or source evidence";
+    var conflict=JSON.parse(JSON.stringify(e));conflict.bearing="E";ctx.commit="conflict";var bad=MapKnowledge.prepare(s,[e,tree,conflict],ctx);
+    return !bad.ok&&JSON.stringify(s)===before;
+  });
+  t("K18 same-group monotonic repeats retain one identity and latest receipt offset",function(){
+    var first=spring733();first.bearing="unknown";first.mode="reported";var seen=spring733(),r=geo733([first,seen]);if(!r.ok)return r.reason;
+    if(r.state.next!==2||r.state.features.f1.event!==1||r.state.features.f1.mode!=="observed"||r.state.features.f1.bearing!=="SW"||r.state.receipts["turn-9"].events[0].mode!=="reported"||MapKnowledge.problem(r.state))return "same-group promotion lost identity or receipt order";
+    var before=JSON.stringify(r.state),ctx={channel:"gm",commit:"erase",turn:10,container:"The Boundary Clearing",text:seen.quote};seen.bearing="unknown";return !MapKnowledge.prepare(r.state,[seen],ctx).ok&&JSON.stringify(r.state)===before;
+  });
   t("K08 conflicting new repeats refuse independent candidates atomically",function(){
     var changes=[{bearing:"N"},{mode:"reported"}],s=geo733([spring733()]).state,before=JSON.stringify(s),ctx={channel:"gm",commit:"conflict",turn:10,container:"The Boundary Clearing",text:"The Boar Tree stands north. Bear Spring lies southwest."},i,k,e,r;
     for(i=0;i<changes.length;i++){e=spring733();for(k in changes[i])e[k]=changes[i][k];r=MapKnowledge.prepare(s,[{op:"disclose",id:"new",label:"The Boar Tree",proposalKind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."},e],ctx);if(r.ok||JSON.stringify(s)!==before)return "conflicting repeat changed the group: "+JSON.stringify(changes[i]);}
     e=spring733();e.mode="reported";s=geo733([e]).state;before=JSON.stringify(s);e=spring733();
-    r=MapKnowledge.prepare(s,[e],ctx);if(r.ok||JSON.stringify(s)!==before)return "new cannot promote a report by changing attributes";
+    r=MapKnowledge.prepare(s,[e],ctx);if(!r.ok||JSON.stringify(s)!==before||r.state.features.f1.mode!=="observed")return "a uniquely identified report can advance through a repeated label";
     e.id="f1";r=MapKnowledge.prepare(s,[e],ctx);return r.ok&&r.state.features.f1.mode==="observed";
   });
   t("K08 exact repeats inside one group preserve source ownership and counters",function(){
@@ -191,6 +215,11 @@ function runEngineTests(R){
     if(Object.keys(r.state.features).length!==1||r.state.next!==2||r.state.features.f1.event!==2||r.state.receipts["turn-9"].events.length!==3||MapKnowledge.problem(r.state))return "one group duplicated an identity or lost provenance";
     var ctx={channel:"gm",commit:"later-repeat",turn:10,container:"The Boundary Clearing",text:e.quote},later=MapKnowledge.prepare(r.state,[e],ctx);
     return later.ok&&later.state.next===2&&Object.keys(later.state.receipts).length===2&&later.state.features.f1.receipt==="later-repeat"&&r.state.features.f1.receipt==="turn-9";
+  });
+  t("K18 promotion at feature capacity consumes no identity and still respects receipt capacity",function(){
+    var s=capacity733(4096,4096),e=JSON.parse(JSON.stringify(s.receipts["cap-0"].events[0]));s.features.f1.mode="reported";s.receipts["cap-0"].events[0].mode="reported";e.mode="observed";var before=JSON.stringify(s),ctx={channel:"gm",commit:"promote-at-cap",turn:9000,container:"Capacity Place",text:e.quote},r=MapKnowledge.prepare(s,[e],ctx);
+    if(!r.ok)return r.reason;if(r.state.next!==4097||Object.keys(r.state.features).length!==4096||r.state.features.f1.mode!=="observed"||JSON.stringify(s)!==before)return "promotion allocated an identity or changed input";
+    s=capacity733(1,8192);e=JSON.parse(JSON.stringify(s.receipts["cap-0"].events[0]));s.features.f1.mode="reported";s.receipts[s.features.f1.receipt].events[s.features.f1.event].mode="reported";e.mode="observed";before=JSON.stringify(s);r=MapKnowledge.prepare(s,[e],ctx);return !r.ok&&/capacity/.test(r.reason)&&JSON.stringify(s)===before;
   });
   t("K08 an exact new repeat at the feature cap allocates no identity",function(){
     var s=capacity733(4096,4096),e=JSON.parse(JSON.stringify(s.receipts["cap-0"].events[0])),ctx={channel:"gm",commit:"repeat-at-cap",turn:9000,container:"Capacity Place",text:e.quote},r=MapKnowledge.prepare(s,[e],ctx);

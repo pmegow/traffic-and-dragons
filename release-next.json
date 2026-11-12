@@ -1,5 +1,5 @@
 {
-  "version": "v1.1403",
+  "version": "v1.1404",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -59,6 +59,7 @@
     "Map transition foundations preserve sourced discoveries independently of movement; activation remains under verification.",
     "Map guidance includes dialogue and navigation targets; exact landmark repeats retain their identity instead of blocking other discoveries.",
     "Experimental maps use neutral landmark pins, preserving earlier classifications as private evidence with a migration backup.",
-    "Narrated landmarks survive canon-transaction processing without losing their original source position."
+    "Narrated landmarks survive canon-transaction processing without losing their original source position.",
+    "A uniquely named reported landmark can become observed without a duplicate pin, even when the GM repeats it as new."
   ]
 }

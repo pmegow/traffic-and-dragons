@@ -121,14 +121,14 @@ var MapKnowledge=(function(){
         /* A scoped public label is unique. Proposed classifications are private evidence and
            cannot create a second identity or conflict with established public knowledge. */
         if(match){
-          if(match.bearing!==e.bearing||match.mode!==e.mode)return refuse("public label already identifies "+match.id+" with different attributes; use its handle or a distinct label");
           id=match.id;
         }else{
           if(ids.length>=MAX_FEATURES||c.next>=9007199254740990)return refuse("feature capacity reached; existing knowledge was preserved");
           id="f"+c.next++;ids.push(id);
         }
-      }else{
-        if(!own(c.features,id)||c.features[id].container!==ctx.container)return refuse("unknown feature handle in this place: "+id);
+      }else if(!own(c.features,id)||c.features[id].container!==ctx.container)return refuse("unknown feature handle in this place: "+id);
+      /* Resolving a unique public label changes only the local handle; its source event stays intact. */
+      if(own(c.features,id)){
         f=c.features[id];
         if(f.bearing!=="unknown"&&f.bearing!==e.bearing)return refuse("disclosure cannot replace an established bearing");
         if(f.mode==="observed"&&e.mode!=="observed")return refuse("disclosure cannot downgrade observed knowledge to a report");
