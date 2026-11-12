@@ -9,9 +9,14 @@ function atlasKnowledgeContext(){
 }
 var ATLAS_KNOWLEDGE_DIRECTIONS={N:"north",NE:"northeast",E:"east",SE:"southeast",S:"south",SW:"southwest",W:"west",NW:"northwest"};
 function atlasKnowledgeReceipt(e){
-  var label=String(e.label||""),kind=String(e.kind||""),simple=label.toLowerCase().replace(/^(?:a|an|the)\s+/,""),article=/^[aeiou]/.test(kind)?"an ":"a ";
-  var direction=Object.prototype.hasOwnProperty.call(ATLAS_KNOWLEDGE_DIRECTIONS,e.bearing)?ATLAS_KNOWLEDGE_DIRECTIONS[e.bearing]:null;
-  return (e.mode==="reported"?"You hear of ":"You see ")+label+(simple===kind?"":", "+article+kind)+(direction?(simple===kind?" to the ":", to the ")+direction+".":"; its precise position is not established.");
+  var label=String(e.label||""),direction=Object.prototype.hasOwnProperty.call(ATLAS_KNOWLEDGE_DIRECTIONS,e.bearing)?ATLAS_KNOWLEDGE_DIRECTIONS[e.bearing]:null;
+  return (e.mode==="reported"?"You hear of ":"You see ")+label+(direction?" to the "+direction+".":"; its precise position is not established.");
+}
+/* Five-field directives are retained for old model context; their type is private provenance. */
+function atlasKnowledgeFields(fields){
+  if(fields.length!==4&&fields.length!==5)return null;
+  var old=fields.length===5,e={op:"disclose",id:fields[0],label:fields[1],proposalKind:old?fields[2]:"",bearing:fields[old?3:2],mode:fields[old?4:3],quote:""};
+  e.quote=atlasKnowledgeReceipt(e);return e;
 }
 /* The parser's location timeline supplies scope at the directive, before later arrivals overwrite
    the live pointer. Only plain fields are accepted; the core owns the closed enum/schema checks. */
@@ -23,9 +28,9 @@ function atlasKnowledgeRead(raw,R){
     if(depth){out.reason="a nested MAP_REVEAL is not a public narrative directive";break;}
     if(out.items.length>=16){out.reason="at most 16 public map disclosures are accepted per turn";break;}
     fields=m[1].split("|");
-    if(fields.length!==5){out.reason="MAP_REVEAL needs handle, public label, kind, bearing, and observed/reported";break;}
+    if(fields.length!==4&&fields.length!==5){out.reason="MAP_REVEAL needs handle, public label, bearing, and observed/reported";break;}
     fields=fields.map(function(x){return x.trim();});
-    e={op:"disclose",id:fields[0],label:fields[1],kind:fields[2],bearing:fields[3],mode:fields[4],quote:""};e.quote=atlasKnowledgeReceipt(e);
+    e=atlasKnowledgeFields(fields);
     out.reason=MapKnowledge.eventProblem(e);if(out.reason)break;
     st=R&&typeof R.placeAt==="function"?R.placeAt(m.index):null;k=st&&st.key?st.key:atlasKnowledgeContext();
     if(k&&typeof locResolve==="function")k=locResolve(k);
@@ -70,7 +75,7 @@ function atlasKnowledgePublish(raw,items){
     item=items[i];e=item.event;
     if(typeof item.start!=="number"||Math.floor(item.start)!==item.start||item.start<cursor||typeof item.end!=="number"||Math.floor(item.end)!==item.end||item.end<=item.start||item.end>text.length||text.slice(item.start,item.end)!==item.directive)throw new Error("the queued map directive no longer matches its narrated source");
     m=/^\[MAP_REVEAL:([^\[\]\r\n]*)\]$/.exec(item.directive);fields=m?m[1].split("|").map(function(x){return x.trim();}):[];
-    if(JSON.stringify(fields)!==JSON.stringify([e.id,e.label,e.kind,e.bearing,e.mode])||e.quote!==atlasKnowledgeReceipt(e))throw new Error("the queued map disclosure differs from its public directive");
+    if(JSON.stringify(atlasKnowledgeFields(fields))!==JSON.stringify(e))throw new Error("the queued map disclosure differs from its public directive");
     out+=text.slice(cursor,item.end)+"\n\n"+e.quote+"\n\n";cursor=item.end;
   }
   return out+text.slice(cursor);
@@ -109,7 +114,7 @@ function atlasKnowledgeTurnReceipts(){
   var s=memory&&memory.map&&memory.map.geography,out=[],keys,i,j,r;
   var problem=MapKnowledge.problem(s);if(problem){atlasKnowledgeSay(problem+"; committed map receipts could not be read");return out;}
   keys=Object.keys(s.receipts).sort();
-  for(i=0;i<keys.length;i++){r=s.receipts[keys[i]];if(r.turn!==worldState.turn)continue;for(j=0;j<r.events.length;j++){var scope=typeof locResolve==="function"?locResolve(r.container):r.container,line="At "+scope.replace(/\|/g," — ")+": "+r.events[j].quote;if(out.indexOf(line)<0)out.push(line);}}
+  for(i=0;i<keys.length;i++){r=s.receipts[keys[i]];if(r.turn!==worldState.turn)continue;for(j=0;j<r.events.length;j++){var scope=typeof locResolve==="function"?locResolve(r.container):r.container,line="At "+scope.replace(/\|/g," — ")+": "+atlasKnowledgeReceipt(r.events[j]);if(out.indexOf(line)<0)out.push(line);}}
   return out;
 }
 function atlasKnowledgeRerollNote(){
@@ -142,7 +147,7 @@ function atlasKnowledgePlayerBlock(){
   var k=atlasKnowledgeContext(),out="PLAYER-KNOWN GEOGRAPHY\nCurrent place: "+(k||"not established")+".\n",p,i,f;
   try{
     p=atlasKnowledgeProjection(k);
-    for(i=0;i<p.features.length&&i<40;i++){f=p.features[i];out+=f.id+": "+f.label+" ("+f.kind+", "+f.mode+", "+(f.bearing==="unknown"?"position unknown":f.bearing)+").\n";}
+    for(i=0;i<p.features.length&&i<40;i++){f=p.features[i];out+=f.id+": "+f.label+" ("+f.mode+", "+(f.bearing==="unknown"?"position unknown":f.bearing)+").\n";}
     if(p.features.length>40)out+="Additional known features are omitted from this brief.\n";
     if(!p.features.length)out+="No landmarks have been disclosed here.\n";
   }catch(e){out+="The map knowledge could not be read; no private geography is substituted.\n";if(typeof console!=="undefined")console.warn("[map knowledge] public brief refused: "+((e&&e.message)||e));}
@@ -153,9 +158,8 @@ function atlasKnowledgePrompt(){
   return atlasKnowledgePlayerBlock()+
     "PUBLIC MAP DISCLOSURES: world facts and accepted changes constrain the map; a generated layout never overrules the story.\n"+
     "On EVERY narrated turn, disclose newly introduced FIXED geographic features that help the player navigate or act: distinctive trees or stones, buildings, paths, exits, and destinations. Include features described in NPC dialogue, directions, EXIT descriptions, and SUGGEST targets, even while the party stands still. Exclude NPCs, creatures (including a living stone elemental), portable items, ordinary terrain texture, and absent, removed, or hypothetical structures. Suggestion-only utility calls are read-only: no new map facts or MAP_REVEAL.\n"+
-    "Before finalizing, check each such feature against PLAYER-KNOWN GEOGRAPHY. For a new feature emit [MAP_REVEAL:new|public label|kind|bearing|observed]; use reported instead of observed for testimony. For an existing feature use its f-handle only when disclosing a new name or other newly learned attribute. Do not repeat unchanged discoveries or declare an existing feature as new. Do not change its established kind or direction.\n"+
-    "Kinds: landmark, hut, building, spring, tree, arch, ruin, cave, road, bridge, stone, camp. Use a specific kind only when it is literally established; otherwise use landmark. Stairs are landmark, not arch; shallows are landmark, not spring; a belfry is building only if established as a building, otherwise landmark. Never choose the nearest-looking kind.\n"+
-    "Bearings: N, NE, E, SE, S, SW, W, NW, unknown. Use unknown when no bearing is established; a direction is not a distance. Disclose only the label and type actually learned. Seeing a hut reveals neither owner nor interior; keep a generic label until its name is learned. Testimony remains reported until the party actually perceives the feature; do not narrate a reported destination as newly seen.\n"+
-    "Place each directive at top level, never inside another tag. Narrate naturally; do not write or imitate the engine's formulaic \"You see/hear of [label], a [kind]\" confirmations. This directive is PUBLIC NARRATION: the engine inserts and speaks its discovery sentence here. Never use a disclosure for secrets, negation, hypotheticals, or private preparation.\n"+
+    "Before finalizing, check each such feature against PLAYER-KNOWN GEOGRAPHY. For a new feature emit [MAP_REVEAL:new|public label|bearing|observed]; use reported instead of observed for testimony. For an existing feature use its f-handle only when disclosing a new name or other newly learned attribute. Do not repeat unchanged discoveries or declare an existing feature as new. Do not change its established direction.\n"+
+    "Bearings: N, NE, E, SE, S, SW, W, NW, unknown. Use unknown when no bearing is established; a direction is not a distance. Disclose only the label actually learned. Do not classify its type; the map uses neutral labelled pins. Seeing a hut reveals neither owner nor interior; keep a generic label until its name is learned. Testimony remains reported until the party actually perceives the feature; do not narrate a reported destination as newly seen.\n"+
+    "Place each directive at top level, never inside another tag. Narrate naturally; do not write or imitate the engine's formulaic \"You see/hear of [label]\" confirmations. This directive is PUBLIC NARRATION: the engine inserts and speaks its discovery sentence here. Never use a disclosure for secrets, negation, hypotheticals, or private preparation.\n"+
     "Put LOCATION/SUBLOCATION before disclosures belonging there: each directive belongs to the place in force at its position. For a new room, use the full building — room path in SUBLOCATION; a bare room name cannot establish its building. Never invent a feature, owner, interior, bearing, or measurement to populate the drawing.\n"+"\n";
 }

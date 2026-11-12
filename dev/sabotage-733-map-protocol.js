@@ -16,7 +16,7 @@ rc|=sabotage.prove({file:'atlas-knowledge.js',command:command,only:only,cases:[
 rc|=sabotage.prove({file:'atlas-knowledge.js',command:command,only:only,cases:[
   {label:'receipt publication moves to the end of a turn after its arrival',find:'return out+text.slice(cursor);',replace:'return text+"\\n\\n"+items.map(function(item){return item.event.quote;}).join("\\n");',mustFail:only+'accepted receipts publish at their directive position before later movement'},
   {label:'an arbitrary quoted receipt suppresses the public declaration',find:'out+=text.slice(cursor,item.end)+"\\n\\n"+e.quote+"\\n\\n";',replace:'out+=text.slice(cursor,item.end)+(text.indexOf(e.quote)<0?"\\n\\n"+e.quote+"\\n\\n":"");',mustFail:only+'a quoted receipt never suppresses the deliberate public disclosure'},
-  {label:'an altered queue supplies fields absent from the original public directive',find:'if(JSON.stringify(fields)!==JSON.stringify([e.id,e.label,e.kind,e.bearing,e.mode])||e.quote!==atlasKnowledgeReceipt(e))throw new Error("the queued map disclosure differs from its public directive");',replace:'',mustFail:only+'a stale or altered queued directive cannot acquire public authority'},
+  {label:'an altered queue supplies fields absent from the original public directive',find:'if(JSON.stringify(atlasKnowledgeFields(fields))!==JSON.stringify(e))throw new Error("the queued map disclosure differs from its public directive");',replace:'',mustFail:only+'a stale or altered queued directive cannot acquire public authority'},
   {label:'a reroll suppresses retained discoveries because their words already occur',find:'if(lines.length)text+=',replace:'if(lines.length&&lines.every(function(line){return text.indexOf(line.split(": ").slice(1).join(": "))<0;}))text+=',mustFail:only+'rerolls retain a scoped discovery block even after a quoted receipt'}
 ]});
 rc|=sabotage.prove({file:'tag_table.js',command:command,only:only,cases:[
@@ -35,5 +35,10 @@ rc|=sabotage.prove({file:'api.js',command:command,only:only,cases:[
 ]});
 rc|=sabotage.prove({file:'table-talk.js',command:command,only:only,cases:[
   {label:'Table Talk requests the private GM geography block',find:'var geo=(typeof buildGeoBlock==="function")?buildGeoBlock("player"):"";',replace:'var geo=(typeof buildGeoBlock==="function")?buildGeoBlock():"";',mustFail:only+'Table Talk receives public geography and no blueprint description'}
+]});
+rc|=sabotage.prove({file:'atlas-knowledge.js',command:command,only:only,cases:[
+  {label:'compatibility kind proposals become public narration',find:'label+(direction?',replace:'label+", a "+e.proposalKind+(direction?',mustFail:only+'legacy proposed types remain private and cannot poison repeats or rerolls'},
+  {label:'retained discoveries repeat old typed receipt quotes',find:'atlasKnowledgeReceipt(r.events[j])',replace:'r.events[j].quote',mustFail:only+'legacy proposed types remain private and cannot poison repeats or rerolls'},
+  {label:'the short neutral disclosure grammar is rejected',find:'if(fields.length!==4&&fields.length!==5){',replace:'if(fields.length!==5){',mustFail:only+'neutral four-field declarations do not assert an inferred kind'}
 ]});
 process.exit(rc?1:0);

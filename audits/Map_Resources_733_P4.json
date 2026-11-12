@@ -1,0 +1,471 @@
+{
+  "task": 733,
+  "phase": "P4 neutral public points and private proposal provenance",
+  "startedUtc": "2026-11-12T23:20:20.351Z",
+  "finishedUtc": "2026-11-12T23:20:53.758Z",
+  "runtime": {
+    "node": "v22.17.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "Intel(R) Core(TM) i9-14900HX",
+    "logicalCpus": 32,
+    "gcAvailable": true,
+    "appVersion": "v1.1403",
+    "sourceSha256": {
+      "map-knowledge.js": "19ced5dc9234713a35d551576d39053f2a428b19076b978602f397ee41a9c47e",
+      "atlas-knowledge.js": "d10258e3c1934d5458388b94424326467104e1338f3cd510f1ccd3cde00a999a",
+      "atlas-knowledge-migrate.js": "63a8ce318d6c00d4493121f2f3eeb1ad985eef7d9c3ef7a7b0127418f972b2f8",
+      "atlas-knowledge-source.js": "47808c5f75bf31cd35a6bf648549e5b84844c5b631be521c449ecabe100ee570",
+      "atlas-public.js": "489fe1e890b70e48290569ccea382e7cd3d259b3d2dbe849bf6245e991865092",
+      "tndmaps.js": "851247e4be6b612ec8d56101cc770a23ee750ebc8459af4e8c3ec233521a0720"
+    }
+  },
+  "method": {
+    "noProductionChanges": true,
+    "noPaidCalls": true,
+    "storeConstruction": "Valid deterministic synthetic stores, validated with MapKnowledge.problem. Initial receipts group at most three features within one place; subsequent one-event update receipts fill the requested history. Saturated histories include repeated disclosures with distinct engine tokens, not retries.",
+    "representativeLabels": "Names roughly 40–55 characters; quotes use the actual public receipt formatter; Empty private proposals as emitted by the current four-field protocol; 20% reported and all allowed bearings represented; 128 features maximum per place in main campaign cases.",
+    "maximumLengthCase": "Separately measured labels120, private proposals120, quotes600, containers300, receipt IDs160 characters; ASCII text. This is a field-length stress case, not typical GM prose.",
+    "timing": "Two warmups, then twelve samples per operation; medians and p95 shown. Same machine during other session work, not a controlled hardware benchmark. Fresh update at8192 receipts is a measured refusal, not a successful write.",
+    "growth": "100 projections and100 idempotent retries, replacing the local store with each returned candidate. Exact serialized bytes/hash, feature/receipt/event counts, and counters must remain unchanged.",
+    "scope": "Pure store plus real public document memo in Node. No browser frame-rate, save compression, disk persistence, mobile device, or whole-application process peak measurements.",
+    "sourceBytesUnchangedDuringProbe": true
+  },
+  "imposedCaps": {
+    "featuresPerCampaign": 4096,
+    "receiptGroupsPerCampaign": 8192,
+    "eventsPerReceiptGroup": 16,
+    "eventsPerAdapterTurn": 16,
+    "publicBriefFeatures": 40,
+    "featuresPerSchematicSheet": 256
+  },
+  "scenarios": [
+    {
+      "profile": "representative label and receipt lengths",
+      "initial": {
+        "features": 10,
+        "receipts": 10,
+        "events": 16,
+        "revision": 10,
+        "next": 11,
+        "bytes": 6029,
+        "sha256": "1c6bd7df8d0c433c8d0dc411631b4c57b4870e54846c145eb723d279201faf5c"
+      },
+      "currentPlaceFeatures": 10,
+      "publicProjectionBytes": 1570,
+      "timings": {
+        "project": {
+          "samples": 12,
+          "minMs": 0.063,
+          "medianMs": 0.071,
+          "p95Ms": 0.097,
+          "maxMs": 0.097
+        },
+        "prepareFreshUpdate": {
+          "samples": 12,
+          "minMs": 0.069,
+          "medianMs": 0.073,
+          "p95Ms": 0.145,
+          "maxMs": 0.145
+        },
+        "prepareNewFeature": {
+          "samples": 12,
+          "minMs": 0.056,
+          "medianMs": 0.07,
+          "p95Ms": 0.515,
+          "maxMs": 0.515
+        },
+        "idempotentRetry": {
+          "samples": 12,
+          "minMs": 0.053,
+          "medianMs": 0.057,
+          "p95Ms": 0.076,
+          "maxMs": 0.076
+        }
+      },
+      "freshUpdateOutcome": {
+        "ok": true,
+        "reason": null
+      },
+      "newFeatureOutcome": {
+        "ok": true,
+        "reason": null
+      },
+      "repeated": {
+        "reads": 100,
+        "retries": 100,
+        "readTotalMs": 4.221,
+        "retryTotalMs": 5.52,
+        "stateByteIdentical": true,
+        "recordGrowth": 0,
+        "byteGrowth": 0,
+        "heapAfterGcDeltaBytes": 54960,
+        "heapCaveat": "Point observations with GC, not a heap leak proof or process peak measurement; temporary result allocation is reclaimed."
+      }
+    },
+    {
+      "profile": "representative label and receipt lengths",
+      "initial": {
+        "features": 100,
+        "receipts": 100,
+        "events": 166,
+        "revision": 100,
+        "next": 101,
+        "bytes": 61458,
+        "sha256": "0ca65078c39ce93418e5c61de96d0b3c0b87e9fa94b929ecb3affb7357325543"
+      },
+      "currentPlaceFeatures": 100,
+      "publicProjectionBytes": 15399,
+      "timings": {
+        "project": {
+          "samples": 12,
+          "minMs": 0.297,
+          "medianMs": 0.404,
+          "p95Ms": 0.67,
+          "maxMs": 0.67
+        },
+        "prepareFreshUpdate": {
+          "samples": 12,
+          "minMs": 0.398,
+          "medianMs": 0.51,
+          "p95Ms": 0.891,
+          "maxMs": 0.891
+        },
+        "prepareNewFeature": {
+          "samples": 12,
+          "minMs": 0.385,
+          "medianMs": 0.403,
+          "p95Ms": 0.708,
+          "maxMs": 0.708
+        },
+        "idempotentRetry": {
+          "samples": 12,
+          "minMs": 0.292,
+          "medianMs": 0.346,
+          "p95Ms": 0.489,
+          "maxMs": 0.489
+        }
+      },
+      "freshUpdateOutcome": {
+        "ok": true,
+        "reason": null
+      },
+      "newFeatureOutcome": {
+        "ok": true,
+        "reason": null
+      },
+      "repeated": {
+        "reads": 100,
+        "retries": 100,
+        "readTotalMs": 32.165,
+        "retryTotalMs": 38.292,
+        "stateByteIdentical": true,
+        "recordGrowth": 0,
+        "byteGrowth": 0,
+        "heapAfterGcDeltaBytes": 10656,
+        "heapCaveat": "Point observations with GC, not a heap leak proof or process peak measurement; temporary result allocation is reclaimed."
+      }
+    },
+    {
+      "profile": "representative label and receipt lengths",
+      "initial": {
+        "features": 1000,
+        "receipts": 1000,
+        "events": 1664,
+        "revision": 1000,
+        "next": 1001,
+        "bytes": 620466,
+        "sha256": "9cfb47340a382e1aa2c23134445a20332c130a02904b7aef4e5207d2e1421622"
+      },
+      "currentPlaceFeatures": 128,
+      "publicProjectionBytes": 19746,
+      "timings": {
+        "project": {
+          "samples": 12,
+          "minMs": 3.235,
+          "medianMs": 3.528,
+          "p95Ms": 3.695,
+          "maxMs": 3.695
+        },
+        "prepareFreshUpdate": {
+          "samples": 12,
+          "minMs": 3.608,
+          "medianMs": 3.842,
+          "p95Ms": 4.207,
+          "maxMs": 4.207
+        },
+        "prepareNewFeature": {
+          "samples": 12,
+          "minMs": 3.599,
+          "medianMs": 3.897,
+          "p95Ms": 4.082,
+          "maxMs": 4.082
+        },
+        "idempotentRetry": {
+          "samples": 12,
+          "minMs": 3.357,
+          "medianMs": 3.666,
+          "p95Ms": 3.854,
+          "maxMs": 3.854
+        }
+      },
+      "freshUpdateOutcome": {
+        "ok": true,
+        "reason": null
+      },
+      "newFeatureOutcome": {
+        "ok": true,
+        "reason": null
+      },
+      "repeated": {
+        "reads": 100,
+        "retries": 100,
+        "readTotalMs": 335.558,
+        "retryTotalMs": 373.204,
+        "stateByteIdentical": true,
+        "recordGrowth": 0,
+        "byteGrowth": 0,
+        "heapAfterGcDeltaBytes": 41808,
+        "heapCaveat": "Point observations with GC, not a heap leak proof or process peak measurement; temporary result allocation is reclaimed."
+      }
+    },
+    {
+      "profile": "representative label and receipt lengths",
+      "initial": {
+        "features": 4096,
+        "receipts": 4096,
+        "events": 6816,
+        "revision": 4096,
+        "next": 4097,
+        "bytes": 2561503,
+        "sha256": "8c9aa631de6e03417277dc6b7c963f01b83a22a4a496a74b3e586ff9364df8f6"
+      },
+      "currentPlaceFeatures": 128,
+      "publicProjectionBytes": 19746,
+      "timings": {
+        "project": {
+          "samples": 12,
+          "minMs": 13.51,
+          "medianMs": 15.024,
+          "p95Ms": 16.274,
+          "maxMs": 16.274
+        },
+        "prepareFreshUpdate": {
+          "samples": 12,
+          "minMs": 15.618,
+          "medianMs": 17.34,
+          "p95Ms": 18.023,
+          "maxMs": 18.023
+        },
+        "prepareNewFeature": {
+          "samples": 12,
+          "minMs": 15.77,
+          "medianMs": 16.948,
+          "p95Ms": 18.307,
+          "maxMs": 18.307
+        },
+        "idempotentRetry": {
+          "samples": 12,
+          "minMs": 14.815,
+          "medianMs": 16.16,
+          "p95Ms": 17.661,
+          "maxMs": 17.661
+        }
+      },
+      "freshUpdateOutcome": {
+        "ok": true,
+        "reason": null
+      },
+      "newFeatureOutcome": {
+        "ok": false,
+        "reason": "feature capacity reached; existing knowledge was preserved"
+      },
+      "repeated": {
+        "reads": 100,
+        "retries": 100,
+        "readTotalMs": 1456.2,
+        "retryTotalMs": 1785.786,
+        "stateByteIdentical": true,
+        "recordGrowth": 0,
+        "byteGrowth": 0,
+        "heapAfterGcDeltaBytes": 29144,
+        "heapCaveat": "Point observations with GC, not a heap leak proof or process peak measurement; temporary result allocation is reclaimed."
+      }
+    },
+    {
+      "profile": "representative label and receipt lengths",
+      "initial": {
+        "features": 4096,
+        "receipts": 8192,
+        "events": 10912,
+        "revision": 8192,
+        "next": 4097,
+        "bytes": 3785072,
+        "sha256": "02a77a3e5292df10f9dcb452b7734a582c4ed89d560e931410abbdb29b007a11"
+      },
+      "currentPlaceFeatures": 128,
+      "publicProjectionBytes": 20318,
+      "timings": {
+        "project": {
+          "samples": 12,
+          "minMs": 19.316,
+          "medianMs": 19.982,
+          "p95Ms": 20.706,
+          "maxMs": 20.706
+        },
+        "prepareFreshUpdate": {
+          "samples": 12,
+          "minMs": 19.682,
+          "medianMs": 20.006,
+          "p95Ms": 20.419,
+          "maxMs": 20.419
+        },
+        "prepareNewFeature": {
+          "samples": 12,
+          "minMs": 18.572,
+          "medianMs": 20.092,
+          "p95Ms": 21.076,
+          "maxMs": 21.076
+        },
+        "idempotentRetry": {
+          "samples": 12,
+          "minMs": 22.383,
+          "medianMs": 23.31,
+          "p95Ms": 24.993,
+          "maxMs": 24.993
+        }
+      },
+      "freshUpdateOutcome": {
+        "ok": false,
+        "reason": "receipt capacity reached; existing knowledge was preserved"
+      },
+      "newFeatureOutcome": {
+        "ok": false,
+        "reason": "receipt capacity reached; existing knowledge was preserved"
+      },
+      "repeated": {
+        "reads": 100,
+        "retries": 100,
+        "readTotalMs": 2021.329,
+        "retryTotalMs": 2578.187,
+        "stateByteIdentical": true,
+        "recordGrowth": 0,
+        "byteGrowth": 0,
+        "heapAfterGcDeltaBytes": -791640,
+        "heapCaveat": "Point observations with GC, not a heap leak proof or process peak measurement; temporary result allocation is reclaimed."
+      }
+    },
+    {
+      "profile": "maximum legal field lengths, ASCII",
+      "initial": {
+        "features": 4096,
+        "receipts": 8192,
+        "events": 10912,
+        "revision": 8192,
+        "next": 4097,
+        "bytes": 17216370,
+        "sha256": "56adedc7aaa802c048519191c518c916330ba0f3aae8271ae5b73d3c74c8dce9"
+      },
+      "currentPlaceFeatures": 128,
+      "publicProjectionBytes": 47994,
+      "timings": {
+        "project": {
+          "samples": 12,
+          "minMs": 64.17,
+          "medianMs": 67.322,
+          "p95Ms": 79.582,
+          "maxMs": 79.582
+        },
+        "prepareFreshUpdate": {
+          "samples": 12,
+          "minMs": 62.03,
+          "medianMs": 66.174,
+          "p95Ms": 67.749,
+          "maxMs": 67.749
+        },
+        "prepareNewFeature": {
+          "samples": 12,
+          "minMs": 63.189,
+          "medianMs": 65.144,
+          "p95Ms": 78.234,
+          "maxMs": 78.234
+        },
+        "idempotentRetry": {
+          "samples": 12,
+          "minMs": 65.256,
+          "medianMs": 69.035,
+          "p95Ms": 76.224,
+          "maxMs": 76.224
+        }
+      },
+      "freshUpdateOutcome": {
+        "ok": false,
+        "reason": "receipt capacity reached; existing knowledge was preserved"
+      },
+      "newFeatureOutcome": {
+        "ok": false,
+        "reason": "receipt capacity reached; existing knowledge was preserved"
+      },
+      "repeated": {
+        "reads": 100,
+        "retries": 100,
+        "readTotalMs": 6917.005,
+        "retryTotalMs": 8243.62,
+        "stateByteIdentical": true,
+        "recordGrowth": 0,
+        "byteGrowth": 0,
+        "heapAfterGcDeltaBytes": 73208,
+        "heapCaveat": "Point observations with GC, not a heap leak proof or process peak measurement; temporary result allocation is reclaimed."
+      }
+    }
+  ],
+  "memo": {
+    "campaignFeatures": 4096,
+    "campaignReceipts": 8192,
+    "currentPlaceFeatures": 128,
+    "coldDocMs": 23.064,
+    "repeatedReads": 100,
+    "sameDocumentObject": true,
+    "timings": {
+      "samples": 100,
+      "minMs": 19.414,
+      "medianMs": 21.135,
+      "p95Ms": 22.972,
+      "maxMs": 28.278
+    },
+    "singleMemo": true,
+    "memoKeys": [
+      "signature",
+      "doc"
+    ],
+    "memoSignatureBytes": 20381,
+    "memoDocumentJsonBytes": 19305,
+    "legacyDocumentCacheEntries": 0,
+    "knowledgeByteIdentical": true,
+    "heapAfterGcDeltaBytes": 22176
+  },
+  "perSheetCap": {
+    "libraryFeatureLimit": 256,
+    "acceptedAtLimit": 256,
+    "documentJsonBytesAtLimit": 38499,
+    "refusedAt": 257,
+    "refusal": "TnDMaps: schematic features must be an array of at most 256 entries",
+    "retainedFeaturesAfterRefusal": 257,
+    "knowledgeByteIdentical": true,
+    "publicMemoAfterRefusal": "empty",
+    "consequence": "The entire public sheet refuses to draw above 256 features; the knowledge ledger still retains every feature. This is an imposed per-sheet limit, not an experimentally established usable maximum."
+  },
+  "denseHistoryBoundary": {
+    "empiricallyAllocated": false,
+    "maximumEventSlots": 131072,
+    "asciiMaximumLengthEventJsonBytes": 948,
+    "eventObjectsAloneBytesAtThatDensity": 124256256,
+    "caveat": "Analytical payload estimate, not an empirical maximum or full JSON upper bound. Receipt wrappers, feature records, IDs and in-memory object overhead add to it; escaping and Unicode can increase byte size. A maximally dense history was not timed or allocated."
+  },
+  "interpretation": [
+    "Zero durable growth was observed from100 repeated reads and retries at every measured size; copied retry results still incur per-call allocation.",
+    "Projection validates the whole campaign store before selecting one place, so the public-document memo still pays validation/projection/signature costs on every read.",
+    "Hard limits do not establish acceptable latency or a practical campaign maximum. Assess these numbers alongside browser/mobile and persistence measurements before broad rollout.",
+    "The256-feature drawing limit can make an otherwise valid257-feature place unavailable; it preserves knowledge but needs an explicit product policy before treating large sheets as supported."
+  ]
+}

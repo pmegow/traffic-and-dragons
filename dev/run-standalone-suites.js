@@ -8,7 +8,8 @@ var ROOT = path.join(__dirname, "..");
 var SUITES = [
   "dev/tests-733-map-migration.js",
   "dev/tests-733-map-public.js",
-  "dev/tests-733-map-protocol.js",/* Public discovery receipts, commit-only authority, scoped locations, and checkpoint/reroll lifecycle. */
+  "dev/tests-733-map-protocol.js",
+  "dev/tests-733-map-source.js",/* Public discovery receipts, commit-only authority, scoped locations, and checkpoint/reroll lifecycle. */
   "dev/tests-727-sunburst-portraits.js",
   "dev/tests-725-designer-drafts.js",
   "dev/tests-723-designer-acts.js",

@@ -46,10 +46,98 @@ test("newer atlas data is left untouched and cannot be activated by this client"
 
 test("real local save and load preserve every disclosure receipt and the full legacy backup",()=>{const A=publish(),knowledge=JSON.stringify(memory.map.geography),backup=JSON.stringify(A.legacyAtlas);assert(saveLocal());const storedWorld=store.get(WSK),storedMemory=store.get(MEM_KEY);assert(storedWorld&&storedMemory);worldState=null;memory=blankMemory();sessionLog=[];assert(loadState());assert.equal(JSON.stringify(memory.map.geography),knowledge);assert.equal(JSON.stringify(worldState.atlas.legacyAtlas),backup);assert.equal(atlasKnowledgeProjection().features[0].label,"a hut");assert(!publicBytes().includes(PRIVATE));});
 test("actual tnd import preserves disclosure identity source and legacy evidence",()=>{const A=publish(),knowledge=JSON.stringify(memory.map.geography),backup=JSON.stringify(A.legacyAtlas);inventoryStampWorld(worldState);const payload=JSON.parse(JSON.stringify({worldState,sessionLog,memory}));setup();const plan=importSaveData(payload);assert(plan.id);assert.equal(JSON.stringify(memory.map.geography),knowledge);assert.equal(JSON.stringify(worldState.atlas.legacyAtlas),backup);assert.equal(atlasKnowledgeProjection().features[0].source.commit,"migration-public:0");assert(!publicBytes().includes(PRIVATE));assert(loadState());assert.equal(JSON.stringify(memory.map.geography),knowledge);});
-test("old client refuses activated saves at local and import doors before any write",()=>{publish();const exported=JSON.stringify({worldState,sessionLog,memory}),world=serializeWorldState(),oldVer=SAVE_VER;setup();const live=bytes(),disk=JSON.stringify(platform);global.SAVE_VER=11;try{assert.throws(()=>parseWorldState(world),/newer version/);assert.throws(()=>importSaveData(JSON.parse(exported)),/newer version/);assert.equal(bytes(),live);assert.equal(JSON.stringify(platform),disk);}finally{global.SAVE_VER=oldVer;}});
+test("old client refuses activated saves at local and import doors before any write",()=>{publish();const exported=JSON.stringify({worldState,sessionLog,memory}),world=serializeWorldState(),oldVer=SAVE_VER;setup();const live=bytes(),disk=JSON.stringify(platform);try{for(const obsolete of [11,12]){global.SAVE_VER=obsolete;assert.throws(()=>parseWorldState(world),/newer version/);assert.throws(()=>importSaveData(JSON.parse(exported)),/newer version/);assert.equal(bytes(),live);assert.equal(JSON.stringify(platform),disk);}}finally{global.SAVE_VER=oldVer;}});
 test("unknown knowledge version survives load and fails closed on public reads and writes",()=>{publish();memory.map.geography.v=99;const knowledge=JSON.stringify(memory.map.geography);assert(saveLocal());assert(loadState());assert.equal(JSON.stringify(memory.map.geography),knowledge);assert.throws(()=>atlasDoc(worldState.atlas.seed),/knowledge version/);atlasKnowledgeCommit(hut,atlasKnowledgeRead(hut),{commit:"future"});assert.equal(JSON.stringify(memory.map.geography),knowledge);assert(notices.some(n=>n.includes("knowledge version")));assert(!atlasMapBlock().includes(PRIVATE));});
 test("an imported newer knowledge store is preserved and never converted into procedural fallback",()=>{publish();memory.map.geography.v=99;const payload=copy({worldState,sessionLog,memory}),knowledge=JSON.stringify(memory.map.geography);setup();importSaveData(payload);assert.equal(JSON.stringify(memory.map.geography),knowledge);assert.throws(()=>atlasDoc(worldState.atlas.seed),/knowledge version/);assert.equal(atlasPublicEnable().ok,false);assert(!atlasMapBlock().includes(PRIVATE));});
 test("public notes follow stable feature handles through rename merge save and import",()=>{const A=publish();assert(atlasNoteSet(A.seed,"f1","We left a blue ribbon here.").ok);memory.map.nodes["New Clearing"]=newMapNode(0,null);assert(locMerge("New Clearing","The Boundary Clearing",{muts:[],turn:worldState.turn}));disclose("[MAP_REVEAL:f1|The Abandoned Hut|hut|W|observed]","rename-note");assert.equal(atlasCard(A.seed,{id:"f1"}).note,"We left a blue ribbon here.");assert(saveLocal());assert(loadState());assert.equal(atlasCard(A.seed,{id:"f1"}).note,"We left a blue ribbon here.");const payload=copy({worldState,sessionLog,memory});setup();importSaveData(payload);assert.equal(atlasCard(worldState.atlas.seed,{id:"f1"}).note,"We left a blue ribbon here.");});
 test("identity merge conserves handles receipts and both distinct public facts",()=>{publish();const first="The Boundary Clearing",second="The New Clearing";worldState.world.location=second;memory.map.nodes[second]=newMapNode(0,null);disclose("[MAP_REVEAL:new|Bear Spring|spring|SW|reported]","second");const before=JSON.stringify(memory.map.geography);assert(locMerge(second,first,{muts:[],turn:worldState.turn}));assert.equal(JSON.stringify(memory.map.geography),before);assert.deepEqual(atlasKnowledgeProjection().features.map(f=>f.id),["f1","f2"]);assert.deepEqual(atlasKnowledgeProjection().features.map(f=>f.label),["a hut","Bear Spring"]);assert(saveLocal());assert(loadState());assert.equal(JSON.stringify(memory.map.geography),before);assert.equal(atlasKnowledgeProjection().features.length,2);});
+
+function typedLegacyKnowledge(){
+ const s={v:1,revision:3,next:4,features:{},receipts:{}},labels=['High canopy stairs','Crossing shallows','Ventilation stair'],kinds=['arch','spring','ruin'];
+ labels.forEach((label,i)=>{const id='f'+(i+1),receipt='legacy-kind-'+i,event={op:'disclose',id:'new',label,kind:kinds[i],bearing:['N','E','W'][i],mode:i===2?'reported':'observed',quote:'Legacy narration: '+label+', a '+kinds[i]+'.'};
+  s.receipts[receipt]={turn:i+3,container:'The Boundary Clearing',events:[event]};s.features[id]={id,container:'The Boundary Clearing',label,kind:event.kind,bearing:event.bearing,mode:event.mode,receipt,event:0};});return s;
+}
+function assertNeutralLegacyMap(){
+ const A=worldState.atlas,doc=atlasDoc(A.seed),cards=doc.features.map(f=>atlasCard(A.seed,{id:f.id}));
+ assert.deepEqual(doc.features.map(f=>f.name),['High canopy stairs','Crossing shallows','Ventilation stair']);assert(doc.features.every(f=>f.kind==='landmark'));
+ assert(!/\b(?:arch|spring|ruin)\b/i.test(JSON.stringify([doc,TnDMaps.scene.build(doc,'ink'),TnDMaps.digest(doc),cards,atlasKnowledgePlayerBlock(),buildGeoBlock('player')])),'legacy proposals and incorrect old quote expansions are not public facts');
+ assert(cards.every(c=>/Disclosed on turn [345]\./.test(c.word)));
+}
+test('typed legacy knowledge upgrades once with an exact detached provenance backup',()=>{
+ publish();const legacy=typedLegacyKnowledge(),before=JSON.stringify(legacy);worldState.ver=12;memory.map.geography=legacy;
+ assert.equal(typeof atlasKnowledgeMigrate,'function');const r=atlasKnowledgeMigrate();assert(r.ok,r.reason);assert.equal(r.changed,true);assert.equal(memory.map.geography.v,2);
+ assert.equal(JSON.stringify(legacy),before);assert.equal(JSON.stringify(worldState.atlas.legacyKnowledge),before);assert.notEqual(worldState.atlas.legacyKnowledge,legacy);
+ assertNeutralLegacyMap();const complete=bytes(),again=atlasKnowledgeMigrate();assert(again.ok);assert.equal(again.changed,false);assert.equal(bytes(),complete);
+});
+test('typed legacy import and local reload retain backup without reasserting old classifications',()=>{
+ publish();worldState.ver=12;memory.map.geography=typedLegacyKnowledge();const before=JSON.stringify(memory.map.geography),payload=copy({worldState,sessionLog,memory});
+ setup();importSaveData(payload);assert.equal(memory.map.geography.v,2);assert.equal(JSON.stringify(worldState.atlas.legacyKnowledge),before);assertNeutralLegacyMap();
+ assert.equal(worldState.ver,13);assert(saveLocal());assert(loadState());assert.equal(JSON.stringify(worldState.atlas.legacyKnowledge),before);assertNeutralLegacyMap();
+});
+test('damaged typed legacy upgrades refuse before replacing current evidence or backup',()=>{
+ publish();const legacy=typedLegacyKnowledge();legacy.features.f1.kind='tree';worldState.ver=12;memory.map.geography=legacy;const before=bytes();
+ const r=atlasKnowledgeMigrate();assert.equal(r.ok,false);assert(r.reason);assert(bytes()===before,'failed upgrade preserves the whole candidate and creates no backup');
+});
+test('public activation requires the neutral save version before any write',()=>{
+ setup();const before=bytes(),original=SAVE_VER;global.SAVE_VER=12;
+ try{const r=atlasPublicEnable();assert.equal(r.ok,false);assert.match(r.reason,/safely save/);assert.equal(bytes(),before);}finally{global.SAVE_VER=original;}
+});
+
+test('public readers refuse typed legacy knowledge without silently upgrading it',()=>{
+ publish();worldState.ver=12;memory.map.geography=typedLegacyKnowledge();const before=bytes();atlasForget();
+ assert.throws(()=>atlasDoc(worldState.atlas.seed),/knowledge version/);
+ assert.throws(()=>atlasKnowledgeProjection(),/knowledge version/);
+ assert(!/\b(?:arch|spring|ruin)\b/i.test(atlasMapBlock()));
+ assert.equal(bytes(),before,'only an admission migration may install a new schema or backup');
+});
+
+test('typed legacy local load persists the full backup before transformed memory',()=>{
+ publish();migrateWorldState();assert.equal(migrateWorldState(),false,'the fixture needs no unrelated world migration');worldState.ver=12;memory.map.geography=typedLegacyKnowledge();
+ const original=JSON.stringify(memory.map.geography);
+ store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));store.set(MEM_KEY,JSON.stringify(memory));
+ worldState=null;memory=blankMemory();sessionLog=[];atlasForget();
+ const set=store.set,writes=[];store.set=function(k,v){writes.push({key:k,value:String(v)});return set.apply(this,arguments);};
+ try{assert(loadState());}finally{store.set=set;}
+ assertNeutralLegacyMap();assert.equal(memory.map.geography.v,2);assert.equal(worldState.ver,13);
+ const backup=writes.findIndex(w=>w.key===WSK&&JSON.parse(w.value).atlas&&JSON.parse(w.value).atlas.legacyKnowledge);
+ const current=writes.findIndex(w=>w.key===MEM_KEY&&JSON.parse(w.value).map.geography.v===2);
+ assert(backup>=0,'legacy load writes its detached provenance backup to disk');
+ assert(current>backup,'the recoverable world backup must precede converted memory');
+ assert.equal(JSON.stringify(JSON.parse(store.get(WSK)).atlas.legacyKnowledge),original);
+ assert.equal(JSON.parse(store.get(MEM_KEY)).map.geography.v,2);
+});
+test('a conflicting prior legacy knowledge backup prevents replacement of either store',()=>{
+ publish();worldState.ver=12;memory.map.geography=typedLegacyKnowledge();worldState.atlas.legacyKnowledge={sentinel:'Earlier irreplaceable evidence'};
+ const before=bytes(),r=atlasKnowledgeMigrate();assert.equal(r.ok,false);assert(r.reason);assert.equal(bytes(),before);
+});
+
+test('a failed world backup write cannot persist converted legacy memory',()=>{
+ publish();migrateWorldState();assert.equal(migrateWorldState(),false,'the fixture needs no unrelated world migration');worldState.ver=12;memory.map.geography=typedLegacyKnowledge();
+ store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));store.set(MEM_KEY,JSON.stringify(memory));
+ const beforeWorld=store.get(WSK),beforeMemory=store.get(MEM_KEY),set=store.set;let convertedWrites=0;
+ worldState=null;memory=blankMemory();sessionLog=[];atlasForget();notices=[];
+ store.set=function(k,v){if(k===WSK)throw new Error('injected backup storage failure');if(k===MEM_KEY&&JSON.parse(v).map.geography.v===2)convertedWrites++;return set.apply(this,arguments);};
+ try{
+  assert(loadState());assert.equal(memory.map.geography.v,2,'runtime conversion is prepared even while the disk refuses the backup');
+  assert.equal(convertedWrites,0);assert.equal(store.get(WSK),beforeWorld);assert.equal(store.get(MEM_KEY),beforeMemory);
+  assert.equal(saveMem(),false,'a later memory-only save must refuse until its provenance backup is durable');
+  assert.equal(convertedWrites,0);assert.equal(store.get(WSK),beforeWorld);assert.equal(store.get(MEM_KEY),beforeMemory);
+ }finally{store.set=set;}
+ assert(notices.some(n=>n.includes('injected backup storage failure')),'the refusal has an attributable storage diagnostic');
+ const recovered=[];store.set=function(k,v){recovered.push(k);return set.apply(this,arguments);};
+ try{assert.equal(saveMem(),true,'retry after core storage recovers can persist the converted map');}finally{store.set=set;}
+ assert(recovered.indexOf(WSK)>=0&&recovered.indexOf(WSK)<recovered.indexOf(MEM_KEY),'recovery writes the backup before converted memory');
+ assert.equal(JSON.stringify(JSON.parse(store.get(WSK)).atlas.legacyKnowledge),JSON.stringify(JSON.parse(beforeMemory).map.geography));
+ assert.equal(JSON.parse(store.get(MEM_KEY)).map.geography.v,2);
+});
+
+test('memory-only saves cannot persist fresh activation without its public world and legacy atlas backup',()=>{
+ const A=setup(),originalAtlas=JSON.stringify(A);worldState.ver=12;
+ store.set(WSK,serializeWorldState());store.set(SLK,JSON.stringify(sessionLog));store.set(MEM_KEY,JSON.stringify(memory));
+ const beforeWorld=store.get(WSK),beforeMemory=store.get(MEM_KEY),set=store.set;enable();
+ store.set=function(k,v){if(k===WSK)throw new Error('injected activation backup failure');return set.apply(this,arguments);};
+ try{assert.equal(saveMem(),false,'new public knowledge must not outlive its activation record and backup');assert.equal(store.get(WSK),beforeWorld);assert.equal(store.get(MEM_KEY),beforeMemory);}finally{store.set=set;}
+ assert.equal(saveMem(),true);const saved=JSON.parse(store.get(WSK));assert.equal(saved.ver,13);assert.equal(saved.atlas.knowledge,1);assert.equal(JSON.stringify(saved.atlas.legacyAtlas),originalAtlas);assert.equal(JSON.parse(store.get(MEM_KEY)).map.geography.v,2);
+});
 
 (async()=>{let pass=0,fail=0;for(const t of tests){try{await t.fn();pass++;console.log("PASS #733 migration "+t.name);}catch(e){fail++;oldConsole.error("FAIL #733 migration "+t.name+" — "+e.stack);}}Object.assign(console,oldConsole);if(!tests.length){console.error("matched 0 migration tests");process.exitCode=1;return;}console.log((fail?"FAILED":"ALL GREEN")+" — "+pass+" passed, "+fail+" failed #733 migration groups");if(fail)process.exitCode=1;})().catch(e=>{Object.assign(console,oldConsole);console.error(e);process.exitCode=1;});

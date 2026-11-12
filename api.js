@@ -3410,6 +3410,7 @@ function _w2CopyWorldStateDetached(ws){
   return clone;
 }
 function applyMuts(text,opts){
+  var _mapSourceRaw=text;/* #733: preserve the narrated bytes before marker repair, whitelist filtering, and W2 partition. */
   text=tagRestoreBareMarkers(text);/* #491: before EVERYTHING (the #264 whitelist, W2 preparation, the table) — a bare CANON_TXN_BEGIN/END line gets its brackets back, so the envelope is one transaction instead of a refused death with its loot withheld. Text with no bare marker passes through byte-identical. */
   /* #264 (owner ruling 2026-08-28, Fable f14+f2): the review-call whitelist. Suggest-completion
      and Define-item reuse the full gameplay prompt — which actively solicits out-of-scope tags —
@@ -3436,6 +3437,7 @@ function applyMuts(text,opts){
   var _tqBefore=(typeof npcKeySet==="function")?npcKeySet():null;/* #504: the records this reply CREATES are stamped at the seam below */
   var _w2Plan=(typeof w2PrepareResponse==="function")?w2PrepareResponse(text):{ordinary:text,txns:[]};
   var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true}):{muts:[],turn:worldState.turn,errors:[]},_w2i;/* #481 D6: the source rides into the table */
+  if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&(R.mapReveals||/\[MAP_REVEAL(?::|\])/.test(String(_mapSourceRaw||""))))R.mapReveals=atlasKnowledgeRebase(_mapSourceRaw,_w2Plan.ordinary,R.mapReveals);/* Only unchanged public geographic tokens may regain their original source offsets. */
   if(_rvStripped&&_rvStripped.length)R.muts.push("⚠ review-call whitelist: out-of-scope tags stripped — "+_rvStripped.join(", "));/* #264: loud at the player, not just the console */
   for(_w2i=0;_w2i<_w2Plan.txns.length;_w2i++){
     var _w2t=_w2Plan.txns[_w2i];

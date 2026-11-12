@@ -48,4 +48,40 @@ test('private place classification cannot label a public sheet or change its sce
  assert.equal(atlasZones()[0].kind,'schematic','an outdoor sublocation must not be called an interior');
  assert.equal(atlasWhere().zoneKind,'schematic');
 });
+test('classifier proposals cannot create public types glyphs or spoken assertions',()=>{
+ setup();const A=worldState.atlas;
+ const raw=atlasKnowledgeCommit('[MAP_REVEAL:new|High canopy stairs|arch|N|observed] [MAP_REVEAL:new|Crossing shallows|spring|E|observed] [MAP_REVEAL:new|Ventilation stair|ruin|W|reported]');
+ const doc=atlasDoc(A.seed),scene=TnDMaps.scene.build(doc,'ink'),cards=doc.features.map(f=>atlasCard(A.seed,{id:f.id}));
+ assert.deepEqual(doc.features.map(f=>f.name),['High canopy stairs','Crossing shallows','Ventilation stair']);
+ assert(doc.features.every(f=>f.kind==='landmark'),'all public glyphs use the neutral landmark contract');
+ const marks=scene.layers.find(l=>l.name==='features').items;assert.equal(marks.length,3);assert(marks.every(c=>c.t==='circle'),'no classifier-specific icon geometry');
+ const surfaces=[cleanTxt(raw),doc,scene,TnDMaps.digest(doc),cards,atlasKnowledgePlayerBlock(),buildGeoBlock('player')];
+ assert(!/\b(?:arch|spring|ruin)\b/i.test(JSON.stringify(surfaces)),'raw classifier proposals cannot be asserted by a public surface');
+ const proposals=Object.values(memory.map.geography.receipts).flatMap(r=>r.events).map(e=>e.proposalKind);
+ assert.deepEqual(proposals,['arch','spring','ruin'],'proposal evidence is retained privately');
+ assert(Object.values(memory.map.geography.features).every(f=>!Object.prototype.hasOwnProperty.call(f,'kind')),'classification is not an accepted feature attribute');
+});
+test('public adapter ignores upstream classification and archival quote fields',()=>{
+ setup();const real=atlasKnowledgeProjection,A=worldState.atlas;
+ atlasKnowledgeProjection=()=>({container:'The Boundary Clearing',revision:99,features:[{id:'f1',label:'High canopy stairs',kind:'arch',bearing:'N',mode:'observed',source:{commit:'archive',turn:0,quote:'A PRIVATE ruin, a spring, and an arch.'}}]});
+ try{
+  atlasForget();const doc=atlasDoc(A.seed),card=atlasCard(A.seed,{id:'f1'});
+  assert.equal(doc.features[0].kind,'landmark');assert.equal(card.title,'High canopy stairs');
+  assert.equal(card.word,'Observed · N. Disclosed on turn 0.');
+  assert(!/PRIVATE|\b(?:arch|spring|ruin)\b/.test(JSON.stringify([doc,card])));
+ }finally{atlasKnowledgeProjection=real;atlasForget();}
+});
+test('literal public labels remain intact without inferring a type from their nouns',()=>{
+ setup();const A=worldState.atlas,raw=atlasKnowledgeCommit('[MAP_REVEAL:new|The Waystone Arch|S|observed]');
+ const doc=atlasDoc(A.seed);assert.equal(doc.features.length,1);assert.equal(doc.features[0].name,'The Waystone Arch');assert.equal(doc.features[0].kind,'landmark');
+ assert(cleanTxt(raw).includes('The Waystone Arch'));assert(!cleanTxt(raw).includes(', an arch'));
+ assert.equal(atlasCard(A.seed,{id:'f1'}).title,'The Waystone Arch');
+});
+test('reported unknown-position cards cite a turn without echoing the stored proposal',()=>{
+ setup();worldState.turn=8;atlasKnowledgeCommit('[MAP_REVEAL:new|Ventilation stair|ruin|unknown|reported]');
+ const card=atlasCard(worldState.atlas.seed,{id:'f1'});
+ assert.equal(card.word,'Reported · Position not established. Disclosed on turn 8.');
+ assert(!Object.prototype.hasOwnProperty.call(atlasKnowledgeProjection().features[0].source,'quote'));
+});
+
 if(!seen){console.error('matched 0 tests');process.exit(1);}console.log((fail?'RED':'ALL GREEN')+' — '+pass+' public map groups, '+fail+' failures');process.exit(fail?1:0);

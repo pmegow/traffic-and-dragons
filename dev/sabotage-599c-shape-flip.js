@@ -108,7 +108,7 @@ prove("ui-sheets.js", [
 ]);
 prove("globals.js", [
   { label: "the world shape is written as v10 again (a (c) save passes a (b) build's gate)",
-    find: "var SAVE_VER=12,SHEET_VER=11;", replace: "var SAVE_VER=10,SHEET_VER=11;",
+    find: "var SAVE_VER=13,SHEET_VER=11;", replace: "var SAVE_VER=10,SHEET_VER=11;",
     mustFail: STAMPS }
 ]);
 prove("character_editor.html", [

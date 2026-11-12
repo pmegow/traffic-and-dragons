@@ -37,6 +37,8 @@ var ENGINE_MANIFEST = [
   { file: "atlas.js",              sym: "atlasFollow" },/* #684: the atlas — the campaign's drawn maps as recipes over tndmaps.js */
   { file: "map-knowledge.js",      sym: "MapKnowledge" },
   { file: "atlas-knowledge.js",    sym: "atlasKnowledgeActive" },
+  { file: "atlas-knowledge-migrate.js", sym: "atlasKnowledgeMigrate" },
+  { file: "atlas-knowledge-source.js", sym: "atlasKnowledgeRebase" },
   { file: "atlas-public.js",       sym: "atlasPublicEnable" },
   { file: "admission.js",          sym: "sheetAdmit" },/* #599 (b): ONE sheet admission registry, every door */
   { file: "tag_table.js",          sym: "TAG_TABLE" },

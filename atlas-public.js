@@ -13,7 +13,7 @@ function atlasPublicDoc(zoneId){
   p=atlasKnowledgeProjection(k);
   signature=JSON.stringify([A.seed,k,atlasPublicTitle(),atlasPublicScale(),p]);
   if(_atlasPublicMemo&&_atlasPublicMemo.signature===signature)return _atlasPublicMemo.doc;
-  doc=TnDMaps.schematic({scale:atlasPublicScale(),title:atlasPublicTitle(),features:p.features.map(function(f){return {id:f.id,name:f.label,kind:f.kind,bearing:f.bearing,mode:f.mode};})});
+  doc=TnDMaps.schematic({scale:atlasPublicScale(),title:atlasPublicTitle(),features:p.features.map(function(f){return {id:f.id,name:f.label,kind:"landmark",bearing:f.bearing,mode:f.mode};})});
   _atlasPublicMemo={signature:signature,doc:doc};return doc;
 }
 function atlasPublicFollow(){
@@ -33,7 +33,7 @@ function atlasPublicCard(zoneId,target){
   doc=atlasPublicDoc(zoneId);
   for(i=0;i<p.features.length;i++)if(p.features[i].id===target.id){
     f=p.features[i];t=doc.features.filter(function(x){return x.id===f.id;})[0];
-    return {id:f.id,x:t.x,y:t.y,title:f.label,word:(f.mode==="reported"?"Reported":"Observed")+" · "+(f.bearing==="unknown"?"Position not established":f.bearing)+". "+f.source.quote,opens:null,unvisited:false,partyHere:false,place:null,added:null,note:atlasNote(zoneId,f.id)};
+    return {id:f.id,x:t.x,y:t.y,title:f.label,word:(f.mode==="reported"?"Reported":"Observed")+" · "+(f.bearing==="unknown"?"Position not established":f.bearing)+". Disclosed on turn "+f.source.turn+".",opens:null,unvisited:false,partyHere:false,place:null,added:null,note:atlasNote(zoneId,f.id)};
   }
   return null;
 }
@@ -51,7 +51,7 @@ function atlasPublicCanon(name,parent,sub){
 function atlasPublicEnable(){
   var A=atlasLive(),p,backup,knowledge,hasKnowledge,sig;
   if(!A)return {ok:false,reason:"this campaign has no compatible atlas"};
-  if(SAVE_VER<12||ATLAS_VER<2)return {ok:false,reason:"this build cannot safely save public map knowledge"};
+  if(SAVE_VER<13||ATLAS_VER<2)return {ok:false,reason:"this build cannot safely save public map knowledge"};
   if(!memory||!memory.map)return {ok:false,reason:"this campaign has no location memory"};
   if(A.knowledge===1){p=MapKnowledge.problem(memory.map.geography);return p?{ok:false,reason:p}:{ok:true,already:true};}
   try{
