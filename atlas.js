@@ -29,6 +29,10 @@
    Reads (atlasDoc, atlasThings, atlasPartyIn, atlasMarkers, atlasZones, atlasWhere, atlasCard, atlasReveal, atlasFogShows, atlasMapBlock) never write the campaign. The writers are
    atlasCreate, atlasFollow (which records the move: atlasTread), atlasPlace and atlasHeal; a redraw a read notices is recorded by the next writer. */
 var ATLAS_VER=1;
+/* THE ONE LOOKUP of every table below (#697): a table is a plain object, so a key named like an Object method
+   ("constructor", "toString") found a function where a row was asked for. A row is the table's OWN property or it is
+   nothing; no table is read by a bare bracket (the engine suite scans this file for one). */
+function atlasRow(table,key){return table&&(typeof key==="string"||typeof key==="number")&&Object.prototype.hasOwnProperty.call(table,key)?table[key]:undefined;}
 /* documents held in memory at once: the least recently used is dropped and redrawn on demand (a region is ~300 KB) */
 var ATLAS_DOC_CAP=12;
 
@@ -130,7 +134,7 @@ function atlasZoneParams(A,zoneId){
   var rec=atlasRecipe(A,zoneId),params,b;
   if(!rec.parent)params=JSON.parse(JSON.stringify(rec.params));
   else{
-    b=ATLAS_BUILDERS[atlasRecipe(A,rec.parent).kind+">"+rec.kind];
+    b=atlasRow(ATLAS_BUILDERS,atlasRecipe(A,rec.parent).kind+">"+rec.kind);
     if(!b)throw new Error("atlas: nothing builds a "+rec.kind+" from a "+atlasRecipe(A,rec.parent).kind+" (zone '"+zoneId+"')");
     params=b.make(atlasDoc(rec.parent),rec.via);
     if(rec.params)params=Object.assign({},params,JSON.parse(JSON.stringify(rec.params)));
@@ -170,7 +174,7 @@ function atlasSettleChain(A,zoneId){var z=zoneId,guard=0;while(z&&A.zones[z]&&gu
 
 /* ── things: what on a sheet has a name ────────────────────────────────────────────────────────────────────── */
 function atlasThings(doc){
-  var kind=doc.generator&&doc.generator.name,list=ATLAS_THINGS[kind]?ATLAS_THINGS[kind](doc):[],out=[],byId={},i,j,keep;
+  var kind=doc.generator&&doc.generator.name,list=atlasRow(ATLAS_THINGS,kind)?atlasRow(ATLAS_THINGS,kind)(doc):[],out=[],byId={},i,j,keep;
   function add(o,portal){
     if(!o||o.id==null||typeof o.name!=="string"||!o.name||!isFinite(o.x)||!isFinite(o.y))return;
     if(byId[o.id]){if(portal&&!byId[o.id].portal)byId[o.id].portal=portal;return;}
@@ -219,7 +223,7 @@ function atlasWayIn(doc,from){
 }
 /* WRITE: the zone a builder makes from parentZone — its recipe is filed the first time, then it is the same zone from every way in */
 function atlasOpen(A,parentZone,kind,via,from,entered){
-  var b=ATLAS_BUILDERS[atlasRecipe(A,parentZone).kind+">"+kind],params=b.make(atlasDoc(parentZone),via),id=params&&params.seed,fresh=false,doc;
+  var b=atlasRow(ATLAS_BUILDERS,atlasRecipe(A,parentZone).kind+">"+kind),params=b.make(atlasDoc(parentZone),via),id=params&&params.seed,fresh=false,doc;
   if(typeof id!=="string"||!id)throw new Error("atlas: the library derived no seed for a "+kind+" through '"+via+"'");
   if(!A.zones[id]){A.zones[id]={kind:kind,parent:parentZone,via:via,params:null,name:null,lib:null,fp:null,turn:atlasTurn()};fresh=true;}
   try{doc=atlasDoc(id);}catch(e){if(fresh)delete A.zones[id];throw e;}
@@ -231,10 +235,10 @@ function atlasOpen(A,parentZone,kind,via,from,entered){
 function atlasPortalRoute(A,zoneId,portal,know){
   var G=portal.to&&portal.to.generator,z,b,via,rec=know||function(zz){return atlasRecipe(A,zz);};/* #693: `know` answers {kind, parent} for a zone the store has not recorded (a sheet drawn for the look) */
   if(!G)return null;
-  if(ATLAS_WAYS_BACK[portal.way]){z=rec(zoneId).parent;return z?{back:z}:null;}
+  if(atlasRow(ATLAS_WAYS_BACK,portal.way)){z=rec(zoneId).parent;return z?{back:z}:null;}
   /* the nearest zone, from here upward, that can build a G: a wild zone's ways lead to zones that hang from the region */
   for(z=zoneId;z;z=rec(z).parent){
-    b=ATLAS_BUILDERS[rec(z).kind+">"+G];
+    b=atlasRow(ATLAS_BUILDERS,rec(z).kind+">"+G);
     if(b){via=(b.via==="to")?portal.to.id:portal.id;return via==null?null:{parent:z,kind:G,via:via,far:b.via==="to"};}
   }
   /* nothing builds one: it is a way back up to the zone of that kind (a town's road onto the region) */
@@ -255,7 +259,7 @@ function atlasArrive(A,zone,id,entered){
   if(id==null)return {zone:zone,spot:null};
   t=atlasThingById(atlasDoc(zone),id);
   if(!t)throw new Error("atlas: '"+id+"' is not on the map of "+(atlasRecipe(A,zone).name||zone)+" any more");
-  if(t.portal&&!ATLAS_WAYS_BACK[t.portal.way]){target=atlasPortalTarget(A,zone,t.portal,entered);if(target)return target;}
+  if(t.portal&&!atlasRow(ATLAS_WAYS_BACK,t.portal.way)){target=atlasPortalTarget(A,zone,t.portal,entered);if(target)return target;}
   return {zone:zone,spot:id};
 }
 
@@ -467,7 +471,7 @@ function atlasChildByTitle(A,zoneId,doc,name,know,sheet){
   if(!key)return null;
   things=atlasThings(doc);
   for(i=0;i<things.length;i++){
-    if(!things[i].portal||ATLAS_WAYS_BACK[things[i].portal.way]||!things[i].portal.to||things[i].portal.to.generator!=="dungeon")continue;
+    if(!things[i].portal||atlasRow(ATLAS_WAYS_BACK,things[i].portal.way)||!things[i].portal.to||things[i].portal.to.generator!=="dungeon")continue;
     lead=atlasLeads(A,zoneId,things[i],know,sheet);if(!lead||seen[lead.zone])continue;seen[lead.zone]=1;
     d=atlasPeekDoc(A,lead);if(d.title&&atlasNameKey(d.title.name)===key)hits.push({zone:lead.zone,lead:lead,thing:things[i]});
   }
@@ -477,10 +481,10 @@ function atlasChildByTitle(A,zoneId,doc,name,know,sheet){
    a way back. Draws nothing: the builder's params carry the zone's seed, which is its id. */
 function atlasLeads(A,zoneId,thing,know,sheet){
   var r,params,rec=know||function(zz){return atlasRecipe(A,zz);},doc=sheet||function(zz){return atlasDoc(zz);};
-  if(!thing||!thing.portal||ATLAS_WAYS_BACK[thing.portal.way])return null;
+  if(!thing||!thing.portal||atlasRow(ATLAS_WAYS_BACK,thing.portal.way))return null;
   r=atlasPortalRoute(A,zoneId,thing.portal,know);
   if(!r||r.back)return null;
-  params=ATLAS_BUILDERS[rec(r.parent).kind+">"+r.kind].make(doc(r.parent),r.via);
+  params=atlasRow(ATLAS_BUILDERS,rec(r.parent).kind+">"+r.kind).make(doc(r.parent),r.via);
   return (params&&typeof params.seed==="string"&&params.seed)?{zone:params.seed,parent:r.parent,kind:r.kind,via:r.via,params:params}:null;
 }
 /* READ: a sheet for the LOOK — an entered zone's document, else one drawn from its parent's sheet and never recorded
@@ -617,7 +621,7 @@ function atlasLeafAt(A,pos,name){
   for(i=pos.chain.length-1;i>=0;i--){c=pos.chain[i];f=atlasFind(c.doc,name);
     if(!f)continue;
     if(f.thing){
-      if(f.thing.portal&&ATLAS_WAYS_BACK[f.thing.portal.way]){
+      if(f.thing.portal&&atlasRow(ATLAS_WAYS_BACK,f.thing.portal.way)){
         above=(f.thing.portal.to&&f.thing.portal.to.id!=null)?atlasThingById(c.parentDoc,f.thing.portal.to.id):null;
         if(!above)return atlasPathJoin(atlasChainPath(pos,i).concat([f.thing.name]));
         /* the way back onto the world place's own sheet is the building's door: the party is AT the building (the review's
@@ -637,7 +641,7 @@ function atlasChainBears(A,pos,name){
     if(atlasNameKey(c.name)===key||atlasNameKey(title)===key)return true;
     f=atlasFind(c.doc,name);if(!f)continue;
     /* a way back onto the world place's own sheet IS that sheet's thing (the grate and the landing beneath it are one node): rule (a) keeps it */
-    if(i===0&&f.thing&&f.thing.portal&&ATLAS_WAYS_BACK[f.thing.portal.way])continue;
+    if(i===0&&f.thing&&f.thing.portal&&atlasRow(ATLAS_WAYS_BACK,f.thing.portal.way))continue;
     return true;}
   return false;
 }
@@ -856,8 +860,8 @@ function atlasStartParse(text){
   if(i<0||j<i)return null;
   try{o=JSON.parse(s.slice(i,j+1));}catch(e){return null;}
   if(!o||typeof o!=="object"||o instanceof Array)return null;
-  kind=typeof o.kind==="string"?o.kind.trim().toLowerCase():"";if(!ATLAS_START_KINDS[kind])return null;
-  if(kind==="open"){ground=typeof o.ground==="string"?o.ground.trim().toLowerCase():"";return {kind:"open",size:null,settlement:null,ground:ATLAS_OPEN_GROUNDS[ground]?ground:null};}/* #710: the ground, one of the table's rows or none */
+  kind=typeof o.kind==="string"?o.kind.trim().toLowerCase():"";if(!atlasRow(ATLAS_START_KINDS,kind))return null;
+  if(kind==="open"){ground=typeof o.ground==="string"?o.ground.trim().toLowerCase():"";return {kind:"open",size:null,settlement:null,ground:atlasRow(ATLAS_OPEN_GROUNDS,ground)?ground:null};}/* #710: the ground, one of the table's rows or none */
   size=typeof o.size==="string"?o.size.trim().toLowerCase():"";if(ATLAS_START_SIZES.indexOf(size)<0)size=kind==="inside"?"town":"village";
   name=typeof o.settlement==="string"?o.settlement.replace(/[\u0000-\u001f]/g," ").replace(/\s+/g," ").trim().slice(0,80):"";
   return {kind:kind,size:size,settlement:(kind==="inside"&&name)?name:null,ground:null};
@@ -954,7 +958,7 @@ function atlasNearPlace(doc,p){
    centre last), tied to the story's name (by: "story"; the player's tap replaces it as any tie). Nothing is drawn: no edit,
    no addition — the land is the library's own. */
 function atlasAdoptOpen(A,storyKey,name,doc,centre,where,flush,refuse,entered){
-  var hint=atlasKindHint(A,storyKey),ground=(hint&&hint.ground)||null,row=ground?ATLAS_OPEN_GROUNDS[ground]:null,b=ATLAS_BUILDERS["region>wild"],pts,i,z=null,why=null,land,tries=0,sheet,site=null,thing,detail;/* #710: the ground the story gave */
+  var hint=atlasKindHint(A,storyKey),ground=(hint&&hint.ground)||null,row=ground?atlasRow(ATLAS_OPEN_GROUNDS,ground):null,b=atlasRow(ATLAS_BUILDERS,"region>wild"),pts,i,z=null,why=null,land,tries=0,sheet,site=null,thing,detail;/* #710: the ground the story gave */
   if(row&&row.refuse)return refuse(row.refuse);
   if(row&&row.thing){
     /* a THING of the realm (a cave): the story's name is tied to the nearest one no name holds yet — its way down is real */
@@ -1242,7 +1246,7 @@ function atlasPlace(zoneId,target,expect){
       if(!atlasThingById(doc,target.id))return {ok:false,reason:"nothing on that sheet has the id '"+target.id+"'"};
       tie={zone:zoneId,id:target.id};atlasArrive(A,zoneId,target.id,entered);
     }else if(target&&isFinite(target.x)&&isFinite(target.y)){
-      b=ATLAS_BUILDERS[rec.kind+">wild"];
+      b=atlasRow(ATLAS_BUILDERS,rec.kind+">wild");
       if(!b)return {ok:false,reason:"only the region has open country to stand in \u2014 pick a place on this sheet"};
       tie={zone:atlasOpen(A,zoneId,"wild",b.at(doc,[target.x,target.y]),null,entered).zone,id:null};
     }else return {ok:false,reason:"pick a place or a point on the sheet"};
@@ -1273,7 +1277,7 @@ function atlasPlace(zoneId,target,expect){
 function atlasWaysInto(A,zoneId,childId){return atlasWaysIntoDoc(atlasDoc(zoneId),atlasDoc(childId));}
 function atlasWaysIntoDoc(doc,childDoc){
   var ps=childDoc.portals||[],ids=[],i,p;
-  for(i=0;i<ps.length;i++){p=ps[i];if(ATLAS_WAYS_BACK[p.way]&&p.to&&p.to.id!=null&&ids.indexOf(p.to.id)<0&&atlasThingById(doc,p.to.id))ids.push(p.to.id);}
+  for(i=0;i<ps.length;i++){p=ps[i];if(atlasRow(ATLAS_WAYS_BACK,p.way)&&p.to&&p.to.id!=null&&ids.indexOf(p.to.id)<0&&atlasThingById(doc,p.to.id))ids.push(p.to.id);}
   return ids;
 }
 /* where the party shows on a zone's sheet: on its own sheet at its spot; on a sheet above, at the way down to it.
@@ -1291,10 +1295,10 @@ function atlasPartyIn(zoneId){
     rec=A.zones[z];
     if(rec.parent!==zoneId)continue;
     /* a child no thing of this sheet leads into (a wild zone) sits where its builder says */
-    b=ATLAS_BUILDERS[A.zones[zoneId].kind+">"+rec.kind];
+    b=atlasRow(ATLAS_BUILDERS,A.zones[zoneId].kind+">"+rec.kind);
     if(b&&b.point&&!atlasThingById(doc,rec.via)){c=b.point(doc,rec.via);return mk(c[0],c[1],true,z,"p:"+rec.kind+":"+rec.via);}
     /* the party stands AT one of the child's ways back: that way's thing on this sheet */
-    if(z===A.at&&A.spot!=null){ps=atlasDoc(z).portals||[];for(i=0;i<ps.length;i++)if(ps[i].id===A.spot&&ATLAS_WAYS_BACK[ps[i].way]&&ps[i].to){t=atlasThingById(doc,ps[i].to.id);if(t)return mk(t.x,t.y,true,z,"t:"+t.id);}}
+    if(z===A.at&&A.spot!=null){ps=atlasDoc(z).portals||[];for(i=0;i<ps.length;i++)if(ps[i].id===A.spot&&atlasRow(ATLAS_WAYS_BACK,ps[i].way)&&ps[i].to){t=atlasThingById(doc,ps[i].to.id);if(t)return mk(t.x,t.y,true,z,"t:"+t.id);}}
     /* one way in (a house's door, a cave's mouth), or a child that names no way back (a town sits on its place) */
     ways=atlasWaysInto(A,zoneId,z);
     if(ways.length<=1){t=atlasThingById(doc,ways.length?ways[0]:rec.via);if(t)return mk(t.x,t.y,true,z,"t:"+t.id);}
@@ -1349,7 +1353,7 @@ function atlasPortalPeek(A,zoneId,portal){
   var r=atlasPortalRoute(A,zoneId,portal),params;
   if(!r)return null;
   if(r.back)return r.back;
-  params=ATLAS_BUILDERS[atlasRecipe(A,r.parent).kind+">"+r.kind].make(atlasDoc(r.parent),r.via);
+  params=atlasRow(ATLAS_BUILDERS,atlasRecipe(A,r.parent).kind+">"+r.kind).make(atlasDoc(r.parent),r.via);
   return (params&&typeof params.seed==="string")?params.seed:null;
 }
 /* how a spot is said, by the thing's kind (default: "at <name>") */
@@ -1370,7 +1374,7 @@ function atlasTiesHere(A){
   function add(level,name,key){
     var t=key?atlasTie(A,key):null,thing,at;
     if(!t)return;
-    if(t.id!=null){thing=atlasThingById(atlasDoc(t.zone),t.id);if(!thing)return;at=ATLAS_TIE_AT[thing.kind]?ATLAS_TIE_AT[thing.kind](thing,A.zones[t.zone].name||t.zone):thing.name;}
+    if(t.id!=null){thing=atlasThingById(atlasDoc(t.zone),t.id);if(!thing)return;at=atlasRow(ATLAS_TIE_AT,thing.kind)?atlasRow(ATLAS_TIE_AT,thing.kind)(thing,A.zones[t.zone].name||t.zone):thing.name;}
     else at=A.zones[t.zone].name||ATLAS_TIE_OPEN;
     if(at&&atlasNameKey(at)!==atlasNameKey(name)){var row={level:level,name:name,at:at};if(t.by)row.by=t.by;out.push(row);}
   }
@@ -1395,7 +1399,7 @@ function atlasWhere(){
   why=A.off?"\""+A.off.name+"\" is not on "+(A.off.within?"its map":"the map")+" ("+A.off.why+")":"";
   if(!out.placed){out.text="The party is not on the map yet."+(why?" "+why+".":"");return out;}
   rec=A.zones[A.at];out.zone=A.at;out.zoneName=rec.name||A.at;out.zoneKind=rec.kind;
-  if(A.spot!=null){t=atlasThingById(atlasDoc(A.at),A.spot);if(t){out.spot=t.id;out.spotName=t.name;if(atlasNameKey(t.name)!==atlasNameKey(out.zoneName))phrase=", "+(ATLAS_SPOT_PHRASE[t.kind]?ATLAS_SPOT_PHRASE[t.kind](t):"at "+t.name);}}
+  if(A.spot!=null){t=atlasThingById(atlasDoc(A.at),A.spot);if(t){out.spot=t.id;out.spotName=t.name;if(atlasNameKey(t.name)!==atlasNameKey(out.zoneName))phrase=", "+(atlasRow(ATLAS_SPOT_PHRASE,t.kind)?atlasRow(ATLAS_SPOT_PHRASE,t.kind)(t):"at "+t.name);}}
   if(A.off&&!A.off.within)out.text=why+". The party's last mapped place is "+out.zoneName+".";
   else{
     /* the party stands on the map: say the ties that put it there (a party that has left the mapped places has none) */
@@ -1447,7 +1451,7 @@ function atlasSeenXY(A,zoneId,doc,key){
   if(typeof key!=="string")return null;
   if(key.charAt(0)==="t"){t=atlasThingById(doc,key.slice(2));return t?[t.x,t.y]:null;}
   if(key.charAt(0)==="p"){
-    parts=key.split(":");b=ATLAS_BUILDERS[A.zones[zoneId].kind+">"+parts[1]];
+    parts=key.split(":");b=atlasRow(ATLAS_BUILDERS,A.zones[zoneId].kind+">"+parts[1]);
     if(!b||!b.point)return null;
     try{return b.point(doc,parts.slice(2).join(":"));}catch(e){return null;}
   }
@@ -1473,7 +1477,7 @@ function atlasSeenWay(A,drawn,doc,a,b){
    or null = the whole sheet (no row for its kind, or the campaign's fog is off). Derived at every read from the visit
    record and the party marker; writes nothing. */
 function atlasReveal(zoneId){
-  var A=atlasLive(),rec=A?A.zones[zoneId]:null,row=rec?ATLAS_FOG[rec.kind]:null,doc,seen,m,at,legs,i,xy,stands=[],ways=[],a,b,drawn,ks,pre;
+  var A=atlasLive(),rec=A?A.zones[zoneId]:null,row=rec?atlasRow(ATLAS_FOG,rec.kind):null,doc,seen,m,at,legs,i,xy,stands=[],ways=[],a,b,drawn,ks,pre;
   if(!row||A.fog===false)return null;
   doc=atlasDoc(zoneId);drawn=_atlasDrawn[atlasChainKey(A,zoneId)]||null;seen=A.seen?A.seen[zoneId]:null;
   at=(seen&&seen.at instanceof Array)?seen.at:[];legs=(seen&&seen.legs instanceof Array)?seen.legs:[];
@@ -1496,7 +1500,7 @@ function atlasReveal(zoneId){
 /* READ: the reveal that shows NOTHING of a sheet — what the pane wears when the real one could not be handed over (review,
    finding 5: it used to fail OPEN, the sheet drawn whole). null when the sheet is not fogged at all */
 function atlasRevealNone(zoneId){
-  var A=atlasLive(),rec=A?A.zones[zoneId]:null,row=rec?ATLAS_FOG[rec.kind]:null;
+  var A=atlasLive(),rec=A?A.zones[zoneId]:null,row=rec?atlasRow(ATLAS_FOG,rec.kind):null;
   if(!row||A.fog===false)return null;
   return row.radiusM?{points:[],paths:[],radiusM:row.radiusM}:[];
 }
@@ -1507,7 +1511,7 @@ function atlasThingShown(zoneId,t){
   spec=atlasReveal(zoneId);
   if(!spec)return true;
   if(!(spec instanceof Array))return atlasFogShows(zoneId,t.x,t.y);
-  row=ATLAS_FOG[rec.kind];
+  row=atlasRow(ATLAS_FOG,rec.kind);
   return spec.indexOf(t.id)>=0||spec.indexOf(row.locate(atlasDoc(zoneId),[t.x,t.y]))>=0;
 }
 /* room by room: the ways back up THE SHEET ABOVE SHOWS (review, finding 2: "known from the sheet above" stopped being true of
@@ -1524,7 +1528,7 @@ function atlasRevealRooms(A,zoneId,doc,row,stands,ways){
   }
   function add(id){if(id!=null&&known[id]&&ids.indexOf(id)<0)ids.push(id);}
   (doc.rooms||[]).forEach(function(r){known[r.id]=1;});(doc.passages||[]).forEach(function(r){known[r.id]=1;});
-  (doc.portals||[]).forEach(function(r){if(ATLAS_WAYS_BACK[r.way])up[r.id]=r;});
+  (doc.portals||[]).forEach(function(r){if(atlasRow(ATLAS_WAYS_BACK,r.way))up[r.id]=r;});
   (doc.rooms||[]).forEach(function(r){var way=up[r.id]||(r.portal&&up[r.portal])||null;if(way&&above(way))add(r.id);});
   for(i=0;i<stands.length;i++){
     if(stands[i].key==="c")continue;/* somewhere here: no room is known */
@@ -1594,7 +1598,7 @@ function atlasCard(zoneId,target){
     return {id:t.id,x:t.x,y:t.y,title:t.name,word:t.word||t.kind||"",opens:(leads&&A.zones[leads]&&leads!==zoneId)?leads:null,unvisited:!!(leads&&!A.zones[leads]),
       partyHere:!gone&&((A.at===zoneId&&A.spot===t.id)||!!(leads&&leads!==zoneId&&trail.indexOf(leads)>=0&&trail.indexOf(leads)>trail.indexOf(zoneId))),place:pv,added:added||null,note:atlasNote(zoneId,t.id)};
   }
-  b=ATLAS_BUILDERS[rec.kind+">wild"];
+  b=atlasRow(ATLAS_BUILDERS,rec.kind+">wild");
   if(!b||!isFinite(target.x)||!isFinite(target.y))return null;
   if(!atlasFogShows(zoneId,target.x,target.y))return null;/* #717: unexplored ground says nothing — not even that it is the sea */
   try{leads=b.make(doc,b.at(doc,[target.x,target.y])).seed;}
@@ -1656,7 +1660,7 @@ function atlasMapBlock(){
     where=atlasWhere();
     /* a party that has left the mapped places is not served the sheet it left */
     zone=(where.placed&&!(A.off&&!A.off.within))?A.at:A.seed;
-    sheet=(ATLAS_BRIEF[A.zones[zone].kind]||function(B,z){return atlasDigestText(z);})(A,zone);
+    sheet=(atlasRow(ATLAS_BRIEF,A.zones[zone].kind)||function(B,z){return atlasDigestText(z);})(A,zone);
     var told=atlasToldLines(A);/* what the follow did with the story's places this turn (an addition, a declaration refused) */
     return ATLAS_BRIEF_HEAD+"\n"+where.text+(told.length?" "+told.join(" "):"")+"\n"+atlasBriefCut(sheet,ATLAS_BRIEF_CAP)+"\n"+ATLAS_BRIEF_RULE+"\n\n";
   }catch(e){
@@ -1684,6 +1688,8 @@ function atlasShapeProblem(A){
   }
   /* every zone hangs from the region: a chain that loops would make every reader walk in circles */
   for(i=0;i<ids.length;i++){z=ids[i];n=0;while(z!==A.seed){z=A.zones[z].parent;if(!z||!A.zones[z]||++n>64)return "zone '"+ids[i]+"' does not hang from the region";}}
+  /* #697: a zone is a kind its parent's kind BUILDS (ATLAS_BUILDERS, the one nesting table) — any string passed before */
+  for(i=0;i<ids.length;i++){r=A.zones[ids[i]];if(ids[i]!==A.seed&&!atlasRow(ATLAS_BUILDERS,A.zones[r.parent].kind+">"+r.kind))return "zone '"+ids[i]+"' is a "+r.kind+" under a "+A.zones[r.parent].kind+", which nothing builds";}
   return null;
 }
 /* WRITE, at every load door: migrate the store's shape, set an unreadable store aside as evidence (never repaired by
@@ -1692,8 +1698,8 @@ function atlasHeal(){
   var A=(typeof worldState!=="undefined"&&worldState)?worldState.atlas:null,why,changed=false,keys,i;
   if(A===undefined||A===null)return false;
   while(A&&typeof A==="object"&&typeof A.v==="number"&&A.v<ATLAS_VER){
-    if(!ATLAS_MIGRATIONS[A.v]){worldState.atlasJunk={why:"no migration from atlas v"+A.v,was:A,turn:atlasTurn()};delete worldState.atlas;atlasSay("warn","this campaign's map is from an older shape this build cannot lift (v"+A.v+") — it was set aside");return true;}
-    A=worldState.atlas=ATLAS_MIGRATIONS[A.v](A);changed=true;
+    if(!atlasRow(ATLAS_MIGRATIONS,A.v)){worldState.atlasJunk={why:"no migration from atlas v"+A.v,was:A,turn:atlasTurn()};delete worldState.atlas;atlasSay("warn","this campaign's map is from an older shape this build cannot lift (v"+A.v+") — it was set aside");return true;}
+    A=worldState.atlas=atlasRow(ATLAS_MIGRATIONS,A.v)(A);changed=true;
   }
   why=atlasShapeProblem(A);
   if(why){worldState.atlasJunk={why:why,was:A,turn:atlasTurn()};delete worldState.atlas;atlasSay("warn","this campaign's map could not be read ("+why+") — it was set aside, the story is untouched");return true;}

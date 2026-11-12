@@ -2358,6 +2358,42 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert(A.off && A.off.absent && /not a settlement/.test(A.off.why), JSON.stringify(A.off)); assert.equal(edits(A, A.seed).length, 0); assert(!A.names[key]);
   });
 
+  /* #697 (the library audit's A11 class, applied to the game): a table keyed by a kind is a plain object, so a kind
+     named like an Object method found a function; and the load check took any string as a zone's kind. */
+  test("#697 a table answers only to its own rows: an inherited name finds nothing, and no table is read by a bare bracket", function () {
+    var text = src("atlas.js"), tables = [], m, re = /^var (ATLAS_[A-Z_]+)=\{/gm, bare, names = ["constructor", "toString", "valueOf", "hasOwnProperty", "__proto__"];
+    while ((m = re.exec(text))) tables.push(m[1]);
+    assert(tables.length >= 9, "the tables are found: " + tables.join(" "));
+    assert.equal(typeof atlasRow, "function", "the one lookup");
+    tables.forEach(function (t) {
+      var table = (0, eval)(t);
+      names.forEach(function (n) { assert.strictEqual(atlasRow(table, n), undefined, t + " answers to " + n); });
+      Object.keys(table).forEach(function (k) { assert.strictEqual(atlasRow(table, k), table[k], t + " loses its own row " + k); });
+    });
+    assert.strictEqual(atlasRow(ATLAS_THINGS, null), undefined); assert.strictEqual(atlasRow(null, "town"), undefined);
+    bare = text.match(new RegExp("\\b(" + tables.join("|") + ")\\[", "g")) || [];
+    assert.deepEqual(bare, [], "every read of a table goes through atlasRow");
+    /* the readers: a document of a kind named like an Object method has its portals and nothing else */
+    assert.deepEqual(atlasThings({ generator: { name: "constructor" }, portals: [] }), []);
+    assert.deepEqual(atlasThings({ generator: { name: "toString" }, portals: [] }), []);
+  });
+  test("#697 a zone of a kind no builder makes is set aside at load, with the zone and the kind said", function () {
+    var A = fresh(), c = cast(A), s;
+    point(c.p0.name); atlasFollow(); s = JSON.stringify(worldState.atlas);
+    assert.equal(atlasShapeProblem(A), null, "a store the engine made passes"); assert.equal(atlasHeal(), false); assert.equal(JSON.stringify(worldState.atlas), s, "and is untouched");
+    A.zones["campaign-1/odd"] = { kind: "constructor", parent: A.seed, via: "p1", params: null }; quiet();
+    assert.equal(atlasHeal(), true); assert.equal(worldState.atlas, undefined);
+    assert(/zone 'campaign-1\/odd' is a constructor under a region, which nothing builds/.test(worldState.atlasJunk.why), worldState.atlasJunk.why);
+    assert(toasts.some(function (t) { return /set aside/.test(t); }), toasts.join(" | "));
+    /* a kind the library has, under a parent that never holds it */
+    A = fresh(); c = cast(A); point(c.p0.name); atlasFollow();
+    A.zones["campaign-1/p0/odd"] = { kind: "town", parent: "campaign-1/p0", via: "x", params: null }; quiet();
+    assert.equal(atlasHeal(), true); assert(/is a town under a town, which nothing builds/.test(worldState.atlasJunk.why), worldState.atlasJunk.why);
+    /* a newer build's store may hold kinds this build does not know: left alone as before */
+    A = fresh(); A.v = 99; A.zones["campaign-1/new"] = { kind: "orbit", parent: A.seed, via: "o1", params: null }; quiet();
+    assert.equal(atlasHeal(), false); assert(worldState.atlas && worldState.atlas.zones["campaign-1/new"], "a newer store is untouched");
+  });
+
   console.warn = realWarn; console.info = realInfo;
   if (ONLY !== null && !matched) { process.exitCode = 1; console.error("--only \"" + ONLY + "\" matched 0 tests — NOTHING ran (a group is named by a substring of its name)"); }
   console.log((process.exitCode ? "FAILED" : "ALL GREEN") + " — " + passed + " atlas engine groups (#684)" + (ONLY !== null ? " (--only: " + matched + " of the file's groups ran)" : ""));
