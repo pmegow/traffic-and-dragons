@@ -125,10 +125,11 @@ for(const c of portraitCases){
  const body=portraitBodies.at(-1);assert(/55mm lens at f\/1\.8/.test(body.prompt)&&/background.*softly blurred.*bokeh/.test(body.prompt),'#729 public creature request carries shallow focus through the image boundary');assert(body.prompt.includes(c.desc)&&!body.prompt.includes(c.name)&&(!c.displayName||!body.prompt.includes(c.displayName))&&!body.prompt.includes('PRIVATE_PORTRAIT_SENTINEL'),'#726 outgoing creature request preserves appearance and omits names');assert(!body.image_url&&!body.image_urls,'#726 a fresh portrait has no previous-image reference');
  assert(await page.evaluate(name=>bp.creatures.some(c=>c.name===name&&c.portrait),c.name),'#726 portrait attaches without changing creature identity');
 }
+// #726's name guard reads FIRST: #731's filter below finds its bodies by the same name, so a dropped name tripped #731's message and the #726 battery's clause was MISATTRIBUTED (CI red since 5f9838d2).
+assert(portraitBodies.some(b=>b.prompt.includes('Character portrait of Fen Keeper.')),'#726 NPC character portrait requests retain their names');
 // #731 owner changed the NPC composition contract: the same lens/blur is required now.
 const npcBodies=portraitBodies.filter(b=>b.prompt.includes('Character portrait of Fen Keeper.'));
 assert(npcBodies.length>0&&npcBodies.every(b=>b.prompt.split('55mm lens at f/1.8').length-1===1&&/background.*softly blurred.*bokeh/.test(b.prompt)),'#731 NPC outgoing requests include one lens clause and a blurred background');
 assert(portraitBodies.length>0&&portraitBodies.every(b=>!/ultra-detailed leather and cloth textures|realistic skin pores and fabric weave/.test(b.prompt)),'#731 all outgoing portraits omit forced material textures');
-assert(portraitBodies.some(b=>b.prompt.includes('Character portrait of Fen Keeper.')),'#726 NPC character portrait requests retain their names');
 assert.deepEqual(errors,[]);console.log('PASS CREATURE BROWSER: controls, mobile, count rejection, batch, portrait layout and enlargement, focus, reload, Apply preservation, failure, cancel, and NPC generation/view/reload/removal. Screenshots: '+out);
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
