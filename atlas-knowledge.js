@@ -29,9 +29,19 @@ function atlasKnowledgeRead(raw,R){
     out.reason=MapKnowledge.eventProblem(e);if(out.reason)break;
     st=R&&typeof R.placeAt==="function"?R.placeAt(m.index):null;k=st&&st.key?st.key:atlasKnowledgeContext();
     if(k&&typeof locResolve==="function")k=locResolve(k);
-    if(e.id!=="new"&&memory&&memory.map&&memory.map.geography&&memory.map.geography.features&&Object.prototype.hasOwnProperty.call(memory.map.geography.features,e.id)){
-      var existing=memory.map.geography.features[e.id];
+    var publicFeatures=memory&&memory.map&&memory.map.geography&&memory.map.geography.features,existing,featureKeys,fi,match=null;
+    if(publicFeatures&&e.id!=="new"&&Object.prototype.hasOwnProperty.call(publicFeatures,e.id)){
+      existing=publicFeatures[e.id];
       if(existing&&typeof existing.container==="string"&&((typeof locResolve==="function")?locResolve(existing.container):existing.container)===k)k=existing.container;
+    }else if(publicFeatures&&e.id==="new"){
+      featureKeys=Object.keys(publicFeatures);
+      for(fi=0;fi<featureKeys.length;fi++){
+        existing=publicFeatures[featureKeys[fi]];
+        if(!existing||typeof existing.container!=="string"||typeof existing.label!=="string"||((typeof locResolve==="function")?locResolve(existing.container):existing.container)!==k||existing.label.replace(/\s+/g," ").toLowerCase()!==e.label.replace(/\s+/g," ").toLowerCase())continue;
+        if(match){out.reason="the public label is ambiguous in this resolved place";break;}match=existing;
+      }
+      if(out.reason)break;
+      if(match)k=match.container;
     }
     if(!k){out.reason="the public discovery has no established containing place";break;}
     out.items.push({container:k,event:e,start:m.index,end:re.lastIndex,directive:m[0]});
@@ -141,13 +151,11 @@ function atlasKnowledgePlayerBlock(){
 function atlasKnowledgePrompt(){
   if(!atlasKnowledgeActive())return "";
   return atlasKnowledgePlayerBlock()+
-    "PUBLIC MAP DISCLOSURES: world facts and accepted changes constrain the map; a generated layout never overrules the story. "+
-    "Whenever you introduce a visible or reported landmark, even while the party stands still, emit [MAP_REVEAL:new|public label|kind|bearing|observed] (reported instead of observed for a report). "+
-    "Place this directive at the top level, never inside another tag. This is PUBLIC NARRATION: the engine inserts a readable discovery sentence at this directive and speaks it aloud; never use it for secrets, negation, hypotheticals, or private preparation. "+
-    "Kinds: landmark, hut, building, spring, tree, arch, ruin, cave, road, bridge, stone, camp. Bearings: N, NE, E, SE, S, SW, W, NW, unknown. "+
-    "Disclose only the label and type the party actually learns; seeing a hut does not disclose its owner or interior. Use a generic label until its name is learned. "+
-    "For an existing feature use its f-number instead of new; do not change its established kind or direction. Do not repeat unchanged discoveries. "+
-    "Place LOCATION/SUBLOCATION tags before the disclosures that belong there; each disclosure belongs to the place in force at its position in the reply. "+
-    "For a newly introduced room, use the full building — room path in SUBLOCATION; a bare room name cannot establish its building. "+
-    "A direction is not a distance: use unknown when no bearing is established. Never invent a building, feature, or measurement merely to populate the drawing.\n\n";
+    "PUBLIC MAP DISCLOSURES: world facts and accepted changes constrain the map; a generated layout never overrules the story.\n"+
+    "On EVERY narrated turn, disclose newly introduced FIXED geographic features that help the player navigate or act: distinctive trees or stones, buildings, paths, exits, and destinations. Include features described in NPC dialogue, directions, EXIT descriptions, and SUGGEST targets, even while the party stands still. Exclude NPCs, creatures (including a living stone elemental), portable items, ordinary terrain texture, and absent, removed, or hypothetical structures. Suggestion-only utility calls are read-only: no new map facts or MAP_REVEAL.\n"+
+    "Before finalizing, check each such feature against PLAYER-KNOWN GEOGRAPHY. For a new feature emit [MAP_REVEAL:new|public label|kind|bearing|observed]; use reported instead of observed for testimony. For an existing feature use its f-handle only when disclosing a new name or other newly learned attribute. Do not repeat unchanged discoveries or declare an existing feature as new. Do not change its established kind or direction.\n"+
+    "Kinds: landmark, hut, building, spring, tree, arch, ruin, cave, road, bridge, stone, camp. Use a specific kind only when it is literally established; otherwise use landmark. Stairs are landmark, not arch; shallows are landmark, not spring; a belfry is building only if established as a building, otherwise landmark. Never choose the nearest-looking kind.\n"+
+    "Bearings: N, NE, E, SE, S, SW, W, NW, unknown. Use unknown when no bearing is established; a direction is not a distance. Disclose only the label and type actually learned. Seeing a hut reveals neither owner nor interior; keep a generic label until its name is learned. Testimony remains reported until the party actually perceives the feature; do not narrate a reported destination as newly seen.\n"+
+    "Place each directive at top level, never inside another tag. Narrate naturally; do not write or imitate the engine's formulaic \"You see/hear of [label], a [kind]\" confirmations. This directive is PUBLIC NARRATION: the engine inserts and speaks its discovery sentence here. Never use a disclosure for secrets, negation, hypotheticals, or private preparation.\n"+
+    "Put LOCATION/SUBLOCATION before disclosures belonging there: each directive belongs to the place in force at its position. For a new room, use the full building — room path in SUBLOCATION; a bare room name cannot establish its building. Never invent a feature, owner, interior, bearing, or measurement to populate the drawing.\n"+"\n";
 }

@@ -31,7 +31,7 @@ var MapKnowledge=(function(){
   function create(){return {v:VERSION,revision:0,next:1,features:dict(),receipts:dict()};}
   function problem(s){
     if(!object(s)||s.v!==VERSION)return "unsupported map knowledge version";
-    var p=fields(s,["v","revision","next","features","receipts"]),ids,rs,i,j,f,r,max=0,n,sources=dict(),sourceKey;
+    var p=fields(s,["v","revision","next","features","receipts"]),ids,rs,i,j,f,r,max=0,n,sources=dict(),sourceKey,labels=dict(),labelKey;
     if(p)return p;
     if(!integer(s.revision)||!integer(s.next)||s.next<1)return "invalid map knowledge counters";
     if(!object(s.features)||!object(s.receipts))return "invalid feature or receipt dictionary";
@@ -51,6 +51,7 @@ var MapKnowledge=(function(){
       r=s.receipts[f.receipt];j=f.event;
       if(j>=r.events.length||r.container!==f.container)return "invalid source reference on "+f.id;
       sourceKey=JSON.stringify([f.receipt,j]);if(own(sources,sourceKey))return "two features claim the same source event";sources[sourceKey]=1;
+      labelKey=JSON.stringify([f.container,folded(f.label)]);if(own(labels,labelKey))return "duplicate public label in "+f.container;labels[labelKey]=f.id;
       var e=r.events[j];
       if(e.label!==f.label||e.kind!==f.kind||e.bearing!==f.bearing||e.mode!==f.mode||(e.id!=="new"&&e.id!==f.id))return "source attributes disagree on "+f.id;
     }
@@ -68,7 +69,7 @@ var MapKnowledge=(function(){
   }
   function refuse(reason){return {ok:false,reason:reason};}
   function prepare(s,events,ctx){
-    var p=problem(s),i,j,e,c,f,ids,id,receipt,normalized=[];
+    var p=problem(s),i,j,e,c,f,ids,id,receipt,match,normalized=[];
     if(p)return refuse(p);
     if(!object(ctx)||ctx.channel!=="gm")return refuse("only a narrated GM commit may disclose geography");
     if(!str(ctx.commit,160)||!integer(ctx.turn)||!str(ctx.container,300)||typeof ctx.text!=="string"||ctx.text.length>100000)return refuse("invalid narrated source context");
@@ -90,9 +91,17 @@ var MapKnowledge=(function(){
     for(i=0;i<normalized.length;i++){
       e=normalized[i];id=e.id;
       if(id==="new"){
-        for(j=0;j<ids.length;j++){f=c.features[ids[j]];if(f.container===ctx.container&&folded(f.label)===folded(e.label))return refuse("public label already identifies "+f.id+"; use its handle or a distinct label");}
-        if(ids.length>=MAX_FEATURES||c.next>=9007199254740990)return refuse("feature capacity reached; existing knowledge was preserved");
-        id="f"+c.next++;ids.push(id);
+        match=null;
+        for(j=0;j<ids.length;j++){f=c.features[ids[j]];if(f.container!==ctx.container||folded(f.label)!==folded(e.label))continue;if(match)return refuse("public label is ambiguous in this place");match=f;}
+        /* A scoped public label is unique. Repeating its exact known attributes renews the
+           source receipt without allocating identity; differing claims still need its handle. */
+        if(match){
+          if(match.kind!==e.kind||match.bearing!==e.bearing||match.mode!==e.mode)return refuse("public label already identifies "+match.id+" with different attributes; use its handle or a distinct label");
+          id=match.id;
+        }else{
+          if(ids.length>=MAX_FEATURES||c.next>=9007199254740990)return refuse("feature capacity reached; existing knowledge was preserved");
+          id="f"+c.next++;ids.push(id);
+        }
       }else{
         if(!own(c.features,id)||c.features[id].container!==ctx.container)return refuse("unknown feature handle in this place: "+id);
         f=c.features[id];

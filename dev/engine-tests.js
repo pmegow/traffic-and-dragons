@@ -88,7 +88,7 @@ function runEngineTests(R){
     for(i=0;i<changes.length;i++){e=spring733();e.id="f1";for(k in changes[i])e[k]=changes[i][k];r=MapKnowledge.prepare(first.state,[e],ctx);if(r.ok)return "weakened "+JSON.stringify(changes[i]);}return true;
   });
   t("K11 duplicate source identity and inherited event fields refuse",function(){
-    var s=geo733([spring733()]).state;s.features.f2=JSON.parse(JSON.stringify(s.features.f1));s.features.f2.id="f2";s.next=3;if(!MapKnowledge.problem(s))return "two identities shared one source";
+    var s=geo733([spring733()]).state;s.features.f2=JSON.parse(JSON.stringify(s.features.f1));s.features.f2.id="f2";s.next=3;if(!/same source/.test(MapKnowledge.problem(s)))return "two identities sharing one source need the source-identity diagnostic";
     var e=Object.create(spring733());return !geo733([e]).ok;
   });
   t("K12 canonical container resolution keeps discoveries after a rename",function(){
@@ -136,7 +136,7 @@ function runEngineTests(R){
   t("K12 foreign handles and colliding public labels refuse",function(){
     var first=geo733([spring733(),{op:"disclose",id:"new",label:"The Boar Tree",kind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."}]).state;
     var ctx={channel:"gm",commit:"later",turn:10,container:"The Boundary Clearing",text:"Bear Spring lies southwest. The Boar Tree stands north."},e=spring733();
-    if(MapKnowledge.prepare(first,[e],ctx).ok)return "new duplicate label";
+    e.bearing="N";if(MapKnowledge.prepare(first,[e],ctx).ok)return "conflicting new duplicate label";e.bearing="SW";
     e.id="f99";if(MapKnowledge.prepare(first,[e],ctx).ok)return "unknown handle";
     e.id="f1";ctx.container="Elsewhere";if(MapKnowledge.prepare(first,[e],ctx).ok)return "foreign handle";
     ctx.container="The Boundary Clearing";e.label="The Boar Tree";e.quote="The Boar Tree stands north.";return !MapKnowledge.prepare(first,[e],ctx).ok;
@@ -169,6 +169,38 @@ function runEngineTests(R){
     var base={channel:"gm",commit:"x",turn:9,container:"Clearing",text:spring733().quote},changes=[{commit:""},{turn:1.5},{turn:-1},{container:""},{text:17}],i,k,c,s;
     for(i=0;i<changes.length;i++){c=JSON.parse(JSON.stringify(base));for(k in changes[i])c[k]=changes[i][k];if(geo733([spring733()],c).ok)return "accepted context "+i;}
     s=MapKnowledge.create();s.revision=-1;if(!MapKnowledge.problem(s))return "negative revision";s=MapKnowledge.create();s.next=1.5;return !!MapKnowledge.problem(s);
+  });
+
+  t("K08 exact new repeats retain one handle beside independent discoveries",function(){
+    var s=geo733([spring733()]).state,before=JSON.stringify(s),tree={op:"disclose",id:"new",label:"The Boar Tree",kind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."};
+    var ctx={channel:"gm",commit:"renewed",turn:10,container:"The Boundary Clearing",text:"Bear Spring lies southwest. The Boar Tree stands north."},r=MapKnowledge.prepare(s,[spring733(),tree],ctx);
+    if(!r.ok)return r.reason;
+    if(JSON.stringify(s)!==before||Object.keys(r.state.features).length!==2||r.state.next!==3)return "repeat mutated input or allocated another handle";
+    var p=MapKnowledge.project(r.state,ctx.container,"player"),retry=MapKnowledge.prepare(r.state,[spring733(),tree],ctx);
+    return p.features[0].id==="f1"&&p.features[0].source.commit==="renewed"&&p.features[0].source.turn===10&&p.features[0].source.quote===spring733().quote&&r.state.features.f2.label===tree.label&&Object.keys(r.state.receipts).length===2&&retry.ok&&retry.duplicate&&JSON.stringify(retry.state)===JSON.stringify(r.state)&&MapKnowledge.problem(r.state)==="";
+  });
+  t("K08 conflicting new repeats refuse independent candidates atomically",function(){
+    var changes=[{kind:"hut"},{bearing:"N"},{mode:"reported"}],s=geo733([spring733()]).state,before=JSON.stringify(s),ctx={channel:"gm",commit:"conflict",turn:10,container:"The Boundary Clearing",text:"The Boar Tree stands north. Bear Spring lies southwest."},i,k,e,r;
+    for(i=0;i<changes.length;i++){e=spring733();for(k in changes[i])e[k]=changes[i][k];r=MapKnowledge.prepare(s,[{op:"disclose",id:"new",label:"The Boar Tree",kind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."},e],ctx);if(r.ok||JSON.stringify(s)!==before)return "conflicting repeat changed the group: "+JSON.stringify(changes[i]);}
+    e=spring733();e.mode="reported";s=geo733([e]).state;before=JSON.stringify(s);e=spring733();
+    r=MapKnowledge.prepare(s,[e],ctx);if(r.ok||JSON.stringify(s)!==before)return "new cannot promote a report by changing attributes";
+    e.id="f1";r=MapKnowledge.prepare(s,[e],ctx);return r.ok&&r.state.features.f1.mode==="observed";
+  });
+  t("K08 exact repeats inside one group preserve source ownership and counters",function(){
+    var e=spring733(),r=geo733([e,e,e]);if(!r.ok)return r.reason;
+    if(Object.keys(r.state.features).length!==1||r.state.next!==2||r.state.features.f1.event!==2||r.state.receipts["turn-9"].events.length!==3||MapKnowledge.problem(r.state))return "one group duplicated an identity or lost provenance";
+    var ctx={channel:"gm",commit:"later-repeat",turn:10,container:"The Boundary Clearing",text:e.quote},later=MapKnowledge.prepare(r.state,[e],ctx);
+    return later.ok&&later.state.next===2&&Object.keys(later.state.receipts).length===2&&later.state.features.f1.receipt==="later-repeat"&&r.state.features.f1.receipt==="turn-9";
+  });
+  t("K08 an exact new repeat at the feature cap allocates no identity",function(){
+    var s=capacity733(4096,4096),e=JSON.parse(JSON.stringify(s.receipts["cap-0"].events[0])),ctx={channel:"gm",commit:"repeat-at-cap",turn:9000,container:"Capacity Place",text:e.quote},r=MapKnowledge.prepare(s,[e],ctx);
+    return r.ok&&Object.keys(r.state.features).length===4096&&r.state.next===4097&&r.state.features.f1.receipt===ctx.commit;
+  });
+  t("K11 duplicate folded public labels refuse before any repeat can pick a handle",function(){
+    var s=geo733([spring733(),{op:"disclose",id:"new",label:"The Boar Tree",kind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."}]).state;
+    s.features.f2.label="BEAR   SPRING";s.receipts["turn-9"].events[1].label="BEAR   SPRING";s.receipts["turn-9"].events[1].quote="BEAR   SPRING stands here.";
+    var before=JSON.stringify(s),problem=MapKnowledge.problem(s),r=MapKnowledge.prepare(s,[spring733()],{channel:"gm",commit:"ambiguous",turn:10,container:"The Boundary Clearing",text:spring733().quote});
+    return !!problem&&/label/.test(problem)&&!r.ok&&JSON.stringify(s)===before;
   });
 
   section("blueprint editions");

@@ -1,5 +1,5 @@
 {
-  "version": "v1.1401",
+  "version": "v1.1402",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -56,6 +56,7 @@
     "When you roll your own dice, the GM's combat reminders no longer invite it to resolve your hero's strike without your roll.",
     "The map takes the keyboard: arrow keys step through the places a sheet shows and open each one's card.",
     "The player-rolls reminder to the GM is one short note, said once, and no longer conflicts with automatic strikes.",
-    "Map transition foundations preserve sourced discoveries independently of movement; activation remains under verification."
+    "Map transition foundations preserve sourced discoveries independently of movement; activation remains under verification.",
+    "Map guidance includes dialogue and navigation targets; exact landmark repeats retain their identity instead of blocking other discoveries."
   ]
 }

@@ -3,6 +3,14 @@
 var sabotage=require('./sabotage.js');
 var command=['node',['dev/run-tests.js','#733 map knowledge']];
 process.exit(sabotage.prove({file:'map-knowledge.js',command:command,cases:[
+  {label:'an exact repeated declaration still rejects independent discoveries',find:'if(match){\n          if(match.kind',replace:'if(match){return refuse("exact repeats refused");\n          if(match.kind',mustFail:'K08 exact new repeats retain one handle beside independent discoveries'},
+  {label:'an exact repeat allocates another feature identity',find:'id=match.id;',replace:'id="f"+c.next++;ids.push(id);',mustFail:'K08 exact new repeats retain one handle beside independent discoveries'},
+  {label:'an exact repeat consumes the next identity counter',find:'id=match.id;',replace:'id=match.id;c.next++;',mustFail:'K08 exact repeats inside one group preserve source ownership and counters'},
+  {label:'a new repeated label can change its known kind',find:'match.kind!==e.kind||match.bearing!==e.bearing||match.mode!==e.mode',replace:'match.bearing!==e.bearing||match.mode!==e.mode',mustFail:'K08 conflicting new repeats refuse independent candidates atomically'},
+  {label:'a new repeated label can change its known bearing',find:'match.kind!==e.kind||match.bearing!==e.bearing||match.mode!==e.mode',replace:'match.kind!==e.kind||match.mode!==e.mode',mustFail:'K08 conflicting new repeats refuse independent candidates atomically'},
+  {label:'a new repeated label can change its observation status',find:'match.kind!==e.kind||match.bearing!==e.bearing||match.mode!==e.mode',replace:'match.kind!==e.kind||match.bearing!==e.bearing',mustFail:'K08 conflicting new repeats refuse independent candidates atomically'},
+  {label:'corrupt saved labels bypass the public namespace uniqueness check',find:'if(own(labels,labelKey))return "duplicate public label in "+f.container;',replace:'',mustFail:'K11 duplicate folded public labels refuse before any repeat can pick a handle'},
+  {label:'same-group repeat provenance points to the wrong event',find:'receipt:ctx.commit,event:i};',replace:'receipt:ctx.commit,event:0};',mustFail:'K08 exact repeats inside one group preserve source ownership and counters'},
   {label:'event dictionaries accept private extra attributes',find:'var p=fields(e,["op","id","label","kind","bearing","mode","quote"]);if(p)return p;',replace:'var p="";',mustFail:'K05 a private attribute is not smuggled through a disclosure'},
   {label:'required event fields may be inherited from the prototype',find:'for(i=0;i<list.length;i++)if(!own(o,list[i]))return "missing field "+list[i];',replace:'',mustFail:'K11 duplicate source identity and inherited event fields refuse'},
   {label:'unknown geography operations pass the public validator',find:'if(e.op!=="disclose")return "unsupported geography operation";',replace:'',mustFail:'K05 event vocabulary and source label checks are closed'},

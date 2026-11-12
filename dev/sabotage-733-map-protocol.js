@@ -2,6 +2,8 @@
 var sabotage=require('./sabotage.js'),rc=0;
 var command=['node',['dev/tests-733-map-protocol.js']],only='FAIL #733 protocol ';
 rc|=sabotage.prove({file:'atlas-knowledge.js',command:command,only:only,cases:[
+  {label:'a repeated declaration after a rename loses its original filing scope',find:'if(match)k=match.container;',replace:'',mustFail:only+'exact new repeats after an alias retain the scoped handle beside new landmarks'},
+  {label:'an ambiguous canonical label selects a filing container',find:'if(match){out.reason="the public label is ambiguous in this resolved place";break;}match=existing;',replace:'match=existing;',mustFail:only+'canonical ambiguity never chooses the first matching repeated label'},
   {label:'a hidden nested declaration becomes a public discovery',find:'if(depth){out.reason="a nested MAP_REVEAL is not a public narrative directive";break;}',replace:'if(false){out.reason="a nested MAP_REVEAL is not a public narrative directive";break;}',mustFail:only+'private nested directives cannot publish a public discovery'},
   {label:'disclosures use the final location instead of their source position',find:'st=R&&typeof R.placeAt==="function"?R.placeAt(m.index):null;',replace:'st=null;',mustFail:only+'each declaration uses its source position in the location timeline'},
   {label:'malformed declarations no longer refuse the whole group',find:'if(!out.reason&&count!==out.items.length)out.reason="a MAP_REVEAL directive is truncated or malformed";',replace:'',mustFail:only+'malformed and truncated directives refuse as a group'},
