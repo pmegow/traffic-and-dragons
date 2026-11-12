@@ -127,8 +127,8 @@ rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
     replace: "  atlasPaneShow(z,true);",
     mustFail: "FAIL ⑭ the framing" },
   { label: "the card sits under the floating buttons",
-    find: "<div id='atlas-card' style='display:none;position:absolute;z-index:3;",
-    replace: "<div id='atlas-card' style='display:none;position:absolute;",
+    find: "<div id='atlas-card' aria-live='polite' style='display:none;position:absolute;z-index:3;",
+    replace: "<div id='atlas-card' aria-live='polite' style='display:none;position:absolute;",
     mustFail: "FAIL ② with an atlas the name is a button and opens the DOCK" },
   { label: "the dagger is not beside the enlarge button",
     find: "style='bottom:8px;right:\"+(full?8:46)+\"px;'",
@@ -174,6 +174,30 @@ rc |= sabotage.prove({ file: "atlas.js", command: BROWSER, cases: [
     find: "chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}",
     replace: "chain=atlasTrail(shownZone||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}",
     mustFail: "FAIL ⑤ the realm's tier leads back up" }
+] });
+
+/* #696: the keyboard's way to a place */
+rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
+  { label: "the sheet no longer listens to the keyboard (a place is picked by a pointer only)",
+    find: "  canvas.addEventListener(\"keydown\",atlasPaneKey);",
+    replace: "",
+    mustFail: "FAIL ⑰ the keyboard picks a place (#696)" },
+  { label: "the keyboard steps through places the fog hides",
+    find: "&&isFinite(t.y)&&atlasThingShown(zoneId,t))out.push(",
+    replace: "&&isFinite(t.y))out.push(",
+    mustFail: "FAIL ⑰ the keyboard picks a place (#696)" },
+  { label: "a step opens the card and leaves the view where it was (the place may be off screen)",
+    find: "  if(card)P.view.center(list[i].x,list[i].y,P.view.transform().k);",
+    replace: "  if(card)P.view.transform();",
+    mustFail: "FAIL ⑰ the keyboard picks a place (#696)" },
+  { label: "Escape on a card closes the whole pane (the dialog takes it)",
+    find: "{e.preventDefault();e.stopPropagation();atlasPaneTap(null);}",
+    replace: "{e.preventDefault();atlasPaneTap(null);}",
+    mustFail: "FAIL ⑰ the keyboard picks a place (#696)" },
+  { label: "the sheet cannot take focus",
+    find: "<canvas id='atlas-canvas' tabindex='0' ",
+    replace: "<canvas id='atlas-canvas' ",
+    mustFail: "FAIL ⑰ the keyboard picks a place (#696)" }
 ] });
 
 process.exit(rc);

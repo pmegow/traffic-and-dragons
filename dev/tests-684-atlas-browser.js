@@ -398,8 +398,37 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    await page.evaluate(()=>{delete worldState.atlas.fog;atlasPaneClose();});
  });
 
+ await check('⑰ the keyboard picks a place (#696): the sheet takes focus and says how; the arrow keys step through the places the sheet SHOWS (the fog applies), each with the card a tap opens and the view moved to it; Escape puts the card away before it closes the pane',async()=>{
+   const s=await page.evaluate(()=>{__atlasTest.open('campaign-1');const c=document.getElementById('atlas-canvas'),all=atlasThings(atlasDoc('campaign-1')).filter(t=>t.id!=null&&t.name),list=__atlasTest.keyList('campaign-1');
+     return {host:__atlasTest.pane().host,tab:c.getAttribute('tabindex'),label:c.getAttribute('aria-label'),live:document.getElementById('atlas-card').getAttribute('aria-live'),all:all.length,list:list,shown:list.every(t=>atlasThingShown('campaign-1',atlasThingById(atlasDoc('campaign-1'),t.id))),fogged:atlasReveal('campaign-1')!==null};});
+   assert.equal(s.host,'dock');assert.equal(s.tab,'0','the sheet takes the keyboard');assert.match(s.label,/arrow keys/i,'and says how: '+s.label);assert.equal(s.live,'polite','a card that appears is announced');
+   assert.equal(s.fogged,true,'fixture: the realm is fogged');assert.ok(s.list.length>=1&&s.list.length<s.all,'the list is what the fog shows ('+s.list.length+' of '+s.all+')');assert.equal(s.shown,true,'every listed place is one the sheet shows');
+   /* real keys through the browser's own input pipeline (CDP), on the focused sheet */
+   const VK={ArrowRight:39,ArrowDown:40,ArrowLeft:37,ArrowUp:38,Escape:27},press=async key=>{for(const type of ['rawKeyDown','keyUp'])await page._send('Input.dispatchKeyEvent',{type,key,code:key,windowsVirtualKeyCode:VK[key],nativeVirtualKeyCode:VK[key]});},focusMap=()=>page.evaluate(()=>{document.getElementById('atlas-canvas').focus();});
+   const step=async key=>{await press(key);await settle();return page.evaluate(()=>{const p=__atlasTest.pane(),el=document.getElementById('atlas-card'),st=document.getElementById('atlas-stage'),T=_atlasPane.view.transform(),t=p.target&&p.target.id!=null?atlasThingById(atlasDoc(p.zone),p.target.id):null;
+     return {id:p.target?p.target.id:null,card:el.style.display,text:el.textContent,focus:document.activeElement&&document.activeElement.id,off:t?[Math.abs(t.x*T.k+T.x-st.clientWidth/2),Math.abs(t.y*T.k+T.y-st.clientHeight/2)]:null,k:T.k,w:st.clientWidth,h:st.clientHeight};});};
+   await focusMap();
+   /* the view is first taken as far from the first place as the sheet allows, zoomed in: the step must bring the place on screen */
+   const k0=await page.evaluate(first=>{const v=_atlasPane.view,sc=v.scene(),x0=sc.x0||0,y0=sc.y0||0,far=[first.x<x0+sc.width/2?x0+sc.width:x0,first.y<y0+sc.height/2?y0+sc.height:y0];v.center(far[0],far[1],v.transform().k*3);return v.transform().k;},s.list[0]);
+   const before=await page.evaluate(first=>{const T=_atlasPane.view.transform(),st=document.getElementById('atlas-stage'),px=first.x*T.k+T.x,py=first.y*T.k+T.y;return px>=0&&px<=st.clientWidth&&py>=0&&py<=st.clientHeight;},s.list[0]);assert.equal(before,false,'fixture: the first place starts off screen');
+   const a=await step('ArrowRight');assert.equal(a.id,s.list[0].id,'the first key picks the first place');assert.equal(a.card,'block');assert.ok(a.text.indexOf(s.list[0].name)>=0,'its card names it: '+a.text);assert.equal(a.focus,'atlas-canvas','the keyboard stays on the sheet');await page.screenshot({path:path.join(SHOTS,'atlas-keyboard.png')});
+   assert.ok(a.off[0]<=a.w/2+1&&a.off[1]<=a.h/2+1,'the place is brought on screen: '+JSON.stringify(a.off));assert.ok(Math.abs(a.k-k0)<1e-9,'the zoom is the player\'s');
+   if(s.list.length>1){const b=await step('ArrowDown');assert.equal(b.id,s.list[1].id,'the next key picks the next');const c=await step('ArrowLeft');assert.equal(c.id,s.list[0].id,'and back');}
+   const z=await step('ArrowUp');assert.equal(z.id,s.list[s.list.length-1].id,'before the first is the last');
+   /* the whole sheet, the fog off */
+   assert.equal(await page.evaluate(()=>{worldState.atlas.fog=false;const n=__atlasTest.keyList('campaign-1').length;delete worldState.atlas.fog;return n;}),s.all,'with the fog off every named place is listed');
+   /* Escape: the card first, the pane after (the full pane is a dialog) */
+   await page.evaluate(()=>{__atlasTest.openFull('campaign-1');});await settle();await focusMap();
+   const f=await step('ArrowRight');assert.equal(f.card,'block');assert.equal(f.id,s.list[0].id);
+   await press('Escape');await settle();
+   assert.deepEqual(await page.evaluate(()=>({card:document.getElementById('atlas-card').style.display,modal:!!document.getElementById('atlas-modal')})),{card:'none',modal:true},'Escape put the card away and left the pane');
+   await press('Escape');await settle();
+   assert.equal(await page.evaluate(()=>!!document.getElementById('atlas-modal')),false,'a second Escape closes the pane');
+   await page.evaluate(()=>{atlasPaneClose();});
+ });
+
  assert.deepEqual(errors,[],'page errors: '+errors.join(' | '));
- console.log('screenshots: '+SHOTS+' (atlas-dock.png, atlas-region.png, atlas-town.png, atlas-phone-dock.png, atlas-phone.png, atlas-fog-dock.png, atlas-fog-town.png, atlas-fog-realm.png, atlas-fog-sewer.png)');
+ console.log('screenshots: '+SHOTS+' (atlas-dock.png, atlas-region.png, atlas-town.png, atlas-phone-dock.png, atlas-phone.png, atlas-fog-dock.png, atlas-fog-town.png, atlas-fog-realm.png, atlas-fog-sewer.png, atlas-keyboard.png)');
 }finally{await browser.close();}
 console.log(failed?'FAILED — '+failed:'ALL GREEN — the atlas pane (#684)');process.exit(failed?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});

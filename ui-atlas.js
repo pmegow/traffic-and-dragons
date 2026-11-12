@@ -170,10 +170,10 @@ function atlasPaneHtml(host){
       +"<button type='button' class='ib' id='atlas-close' aria-label='Close the map'>&#10005;</button>"
       +"</div>":"")
     +"<div id='atlas-stage' style='position:relative;flex:1;min-height:0;'>"
-    +"<canvas id='atlas-canvas' style='position:absolute;inset:0;width:100%;height:100%;display:block;'></canvas>"
+    +"<canvas id='atlas-canvas' tabindex='0' aria-label='The map. Arrow keys step through the places shown, Escape puts a place away.' style='position:absolute;inset:0;width:100%;height:100%;display:block;'></canvas>"
     +(full?"":"<button type='button' class='atlas-fab' id='atlas-full' title='Open the map full screen' aria-label='Open the map full screen' style='bottom:8px;right:8px;'>"+ATLAS_ENLARGE_SVG+"</button>")
     +"<button type='button' class='atlas-fab' id='atlas-party' title='Go to where the party is' aria-label='Go to where the party is' style='bottom:8px;right:"+(full?8:46)+"px;'>"+ATLAS_DAGGER_SVG+"</button>"
-    +"<div id='atlas-card' style='display:none;position:absolute;z-index:3;left:12px;bottom:12px;width:calc(100% - 24px);max-width:380px;box-sizing:border-box;background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:12px;'></div>"
+    +"<div id='atlas-card' aria-live='polite' style='display:none;position:absolute;z-index:3;left:12px;bottom:12px;width:calc(100% - 24px);max-width:380px;box-sizing:border-box;background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:12px;'></div>"
     +"</div>";
 }
 /* build the pane's markup into a host element (the dock) and wire it */
@@ -193,6 +193,7 @@ function atlasPaneWire(host){
   document.getElementById("atlas-party").addEventListener("click",function(){var B=atlasLive();if(B&&B.at)atlasPaneShow(B.at,true);else atlasPaneSay("The party is not on the map yet.");});
   if((el=document.getElementById("atlas-full")))el.addEventListener("click",function(){var P=_atlasPane;showAtlasFull(P?P.zone:undefined);});
   if((el=document.getElementById("atlas-zones")))el.addEventListener("change",function(){if(this.value)atlasPaneShow(this.value);});
+  canvas.addEventListener("keydown",atlasPaneKey);/* #696: a place is picked by keyboard too */
   document.getElementById("atlas-card").addEventListener("click",function(e){
     var act=e.target&&e.target.getAttribute&&e.target.getAttribute("data-act");
     if(act==="note")atlasPaneNoteOpen();
@@ -208,6 +209,36 @@ function atlasPaneTargetOf(pt,hit){
   if(hit&&hit.kind!=="marker"&&hit.id!=null)return {id:hit.id};
   if(hit&&P){t=atlasThingAt(P.zone,hit.x,hit.y);return t?{id:t.id}:{x:hit.x,y:hit.y};}
   return {x:pt.x,y:pt.y};
+}
+/* #696 THE KEYBOARD's way to a place (the library audit's A09, applied to the game): a place was picked only by a click
+   on the canvas, so its card could not be reached without a pointer. The sheet takes focus; the arrow keys step through
+   the named places the sheet SHOWS — the fog applies as it does to the drawing (atlasThingShown) — in reading order, each
+   step the very tap a click makes (one command, two inputs) with the view moved to the place at the player's zoom;
+   Escape puts the card away before it reaches the full pane's dialog. No list is drawn: the pane stays the map alone. */
+function atlasPaneKeyList(zoneId){
+  var A=atlasLive(),out=[];
+  if(!A||!A.zones[zoneId])return out;
+  atlasThings(atlasDoc(zoneId)).forEach(function(t){if(t.id!=null&&t.name&&isFinite(t.x)&&isFinite(t.y)&&atlasThingShown(zoneId,t))out.push({id:t.id,name:t.name,x:t.x,y:t.y});});
+  out.sort(function(a,b){return (a.y-b.y)||(a.x-b.x)||(String(a.id)<String(b.id)?-1:1);});
+  return out;
+}
+function atlasPaneKeyStep(dir){
+  var P=_atlasPane,list,i,cur=-1,card;
+  if(!P)return null;
+  try{list=atlasPaneKeyList(P.zone);}catch(e){atlasPaneSay("The places on this sheet could not be read: "+atlasProblem("listing a sheet's places",e));return null;}
+  if(!list.length){atlasPaneSay("This sheet shows no named place yet.");return null;}
+  if(P.target&&P.target.id!=null)for(i=0;i<list.length;i++)if(list[i].id===P.target.id)cur=i;
+  i=cur<0?(dir>0?0:list.length-1):(cur+dir+list.length)%list.length;
+  card=atlasPaneTap({id:list[i].id});
+  if(card)P.view.center(list[i].x,list[i].y,P.view.transform().k);
+  return card;
+}
+var ATLAS_KEY_STEPS={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1};
+function atlasPaneKey(e){
+  var P=_atlasPane,dir=Object.prototype.hasOwnProperty.call(ATLAS_KEY_STEPS,e.key)?ATLAS_KEY_STEPS[e.key]:0;
+  if(!P||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(dir){e.preventDefault();atlasPaneKeyStep(dir);}
+  else if(e.key==="Escape"&&P.target){e.preventDefault();e.stopPropagation();atlasPaneTap(null);}
 }
 /* the pane has no status line (owner 2026-11-08): what it must say — a failure, a refusal, the tie a tap made — is a toast */
 function atlasPaneSay(text){
@@ -321,5 +352,5 @@ function atlasPaneNoteSave(zoneId,id,text){
 }
 if(typeof window!=="undefined")window.__atlasTest={
   pane:function(){var P=_atlasPane;return P?{zone:P.zone,target:P.target,host:P.host,hud:P.view.hud(),bounds:P.view.bounds(),trail:P.view.hudTrail(),markers:P.view.markers(),reveal:P.view.reveal(),doc:P.view.doc().seed}:null;},
-  tap:atlasPaneTap,note:atlasPaneNoteOpen,noteSave:atlasPaneNoteSave,show:atlasPaneShow,open:showAtlas,openFull:showAtlasFull,dock:atlasDockMount,close:atlasPaneClose,doorPaint:atlasDoorPaint,refresh:atlasPaneRefresh
+  tap:atlasPaneTap,keyList:atlasPaneKeyList,keyStep:atlasPaneKeyStep,note:atlasPaneNoteOpen,noteSave:atlasPaneNoteSave,show:atlasPaneShow,open:showAtlas,openFull:showAtlasFull,dock:atlasDockMount,close:atlasPaneClose,doorPaint:atlasDoorPaint,refresh:atlasPaneRefresh
 };
