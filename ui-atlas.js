@@ -43,7 +43,7 @@ function atlasDoorPaint(){
   atlasPaneRefresh();/* syncUI runs after every committed turn: an open pane follows the story */
 }
 /* what the open pane last painted from: the party's place and the pointer the atlas followed */
-function atlasPaneSig(){var A=(typeof atlasLive==="function")?atlasLive():null;return A?JSON.stringify([A.at,A.spot,A.off,A.ptr]):"";}
+function atlasPaneSig(){var A=(typeof atlasLive==="function")?atlasLive():null;return A?JSON.stringify([A.at,A.spot,A.off,A.ptr,A.knowledge,memory&&memory.map&&memory.map.geography&&memory.map.geography.revision,A.knowledge&&memory&&memory.map&&memory.map.identity]):"";}
 /* a turn landed (or a Sync edit) while the pane is open: its marker and card were painted for another place. A sheet the
    story left is swapped for the party's, framed on the party; the same sheet keeps the player's view */
 function atlasPaneRefresh(){
@@ -51,7 +51,7 @@ function atlasPaneRefresh(){
   if(!P||P.sig===atlasPaneSig())return false;
   A=atlasLive();
   if(!A){atlasPaneClose();return true;}
-  z=A.zones[P.zone]?P.zone:(A.at||A.seed);
+  z=atlasKnowledgeActive()?A.seed:(A.zones[P.zone]?P.zone:(A.at||A.seed));
   atlasPaneShow(z,z!==P.zone);
   return true;
 }
@@ -67,14 +67,14 @@ function atlasDoorWire(){
 
 /* close whichever pane is open: the view lets go of the window, the modal goes, the dock is emptied. A closed FULL pane
    hands the map back to the dock when the Map tab is showing. */
-function atlasPaneClose(){
+function atlasPaneClose(opts){
   var P=_atlasPane,m=document.getElementById("atlas-modal"),d=document.getElementById("atlas-dock");
   if(P&&P.view){try{P.view.destroy();}catch(e){if(typeof console!=="undefined")console.warn("[atlas pane] the view did not close cleanly: "+(e&&e.message?e.message:e));}}
   if(P&&P.ro){try{P.ro.disconnect();}catch(e2){}}
   _atlasPane=null;
   if(m)m.remove();
   if(d)d.innerHTML="";
-  if(P&&P.host==="full")atlasDockSync();
+  if(P&&P.host==="full"&&!(opts&&opts.defer))atlasDockSync();
 }
 /* the drawer's Map tab is showing and holds no pane: mount one (a closed full pane, a tab selected, a drawer opened) */
 function atlasDockSync(){
@@ -259,7 +259,7 @@ function atlasPaneFrame(how){
   if(!P||!how)return false;
   if(how.carry){c=how.carry;st=document.getElementById("atlas-stage");s=(c.w&&c.h&&st&&st.clientWidth&&st.clientHeight)?Math.min(st.clientWidth/c.w,st.clientHeight/c.h):1;P.view.center(c.cx,c.cy,c.k*s);return true;}
   P.view.fit();
-  if(how.party){T=P.view.transform();P.view.center(how.party.x,how.party.y,T.k*ATLAS_HOME_ZOOM);}
+  if(how.party&&!atlasKnowledgeActive()){T=P.view.transform();P.view.center(how.party.x,how.party.y,T.k*ATLAS_HOME_ZOOM);}
   return true;
 }
 /* show one entered zone's sheet: the document, the party marker, the fog, the select (full); framed on the party when
@@ -283,6 +283,11 @@ function atlasPaneShow(zoneId,toParty,carry){
     /* a sheet fogged room by room hides the library's "above" layer too — the town's walls and river drawn whole under a sewer (finding 2) */
     rooms=reveal instanceof Array;if(P.above!==!rooms){P.view.setLayerVisible("above",!rooms);P.above=!rooms;}
     P.view.setMarkers(markers);
+    if(atlasKnowledgeActive()){
+      var dropped=P.view.scene().dropped||[],warning=JSON.stringify([atlasPaneSig(),dropped]);
+      if(dropped.length&&P.warning!==warning)atlasPaneSay(dropped.length+" map labels overlap and are omitted. Select a symbol or use the Arrow keys to read every known feature.");
+      P.warning=warning;
+    }
   }catch(e){atlasPaneSay("That sheet could not be drawn: "+atlasProblem("drawing a sheet",e));return false;}
   P.zone=zoneId;P.target=null;P.view.select(null);
   try{P.view.setHudTrail(atlasTrailItems(zoneId));}catch(e4){atlasProblem("drawing the trail",e4);}/* the plaque's subtitle: the party's location trail, this sheet current */

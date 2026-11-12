@@ -1,6 +1,7 @@
 var __lastRagBlock="";/* UA36 harness enabler — the RAG block buildSysPrompt last injected ("" when the flag is off); capture-only */
 var __lastChapRagBlock="";/* #148 Phase 1 — the PAST CHAPTERS block buildSysPrompt last injected; same capture-only contract */
-function buildGeoBlock(){
+function buildGeoBlock(audience){
+  if(audience==="player"&&typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive())return atlasKnowledgePlayerBlock();
   if(!memory.map||!worldState||!worldState.world)return"";
   var w=worldState.world,lines=[],i;
   /* #156B resolution seam: the HEADER keeps the narrated pointer text, but every store lookup

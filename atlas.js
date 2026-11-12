@@ -28,7 +28,7 @@
 
    Reads (atlasDoc, atlasThings, atlasPartyIn, atlasMarkers, atlasZones, atlasWhere, atlasCard, atlasReveal, atlasFogShows, atlasMapBlock) never write the campaign. The writers are
    atlasCreate, atlasFollow (which records the move: atlasTread), atlasPlace and atlasHeal; a redraw a read notices is recorded by the next writer. */
-var ATLAS_VER=1;
+var ATLAS_VER=2;
 /* THE ONE LOOKUP of every table below (#697): a table is a plain object, so a key named like an Object method
    ("constructor", "toString") found a function where a row was asked for. A row is the table's OWN property or it is
    nothing; no table is read by a bare bracket (the engine suite scans this file for one). */
@@ -60,12 +60,13 @@ var ATLAS_THINGS={
   town:function(d){return [].concat(d.establishments||[],d.landmarks||[]);},
   dungeon:function(d){return d.rooms||[];},
   interior:function(d){return d.rooms||[];},
-  wild:function(d){return d.features||[];}
+  wild:function(d){return d.features||[];},
+  schematic:function(d){return d.features||[];}
 };
 /* a portal of one of these ways leads back to the zone this one hangs from */
 var ATLAS_WAYS_BACK={up:1,out:1};
 /* v → the function lifting a store to v+1 (none yet: v1 is the first shape) */
-var ATLAS_MIGRATIONS={};
+var ATLAS_MIGRATIONS={1:function(A){A.v=2;return A;}};
 
 var _atlasDocs={},_atlasDocOrder=[],_atlasDrawn={},_atlasWarned={};
 var _atlasPeeks={},_atlasPeekOrder=[];/* #693: sheets drawn for a LOOK and never recorded (atlasPeekDoc) */
@@ -145,7 +146,7 @@ function atlasZoneParams(A,zoneId){
   if(!params||params.seed!==zoneId)throw new Error("atlas: zone '"+zoneId+"' now derives the seed '"+(params&&params.seed)+"' — the library names its zones differently than when this campaign was mapped");
   return params;
 }
-function atlasDoc(zoneId){
+function atlasDoc(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicDoc(zoneId);}
   var A=atlasLive();if(!A)throw new Error("atlas: this campaign has no atlas");
   var key=atlasChainKey(A,zoneId),doc=_atlasDocs[key],at;
   if(!doc){
@@ -157,7 +158,7 @@ function atlasDoc(zoneId){
   return doc;
 }
 /* drop every held document (a campaign switch, a test): the next read redraws from the recipes */
-function atlasForget(){_atlasDocs={};_atlasDocOrder=[];_atlasDrawn={};_atlasWarned={};_atlasPeeks={};_atlasPeekOrder=[];}
+function atlasForget(){if(typeof _atlasPublicMemo!=="undefined")_atlasPublicMemo=null;_atlasDocs={};_atlasDocOrder=[];_atlasDrawn={};_atlasWarned={};_atlasPeeks={};_atlasPeekOrder=[];}
 /* WRITE: record what the library drew for a zone; a drawing that differs from the one on record is said out loud */
 function atlasSettle(A,zoneId){
   var rec=A.zones[zoneId],key=rec?atlasChainKey(A,zoneId):null,d=key?_atlasDrawn[key]:null,doc=key?_atlasDocs[key]:null,sch,exp;
@@ -300,7 +301,7 @@ function atlasResolve(A,key,name,sheets){
 }
 /* WRITE: follow the story's location pointer. Idempotent; never throws (it runs inside a turn's commit). Returns
    {changed, at, spot, off, entered} or null when the campaign has no atlas. */
-function atlasFollow(){
+function atlasFollow(){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicFollow();}
   var A=atlasLive(),p=A?atlasPointer():null,sig,before,entered=[],prev,guard=0,from,was;
   if(!A||!p){if(typeof worldState!=="undefined"&&worldState)delete worldState.placeDecls;return null;}
   atlasDeclsOfTurn();
@@ -667,7 +668,7 @@ function atlasFoldLeaf(wk,leaf){
    resolver goes on as before: no atlas, a world the map does not know, a name on the world place's own sheet (a building
    is bare, as named), a bare name from the street. A pure read — a failure is reported once and answers null; the parser
    is never broken. */
-function atlasPlaceCanon(name,parent,sub,fresh){
+function atlasPlaceCanon(name,parent,sub,fresh){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicCanon(name,parent,sub);}
   var A=atlasLive(),X,wk,pos,parts,pre,leaf,f,xp,spotStripped=false;
   if(!A||!A.zones[A.seed])return null;
   X=String(name==null?"":name).trim();if(!X)return null;
@@ -1235,7 +1236,7 @@ function atlasCreate(seed){
    since (a turn landed under an open card) the tap is refused, never spent on another place.
    Returns {ok: true, at, spot, off, entered, bound, level} or {ok: false, reason, moved?}; a refusal changes nothing
    but zones the tap had to draw to look. */
-function atlasPlace(zoneId,target,expect){
+function atlasPlace(zoneId,target,expect){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return {ok:false,reason:"public map placement follows narrated discoveries"};}
   var A=atlasLive(),p=A?atlasPointer():null,entered=[],rec,doc,tie,b,r,pv,storyKey,add;
   if(!A)return {ok:false,reason:"this campaign has no map"};
   if(!p)return {ok:false,reason:"the story has no current place"};
@@ -1287,7 +1288,7 @@ function atlasWaysIntoDoc(doc,childDoc){
    {x, y, exact, last, within}. exact false = the party is in that zone but the map does not know where (a town entered
    by name; a sewer with three grates and the party somewhere inside). last true = the story has LEFT the mapped
    places: this is the last mapped place, never "the party is here". null = not on that sheet. */
-function atlasPartyIn(zoneId){
+function atlasPartyIn(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicParty(zoneId);}
   var A=atlasLive(),doc,t,z,rec,b,c,ways,ps,i,guard=0,last,mk;
   if(!A||!A.at||!A.zones[zoneId]||!A.zones[A.at])return null;
   last=!!(A.off&&!A.off.within);
@@ -1321,7 +1322,7 @@ function atlasThingAt(zoneId,x,y){
 /* the markers TnDMaps.markers / view.setMarkers take for a sheet — derived from the store, never stored */
 function atlasMarkers(zoneId){var p=atlasPartyIn(zoneId);return p?[{id:"party",kind:"party",x:p.x,y:p.y,label:p.last?"Last mapped place":(p.exact?"The party":"The party (somewhere here)")}]:[];}
 /* the entered zones, root first then in order of entry */
-function atlasZones(){
+function atlasZones(){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return [{id:worldState.atlas.seed,kind:"schematic",name:atlasPublicTitle(),parent:null,turn:atlasTurn()}];}
   var A=atlasLive();if(!A)return [];
   return Object.keys(A.zones).map(function(id){var r=A.zones[id];return {id:id,kind:r.kind,name:r.name||id,parent:r.parent,turn:r.turn,redrawn:r.redrawn||null};});
 }
@@ -1330,24 +1331,25 @@ function atlasTrail(zoneId){var A=atlasLive(),out=[],z=zoneId,guard=0;if(!A)retu
 /* #711 round 4 (owner 2026-11-08): the party's LOCATION TRAIL for the HUD plaque — the chain of zones the party stands in
    (the last mapped place once the story has left the map; the region alone before the party is placed), as the library's
    tiers {key, text, current}: the sheet shown now is current. Built on character location: browsing up leaves it as it is. */
-function atlasTrailItems(shownZone){var A=atlasLive(),chain,i,out=[];if(!A)return out;chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}
+function atlasTrailItems(shownZone){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return [{key:worldState.atlas.seed,text:atlasPublicTitle(),current:true}];}var A=atlasLive(),chain,i,out=[];if(!A)return out;chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}
 /* #711 round 4: the player's NOTE on a map thing (in place of the retired hand tie) — kept on the campaign
    (worldState.atlas.notes, keyed zone|thing id), the player's own words, never read by the engine's rules; capped at
    ATLAS_NOTE_MAX; an empty note is removed. The card carries it (atlasCard's `note`). */
 var ATLAS_NOTE_MAX=600;
-function atlasNoteKey(zoneId,id){return zoneId+"|"+id;}
-function atlasNote(zoneId,id){var A=atlasLive(),n;if(!A||!A.notes||id==null)return "";n=A.notes[atlasNoteKey(zoneId,id)];return typeof n==="string"?n:"";}
+function atlasNoteBucket(){return typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()?"publicNotes":"notes";}
+function atlasNoteKey(zoneId,id){return atlasNoteBucket()==="publicNotes"?String(id):zoneId+"|"+id;}
+function atlasNote(zoneId,id){var A=atlasLive(),notes=A&&A[atlasNoteBucket()],n;if(!notes||id==null)return "";n=notes[atlasNoteKey(zoneId,id)];return typeof n==="string"?n:"";}
 function atlasNoteSet(zoneId,id,text){
-  var A=atlasLive(),k;
+  var A=atlasLive(),k,bucket=atlasNoteBucket(),notes;
   if(!A)return {ok:false,reason:"this campaign has no drawn map"};
   if(!A.zones[zoneId])return {ok:false,reason:"that sheet is not in the atlas"};
   if(id==null||!atlasThingById(atlasDoc(zoneId),id))return {ok:false,reason:"that thing is not on the sheet"};
-  if(!A.notes||typeof A.notes!=="object")A.notes=keyedDict();
+  notes=A[bucket];if(!notes||typeof notes!=="object")notes=A[bucket]=keyedDict();
   text=String(text==null?"":text).replace(/\r\n?/g,"\n").trim();
   if(text.length>ATLAS_NOTE_MAX)return {ok:false,reason:"a note is at most "+ATLAS_NOTE_MAX+" characters ("+text.length+" given)"};
   k=atlasNoteKey(zoneId,id);
-  if(!text){delete A.notes[k];return {ok:true,text:"",removed:true};}
-  A.notes[k]=text;return {ok:true,text:text};
+  if(!text){delete notes[k];return {ok:true,text:"",removed:true};}
+  notes[k]=text;return {ok:true,text:text};
 }
 
 /* ── what the pane and the prompt say ──────────────────────────────────────────────────────────────────────── */
@@ -1395,7 +1397,7 @@ function atlasTiesHere(A){
    engine claims no more than the tap said: not that the two are one place, not that one lies inside the other) */
 function atlasTieSay(t){return "The story's \""+t.name+"\" is at "+t.at+" on this map: "+(t.by==="gm"?"the GM placed it there.":t.by==="story"?"the story's own description placed it there.":"the player placed it there.");}/* #708: by "story" — the start's kind, asked of the blueprint *//* review 2, finding 7b: a [MAP_PLACE:|at] tie is the GM's, and is said so */
 /* READ: where the party is, in words and in parts — the pane's status line and the first line the GM is told */
-function atlasWhere(){
+function atlasWhere(){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicWhere();}
   var A=atlasLive(),rec,t,out,why,phrase="",said="";
   if(!A)return null;
   out={placed:!!(A.at&&A.zones[A.at]),zone:null,zoneName:null,zoneKind:null,spot:null,spotName:null,off:A.off||null,ties:[],text:""};
@@ -1479,7 +1481,7 @@ function atlasSeenWay(A,drawn,doc,a,b){
 /* READ: what view.setReveal takes for a sheet — {points, paths, radiusM} (the area fog), a list of ids (room by room),
    or null = the whole sheet (no row for its kind, or the campaign's fog is off). Derived at every read from the visit
    record and the party marker; writes nothing. */
-function atlasReveal(zoneId){
+function atlasReveal(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return null;}
   var A=atlasLive(),rec=A?A.zones[zoneId]:null,row=rec?atlasRow(ATLAS_FOG,rec.kind):null,doc,seen,m,at,legs,i,xy,stands=[],ways=[],a,b,drawn,ks,pre;
   if(!row||A.fog===false)return null;
   doc=atlasDoc(zoneId);drawn=_atlasDrawn[atlasChainKey(A,zoneId)]||null;seen=A.seen?A.seen[zoneId]:null;
@@ -1508,7 +1510,7 @@ function atlasRevealNone(zoneId){
   return row.radiusM?{points:[],paths:[],radiusM:row.radiusM}:[];
 }
 /* READ: does a sheet show the player this thing of its own? (a way down the town's sheet shows is a way up the sewer's sheet may draw) */
-function atlasThingShown(zoneId,t){
+function atlasThingShown(zoneId,t){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return !!atlasThingById(atlasPublicDoc(zoneId),t.id);}
   var A=atlasLive(),rec=A?A.zones[zoneId]:null,spec,row;
   if(!rec||!t)return false;
   spec=atlasReveal(zoneId);
@@ -1586,7 +1588,7 @@ function atlasSeenHeal(A){
    show it); unvisited = it leads to a zone the party has not entered (never shown: no peeking); added = a line when the
    thing is what the engine added for the story's current name, or lies inside it (We are here would place nothing).
    null = nothing to say. */
-function atlasCard(zoneId,target){
+function atlasCard(zoneId,target){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicCard(zoneId,target);}
   var A=atlasLive(),rec=A?A.zones[zoneId]:null,doc,t,leads=null,trail,b,gone,pv,p,add,added=null;
   if(!rec||!target)return null;
   doc=atlasDoc(zoneId);trail=A.at?atlasTrail(A.at):[];
@@ -1651,7 +1653,7 @@ function atlasBriefCut(text,cap){
   at=Math.max(text.lastIndexOf(". ",cap),text.lastIndexOf(".\n",cap),text.lastIndexOf("; ",cap));
   return text.slice(0,at>0?at+1:cap).replace(/\s+$/,"")+ATLAS_BRIEF_CUT;
 }
-function atlasMapBlock(){
+function atlasMapBlock(){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasKnowledgePrompt();}
   var A=atlasLive(),p=A?atlasPointer():null,where,zone,sheet;
   if(!A)return "";
   try{
@@ -1680,6 +1682,7 @@ function atlasShapeProblem(A){
   if(!A||typeof A!=="object")return "it is not an object";
   if(typeof A.v!=="number")return "it has no version";
   if(A.v>ATLAS_VER)return null;/* a newer build's store: atlasLive leaves it alone */
+  if(Object.prototype.hasOwnProperty.call(A,"knowledge")&&A.knowledge!==1)return "unknown public map mode";
   if(typeof A.seed!=="string"||!A.seed)return "it has no seed";
   if(!A.zones||typeof A.zones!=="object")return "it has no zones";
   if(!A.zones[A.seed]||A.zones[A.seed].kind!=="region"||A.zones[A.seed].parent||!A.zones[A.seed].params||A.zones[A.seed].params.seed!==A.seed)return "its region recipe is missing or does not carry the campaign seed";
@@ -1712,7 +1715,7 @@ function atlasHeal(){
   if(!(A.told instanceof Array)){A.told=[];changed=true;}
   if(!A.kinds||typeof A.kinds!=="object"){A.kinds=keyedDict();changed=true;}/* #708 */
   if(!A.notes||typeof A.notes!=="object"){A.notes=keyedDict();changed=true;}/* #711 round 4: the player's notes on map things */
-  if(atlasSeenHeal(A))changed=true;/* #717: the visit record — a campaign mapped before the fog starts from now */
+  if(!(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive())&&atlasSeenHeal(A))changed=true;/* #717: the visit record — a campaign mapped before the fog starts from now */
   keys=Object.keys(A.kinds);
   for(i=0;i<keys.length;i++)if(A.kinds[keys[i]]&&A.kinds[keys[i]].kind==="pending"){A.kinds[keys[i]]={kind:"unknown",why:"the game closed before the map learned what kind of place it is",by:"load",turn:atlasTurn()};changed=true;}/* #708: an ask that never came back is a refusal with its reason, never a village */
   keys=Object.keys(A.adds);

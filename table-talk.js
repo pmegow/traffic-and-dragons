@@ -211,7 +211,7 @@ function ttStateBlock(){
   if(c.abilities&&c.abilities.length){var ab=[];for(i=0;i<c.abilities.length;i++)ab.push(c.abilities[i].nm);s.push("Abilities: "+ab.join(", "));}
   if(c.conditions&&c.conditions.length){var cd=[];for(i=0;i<c.conditions.length;i++)cd.push(c.conditions[i].name);s.push("Conditions: "+cd.join(", "));}
   if(worldState.combat&&worldState.combat.foes){var fo=[];for(i=0;i<worldState.combat.foes.length;i++){var f=worldState.combat.foes[i];fo.push(f.name+" "+f.hp+"/"+f.maxHp+(f.down?" ("+f.down+")":""));}s.push("IN COMBAT — round "+worldState.combat.round+": "+fo.join(", "));}
-  var geo=(typeof buildGeoBlock==="function")?buildGeoBlock():"";
+  var geo=(typeof buildGeoBlock==="function")?buildGeoBlock("player"):"";
   var qb=(typeof buildQuestBlock==="function")?buildQuestBlock():"";
   return s.join("\n")+(geo?"\n\n"+geo:"")+(qb?"\n\n"+qb:"");
 }

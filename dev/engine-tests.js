@@ -59,6 +59,118 @@ function runEngineTests(R){
   // Fresh minimal world for state tests — mirrors the harness character shape.
   function makeWorld(){ __makeWorldState();__toasts.length=0; }
 
+  section("#733 map knowledge");
+  function geo733(events,ctx,store){return MapKnowledge.prepare(store||MapKnowledge.create(),events,ctx||{channel:"gm",commit:"turn-9",turn:9,container:"The Boundary Clearing",text:"Bear Spring lies southwest. The Boar Tree stands north. The Waystone Arch stands south."});}
+  function spring733(){return {op:"disclose",id:"new",label:"Bear Spring",kind:"spring",bearing:"SW",mode:"observed",quote:"Bear Spring lies southwest."};}
+  t("K01 no disclosed features means an empty public projection",function(){return MapKnowledge.project(MapKnowledge.create(),"The Boundary Clearing","player").features.length===0;});
+  t("K03 three stationary discoveries need no location mutation",function(){
+    makeWorld();var before=JSON.stringify(worldState),r=geo733([spring733(),{op:"disclose",id:"new",label:"The Boar Tree",kind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."},{op:"disclose",id:"new",label:"The Waystone Arch",kind:"arch",bearing:"S",mode:"observed",quote:"The Waystone Arch stands south."}]);
+    return r.ok&&MapKnowledge.project(r.state,"The Boundary Clearing","player").features.length===3&&JSON.stringify(worldState)===before;
+  });
+  t("K02 a generic hut carries no private owner or interior",function(){
+    var e={op:"disclose",id:"new",label:"a hut",kind:"hut",bearing:"unknown",mode:"observed",quote:"You see a hut."},r=geo733([e],{channel:"gm",commit:"h",turn:1,container:"Clearing",text:e.quote});
+    if(!r.ok)return r.reason;var p=MapKnowledge.project(r.state,"Clearing","player");p.features[0].label="changed";
+    return r.state.features.f1.label==="a hut"&&JSON.stringify(p).indexOf("Stalgind")<0&&!p.features[0].owner;
+  });
+  t("K05 hidden tag with absent source refuses without mutating input",function(){var s=MapKnowledge.create(),before=JSON.stringify(s),r=geo733([spring733()],{channel:"gm",commit:"x",turn:9,container:"Clearing",text:"Night settles."},s);return !r.ok&&/source/.test(r.reason)&&JSON.stringify(s)===before;});
+  t("K05 a private attribute is not smuggled through a disclosure",function(){var e=spring733();e.owner="Stalgind";var r=geo733([e]);return !r.ok&&/owner/.test(r.reason);});
+  t("K05 a later malformed event leaves the entire prepared group uninstalled",function(){var s=MapKnowledge.create(),bad=spring733();bad.bearing="constructor";var r=geo733([spring733(),bad],null,s);return !r.ok&&Object.keys(s.features).length===0;});
+  t("K08 Table Talk and sync cannot authorize disclosure",function(){var channels=["tabletalk","sync","import","constructor"],i;for(i=0;i<channels.length;i++)if(geo733([spring733()],{channel:channels[i],commit:"c",turn:9,container:"Clearing",text:spring733().quote}).ok)return "accepted "+channels[i];return true;});
+  t("K08 retry is idempotent and a changed payload under the same receipt refuses",function(){var e=spring733(),a=geo733([e]);if(!a.ok)return a.reason;var b=geo733([e],null,a.state);e.bearing="N";var c=geo733([e],null,a.state);return b.ok&&b.duplicate&&JSON.stringify(a.state)===JSON.stringify(b.state)&&!c.ok;});
+  t("K04 a reported site remains reported, without a visited flag",function(){var e=spring733();e.mode="reported";var r=geo733([e]);if(!r.ok)return r.reason;var f=MapKnowledge.project(r.state,"The Boundary Clearing","player").features[0];return f.mode==="reported"&&!f.visited&&!f.metres;});
+  t("K12 scope and audience are closed boundaries",function(){var r=geo733([spring733()]);if(!r.ok)return r.reason;try{MapKnowledge.project(r.state,"The Boundary Clearing","constructor");return "unknown audience accepted";}catch(e){}return MapKnowledge.project(r.state,"Elsewhere","player").features.length===0;});
+  t("K10 round trip retains receipts and projection; reads are pure",function(){var r=geo733([spring733()]);if(!r.ok)return r.reason;var s=JSON.parse(JSON.stringify(r.state)),before=JSON.stringify(s),p=MapKnowledge.project(s,"The Boundary Clearing","player");return p.features[0].source.quote===spring733().quote&&MapKnowledge.problem(s)===""&&JSON.stringify(s)===before;});
+  t("K11 unknown versions and dangling receipts refuse without repair",function(){var s=MapKnowledge.create();s.v=99;var r=geo733([spring733()],null,s);if(r.ok||s.v!==99)return "new version overwritten";s=geo733([spring733()]).state;delete s.receipts["turn-9"];return !!MapKnowledge.problem(s);});
+  t("K15 duplicate reads and retries do not accumulate records",function(){var e=spring733(),r=geo733([e]),s=r.state,before=JSON.stringify(s),i;for(i=0;i<100;i++){MapKnowledge.project(s,"The Boundary Clearing","player");r=geo733([e],null,s);if(!r.ok)return r.reason;}return JSON.stringify(s)===before;});
+
+  t("K02 disclosure cannot replace known kind, bearing, or observed status",function(){
+    var first=geo733([spring733()]),ctx={channel:"gm",commit:"later",turn:10,container:"The Boundary Clearing",text:"Bear Spring lies southwest."},changes=[{kind:"hut"},{bearing:"unknown"},{bearing:"N"},{mode:"reported"}],i,k,e,r;
+    for(i=0;i<changes.length;i++){e=spring733();e.id="f1";for(k in changes[i])e[k]=changes[i][k];r=MapKnowledge.prepare(first.state,[e],ctx);if(r.ok)return "weakened "+JSON.stringify(changes[i]);}return true;
+  });
+  t("K11 duplicate source identity and inherited event fields refuse",function(){
+    var s=geo733([spring733()]).state;s.features.f2=JSON.parse(JSON.stringify(s.features.f1));s.features.f2.id="f2";s.next=3;if(!MapKnowledge.problem(s))return "two identities shared one source";
+    var e=Object.create(spring733());return !geo733([e]).ok;
+  });
+  t("K12 canonical container resolution keeps discoveries after a rename",function(){
+    var s=geo733([spring733()]).state,p=MapKnowledge.project(s,"New Clearing","player",function(k){return k==="The Boundary Clearing"?"New Clearing":k;});return p.features.length===1&&s.features.f1.container==="The Boundary Clearing";
+  });
+  t("K11 a null store is refused with the map knowledge reason",function(){try{MapKnowledge.project(null,"Here","player");return false;}catch(e){return /MapKnowledge: unsupported/.test(e.message);}});
+
+  function capacity733(featureCount,receiptCount){
+    var s=MapKnowledge.create(),i,e,key;s.revision=receiptCount;s.next=featureCount+1;
+    for(i=0;i<receiptCount;i++){
+      key="cap-"+i;e={op:"disclose",id:"new",label:"Feature "+i,kind:"landmark",bearing:"unknown",mode:"observed",quote:"Feature "+i+" is here."};
+      s.receipts[key]={turn:i,container:"Capacity Place",events:[e]};
+      if(i<featureCount)s.features["f"+(i+1)]={id:"f"+(i+1),container:"Capacity Place",label:e.label,kind:e.kind,bearing:e.bearing,mode:e.mode,receipt:key,event:0};
+    }
+    return s;
+  }
+  t("K05 prepare detaches success and a later candidate refusal from input",function(){
+    var s=MapKnowledge.create(),before=JSON.stringify(s),e=spring733(),r=geo733([e],null,s);
+    if(!r.ok||JSON.stringify(s)!==before)return "successful prepare mutated its input";
+    r.state.receipts["turn-9"].events[0].quote="Changed";if(e.quote!=="Bear Spring lies southwest.")return "candidate retained caller event";
+    s=geo733([spring733()]).state;before=JSON.stringify(s);e=spring733();e.id="f1";e.bearing="N";
+    r=geo733([{op:"disclose",id:"new",label:"The Boar Tree",kind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."},e],{channel:"gm",commit:"later",turn:10,container:"The Boundary Clearing",text:"The Boar Tree stands north. Bear Spring lies southwest."},s);
+    return !r.ok&&JSON.stringify(s)===before;
+  });
+  t("K05 event vocabulary and source label checks are closed",function(){
+    var changes=[{op:"place"},{id:"f0"},{kind:"constructor"},{bearing:"constructor"},{mode:"constructor"},{label:"Other Spring"},{label:""},{quote:""}],i,k,e;
+    for(i=0;i<changes.length;i++){e=spring733();for(k in changes[i])e[k]=changes[i][k];if(!MapKnowledge.eventProblem(e)||geo733([e]).ok)return "accepted "+JSON.stringify(changes[i]);}
+    e=spring733();delete e.mode;return !!MapKnowledge.eventProblem(e)&&!geo733([e]).ok;
+  });
+  t("K11 current schema rejects extra store feature and receipt fields",function(){
+    var first=geo733([spring733()]).state,i,s;
+    for(i=0;i<4;i++){s=JSON.parse(JSON.stringify(first));if(i===0)s.private="secret";if(i===1)s.features.f1.owner="Stalgind";if(i===2)s.receipts["turn-9"].private="secret";if(i===3)s.receipts["turn-9"].events[0].private="secret";if(!MapKnowledge.problem(s))return "accepted extra field "+i;}
+    return true;
+  });
+  t("K11 source references and projected attributes must agree",function(){
+    var first=geo733([spring733()]).state,i,s;
+    for(i=0;i<8;i++){
+      s=JSON.parse(JSON.stringify(first));
+      if(i===0)s.features.f1.label="Other Spring";if(i===1)s.features.f1.kind="hut";if(i===2)s.features.f1.bearing="N";if(i===3)s.features.f1.mode="reported";
+      if(i===4)s.features.f1.event=1;if(i===5)s.receipts["turn-9"].container="Elsewhere";if(i===6)s.receipts["turn-9"].events[0].id="f2";if(i===7)s.features.f1.event=-1;
+      if(!MapKnowledge.problem(s))return "accepted dishonest source "+i;
+    }
+    return true;
+  });
+  t("K12 foreign handles and colliding public labels refuse",function(){
+    var first=geo733([spring733(),{op:"disclose",id:"new",label:"The Boar Tree",kind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."}]).state;
+    var ctx={channel:"gm",commit:"later",turn:10,container:"The Boundary Clearing",text:"Bear Spring lies southwest. The Boar Tree stands north."},e=spring733();
+    if(MapKnowledge.prepare(first,[e],ctx).ok)return "new duplicate label";
+    e.id="f99";if(MapKnowledge.prepare(first,[e],ctx).ok)return "unknown handle";
+    e.id="f1";ctx.container="Elsewhere";if(MapKnowledge.prepare(first,[e],ctx).ok)return "foreign handle";
+    ctx.container="The Boundary Clearing";e.label="The Boar Tree";e.quote="The Boar Tree stands north.";return !MapKnowledge.prepare(first,[e],ctx).ok;
+  });
+  t("K15 stored feature and receipt caps accept the boundary and reject overflow",function(){
+    if(MapKnowledge.problem(capacity733(4096,4096)))return "feature boundary refused";
+    if(MapKnowledge.problem(capacity733(1,8192)))return "receipt boundary refused";
+    if(!MapKnowledge.problem(capacity733(4097,4097)))return "feature overflow accepted";
+    return !!MapKnowledge.problem(capacity733(1,8193));
+  });
+  t("K15 full stores refuse additions without evicting prior evidence",function(){
+    var s=capacity733(4096,4096),before=JSON.stringify(s),e={op:"disclose",id:"new",label:"An extra landmark",kind:"landmark",bearing:"unknown",mode:"observed",quote:"An extra landmark is here."};
+    var ctx={channel:"gm",commit:"extra",turn:9000,container:"Capacity Place",text:e.quote},r=MapKnowledge.prepare(s,[e],ctx);
+    if(r.ok||!/capacity/.test(r.reason)||JSON.stringify(s)!==before)return "feature cap failed";
+    s=capacity733(1,8192);before=JSON.stringify(s);e=JSON.parse(JSON.stringify(s.receipts["cap-0"].events[0]));e.id="f1";ctx.text=e.quote;r=MapKnowledge.prepare(s,[e],ctx);
+    return !r.ok&&/capacity/.test(r.reason)&&JSON.stringify(s)===before;
+  });
+  t("K15 event batch cap admits sixteen and refuses seventeen atomically",function(){
+    var events=[],i,e,ctx={channel:"gm",commit:"many",turn:10,container:"Clearing",text:""},s=MapKnowledge.create(),before=JSON.stringify(s),r;
+    for(i=0;i<17;i++){e={op:"disclose",id:"new",label:"Tree "+i,kind:"tree",bearing:"unknown",mode:"observed",quote:"Tree "+i+" stands here."};events.push(e);ctx.text+=e.quote+" ";}
+    r=MapKnowledge.prepare(s,events.slice(0,16),ctx);if(!r.ok||Object.keys(r.state.features).length!==16)return "sixteen refused";
+    r=MapKnowledge.prepare(s,events,ctx);return !r.ok&&JSON.stringify(s)===before;
+  });
+  t("K15 exhausted or reused identity counters never advance",function(){
+    var s=MapKnowledge.create(),before,r;s.next=9007199254740990;before=JSON.stringify(s);r=geo733([spring733()],null,s);if(r.ok||JSON.stringify(s)!==before)return "exhausted identity advanced";
+    s=MapKnowledge.create();s.revision=9007199254740990;before=JSON.stringify(s);r=geo733([spring733()],null,s);if(r.ok||JSON.stringify(s)!==before)return "exhausted revision advanced";
+    s=geo733([spring733()]).state;s.next=1;return !!MapKnowledge.problem(s);
+  });
+  t("K11 malformed source context and counters are refused",function(){
+    var base={channel:"gm",commit:"x",turn:9,container:"Clearing",text:spring733().quote},changes=[{commit:""},{turn:1.5},{turn:-1},{container:""},{text:17}],i,k,c,s;
+    for(i=0;i<changes.length;i++){c=JSON.parse(JSON.stringify(base));for(k in changes[i])c[k]=changes[i][k];if(geo733([spring733()],c).ok)return "accepted context "+i;}
+    s=MapKnowledge.create();s.revision=-1;if(!MapKnowledge.problem(s))return "negative revision";s=MapKnowledge.create();s.next=1.5;return !!MapKnowledge.problem(s);
+  });
+
   section("blueprint editions");
   t("legacy defaults and explicit malformed editions",function(){
     var b=normalizeBlueprint({format:"tnd-blueprint-v1",name:"Legacy",premise:"Story"});
@@ -9269,7 +9381,7 @@ function runEngineTests(R){
     // #408 (v1.926): +LAYOUT strip entry — source grew exactly 7 chars = "LAYOUT|". The room graph is engine-only in the
     // doc (the doc golden is byte-unchanged) but MUST strip: a leaked [LAYOUT:] would read the floor plan aloud in TTS
     // and put it in the transcript's clean text. Golden diffed by eye in the same commit.
-    if(__djb2(_CT_TAGS.source)!==536052231||_CT_TAGS.source.length!==1841)return "_CT_TAGS diverged from the frozen literal";/* #702 (v1.1362): MAP_PLACE joins the strip vocabulary (+10) *//* #612 (v1.1241): COMBAT_GROUP joins the strip vocabulary (+13) *//* #481 B4 (2026-09-30): SHOP_KEEPER joins the strip vocabulary (+12) *//* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==359050111||_CT_TAGS.source.length!==1852)return "_CT_TAGS diverged from the frozen literal";/* MAP_REVEAL is stripped in every channel; only a canonical narrated commit publishes its validated readable receipt. *//* #702 (v1.1362): MAP_PLACE joins the strip vocabulary (+10) *//* #612 (v1.1241): COMBAT_GROUP joins the strip vocabulary (+13) *//* #481 B4 (2026-09-30): SHOP_KEEPER joins the strip vocabulary (+12) *//* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -34869,10 +34981,10 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
       var ad=sheetAdmit(sh,{door:"quick start",mode:"cross",stage:"preview",rel:null,toast:false});if(!ad.ok||!ad.sheet.inventory.every(function(x){return typeof x==="object";}))return cat[i].file+" heals to rows on adoption: "+JSON.stringify(ad.reason);}
     return true;
   });
-  t("#599c what this build stamps: SAVE_VER and SHEET_VER are 11; a new world, a portable sheet and a healed sheet say so; the version gate refuses 12 and passes 10",function(){
-    if(SAVE_VER!==11||SHEET_VER!==11)return "the (c) shape is v11: "+SAVE_VER+"/"+SHEET_VER;
+  t("#599c what this build stamps: inventory sheet v11 survives world v12; newer worlds and sheets are refused",function(){
+    if(SAVE_VER!==12||SHEET_VER!==11)return "public geography world v12 retains inventory sheet v11: "+SAVE_VER+"/"+SHEET_VER;
     if(portableSheet({name:"P",inventory:["Rope"]}).sheetVer!==11)return "portableSheet stamps 11";
-    if(worldVersionIssue({ver:12,character:{name:"x"}})===""||worldVersionIssue({ver:10,character:{name:"x",inventory:["Rope"]}})!==""||sheetVersionIssue({name:"s",sheetVer:12})===""||sheetVersionIssue({name:"s",sheetVer:11})!=="")return "the gate refuses 12 and passes 10 and 11";
+    if(worldVersionIssue({ver:13,character:{name:"x"}})===""||worldVersionIssue({ver:10,character:{name:"x",inventory:["Rope"]}})!==""||sheetVersionIssue({name:"s",sheetVer:12})===""||sheetVersionIssue({name:"s",sheetVer:11})!=="")return "the gate refuses world 13 and sheet 12 while accepting supported legacy shapes";
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(g.indexOf("worldState={ver:SAVE_VER,")<0)return "startGame stamps SAVE_VER";
     if(worldSheetsOf({character:{name:"h"},npcs:[{name:"n",charSheet:{name:"n"}},{name:"bare"}],pendingLegacy:{name:"p"},mpFallen:[{name:"f",sheet:{name:"f"}}]}).map(function(x){return x.who;}).join("|")!=="hero|roster n|pending legacy p|fallen f")return "worldSheetsOf walks every sheet a world carries";
     return true;

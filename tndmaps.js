@@ -1,11 +1,11 @@
-/* TnD Maps 0.18.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.19.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.18.0";
+  NS.VERSION = "0.19.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -6736,6 +6736,9 @@
         labelFloor: { font: SERIF, size: 11, style: "italic", letterSpacing: 2.5, fill: soft, halo: paper, haloWidth: 2.6 },
         labelDistrict: { font: SERIF, size: 13, style: "italic", letterSpacing: 3, fill: soft, halo: paper, haloWidth: 2.6, back: { shape: "plaque", s: "slip" } },
         /* the town's own label sizes: its sheet is 800 × 550 at 1.25 m a unit, half the region's, so its labels are three quarters the size */
+        /* Sparse public sheets are usually viewed whole in a narrow game pane. Their labels must survive fit. */
+        schematicLabel: { font: SERIF, size: 22, letterSpacing: 0.4, fill: ink, halo: paper, haloWidth: 2.1, back: { shape: "banner", s: "slip" } },
+        schematicList: { font: SERIF, size: 18, letterSpacing: 0.3, fill: ink, halo: paper, haloWidth: 2.5 },
         townLandmark: { font: SERIF, size: 8, letterSpacing: 0.5, fill: ink, halo: paper, haloWidth: 2.1, back: { shape: "banner", s: "slip" } },
         townGate: { font: SERIF, size: 7.2, style: "italic", letterSpacing: 0.4, fill: soft, halo: paper, haloWidth: 1.9, back: { shape: "plain", s: "slip" } },
         townShop: { font: SERIF, size: 6.5, style: "italic", fill: soft, halo: paper, haloWidth: 1.8, back: { shape: "plaque", s: "slip" } },
@@ -7139,7 +7142,7 @@
     out.push(plainText(subtitle, "subtitle", X + W / 2, Y + 72, style));
     lay.block(X + W / 2, Y + 48, tw + 60, 70);
     compassRose(X + W - 62, Y + 68, 34, out, style); lay.block(X + W - 62, Y + 66, 90, 100);
-    scaleBar(frame, X + 34, Y + H - 42, out, lay, style);
+    if (frame.precision !== "schematic") scaleBar(frame, X + 34, Y + H - 42, out, lay, style);
   }
 
   /* the view's HUD (v0.15.0): the sheet's title and subtitle, a compass and a scale bar drawn SCREEN-FIXED in CSS pixels —
@@ -7200,6 +7203,11 @@
     /* the compass, top right — below the title's plaque when that would reach it */
     cy = (w / 2 + pw / 2 > w - 56) ? 8 + ph + 28 : 32;
     compassRose(w - 30, cy, 17, out, style);
+    if (doc.frame.precision === "schematic") {
+      out.push(plaque(8, h - 38, 176, 30));
+      out.push(plainText("Schematic — not to scale", "hudSmall", 96, h - 18, style));
+      return out;
+    }
     /* the scale bar, bottom left: a fifth of the view wide, re-measured at this zoom */
     bw = Math.max(48, Math.min(220, w * 0.2));
     c = scaleChoice(doc.frame.kmPerUnit / T.k, bw, doc.frame.travelKmPerDay);
@@ -7298,6 +7306,7 @@
     var name = doc.generator && doc.generator.name, builder = NS.own(BUILDERS, name), rv, style, sc;
     NS.assert(builder, "no scene builder for this document kind", { generator: doc.generator, known: Object.keys(BUILDERS) });
     rv = NS.scene.fog.spec(opts ? opts.reveal : null); style = NS.style.get(styleName);
+    NS.assert(!(rv && rv.area && builder.areaFog === false), "this scene has no measured ground for area fog");
     sc = builder(doc, style, U.extend({}, opts || {}, { reveal: rv ? rv.ids : (opts ? opts.reveal : undefined) }));
     return rv && rv.area ? NS.scene.fog.apply(sc, doc, rv.area) : sc;
   }
@@ -7605,6 +7614,7 @@
   /* what a marker is near, per generator: the reference points and how a distance reads at that scale */
   function fmtKm(k) { return k < 1 ? Math.max(50, Math.round(k * 20) * 50) + " m" : NS.digest.fmtKm(k); }
   var REFERENCES = {
+    schematic: function (doc) { NS.schematic.validate(doc); return { points: [], closeUnits: 0 }; },
     region: function (doc) {
       return { points: doc.places.map(function (p) { return { name: p.name, x: p.x, y: p.y, at: "at" }; }).concat((doc.caves || []).map(function (c) { return { name: c.name, x: c.x, y: c.y, at: "at the mouth of" }; })), closeUnits: 1 / doc.frame.kmPerUnit,
         dist: function (u) { var k = u * doc.frame.kmPerUnit; return { value: Math.round(k * 10) / 10, unit: "km", text: fmtKm(k) + (doc.frame.travelKmPerDay ? " (" + NS.digest.fmtDays(k / doc.frame.travelKmPerDay) + " on foot)" : "") }; } };
@@ -8420,6 +8430,113 @@
   NS.scene.fog = { spec: spec, apply: apply, FEATHER: FEATHER };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
+/* ───── 78-schematic.js ───── */
+/* 78-schematic.js — a public map is made only from the caller's accepted facts. No generated document, terrain,
+   private candidate, or metric unit enters this boundary. Anchors arrange facts; they never measure the world. */
+(function (root) {
+  "use strict";
+  var NS = root.TnDMaps, C = NS.scene.common, WIDTH = 800, HEIGHT = 550;
+  var SCALES = { region: 1, town: 1, wild: 1, interior: 1, dungeon: 1 };
+  var BEARINGS = { N: [0, -1], NE: [1, -1], E: [1, 0], SE: [1, 1], S: [0, 1], SW: [-1, 1], W: [-1, 0], NW: [-1, -1], unknown: [0, 0] };
+  var MODES = { observed: 1, reported: 1 };
+  var ICONS = { hut: "door", building: "door", room: "door", door: "door", arch: "door", cave: "cave", camp: "tent", stairs: "stairs", settlement: "tower", ruin: "tower", spring: "well", tree: "tree", bridge: "bridge" };
+  var MAX_FEATURES = 256;
+  function object(o) { return o && typeof o === "object" && !Array.isArray(o); }
+  function fields(o, allowed, where) {
+    NS.assert(object(o), where + " must be an object");
+    Object.keys(o).forEach(function (k) { NS.assert(allowed.indexOf(k) >= 0, where + " has an unsupported field: " + k); });
+  }
+  function string(s, max, where) { NS.assert(typeof s === "string" && s.length > 0 && s.length <= max && s.trim() === s && !/[\x00-\x1f\x7f]/.test(s), where + " must be nonempty text of at most " + max + " characters"); }
+  function point(p, height) { NS.assert(Array.isArray(p) && p.length === 2 && p.every(function (v) { return typeof v === "number" && isFinite(v); }) && p[0] >= 0 && p[0] <= WIDTH && p[1] >= 0 && p[1] <= (height || 450), "schematic anchor must be a point inside the frame"); }
+  function feature(f, input, height) {
+    fields(f, input ? ["id", "name", "kind", "bearing", "mode", "at"] : ["id", "name", "kind", "bearing", "mode", "x", "y", "unplaced"], "schematic feature");
+    string(f.id, 120, "schematic feature id"); string(f.name, 240, "schematic feature name"); string(f.kind, 40, "schematic feature kind");
+    NS.assert(NS.own(BEARINGS, f.bearing), "unknown schematic bearing", { bearing: f.bearing });
+    NS.assert(NS.own(MODES, f.mode), "unknown schematic knowledge mode", { mode: f.mode });
+    if (input) { if (f.at !== undefined) { NS.assert(f.bearing !== "unknown", "an unplaced schematic feature cannot carry an accepted anchor"); point(f.at); } }
+    else { point([f.x, f.y], height); NS.assert(f.unplaced === (f.bearing === "unknown"), "schematic unplaced flag must follow bearing knowledge"); }
+  }
+  function list(features, input, height) {
+    NS.assert(Array.isArray(features) && features.length <= MAX_FEATURES, "schematic features must be an array of at most " + MAX_FEATURES + " entries");
+    var ids = Object.create(null);
+    features.forEach(function (f) { feature(f, input, height); NS.assert(!NS.own(ids, f.id), "duplicate schematic feature id", { id: f.id }); ids[f.id] = true; });
+  }
+  /* Integer arithmetic keeps these illustrative anchors identical across engines. Only the feature's own id and
+     bearing choose its position, so adding another fact cannot move an accepted anchor. */
+  function anchor(f) {
+    if (f.at) return f.at.slice();
+    var h = NS.hash32(f.id, 733), b = NS.own(BEARINGS, f.bearing), r = 120 + h % 46, side = ((h >>> 8) % 45) - 22;
+    NS.assert(f.bearing !== "unknown", "unplaced features have list rows, not geographic anchors");
+    return [WIDTH / 2 + b[0] * r - b[1] * side, HEIGHT / 2 + b[1] * r + b[0] * side];
+  }
+  function schematic(spec) {
+    fields(spec, ["scale", "title", "features"], "schematic specification");
+    NS.assert(NS.own(SCALES, spec.scale), "unknown schematic scale", { scale: spec.scale }); string(spec.title, 240, "schematic title"); list(spec.features, true);
+    var unplaced = spec.features.filter(function (f) { return f.bearing === "unknown"; }).map(function (f) { return f.id; }).sort(), height = Math.max(HEIGHT, 520 + unplaced.length * 26);
+    return { format: NS.DOC_FORMAT, ver: NS.DOC_VER, generator: { name: "schematic", version: NS.VERSION },
+      frame: { width: WIDTH, height: height, precision: "schematic" }, title: { name: spec.title }, scale: spec.scale,
+      features: spec.features.map(function (f) { var unknown = f.bearing === "unknown", p = unknown ? [40, 510 + unplaced.indexOf(f.id) * 26] : anchor(f); return { id: f.id, name: f.name, kind: f.kind, bearing: f.bearing, mode: f.mode, x: p[0], y: p[1], unplaced: unknown }; }),
+      portals: [], warnings: [] };
+  }
+  function validate(doc) {
+    fields(doc, ["format", "ver", "generator", "frame", "title", "scale", "features", "portals", "warnings"], "schematic document");
+    fields(doc.frame, ["width", "height", "precision"], "schematic frame"); fields(doc.title, ["name"], "schematic title"); fields(doc.generator, ["name", "version"], "schematic generator");
+    string(doc.generator.version, 40, "schematic generator version");
+    NS.assert(doc.format === NS.DOC_FORMAT && doc.ver === NS.DOC_VER && doc.generator.name === "schematic", "not a supported schematic document");
+    NS.assert(doc.frame.width === WIDTH && doc.frame.height >= HEIGHT && doc.frame.height <= 520 + MAX_FEATURES * 26 && doc.frame.precision === "schematic", "schematic frame must be the unitless 800-wide sheet");
+    NS.assert(NS.own(SCALES, doc.scale), "unknown schematic scale", { scale: doc.scale }); string(doc.title.name, 240, "schematic title"); list(doc.features, false, doc.frame.height);
+    var unplaced = doc.features.filter(function (f) { return f.unplaced; }).map(function (f) { return f.id; }).sort();
+    NS.assert(doc.frame.height === Math.max(HEIGHT, 520 + unplaced.length * 26), "schematic frame must fit only its public unplaced list");
+    doc.features.forEach(function (f) { NS.assert(!f.unplaced || (f.x === 40 && f.y === 510 + unplaced.indexOf(f.id) * 26), "unplaced schematic feature must stay in the labelled list"); if (!f.unplaced) point([f.x, f.y]); });
+    NS.assert(Array.isArray(doc.portals) && doc.portals.length === 0 && Array.isArray(doc.warnings) && doc.warnings.length === 0, "schematic documents cannot carry generated portals or warnings");
+    return doc;
+  }
+  function label(f) { return f.name + (f.mode === "reported" ? " (reported)" : "") + (f.bearing === "unknown" ? " (position unknown)" : ""); }
+  /* Keep a long label readable instead of squeezing all its letters into the list. The hit record and digest
+     still expose the complete caller-supplied name; the suffix remains visible so reported knowledge stays clear. */
+  function fitText(text, suffix, key, width, style) {
+    var trimmed = text;
+    if (NS.style.textWidth(text + suffix, style.text[key]) <= width) return text + suffix;
+    while (trimmed.length && NS.style.textWidth(trimmed + "..." + suffix, style.text[key]) > width) trimmed = trimmed.slice(0, -1);
+    return trimmed + "..." + suffix;
+  }
+  function build(doc, style, opts) {
+    validate(doc); NS.assert(!opts || opts.reveal == null, "schematic maps take public features, not metric or room fog");
+    var layers = [], hits = [], lay = C.Layout(WIDTH, doc.frame.height, style), unknown = doc.features.some(function (f) { return f.unplaced; });
+    function layer(name) { var items = []; layers.push({ name: name, items: items }); return items; }
+    var frame = layer("frame"), furn = layer("furniture"), marks = layer("features"), labels = layer("labels");
+    C.furniture(doc.frame, fitText(doc.title.name, "", "title", WIDTH - 80, style), "Schematic — distances and sizes are not established", style, furn, lay, frame);
+    if (unknown) {
+      frame.push({ t: "path", pts: [[20, 465], [WIDTH - 20, 465], [WIDTH - 20, doc.frame.height - 18], [20, doc.frame.height - 18]], closed: true, s: "frameInner" });
+      labels.push(C.plainText("Position not established", "schematicList", WIDTH / 2, 488, style));
+      lay.block(WIDTH / 2, (465 + doc.frame.height) / 2, WIDTH, doc.frame.height - 465);
+    }
+    doc.features.forEach(function (f) { if (!f.unplaced) lay.block(f.x, f.y, 22, 22); });
+    doc.features.forEach(function (f) {
+      var icon = NS.own(ICONS, f.kind), cmd;
+      if (f.unplaced) {
+        cmd = C.plainText(fitText(f.name, label(f).slice(f.name.length), "schematicList", WIDTH - 80, style), "schematicList", f.x, f.y, style); cmd.anchor = "start"; cmd.meta = { kind: "feature", id: f.id }; cmd.box = [f.x - 3, f.y - 21, f.x + cmd.width + 3, f.y + 5]; labels.push(cmd);
+        hits.push({ t: "hit", kind: "feature", id: f.id, x: f.x, y: f.y, r: 0, box: cmd.box }); return;
+      }
+      if (icon && NS.own(NS.icons.ICONS, icon)) NS.icons.draw(icon, f.x, f.y, 22, marks);
+      else marks.push({ t: "circle", x: f.x, y: f.y, r: 4, s: "placeRing" });
+      hits.push({ t: "hit", kind: "feature", id: f.id, x: f.x, y: f.y, r: 12 });
+      cmd = lay.place(label(f), "schematicLabel", [{ x: f.x + 18, y: f.y + 7, anchor: "start" }, { x: f.x - 18, y: f.y + 7, anchor: "end" }, { x: f.x, y: f.y - 38 }, { x: f.x, y: f.y + 42 }], { kind: "feature", id: f.id });
+      if (cmd) { labels.push(cmd); C.hitBox(hits, "feature", f.id, cmd.box); }
+    });
+    layers.push({ name: "hits", items: hits });
+    return { width: WIDTH, height: doc.frame.height, style: style.name, layers: layers, dropped: lay.dropped, unit: 1, precision: "schematic" };
+  }
+  function digest(doc) {
+    validate(doc);
+    return { text: doc.title.name + ". Schematic: no distances or travel times are established." + (doc.features.length ? "\n" + doc.features.map(function (f) { return label(f) + " — " + (f.bearing === "unknown" ? "position unknown" : f.bearing) + "."; }).join("\n") : "\nNo landmarks have been supplied."),
+      facts: doc.features.map(function (f) { return { kind: "feature", id: f.id, name: f.name, featureKind: f.kind, bearing: f.bearing, mode: f.mode, precision: "schematic" }; }) };
+  }
+  NS.schematic = schematic; NS.schematic.validate = validate; NS.schematic.SCALES = SCALES; NS.schematic.BEARINGS = BEARINGS; NS.schematic.MAX_FEATURES = MAX_FEATURES;
+  build.areaFog = false;
+  NS.scene.BUILDERS.schematic = build; NS.digest.DIGESTS.schematic = digest;
+})(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
+
 /* ───── 80-render-svg.js ───── */
 /* 80-render-svg.js — scene → SVG string. One <g> per layer; every colour and width comes from the style table. A text
    command is drawn at the width the layout gave it (textLength), so the letters always sit inside their slip even
@@ -8824,7 +8941,7 @@
       /* select(kind, id) keeps a ring on that thing until select(null); it survives setDoc and setMarkers */
       select: function (kind, id) { selected = kind ? { kind: kind, id: id } : null; schedule(); return api; },
       selected: function () { return selected; },
-      setDoc: function (d, keepView) { doc = d; hover = null; clearPress(); markers = []; reveal = null; rebuildScene(); if (keepView) { baseDirty = true; schedule(); } else fit(); return api; },
+      setDoc: function (d, keepView) { var nextScene = NS.scene.build(d, styleName, { reveal: null }); doc = d; hover = null; clearPress(); markers = []; reveal = null; baseScene = nextScene; compose(); if (keepView) { baseDirty = true; schedule(); } else fit(); return api; },
       /* setMarkers(list) — the pins drawn over this document (see TnDMaps.markers); a bad list is refused here, loudly */
       setMarkers: function (list) { list = (list || []).slice(); NS.markers.validate(list, doc.frame); markers = list; hover = null; if (baseScene) compose(); schedule(); return api; },
       markers: function () { return markers; },
@@ -8847,8 +8964,8 @@
          is baked into the base bitmap: a pan or a zoom costs nothing more */
       setReveal: function (r) {
         NS.scene.fog.spec(r);
-        reveal = r === undefined || r === null ? null : Array.isArray(r) ? r.slice() : JSON.parse(JSON.stringify(r));
-        rebuildScene(); schedule(); return api;
+        var next = r === undefined || r === null ? null : Array.isArray(r) ? r.slice() : JSON.parse(JSON.stringify(r)), nextScene = NS.scene.build(doc, styleName, { reveal: next });
+        reveal = next; baseScene = nextScene; compose(); schedule(); return api;
       },
       reveal: function () { return reveal === null ? null : Array.isArray(reveal) ? reveal.slice() : JSON.parse(JSON.stringify(reveal)); },
       fit: function () { fit(); return api; },
@@ -8901,6 +9018,7 @@
   var NS = root.TnDMaps;
 
   NS.GENERATORS = {
+    schematic: { generate: NS.schematic, validate: NS.schematic.validate, metric: false, defaults: {}, describe: "Public schematic: supplied features only, without measured distances." },
     region: { generate: NS.region.generate, defaults: NS.region.DEFAULTS, validate: NS.region.validate, describe: "Region or continent: coast, rivers, relief, settlements, roads, names." },
     town: { generate: NS.town.generate, defaults: NS.town.DEFAULTS, validate: NS.town.validate, describe: "Town plan for one settlement: wards, streets, walls, landmarks, buildings, fields; nests in a region place via TnDMaps.town.fromRegion." },
     dungeon: { generate: NS.dungeon.generate, defaults: NS.dungeon.DEFAULTS, validate: NS.dungeon.validate, describe: "What lies beneath or beyond: the sewers under a town's streets (TnDMaps.dungeon.fromTown), the catacombs beneath them and the caves behind a region's cave mouth (TnDMaps.dungeon.fromRegion), each level with its chambers and its portals up and down (TnDMaps.dungeon.fromDungeon)." },
@@ -8932,11 +9050,12 @@
     NS.assert(doc && typeof doc === "object", "document must be an object", { got: typeof doc });
     NS.assert(doc.format === NS.DOC_FORMAT, "document format must be " + NS.DOC_FORMAT, { format: doc.format });
     NS.assert(doc.ver === NS.DOC_VER, "document ver " + doc.ver + " is not " + NS.DOC_VER + " — run TnDMaps.migrate first", { ver: doc.ver });
-    NS.assert(doc.frame && doc.frame.width > 0 && doc.frame.height > 0 && doc.frame.kmPerUnit > 0, "document frame is malformed", { frame: doc.frame });
+    NS.assert(doc.frame && doc.frame.width > 0 && doc.frame.height > 0, "document frame is malformed", { frame: doc.frame });
     NS.assert(doc.title && typeof doc.title.name === "string", "document.title.name must be a string", { title: doc.title });
     var gen = doc.generator && NS.own(NS.GENERATORS, doc.generator.name);
     NS.assert(gen, "document.generator.name must be a known generator", { generator: doc.generator, known: Object.keys(NS.GENERATORS) });
     NS.assert(Array.isArray(doc.warnings), "document.warnings must be an array", { warnings: doc.warnings });
+    NS.assert(gen.metric === false || doc.frame.kmPerUnit > 0, "metric document frame needs kmPerUnit", { frame: doc.frame });
     return gen.validate(doc);
   }
   /* migrations: a table from version → the function that lifts a document to version + 1 */

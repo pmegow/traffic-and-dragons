@@ -796,7 +796,7 @@ try {
     var _eoM = _eoTT.match(/var TAG_DOC_ENGINE_ONLY=(\[[^\]]*\]);/);
     if (!_eoM) _failBE("TAG_DOC_ENGINE_ONLY is gone from tag_table.js");
     var _eoList = JSON.parse(_eoM[1]);
-    var _eoSrc = ["api.js", "identity.js", "memory.js", "clock.js", "atlas.js"].map(function (f) { return _fsBE.readFileSync(_pathBE.join(__dirname, "..", f), "utf8"); }).join("\n");/* #702: the MAP block (atlas.js) teaches [MAP_PLACE:] */
+    var _eoSrc = ["api.js", "identity.js", "memory.js", "clock.js", "atlas.js", "atlas-knowledge.js"].map(function (f) { return _fsBE.readFileSync(_pathBE.join(__dirname, "..", f), "utf8"); }).join("\n");/* #702: the MAP block (atlas.js) teaches [MAP_PLACE:] */
     _eoList.forEach(function (t) {
       if (_eoSrc.indexOf(t + ":") < 0) _failBE("engine-only tag " + t + " is taught by NO engine note — a GM can never learn its syntax (#311 ①)");
     });
