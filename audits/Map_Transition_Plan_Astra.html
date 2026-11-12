@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Map Transition Plan — Astra · Traffic and Dragons</title>
+<style>
+:root{--paper:#f6f3ec;--panel:#fffdf8;--ink:#242d2b;--muted:#59635e;--rule:#d5d1c5;--acc:#91601a;--wash:#eee7d7;--green:#3e6757;--red:#873f35}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:28px}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}a{color:var(--acc);text-underline-offset:3px}a:hover{color:#5d3b08}a:focus-visible,summary:focus-visible{outline:3px solid var(--acc);outline-offset:5px}header{padding:64px max(28px,calc((100vw - 1240px)/2)) 44px;background:var(--panel);border-bottom:1px solid var(--rule)}.eyebrow{font:700 12px/1.5 ui-monospace,Consolas,monospace;letter-spacing:1.6px;text-transform:uppercase;color:var(--acc)}h1,h2,h3,h4{font-family:Georgia,"Times New Roman",serif;font-weight:500;line-height:1.17}h1{font-size:clamp(44px,6vw,76px);letter-spacing:-2px;margin:16px 0 22px}header .lead{font-size:25px;line-height:1.45;max-width:980px}.meta,.small,.source{font-size:13px;color:var(--muted)}.layout{display:grid;grid-template-columns:205px minmax(0,1fr);gap:50px;max-width:1240px;margin:auto;padding:44px 28px 90px}nav{position:sticky;top:22px;align-self:start;font-size:13px}nav a{display:block;padding:6px 0;text-decoration:none;color:var(--muted)}nav a:hover{text-decoration:underline;color:var(--acc)}nav .eyebrow{margin-bottom:12px}main{min-width:0}section{margin:0 0 66px}h2{font-size:36px;margin:0 0 23px;padding-top:8px}h3{font-size:27px;margin:30px 0 13px}h4{font-size:22px;margin:24px 0 10px}p{margin:0 0 18px}strong{font-weight:650}ul,ol{padding-left:24px;margin:16px 0 23px}li{margin:8px 0}.decision{padding:24px 28px;border-left:4px solid var(--acc);background:var(--wash);margin:25px 0}.decision p:last-child,.note p:last-child{margin-bottom:0}.note{padding:20px 24px;background:var(--panel);border:1px solid var(--rule);margin:24px 0}.table-wrap{overflow:auto;margin:24px 0;border-top:1px solid var(--rule)}table{width:100%;border-collapse:collapse;min-width:620px;font-size:14px}th,td{text-align:left;vertical-align:top;padding:13px 14px;border-bottom:1px solid var(--rule)}th{font-size:11px;text-transform:uppercase;letter-spacing:.6px;background:var(--wash);color:var(--muted)}td:first-child{font-weight:600}code{font:0.86em ui-monospace,Consolas,monospace;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eae7df;padding:22px;font:13px/1.65 ui-monospace,Consolas,monospace;overflow:auto}.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;list-style:none;padding:0;counter-reset:flow}.flow li{position:relative;padding:20px;background:var(--panel);border-top:3px solid var(--acc);margin:0;font-size:14px}.flow b{font-size:25px;color:var(--acc);font-family:Georgia,serif;font-weight:400;display:block;margin-bottom:10px}.flow strong{font-size:16px;display:block;margin-bottom:7px}.phase{border-top:1px solid var(--rule);margin-top:32px;padding-top:21px}.phase h3{margin:8px 0 14px}.phase .label{font:700 12px ui-monospace,monospace;color:var(--acc);letter-spacing:1px}.gate{border-left:3px solid var(--green);padding:12px 18px;background:#edf0e8;margin-top:18px}.gate p{margin:0}.example{border-left:3px solid var(--rule);padding:4px 0 4px 22px;margin:22px 0;font-family:Georgia,serif;font-size:21px}.sequence{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:18px 0;font-size:14px;color:var(--muted)}.sequence b{color:var(--ink);font-weight:600}.scope{display:grid;grid-template-columns:1fr 1fr;gap:24px}.scope>div{background:var(--panel);padding:20px 24px;border-top:2px solid var(--rule)}.scope h3{margin-top:0;font-size:23px}.source{margin-top:10px}.source a{color:var(--muted)}details{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:17px 0;margin:26px 0}summary{cursor:pointer;font-weight:650}details>div{padding-top:18px}footer{border-top:1px solid var(--rule);padding-top:23px;font-size:13px;color:var(--muted)}
+@media(max-width:950px){.layout{grid-template-columns:1fr;gap:25px;max-width:850px;padding:30px 24px 65px}nav{position:static;display:flex;flex-wrap:wrap;gap:0 18px;border-bottom:1px solid var(--rule);padding-bottom:20px}nav .eyebrow{width:100%;margin:0}header{padding:38px 24px 30px}header .lead{font-size:22px}h2{font-size:31px}}
+@media(max-width:620px){body{font-size:16px}.layout{padding-left:20px;padding-right:20px}h1{letter-spacing:-1px}.flow,.scope{grid-template-columns:1fr}.decision,.note{padding:20px}h3{font-size:25px}table{min-width:600px}pre{padding:16px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{body{background:#fff;font-size:10.5pt}header{padding:0 0 20px;background:#fff}h1{font-size:42pt}.layout{display:block;padding:25px 0;max-width:none}nav{display:none}h2{font-size:25pt}h3{font-size:19pt}section{margin-bottom:30px}.table-wrap{overflow:visible}table{min-width:0;font-size:9pt}a{color:inherit}.flow li,.gate,.note,.decision{break-inside:avoid}details:not([open]){display:none}}
+</style>
+</head>
+<body>
+<header>
+<div class="eyebrow">Traffic and Dragons · Implementation proposal · 12 November 2026</div>
+<h1>Let the story establish the map.</h1>
+<p class="lead">A staged transition from procedural discovery to a map of established player knowledge—preserving the drawing engine, existing campaigns, and places that have already become real through play.</p>
+<p class="meta">Map Transition Plan — Astra · Direction accepted; implementation not started · Companion to <a href="Map_Review_Astra.html">Map Review — Astra</a><br>Baseline: game v1.1400, checkout <code>4b844c8e</code>, TnD Maps 0.18.0 · Implementation tracker: <a href="../TODO.md">TODO #733</a></p>
+</header>
+<div class="layout">
+<nav aria-label="Plan contents">
+<div class="eyebrow">In this plan</div>
+<a href="#recommendation">The transition in brief</a>
+<a href="#contract">The player contract</a>
+<a href="#architecture">Data &amp; ownership</a>
+<a href="#geometry">Placement &amp; map detail</a>
+<a href="#turns">The turn boundary</a>
+<a href="#phases">Eight delivery stages</a>
+<a href="#migration">Existing campaigns</a>
+<a href="#compatibility">Versions &amp; recovery</a>
+<a href="#verification">Acceptance &amp; sabotage</a>
+<a href="#integration">Files &amp; existing work</a>
+<a href="#resources">Cost &amp; accumulation</a>
+<a href="#completion">Completion criteria</a>
+<a href="#sources">Evidence &amp; limits</a>
+</nav>
+<main>
+<section id="recommendation">
+<h2>Build the knowledge boundary first.</h2>
+<div class="decision"><p><strong>My recommendation is an incremental replacement of the map’s authority, not a replacement of the renderer.</strong> Introduce one geographic knowledge model, route every player-facing map read through it, then connect narration and migrate saved campaigns. Keep the existing generator for permitted terrain, constrained geometry, and optional private preparation.</p><p><strong>The first playable result must prove both halves of the contract:</strong> Stalgind’s unintroduced hut stays absent, while the spring, split tree, and southern arch appear when the GM introduces them—even if the party remains in the clearing.</p></div>
+<p>The current failure is structural. Forest generation supplies the hut; an approximate party position opens a 100 m reveal circle; the map sends its entire sheet to the GM as authoritative geography. Meanwhile, a normal <code>EXIT</code> can introduce a landmark without creating anything on the drawn map. Hiding one label would leave both authority problems in place.</p>
+<ol class="flow" aria-label="Recommended transition">
+<li><b>01</b><strong>Establish facts.</strong>Record what the world contains, what the party has learned, and the source of that knowledge.</li>
+<li><b>02</b><strong>Project only that knowledge.</strong>Use one public view for the drawing, interactions, accessibility, exports, and player help.</li>
+<li><b>03</b><strong>Preserve it over time.</strong>Keep identity, accepted placement, discoveries, and notes intact across saves, restores, and upgrades.</li>
+</ol>
+<div class="scope"><div><h3>Included</h3><p>All five existing map scales; stationary discoveries; explicit location kind; private preparation; public labels and relationships; conservative migration; version skew; prompt, identity, voice, and accessibility integration.</p></div><div><h3>Kept outside this transition</h3><p>A new tactical combat engine, physical line-of-sight simulation, globally replacing name-based entity IDs, multiplayer permissions, a full map editor, or another model call on every turn. The existing party knowledge is shared.</p></div></div>
+<p>This is an <strong>XL, multi-session change across two repositories</strong>. Develop behind a campaign-format boundary; first exercise new campaigns in a development canary, then legacy copies. Enable the production default only after both paths pass. The sequence below is a dependency plan, not an estimate disguised as calendar dates.</p>
+</section>
+
+<section id="contract">
+<h2>Define exactly what “called out” means.</h2>
+<p>A meaningful feature needs a deliberate public introduction. A GM description, an explicit starting briefing, or a report delivered in play can provide it. A private blueprint entry, a generated coordinate, a nearby fog circle, or a player merely proposing an action cannot. Knowledge is recorded per attribute: seeing a hut does not reveal its name, owner, contents, or secret cellar.</p>
+<div class="table-wrap"><table><thead><tr><th>Situation</th><th>Player map result</th><th>What remains separate</th></tr></thead><tbody>
+<tr><td>“The clearing lies between forest and marsh.”</td><td>Forest and marsh texture, with the established boundary at the precision described.</td><td>No hut, spring, ruin, or distinctive tree supplied as scenery.</td></tr>
+<tr><td>“A hut stands among the trees.”</td><td>A generic hut, at a known or schematic position, with that sentence as its source.</td><td>“Stalgind’s Hut,” ownership, inhabitants, and interior stay private until introduced.</td></tr>
+<tr><td>“The guide says Bear Spring is southwest.”</td><td>A reported spring and a southwest relationship, visibly distinguished from an observed site.</td><td>No visit, explored corridor, exact distance, or guarantee that the report is true.</td></tr>
+<tr><td>“Three slabs form an arch on the southern ridge.”</td><td>A southern arch appears this turn, without moving the party.</td><td>The proper name “Waystone Arch” appears only if already known or disclosed now.</td></tr>
+<tr><td>“You enter a crowded town.”</td><td>The known town and general settlement character.</td><td>No individually enterable buildings, invented businesses, exact street network, or population count.</td></tr>
+<tr><td>A blueprint has ten locations; the opening introduces one</td><td>The introduced start and whatever else its public briefing actually establishes.</td><td>The other nine entries remain world preparation. Being in <code>memory.map.nodes</code> does not make them public.</td></tr>
+<tr><td>A known bridge collapses</td><td>The bridge remains identifiable and is shown as destroyed after the change is disclosed.</td><td>Discovery is not erased. World change and when the party learns of it are different events.</td></tr>
+<tr><td>A private generated name labels the sheet itself</td><td>Use a known place name, or a neutral label such as “surrounding area.”</td><td>Plaques, breadcrumbs, zone names, and export filenames must follow the same knowledge rule as features.</td></tr>
+</tbody></table></div>
+<p><strong>Terrain is allowed to be illustrative; actionable objects are not filler.</strong> Trees can convey an established forest without each tree becoming an address. A named tree, spring, road destination, building, entrance, or identifiable ruin is a fact. Do not hide extra buildings behind the claim that they are decorative.</p>
+<p>Knowing, seeing now, and having travelled there are independent. A remembered landmark stays on the map after leaving sight; a reported destination can appear beyond explored ground. The fog toggle may change the presentation of explored terrain, but it must never bypass public knowledge and expose private features.</p>
+</section>
+
+<section id="architecture">
+<h2>One fact store; one public projection.</h2>
+<p>Retain the existing location graph and identity system. Add a focused <code>map-knowledge.js</code> module to own geographic admission, disclosure, and audience projections. Keep <code>atlas.js</code> responsible for map bindings, placement, recipes, and following the party. The new module must not become a second place resolver or a duplicate location-description store.</p>
+<div class="table-wrap"><table><thead><tr><th>Layer</th><th>Proposed responsibility</th><th>Persistence</th></tr></thead><tbody>
+<tr><td>World geography</td><td>Existing nodes, descriptions, state changes, exits, and room layouts; a small extension for landmarks that are not visited locations. Private preparation stays distinguishable from accepted world facts.</td><td><code>memory.map</code>; add a versioned <code>geography</code> member for feature records and evidence.</td></tr>
+<tr><td>Party knowledge</td><td>What is disclosed about each feature or relationship; its public wording; observed/reported status; source receipt; corrections and supersession.</td><td>Inside the same geographic record, referencing existing place keys where applicable. No second persistent public map.</td></tr>
+<tr><td>Accepted spatial binding</td><td>Container, anchor, accepted shape when needed, known directions, doors, and precision. Recipes remain useful for decorative terrain.</td><td><code>worldState.atlas</code>, with a new atlas format version. Persist semantic anchors; do not store a full generated document every turn.</td></tr>
+<tr><td>Audience projection</td><td>Produce a detached public scene specification or a private GM view from the same records. Default unknown audience to refusal, never private access.</td><td>Derived and bounded in session memory. Invalidated by semantic revision and campaign switch.</td></tr>
+<tr><td>Drawing and interaction</td><td>Render only the supplied projection. Hit targets, accessible names, cards, route choices, and export all consume that same projection.</td><td>No authority to create world facts or disclosures.</td></tr>
+</tbody></table></div>
+<h3>A small record shape to implement against</h3>
+<p>The following is a design example, not shipped syntax. Fix the exact schema in stage 0 and pin it with fixtures before adding writers.</p>
+<pre aria-label="Proposed record example">memory.map.geography = {
+  v: 1,
+  features: {
+    f7: {
+      container: "The Boundary Clearing",
+      placeKey: null,
+      facts: { kind: "arch" },
+      known: {
+        existence: { mode: "observed", receipt: "g12" },
+        label: { value: "a stone arch", receipt: "g12" }
+      }
+    }
+  },
+  relations: [
+    { from: "f7", toPlace: "The Boundary Clearing",
+      kind: "bearing", value: "south", receipt: "g12" }
+  ],
+  receipts: {
+    g12: { commit: "engine-issued-token", turn: 9, channel: "gm",
+      text: "Three slabs form an arch on the southern ridge." }
+  }
+};
+
+worldState.atlas.bindings.f7 = {
+  zone: "existing-zone-key", anchor: [400, 390],
+  precision: "schematic", source: "g12"
+};</pre>
+<p>The display anchor is a layout choice, not proof of metres. A private proper name can exist in the world facts without entering <code>known.label</code>. A false report goes into a reported claim, not into an asserted world fact. Sources and relationship validity must be typed; the example omits private preparation and revision records for readability.</p>
+<ul>
+<li><strong>Identity:</strong> keep immutable name-born place keys and resolve them through <code>locResolve</code>. Small engine-assigned feature keys serve unvisited objects; the model refers to a scoped name or known handle, not an invented UUID. Entering a feature attaches its existing record to a place; it does not create a second landmark.</li>
+<li><strong>Merge, rename, and split:</strong> preserve feature identity, disclosures, notes, and relations. Do not merge two “Kitchen” rooms across buildings or guess allocations during a split. Register any new node field in <code>NODE_CARRY_FIELDS</code>; add explicit handling for references stored outside nodes.</li>
+<li><strong>Revision:</strong> distinguish world changes from knowledge corrections. Preserve a source for an old public label without continuing to display a disproved claim as fact. “Unseen” must not accidentally mean “forgotten.”</li>
+<li><strong>Preparation:</strong> generated candidates are ephemeral by default. Only an explicitly retained GM preparation becomes persistent private data. A proposal has no effect on public geometry, place identity, or future narration until deliberately adopted.</li>
+</ul>
+<h3>Keep authority separate in the GM prompt</h3>
+<p>Replace “the map is right” with an explicit order: accepted world facts and legitimate state changes constrain layout; public knowledge controls what can be described as already known; geometric estimates are estimates; optional private proposals are suggestions. Existing descriptions are not eternally immutable—the current <code>stateNotes</code> override remains legitimate world change.</p>
+<p>The GM may see private world facts, but the public atlas digest must no longer confer canon on a generated whole sheet. Keep any proposal block separate and disabled initially. Preserve the volatile prompt boundary; no campaign-specific discovery data enters the stable prefix. <code>buildGeoBlock</code> is also reused by Table Talk, so use an explicit audience boundary rather than adding private content to that shared function.</p>
+</section>
+
+<section id="geometry">
+<h2>Prefer an honest sketch to false precision.</h2>
+<p>The engine may choose a convenient layout for established facts, but must record which parts are illustrative. “South” provides a bearing; it does not provide 72 metres or a one-minute walk. Position confidence must govern the scale bar, travel estimates, party marker, and route claims.</p>
+<ul>
+<li><strong>Placement constraints first:</strong> containment, relative direction, adjacency, an explicitly known route, and a stated distance are separate typed relations. The layout must satisfy accepted constraints or leave the feature unplaced with a reason. No fallback to the nearest capital or a default village.</li>
+<li><strong>Stable anchors:</strong> adding a new landmark must not shuffle existing accepted anchors. If all constraints cannot fit, preserve the existing map and flag the conflicting relation for correction. Do not silently rotate west into north.</li>
+<li><strong>Approximate party position:</strong> a whole-sheet tie may show “somewhere in this area,” but its centre is not a vantage point. It opens no semantic discovery radius and proves no travelled path.</li>
+<li><strong>Routes:</strong> a shortest path computed over a generated network is only a drawing aid until that network is established. A straight-line fallback must not become a canonical journey, a newly explored corridor, or a travel-time claim.</li>
+<li><strong>Unavailable detail:</strong> retain an introduced place in a simple schematic or in the existing place card with “position not established.” A geometry failure must not lose the fact or stop the story.</li>
+</ul>
+<div class="table-wrap"><table><thead><tr><th>Scale</th><th>First supported representation</th><th>Detail admitted later in play</th></tr></thead><tbody>
+<tr><td>Region</td><td>Known regions and destinations, declared terrain, and supported relative directions.</td><td>Named settlements, roads, boundaries, measured distances. Unknown parts do not acquire public names from the seed.</td></tr>
+<tr><td>Wild</td><td>Established terrain plus explicit landmarks; add them while stationary.</td><td>A hut, spring, arch, camp, or cave, with only disclosed attributes.</td></tr>
+<tr><td>Town</td><td>Known settlement and introduced buildings. A schematic can be sparse.</td><td>Accepted streets, individual buildings, entrances, and blocks. No automatic businesses or inhabitants.</td></tr>
+<tr><td>Interior</td><td>Current room and known doors; use the existing authored room graph.</td><td>New rooms and connections as discovered. Private floor plans may constrain fitting without exposing their hidden footprint.</td></tr>
+<tr><td>Dungeon</td><td>Known chambers, discovered exits, and traversed connections.</td><td>Secret doors and remote chambers only when revealed. No thumbnail, route, or bounding-box leak of the full floor plan.</td></tr>
+</tbody></table></div>
+<h3>The library boundary matters</h3>
+<p>Implement the library work in <code>C:\Projects\TnD_Maps</code>, then re-vendor its built distribution. Add an explicit host-controlled scene mode that supports a terrain substrate and accepted semantic objects independently. Preserve the standalone generator’s current default behaviour; the game opts into the stricter mode.</p>
+<p>Filtering labels is insufficient. A hidden hut can still leave a footprint, clearing, doorway, shadow, hit target, or telltale fit bounds. Build the public scene from public inputs; do not draw a full private document and rely on hiding its text. Changing private candidates alone should leave the public scene unchanged. Where a secret room affects established visible geometry, keep that geometry as an accepted public constraint, not as a live dependency on hidden generation.</p>
+<p>The current library’s area fog and ID fog cannot simply be combined, and <code>features:{}</code> inherits procedural defaults. The new interface needs explicit semantic visibility and per-field public names, with exploration shading applied independently. Preserve accepted outlines where they matter; decorative tree glyphs may regenerate without changing world facts.</p>
+<p>Recipe fingerprints currently detect changed output but do not recover the old map. Resolve the known town determinism defect (#698) in the library, and independently persist the accepted semantic geometry needed to keep campaigns stable across upgrades. A stored version string alone does not pin the executing generator.</p>
+</section>
+
+<section id="turns">
+<h2>Commit disclosure with the narrated turn.</h2>
+<p>Introduce one declarative geography-event family and one operation registry—establish, disclose, relate, and correct—rather than a collection of unrelated tag side effects. Model output proposes an event; the engine supplies campaign identity, source channel, commit token, and turn. The exact tag encoding is a stage-0 decision tested against the existing parser; this plan does not assume that arbitrary JSON can safely be inserted into the current tag grammar.</p>
+<p>Each disclosure cites a short span of the public narration, plus the attributes being disclosed. Validate bounds, supported types, scoped identity, field-level permission, and the cited span. Public labels must be supported by that span or already known. A hidden tag without its public introduction cannot publish a feature. Do not infer disclosure by scanning every noun in prose.</p>
+<div class="note"><p><strong>A source quote is evidence of occurrence, not a proof of meaning.</strong> “There is no hut,” a hypothetical hut, and a named hut do not have the same effect. Constrained declaration semantics, negative cases, prompt guidance, and reviewed model trials are required. An exact substring match alone is not the acceptance test.</p></div>
+<ol>
+<li><strong>Prepare:</strong> classify the response as a normal narrated commit or another channel; prepare clean public text and a stable engine-issued commit token. Refusals and failed requests never receive discovery authority.</li>
+<li><strong>Collect and preflight identity:</strong> parse geography intents into a turn-local queue. Validate any container/path claims needed by same-turn location writers before those writers mint nodes. New nested rooms resolve from an explicit accepted parent/path, not a newly generated private document. Run other canonical state mutations in their established order; do not draw maps or write knowledge inside individual tag handlers.</li>
+<li><strong>Resolve:</strong> canonicalize containers and subjects against the accepted identity state, including same-turn arrivals and aliases. The resolver’s atlas step may consult accepted place bindings only, never private generated rooms.</li>
+<li><strong>Admit:</strong> validate connected event groups against the public text, existing canon, and each other. Duplicate delivery is idempotent. Reject an invalid group with an attributable reason; independent valid groups may still commit. Do not roll back unrelated HP, inventory, or quest mutations.</li>
+<li><strong>File knowledge, then place:</strong> commit valid facts and receipts, update the public projection, and reconcile geometry. If the drawing cannot place a valid discovery, preserve the discovery and use the schematic/unplaced fallback.</li>
+<li><strong>Snapshot and publish:</strong> capture a due checkpoint only after geographic facts and bindings agree. Save the normal world/memory pair, append the narration with the same source token, and render/speak the accepted public result. Clear all turn-local intents on success, refusal, and failure.</li>
+</ol>
+<p>This ordering is deliberate: today <code>commitGmTurn</code> calls <code>atlasFollow</code>, captures a due checkpoint, and only later writes the transcript entry. A disclosure handler bolted onto the later transcript write would miss that checkpoint. Prepare the source identity before mutation rather than requiring a transcript row that does not yet exist. Keep the change scoped to geographic admission, not a rewrite of the whole turn transaction.</p>
+<div class="table-wrap"><table><thead><tr><th>Nonstandard path</th><th>Required treatment</th></tr></thead><tbody>
+<tr><td>Opening turn</td><td>Use the same admission path. A start classifier may help choose private terrain, but grants no public landmarks. Missing kind or unsupported water/cave geometry gets an honest schematic; never a guessed settlement.</td></tr>
+<tr><td>Retry / duplicate commit</td><td>Use the persisted engine commit token, not turn number alone, to suppress duplicate discoveries, notes, and shapes. A failed request leaves no pending public event.</td></tr>
+<tr><td>Prose reroll</td><td>The current reroll keeps state and does not reapply tags. Preserve immutable disclosure receipts; constrain replacement prose to committed geography and retain the relevant original source beside the rewritten turn when needed. New reroll tags cannot create discoveries. Surface detectable contradictions; do not pretend a general semantic equivalence validator exists.</td></tr>
+<tr><td>Death / checkpoint restore</td><td>Restore knowledge and bindings from the same snapshot. The retained transcript’s dead branch must never be re-mined for discoveries. Turn numbers do not rewind, so derive restoration from the snapshot rather than a numeric turn cutoff.</td></tr>
+<tr><td>Table Talk / sheet sync / imports</td><td>No ordinary narration authority. Table Talk reads the public view. Sync may repair canonical state through its established controls but must not gain disclosure rights merely because it calls <code>applyMuts</code>. Import and migration have explicit, separate provenance.</td></tr>
+<tr><td>Player note or action</td><td>A note can annotate a known feature or a player’s reported belief. It cannot expose that feature’s private name or interior. “Go to the castle” is an attempted action, not evidence that an undisclosed castle exists.</td></tr>
+</tbody></table></div>
+<p>For malformed or missing placement information, continue play and say what the map could not record. Queue a bounded clarification in the next normal GM request when appropriate. Do not silently invent coordinates, discard the established fact, or issue an automatic paid repair call every turn.</p>
+</section>
+
+<section id="phases">
+<h2>Eight delivery stages, with a gate at each.</h2>
+<p>Stage numbers describe dependencies, not separate product modes. Keep the implementation dormant until the admission, projection, geometry, and persistence paths work together. Each stage can contain several tight commits; every game-code commit carries its version and cache bump. Track implementation progress in TODO #733, not by turning this document into another status board.</p>
+<div class="sequence" aria-label="Stage dependencies"><b>0 · contract</b> → <b>1 · records</b> → <b>2 · drawing</b> + <b>3 · narration</b> → <b>4 · new campaigns</b> → <b>5 · migration</b> → <b>6 · release</b> → <b>7 · retirement</b></div>
+<div class="table-wrap"><table><thead><tr><th>Stage</th><th>Reviewable outcome</th><th>Dependency / size</th></tr></thead><tbody>
+<tr><td>0 · Lock the contract</td><td>Failing reproductions, schema, declaration grammar, audience inventory, and risk review.</td><td>First · M</td></tr>
+<tr><td>1 · Build records and projection</td><td>Pure admission/reducer and audience readers; round-trip and identity tests.</td><td>0 · L</td></tr>
+<tr><td>2 · Make geometry subordinate</td><td>Library support for public scenes, explicit features, stable anchors, and honest fallback.</td><td>0–1 interface · L / XL</td></tr>
+<tr><td>3 · Connect narrated commits</td><td>Queued declarations, disclosed attributes, corrected prompt authority, and lifecycle handling.</td><td>1; can develop against a stage-2 stub · L</td></tr>
+<tr><td>4 · Prove new campaigns</td><td>Working discovery loop across all scales; the reported forest case and all start kinds.</td><td>1–3 · L</td></tr>
+<tr><td>5 · Reconcile old campaigns</td><td>Dry-run migration, preserved backup, reviewed evidence classifications, atomic installation.</td><td>4 · L / XL</td></tr>
+<tr><td>6 · Enable and observe</td><td>Version-safe canary, complete surface checks, device results, recovery rehearsal.</td><td>4–5 and independent review · L</td></tr>
+<tr><td>7 · Retire the old authority</td><td>Remove obsolete live writers and prompt rules; retain necessary readers and migrations.</td><td>6 evidence · M</td></tr>
+</tbody></table></div>
+<p class="small">Sizes indicate relative uncertainty, not additive delivery promises. The library interface, cross-engine geometry (#698), and ambiguous legacy evidence are the largest unknowns. Re-estimate after stages 0 and 2 using actual prototype results.</p>
+
+<article class="phase" id="phase-0">
+<div class="label">STAGE 0 · CONTRACT AND FAILURE FIXTURES</div>
+<h3>Make the desired behaviour executable.</h3>
+<ol>
+<li>Create a minimal fixture for seed <code>19z1c5t2dzq6</code>, wild zone <code>z451_548</code>, approximate centre <code>(400,275)</code>, and undisclosed <code>hut-1</code> at <code>(350.2,265.6)</code>. Keep campaign prose out of the fixture except the short public passages needed for assertions.</li>
+<li>Add a second fixture where the party stays in the clearing while the GM introduces three landmarks; add a westward Ironwood Heart constraint and an unknown proper-name case.</li>
+<li>Inventory every atlas consumer and every save/admission path. Freeze the proposed schema, typed operations, source-channel permissions, correction policy, and missing-data behaviour. Explicitly distinguish current world truth, reported belief, and public knowledge.</li>
+<li>Record the required critical review before implementation: silent leaks, identity fusion, partial commits, prompt-cache drift, restore divergence, and old clients overwriting new data. Pin the exact test section and named assertion for each planned sabotage.</li>
+</ol>
+<p>Capture these expected failures with a development reproduction first. Do not commit a red main suite: promote each assertion into its permanent gate in the corresponding implementation commit, after observing it fail and making it pass.</p>
+<div class="gate"><p><strong>Exit gate:</strong> the current code fails the undisclosed-hut and stationary-discovery assertions for the expected reasons. The fixture reproduces the current visible failure in a browser. Approved contracts identify who owns every new field; no production behaviour changes.</p></div>
+</article>
+
+<article class="phase" id="phase-1">
+<div class="label">STAGE 1 · CANON AND KNOWLEDGE CORE</div>
+<h3>Build the single admission and read boundary.</h3>
+<ol>
+<li>Add the focused module, a versioned sparse store, a typed operation registry, and explicit source receipts. Use null-prototype dictionaries/own-property lookup for text-keyed data, consistent with existing identity and atlas safeguards.</li>
+<li>Implement detached projections for player and GM audiences. The player projection exposes only permitted fields and public geometry inputs; neither it nor its downstream scene object retains a reachable private feature record.</li>
+<li>Handle aliases, place merges, reparenting, split allocation, and landmark-to-location attachment. Preserve the existing identity contract and room paths.</li>
+<li>Build read/migrate validation and all-or-nothing preparation for world plus memory before enabling any writer. Preserve unknown/newer data; reject unsafe writes visibly. Wire new files into every relevant script host and cache manifest.</li>
+</ol>
+<div class="gate"><p><strong>Exit gate:</strong> deterministic unit tests cover partial attributes, private-only changes, false reports, correction, duplicate events, malformed input, merge/split, and save/load. An undisclosed proper name cannot escape through any projected field. No campaign is opted into the new format yet.</p></div>
+</article>
+
+<article class="phase" id="phase-2">
+<div class="label">STAGE 2 · LIBRARY AND GEOMETRY</div>
+<h3>Draw a public scene without generating extra facts.</h3>
+<ol>
+<li>In the library repository, separate terrain generation from semantic feature generation. Add an explicit scene contract for the host’s accepted features, public names, spatial constraints, and exploration shading.</li>
+<li>Support sparse scenes on all five scales. Start with schematic placement where necessary; do not require a complete procedurally filled town or dungeon before drawing a known object.</li>
+<li>Make rendering, hit testing, scene bounds, HUD labels, and export consume the same public scene. Preserve accepted anchors and door endpoints when another feature is added. Prove that undisclosed candidates do not leave geometric traces.</li>
+<li>Investigate #698 with its actual town fixtures. Pin supported-engine results and implement durable semantic anchors independently of decorative redraw. Define an explicit refusal/fallback on incompatible geometry.</li>
+<li>Build and test the library; review intentional fixture redraws; re-vendor the distribution, SHA pin, and expected version together. Never patch the game’s vendored bundle directly.</li>
+</ol>
+<div class="gate"><p><strong>Exit gate:</strong> same public inputs produce the same semantic scene across tested engines; hidden candidates do not change player-visible output. A generic hut can be drawn without its private name, a reported spring can sit outside explored ground, and the approximate marker reveals neither. Screenshots verify actual footprints and bounds.</p></div>
+</article>
+
+<article class="phase" id="phase-3">
+<div class="label">STAGE 3 · NARRATION, IDENTITY, AND PROMPT AUTHORITY</div>
+<h3>Make discovery an explicit part of play.</h3>
+<ol>
+<li>Queue the declaration family through the existing tag registry and commit it at the turn boundary described above. Teach kind and placement for mid-game introductions, not just the opening.</li>
+<li>Have compatible <code>EXIT</code> and location events contribute scoped discovery candidates through the same admission module. A landmark does not need an arrival; an arrival does not reveal every private attribute of its node.</li>
+<li>Restrict <code>atlasPlaceCanon</code> and name matching to accepted geometry and scoped bindings. Preserve #693’s building-qualified room identity, including a building and room introduced in the same response. Identity-defining paths must be preflighted before location filing; the later placement pass is too late to repair a wrongly minted town-level “Kitchen.” Remove the default-village semantic fallback from the activated path.</li>
+<li>Replace the unconditional map-canon prompt with the fact/knowledge/geometry distinction. Route player-help geography through a public reader; keep legitimate GM preparation separate. Audit all callers of the shared geography builder.</li>
+<li>Implement and test refusals, retries, prose rerolls, checkpoint capture/restore, missing declarations, and conflict reporting. Normal play uses the existing GM call, with no additional automatic model request.</li>
+</ol>
+<div class="gate"><p><strong>Exit gate:</strong> declaration without public introduction is rejected; a public introduction without movement is admitted; west does not become north; hidden geometry cannot influence identity. Real-transcript prompt and mutation diffs contain only the approved map changes. Stable-prefix checks allow only the explicitly reviewed vocabulary change, with no volatile facts entering it.</p></div>
+</article>
+
+<article class="phase" id="phase-4">
+<div class="label">STAGE 4 · FIRST PLAYABLE SLICE</div>
+<h3>Prove the whole loop in fresh campaigns.</h3>
+<ol>
+<li>Enable the new semantics only in disposable development campaigns. Drive the actual begin/turn/save/load paths rather than calling the projector in isolation.</li>
+<li>Recreate the Boundary Clearing: no hut, no private sheet title, no invented scale; introduce the southern arch, northern split tree, and southwest spring while stationary. Then approach one, reveal its proper name, leave, return, and reload.</li>
+<li>Cover all ten wizard starts, including coast, water, cave, and an interior whose settlement is unnamed. Missing metric or parent detail uses an honest sketch and normal narration to fill it in.</li>
+<li>Run a town → building → room → dungeon sequence with repeated room names, an authored/player-designed layout, and a secret door. Verify the same knowledge on canvas, cards, keyboard, player PNG, Table Talk, and spoken scene context.</li>
+</ol>
+<div class="gate"><p><strong>Exit gate:</strong> a complete session works at every scale without procedural public features. All current pane navigation, party-follow, keyboard, and identity regressions remain covered. A campaign without an atlas keeps its existing behaviour and contributes no new geographic prompt block.</p></div>
+</article>
+
+<article class="phase" id="phase-5">
+<div class="label">STAGE 5 · LEGACY MIGRATION</div>
+<h3>Reconcile the record before changing what it shows.</h3>
+<ol>
+<li>Build a pure dry-run migrator that returns candidate state, evidence classifications, conflicts, and a human-readable diff. It must not mutate the original save or treat whole-blueprint import as disclosure.</li>
+<li>Run it on copies of every available atlas campaign, plus fixtures for old formats, ambiguous notes, missing transcripts, conflicting geometry, corrupted records, and a prior checkpoint.</li>
+<li>Review the ambiguous set with the owner/tester in one migration report. Preserve pre-migration data and stable identities. Install only a validated world/memory pair, under the new schema gates.</li>
+<li>Prove idempotent reruns, import/export, cloud/local admission, checkpoint migration, and interrupted installation. Rejected migration leaves live state byte-identical and gives a specific reason.</li>
+</ol>
+<div class="gate"><p><strong>Exit gate:</strong> every promoted feature has evidence or an explicit legacy confirmation; every withheld candidate remains recoverable. Established visits, notes, room identities, accepted geometry, and authored layouts survive. The motivating campaign’s hut is classified explicitly, not silently deleted or automatically grandfathered as known.</p></div>
+</article>
+
+<article class="phase" id="phase-6">
+<div class="label">STAGE 6 · CANARY AND PRODUCTION DEFAULT</div>
+<h3>Enable only the complete contract.</h3>
+<ol>
+<li>Complete independent review of the drift-surface implementation and the library/public-scene boundary. Resolve findings before production activation.</li>
+<li>Run an integrated canary on new campaigns and reviewed migrated copies. Include desktop Chrome, the supported Node engine, and the owner’s Safari/iPhone path; inspect the rendered results rather than inferring Safari from Chromium.</li>
+<li>Rehearse old cached client access, service-worker refresh, sync conflict, a failed save, and recovery to the schematic renderer. Confirm that no recovery branch exposes a full private map.</li>
+<li>Enable the new default for new mapped campaigns; admit existing ones through the tested migration path. When migration is unresolved, preserve the old save and provide only a confirmed-location sketch until it is resolved.</li>
+<li>Record observed declaration compliance, refused conflicts, unplaced discoveries, projection time, save growth, and any redraw. Use existing local diagnostics; no new telemetry service or transcript upload.</li>
+</ol>
+<div class="gate"><p><strong>Exit gate:</strong> the full regression suite, named sabotage cases, browser suites, migration report, and device canary all pass. Every proposed declaration in the canary is traceable to an accepted result or a visible reason for refusal. No secret leaks in the tested corpus; no unexplained changes to established geography.</p></div>
+</article>
+
+<article class="phase" id="phase-7">
+<div class="label">STAGE 7 · REMOVE OBSOLETE AUTHORITY</div>
+<h3>End with one live system.</h3>
+<ol>
+<li>Retire the activated path’s whole-sheet-canon prompt, procedural semantic reveal by radius, final-pointer-only discovery rule, automatic village default, and note-causes-discovery behaviour.</li>
+<li>Retire the dedicated start classifier only after the common introduction path passes its full start corpus. Keep any useful terrain classification inside the new preparation/admission boundary rather than maintaining two competing authorities.</li>
+<li>Remove temporary dual-write/probe code. Retain version readers, migrations, and legacy backup access while supported saves require them. Do not keep an invisible fallback to the old discovery logic.</li>
+<li>Update architecture and prompt/identity contracts; reconcile related TODO rows with actual shipped evidence. Close only after owner play confirms the intended behaviour.</li>
+</ol>
+<div class="gate"><p><strong>Exit gate:</strong> one semantic writer and one public projection serve every active map. The replacement is documented, supported old saves still load safely, and all temporary feature gates have a deliberate retained or retired status.</p></div>
+</article>
+</section>
+
+<section id="migration">
+<h2>Preserve history without inventing its provenance.</h2>
+<p>Existing campaigns contain a mixture of authored places, narrated discoveries, generated objects that became real through play, and candidates that may never have been seen. The store does not reliably record which pixels a player previously saw. Neither “generated” nor “absent from the available transcript” is a sufficient deletion rule.</p>
+<div class="table-wrap"><table><thead><tr><th>Evidence</th><th>Recommended migration</th></tr></thead><tbody>
+<tr><td>Current location, recorded arrival, or explicit story/player/GM binding</td><td>Preserve identity and the established relationship. Establish only the attributes supported by that record; arrival alone does not reveal the owner, hidden rooms, or all blueprint description text.</td></tr>
+<tr><td>Surviving public narration, explicit exit description, or selected public starting briefing</td><td>Promote supported fields with a legacy source receipt. Inspect source role and dead/refusal branches. An exit can establish a known destination without a visited node.</td></tr>
+<tr><td>Player-authored note</td><td>Preserve the exact note. Treat it as evidence of the player’s stated knowledge/belief, not a warrant to reveal unrelated private attributes. Ambiguous attachment needs review.</td></tr>
+<tr><td>Explicit authored room layout or player design</td><td>Preserve the canonical layout. Derive room-by-room knowledge separately; do not regenerate a different building over it or publish every room at once.</td></tr>
+<tr><td>Blueprint-only node or undisclosed private preparation</td><td>Keep private. Never promote all seeded nodes merely because they have names and descriptions.</td></tr>
+<tr><td>Procedural object with no reliable public evidence</td><td>Retain as an unresolved/private candidate. Do not automatically publish it. If the player confirms prior knowledge, record that specific legacy confirmation and supported attributes.</td></tr>
+<tr><td>Conflicting prose, layout, or unreproducible historical recipe</td><td>Show the competing evidence in the migration diff. Preserve the preimage and accepted identities. Use a provisional sketch until reconciled; do not claim regenerated geometry is an exact historical copy.</td></tr>
+</tbody></table></div>
+<h3>The migration transaction</h3>
+<ol>
+<li><strong>Capture:</strong> retain the pre-migration save and its format/library identifiers using the existing backup/export mechanisms. Do not overwrite the only copy while assessing it.</li>
+<li><strong>Classify:</strong> build candidates from existing identities, arrivals, ties, layouts, notes, and explicit public sources. Broad transcript extraction may assist a review, but a name match or an LLM guess must not silently certify discovery.</li>
+<li><strong>Compare:</strong> produce counts and a per-feature diff: preserved, newly evidenced, withheld, unresolved, and geometry conflicts. Include names, relations, source references, note attachments, and changed public geometry.</li>
+<li><strong>Reconcile:</strong> apply evidence-backed cases automatically; resolve the remaining ambiguous set in one review, with conservative defaults. This is a one-time legacy operation, not a confirmation dialog on every GM turn.</li>
+<li><strong>Validate:</strong> check identity references, source links, schema versions, accepted geometry, and the public scene. Run the proposed state through a save/load cycle in a detached copy.</li>
+<li><strong>Install:</strong> commit the validated world and memory through the existing save/admission boundary; stamp the migration once. On failure, leave the originals untouched. The next run must produce no additional change.</li>
+</ol>
+<div class="example">For the supplied scene: preserve the Boundary Clearing and established directions; admit the arch, tree, and spring only to the extent supported by public evidence. Keep the unexplained hut out of the player projection unless prior knowledge is established. Preserve its legacy record for inspection.</div>
+<p>The local save used in the review is turn 7; the screenshot is turn 9. The turn-9 text supplied in the screenshot is useful review evidence, but is not a complete saved turn that a migration can pretend to have loaded. Capture the current campaign or apply an explicit reviewed correction when that migration is actually undertaken.</p>
+</section>
+
+<section id="compatibility">
+<h2>Rollback must keep discoveries intact.</h2>
+<p>Use both the atlas format gate and the world save gate. <code>ATLAS_VER</code> protects the atlas representation; a <code>SAVE_VER</code> bump protects the new world/memory semantics from older clients that would otherwise ignore or overwrite them. A sheet-only version bump is unnecessary unless character sheet data changes. Validate the existing publication lock at every load, import, server adoption, and checkpoint door.</p>
+<ul>
+<li><strong>Old client, new save:</strong> refuse mutation and publication with the existing update-required path. Do not let an old client discard the map knowledge and sync a superficially valid world.</li>
+<li><strong>New client, old save:</strong> prepare migration off to the side. Reads used for preview must not mutate live state. Do not stamp a candidate as migrated until world, memory, and required checkpoint handling have all passed.</li>
+<li><strong>Old checkpoints:</strong> migrate the nested world/memory snapshot independently before restore, or refuse it without replacing live state. Never import the live campaign’s later discoveries into an earlier camp.</li>
+<li><strong>Cloud/local mismatch:</strong> use the existing admission and sync-conflict controls. Geography belongs to the same accepted snapshot; no separate map upload can race ahead of its narration and memory.</li>
+<li><strong>Renderer defect:</strong> switch to the public schematic or confirmed location text while retaining all facts, receipts, and anchors. Disable the defective drawing path, not the knowledge gate.</li>
+<li><strong>Release rollback:</strong> ship a compatible patch or retain a compatibility reader. Do not downgrade save data or restore an old renderer that leaks the full generated document. Restoring a pre-migration backup is an explicit recovery with a visible account of any subsequent play that would be lost.</li>
+</ul>
+<p>A newer unknown geography schema should stay intact and suspend unsafe map writes; an error must not be “healed” by throwing away disclosures. The final admission policy must distinguish optional drawing damage from semantic incompatibility. Test the actual old build against the new save, not merely a mock version comparison.</p>
+</section>
+
+<section id="verification">
+<h2>Test the leak, the missing feature, and the recovery.</h2>
+<p>These are proposed acceptance cases, not results of implemented changes. Add a named engine section such as <code>#733 map knowledge</code> and a browser suite registered with the existing CI/pre-push derivation. Keep assertions about outcomes; avoid tests that merely restate the chosen implementation.</p>
+<div class="table-wrap"><table><thead><tr><th>ID / named failure</th><th>Required assertion</th><th>Proof</th></tr></thead><tbody>
+<tr><td>K01 · undisclosed hut at approximate centre</td><td>The exact seed’s hut has no public shape, label, card, hit target, accessible entry, export, or help-context mention. The approximate party marker grants no discovery.</td><td>Engine + failing-case browser screenshot; sabotage by restoring distance-only reveal.</td></tr>
+<tr><td>K02 · public generic hut, private owner</td><td>Only the supported generic label and geometry appear. Private name, owner, cellar, and hidden title remain absent.</td><td>All-surface projection assertions; sabotage by handing a raw feature to a card/scene.</td></tr>
+<tr><td>K03 · discovery while stationary</td><td>Three introduced landmarks appear in one turn without pointer change, visits, settlement adoption, or invented distances.</td><td>Real commit-path test; sabotage by restoring final-pointer-only adoption.</td></tr>
+<tr><td>K04 · reported landmark beyond explored terrain</td><td>The reported destination appears with uncertain placement while the intervening terrain stays unexplored. A false report is not world truth.</td><td>Engine + render; sabotage by deriving knowledge from fog alone.</td></tr>
+<tr><td>K05 · hidden, negated, hypothetical, or malformed declaration</td><td>Invalid disclosure does not publish; known facts survive; reason and source are attributable. A valid independent event still works.</td><td>Parser/commit fixtures and reviewed model corpus; mutation removes the source/intent guard.</td></tr>
+<tr><td>K06 · west versus generated north</td><td>Ironwood Heart stays west at supported precision or placement refuses explicitly. No default village, 20 km claim, or automatic relocation.</td><td>Constraint and prompt test; restore map-over-description precedence as sabotage.</td></tr>
+<tr><td>K07 · hidden room affects identity</td><td>Private generated rooms cannot resolve a public operand. Accepted rooms retain building-qualified identity across alias, merge, and reparent.</td><td>Identity integration; sabotage by restoring raw atlas lookup.</td></tr>
+<tr><td>K08 · duplicate, refusal, sync, and reroll</td><td>One committed disclosure remains one; non-narrative paths cannot grant public knowledge; reroll preserves the original disclosure source and does not apply new tags.</td><td>Turn lifecycle tests with state and receipt counts.</td></tr>
+<tr><td>K09 · camp captured on discovery turn</td><td>Snapshot contains matching facts, receipts, and bindings. Restore loses later discoveries without resurrecting the retained dead transcript branch.</td><td>Actual capture/restore sequence; sabotage moves admission after checkpoint.</td></tr>
+<tr><td>K10 · legacy generated place became real</td><td>Established identity, notes, public attributes, and accepted geometry survive; an unrelated unintroduced candidate is withheld but recoverable.</td><td>Migration fixture, dry-run purity, idempotence, and round-trip assertions.</td></tr>
+<tr><td>K11 · old client / interrupted migration</td><td>Older code cannot overwrite the new format. Failure leaves the original live pair intact; an old checkpoint cannot import later knowledge.</td><td>Real prior-build load/write probe and injected save/admission failures.</td></tr>
+<tr><td>K12 · change private data only</td><td>Public scene, list counts, fit bounds, hit targets, and output pixels stay unchanged in the same browser. Private names never enter player-help prompts.</td><td>Property tests varying private candidates; browser pixel comparison; separately test semantic parity across engines.</td></tr>
+<tr><td>K13 · add a feature / change device or library</td><td>Existing anchors, accepted doors, identity, and knowledge remain stable. Decorative redraw cannot rewrite directions or distances.</td><td>Node/Chrome/Safari fixtures, upgrade fixture, and visible mismatch handling.</td></tr>
+<tr><td>K14 · full known floor plan, partial discovery</td><td>Authored/player-designed layout is retained; only introduced rooms and connections appear. Secret spaces do not alter public fit bounds or navigation.</td><td>Interior/dungeon screenshots and input tests, including repeated “Kitchen” names.</td></tr>
+<tr><td>K15 · long play and no-map control</td><td>Repeated reads and revisits add no facts or receipts. Caches/listeners remain bounded. A campaign without an atlas gets no unsolicited map state or geographic prompt block.</td><td>Duration/size soak and mapped/unmapped prompt/mutation comparison.</td></tr>
+</tbody></table></div>
+<h3>Verification layers</h3>
+<ol>
+<li><strong>Deterministic:</strong> test every supported operation, attribute, audience, and scale. Use synthetic hidden-name canaries in every player surface. Exercise malformed objects and inherited-key names, not just normal data.</li>
+<li><strong>Model behaviour:</strong> use a frozen corpus covering all ten starts, stationary discovery, unnamed features, reported/false information, negation, refusals, and conflicting geography. Run the current default GM configuration and supported representative alternatives. Record false acceptance and missing-declaration rates; inspect every failure. Do not claim substring validation proves semantic correctness.</li>
+<li><strong>Rendered experience:</strong> capture the motivating desktop drawer and a narrow phone layout. Check labels, clipping, marker precision, keyboard navigation, and private geometry. Test player PNG export and spoken/context output directly.</li>
+<li><strong>Campaign lifecycle:</strong> save, reload, export/import, alias/merge/reparent, restore a camp, retry, reroll, switch campaign, upgrade library, and open from an older client. Compare factual state as well as screenshots.</li>
+<li><strong>Integrated canary:</strong> run at least one forest journey, one town/interior sequence, and one dungeon sequence across several save/reload cycles. Include a reviewed migrated campaign. Longer play is needed to assess accumulation and usability; a single good screenshot is not the release gate.</li>
+</ol>
+<p>For each sabotage clause, name the real test section and a <code>mustFail</code> substring identifying its guarding assertion. An unrelated red test or a zero-section match cannot vouch for the guard. Every code commit still requires <code>node dev/run-tests.js</code> to end <code>ALL GREEN</code>; browser suites and library tests are additional gates, not substitutes.</p>
+<p>Do not weaken existing tests merely because they encode the old design. Review each changed expectation against the accepted contract: some map-canon assertions should change deliberately, while navigation, identity isolation, version gates, and failure reporting remain valuable regressions.</p>
+</section>
+
+<section id="integration">
+<h2>Make the seams explicit.</h2>
+<div class="table-wrap"><table><thead><tr><th>Surface</th><th>Planned responsibility</th></tr></thead><tbody>
+<tr><td>New <code>map-knowledge.js</code></td><td>One operation registry, field-level disclosure policy, source receipts, pure preparation/reducer, and audience projection. Keep drawing and UI out.</td></tr>
+<tr><td><a href="../memory.js">memory.js</a> / <a href="../identity.js">identity.js</a></td><td>Existing graph ownership, explicit room/layout reuse, canonical reference handling, merge/split preservation, and the atlas identity boundary.</td></tr>
+<tr><td><a href="../tag_table.js">tag_table.js</a> / <a href="../game.js">game.js</a></td><td>Declarative intents, narrated-commit authorization, start and stationary discovery, checkpoint ordering, reroll constraints, and visible refusal receipts.</td></tr>
+<tr><td><a href="../atlas.js">atlas.js</a></td><td>Accepted feature bindings, stable spatial constraints, recipes, party-follow, migration adapter, and the new authority-aware map brief.</td></tr>
+<tr><td><a href="../ui-atlas.js">ui-atlas.js</a></td><td>Consume public scene and card data; maintain current pane controls, keyboard support, export, and honest approximate-location presentation.</td></tr>
+<tr><td><a href="../api.js">api.js</a> / <a href="../table-talk.js">table-talk.js</a> / voice context</td><td>Explicit audiences; GM world facts versus player-known facts; remove unconditional generated-map precedence; retain the stable/volatile split.</td></tr>
+<tr><td><a href="../state.js">state.js</a> / <a href="../helpers.js">helpers.js</a> / <a href="../storage-adapter.js">storage-adapter.js</a></td><td>Admission, migration, checkpoint and version gates. Use the existing paired snapshot and conflict controls; change sync code only if an actual gap is found.</td></tr>
+<tr><td><a href="../globals.js">globals.js</a> / <a href="../sw.js">sw.js</a> / script hosts</td><td>Schema/version markers, module load order, cache shell, and all satellite/test hosts affected by a new module.</td></tr>
+<tr><td><a href="../../TnD_Maps/src/75-scene-wild.js">TnD Maps source</a> / <a href="../tndmaps.js">vendored distribution</a></td><td>Library scene interface, terrain/feature separation, field-safe drawing, stable semantic geometry, and determinism. Re-vendor only a tested built distribution.</td></tr>
+<tr><td><a href="../dev/tests-684-atlas-engine.js">atlas engine tests</a> / <a href="../dev/tests-684-atlas-browser.js">browser tests</a> / <a href="../dev/run-tests.js">full gate</a></td><td>Keep existing regression coverage; add named acceptance, migration, prompt, lifecycle, browser, and sabotage gates for the transition.</td></tr>
+</tbody></table></div>
+<p>The developer <code>map_viewer.html</code> and full <code>.tnd</code> backups legitimately expose diagnostic/private campaign data. Label and retain that distinction. A player atlas export or a help response must use the public projection; applying the player filter to the only full backup would destroy useful recovery data.</p>
+<h3>Relationship to current TODO rows</h3>
+<p><strong>#733 should own the transition.</strong> Keep existing rows honest until their behaviour is replaced and verified. #694’s description-before-map mismatch is resolved by changing authority, not by making generated geometry overrule the introduction sooner. #698 remains a library determinism dependency. #708/#710 supply the starting-kind/ground regression corpus and retire only when the common path covers it. Preserve #693 room identity, #695 door behaviour, #696 keyboard access, #697 safe table reads, and #714 pane framing. Rework #717’s discovery coupling while retaining useful exploration history.</p>
+<p>Update the authoritative architecture and prompt/identity contracts in the implementation commits that change them. This document supplies the transition design; TODO.md remains the sole progress tracker.</p>
+</section>
+
+<section id="resources">
+<h2>Keep the new record smaller than the world it draws.</h2>
+<p>Knowledge will grow with distinct established content; that is intentional campaign state. Repeated rendering, walking back and forth, and reopening the pane must not grow it. Keep compact receipts and semantic anchors, not copies of whole generated documents or the transcript on every feature.</p>
+<div class="table-wrap"><table><thead><tr><th>Scope</th><th>What can accumulate</th><th>Required control and evidence</th></tr></thead><tbody>
+<tr><td>Per call</td><td>Parsed events, detached candidates, projections, generated documents, exported canvas buffers.</td><td>Release temporaries; bound event/field sizes; no private raw-object references in public results. Repeat projection/export and check retained objects.</td></tr>
+<tr><td>Per turn</td><td>Discovery receipts, correction intents, diagnostics, prompt text.</td><td>Deduplicate repeated disclosure; one source receipt can support several attributes. Clear intent queues on every exit. Cap repair notices; prioritize current relevant facts in the prompt and declare truncation.</td></tr>
+<tr><td>Per session</td><td>Document/projection caches, warning latches, listeners, canvases.</td><td>Retain bounded cache behaviour (current atlas document cap 12, peek cap 6); scope caches by campaign and revision. Destroy/reuse the pane cleanly. Soak repeated open/close and campaign switching.</td></tr>
+<tr><td>Per campaign</td><td>Known features, accepted constraints, source receipts, notes, legacy preimages, checkpoint copies.</td><td>Store one record per fact/feature, references to shared sources, compact accepted geometry, and one migration preimage. Coalesce duplicate claims. Never evict accepted canon to satisfy a cap; refuse new intake visibly if a hard capacity limit is reached.</td></tr>
+<tr><td>Per device, across sessions</td><td>Backups, local campaign copies, service-worker assets, failed migration artifacts.</td><td>Reuse existing retention/quota paths; no backup on every map read or failed retry. Test low-space/interrupted saves and cache cleanup. Never silently delete the sole recovery copy.</td></tr>
+</tbody></table></div>
+<p>At stage 0, measure the baseline on small, large, and long-running campaigns: serialized bytes by geographic slice, projection/generation time, map-frame responsiveness, volatile prompt characters, and repeated-visit growth. Set explicit limits from those measurements before activation. Preserve the existing no-extra-call economics; model trials may reveal missing declarations, but the default remedy is a better contract and normal-turn clarification, not a second narrator.</p>
+<p>Library changes must include a long-session rendering soak. This path has no new WASM component; adding one or a new dependency is outside the plan. The game remains ES5-compatible, build-free, and usable from <code>file://</code> and the existing hosted deployment.</p>
+</section>
+
+<section id="completion">
+<h2>What I would build first—and when I would call it done.</h2>
+<p><strong>The first implementation unit should be the two failing forest fixtures plus the narrow knowledge/admission seam.</strong> Use them to settle the record shape and library interface before expanding prompt vocabulary or touching live saves. The next reviewable milestone is the same clearing drawn from a public scene: no hut until introduction; three new landmarks while stationary; supported directions; no false metre scale.</p>
+<p>Then carry that contract through rooms, doors, lifecycle paths, and migration. Do not begin with a mass deletion of generated features, a per-label allowlist, or an exception for this seed: each would leave a second route by which maps invent public facts.</p>
+<ul>
+<li>Every meaningful public object and displayed attribute has an inspectable disclosure or explicit legacy source.</li>
+<li>A feature can be learned without arrival; arrival, exploration, current visibility, and knowledge remain distinct.</li>
+<li>Established geography constrains the drawing, and unknown precision is shown honestly.</li>
+<li>All public surfaces agree; no private generated geometry influences public identity or context.</li>
+<li>Existing campaigns retain established places, notes, identities, and accepted geometry; unresolved history remains recoverable.</li>
+<li>Rerolls, checkpoints, save/load, library upgrades, device changes, and older clients respect the same contract.</li>
+<li>The regression, sabotage, migration, rendering, and device gates pass; independent review is resolved; the owner confirms the experience in play.</li>
+</ul>
+<div class="decision"><p><strong>The product change should feel simple:</strong> the player hears about a place, the map remembers it, and later play adds detail. The complexity belongs at the admission and persistence boundaries, so the GM and player are not asked to maintain two versions of the world.</p></div>
+</section>
+
+<section id="sources">
+<h2>Evidence and limits of this plan.</h2>
+<p>This plan follows the accepted direction in <a href="Map_Review_Astra.html">Map Review — Astra</a>. The prior review reproduced the exact procedural hut from the saved recipe, verified the 100 m reveal mechanism, and showed that filing an exit without moving did not add a feature. The plan adds source analysis of blueprint seeding, the identity resolver, turn/checkpoint ordering, reroll behaviour, save-version gates, and the separate library repository.</p>
+<div class="table-wrap"><table><thead><tr><th>Planning constraint</th><th>Source checked</th></tr></thead><tbody>
+<tr><td>Blueprint nodes can be private; exits need not be visits</td><td><a href="../game.js">game.js</a> · blueprint location seeding; <a href="../memory.js">memory.js</a> · <code>newMapNode</code>, <code>fileExit</code>, <code>fileLayout</code>, <code>NODE_CARRY_FIELDS</code>.</td></tr>
+<tr><td>Geometry participates in canonical identity</td><td><a href="../DOC/contracts/identity.md">identity contract</a>; <a href="../atlas.js">atlas.js</a> · <code>atlasPlaceCanon</code>, <code>atlasFollow</code>, <code>atlasAdopt</code>.</td></tr>
+<tr><td>Checkpoint precedes transcript write; reroll retains state</td><td><a href="../game.js">game.js</a> · <code>commitGmTurn</code>, <code>rerollLast</code>; <a href="../state.js">state.js</a> · <code>checkpointCapture</code>, <code>checkpointRestore</code>.</td></tr>
+<tr><td>Private map authority and shared geography context</td><td><a href="../atlas.js">atlas.js</a> · <code>ATLAS_BRIEF_HEAD</code>, <code>atlasMapBlock</code>; <a href="../api.js">api.js</a> · <code>buildGeoBlock</code>, volatile prompt; <a href="../table-talk.js">table-talk.js</a> · world context.</td></tr>
+<tr><td>Recipes, fog, versions, and re-vendoring</td><td><a href="../atlas.js">atlas.js</a> · builders, fingerprints, fog, migration; <a href="../globals.js">globals.js</a> · save version; <a href="../helpers.js">helpers.js</a> · <code>worldVersionIssue</code>; <a href="../../TnD_Maps/CLAUDE.md">TnD Maps project reference</a>.</td></tr>
+<tr><td>Engineering and review gates</td><td><a href="../AGENTS.md">AGENTS.md</a>; <a href="../CLAUDE.md">CLAUDE.md</a>; <a href="../TODO.md">TODO.md</a> and <a href="../DOC/TODO_ARCHIVE.md">completed task record</a>.</td></tr>
+</tbody></table></div>
+<p><strong>Limits:</strong> no application or library implementation was changed for this plan; no campaign was migrated; no live model compliance sweep or Safari/device validation was performed. The stage gates describe work to do, not tests already passed. Names for new modules, fields, and operations are concrete proposals to pin during stage 0. No external research was needed to establish these repository behaviours.</p>
+<p class="small">Document verification: inspected renders at 1440 × 1100 and 390 × 844; all 40 local links resolve; no missing anchors, duplicate IDs, or page overflow. Wide tables scroll within their containers on phones. The local repository gate ended <strong>ALL GREEN — 3242 assertions passed (engine tests)</strong>. These checks validate the document and current checkout; the proposed implementation gates above have not been run.</p>
+</section>
+<footer>Prepared by Astra · 12 November 2026 · Planning only. Implementation progress belongs in <a href="../TODO.md">TODO #733</a>. Read the underlying diagnosis in <a href="Map_Review_Astra.html">Map Review — Astra</a>.</footer>
+</main>
+</div>
+</body>
+</html>
