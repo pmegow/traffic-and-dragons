@@ -50,6 +50,7 @@
     "The Blueprint Designer groups file actions and model settings under File, with Render Options for choosing portrait models.",
     "Designer creature portraits request a 55mm lens at f/1.8, keeping creature details crisp against a softly blurred habitat.",
     "Blueprint creatures and NPCs gain an Abilities field for spells, special attacks and resistances, preserved in drafts and GM context.",
-    "Designer NPC portraits use a 55mm lens at f/1.8; shared image styling no longer imposes skin, leather or fabric textures."
+    "Designer NPC portraits use a 55mm lens at f/1.8; shared image styling no longer imposes skin, leather or fabric textures.",
+    "The Blueprint Designer can render all missing creature and NPC portraits, preserving existing images and saving each completed portrait."
   ]
 }

@@ -179,7 +179,8 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="tts.js"></script>
 <script src="ui-shell.js"></script>
 <script src="ui-portrait.js"></script>
-<script src="designer-menu.js?v=0.68"></script>
+<script src="designer-portrait-batch.js?v=0.72"></script>
+<script src="designer-menu.js?v=0.72"></script>
 <script src="designer-acts.js"></script>
 <script src="designer-creatures.js?v=0.71"></script>
 <script src="designer-assistant.js"></script>
@@ -189,7 +190,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.71";
+var BP_DESIGNER_VERSION="v0.72";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // The raw authoring state includes review selections, full prose originals, portraits and edition identity.
@@ -1110,20 +1111,26 @@ async function creaturePortraitData(url){
   }finally{clearTimeout(timer);}
 }
 async function generateCreaturePortrait(c,btn){return generateDesignerPortrait("creature",c,btn);}
-async function generateDesignerPortrait(type,c,btn){
-  var cfg=DESIGNER_PORTRAITS[type];if(!cfg)return;
-  if(!c||creaturePortraitBusy(c))return;
-  if(!falAvailable()){setStatus("Sign in from the game or configure an image key before generating a portrait.","err");return;}
-  if(!c.name||!c.notes){setStatus("Give this "+cfg.label+" a name and notes before generating its portrait.","err");return;}
-  var target=bp,identity=cfg.identity(c);creaturePortraitJobs.push(c);btn.disabled=true;
-  var timer=elapsedTicker(btn,"Drawing portrait…",{text:true});
+async function generateDesignerPortrait(type,c,btn,options){
+  options=options||{};
+  function result(status,message){
+    if(message&&!options.quiet)setStatus(message,status==="saved"?"ok":"err");
+    return {status:status,reason:message||""};
+  }
+  var cfg=DESIGNER_PORTRAITS[type];if(!cfg||!c||creaturePortraitBusy(c))return result("skipped");
+  if(options.missingOnly&&c.portrait)return result("skipped");
+  if(!falAvailable())return result("failed","Sign in from the game or configure an image key before generating a portrait.");
+  if(!c.name||!c.notes)return result("failed","Give this "+cfg.label+" a name and notes before generating its portrait.");
+  var target=bp,identity=cfg.identity(c);creaturePortraitJobs.push(c);
+  var timer=null;if(btn){btn.disabled=true;timer=elapsedTicker(btn,"Drawing portrait…",{text:true});}
   try{
     var url=await generatePortraitImage(cfg.prompt(c));
     var portrait=await creaturePortraitData(url);
     if(bp!==target||target[cfg.section].indexOf(c)<0||identity!==cfg.identity(c))throw new Error("The "+cfg.label+" or blueprint changed; the portrait was not attached.");
-    c.portrait=portrait;markDirty();setStatus("Portrait added for “"+c.name+"”. Save the blueprint to keep a portable copy.","ok");
-  }catch(err){console.warn("[designer portrait] "+err.message);setStatus("Portrait generation failed: "+err.message,"err");}
-  finally{timer.stop();creaturePortraitJobs.splice(creaturePortraitJobs.indexOf(c),1);render();}
+    if(options.missingOnly&&c.portrait)return result("skipped");
+    c.portrait=portrait;markDirty();return result("saved","Portrait added for “"+c.name+"”. Save the blueprint to keep a portable copy.");
+  }catch(err){console.warn("[designer portrait] "+err.message);return result("failed","Portrait generation failed: "+err.message);}
+  finally{if(timer)timer.stop();creaturePortraitJobs.splice(creaturePortraitJobs.indexOf(c),1);render();}
 }
 
 // ── Generate campaign from scratch (v0.33, TODO #59 / R-GEN one-click) ─────────

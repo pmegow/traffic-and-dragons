@@ -153,6 +153,10 @@ jobs:
         run: node dev/tests-675-invitations-browser.js
       - name: Operator activity and beta mail controls (#674)
         run: node dev/tests-674-admin-updates-browser.js
+      - name: Render all missing Designer portraits (#732)
+        run: node dev/tests-732-missing-portraits-browser.js
+        env:
+          MISSING_PORTRAIT_SCREENSHOTS: /tmp/tnd-shots/732-portraits
       - name: Designer creature and NPC abilities (#730)
         run: node dev/tests-730-designer-abilities-browser.js
         env:
