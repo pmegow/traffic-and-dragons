@@ -8535,6 +8535,41 @@ function runEngineTests(R){
     if(/"ds": "Your first strike against an unsuspecting target is an automatic critical hit/.test(cb)||!/"ds": "Your first strike against an unsuspecting target, if it lands, is a critical hit/.test(cb))return "the class bible's sheet text for First Blow still says automatic (new characters would carry it)";
     return true;
   });
+  // ── #672 tooth (b) (Frizwick t136, owner field finding 2026-10-30): the combat bookkeeping note told the GM to "tag the
+  // blows with [ENEMY_HP:…]" — written for the GM-rolls contract, in the strongest channel — and under player rolls the GM
+  // followed it past the roll floor: the hero's strike landed for an invented 48 with no die. Every note that asks for combat
+  // tags now carries the player-rolls bound, ONE clause from ONE helper, "" while the switch is off (the OFF notes unchanged).
+  section("#672 — the player-rolls bound on the notes that ask for combat tags");
+  t("#672 playerRollsBound: empty while the GM rolls; under player rolls it stops the hero's own blow at [CHECK:] and leaves a companion's or a foe's blow to be tagged now",function(){
+    var was=playerRollsDice;try{
+      playerRollsDice=false;if(playerRollsBound()!=="")return "OFF must be empty (the OFF prompt stays byte-identical): "+playerRollsBound();
+      playerRollsDice=true;var b=playerRollsBound();
+      if(b.charAt(0)!==" ")return "the clause joins a note's last sentence with a leading space: "+JSON.stringify(b.slice(0,20));
+      if(b.indexOf("[CHECK:]")<0||!/hero's own (blow|attack)/.test(b))return "the hero's blow must stop at [CHECK:]: "+b;
+      if(!/companion's or a foe's blow/.test(b)||!/tag/.test(b))return "a companion's or a foe's blow is still tagged now: "+b;
+      if(!/never invent/i.test(b))return "the invented number (48 at t136) must be named: "+b;
+      return true;
+    }finally{playerRollsDice=was;}
+  });
+  t("#672 the three notes that ask for combat tags carry the bound under player rolls and are untouched while the GM rolls — COMBAT BOOKKEEPING (the t136 note), COMBAT TAGS WITHOUT AN ENCOUNTER, WRAP UP",function(){
+    var was=playerRollsDice,_w=console.warn,_t=(typeof showToast==="function")?showToast:null,arms,i,off,on,bound;
+    function stale(){makeWorld();applyMuts("[COMBAT_START:Kresh|12|13|+3|d8|high]");applyMuts("[ENEMY_HP:Kresh|-2]");worldState.turn=(worldState.turn||1)+COMBAT_STALE_TURNS+1;return buildCombatStaleNudge();}
+    function orphan(){makeWorld();worldState.combat=null;delete worldState.orphanCombat;applyMuts("[ENEMY_HP:Bronze Bell Warden|-9]");return buildOrphanCombatNudge();}
+    function wrap(){makeWorld();worldState.wrapUpPing={turn:worldState.turn};return buildWrapUpNote();}
+    arms=[["COMBAT BOOKKEEPING",stale],["COMBAT TAGS WITHOUT AN ENCOUNTER",orphan],["WRAP UP",wrap]];
+    console.warn=function(){};if(_t)showToast=function(){};
+    try{
+      playerRollsDice=true;bound=playerRollsBound();if(!bound)return "fixture: no bound under player rolls";
+      for(i=0;i<arms.length;i++){
+        playerRollsDice=false;off=arms[i][1]();
+        playerRollsDice=true;on=arms[i][1]();
+        if(!off||off.indexOf(arms[i][0])<0)return "fixture: "+arms[i][0]+" did not fire with the GM rolling: "+off;
+        if(off.indexOf("[CHECK:]")>=0||off.indexOf(bound)>=0)return arms[i][0]+" changed while the GM rolls: "+off;
+        if(on!==off.slice(0,off.length-1)+bound+"]")return arms[i][0]+" under player rolls must be the same note with the bound before its closing bracket: "+on;
+      }
+      return true;
+    }finally{playerRollsDice=was;console.warn=_w;if(_t)showToast=_t;}
+  });
   section("#204 duplicate-refusal hygiene");
   t("#204: a bare SCENE_DEATH whose envelope already committed THIS response is stripped without a conflict, and co-emitted quest tags survive",function(){
     makeWorld();

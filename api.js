@@ -553,13 +553,20 @@ function buildQuestObjectiveNudge(){
    answered that no state exists — TT's honesty exposed the gap; this is the engine's half.
    Deliberately NOT combat-silent (the #214② precedent): its subject IS the missing encounter.
    Moot-aware: if combat is open again at delivery time, the GM already fixed it — clear silently. */
+/* #672 tooth (b) (Frizwick t136): a note that asks for combat tags was written for the GM-rolls contract, and an engine note
+   beside the action outranks the roll floor in the stable half — the GM "tagged the blows" and the hero's strike landed for
+   an invented 48 with no die. ONE clause, from here, on every such note; "" while the GM rolls, so those notes are unchanged. */
+function playerRollsBound(){
+  if(typeof playerRollsDice==="undefined"||!playerRollsDice)return"";
+  return " THE PLAYER ROLLS in this campaign: the hero's own blow still stops at [CHECK:] and its damage arrives with the player's next message — never invent a number for it; a companion's or a foe's blow you tag now.";
+}
 function buildOrphanCombatNudge(){
   if(!worldState)return"";
   var q=worldState.orphanCombat;
   if(!q||q.delivered)return"";
   if(worldState.combat){delete worldState.orphanCombat;return"";}
   q.delivered=true;
-  return "[ENGINE NOTE — COMBAT TAGS WITHOUT AN ENCOUNTER (not a player action): your recent combat tags ("+q.tags.join(", ")+") arrived after the encounter was CLOSED and applied NOTHING — no damage, no kill, no round was recorded. If the fight resumed after the close, RE-OPEN it now with [COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] using the foe's remaining hp as its pool, then re-assert the outcome ([ENEMY_HP:]/[ENEMY_SLAIN:]) so the record catches up. If the fight is genuinely over, narrate freely and emit no combat tags.]";
+  return "[ENGINE NOTE — COMBAT TAGS WITHOUT AN ENCOUNTER (not a player action): your recent combat tags ("+q.tags.join(", ")+") arrived after the encounter was CLOSED and applied NOTHING — no damage, no kill, no round was recorded. If the fight resumed after the close, RE-OPEN it now with [COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] using the foe's remaining hp as its pool, then re-assert the outcome ([ENEMY_HP:]/[ENEMY_SLAIN:]) so the record catches up. If the fight is genuinely over, narrate freely and emit no combat tags."+playerRollsBound()+"]";
 }
 function buildCombatStaleNudge(){
   if(!worldState||!worldState.combat)return"";
@@ -574,7 +581,7 @@ function buildCombatStaleNudge(){
   var names=[],i;
   for(i=0;i<live.length;i++)names.push(live[i].name+" at "+live[i].hp+"/"+(live[i].maxHp!=null?live[i].maxHp:live[i].hp)+" hp");
   var first=live[0].name;
-  return"[ENGINE NOTE - COMBAT BOOKKEEPING (not a player action): this encounter is still OPEN and no combat tag has been emitted for "+quiet+" turn(s), but the tracker still shows "+names.join(", ")+" standing. If your narration has already put "+(live.length===1?"this foe":"these foes")+" down, say so now with [ENEMY_SLAIN:"+first+"] (one per foe) \u2014 the engine does the arithmetic, so never invent a damage number to cover a narrated kill. If the fight ended some other way, close it with [COMBAT_END:fled] / [COMBAT_END:truce] / [COMBAT_END:disengaged]. If it is genuinely still underway, tag the blows with [ENEMY_HP:"+first+"|-X].]";
+  return"[ENGINE NOTE - COMBAT BOOKKEEPING (not a player action): this encounter is still OPEN and no combat tag has been emitted for "+quiet+" turn(s), but the tracker still shows "+names.join(", ")+" standing. If your narration has already put "+(live.length===1?"this foe":"these foes")+" down, say so now with [ENEMY_SLAIN:"+first+"] (one per foe) \u2014 the engine does the arithmetic, so never invent a damage number to cover a narrated kill. If the fight ended some other way, close it with [COMBAT_END:fled] / [COMBAT_END:truce] / [COMBAT_END:disengaged]. If it is genuinely still underway, tag the blows with [ENEMY_HP:"+first+"|-X]."+playerRollsBound()+"]";
 }
 function buildQuestStaleNudge(){
   if(!worldState||!worldState.questLog||worldState.combat)return"";
@@ -963,7 +970,7 @@ function buildMontageNote(){
 // #308 ②: the WRAP-UP contract — Car Mode's "wrap up": land the scene at a hook within two responses.
 function buildWrapUpNote(){
   var r=worldState&&worldState.wrapUpPing;if(!r)return"";delete worldState.wrapUpPing;
-  return "[ENGINE NOTE — WRAP UP (not a player action): the player is about to stop for now. Within two responses, bring the scene to a natural stopping point — finish the fight if one is open, close the conversation, and END on a hook: a clear choice for next time, stated plainly in the last sentence. Do not start anything new that cannot be left.]";
+  return "[ENGINE NOTE — WRAP UP (not a player action): the player is about to stop for now. Within two responses, bring the scene to a natural stopping point — finish the fight if one is open, close the conversation, and END on a hook: a clear choice for next time, stated plainly in the last sentence. Do not start anything new that cannot be left."+playerRollsBound()+"]";
 }
 // #305: the wildcard's reward — one shot, armed when the player sends the reckless button's text.
 function buildRecklessNote(){
