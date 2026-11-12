@@ -1,5 +1,5 @@
 {
-  "version": "v1.1395",
+  "version": "v1.1396",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -49,6 +49,7 @@
     "GPT Image 2.6 Sunburst and 2.5 Flare join Render Options; slow portraits use the queue to finish beyond the gateway timeout.",
     "The Blueprint Designer groups file actions and model settings under File, with Render Options for choosing portrait models.",
     "Designer creature portraits request a 55mm lens at f/1.8, keeping creature details crisp against a softly blurred habitat.",
-    "Blueprint creatures and NPCs gain an Abilities field for spells, special attacks and resistances, preserved in drafts and GM context."
+    "Blueprint creatures and NPCs gain an Abilities field for spells, special attacks and resistances, preserved in drafts and GM context.",
+    "Designer NPC portraits use a 55mm lens at f/1.8; shared image styling no longer imposes skin, leather or fabric textures."
   ]
 }

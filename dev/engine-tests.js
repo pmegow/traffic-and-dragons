@@ -5006,6 +5006,17 @@ function runEngineTests(R){
     if(p.indexOf("dialogue, narration, rumor, or suggestion")<0)return "narration omitted from the secret fence";
     return p.indexOf("THE HERO'S OWN STAKE IS NEVER A SECRET FROM THE PLAYER")>=0?true:"hero's own life was hidden too";
   });
+  section("#731 image style respects authored materials");
+  t("#731 generated image style does not impose skin leather or fabric",function(){
+    var description="An ancient willow-shaped being rooted in the marsh.",prompt=withImgStyle(description);
+    if(/ultra-detailed leather and cloth textures|realistic skin pores and fabric weave/.test(prompt))return "shared style still imposes the removed material cues";
+    if(prompt.indexOf(description)!==0||prompt.indexOf("painterly realism")<0||prompt.indexOf("warm firelight and cool shadow contrast")<0)return "unrequested appearance or style change";
+    return withImgStyle(prompt)===prompt?true:"shared style appended twice";
+  });
+  t("#731 authored skin and fabric descriptions stay intact",function(){
+    var text="This particular figure has realistic skin pores and fabric weave in a linen shawl.";
+    return withImgStyle(text).indexOf(text)===0?true:"authored material description was stripped";
+  });
   section("#730 authored creature and NPC abilities");
   function abilities730(){
     makeWorld();worldState.turn=0;

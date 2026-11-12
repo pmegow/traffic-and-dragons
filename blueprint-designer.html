@@ -181,7 +181,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="ui-portrait.js"></script>
 <script src="designer-menu.js?v=0.68"></script>
 <script src="designer-acts.js"></script>
-<script src="designer-creatures.js?v=0.70"></script>
+<script src="designer-creatures.js?v=0.71"></script>
 <script src="designer-assistant.js"></script>
 <script src="designer-prose.js"></script>
 <script src="blueprint-designer-drafts.js"></script>
@@ -189,7 +189,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.70";
+var BP_DESIGNER_VERSION="v0.71";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // The raw authoring state includes review selections, full prose originals, portraits and edition identity.
@@ -1026,7 +1026,7 @@ var creatureGeneration=null,creaturePortraitJobs=[];
 // Each card type supplies only its public visual identity; persistence and UI share one path.
 var DESIGNER_PORTRAITS={
   creature:{section:"creatures",label:"creature",identity:function(c){return JSON.stringify([c.name,c.kind,c.threat,c.notes,c.desc,c.displayName,c.environment]);},prompt:DesignerCreatures.portraitPrompt},
-  npc:{section:"npcs",label:"NPC",identity:function(c){return JSON.stringify([c.name,c.role,c.pronouns,c.notes]);},prompt:function(c){return "Character portrait of "+c.name+". Role: "+(c.role||"unspecified")+". Pronouns: "+(c.pronouns||"unspecified")+". Public description: "+c.notes+" Depict their described appearance and clothing in a fitting setting. Do not invent hidden identities or transformations. No lettering or stat blocks.";}}
+  npc:{section:"npcs",label:"NPC",identity:function(c){return JSON.stringify([c.name,c.role,c.pronouns,c.notes]);},prompt:function(c){return "Character portrait of "+c.name+". Role: "+(c.role||"unspecified")+". Pronouns: "+(c.pronouns||"unspecified")+". Public description: "+c.notes+" Depict their described appearance and clothing in a fitting setting. Do not invent hidden identities or transformations. No lettering or stat blocks."+DesignerCreatures.portraitFocus("character");}}
 };
 function designerPortraitAttrs(type,action,i){return " data-op='"+type+"portrait"+({generate:"",view:"view",remove:"remove"}[action])+"' data-portrait-type='"+type+"' data-portrait-action='"+action+"' data-i='"+i+"'";}
 function designerPortraitActions(type,c,i){

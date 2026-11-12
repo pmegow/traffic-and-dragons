@@ -47,8 +47,9 @@
       +(choice.availableActs===undefined?"If the story reserves this creature for a later act, add revealAct as that existing act's 1-based integer; otherwise omit it.":"The author has already chosen the acts; omit availability fields.")
       +"\nOutput ONLY a JSON object with name, notes, desc, abilities (optional text for spells, special attacks, resistances and their limits; empty if none) and, only when needed, displayName"+(choice.availableActs===undefined?" and revealAct":"")+".";
   }
+  function portraitFocus(subject){return " Use a 55mm lens at f/1.8 with shallow depth of field. Keep the "+subject+"'s eyes and face in sharp focus where present, with its silhouette and defining features clearly readable. Place the habitat well behind the "+subject+": the background is softly blurred into gentle bokeh. Apply sharp focus and fine detail to the "+subject+" only; background scenery stays out of focus.";}
   function portraitPrompt(c){
-    var focus=" Use a 55mm lens at f/1.8 with shallow depth of field. Keep the creature's eyes and face in sharp focus where present, with its silhouette and defining features clearly readable. Place the habitat well behind the creature: the background is softly blurred into gentle bokeh. Apply sharp focus and fine detail to the creature only; background scenery stays out of focus.";
+    var focus=portraitFocus("creature");
     if(c.desc||c.displayName){
       if(!c.desc||!c.desc.trim())throw new Error("Write the creature's public appearance before illustrating its disguise.");
       return "Bestiary illustration. Visible appearance: "+c.desc+" Show only this appearance in a fitting habitat; no lettering or stat blocks."+focus;
@@ -66,6 +67,6 @@
   function textBlueprint(bp){return JSON.parse(JSON.stringify(bp,function(k,v){return k==="portrait"||(k&&k.charAt(0)==="_")?undefined:v;}));}
   function preserveEntity(previous,next){preservePortrait(previous,next);if(previous&&next.abilities===undefined&&previous.abilities!==undefined)next.abilities=previous.abilities;return next;}
   function preservePortrait(previous,next){delete next.portrait;if(previous&&previous.portrait)next.portrait=previous.portrait;return next;}
-  var api={preserveEntity:preserveEntity,preserveCreature:preserveCreature,portraitPrompt:portraitPrompt,preservePortrait:preservePortrait,fields:fields,maxCount:maxCount,plan:plan,entry:entry,prompt:prompt,textBlueprint:textBlueprint};
+  var api={portraitFocus:portraitFocus,preserveEntity:preserveEntity,preserveCreature:preserveCreature,portraitPrompt:portraitPrompt,preservePortrait:preservePortrait,fields:fields,maxCount:maxCount,plan:plan,entry:entry,prompt:prompt,textBlueprint:textBlueprint};
   if(typeof module!=="undefined"&&module.exports)module.exports=api;else root.DesignerCreatures=api;
 })(this);
