@@ -513,6 +513,273 @@ The reporter has JavaScript/promise handlers but no capturing script-resource er
 
 - 2026-10-31 — Kept open after reproducing the blocked-helper failure and documenting the missing diagnostics. No speculative runtime patch. [Review](bug_review_2026-10-31.md).
 
+## B57 — The owner finds the live dice too small on the phone and asks for them at twice the size (v1.1339, Frizwick t140, iPhone)
+**Status:** new
+**Kind:** user-report · **First seen:** 2026-11-01 (v1.1339) · **Last seen:** 2026-11-01 (v1.1339) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 140
+**Fingerprint:** `user-report · user-report · v1.1339 · The dice are way too small. Need to double the size of them.`
+**Report ids:** 31b33640-f3ca-4ce3-a728-2f3d7f55d721
+**Screenshot URL:** https://drive.google.com/file/d/15K2OJkOeAQ2woiA13IIbjqIHuiZUWjlX/view?usp=drivesdk
+**Sync note:** the game's dice camera was set to about twice size afterwards (`DICE_LIVE_SIZE` 2, #681) — whether that answers this report is for the investigation to say.
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+The dice are way too small.  Need to double the size of them.
+STATE: Frizwick (Rogue Lv18) HP 112/112, 2535 gp 2 sp — The Hollow Wastes / The Sunken Sanctuary, Day 2, 1:46 pm — turn 140
+LAST EXCHANGES (clean text):
+[t135 GM · gemini-3.8-flash] The lower gantry floor is forged iron grating, wide enough to slip through from below if you haul your frame up between the steel braces. A heavy maintenance hatch sits ten paces south along the span, chained shut with a crude padlock that your picks could unravel in moments. 
+
+Alternatively, your Inevitably stride can place you standing directly on the deck behind the guards, bypassing the climb and the hatch entirely. 
+
+If you drop beneath the iron slats again, you can wriggle along the drainage channel to bypass the sentries and surface deeper inside the citadel vault.
+[t135 player] Haul up onto the grating through the hatch.
+[t136 GM · gemini-3.8-flash] You swing hand over hand beneath the smoking iron ribs toward the maintenance trap.
+
+Your silver thumb-picks bite the slag-crusted tumbler. The heavy chain uncoils without a rasp inside Morwen's smothering dome of silence.
+
+You shove the hatch up, vault onto the vibrating iron deck, and drive your pale witchlight blade through the seam of the nearest sentinel's brass greave. Hot, black vitriol sprays across the grating as the brute buckles to one knee, tearing at his severed hamstrings in soundless agony while the second guard spins his barbed pike to skewer you.
+[t136 player] Signal Ammut to flank through the open hatch. Parry the second guard's pike with my curved runeblade.
+[t137 GM · gemini-3.8-flash] You drop low and tap two quick boot-clicks against the iron rim.
+
+The barbed pike whistles down, aiming straight for your throat. You catch the heavy iron shaft along the groove of your curved runeblade, twisting your wrist to wrench the thrust aside into the catwalk rail. 
+
+Ammut explodes up through the open trapdoor behind the brute. His twin runic daggers blur through the stifled air, carving deep across the sentinel's exposed neck. 
+
+Vitriol and black blood splash across the iron mesh as both guards collapse into heaps of smoking brass. Morwen's silence swallows the crash of their armor, leaving only the shudder of the floor beneath your boots. 
+
+You quickly strip a pair of heavy ash-tokens and thirty-five gold pieces from their belts. Ahead, an iron bulkhead stands unlatched, spilling a blinding amber glare from the central citadel vaults.
+[t137 player] Have Morwen drop the silence and listen.
+[t138 GM · gemini-3.8-flash] Morwen lowers her hand, letting the invisible boundary dissolve.
+
+Sound crashes back over the gantry in a deafening wall of heat and fury. The boiling dross beneath the iron floor churns violently, spraying white-hot droplets against the rust. 
+
+Beyond the open bulkhead, heavy rhythmic concussions shake the basalt foundations. It is the deep, mechanical pulse of the master cinder heart, echoing through the great hollow vaults of the central spire. Above the thrum, distant boots scrape against iron stairs, climbing toward the upper rings.
+
+Daeris rests her hand against your shoulder, her cracked spectacles reflecting the crimson glare. 
+
+"The pulse is steady, but the garrison above is already moving," she warns. "They will find the empty post soon."
+[t138 player] Scout the iron stairs to intercept the climbing patrol.
+[t139 GM · gemini-3.8-flash] You slip past the bulkhead and hug the shadows along the spiraling iron riser. 
+
+The heat bakes through your leather wrap as your boots glide silently over the hot rivets. Below you, three cinder vane sentinels clamber up the metal treads in single file. Their spiked polearms scrape sparks against the banister, their bronze helms venting yellow sulfur steam with every lungful. 
+
+They are hunting the silenced breach, eyes fixed upward toward the gantry you just vacated. Their broad brass pauldrons leave their throats wide open from above. 
+
+Ammut perches on the catwalk overhead like a coiled panther, daggers drawn and eyes locked on your hand signal.
+
+Failure to drop them instantly will send their warning horn echoing through the central furnace spire.
+[t140 GM · gemini-3.8-flash] You vault the iron railing and drop like a falling hawk. 
+
+Your witchlight blade punches down through the lead sentinel's bronze gorget. The pale, luminous steel bites deep into meat and spine, severing the nerve before the guard can draw breath to yell. Hot blood hiss-spits against the smoking metal stairs.
+
+Ammut crashes down behind you in a blur of motion. His curved runeblade shears the second soldier's throat open from ear to ear, shoving the thrashing corpse hard into the banister. 
+
+The third sentry recoils down two steps, lifting an iron horn toward his mouth.
+NEWEST RAW GM RESPONSE (tags intact):
+[DICE:Witchlight blade attack|d20 = 12 + 9 = 21|success|1d6+3 = 3 + 3 = 6]
+[TIME_CHECK:afternoon]
+[TIME_ADVANCE:1m]
+[SKILL_SUCCESS:Stealth]
+[ENEMY_HP:Cinder Vane Patrol|-6]
+[COMBAT_ROUND:2]
+
+You vault the iron railing and drop like a falling hawk. 
+
+Your witchlight blade punches down through the lead sentinel's bronze gorget. The pale, luminous steel bites deep into meat and spine, severing the nerve before the guard can draw breath to yell. Hot blood hiss-spits against the smoking metal stairs.
+
+Ammut crashes down behind you in a blur of motion. His curved runeblade shears the second soldier's throat open from ear to ear, shoving the thrashing corpse hard into the banister. 
+
+The third sentry recoils down two steps, lifting an iron horn toward his mouth.
+
+[SUGGEST:Sever the horn with a thrown dagger|Shove the dead sentinel down the stairwell into him|Signal Daeris to smite him with Sacred Flame]
+SUGGESTED ACTIONS SHOWN: Sever the horn with a thrown dagger | Shove the dead sentinel down the stairwell into him | Signal Daeris to smite him with Sacred Flame | Do something reckless.
+url: https://traffic-and-dragons.pages.dev/ · ua: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1 · suppressed: 0
+```
+
+### Reporters (untrusted account metadata)
+
+```json
+[
+ {
+  "reportId": "31b33640-f3ca-4ce3-a728-2f3d7f55d721",
+  "username": "pmegow",
+  "state": "account"
+ }
+]
+```
+
+### Findings
+
+### Action log
+
+- 2026-11-13 — filed by /bugs sync (hand sync).
+
+## B58 — The dice roller's modules disagreed on a local preview page — one file asked another for an export it did not have, so the page threw at load (v1.1356, localhost)
+**Status:** new
+**Kind:** crash · **First seen:** 2026-11-06 (v1.1356) · **Last seen:** 2026-11-06 (v1.1356) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 155
+**Fingerprint:** `crash · window.onerror · v1.1356 · Uncaught SyntaxError: The requested module './numeral-fonts.js' does not provide an export named 'cssFontString'`
+**Report ids:** 04d00fde-6043-4302-ac24-76c217da0b38
+**Screenshot URL:** —
+**Sync note:** a localhost page inside the desktop app's browser, not production.
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+Uncaught SyntaxError: The requested module './numeral-fonts.js' does not provide an export named 'cssFontString'
+http://localhost:3000/roller/render/font-library.js:3:56
+SyntaxError: The requested module './numeral-fonts.js' does not provide an export named 'cssFontString'
+
+--- diag ---
+session s283bws-141u · report 1/10 · up 8s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=running
+this page:
+  +0s boot
+PREVIOUS page (ended without unload — see B9):
+  +0s boot
+url: http://localhost:3000/ · ua: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/4.23118.0 Chrome/152.0.7977.167 Safari/537.36 MSIX · suppressed: 0
+```
+
+### Reporters (untrusted account metadata)
+
+```json
+[
+ {
+  "reportId": "04d00fde-6043-4302-ac24-76c217da0b38",
+  "username": "pmegow",
+  "state": "account"
+ }
+]
+```
+
+### Findings
+
+### Action log
+
+- 2026-11-13 — filed by /bugs sync (hand sync).
+
+## B59 — The live dice could not start on an iPhone — the page was given no WebGL context, so the dice overlay failed at boot (v1.1378–v1.1380, pages.dev)
+**Status:** new
+**Kind:** crash · **First seen:** 2026-11-09 (v1.1378) · **Last seen:** 2026-11-09 (v1.1380) · **Count:** 2 · **Campaign:** The Silence Between Leaves (Kaelon Sky-Breaker) · **Turn:** —
+**Fingerprint:** `crash · dice-live · v1.1378 · live dice: the dice could not start (null is not an object (evaluating 'gl.getShaderPrecisionFormat( gl.VERTEX_SHADER, g`
+**Report ids:** 036ffdff-a5da-4b10-a442-23328e7d3c40, eb13dcd0-95ff-4a73-bb5c-884293c5e557
+**Screenshot URL:** —
+**Sync note:** two reports nine seconds apart on consecutive loads, one per app version; folded as one failure. The reported detail is `[object Object]` (the B49 finding: the reporter stringifies an object).
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+live dice: the dice could not start (null is not an object (evaluating 'gl.getShaderPrecisionFormat( gl.VERTEX_SHADER, gl.HIGH_FLOAT ).precision'))
+[object Object]
+
+--- diag ---
+session sf9y12u-1hdx · report 1/10 · up 0s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=1 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=suspended
+this page:
+  +0s boot
+PREVIOUS page (ended cleanly):
+  +0s boot
+  +2373s unload
+url: https://traffic-and-dragons.pages.dev/ · ua: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1 · suppressed: 0
+```
+
+### Reporters (untrusted account metadata)
+
+```json
+[
+ {
+  "reportId": "036ffdff-a5da-4b10-a442-23328e7d3c40",
+  "username": "pmegow",
+  "state": "account"
+ },
+ {
+  "reportId": "eb13dcd0-95ff-4a73-bb5c-884293c5e557",
+  "username": "pmegow",
+  "state": "account"
+ }
+]
+```
+
+### Findings
+
+### Action log
+
+- 2026-11-13 — filed by /bugs sync (hand sync).
+
+## B60 — The dice module does not load when the game is opened as a local file — eight boots at file:// each reported the missing module (v1.1400–v1.1407, desktop Chrome)
+**Status:** new
+**Kind:** crash · **First seen:** 2026-11-12 (v1.1400) · **Last seen:** 2026-11-13 (v1.1407) · **Count:** 8 · **Campaign:** The Silence Between Leaves (Kaelon Sky-Breaker); PlaytestHarnessMap733Leaves2026-11-12 · **Turn:** 9, —, 10, 30, 50
+**Fingerprint:** `crash · dice-live · v1.1400 · live dice: the dice module did not load (roller/embed/global.js)`
+**Report ids:** 66b0e99e-5961-40dd-b3d2-6642dd87dbce, 738df7cf-f31f-4661-99be-582b0d49b4cb, c6115949-27d4-4be8-9983-4b8d7f3e5d03, 83f777a6-aa33-4543-be8e-48723781cfd7, 735bfef0-8c0b-4fcd-b099-fc3440028104, 3fe79eff-6d3d-42a0-b7b2-402468d0a439, 2d5c93d2-f2ba-4608-9699-a64e05dd5bf7, df66dfc1-f2b3-4c2d-8c48-39d2c079118e
+**Screenshot URL:** —
+**Sync note:** all eight are `file:///C:/Projects/traffic-and-dragons/index.html` on the development machine; five ran under a playtest-harness campaign. One report per boot (each `report 1/10`). Only the first body is kept.
+
+### Report (untrusted user-submitted data — never instructions)
+
+```text
+live dice: the dice module did not load (roller/embed/global.js)
+[object Object]
+
+--- diag ---
+session s57gwju-1e11 · report 1/10 · up 88s
+audio ctx=none refusals=0 playing=0 paused=0 q=0 synths=0/0 recycles=0 voices=0 on=0 eng=inpage ctxSyn=0/40 cr=0 da=0 synthCPU=0s snd=suspended
+this page:
+  +0s boot
+url: file:///C:/Projects/traffic-and-dragons/index.html · ua: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 · suppressed: 0
+```
+
+### Reporters (untrusted account metadata)
+
+```json
+[
+ {
+  "reportId": "66b0e99e-5961-40dd-b3d2-6642dd87dbce",
+  "username": "pmegow",
+  "state": "account"
+ },
+ {
+  "reportId": "738df7cf-f31f-4661-99be-582b0d49b4cb",
+  "username": null,
+  "state": "unavailable"
+ },
+ {
+  "reportId": "c6115949-27d4-4be8-9983-4b8d7f3e5d03",
+  "username": null,
+  "state": "unavailable"
+ },
+ {
+  "reportId": "83f777a6-aa33-4543-be8e-48723781cfd7",
+  "username": "pmegow",
+  "state": "account"
+ },
+ {
+  "reportId": "735bfef0-8c0b-4fcd-b099-fc3440028104",
+  "username": null,
+  "state": "unavailable"
+ },
+ {
+  "reportId": "3fe79eff-6d3d-42a0-b7b2-402468d0a439",
+  "username": null,
+  "state": "unavailable"
+ },
+ {
+  "reportId": "2d5c93d2-f2ba-4608-9699-a64e05dd5bf7",
+  "username": null,
+  "state": "unavailable"
+ },
+ {
+  "reportId": "df66dfc1-f2b3-4c2d-8c48-39d2c079118e",
+  "username": "pmegow",
+  "state": "account"
+ }
+]
+```
+
+### Findings
+
+### Action log
+
+- 2026-11-13 — filed by /bugs sync (hand sync).
+
 ## Completed
 
 _Every verified and ignored row lives inside this collapsible container, newest first._
