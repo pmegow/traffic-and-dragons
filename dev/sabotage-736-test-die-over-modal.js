@@ -1,5 +1,5 @@
 // dev/sabotage-736-test-die-over-modal.js — proves the #736 guards: "Roll a test d20" throws the die ABOVE the Dice
-// appearance modal, which stays open and takes every click, and closing the modal sends the die away. Each clause plants
+// appearance modal, which stays open and takes every click, and closing the modal sends the die away; #737: its Dismiss button sends the die away above the open modal. Each clause plants
 // one regression; the named check of dev/tests-669-live-dice-browser.js must fail. Needs Chrome (skipped, said, without it).
 //   node dev/sabotage-736-test-die-over-modal.js      (browser driver: dev/cdp-browser.js)
 var sabotage = require("./sabotage.js"), verdict = require("./battery-verdict.js"), chrome = require("./cdp-browser.js").locateChrome();
@@ -14,7 +14,16 @@ var dice = [
     replace: "    showDiceRoll(1+Math.floor(Math.random()*20));", mustFail: OVER },
   { label: "closing the modal leaves the test die on screen, where no click can dismiss it",
     find: "onClose:function(){modal.remove();diceLiveOverEnd();}});",
-    replace: "onClose:function(){modal.remove();}});", mustFail: OVER }
+    replace: "onClose:function(){modal.remove();}});", mustFail: OVER },
+  { label: "#737: the Dismiss button does nothing",
+    find: "dismiss.addEventListener(\"click\",function(){diceLiveOverDismiss();});",
+    replace: "dismiss.addEventListener(\"click\",function(){});", mustFail: OVER },
+  { label: "#737: Dismiss closes the modal with the die (the player is back in the game)",
+    find: "dismiss.addEventListener(\"click\",function(){diceLiveOverDismiss();});",
+    replace: "dismiss.addEventListener(\"click\",function(){diceLiveOverDismiss();modal.remove();});", mustFail: OVER },
+  { label: "#737: the dismissed die drops under the modal, its exit played unseen behind the backdrop",
+    find: "layer.classList.contains(\"out\"))return false;\n  diceLiveClose(_diceLive.token,null);",
+    replace: "layer.classList.contains(\"out\"))return false;\n  layer.classList.remove(\"over\");diceLiveClose(_diceLive.token,null);", mustFail: OVER }
 ];
 var page = [
   { label: "the layer above the modal takes the clicks: the looks cannot be browsed",

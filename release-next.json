@@ -1,5 +1,5 @@
 {
-  "version": "v1.1411",
+  "version": "v1.1412",
   "actions": [
     "Every new campaign starts with a map that fills as the GM reveals places; the map checkbox is gone.",
     "Authored NPC portraits carry from a blueprint into the campaign and stay with companions when their sheets are created.",
@@ -67,6 +67,7 @@
     "Public maps keep landmarks with unknown positions in a readable, selectable list on phones.",
     "Public maps discover narrated landmarks while the party stays put, using source-checked directions and one bounded narration check.",
     "Opened as a local file, the game says the dice need the hosted site; a failed dice start is retried and explained.",
-    "Roll a test d20 now rolls over the Dice appearance menu, which stays open so you can browse the looks."
+    "Roll a test d20 now rolls over the Dice appearance menu, which stays open so you can browse the looks.",
+    "Dice appearance gains a Dismiss button: send the test die away and try another exit without leaving the menu."
   ]
 }

@@ -189,6 +189,17 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         o.afterLook={modal:!!document.getElementById('dice-look-modal'),showing:diceLiveState().showing};
         await landed();
         o.second={modal:!!document.getElementById('dice-look-modal'),canvases:layer.querySelectorAll('canvas').length};
+        /* #737: Dismiss, between the two buttons — the die leaves by the exit ABOVE the modal, which stays open */
+        const dis=document.getElementById('dice-look-dismiss');
+        o.order=[...done.parentNode.querySelectorAll('button')].map(x=>x.id).join();
+        if(!dis)return o;
+        dis.click();
+        o.dismissing={modal:!!document.getElementById('dice-look-modal'),exiting:diceLiveState().exiting,above:Number(getComputedStyle(layer).zIndex)>Number(getComputedStyle(modal).zIndex),pointer:getComputedStyle(layer).pointerEvents};
+        await until(()=>!diceLiveState().showing,${DISMISS_MS});
+        dis.click();/* nothing on show: nothing happens, nothing throws */
+        o.dismissed={modal:!!document.getElementById('dice-look-modal'),showing:diceLiveState().showing};
+        await landed();
+        o.third={modal:!!document.getElementById('dice-look-modal'),showing:diceLiveState().showing,above:Number(getComputedStyle(layer).zIndex)>Number(getComputedStyle(modal).zIndex)};
         done.click();
         o.closed=!document.getElementById('dice-look-modal');
         await until(()=>!diceLiveState().showing,${DISMISS_MS});
@@ -208,6 +219,10 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       assert.equal(r.doneTakesClick,true,'the modal\'s buttons are what a click reaches');
       assert.deepEqual(r.afterLook,{modal:true,showing:true},'choosing another look keeps the modal and the die');
       assert.deepEqual(r.second,{modal:true,canvases:1},'a second test roll, same modal, one canvas');
+      assert.equal(r.order,'dice-look-test,dice-look-dismiss,dice-look-done','#737 Dismiss sits between Roll a test d20 and Done');
+      assert.deepEqual(r.dismissing,{modal:true,exiting:1,above:true,pointer:'none'},'#737 Dismiss plays the exit above the modal, which stays open');
+      assert.deepEqual(r.dismissed,{modal:true,showing:false},'#737 the die is gone and the modal is still there');
+      assert.deepEqual(r.third,{modal:true,showing:true,above:true},'#737 a test roll after a dismiss is thrown above the modal again');
       assert.equal(r.closed,true);
       assert.equal(r.gone,true,'closing the modal sends the test dice away');
       assert.deepEqual(r.game,{pointer:'auto',z:'50'},'a game roll afterwards is under the modal level again and takes the dismissing click');

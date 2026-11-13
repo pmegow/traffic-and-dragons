@@ -282,6 +282,15 @@ function diceLiveOverEnd(){
   return true;
 }
 
+/* #737 (owner 2026-11-13): the modal's Dismiss — the test dice leave by the player's exit while the modal stays open.
+   The layer KEEPS its place above the modal ("over") so the exit is seen; true when there were dice to send away. */
+function diceLiveOverDismiss(){
+  var layer=_diceLive.layer;
+  if(!layer||!layer.classList.contains("over")||!layer.classList.contains("on")||layer.classList.contains("leaving")||layer.classList.contains("out"))return false;
+  diceLiveClose(_diceLive.token,null);
+  return true;
+}
+
 /* #650's door: the check's d20, landing on `face`. */
 function showDiceRoll(face,opts){
   if(!(face>=1&&face<=20&&Math.floor(face)===face))return false;
@@ -310,10 +319,13 @@ function showDiceLookModal(){
     +"<select id='dice-exit' aria-label='How the dice leave when dismissed' style='flex:1;font:inherit;font-size:13px;background:var(--bg1);color:var(--t1);border:1px solid var(--brd2);border-radius:6px;padding:4px 6px;'></select></label>"
     +"<div style='display:flex;gap:8px;justify-content:flex-end;margin-top:14px;'>"
     +"<button id='dice-look-test' type='button' style='font:inherit;font-size:13px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);padding:6px 12px;cursor:pointer;'>Roll a test d20</button>"
+    +"<button id='dice-look-dismiss' type='button' style='font:inherit;font-size:13px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);padding:6px 12px;cursor:pointer;'>Dismiss</button>"
     +"<button id='dice-look-done' type='button' style='font:inherit;font-size:13px;background:var(--acc);border:0;border-radius:6px;color:var(--bg0);padding:6px 14px;cursor:pointer;'>Done</button></div>",
     {closeId:"dice-look-done",outside:true,maxWidth:380,onClose:function(){modal.remove();diceLiveOverEnd();}});
   var test=document.getElementById("dice-look-test"),area=document.getElementById("story-area");
-  if(!area||!area.offsetParent)test.style.display="none";/* no story on screen (the wizard's menu): nowhere to roll */
+  var dismiss=document.getElementById("dice-look-dismiss");
+  dismiss.addEventListener("click",function(){diceLiveOverDismiss();});/* #737: the test die leaves by the exit chosen above, the modal stays */
+  if(!area||!area.offsetParent)test.style.display=dismiss.style.display="none";/* no story on screen (the wizard's menu): nowhere to roll */
   test.addEventListener("click",function(){
     if(_diceLive.state==="failed")_diceLive.said=false;/* asked for on purpose: say why again */
     showDiceRoll(1+Math.floor(Math.random()*20),{over:true});
