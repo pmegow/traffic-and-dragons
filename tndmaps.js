@@ -1,11 +1,11 @@
-/* TnD Maps 0.19.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.20.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.19.0";
+  NS.VERSION = "0.20.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -6613,6 +6613,7 @@
         frame: { stroke: ink, width: 2.2 },
         frameInner: { stroke: ink, width: 0.7 },
         rule: { stroke: ink, width: 0.9 },
+        schematicLeader: { stroke: soft, width: 0.75, alpha: 0.65 },
         scaleBox: { fill: ink, stroke: ink, width: 0.8 },
         scaleBoxEmpty: { fill: land, stroke: ink, width: 0.8 },
         compass: { fill: land, stroke: ink, width: 0.9 },
@@ -6749,6 +6750,8 @@
         townLake: { font: SERIF, size: 8, style: "italic", letterSpacing: 0.8, fill: soft, halo: sea, haloWidth: 2, back: { shape: "plain", s: "slipSea" } },
         labelRoad: { font: SERIF, size: 9.5, style: "italic", letterSpacing: 0.5, fill: soft, halo: paper, haloWidth: 2.4, back: { shape: "plain", s: "slip" } },
         wildFeature: { font: SERIF, size: 7.5, style: "italic", letterSpacing: 0.3, fill: ink, halo: paper, haloWidth: 2, back: { shape: "plaque", s: "slip" } },
+        schematicMarker: { font: SERIF, size: 22, weight: "bold", letterSpacing: 0.4, fill: red, halo: paper, haloWidth: 2.6, back: { shape: "plaque", s: "slip" } },
+        schematicNote: { font: SERIF, size: 18, style: "italic", fill: ink, halo: paper, haloWidth: 2.4, back: { shape: "plain", s: "slip" } },
         labelMarker: { font: SERIF, size: 11, weight: "bold", letterSpacing: 0.4, fill: red, halo: paper, haloWidth: 2.6, back: { shape: "plaque", s: "slip" } },
         labelMarkerNote: { font: SERIF, size: 9.5, style: "italic", fill: ink, halo: paper, haloWidth: 2.4, back: { shape: "plain", s: "slip" } },
         compass: { font: SERIF, size: 11, weight: "bold", fill: ink, halo: land, haloWidth: 2.5 },
@@ -7523,7 +7526,7 @@
   "use strict";
   var NS = root.TnDMaps, G = NS.geom;
 
-  var MAX_LABEL = 40, MAX_NOTE = 400, NOTE_ON_MAP = 44;
+  var MAX_LABEL = 40, MAX_NOTE = 400, NOTE_ON_MAP = 44, LAYOUTS = {};
 
   function arc(cx, cy, r, a0, a1, n, out) { var k, a; for (k = 0; k <= n; k++) { a = a0 + (a1 - a0) * k / n; out.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } return out; }
   /* the party: a dagger, blade tip on the spot */
@@ -7591,6 +7594,8 @@
   function apply(scene, markers, styleName) {
     NS.assert(scene && scene.layers, "apply needs a scene", { got: scene });
     validate(markers, { width: (scene.x0 || 0) + scene.width, height: (scene.y0 || 0) + scene.height });
+    var layout = NS.own(LAYOUTS, scene.precision);
+    if (layout) return layout(scene, markers, styleName);
     var style = NS.style.get(styleName || scene.style), C = NS.scene.common, items = [], hits = [];
     markers.forEach(function (m) {
       var K = KINDS[m.kind], label = m.label || K.label, meta = { kind: "marker", id: m.id };
@@ -7656,7 +7661,7 @@
     return { text: lines.length ? "Pins:\n" + lines.join("\n") : "", facts: facts };
   }
 
-  NS.markers = { KINDS: KINDS, kinds: function () { return Object.keys(KINDS); }, validate: validate, apply: apply, describe: describe, MAX_LABEL: MAX_LABEL, MAX_NOTE: MAX_NOTE };
+  NS.markers = { KINDS: KINDS, LAYOUTS: LAYOUTS, kinds: function () { return Object.keys(KINDS); }, validate: validate, apply: apply, describe: describe, MAX_LABEL: MAX_LABEL, MAX_NOTE: MAX_NOTE };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 73-scene-dungeon.js ───── */
@@ -8525,7 +8530,7 @@
       if (cmd) { labels.push(cmd); C.hitBox(hits, "feature", f.id, cmd.box); }
     });
     layers.push({ name: "hits", items: hits });
-    return { width: WIDTH, height: doc.frame.height, style: style.name, layers: layers, dropped: lay.dropped, unit: 1, precision: "schematic" };
+    return NS.markers.apply({ width: WIDTH, height: doc.frame.height, style: style.name, layers: layers, dropped: lay.dropped, unit: 1, precision: "schematic" }, [], style.name);
   }
   function digest(doc) {
     validate(doc);
@@ -8535,6 +8540,82 @@
   NS.schematic = schematic; NS.schematic.validate = validate; NS.schematic.SCALES = SCALES; NS.schematic.BEARINGS = BEARINGS; NS.schematic.MAX_FEATURES = MAX_FEATURES;
   build.areaFog = false;
   NS.scene.BUILDERS.schematic = build; NS.digest.DIGESTS.schematic = digest;
+})(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
+
+/* ───── 79-schematic-layout.js ───── */
+/* 79-schematic-layout.js — public annotations share one collision layout. Reflow moves only
+   labels: accepted anchors, marker positions and the caller's document stay unchanged. */
+(function (root) {
+  "use strict";
+  var NS = root.TnDMaps, C = NS.scene.common, U = NS.util;
+  function layout(scene, markers, styleName) {
+    var style = NS.style.get(styleName || scene.style), lay = C.Layout(scene.width, scene.height, style);
+    var words = Object.create(null), originals = Object.create(null), featureHits = [], fixed = [], labels = [], markerItems = [], markerHits = [], leaders = [], extent = null, unplaced = false;
+    function include(b) { if (!b) return; extent = extent ? [Math.min(extent[0], b[0]), Math.min(extent[1], b[1]), Math.max(extent[2], b[2]), Math.max(extent[3], b[3])] : b.slice(); }
+    function block(b) { lay.block((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, b[2] - b[0], b[3] - b[1]); }
+    scene.layers.forEach(function (l) {
+      if (l.name === "labels") l.items.forEach(function (c) {
+        if (c.meta && c.meta.kind === "feature") { words[c.meta.id] = { text: c.text, style: c.s }; originals[c.meta.id] = c; }
+        else if (!c.meta || c.meta.kind !== "marker") fixed.push(c);
+      });
+      if (l.name === "hits") l.items.forEach(function (h) { if (h.kind === "feature") featureHits.push(U.extend({}, h)); });
+    });
+    (scene.dropped || []).forEach(function (c) { if (c.meta && c.meta.kind === "feature") words[c.meta.id] = { text: c.text, style: c.style }; });
+    /* The exported sheet still carries its own title and compass. Their reserved band is
+       separate from the view's screen-sized HUD clearance. */
+    lay.block(scene.width / 2, 55, scene.width, 110);
+    featureHits.forEach(function (h) {
+      if (h.r === 0) { unplaced = true; return; }
+      delete h.box; block([h.x - 11, h.y - 11, h.x + 11, h.y + 11]); include([h.x - 11, h.y - 11, h.x + 11, h.y + 11]);
+    });
+    if (unplaced) { block([0, 465, scene.width, scene.height]); include([20, 465, scene.width - 20, scene.height - 18]); }
+    markers.forEach(function (m) { var b = [m.x - 14, m.y - 27, m.x + 18, m.y + 5]; block(b); include(b); });
+    function leader(x, y, cmd) {
+      if (!cmd) return;
+      var b = cmd.box, end = [U.clamp(x, b[0], b[2]), U.clamp(y, b[1], b[3])], dx = end[0] - x, dy = end[1] - y;
+      if (dx * dx + dy * dy > 100) leaders.push({ t: "path", pts: [[x, y], end], closed: false, s: "schematicLeader", meta: { kind: "annotation", id: cmd.meta.id } });
+    }
+    function candidates(x, y, marker) {
+      var side = [{ x: x + 18, y: y + 7, anchor: "start" }, { x: x - 18, y: y + 7, anchor: "end" }];
+      var vertical = [{ x: x, y: y + 42 }, { x: x, y: y - 38 }];
+      return marker ? vertical.concat(side) : side.concat(vertical.reverse());
+    }
+    markers.forEach(function (m) {
+      var K = NS.own(NS.markers.KINDS, m.kind), word = m.label || K.label, hit = { t: "hit", kind: "marker", id: m.id, x: m.x, y: m.y, r: K.hitR }, cmd, note;
+      K.draw(m.x, m.y, markerItems); markerHits.push(hit);
+      if (word) {
+        cmd = lay.place(word, "schematicMarker", candidates(m.x, m.y, true), { kind: "marker", id: m.id }, { icon: m.icon || null });
+        if (cmd) { markerItems.push(cmd); hit.box = cmd.box.slice(); include(cmd.box); leader(m.x, m.y, cmd); }
+      }
+      if (m.note) {
+        note = String(m.note).replace(/\s+/g, " "); if (note.length > 44) note = note.slice(0, 43).replace(/\s+\S*$/, "") + "…";
+        cmd = lay.place(note, "schematicNote", [{ x: m.x, y: cmd ? cmd.box[3] + 29 : m.y + 42 }, { x: m.x, y: m.y - 70 }], { kind: "marker", id: m.id });
+        if (cmd) { markerItems.push(cmd); include(cmd.box); hit.boxes = hit.box ? [hit.box.slice(), cmd.box.slice()] : [cmd.box.slice()]; if (!hit.box) hit.box = cmd.box.slice(); }
+      }
+    });
+    featureHits.forEach(function (h) {
+      var word = NS.own(words, h.id), cmd;
+      NS.assert(word, "schematic hit has no public annotation", { id: h.id });
+      if (h.r === 0) {
+        cmd = NS.own(originals, h.id); NS.assert(cmd && cmd.box, "unplaced schematic row has no label box", { id: h.id });
+        labels.push(cmd); include(cmd.box); return;
+      }
+      cmd = lay.place(word.text, word.style, candidates(h.x, h.y, false), { kind: "feature", id: h.id });
+      if (cmd) { labels.push(cmd); h.box = cmd.box.slice(); include(cmd.box); leader(h.x, h.y, cmd); }
+    });
+    var layers = [];
+    scene.layers.forEach(function (l) {
+      if (["labels", "markers", "hits", "leaders"].indexOf(l.name) >= 0) return;
+      if (l.name === "features") layers.push({ name: "leaders", items: leaders });
+      layers.push(l);
+    });
+    layers.push({ name: "labels", items: fixed.concat(labels) });
+    if (markers.length) layers.push({ name: "markers", items: markerItems });
+    layers.push({ name: "hits", items: markerHits.concat(featureHits) });
+    var out = U.extend({}, scene); out.layers = layers; out.dropped = lay.dropped; out.contentBounds = extent; out.markers = markers.length;
+    return out;
+  }
+  NS.markers.LAYOUTS.schematic = layout;
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 80-render-svg.js ───── */
@@ -8730,6 +8811,8 @@
   function view(canvas, doc, opts) {
     NS.assert(canvas && canvas.getContext, "view needs a <canvas> element", { canvas: String(canvas) });
     opts = opts || {};
+    var fitMode = opts.fit || "sheet";
+    NS.assert(fitMode === "sheet" || fitMode === "content", "view fit must be sheet or content");
     var styleName = opts.style || "ink", scene = null, baseScene = null, markers = [], layers = {}, listeners = {}, hits = [];
     var bounds = !!opts.bounds;   /* v0.16.0: the sheet fills the view — on an axis where the sheet is larger than the view no paper edge comes inside it, on one where it is smaller the sheet sits centred; every move (a pan, a zoom, a pinch, center, pan(), a resize) is clamped (clampT) */
     var hudTrail = null, hudHits = [], hudPress = null;   /* v0.17.0: the plaque's trail (setHudTrail) — its tiers' boxes in CSS px as last drawn, and the tier a pointer went down on */
@@ -8752,12 +8835,29 @@
       bw = Math.round(w * (1 + 2 * m)); bh = Math.round(h * (1 + 2 * m));
       if (canvas.width !== w || canvas.height !== h || base.width !== bw || base.height !== bh) { canvas.width = w; canvas.height = h; base.width = bw; base.height = bh; baseM = { x: m * s.w, y: m * s.h }; baseDirty = true; clampT(); }
     }
+    /* Content fitting and pan bounds share the same public rectangle and CSS HUD clearance. */
+    function framing(pad) {
+      var s = cssSize(), b = fitMode === "content" && scene && scene.precision === "schematic" && scene.contentBounds;
+      if (!b) return null;
+      NS.assert(Array.isArray(b) && b.length === 4 && b.every(function (v) { return typeof v === "number" && isFinite(v); }) && b[2] > b[0] && b[3] > b[1], "invalid public content bounds");
+      var top = pad, bottom = s.h - pad;
+      if (hud) hudItems().forEach(function (c) {
+        var lo, hi, size;
+        if (c.t === "path" && c.pts && c.pts.length) { lo = Math.min.apply(null, c.pts.map(function (p) { return p[1]; })); hi = Math.max.apply(null, c.pts.map(function (p) { return p[1]; })); }
+        else if (c.t === "circle") { lo = c.y - c.r; hi = c.y + c.r; }
+        else if (c.t === "text") { size = NS.style.get(styleName).text[c.s].size; lo = c.y - size * 1.1; hi = c.y + size * 0.4; }
+        else return;
+        if ((lo + hi) / 2 < s.h / 2) top = Math.max(top, hi + 10); else bottom = Math.min(bottom, lo - 10);
+      });
+      return { x: b[0], y: b[1], w: b[2] - b[0], h: b[3] - b[1], left: pad, right: Math.max(pad + 1, s.w - pad), top: Math.min(top, s.h / 2 - 8), bottom: Math.max(bottom, s.h / 2 + 8) };
+    }
     /* the bounds: the box the scene draws (a dungeon draws a window of its town's coordinates), in CSS px at T */
     function clampT() {
       if (!bounds || !scene) return;
-      var s = cssSize(), W = scene.width * T.k, H = scene.height * T.k, X = (scene.x0 || 0) * T.k, Y = (scene.y0 || 0) * T.k;
-      T.x = W <= s.w ? (s.w - W) / 2 - X : U.clamp(T.x, s.w - W - X, -X);
-      T.y = H <= s.h ? (s.h - H) / 2 - Y : U.clamp(T.y, s.h - H - Y, -Y);
+      var f = framing(16), s = cssSize(), W = (f ? f.w : scene.width) * T.k, H = (f ? f.h : scene.height) * T.k, X = (f ? f.x : scene.x0 || 0) * T.k, Y = (f ? f.y : scene.y0 || 0) * T.k;
+      var left = f ? f.left : 0, right = f ? f.right : s.w, top = f ? f.top : 0, bottom = f ? f.bottom : s.h;
+      T.x = W <= right - left ? (left + right - W) / 2 - X : U.clamp(T.x, right - W - X, left - X);
+      T.y = H <= bottom - top ? (top + bottom - H) / 2 - Y : U.clamp(T.y, bottom - H - Y, top - Y);
     }
     var reveal = null;   /* the fog of war (setReveal): a list of ids (a dungeon's, a building's rooms), a spec {ids} | {points, paths, radiusM} (the area fog on any sheet, v0.18.0), or null for all */
     function rebuildScene() { baseScene = NS.scene.build(doc, styleName, { reveal: reveal }); compose(); }
@@ -8854,8 +8954,10 @@
     function fit(pad) {
       pad = pad === undefined ? 16 : pad;
       if (!scene) rebuildScene();
-      var s = cssSize(), W = scene.width, H = scene.height, X = scene.x0 || 0, Y = scene.y0 || 0, k = Math.min((s.w - 2 * pad) / W, (s.h - 2 * pad) / H);
-      T = { k: k, x: (s.w - W * k) / 2 - X * k, y: (s.h - H * k) / 2 - Y * k };
+      var f = framing(pad), s = cssSize(), W = f ? f.w : scene.width, H = f ? f.h : scene.height, X = f ? f.x : scene.x0 || 0, Y = f ? f.y : scene.y0 || 0;
+      var left = f ? f.left : pad, right = f ? f.right : s.w - pad, top = f ? f.top : pad, bottom = f ? f.bottom : s.h - pad;
+      var k = Math.min((right - left) / W, (bottom - top) / H, f ? 1.25 : Infinity);
+      T = { k: k, x: (left + right - W * k) / 2 - X * k, y: (top + bottom - H * k) / 2 - Y * k };
       userMoved = false; baseDirty = true; schedule(); emit("view", { x: T.x, y: T.y, k: T.k });
     }
     function zoomAt(factor, sx, sy) {
@@ -8866,10 +8968,12 @@
     function toMap(sx, sy) { return [(sx - T.x) / T.k, (sy - T.y) / T.k]; }
     function hitTest(sx, sy) {
       var m = toMap(sx, sy), best = null, bd = 1e9, i, h, d;
-      var slack = 2 / T.k, inBox;
+      var slack = 2 / T.k, inBox, boxes, j, b;
       for (i = 0; i < hits.length; i++) {
         h = hits[i]; d = Math.sqrt(Math.pow(h.x - m[0], 2) + Math.pow(h.y - m[1], 2));
-        inBox = !!h.box && m[0] >= h.box[0] - slack && m[0] <= h.box[2] + slack && m[1] >= h.box[1] - slack && m[1] <= h.box[3] + slack;
+        /* Separate annotation rectangles never make the empty space between a label and note clickable. */
+        boxes = h.boxes || (h.box ? [h.box] : []); inBox = false;
+        for (j = 0; j < boxes.length && !inBox; j++) { b = boxes[j]; inBox = m[0] >= b[0] - slack && m[0] <= b[2] + slack && m[1] >= b[1] - slack && m[1] <= b[3] + slack; }
         if ((d <= h.r / Math.min(1, T.k) + slack || inBox) && d < bd) { bd = d; best = h; }
       }
       return best;
@@ -8943,7 +9047,7 @@
       selected: function () { return selected; },
       setDoc: function (d, keepView) { var nextScene = NS.scene.build(d, styleName, { reveal: null }); doc = d; hover = null; clearPress(); markers = []; reveal = null; baseScene = nextScene; compose(); if (keepView) { baseDirty = true; schedule(); } else fit(); return api; },
       /* setMarkers(list) — the pins drawn over this document (see TnDMaps.markers); a bad list is refused here, loudly */
-      setMarkers: function (list) { list = (list || []).slice(); NS.markers.validate(list, doc.frame); markers = list; hover = null; if (baseScene) compose(); schedule(); return api; },
+      setMarkers: function (list) { list = (list || []).slice(); NS.markers.validate(list, doc.frame); markers = list; hover = null; if (baseScene) compose(); if (fitMode === "content" && !userMoved) fit(); else schedule(); return api; },
       markers: function () { return markers; },
       setStyle: function (name) { NS.style.get(name); styleName = name; rebuildScene(); schedule(); return api; },
       setLayerVisible: function (name, visible) { layers[name] = visible !== false; baseDirty = true; schedule(); return api; },

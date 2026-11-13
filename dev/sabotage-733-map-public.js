@@ -15,6 +15,7 @@ rc|=sabotage.prove({file:'atlas-public.js',command:node,only:only,cases:[
  {label:'the current sheet carries discoveries from the first feature container',find:'p=atlasKnowledgeProjection(k);',replace:'p=atlasKnowledgeProjection(Object.keys(memory.map.geography.features).length?memory.map.geography.features.f1.container:k);',mustFail:only+'changing place cannot carry discoveries into another container'}
 ]});
 var drawer=[
+ {label:'public phone fitting returns to the full decorative sheet',find:'fit:atlasKnowledgeActive()?"content":"sheet"',replace:'fit:"sheet"',mustFail:'FAIL #733 browser public phone fitting keeps landmark and party annotations readable without overlaps'},
  {label:'the open drawer signature ignores newly disclosed geography',find:'A.knowledge,memory&&memory.map&&memory.map.geography&&memory.map.geography.revision,A.knowledge&&memory&&memory.map&&memory.map.identity',replace:'A.knowledge,0,A.knowledge&&memory&&memory.map&&memory.map.identity',mustFail:'FAIL #733 browser three stationary narrated landmarks update the open drawer immediately'},
  {label:'crowded labels disappear without the actionable disclosure warning',find:'if(dropped.length&&P.warning!==warning)atlasPaneSay(dropped.length+" map labels overlap and are omitted. Select a symbol or use the Arrow keys to read every known feature.");',replace:'',mustFail:'FAIL #733 browser crowded public labels produce one actionable warning per unchanged drawing'}
 ];
