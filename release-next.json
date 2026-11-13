@@ -1,6 +1,7 @@
 {
-  "version": "v1.1409",
+  "version": "v1.1410",
   "actions": [
+    "Every new campaign starts with a map that fills as the GM reveals places; the map checkbox is gone.",
     "Authored NPC portraits carry from a blueprint into the campaign and stay with companions when their sheets are created.",
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -57,14 +58,14 @@
     "When you roll your own dice, the GM's combat reminders no longer invite it to resolve your hero's strike without your roll.",
     "The map takes the keyboard: arrow keys step through the places a sheet shows and open each one's card.",
     "The player-rolls reminder to the GM is one short note, said once, and no longer conflicts with automatic strikes.",
-    "Map transition foundations preserve sourced discoveries independently of movement; activation remains under verification.",
+    "Public maps preserve sourced discoveries independently of movement.",
     "Map guidance includes dialogue and navigation targets; exact landmark repeats retain their identity instead of blocking other discoveries.",
-    "Experimental maps use neutral landmark pins, preserving earlier classifications as private evidence with a migration backup.",
+    "Public maps use neutral landmark pins, preserving earlier classifications as private evidence with a migration backup.",
     "Narrated landmarks survive canon-transaction processing without losing their original source position.",
     "A uniquely named reported landmark can become observed without a duplicate pin, even when the GM repeats it as new.",
-    "Experimental maps fit disclosed content, keep party labels apart from landmarks, and preserve your chosen pan and zoom.",
+    "Public maps fit disclosed content, keep party labels apart from landmarks, and preserve your chosen pan and zoom.",
     "Public maps keep landmarks with unknown positions in a readable, selectable list on phones.",
-    "Opted-in public maps discover narrated landmarks while the party stays put, using source-checked directions and one bounded narration check.",
+    "Public maps discover narrated landmarks while the party stays put, using source-checked directions and one bounded narration check.",
     "Opened as a local file, the game says the dice need the hosted site; a failed dice start is retried and explained."
   ]
 }

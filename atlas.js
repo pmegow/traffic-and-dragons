@@ -1213,15 +1213,44 @@ function atlasAddRemove(A,storyKey){
 /* READ: what the follow told the GM this turn or the last (A.told), for the MAP block */
 function atlasToldLines(A){var t=atlasTurn(),out=[],i;for(i=0;i<(A.told||[]).length;i++)if(A.told[i].turn===t)out.push(A.told[i].text);return out;}/* stamped after the turn's count: the next prompt, and no other */
 
-/* WRITE: start a campaign's atlas — the region is drawn now, the party is not on it yet. Throws on a second call. */
-function atlasCreate(seed){
+/* Both creation modes share the persisted base shape; public maps add knowledge without a drawing. */
+function atlasBaseStore(seed){
+  return {v:ATLAS_VER,seed:seed,at:null,spot:null,off:null,ptr:null,zones:keyedDict(),names:keyedDict(),adds:keyedDict(),kinds:keyedDict(),notes:keyedDict(),seen:keyedDict(),told:[],adopt:true};
+}
+function atlasCreatePublic(seed){
+  var W=worldState,M=(typeof memory!=="undefined")?memory:null,map,p,A,g,why;
+  function record(o){var proto;return !!o&&typeof o==="object"&&!Array.isArray(o)&&((proto=Object.getPrototypeOf(o))===Object.prototype||proto===null);}
+  function writable(o,key){var d=Object.getOwnPropertyDescriptor(o,key);return d?Object.prototype.hasOwnProperty.call(d,"value")&&d.writable===true:Object.isExtensible(o);}
+  if(!record(W)||!record(W.world)||typeof W.world.location!=="string"||!W.world.location.trim()||(W.world.sublocation!=null&&typeof W.world.sublocation!=="string"))throw new Error("atlas: public creation needs a campaign with an established final location");
+  if("atlas" in W)throw new Error("atlas: public creation cannot replace an existing atlas record");
+  if(typeof SAVE_VER!=="number"||!isFinite(SAVE_VER)||SAVE_VER<13||Math.floor(SAVE_VER)!==SAVE_VER||typeof ATLAS_VER!=="number"||!isFinite(ATLAS_VER)||ATLAS_VER<2||Math.floor(ATLAS_VER)!==ATLAS_VER)throw new Error("atlas: this build cannot safely save public map knowledge");
+  if(typeof W.ver!=="number"||!isFinite(W.ver)||W.ver<1||Math.floor(W.ver)!==W.ver||W.ver>SAVE_VER)throw new Error("atlas: the campaign save version is not compatible with public map creation");
+  if(!record(M)||!record(M.map)||!record(M.map.nodes)||!Array.isArray(M.map.edges))throw new Error("atlas: public creation needs valid location memory");
+  if(typeof memoryOwnerMismatch==="function"&&memoryOwnerMismatch(W,M))throw new Error("atlas: the map memory belongs to a different campaign");
+  map=M.map;
+  if("geography" in map)throw new Error("atlas: public creation cannot overwrite existing geography");
+  if(!writable(W,"atlas")||!writable(W,"ver")||!writable(map,"geography"))throw new Error("atlas: public map destinations are not writable");
+  if(typeof MapKnowledge==="undefined"||typeof MapKnowledge.create!=="function"||typeof MapKnowledge.problem!=="function"||typeof TnDMaps==="undefined"||typeof TnDMaps.schematic!=="function")throw new Error("atlas: the public map libraries are unavailable");
+  p=atlasPointer();g=MapKnowledge.create();why=MapKnowledge.problem(g);
+  if(why)throw new Error("atlas: public geography could not be prepared — "+why);
+  A=atlasBaseStore(seed);A.knowledge=1;A.publicNotes=keyedDict();A.at=seed;A.ptr=JSON.stringify([p.world,p.sub]);
+  /* The root recipe is a schema placeholder. No generator or fingerprint may turn it into geography. */
+  A.zones[seed]={kind:"region",parent:null,via:null,params:{seed:seed},name:p.sub||p.world,lib:TnDMaps.VERSION,fp:null,fpv:ATLAS_FP_SCHEME,turn:atlasTurn()};
+  why=atlasShapeProblem(A);if(why)throw new Error("atlas: public store could not be prepared — "+why);
+  W.atlas=A;map.geography=g;W.ver=SAVE_VER;
+  atlasForget();
+  return A;
+}
+/* WRITE: start an atlas. Public mode is empty; the legacy default draws the region once. */
+function atlasCreate(seed,opts){
   var A,doc;
   if(typeof worldState==="undefined"||!worldState)throw new Error("atlas: no campaign is loaded");
   if(worldState.atlas)throw new Error("atlas: this campaign already has an atlas");
   if(seed==null)seed=atlasSeedMint();
   if(typeof seed!=="string"||!/^[A-Za-z0-9-]{4,40}$/.test(seed))throw new Error("atlas: a map seed is 4–40 letters, digits or hyphens");
+  if(opts&&opts.knowledge===true)return atlasCreatePublic(seed);
   doc=TnDMaps.generate("region",{seed:seed});
-  A={v:ATLAS_VER,seed:seed,at:null,spot:null,off:null,ptr:null,zones:keyedDict(),names:keyedDict(),adds:keyedDict(),kinds:keyedDict(),notes:keyedDict(),seen:keyedDict(),told:[],adopt:true};/* #708: kinds — what the story said a place IS, per story key; #717: seen — the visit record the fog of war is drawn from */
+  A=atlasBaseStore(seed);
   A.zones[seed]={kind:"region",parent:null,via:null,params:JSON.parse(JSON.stringify(doc.params)),name:(doc.title&&doc.title.name)||null,lib:TnDMaps.VERSION,fp:atlasFingerprint(doc),fpv:ATLAS_FP_SCHEME,turn:atlasTurn()};
   worldState.atlas=A;
   atlasSay("info","drew "+A.zones[seed].name+" (region) from the seed "+seed);

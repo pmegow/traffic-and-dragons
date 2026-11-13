@@ -46,7 +46,7 @@ function atlasPublicCanon(name,parent,sub){
   if(base.length>1){key=atlasLocKey(String(parent)+"|"+atlasPathJoin(base.slice(0,-1).concat(parts)));if(memory.map.nodes[key])return {key:key};}
   return null;
 }
-/* Activation is explicit during rollout. Retain the old atlas once, and refuse damaged/newer
+/* Activation of an existing campaign is explicit. Retain the old atlas once, and refuse damaged/newer
    knowledge; absence of a migration record must never silently mean an empty recovered map. */
 function atlasPublicEnable(){
   var A=atlasLive(),p,backup,knowledge,hasKnowledge,sig;

@@ -2196,7 +2196,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     atlasKindSet(A, key, { kind: "pending" }); A.ptr = null; atlasFollow(); r = atlasPlace(A.seed, { id: atlasDoc(A.seed).places[1].id }, { level: "world", name: "The Boundary Clearing" }); assert(r.ok, JSON.stringify(r)); assert.equal(A.off, null);
   });
 
-  await atest("#708 the door: Begin marks the start pending and the opening asks the story before it is written — the answer is written to the atlas and the follow runs, so the opening's MAP block already shows the start; a start on the map by its own name asks nothing; a failed or unreadable ask is said and refused, never a guessed village", async function () {
+  await atest("#708 the door: the legacy classifier handles a pending start and the opening asks the story before it is written — the answer is written to the atlas and the follow runs, so the opening's MAP block already shows the start; a start on the map by its own name asks nothing; a failed or unreadable ask is said and refused, never a guessed village", async function () {
     stubs(); engine.makeTestWorld(); atlasForget(); quiet();
     var A = atlasCreate("campaign-1"), reg = atlasDoc(A.seed), cap = reg.places[0], key, calls = [], real = global.callGM, r, src, i, j, body;
     point("The Boundary Clearing"); key = atlasWorldKey(atlasPointer());
@@ -2229,12 +2229,15 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
       /* a thrower inside never escapes the opening */
       stubs(); engine.makeTestWorld(); atlasForget(); quiet(); A = atlasCreate("campaign-1"); point("The Boundary Clearing"); key = atlasWorldKey(atlasPointer());
       global.callGM = function () { throw new Error("sync boom"); }; atlasStartMark(); atlasFollow(); r = await atlasClassifyStart(); assert(r && r.kind === "unknown" && /sync boom/.test(r.why), JSON.stringify(r));
+      /* Public maps never consult or consume a legacy pending classifier hint. */
+      delete worldState.atlas;A=atlasCreate("public-classifier",{knowledge:true});key=atlasWorldKey(atlasPointer());atlasKindSet(A,key,{kind:"pending",by:"engine"});
+      assert.equal(atlasKindHint(A,key).kind,"pending");var publicBefore=JSON.stringify(A);assert.equal(await atlasClassifyStart(),null);assert.equal(JSON.stringify(A),publicBefore,"public maps bypass the legacy classifier without consuming its state");
       /* without an atlas */
       delete worldState.atlas; assert.equal(await atlasClassifyStart(), null);
     } finally { global.callGM = real; }
-    /* the wiring, derived from game.js: Begin marks right after the realm is drawn and before the first follow; the opening awaits the ask before the GM is called */
+    /* Legacy openings still await classification; new campaigns use public knowledge and bypass it. */
     src = fs.readFileSync(path.join(ROOT, "game.js"), "utf8");
-    assert(src.indexOf("atlasCreate();atlasStartMark();atlasFollow();") >= 0, "startGame: create, mark, follow");
+    assert(src.indexOf("atlasCreate(null,{knowledge:true});atlasFollow();") >= 0, "startGame initializes public knowledge before following");
     i = src.indexOf("async function beginAdventure("); body = src.slice(i, src.indexOf("\n}\n", i));
     j = body.indexOf("await atlasClassifyStart("); assert(j > 0 && j < body.indexOf("await callGM(intro)"), "beginAdventure asks the story before the opening is written");
     assert(body.indexOf("await atlasClassifyStart(function(tx){setThinking(th,") === j, "the wait is said on the thinking marker through the status callback");

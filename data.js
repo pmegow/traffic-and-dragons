@@ -375,7 +375,7 @@ var WIZARD_ALIGNMENTS=["Lawful Good","Neutral Good","Chaotic Good","Lawful Neutr
    narrated on the player's next turn) · populateFromLibrary: on creation, move every library character in as a resident ·
    switchPovBlock(rs): the switch-POV prompt block override (null = the adventure wording in api.js, byte-identical). */
 var CAMPAIGN_KINDS={
-  adventure:{label:"Adventure",skeleton:true,swapDemotesTo:"party",swapHandoff:true,populateFromLibrary:false,switchPovBlock:null,atlas:true,/* #684: an adventure may be begun with a drawn map */
+  adventure:{label:"Adventure",skeleton:true,swapDemotesTo:"party",swapHandoff:true,populateFromLibrary:false,switchPovBlock:null,
     /* phase B fields — the adventure carries the literals in api.js / tag_table.js / game.js, so every one of these is
        "no override": the adventure prompt stays byte-identical (pinned). */
     ruleOverrides:null,preamble:null,chapterNote:"",tagDocNote:"",noCombat:false,combatRefusal:"",noHarm:false,harmRefusal:"",whisperSubject:null,montage:true,wildcard:true,whisperResidentPool:false,smallTalk:false,moodConditions:true,/* #506: a sheeted character's status keeps condition words (unconscious, captured…) */residentsSilentElsewhere:false,/* #553: only the village marks absent residents silent */residentRelConfirm:false,/* #593: an adventure NPC's relation moves on every [NPC:] write */
@@ -383,7 +383,7 @@ var CAMPAIGN_KINDS={
     stashQuantities:false,tradeOnlyInShops:false,waresPerShop:false,pinPrices:false,shopWords:null,hallWords:null,placeCanon:null,/* #481 A1: no kind canonicalisers — the place resolver's identity and case/article steps only */
     /* phase C/D/G/H — no override: the adventure recaps a chapter, its ladder goes straight to buy, it can be closed, its GM pays XP */
     returnGreeting:false,villageRung:false,residentExchange:false,roam:false,hall:false,xp:"gm",commons:null,recap:"chapter",closable:true,openingAsk:null,openingWeather:null},
-  village:{label:"Village",skeleton:false,swapDemotesTo:"resident",swapHandoff:false,populateFromLibrary:true,atlas:false,/* #684: the village's fixed commons and houses have no drawn map yet */
+  village:{label:"Village",skeleton:false,swapDemotesTo:"resident",swapHandoff:false,populateFromLibrary:true,
     /* #6 phase B — THE PROMPT MODE (Fable, 2026-09-12; the panels' convergence: substitute, never subtract; cut on danger,
        not initiative). ruleOverrides: keyed by the DEFAULT_RULES title a rule starts with — the village DRIVE rule fills the
        adventure DRIVE rule's SLOT (same index, same count). preamble: the stable-half opening. chapterNote: appended to the

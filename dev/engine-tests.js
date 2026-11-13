@@ -59,6 +59,81 @@ function runEngineTests(R){
   // Fresh minimal world for state tests — mirrors the harness character shape.
   function makeWorld(){ __makeWorldState();__toasts.length=0; }
 
+  section("#735 public map creation");
+  function fresh735(){makeWorld();worldState.ver=SAVE_VER;worldState.turn=0;worldState.campId="new735";memory.campId="new735";worldState.world.location="The Final Clearing";worldState.world.sublocation="The Stone Circle";atlasForget();}
+  function refused735(change){
+    fresh735();change();var w=worldState,m=memory,before=JSON.stringify([w,m]),reason="";
+    try{atlasCreate("new-735",{knowledge:true});}catch(e){reason=e.message;}
+    return reason&&worldState===w&&memory===m&&JSON.stringify([worldState,memory])===before?true:"public creation did not refuse atomically: "+reason;
+  }
+  t("#735 public creation never invokes a procedural generator or fingerprint",function(){
+    fresh735();var generate=TnDMaps.generate,fingerprint=atlasFingerprint;
+    TnDMaps.generate=function(){throw new Error("procedural generator invoked");};atlasFingerprint=function(){throw new Error("procedural fingerprint invoked");};
+    try{var A=atlasCreate(null,{knowledge:true}),d=atlasDoc(A.seed);atlasFollow();return /^[A-Za-z0-9-]{4,40}$/.test(A.seed)&&d.generator.name==="schematic"&&d.features.length===0?true:"public creation did not produce an empty schematic";}
+    finally{TnDMaps.generate=generate;atlasFingerprint=fingerprint;}
+  });
+  t("#735 public creation installs one valid empty store at the final starting place",function(){
+    fresh735();var A=atlasCreate("new-735",{knowledge:true}),d=atlasDoc(A.seed),g=memory.map.geography,r=A.zones[A.seed];
+    if(A!==worldState.atlas||A.knowledge!==1||A.v!==ATLAS_VER||A.at!==A.seed||A.ptr!==JSON.stringify(["The Final Clearing","The Stone Circle"]))return "public mode or final pointer missing";
+    if(MapKnowledge.problem(g)||g.revision!==0||Object.keys(g.features).length||Object.keys(g.receipts).length||atlasShapeProblem(A))return "prepared store is not valid and empty";
+    if(!A.publicNotes||Object.keys(A.publicNotes).length||r.kind!=="region"||r.parent!==null||JSON.stringify(r.params)!==JSON.stringify({seed:A.seed})||r.fp)return "neutral compatibility record or notes missing";
+    return d.title.name==="The Stone Circle"&&d.features.length===0&&worldState.ver===SAVE_VER?true:"the public document missed the final starting location";
+  });
+  t("#735 private blueprint nodes NPCs and village houses cannot seed public features",function(){
+    fresh735();worldState.skeleton={premise:"PRIVATE_BLUEPRINT"};worldState.npcs=[{name:"PRIVATE_NPC",location:"PRIVATE_HUT"}];worldState.village={houses:[{name:"PRIVATE_HOUSE"}]};memory.map.nodes.Hidden=newMapNode(0,null,{description:"PRIVATE_CANDIDATE"});
+    var privateBefore=JSON.stringify([worldState.skeleton,worldState.npcs,worldState.village,memory.map.nodes]),A=atlasCreate("new-735",{knowledge:true}),d=atlasDoc(A.seed);
+    var surfaces=JSON.stringify([d,TnDMaps.digest(d),TnDMaps.renderSVG(TnDMaps.scene.build(d,"ink")),atlasMapBlock(),atlasZones()]);
+    return d.features.length===0&&!/PRIVATE_/.test(surfaces)&&JSON.stringify([worldState.skeleton,worldState.npcs,worldState.village,memory.map.nodes])===privateBefore?true:"private seed content escaped or was rewritten";
+  });
+  t("#735 null incomplete and malformed memory refuse before either store is installed",function(){
+    var cases=[null,undefined,[],{}, {map:null},{map:[]},{map:{nodes:[],edges:[]}},{map:{nodes:{},edges:{}}}],i,r;
+    for(i=0;i<cases.length;i++){r=refused735((function(v){return function(){memory=v;};})(cases[i]));if(r!==true)return "memory case "+i+": "+r;}return true;
+  });
+  t("#735 a mismatched memory owner refuses without changing either campaign record",function(){return refused735(function(){memory.campId="another735";});});
+  t("#735 no campaign or no valid final place refuses atomically",function(){
+    var changes=[function(){worldState=null;},function(){worldState=[];},function(){worldState.world=null;},function(){worldState.world.location="";},function(){worldState.world.location={name:"invalid"};},function(){worldState.world.sublocation={name:"invalid"};}],i,r;
+    for(i=0;i<changes.length;i++){r=refused735(changes[i]);if(r!==true)return "context case "+i+": "+r;}return true;
+  });
+  t("#735 any existing atlas is preserved including damaged and newer evidence",function(){
+    var values=[null,false,{}, {v:99,private:"preserve"}],i,r;
+    for(i=0;i<values.length;i++){r=refused735((function(v){return function(){worldState.atlas=v;};})(values[i]));if(r!==true)return "atlas case "+i+": "+r;}
+    fresh735();var A=atlasCreate("legacy-735"),before=JSON.stringify([worldState,memory]),reason="";try{atlasCreate("new-735",{knowledge:true});}catch(e){reason=e.message;}
+    return reason&&worldState.atlas===A&&JSON.stringify([worldState,memory])===before?true:"the legacy atlas was overwritten";
+  });
+  t("#735 existing geography is never overwritten even when null undefined or newer",function(){
+    var values=[MapKnowledge.create(),null,undefined,{v:99},{v:2,features:[]}],i,r;
+    for(i=0;i<values.length;i++){r=refused735((function(v){return function(){memory.map.geography=v;};})(values[i]));if(r!==true)return "geography case "+i+": "+r;}
+    return refused735(function(){var inherited=Object.create({geography:MapKnowledge.create()});inherited.nodes=keyedDict();inherited.edges=[];memory.map=inherited;});
+  });
+  t("#735 unsupported save or atlas compatibility refuses without version stamping",function(){
+    var save=SAVE_VER,atlas=ATLAS_VER,r;try{r=refused735(function(){SAVE_VER=12;});if(r!==true)return r;SAVE_VER=save;r=refused735(function(){ATLAS_VER=1;});if(r!==true)return r;ATLAS_VER=atlas;return refused735(function(){worldState.ver=SAVE_VER+1;});}finally{SAVE_VER=save;ATLAS_VER=atlas;}
+  });
+  t("#735 missing public library refuses without installing either store",function(){
+    fresh735();var schematic=TnDMaps.schematic,w=worldState,m=memory,before=JSON.stringify([w,m]),reason="";TnDMaps.schematic=null;
+    try{try{atlasCreate("new-735",{knowledge:true});}catch(e){reason=e.message;}return /public map libraries are unavailable/.test(reason)&&worldState===w&&memory===m&&JSON.stringify([worldState,memory])===before?true:"missing library was not refused atomically: "+reason;}
+    finally{TnDMaps.schematic=schematic;}
+  });
+  t("#735 invalid prepared geography refuses before either install",function(){
+    var create=MapKnowledge.create;try{return refused735(function(){MapKnowledge.create=function(){return {v:99};};});}finally{MapKnowledge.create=create;}
+  });
+  t("#735 a refused prepared atlas shape leaves geography untouched",function(){
+    var shape=atlasShapeProblem;try{return refused735(function(){atlasShapeProblem=function(){return "injected shape refusal";};});}finally{atlasShapeProblem=shape;}
+  });
+  t("#735 nonwritable destinations refuse before partial installation",function(){
+    var changes=[function(){Object.preventExtensions(worldState);},function(){Object.preventExtensions(memory.map);},function(){Object.defineProperty(worldState,"ver",{value:SAVE_VER,writable:false});}],i,r;
+    for(i=0;i<changes.length;i++){r=refused735(changes[i]);if(r!==true)return "nonwritable case "+i+": "+r;}return true;
+  });
+  t("#735 the public atlas and empty knowledge survive serialize and heal",function(){
+    fresh735();var A=atlasCreate("new-735",{knowledge:true}),before=JSON.stringify(memory.map.geography),saved=parseWorldState(serializeWorldState(worldState)),mem=JSON.parse(JSON.stringify(memory));worldState=saved;memory=mem;atlasForget();atlasHeal();healMemory();
+    return !worldState.atlasJunk&&worldState.atlas.knowledge===1&&worldState.atlas.seed===A.seed&&!atlasShapeProblem(worldState.atlas)&&JSON.stringify(memory.map.geography)===before&&atlasDoc(A.seed).features.length===0?true:"public map lost its mode or gained content during roundtrip";
+  });
+  t("#735 the legacy constructor still draws and fingerprints exactly once",function(){
+    fresh735();var generate=TnDMaps.generate,fingerprint=atlasFingerprint,draws=0,hashes=0;
+    TnDMaps.generate=function(){draws++;return generate.apply(this,arguments);};atlasFingerprint=function(){hashes++;return fingerprint.apply(null,arguments);};
+    try{var A=atlasCreate("legacy-735");return draws===1&&hashes===1&&A.knowledge===undefined&&A.at===null&&A.ptr===null&&Object.keys(A.zones[A.seed].params).length>1&&!Object.prototype.hasOwnProperty.call(memory.map,"geography")?true:"legacy constructor behavior changed";}
+    finally{TnDMaps.generate=generate;atlasFingerprint=fingerprint;}
+  });
+
   section("#734 authored NPC portraits");
   var portrait734="data:image/png;base64,aGVsbG8=",otherPortrait734="https://example.test/chosen.png";
   function seed734(p){makeWorld();var n={name:"Princess Willow",role:"ally",pronouns:"she/her",notes:"A marsh guide."};if(p!==undefined)n.portrait=p;var bp={name:"Portrait test",npcs:[n]},before=JSON.stringify(bp);applyBlueprint(bp);return {npc:wsNpcByName(n.name),bp:bp,before:before};}
