@@ -147,6 +147,8 @@ jobs:
         run: node dev/tests-684-atlas-browser.js
       - name: Public map knowledge browser gate
         run: node dev/tests-733-map-browser.js
+      - name: Narrated map discovery through story and opening entry points
+        run: node dev/tests-733-map-discovery-browser.js
       - name: Reporter usernames in live and filed bug cards (#678)
         run: node dev/tests-678-reporter-browser.js
       - name: Personalized invitation composer and preview (#676)

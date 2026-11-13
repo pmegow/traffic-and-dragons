@@ -1,5 +1,5 @@
 {
-  "version": "v1.1406",
+  "version": "v1.1407",
   "actions": [
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
     "A place the GM names that the map lacks is added to the map beside the party; the GM may say where.",
@@ -62,6 +62,7 @@
     "Narrated landmarks survive canon-transaction processing without losing their original source position.",
     "A uniquely named reported landmark can become observed without a duplicate pin, even when the GM repeats it as new.",
     "Experimental maps fit disclosed content, keep party labels apart from landmarks, and preserve your chosen pan and zoom.",
-    "Public maps keep landmarks with unknown positions in a readable, selectable list on phones."
+    "Public maps keep landmarks with unknown positions in a readable, selectable list on phones.",
+    "Opted-in public maps discover narrated landmarks while the party stays put, using source-checked directions and one bounded narration check."
   ]
 }

@@ -16167,7 +16167,7 @@ function runEngineTests(R){
     if(!/^\[ENGINE NOTE/.test(n)||!/not a player action/.test(n))return "not an engine note: "+n.slice(0,80);
     if(!/beat/i.test(n)||!/explicit|anatomical/i.test(n)||!/cut away|fade|lamp/i.test(n)||!/never address the player|stay in character/i.test(n))return "note lacks the shape: "+n;
     var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("async function sendAction("),body=src.slice(i,src.indexOf("function retryLast("));
-    var call=body.indexOf("var resp=await callGM(apiTxt,sys"),retry=body.indexOf("refusalRetryNote()"),commit=body.indexOf("commitGmTurn(resp,{userMsg:apiTxt");
+    var call=body.indexOf("var resp=await callGM(apiTxt,sys"),retry=body.indexOf("refusalRetryNote()"),commit=body.indexOf("commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt");
     if(call<0||retry<0||commit<0)return "wiring missing: call "+call+" retry "+retry+" commit "+commit;
     if(!(call<retry&&retry<commit))return "the retry must sit between the GM call and the commit";
     if((body.match(/refusalRetryNote\(\)/g)||[]).length!==2)return "exactly two retry sites (#323 worded, #335 empty candidate)";
@@ -24481,7 +24481,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var hl=worldState.healthLog;if(hl.length!==2)return "only gameplay turns enter the ring: "+hl.length;
     if(hl[0].gw!==1||hl[0].cr!==13614||hl[0].prov!=="gemini")return "a server-route turn must be stamped gw:1: "+JSON.stringify(hl[0]);
     if("gw" in hl[1])return "an own-key turn must carry no gw stamp: "+JSON.stringify(hl[1]);
-    if(__fsForTests.readFileSync(__rootForTests+"/api.js","utf8").indexOf("recordUsage(_u,_kind,model,_retries,_tp.server)")<0)return "callGM must pass the transport it used (_tp.server) to recordUsage";
+    if(__fsForTests.readFileSync(__rootForTests+"/api.js","utf8").indexOf("recordUsage(_u,_kind,model,_retries,_tp.server,_usageWorld)")<0)return "callGM must pass its transport (_tp.server) and captured request world (_usageWorld) to recordUsage";
     return true;
   });
   t("healthIndicators: RAG silence — n/a young or flag-off, RED only when a mature campaign serves nothing all window",function(){
@@ -36426,7 +36426,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
   });
   t("#671 the hook: sendAction asks synopsisDue after the commit and fires refreshSynopsis without awaiting it, Table Talk excluded; the call is a side call (noHistory, kind synopsis, its own system line, the button's wait ticking) and nothing in the prompt reads the record",function(){
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
-    var at=g.indexOf("commitGmTurn(resp,{userMsg:apiTxt");if(at<0)return "the commit site moved";
+    var at=g.indexOf("commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt");if(at<0)return "the commit site moved";
     var tail=g.slice(at,at+1200);
     if(!/syncUI\(\);if\(!isTT\)maybeRefreshSynopsis\(\);/.test(tail))return "maybeRefreshSynopsis() must follow the post-commit syncUI(), Table Talk excluded";
     if(/await\s+maybeRefreshSynopsis|await\s+refreshSynopsis\("spine"/.test(g))return "the turn must never wait on the recap";

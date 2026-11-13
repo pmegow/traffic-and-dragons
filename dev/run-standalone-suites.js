@@ -9,6 +9,10 @@ var SUITES = [
   "dev/tests-733-map-migration.js",
   "dev/tests-733-map-public.js",
   "dev/tests-733-map-protocol.js",
+  "dev/tests-733-map-exits.js",
+  "dev/tests-733-map-extract.js",
+  "dev/tests-733-map-discovery.js",
+  "dev/tests-733-map-usage.js",
   "dev/tests-733-map-source.js",/* Public discovery receipts, commit-only authority, scoped locations, and checkpoint/reroll lifecycle. */
   "dev/tests-727-sunburst-portraits.js",
   "dev/tests-725-designer-drafts.js",

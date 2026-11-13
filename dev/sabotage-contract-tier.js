@@ -214,8 +214,8 @@ rc |= sabotage.prove({
     {
       label: "#76 a second commitGmTurn call appears in sendAction (double-commit surface)",
       mustFail: "commitGmTurn called exactly once in sendAction",
-      find: "      commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,logPlayer:",
-      replace: "      commitGmTurn(resp,{userMsg:apiTxt});commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,logPlayer:"
+      find: "      commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:",
+      replace: "      commitGmTurn(resp,{userMsg:apiTxt});commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:"
     },
     {
       label: "#76 ttLog written twice in game.js — the TT log stops being TT's alone",

@@ -1,6 +1,6 @@
 /* atlas-knowledge-source.js — preserve the original public source across parser preprocessing.
    Only offsets are rebased. Changed geographic tokens, private nesting, and canon scopes refuse. */
-function atlasKnowledgeRebase(original,ordinary,queued){
+function atlasKnowledgeRebase(original,ordinary,queued,movementOnly){
   var raw=String(original||""),text=String(ordinary||""),q=queued||{raw:text,items:[],reason:""};
   function refuse(reason){return {raw:raw,items:[],reason:reason};}
   if(q.reason)return refuse(q.reason);
@@ -8,9 +8,10 @@ function atlasKnowledgeRebase(original,ordinary,queued){
   if(!Array.isArray(q.items))return refuse("the queued map source has no valid item list");
   /* Bare markers are normalized only for scope validation, never for source offsets. */
   var scoped=typeof tagRestoreBareMarkers==="function"?tagRestoreBareMarkers(raw,true):raw;
-  var scopeRe=/\[(CANON_TXN_BEGIN|CANON_TXN_END|MAP_REVEAL)(?::([^\[\]\r\n]*))?\]/g,m,open=null,scopeError="",remainder=scoped;
+  var scopeRe=/\[(CANON_TXN_BEGIN|CANON_TXN_END|MAP_REVEAL|EXIT|LOCATION|SUBLOCATION|SUBLOCATION_LEAVE)(?::([^\[\]\r\n]*))?\]/g,m,open=null,scopeError="",remainder=scoped;
   while((m=scopeRe.exec(scoped))){
-    if(m[1]==="MAP_REVEAL"){if(open!==null){scopeError="a map disclosure inside a canon envelope is not public authority";break;}continue;}
+    if(m[1]==="MAP_REVEAL"||m[1]==="EXIT"){if(movementOnly)continue;if(open!==null){scopeError="a map disclosure inside a canon envelope is not public authority";break;}continue;}
+    if(m[1]==="LOCATION"||m[1]==="SUBLOCATION"||m[1]==="SUBLOCATION_LEAVE"){if(open!==null){scopeError="movement inside a canon envelope is not public authority";break;}continue;}
     remainder=remainder.replace(m[0],"");
     if(m[1]==="CANON_TXN_BEGIN"){
       var fields=String(m[2]||"").split("|");
@@ -23,15 +24,15 @@ function atlasKnowledgeRebase(original,ordinary,queued){
   }
   if(scopeError)return refuse(scopeError);
   if(open!==null||/(?:\[CANON_TXN_(?:BEGIN|END)(?::|\])|^[ \t]*CANON_TXN_(?:BEGIN|END):)/m.test(remainder))return refuse("the canon envelope scope is truncated or malformed");
-  function tokens(s){var re=/\[(?:MAP_REVEAL(?::[^\[\]\r\n]*)?|LOCATION:[^\]]+|SUBLOCATION:[^\]]+|SUBLOCATION_LEAVE)\]/g,a=[],hit;while((hit=re.exec(s)))a.push({text:hit[0],start:hit.index,end:re.lastIndex,map:hit[0].indexOf("[MAP_REVEAL")===0});return a;}
+  function tokens(s){var re=/\[(?:(?:MAP_REVEAL|EXIT)(?::[^\[\]\r\n]*)?|LOCATION:[^\]]+|SUBLOCATION:[^\]]+|SUBLOCATION_LEAVE)\]/g,a=[],hit;while((hit=re.exec(s)))a.push({text:hit[0],start:hit.index,end:re.lastIndex,map:/^\[(?:MAP_REVEAL|EXIT)(?::|\])/.test(hit[0])});return a;}
   var source=tokens(raw),parsed=tokens(text),i,j,depth=0,cursor=0,maps=[],out={raw:raw,items:[],reason:""};
   if(source.length!==parsed.length)return refuse("the geographic token sequence changed during preprocessing");
   for(i=0;i<source.length;i++){
     if(source[i].text!==parsed[i].text)return refuse("the geographic token sequence changed during preprocessing");
-    if(!source[i].map)continue;
+    if(movementOnly&&source[i].map)continue;
     for(;cursor<source[i].start;cursor++){if(raw.charAt(cursor)==="[")depth++;else if(raw.charAt(cursor)==="]")depth=Math.max(0,depth-1);}
     if(depth)return refuse("a nested private map directive is not public authority");
-    maps.push(i);
+    if(source[i].map)maps.push(i);
   }
   if(maps.length!==q.items.length)return refuse("the queued map source has a different disclosure count");
   for(j=0;j<maps.length;j++){
@@ -40,4 +41,14 @@ function atlasKnowledgeRebase(original,ordinary,queued){
     out.items.push({container:item.container,event:item.event,start:source[i].start,end:source[i].end,directive:source[i].text});
   }
   return out;
+}
+
+/* Place-sensitive writers cannot safely run after a private movement token. Refuse the
+   response's tag batch before any writer; the ordinary public narrative remains readable. */
+function atlasKnowledgeMovementProblem(raw){
+  var text=String(raw||""),count=(text.match(/\[(?:LOCATION|SUBLOCATION|SUBLOCATION_LEAVE)(?::|\])/g)||[]).length;
+  if(!count)return "";
+  var valid=(text.match(/\[(?:(?:LOCATION|SUBLOCATION):[^\[\]\r\n]+|SUBLOCATION_LEAVE)\]/g)||[]).length;
+  if(count!==valid)return "a movement directive is truncated or malformed";
+  return atlasKnowledgeRebase(text,text,{raw:text,items:[],reason:""},true).reason;
 }

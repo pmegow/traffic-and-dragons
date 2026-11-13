@@ -2646,6 +2646,7 @@ function isBookkeepingResponse(raw,clean,dice){
   return false;
 }
 function commitGmTurn(resp,opts){
+  var _mapExtraction=(typeof atlasDiscoveryAccept==="function")?atlasDiscoveryAccept(resp,opts&&opts.mapExtraction):null;
   audioCommitDepth++;
   try {
   var _audioMuts=null,_audioRespawns=worldState.respawns||0;
@@ -2697,6 +2698,7 @@ function commitGmTurn(resp,opts){
   }
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
   if(!_refusal&&typeof atlasKnowledgeCommit==="function")resp=atlasKnowledgeCommit(resp,_audioMuts&&_audioMuts.mapReveals);/* Public discoveries and their narrated receipts must precede the camp snapshot. */
+  if(!_refusal&&typeof atlasDiscoveryCommit==="function")atlasDiscoveryCommit(_mapExtraction,_audioMuts&&_audioMuts.mapReveals);
   if(typeof atlasFollow==="function")atlasFollow();/* #684: the atlas follows the committed location pointer — after the parser, never inside it; a no-op without an atlas, and it cannot throw */
   if(worldState.checkpointDue){var _cpr=worldState.checkpointDue;delete worldState.checkpointDue;if(typeof takeCheckpoint==="function")takeCheckpoint(_cpr);}/* #300: the camp queued by [REST:long] / an act close is taken here, after the response committed */
   if(worldState.deathPending&&typeof resolvePlayerDeath==="function")resolvePlayerDeath();/* #300: the death narration is in the book; now the consequence */
@@ -2960,9 +2962,11 @@ async function sendAction(override,opts){
     // out-of-character instruction (#74 ②: GM narrated, was corrected, complied, then narrated
     // again next question). Its context now comes from buildTableTalkPrompt instead, including
     // a TT-only history. kind:"tabletalk" gives it its own Usage-modal bucket.
+    var _mapTurnContext=(!isTT&&typeof atlasDiscoveryContext==="function"&&atlasKnowledgeActive())?atlasDiscoveryContext():null;
     var _refusalRetried=false;/* #323/#335: ONE narrate-the-beat retry per turn, whichever refusal shape arrives first */
     try{var resp=await callGM(apiTxt,sys,null,null,isTT?{noHistory:true,kind:"tabletalk"}:undefined);}/* var hoists: the #323 pin keeps its literal */
     catch(_e0){
+      if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_mapTurnContext);
       /* #335 (the t189 tub): a refusal that arrives as an EMPTY candidate (gemini 3 goes silent instead of
          writing "I cannot") is the same event as the worded refusal below and earns the same one retry —
          the narrate-the-beat note in front of the player's own words. A second failure rethrows WITH the
@@ -2985,6 +2989,7 @@ async function sendAction(override,opts){
       }else throw _e0;
     }
     th.remove();
+    if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_mapTurnContext);
     /* #323 (owner call 2026-09-03): a model refusal gets ONE automatic retry with the narrate-the-beat
        note before anything is shown — the t140 kiss comes back as a kiss, not a policy sentence. The
        retry's answer is judged by the same detector; a second refusal falls through to the #197
@@ -3014,10 +3019,13 @@ async function sendAction(override,opts){
     else{
       // The whole commit sequence lives in commitGmTurn (audit 07-16 #5) — shared with
       // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
-      commitGmTurn(resp,{userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
+      if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_mapTurnContext);
+      var _mapDiscoveries=(typeof atlasDiscoveryRequest==="function")?await atlasDiscoveryRequest(resp):null;
+      commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
     }
     syncUI();if(!isTT)maybeRefreshSynopsis();/* #671: the story so far — due after an arc or act completed in this commit; fire-and-forget, the turn never waits on it */
   }catch(e){th.remove();
+    if(typeof atlasDiscoveryDiscard==="function"&&atlasDiscoveryDiscard(e,_committed?null:_mapTurnContext)){busy=false;document.getElementById("sendbtn").disabled=false;return;}
     if(!_committed&&typeof _latchSnap!=="undefined"&&_latchSnap&&typeof restoreNoteLatches==="function"){restoreNoteLatches(_latchSnap);if(typeof noteLogDiscard==="function")noteLogDiscard();}/* #309 *//* #151: the request never committed — un-burn every audit/nudge latch the builders stamped composing it, so the same audit fires again next turn instead of silently skipping its cooldown window */
     var _hid1=(typeof document!=="undefined"&&document.hidden)?1:0;
     if(typeof erCrumb==="function")erCrumb("turn-fail",(_tSent?(Date.now()-_tSent)+"ms":"pre-send")+(_committed?" post":" pre")+" bg"+_hid0+_hid1+" "+String((e&&e.message)||"?").slice(0,28));/* survives a page kill via the crumb ring, unlike the report below */
@@ -3729,15 +3737,19 @@ async function beginAdventure(){
     var intro=buildOpeningIntro(c,w,compStr);/* #6 C4: the opening ask is the kind's — the adventure literal, byte-identical, or the village's homecoming */
     var _openingAudioScope=audioRequestScope();
     if(typeof atlasClassifyStart==="function")await atlasClassifyStart(function(tx){setThinking(th,tx||"The world stirs...");});/* #708: the start's kind is asked of the story BEFORE the opening is written, so its MAP block shows the start as the story has it */
+    var _openingMapContext=(typeof atlasDiscoveryContext==="function"&&atlasKnowledgeActive())?atlasDiscoveryContext():null;
     var resp=await callGM(intro);th.remove();
+    if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_openingMapContext);
     // Unified commit (audit 07-16 #5): inherits sendAction's canonical UA6 order — transcript/
     // sessionLog/state now persist BEFORE the opening scene renders, so a display throw can no
     // longer strand a saved state that lacks the opening narration. isOpening: no turn++.
-    commitGmTurn(resp,{userMsg:intro,audioScope:_openingAudioScope,isOpening:true,onMutated:function(){_openingCommitted=true;/* E82 latch for the opening (user ruling 2026-07-16) */}});
+    var _openingDiscoveries=(typeof atlasDiscoveryRequest==="function")?await atlasDiscoveryRequest(resp):null;
+    commitGmTurn(resp,{mapExtraction:_openingDiscoveries,userMsg:intro,audioScope:_openingAudioScope,isOpening:true,onMutated:function(){_openingCommitted=true;/* E82 latch for the opening (user ruling 2026-07-16) */}});
     if(typeof showFirstTurnOverlay==="function")showFirstTurnOverlay();/* #307: four sentences, once per device, after the first scene is on screen */
     syncUI();
     _promptCampaignFolder();
   }catch(e){th.remove();
+    if(typeof atlasDiscoveryDiscard==="function"&&atlasDiscoveryDiscard(e,_openingCommitted?null:_openingMapContext)){busy=false;document.getElementById("sendbtn").disabled=false;return;}
     if(_openingCommitted){
       // E82 for the opening (user ruling 2026-07-16, surfaced by audit #5): the opening's tags
       // already landed and persisted (UA6 order) — a Retry would re-run the whole opening call

@@ -75,7 +75,7 @@ function atlasKnowledgePublish(raw,items){
     item=items[i];e=item.event;
     if(typeof item.start!=="number"||Math.floor(item.start)!==item.start||item.start<cursor||typeof item.end!=="number"||Math.floor(item.end)!==item.end||item.end<=item.start||item.end>text.length||text.slice(item.start,item.end)!==item.directive)throw new Error("the queued map directive no longer matches its narrated source");
     m=/^\[MAP_REVEAL:([^\[\]\r\n]*)\]$/.exec(item.directive);fields=m?m[1].split("|").map(function(x){return x.trim();}):[];
-    if(JSON.stringify(atlasKnowledgeFields(fields))!==JSON.stringify(e))throw new Error("the queued map disclosure differs from its public directive");
+    if(JSON.stringify(typeof atlasKnowledgeDirectiveEvent==="function"?atlasKnowledgeDirectiveEvent(item.directive):atlasKnowledgeFields(fields))!==JSON.stringify(e))throw new Error("the queued map disclosure differs from its public directive");
     out+=text.slice(cursor,item.end)+"\n\n"+e.quote+"\n\n";cursor=item.end;
   }
   return out+text.slice(cursor);
@@ -89,18 +89,21 @@ function atlasKnowledgeSay(reason){
 function atlasKnowledgeCommit(raw,parsed,opts){
   if(!atlasKnowledgeActive())return raw;
   try{
-    var q=parsed||atlasKnowledgeRead(raw),s=memory&&memory.map&&memory.map.geography,problem=MapKnowledge.problem(s),groups=[],lookup=Object.create(null),i,j,item,group,r,token,visible,out;
+    var q=parsed||atlasKnowledgeRead(raw),s=memory&&memory.map&&memory.map.geography,problem=MapKnowledge.problem(s),groups=[],lookup=Object.create(null),i,j,item,group,r,token,visible,out,items;
     if(q.reason){atlasKnowledgeSay(q.reason+"; no new map discoveries were filed");return raw;}
     if(!q.items.length)return raw;
     if(q.raw!==String(raw||"")){atlasKnowledgeSay("the queued map disclosure source changed; no new map discoveries were filed");return raw;}
     if(problem){atlasKnowledgeSay(problem+"; existing map data was preserved");return raw;}
-    for(i=0;i<q.items.length;i++){
-      item=q.items[i];
+    token=(opts&&opts.commit)||("gm:"+worldState.turn+":"+Date.now().toString(36)+":"+Math.random().toString(36).slice(2));
+    atlasKnowledgePublish(raw,q.items);/* Validate every queued source before any coalescing can hide a changed declaration. */
+    items=typeof atlasKnowledgeExitSelect==="function"?atlasKnowledgeExitSelect(q.items,s,token):q.items;
+    if(!items.length)return raw;
+    for(i=0;i<items.length;i++){
+      item=items[i];
       if(!Object.prototype.hasOwnProperty.call(lookup,item.container)){lookup[item.container]=groups.length;groups.push({container:item.container,events:[]});}
       group=groups[lookup[item.container]];group.events.push(item.event);
     }
-    out=atlasKnowledgePublish(raw,q.items);visible=cleanTxt(out);
-    token=(opts&&opts.commit)||("gm:"+worldState.turn+":"+Date.now().toString(36)+":"+Math.random().toString(36).slice(2));
+    out=atlasKnowledgePublish(raw,items);visible=cleanTxt(out);
     for(j=0;j<groups.length;j++){
       group=groups[j];r=MapKnowledge.prepare(s,group.events,{channel:"gm",commit:token+":"+j,turn:worldState.turn,container:group.container,text:visible});
       if(!r.ok){atlasKnowledgeSay(r.reason+"; no new map discoveries were filed");return raw;}s=r.state;
@@ -120,7 +123,7 @@ function atlasKnowledgeTurnReceipts(){
 function atlasKnowledgeRerollNote(){
   if(!atlasKnowledgeActive())return "";
   var lines=atlasKnowledgeTurnReceipts();
-  return "\n\nPROSE REROLL: keep all committed geography unchanged. Do not add MAP_REVEAL directives or introduce new locations, landmarks, names, directions, or rooms. Preserve these public discoveries: "+(lines.length?lines.join(" "):"none were committed in this turn.");
+  return "\n\nPROSE REROLL: keep all committed geography unchanged. Do not add MAP_REVEAL or EXIT directives or introduce new locations, landmarks, names, directions, or rooms. Preserve these public discoveries: "+(lines.length?lines.join(" "):"none were committed in this turn.");
 }
 function atlasKnowledgeReroll(raw,previous){
   if(!atlasKnowledgeActive())return raw;
@@ -130,8 +133,8 @@ function atlasKnowledgeReroll(raw,previous){
     return previous;
   }
   var text=String(raw||""),lines=atlasKnowledgeTurnReceipts(),i;
-  if(/\[MAP_REVEAL(?::|\])/.test(text))atlasKnowledgeSay("a prose reroll cannot add map discoveries; the committed discoveries are retained");
-  text=text.replace(/\[MAP_REVEAL(?::[^\]]*)?\]/g,"").replace(/\[MAP_REVEAL[^\]]*$/,"");
+  if(/\[(?:MAP_REVEAL|EXIT)(?::|\])/.test(text))atlasKnowledgeSay("a prose reroll cannot add map discoveries; the committed discoveries are retained");
+  text=text.replace(/\[(?:MAP_REVEAL|EXIT)(?::[^\]]*)?\]/g,"").replace(/\[(?:MAP_REVEAL|EXIT)[^\]]*$/,"");
   if(lines.length)text+=(text?"\n\n":"")+"Retained discoveries from this turn:\n"+lines.join("\n");
   return text;
 }

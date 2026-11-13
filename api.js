@@ -3433,11 +3433,16 @@ function applyMuts(text,opts){
   /* #503: the pronouns THIS reply states for the names it tags, for the one resolver — set before W2 preparation and
      the table (every handler resolves through it, whatever the table order), over the text the whitelist left; restored
      at the single return below, so nothing a finished reply said can steer a later resolve. */
+  var _mapMovementProblem=(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&/\[(?:LOCATION|SUBLOCATION|SUBLOCATION_LEAVE)(?::|\])/.test(String(text||"")))?atlasKnowledgeMovementProblem(_mapSourceRaw):"";
+  if(_mapMovementProblem){
+    if(typeof console!=="undefined")console.warn("[map source] GM state changes withheld: "+_mapMovementProblem);
+    return {muts:["⚠ GM state changes withheld — "+_mapMovementProblem],turn:worldState.turn,errors:[_mapMovementProblem],mapReveals:{raw:String(_mapSourceRaw||""),items:[],reason:_mapMovementProblem}};
+  }
   var _npcSaidPrev=(typeof npcBeginResponse==="function")?npcBeginResponse(text):null;
   var _tqBefore=(typeof npcKeySet==="function")?npcKeySet():null;/* #504: the records this reply CREATES are stamped at the seam below */
   var _w2Plan=(typeof w2PrepareResponse==="function")?w2PrepareResponse(text):{ordinary:text,txns:[]};
-  var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true}):{muts:[],turn:worldState.turn,errors:[]},_w2i;/* #481 D6: the source rides into the table */
-  if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&(R.mapReveals||/\[MAP_REVEAL(?::|\])/.test(String(_mapSourceRaw||""))))R.mapReveals=atlasKnowledgeRebase(_mapSourceRaw,_w2Plan.ordinary,R.mapReveals);/* Only unchanged public geographic tokens may regain their original source offsets. */
+  var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true,mapSource:_mapSourceRaw}):{muts:[],turn:worldState.turn,errors:[]},_w2i;/* #481 D6: the source rides into the table */
+  if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&(R.mapReveals||/\[(?:MAP_REVEAL|EXIT)(?::|\])/.test(String(_mapSourceRaw||""))))R.mapReveals=atlasKnowledgeRebase(_mapSourceRaw,_w2Plan.ordinary,R.mapReveals);/* Only unchanged public geographic tokens may regain their original source offsets. */
   if(_rvStripped&&_rvStripped.length)R.muts.push("⚠ review-call whitelist: out-of-scope tags stripped — "+_rvStripped.join(", "));/* #264: loud at the player, not just the console */
   for(_w2i=0;_w2i<_w2Plan.txns.length;_w2i++){
     var _w2t=_w2Plan.txns[_w2i];
@@ -3449,7 +3454,7 @@ function applyMuts(text,opts){
     /* #175bR: pin the executor to this envelope's subject for the duration of its body — the
        SCENE_DEATH handler must never stamp a different NPC than the claim names (identity.js). */
     if(typeof _w2TxnSubjectNow!=="undefined")_w2TxnSubjectNow=_w2t.meta.subject;
-    var _w2Stage=null,_w2r;try{_w2Stage=_w2StageEffects(function(){return applyMutsTable(_w2t.body,{deferCommit:true});});_w2r=_w2Stage.result;}catch(_w2e){_w2r={muts:[],errors:["transaction stage: "+((_w2e&&_w2e.message)||_w2e)]};}
+    var _w2Stage=null,_w2r;try{_w2Stage=_w2StageEffects(function(){return applyMutsTable(_w2t.body,{deferCommit:true,mapSource:_mapSourceRaw});});_w2r=_w2Stage.result;}catch(_w2e){_w2r={muts:[],errors:["transaction stage: "+((_w2e&&_w2e.message)||_w2e)]};}
     if(typeof _w2TxnSubjectNow!=="undefined")_w2TxnSubjectNow=null;
     /* #272 D4 tripwire: the clone SHARES the story transcript (see _w2CopyWorldStateDetached) —
        an envelope handler that appended to it or swapped it just violated "the governed tag set
@@ -3602,12 +3607,14 @@ function usageCost(u,model){
   if(!p)return 0;
   return ((u.in||0)*p.in+(u.out||0)*p.out+(u.cacheRead||0)*p.cacheRead+(u.cacheWrite||0)*p.cacheWrite)/1000000;
 }
-// Accumulate one response's usage onto worldState.usage (total + per-kind bucket).
-// Not persisted here — every calling flow saves shortly after (saveAll/saveCore).
-function recordUsage(u,kind,model,retries,viaServer){/* retries: #29 — absorbed transient auto-retries on this call (optional; only callGM passes it); viaServer: #334 — true when THIS call rode the server gateway (callGM passes the transport it used) */
-  if(!worldState)return;
-  if(!worldState.usage)worldState.usage=blankUsage();
-  var t=worldState.usage;
+// Request-scoped callers retain their original world; other callers use the active world.
+// The caller owns persistence; an obsolete request never saves a replacement campaign.
+function recordUsage(u,kind,model,retries,viaServer,targetWorld){/* retries: #29 — absorbed transient auto-retries on this call (optional; only callGM passes it); viaServer: #334 — true when THIS call rode the server gateway (callGM passes the transport it used) */
+  /* An explicit null target belongs to a request made outside any campaign. */
+  var usageWorld=arguments.length>5?targetWorld:worldState;
+  if(!usageWorld)return;
+  if(!usageWorld.usage)usageWorld.usage=blankUsage();
+  var t=usageWorld.usage;
   t.in+=u.in||0;t.out+=u.out||0;t.cacheRead+=u.cacheRead||0;t.cacheWrite+=u.cacheWrite||0;t.calls++;
   var _cost=usageCost(u,model);
   t.costUSD+=_cost;
@@ -3616,20 +3623,20 @@ function recordUsage(u,kind,model,retries,viaServer){/* retries: #29 — absorbe
   k.in+=u.in||0;k.out+=u.out||0;k.cacheRead+=u.cacheRead||0;k.cacheWrite+=u.cacheWrite||0;k.calls++;
   k.costUSD+=_cost;
   // #17 drift-health ring — ONE observational entry per GAMEPLAY-turn call: the per-turn
-  // in/cacheRead the cache-trend indicator needs (worldState.usage only accumulates), plus
+  // in/cacheRead the cache-trend indicator needs (usageWorld.usage only accumulates), plus
   // the turn's RAG served flag. Read by healthIndicators (helpers.js); feeds nothing else.
   if(kind==="turn"){
     try{
-      if(!worldState.healthLog)worldState.healthLog=[];
-      var _he={t:worldState.turn||0,in:u.in||0,cr:u.cacheRead||0,
+      if(!usageWorld.healthLog)usageWorld.healthLog=[];
+      var _he={t:usageWorld.turn||0,in:u.in||0,cr:u.cacheRead||0,
         rag:(typeof ragRetrieve!=="undefined"&&ragRetrieve._lastServed!==null)?(ragRetrieve._lastServed?1:0):null,
         prov:(typeof activeProvider!=="undefined")?activeProvider:null};
       // #29: absorbed transient retries are stamped, not hidden — the transport indicator
       // (healthIndicators ⑥) reads rt so a degrading provider is visible before it fails loud.
       if(retries)_he.rt=retries;
       if(viaServer)_he.gw=1;/* #334: the server route — the health dot judges the server's Gemini cache only on these (CACHE_JUDGES, helpers.js) */
-      worldState.healthLog.push(_he);
-      if(worldState.healthLog.length>HEALTH_LOG_CAP)worldState.healthLog=worldState.healthLog.slice(worldState.healthLog.length-HEALTH_LOG_CAP);
+      usageWorld.healthLog.push(_he);
+      if(usageWorld.healthLog.length>HEALTH_LOG_CAP)usageWorld.healthLog=usageWorld.healthLog.slice(usageWorld.healthLog.length-HEALTH_LOG_CAP);
     }catch(_hle){if(typeof console!=="undefined")console.warn("[health] ring write failed:",_hle&&_hle.message);}
   }
   // #30 (v1.280): a call that carries tokens but prices at $0 means its model id missed
@@ -3838,6 +3845,7 @@ async function _fetchTextDeadline(url,fopts,ms){
   }finally{if(tm)clearTimeout(tm);}
 }
 async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
+  var _usageWorld=worldState;
   // opts.noHistory: send only this message, not the whole sessionLog — for utility calls
   // (action suggestions) where history is irrelevant and just burns tokens (audit #17).
   // opts.kind: telemetry bucket for recordUsage; defaults to "turn" for gameplay calls
@@ -3889,7 +3897,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
       if(isCreditExhausted(prov,res.status,_tm))throw providerHttpError(prov,res.status,_tm);
       // The gateway can lose a response after the vendor accepted and billed the generation.
       if(_tp.server&&_td&&_td.retryable===false)throw providerHttpError(prov,res.status,_tm);
-      if(_retries<CALLGM_RETRY_MAX){
+      if(!(opts&&opts.noRetry)&&_retries<CALLGM_RETRY_MAX){
         _retries++;
         var _wait=CALLGM_RETRY_BASE_MS*Math.pow(2,_retries-1)+Math.floor(Math.random()*(CALLGM_RETRY_BASE_MS/5));
         console.warn("[transport] "+prov.id+" HTTP "+res.status+" (transient) — auto-retry "+_retries+"/"+CALLGM_RETRY_MAX+" in "+_wait+"ms (#29)");
@@ -3911,7 +3919,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
       // would double-append onto the mutated stable half (moot for Gemini: TAG_REINFORCE is
       // model-constant). No extra backoff: the 2s+4s spent getting here was the backoff, and storm
       // statuses return fast. If the rung fails too, the ordinary loud contract below fires.
-      if(!_fellBack&&prov.fallbackModel&&model!==prov.fallbackModel){
+      if(!(opts&&opts.noRetry)&&!_fellBack&&prov.fallbackModel&&model!==prov.fallbackModel){
         _fellBack=true;
         var _primary=model;
         model=prov.fallbackModel;
@@ -3943,7 +3951,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   if(!res.ok){var _em=(data.error&&data.error.message)||(typeof data.error==="string"?data.error:"")||data.message||data.msg||"";throw providerHttpError(prov,res.status,_em);}
   // Record usage BEFORE parseResponse — an empty-content response still billed input tokens.
   // _retries rides along so absorbed transients reach the #17 ring (visible, never hidden).
-  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,_kind,model,_retries,_tp.server);}catch(e){console.warn("[usage] telemetry parse failed — this call is uncounted (pricing dataset undercounts, TODO #30):",e.message);}}
+  if(prov.parseUsage){try{var _u=prov.parseUsage(data);if(_u)recordUsage(_u,_kind,model,_retries,_tp.server,_usageWorld);}catch(e){console.warn("[usage] telemetry parse failed — this call is uncounted (pricing dataset undercounts, TODO #30):",e.message);}}
   // #132: length-cap truncation is LOUD — a cut response may have been mid-tag, and that tag's
   // mutation is lost (handlers only match complete tags; cleanTxt drops the ragged fragment from
   // display). The transcript/sessionLog keep the raw truth; this is the only warning channel.

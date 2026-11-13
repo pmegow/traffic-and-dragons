@@ -786,22 +786,22 @@ function exitSiblingPlaces(nodeKey){
   if(!node.parent)for(i=0;i<memory.map.edges.length;i++){var e=memory.map.edges[i],ef=_exitR(e.from),et=_exitR(e.to);if(ef===et)continue;var o=ef===nodeKey?et:(et===nodeKey?ef:null);if(o)out.push(_exitLeaf(o));}
   return out;
 }
-function fileExit(name,note,turn){
-  if(!memory.map||!worldState||!worldState.world||!worldState.world.location)return {ok:false,reason:"no map"};
-  var key=_exitR(currentNodeKey()),node=memory.map.nodes[key];if(!node)return {ok:false,reason:"no such place on the map",key:key};
-  var nm=String(name==null?"":name).trim().replace(/\s+/g," ");if(!nm)return {ok:false,reason:"an exit needs a name",key:key};
-  if(node.layout)return {ok:false,reason:"this place has a floor plan on record; the plan is its door record",key:key};
+function fileExit(name,note,turn,at){
+  if(!memory.map||!worldState||!worldState.world||!worldState.world.location)return {ok:false,code:"no_map",reason:"no map"};
+  var key=_exitR(at&&at.key?at.key:currentNodeKey()),node=memory.map.nodes[key];if(!node)return {ok:false,code:"no_place",reason:"no such place on the map",key:key};
+  var nm=String(name==null?"":name).trim().replace(/\s+/g," ");if(!nm)return {ok:false,code:"invalid",reason:"an exit needs a name",key:key};
+  if(node.layout)return {ok:false,code:"layout",reason:"this place has a floor plan on record; the plan is its door record",key:key};
   var nk=exitNameKey(nm),sibs=exitSiblingPlaces(key),i;
-  if(exitNameKey(_exitLeaf(key))===nk)return {ok:false,reason:"an exit cannot lead to the place itself",key:key};
-  for(i=0;i<sibs.length;i++)if(exitNameKey(sibs[i])===nk)return {ok:false,reason:"'"+sibs[i]+"' is already a place on record here — it is a way already",key:key};
+  if(exitNameKey(_exitLeaf(key))===nk)return {ok:false,code:"self",reason:"an exit cannot lead to the place itself",key:key};
+  for(i=0;i<sibs.length;i++)if(exitNameKey(sibs[i])===nk)return {ok:false,code:"known",reason:"'"+sibs[i]+"' is already a place on record here — it is a way already",key:key};
   /* #693: in a mapped campaign a room's leaf carries its building, so the door's name is compared through the ONE resolver at the party's position */
-  var _xr=(typeof resolvePlaceName==="function")?resolvePlaceName(nm,worldState.world.location,{sub:worldState.world.sublocation||null}):null;
+  var _xr=(typeof resolvePlaceName==="function")?resolvePlaceName(nm,at&&at.world?at.world:worldState.world.location,{sub:at?at.sub||null:worldState.world.sublocation||null}):null;
   if(typeof placeResolvedByMap==="function"&&placeResolvedByMap(_xr)){
-    if(_exitR(_xr.key)===key)return {ok:false,reason:"an exit cannot lead to the place itself",key:key};
-    if(memory.map.nodes[_exitR(_xr.key)])return {ok:false,reason:"'"+_exitLeaf(_xr.key)+"' is already a place on record here — it is a way already",key:key};}
+    if(_exitR(_xr.key)===key)return {ok:false,code:"self",reason:"an exit cannot lead to the place itself",key:key};
+    if(memory.map.nodes[_exitR(_xr.key)])return {ok:false,code:"known",reason:"'"+_exitLeaf(_xr.key)+"' is already a place on record here — it is a way already",key:key};}
   var open=node.exits||[];
   for(i=0;i<open.length;i++)if(exitNameKey(open[i].name)===nk)return {ok:true,dup:true,key:key,name:open[i].name,open:open.length};
-  if(open.length>=EXIT_CAP)return {ok:false,reason:"the cap of "+EXIT_CAP+" open ways here is reached; one must be taken before another is filed",key:key};
+  if(open.length>=EXIT_CAP)return {ok:false,code:"capacity",reason:"the cap of "+EXIT_CAP+" open ways here is reached; one must be taken before another is filed",key:key};
   var ex={name:nm,turn:turn},nt=String(note==null?"":note).trim();if(nt)ex.note=nt;
   node.exits=open;open.push(ex);
   return {ok:true,key:key,name:nm,open:open.length};

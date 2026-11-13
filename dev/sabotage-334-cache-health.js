@@ -34,7 +34,7 @@ rc |= sabotage.prove({ file: "api.js", command: CMD, cases: [
     find: "      if(viaServer)_he.gw=1;", replace: "      _he.gw=1;",
     mustFail: T },
   { label: "callGM stops passing the transport it used",
-    find: "if(_u)recordUsage(_u,_kind,model,_retries,_tp.server);}", replace: "if(_u)recordUsage(_u,_kind,model,_retries);}",
+    find: "if(_u)recordUsage(_u,_kind,model,_retries,_tp.server,_usageWorld);}", replace: "if(_u)recordUsage(_u,_kind,model,_retries,undefined,_usageWorld);}",
     mustFail: T }
 ]});
 process.exit(rc ? 1 : 0);

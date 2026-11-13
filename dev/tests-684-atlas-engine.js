@@ -707,7 +707,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert.equal(mapped.stable, plain.stable, "an atlas must not change one byte of the cached stable half");
     assert.equal(mapped.volatile.replace(block, ""), plain.volatile, "the volatile half gains the MAP block and nothing else");
     assert(mapped.volatile.indexOf(buildGeoBlock() + block) >= 0, "right after GEOGRAPHY");
-    var api = src("api.js");
+    var api = src("api.js").replace(/\r\n/g, "\n");
     assert(api.indexOf("    +buildGeoBlock()\n    +((typeof atlasMapBlock===\"function\")?atlasMapBlock():\"\")") > 0, "buildSysPrompt serves the MAP block right after GEOGRAPHY");
     assert(api.indexOf("atlasMapBlock") > api.indexOf("var volatile_="), "in the volatile half — a per-turn block must never touch the cached stable half");
     assert(api.indexOf('audience==="player"')>=0 && api.indexOf("atlasKnowledgePlayerBlock()")>=0, "player geography uses the explicit public projection");

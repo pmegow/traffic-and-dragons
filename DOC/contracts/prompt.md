@@ -27,6 +27,7 @@ Shared `TAG_REINFORCE` constant (globals.js) is assigned to every non-Claude pro
 **Per-provider prompt reinforcement:** a provider may carry an optional `reinforce` string; `callGM()` appends it for gameplay turns only, never to `summarize()`. It exists because gpt-4o treats the state tags as optional, silently desyncing the sheet ([history](../CLAUDE_HISTORY.md#5-providers--the-gpt-4o-bring-up-finding-v132)); `openai.reinforce` is a forceful MANDATORY-TAG-DISCIPLINE block — the per-provider tuning the abstraction exists for. Relatedly, the `[GOLD:]`/`[HP:]` parsers are loosened so a model writing `[GOLD:-5 gp]` still parses.
 
 `callGM(msg, sysOverride, maxTok, modelOverride, opts)` is the single API entry point. `opts.noHistory` sends only the given message instead of the full `sessionLog` (used by the action-suggestion call). `opts.kind` tags the call for usage telemetry (defaults: `"turn"` when no sysOverride, `"other"` for utility calls).
+- `opts.noRetry` bounds a utility to one transport attempt: transient-status retries and model fallback are both disabled. The public-map narration extractor uses this with `noHistory:true` and `kind:"atlas"`; the primary GM request retains its normal retry policy.
 - `maxTok` is optional; defaults to `1500` (runaway insurance, not a style lever — 1000 was scissoring long prose turns mid-tag, v1.540). `summarize()` passes `2000`.
 - Appends `msg` to `sessionLog` for the request body but does not push to `sessionLog` itself.
 

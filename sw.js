@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-20261112j";
+var CACHE = "tnd-v3-20261112k";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -43,6 +43,9 @@ var APP_SHELL = [
   "/atlas-knowledge.js",
   "/atlas-knowledge-migrate.js",
   "/atlas-knowledge-source.js",
+  "/atlas-knowledge-exits.js",
+  "/atlas-knowledge-extract.js",
+  "/atlas-discovery.js",
   "/atlas-public.js",
   "/admission.js",
   "/tag_table.js",

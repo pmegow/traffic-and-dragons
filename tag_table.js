@@ -674,7 +674,7 @@ var TAG_TABLE=[
 /* #415: the narrated door — [EXIT:name|note] files a way the GM described that has no place on record, write-once on the
    CURRENT node (after LOCATION/SUBLOCATION so it lands on the new node). ENGINE-ONLY tier: the geo block's UNEXPLORED WAYS
    line teaches it every turn. Every refusal is loud and files nothing; a duplicate is a benign skip; the note is display only. */
-{t:"EXIT",apply:function(text,R){var exs=text.match(/\[EXIT:([^\]]*)\]/g)||[],xi;for(xi=0;xi<exs.length;xi++){var xb=exs[xi].slice(6,-1),xp=xb.indexOf("|"),xn=xp<0?xb:xb.slice(0,xp),xt=(xp<0?"":xb.slice(xp+1)).trim();
+{t:"EXIT",apply:function(text,R){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){atlasKnowledgeExitApply(text,R);return;}var exs=text.match(/\[EXIT:([^\]]*)\]/g)||[],xi;for(xi=0;xi<exs.length;xi++){var xb=exs[xi].slice(6,-1),xp=xb.indexOf("|"),xn=xp<0?xb:xb.slice(0,xp),xt=(xp<0?"":xb.slice(xp+1)).trim();
   var xr=(typeof fileExit==="function")?fileExit(xn,xt,R.turn):{ok:false,reason:"fileExit missing"};
   if(!xr.ok){R.muts.push("⚠ [EXIT:] refused — "+xr.reason);if(typeof console!=="undefined")console.warn("[tags] EXIT refused at "+(xr.key||"the current node")+": "+xr.reason+" — nothing filed (#415)");continue;}
   if(xr.dup){if(typeof console!=="undefined"&&console.debug)console.debug("[tags] EXIT '"+xr.name+"' already on record at "+xr.key+" — skipped (#415)");continue;}
@@ -2036,6 +2036,7 @@ function applyShopKeeper(entry,text,R,settled){
 }
 function applyMutsTable(text,opts){
   var R={muts:[],turn:worldState.turn};/* audit A15: R.text had no consumer anywhere */
+  R.mapSource=opts&&opts.mapSource!=null?opts.mapSource:text;/* Public exit authority is checked before its known-way write. */
   R.aliasClaims=identityResponseClaims(text);R.aliasDeferred=identityDeferredAliasPlan(R.aliasClaims);
   R.departKey=(typeof currentNodeKey==="function")?currentNodeKey():null;/* #415: where the party stood BEFORE any handler moves it — the doors live there */
   R.places=(typeof placeTimeline==="function"&&worldState.world)?placeTimeline(text):null;/* #481 A4: ONE place timeline per call — its first state is departKey's place */
@@ -2236,6 +2237,7 @@ function applyMutsTable(text,opts){
     mutsSummaryEmit(R);
     syncUI();saveAll();
   }
+  delete R.mapSource;/* Original source is parser-private; mutation results expose public labels only. */
   return R;
 }
 // (v1.261: the shadow/parity machinery that lived here — __tagCloneWS, __tagShadowRun,
