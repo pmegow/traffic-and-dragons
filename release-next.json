@@ -1,5 +1,5 @@
 {
-  "version": "v1.1408",
+  "version": "v1.1409",
   "actions": [
     "Authored NPC portraits carry from a blueprint into the campaign and stay with companions when their sheets are created.",
     "Mapped campaigns file a room under its building, so two inns' kitchens keep their own memories and the GM is told the right one.",
@@ -64,6 +64,7 @@
     "A uniquely named reported landmark can become observed without a duplicate pin, even when the GM repeats it as new.",
     "Experimental maps fit disclosed content, keep party labels apart from landmarks, and preserve your chosen pan and zoom.",
     "Public maps keep landmarks with unknown positions in a readable, selectable list on phones.",
-    "Opted-in public maps discover narrated landmarks while the party stays put, using source-checked directions and one bounded narration check."
+    "Opted-in public maps discover narrated landmarks while the party stays put, using source-checked directions and one bounded narration check.",
+    "Opened as a local file, the game says the dice need the hosted site; a failed dice start is retried and explained."
   ]
 }

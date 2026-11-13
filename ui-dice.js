@@ -16,7 +16,9 @@
    Skipped (returns false, nothing shown): headless, no story area, Car Mode (its own screen covers the page), a reduced-
    motion preference, a face outside its die. A module that fails to load, or a device that cannot start the dice (no
    WebGL), says so on the console and through reportError once per session (the phone's console is invisible) — the card
-   already holds the number. Sound: the clicks share Sound's AudioContext and fall silent with the master mute (#657) or
+   already holds the number. B60: a page opened as a local file is refused before the module is asked for and reports
+   nothing (diceLivePageRefusal). B59: a failed start is tried again by the next roll, DICE_START_TRIES times, and the
+   player is told once why no dice showed (diceLiveSay). Sound: the clicks share Sound's AudioContext and fall silent with the master mute (#657) or
    the UI-sounds switch. #670 (owner 2026-10-26): a dismissed roll leaves by the player's exit (Fade until they pick — Smoke puff before 2026-11-09 —
    one under Dice appearance), with dice-sim's sounds; the damage dice roll as the d20 leaves. */
 var DICE_LIVE_SRC="roller/embed/global.js";
@@ -26,18 +28,62 @@ var DICE_LOOK_DEFAULT="Sketch";         /* owner 2026-11-09 (Bone from 2026-10-2
 var DICE_ROLL_FADE_MS=250;              /* matches #dice-layer.out in index.html */
 var DICE_EXIT_KEY="tnd_dice_exit_v1";   /* #670: how dismissed dice leave on this device — a dice-sim exit name */
 var DICE_EXIT_DEFAULT="fade";           /* owner 2026-11-09 (Smoke puff from #670, 2026-10-26): Fade until the player picks one */
-var _diceLive={state:"idle",overlay:null,layer:null,waiting:[],reported:false,muteHooked:false,token:0,last:null,lastAimed:false,presentToken:0};
+var DICE_START_TRIES=3;                 /* B59: starts tried per page before the dice are off for it — each try makes a canvas and asks for a WebGL context */
+var _diceLive={state:"idle",overlay:null,layer:null,waiting:[],reported:false,muteHooked:false,token:0,last:null,lastAimed:false,presentToken:0,tries:0,why:null,said:false};
 
 /* Says why the live dice did not show, on the console every time and through reportError once per session. */
 function diceLiveFail(why,detail){
   var msg="live dice: "+why;
   console.warn(msg);
-  if(!_diceLive.reported&&typeof reportError==="function"){_diceLive.reported=true;reportError("dice-live",msg,detail||{});}
+  if(!_diceLive.reported&&typeof reportError==="function"){_diceLive.reported=true;reportError("dice-live",msg,diceLiveDetail(detail));}
+}
+/* B59: the report's detail as TEXT. The reporter prints what it is handed with String(), so the object every caller
+   passed arrived as "[object Object]" and the one field that says preload from roll was lost (first seen on B49).
+   It also carries what a failed start needs read: the look worn and whether the page was showing. */
+function diceLiveDetail(detail){
+  var o={},k;
+  for(k in (detail||{}))if(Object.prototype.hasOwnProperty.call(detail,k))o[k]=detail[k];
+  try{o.look=diceLookName();}catch(e){o.look=null;}
+  o.visible=(typeof document!=="undefined"&&document.visibilityState)||null;
+  try{return JSON.stringify(o);}catch(e2){return String(e2&&e2.message||e2);}
+}
+/* B60: ONE rule for "this page cannot have the dice at all" — a page opened as a local file. The browser refuses a
+   module script from a file page (its origin is opaque) and the import map's /roller/ paths lead nowhere there, so the
+   module can never load; every such boot used to post a crash to the live bug feed (eight in a day from one desk).
+   The ambience rule's twin (#502, ui-ambient.js pageRefusal): refuse before anything is fetched, say why, report
+   nothing. Exactly "file:" — localhost and the hosted game keep their dice and their failure report. */
+function diceLivePageRefusal(protocol){
+  if(protocol===undefined)protocol=(typeof location!=="undefined"&&location.protocol)||"";
+  return protocol==="file:"?"Open the hosted game or localhost to see the dice":null;
+}
+/* Tells the player why no dice showed (no silent failure): once for a roll whose dice did not start, and once more when
+   the dice are off for the page — the refusal, the module that did not load, or the last start that failed. */
+function diceLiveSay(){
+  if(_diceLive.said)return false;
+  _diceLive.said=true;
+  var text=_diceLive.why||"The dice could not start; this roll still counts.";
+  if(typeof showToast==="function")showToast(text);else console.warn("live dice: "+text);
+  return true;
+}
+/* B59: a start that failed (the overlay could not be made — an iPhone handed back a WebGL context already lost, twice
+   in nine seconds after a long session). It used to switch the dice off for the whole page at the first failure, the
+   preload's included, though the context comes back in seconds. Now the next roll tries again, DICE_START_TRIES times
+   in all; then the dice are off for this page and the player is told once. A failed try leaves nothing behind: the
+   throw is inside the renderer's constructor, before a canvas is attached. `toPlayer`: a roll or a ready die showed
+   nothing — say so; a preload the next roll may mend is not announced. */
+function diceLiveStartFailed(e,detail,toPlayer){
+  _diceLive.tries++;
+  detail.attempt=_diceLive.tries;
+  if(_diceLive.tries>=DICE_START_TRIES){_diceLive.state="failed";_diceLive.why="The dice could not start on this device; rolls still count. Reload to try again.";_diceLive.said=false;/* final: said once more, in these words */}
+  diceLiveFail("the dice could not start ("+(e&&e.message||e)+")",detail);
+  if(toPlayer)diceLiveSay();
 }
 
 /* Fetches the dice module (once). Its 'dicesim-ready' event runs whatever waited for it. */
 function diceLivePreload(){
   if(_diceLive.state!=="idle"||typeof document==="undefined"||typeof window==="undefined")return;
+  var refused=diceLivePageRefusal();
+  if(refused){_diceLive.state="failed";_diceLive.why=refused;console.warn("live dice: "+refused+" (a page opened as a local file cannot load the dice module; not reported)");return;}
   if(window.DiceSim){_diceLive.state="ready";diceLiveWarm();return;}
   _diceLive.state="loading";
   window.addEventListener("dicesim-ready",function(){
@@ -47,7 +93,7 @@ function diceLivePreload(){
     waiting.forEach(function(f){f();});
   });
   var s=document.createElement("script");s.type="module";s.src=DICE_LIVE_SRC;
-  s.onerror=function(){_diceLive.state="failed";_diceLive.waiting=[];diceLiveFail("the dice module did not load ("+DICE_LIVE_SRC+")");};
+  s.onerror=function(){_diceLive.state="failed";_diceLive.why="The dice could not load on this device; rolls still count.";_diceLive.waiting=[];diceLiveFail("the dice module did not load ("+DICE_LIVE_SRC+")");};
   document.head.appendChild(s);
 }
 /* Makes the overlay as soon as the module is there, so its look's pipeline and the exit's shaders are built while the
@@ -56,7 +102,7 @@ function diceLivePreload(){
 function diceLiveWarm(){
   if(_diceLive.overlay||!diceRollEnv())return;
   try{diceLiveOverlay();}
-  catch(e){_diceLive.state="failed";diceLiveFail("the dice could not start ("+(e&&e.message||e)+")",{at:"preload"});}
+  catch(e){diceLiveStartFailed(e,{at:"preload"},false);}
 }
 /* Runs f once the module is there; never, if it failed to load (that was already said). */
 function diceLiveWhenReady(f){
@@ -135,11 +181,11 @@ function diceLiveMute(){
 /* Throws `dice` ([{type,value}]) over the story; the click that dismisses them runs opts.onClose. */
 function diceLiveRoll(dice,label,opts){
   if(!diceRollEnv())return false;
-  if(_diceLive.state==="failed")return false;
+  if(_diceLive.state==="failed"){diceLiveSay();return false;}
   diceLiveWhenReady(function(){
     var overlay;
     try{overlay=diceLiveOverlay();}
-    catch(e){_diceLive.state="failed";diceLiveFail("the dice could not start ("+(e&&e.message||e)+")",{roll:label});return;}
+    catch(e){diceLiveStartFailed(e,{roll:label},true);return;}
     var layer=diceLiveLayer(),token=++_diceLive.token;
     layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.remove("ready");layer.classList.add("on");/* #677: a die lying ready is thrown from where it lies; the layer comes back under the modal level and the click dismisses */
     layer.onclick=function(){diceLiveClose(token,opts);};/* the only way out: the settled dice stay until the player clicks (owner 2026-10-20) */
@@ -185,13 +231,13 @@ function diceLiveClose(token,opts){
    exit first, and the ready die drops once they have gone; their damage dice do not roll — the card holds the faces. */
 function diceLivePresent(dice,label){
   if(!diceRollEnv())return false;
-  if(_diceLive.state==="failed")return false;
+  if(_diceLive.state==="failed"){diceLiveSay();return false;}
   var token=++_diceLive.token;_diceLive.presentToken=token;/* claimed now: an unpresent before the module is there cancels it */
   diceLiveWhenReady(function(){
     if(token!==_diceLive.token)return;/* cancelled, or a roll took the layer meanwhile */
     var overlay;
     try{overlay=diceLiveOverlay();}
-    catch(e){_diceLive.state="failed";diceLiveFail("the dice could not start ("+(e&&e.message||e)+")",{present:label});return;}
+    catch(e){diceLiveStartFailed(e,{present:label},true);return;}
     var layer=diceLiveLayer(),showing=layer.classList.contains("on")&&!layer.classList.contains("ready")&&!layer.classList.contains("leaving");
     layer.onclick=null;
     function lay(){
@@ -255,6 +301,7 @@ function showDiceLookModal(){
   if(!area||!area.offsetParent)test.style.display="none";/* no story on screen (the wizard's menu): nowhere to roll */
   test.addEventListener("click",function(){
     modal.remove();
+    if(_diceLive.state==="failed")_diceLive.said=false;/* asked for on purpose: say why again */
     showDiceRoll(1+Math.floor(Math.random()*20));
   });
   diceLiveWhenReady(function(){
@@ -279,7 +326,8 @@ function showDiceLookModal(){
       sel.addEventListener("change",function(){diceExitChoose(sel.value);});
     }
   });
-  if(_diceLive.state==="failed"){var b=document.getElementById("dice-look-list");if(b)b.textContent="The dice could not load on this device.";}
+  /* B59: only when the dice cannot be had at all (no module, or a refused page) — a start that failed after the module loaded keeps its presets (the list was overwritten) */
+  if(_diceLive.state==="failed"&&(!window.DiceSim||diceLivePageRefusal())){var b=document.getElementById("dice-look-list");if(b)b.textContent=_diceLive.why||"The dice could not load on this device.";}
   return modal;
 }
 

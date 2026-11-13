@@ -680,7 +680,7 @@ url: http://localhost:3000/ · ua: Mozilla/5.0 (Windows NT 10.0; Win64; x64) App
 - 2026-11-13 — investigated (read-only agent) and dated against git: the export landed 2026-11-06 09:54 PST, the report came 14:42 PST the same day.
 
 ## B59 — The live dice could not start on an iPhone — the page was given no WebGL context, so the dice overlay failed at boot (v1.1378–v1.1380, pages.dev)
-**Status:** findings-ready (the context was LOST at creation, most likely the GPU process down after the Sketch overload fixed in v1.1381; the game-side latch, silence and lost detail are root-caused)
+**Status:** fixed (v1.1409, 2026-11-13 — a failed start is retried, capped and said; the trigger on the phone is unproven and a live check is owed)
 **Kind:** crash · **First seen:** 2026-11-09 (v1.1378) · **Last seen:** 2026-11-09 (v1.1380) · **Count:** 2 · **Campaign:** The Silence Between Leaves (Kaelon Sky-Breaker) · **Turn:** —
 **Fingerprint:** `crash · dice-live · v1.1378 · live dice: the dice could not start (null is not an object (evaluating 'gl.getShaderPrecisionFormat( gl.VERTEX_SHADER, g`
 **Report ids:** 036ffdff-a5da-4b10-a442-23328e7d3c40, eb13dcd0-95ff-4a73-bb5c-884293c5e557
@@ -739,9 +739,10 @@ url: https://traffic-and-dragons.pages.dev/ · ua: Mozilla/5.0 (iPhone; CPU iPho
 
 - 2026-11-13 — filed by /bugs sync (hand sync).
 - 2026-11-13 — investigated (read-only agent): trigger probable, four game-side defects root-caused; no code change.
+- 2026-11-13 — fixed in v1.1409: the next roll retries a failed start (three per page), the player is told when no dice show, Dice appearance keeps its presets, and the report's detail is text with the attempt, the look and the page's visibility. Not changed: the roller (a named error for a lost context belongs to dice-sim) and error-report.js. Proven by dev/sabotage-b59-b60-dice-start.js.
 
 ## B60 — The dice module does not load when the game is opened as a local file — eight boots at file:// each reported the missing module (v1.1400–v1.1407, desktop Chrome)
-**Status:** findings-ready (root-caused: at file:// the dice module can never load, and every boot reports it to the live feed; fix is a page refusal in ui-dice.js, the ambience precedent)
+**Status:** fixed (v1.1409, 2026-11-13 — a local file refuses the dice and reports nothing; verified on a real file:// boot in headless Chrome)
 **Kind:** crash · **First seen:** 2026-11-12 (v1.1400) · **Last seen:** 2026-11-13 (v1.1407) · **Count:** 8 · **Campaign:** The Silence Between Leaves (Kaelon Sky-Breaker); PlaytestHarnessMap733Leaves2026-11-12 · **Turn:** 9, —, 10, 30, 50
 **Fingerprint:** `crash · dice-live · v1.1400 · live dice: the dice module did not load (roller/embed/global.js)`
 **Report ids:** 66b0e99e-5961-40dd-b3d2-6642dd87dbce, 738df7cf-f31f-4661-99be-582b0d49b4cb, c6115949-27d4-4be8-9983-4b8d7f3e5d03, 83f777a6-aa33-4543-be8e-48723781cfd7, 735bfef0-8c0b-4fcd-b099-fc3440028104, 3fe79eff-6d3d-42a0-b7b2-402468d0a439, 2d5c93d2-f2ba-4608-9699-a64e05dd5bf7, df66dfc1-f2b3-4c2d-8c48-39d2c079118e
@@ -827,6 +828,7 @@ url: file:///C:/Projects/traffic-and-dragons/index.html · ua: Mozilla/5.0 (Wind
 
 - 2026-11-13 — filed by /bugs sync (hand sync).
 - 2026-11-13 — investigated (read-only agent): root-caused; no code change.
+- 2026-11-13 — fixed in v1.1409: `diceLivePageRefusal()` refuses a `file:` page before the module is asked for — one console line, one toast at the first roll, the reason shown in Dice appearance, no report. Verified by booting index.html from file:// in headless Chrome (state failed, no module tag, no report, one toast). The toast was built on the ambience precedent; the owner may rule it out.
 
 ## Completed
 
