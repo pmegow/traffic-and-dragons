@@ -10,6 +10,7 @@
 <body><main>
 <p class="meta">Traffic and Dragons · #733 · Implementation decision record · 12 November 2026</p>
 <h1>A discovery must be public narration.</h1>
+<div class="decision"><strong>Historical decision record — foundation through P3.</strong> The typed examples and counts below describe the earlier canary contract. The current implementation uses geography schema 2 and <code>[MAP_REVEAL:new|public label|bearing|observed]</code> (or <code>reported</code>), with neutral pins. Old five-field type proposals remain private evidence. Unique repeated labels use the same monotonic guards as explicit handles. See the <a href="Map_Implementation_733.html">current implementation review</a> and <a href="Map_Live_Trial_733.html">completed fifty-turn trial</a> for the authoritative current behavior and rollout limits.</div>
 <p>This records the first milestone’s admission protocol, alongside the <a href="Map_Review_Astra.html">map review</a> and <a href="Map_Transition_Plan_Astra.html">transition plan</a>. It is a technical contract for the development canary, not an assertion that every rollout gate has passed.</p>
 <div class="decision"><strong>Decision:</strong> use an explicit public discovery directive. A successful canonical GM commit expands it into a readable sentence at the directive’s original position in the displayed and spoken reply. That exact sentence is retained as the feature’s source receipt. Private preparation, procedural geometry, proximity, and plain noun detection cannot introduce a feature.</div>
 
@@ -71,7 +72,7 @@ You hear of Bear Spring, a spring, to the southwest.</pre>
 </tbody></table></div>
 <p>The volatile public brief is capped at 40 features and explicitly says when additional known features are omitted. Searching or paging larger known regions is later work; the cap must not be mistaken for deletion or loss of knowledge.</p>
 
-<h2>Evidence for this boundary</h2>
+<h2>Evidence at the P3 checkpoint</h2>
 <p><code>node dev/tests-733-map-protocol.js</code> passes 30 named groups. They cover three discoveries without movement; private and hypothetical non-admission; nested private directives; malformed groups; parser-only non-admission; source-position scope; save/reroll behavior; actual Table Talk privacy; actual canonical/refused commits; checkpoint restoration; alias projection and collision cases; and actual refused-reroll transcript behavior.</p>
 <p>Failure-first assertions reproduced the missing adapter/privacy boundary, installation before receipt formatting, canonical duplicate labels after merges, nested private disclosure, and refused-reroll source replacement before the corresponding fix.</p>
 <p><code>node dev/sabotage-733-map-protocol.js</code> proves 21 named clauses and restores each mutated file byte-identically. Its first run exposed a missing explicit strip-vocabulary assertion: generic cleanup still stripped the tag, so a registry removal was initially missed. That assertion was added, and all 15 initial clauses then passed; four further source-position and publication clauses and two alias-repeat clauses were added.</p>
